@@ -53,7 +53,7 @@ export const BallAndStickRepresentationProvider = StructureRepresentationProvide
     defaultSizeTheme: { name: 'physical' },
     isApplicable: (structure: Structure) => structure.elementCount > 0,
     getData: (structure: Structure, props: PD.Values<BallAndStickParams>) => {
-        return props.includeParent ? Structure.WithChild.fromStructure(structure) : structure;
+        return props.includeParent ? structure.asParent() : structure;
     },
     mustRecreate: (oldProps: PD.Values<BallAndStickParams>, newProps: PD.Values<BallAndStickParams>) => {
         return oldProps.includeParent !== newProps.includeParent;

@@ -58,7 +58,7 @@ export interface EllipsoidMeshProps {
 }
 
 export function createEllipsoidMesh(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: EllipsoidMeshProps, mesh?: Mesh): Mesh {
-    const child = Structure.WithChild.getChild(structure);
+    const { child } = structure;
     const childUnit = child?.unitMap.get(unit.id);
     if (child && !childUnit) return Mesh.createEmpty(mesh);
 

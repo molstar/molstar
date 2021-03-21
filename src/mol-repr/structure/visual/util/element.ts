@@ -42,7 +42,7 @@ export function makeElementIgnoreTest(structure: Structure, unit: Unit, props: E
     const { atomicNumber } = unit.model.atomicHierarchy.derived.atom;
     const isCoarse = Unit.isCoarse(unit);
 
-    const child = Structure.WithChild.getChild(structure);
+    const { child } = structure;
     const childUnit = child?.unitMap.get(unit.id);
     if (child && !childUnit) throw new Error('expected childUnit to exist if child exists');
 
@@ -58,7 +58,7 @@ export function makeElementIgnoreTest(structure: Structure, unit: Unit, props: E
 }
 
 export function createElementSphereMesh(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: ElementSphereMeshProps, mesh?: Mesh): Mesh {
-    const child = Structure.WithChild.getChild(structure);
+    const { child } = structure;
     const childUnit = child?.unitMap.get(unit.id);
     if (child && !childUnit) return Mesh.createEmpty(mesh);
 
@@ -113,7 +113,7 @@ export type ElementSphereImpostorProps = {
 } & ElementProps
 
 export function createElementSphereImpostor(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: ElementSphereImpostorProps, spheres?: Spheres): Spheres {
-    const child = Structure.WithChild.getChild(structure);
+    const { child } = structure;
     const childUnit = child?.unitMap.get(unit.id);
     if (child && !childUnit) return Spheres.createEmpty(spheres);
 
@@ -194,10 +194,7 @@ export function getElementLoci(pickingId: PickingId, structureGroup: StructureGr
         const { structure, group } = structureGroup;
         const unit = group.units[instanceId];
         const indices = OrderedSet.ofSingleton(groupId as StructureElement.UnitIndex);
-        return StructureElement.Loci(
-            Structure.WithChild.getTarget(structure),
-            [{ unit, indices }]
-        );
+        return StructureElement.Loci(structure.target, [{ unit, indices }]);
     }
     return EmptyLoci;
 }

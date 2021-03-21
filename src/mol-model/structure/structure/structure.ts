@@ -36,89 +36,38 @@ import { RuntimeContext, Task } from '../../../mol-task';
 import { computeStructureBoundary } from './util/boundary';
 
 class Structure {
-    /** Maps unit.id to unit */
-    readonly unitMap: IntMap<Unit>;
-    /** Maps unit.id to index of unit in units array */
-    readonly unitIndexMap: IntMap<number>;
-    /** Array of all units in the structure, sorted by unit.id */
-    readonly units: ReadonlyArray<Unit>;
-
-    private _props: {
-        parent?: Structure,
-        boundary?: Boundary,
-        lookup3d?: StructureLookup3D,
-        interUnitBonds?: InterUnitBonds,
-        unitSymmetryGroups?: ReadonlyArray<Unit.SymmetryGroup>,
-        unitSymmetryGroupsIndexMap?: IntMap<number>,
-        unitsSortedByVolume?: ReadonlyArray<Unit>;
-        carbohydrates?: Carbohydrates,
-        models?: ReadonlyArray<Model>,
-        model?: Model,
-        masterModel?: Model,
-        representativeModel?: Model,
-        uniqueResidueNames?: Set<string>,
-        uniqueElementSymbols?: Set<ElementSymbol>,
-        entityIndices?: ReadonlyArray<EntityIndex>,
-        uniqueAtomicResidueIndices?: ReadonlyMap<UUID, ReadonlyArray<ResidueIndex>>,
-        serialMapping?: SerialMapping,
-        hashCode: number,
-        /** Hash based on all unit.id values in the structure, reflecting the units transformation */
-        transformHash: number,
-        elementCount: number,
-        bondCount: number,
-        uniqueElementCount: number,
-        atomicResidueCount: number,
-        polymerResidueCount: number,
-        polymerUnitCount: number,
-        coordinateSystem: SymmetryOperator,
-        label: string,
-        propertyData?: any,
-        customProps?: CustomProperties
-    } = {
-        hashCode: -1,
-        transformHash: -1,
-        elementCount: -1,
-        bondCount: -1,
-        uniqueElementCount: -1,
-        atomicResidueCount: -1,
-        polymerResidueCount: -1,
-        polymerUnitCount: -1,
-        coordinateSystem: SymmetryOperator.Default,
-        label: ''
-    };
-
     subsetBuilder(isSorted: boolean) {
         return new StructureSubsetBuilder(this, isSorted);
     }
 
     /** Count of all elements in the structure, i.e. the sum of the elements in the units */
     get elementCount() {
-        return this._props.elementCount;
+        return this.state.elementCount;
     }
 
     /** Count of all bonds (intra- and inter-unit) in the structure */
     get bondCount() {
-        if (this._props.bondCount === -1) {
-            this._props.bondCount = this.interUnitBonds.edgeCount + Bond.getIntraUnitBondCount(this);
+        if (this.state.bondCount === -1) {
+            this.state.bondCount = this.interUnitBonds.edgeCount + Bond.getIntraUnitBondCount(this);
         }
-        return this._props.bondCount;
+        return this.state.bondCount;
     }
 
     get hasCustomProperties() {
-        return !!this._props.customProps && this._props.customProps.all.length > 0;
+        return !!this.state.customProps && this.state.customProps.all.length > 0;
     }
 
     get customPropertyDescriptors() {
-        if (!this._props.customProps) this._props.customProps = new CustomProperties();
-        return this._props.customProps;
+        if (!this.state.customProps) this.state.customProps = new CustomProperties();
+        return this.state.customProps;
     }
 
     /**
      * Property data unique to this instance of the structure.
      */
     get currentPropertyData() {
-        if (!this._props.propertyData) this._props.propertyData = Object.create(null);
-        return this._props.propertyData;
+        if (!this.state.propertyData) this.state.propertyData = Object.create(null);
+        return this.state.propertyData;
     }
 
     /**
@@ -130,31 +79,31 @@ class Structure {
 
     /** Count of all polymer residues in the structure */
     get polymerResidueCount() {
-        if (this._props.polymerResidueCount === -1) {
-            this._props.polymerResidueCount = getPolymerResidueCount(this);
+        if (this.state.polymerResidueCount === -1) {
+            this.state.polymerResidueCount = getPolymerResidueCount(this);
         }
-        return this._props.polymerResidueCount;
+        return this.state.polymerResidueCount;
     }
 
     get polymerUnitCount() {
-        if (this._props.polymerUnitCount === -1) {
-            this._props.polymerUnitCount = getPolymerUnitCount(this);
+        if (this.state.polymerUnitCount === -1) {
+            this.state.polymerUnitCount = getPolymerUnitCount(this);
         }
-        return this._props.polymerUnitCount;
+        return this.state.polymerUnitCount;
     }
 
     get uniqueElementCount() {
-        if (this._props.uniqueElementCount === -1) {
-            this._props.uniqueElementCount = getUniqueElementCount(this);
+        if (this.state.uniqueElementCount === -1) {
+            this.state.uniqueElementCount = getUniqueElementCount(this);
         }
-        return this._props.uniqueElementCount;
+        return this.state.uniqueElementCount;
     }
 
     get atomicResidueCount() {
-        if (this._props.atomicResidueCount === -1) {
-            this._props.atomicResidueCount = getAtomicResidueCount(this);
+        if (this.state.atomicResidueCount === -1) {
+            this.state.atomicResidueCount = getAtomicResidueCount(this);
         }
-        return this._props.atomicResidueCount;
+        return this.state.atomicResidueCount;
     }
 
     /**
@@ -170,15 +119,15 @@ class Structure {
     }
 
     get hashCode() {
-        if (this._props.hashCode !== -1) return this._props.hashCode;
+        if (this.state.hashCode !== -1) return this.state.hashCode;
         return this.computeHash();
     }
 
     /** Hash based on all unit.id values in the structure, reflecting the units transformation */
     get transformHash() {
-        if (this._props.transformHash !== -1) return this._props.transformHash;
-        this._props.transformHash = hashFnv32a(this.units.map(u => u.id));
-        return this._props.transformHash;
+        if (this.state.transformHash !== -1) return this.state.transformHash;
+        this.state.transformHash = hashFnv32a(this.units.map(u => u.id));
+        return this.state.transformHash;
     }
 
     private computeHash() {
@@ -191,7 +140,7 @@ class Structure {
         hash = (31 * hash + this.elementCount) | 0;
         hash = hash1(hash);
         if (hash === -1) hash = 0;
-        this._props.hashCode = hash;
+        this.state.hashCode = hash;
         return hash;
     }
 
@@ -202,12 +151,12 @@ class Structure {
 
     /** The parent or itself in case this is the root */
     get root() {
-        return this._props.parent || this;
+        return this.state.parent || this;
     }
 
     /** The root/top-most parent or `undefined` in case this is the root */
     get parent() {
-        return this._props.parent;
+        return this.state.parent;
     }
 
     /**
@@ -218,81 +167,81 @@ class Structure {
      * by the consumer.
      */
     get coordinateSystem(): SymmetryOperator {
-        return this._props.coordinateSystem;
+        return this.state.coordinateSystem;
     }
 
     get label() {
-        return this._props.label;
+        return this.state.label;
     }
 
     get boundary() {
-        if (this._props.boundary) return this._props.boundary;
-        this._props.boundary = computeStructureBoundary(this);
-        return this._props.boundary;
+        if (this.state.boundary) return this.state.boundary;
+        this.state.boundary = computeStructureBoundary(this);
+        return this.state.boundary;
     }
 
     get lookup3d() {
-        if (this._props.lookup3d) return this._props.lookup3d;
-        this._props.lookup3d = new StructureLookup3D(this);
-        return this._props.lookup3d;
+        if (this.state.lookup3d) return this.state.lookup3d;
+        this.state.lookup3d = new StructureLookup3D(this);
+        return this.state.lookup3d;
     }
 
     get interUnitBonds() {
-        if (this._props.interUnitBonds) return this._props.interUnitBonds;
-        this._props.interUnitBonds = computeInterUnitBonds(this);
-        return this._props.interUnitBonds;
+        if (this.state.interUnitBonds) return this.state.interUnitBonds;
+        this.state.interUnitBonds = computeInterUnitBonds(this);
+        return this.state.interUnitBonds;
     }
 
     get unitSymmetryGroups(): ReadonlyArray<Unit.SymmetryGroup> {
-        if (this._props.unitSymmetryGroups) return this._props.unitSymmetryGroups;
-        this._props.unitSymmetryGroups = StructureSymmetry.computeTransformGroups(this);
-        return this._props.unitSymmetryGroups;
+        if (this.state.unitSymmetryGroups) return this.state.unitSymmetryGroups;
+        this.state.unitSymmetryGroups = StructureSymmetry.computeTransformGroups(this);
+        return this.state.unitSymmetryGroups;
     }
 
     /** Maps unit.id to index of SymmetryGroup in unitSymmetryGroups array */
     get unitSymmetryGroupsIndexMap(): IntMap<number> {
-        if (this._props.unitSymmetryGroupsIndexMap) return this._props.unitSymmetryGroupsIndexMap;
-        this._props.unitSymmetryGroupsIndexMap = Unit.SymmetryGroup.getUnitSymmetryGroupsIndexMap(this.unitSymmetryGroups);
-        return this._props.unitSymmetryGroupsIndexMap;
+        if (this.state.unitSymmetryGroupsIndexMap) return this.state.unitSymmetryGroupsIndexMap;
+        this.state.unitSymmetryGroupsIndexMap = Unit.SymmetryGroup.getUnitSymmetryGroupsIndexMap(this.unitSymmetryGroups);
+        return this.state.unitSymmetryGroupsIndexMap;
     }
 
     /** Array of all units in the structure, sorted by their boundary volume */
     get unitsSortedByVolume(): ReadonlyArray<Unit> {
-        if (this._props.unitsSortedByVolume) return this._props.unitsSortedByVolume;
-        this._props.unitsSortedByVolume = getUnitsSortedByVolume(this);
-        return this._props.unitsSortedByVolume;
+        if (this.state.unitsSortedByVolume) return this.state.unitsSortedByVolume;
+        this.state.unitsSortedByVolume = getUnitsSortedByVolume(this);
+        return this.state.unitsSortedByVolume;
     }
 
     get carbohydrates(): Carbohydrates {
-        if (this._props.carbohydrates) return this._props.carbohydrates;
-        this._props.carbohydrates = computeCarbohydrates(this);
-        return this._props.carbohydrates;
+        if (this.state.carbohydrates) return this.state.carbohydrates;
+        this.state.carbohydrates = computeCarbohydrates(this);
+        return this.state.carbohydrates;
     }
 
     get models(): ReadonlyArray<Model> {
-        if (this._props.models) return this._props.models;
-        this._props.models = getModels(this);
-        return this._props.models;
+        if (this.state.models) return this.state.models;
+        this.state.models = getModels(this);
+        return this.state.models;
     }
 
     get uniqueResidueNames() {
-        return this._props.uniqueResidueNames
-            || (this._props.uniqueResidueNames = getUniqueResidueNames(this));
+        return this.state.uniqueResidueNames
+            || (this.state.uniqueResidueNames = getUniqueResidueNames(this));
     }
 
     get uniqueElementSymbols() {
-        return this._props.uniqueElementSymbols
-            || (this._props.uniqueElementSymbols = getUniqueElementSymbols(this));
+        return this.state.uniqueElementSymbols
+            || (this.state.uniqueElementSymbols = getUniqueElementSymbols(this));
     }
 
     get entityIndices() {
-        return this._props.entityIndices
-            || (this._props.entityIndices = getEntityIndices(this));
+        return this.state.entityIndices
+            || (this.state.entityIndices = getEntityIndices(this));
     }
 
     get uniqueAtomicResidueIndices() {
-        return this._props.uniqueAtomicResidueIndices
-            || (this._props.uniqueAtomicResidueIndices = getUniqueAtomicResidueIndices(this));
+        return this.state.uniqueAtomicResidueIndices
+            || (this.state.uniqueAtomicResidueIndices = getUniqueAtomicResidueIndices(this));
     }
 
     /** Contains only atomic units */
@@ -327,7 +276,7 @@ class Structure {
      * to address elements in a structure.
      */
     get serialMapping() {
-        return this._props.serialMapping || (this._props.serialMapping = getSerialMapping(this));
+        return this.state.serialMapping || (this.state.serialMapping = getSerialMapping(this));
     }
 
     /**
@@ -335,25 +284,25 @@ class Structure {
      * Otherwise throw an exception.
      */
     get model(): Model {
-        if (this._props.model) return this._props.model;
-        if (this._props.representativeModel) return this._props.representativeModel;
-        if (this._props.masterModel) return this._props.masterModel;
+        if (this.state.model) return this.state.model;
+        if (this.state.representativeModel) return this.state.representativeModel;
+        if (this.state.masterModel) return this.state.masterModel;
         const models = this.models;
         if (models.length > 1) {
             throw new Error('The structure is based on multiple models and has neither a master- nor a representative-model.');
         }
-        this._props.model = models[0];
-        return this._props.model;
+        this.state.model = models[0];
+        return this.state.model;
     }
 
     /** The master-model, other models can have bonds to it  */
     get masterModel(): Model | undefined {
-        return this._props.masterModel;
+        return this.state.masterModel;
     }
 
     /** A representative model, e.g. the first model of a trajectory */
     get representativeModel(): Model | undefined {
-        return this._props.representativeModel;
+        return this.state.representativeModel;
     }
 
     hasElement(e: StructureElement.Location) {
@@ -377,51 +326,52 @@ class Structure {
         }
         return Structure.create(units, {
             label: this.label,
-            interUnitBonds: this._props.interUnitBonds,
+            interUnitBonds: this.state.interUnitBonds,
         });
     }
 
-    private initUnits(units: ArrayLike<Unit>) {
-        const unitMap = IntMap.Mutable<Unit>();
-        const unitIndexMap = IntMap.Mutable<number>();
-        let elementCount = 0;
-        let isSorted = true;
-        let lastId = units.length > 0 ? units[0].id : 0;
-        for (let i = 0, _i = units.length; i < _i; i++) {
-            const u = units[i];
-            unitMap.set(u.id, u);
-            elementCount += u.elements.length;
-            if (u.id < lastId) isSorted = false;
-            lastId = u.id;
-        }
-        if (!isSorted) sort(units, 0, units.length, cmpUnits, arraySwap);
-        for (let i = 0, _i = units.length; i < _i; i++) {
-            unitIndexMap.set(units[i].id, i);
-        }
-        this._props.elementCount = elementCount;
-        return { unitMap, unitIndexMap };
+    private _child: Structure | undefined;
+    private _target: Structure | undefined;
+
+    /**
+     * For `structure` with `parent` this returns a proxy that
+     * targets `parent` and has `structure` attached as a child.
+     */
+    asParent(): Structure {
+        return this.parent
+            ? new Structure(this.parent.state, { child: this, target: this.parent })
+            : this;
     }
 
-    constructor(units: ArrayLike<Unit>, props: Structure.Props = {}) {
-        const { unitMap, unitIndexMap } = this.initUnits(units);
-        this.unitMap = unitMap;
-        this.unitIndexMap = unitIndexMap;
-        this.units = units as ReadonlyArray<Unit>;
+    get child(): Structure | undefined {
+        return this._child;
+    }
 
-        if (props.parent) this._props.parent = props.parent.parent || props.parent;
-        if (props.interUnitBonds) this._props.interUnitBonds = props.interUnitBonds;
+    /** Get the proxy target. Usefull for equality checks. */
+    get target(): Structure {
+        return this._target ?? this;
+    }
 
-        if (props.coordinateSystem) this._props.coordinateSystem = props.coordinateSystem;
-        else if (props.parent) this._props.coordinateSystem = props.parent.coordinateSystem;
+    /** Maps unit.id to unit */
+    get unitMap(): IntMap<Unit> {
+        return this.state.unitMap;
+    }
 
-        if (props.label) this._props.label = props.label;
-        else if (props.parent) this._props.label = props.parent.label;
+    /** Maps unit.id to index of unit in units array */
+    get unitIndexMap(): IntMap<number> {
+        return this.state.unitIndexMap;
+    }
 
-        if (props.masterModel) this._props.masterModel = props.masterModel;
-        else if (props.parent) this._props.masterModel = props.parent.masterModel;
+    /** Array of all units in the structure, sorted by unit.id */
+    get units(): ReadonlyArray<Unit> {
+        return this.state.units;
+    }
 
-        if (props.representativeModel) this._props.representativeModel = props.representativeModel;
-        else if (props.parent) this._props.representativeModel = props.parent.representativeModel;
+    constructor(readonly state: Structure.State, asParent?: { child: Structure, target: Structure }) {
+        if (asParent) {
+            this._child = asParent.child;
+            this._target = asParent.target;
+        }
     }
 }
 
@@ -632,7 +582,7 @@ function getSerialMapping(structure: Structure): SerialMapping {
 }
 
 namespace Structure {
-    export const Empty = new Structure([]);
+    export const Empty = create([]);
 
     export interface Props {
         parent?: Structure
@@ -686,8 +636,96 @@ namespace Structure {
         return Loci(structure);
     }
 
-    export function create(units: ReadonlyArray<Unit>, props?: Props): Structure {
-        return new Structure(units, props);
+    export type State = {
+        unitMap: IntMap<Unit>;
+        unitIndexMap: IntMap<number>;
+        units: ReadonlyArray<Unit>;
+
+        parent?: Structure,
+        boundary?: Boundary,
+        lookup3d?: StructureLookup3D,
+        interUnitBonds?: InterUnitBonds,
+        unitSymmetryGroups?: ReadonlyArray<Unit.SymmetryGroup>,
+        unitSymmetryGroupsIndexMap?: IntMap<number>,
+        unitsSortedByVolume?: ReadonlyArray<Unit>;
+        carbohydrates?: Carbohydrates,
+        models?: ReadonlyArray<Model>,
+        model?: Model,
+        masterModel?: Model,
+        representativeModel?: Model,
+        uniqueResidueNames?: Set<string>,
+        uniqueElementSymbols?: Set<ElementSymbol>,
+        entityIndices?: ReadonlyArray<EntityIndex>,
+        uniqueAtomicResidueIndices?: ReadonlyMap<UUID, ReadonlyArray<ResidueIndex>>,
+        serialMapping?: SerialMapping,
+        hashCode: number,
+        transformHash: number,
+        elementCount: number,
+        bondCount: number,
+        uniqueElementCount: number,
+        atomicResidueCount: number,
+        polymerResidueCount: number,
+        polymerUnitCount: number,
+        coordinateSystem: SymmetryOperator,
+        label: string,
+        propertyData?: any,
+        customProps?: CustomProperties
+    }
+
+    export function create(units: ReadonlyArray<Unit>, props: Props = {}): Structure {
+        // init units
+        const unitMap = IntMap.Mutable<Unit>();
+        const unitIndexMap = IntMap.Mutable<number>();
+        let elementCount = 0;
+        let isSorted = true;
+        let lastId = units.length > 0 ? units[0].id : 0;
+        for (let i = 0, _i = units.length; i < _i; i++) {
+            const u = units[i];
+            unitMap.set(u.id, u);
+            elementCount += u.elements.length;
+            if (u.id < lastId) isSorted = false;
+            lastId = u.id;
+        }
+        if (!isSorted) sort(units, 0, units.length, cmpUnits, arraySwap);
+        for (let i = 0, _i = units.length; i < _i; i++) {
+            unitIndexMap.set(units[i].id, i);
+        }
+
+        // initial state
+        const state: Structure.State = {
+            units,
+            unitMap,
+            unitIndexMap,
+
+            hashCode: -1,
+            transformHash: -1,
+            elementCount,
+            bondCount: -1,
+            uniqueElementCount: -1,
+            atomicResidueCount: -1,
+            polymerResidueCount: -1,
+            polymerUnitCount: -1,
+            coordinateSystem: SymmetryOperator.Default,
+            label: ''
+        };
+
+        // handle props
+        if (props.parent) state.parent = props.parent.parent || props.parent;
+        if (props.interUnitBonds) state.interUnitBonds = props.interUnitBonds;
+
+        if (props.coordinateSystem) state.coordinateSystem = props.coordinateSystem;
+        else if (props.parent) state.coordinateSystem = props.parent.coordinateSystem;
+
+        if (props.label) state.label = props.label;
+        else if (props.parent) state.label = props.parent.label;
+
+        if (props.masterModel) state.masterModel = props.masterModel;
+        else if (props.parent) state.masterModel = props.parent.masterModel;
+
+        if (props.representativeModel) state.representativeModel = props.representativeModel;
+        else if (props.parent) state.representativeModel = props.parent.representativeModel;
+
+        return new Structure(state);
     }
 
     export async function ofTrajectory(trajectory: Trajectory, ctx: RuntimeContext): Promise<Structure> {
@@ -893,7 +931,7 @@ namespace Structure {
 
         const cs = s.coordinateSystem;
         const newCS = SymmetryOperator.compose(SymmetryOperator.create(cs.name, transform, cs), cs);
-        return new Structure(units, { parent: s, coordinateSystem: newCS });
+        return create(units, { parent: s, coordinateSystem: newCS });
     }
 
     export class StructureBuilder {
@@ -1227,34 +1265,6 @@ namespace Structure {
 
     export type Index = number;
     export const Index = CustomStructureProperty.createSimple<Index>('index', 'root');
-
-    export const WithChild = {
-        getChild(structure: Structure): Structure | undefined {
-            return (structure as any).__child;
-        },
-        /** Get the proxy target. Usefull for equality checks. */
-        getTarget(structure: Structure): Structure {
-            return (structure as any).__parent || structure;
-        },
-        /**
-         * For `structure` with `parent` this returns a proxy that
-         * targets `parent` and has `structure` attached as a child.
-         */
-        fromStructure(structure: Structure): Structure {
-            if (!structure.parent) return structure;
-
-            return new Proxy(structure.parent, {
-                get: function(target, prop, receiver) {
-                    if (prop === '__child') {
-                        return structure;
-                    } else if (prop === '__parent') {
-                        return structure.parent;
-                    }
-                    return Reflect.get(target, prop, receiver);
-                }
-            });
-        }
-    };
 }
 
 export { Structure };

@@ -97,7 +97,7 @@ function createInterUnitBondLines(ctx: VisualContext, structure: Structure, them
 
     const l = createLinkLines(ctx, builderProps, props, lines);
 
-    const child = Structure.WithChild.getChild(structure);
+    const { child } = structure;
     const sphere = Sphere3D.expand(Sphere3D(), (child ?? structure).boundary.sphere, 1 * props.sizeFactor);
     l.setBoundingSphere(sphere);
 

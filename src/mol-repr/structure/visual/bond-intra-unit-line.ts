@@ -25,12 +25,11 @@ const isBondType = BondType.is;
 function createIntraUnitBondLines(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: PD.Values<IntraUnitBondLineParams>, lines?: Lines) {
     if (!Unit.isAtomic(unit)) return Lines.createEmpty(lines);
 
-    const child = Structure.WithChild.getChild(structure);
+    const { child } = structure;
     const childUnit = child?.unitMap.get(unit.id);
     if (child && !childUnit) return Lines.createEmpty(lines);
 
     if (props.includeParent) {
-        const child = Structure.WithChild.getChild(structure);
         if (!child) throw new Error('expected child to exist');
     }
 

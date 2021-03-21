@@ -47,7 +47,7 @@ function getInterUnitBondCylinderBuilderProps(structure: Structure, theme: Theme
     let stub: undefined | ((edgeIndex: number) => boolean);
 
     if (props.includeParent) {
-        const child = Structure.WithChild.getChild(structure);
+        const { child } = structure;
         if (!child) throw new Error('expected child to exist');
 
         stub = (edgeIndex: number) => {
@@ -159,7 +159,7 @@ function createInterUnitBondCylinderImpostors(ctx: VisualContext, structure: Str
     const builderProps = getInterUnitBondCylinderBuilderProps(structure, theme, props);
     const m = createLinkCylinderImpostors(ctx, builderProps, props, cylinders);
 
-    const child = Structure.WithChild.getChild(structure);
+    const { child } = structure;
     const sphere = Sphere3D.expand(Sphere3D(), (child ?? structure).boundary.sphere, 1 * props.sizeFactor);
     m.setBoundingSphere(sphere);
 
@@ -172,7 +172,7 @@ function createInterUnitBondCylinderMesh(ctx: VisualContext, structure: Structur
     const builderProps = getInterUnitBondCylinderBuilderProps(structure, theme, props);
     const m = createLinkCylinderMesh(ctx, builderProps, props, mesh);
 
-    const child = Structure.WithChild.getChild(structure);
+    const { child } = structure;
     const sphere = Sphere3D.expand(Sphere3D(), (child ?? structure).boundary.sphere, 1 * props.sizeFactor);
     m.setBoundingSphere(sphere);
 

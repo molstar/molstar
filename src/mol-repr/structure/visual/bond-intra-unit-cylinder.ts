@@ -42,7 +42,7 @@ function getIntraUnitBondCylinderBuilderProps(unit: Unit.Atomic, structure: Stru
     const locB = Bond.Location(structure, unit, undefined, structure, unit, undefined);
 
     if (props.includeParent) {
-        const child = Structure.WithChild.getChild(structure);
+        const { child } = structure;
         if (!child) throw new Error('expected child to exist');
         const childUnit = child.unitMap.get(unit.id);
         if (!childUnit) throw new Error('expected childUnit to exist');
@@ -131,7 +131,7 @@ function createIntraUnitBondCylinderImpostors(ctx: VisualContext, unit: Unit, st
     if (!Unit.isAtomic(unit)) return Cylinders.createEmpty(cylinders);
     if (!unit.bonds.edgeCount) return Cylinders.createEmpty(cylinders);
 
-    const child = Structure.WithChild.getChild(structure);
+    const { child } = structure;
     const childUnit = child?.unitMap.get(unit.id);
     if (child && !childUnit) return Cylinders.createEmpty(cylinders);
 
@@ -148,7 +148,7 @@ function createIntraUnitBondCylinderMesh(ctx: VisualContext, unit: Unit, structu
     if (!Unit.isAtomic(unit)) return Mesh.createEmpty(mesh);
     if (!unit.bonds.edgeCount) return Mesh.createEmpty(mesh);
 
-    const child = Structure.WithChild.getChild(structure);
+    const { child } = structure;
     const childUnit = child?.unitMap.get(unit.id);
     if (child && !childUnit) return Mesh.createEmpty(mesh);
 

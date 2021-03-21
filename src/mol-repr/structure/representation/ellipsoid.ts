@@ -53,7 +53,7 @@ export const EllipsoidRepresentationProvider = StructureRepresentationProvider({
     defaultSizeTheme: { name: 'uniform' },
     isApplicable: (structure: Structure) => structure.elementCount > 0 && structure.models.some(m => AtomSiteAnisotrop.Provider.isApplicable(m)),
     getData: (structure: Structure, props: PD.Values<EllipsoidParams>) => {
-        return props.includeParent ? Structure.WithChild.fromStructure(structure) : structure;
+        return props.includeParent ? structure.asParent() : structure;
     },
     mustRecreate: (oldProps: PD.Values<EllipsoidParams>, newProps: PD.Values<EllipsoidParams>) => {
         return oldProps.includeParent !== newProps.includeParent;

@@ -48,7 +48,7 @@ export const LineRepresentationProvider = StructureRepresentationProvider({
     defaultSizeTheme: { name: 'uniform' },
     isApplicable: (structure: Structure) => structure.elementCount > 0,
     getData: (structure: Structure, props: PD.Values<LineParams>) => {
-        return props.includeParent ? Structure.WithChild.fromStructure(structure) : structure;
+        return props.includeParent ? structure.asParent() : structure;
     },
     mustRecreate: (oldProps: PD.Values<LineParams>, newProps: PD.Values<LineParams>) => {
         return oldProps.includeParent !== newProps.includeParent;

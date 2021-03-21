@@ -56,7 +56,7 @@ export function makeIntraBondIgnoreTest(structure: Structure, unit: Unit.Atomic,
     const exclude = BondType.fromNames(excludeTypes);
     const allBondTypes = BondType.isAll(include) && BondType.Flag.None === exclude;
 
-    const child = Structure.WithChild.getChild(structure);
+    const { child } = structure;
     const childUnit = child?.unitMap.get(unit.id);
     if (child && !childUnit) throw new Error('expected childUnit to exist if child exists');
 
@@ -81,7 +81,7 @@ export function makeInterBondIgnoreTest(structure: Structure, props: BondProps):
     const exclude = BondType.fromNames(excludeTypes);
     const allBondTypes = BondType.isAll(include) && BondType.Flag.None === exclude;
 
-    const child = Structure.WithChild.getChild(structure);
+    const { child } = structure;
 
     if (allBondTypes && !ignoreHydrogens && !child) return;
 
@@ -153,7 +153,7 @@ export function getIntraBondLoci(pickingId: PickingId, structureGroup: Structure
         const { structure, group } = structureGroup;
         const unit = group.units[instanceId];
         if (Unit.isAtomic(unit)) {
-            const target = Structure.WithChild.getTarget(structure);
+            const { target } = structure;
             const iA = unit.bonds.a[groupId];
             const iB = unit.bonds.b[groupId];
             return Bond.Loci(target, [
@@ -211,7 +211,7 @@ export function eachIntraBond(loci: Loci, structureGroup: StructureGroup, apply:
 export function getInterBondLoci(pickingId: PickingId, structure: Structure, id: number) {
     const { objectId, groupId } = pickingId;
     if (id === objectId) {
-        const target = Structure.WithChild.getTarget(structure);
+        const { target } = structure;
         const b = structure.interUnitBonds.edges[groupId];
         const uA = structure.unitMap.get(b.unitA);
         const uB = structure.unitMap.get(b.unitB);

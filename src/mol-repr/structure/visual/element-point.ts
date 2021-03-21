@@ -29,7 +29,7 @@ export type ElementPointParams = typeof ElementPointParams
 export function createElementPoint(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: PD.Values<ElementPointParams>, points: Points) {
     // TODO sizeFactor
 
-    const child = Structure.WithChild.getChild(structure);
+    const { child } = structure;
     if (child && !child.unitMap.get(unit.id)) return Points.createEmpty(points);
 
     const elements = unit.elements;
