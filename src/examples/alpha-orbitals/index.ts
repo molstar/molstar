@@ -174,7 +174,8 @@ export class AlphaOrbitalsExample {
             kind,
             relativeIsovalue: this.state.value.isoValue,
             pickable: false,
-            xrayShaded: true
+            xrayShaded: true,
+            tryUseGpu: false
         };
     }
 

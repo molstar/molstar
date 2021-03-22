@@ -172,7 +172,8 @@ export const CreateOrbitalRepresentation3D = PluginStateTransform.BuiltIn({
         color: PD.Color(ColorNames.blue),
         alpha: PD.Numeric(1, { min: 0, max: 1, step: 0.01 }),
         xrayShaded: PD.Boolean(false),
-        pickable: PD.Boolean(true)
+        pickable: PD.Boolean(true),
+        tryUseGpu: PD.Boolean(true)
     }
 })({
     canAutoUpdate() {
@@ -230,7 +231,7 @@ function volumeParams(plugin: PluginContext, volume: PluginStateObject.Volume.Da
         colorParams: { value: params.color }
     } : {
         type: 'isosurface',
-        typeParams: { isoValue: { kind: 'absolute', absoluteValue: (value ?? 1000) * params.relativeIsovalue }, alpha: params.alpha, xrayShaded: params.xrayShaded },
+        typeParams: { isoValue: { kind: 'absolute', absoluteValue: (value ?? 1000) * params.relativeIsovalue }, alpha: params.alpha, xrayShaded: params.xrayShaded, tryUseGpu: params.tryUseGpu },
         color: 'uniform',
         colorParams: { value: params.color }
     });
