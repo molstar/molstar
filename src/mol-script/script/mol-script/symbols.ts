@@ -11,7 +11,7 @@ import { MolScriptSymbolTable as MolScript } from '../../language/symbol-table';
 import { Type } from '../../language/type';
 import { Types as StructureQueryTypes } from '../../language/symbol-table/structure-query';
 import { MolScriptBuilder as B } from '../../language/builder';
-import { getPositionalArgs, tryGetArg } from './macro';
+import { getPositionalArgs, tryGetArg } from './script-macro';
 
 export type MolScriptSymbol =
     | { kind: 'alias', aliases: string[], symbol: MSymbol }
