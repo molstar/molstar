@@ -123,11 +123,20 @@ export const GroProvider: TrajectoryFormatProvider = {
 };
 
 export const MolProvider: TrajectoryFormatProvider = {
-    label: 'MOL/SDF',
-    description: 'MOL/SDF',
+    label: 'MOL',
+    description: 'MOL',
     category: TrajectoryFormatCategory,
-    stringExtensions: ['mol', 'sdf', 'sd'],
+    stringExtensions: ['mol'],
     parse: directTrajectory(StateTransforms.Model.TrajectoryFromMOL),
+    visuals: defaultVisuals
+};
+
+export const SdfProvider: TrajectoryFormatProvider = {
+    label: 'SDF',
+    description: 'SDF',
+    category: TrajectoryFormatCategory,
+    stringExtensions: ['sdf', 'sd'],
+    parse: directTrajectory(StateTransforms.Model.TrajectoryFromSDF),
     visuals: defaultVisuals
 };
 
@@ -148,6 +157,7 @@ export const BuiltInTrajectoryFormats = [
     ['gro', GroProvider] as const,
     ['xyz', XyzProvider] as const,
     ['mol', MolProvider] as const,
+    ['sdf', SdfProvider] as const,
     ['mol2', Mol2Provider] as const,
 ] as const;
 

@@ -39,6 +39,7 @@ import { parseXtc } from '../../mol-io/reader/xtc/parser';
 import { coordinatesFromXtc } from '../../mol-model-formats/structure/xtc';
 import { parseXyz } from '../../mol-io/reader/xyz/parser';
 import { trajectoryFromXyz } from '../../mol-model-formats/structure/xyz';
+import { parseSdf } from '../../mol-io/reader/sdf/parser';
 
 export { CoordinatesFromDcd };
 export { CoordinatesFromXtc };
@@ -50,6 +51,7 @@ export { TrajectoryFromPDB };
 export { TrajectoryFromGRO };
 export { TrajectoryFromXYZ };
 export { TrajectoryFromMOL };
+export { TrajectoryFromSDF };
 export { TrajectoryFromMOL2 };
 export { TrajectoryFromCube };
 export { TrajectoryFromCifCore };
@@ -291,6 +293,36 @@ const TrajectoryFromMOL = PluginStateTransform.BuiltIn({
         });
     }
 });
+
+type TrajectoryFromSDF = typeof TrajectoryFromSDF
+const TrajectoryFromSDF = PluginStateTransform.BuiltIn({
+    name: 'trajectory-from-sdf',
+    display: { name: 'Parse SDF', description: 'Parse SDF string and create trajectory.' },
+    from: [SO.Data.String],
+    to: SO.Molecule.Trajectory
+})({
+    apply({ a }) {
+        return Task.create('Parse SDF', async ctx => {
+            const parsed = await parseSdf(a.data).runInContext(ctx);
+            if (parsed.isError) throw new Error(parsed.message);
+
+            const models: Model[] = [];
+
+            for (const { molFile } of parsed.result.compounds) {
+                const traj = await trajectoryFromMol(molFile).runInContext(ctx);
+                for (let i = 0; i < traj.frameCount; i++) {
+                    models.push(await Task.resolveInContext(traj.getFrameAtIndex(i), ctx));
+                }
+            }
+
+            const traj = new ArrayTrajectory(models);
+
+            const props = trajectoryProps(traj);
+            return new SO.Molecule.Trajectory(traj, props);
+        });
+    }
+});
+
 
 type TrajectoryFromMOL2 = typeof TrajectoryFromMOL
 const TrajectoryFromMOL2 = PluginStateTransform.BuiltIn({

@@ -22,6 +22,7 @@ export interface SdfFile {
     }[]
 }
 
+const delimiter = '$$$$';
 function handleDataItems(tokenizer: Tokenizer): { dataHeader: Column<string>, data: Column<string> } {
     const dataHeader = TokenBuilder.create(tokenizer.data, 32);
     const data = TokenBuilder.create(tokenizer.data, 32);
@@ -29,6 +30,7 @@ function handleDataItems(tokenizer: Tokenizer): { dataHeader: Column<string>, da
     let sawHeaderToken = false;
     while (tokenizer.position < tokenizer.length) {
         const line = Tokenizer.readLine(tokenizer);
+        if (line.startsWith(delimiter)) break;
         if (!!line) {
             if (line.startsWith('> <')) {
                 TokenBuilder.add(dataHeader, tokenizer.tokenStart + 3, tokenizer.tokenEnd - 1);
@@ -49,9 +51,7 @@ function handleDataItems(tokenizer: Tokenizer): { dataHeader: Column<string>, da
     };
 }
 
-function handleMolFile(data: string) {
-    const tokenizer = Tokenizer(data);
-
+function handleMolFile(tokenizer: Tokenizer) {
     const title = Tokenizer.readLine(tokenizer).trim();
     const program = Tokenizer.readLine(tokenizer).trim();
     const comment = Tokenizer.readLine(tokenizer).trim();
@@ -59,6 +59,15 @@ function handleMolFile(data: string) {
     const counts = Tokenizer.readLine(tokenizer);
 
     const atomCount = +counts.substr(0, 3), bondCount = +counts.substr(3, 3);
+
+    if (Number.isNaN(atomCount) || Number.isNaN(bondCount)) {
+        // try to skip to next molecule
+        while (tokenizer.position < tokenizer.length) {
+            const line = Tokenizer.readLine(tokenizer);
+            if (line.startsWith(delimiter)) break;
+        }
+        return;
+    }
 
     const atoms = handleAtoms(tokenizer, atomCount);
     const bonds = handleBonds(tokenizer, bondCount);
@@ -70,10 +79,16 @@ function handleMolFile(data: string) {
     };
 }
 
-const delimiter = '$$$$';
 function parseInternal(data: string): Result<SdfFile> {
-    const result: SdfFile = { compounds: data.split(delimiter).map(d => handleMolFile(d)) };
-    return Result.success(result);
+    const tokenizer = Tokenizer(data);
+
+    const compounds: SdfFile['compounds'] = [];
+    while (tokenizer.position < tokenizer.length) {
+        const c = handleMolFile(tokenizer);
+        if (c) compounds.push(c);
+    }
+
+    return Result.success({ compounds });
 }
 
 export function parseSdf(data: string) {
