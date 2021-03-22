@@ -4,6 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { Mat4 } from '../../../mol-math/linear-algebra';
 import { ConsoleLogger } from '../../../mol-util/console-logger';
 import { now } from '../../../mol-util/now';
 import { PerformanceMonitor } from '../../../mol-util/performance-monitor';
@@ -18,6 +19,8 @@ export type Entry<Q extends QueryName = QueryName> = {
     query: Q,
     modelNums?: number[],
     copyAllCategories?: boolean,
+    // column major 4x4 transformation matrix, provided as array of 16 float values
+    transform?: number[],
     params?: QueryParams<Q>,
 }
 
@@ -43,6 +46,7 @@ export async function runLocal(input: LocalInput) {
                 queryName: q.query,
                 queryParams: q.params || { },
                 modelNums: q.modelNums,
+                transform: q.transform as Mat4 ?? Mat4.identity(),
                 copyAllCategories: !!q.copyAllCategories
             })),
             writer: job.asTarGz
