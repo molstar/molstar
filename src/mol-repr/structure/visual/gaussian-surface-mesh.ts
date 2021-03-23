@@ -182,7 +182,7 @@ async function createGaussianSurfaceTextureMesh(ctx: VisualContext, unit: Unit, 
     const isoLevel = Math.exp(-props.smoothness) / densityTextureData.radiusFactor;
 
     const buffer = textureMesh?.doubleBuffer.get();
-    const gv = extractIsosurface(ctx.webgl, densityTextureData.texture, densityTextureData.gridDim, densityTextureData.gridTexDim, densityTextureData.gridTexScale, densityTextureData.transform, isoLevel, true, buffer?.vertex, buffer?.group, buffer?.normal);
+    const gv = extractIsosurface(ctx.webgl, densityTextureData.texture, densityTextureData.gridDim, densityTextureData.gridTexDim, densityTextureData.gridTexScale, densityTextureData.transform, isoLevel, false, true, buffer?.vertex, buffer?.group, buffer?.normal);
 
     const boundingSphere = Sphere3D.expand(Sphere3D(), unit.boundary.sphere, props.radiusOffset + getStructureExtraRadius(structure));
     const surface = TextureMesh.create(gv.vertexCount, 1, gv.vertexTexture, gv.groupTexture, gv.normalTexture, boundingSphere, textureMesh);
@@ -241,7 +241,7 @@ async function createStructureGaussianSurfaceTextureMesh(ctx: VisualContext, str
     const isoLevel = Math.exp(-props.smoothness) / densityTextureData.radiusFactor;
 
     const buffer = textureMesh?.doubleBuffer.get();
-    const gv = extractIsosurface(ctx.webgl, densityTextureData.texture, densityTextureData.gridDim, densityTextureData.gridTexDim, densityTextureData.gridTexScale, densityTextureData.transform, isoLevel, true, buffer?.vertex, buffer?.group, buffer?.normal);
+    const gv = extractIsosurface(ctx.webgl, densityTextureData.texture, densityTextureData.gridDim, densityTextureData.gridTexDim, densityTextureData.gridTexScale, densityTextureData.transform, isoLevel, false, true, buffer?.vertex, buffer?.group, buffer?.normal);
 
     const boundingSphere = Sphere3D.expand(Sphere3D(), structure.boundary.sphere, props.radiusOffset + getStructureExtraRadius(structure));
     const surface = TextureMesh.create(gv.vertexCount, 1, gv.vertexTexture, gv.groupTexture, gv.normalTexture, boundingSphere, textureMesh);
