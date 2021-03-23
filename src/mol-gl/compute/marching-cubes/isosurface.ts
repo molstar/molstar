@@ -32,6 +32,7 @@ const IsosurfaceSchema = {
     uSize: UniformSpec('f'),
     uLevels: UniformSpec('f'),
     uCount: UniformSpec('f'),
+    uInvert: UniformSpec('b'),
 
     uGridDim: UniformSpec('v3'),
     uGridTexDim: UniformSpec('v3'),
@@ -44,7 +45,7 @@ type IsosurfaceValues = Values<typeof IsosurfaceSchema>
 
 const IsosurfaceName = 'isosurface';
 
-function getIsosurfaceRenderable(ctx: WebGLContext, activeVoxelsPyramid: Texture, activeVoxelsBase: Texture, volumeData: Texture, gridDim: Vec3, gridTexDim: Vec3, transform: Mat4, isoValue: number, levels: number, scale: Vec2, count: number, packedGroup: boolean): ComputeRenderable<IsosurfaceValues> {
+function getIsosurfaceRenderable(ctx: WebGLContext, activeVoxelsPyramid: Texture, activeVoxelsBase: Texture, volumeData: Texture, gridDim: Vec3, gridTexDim: Vec3, transform: Mat4, isoValue: number, levels: number, scale: Vec2, count: number, invert: boolean, packedGroup: boolean): ComputeRenderable<IsosurfaceValues> {
     if (ctx.namedComputeRenderables[IsosurfaceName]) {
         const v = ctx.namedComputeRenderables[IsosurfaceName].values as IsosurfaceValues;
 
@@ -56,6 +57,7 @@ function getIsosurfaceRenderable(ctx: WebGLContext, activeVoxelsPyramid: Texture
         ValueCell.updateIfChanged(v.uSize, Math.pow(2, levels));
         ValueCell.updateIfChanged(v.uLevels, levels);
         ValueCell.updateIfChanged(v.uCount, count);
+        ValueCell.updateIfChanged(v.uInvert, invert);
 
         ValueCell.update(v.uGridDim, gridDim);
         ValueCell.update(v.uGridTexDim, gridTexDim);
@@ -66,12 +68,12 @@ function getIsosurfaceRenderable(ctx: WebGLContext, activeVoxelsPyramid: Texture
 
         ctx.namedComputeRenderables[IsosurfaceName].update();
     } else {
-        ctx.namedComputeRenderables[IsosurfaceName] = createIsosurfaceRenderable(ctx, activeVoxelsPyramid, activeVoxelsBase, volumeData, gridDim, gridTexDim, transform, isoValue, levels, scale, count, packedGroup);
+        ctx.namedComputeRenderables[IsosurfaceName] = createIsosurfaceRenderable(ctx, activeVoxelsPyramid, activeVoxelsBase, volumeData, gridDim, gridTexDim, transform, isoValue, levels, scale, count, invert, packedGroup);
     }
     return ctx.namedComputeRenderables[IsosurfaceName];
 }
 
-function createIsosurfaceRenderable(ctx: WebGLContext, activeVoxelsPyramid: Texture, activeVoxelsBase: Texture, volumeData: Texture, gridDim: Vec3, gridTexDim: Vec3, transform: Mat4, isoValue: number, levels: number, scale: Vec2, count: number, packedGroup: boolean) {
+function createIsosurfaceRenderable(ctx: WebGLContext, activeVoxelsPyramid: Texture, activeVoxelsBase: Texture, volumeData: Texture, gridDim: Vec3, gridTexDim: Vec3, transform: Mat4, isoValue: number, levels: number, scale: Vec2, count: number, invert: boolean, packedGroup: boolean) {
     // console.log('uSize', Math.pow(2, levels))
     const values: IsosurfaceValues = {
         ...QuadValues,
@@ -85,6 +87,7 @@ function createIsosurfaceRenderable(ctx: WebGLContext, activeVoxelsPyramid: Text
         uSize: ValueCell.create(Math.pow(2, levels)),
         uLevels: ValueCell.create(levels),
         uCount: ValueCell.create(count),
+        uInvert: ValueCell.create(invert),
 
         uGridDim: ValueCell.create(gridDim),
         uGridTexDim: ValueCell.create(gridTexDim),
@@ -112,7 +115,7 @@ function setRenderingDefaults(ctx: WebGLContext) {
     state.clearColor(0, 0, 0, 0);
 }
 
-export function createIsosurfaceBuffers(ctx: WebGLContext, activeVoxelsBase: Texture, volumeData: Texture, histogramPyramid: HistogramPyramid, gridDim: Vec3, gridTexDim: Vec3, transform: Mat4, isoValue: number, packedGroup: boolean, vertexTexture?: Texture, groupTexture?: Texture, normalTexture?: Texture) {
+export function createIsosurfaceBuffers(ctx: WebGLContext, activeVoxelsBase: Texture, volumeData: Texture, histogramPyramid: HistogramPyramid, gridDim: Vec3, gridTexDim: Vec3, transform: Mat4, isoValue: number, invert: boolean, packedGroup: boolean, vertexTexture?: Texture, groupTexture?: Texture, normalTexture?: Texture) {
     const { gl, resources, extensions } = ctx;
     const { pyramidTex, height, levels, scale, count } = histogramPyramid;
     const width = pyramidTex.getWidth();
@@ -167,7 +170,7 @@ export function createIsosurfaceBuffers(ctx: WebGLContext, activeVoxelsBase: Tex
     groupTexture.attachFramebuffer(framebuffer, 1);
     normalTexture.attachFramebuffer(framebuffer, 2);
 
-    const renderable = getIsosurfaceRenderable(ctx, pyramidTex, activeVoxelsBase, volumeData, gridDim, gridTexDim, transform, isoValue, levels, scale, count, packedGroup);
+    const renderable = getIsosurfaceRenderable(ctx, pyramidTex, activeVoxelsBase, volumeData, gridDim, gridTexDim, transform, isoValue, levels, scale, count, invert, packedGroup);
     ctx.state.currentRenderItemId = -1;
 
     const { drawBuffers } = ctx.extensions;
@@ -201,7 +204,7 @@ export function createIsosurfaceBuffers(ctx: WebGLContext, activeVoxelsBase: Tex
  *
  * Implementation based on http://www.miaumiau.cat/2016/10/stream-compaction-in-webgl/
  */
-export function extractIsosurface(ctx: WebGLContext, volumeData: Texture, gridDim: Vec3, gridTexDim: Vec3, gridTexScale: Vec2, transform: Mat4, isoValue: number, packedGroup: boolean, vertexTexture?: Texture, groupTexture?: Texture, normalTexture?: Texture) {
+export function extractIsosurface(ctx: WebGLContext, volumeData: Texture, gridDim: Vec3, gridTexDim: Vec3, gridTexScale: Vec2, transform: Mat4, isoValue: number, invert: boolean, packedGroup: boolean, vertexTexture?: Texture, groupTexture?: Texture, normalTexture?: Texture) {
     // console.time('calcActiveVoxels');
     const activeVoxelsTex = calcActiveVoxels(ctx, volumeData, gridDim, gridTexDim, isoValue, gridTexScale);
     // ctx.waitForGpuCommandsCompleteSync();
@@ -213,7 +216,7 @@ export function extractIsosurface(ctx: WebGLContext, volumeData: Texture, gridDi
     // console.timeEnd('createHistogramPyramid');
 
     // console.time('createIsosurfaceBuffers');
-    const gv = createIsosurfaceBuffers(ctx, activeVoxelsTex, volumeData, compacted, gridDim, gridTexDim, transform, isoValue, packedGroup, vertexTexture, groupTexture, normalTexture);
+    const gv = createIsosurfaceBuffers(ctx, activeVoxelsTex, volumeData, compacted, gridDim, gridTexDim, transform, isoValue, invert, packedGroup, vertexTexture, groupTexture, normalTexture);
     // ctx.waitForGpuCommandsCompleteSync();
     // console.timeEnd('createIsosurfaceBuffers');
 

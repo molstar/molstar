@@ -18,6 +18,7 @@ uniform float uIsoValue;
 uniform float uLevels;
 uniform float uSize;
 uniform float uCount;
+uniform bool uInvert;
 
 uniform vec3 uGridDim;
 uniform vec3 uGridTexDim;
@@ -163,6 +164,13 @@ void main(void) {
     // current vertex for the up to 15 MC cases
     int currentVertex = vI - idot4(m, starts);
 
+    // ensure winding-order is the same for negative and positive iso-levels
+    if (uInvert) {
+        int v = imod(currentVertex + 1, 3);
+        if (v == 1) currentVertex += 2;
+        else if (v == 0) currentVertex -= 2;
+    }
+
     // get index into triIndices table
     int mcIndex = 16 * int(edgeIndex) + currentVertex;
     vec4 mcData = texture2D(tTriIndices, vec2(imod(mcIndex, 64), mcIndex / 64) / 64.);
@@ -273,11 +281,18 @@ void main(void) {
         voxelPadded(b1 - c3).a - voxelPadded(b1 + c3).a,
         voxelPadded(b1 - c4).a - voxelPadded(b1 + c4).a
     ));
-    mat3 normalMatrix = transpose3(inverse3(mat3(uGridTransform)));
-    gl_FragData[2].xyz = normalMatrix * -vec3(
+    gl_FragData[2].xyz = -vec3(
         n0.x + t * (n0.x - n1.x),
         n0.y + t * (n0.y - n1.y),
         n0.z + t * (n0.z - n1.z)
     );
+
+    // ensure normal-direction is the same for negative and positive iso-levels
+    if (uInvert) {
+        gl_FragData[2].xyz *= -1.0;
+    }
+
+    // apply normal matrix
+    gl_FragData[2].xyz *= transpose3(inverse3(mat3(uGridTransform)));
 }
 `;
