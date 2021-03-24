@@ -14,6 +14,7 @@
     "lint": "eslint .",
     "lint-fix": "eslint . --fix",
     "test": "npm run lint && jest",
+    "jest": "jest",
     "build": "npm run build-tsc && npm run build-extra && npm run build-webpack",
     "build-viewer": "npm run build-tsc && npm run build-extra && npm run build-webpack-viewer",
     "build-tsc": "concurrently \"tsc --incremental\" \"tsc --build tsconfig.commonjs.json --incremental\"",

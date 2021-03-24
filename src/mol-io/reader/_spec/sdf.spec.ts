@@ -17,7 +17,7 @@ const SdfString = `
 M  CHG  3   1  -1   3  -1   5  -1
 M  END
 > <DATABASE_ID>
-DB14523
+0
 
 > <DATABASE_NAME>
 drugbank
@@ -127,7 +127,9 @@ Comp 2
 4  3  1  0  0  0  0
 4  5  1  0  0  0  0
 M  CHG  3   1  -1   3  -1   5  -1
-M  END`;
+M  END
+> <DATABASE_ID>
+1`;
 
 describe('sdf reader', () => {
     it('basic', async () => {
@@ -159,12 +161,15 @@ describe('sdf reader', () => {
         expect(bonds.order.value(3)).toBe(1);
 
         expect(dataItems.dataHeader.value(0)).toBe('DATABASE_ID');
-        expect(dataItems.data.value(0)).toBe('DB14523');
+        expect(dataItems.data.value(0)).toBe('0');
 
         expect(dataItems.dataHeader.value(1)).toBe('DATABASE_NAME');
         expect(dataItems.data.value(1)).toBe('drugbank');
 
         expect(dataItems.dataHeader.value(31)).toBe('SYNONYMS');
         expect(dataItems.data.value(31)).toBe('Orthophosphate; Phosphate');
+
+        expect(compound1.dataItems.data.value(0)).toBe('0');
+        expect(compound2.dataItems.data.value(0)).toBe('1');
     });
 });
