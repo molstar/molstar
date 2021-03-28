@@ -234,6 +234,7 @@ interface Canvas3D {
     readonly boundingSphere: Readonly<Sphere3D>
     setProps(props: PartialCanvas3DProps | ((old: Canvas3DProps) => Partial<Canvas3DProps> | void), doNotRequestDraw?: boolean /* = false */): void
     getImagePass(props: Partial<ImageProps>): ImagePass
+    getRenderObjects(): GraphicsRenderObject[]
 
     /** Returns a copy of the current Canvas3D instance props */
     readonly props: Readonly<Canvas3DProps>
@@ -768,6 +769,11 @@ namespace Canvas3D {
             },
             getImagePass: (props: Partial<ImageProps> = {}) => {
                 return new ImagePass(webgl, renderer, scene, camera, helper, passes.draw.wboitEnabled, props);
+            },
+            getRenderObjects(): GraphicsRenderObject[] {
+                const renderObjects: GraphicsRenderObject[] = [];
+                scene.forEach((_, ro) => renderObjects.push(ro));
+                return renderObjects;
             },
 
             get props() {
