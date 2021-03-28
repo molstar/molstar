@@ -54,6 +54,12 @@ const StandardComponents = (function() {
         { id: 'SEC', name: 'SELENOCYSTEINE', type: 'L-peptide linking' },
         { id: 'PYL', name: 'PYRROLYSINE', type: 'L-peptide linking' },
 
+        { id: 'MSE', name: 'SELENOMETHIONINE', type: 'L-peptide linking' },
+        { id: 'SEP', name: 'PHOSPHOSERINE', type: 'L-peptide linking' },
+        { id: 'TPO', name: 'PHOSPHOTHREONINE', type: 'L-peptide linking' },
+        { id: 'PTR', name: 'O-PHOSPHOTYROSINE', type: 'L-peptide linking' },
+        { id: 'PCA', name: 'PYROGLUTAMIC ACID', type: 'L-peptide linking' },
+
         { id: 'A', name: 'ADENOSINE-5\'-MONOPHOSPHATE', type: 'RNA linking' },
         { id: 'C', name: 'CYTIDINE-5\'-MONOPHOSPHATE', type: 'RNA linking' },
         { id: 'T', name: 'THYMIDINE-5\'-MONOPHOSPHATE', type: 'RNA linking' },
