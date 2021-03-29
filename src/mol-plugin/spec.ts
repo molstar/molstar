@@ -21,6 +21,7 @@ import { StateActions } from '../mol-plugin-state/actions';
 import { AssignColorVolume } from '../mol-plugin-state/actions/volume';
 import { StateTransforms } from '../mol-plugin-state/transforms';
 import { BoxifyVolumeStreaming, CreateVolumeStreamingBehavior, InitVolumeStreaming } from '../mol-plugin/behavior/dynamic/volume-streaming/transformers';
+import { AnimateStateInterpolation } from '../mol-plugin-state/animation/built-in/state-interpolation';
 
 export { PluginSpec };
 
@@ -126,6 +127,7 @@ export const DefaultPluginSpec = (): PluginSpec => ({
         AnimateModelIndex,
         AnimateCameraSpin,
         AnimateStateSnapshots,
-        AnimateAssemblyUnwind
+        AnimateAssemblyUnwind,
+        AnimateStateInterpolation
     ]
 });

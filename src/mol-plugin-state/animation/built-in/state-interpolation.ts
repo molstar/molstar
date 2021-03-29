@@ -6,12 +6,13 @@
 
 import { PluginCommands } from '../../../mol-plugin/commands';
 import { StateTransform } from '../../../mol-state';
+import { shallowEqual } from '../../../mol-util';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { PluginStateAnimation } from '../model';
 
 export const AnimateStateInterpolation = PluginStateAnimation.create({
     name: 'built-in.animate-state-interpolation',
-    display: { name: 'Animate State Interpolation' },
+    display: { name: 'Animate State (experimental)' },
     params: () => ({
         transtionDurationInMs: PD.Numeric(2000, { min: 100, max: 30000, step: 10 })
     }),
@@ -42,15 +43,25 @@ export const AnimateStateInterpolation = PluginStateAnimation.create({
 
         for (const s of src) {
             for (const t of tar) {
+                // TODO: better than quadratic alg.
+                // TODO: support for adding/removing nodes
                 if (t.ref !== s.ref) continue;
                 if (t.version === s.version) continue;
 
                 const e = StateTransform.fromJSON(s), f = StateTransform.fromJSON(t);
 
+                const oldState = state.cells.get(s.ref);
+                if (!oldState) continue;
+
+                let newState;
                 if (!e.transformer.definition.interpolate) {
-                    update.to(s.ref).update(currentT <= 0.5 ? e.params : f.params);
+                    newState = currentT <= 0.5 ? e.params : f.params;
                 } else {
-                    update.to(s.ref).update(e.transformer.definition.interpolate(e.params, f.params, currentT, ctx.plugin));
+                    newState = e.transformer.definition.interpolate(e.params, f.params, currentT, ctx.plugin);
+                }
+
+                if (!shallowEqual(oldState, newState)) {
+                    update.to(s.ref).update(newState);
                 }
             }
         }

@@ -414,6 +414,10 @@ const ModelFromTrajectory = PluginStateTransform.BuiltIn({
             return new SO.Molecule.Model(model, { label, description });
         });
     },
+    interpolate(a, b, t) {
+        const modelIndex = t >= 1 ? b.modelIndex : a.modelIndex + Math.floor((b.modelIndex - a.modelIndex + 1) * t);
+        return { modelIndex };
+    },
     dispose({ b }) {
         b?.data.customProperties.dispose();
     }
