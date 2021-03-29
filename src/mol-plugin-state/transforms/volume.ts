@@ -151,7 +151,7 @@ const VolumeFromDensityServerCif = PluginStateTransform.BuiltIn({
             const densityServerCif = CIF.schema.densityServer(block);
             const volume = await volumeFromDensityServerData(densityServerCif, { entryId: params.entryId }).runInContext(ctx);
             const [x, y, z] = volume.grid.cells.space.dimensions;
-            const props = { label: densityServerCif.volume_data_3d_info.name.value(0), description: `Volume ${x}\u00D7${y}\u00D7${z}` };
+            const props = { label: params.entryId ?? densityServerCif.volume_data_3d_info.name.value(0), description: `Volume ${x}\u00D7${y}\u00D7${z}` };
             return new SO.Volume.Data(volume, props);
         });
     },
