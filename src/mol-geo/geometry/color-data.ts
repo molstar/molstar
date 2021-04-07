@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -7,18 +7,20 @@
 import { ValueCell } from '../../mol-util';
 import { TextureImage, createTextureImage } from '../../mol-gl/renderable/util';
 import { Color } from '../../mol-util/color';
-import { Vec2, Vec3 } from '../../mol-math/linear-algebra';
+import { Vec2, Vec3, Vec4 } from '../../mol-math/linear-algebra';
 import { LocationIterator } from '../util/location-iterator';
 import { NullLocation } from '../../mol-model/location';
 import { LocationColor, ColorTheme } from '../../mol-theme/color';
 import { Geometry } from './geometry';
 
-export type ColorType = 'uniform' | 'instance' | 'group' | 'groupInstance' | 'vertex' | 'vertexInstance'
+export type ColorType = 'uniform' | 'instance' | 'group' | 'groupInstance' | 'vertex' | 'vertexInstance' | 'volume'
 
 export type ColorData = {
     uColor: ValueCell<Vec3>,
     tColor: ValueCell<TextureImage<Uint8Array>>,
     uColorTexDim: ValueCell<Vec2>,
+    uColorGridDim: ValueCell<Vec3>,
+    uColorGridTransform: ValueCell<Vec4>,
     dColorType: ValueCell<string>,
 }
 
@@ -30,8 +32,11 @@ export function createColors(locationIt: LocationIterator, positionIt: LocationI
         case 'groupInstance': return createGroupInstanceColor(locationIt, colorTheme.color, colorData);
         case 'vertex': return createVertexColor(positionIt, colorTheme.color, colorData);
         case 'vertexInstance': return createVertexInstanceColor(positionIt, colorTheme.color, colorData);
+        case 'volume': return createGridColor((colorTheme as any).grid, 'volume', colorData);
     }
 }
+
+//
 
 export function createValueColor(value: Color, colorData?: ColorData): ColorData {
     if (colorData) {
@@ -43,6 +48,8 @@ export function createValueColor(value: Color, colorData?: ColorData): ColorData
             uColor: ValueCell.create(Color.toVec3Normalized(Vec3(), value)),
             tColor: ValueCell.create({ array: new Uint8Array(3), width: 1, height: 1 }),
             uColorTexDim: ValueCell.create(Vec2.create(1, 1)),
+            uColorGridDim: ValueCell.create(Vec3.create(1, 1, 1)),
+            uColorGridTransform: ValueCell.create(Vec4.create(0, 0, 0, 1)),
             dColorType: ValueCell.create('uniform'),
         };
     }
@@ -52,6 +59,8 @@ export function createValueColor(value: Color, colorData?: ColorData): ColorData
 export function createUniformColor(locationIt: LocationIterator, color: LocationColor, colorData?: ColorData): ColorData {
     return createValueColor(color(NullLocation, false), colorData);
 }
+
+//
 
 export function createTextureColor(colors: TextureImage<Uint8Array>, type: ColorType, colorData?: ColorData): ColorData {
     if (colorData) {
@@ -64,6 +73,8 @@ export function createTextureColor(colors: TextureImage<Uint8Array>, type: Color
             uColor: ValueCell.create(Vec3()),
             tColor: ValueCell.create(colors),
             uColorTexDim: ValueCell.create(Vec2.create(colors.width, colors.height)),
+            uColorGridDim: ValueCell.create(Vec3.create(1, 1, 1)),
+            uColorGridTransform: ValueCell.create(Vec4.create(0, 0, 0, 1)),
             dColorType: ValueCell.create(type),
         };
     }
@@ -137,4 +148,37 @@ export function createVertexInstanceColor(locationIt: LocationIterator, color: L
         }
     }
     return createTextureColor(colors, 'vertexInstance', colorData);
+}
+
+//
+
+interface ColorVolume {
+    colors: TextureImage<Uint8Array> // | Texture
+    dimension: Vec3
+    transform: Vec4
+}
+
+export function createGridColor(grid: ColorVolume, type: ColorType, colorData?: ColorData): ColorData {
+    const { colors, dimension, transform } = grid;
+    // const width = 'array' in colors ? colors.width : colors.getWidth();
+    // const height = 'array' in colors ? colors.height : colors.getHeight();
+    const width = colors.width;
+    const height = colors.height;
+    if (colorData) {
+        ValueCell.update(colorData.tColor, colors);
+        ValueCell.update(colorData.uColorTexDim, Vec2.create(width, height));
+        ValueCell.update(colorData.uColorGridDim, Vec3.clone(dimension));
+        ValueCell.update(colorData.uColorGridTransform, Vec4.clone(transform));
+        ValueCell.updateIfChanged(colorData.dColorType, type);
+        return colorData;
+    } else {
+        return {
+            uColor: ValueCell.create(Vec3()),
+            tColor: ValueCell.create(colors),
+            uColorTexDim: ValueCell.create(Vec2.create(width, height)),
+            uColorGridDim: ValueCell.create(Vec3.clone(dimension)),
+            uColorGridTransform: ValueCell.create(Vec4.clone(transform)),
+            dColorType: ValueCell.create(type),
+        };
+    }
 }

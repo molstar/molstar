@@ -12,6 +12,9 @@ export const assign_color_varying = `
         vColor.rgb = readFromTexture(tColor, VertexID, uColorTexDim).rgb;
     #elif defined(dColorType_vertexInstance)
         vColor.rgb = readFromTexture(tColor, int(aInstance) * uVertexCount + VertexID, uColorTexDim).rgb;
+    #elif defined(dColorType_grid)
+        vec3 gridPos = (uColorGridTransform.w * (position - uColorGridTransform.xyz)) / uColorGridDim;
+        vColor.rgb = texture3dFrom2dLinear(tColor, gridPos, uColorGridDim, uColorTexDim).rgb;
     #endif
 
     #ifdef dOverpaint

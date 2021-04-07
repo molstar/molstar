@@ -157,7 +157,11 @@ export function UnitsVisual<G extends Geometry, P extends StructureParams & Geom
                 updateState.updateColor = true;
                 updateState.updateSize = true;
             }
-            if (newTheme.color.granularity.startsWith('vertex')) {
+            if (newTheme.color.granularity.startsWith('vertex') ||
+                renderObject.values.dColorType.ref.value.startsWith('vertex') ||
+                newTheme.color.granularity.startsWith('volume') ||
+                renderObject.values.dColorType.ref.value.startsWith('volume')
+            ) {
                 updateState.updateColor = true;
             }
         }
@@ -315,6 +319,7 @@ export function UnitsMeshVisual<P extends UnitsMeshParams>(builder: UnitsMeshVis
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<P>, currentProps: PD.Values<P>, newTheme: Theme, currentTheme: Theme, newStructureGroup: StructureGroup, currentStructureGroup: StructureGroup) => {
             builder.setUpdateState(state, newProps, currentProps, newTheme, currentTheme, newStructureGroup, currentStructureGroup);
             if (!SizeTheme.areEqual(newTheme.size, currentTheme.size)) state.createGeometry = true;
+            if (newProps.smoothColors !== currentProps.smoothColors) state.updateColor = true;
         },
         geometryUtils: Mesh.Utils
     }, materialId);

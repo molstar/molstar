@@ -13,7 +13,11 @@ export const common = `
     #define dColorType_texture
 #endif
 
-#if defined(dColorType_attribute) || defined(dColorType_texture)
+#if defined(dColorType_volume)
+    #define dColorType_grid
+#endif
+
+#if defined(dColorType_attribute) || defined(dColorType_texture) || defined(dColorType_volume)
     #define dColorType_varying
 #endif
 

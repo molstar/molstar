@@ -1,13 +1,13 @@
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { ValueCell } from '../../../mol-util';
-import { Vec3, Mat4, Mat3, Vec4 } from '../../../mol-math/linear-algebra';
-import { Sphere3D } from '../../../mol-math/geometry';
+import { Vec3, Mat4, Mat3, Vec4, Vec2 } from '../../../mol-math/linear-algebra';
+import { Box3D, Sphere3D } from '../../../mol-math/geometry';
 import { transformPositionArray, transformDirectionArray, computeIndexedVertexNormals, GroupMapping, createGroupMapping} from '../../util';
 import { GeometryUtils } from '../geometry';
 import { createMarkers } from '../marker-data';
@@ -16,7 +16,7 @@ import { LocationIterator, PositionLocation } from '../../util/location-iterator
 import { createColors } from '../color-data';
 import { ChunkedArray, hashFnv32a } from '../../../mol-data/util';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
-import { calculateInvariantBoundingSphere, calculateTransformBoundingSphere } from '../../../mol-gl/renderable/util';
+import { calculateInvariantBoundingSphere, calculateTransformBoundingSphere, createTextureImage, TextureImage } from '../../../mol-gl/renderable/util';
 import { Theme } from '../../../mol-theme/theme';
 import { MeshValues } from '../../../mol-gl/renderable/mesh';
 import { Color } from '../../../mol-util/color';
@@ -25,6 +25,8 @@ import { createEmptyOverpaint } from '../overpaint-data';
 import { createEmptyTransparency } from '../transparency-data';
 import { createEmptyClipping } from '../clipping-data';
 import { RenderableState } from '../../../mol-gl/renderable';
+import { getVolumeTexture2dLayout } from '../../../mol-repr/volume/util';
+import { arraySetAdd } from '../../../mol-util/array';
 
 export interface Mesh {
     readonly kind: 'mesh',
@@ -334,6 +336,7 @@ export namespace Mesh {
         flatShaded: PD.Boolean(false, BaseGeometry.ShadingCategory),
         ignoreLight: PD.Boolean(false, BaseGeometry.ShadingCategory),
         xrayShaded: PD.Boolean(false, BaseGeometry.ShadingCategory),
+        smoothColors: PD.Select('off', PD.arrayToOptions(['off', 'vertex', 'volume'] as const), { isHidden: true }),
     };
     export type Params = typeof Params
 
@@ -385,7 +388,7 @@ export namespace Mesh {
         const invariantBoundingSphere = Sphere3D.clone(mesh.boundingSphere);
         const boundingSphere = calculateTransformBoundingSphere(invariantBoundingSphere, transform.aTransform.ref.value, instanceCount);
 
-        return {
+        const values = {
             aPosition: mesh.vertexBuffer,
             aNormal: mesh.normalBuffer,
             aGroup: mesh.groupBuffer,
@@ -407,6 +410,197 @@ export namespace Mesh {
             dIgnoreLight: ValueCell.create(props.ignoreLight),
             dXrayShaded: ValueCell.create(props.xrayShaded),
         };
+
+        return processValues(values, props);
+    }
+
+    function processValues(values: MeshValues, props: PD.Values<Params>) {
+        if (props.smoothColors === 'vertex') {
+            values = vertexColors(values, props);
+        } else if (props.smoothColors === 'volume') {
+            values = gridColors(values, props);
+        }
+        return values;
+    }
+
+    function gridColors(values: MeshValues, props: PD.Values<Params>): MeshValues {
+        const type = values.dColorType.ref.value;
+        if (type === 'uniform' || type.startsWith('vertex')) return values;
+        // TODO handle instance and vertex types
+
+        const box = Box3D.fromSphere3D(Box3D(), values.invariantBoundingSphere.ref.value);
+
+        const resolution = (props as any).resolution ?? 0.5; // TODO better default
+        const scaleFactor = 1 / resolution;
+        const scaledBox = Box3D.scale(Box3D(), box, scaleFactor);
+        const dim = Box3D.size(Vec3(), scaledBox);
+        Vec3.ceil(dim, dim);
+        const { min } = box;
+
+        const [ xn, yn ] = dim;
+        const { width, height } = getVolumeTexture2dLayout(dim);
+
+        const itemSize = 3;
+        const data = new Float32Array(width * height * itemSize);
+        const count = new Float32Array(width * height);
+
+        const array = new Uint8Array(width * height * itemSize);
+        const textureImage = { array, width, height };
+
+        const vertexCount = values.uVertexCount.ref.value;
+        const positions = values.aPosition.ref.value;
+        const groupColors = values.tColor.ref.value.array;
+        const groups = values.aGroup.ref.value;
+
+        function getIndex(x: number, y: number, z: number) {
+            const column = Math.floor(((z * xn) % width) / xn);
+            const row = Math.floor((z * xn) / width);
+            const px = column * xn + x;
+            return itemSize * ((row * yn * width) + (y * width) + px);
+        }
+
+        const p = 2;
+        const f = Math.sqrt(2) * 2 * p * resolution;
+
+        for (let i = 0; i < vertexCount; ++i) {
+            // vertex mapped to grid
+            const x = Math.floor(scaleFactor * (positions[i * 3] - min[0]));
+            const y = Math.floor(scaleFactor * (positions[i * 3 + 1] - min[1]));
+            const z = Math.floor(scaleFactor * (positions[i * 3 + 2] - min[2]));
+
+            for (let xi = x - p, xl = x + p; xi < xl; ++ xi) {
+                for (let yi = y - p, yl = y + p; yi < yl; ++ yi) {
+                    for (let zi = z - p, zl = z + p; zi < zl; ++ zi) {
+                        const index = getIndex(xi, yi, zi);
+
+                        const dx = min[0] + (resolution * xi) - positions[i * 3];
+                        const dy = min[1] + (resolution * yi) - positions[i * 3 + 1];
+                        const dz = min[2] + (resolution * zi) - positions[i * 3 + 2];
+                        const d = Math.sqrt(dx * dx + dy * dy + dz * dz);
+
+                        const s = 2 - (d / f);
+
+                        const g = groups[i];
+                        data[index] += groupColors[g * 3] * s;
+                        data[index + 1] += groupColors[g * 3 + 1] * s;
+                        data[index + 2] += groupColors[g * 3 + 2] * s;
+                        count[index / 3] += 1 * s;
+                    }
+                }
+            }
+        }
+
+        for (let i = 0, il = count.length; i < il; ++i) {
+            const i3 = i * 3;
+            const c = count[i];
+            array[i3] = Math.floor(data[i3] / c);
+            array[i3 + 1] = Math.floor(data[i3 + 1] / c);
+            array[i3 + 2] = Math.floor(data[i3 + 2] / c);
+        }
+
+        ValueCell.updateIfChanged(values.dColorType, 'volume');
+        ValueCell.update(values.tColor, textureImage);
+        ValueCell.update(values.uColorTexDim, Vec2.create(width, height));
+        ValueCell.update(values.uColorGridDim, dim);
+        ValueCell.update(values.uColorGridTransform, Vec4.create(min[0], min[1], min[2], scaleFactor));
+
+        return values;
+    }
+
+    function getNeighboursMap(values: MeshValues) {
+        const vertexCount = values.uVertexCount.ref.value;
+        const elements = values.elements.ref.value;
+
+        const neighboursMap: number[][] = [];
+        for (let i = 0; i < vertexCount; ++i) {
+            neighboursMap[i] = [];
+        }
+
+        for (let i = 0; i < values.drawCount.ref.value / 3; ++i) {
+            const v1 = elements[i * 3];
+            const v2 = elements[i * 3 + 1];
+            const v3 = elements[i * 3 + 2];
+            arraySetAdd(neighboursMap[v1], v1);
+            arraySetAdd(neighboursMap[v1], v2);
+            arraySetAdd(neighboursMap[v1], v3);
+            arraySetAdd(neighboursMap[v2], v1);
+            arraySetAdd(neighboursMap[v2], v2);
+            arraySetAdd(neighboursMap[v2], v3);
+            arraySetAdd(neighboursMap[v3], v1);
+            arraySetAdd(neighboursMap[v3], v2);
+            arraySetAdd(neighboursMap[v3], v3);
+        }
+        return neighboursMap;
+    }
+
+    function vertexColors(values: MeshValues, props: PD.Values<Params>): MeshValues {
+        const type = values.dColorType.ref.value;
+        if (type === 'uniform' || type.startsWith('volume')) return values;
+
+        const vertexCount = values.uVertexCount.ref.value;
+        const groupCount = values.uGroupCount.ref.value;
+        const instanceCount = type.endsWith('Instance') ? values.uInstanceCount.ref.value : 1;
+        const iterations = Math.round((vertexCount / groupCount) / 20); // TODO better formula?
+        const neighboursMap = getNeighboursMap(values);
+
+        let vertexColors: Uint8Array;
+        let colors: TextureImage<Uint8Array>;
+
+        if (type.startsWith('vertex')) {
+            vertexColors = values.tColor.ref.value.array;
+            colors = values.tColor.ref.value;
+        } else {
+            colors = createTextureImage(vertexCount * instanceCount, 3, Uint8Array);
+            vertexColors = colors.array;
+
+            const groupColors = values.tColor.ref.value.array;
+            const groups = values.aGroup.ref.value;
+
+            for (let i = 0; i < instanceCount; ++i) {
+                const og = i * groupCount * 3;
+                const ov = i * vertexCount * 3;
+                for (let j = 0; j < vertexCount; ++j) {
+                    const neighbours = neighboursMap[j];
+                    const nc = neighbours.length;
+                    let r = 0, g = 0, b = 0;
+                    for (let k = 0; k < nc; ++k) {
+                        const neighbourGroup = groups[neighbours[k]];
+                        r += groupColors[og + neighbourGroup * 3];
+                        g += groupColors[og + neighbourGroup * 3 + 1];
+                        b += groupColors[og + neighbourGroup * 3 + 2];
+                    }
+                    vertexColors[ov + j * 3] = Math.round(r / nc);
+                    vertexColors[ov + j * 3 + 1] = Math.round(g / nc);
+                    vertexColors[ov + j * 3 + 2] = Math.round(b / nc);
+                }
+            }
+        }
+
+        for (let x = 0; x < iterations; ++x) {
+            for (let i = 0; i < instanceCount; ++i) {
+                const ov = i * vertexCount * 3;
+                for (let j = 0; j < vertexCount; ++j) {
+                    const neighbours = neighboursMap[j];
+                    const nc = neighbours.length;
+                    let r = 0, g = 0, b = 0;
+                    for (let k = 0; k < nc; ++k) {
+                        const neighbour = neighbours[k];
+                        r += vertexColors[ov + neighbour * 3];
+                        g += vertexColors[ov + neighbour * 3 + 1];
+                        b += vertexColors[ov + neighbour * 3 + 2];
+                    }
+                    vertexColors[ov + j * 3] = Math.round(r / nc);
+                    vertexColors[ov + j * 3 + 1] = Math.round(g / nc);
+                    vertexColors[ov + j * 3 + 2] = Math.round(b / nc);
+                }
+            }
+        }
+
+        ValueCell.updateIfChanged(values.dColorType, type.endsWith('Instance') ? 'vertexInstance' : 'vertex');
+        ValueCell.update(values.tColor, colors);
+        ValueCell.update(values.uColorTexDim, Vec2.create(colors.width, colors.height));
+
+        return values;
     }
 
     function createValuesSimple(mesh: Mesh, props: Partial<PD.Values<Params>>, colorValue: Color, sizeValue: number, transform?: TransformData) {
@@ -422,6 +616,8 @@ export namespace Mesh {
         ValueCell.updateIfChanged(values.dFlipSided, props.flipSided);
         ValueCell.updateIfChanged(values.dIgnoreLight, props.ignoreLight);
         ValueCell.updateIfChanged(values.dXrayShaded, props.xrayShaded);
+
+        processValues(values, props);
     }
 
     function updateBoundingSphere(values: MeshValues, mesh: Mesh) {

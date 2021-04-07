@@ -22,6 +22,7 @@ const GaussianSurfaceVisuals = {
 export const GaussianSurfaceParams = {
     ...GaussianSurfaceMeshParams,
     ...GaussianWireframeParams,
+    smoothColors: PD.Select('off', PD.arrayToOptions(['off', 'vertex', 'volume'] as const)),
     visuals: PD.MultiSelect(['gaussian-surface-mesh'], PD.objectToOptions(GaussianSurfaceVisuals)),
 };
 export type GaussianSurfaceParams = typeof GaussianSurfaceParams
