@@ -1,6 +1,8 @@
 export const assign_material_color = `
 #if defined(dRenderVariant_color)
-    #if defined(dColorType_uniform)
+    #if defined(dUsePalette)
+        vec4 material = vec4(texture2D(tPalette, vec2(vPaletteV, 0.5)).rgb, uAlpha);
+    #elif defined(dColorType_uniform)
         vec4 material = vec4(uColor, uAlpha);
     #elif defined(dColorType_varying)
         vec4 material = vec4(vColor.rgb, uAlpha);

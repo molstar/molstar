@@ -44,6 +44,9 @@ interface ColorTheme<P extends PD.Params> {
     readonly granularity: ColorType
     readonly color: LocationColor
     readonly props: Readonly<PD.Values<P>>
+    // if palette is defined, 24bit RGB color value normalized to interval [0, 1]
+    // is used as index to the colors
+    readonly palette?: Readonly<ColorTheme.Palette>
     readonly contextHash?: number
     readonly description?: string
     readonly legend?: Readonly<ScaleLegend | TableLegend>
@@ -57,6 +60,12 @@ namespace ColorTheme {
         Validation = 'Validation',
         Misc = 'Miscellaneous',
     }
+
+    export interface Palette {
+        colors: Color[]
+    }
+
+    export const PaletteScale = (1 << 24) - 1;
 
     export type Props = { [k: string]: any }
     export type Factory<P extends PD.Params> = (ctx: ThemeDataContext, props: PD.Values<P>) => ColorTheme<P>
