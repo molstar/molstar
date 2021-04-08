@@ -35,6 +35,7 @@ import { OperatorHklColorThemeProvider } from './color/operator-hkl';
 import { PartialChargeColorThemeProvider } from './color/partial-charge';
 import { AtomIdColorThemeProvider } from './color/atom-id';
 import { EntityIdColorThemeProvider } from './color/entity-id';
+import { TextureFilter } from '../mol-gl/webgl/texture';
 
 export type LocationColor = (location: Location, isSecondary: boolean) => Color
 
@@ -62,6 +63,7 @@ namespace ColorTheme {
     }
 
     export interface Palette {
+        filter?: TextureFilter,
         colors: Color[]
     }
 

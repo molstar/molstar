@@ -24,6 +24,7 @@ export function CustomColorTheme(
             return ((t * scale) | 0) as Color;
         },
         palette: {
+            filter: 'nearest',
             colors: [
                 ColorNames.red,
                 ColorNames.pink,

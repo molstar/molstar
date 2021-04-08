@@ -159,7 +159,7 @@ function createVertexInstanceColor(locationIt: LocationIterator, color: Location
 function updatePaletteTexture(palette: ColorTheme.Palette, cell: ValueCell<TextureImage<Uint8Array>>) {
     let isSynced = true;
     const texture = cell.ref.value;
-    if (palette.colors.length !== texture.width) {
+    if (palette.colors.length !== texture.width || texture.filter !== palette.filter) {
         isSynced = false;
     } else {
         const data = texture.array;
@@ -184,5 +184,5 @@ function updatePaletteTexture(palette: ColorTheme.Palette, cell: ValueCell<Textu
         array[o++] = b;
     }
 
-    ValueCell.update(cell, { array, height: 1, width: palette.colors.length });
+    ValueCell.update(cell, { array, height: 1, width: palette.colors.length, filter: palette.filter });
 }

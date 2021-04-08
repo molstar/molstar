@@ -185,7 +185,7 @@ export const ColorSchema = {
     uColor: UniformSpec('v3', 'material'),
     uColorTexDim: UniformSpec('v2'),
     tColor: TextureSpec('image-uint8', 'rgb', 'ubyte', 'nearest'),
-    tPalette: TextureSpec('image-uint8', 'rgb', 'ubyte', 'linear'),
+    tPalette: TextureSpec('image-uint8', 'rgb', 'ubyte', 'nearest'),
     dColorType: DefineSpec('string', ['uniform', 'attribute', 'instance', 'group', 'groupInstance', 'vertex', 'vertexInstance']),
     dUsePalette: DefineSpec('boolean'),
 } as const;
