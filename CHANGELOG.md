@@ -3,12 +3,16 @@ All notable changes to this project will be documented in this file, following t
 
 Note that since we don't clearly distinguish between a public and private interfaces there will be changes in non-major versions that are potentially breaking. If we make breaking changes to less used interfaces we will highlight it in here.
 
-
 ## [Unreleased]
+
+## [v2.0.3] - 2021-04-09
+### Added
+- Support for ``ColorTheme.palette`` designed for providing gradient-like coloring.
+
 ### Changed
 - [Breaking] The `zip` function is now asynchronous and expects a `RuntimeContext`. Also added `Zip()` returning a `Task`.
-- Add support for ``ColorTheme.palette`` designed for providing gradient-like coloring.
 - [Breaking] Add ``CubeGridFormat`` in ``alpha-orbitals`` extension.
+
 
 
 ## [v2.0.2] - 2021-03-29
