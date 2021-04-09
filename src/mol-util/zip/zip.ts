@@ -13,7 +13,7 @@ import { writeUint, writeUshort, sizeUTF8, writeUTF8, readUshort, readUint, read
 import { crc, adler } from './checksum';
 import { _inflate } from './inflate';
 import { _deflateRaw } from './deflate';
-import { RuntimeContext } from '../../mol-task';
+import { RuntimeContext, Task } from '../../mol-task';
 
 export async function unzip(runtime: RuntimeContext, buf: ArrayBuffer, onlyNames = false) {
     const out: { [k: string]: Uint8Array | { size: number, csize: number } } = Object.create(null);
@@ -174,12 +174,12 @@ export async function ungzip(runtime: RuntimeContext, file: Uint8Array, buf?: Ui
     return inflated;
 }
 
-export function deflate(data: Uint8Array, opts?: { level: number }/* , buf, off*/) {
+export async function deflate(runtime: RuntimeContext, data: Uint8Array, opts?: { level: number }/* , buf, off*/) {
     if(opts === undefined) opts = { level: 6 };
     let off = 0;
     const buf = new Uint8Array(50 + Math.floor(data.length * 1.1));
     buf[off] = 120;  buf[off + 1] = 156;  off += 2;
-    off = _deflateRaw(data, buf, off, opts.level);
+    off = await _deflateRaw(runtime, data, buf, off, opts.level);
     const crcValue = adler(data, 0, data.length);
     buf[off + 0] = ((crcValue >>> 24) & 255);
     buf[off + 1] = ((crcValue >>> 16) & 255);
@@ -188,14 +188,18 @@ export function deflate(data: Uint8Array, opts?: { level: number }/* , buf, off*
     return new Uint8Array(buf.buffer, 0, off + 4);
 }
 
-function deflateRaw(data: Uint8Array, opts?: { level: number }) {
+async function deflateRaw(runtime: RuntimeContext, data: Uint8Array, opts?: { level: number }) {
     if(opts === undefined) opts = { level: 6 };
     const buf = new Uint8Array(50 + Math.floor(data.length * 1.1));
-    const off = _deflateRaw(data, buf, 0, opts.level);
+    const off = await _deflateRaw(runtime, data, buf, 0, opts.level);
     return new Uint8Array(buf.buffer, 0, off);
 }
 
-export function zip(obj: { [k: string]: Uint8Array }, noCmpr = false) {
+export function Zip(obj: { [k: string]: Uint8Array }, noCmpr = false) {
+    return Task.create('Zip', ctx => zip(ctx, obj, noCmpr));
+}
+
+export async function zip(runtime: RuntimeContext, obj: { [k: string]: Uint8Array }, noCmpr = false) {
     let tot = 0;
     const zpd: { [k: string]: { cpr: boolean, usize: number, crc: number, file: Uint8Array } } = {};
     for(const p in obj) {
@@ -205,7 +209,7 @@ export function zip(obj: { [k: string]: Uint8Array }, noCmpr = false) {
             cpr,
             usize: buf.length,
             crc: crcValue,
-            file: (cpr ? deflateRaw(buf) : buf)
+            file: (cpr ? await deflateRaw(runtime, buf) : buf)
         };
     }
 
