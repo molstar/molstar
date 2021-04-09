@@ -283,6 +283,9 @@ export function createTexture(gl: GLRenderingContext, extensions: WebGLExtension
             gl.bindTexture(gl.TEXTURE_2D, texture);
             gl.texImage2D(gl.TEXTURE_2D, 0, internalFormat, format, type, data);
         } else if (isTexture2d(data, target, gl)) {
+            const _filter = data.filter ? getFilter(gl, data.filter) : filter;
+            gl.texParameteri(target, gl.TEXTURE_MAG_FILTER, _filter);
+            gl.texParameteri(target, gl.TEXTURE_MIN_FILTER, _filter);
             gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, !!data.flipY);
             if (sub) {
                 gl.texSubImage2D(target, 0, 0, 0, data.width, data.height, format, type, data.array);

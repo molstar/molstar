@@ -21,4 +21,9 @@ export const color_frag_params = `
     varying float vGroup;
     varying float vTransparency;
 #endif
+
+#ifdef dUsePalette
+    uniform sampler2D tPalette;
+    varying float vPaletteV;
+#endif
 `;
