@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -12,7 +12,7 @@ import { StatefulPluginComponent } from '../component';
 import { PluginContext } from '../../mol-plugin/context';
 import { utf8ByteCount, utf8Write } from '../../mol-io/common/utf8';
 import { Asset } from '../../mol-util/assets';
-import { zip } from '../../mol-util/zip/zip';
+import { Zip } from '../../mol-util/zip/zip';
 import { readFromFile } from '../../mol-util/data-source';
 import { objectForEach } from '../../mol-util/object';
 import { PLUGIN_VERSION } from '../../mol-plugin/version';
@@ -217,7 +217,7 @@ class PluginStateSnapshotManager extends StatefulPluginComponent<{
                 zipDataObj['assets.json'] = data;
             }
 
-            const zipFile = zip(zipDataObj);
+            const zipFile = await this.plugin.runTask(Zip(zipDataObj));
             return new Blob([zipFile], {type : 'application/zip'});
         }
     }
