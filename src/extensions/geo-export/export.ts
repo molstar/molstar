@@ -16,6 +16,7 @@ import { MeshBuilder } from '../../mol-geo/geometry/mesh/mesh-builder';
 import { addSphere } from '../../mol-geo/geometry/mesh/builder/sphere';
 import { addCylinder } from '../../mol-geo/geometry/mesh/builder/cylinder';
 import { Vec3, Mat3, Mat4 } from '../../mol-math/linear-algebra';
+import { RuntimeContext } from '../../mol-task';
 import { StringBuilder } from '../../mol-util';
 import { Color } from '../../mol-util/color/color';
 import { decodeFloatRGB } from '../../mol-util/float-packing';
@@ -31,7 +32,7 @@ type RenderObjectExportData = {
 }
 
 interface RenderObjectExporter<D extends RenderObjectExportData> {
-    add(renderObject: GraphicsRenderObject): void
+    add(renderObject: GraphicsRenderObject, ctx: RuntimeContext): Promise<void>
     getData(): D
 }
 
@@ -110,7 +111,7 @@ export class ObjExporter implements RenderObjectExporter<ObjData> {
         }
     }
 
-    private addMeshWithColors(vertices: Float32Array, indices: Uint32Array, normals: Float32Array, groups: Float32Array, vertexCount: number, drawCount: number, values: BaseValues, instanceIndex: number) {
+    private async addMeshWithColors(vertices: Float32Array, indices: Uint32Array, normals: Float32Array, groups: Float32Array, vertexCount: number, drawCount: number, values: BaseValues, instanceIndex: number, ctx: RuntimeContext) {
         const obj = this.obj;
         const t = Mat4();
         const n = Mat3();
@@ -126,6 +127,7 @@ export class ObjExporter implements RenderObjectExporter<ObjData> {
 
         // position
         for (let i = 0; i < vertexCount; ++i) {
+            if (i % 1000 === 0 && ctx.shouldUpdate) await ctx.update();
             v3transformMat4(tmpV, v3fromArray(tmpV, vertices, i * 3), t);
             StringBuilder.writeSafe(obj, 'v ');
             StringBuilder.writeFloat(obj, tmpV[0], 1000);
@@ -138,6 +140,7 @@ export class ObjExporter implements RenderObjectExporter<ObjData> {
 
         // normal
         for (let i = 0; i < vertexCount; ++i) {
+            if (i % 1000 === 0 && ctx.shouldUpdate) await ctx.update();
             v3transformMat3(tmpV, v3fromArray(tmpV, normals, i * 3), n);
             StringBuilder.writeSafe(obj, 'vn ');
             StringBuilder.writeFloat(obj, tmpV[0], 100);
@@ -150,6 +153,7 @@ export class ObjExporter implements RenderObjectExporter<ObjData> {
 
         // face
         for (let i = 0; i < drawCount; i += 3) {
+            if (i % 3000 === 0 && ctx.shouldUpdate) await ctx.update();
             let color: Color;
             switch (colorType) {
                 case 'uniform':
@@ -195,7 +199,7 @@ export class ObjExporter implements RenderObjectExporter<ObjData> {
         this.vertexOffset += vertexCount;
     }
 
-    private addMesh(values: MeshValues) {
+    private async addMesh(values: MeshValues, ctx: RuntimeContext) {
         const aPosition = values.aPosition.ref.value;
         const aNormal = values.aNormal.ref.value;
         const elements = values.elements.ref.value;
@@ -205,19 +209,19 @@ export class ObjExporter implements RenderObjectExporter<ObjData> {
         const drawCount = values.drawCount.ref.value;
 
         for (let instanceIndex = 0; instanceIndex < instanceCount; ++instanceIndex) {
-            this.addMeshWithColors(aPosition, elements, aNormal, aGroup, vertexCount, drawCount, values, instanceIndex);
+            await this.addMeshWithColors(aPosition, elements, aNormal, aGroup, vertexCount, drawCount, values, instanceIndex, ctx);
         }
     }
 
-    private addLines(values: LinesValues) {
+    private async addLines(values: LinesValues, ctx: RuntimeContext) {
         // TODO
     }
 
-    private addPoints(values: PointsValues) {
+    private async addPoints(values: PointsValues, ctx: RuntimeContext) {
         // TODO
     }
 
-    private addSpheres(values: SpheresValues) {
+    private async addSpheres(values: SpheresValues, ctx: RuntimeContext) {
         const center = Vec3();
 
         const aPosition = values.aPosition.ref.value;
@@ -242,11 +246,11 @@ export class ObjExporter implements RenderObjectExporter<ObjData> {
             const indices = mesh.indexBuffer.ref.value;
             const normals = mesh.normalBuffer.ref.value;
             const groups = mesh.groupBuffer.ref.value;
-            this.addMeshWithColors(vertices, indices, normals, groups, vertices.length / 3, indices.length, values, instanceIndex);
+            await this.addMeshWithColors(vertices, indices, normals, groups, vertices.length / 3, indices.length, values, instanceIndex, ctx);
         }
     }
 
-    private addCylinders(values: CylindersValues) {
+    private async addCylinders(values: CylindersValues, ctx: RuntimeContext) {
         const start = Vec3();
         const end = Vec3();
 
@@ -280,28 +284,28 @@ export class ObjExporter implements RenderObjectExporter<ObjData> {
             const indices = mesh.indexBuffer.ref.value;
             const normals = mesh.normalBuffer.ref.value;
             const groups = mesh.groupBuffer.ref.value;
-            this.addMeshWithColors(vertices, indices, normals, groups, vertices.length / 3, indices.length, values, instanceIndex);
+            await this.addMeshWithColors(vertices, indices, normals, groups, vertices.length / 3, indices.length, values, instanceIndex, ctx);
         }
     }
 
-    add(renderObject: GraphicsRenderObject) {
+    async add(renderObject: GraphicsRenderObject, ctx: RuntimeContext) {
         if (!renderObject.state.visible) return;
 
         switch (renderObject.type) {
             case 'mesh':
-                this.addMesh(renderObject.values as MeshValues);
+                await this.addMesh(renderObject.values as MeshValues, ctx);
                 break;
             case 'lines':
-                this.addLines(renderObject.values as LinesValues);
+                await this.addLines(renderObject.values as LinesValues, ctx);
                 break;
             case 'points':
-                this.addPoints(renderObject.values as PointsValues);
+                await this.addPoints(renderObject.values as PointsValues, ctx);
                 break;
             case 'spheres':
-                this.addSpheres(renderObject.values as SpheresValues);
+                await this.addSpheres(renderObject.values as SpheresValues, ctx);
                 break;
             case 'cylinders':
-                this.addCylinders(renderObject.values as CylindersValues);
+                await this.addCylinders(renderObject.values as CylindersValues, ctx);
                 break;
         }
     }

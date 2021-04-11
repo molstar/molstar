@@ -32,12 +32,12 @@ export class GeometryControls extends PluginComponent {
                 const filename = this.getFilename();
                 const objExporter = new ObjExporter(filename);
                 for (let i = 0, il = renderObjects.length; i < il; ++i) {
-                    objExporter.add(renderObjects[i]);
+                    await objExporter.add(renderObjects[i], ctx);
                     await ctx.update({ current: i });
                 }
                 const { obj, mtl } = objExporter.getData();
 
-                const asciiWrite = (data: Uint8Array,  str: string) => {
+                const asciiWrite = (data: Uint8Array, str: string) => {
                     for (let i = 0, il = str.length; i < il; ++i) {
                         data[i] = str.charCodeAt(i);
                     }
