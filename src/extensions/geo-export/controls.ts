@@ -27,13 +27,11 @@ export class GeometryControls extends PluginComponent {
             try {
                 const renderObjects = this.plugin.canvas3d?.getRenderObjects()!;
 
-                await ctx.update({ message: 'Rendering...', isIndeterminate: false, current: 0, max: renderObjects.length });
-
                 const filename = this.getFilename();
                 const objExporter = new ObjExporter(filename);
                 for (let i = 0, il = renderObjects.length; i < il; ++i) {
+                    await ctx.update({ message: `Exporting object ${i}/${il}` });
                     await objExporter.add(renderObjects[i], ctx);
-                    await ctx.update({ current: i });
                 }
                 const { obj, mtl } = objExporter.getData();
 

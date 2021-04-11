@@ -32,7 +32,7 @@ type RenderObjectExportData = {
 }
 
 interface RenderObjectExporter<D extends RenderObjectExportData> {
-    add(renderObject: GraphicsRenderObject, ctx: RuntimeContext): Promise<void>
+    add(renderObject: GraphicsRenderObject, ctx: RuntimeContext): Promise<void> | undefined
     getData(): D
 }
 
@@ -125,9 +125,12 @@ export class ObjExporter implements RenderObjectExporter<ObjData> {
         Mat4.fromArray(t, aTransform, instanceIndex * 16);
         mat3directionTransform(n, t);
 
+        const currentProgress = (vertexCount * 2 + drawCount) * instanceIndex;
+        await ctx.update({ isIndeterminate: false, current: currentProgress, max: (vertexCount * 2 + drawCount) * values.uInstanceCount.ref.value });
+
         // position
         for (let i = 0; i < vertexCount; ++i) {
-            if (i % 1000 === 0 && ctx.shouldUpdate) await ctx.update();
+            if (i % 1000 === 0 && ctx.shouldUpdate) await ctx.update({ current: currentProgress + i });
             v3transformMat4(tmpV, v3fromArray(tmpV, vertices, i * 3), t);
             StringBuilder.writeSafe(obj, 'v ');
             StringBuilder.writeFloat(obj, tmpV[0], 1000);
@@ -140,7 +143,7 @@ export class ObjExporter implements RenderObjectExporter<ObjData> {
 
         // normal
         for (let i = 0; i < vertexCount; ++i) {
-            if (i % 1000 === 0 && ctx.shouldUpdate) await ctx.update();
+            if (i % 1000 === 0 && ctx.shouldUpdate) await ctx.update({ current: currentProgress + vertexCount + i });
             v3transformMat3(tmpV, v3fromArray(tmpV, normals, i * 3), n);
             StringBuilder.writeSafe(obj, 'vn ');
             StringBuilder.writeFloat(obj, tmpV[0], 100);
@@ -153,7 +156,7 @@ export class ObjExporter implements RenderObjectExporter<ObjData> {
 
         // face
         for (let i = 0; i < drawCount; i += 3) {
-            if (i % 3000 === 0 && ctx.shouldUpdate) await ctx.update();
+            if (i % 3000 === 0 && ctx.shouldUpdate) await ctx.update({ current: currentProgress + vertexCount * 2 + i });
             let color: Color;
             switch (colorType) {
                 case 'uniform':
@@ -288,25 +291,20 @@ export class ObjExporter implements RenderObjectExporter<ObjData> {
         }
     }
 
-    async add(renderObject: GraphicsRenderObject, ctx: RuntimeContext) {
+    add(renderObject: GraphicsRenderObject, ctx: RuntimeContext) {
         if (!renderObject.state.visible) return;
 
         switch (renderObject.type) {
             case 'mesh':
-                await this.addMesh(renderObject.values as MeshValues, ctx);
-                break;
+                return this.addMesh(renderObject.values as MeshValues, ctx);
             case 'lines':
-                await this.addLines(renderObject.values as LinesValues, ctx);
-                break;
+                return this.addLines(renderObject.values as LinesValues, ctx);
             case 'points':
-                await this.addPoints(renderObject.values as PointsValues, ctx);
-                break;
+                return this.addPoints(renderObject.values as PointsValues, ctx);
             case 'spheres':
-                await this.addSpheres(renderObject.values as SpheresValues, ctx);
-                break;
+                return this.addSpheres(renderObject.values as SpheresValues, ctx);
             case 'cylinders':
-                await this.addCylinders(renderObject.values as CylindersValues, ctx);
-                break;
+                return this.addCylinders(renderObject.values as CylindersValues, ctx);
         }
     }
 
