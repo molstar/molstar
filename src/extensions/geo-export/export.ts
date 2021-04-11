@@ -111,7 +111,7 @@ export class ObjExporter implements RenderObjectExporter<ObjData> {
         }
     }
 
-    private async addMeshWithColors(vertices: Float32Array, indices: Uint32Array, normals: Float32Array, groups: Float32Array, vertexCount: number, drawCount: number, values: BaseValues, instanceIndex: number, ctx: RuntimeContext) {
+    private async addMeshWithColors(vertices: Float32Array, normals: Float32Array, indices: Uint32Array, groups: Float32Array, vertexCount: number, drawCount: number, values: BaseValues, instanceIndex: number, ctx: RuntimeContext) {
         const obj = this.obj;
         const t = Mat4();
         const n = Mat3();
@@ -209,7 +209,7 @@ export class ObjExporter implements RenderObjectExporter<ObjData> {
         const drawCount = values.drawCount.ref.value;
 
         for (let instanceIndex = 0; instanceIndex < instanceCount; ++instanceIndex) {
-            await this.addMeshWithColors(aPosition, elements, aNormal, aGroup, vertexCount, drawCount, values, instanceIndex, ctx);
+            await this.addMeshWithColors(aPosition, aNormal, elements, aGroup, vertexCount, drawCount, values, instanceIndex, ctx);
         }
     }
 
@@ -243,10 +243,10 @@ export class ObjExporter implements RenderObjectExporter<ObjData> {
 
             const mesh = MeshBuilder.getMesh(state);
             const vertices = mesh.vertexBuffer.ref.value;
-            const indices = mesh.indexBuffer.ref.value;
             const normals = mesh.normalBuffer.ref.value;
+            const indices = mesh.indexBuffer.ref.value;
             const groups = mesh.groupBuffer.ref.value;
-            await this.addMeshWithColors(vertices, indices, normals, groups, vertices.length / 3, indices.length, values, instanceIndex, ctx);
+            await this.addMeshWithColors(vertices, normals, indices, groups, vertices.length / 3, indices.length, values, instanceIndex, ctx);
         }
     }
 
@@ -281,10 +281,10 @@ export class ObjExporter implements RenderObjectExporter<ObjData> {
 
             const mesh = MeshBuilder.getMesh(state);
             const vertices = mesh.vertexBuffer.ref.value;
-            const indices = mesh.indexBuffer.ref.value;
             const normals = mesh.normalBuffer.ref.value;
+            const indices = mesh.indexBuffer.ref.value;
             const groups = mesh.groupBuffer.ref.value;
-            await this.addMeshWithColors(vertices, indices, normals, groups, vertices.length / 3, indices.length, values, instanceIndex, ctx);
+            await this.addMeshWithColors(vertices, normals, indices, groups, vertices.length / 3, indices.length, values, instanceIndex, ctx);
         }
     }
 
