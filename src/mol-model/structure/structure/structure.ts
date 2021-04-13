@@ -1167,6 +1167,57 @@ namespace Structure {
         }
     }
 
+    export interface ForEachAtomicHierarchyElementParams {
+        // Called for 1st element of each chain
+        // Note that chains can be split, meaning each chain would be called multiple times.
+        chain?: (e: StructureElement.Location<Unit.Atomic>) => void,
+        // Called for 1st element of each residue
+        residue?: (e: StructureElement.Location<Unit.Atomic>) => void,
+        // Called for each element
+        atom?: (e: StructureElement.Location<Unit.Atomic>) => void,
+    };
+
+    export function eachAtomicHierarchyElement(structure: Structure, { chain, residue, atom }: ForEachAtomicHierarchyElementParams) {
+        const l = StructureElement.Location.create<Unit.Atomic>(structure);
+        for (const unit of structure.units) {
+            if (unit.kind !== Unit.Kind.Atomic) continue;
+
+            l.unit = unit;
+
+            const { elements } = unit;
+            const chainsIt = Segmentation.transientSegments(unit.model.atomicHierarchy.chainAtomSegments, elements);
+            const residuesIt = Segmentation.transientSegments(unit.model.atomicHierarchy.residueAtomSegments, elements);
+
+            while (chainsIt.hasNext) {
+                const chainSegment = chainsIt.move();
+
+                if (chain) {
+                    l.element = elements[chainSegment.start];
+                    chain(l);
+                }
+
+                if (!residue && !atom) continue;
+
+                residuesIt.setSegment(chainSegment);
+                while (residuesIt.hasNext) {
+                    const residueSegment = residuesIt.move();
+
+                    if (residue) {
+                        l.element = elements[residueSegment.start];
+                        residue(l);
+                    }
+
+                    if (!atom) continue;
+
+                    for (let j = residueSegment.start, _j = residueSegment.end; j < _j; j++) {
+                        l.element = elements[j];
+                        atom(l);
+                    }
+                }
+            }
+        }
+    }
+
     //
 
     export const DefaultSizeThresholds = {
