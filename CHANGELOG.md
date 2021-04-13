@@ -5,6 +5,9 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- [WIP] Mesh export extension
+- ``Structure.eachAtomicHierarchyElement``
+
 ## [v2.0.3] - 2021-04-09
 ### Added
 - Support for ``ColorTheme.palette`` designed for providing gradient-like coloring.
@@ -12,8 +15,6 @@ Note that since we don't clearly distinguish between a public and private interf
 ### Changed
 - [Breaking] The `zip` function is now asynchronous and expects a `RuntimeContext`. Also added `Zip()` returning a `Task`.
 - [Breaking] Add ``CubeGridFormat`` in ``alpha-orbitals`` extension.
-
-
 
 ## [v2.0.2] - 2021-03-29
 ### Added
