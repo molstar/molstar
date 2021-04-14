@@ -139,7 +139,7 @@ export async function _deflateRaw(runtime: RuntimeContext, data: Uint8Array, out
 
     while (ctx.i < dlen) {
         if (runtime.shouldUpdate) {
-            await runtime.update({ message: 'Deflating...', current: ctx.pos, max: data.length });
+            await runtime.update({ message: 'Deflating...', current: ctx.i, max: dlen });
         }
         deflateChunk(ctx, 1024 * 1024);
     }
