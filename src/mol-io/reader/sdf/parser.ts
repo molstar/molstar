@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Sebastian Bittrich <sebastian.bittrich@rcsb.org>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { Column } from '../../../mol-data/db';
@@ -27,21 +28,31 @@ function handleDataItems(tokenizer: Tokenizer): { dataHeader: Column<string>, da
     const dataHeader = TokenBuilder.create(tokenizer.data, 32);
     const data = TokenBuilder.create(tokenizer.data, 32);
 
-    let sawHeaderToken = false;
     while (tokenizer.position < tokenizer.length) {
         const line = Tokenizer.readLine(tokenizer);
         if (line.startsWith(delimiter)) break;
-        if (!!line) {
-            if (line.startsWith('> <')) {
-                TokenBuilder.add(dataHeader, tokenizer.tokenStart + 3, tokenizer.tokenEnd - 1);
-                sawHeaderToken = true;
-            } else if (sawHeaderToken) {
-                TokenBuilder.add(data, tokenizer.tokenStart, tokenizer.tokenEnd);
-                sawHeaderToken = false;
-                // TODO can there be multiline values?
+        if (!line) continue;
+
+        if (line.startsWith('> <')) {
+            TokenBuilder.add(dataHeader, tokenizer.tokenStart + 3, tokenizer.tokenEnd - 1);
+
+            Tokenizer.markLine(tokenizer);
+            const start = tokenizer.tokenStart;
+            let end = tokenizer.tokenEnd;
+            let added = false;
+            while (tokenizer.position < tokenizer.length) {
+                const line2 = Tokenizer.readLine(tokenizer);
+                if (!line2 || line2.startsWith(delimiter) || line2.startsWith('> <')) {
+                    TokenBuilder.add(data, start, end);
+                    added = true;
+                    break;
+                }
+                end = tokenizer.tokenEnd;
             }
-        } else {
-            sawHeaderToken = false;
+
+            if (!added) {
+                TokenBuilder.add(data, start, end);
+            }
         }
     }
 
