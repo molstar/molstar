@@ -7,6 +7,7 @@ Note that since we don't clearly distinguish between a public and private interf
 
 - [WIP] Mesh export extension
 - ``Structure.eachAtomicHierarchyElement``
+- Fixed reading multi-line values in SDF format
 
 ## [v2.0.3] - 2021-04-09
 ### Added
