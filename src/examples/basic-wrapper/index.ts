@@ -18,6 +18,7 @@ import { Asset } from '../../mol-util/assets';
 import { Color } from '../../mol-util/color';
 import { StripedResidues } from './coloring';
 import { CustomToastMessage } from './controls';
+import { CustomColorThemeProvider } from './custom-theme';
 import './index.html';
 import { buildStaticSuperposition, dynamicSuperpositionTest, StaticSuperpositionTestData } from './superposition';
 require('mol-plugin-ui/skin/light.scss');
@@ -42,6 +43,7 @@ class BasicWrapper {
         });
 
         this.plugin.representation.structure.themes.colorThemeRegistry.add(StripedResidues.colorThemeProvider!);
+        this.plugin.representation.structure.themes.colorThemeRegistry.add(CustomColorThemeProvider);
         this.plugin.managers.lociLabels.addProvider(StripedResidues.labelProvider!);
         this.plugin.customModelProperties.register(StripedResidues.propertyProvider, true);
     }
@@ -100,6 +102,13 @@ class BasicWrapper {
             this.plugin.dataTransaction(async () => {
                 for (const s of this.plugin.managers.structure.hierarchy.current.structures) {
                     await this.plugin.managers.structure.component.updateRepresentationsTheme(s.components, { color: StripedResidues.propertyProvider.descriptor.name as any });
+                }
+            });
+        },
+        applyCustomTheme: async () => {
+            this.plugin.dataTransaction(async () => {
+                for (const s of this.plugin.managers.structure.hierarchy.current.structures) {
+                    await this.plugin.managers.structure.component.updateRepresentationsTheme(s.components, { color: CustomColorThemeProvider.name as any });
                 }
             });
         },

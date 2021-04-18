@@ -10,6 +10,7 @@ import { CellPack } from '../../extensions/cellpack';
 import { DnatcoConfalPyramids } from '../../extensions/dnatco';
 import { G3DFormat, G3dProvider } from '../../extensions/g3d/format';
 import { Mp4Export } from '../../extensions/mp4-export';
+import { GeometryExport } from '../../extensions/geo-export';
 import { PDBeStructureQualityReport } from '../../extensions/pdbe';
 import { RCSBAssemblySymmetry, RCSBValidationReport } from '../../extensions/rcsb';
 import { DownloadStructure, PdbDownloadProvider } from '../../mol-plugin-state/actions/structure';
@@ -55,7 +56,8 @@ const Extensions = {
     'rcsb-validation-report': PluginSpec.Behavior(RCSBValidationReport),
     'anvil-membrane-orientation': PluginSpec.Behavior(ANVILMembraneOrientation),
     'g3d': PluginSpec.Behavior(G3DFormat),
-    'mp4-export': PluginSpec.Behavior(Mp4Export)
+    'mp4-export': PluginSpec.Behavior(Mp4Export),
+    'geo-export': PluginSpec.Behavior(GeometryExport)
 };
 
 const DefaultViewerOptions = {

@@ -36,4 +36,8 @@ export const color_vert_params = `
     uniform vec2 uTransparencyTexDim;
     uniform sampler2D tTransparency;
 #endif
+
+#ifdef dUsePalette
+    varying float vPaletteV;
+#endif
 `;

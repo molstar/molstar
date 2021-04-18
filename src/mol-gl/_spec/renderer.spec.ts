@@ -133,7 +133,7 @@ describe('renderer', () => {
         scene.add(points);
         scene.commit();
         expect(ctx.stats.resourceCounts.attribute).toBe(ctx.isWebGL2 ? 4 : 5);
-        expect(ctx.stats.resourceCounts.texture).toBe(6);
+        expect(ctx.stats.resourceCounts.texture).toBe(7);
         expect(ctx.stats.resourceCounts.vertexArray).toBe(6);
         expect(ctx.stats.resourceCounts.program).toBe(6);
         expect(ctx.stats.resourceCounts.shader).toBe(12);

@@ -7,6 +7,7 @@
 import { Sphere3D } from '../../mol-math/geometry';
 import { Vec3, Mat4 } from '../../mol-math/linear-algebra';
 import { BoundaryHelper } from '../../mol-math/geometry/boundary-helper';
+import { TextureFilter } from '../webgl/texture';
 
 export function calculateTextureInfo (n: number, itemSize: number) {
     n = Math.max(n, 2); // observed issues with 1 pixel textures
@@ -22,6 +23,7 @@ export interface TextureImage<T extends Uint8Array | Float32Array | Int32Array> 
     readonly width: number
     readonly height: number
     readonly flipY?: boolean
+    readonly filter?: TextureFilter
 }
 
 export interface TextureVolume<T extends Uint8Array | Float32Array> {

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  *
@@ -7,65 +7,54 @@
  * MIT License, Copyright (c) 2018 Photopea
  */
 
+import { RuntimeContext } from '../../mol-task';
 import { NumberArray } from '../type-helpers';
 import { _hufTree } from './huffman';
 import { U, revCodes, makeCodes } from './util';
 
-export function _deflateRaw(data: Uint8Array, out: Uint8Array, opos: number, lvl: number) {
-    const opts = [
-        /*
-            ush good_length; /* reduce lazy search above this match length
-            ush max_lazy;    /* do not perform lazy search above this match length
-            ush nice_length; /* quit search above this match length
-        */
-        /*      good lazy nice chain */
-        /* 0 */ [ 0,   0,   0,    0, 0], /* store only */
-        /* 1 */ [ 4,   4,   8,    4, 0], /* max speed, no lazy matches */
-        /* 2 */ [ 4,   5,  16,    8, 0],
-        /* 3 */ [ 4,   6,  16,   16, 0],
-
-        /* 4 */ [ 4,  10,  16,   32, 0], /* lazy matches */
-        /* 5 */ [ 8,  16,  32,   32, 0],
-        /* 6 */ [ 8,  16, 128,  128, 0],
-        /* 7 */ [ 8,  32, 128,  256, 0],
-        /* 8 */ [32, 128, 258, 1024, 1],
-        /* 9 */ [32, 258, 258, 4096, 1] /* max compression */
-    ];
-
-    const opt = opts[lvl];
-
-    let i = 0, pos = opos << 3, cvrd = 0;
-    const dlen = data.length;
-
-    if(lvl === 0) {
-        while(i < dlen) {
-            const len = Math.min(0xffff, dlen - i);
-            _putsE(out, pos, (i + len === dlen ? 1 : 0));
-            pos = _copyExact(data, i, len, out, pos + 8);
-            i += len;
-        }
-        return pos >>> 3;
-    }
-
+function DeflateContext(data: Uint8Array, out: Uint8Array, opos: number, lvl: number) {
     const { lits, strt, prev } = U;
-    let li = 0, lc = 0, bs = 0, ebits = 0, c = 0, nc = 0;  // last_item, literal_count, block_start
-    if(dlen > 2) {
-        nc = _hash(data, 0);
-        strt[nc] = 0;
-    }
+    return {
+        data,
+        out,
+        opt: Opts[lvl],
+        i: 0,
+        pos: opos << 3,
+        cvrd: 0,
+        dlen: data.length,
 
-    // let nmch = 0
-    // let nmci = 0
+        li: 0,
+        lc: 0,
+        bs: 0,
+        ebits: 0,
+        c: 0,
+        nc: 0,
 
-    for(i = 0; i < dlen; i++)  {
+        lits,
+        strt,
+        prev
+    };
+}
+type DeflateContext = ReturnType<typeof DeflateContext>
+
+
+function deflateChunk(ctx: DeflateContext, count: number) {
+    const { data, dlen, out, opt } = ctx;
+    let { i, pos, cvrd, li, lc, bs, ebits, c, nc } = ctx;
+    const { lits, strt, prev } = U;
+
+    const end = Math.min(i + count, dlen);
+
+    for(; i < end; i++)  {
         c = nc;
-        //*
+
         if(i + 1 < dlen - 2) {
             nc = _hash(data, i + 1);
             const ii = ((i + 1) & 0x7fff);
             prev[ii] = strt[nc];
             strt[nc] = ii;
-        } // */
+        }
+
         if(cvrd <= i) {
             if((li > 14000 || lc > 26697) && (dlen - i) > 100) {
                 if(cvrd < i) {
@@ -79,19 +68,12 @@ export function _deflateRaw(data: Uint8Array, out: Uint8Array, opos: number, lvl
             }
 
             let mch = 0;
-            // if(nmci==i) mch= nmch;  else
             if(i < dlen - 2) {
                 mch = _bestMatch(data, i, prev, c, Math.min(opt[2], dlen - i), opt[3]);
             }
-            /*
-            if(mch!=0 && opt[4]==1 && (mch>>>16)<opt[1] && i+1<dlen-2) {
-                nmch = UZIP.F._bestMatch(data, i+1, prev, nc, opt[2], opt[3]);  nmci=i+1;
-                //var mch2 = UZIP.F._bestMatch(data, i+2, prev, nnc);  //nmci=i+1;
-                if((nmch>>>16)>(mch>>>16)) mch=0;
-            }//*/
-            // const len = mch>>>16, dst = mch & 0xffff;  // if(i-dst<0) throw "e";
+
             if(mch !== 0) {
-                const len = mch >>> 16, dst = mch & 0xffff;  // if(i-dst<0) throw "e";
+                const len = mch >>> 16, dst = mch & 0xffff;
                 const lgi = _goodIndex(len, U.of0);  U.lhst[257 + lgi]++;
                 const dgi = _goodIndex(dst, U.df0);  U.dhst[    dgi]++;  ebits += U.exb[lgi] + U.dxb[dgi];
                 lits[li] = (len << 23) | (i - cvrd);  lits[li + 1] = (dst << 16) | (lgi << 8) | dgi;  li += 2;
@@ -102,6 +84,69 @@ export function _deflateRaw(data: Uint8Array, out: Uint8Array, opos: number, lvl
             lc++;
         }
     }
+
+    ctx.i = i;
+    ctx.pos = pos;
+    ctx.cvrd = cvrd;
+    ctx.li = li;
+    ctx.lc = lc;
+    ctx.bs = bs;
+    ctx.ebits = ebits;
+    ctx.c = c;
+    ctx.nc = nc;
+}
+
+/**
+ * - good_length: reduce lazy search above this match length;
+ * - max_lazy: do not perform lazy search above this match length;
+ * - nice_length: quit search above this match length;
+ */
+const Opts = [
+    /*      good lazy nice chain */
+    /* 0 */ [ 0,   0,   0,    0, 0], /* store only */
+    /* 1 */ [ 4,   4,   8,    4, 0], /* max speed, no lazy matches */
+    /* 2 */ [ 4,   5,  16,    8, 0],
+    /* 3 */ [ 4,   6,  16,   16, 0],
+
+    /* 4 */ [ 4,  10,  16,   32, 0], /* lazy matches */
+    /* 5 */ [ 8,  16,  32,   32, 0],
+    /* 6 */ [ 8,  16, 128,  128, 0],
+    /* 7 */ [ 8,  32, 128,  256, 0],
+    /* 8 */ [32, 128, 258, 1024, 1],
+    /* 9 */ [32, 258, 258, 4096, 1] /* max compression */
+] as const;
+
+export async function _deflateRaw(runtime: RuntimeContext, data: Uint8Array, out: Uint8Array, opos: number, lvl: number) {
+    const ctx = DeflateContext(data, out, opos, lvl);
+    const { dlen } = ctx;
+
+    if(lvl === 0) {
+        let { i, pos } = ctx;
+
+        while(i < dlen) {
+            const len = Math.min(0xffff, dlen - i);
+            _putsE(out, pos, (i + len === dlen ? 1 : 0));
+            pos = _copyExact(data, i, len, out, pos + 8);
+            i += len;
+        }
+        return pos >>> 3;
+    }
+
+    if(dlen > 2) {
+        ctx.nc = _hash(data, 0);
+        ctx.strt[ctx.nc] = 0;
+    }
+
+    while (ctx.i < dlen) {
+        if (runtime.shouldUpdate) {
+            await runtime.update({ message: 'Deflating...', current: ctx.i, max: dlen });
+        }
+        deflateChunk(ctx, 1024 * 1024);
+    }
+
+    let { li, cvrd, pos } = ctx;
+    const { i, lits, bs, ebits } = ctx;
+
     if(bs !== i || data.length === 0) {
         if(cvrd < i) {
             lits[li] = i - cvrd;
@@ -109,10 +154,6 @@ export function _deflateRaw(data: Uint8Array, out: Uint8Array, opos: number, lvl
             cvrd = i;
         }
         pos = _writeBlock(1, lits, li, ebits, data, bs, i - bs, out, pos);
-        li = 0;
-        lc = 0;
-        li = lc = ebits = 0;
-        bs = i;
     }
     while((pos & 7) !== 0) pos++;
     return pos >>> 3;

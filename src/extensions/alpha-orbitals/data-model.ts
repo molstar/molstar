@@ -9,6 +9,7 @@ import { Grid } from '../../mol-model/volume';
 import { SphericalBasisOrder } from './spherical-functions';
 import { Box3D, RegularGrid3d } from '../../mol-math/geometry';
 import { arrayMin, arrayMax, arrayRms, arrayMean } from '../../mol-util/array';
+import { ModelFormat } from '../../mol-model-formats/format';
 
 // Note: generally contracted gaussians are currently not supported.
 export interface SphericalElectronShell {
@@ -57,6 +58,17 @@ export interface CubeGridInfo {
 export interface CubeGrid {
     grid: Grid;
     isovalues?: { negative?: number; positive?: number };
+}
+
+export type CubeGridFormat = ModelFormat<CubeGrid>;
+
+// eslint-disable-next-line
+export function CubeGridFormat(grid: CubeGrid): CubeGridFormat {
+    return { name: 'custom grid', kind: 'cube-grid', data: grid };
+}
+
+export function isCubeGridData(f: ModelFormat): f is CubeGridFormat {
+    return f.kind === 'cube-grid';
 }
 
 export function initCubeGrid(params: CubeGridComputationParams): CubeGridInfo {

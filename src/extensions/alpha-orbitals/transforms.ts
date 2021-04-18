@@ -17,7 +17,7 @@ import { createVolumeRepresentationParams } from '../../mol-plugin-state/helpers
 import { StateTransformer } from '../../mol-state';
 import { Theme } from '../../mol-theme/theme';
 import { VolumeRepresentation3DHelpers } from '../../mol-plugin-state/transforms/representation';
-import { AlphaOrbital, Basis, CubeGrid } from './data-model';
+import { AlphaOrbital, Basis, CubeGrid, CubeGridFormat, isCubeGridData } from './data-model';
 import { createSphericalCollocationDensityGrid } from './density';
 import { Tensor } from '../../mol-math/linear-algebra';
 
@@ -114,7 +114,7 @@ export const CreateOrbitalVolume = PluginStateTransform.BuiltIn({
             }, a.data.orbitals[params.index], plugin.canvas3d?.webgl).runInContext(ctx);
             const volume: Volume = {
                 grid: data.grid,
-                sourceData: { name: 'custom grid', kind: 'alpha-orbitals', data },
+                sourceData: CubeGridFormat(data),
                 customProperties: new CustomProperties(),
                 _propertyData: Object.create(null),
             };
@@ -146,7 +146,7 @@ export const CreateOrbitalDensityVolume = PluginStateTransform.BuiltIn({
             }, a.data.orbitals, plugin.canvas3d?.webgl).runInContext(ctx);
             const volume: Volume = {
                 grid: data.grid,
-                sourceData: { name: 'custom grid', kind: 'alpha-orbitals', data },
+                sourceData: CubeGridFormat(data),
                 customProperties: new CustomProperties(),
                 _propertyData: Object.create(null),
             };
@@ -210,9 +210,9 @@ export const CreateOrbitalRepresentation3D = PluginStateTransform.BuiltIn({
 });
 
 function volumeParams(plugin: PluginContext, volume: PluginStateObject.Volume.Data, params: StateTransformer.Params<typeof CreateOrbitalRepresentation3D>) {
-    if (volume.data.sourceData.kind !== 'alpha-orbitals') throw new Error('Invalid data source kind.');
+    if (!isCubeGridData(volume.data.sourceData)) throw new Error('Invalid data source kind.');
 
-    const { isovalues } = volume.data.sourceData.data as CubeGrid;
+    const { isovalues } = volume.data.sourceData.data;
     if (!isovalues) throw new Error('Isovalues are not computed.');
 
     const value = isovalues[params.kind];

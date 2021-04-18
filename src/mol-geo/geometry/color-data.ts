@@ -2,6 +2,7 @@
  * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { ValueCell } from '../../mol-util';
@@ -18,13 +19,26 @@ export type ColorType = 'uniform' | 'instance' | 'group' | 'groupInstance' | 've
 export type ColorData = {
     uColor: ValueCell<Vec3>,
     tColor: ValueCell<TextureImage<Uint8Array>>,
+    tPalette: ValueCell<TextureImage<Uint8Array>>,
     uColorTexDim: ValueCell<Vec2>,
     uColorGridDim: ValueCell<Vec3>,
     uColorGridTransform: ValueCell<Vec4>,
     dColorType: ValueCell<string>,
+    dUsePalette: ValueCell<boolean>,
 }
 
 export function createColors(locationIt: LocationIterator, positionIt: LocationIterator, colorTheme: ColorTheme<any>, colorData?: ColorData): ColorData {
+    const data = _createColors(locationIt, positionIt, colorTheme, colorData);
+    if (colorTheme.palette) {
+        ValueCell.updateIfChanged(data.dUsePalette, true);
+        updatePaletteTexture(colorTheme.palette, data.tPalette);
+    } else {
+        ValueCell.updateIfChanged(data.dUsePalette, false);
+    }
+    return data;
+}
+
+function _createColors(locationIt: LocationIterator, positionIt: LocationIterator, colorTheme: ColorTheme<any>, colorData?: ColorData): ColorData {
     switch (Geometry.getGranularity(locationIt, colorTheme.granularity)) {
         case 'uniform': return createUniformColor(locationIt, colorTheme.color, colorData);
         case 'instance': return createInstanceColor(locationIt, colorTheme.color, colorData);
@@ -34,6 +48,37 @@ export function createColors(locationIt: LocationIterator, positionIt: LocationI
         case 'vertexInstance': return createVertexInstanceColor(positionIt, colorTheme.color, colorData);
         case 'volume': return createGridColor((colorTheme as any).grid, 'volume', colorData);
     }
+}
+
+function updatePaletteTexture(palette: ColorTheme.Palette, cell: ValueCell<TextureImage<Uint8Array>>) {
+    let isSynced = true;
+    const texture = cell.ref.value;
+    if (palette.colors.length !== texture.width || texture.filter !== palette.filter) {
+        isSynced = false;
+    } else {
+        const data = texture.array;
+        let o = 0;
+        for (const c of palette.colors) {
+            const [r, g, b] = Color.toRgb(c);
+            if (data[o++] !== r || data[o++] !== g || data[o++] !== b) {
+                isSynced = false;
+                break;
+            }
+        }
+    }
+
+    if (isSynced) return;
+
+    const array = new Uint8Array(palette.colors.length * 3);
+    let o = 0;
+    for (const c of palette.colors) {
+        const [r, g, b] = Color.toRgb(c);
+        array[o++] = r;
+        array[o++] = g;
+        array[o++] = b;
+    }
+
+    ValueCell.update(cell, { array, height: 1, width: palette.colors.length, filter: palette.filter });
 }
 
 //
@@ -47,16 +92,18 @@ export function createValueColor(value: Color, colorData?: ColorData): ColorData
         return {
             uColor: ValueCell.create(Color.toVec3Normalized(Vec3(), value)),
             tColor: ValueCell.create({ array: new Uint8Array(3), width: 1, height: 1 }),
+            tPalette: ValueCell.create({ array: new Uint8Array(3), width: 1, height: 1 }),
             uColorTexDim: ValueCell.create(Vec2.create(1, 1)),
             uColorGridDim: ValueCell.create(Vec3.create(1, 1, 1)),
             uColorGridTransform: ValueCell.create(Vec4.create(0, 0, 0, 1)),
             dColorType: ValueCell.create('uniform'),
+            dUsePalette: ValueCell.create(false),
         };
     }
 }
 
 /** Creates color uniform */
-export function createUniformColor(locationIt: LocationIterator, color: LocationColor, colorData?: ColorData): ColorData {
+function createUniformColor(locationIt: LocationIterator, color: LocationColor, colorData?: ColorData): ColorData {
     return createValueColor(color(NullLocation, false), colorData);
 }
 
@@ -72,16 +119,18 @@ export function createTextureColor(colors: TextureImage<Uint8Array>, type: Color
         return {
             uColor: ValueCell.create(Vec3()),
             tColor: ValueCell.create(colors),
+            tPalette: ValueCell.create({ array: new Uint8Array(3), width: 1, height: 1 }),
             uColorTexDim: ValueCell.create(Vec2.create(colors.width, colors.height)),
             uColorGridDim: ValueCell.create(Vec3.create(1, 1, 1)),
             uColorGridTransform: ValueCell.create(Vec4.create(0, 0, 0, 1)),
             dColorType: ValueCell.create(type),
+            dUsePalette: ValueCell.create(false),
         };
     }
 }
 
 /** Creates color texture with color for each instance */
-export function createInstanceColor(locationIt: LocationIterator, color: LocationColor, colorData?: ColorData): ColorData {
+function createInstanceColor(locationIt: LocationIterator, color: LocationColor, colorData?: ColorData): ColorData {
     const { instanceCount } = locationIt;
     const colors = createTextureImage(Math.max(1, instanceCount), 3, Uint8Array, colorData && colorData.tColor.ref.value.array);
     locationIt.reset();
@@ -94,7 +143,7 @@ export function createInstanceColor(locationIt: LocationIterator, color: Locatio
 }
 
 /** Creates color texture with color for each group (i.e. shared across instances) */
-export function createGroupColor(locationIt: LocationIterator, color: LocationColor, colorData?: ColorData): ColorData {
+function createGroupColor(locationIt: LocationIterator, color: LocationColor, colorData?: ColorData): ColorData {
     const { groupCount } = locationIt;
     const colors = createTextureImage(Math.max(1, groupCount), 3, Uint8Array, colorData && colorData.tColor.ref.value.array);
     locationIt.reset();
@@ -106,7 +155,7 @@ export function createGroupColor(locationIt: LocationIterator, color: LocationCo
 }
 
 /** Creates color texture with color for each group in each instance */
-export function createGroupInstanceColor(locationIt: LocationIterator, color: LocationColor, colorData?: ColorData): ColorData {
+function createGroupInstanceColor(locationIt: LocationIterator, color: LocationColor, colorData?: ColorData): ColorData {
     const { groupCount, instanceCount } = locationIt;
     const count = instanceCount * groupCount;
     const colors = createTextureImage(Math.max(1, count), 3, Uint8Array, colorData && colorData.tColor.ref.value.array);
@@ -119,7 +168,7 @@ export function createGroupInstanceColor(locationIt: LocationIterator, color: Lo
 }
 
 /** Creates color texture with color for each vertex (i.e. shared across instances) */
-export function createVertexColor(locationIt: LocationIterator, color: LocationColor, colorData?: ColorData): ColorData {
+function createVertexColor(locationIt: LocationIterator, color: LocationColor, colorData?: ColorData): ColorData {
     const { groupCount, stride } = locationIt;
     const colors = createTextureImage(Math.max(1, groupCount), 3, Uint8Array, colorData && colorData.tColor.ref.value.array);
     locationIt.reset();
@@ -135,7 +184,7 @@ export function createVertexColor(locationIt: LocationIterator, color: LocationC
 }
 
 /** Creates color texture with color for each vertex in each instance */
-export function createVertexInstanceColor(locationIt: LocationIterator, color: LocationColor, colorData?: ColorData): ColorData {
+function createVertexInstanceColor(locationIt: LocationIterator, color: LocationColor, colorData?: ColorData): ColorData {
     const { groupCount, instanceCount, stride } = locationIt;
     const count = instanceCount * groupCount;
     const colors = createTextureImage(Math.max(1, count), 3, Uint8Array, colorData && colorData.tColor.ref.value.array);
@@ -175,10 +224,12 @@ export function createGridColor(grid: ColorVolume, type: ColorType, colorData?: 
         return {
             uColor: ValueCell.create(Vec3()),
             tColor: ValueCell.create(colors),
+            tPalette: ValueCell.create({ array: new Uint8Array(3), width: 1, height: 1 }),
             uColorTexDim: ValueCell.create(Vec2.create(width, height)),
             uColorGridDim: ValueCell.create(Vec3.clone(dimension)),
             uColorGridTransform: ValueCell.create(Vec4.clone(transform)),
             dColorType: ValueCell.create(type),
+            dUsePalette: ValueCell.create(false),
         };
     }
 }
