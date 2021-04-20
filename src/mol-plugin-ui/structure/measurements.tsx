@@ -10,14 +10,17 @@ import { Loci } from '../../mol-model/loci';
 import { StructureElement } from '../../mol-model/structure';
 import { StructureMeasurementCell, StructureMeasurementOptions, StructureMeasurementParams } from '../../mol-plugin-state/manager/structure/measurement';
 import { StructureSelectionHistoryEntry } from '../../mol-plugin-state/manager/structure/selection';
-import { PluginStateObject } from '../../mol-plugin-state/objects';
 import { PluginCommands } from '../../mol-plugin/commands';
+import { AngleData } from '../../mol-repr/shape/loci/angle';
+import { DihedralData } from '../../mol-repr/shape/loci/dihedral';
+import { DistanceData } from '../../mol-repr/shape/loci/distance';
+import { LabelData } from '../../mol-repr/shape/loci/label';
 import { angleLabel, dihedralLabel, distanceLabel, lociLabel } from '../../mol-theme/label';
 import { FiniteArray } from '../../mol-util/type-helpers';
 import { CollapsableControls, PurePluginUIComponent } from '../base';
 import { ActionMenu } from '../controls/action-menu';
 import { Button, ExpandGroup, IconButton, ToggleButton } from '../controls/common';
-import { Icon, PencilRulerSvg, SetSvg, ArrowUpwardSvg, ArrowDownwardSvg, DeleteOutlinedSvg, HelpOutlineSvg, AddSvg, TuneSvg, VisibilityOffOutlinedSvg, VisibilityOutlinedSvg, MoreHorizSvg } from '../controls/icons';
+import { AddSvg, ArrowDownwardSvg, ArrowUpwardSvg, DeleteOutlinedSvg, HelpOutlineSvg, Icon, MoreHorizSvg, PencilRulerSvg, SetSvg, TuneSvg, VisibilityOffOutlinedSvg, VisibilityOutlinedSvg } from '../controls/icons';
 import { ParameterControls } from '../controls/parameters';
 import { UpdateTransformControl } from '../state/update-transform';
 import { ToggleSelectionModeButton } from './selection';
@@ -216,7 +219,7 @@ class MeasurementEntry extends PurePluginUIComponent<{ cell: StructureMeasuremen
     }
 
     get selections() {
-        return this.props.cell.obj?.data.sourceData as ReadonlyArray<PluginStateObject.Molecule.Structure.SelectionEntry> | undefined;
+        return this.props.cell.obj?.data.sourceData as Partial<DistanceData & AngleData & DihedralData & LabelData> | undefined;
     }
 
     delete = () => {
@@ -234,8 +237,8 @@ class MeasurementEntry extends PurePluginUIComponent<{ cell: StructureMeasuremen
         if (!selections) return;
 
         this.plugin.managers.interactivity.lociHighlights.clearHighlights();
-        for (const d of selections) {
-            this.plugin.managers.interactivity.lociHighlights.highlight({ loci: d.loci }, false);
+        for (const loci of this.lociArray) {
+            this.plugin.managers.interactivity.lociHighlights.highlight({ loci }, false);
         }
         this.plugin.managers.interactivity.lociHighlights.highlight({ loci: this.props.cell.obj?.data.repr.getLoci()! }, false);
     }
@@ -250,21 +253,31 @@ class MeasurementEntry extends PurePluginUIComponent<{ cell: StructureMeasuremen
         const selections = this.selections;
         if (!selections) return;
 
-        const sphere = Loci.getBundleBoundingSphere(toLociBundle(selections));
+        const sphere = Loci.getBundleBoundingSphere({ loci: this.lociArray });
         if (sphere) {
             this.plugin.managers.camera.focusSphere(sphere);
         }
     }
 
+    private get lociArray(): FiniteArray<Loci> {
+        const selections = this.selections;
+        if (!selections) return [];
+        if (selections.infos) return [selections.infos[0].loci];
+        if (selections.pairs) return selections.pairs[0].loci;
+        if (selections.triples) return selections.triples[0].loci;
+        if (selections.quads) return selections.quads[0].loci;
+        return [];
+    }
+
     get label() {
         const selections = this.selections;
-        switch (selections?.length) {
-            case 1: return lociLabel(selections[0].loci, { condensed: true });
-            case 2: return distanceLabel(toLociBundle(selections), { condensed: true, unitLabel: this.plugin.managers.structure.measurement.state.options.distanceUnitLabel });
-            case 3: return angleLabel(toLociBundle(selections), { condensed: true });
-            case 4: return dihedralLabel(toLociBundle(selections), { condensed: true });
-            default: return '';
-        }
+
+        if (!selections) return '<empty>';
+        if (selections.infos) return lociLabel(selections.infos[0].loci, { condensed: true });
+        if (selections.pairs) return distanceLabel(selections.pairs[0], { condensed: true, unitLabel: this.plugin.managers.structure.measurement.state.options.distanceUnitLabel });
+        if (selections.triples) return angleLabel(selections.triples[0], { condensed: true });
+        if (selections.quads) return dihedralLabel(selections.quads[0], { condensed: true });
+        return '<empty>';
     }
 
     get actions(): ActionMenu.Items {
@@ -302,8 +315,4 @@ class MeasurementEntry extends PurePluginUIComponent<{ cell: StructureMeasuremen
             </>}
         </>;
     }
-}
-
-function toLociBundle(data: FiniteArray<{ loci: Loci }, any>): { loci: FiniteArray<Loci, any> } {
-    return { loci: (data.map(d => d.loci) as unknown as FiniteArray<Loci, any>) };
 }
