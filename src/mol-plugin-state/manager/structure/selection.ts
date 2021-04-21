@@ -10,7 +10,7 @@ import { BoundaryHelper } from '../../../mol-math/geometry/boundary-helper';
 import { Vec3 } from '../../../mol-math/linear-algebra';
 import { PrincipalAxes } from '../../../mol-math/linear-algebra/matrix/principal-axes';
 import { EmptyLoci, Loci } from '../../../mol-model/loci';
-import { Structure, StructureElement, StructureSelection } from '../../../mol-model/structure';
+import { QueryContext, Structure, StructureElement, StructureQuery, StructureSelection } from '../../../mol-model/structure';
 import { PluginContext } from '../../../mol-plugin/context';
 import { StateObjectRef } from '../../../mol-state';
 import { Task } from '../../../mol-task';
@@ -455,6 +455,13 @@ export class StructureSelectionManager extends StatefulPluginComponent<Structure
 
     fromLoci(modifier: StructureSelectionModifier, loci: Loci, applyGranularity = true) {
         this.triggerInteraction(modifier, loci, applyGranularity);
+    }
+
+    fromCompiledQuery(modifier: StructureSelectionModifier, query: StructureQuery, applyGranularity = true) {
+        for (const s of this.applicableStructures) {
+            const loci = query(new QueryContext(s));
+            this.triggerInteraction(modifier, StructureSelection.toLociWithSourceUnits(loci), applyGranularity);
+        }
     }
 
     fromSelectionQuery(modifier: StructureSelectionModifier, query: StructureSelectionQuery, applyGranularity = true) {

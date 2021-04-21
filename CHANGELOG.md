@@ -3,6 +3,13 @@ All notable changes to this project will be documented in this file, following t
 
 Note that since we don't clearly distinguish between a public and private interfaces there will be changes in non-major versions that are potentially breaking. If we make breaking changes to less used interfaces we will highlight it in here.
 
+## [Unreleased]
+
+- Ability to pass ``Canvas3DContext`` to ``PluginContext.fromCanvas``.
+- Relative frame support for ``Canvas3D`` viewport.
+- Fix bug in screenshot copy UI.
+- Add ability to select residues from a list of identifiers to the Selection UI.
+
 ## [v2.0.4] - 2021-04-20
 
 - [WIP] Mesh export extension
