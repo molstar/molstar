@@ -34,12 +34,16 @@ export class DownloadScreenshotControls extends PluginUIComponent<{ close: () =>
     }
 
     private copy = async () => {
-        await this.plugin.helpers.viewportScreenshot?.copyToClipboard();
-        PluginCommands.Toast.Show(this.plugin, {
-            message: 'Copied to clipboard.',
-            title: 'Screenshot',
-            timeoutMs: 1500
-        });
+        try {
+            await this.plugin.helpers.viewportScreenshot?.copyToClipboard();
+            PluginCommands.Toast.Show(this.plugin, {
+                message: 'Copied to clipboard.',
+                title: 'Screenshot',
+                timeoutMs: 1500
+            });
+        } catch {
+            return this.copyImg();
+        }
     }
 
     private copyImg = async () => {
@@ -71,8 +75,7 @@ export class DownloadScreenshotControls extends PluginUIComponent<{ close: () =>
                 <CropControls plugin={this.plugin} />
             </div>}
             <div className='msp-flex-row'>
-                {hasClipboardApi && <Button icon={CopySvg} onClick={this.copy} disabled={this.state.isDisabled}>Copy</Button>}
-                {!hasClipboardApi && !this.state.imageData && <Button icon={CopySvg} onClick={this.copyImg} disabled={this.state.isDisabled}>Copy</Button>}
+                {!this.state.imageData && <Button icon={CopySvg} onClick={hasClipboardApi ? this.copy : this.copyImg} disabled={this.state.isDisabled}>Copy</Button>}
                 {this.state.imageData && <Button onClick={() => this.setState({ imageData: void 0 })} disabled={this.state.isDisabled}>Clear</Button>}
                 <Button icon={GetAppSvg} onClick={this.download} disabled={this.state.isDisabled}>Download</Button>
             </div>

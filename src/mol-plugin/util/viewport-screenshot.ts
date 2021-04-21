@@ -324,7 +324,7 @@ class ViewportScreenshotHelper extends PluginComponent {
             await ctx.update('Converting image...');
             const blob = await canvasToBlob(this.canvas, 'png');
             const item = new ClipboardItem({ 'image/png': blob });
-            cb.write([item]);
+            await cb.write([item]);
             this.plugin.log.message('Image copied to clipboard.');
         });
     }
