@@ -87,7 +87,12 @@ class Camera implements ICamera {
 
         if (changed) {
             Mat4.mul(this.projectionView, this.projection, this.view);
-            Mat4.invert(this.inverseProjectionView, this.projectionView);
+            if (!Mat4.tryInvert(this.inverseProjectionView, this.projectionView)) {
+                Mat4.copy(this.view, this.prevView);
+                Mat4.copy(this.projection, this.prevProjection);
+                Mat4.mul(this.projectionView, this.projection, this.view);
+                return false;
+            }
 
             Mat4.copy(this.prevView, this.view);
             Mat4.copy(this.prevProjection, this.projection);
