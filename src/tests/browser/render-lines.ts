@@ -14,6 +14,7 @@ import { Lines } from '../../mol-geo/geometry/lines/lines';
 import { Color } from '../../mol-util/color';
 import { createRenderObject } from '../../mol-gl/render-object';
 import { Representation } from '../../mol-repr/representation';
+import { ParamDefinition } from '../../mol-util/param-definition';
 
 const parent = document.getElementById('app')!;
 parent.style.width = '100%';
@@ -33,8 +34,9 @@ function linesRepr() {
     linesBuilder.addCage(t, dodecahedronCage, 0);
     const lines = linesBuilder.getLines();
 
-    const values = Lines.Utils.createValuesSimple(lines, {}, Color(0xFF0000), 3);
-    const state = Lines.Utils.createRenderableState({});
+    const props = ParamDefinition.getDefaultValues(Lines.Utils.Params);
+    const values = Lines.Utils.createValuesSimple(lines, props, Color(0xFF0000), 3);
+    const state = Lines.Utils.createRenderableState(props);
     const renderObject = createRenderObject('lines', values, state, -1);
     const repr = Representation.fromRenderObject('cage-lines', renderObject);
     return repr;

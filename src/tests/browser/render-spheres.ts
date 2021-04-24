@@ -12,6 +12,7 @@ import { Spheres } from '../../mol-geo/geometry/spheres/spheres';
 import { Color } from '../../mol-util/color';
 import { createRenderObject } from '../../mol-gl/render-object';
 import { Representation } from '../../mol-repr/representation';
+import { ParamDefinition } from '../../mol-util/param-definition';
 
 const parent = document.getElementById('app')!;
 parent.style.width = '100%';
@@ -31,8 +32,9 @@ function spheresRepr() {
     spheresBuilder.add(-4, 1, 0, 0);
     const spheres = spheresBuilder.getSpheres();
 
+    const props = ParamDefinition.getDefaultValues(Spheres.Utils.Params);
     const values = Spheres.Utils.createValuesSimple(spheres, {}, Color(0xFF0000), 1);
-    const state = Spheres.Utils.createRenderableState({});
+    const state = Spheres.Utils.createRenderableState(props);
     const renderObject = createRenderObject('spheres', values, state, -1);
     console.log(renderObject);
     const repr = Representation.fromRenderObject('spheres', renderObject);

@@ -105,7 +105,12 @@ async function init() {
 
     const mcBoundingSphere = Sphere3D.fromBox3D(Sphere3D(), densityTextureData.bbox);
     const mcIsosurface = TextureMesh.create(gv.vertexCount, 1, gv.vertexTexture, gv.groupTexture, gv.normalTexture, mcBoundingSphere);
-    const mcIsoSurfaceProps = { doubleSided: true, flatShaded: true, alpha: 1.0 };
+    const mcIsoSurfaceProps = {
+        ...PD.getDefaultValues(TextureMesh.Params),
+        doubleSided: true,
+        flatShaded: true,
+        alpha: 1.0
+    };
     const mcIsoSurfaceValues = TextureMesh.Utils.createValuesSimple(mcIsosurface, mcIsoSurfaceProps, Color(0x112299), 1);
     // console.log('mcIsoSurfaceValues', mcIsoSurfaceValues)
     const mcIsoSurfaceState = TextureMesh.Utils.createRenderableState(mcIsoSurfaceProps);
@@ -133,7 +138,12 @@ async function init() {
     console.timeEnd('cpu mc');
     console.log('surface', surface);
     Mesh.transform(surface, densityData.transform);
-    const meshProps = { doubleSided: true, flatShaded: false, alpha: 1.0 };
+    const meshProps = {
+        ...PD.getDefaultValues(Mesh.Params),
+        doubleSided: true,
+        flatShaded: false,
+        alpha: 1.0
+    };
     const meshValues = Mesh.Utils.createValuesSimple(surface, meshProps, Color(0x995511), 1);
     const meshState = Mesh.Utils.createRenderableState(meshProps);
     const meshRenderObject = createRenderObject('mesh', meshValues, meshState, -1);
