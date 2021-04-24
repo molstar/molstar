@@ -128,8 +128,8 @@ export class PickHelper {
         this.pickX = Math.ceil(x * this.pickScale);
         this.pickY = Math.ceil(y * this.pickScale);
 
-        const pickWidth = Math.ceil(width * this.pickScale);
-        const pickHeight = Math.ceil(height * this.pickScale);
+        const pickWidth = Math.floor(width * this.pickScale);
+        const pickHeight = Math.floor(height * this.pickScale);
 
         if (pickWidth !== this.pickWidth || pickHeight !== this.pickHeight) {
             this.pickWidth = pickWidth;

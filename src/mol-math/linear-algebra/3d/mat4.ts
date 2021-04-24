@@ -333,7 +333,7 @@ namespace Mat4 {
         return out;
     }
 
-    export function invert(out: Mat4, a: Mat4) {
+    export function tryInvert(out: Mat4, a: Mat4) {
         const a00 = a[0], a01 = a[1], a02 = a[2], a03 = a[3],
             a10 = a[4], a11 = a[5], a12 = a[6], a13 = a[7],
             a20 = a[8], a21 = a[9], a22 = a[10], a23 = a[11],
@@ -356,8 +356,7 @@ namespace Mat4 {
         let det = b00 * b11 - b01 * b10 + b02 * b09 + b03 * b08 - b04 * b07 + b05 * b06;
 
         if (!det) {
-            console.warn('non-invertible matrix.', a);
-            return out;
+            return false;
         }
         det = 1.0 / det;
 
@@ -378,6 +377,13 @@ namespace Mat4 {
         out[14] = (a31 * b01 - a30 * b03 - a32 * b00) * det;
         out[15] = (a20 * b03 - a21 * b01 + a22 * b00) * det;
 
+        return true;
+    }
+
+    export function invert(out: Mat4, a: Mat4) {
+        if (!tryInvert(out, a)) {
+            console.warn('non-invertible matrix.', a);
+        }
         return out;
     }
 

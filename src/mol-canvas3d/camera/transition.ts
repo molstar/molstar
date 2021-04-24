@@ -39,6 +39,9 @@ class CameraTransitionManager {
             this._target.radius = this._target.radiusMax;
         }
 
+        if (this._target.radius < 0.01) this._target.radius = 0.01;
+        if (this._target.radiusMax < 0.01) this._target.radiusMax = 0.01;
+
         if (!this.inTransition && durationMs <= 0 || (typeof to.mode !== 'undefined' && to.mode !== this.camera.state.mode)) {
             this.finish(this._target);
             return;

@@ -87,7 +87,12 @@ class Camera implements ICamera {
 
         if (changed) {
             Mat4.mul(this.projectionView, this.projection, this.view);
-            Mat4.invert(this.inverseProjectionView, this.projectionView);
+            if (!Mat4.tryInvert(this.inverseProjectionView, this.projectionView)) {
+                Mat4.copy(this.view, this.prevView);
+                Mat4.copy(this.projection, this.prevProjection);
+                Mat4.mul(this.projectionView, this.projection, this.view);
+                return false;
+            }
 
             Mat4.copy(this.prevView, this.view);
             Mat4.copy(this.prevProjection, this.projection);
@@ -229,8 +234,8 @@ namespace Camera {
             up: Vec3.create(0, 1, 0),
             target: Vec3.create(0, 0, 0),
 
-            radius: 0,
-            radiusMax: 0,
+            radius: 10,
+            radiusMax: 10,
             fog: 50,
             clipFar: true
         };

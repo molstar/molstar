@@ -184,17 +184,21 @@ export class PluginContext {
      */
     readonly customState: unknown = Object.create(null);
 
-    initViewer(canvas: HTMLCanvasElement, container: HTMLDivElement) {
+    initViewer(canvas: HTMLCanvasElement, container: HTMLDivElement, canvas3dContext?: Canvas3DContext) {
         try {
             this.layout.setRoot(container);
             if (this.spec.layout && this.spec.layout.initial) this.layout.setProps(this.spec.layout.initial);
 
-            const antialias = !(this.config.get(PluginConfig.General.DisableAntialiasing) ?? false);
-            const preserveDrawingBuffer = !(this.config.get(PluginConfig.General.DisablePreserveDrawingBuffer) ?? false);
-            const pixelScale = this.config.get(PluginConfig.General.PixelScale) || 1;
-            const pickScale = this.config.get(PluginConfig.General.PickScale) || 0.25;
-            const enableWboit = this.config.get(PluginConfig.General.EnableWboit) || false;
-            (this.canvas3dContext as Canvas3DContext) = Canvas3DContext.fromCanvas(canvas, { antialias, preserveDrawingBuffer, pixelScale, pickScale, enableWboit });
+            if (canvas3dContext) {
+                (this.canvas3dContext as Canvas3DContext) = canvas3dContext;
+            } else {
+                const antialias = !(this.config.get(PluginConfig.General.DisableAntialiasing) ?? false);
+                const preserveDrawingBuffer = !(this.config.get(PluginConfig.General.DisablePreserveDrawingBuffer) ?? false);
+                const pixelScale = this.config.get(PluginConfig.General.PixelScale) || 1;
+                const pickScale = this.config.get(PluginConfig.General.PickScale) || 0.25;
+                const enableWboit = this.config.get(PluginConfig.General.EnableWboit) || false;
+                (this.canvas3dContext as Canvas3DContext) = Canvas3DContext.fromCanvas(canvas, { antialias, preserveDrawingBuffer, pixelScale, pickScale, enableWboit });
+            }
             (this.canvas3d as Canvas3D) = Canvas3D.create(this.canvas3dContext!);
             this.canvas3dInit.next(true);
             let props = this.spec.canvas3d;

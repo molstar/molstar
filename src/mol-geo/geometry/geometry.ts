@@ -55,7 +55,7 @@ export interface GeometryUtils<G extends Geometry, P extends PD.Params = Geometr
     createValuesSimple(geometry: G, props: Partial<PD.Values<P>>, colorValue: Color, sizeValue: number, transform?: TransformData): V
     updateValues(values: V, props: PD.Values<P>): void
     updateBoundingSphere(values: V, geometry: G): void
-    createRenderableState(props: Partial<PD.Values<P>>): RenderableState
+    createRenderableState(props: PD.Values<P>): RenderableState
     updateRenderableState(state: RenderableState, props: PD.Values<P>): void
     createPositionIterator(geometry: G, transform: TransformData): LocationIterator
 }

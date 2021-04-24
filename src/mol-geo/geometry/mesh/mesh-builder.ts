@@ -144,6 +144,14 @@ export namespace MeshBuilder {
         }
     }
 
+    export function addMesh(state: State, t: Mat4, mesh: Mesh) {
+        addPrimitive(state, t, {
+            vertices: mesh.vertexBuffer.ref.value.subarray(0, mesh.vertexCount * 3),
+            normals: mesh.normalBuffer.ref.value.subarray(0, mesh.vertexCount * 3),
+            indices: mesh.indexBuffer.ref.value.subarray(0, mesh.triangleCount * 3),
+        });
+    }
+
     export function getMesh (state: State): Mesh {
         const { vertices, normals, indices, groups, mesh } = state;
         const vb = ChunkedArray.compact(vertices, true) as Float32Array;

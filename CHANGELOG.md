@@ -5,9 +5,21 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Ability to pass ``Canvas3DContext`` to ``PluginContext.fromCanvas``.
+- Relative frame support for ``Canvas3D`` viewport.
+- Fix bug in screenshot copy UI.
+- Add ability to select residues from a list of identifiers to the Selection UI.
+- Fix SSAO bugs when used with ``Canvas3D`` viewport.
+- Support for  full pausing (no draw) rendering: ``Canvas3D.pause(true)``.
+- Add `MeshBuilder.addMesh`.
+- Add `Torus` primitive.
+
+## [v2.0.4] - 2021-04-20
+
 - [WIP] Mesh export extension
-- ``Structure.eachAtomicHierarchyElement``
+- ``Structure.eachAtomicHierarchyElement`` (#161)
 - Fixed reading multi-line values in SDF format
+- Fixed Measurements UI labels (#166)
 
 ## [v2.0.3] - 2021-04-09
 ### Added

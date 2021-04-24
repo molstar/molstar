@@ -8,7 +8,7 @@ import './index.html';
 import { Canvas3D, Canvas3DContext } from '../../mol-canvas3d/canvas3d';
 import { TextBuilder } from '../../mol-geo/geometry/text/text-builder';
 import { Text } from '../../mol-geo/geometry/text/text';
-import { ParamDefinition as PD } from '../../mol-util/param-definition';
+import { ParamDefinition, ParamDefinition as PD } from '../../mol-util/param-definition';
 import { Color } from '../../mol-util/color';
 import { Representation } from '../../mol-repr/representation';
 import { SpheresBuilder } from '../../mol-geo/geometry/spheres/spheres-builder';
@@ -64,8 +64,9 @@ function spheresRepr() {
     spheresBuilder.add(-4, 1, 0, 0);
     const spheres = spheresBuilder.getSpheres();
 
-    const values = Spheres.Utils.createValuesSimple(spheres, {}, Color(0xFF0000), 0.2);
-    const state = Spheres.Utils.createRenderableState({});
+    const props = ParamDefinition.getDefaultValues(Spheres.Utils.Params);
+    const values = Spheres.Utils.createValuesSimple(spheres, props, Color(0xFF0000), 0.2);
+    const state = Spheres.Utils.createRenderableState(props);
     const renderObject = createRenderObject('spheres', values, state, -1);
     console.log('spheres', renderObject);
     const repr = Representation.fromRenderObject('spheres', renderObject);

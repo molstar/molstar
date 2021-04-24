@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Áron Samuel Kovács <aron.kovacs@mail.muni.cz>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 export const ssaoBlur_frag = `
@@ -11,6 +12,7 @@ precision highp sampler2D;
 
 uniform sampler2D tSsaoDepth;
 uniform vec2 uTexSize;
+uniform vec4 uBounds;
 
 uniform float uKernel[dOcclusionKernelSize];
 
@@ -36,16 +38,25 @@ bool isBackground(const in float depth) {
     return depth == 1.0;
 }
 
+bool outsideBounds(const in vec2 p) {
+    return p.x < uBounds.x || p.y < uBounds.y || p.x > uBounds.z || p.y > uBounds.w;
+}
+
 void main(void) {
     vec2 coords = gl_FragCoord.xy / uTexSize;
 
     vec2 packedDepth = texture2D(tSsaoDepth, coords).zw;
 
+    if (outsideBounds(coords)) {
+        gl_FragColor = vec4(packUnitIntervalToRG(1.0), packedDepth);
+        return;
+    }
+
     float selfDepth = unpackRGToUnitInterval(packedDepth);
     // if background and if second pass
     if (isBackground(selfDepth) && uBlurDirectionY != 0.0) {
-       gl_FragColor = vec4(packUnitIntervalToRG(1.0), packedDepth);
-       return;
+        gl_FragColor = vec4(packUnitIntervalToRG(1.0), packedDepth);
+        return;
     }
 
     float selfViewZ = getViewZ(selfDepth);
@@ -57,6 +68,9 @@ void main(void) {
     // only if kernelSize is odd
     for (int i = -dOcclusionKernelSize / 2; i <= dOcclusionKernelSize / 2; i++) {
         vec2 sampleCoords = coords + float(i) * offset;
+        if (outsideBounds(sampleCoords)) {
+            continue;
+        }
 
         vec4 sampleSsaoDepth = texture2D(tSsaoDepth, sampleCoords);
 

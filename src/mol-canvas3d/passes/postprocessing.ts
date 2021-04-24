@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Áron Samuel Kovács <aron.kovacs@mail.muni.cz>
@@ -13,7 +13,7 @@ import { Texture } from '../../mol-gl/webgl/texture';
 import { ValueCell } from '../../mol-util';
 import { createComputeRenderItem } from '../../mol-gl/webgl/render-item';
 import { createComputeRenderable, ComputeRenderable } from '../../mol-gl/renderable';
-import { Mat4, Vec2, Vec3 } from '../../mol-math/linear-algebra';
+import { Mat4, Vec2, Vec3, Vec4 } from '../../mol-math/linear-algebra';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { RenderTarget } from '../../mol-gl/webgl/render-target';
 import { DrawPass } from './draw';
@@ -70,6 +70,7 @@ const SsaoSchema = {
 
     uProjection: UniformSpec('m4'),
     uInvProjection: UniformSpec('m4'),
+    uBounds: UniformSpec('v4'),
 
     uTexSize: UniformSpec('v2'),
 
@@ -89,6 +90,7 @@ function getSsaoRenderable(ctx: WebGLContext, depthTexture: Texture): SsaoRender
 
         uProjection: ValueCell.create(Mat4.identity()),
         uInvProjection: ValueCell.create(Mat4.identity()),
+        uBounds: ValueCell.create(Vec4()),
 
         uTexSize: ValueCell.create(Vec2.create(ctx.gl.drawingBufferWidth, ctx.gl.drawingBufferHeight)),
 
@@ -118,6 +120,7 @@ const SsaoBlurSchema = {
 
     uNear: UniformSpec('f'),
     uFar: UniformSpec('f'),
+    uBounds: UniformSpec('v4'),
     dOrthographic: DefineSpec('number'),
 };
 
@@ -139,6 +142,7 @@ function getSsaoBlurRenderable(ctx: WebGLContext, ssaoDepthTexture: Texture, dir
 
         uNear: ValueCell.create(0.0),
         uFar: ValueCell.create(10000.0),
+        uBounds: ValueCell.create(Vec4()),
         dOrthographic: ValueCell.create(0),
     };
 
@@ -286,10 +290,14 @@ export class PostprocessingPass {
 
     private readonly renderable: PostprocessingRenderable
 
-    private scale: number
+    private ssaoScale: number
+    private calcSsaoScale() {
+        // downscale ssao for high pixel-ratios
+        return Math.min(1, 1 / this.webgl.pixelRatio);
+    }
 
     constructor(private webgl: WebGLContext, drawPass: DrawPass) {
-        this.scale = 1 / this.webgl.pixelRatio;
+        this.ssaoScale = this.calcSsaoScale();
 
         const { colorTarget, depthTexture } = drawPass;
         const width = colorTarget.getWidth();
@@ -298,7 +306,7 @@ export class PostprocessingPass {
         this.nSamples = 1;
         this.blurKernelSize = 1;
 
-        this.target = webgl.createRenderTarget(width, height, false, 'uint8', 'linear');
+        this.target = webgl.createRenderTarget(width, height, false, 'uint8', 'nearest');
 
         this.outlinesTarget = webgl.createRenderTarget(width, height, false);
         this.outlinesRenderable = getOutlinesRenderable(webgl, depthTexture);
@@ -317,14 +325,14 @@ export class PostprocessingPass {
         this.ssaoBlurFirstPassFramebuffer = webgl.resources.framebuffer();
         this.ssaoBlurSecondPassFramebuffer = webgl.resources.framebuffer();
 
-        const sw = Math.floor(width * this.scale);
-        const sh = Math.floor(height * this.scale);
+        const sw = Math.floor(width * this.ssaoScale);
+        const sh = Math.floor(height * this.ssaoScale);
 
-        this.ssaoDepthTexture = webgl.resources.texture('image-uint8', 'rgba', 'ubyte', 'linear');
+        this.ssaoDepthTexture = webgl.resources.texture('image-uint8', 'rgba', 'ubyte', 'nearest');
         this.ssaoDepthTexture.define(sw, sh);
         this.ssaoDepthTexture.attachFramebuffer(this.ssaoFramebuffer, 'color0');
 
-        this.ssaoDepthBlurProxyTexture = webgl.resources.texture('image-uint8', 'rgba', 'ubyte', 'linear');
+        this.ssaoDepthBlurProxyTexture = webgl.resources.texture('image-uint8', 'rgba', 'ubyte', 'nearest');
         this.ssaoDepthBlurProxyTexture.define(sw, sh);
         this.ssaoDepthBlurProxyTexture.attachFramebuffer(this.ssaoBlurFirstPassFramebuffer, 'color0');
 
@@ -338,9 +346,13 @@ export class PostprocessingPass {
 
     setSize(width: number, height: number) {
         const [w, h] = this.renderable.values.uTexSize.ref.value;
-        if (width !== w || height !== h) {
-            const sw = Math.floor(width * this.scale);
-            const sh = Math.floor(height * this.scale);
+        const ssaoScale = this.calcSsaoScale();
+
+        if (width !== w || height !== h || this.ssaoScale !== ssaoScale) {
+            this.ssaoScale = ssaoScale;
+
+            const sw = Math.floor(width * this.ssaoScale);
+            const sh = Math.floor(height * this.ssaoScale);
             this.target.setSize(width, height);
             this.outlinesTarget.setSize(width, height);
             this.ssaoDepthTexture.define(sw, sh);
@@ -349,8 +361,8 @@ export class PostprocessingPass {
             ValueCell.update(this.renderable.values.uTexSize, Vec2.set(this.renderable.values.uTexSize.ref.value, width, height));
             ValueCell.update(this.outlinesRenderable.values.uTexSize, Vec2.set(this.outlinesRenderable.values.uTexSize.ref.value, width, height));
             ValueCell.update(this.ssaoRenderable.values.uTexSize, Vec2.set(this.ssaoRenderable.values.uTexSize.ref.value, sw, sh));
-            ValueCell.update(this.ssaoBlurFirstPassRenderable.values.uTexSize, Vec2.set(this.ssaoRenderable.values.uTexSize.ref.value, sw, sh));
-            ValueCell.update(this.ssaoBlurSecondPassRenderable.values.uTexSize, Vec2.set(this.ssaoRenderable.values.uTexSize.ref.value, sw, sh));
+            ValueCell.update(this.ssaoBlurFirstPassRenderable.values.uTexSize, Vec2.set(this.ssaoBlurFirstPassRenderable.values.uTexSize.ref.value, sw, sh));
+            ValueCell.update(this.ssaoBlurSecondPassRenderable.values.uTexSize, Vec2.set(this.ssaoBlurSecondPassRenderable.values.uTexSize.ref.value, sw, sh));
         }
     }
 
@@ -367,8 +379,22 @@ export class PostprocessingPass {
         Mat4.invert(invProjection, camera.projection);
 
         if (props.occlusion.name === 'on') {
-            ValueCell.updateIfChanged(this.ssaoRenderable.values.uProjection, camera.projection);
-            ValueCell.updateIfChanged(this.ssaoRenderable.values.uInvProjection, invProjection);
+            ValueCell.update(this.ssaoRenderable.values.uProjection, camera.projection);
+            ValueCell.update(this.ssaoRenderable.values.uInvProjection, invProjection);
+
+            const [w, h] = this.renderable.values.uTexSize.ref.value;
+            const b = this.ssaoRenderable.values.uBounds;
+            const v = camera.viewport;
+            const s = this.ssaoScale;
+            Vec4.set(b.ref.value,
+                Math.floor(v.x * s) / (w * s),
+                Math.floor(v.y * s) / (h * s),
+                Math.ceil((v.x + v.width) * s) / (w * s),
+                Math.ceil((v.y + v.height) * s) / (h * s)
+            );
+            ValueCell.update(b, b.ref.value);
+            ValueCell.update(this.ssaoBlurFirstPassRenderable.values.uBounds, b.ref.value);
+            ValueCell.update(this.ssaoBlurSecondPassRenderable.values.uBounds, b.ref.value);
 
             ValueCell.updateIfChanged(this.ssaoBlurFirstPassRenderable.values.uNear, camera.near);
             ValueCell.updateIfChanged(this.ssaoBlurSecondPassRenderable.values.uNear, camera.near);
@@ -376,7 +402,9 @@ export class PostprocessingPass {
             ValueCell.updateIfChanged(this.ssaoBlurFirstPassRenderable.values.uFar, camera.far);
             ValueCell.updateIfChanged(this.ssaoBlurSecondPassRenderable.values.uFar, camera.far);
 
-            if (this.ssaoBlurFirstPassRenderable.values.dOrthographic.ref.value !== orthographic) { needsUpdateSsaoBlur = true; }
+            if (this.ssaoBlurFirstPassRenderable.values.dOrthographic.ref.value !== orthographic) {
+                needsUpdateSsaoBlur = true;
+            }
             ValueCell.updateIfChanged(this.ssaoBlurFirstPassRenderable.values.dOrthographic, orthographic);
             ValueCell.updateIfChanged(this.ssaoBlurSecondPassRenderable.values.dOrthographic, orthographic);
 
@@ -384,7 +412,7 @@ export class PostprocessingPass {
                 needsUpdateSsao = true;
 
                 this.nSamples = props.occlusion.params.samples;
-                ValueCell.updateIfChanged(this.ssaoRenderable.values.uSamples, getSamples(this.randomHemisphereVector, this.nSamples));
+                ValueCell.update(this.ssaoRenderable.values.uSamples, getSamples(this.randomHemisphereVector, this.nSamples));
                 ValueCell.updateIfChanged(this.ssaoRenderable.values.dNSamples, this.nSamples);
             }
             ValueCell.updateIfChanged(this.ssaoRenderable.values.uRadius, Math.pow(2, props.occlusion.params.radius));
@@ -394,10 +422,10 @@ export class PostprocessingPass {
                 needsUpdateSsaoBlur = true;
 
                 this.blurKernelSize = props.occlusion.params.blurKernelSize;
-                let kernel = getBlurKernel(this.blurKernelSize);
+                const kernel = getBlurKernel(this.blurKernelSize);
 
-                ValueCell.updateIfChanged(this.ssaoBlurFirstPassRenderable.values.uKernel, kernel);
-                ValueCell.updateIfChanged(this.ssaoBlurSecondPassRenderable.values.uKernel, kernel);
+                ValueCell.update(this.ssaoBlurFirstPassRenderable.values.uKernel, kernel);
+                ValueCell.update(this.ssaoBlurSecondPassRenderable.values.uKernel, kernel);
                 ValueCell.updateIfChanged(this.ssaoBlurFirstPassRenderable.values.dOcclusionKernelSize, this.blurKernelSize);
                 ValueCell.updateIfChanged(this.ssaoBlurSecondPassRenderable.values.dOcclusionKernelSize, this.blurKernelSize);
             }
@@ -467,10 +495,10 @@ export class PostprocessingPass {
 
         if (props.occlusion.name === 'on') {
             const { x, y, width, height } = camera.viewport;
-            const sx = Math.floor(x * this.scale);
-            const sy = Math.floor(y * this.scale);
-            const sw = Math.floor(width * this.scale);
-            const sh = Math.floor(height * this.scale);
+            const sx = Math.floor(x * this.ssaoScale);
+            const sy = Math.floor(y * this.ssaoScale);
+            const sw = Math.ceil(width * this.ssaoScale);
+            const sh = Math.ceil(height * this.ssaoScale);
             this.webgl.gl.viewport(sx, sy, sw, sh);
             this.webgl.gl.scissor(sx, sy, sw, sh);
 

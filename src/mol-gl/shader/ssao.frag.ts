@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Áron Samuel Kovács <aron.kovacs@mail.muni.cz>
@@ -13,13 +13,13 @@ precision highp sampler2D;
 #include common
 
 uniform sampler2D tDepth;
+uniform vec2 uTexSize;
+uniform vec4 uBounds;
 
 uniform vec3 uSamples[dNSamples];
 
 uniform mat4 uProjection;
 uniform mat4 uInvProjection;
-
-uniform vec2 uTexSize;
 
 uniform float uRadius;
 uniform float uBias;
@@ -46,8 +46,12 @@ bool isBackground(const in float depth) {
     return depth == 1.0;
 }
 
+bool outsideBounds(const in vec2 p) {
+    return p.x < uBounds.x || p.y < uBounds.y || p.x > uBounds.z || p.y > uBounds.w;
+}
+
 float getDepth(const in vec2 coords) {
-    return unpackRGBAToDepth(texture2D(tDepth, coords));
+    return outsideBounds(coords) ? 1.0 : unpackRGBAToDepth(texture2D(tDepth, coords));
 }
 
 vec3 normalFromDepth(const in float depth, const in float depth1, const in float depth2, vec2 offset1, vec2 offset2) {

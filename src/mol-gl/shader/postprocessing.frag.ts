@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Áron Samuel Kovács <aron.kovacs@mail.muni.cz>
@@ -88,7 +88,8 @@ float getSsao(vec2 coords) {
     } else if (rawSsao > 0.001) {
         return rawSsao;
     }
-    return 0.0;
+    // treat values close to 0.0 as errors and return no occlusion
+    return 1.0;
 }
 
 void main(void) {
