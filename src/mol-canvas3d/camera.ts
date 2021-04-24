@@ -234,8 +234,8 @@ namespace Camera {
             up: Vec3.create(0, 1, 0),
             target: Vec3.create(0, 0, 0),
 
-            radius: 0,
-            radiusMax: 0,
+            radius: 10,
+            radiusMax: 10,
             fog: 50,
             clipFar: true
         };

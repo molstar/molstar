@@ -9,6 +9,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Relative frame support for ``Canvas3D`` viewport.
 - Fix bug in screenshot copy UI.
 - Add ability to select residues from a list of identifiers to the Selection UI.
+- Fix SSAO bugs when used with ``Canvas3D`` viewport.
 
 ## [v2.0.4] - 2021-04-20
 

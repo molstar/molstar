@@ -106,7 +106,7 @@ interface Canvas3DContext {
 }
 
 namespace Canvas3DContext {
-    const DefaultAttribs = {
+    export const DefaultAttribs = {
         /** true by default to avoid issues with Safari (Jan 2021) */
         antialias: true,
         /** true to support multiple Canvas3D objects with a single context */
