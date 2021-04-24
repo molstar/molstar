@@ -207,7 +207,7 @@ interface Canvas3D {
      */
     commit(isSynchronous?: boolean): void
     /**
-     * Funcion for external "animation" control
+     * Function for external "animation" control
      * Calls commit.
      */
     tick(t: now.Timestamp, options?: { isSynchronous?: boolean, manualDraw?: boolean }): void
@@ -220,7 +220,11 @@ interface Canvas3D {
     /** Reset the timers, used by "animate" */
     resetTime(t: number): void
     animate(): void
-    pause(): void
+    /**
+     * Pause animation loop and optionally any rendering
+     * @param noDraw pause any rendering
+     */
+    pause(noDraw?: boolean): void
     identify(x: number, y: number): PickData | undefined
     mark(loci: Representation.Loci, action: MarkerAction): void
     getLoci(pickingId: PickingId | undefined): Representation.Loci
@@ -392,8 +396,10 @@ namespace Canvas3D {
         let forceNextDraw = false;
         let forceDrawAfterAllCommited = false;
         let currentTime = 0;
+        let drawPaused = false;
 
         function draw(force?: boolean) {
+            if (drawPaused) return;
             if (render(!!force || forceNextDraw) && notifyDidDraw) {
                 didDraw.next(now() - startTime as now.Timestamp);
             }
@@ -435,11 +441,13 @@ namespace Canvas3D {
         }
 
         function animate() {
+            drawPaused = false;
             controls.start(now());
             if (animationFrameHandle === 0) _animate();
         }
 
-        function pause() {
+        function pause(noDraw = false) {
+            drawPaused = noDraw;
             cancelAnimationFrame(animationFrameHandle);
             animationFrameHandle = 0;
         }
