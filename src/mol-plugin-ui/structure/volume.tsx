@@ -8,11 +8,11 @@
 import * as React from 'react';
 import { StructureHierarchyManager } from '../../mol-plugin-state/manager/structure/hierarchy';
 import { VolumeHierarchyManager } from '../../mol-plugin-state/manager/volume/hierarchy';
-import { VolumeRef, VolumeRepresentationRef } from '../../mol-plugin-state/manager/volume/hierarchy-state';
+import { LazyVolumeRef, VolumeRef, VolumeRepresentationRef } from '../../mol-plugin-state/manager/volume/hierarchy-state';
 import { FocusLoci } from '../../mol-plugin/behavior/dynamic/representation';
 import { VolumeStreaming } from '../../mol-plugin/behavior/dynamic/volume-streaming/behavior';
 import { InitVolumeStreaming } from '../../mol-plugin/behavior/dynamic/volume-streaming/transformers';
-import { State, StateSelection, StateTransform } from '../../mol-state';
+import { State, StateObjectCell, StateObjectSelector, StateSelection, StateTransform } from '../../mol-state';
 import { CollapsableControls, CollapsableState, PurePluginUIComponent } from '../base';
 import { ActionMenu } from '../controls/action-menu';
 import { Button, ExpandGroup, IconButton } from '../controls/common';
@@ -21,6 +21,9 @@ import { UpdateTransformControl } from '../state/update-transform';
 import { BindingsHelp } from '../viewport/help';
 import { PluginCommands } from '../../mol-plugin/commands';
 import { BlurOnSvg, ErrorSvg, CheckSvg, AddSvg, VisibilityOffOutlinedSvg, VisibilityOutlinedSvg, DeleteOutlinedSvg, MoreHorizSvg } from '../controls/icons';
+import { PluginStateObject } from '../../mol-plugin-state/objects';
+import { StateTransforms } from '../../mol-plugin-state/transforms';
+import { createVolumeRepresentationParams } from '../../mol-plugin-state/helpers/volume-representation-params';
 
 interface VolumeStreamingControlState extends CollapsableState {
     isBusy: boolean
@@ -104,6 +107,7 @@ export class VolumeStreamingControls extends CollapsableControls<{}, VolumeStrea
 
 interface VolumeSourceControlState extends CollapsableState {
     isBusy: boolean,
+    loadingLabel?: string,
     show?: 'hierarchy' | 'add-repr'
 }
 
@@ -120,18 +124,23 @@ export class VolumeSourceControls extends CollapsableControls<{}, VolumeSourceCo
 
     componentDidMount() {
         this.subscribe(this.plugin.managers.volume.hierarchy.behaviors.selection, sel => {
-            this.setState({ isHidden: sel.hierarchy.volumes.length === 0 });
+            this.setState({ isHidden: sel.hierarchy.volumes.length === 0 && sel.hierarchy.lazyVolumes.length === 0 });
         });
         this.subscribe(this.plugin.behaviors.state.isBusy, v => {
             this.setState({ isBusy: v });
         });
     }
 
-    private item = (ref: VolumeRef) => {
+    private item = (ref: VolumeRef | LazyVolumeRef) => {
         const selected = this.plugin.managers.volume.hierarchy.selection;
 
         const label = ref.cell.obj?.label || 'Volume';
-        const item: ActionMenu.Item = { kind: 'item', label: label || ref.kind, selected: selected === ref, value: ref };
+        const item: ActionMenu.Item = {
+            kind: 'item',
+            label: (ref.kind === 'lazy-volume' ? 'Load ' : '') + (label || ref.kind),
+            selected: selected === ref,
+            value: ref
+        };
         return item;
     }
 
@@ -139,9 +148,15 @@ export class VolumeSourceControls extends CollapsableControls<{}, VolumeSourceCo
         const mng = this.plugin.managers.volume.hierarchy;
         const { current } = mng;
         const ret: ActionMenu.Items = [];
-        for (let ref of current.volumes) {
+
+        for (const ref of current.volumes) {
             ret.push(this.item(ref));
         }
+
+        for (const ref of current.lazyVolumes) {
+            ret.push(this.item(ref));
+        }
+
         return ret;
     }
 
@@ -158,11 +173,13 @@ export class VolumeSourceControls extends CollapsableControls<{}, VolumeSourceCo
     }
 
     get isEmpty() {
-        const { volumes } = this.plugin.managers.volume.hierarchy.current;
-        return volumes.length === 0;
+        const { volumes, lazyVolumes } = this.plugin.managers.volume.hierarchy.current;
+        return volumes.length === 0 && lazyVolumes.length === 0;
     }
 
     get label() {
+        if (this.state.loadingLabel) return `Loading ${this.state.loadingLabel}...`;
+
         const selected = this.plugin.managers.volume.hierarchy.selection;
         if (!selected) return 'Nothing Selected';
         return selected?.cell.obj?.label || 'Volume';
@@ -171,7 +188,45 @@ export class VolumeSourceControls extends CollapsableControls<{}, VolumeSourceCo
     selectCurrent: ActionMenu.OnSelect = (item) => {
         this.toggleHierarchy();
         if (!item) return;
-        this.plugin.managers.volume.hierarchy.setCurrent(item.value as VolumeRef);
+
+        const current = item.value as VolumeRef | LazyVolumeRef;
+        if (current.kind === 'volume') {
+            this.plugin.managers.volume.hierarchy.setCurrent(current);
+        } else {
+            this.lazyLoad(current.cell);
+        }
+    }
+
+    private async lazyLoad(cell: StateObjectCell<PluginStateObject.Volume.Lazy>) {
+        const { url, isBinary, format, entryId, isovalues } = cell.obj!.data;
+
+        this.setState({ isBusy: true, loadingLabel: cell.obj!.label });
+
+        try {
+            const plugin = this.plugin;
+            await plugin.dataTransaction(async () => {
+                const data = await plugin.builders.data.download({ url, isBinary, label: entryId }, { state: { isGhost: true } });
+                const parsed = await plugin.dataFormats.get(format)!.parse(plugin, data, { entryId });
+                const volume = (parsed.volume || parsed.volumes[0]) as StateObjectSelector<PluginStateObject.Volume.Data>;
+                if (!volume?.isOk) throw new Error('Failed to parse any volume.');
+
+                const repr = plugin.build().to(volume);
+                for (const iso of isovalues) {
+                    repr.apply(StateTransforms.Representation.VolumeRepresentation3D, createVolumeRepresentationParams(this.plugin, volume.data!, {
+                        type: 'isosurface',
+                        typeParams: { alpha: iso.alpha ?? 1, isoValue: iso.type === 'absolute' ? { kind: 'absolute', absoluteValue: iso.value } : { kind: 'relative', relativeValue: iso.value } },
+                        color: 'uniform',
+                        colorParams: { value: iso.color }
+                    }));
+                }
+
+                await repr.commit();
+
+                await plugin.build().delete(cell).commit();
+            });
+        } finally {
+            this.setState({ isBusy: false, loadingLabel: void 0 });
+        }
     }
 
     selectAdd: ActionMenu.OnSelect = (item) => {
@@ -186,13 +241,12 @@ export class VolumeSourceControls extends CollapsableControls<{}, VolumeSourceCo
     renderControls() {
         const disabled = this.state.isBusy || this.isEmpty;
         const label = this.label;
-
         const selected = this.plugin.managers.volume.hierarchy.selection;
 
         return <>
             <div className='msp-flex-row' style={{ marginTop: '1px' }}>
                 <Button noOverflow flex onClick={this.toggleHierarchy} disabled={disabled} title={label}>{label}</Button>
-                {!this.isEmpty && <IconButton svg={AddSvg} onClick={this.toggleAddRepr} title='Apply a structure presets to the current hierarchy.' toggleState={this.state.show === 'add-repr'} disabled={disabled} />}
+                {!this.isEmpty && selected && <IconButton svg={AddSvg} onClick={this.toggleAddRepr} title='Apply a structure presets to the current hierarchy.' toggleState={this.state.show === 'add-repr'} disabled={disabled} />}
             </div>
             {this.state.show === 'hierarchy' && <ActionMenu items={this.hierarchyItems} onSelect={this.selectCurrent} />}
             {this.state.show === 'add-repr' && <ActionMenu items={this.addActions} onSelect={this.selectAdd} />}

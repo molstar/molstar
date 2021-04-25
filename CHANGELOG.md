@@ -13,6 +13,9 @@ Note that since we don't clearly distinguish between a public and private interf
 - Support for  full pausing (no draw) rendering: ``Canvas3D.pause(true)``.
 - Add `MeshBuilder.addMesh`.
 - Add `Torus` primitive.
+- Lazy volume loading support.
+- [Breaking] ``Viewer.loadVolumeFromUrl`` signature change.
+  - ``loadVolumeFromUrl(url, format, isBinary, isovalues, entryId)`` => ``loadVolumeFromUrl({ url, format, isBinary }, isovalues, { entryId, isLazy })``
 
 ## [v2.0.4] - 2021-04-20
 

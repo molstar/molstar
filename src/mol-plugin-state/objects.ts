@@ -22,6 +22,8 @@ import { VolumeRepresentation } from '../mol-repr/volume/representation';
 import { StateObject, StateTransformer } from '../mol-state';
 import { CubeFile } from '../mol-io/reader/cube/parser';
 import { DxFile } from '../mol-io/reader/dx/parser';
+import { Color } from '../mol-util/color/color';
+import { Asset } from '../mol-util/assets';
 
 export type TypeClass = 'root' | 'data' | 'prop'
 
@@ -119,7 +121,21 @@ export namespace PluginStateObject {
     }
 
     export namespace Volume {
+        export interface LazyInfo {
+            url: string | Asset.Url,
+            isBinary: boolean,
+            format: string,
+            entryId?: string,
+            isovalues: {
+                type: 'absolute' | 'relative',
+                value: number,
+                color: Color,
+                alpha?: number
+            }[]
+        }
+
         export class Data extends Create<_Volume>({ name: 'Volume', typeClass: 'Object' }) { }
+        export class Lazy extends Create<LazyInfo>({ name: 'Lazy Volume', typeClass: 'Object' }) { }
         export class Representation3D extends CreateRepresentation3D<VolumeRepresentation<any>, _Volume>({ name: 'Volume 3D' }) { }
     }
 

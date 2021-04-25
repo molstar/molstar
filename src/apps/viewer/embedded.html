@@ -21,7 +21,7 @@
         <script type="text/javascript" src="./molstar.js"></script>
         <script type="text/javascript">
             var viewer = new molstar.Viewer('app', {
-                layoutIsExpanded: false,
+                layoutIsExpanded: true,
                 layoutShowControls: false,
                 layoutShowRemoteState: false,
                 layoutShowSequence: true,
@@ -37,6 +37,20 @@
             });
             viewer.loadPdb('7bv2');
             viewer.loadEmdb('EMD-30210', { detail: 6 });
+
+            // viewer.loadVolumeFromUrl({
+            //     url: 'https://maps.rcsb.org/em/emd-30210/cell?detail=6',
+            //     format: 'dscif',
+            //     isBinary: true 
+            // }, [{
+            //     type: 'relative',
+            //     value: 1,
+            //     color: 0x3377aa
+            // }], {
+            //     entryId: 'EMD-30210',
+            //     isLazy: true
+            // });
+
             // viewer.loadAllModelsOrAssemblyFromUrl('https://cs.litemol.org/5ire/full', 'mmcif', false, { representationParams: { theme: { globalName: 'operator-name' } } })
         </script>
     </body>
