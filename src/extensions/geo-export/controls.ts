@@ -31,7 +31,7 @@ export class GeometryControls extends PluginComponent {
                 const objExporter = new ObjExporter(filename);
                 for (let i = 0, il = renderObjects.length; i < il; ++i) {
                     await ctx.update({ message: `Exporting object ${i}/${il}` });
-                    await objExporter.add(renderObjects[i], ctx);
+                    await objExporter.add(renderObjects[i], this.plugin.canvas3d?.webgl!, ctx);
                 }
                 const { obj, mtl } = objExporter.getData();
 
