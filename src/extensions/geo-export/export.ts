@@ -10,8 +10,10 @@ import { LinesValues } from '../../mol-gl/renderable/lines';
 import { PointsValues } from '../../mol-gl/renderable/points';
 import { SpheresValues } from '../../mol-gl/renderable/spheres';
 import { CylindersValues } from '../../mol-gl/renderable/cylinders';
+import { TextureMeshValues } from '../../mol-gl/renderable/texture-mesh';
 import { BaseValues, SizeValues } from '../../mol-gl/renderable/schema';
 import { TextureImage } from '../../mol-gl/renderable/util';
+import { WebGLContext } from '../../mol-gl/webgl/context';
 import { MeshBuilder } from '../../mol-geo/geometry/mesh/mesh-builder';
 import { addSphere } from '../../mol-geo/geometry/mesh/builder/sphere';
 import { addCylinder } from '../../mol-geo/geometry/mesh/builder/cylinder';
@@ -32,7 +34,7 @@ type RenderObjectExportData = {
 }
 
 interface RenderObjectExporter<D extends RenderObjectExportData> {
-    add(renderObject: GraphicsRenderObject, ctx: RuntimeContext): Promise<void> | undefined
+    add(renderObject: GraphicsRenderObject, webgl: WebGLContext, ctx: RuntimeContext): Promise<void> | undefined
     getData(): D
 }
 
@@ -80,6 +82,17 @@ export class ObjExporter implements RenderObjectExporter<ObjData> {
         return size * values.uSizeFactor.ref.value;
     }
 
+    private static getGroup(groups: Float32Array | Uint8Array, i: number): number {
+        const i4 = i * 4;
+        const r = groups[i4];
+        const g = groups[i4 + 1];
+        const b = groups[i4 + 2];
+        if (groups instanceof Float32Array) {
+            return decodeFloatRGB(r * 255 + 0.5, g * 255 + 0.5, b * 255 + 0.5);
+        }
+        return decodeFloatRGB(r, g, b);
+    }
+
     private updateMaterial(color: Color, alpha: number) {
         if (this.currentColor === color && this.currentAlpha === alpha) return;
 
@@ -111,11 +124,12 @@ export class ObjExporter implements RenderObjectExporter<ObjData> {
         }
     }
 
-    private async addMeshWithColors(vertices: Float32Array, normals: Float32Array, indices: Uint32Array, groups: Float32Array, vertexCount: number, drawCount: number, values: BaseValues, instanceIndex: number, ctx: RuntimeContext) {
+    private async addMeshWithColors(vertices: Float32Array, normals: Float32Array, indices: Uint32Array | undefined, groups: Float32Array | Uint8Array, vertexCount: number, drawCount: number, values: BaseValues, instanceIndex: number, geoTexture: boolean, ctx: RuntimeContext) {
         const obj = this.obj;
         const t = Mat4();
         const n = Mat3();
         const tmpV = Vec3();
+        const stride = geoTexture ? 4 : 3;
 
         const colorType = values.dColorType.ref.value;
         const tColor = values.tColor.ref.value.array;
@@ -131,7 +145,7 @@ export class ObjExporter implements RenderObjectExporter<ObjData> {
         // position
         for (let i = 0; i < vertexCount; ++i) {
             if (i % 1000 === 0 && ctx.shouldUpdate) await ctx.update({ current: currentProgress + i });
-            v3transformMat4(tmpV, v3fromArray(tmpV, vertices, i * 3), t);
+            v3transformMat4(tmpV, v3fromArray(tmpV, vertices, i * stride), t);
             StringBuilder.writeSafe(obj, 'v ');
             StringBuilder.writeFloat(obj, tmpV[0], 1000);
             StringBuilder.whitespace1(obj);
@@ -144,7 +158,7 @@ export class ObjExporter implements RenderObjectExporter<ObjData> {
         // normal
         for (let i = 0; i < vertexCount; ++i) {
             if (i % 1000 === 0 && ctx.shouldUpdate) await ctx.update({ current: currentProgress + vertexCount + i });
-            v3transformMat3(tmpV, v3fromArray(tmpV, normals, i * 3), n);
+            v3transformMat3(tmpV, v3fromArray(tmpV, normals, i * stride), n);
             StringBuilder.writeSafe(obj, 'vn ');
             StringBuilder.writeFloat(obj, tmpV[0], 100);
             StringBuilder.whitespace1(obj);
@@ -165,14 +179,17 @@ export class ObjExporter implements RenderObjectExporter<ObjData> {
                 case 'instance':
                     color = Color.fromArray(tColor, instanceIndex * 3);
                     break;
-                case 'group':
-                    color = Color.fromArray(tColor, groups[indices[i]] * 3);
+                case 'group': {
+                    const group = geoTexture ? ObjExporter.getGroup(groups, i) : groups[indices![i]];
+                    color = Color.fromArray(tColor, group * 3);
                     break;
-                case 'groupInstance':
+                }
+                case 'groupInstance': {
                     const groupCount = values.uGroupCount.ref.value;
-                    const group = groups[indices[i]];
+                    const group = geoTexture ? ObjExporter.getGroup(groups, i) : groups[indices![i]];
                     color = Color.fromArray(tColor, (instanceIndex * groupCount + group) * 3);
                     break;
+                }
                 case 'vertex':
                     color = Color.fromArray(tColor, i * 3);
                     break;
@@ -183,9 +200,9 @@ export class ObjExporter implements RenderObjectExporter<ObjData> {
             }
             this.updateMaterial(color, uAlpha);
 
-            const v1 = this.vertexOffset + indices[i] + 1;
-            const v2 = this.vertexOffset + indices[i + 1] + 1;
-            const v3 = this.vertexOffset + indices[i + 2] + 1;
+            const v1 = this.vertexOffset + (geoTexture ? i : indices![i]) + 1;
+            const v2 = this.vertexOffset + (geoTexture ? i + 1 : indices![i + 1]) + 1;
+            const v3 = this.vertexOffset + (geoTexture ? i + 2 : indices![i + 2]) + 1;
             StringBuilder.writeSafe(obj, 'f ');
             StringBuilder.writeInteger(obj, v1);
             StringBuilder.writeSafe(obj, '//');
@@ -212,7 +229,7 @@ export class ObjExporter implements RenderObjectExporter<ObjData> {
         const drawCount = values.drawCount.ref.value;
 
         for (let instanceIndex = 0; instanceIndex < instanceCount; ++instanceIndex) {
-            await this.addMeshWithColors(aPosition, aNormal, elements, aGroup, vertexCount, drawCount, values, instanceIndex, ctx);
+            await this.addMeshWithColors(aPosition, aNormal, elements, aGroup, vertexCount, drawCount, values, instanceIndex, false, ctx);
         }
     }
 
@@ -249,7 +266,7 @@ export class ObjExporter implements RenderObjectExporter<ObjData> {
             const normals = mesh.normalBuffer.ref.value;
             const indices = mesh.indexBuffer.ref.value;
             const groups = mesh.groupBuffer.ref.value;
-            await this.addMeshWithColors(vertices, normals, indices, groups, vertices.length / 3, indices.length, values, instanceIndex, ctx);
+            await this.addMeshWithColors(vertices, normals, indices, groups, vertices.length / 3, indices.length, values, instanceIndex, false, ctx);
         }
     }
 
@@ -287,11 +304,40 @@ export class ObjExporter implements RenderObjectExporter<ObjData> {
             const normals = mesh.normalBuffer.ref.value;
             const indices = mesh.indexBuffer.ref.value;
             const groups = mesh.groupBuffer.ref.value;
-            await this.addMeshWithColors(vertices, normals, indices, groups, vertices.length / 3, indices.length, values, instanceIndex, ctx);
+            await this.addMeshWithColors(vertices, normals, indices, groups, vertices.length / 3, indices.length, values, instanceIndex, false, ctx);
         }
     }
 
-    add(renderObject: GraphicsRenderObject, ctx: RuntimeContext) {
+    private async addTextureMesh(values: TextureMeshValues, webgl: WebGLContext, ctx: RuntimeContext) {
+        const GeoExportName = 'geo-export';
+        if (!webgl.namedFramebuffers[GeoExportName]) {
+            webgl.namedFramebuffers[GeoExportName] = webgl.resources.framebuffer();
+        }
+        const framebuffer = webgl.namedFramebuffers[GeoExportName];
+
+        const [ width, height ] = values.uGeoTexDim.ref.value;
+        const vertices = new Float32Array(width * height * 4);
+        const normals = new Float32Array(width * height * 4);
+        const groups = webgl.isWebGL2 ? new Uint8Array(width * height * 4) : new Float32Array(width * height * 4);
+
+        framebuffer.bind();
+        values.tPosition.ref.value.attachFramebuffer(framebuffer, 0);
+        webgl.readPixels(0, 0, width, height, vertices);
+        values.tNormal.ref.value.attachFramebuffer(framebuffer, 0);
+        webgl.readPixels(0, 0, width, height, normals);
+        values.tGroup.ref.value.attachFramebuffer(framebuffer, 0);
+        webgl.readPixels(0, 0, width, height, groups);
+
+        const vertexCount = values.uVertexCount.ref.value;
+        const instanceCount = values.instanceCount.ref.value;
+        const drawCount = values.drawCount.ref.value;
+
+        for (let instanceIndex = 0; instanceIndex < instanceCount; ++instanceIndex) {
+            await this.addMeshWithColors(vertices, normals, undefined, groups, vertexCount, drawCount, values, instanceIndex, true, ctx);
+        }
+    }
+
+    add(renderObject: GraphicsRenderObject, webgl: WebGLContext, ctx: RuntimeContext) {
         if (!renderObject.state.visible) return;
 
         switch (renderObject.type) {
@@ -305,6 +351,8 @@ export class ObjExporter implements RenderObjectExporter<ObjData> {
                 return this.addSpheres(renderObject.values as SpheresValues, ctx);
             case 'cylinders':
                 return this.addCylinders(renderObject.values as CylindersValues, ctx);
+            case 'texture-mesh':
+                return this.addTextureMesh(renderObject.values as TextureMeshValues, webgl, ctx);
         }
     }
 
