@@ -16,6 +16,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Lazy volume loading support.
 - [Breaking] ``Viewer.loadVolumeFromUrl`` signature change.
   - ``loadVolumeFromUrl(url, format, isBinary, isovalues, entryId)`` => ``loadVolumeFromUrl({ url, format, isBinary }, isovalues, { entryId, isLazy })``
+- Add ``TextureMesh`` support to ``geo-export`` extension.
 
 ## [v2.0.4] - 2021-04-20
 
