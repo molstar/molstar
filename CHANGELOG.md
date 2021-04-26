@@ -5,6 +5,10 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- [empty]
+
+## [v2.0.5] - 2021-04-26
+
 - Ability to pass ``Canvas3DContext`` to ``PluginContext.fromCanvas``.
 - Relative frame support for ``Canvas3D`` viewport.
 - Fix bug in screenshot copy UI.
