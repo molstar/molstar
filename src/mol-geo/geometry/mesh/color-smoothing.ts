@@ -19,18 +19,13 @@ interface ColorSmoothingInput {
     positionBuffer: Float32Array
     groupBuffer: Float32Array
     colorData: TextureImage<Uint8Array>
-    colorType: 'group' | 'groupInstance' | 'vertex' | 'vertexInstance'
+    colorType: 'group' | 'groupInstance'
     boundingSphere: Sphere3D
     invariantBoundingSphere: Sphere3D
 }
 
 export function calcMeshColorSmoothing(webgl: WebGLContext, input: ColorSmoothingInput, resolution: number, stride: number) {
-    if (!input.colorType.startsWith('group') && !input.colorType.startsWith('vertex')) {
-        throw new Error('unsupported color type');
-    };
-
     const isInstanceType = input.colorType.endsWith('Instance');
-    const isVertexColor = input.colorType.startsWith('vertex');
     const box = Box3D.fromSphere3D(Box3D(), isInstanceType ? input.boundingSphere : input.invariantBoundingSphere);
 
     const scaleFactor = 1 / resolution;
@@ -84,9 +79,7 @@ export function calcMeshColorSmoothing(webgl: WebGLContext, input: ColorSmoothin
             const z = Math.floor(vz);
 
             // group colors
-            const ci = isVertexColor
-                ? i * vertexCount + j
-                : i * groupCount + groups[j];
+            const ci = i * groupCount + groups[j];
             const r = colors[ci * 3];
             const g = colors[ci * 3 + 1];
             const b = colors[ci * 3 + 2];

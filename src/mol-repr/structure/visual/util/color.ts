@@ -12,8 +12,8 @@ import { WebGLContext } from '../../../../mol-gl/webgl/context';
 import { Texture } from '../../../../mol-gl/webgl/texture';
 import { ValueCell } from '../../../../mol-util';
 
-function isSupportedColorType(x: string): x is 'group' | 'groupInstance' | 'vertex' | 'vertexInstance' {
-    return x === 'group' || x === 'groupInstance' || x === 'vertex' || x === 'vertexInstance';
+function isSupportedColorType(x: string): x is 'group' | 'groupInstance' {
+    return x === 'group' || x === 'groupInstance';
 }
 
 export function applyMeshColorSmoothing(webgl: WebGLContext, values: MeshValues, resolution: number) {

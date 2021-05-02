@@ -59,7 +59,7 @@ interface AccumulateInput {
     positionTexture: Texture
     groupTexture: Texture
     colorData: TextureImage<Uint8Array>
-    colorType: 'group' | 'groupInstance' | 'vertex' | 'vertexInstance'
+    colorType: 'group' | 'groupInstance'
 }
 
 function getSampleBuffer(sampleCount: number, stride: number) {
@@ -244,10 +244,6 @@ interface ColorSmoothingInput extends AccumulateInput {
 }
 
 export function calcTextureMeshColorSmoothing(webgl: WebGLContext, input: ColorSmoothingInput, resolution: number, stride: number, texture?: Texture) {
-    if (!input.colorType.startsWith('group') && !input.colorType.startsWith('vertex')) {
-        throw new Error('unsupported color type');
-    };
-
     const { gl, resources, state, extensions: { colorBufferHalfFloat, textureHalfFloat } } = webgl;
 
     const isInstanceType = input.colorType.endsWith('Instance');

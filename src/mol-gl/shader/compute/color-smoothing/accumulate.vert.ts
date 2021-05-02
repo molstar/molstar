@@ -46,10 +46,6 @@ void main() {
         vColor = readFromTexture(tColor, group, uColorTexDim).rgb;
     #elif defined(dColorType_groupInstance)
         vColor = readFromTexture(tColor, aInstance * float(uGroupCount) + group, uColorTexDim).rgb;
-    #elif defined(dColorType_vertex)
-        vColor = readFromTexture(tColor, SampleID, uColorTexDim).rgb;
-    #elif defined(dColorType_vertexInstance)
-        vColor = readFromTexture(tColor, int(aInstance) * uTotalCount + SampleID, uColorTexDim).rgb;
     #endif
 }
 `;
