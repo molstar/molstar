@@ -74,7 +74,7 @@ export function printImageData(imageData: ImageData, scale = 1, pixelated = fals
             // not supported in Firefox and IE
             img.style.imageRendering = 'pixelated';
         }
-        img.style.position = 'absolute';
+        img.style.position = 'relative';
         img.style.top = '0px';
         img.style.left = '0px';
         img.style.border = 'solid grey';
