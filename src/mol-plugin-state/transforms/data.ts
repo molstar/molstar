@@ -19,6 +19,7 @@ import { PluginStateObject as SO, PluginStateTransform } from '../objects';
 import { Asset } from '../../mol-util/assets';
 import { parseCube } from '../../mol-io/reader/cube/parser';
 import { parseDx } from '../../mol-io/reader/dx/parser';
+import { ColorNames } from '../../mol-util/color/names';
 
 export { Download };
 export { DownloadBlob };
@@ -35,6 +36,7 @@ export { ParseDx };
 export { ImportString };
 export { ImportJson };
 export { ParseJson };
+export { LazyVolume };
 
 type Download = typeof Download
 const Download = PluginStateTransform.BuiltIn({
@@ -442,3 +444,30 @@ const ParseJson = PluginStateTransform.BuiltIn({
         });
     }
 });
+
+type LazyVolume = typeof LazyVolume
+const LazyVolume = PluginStateTransform.BuiltIn({
+    name: 'lazy-volume',
+    display: { name: 'Lazy Volume', description: 'A placeholder for lazy loaded volume representation' },
+    from: SO.Root,
+    to: SO.Volume.Lazy,
+    params: {
+        url: PD.Url(''),
+        isBinary: PD.Boolean(false),
+        format: PD.Text('ccp4'), // TODO: use Select based on available formats
+        entryId: PD.Text(''),
+        isovalues: PD.ObjectList({
+            type: PD.Text<'absolute' | 'relative'>('relative'), // TODO: Select
+            value: PD.Numeric(0),
+            color: PD.Color(ColorNames.black),
+            alpha: PD.Numeric(1, { min: 0, max: 1, step: 0.01 })
+        }, e => `${e.type} ${e.value}`)
+    }
+})({
+    apply({ a, params }) {
+        return Task.create('Lazy Volume', async ctx => {
+            return new SO.Volume.Lazy(params, { label: `${params.entryId || params.url}`, description: 'Lazy Volume' });
+        });
+    }
+});
+

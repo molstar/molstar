@@ -17,13 +17,14 @@ export function buildVolumeHierarchy(state: State, previous?: VolumeHierarchy) {
 
 export interface VolumeHierarchy {
     volumes: VolumeRef[],
+    lazyVolumes: LazyVolumeRef[],
     refs: Map<StateTransform.Ref, VolumeHierarchyRef>
     // TODO: might be needed in the future
     // decorators: Map<StateTransform.Ref, StateTransform>,
 }
 
 export function VolumeHierarchy(): VolumeHierarchy {
-    return { volumes: [], refs: new Map() };
+    return { volumes: [], lazyVolumes: [], refs: new Map() };
 }
 
 interface RefBase<K extends string = string, O extends StateObject = StateObject, T extends StateTransformer = StateTransformer> {
@@ -32,7 +33,7 @@ interface RefBase<K extends string = string, O extends StateObject = StateObject
     version: StateTransform['version']
 }
 
-export type VolumeHierarchyRef = VolumeRef | VolumeRepresentationRef
+export type VolumeHierarchyRef = VolumeRef | LazyVolumeRef | VolumeRepresentationRef
 
 export interface VolumeRef extends RefBase<'volume', SO.Volume.Data> {
     representations: VolumeRepresentationRef[]
@@ -40,6 +41,13 @@ export interface VolumeRef extends RefBase<'volume', SO.Volume.Data> {
 
 function VolumeRef(cell: StateObjectCell<SO.Volume.Data>): VolumeRef {
     return { kind: 'volume', cell, version: cell.transform.version, representations: [] };
+}
+
+export interface LazyVolumeRef extends RefBase<'lazy-volume', SO.Volume.Lazy> {
+}
+
+function LazyVolumeRef(cell: StateObjectCell<SO.Volume.Lazy>): LazyVolumeRef {
+    return { kind: 'lazy-volume', cell, version: cell.transform.version };
 }
 
 export interface VolumeRepresentationRef extends RefBase<'volume-representation', SO.Volume.Representation3D, StateTransforms['Representation']['VolumeRepresentation3D']> {
@@ -94,6 +102,10 @@ const Mapping: [TestCell, ApplyRef, LeaveRef][] = [
     [isTypeRoot(SO.Volume.Data, t => t.currentVolume), (state, cell) => {
         state.currentVolume = createOrUpdateRefList(state, cell, state.hierarchy.volumes, VolumeRef, cell);
     }, state => state.currentVolume = void 0],
+
+    [cell => SO.Volume.Lazy.is(cell.obj), (state, cell) => {
+        createOrUpdateRefList(state, cell, state.hierarchy.lazyVolumes, LazyVolumeRef, cell);
+    }, noop],
 
     [(cell, state) => {
         return !cell.state.isGhost && !!state.currentVolume && SO.Volume.Representation3D.is(cell.obj);

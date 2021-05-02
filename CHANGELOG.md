@@ -5,6 +5,10 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- [empty]
+
+## [v2.0.5] - 2021-04-26
+
 - Ability to pass ``Canvas3DContext`` to ``PluginContext.fromCanvas``.
 - Relative frame support for ``Canvas3D`` viewport.
 - Fix bug in screenshot copy UI.
@@ -13,6 +17,10 @@ Note that since we don't clearly distinguish between a public and private interf
 - Support for  full pausing (no draw) rendering: ``Canvas3D.pause(true)``.
 - Add `MeshBuilder.addMesh`.
 - Add `Torus` primitive.
+- Lazy volume loading support.
+- [Breaking] ``Viewer.loadVolumeFromUrl`` signature change.
+  - ``loadVolumeFromUrl(url, format, isBinary, isovalues, entryId)`` => ``loadVolumeFromUrl({ url, format, isBinary }, isovalues, { entryId, isLazy })``
+- Add ``TextureMesh`` support to ``geo-export`` extension.
 
 ## [v2.0.4] - 2021-04-20
 

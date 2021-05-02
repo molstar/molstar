@@ -234,7 +234,7 @@ namespace Camera {
             up: Vec3.create(0, 1, 0),
             target: Vec3.create(0, 0, 0),
 
-            radius: 10,
+            radius: 0,
             radiusMax: 10,
             fog: 50,
             clipFar: true
@@ -271,6 +271,18 @@ namespace Camera {
         if (typeof source.clipFar !== 'undefined') out.clipFar = source.clipFar;
 
         return out;
+    }
+
+    export function areSnapshotsEqual(a: Snapshot, b: Snapshot) {
+        return a.mode === b.mode
+            && a.fov === b.fov
+            && a.radius === b.radius
+            && a.radiusMax === b.radiusMax
+            && a.fog === b.fog
+            && a.clipFar === b.clipFar
+            && Vec3.exactEquals(a.position, b.position)
+            && Vec3.exactEquals(a.up, b.up)
+            && Vec3.exactEquals(a.target, b.target);
     }
 }
 

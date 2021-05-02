@@ -243,17 +243,29 @@ export class Viewer {
         }));
     }
 
-    async loadVolumeFromUrl(url: string, format: BuildInVolumeFormat, isBinary: boolean, isovalues: VolumeIsovalueInfo[], entryId?: string) {
+    async loadVolumeFromUrl({ url, format, isBinary }: { url: string, format: BuildInVolumeFormat, isBinary: boolean }, isovalues: VolumeIsovalueInfo[], options?: { entryId?: string, isLazy?: boolean }) {
         const plugin = this.plugin;
 
         if (!plugin.dataFormats.get(format)) {
             throw new Error(`Unknown density format: ${format}`);
         }
 
-        return plugin.dataTransaction(async () => {
-            const data = await plugin.builders.data.download({ url, isBinary, label: entryId }, { state: { isGhost: true } });
+        if (options?.isLazy) {
+            const update = this.plugin.build();
+            update.toRoot().apply(StateTransforms.Data.LazyVolume, {
+                url,
+                format,
+                entryId: options?.entryId,
+                isBinary,
+                isovalues: isovalues.map(v => ({ alpha: 1, ...v }))
+            });
+            return update.commit();
+        }
 
-            const parsed = await plugin.dataFormats.get(format)!.parse(plugin, data, { entryId });
+        return plugin.dataTransaction(async () => {
+            const data = await plugin.builders.data.download({ url, isBinary, label: options?.entryId }, { state: { isGhost: true } });
+
+            const parsed = await plugin.dataFormats.get(format)!.parse(plugin, data, { entryId: options?.entryId });
             const volume = (parsed.volume || parsed.volumes[0]) as StateObjectSelector<PluginStateObject.Volume.Data>;
             if (!volume?.isOk) throw new Error('Failed to parse any volume.');
 
@@ -261,7 +273,7 @@ export class Viewer {
             for (const iso of isovalues) {
                 repr.apply(StateTransforms.Representation.VolumeRepresentation3D, createVolumeRepresentationParams(this.plugin, volume.data!, {
                     type: 'isosurface',
-                    typeParams: { alpha: iso.alpha ?? 1, isoValue: iso.type === 'absolute' ?  { kind: 'absolute', absoluteValue: iso.value } : { kind: 'relative', relativeValue: iso.value } },
+                    typeParams: { alpha: iso.alpha ?? 1, isoValue: iso.type === 'absolute' ? { kind: 'absolute', absoluteValue: iso.value } : { kind: 'relative', relativeValue: iso.value } },
                     color: 'uniform',
                     colorParams: { value: iso.color }
                 }));
