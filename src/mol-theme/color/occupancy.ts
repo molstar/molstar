@@ -50,6 +50,7 @@ export function OccupancyColorTheme(ctx: ThemeDataContext, props: PD.Values<Occu
     return {
         factory: OccupancyColorTheme,
         granularity: 'group',
+        preferSmoothing: true,
         color,
         props,
         description: Description,

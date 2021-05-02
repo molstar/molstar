@@ -26,7 +26,7 @@ export const MolecularSurfaceMeshParams = {
     ...UnitsMeshParams,
     ...MolecularSurfaceCalculationParams,
     ...CommonSurfaceParams,
-    smoothColors: PD.Select('off', PD.arrayToOptions(['on', 'off'] as const)),
+    smoothColors: PD.Select('auto', PD.arrayToOptions(['auto', 'on', 'off'] as const)),
 };
 export type MolecularSurfaceMeshParams = typeof MolecularSurfaceMeshParams
 
@@ -73,9 +73,9 @@ export function MolecularSurfaceMeshVisual(materialId: number): UnitsVisual<Mole
             if (newProps.includeParent !== currentProps.includeParent) state.createGeometry = true;
             if (newProps.smoothColors !== currentProps.smoothColors) state.updateColor = true;
         },
-        processValues: (values: MeshValues, geometry: Mesh, props: PD.Values<MolecularSurfaceMeshParams>, webgl?: WebGLContext) => {
+        processValues: (values: MeshValues, geometry: Mesh, props: PD.Values<MolecularSurfaceMeshParams>, theme: Theme, webgl?: WebGLContext) => {
             const { resolution } = geometry.meta as MolecularSurfaceMeta;
-            if (props.smoothColors !== 'off' && resolution && webgl) {
+            if ((props.smoothColors === 'on' || (props.smoothColors === 'auto' && theme.color.preferSmoothing)) && resolution && webgl) {
                 applyMeshColorSmoothing(webgl, values, resolution);
             }
         },

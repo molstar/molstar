@@ -29,7 +29,7 @@ const SharedParams = {
     ...GaussianDensityParams,
     ignoreHydrogens: PD.Boolean(false),
     tryUseGpu: PD.Boolean(true),
-    smoothColors: PD.Select('off', PD.arrayToOptions(['on', 'off'] as const)),
+    smoothColors: PD.Select('auto', PD.arrayToOptions(['auto', 'on', 'off'] as const)),
 };
 type SharedParams = typeof SharedParams
 
@@ -123,9 +123,9 @@ export function GaussianSurfaceMeshVisual(materialId: number): UnitsVisual<Gauss
         mustRecreate: (structureGroup: StructureGroup, props: PD.Values<GaussianSurfaceMeshParams>, webgl?: WebGLContext) => {
             return props.tryUseGpu && !!webgl && suitableForGpu(structureGroup.structure, props, webgl);
         },
-        processValues: (values: MeshValues, geometry: Mesh, props: PD.Values<GaussianSurfaceMeshParams>, webgl?: WebGLContext) => {
+        processValues: (values: MeshValues, geometry: Mesh, props: PD.Values<GaussianSurfaceMeshParams>, theme: Theme, webgl?: WebGLContext) => {
             const { resolution } = geometry.meta as GaussianSurfaceMeta;
-            if (props.smoothColors !== 'off' && resolution && webgl) {
+            if ((props.smoothColors === 'on' || (props.smoothColors === 'auto' && theme.color.preferSmoothing)) && resolution && webgl) {
                 applyMeshColorSmoothing(webgl, values, resolution);
             }
         }
@@ -173,9 +173,9 @@ export function StructureGaussianSurfaceMeshVisual(materialId: number): ComplexV
         mustRecreate: (structure: Structure, props: PD.Values<StructureGaussianSurfaceMeshParams>, webgl?: WebGLContext) => {
             return props.tryUseGpu && !!webgl && suitableForGpu(structure, props, webgl);
         },
-        processValues: (values: MeshValues, geometry: Mesh, props: PD.Values<GaussianSurfaceMeshParams>, webgl?: WebGLContext) => {
+        processValues: (values: MeshValues, geometry: Mesh, props: PD.Values<GaussianSurfaceMeshParams>, theme: Theme, webgl?: WebGLContext) => {
             const { resolution } = geometry.meta as GaussianSurfaceMeta;
-            if (props.smoothColors !== 'off' && resolution && webgl) {
+            if ((props.smoothColors === 'on' || (props.smoothColors === 'auto' && theme.color.preferSmoothing)) && resolution && webgl) {
                 applyMeshColorSmoothing(webgl, values, resolution);
             }
         }
@@ -236,9 +236,9 @@ export function GaussianSurfaceTextureMeshVisual(materialId: number): UnitsVisua
         mustRecreate: (structureGroup: StructureGroup, props: PD.Values<GaussianSurfaceMeshParams>, webgl?: WebGLContext) => {
             return !props.tryUseGpu || !webgl || !suitableForGpu(structureGroup.structure, props, webgl);
         },
-        processValues: (values: TextureMeshValues, geometry: TextureMesh, props: PD.Values<GaussianSurfaceMeshParams>, webgl?: WebGLContext) => {
+        processValues: (values: TextureMeshValues, geometry: TextureMesh, props: PD.Values<GaussianSurfaceMeshParams>, theme: Theme, webgl?: WebGLContext) => {
             const { resolution, colorTexture } = geometry.meta as GaussianSurfaceMeta;
-            if (props.smoothColors !== 'off' && resolution && webgl) {
+            if ((props.smoothColors === 'on' || (props.smoothColors === 'auto' && theme.color.preferSmoothing)) && resolution && webgl) {
                 applyTextureMeshColorSmoothing(webgl, values, resolution, colorTexture);
                 (geometry.meta as GaussianSurfaceMeta).colorTexture = values.tColorGrid.ref.value;
             }
@@ -304,9 +304,9 @@ export function StructureGaussianSurfaceTextureMeshVisual(materialId: number): C
         mustRecreate: (structure: Structure, props: PD.Values<StructureGaussianSurfaceMeshParams>, webgl?: WebGLContext) => {
             return !props.tryUseGpu || !webgl || !suitableForGpu(structure, props, webgl);
         },
-        processValues: (values: TextureMeshValues, geometry: TextureMesh, props: PD.Values<GaussianSurfaceMeshParams>, webgl?: WebGLContext) => {
+        processValues: (values: TextureMeshValues, geometry: TextureMesh, props: PD.Values<GaussianSurfaceMeshParams>, theme: Theme, webgl?: WebGLContext) => {
             const { resolution, colorTexture } = geometry.meta as GaussianSurfaceMeta;
-            if (props.smoothColors !== 'off' && resolution && webgl) {
+            if ((props.smoothColors === 'on' || (props.smoothColors === 'auto' && theme.color.preferSmoothing)) && resolution && webgl) {
                 applyTextureMeshColorSmoothing(webgl, values, resolution, colorTexture);
                 (geometry.meta as GaussianSurfaceMeta).colorTexture = values.tColorGrid.ref.value;
             }

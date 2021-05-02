@@ -47,6 +47,7 @@ export function IllustrativeColorTheme(ctx: ThemeDataContext, props: PD.Values<I
     return {
         factory: IllustrativeColorTheme,
         granularity: 'group',
+        preferSmoothing: true,
         color,
         props,
         description: Description,

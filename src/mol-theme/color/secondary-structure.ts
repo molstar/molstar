@@ -102,6 +102,7 @@ export function SecondaryStructureColorTheme(ctx: ThemeDataContext, props: PD.Va
     return {
         factory: SecondaryStructureColorTheme,
         granularity: 'group',
+        preferSmoothing: true,
         color,
         props,
         contextHash,

@@ -54,7 +54,7 @@ interface ComplexVisualBuilder<P extends StructureParams, G extends Geometry> {
     eachLocation(loci: Loci, structure: Structure, apply: (interval: Interval) => boolean, isMarking: boolean): boolean,
     setUpdateState(state: VisualUpdateState, newProps: PD.Values<P>, currentProps: PD.Values<P>, newTheme: Theme, currentTheme: Theme, newStructure: Structure, currentStructure: Structure): void
     mustRecreate?: (structure: Structure, props: PD.Values<P>) => boolean
-    processValues?: (values: RenderObjectValues<G['kind']>, geometry: G, props: PD.Values<P>, webgl?: WebGLContext) => void
+    processValues?: (values: RenderObjectValues<G['kind']>, geometry: G, props: PD.Values<P>, theme: Theme, webgl?: WebGLContext) => void
     dispose?: (geometry: G) => void
 }
 
@@ -202,7 +202,7 @@ export function ComplexVisual<G extends Geometry, P extends StructureParams & Ge
 
     function finalize(ctx: VisualContext) {
         if (renderObject) {
-            processValues?.(renderObject.values, geometry, currentProps, ctx.webgl);
+            processValues?.(renderObject.values, geometry, currentProps, currentTheme, ctx.webgl);
         }
     }
 

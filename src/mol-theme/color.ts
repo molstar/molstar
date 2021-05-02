@@ -45,9 +45,12 @@ interface ColorTheme<P extends PD.Params> {
     readonly granularity: ColorType
     readonly color: LocationColor
     readonly props: Readonly<PD.Values<P>>
-    // if palette is defined, 24bit RGB color value normalized to interval [0, 1]
-    // is used as index to the colors
+    /**
+     * if palette is defined, 24bit RGB color value normalized to interval [0, 1]
+     * is used as index to the colors
+     */
     readonly palette?: Readonly<ColorTheme.Palette>
+    readonly preferSmoothing?: boolean
     readonly contextHash?: number
     readonly description?: string
     readonly legend?: Readonly<ScaleLegend | TableLegend>

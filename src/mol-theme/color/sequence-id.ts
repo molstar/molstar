@@ -102,6 +102,7 @@ export function SequenceIdColorTheme(ctx: ThemeDataContext, props: PD.Values<Seq
     return {
         factory: SequenceIdColorTheme,
         granularity: 'group',
+        preferSmoothing: true,
         color,
         props,
         description: Description,

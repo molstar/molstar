@@ -119,6 +119,7 @@ export function ResidueNameColorTheme(ctx: ThemeDataContext, props: PD.Values<Re
     return {
         factory: ResidueNameColorTheme,
         granularity: 'group',
+        preferSmoothing: true,
         color,
         props,
         description: Description,

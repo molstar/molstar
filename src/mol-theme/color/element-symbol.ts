@@ -82,6 +82,7 @@ export function ElementSymbolColorTheme(ctx: ThemeDataContext, props: PD.Values<
     return {
         factory: ElementSymbolColorTheme,
         granularity,
+        preferSmoothing: true,
         color,
         props,
         description: Description,

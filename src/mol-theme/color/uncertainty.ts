@@ -54,6 +54,7 @@ export function UncertaintyColorTheme(ctx: ThemeDataContext, props: PD.Values<Un
     return {
         factory: UncertaintyColorTheme,
         granularity: 'group',
+        preferSmoothing: true,
         color,
         props,
         description: Description,
