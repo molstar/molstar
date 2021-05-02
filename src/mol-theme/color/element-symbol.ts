@@ -77,7 +77,7 @@ export function ElementSymbolColorTheme(ctx: ThemeDataContext, props: PD.Values<
         return DefaultElementSymbolColor;
     }
 
-    const granularity = props.carbonColor.name === 'element-symbol' ? 'group' : 'groupInstance';
+    const granularity = props.carbonColor.name === 'operator-name' ? 'groupInstance' : 'group';
 
     return {
         factory: ElementSymbolColorTheme,
