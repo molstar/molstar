@@ -28,7 +28,6 @@ export interface VisualContext {
     readonly runtime: RuntimeContext
     readonly webgl?: WebGLContext
 }
-// export type VisualFactory<D, P extends PD.Params> = (ctx: VisualContext) => Visual<D, P>
 
 export { Visual };
 interface Visual<D, P extends PD.Params> {

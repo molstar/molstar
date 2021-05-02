@@ -39,6 +39,8 @@ export interface TextureMesh {
     readonly doubleBuffer: TextureMesh.DoubleBuffer
 
     readonly boundingSphere: Sphere3D
+
+    meta?: unknown
 }
 
 export namespace TextureMesh {

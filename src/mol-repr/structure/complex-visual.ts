@@ -11,7 +11,7 @@ import { Geometry, GeometryUtils } from '../../mol-geo/geometry/geometry';
 import { LocationIterator } from '../../mol-geo/util/location-iterator';
 import { Theme } from '../../mol-theme/theme';
 import { createIdentityTransform } from '../../mol-geo/geometry/transform-data';
-import { createRenderObject, GraphicsRenderObject } from '../../mol-gl/render-object';
+import { createRenderObject, GraphicsRenderObject, RenderObjectValues } from '../../mol-gl/render-object';
 import { PickingId } from '../../mol-geo/geometry/picking';
 import { Loci, isEveryLoci, EmptyLoci } from '../../mol-model/loci';
 import { Interval } from '../../mol-data/int';
@@ -34,6 +34,7 @@ import { createMarkers } from '../../mol-geo/geometry/marker-data';
 import { StructureParams, StructureMeshParams, StructureTextParams, StructureDirectVolumeParams, StructureLinesParams, StructureCylindersParams, StructureTextureMeshParams } from './params';
 import { Clipping } from '../../mol-theme/clipping';
 import { TextureMesh } from '../../mol-geo/geometry/texture-mesh/texture-mesh';
+import { WebGLContext } from '../../mol-gl/webgl/context';
 
 export interface  ComplexVisual<P extends StructureParams> extends Visual<Structure, P> { }
 
@@ -53,6 +54,7 @@ interface ComplexVisualBuilder<P extends StructureParams, G extends Geometry> {
     eachLocation(loci: Loci, structure: Structure, apply: (interval: Interval) => boolean, isMarking: boolean): boolean,
     setUpdateState(state: VisualUpdateState, newProps: PD.Values<P>, currentProps: PD.Values<P>, newTheme: Theme, currentTheme: Theme, newStructure: Structure, currentStructure: Structure): void
     mustRecreate?: (structure: Structure, props: PD.Values<P>) => boolean
+    processValues?: (values: RenderObjectValues<G['kind']>, geometry: G, props: PD.Values<P>, webgl?: WebGLContext) => void
     dispose?: (geometry: G) => void
 }
 
@@ -61,7 +63,7 @@ interface ComplexVisualGeometryBuilder<P extends StructureParams, G extends Geom
 }
 
 export function ComplexVisual<G extends Geometry, P extends StructureParams & Geometry.Params<G>>(builder: ComplexVisualGeometryBuilder<P, G>, materialId: number): ComplexVisual<P> {
-    const { defaultProps, createGeometry, createLocationIterator, getLoci, eachLocation, setUpdateState, mustRecreate, dispose } = builder;
+    const { defaultProps, createGeometry, createLocationIterator, getLoci, eachLocation, setUpdateState, mustRecreate, processValues, dispose } = builder;
     const { updateValues, updateBoundingSphere, updateRenderableState, createPositionIterator } = builder.geometryUtils;
     const updateState = VisualUpdateState.create();
 
@@ -198,6 +200,12 @@ export function ComplexVisual<G extends Geometry, P extends StructureParams & Ge
         }
     }
 
+    function finalize(ctx: VisualContext) {
+        if (renderObject) {
+            processValues?.(renderObject.values, geometry, currentProps, ctx.webgl);
+        }
+    }
+
     return {
         get groupCount() { return locationIt ? locationIt.count : 0; },
         get renderObject () { return locationIt && locationIt.count ? renderObject : undefined; },
@@ -205,10 +213,17 @@ export function ComplexVisual<G extends Geometry, P extends StructureParams & Ge
             prepareUpdate(theme, props, structure || currentStructure);
             if (updateState.createGeometry) {
                 const newGeometry = createGeometry(ctx, newStructure, newTheme, newProps, geometry);
-                return newGeometry instanceof Promise ? newGeometry.then(update) : update(newGeometry);
+                if (newGeometry instanceof Promise) {
+                    return newGeometry.then(g => {
+                        update(g);
+                        finalize(ctx);
+                    });
+                }
+                update(newGeometry);
             } else {
                 update();
             }
+            finalize(ctx);
         },
         getLoci(pickingId: PickingId) {
             return renderObject ? getLoci(pickingId, currentStructure, renderObject.id) : EmptyLoci;

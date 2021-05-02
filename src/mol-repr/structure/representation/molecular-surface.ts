@@ -21,7 +21,6 @@ const MolecularSurfaceVisuals = {
 export const MolecularSurfaceParams = {
     ...MolecularSurfaceMeshParams,
     ...MolecularSurfaceWireframeParams,
-    smoothColors: PD.Select('off', PD.arrayToOptions(['off', 'vertex', 'volume'] as const)),
     visuals: PD.MultiSelect(['molecular-surface-mesh'], PD.objectToOptions(MolecularSurfaceVisuals)),
 };
 export type MolecularSurfaceParams = typeof MolecularSurfaceParams

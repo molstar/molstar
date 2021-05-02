@@ -17,18 +17,29 @@ import { ElementIterator, getElementLoci, eachElement } from './util/element';
 import { VisualUpdateState } from '../../util';
 import { CommonSurfaceParams, getUnitExtraRadius } from './util/common';
 import { Sphere3D } from '../../../mol-math/geometry';
+import { MeshValues } from '../../../mol-gl/renderable/mesh';
+import { Texture } from '../../../mol-gl/webgl/texture';
+import { WebGLContext } from '../../../mol-gl/webgl/context';
+import { applyMeshColorSmoothing } from './util/color';
 
 export const MolecularSurfaceMeshParams = {
     ...UnitsMeshParams,
     ...MolecularSurfaceCalculationParams,
-    ...CommonSurfaceParams
+    ...CommonSurfaceParams,
+    smoothColors: PD.Select('off', PD.arrayToOptions(['on', 'off'] as const)),
 };
 export type MolecularSurfaceMeshParams = typeof MolecularSurfaceMeshParams
+
+type MolecularSurfaceMeta = {
+    resolution?: number
+    colorTexture?: Texture
+}
 
 //
 
 async function createMolecularSurfaceMesh(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: MolecularSurfaceProps, mesh?: Mesh): Promise<Mesh> {
-    const { transform, field, idField } = await computeUnitMolecularSurface(structure, unit, props).runInContext(ctx.runtime);
+    const { transform, field, idField, resolution } = await computeUnitMolecularSurface(structure, unit, props).runInContext(ctx.runtime);
+
     const params = {
         isoLevel: props.probeRadius,
         scalarField: field,
@@ -41,6 +52,7 @@ async function createMolecularSurfaceMesh(ctx: VisualContext, unit: Unit, struct
 
     const sphere = Sphere3D.expand(Sphere3D(), unit.boundary.sphere, props.probeRadius + getUnitExtraRadius(unit));
     surface.setBoundingSphere(sphere);
+    (surface.meta as MolecularSurfaceMeta) = { resolution };
 
     return surface;
 }
@@ -57,7 +69,18 @@ export function MolecularSurfaceMeshVisual(materialId: number): UnitsVisual<Mole
             if (newProps.probeRadius !== currentProps.probeRadius) state.createGeometry = true;
             if (newProps.probePositions !== currentProps.probePositions) state.createGeometry = true;
             if (newProps.ignoreHydrogens !== currentProps.ignoreHydrogens) state.createGeometry = true;
+            if (newProps.traceOnly !== currentProps.traceOnly) state.createGeometry = true;
             if (newProps.includeParent !== currentProps.includeParent) state.createGeometry = true;
+            if (newProps.smoothColors !== currentProps.smoothColors) state.updateColor = true;
+        },
+        processValues: (values: MeshValues, geometry: Mesh, props: PD.Values<MolecularSurfaceMeshParams>, webgl?: WebGLContext) => {
+            const { resolution } = geometry.meta as MolecularSurfaceMeta;
+            if (props.smoothColors !== 'off' && resolution && webgl) {
+                applyMeshColorSmoothing(webgl, values, resolution);
+            }
+        },
+        dispose: (geometry: Mesh) => {
+            (geometry.meta as MolecularSurfaceMeta).colorTexture?.destroy();
         }
     }, materialId);
 }

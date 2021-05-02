@@ -129,5 +129,5 @@ export async function GaussianDensityCPU(ctx: RuntimeContext, position: Position
     Mat4.fromScaling(transform, Vec3.create(resolution, resolution, resolution));
     Mat4.setTranslation(transform, expandedBox.min);
 
-    return { field, idField, transform, radiusFactor: 1 };
+    return { field, idField, transform, radiusFactor: 1, resolution };
 }

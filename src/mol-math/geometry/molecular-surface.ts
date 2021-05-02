@@ -370,5 +370,5 @@ export async function calcMolecularSurface(ctx: RuntimeContext, position: Requir
     Mat4.fromScaling(transform, Vec3.create(resolution, resolution, resolution));
     Mat4.setTranslation(transform, expandedBox.min);
     // console.log({ field, idField, transform, updateChunk })
-    return { field, idField, transform };
+    return { field, idField, transform, resolution };
 }

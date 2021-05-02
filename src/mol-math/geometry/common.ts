@@ -26,6 +26,7 @@ export type DensityData = {
     transform: Mat4,
     field: Tensor,
     idField: Tensor,
+    resolution: number
 }
 
 export type DensityTextureData = {
