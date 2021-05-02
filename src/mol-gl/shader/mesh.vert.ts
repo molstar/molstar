@@ -15,7 +15,7 @@ precision highp sampler2D;
 #include color_vert_params
 #include common_clip
 
-#if defined(dColorType_volume)
+#if defined(dColorType_grid)
     #include texture3d_from_2d_linear
 #endif
 

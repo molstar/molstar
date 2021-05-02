@@ -190,7 +190,7 @@ namespace Renderer {
 
         let transparentBackground = false;
 
-        const nullDepthTexture = createNullTexture(gl, 'image-depth');
+        const nullDepthTexture = createNullTexture(gl);
         const sharedTexturesList: Textures = [
             ['tDepth', nullDepthTexture]
         ];

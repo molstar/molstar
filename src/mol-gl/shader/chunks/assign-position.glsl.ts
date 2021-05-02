@@ -7,7 +7,8 @@ mat4 modelView = uView * model;
     vec3 position = aPosition;
 #endif
 vec4 position4 = vec4(position, 1.0);
-vModelPosition = (model * position4).xyz; // for clipping in frag shader
+// for accessing tColorGrid in vert shader and for clipping in frag shader
+vModelPosition = (model * position4).xyz;
 vec4 mvPosition = modelView * position4;
 vViewPosition = mvPosition.xyz;
 gl_Position = uProjection * mvPosition;

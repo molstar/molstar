@@ -394,7 +394,7 @@ export function createTextures(ctx: WebGLContext, schema: RenderableSchema, valu
 
 /**
  * Loads an image from a url to a textures and triggers update asynchronously.
- * This will not work on node.js with a polyfill for HTMLImageElement.
+ * This will not work on node.js without a polyfill for `HTMLImageElement`.
  */
 export function loadImageTexture(src: string, cell: ValueCell<Texture>, texture: Texture) {
     const img = new Image();
@@ -407,8 +407,8 @@ export function loadImageTexture(src: string, cell: ValueCell<Texture>, texture:
 
 //
 
-export function createNullTexture(gl: GLRenderingContext, kind: TextureKind): Texture {
-    const target = getTarget(gl, kind);
+export function createNullTexture(gl?: GLRenderingContext): Texture {
+    const target = 3553;
     return {
         id: getNextTextureId(),
         target,
@@ -424,12 +424,16 @@ export function createNullTexture(gl: GLRenderingContext, kind: TextureKind): Te
         define: () => {},
         load: () => {},
         bind: (id: TextureId) => {
-            gl.activeTexture(gl.TEXTURE0 + id);
-            gl.bindTexture(target, null);
+            if (gl) {
+                gl.activeTexture(gl.TEXTURE0 + id);
+                gl.bindTexture(target, null);
+            }
         },
         unbind: (id: TextureId) => {
-            gl.activeTexture(gl.TEXTURE0 + id);
-            gl.bindTexture(target, null);
+            if (gl) {
+                gl.activeTexture(gl.TEXTURE0 + id);
+                gl.bindTexture(target, null);
+            }
         },
         attachFramebuffer: () => {},
         detachFramebuffer: () => {},
