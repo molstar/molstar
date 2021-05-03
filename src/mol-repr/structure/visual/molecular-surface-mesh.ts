@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -20,13 +20,13 @@ import { Sphere3D } from '../../../mol-math/geometry';
 import { MeshValues } from '../../../mol-gl/renderable/mesh';
 import { Texture } from '../../../mol-gl/webgl/texture';
 import { WebGLContext } from '../../../mol-gl/webgl/context';
-import { applyMeshColorSmoothing } from './util/color';
+import { applyMeshColorSmoothing, ColorSmoothingParams, getColorSmoothingProps } from './util/color';
 
 export const MolecularSurfaceMeshParams = {
     ...UnitsMeshParams,
     ...MolecularSurfaceCalculationParams,
     ...CommonSurfaceParams,
-    smoothColors: PD.Select('auto', PD.arrayToOptions(['auto', 'on', 'off'] as const)),
+    ...ColorSmoothingParams,
 };
 export type MolecularSurfaceMeshParams = typeof MolecularSurfaceMeshParams
 
@@ -71,12 +71,19 @@ export function MolecularSurfaceMeshVisual(materialId: number): UnitsVisual<Mole
             if (newProps.ignoreHydrogens !== currentProps.ignoreHydrogens) state.createGeometry = true;
             if (newProps.traceOnly !== currentProps.traceOnly) state.createGeometry = true;
             if (newProps.includeParent !== currentProps.includeParent) state.createGeometry = true;
-            if (newProps.smoothColors !== currentProps.smoothColors) state.updateColor = true;
+            if (newProps.smoothColors.name !== currentProps.smoothColors.name) {
+                state.updateColor = true;
+            } else if (newProps.smoothColors.name === 'on' && currentProps.smoothColors.name === 'on') {
+                if (newProps.smoothColors.params.resolutionFactor !== currentProps.smoothColors.params.resolutionFactor) state.updateColor = true;
+                if (newProps.smoothColors.params.sampleStride !== currentProps.smoothColors.params.sampleStride) state.updateColor = true;
+            }
         },
         processValues: (values: MeshValues, geometry: Mesh, props: PD.Values<MolecularSurfaceMeshParams>, theme: Theme, webgl?: WebGLContext) => {
-            const { resolution } = geometry.meta as MolecularSurfaceMeta;
-            if ((props.smoothColors === 'on' || (props.smoothColors === 'auto' && theme.color.preferSmoothing)) && resolution && webgl) {
-                applyMeshColorSmoothing(webgl, values, resolution);
+            const { resolution, colorTexture } = geometry.meta as MolecularSurfaceMeta;
+            const csp = getColorSmoothingProps(props, theme, resolution, webgl);
+            if (csp) {
+                applyMeshColorSmoothing(values, csp.resolution, csp.stride, csp.webgl, colorTexture);
+                (geometry.meta as MolecularSurfaceMeta).colorTexture = values.tColorGrid.ref.value;
             }
         },
         dispose: (geometry: Mesh) => {

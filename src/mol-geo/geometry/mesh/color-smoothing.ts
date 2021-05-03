@@ -6,6 +6,7 @@
 
 import { TextureImage } from '../../../mol-gl/renderable/util';
 import { WebGLContext } from '../../../mol-gl/webgl/context';
+import { Texture } from '../../../mol-gl/webgl/texture';
 import { Box3D, Sphere3D } from '../../../mol-math/geometry';
 import { Vec2, Vec3, Vec4 } from '../../../mol-math/linear-algebra';
 import { getVolumeTexture2dLayout } from '../../../mol-repr/volume/util';
@@ -24,7 +25,7 @@ interface ColorSmoothingInput {
     invariantBoundingSphere: Sphere3D
 }
 
-export function calcMeshColorSmoothing(webgl: WebGLContext, input: ColorSmoothingInput, resolution: number, stride: number) {
+export function calcMeshColorSmoothing(input: ColorSmoothingInput, resolution: number, stride: number, webgl: WebGLContext, texture?: Texture) {
     const isInstanceType = input.colorType.endsWith('Instance');
     const box = Box3D.fromSphere3D(Box3D(), isInstanceType ? input.boundingSphere : input.invariantBoundingSphere);
 
@@ -127,17 +128,8 @@ export function calcMeshColorSmoothing(webgl: WebGLContext, input: ColorSmoothin
         array[i3 + 2] = Math.round(data[i3 + 2] / c);
     }
 
-    const texture = webgl.resources.texture('image-uint8', 'rgb', 'ubyte', 'linear');
+    if (!texture) texture = webgl.resources.texture('image-uint8', 'rgb', 'ubyte', 'linear');
     texture.load(textureImage);
-
-    // ValueCell.updateIfChanged(values.dColorType, isInstanceType ? 'volumeInstance' : 'volume');
-    // ValueCell.update(values.tColorGrid, texture);
-    // ValueCell.update(values.uColorTexDim, Vec2.create(width, height));
-    // ValueCell.update(values.uColorGridDim, dim);
-    // ValueCell.update(values.uColorGridTransform, Vec4.create(min[0], min[1], min[2], scaleFactor));
-    // ValueCell.updateIfChanged(values.dColorGridType, '2d');
-
-    // return values;
 
     const transform = Vec4.create(min[0], min[1], min[2], scaleFactor);
     const type = isInstanceType ? 'volumeInstance' : 'volume';

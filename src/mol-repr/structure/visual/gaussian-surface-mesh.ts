@@ -23,13 +23,13 @@ import { WebGLContext } from '../../../mol-gl/webgl/context';
 import { MeshValues } from '../../../mol-gl/renderable/mesh';
 import { TextureMeshValues } from '../../../mol-gl/renderable/texture-mesh';
 import { Texture } from '../../../mol-gl/webgl/texture';
-import { applyMeshColorSmoothing, applyTextureMeshColorSmoothing } from './util/color';
+import { applyMeshColorSmoothing, applyTextureMeshColorSmoothing, ColorSmoothingParams, getColorSmoothingProps } from './util/color';
 
 const SharedParams = {
     ...GaussianDensityParams,
+    ...ColorSmoothingParams,
     ignoreHydrogens: PD.Boolean(false),
     tryUseGpu: PD.Boolean(true),
-    smoothColors: PD.Select('auto', PD.arrayToOptions(['auto', 'on', 'off'] as const)),
 };
 type SharedParams = typeof SharedParams
 
@@ -118,16 +118,26 @@ export function GaussianSurfaceMeshVisual(materialId: number): UnitsVisual<Gauss
             if (newProps.ignoreHydrogens !== currentProps.ignoreHydrogens) state.createGeometry = true;
             if (newProps.traceOnly !== currentProps.traceOnly) state.createGeometry = true;
             if (newProps.includeParent !== currentProps.includeParent) state.createGeometry = true;
-            if (newProps.smoothColors !== currentProps.smoothColors) state.updateColor = true;
+            if (newProps.smoothColors.name !== currentProps.smoothColors.name) {
+                state.updateColor = true;
+            } else if (newProps.smoothColors.name === 'on' && currentProps.smoothColors.name === 'on') {
+                if (newProps.smoothColors.params.resolutionFactor !== currentProps.smoothColors.params.resolutionFactor) state.updateColor = true;
+                if (newProps.smoothColors.params.sampleStride !== currentProps.smoothColors.params.sampleStride) state.updateColor = true;
+            }
         },
         mustRecreate: (structureGroup: StructureGroup, props: PD.Values<GaussianSurfaceMeshParams>, webgl?: WebGLContext) => {
             return props.tryUseGpu && !!webgl && suitableForGpu(structureGroup.structure, props, webgl);
         },
         processValues: (values: MeshValues, geometry: Mesh, props: PD.Values<GaussianSurfaceMeshParams>, theme: Theme, webgl?: WebGLContext) => {
-            const { resolution } = geometry.meta as GaussianSurfaceMeta;
-            if ((props.smoothColors === 'on' || (props.smoothColors === 'auto' && theme.color.preferSmoothing)) && resolution && webgl) {
-                applyMeshColorSmoothing(webgl, values, resolution);
+            const { resolution, colorTexture } = geometry.meta as GaussianSurfaceMeta;
+            const csp = getColorSmoothingProps(props, theme, resolution, webgl);
+            if (csp) {
+                applyMeshColorSmoothing(values, csp.resolution, csp.stride, csp.webgl, colorTexture);
+                (geometry.meta as GaussianSurfaceMeta).colorTexture = values.tColorGrid.ref.value;
             }
+        },
+        dispose: (geometry: Mesh) => {
+            (geometry.meta as GaussianSurfaceMeta).colorTexture?.destroy();
         }
     }, materialId);
 }
@@ -168,16 +178,26 @@ export function StructureGaussianSurfaceMeshVisual(materialId: number): ComplexV
             if (newProps.smoothness !== currentProps.smoothness) state.createGeometry = true;
             if (newProps.ignoreHydrogens !== currentProps.ignoreHydrogens) state.createGeometry = true;
             if (newProps.traceOnly !== currentProps.traceOnly) state.createGeometry = true;
-            if (newProps.smoothColors !== currentProps.smoothColors) state.updateColor = true;
+            if (newProps.smoothColors.name !== currentProps.smoothColors.name) {
+                state.updateColor = true;
+            } else if (newProps.smoothColors.name === 'on' && currentProps.smoothColors.name === 'on') {
+                if (newProps.smoothColors.params.resolutionFactor !== currentProps.smoothColors.params.resolutionFactor) state.updateColor = true;
+                if (newProps.smoothColors.params.sampleStride !== currentProps.smoothColors.params.sampleStride) state.updateColor = true;
+            }
         },
         mustRecreate: (structure: Structure, props: PD.Values<StructureGaussianSurfaceMeshParams>, webgl?: WebGLContext) => {
             return props.tryUseGpu && !!webgl && suitableForGpu(structure, props, webgl);
         },
         processValues: (values: MeshValues, geometry: Mesh, props: PD.Values<GaussianSurfaceMeshParams>, theme: Theme, webgl?: WebGLContext) => {
-            const { resolution } = geometry.meta as GaussianSurfaceMeta;
-            if ((props.smoothColors === 'on' || (props.smoothColors === 'auto' && theme.color.preferSmoothing)) && resolution && webgl) {
-                applyMeshColorSmoothing(webgl, values, resolution);
+            const { resolution, colorTexture } = geometry.meta as GaussianSurfaceMeta;
+            const csp = getColorSmoothingProps(props, theme, resolution, webgl);
+            if (csp) {
+                applyMeshColorSmoothing(values, csp.resolution, csp.stride, csp.webgl, colorTexture);
+                (geometry.meta as GaussianSurfaceMeta).colorTexture = values.tColorGrid.ref.value;
             }
+        },
+        dispose: (geometry: Mesh) => {
+            (geometry.meta as GaussianSurfaceMeta).colorTexture?.destroy();
         }
     }, materialId);
 }
@@ -231,15 +251,21 @@ export function GaussianSurfaceTextureMeshVisual(materialId: number): UnitsVisua
             if (newProps.ignoreHydrogens !== currentProps.ignoreHydrogens) state.createGeometry = true;
             if (newProps.traceOnly !== currentProps.traceOnly) state.createGeometry = true;
             if (newProps.includeParent !== currentProps.includeParent) state.createGeometry = true;
-            if (newProps.smoothColors !== currentProps.smoothColors) state.updateColor = true;
+            if (newProps.smoothColors.name !== currentProps.smoothColors.name) {
+                state.updateColor = true;
+            } else if (newProps.smoothColors.name === 'on' && currentProps.smoothColors.name === 'on') {
+                if (newProps.smoothColors.params.resolutionFactor !== currentProps.smoothColors.params.resolutionFactor) state.updateColor = true;
+                if (newProps.smoothColors.params.sampleStride !== currentProps.smoothColors.params.sampleStride) state.updateColor = true;
+            }
         },
         mustRecreate: (structureGroup: StructureGroup, props: PD.Values<GaussianSurfaceMeshParams>, webgl?: WebGLContext) => {
             return !props.tryUseGpu || !webgl || !suitableForGpu(structureGroup.structure, props, webgl);
         },
         processValues: (values: TextureMeshValues, geometry: TextureMesh, props: PD.Values<GaussianSurfaceMeshParams>, theme: Theme, webgl?: WebGLContext) => {
             const { resolution, colorTexture } = geometry.meta as GaussianSurfaceMeta;
-            if ((props.smoothColors === 'on' || (props.smoothColors === 'auto' && theme.color.preferSmoothing)) && resolution && webgl) {
-                applyTextureMeshColorSmoothing(webgl, values, resolution, colorTexture);
+            const csp = getColorSmoothingProps(props, theme, resolution, webgl);
+            if (csp) {
+                applyTextureMeshColorSmoothing(values, csp.resolution, csp.stride, csp.webgl, colorTexture);
                 (geometry.meta as GaussianSurfaceMeta).colorTexture = values.tColorGrid.ref.value;
             }
         },
@@ -300,14 +326,22 @@ export function StructureGaussianSurfaceTextureMeshVisual(materialId: number): C
             if (newProps.smoothness !== currentProps.smoothness) state.createGeometry = true;
             if (newProps.ignoreHydrogens !== currentProps.ignoreHydrogens) state.createGeometry = true;
             if (newProps.traceOnly !== currentProps.traceOnly) state.createGeometry = true;
+            if (newProps.includeParent !== currentProps.includeParent) state.createGeometry = true;
+            if (newProps.smoothColors.name !== currentProps.smoothColors.name) {
+                state.updateColor = true;
+            } else if (newProps.smoothColors.name === 'on' && currentProps.smoothColors.name === 'on') {
+                if (newProps.smoothColors.params.resolutionFactor !== currentProps.smoothColors.params.resolutionFactor) state.updateColor = true;
+                if (newProps.smoothColors.params.sampleStride !== currentProps.smoothColors.params.sampleStride) state.updateColor = true;
+            }
         },
         mustRecreate: (structure: Structure, props: PD.Values<StructureGaussianSurfaceMeshParams>, webgl?: WebGLContext) => {
             return !props.tryUseGpu || !webgl || !suitableForGpu(structure, props, webgl);
         },
         processValues: (values: TextureMeshValues, geometry: TextureMesh, props: PD.Values<GaussianSurfaceMeshParams>, theme: Theme, webgl?: WebGLContext) => {
             const { resolution, colorTexture } = geometry.meta as GaussianSurfaceMeta;
-            if ((props.smoothColors === 'on' || (props.smoothColors === 'auto' && theme.color.preferSmoothing)) && resolution && webgl) {
-                applyTextureMeshColorSmoothing(webgl, values, resolution, colorTexture);
+            const csp = getColorSmoothingProps(props, theme, resolution, webgl);
+            if (csp) {
+                applyTextureMeshColorSmoothing(values, csp.resolution, csp.stride, csp.webgl, colorTexture);
                 (geometry.meta as GaussianSurfaceMeta).colorTexture = values.tColorGrid.ref.value;
             }
         },

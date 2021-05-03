@@ -10,16 +10,49 @@ import { MeshValues } from '../../../../mol-gl/renderable/mesh';
 import { TextureMeshValues } from '../../../../mol-gl/renderable/texture-mesh';
 import { WebGLContext } from '../../../../mol-gl/webgl/context';
 import { Texture } from '../../../../mol-gl/webgl/texture';
+import { Theme } from '../../../../mol-theme/theme';
 import { ValueCell } from '../../../../mol-util';
+import { ParamDefinition as PD } from '../../../../mol-util/param-definition';
+
+export const ColorSmoothingParams = {
+    smoothColors: PD.MappedStatic('auto', {
+        auto: PD.Group({}),
+        on: PD.Group({
+            resolutionFactor: PD.Numeric(2, { min: 1, max: 6, step: 0.1 }),
+            sampleStride: PD.Numeric(6, { min: 1, max: 12, step: 1 }),
+        }),
+        off: PD.Group({})
+    }),
+};
+export type ColorSmoothingParams = typeof ColorSmoothingParams
+
+export function getColorSmoothingProps(props: PD.Values<ColorSmoothingParams>, theme: Theme, resolution?: number, webgl?: WebGLContext) {
+    if ((props.smoothColors.name === 'on' || (props.smoothColors.name === 'auto' && theme.color.preferSmoothing)) && resolution && resolution < 3 && webgl) {
+        let stride = 6;
+        if (props.smoothColors.name === 'on') {
+            resolution *= props.smoothColors.params.resolutionFactor;
+            stride = props.smoothColors.params.sampleStride;
+        } else {
+            if (resolution > 0.5 && resolution < 1) {
+                resolution *= 2 * resolution;
+            } else if (resolution > 1) {
+                stride = 3;
+            } else {
+                resolution *= 2;
+            }
+        }
+        return { resolution, stride, webgl };
+    };
+}
 
 function isSupportedColorType(x: string): x is 'group' | 'groupInstance' {
     return x === 'group' || x === 'groupInstance';
 }
 
-export function applyMeshColorSmoothing(webgl: WebGLContext, values: MeshValues, resolution: number) {
+export function applyMeshColorSmoothing(values: MeshValues, resolution: number, stride: number, webgl: WebGLContext, colorTexture?: Texture) {
     if (!isSupportedColorType(values.dColorType.ref.value)) return;
 
-    const smoothingData = calcMeshColorSmoothing(webgl, {
+    const smoothingData = calcMeshColorSmoothing({
         vertexCount: values.uVertexCount.ref.value,
         instanceCount: values.uInstanceCount.ref.value,
         groupCount: values.uGroupCount.ref.value,
@@ -31,7 +64,7 @@ export function applyMeshColorSmoothing(webgl: WebGLContext, values: MeshValues,
         colorType: values.dColorType.ref.value,
         boundingSphere: values.boundingSphere.ref.value,
         invariantBoundingSphere: values.invariantBoundingSphere.ref.value,
-    }, resolution * 2, 6);
+    }, resolution, stride, webgl, colorTexture);
 
     ValueCell.updateIfChanged(values.dColorType, smoothingData.type);
     ValueCell.update(values.tColorGrid, smoothingData.texture);
@@ -41,10 +74,12 @@ export function applyMeshColorSmoothing(webgl: WebGLContext, values: MeshValues,
     ValueCell.updateIfChanged(values.dColorGridType, '2d');
 }
 
-export function applyTextureMeshColorSmoothing(webgl: WebGLContext, values: TextureMeshValues, resolution: number, colorTexture?: Texture) {
+export function applyTextureMeshColorSmoothing(values: TextureMeshValues, resolution: number, stride: number, webgl: WebGLContext, colorTexture?: Texture) {
     if (!isSupportedColorType(values.dColorType.ref.value)) return;
 
-    const smoothingData = calcTextureMeshColorSmoothing(webgl, {
+    stride *= 3; // triple because TextureMesh is never indexed (no elements buffer)
+
+    const smoothingData = calcTextureMeshColorSmoothing({
         vertexCount: values.uVertexCount.ref.value,
         instanceCount: values.uInstanceCount.ref.value,
         groupCount: values.uGroupCount.ref.value,
@@ -56,7 +91,7 @@ export function applyTextureMeshColorSmoothing(webgl: WebGLContext, values: Text
         colorType: values.dColorType.ref.value,
         boundingSphere: values.boundingSphere.ref.value,
         invariantBoundingSphere: values.invariantBoundingSphere.ref.value,
-    }, resolution * 2, 12, colorTexture);
+    }, resolution, stride, webgl, colorTexture);
 
     ValueCell.updateIfChanged(values.dColorType, smoothingData.type);
     ValueCell.update(values.tColorGrid, smoothingData.texture);

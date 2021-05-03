@@ -23,6 +23,7 @@ import { TextureImage } from '../../../mol-gl/renderable/util';
 export const ColorAccumulateSchema = {
     drawCount: ValueSpec('number'),
     instanceCount: ValueSpec('number'),
+    stride: ValueSpec('number'),
 
     uTotalCount: UniformSpec('i'),
     uInstanceCount: UniformSpec('i'),
@@ -75,13 +76,14 @@ function getAccumulateRenderable(ctx: WebGLContext, input: AccumulateInput, box:
         const extent = Vec3.sub(Vec3(), box.max, box.min);
         const v = ctx.namedComputeRenderables[ColorAccumulateName].values as ColorAccumulateValues;
 
-        const sampleCount = input.vertexCount / stride;
-        if (sampleCount > v.drawCount.ref.value) {
+        const sampleCount = Math.round(input.vertexCount / stride);
+        if (sampleCount > v.drawCount.ref.value || stride !== v.stride.ref.value) {
             ValueCell.update(v.aSample, getSampleBuffer(sampleCount, stride));
         }
 
         ValueCell.updateIfChanged(v.drawCount, sampleCount);
         ValueCell.updateIfChanged(v.instanceCount, input.instanceCount);
+        ValueCell.updateIfChanged(v.stride, stride);
 
         ValueCell.updateIfChanged(v.uTotalCount, input.vertexCount);
         ValueCell.updateIfChanged(v.uInstanceCount, input.instanceCount);
@@ -114,11 +116,12 @@ function getAccumulateRenderable(ctx: WebGLContext, input: AccumulateInput, box:
 
 function createAccumulateRenderable(ctx: WebGLContext, input: AccumulateInput, box: Box3D, resolution: number, stride: number) {
     const extent = Vec3.sub(Vec3(), box.max, box.min);
-    const sampleCount = input.vertexCount / stride;
+    const sampleCount = Math.round(input.vertexCount / stride);
 
     const values: ColorAccumulateValues = {
         drawCount: ValueCell.create(sampleCount),
         instanceCount: ValueCell.create(input.instanceCount),
+        stride: ValueCell.create(stride),
 
         uTotalCount: ValueCell.create(input.vertexCount),
         uInstanceCount: ValueCell.create(input.instanceCount),
@@ -243,7 +246,7 @@ interface ColorSmoothingInput extends AccumulateInput {
     invariantBoundingSphere: Sphere3D
 }
 
-export function calcTextureMeshColorSmoothing(webgl: WebGLContext, input: ColorSmoothingInput, resolution: number, stride: number, texture?: Texture) {
+export function calcTextureMeshColorSmoothing(input: ColorSmoothingInput, resolution: number, stride: number, webgl: WebGLContext, texture?: Texture) {
     const { gl, resources, state, extensions: { colorBufferHalfFloat, textureHalfFloat } } = webgl;
 
     const isInstanceType = input.colorType.endsWith('Instance');
