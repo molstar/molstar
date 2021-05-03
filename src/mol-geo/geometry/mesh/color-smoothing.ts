@@ -4,12 +4,13 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { TextureImage } from '../../../mol-gl/renderable/util';
+import { createTextureImage, TextureImage } from '../../../mol-gl/renderable/util';
 import { WebGLContext } from '../../../mol-gl/webgl/context';
 import { Texture } from '../../../mol-gl/webgl/texture';
 import { Box3D, Sphere3D } from '../../../mol-math/geometry';
 import { Vec2, Vec3, Vec4 } from '../../../mol-math/linear-algebra';
 import { getVolumeTexture2dLayout } from '../../../mol-repr/volume/util';
+import { Color } from '../../../mol-util/color';
 
 interface ColorSmoothingInput {
     vertexCount: number
@@ -25,35 +26,32 @@ interface ColorSmoothingInput {
     invariantBoundingSphere: Sphere3D
 }
 
-export function calcMeshColorSmoothing(input: ColorSmoothingInput, resolution: number, stride: number, webgl: WebGLContext, texture?: Texture) {
-    const isInstanceType = input.colorType.endsWith('Instance');
+export function calcMeshColorSmoothing(input: ColorSmoothingInput, resolution: number, stride: number, webgl?: WebGLContext, texture?: Texture) {
+    const { colorType, vertexCount, groupCount, positionBuffer, transformBuffer, groupBuffer } = input;
+
+    const isInstanceType = colorType.endsWith('Instance');
     const box = Box3D.fromSphere3D(Box3D(), isInstanceType ? input.boundingSphere : input.invariantBoundingSphere);
 
     const scaleFactor = 1 / resolution;
     const scaledBox = Box3D.scale(Box3D(), box, scaleFactor);
-    const dim = Box3D.size(Vec3(), scaledBox);
-    Vec3.ceil(dim, dim);
-    Vec3.add(dim, dim, Vec3.create(2, 2, 2));
+    const gridDim = Box3D.size(Vec3(), scaledBox);
+    Vec3.ceil(gridDim, gridDim);
+    Vec3.add(gridDim, gridDim, Vec3.create(2, 2, 2));
     const { min } = box;
 
-    const [ xn, yn ] = dim;
-    const { width, height } = getVolumeTexture2dLayout(dim);
+    const [ xn, yn ] = gridDim;
+    const { width, height } = getVolumeTexture2dLayout(gridDim);
     // console.log({ width, height, dim });
 
     const itemSize = 3;
     const data = new Float32Array(width * height * itemSize);
     const count = new Float32Array(width * height);
 
-    const array = new Uint8Array(width * height * itemSize);
-    const textureImage: TextureImage<Uint8Array> = { array, width, height, filter: 'linear' };
+    const grid = new Uint8Array(width * height * itemSize);
+    const textureImage: TextureImage<Uint8Array> = { array: grid, width, height, filter: 'linear' };
 
-    const vertexCount = input.vertexCount;
-    const groupCount = input.groupCount;
     const instanceCount = isInstanceType ? input.instanceCount : 1;
-    const positions = input.positionBuffer;
     const colors = input.colorData.array;
-    const groups = input.groupBuffer;
-    const transforms = input.transformBuffer;
 
     function getIndex(x: number, y: number, z: number) {
         const column = Math.floor(((z * xn) % width) / xn);
@@ -63,13 +61,13 @@ export function calcMeshColorSmoothing(input: ColorSmoothingInput, resolution: n
     }
 
     const p = 2;
-    const [dimX, dimY, dimZ] = dim;
+    const [dimX, dimY, dimZ] = gridDim;
     const v = Vec3();
 
     for (let i = 0; i < instanceCount; ++i) {
         for (let j = 0; j < vertexCount; j += stride) {
-            Vec3.fromArray(v, positions, j * 3);
-            if (isInstanceType) Vec3.transformMat4Offset(v, v, transforms, 0, 0, i * 16);
+            Vec3.fromArray(v, positionBuffer, j * 3);
+            if (isInstanceType) Vec3.transformMat4Offset(v, v, transformBuffer, 0, 0, i * 16);
             Vec3.sub(v, v, min);
             Vec3.scale(v, v, scaleFactor);
             const [vx, vy, vz] = v;
@@ -80,7 +78,7 @@ export function calcMeshColorSmoothing(input: ColorSmoothingInput, resolution: n
             const z = Math.floor(vz);
 
             // group colors
-            const ci = i * groupCount + groups[j];
+            const ci = i * groupCount + groupBuffer[j];
             const r = colors[ci * 3];
             const g = colors[ci * 3 + 1];
             const b = colors[ci * 3 + 2];
@@ -106,9 +104,7 @@ export function calcMeshColorSmoothing(input: ColorSmoothingInput, resolution: n
                         const d = Math.sqrt(dx * dx + dy * dy + dz * dz);
                         if (d > p) continue;
 
-                        // const s = Math.pow(p, 10) - Math.pow(d, 10);
                         let s = p - d;
-                        // if (d < 0.5) s *= 50;
                         const index = getIndex(xi, yi, zi);
                         data[index] += r * s;
                         data[index + 1] += g * s;
@@ -123,16 +119,109 @@ export function calcMeshColorSmoothing(input: ColorSmoothingInput, resolution: n
     for (let i = 0, il = count.length; i < il; ++i) {
         const i3 = i * 3;
         const c = count[i];
-        array[i3] = Math.round(data[i3] / c);
-        array[i3 + 1] = Math.round(data[i3 + 1] / c);
-        array[i3 + 2] = Math.round(data[i3 + 2] / c);
+        grid[i3] = Math.round(data[i3] / c);
+        grid[i3 + 1] = Math.round(data[i3 + 1] / c);
+        grid[i3 + 2] = Math.round(data[i3 + 2] / c);
     }
 
-    if (!texture) texture = webgl.resources.texture('image-uint8', 'rgb', 'ubyte', 'linear');
-    texture.load(textureImage);
+    const gridTexDim = Vec2.create(width, height);
+    const gridTransform = Vec4.create(min[0], min[1], min[2], scaleFactor);
+    const type = isInstanceType ? 'volumeInstance' as const : 'volume' as const;
 
-    const transform = Vec4.create(min[0], min[1], min[2], scaleFactor);
-    const type = isInstanceType ? 'volumeInstance' : 'volume';
+    if (webgl) {
+        if (!texture) texture = webgl.resources.texture('image-uint8', 'rgb', 'ubyte', 'linear');
+        texture.load(textureImage);
 
-    return { texture, gridDim: dim, gridTexDim: Vec2.create(width, height), transform, type };
+        return { kind: 'volume' as const, texture, gridTexDim, gridDim, gridTransform, type };
+    } else {
+        const interpolated = getTrilinearlyInterpolated({ vertexCount, instanceCount, transformBuffer, positionBuffer, colorType: type, grid, gridDim, gridTexDim, gridTransform });
+
+        return {
+            kind: 'vertex' as const,
+            texture: interpolated,
+            texDim: Vec2.create(interpolated.width, interpolated.height),
+            type: isInstanceType ? 'vertexInstance' : 'vertex'
+        };
+    }
+}
+
+//
+
+interface ColorInterpolationInput {
+    vertexCount: number
+    instanceCount: number
+    transformBuffer: Float32Array
+    positionBuffer: Float32Array
+    colorType: 'volumeInstance' | 'volume'
+    grid: Uint8Array // 2d layout
+    gridTexDim: Vec2
+    gridDim: Vec3
+    gridTransform: Vec4
+}
+
+function getTrilinearlyInterpolated(input: ColorInterpolationInput): TextureImage<Uint8Array> {
+    const { vertexCount, positionBuffer, transformBuffer, grid, gridDim, gridTexDim, gridTransform } = input;
+
+    const isInstanceType = input.colorType.endsWith('Instance');
+    const instanceCount = isInstanceType ? input.instanceCount : 1;
+    const image = createTextureImage(Math.max(1, instanceCount * vertexCount), 3, Uint8Array);
+    const { array } = image;
+
+    const [xn, yn] = gridDim;
+    const width = gridTexDim[0];
+    const min = Vec3.fromArray(Vec3(), gridTransform, 0);
+    const scaleFactor = gridTransform[3];
+
+    function getIndex(x: number, y: number, z: number) {
+        const column = Math.floor(((z * xn) % width) / xn);
+        const row = Math.floor((z * xn) / width);
+        const px = column * xn + x;
+        return 3 * ((row * yn * width) + (y * width) + px);
+    }
+
+    const v = Vec3();
+    const v0 = Vec3();
+    const v1 = Vec3();
+    const vd = Vec3();
+
+    for (let i = 0; i < instanceCount; ++i) {
+        for (let j = 0; j < vertexCount; ++j) {
+            Vec3.fromArray(v, positionBuffer, j * 3);
+            if (isInstanceType) Vec3.transformMat4Offset(v, v, transformBuffer, 0, 0, i * 16);
+            Vec3.sub(v, v, min);
+            Vec3.scale(v, v, scaleFactor);
+
+            Vec3.floor(v0, v);
+            Vec3.ceil(v1, v);
+
+            Vec3.sub(vd, v, v0);
+            Vec3.sub(v, v1, v0);
+            Vec3.div(vd, vd, v);
+
+            const [x0, y0, z0] = v0;
+            const [x1, y1, z1] = v1;
+            const [xd, yd, zd] = vd;
+
+            const s000 = Color.fromArray(grid, getIndex(x0, y0, z0));
+            const s100 = Color.fromArray(grid, getIndex(x1, y0, z0));
+            const s001 = Color.fromArray(grid, getIndex(x0, y0, z1));
+            const s101 = Color.fromArray(grid, getIndex(x1, y0, z1));
+            const s010 = Color.fromArray(grid, getIndex(x0, y1, z0));
+            const s110 = Color.fromArray(grid, getIndex(x1, y1, z0));
+            const s011 = Color.fromArray(grid, getIndex(x0, y1, z1));
+            const s111 = Color.fromArray(grid, getIndex(x1, y1, z1));
+
+            const s00 = Color.interpolate(s000, s100, xd);
+            const s01 = Color.interpolate(s001, s101, xd);
+            const s10 = Color.interpolate(s010, s110, xd);
+            const s11 = Color.interpolate(s011, s111, xd);
+
+            const s0 = Color.interpolate(s00, s10, yd);
+            const s1 = Color.interpolate(s01, s11, yd);
+
+            Color.toArray(Color.interpolate(s0, s1, zd), array, (i * vertexCount + j) * 3);
+        }
+    }
+
+    return image;
 }

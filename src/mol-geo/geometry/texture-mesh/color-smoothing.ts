@@ -254,13 +254,13 @@ export function calcTextureMeshColorSmoothing(input: ColorSmoothingInput, resolu
 
     const scaleFactor = 1 / resolution;
     const scaledBox = Box3D.scale(Box3D(), box, scaleFactor);
-    const dim = Box3D.size(Vec3(), scaledBox);
-    Vec3.ceil(dim, dim);
-    Vec3.add(dim, dim, Vec3.create(2, 2, 2));
+    const gridDim = Box3D.size(Vec3(), scaledBox);
+    Vec3.ceil(gridDim, gridDim);
+    Vec3.add(gridDim, gridDim, Vec3.create(2, 2, 2));
     const { min } = box;
 
-    const [ dx, dy, dz ] = dim;
-    const { texDimX: width, texDimY: height, texCols } = getTexture2dSize(dim);
+    const [ dx, dy, dz ] = gridDim;
+    const { texDimX: width, texDimY: height, texCols } = getTexture2dSize(gridDim);
     // console.log({ width, height, texCols, dim, resolution });
 
     if (!webgl.namedTextures[ColorAccumulateName]) {
@@ -337,8 +337,8 @@ export function calcTextureMeshColorSmoothing(input: ColorSmoothingInput, resolu
     // console.log(normImage);
     // printTextureImage({ array: normImage, width, height }, 1 / 4);
 
-    const transform = Vec4.create(min[0], min[1], min[2], scaleFactor);
+    const gridTransform = Vec4.create(min[0], min[1], min[2], scaleFactor);
     const type = isInstanceType ? 'volumeInstance' : 'volume';
 
-    return { texture, gridDim: dim, gridTexDim: Vec2.create(width, height), transform, type };
+    return { texture, gridDim, gridTexDim: Vec2.create(width, height), gridTransform, type };
 }

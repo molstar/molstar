@@ -49,7 +49,7 @@ function isSupportedColorType(x: string): x is 'group' | 'groupInstance' {
     return x === 'group' || x === 'groupInstance';
 }
 
-export function applyMeshColorSmoothing(values: MeshValues, resolution: number, stride: number, webgl: WebGLContext, colorTexture?: Texture) {
+export function applyMeshColorSmoothing(values: MeshValues, resolution: number, stride: number, webgl?: WebGLContext, colorTexture?: Texture) {
     if (!isSupportedColorType(values.dColorType.ref.value)) return;
 
     const smoothingData = calcMeshColorSmoothing({
@@ -66,12 +66,18 @@ export function applyMeshColorSmoothing(values: MeshValues, resolution: number, 
         invariantBoundingSphere: values.invariantBoundingSphere.ref.value,
     }, resolution, stride, webgl, colorTexture);
 
-    ValueCell.updateIfChanged(values.dColorType, smoothingData.type);
-    ValueCell.update(values.tColorGrid, smoothingData.texture);
-    ValueCell.update(values.uColorTexDim, smoothingData.gridTexDim);
-    ValueCell.update(values.uColorGridDim, smoothingData.gridDim);
-    ValueCell.update(values.uColorGridTransform, smoothingData.transform);
-    ValueCell.updateIfChanged(values.dColorGridType, '2d');
+    if (smoothingData.kind === 'volume') {
+        ValueCell.updateIfChanged(values.dColorType, smoothingData.type);
+        ValueCell.update(values.tColorGrid, smoothingData.texture);
+        ValueCell.update(values.uColorTexDim, smoothingData.gridTexDim);
+        ValueCell.update(values.uColorGridDim, smoothingData.gridDim);
+        ValueCell.update(values.uColorGridTransform, smoothingData.gridTransform);
+        ValueCell.updateIfChanged(values.dColorGridType, '2d');
+    } else if (smoothingData.kind === 'vertex') {
+        ValueCell.updateIfChanged(values.dColorType, smoothingData.type);
+        ValueCell.update(values.tColor, smoothingData.texture);
+        ValueCell.update(values.uColorTexDim, smoothingData.texDim);
+    }
 }
 
 export function applyTextureMeshColorSmoothing(values: TextureMeshValues, resolution: number, stride: number, webgl: WebGLContext, colorTexture?: Texture) {
@@ -97,6 +103,6 @@ export function applyTextureMeshColorSmoothing(values: TextureMeshValues, resolu
     ValueCell.update(values.tColorGrid, smoothingData.texture);
     ValueCell.update(values.uColorTexDim, smoothingData.gridTexDim);
     ValueCell.update(values.uColorGridDim, smoothingData.gridDim);
-    ValueCell.update(values.uColorGridTransform, smoothingData.transform);
+    ValueCell.update(values.uColorGridTransform, smoothingData.gridTransform);
     ValueCell.updateIfChanged(values.dColorGridType, '2d');
 }
