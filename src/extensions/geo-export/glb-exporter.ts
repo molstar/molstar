@@ -50,7 +50,7 @@ export class GlbExporter extends MeshExporter<GlbData> {
         return [ min, max ];
     }
 
-    async addMeshWithColors(vertices: Float32Array, normals: Float32Array, indices: Uint32Array | undefined, groups: Float32Array | Uint8Array, vertexCount: number, drawCount: number, values: BaseValues, instanceIndex: number, isGeoTexture: boolean, ctx: RuntimeContext) {
+    protected async addMeshWithColors(vertices: Float32Array, normals: Float32Array, indices: Uint32Array | undefined, groups: Float32Array | Uint8Array, vertexCount: number, drawCount: number, values: BaseValues, instanceIndex: number, isGeoTexture: boolean, ctx: RuntimeContext) {
         const t = Mat4();
         const n = Mat3();
         const tmpV = Vec3();
@@ -152,85 +152,85 @@ export class GlbExporter extends MeshExporter<GlbData> {
         const bufferViewOffset = this.bufferViews.length;
 
         this.bufferViews.push({
-            'buffer': 0,
-            'byteOffset': this.byteOffset,
-            'byteLength': vertexBuffer.byteLength,
-            'target': 34962 // ARRAY_BUFFER
+            buffer: 0,
+            byteOffset: this.byteOffset,
+            byteLength: vertexBuffer.byteLength,
+            target: 34962 // ARRAY_BUFFER
         });
         this.byteOffset += vertexBuffer.byteLength;
 
         this.bufferViews.push({
-            'buffer': 0,
-            'byteOffset': this.byteOffset,
-            'byteLength': normalBuffer.byteLength,
-            'target': 34962 // ARRAY_BUFFER
+            buffer: 0,
+            byteOffset: this.byteOffset,
+            byteLength: normalBuffer.byteLength,
+            target: 34962 // ARRAY_BUFFER
         });
         this.byteOffset += normalBuffer.byteLength;
 
         this.bufferViews.push({
-            'buffer': 0,
-            'byteOffset': this.byteOffset,
-            'byteLength': colorBuffer.byteLength,
-            'target': 34962 // ARRAY_BUFFER
+            buffer: 0,
+            byteOffset: this.byteOffset,
+            byteLength: colorBuffer.byteLength,
+            target: 34962 // ARRAY_BUFFER
         });
         this.byteOffset += colorBuffer.byteLength;
 
         this.bufferViews.push({
-            'buffer': 0,
-            'byteOffset': this.byteOffset,
-            'byteLength': indexBuffer.byteLength,
-            'target': 34963 // ELEMENT_ARRAY_BUFFER
+            buffer: 0,
+            byteOffset: this.byteOffset,
+            byteLength: indexBuffer.byteLength,
+            target: 34963 // ELEMENT_ARRAY_BUFFER
         });
         this.byteOffset += indexBuffer.byteLength;
 
         // accessors
         const accessorOffset = this.accessors.length;
         this.accessors.push({
-            'bufferView': bufferViewOffset,
-            'byteOffset': 0,
-            'componentType': 5126, // FLOAT
-            'count': vertexCount,
-            'type': 'VEC3',
-            'max': vertexMax,
-            'min': vertexMin
+            bufferView: bufferViewOffset,
+            byteOffset: 0,
+            componentType: 5126, // FLOAT
+            count: vertexCount,
+            type: 'VEC3',
+            max: vertexMax,
+            min: vertexMin
         });
         this.accessors.push({
-            'bufferView': bufferViewOffset + 1,
-            'byteOffset': 0,
-            'componentType': 5126, // FLOAT
-            'count': vertexCount,
-            'type': 'VEC3',
-            'max': normalMax,
-            'min': normalMin
+            bufferView: bufferViewOffset + 1,
+            byteOffset: 0,
+            componentType: 5126, // FLOAT
+            count: vertexCount,
+            type: 'VEC3',
+            max: normalMax,
+            min: normalMin
         });
         this.accessors.push({
-            'bufferView': bufferViewOffset + 2,
-            'byteOffset': 0,
-            'componentType': 5126, // FLOAT
-            'count': vertexCount,
-            'type': 'VEC4',
-            'max': [...colorMax, uAlpha],
-            'min': [...colorMin, uAlpha]
+            bufferView: bufferViewOffset + 2,
+            byteOffset: 0,
+            componentType: 5126, // FLOAT
+            count: vertexCount,
+            type: 'VEC4',
+            max: [...colorMax, uAlpha],
+            min: [...colorMin, uAlpha]
         });
         this.accessors.push({
-            'bufferView': bufferViewOffset + 3,
-            'byteOffset': 0,
-            'componentType': 5125, // UNSIGNED_INT
-            'count': drawCount,
-            'type': 'SCALAR',
-            'max': [ indexMax ],
-            'min': [ indexMin ]
+            bufferView: bufferViewOffset + 3,
+            byteOffset: 0,
+            componentType: 5125, // UNSIGNED_INT
+            count: drawCount,
+            type: 'SCALAR',
+            max: [ indexMax ],
+            min: [ indexMin ]
         });
 
         // primitive
         this.primitives.push({
-            'attributes': {
-                'POSITION': accessorOffset,
-                'NORMAL': accessorOffset + 1,
-                'COLOR_0': accessorOffset + 2,
+            attributes: {
+                POSITION: accessorOffset,
+                NORMAL: accessorOffset + 1,
+                COLOR_0: accessorOffset + 2,
             },
-            'indices': accessorOffset + 3,
-            'material': 0
+            indices: accessorOffset + 3,
+            material: 0
         });
     }
 
@@ -238,24 +238,24 @@ export class GlbExporter extends MeshExporter<GlbData> {
         const binaryBufferLength = this.byteOffset;
 
         const gltf = {
-            'asset': {
-                'version': '2.0'
+            asset: {
+                version: '2.0'
             },
-            'scenes': [{
-                'nodes': [ 0 ]
+            scenes: [{
+                nodes: [ 0 ]
             }],
-            'nodes': [{
-                'mesh': 0
+            nodes: [{
+                mesh: 0
             }],
-            'meshes': [{
-                'primitives': this.primitives
+            meshes: [{
+                primitives: this.primitives
             }],
-            'buffers': [{
-                'byteLength': binaryBufferLength,
+            buffers: [{
+                byteLength: binaryBufferLength,
             }],
-            'bufferViews': this.bufferViews,
-            'accessors': this.accessors,
-            'materials': [{}]
+            bufferViews: this.bufferViews,
+            accessors: this.accessors,
+            materials: [{}]
         };
 
         const createChunk = (chunkType: number, data: ArrayBuffer[], byteLength: number, padChar: number): [ArrayBuffer[], number] => {

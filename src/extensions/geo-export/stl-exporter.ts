@@ -28,13 +28,12 @@ export class StlExporter extends MeshExporter<StlData> {
     private triangleBuffers: ArrayBuffer[] = [];
     private triangleCount = 0;
 
-    async addMeshWithColors(vertices: Float32Array, normals: Float32Array, indices: Uint32Array | undefined, groups: Float32Array | Uint8Array, vertexCount: number, drawCount: number, values: BaseValues, instanceIndex: number, isGeoTexture: boolean, ctx: RuntimeContext) {
+    protected async addMeshWithColors(vertices: Float32Array, normals: Float32Array, indices: Uint32Array | undefined, groups: Float32Array | Uint8Array, vertexCount: number, drawCount: number, values: BaseValues, instanceIndex: number, isGeoTexture: boolean, ctx: RuntimeContext) {
         const t = Mat4();
         const tmpV = Vec3();
         const v1 = Vec3();
         const v2 = Vec3();
         const v3 = Vec3();
-        const n = Vec3();
         const stride = isGeoTexture ? 4 : 3;
 
         const aTransform = values.aTransform.ref.value;
@@ -60,12 +59,12 @@ export class StlExporter extends MeshExporter<StlData> {
             v3fromArray(v1, vertexArray, (isGeoTexture ? i : indices![i]) * 3);
             v3fromArray(v2, vertexArray, (isGeoTexture ? i + 1 : indices![i + 1]) * 3);
             v3fromArray(v3, vertexArray, (isGeoTexture ? i + 2 : indices![i + 2]) * 3);
-            v3triangleNormal(n, v1, v2, v3);
+            v3triangleNormal(tmpV, v1, v2, v3);
 
             const byteOffset = 50 * i;
-            dataView.setFloat32(byteOffset, n[0], true);
-            dataView.setFloat32(byteOffset + 4, n[1], true);
-            dataView.setFloat32(byteOffset + 8, n[2], true);
+            dataView.setFloat32(byteOffset, tmpV[0], true);
+            dataView.setFloat32(byteOffset + 4, tmpV[1], true);
+            dataView.setFloat32(byteOffset + 8, tmpV[2], true);
 
             dataView.setFloat32(byteOffset + 12, v1[0], true);
             dataView.setFloat32(byteOffset + 16, v1[1], true);
