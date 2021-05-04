@@ -17,9 +17,7 @@ import { MeshExporter } from './mesh-exporter';
 const v3fromArray = Vec3.fromArray;
 const v3transformMat4 = Vec3.transformMat4;
 const v3transformMat3 = Vec3.transformMat3;
-const v3isZero = Vec3.isZero;
 const v3normalize = Vec3.normalize;
-const v3set = Vec3.set;
 const v3toArray = Vec3.toArray;
 const mat3directionTransform = Mat3.directionTransform;
 
@@ -84,11 +82,7 @@ export class GlbExporter extends MeshExporter<GlbData> {
         for (let i = 0; i < vertexCount; ++i) {
             if (i % 1000 === 0 && ctx.shouldUpdate) await ctx.update({ current: currentProgress + vertexCount + i });
             v3fromArray(tmpV, normals, i * stride);
-            if (v3isZero(tmpV)) { // FIXME: Happens with 1MBN
-                v3set(tmpV, 0, 0, 1);
-            } else {
-                v3transformMat3(tmpV, v3normalize(tmpV, tmpV), n);
-            }
+            v3transformMat3(tmpV, v3normalize(tmpV, tmpV), n);
             v3toArray(tmpV, normalArray, i * 3);
         }
 

@@ -116,7 +116,7 @@ export abstract class MeshExporter<D extends RenderObjectExportData> implements 
             const normals = mesh.normalBuffer.ref.value;
             const indices = mesh.indexBuffer.ref.value;
             const groups = mesh.groupBuffer.ref.value;
-            await this.addMeshWithColors(vertices, normals, indices, groups, vertices.length / 3, indices.length, values, instanceIndex, false, ctx);
+            await this.addMeshWithColors(vertices, normals, indices, groups, mesh.vertexCount, indices.length, values, instanceIndex, false, ctx);
         }
     }
 
@@ -154,7 +154,7 @@ export abstract class MeshExporter<D extends RenderObjectExportData> implements 
             const normals = mesh.normalBuffer.ref.value;
             const indices = mesh.indexBuffer.ref.value;
             const groups = mesh.groupBuffer.ref.value;
-            await this.addMeshWithColors(vertices, normals, indices, groups, vertices.length / 3, indices.length, values, instanceIndex, false, ctx);
+            await this.addMeshWithColors(vertices, normals, indices, groups, mesh.vertexCount, indices.length, values, instanceIndex, false, ctx);
         }
     }
 
