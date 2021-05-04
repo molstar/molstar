@@ -17,6 +17,7 @@ import { WebGLContext } from '../../mol-gl/webgl/context';
 import { MeshBuilder } from '../../mol-geo/geometry/mesh/mesh-builder';
 import { addSphere } from '../../mol-geo/geometry/mesh/builder/sphere';
 import { addCylinder } from '../../mol-geo/geometry/mesh/builder/cylinder';
+import { sizeDataFactor } from '../../mol-geo/geometry/size-data';
 import { Vec3 } from '../../mol-math/linear-algebra';
 import { RuntimeContext } from '../../mol-task';
 import { decodeFloatRGB } from '../../mol-util/float-packing';
@@ -32,7 +33,7 @@ export abstract class MeshExporter<D extends RenderObjectExportData> implements 
         const r = tSize.array[i * 3];
         const g = tSize.array[i * 3 + 1];
         const b = tSize.array[i * 3 + 2];
-        return decodeFloatRGB(r, g, b);
+        return decodeFloatRGB(r, g, b) / sizeDataFactor;
     }
 
     private static getSize(values: BaseValues & SizeValues, instanceIndex: number, group: number): number {
@@ -43,14 +44,14 @@ export abstract class MeshExporter<D extends RenderObjectExportData> implements 
                 size = values.uSize.ref.value;
                 break;
             case 'instance':
-                size = MeshExporter.getSizeFromTexture(tSize, instanceIndex) / 100;
+                size = MeshExporter.getSizeFromTexture(tSize, instanceIndex);
                 break;
             case 'group':
-                size = MeshExporter.getSizeFromTexture(tSize, group) / 100;
+                size = MeshExporter.getSizeFromTexture(tSize, group);
                 break;
             case 'groupInstance':
                 const groupCount = values.uGroupCount.ref.value;
-                size = MeshExporter.getSizeFromTexture(tSize, instanceIndex * groupCount + group) / 100;
+                size = MeshExporter.getSizeFromTexture(tSize, instanceIndex * groupCount + group);
                 break;
         }
         return size * values.uSizeFactor.ref.value;
@@ -67,7 +68,7 @@ export abstract class MeshExporter<D extends RenderObjectExportData> implements 
         return decodeFloatRGB(r, g, b);
     }
 
-    protected abstract addMeshWithColors(vertices: Float32Array, normals: Float32Array, indices: Uint32Array | undefined, groups: Float32Array | Uint8Array, vertexCount: number, drawCount: number, values: BaseValues, instanceIndex: number, geoTexture: boolean, ctx: RuntimeContext): void;
+    protected abstract addMeshWithColors(vertices: Float32Array, normals: Float32Array, indices: Uint32Array | undefined, groups: Float32Array | Uint8Array, vertexCount: number, drawCount: number, values: BaseValues, instanceIndex: number, isGeoTexture: boolean, ctx: RuntimeContext): void;
 
     private async addMesh(values: MeshValues, ctx: RuntimeContext) {
         const aPosition = values.aPosition.ref.value;

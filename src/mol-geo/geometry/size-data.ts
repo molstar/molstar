@@ -31,7 +31,7 @@ export function createSizes(locationIt: LocationIterator, sizeTheme: SizeTheme<a
     }
 }
 
-const sizeFactor = 100; // NOTE same factor is set in shaders
+export const sizeDataFactor = 100; // NOTE same factor is set in shaders
 
 export function getMaxSize(sizeData: SizeData): number {
     const type = sizeData.dSizeType.ref.value as SizeType;
@@ -47,7 +47,7 @@ export function getMaxSize(sizeData: SizeData): number {
                 const value = decodeFloatRGB(array[i], array[i + 1], array[i + 2]);
                 if (maxSize < value) maxSize = value;
             }
-            return maxSize / sizeFactor;
+            return maxSize / sizeDataFactor;
     }
 }
 
@@ -103,7 +103,7 @@ export function createInstanceSize(locationIt: LocationIterator, sizeFn: Locatio
     locationIt.reset();
     while (locationIt.hasNext && !locationIt.isNextNewInstance) {
         const v = locationIt.move();
-        encodeFloatRGBtoArray(sizeFn(v.location) * sizeFactor, sizes.array, v.instanceIndex * 3);
+        encodeFloatRGBtoArray(sizeFn(v.location) * sizeDataFactor, sizes.array, v.instanceIndex * 3);
         locationIt.skipInstance();
     }
     return createTextureSize(sizes, 'instance', sizeData);
@@ -116,7 +116,7 @@ export function createGroupSize(locationIt: LocationIterator, sizeFn: LocationSi
     locationIt.reset();
     while (locationIt.hasNext && !locationIt.isNextNewInstance) {
         const v = locationIt.move();
-        encodeFloatRGBtoArray(sizeFn(v.location) * sizeFactor, sizes.array, v.groupIndex * 3);
+        encodeFloatRGBtoArray(sizeFn(v.location) * sizeDataFactor, sizes.array, v.groupIndex * 3);
     }
     return createTextureSize(sizes, 'group', sizeData);
 }
@@ -129,7 +129,7 @@ export function createGroupInstanceSize(locationIt: LocationIterator, sizeFn: Lo
     locationIt.reset();
     while (locationIt.hasNext) {
         const v = locationIt.move();
-        encodeFloatRGBtoArray(sizeFn(v.location) * sizeFactor, sizes.array, v.index * 3);
+        encodeFloatRGBtoArray(sizeFn(v.location) * sizeDataFactor, sizes.array, v.index * 3);
     }
     return createTextureSize(sizes, 'groupInstance', sizeData);
 }

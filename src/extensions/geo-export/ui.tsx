@@ -25,7 +25,7 @@ export class GeometryExporterUI extends CollapsableControls<{}, State> {
 
     protected defaultState(): State & CollapsableState {
         return {
-            header: 'Export Geometries',
+            header: 'Export Geometry',
             isCollapsed: true,
             brand: { accent: 'cyan', svg: CubeSendSvg }
         };
@@ -67,7 +67,7 @@ export class GeometryExporterUI extends CollapsableControls<{}, State> {
     save = async () => {
         try {
             this.setState({ busy: true });
-            const data = await this.controls.exportGeometries();
+            const data = await this.controls.exportGeometry();
             this.setState({ busy: false });
 
             download(data.blob, data.filename);

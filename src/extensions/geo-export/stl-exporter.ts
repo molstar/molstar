@@ -5,7 +5,9 @@
  */
 
 import { BaseValues } from '../../mol-gl/renderable/schema';
+import { asciiWrite } from '../../mol-io/common/ascii';
 import { Vec3, Mat4 } from '../../mol-math/linear-algebra';
+import { PLUGIN_VERSION } from '../../mol-plugin/version';
 import { RuntimeContext } from '../../mol-task';
 import { MeshExporter } from './mesh-exporter';
 
@@ -14,6 +16,8 @@ const v3fromArray = Vec3.fromArray;
 const v3transformMat4 = Vec3.transformMat4;
 const v3triangleNormal = Vec3.triangleNormal;
 const v3toArray = Vec3.toArray;
+
+// https://www.fabbers.com/tech/STL_Format
 
 export type StlData = {
     stl: Uint8Array
@@ -24,14 +28,14 @@ export class StlExporter extends MeshExporter<StlData> {
     private triangleBuffers: ArrayBuffer[] = [];
     private triangleCount = 0;
 
-    async addMeshWithColors(vertices: Float32Array, normals: Float32Array, indices: Uint32Array | undefined, groups: Float32Array | Uint8Array, vertexCount: number, drawCount: number, values: BaseValues, instanceIndex: number, geoTexture: boolean, ctx: RuntimeContext) {
+    async addMeshWithColors(vertices: Float32Array, normals: Float32Array, indices: Uint32Array | undefined, groups: Float32Array | Uint8Array, vertexCount: number, drawCount: number, values: BaseValues, instanceIndex: number, isGeoTexture: boolean, ctx: RuntimeContext) {
         const t = Mat4();
         const tmpV = Vec3();
         const v1 = Vec3();
         const v2 = Vec3();
         const v3 = Vec3();
         const n = Vec3();
-        const stride = geoTexture ? 4 : 3;
+        const stride = isGeoTexture ? 4 : 3;
 
         const aTransform = values.aTransform.ref.value;
         Mat4.fromArray(t, aTransform, instanceIndex * 16);
@@ -53,9 +57,9 @@ export class StlExporter extends MeshExporter<StlData> {
         for (let i = 0; i < drawCount; i += 3) {
             if (i % 3000 === 0 && ctx.shouldUpdate) await ctx.update({ current: currentProgress + vertexCount + i });
 
-            v3fromArray(v1, vertexArray, (geoTexture ? i : indices![i]) * 3);
-            v3fromArray(v2, vertexArray, (geoTexture ? i + 1 : indices![i + 1]) * 3);
-            v3fromArray(v3, vertexArray, (geoTexture ? i + 2 : indices![i + 2]) * 3);
+            v3fromArray(v1, vertexArray, (isGeoTexture ? i : indices![i]) * 3);
+            v3fromArray(v2, vertexArray, (isGeoTexture ? i + 1 : indices![i + 1]) * 3);
+            v3fromArray(v3, vertexArray, (isGeoTexture ? i + 2 : indices![i + 2]) * 3);
             v3triangleNormal(n, v1, v2, v3);
 
             const byteOffset = 50 * i;
@@ -82,6 +86,8 @@ export class StlExporter extends MeshExporter<StlData> {
 
     getData() {
         const stl = new Uint8Array(84 + 50 * this.triangleCount);
+
+        asciiWrite(stl, `Exported from Mol* ${PLUGIN_VERSION}`);
 
         const dataView = new DataView(stl.buffer);
         dataView.setUint32(80, this.triangleCount, true);

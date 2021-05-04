@@ -32,8 +32,8 @@ export class GeometryControls extends PluginComponent {
         return `${idString || 'molstar-model'}`;
     }
 
-    exportGeometries() {
-        const task = Task.create('Export Geometries', async ctx => {
+    exportGeometry() {
+        const task = Task.create('Export Geometry', async ctx => {
             try {
                 const renderObjects = this.plugin.canvas3d?.getRenderObjects()!;
                 const filename = this.getFilename();

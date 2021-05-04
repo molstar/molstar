@@ -5,6 +5,7 @@
  */
 
 import { BaseValues } from '../../mol-gl/renderable/schema';
+import { asciiWrite } from '../../mol-io/common/ascii';
 import { Vec3, Mat3, Mat4 } from '../../mol-math/linear-algebra';
 import { RuntimeContext } from '../../mol-task';
 import { StringBuilder } from '../../mol-util';
@@ -66,12 +67,12 @@ export class ObjExporter extends MeshExporter<ObjData> {
         }
     }
 
-    protected async addMeshWithColors(vertices: Float32Array, normals: Float32Array, indices: Uint32Array | undefined, groups: Float32Array | Uint8Array, vertexCount: number, drawCount: number, values: BaseValues, instanceIndex: number, geoTexture: boolean, ctx: RuntimeContext) {
+    protected async addMeshWithColors(vertices: Float32Array, normals: Float32Array, indices: Uint32Array | undefined, groups: Float32Array | Uint8Array, vertexCount: number, drawCount: number, values: BaseValues, instanceIndex: number, isGeoTexture: boolean, ctx: RuntimeContext) {
         const obj = this.obj;
         const t = Mat4();
         const n = Mat3();
         const tmpV = Vec3();
-        const stride = geoTexture ? 4 : 3;
+        const stride = isGeoTexture ? 4 : 3;
 
         const colorType = values.dColorType.ref.value;
         const tColor = values.tColor.ref.value.array;
@@ -122,13 +123,13 @@ export class ObjExporter extends MeshExporter<ObjData> {
                     color = Color.fromArray(tColor, instanceIndex * 3);
                     break;
                 case 'group': {
-                    const group = geoTexture ? ObjExporter.getGroup(groups, i) : groups[indices![i]];
+                    const group = isGeoTexture ? ObjExporter.getGroup(groups, i) : groups[indices![i]];
                     color = Color.fromArray(tColor, group * 3);
                     break;
                 }
                 case 'groupInstance': {
                     const groupCount = values.uGroupCount.ref.value;
-                    const group = geoTexture ? ObjExporter.getGroup(groups, i) : groups[indices![i]];
+                    const group = isGeoTexture ? ObjExporter.getGroup(groups, i) : groups[indices![i]];
                     color = Color.fromArray(tColor, (instanceIndex * groupCount + group) * 3);
                     break;
                 }
@@ -142,9 +143,9 @@ export class ObjExporter extends MeshExporter<ObjData> {
             }
             this.updateMaterial(color, uAlpha);
 
-            const v1 = this.vertexOffset + (geoTexture ? i : indices![i]) + 1;
-            const v2 = this.vertexOffset + (geoTexture ? i + 1 : indices![i + 1]) + 1;
-            const v3 = this.vertexOffset + (geoTexture ? i + 2 : indices![i + 2]) + 1;
+            const v1 = this.vertexOffset + (isGeoTexture ? i : indices![i]) + 1;
+            const v2 = this.vertexOffset + (isGeoTexture ? i + 1 : indices![i + 1]) + 1;
+            const v3 = this.vertexOffset + (isGeoTexture ? i + 2 : indices![i + 2]) + 1;
             StringBuilder.writeSafe(obj, 'f ');
             StringBuilder.writeInteger(obj, v1);
             StringBuilder.writeSafe(obj, '//');
@@ -170,11 +171,6 @@ export class ObjExporter extends MeshExporter<ObjData> {
 
     async getBlob(ctx: RuntimeContext) {
         const { obj, mtl } = this.getData();
-        const asciiWrite = (data: Uint8Array, str: string) => {
-            for (let i = 0, il = str.length; i < il; ++i) {
-                data[i] = str.charCodeAt(i);
-            }
-        };
         const objData = new Uint8Array(obj.length);
         asciiWrite(objData, obj);
         const mtlData = new Uint8Array(mtl.length);

@@ -5,6 +5,7 @@
  */
 
 import { BaseValues } from '../../mol-gl/renderable/schema';
+import { asciiWrite } from '../../mol-io/common/ascii';
 import { IsNativeEndianLittle, flipByteOrder } from '../../mol-io/common/binary';
 import { Vec3, Mat3, Mat4 } from '../../mol-math/linear-algebra';
 import { RuntimeContext } from '../../mol-task';
@@ -49,11 +50,11 @@ export class GlbExporter extends MeshExporter<GlbData> {
         return [ min, max ];
     }
 
-    async addMeshWithColors(vertices: Float32Array, normals: Float32Array, indices: Uint32Array | undefined, groups: Float32Array | Uint8Array, vertexCount: number, drawCount: number, values: BaseValues, instanceIndex: number, geoTexture: boolean, ctx: RuntimeContext) {
+    async addMeshWithColors(vertices: Float32Array, normals: Float32Array, indices: Uint32Array | undefined, groups: Float32Array | Uint8Array, vertexCount: number, drawCount: number, values: BaseValues, instanceIndex: number, isGeoTexture: boolean, ctx: RuntimeContext) {
         const t = Mat4();
         const n = Mat3();
         const tmpV = Vec3();
-        const stride = geoTexture ? 4 : 3;
+        const stride = isGeoTexture ? 4 : 3;
 
         const colorType = values.dColorType.ref.value;
         const tColor = values.tColor.ref.value.array;
@@ -99,13 +100,13 @@ export class GlbExporter extends MeshExporter<GlbData> {
                     color = Color.fromArray(tColor, instanceIndex * 3);
                     break;
                 case 'group': {
-                    const group = geoTexture ? GlbExporter.getGroup(groups, i) : groups[i];
+                    const group = isGeoTexture ? GlbExporter.getGroup(groups, i) : groups[i];
                     color = Color.fromArray(tColor, group * 3);
                     break;
                 }
                 case 'groupInstance': {
                     const groupCount = values.uGroupCount.ref.value;
-                    const group = geoTexture ? GlbExporter.getGroup(groups, i) : groups[i];
+                    const group = isGeoTexture ? GlbExporter.getGroup(groups, i) : groups[i];
                     color = Color.fromArray(tColor, (instanceIndex * groupCount + group) * 3);
                     break;
                 }
@@ -122,7 +123,7 @@ export class GlbExporter extends MeshExporter<GlbData> {
         }
 
         // face
-        if (geoTexture) {
+        if (isGeoTexture) {
             indexArray = new Uint32Array(drawCount);
             fillSerial(indexArray);
         } else {
@@ -277,9 +278,7 @@ export class GlbExporter extends MeshExporter<GlbData> {
         };
         const jsonString = JSON.stringify(gltf);
         const jsonBuffer = new Uint8Array(jsonString.length);
-        for (let i = 0, il = jsonString.length; i < il; ++i) {
-            jsonBuffer[i] = jsonString.charCodeAt(i);
-        }
+        asciiWrite(jsonBuffer, jsonString);
 
         const [ jsonChunk, jsonChunkLength ] = createChunk(0x4E4F534A, [jsonBuffer.buffer], jsonBuffer.length, 0x20);
         const [ binaryChunk, binaryChunkLength ] = createChunk(0x004E4942, this.binaryBuffer, binaryBufferLength, 0x00);
