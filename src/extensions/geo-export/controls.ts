@@ -16,7 +16,11 @@ import { GlbExporter } from './glb-exporter';
 import { StlExporter } from './stl-exporter';
 
 export const GeometryParams = {
-    format: PD.Select('obj', [['obj', 'OBJ + MTL'], ['glb', 'GLB'], ['stl', 'STL']])
+    format: PD.Select('glb', [
+        ['glb', 'glTF 2.0 Binary (.glb)'],
+        ['stl', 'Stl (.stl)'],
+        ['obj', 'Wavefront (.obj)']
+    ])
 };
 
 export class GeometryControls extends PluginComponent {
