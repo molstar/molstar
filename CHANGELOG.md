@@ -5,7 +5,7 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
-- [empty]
+- Add glTF (GLB) and STL support to ``geo-export`` extension.
 
 ## [v2.0.5] - 2021-04-26
 
