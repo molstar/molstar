@@ -74,9 +74,12 @@ export class ObjExporter extends MeshExporter<ObjData> {
         const tmpV = Vec3();
         const stride = isGeoTexture ? 4 : 3;
 
+        const groupCount = values.uGroupCount.ref.value;
         const colorType = values.dColorType.ref.value;
         const tColor = values.tColor.ref.value.array;
         const uAlpha = values.uAlpha.ref.value;
+        const dTransparency = values.dTransparency.ref.value;
+        const tTransparency = values.tTransparency.ref.value;
         const aTransform = values.aTransform.ref.value;
 
         Mat4.fromArray(t, aTransform, instanceIndex * 16);
@@ -128,7 +131,6 @@ export class ObjExporter extends MeshExporter<ObjData> {
                     break;
                 }
                 case 'groupInstance': {
-                    const groupCount = values.uGroupCount.ref.value;
                     const group = isGeoTexture ? ObjExporter.getGroup(groups, i) : groups[indices![i]];
                     color = Color.fromArray(tColor, (instanceIndex * groupCount + group) * 3);
                     break;
@@ -141,7 +143,15 @@ export class ObjExporter extends MeshExporter<ObjData> {
                     break;
                 default: throw new Error('Unsupported color type.');
             }
-            this.updateMaterial(color, uAlpha);
+
+            let alpha = uAlpha;
+            if (dTransparency) {
+                const group = isGeoTexture ? ObjExporter.getGroup(groups, i) : groups[indices![i]];
+                const transparency = tTransparency.array[instanceIndex * groupCount + group] / 255;
+                alpha *= 1 - transparency;
+            }
+
+            this.updateMaterial(color, alpha);
 
             const v1 = this.vertexOffset + (isGeoTexture ? i : indices![i]) + 1;
             const v2 = this.vertexOffset + (isGeoTexture ? i + 1 : indices![i + 1]) + 1;

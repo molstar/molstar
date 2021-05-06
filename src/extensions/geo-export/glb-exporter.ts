@@ -36,16 +36,14 @@ export class GlbExporter extends MeshExporter<GlbData> {
     private binaryBuffer: ArrayBuffer[] = [];
     private byteOffset = 0;
 
-    private static vec3MinMax(a: NumberArray, stride: number) {
-        const min = Vec3.create(Number.MAX_VALUE, Number.MAX_VALUE, Number.MAX_VALUE);
-        const max = Vec3.create(-Number.MAX_VALUE, -Number.MAX_VALUE, -Number.MAX_VALUE);
-        for (let i = 0, il = a.length; i < il; i += stride) {
-            min[0] = Math.min(a[i], min[0]);
-            min[1] = Math.min(a[i + 1], min[1]);
-            min[2] = Math.min(a[i + 2], min[2]);
-            max[0] = Math.max(a[i], max[0]);
-            max[1] = Math.max(a[i + 1], max[1]);
-            max[2] = Math.max(a[i + 2], max[2]);
+    private static vecMinMax(a: NumberArray, length: number) {
+        const min: number[] = (new Array(length)).fill(Infinity);
+        const max: number[] = (new Array(length)).fill(-Infinity);
+        for (let i = 0, il = a.length; i < il; i += length) {
+            for (let j = 0; j < length; ++j) {
+                min[j] = Math.min(a[i + j], min[j]);
+                max[j] = Math.max(a[i + j], max[j]);
+            }
         }
         return [ min, max ];
     }
@@ -56,9 +54,12 @@ export class GlbExporter extends MeshExporter<GlbData> {
         const tmpV = Vec3();
         const stride = isGeoTexture ? 4 : 3;
 
+        const groupCount = values.uGroupCount.ref.value;
         const colorType = values.dColorType.ref.value;
         const tColor = values.tColor.ref.value.array;
         const uAlpha = values.uAlpha.ref.value;
+        const dTransparency = values.dTransparency.ref.value;
+        const tTransparency = values.tTransparency.ref.value;
         const aTransform = values.aTransform.ref.value;
 
         Mat4.fromArray(t, aTransform, instanceIndex * 16);
@@ -105,7 +106,6 @@ export class GlbExporter extends MeshExporter<GlbData> {
                     break;
                 }
                 case 'groupInstance': {
-                    const groupCount = values.uGroupCount.ref.value;
                     const group = isGeoTexture ? GlbExporter.getGroup(groups, i) : groups[i];
                     color = Color.fromArray(tColor, (instanceIndex * groupCount + group) * 3);
                     break;
@@ -118,8 +118,16 @@ export class GlbExporter extends MeshExporter<GlbData> {
                     break;
                 default: throw new Error('Unsupported color type.');
             }
+
+            let alpha = uAlpha;
+            if (dTransparency) {
+                const group = isGeoTexture ? GlbExporter.getGroup(groups, i) : groups[i];
+                const transparency = tTransparency.array[instanceIndex * groupCount + group] / 255;
+                alpha *= 1 - transparency;
+            }
+
             Color.toArrayNormalized(color, colorArray, i * 4);
-            colorArray[i * 4 + 3] = uAlpha;
+            colorArray[i * 4 + 3] = alpha;
         }
 
         // face
@@ -130,9 +138,9 @@ export class GlbExporter extends MeshExporter<GlbData> {
             indexArray = indices!.slice(0, drawCount);
         }
 
-        const [ vertexMin, vertexMax ] = GlbExporter.vec3MinMax(vertexArray, 3);
-        const [ normalMin, normalMax ] = GlbExporter.vec3MinMax(normalArray, 3);
-        const [ colorMin, colorMax ] = GlbExporter.vec3MinMax(colorArray, 4);
+        const [ vertexMin, vertexMax ] = GlbExporter.vecMinMax(vertexArray, 3);
+        const [ normalMin, normalMax ] = GlbExporter.vecMinMax(normalArray, 3);
+        const [ colorMin, colorMax ] = GlbExporter.vecMinMax(colorArray, 4);
         const [ indexMin, indexMax ] = arrayMinMax(indexArray);
 
         // binary buffer
@@ -209,8 +217,8 @@ export class GlbExporter extends MeshExporter<GlbData> {
             componentType: 5126, // FLOAT
             count: vertexCount,
             type: 'VEC4',
-            max: [...colorMax, uAlpha],
-            min: [...colorMin, uAlpha]
+            max: colorMax,
+            min: colorMin
         });
         this.accessors.push({
             bufferView: bufferViewOffset + 3,
