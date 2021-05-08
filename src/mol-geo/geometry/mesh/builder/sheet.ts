@@ -131,7 +131,7 @@ export function addSheet(state: MeshBuilder.State, controlPoints: ArrayLike<numb
         caAdd3(normals, tB[0], tB[1], tB[2]);
 
         // v3add(tA, v3sub(tA, positionVector, horizontalVector), verticalVector) // reuse tA
-        v3negate(tB, torsionVector)
+        v3negate(tB, torsionVector);
         caAdd3(vertices, tA[0], tA[1], tA[2]);
         caAdd3(normals, tB[0], tB[1], tB[2]);
 
