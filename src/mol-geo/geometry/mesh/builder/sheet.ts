@@ -44,14 +44,14 @@ function addCap(offset: number, state: MeshBuilder.State, controlPoints: ArrayLi
     const { vertices, normals, indices } = state;
     const vertexCount = vertices.elementCount;
 
-    v3fromArray(verticalLeftVector, normalVectors, offset);
-    v3scale(verticalLeftVector, verticalLeftVector, leftHeight);
+    v3fromArray(tA, normalVectors, offset);
+    v3scale(verticalLeftVector, tA, leftHeight);
+    v3scale(verticalRightVector, tA, rightHeight);
 
-    v3fromArray(verticalRightVector, normalVectors, offset);
-    v3scale(verticalRightVector, verticalRightVector, rightHeight);
+    v3fromArray(tB, binormalVectors, offset);
+    v3scale(horizontalVector, tB, width);
 
-    v3fromArray(horizontalVector, binormalVectors, offset);
-    v3scale(horizontalVector, horizontalVector, width);
+    v3cross(normalVector, tB, tA);
 
     v3fromArray(positionVector, controlPoints, offset);
 
@@ -73,8 +73,6 @@ function addCap(offset: number, state: MeshBuilder.State, controlPoints: ArrayLi
         caAdd3(vertices, p4[0], p4[1], p4[2]);
         v3copy(verticalVector, verticalLeftVector);
     }
-
-    v3cross(normalVector, horizontalVector, verticalVector);
 
     for (let i = 0; i < 4; ++i) {
         caAdd3(normals, normalVector[0], normalVector[1], normalVector[2]);
