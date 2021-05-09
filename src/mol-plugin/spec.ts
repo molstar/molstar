@@ -22,6 +22,7 @@ import { AssignColorVolume } from '../mol-plugin-state/actions/volume';
 import { StateTransforms } from '../mol-plugin-state/transforms';
 import { BoxifyVolumeStreaming, CreateVolumeStreamingBehavior, InitVolumeStreaming } from '../mol-plugin/behavior/dynamic/volume-streaming/transformers';
 import { AnimateStateInterpolation } from '../mol-plugin-state/animation/built-in/state-interpolation';
+import { AnimateStructureSpin } from '../mol-plugin-state/animation/built-in/spin-structure';
 
 export { PluginSpec };
 
@@ -96,6 +97,7 @@ export const DefaultPluginSpec = (): PluginSpec => ({
         PluginSpec.Action(StateTransforms.Representation.ModelUnitcell3D),
         PluginSpec.Action(StateTransforms.Representation.StructureBoundingBox3D),
         PluginSpec.Action(StateTransforms.Representation.ExplodeStructureRepresentation3D),
+        PluginSpec.Action(StateTransforms.Representation.SpinStructureRepresentation3D),
         PluginSpec.Action(StateTransforms.Representation.UnwindStructureAssemblyRepresentation3D),
         PluginSpec.Action(StateTransforms.Representation.OverpaintStructureRepresentation3DFromScript),
         PluginSpec.Action(StateTransforms.Representation.TransparencyStructureRepresentation3DFromScript),
@@ -128,6 +130,7 @@ export const DefaultPluginSpec = (): PluginSpec => ({
         AnimateCameraSpin,
         AnimateStateSnapshots,
         AnimateAssemblyUnwind,
+        AnimateStructureSpin,
         AnimateStateInterpolation
     ]
 });

@@ -20,7 +20,7 @@ import { PluginStateObject as SO, PluginStateTransform } from '../objects';
 import { ColorNames } from '../../mol-util/color/names';
 import { ShapeRepresentation } from '../../mol-repr/shape/representation';
 import { StructureUnitTransforms } from '../../mol-model/structure/structure/util/unit-transforms';
-import { unwindStructureAssembly, explodeStructure } from '../animation/helpers';
+import { unwindStructureAssembly, explodeStructure, spinStructure, SpinStructureParams, getSpinStructureAxisAndOrigin } from '../animation/helpers';
 import { Color } from '../../mol-util/color';
 import { Overpaint } from '../../mol-theme/overpaint';
 import { Transparency } from '../../mol-theme/transparency';
@@ -43,6 +43,7 @@ import { Box3D } from '../../mol-math/geometry';
 
 export { StructureRepresentation3D };
 export { ExplodeStructureRepresentation3D };
+export { SpinStructureRepresentation3D };
 export { UnwindStructureAssemblyRepresentation3D };
 export { OverpaintStructureRepresentation3DFromScript };
 export { OverpaintStructureRepresentation3DFromBundle };
@@ -222,7 +223,6 @@ const UnwindStructureAssemblyRepresentation3D = PluginStateTransform.BuiltIn({
     }
 });
 
-
 type ExplodeStructureRepresentation3D = typeof ExplodeStructureRepresentation3D
 const ExplodeStructureRepresentation3D = PluginStateTransform.BuiltIn({
     name: 'explode-structure-representation-3d',
@@ -254,6 +254,49 @@ const ExplodeStructureRepresentation3D = PluginStateTransform.BuiltIn({
         const unitTransforms = b.data.state.unitTransforms!;
         explodeStructure(structure.root, unitTransforms, newParams.t);
         b.label = `Explode T = ${newParams.t.toFixed(2)}`;
+        b.data.repr = a.data.repr;
+        return StateTransformer.UpdateResult.Updated;
+    }
+});
+
+type SpinStructureRepresentation3D = typeof SpinStructureRepresentation3D
+const SpinStructureRepresentation3D = PluginStateTransform.BuiltIn({
+    name: 'spin-structure-representation-3d',
+    display: 'Spin 3D Representation',
+    from: SO.Molecule.Structure.Representation3D,
+    to: SO.Molecule.Structure.Representation3DState,
+    params: {
+        t: PD.Numeric(0, { min: 0, max: 1, step: 0.01 }),
+        ...SpinStructureParams
+    }
+})({
+    canAutoUpdate() {
+        return true;
+    },
+    apply({ a, params }) {
+        const structure = a.data.sourceData;
+        const unitTransforms = new StructureUnitTransforms(structure.root);
+
+        const { axis, origin } = getSpinStructureAxisAndOrigin(structure.root, params);
+        spinStructure(structure, unitTransforms, params.t, axis, origin);
+        return new SO.Molecule.Structure.Representation3DState({
+            state: { unitTransforms },
+            initialState: { unitTransforms: new StructureUnitTransforms(structure.root) },
+            info: structure.root,
+            repr: a.data.repr
+        }, { label: `Spin T = ${params.t.toFixed(2)}` });
+    },
+    update({ a, b, newParams, oldParams }) {
+        const structure = a.data.sourceData;
+        if (b.data.info !== structure.root) return StateTransformer.UpdateResult.Recreate;
+        if (a.data.repr !== b.data.repr) return StateTransformer.UpdateResult.Recreate;
+
+        if (oldParams.t === newParams.t && oldParams.axis === newParams.axis && oldParams.origin === newParams.origin) return StateTransformer.UpdateResult.Unchanged;
+
+        const unitTransforms = b.data.state.unitTransforms!;
+        const { axis, origin } = getSpinStructureAxisAndOrigin(structure.root, newParams);
+        spinStructure(structure.root, unitTransforms, newParams.t, axis, origin);
+        b.label = `Spin T = ${newParams.t.toFixed(2)}`;
         b.data.repr = a.data.repr;
         return StateTransformer.UpdateResult.Updated;
     }
