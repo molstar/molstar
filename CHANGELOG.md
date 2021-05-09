@@ -6,6 +6,7 @@ Note that since we don't clearly distinguish between a public and private interf
 ## [Unreleased]
 
 - Add glTF (GLB) and STL support to ``geo-export`` extension.
+- Change O-S bond distance to allow for NOS bridges (doi:10.1038/s41586-021-03513-3)
 
 ## [v2.0.5] - 2021-04-26
 
