@@ -19,6 +19,7 @@ import { IndexPairBonds } from '../../../../../mol-model-formats/structure/prope
 import { InterUnitGraph } from '../../../../../mol-math/graph/inter-unit-graph';
 import { StructConn } from '../../../../../mol-model-formats/structure/property/bonds/struct_conn';
 import { equalEps } from '../../../../../mol-math/linear-algebra/3d/common';
+import { Model } from '../../../model';
 
 const MAX_RADIUS = 4;
 
@@ -48,7 +49,10 @@ function findPairBonds(unitA: Unit.Atomic, unitB: Unit.Atomic, props: BondComput
     const hasOccupancy = occupancyA.isDefined && occupancyB.isDefined;
 
     const structConn = unitA.model === unitB.model && StructConn.Provider.get(unitA.model);
-    const indexPairs = unitA.model === unitB.model && IndexPairBonds.Provider.get(unitA.model);
+    const indexPairs = !props.forceCompute && unitA.model === unitB.model && IndexPairBonds.Provider.get(unitA.model);
+
+    const { atomSourceIndex: sourceIndex } = unitA.model.atomicHierarchy;
+    const { invertedIndex } = indexPairs ? Model.getInvertedAtomSourceIndex(unitB.model) : { invertedIndex: void 0 };
 
     const structConnExhaustive = unitA.model === unitB.model && StructConn.isExhaustive(unitA.model);
 
@@ -70,8 +74,10 @@ function findPairBonds(unitA: Unit.Atomic, unitB: Unit.Atomic, props: BondComput
 
         if (!props.forceCompute && indexPairs) {
             const { order, distance, flag } = indexPairs.edgeProps;
-            for (let i = indexPairs.offset[aI], il = indexPairs.offset[aI + 1]; i < il; ++i) {
-                const bI = indexPairs.b[i];
+
+            const srcA = sourceIndex.value(aI);
+            for (let i = indexPairs.offset[srcA], il = indexPairs.offset[srcA + 1]; i < il; ++i) {
+                const bI = invertedIndex![indexPairs.b[i]];
 
                 const _bI = SortedArray.indexOf(unitB.elements, bI) as StructureElement.UnitIndex;
                 if (_bI < 0) continue;

@@ -131,32 +131,14 @@ export namespace Model {
         return new ArrayTrajectory(_trajectoryFromModelAndCoordinates(model, coordinates).trajectory);
     }
 
-    export function invertIndex(xs: ArrayLike<number>) {
-        const ret = new Int32Array(xs.length);
-        for (let i = 0, _i = xs.length; i < _i; i++) {
-            ret[xs[i]] = i;
-        }
-        return ret;
-    }
-
     export function trajectoryFromTopologyAndCoordinates(topology: Topology, coordinates: Coordinates): Task<Trajectory> {
         return Task.create('Create Trajectory', async ctx => {
             const models = await createModels(topology.basic, topology.sourceData, ctx);
             if (models.frameCount === 0) throw new Error('found no model');
             const model = models.representative;
-            const { trajectory, srcIndexArray } = _trajectoryFromModelAndCoordinates(model, coordinates);
+            const { trajectory } = _trajectoryFromModelAndCoordinates(model, coordinates);
 
-            // TODO: cache the inverted index somewhere?
-            const invertedIndex = srcIndexArray ? invertIndex(srcIndexArray) : void 0;
-            const pairs = srcIndexArray
-                ? {
-                    indexA: Column.ofIntArray(Column.mapToArray(topology.bonds.indexA, i => invertedIndex![i], Int32Array)),
-                    indexB: Column.ofIntArray(Column.mapToArray(topology.bonds.indexB, i => invertedIndex![i], Int32Array)),
-                    order: topology.bonds.order
-                }
-                : topology.bonds;
-
-            const bondData = { pairs, count: model.atomicHierarchy.atoms._rowCount };
+            const bondData = { pairs: topology.bonds, count: model.atomicHierarchy.atoms._rowCount };
             const indexPairBonds = IndexPairBonds.fromData(bondData);
 
             let index = 0;
@@ -174,6 +156,25 @@ export namespace Model {
         const center = calcModelCenter(model.atomicConformation, model.coarseConformation);
         model._dynamicPropertyData[CenterProp] = center;
         return center;
+    }
+
+    function invertIndex(xs: Column<number>) {
+        const invertedIndex = new Int32Array(xs.rowCount);
+        let isIdentity = false;
+        for (let i = 0, _i = xs.rowCount; i < _i; i++) {
+            const x = xs.value(i);
+            if (x !== i) isIdentity = false;
+            invertedIndex[x] = i;
+        }
+        return { isIdentity, invertedIndex: invertedIndex as unknown as ArrayLike<ElementIndex> };
+    }
+
+    const InvertedAtomSrcIndexProp = '__InvertedAtomSrcIndex__';
+    export function getInvertedAtomSourceIndex(model: Model): { isIdentity: boolean, invertedIndex: ArrayLike<ElementIndex> } {
+        if (model._staticPropertyData[InvertedAtomSrcIndexProp]) return model._staticPropertyData[InvertedAtomSrcIndexProp];
+        const index = invertIndex(model.atomicHierarchy.atomSourceIndex);
+        model._staticPropertyData[InvertedAtomSrcIndexProp] = index;
+        return index;
     }
 
     const TrajectoryInfoProp = '__TrajectoryInfo__';
