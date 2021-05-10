@@ -72,7 +72,6 @@ export function applyMeshColorSmoothing(values: MeshValues, resolution: number, 
         ValueCell.update(values.uColorTexDim, smoothingData.gridTexDim);
         ValueCell.update(values.uColorGridDim, smoothingData.gridDim);
         ValueCell.update(values.uColorGridTransform, smoothingData.gridTransform);
-        ValueCell.updateIfChanged(values.dColorGridType, '2d');
     } else if (smoothingData.kind === 'vertex') {
         ValueCell.updateIfChanged(values.dColorType, smoothingData.type);
         ValueCell.update(values.tColor, smoothingData.texture);
@@ -104,5 +103,4 @@ export function applyTextureMeshColorSmoothing(values: TextureMeshValues, resolu
     ValueCell.update(values.uColorTexDim, smoothingData.gridTexDim);
     ValueCell.update(values.uColorGridDim, smoothingData.gridDim);
     ValueCell.update(values.uColorGridTransform, smoothingData.gridTransform);
-    ValueCell.updateIfChanged(values.dColorGridType, '2d');
 }

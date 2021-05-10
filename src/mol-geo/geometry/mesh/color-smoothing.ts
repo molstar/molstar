@@ -159,7 +159,7 @@ interface ColorInterpolationInput {
     gridTransform: Vec4
 }
 
-function getTrilinearlyInterpolated(input: ColorInterpolationInput): TextureImage<Uint8Array> {
+export function getTrilinearlyInterpolated(input: ColorInterpolationInput): TextureImage<Uint8Array> {
     const { vertexCount, positionBuffer, transformBuffer, grid, gridDim, gridTexDim, gridTransform } = input;
 
     const isInstanceType = input.colorType.endsWith('Instance');

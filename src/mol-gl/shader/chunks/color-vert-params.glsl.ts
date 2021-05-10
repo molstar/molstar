@@ -14,7 +14,6 @@ export const color_vert_params = `
         uniform vec2 uColorTexDim;
         uniform vec3 uColorGridDim;
         uniform vec4 uColorGridTransform;
-        // TODO handle 3D
         uniform sampler2D tColorGrid;
     #endif
 

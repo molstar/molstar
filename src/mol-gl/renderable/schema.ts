@@ -191,7 +191,6 @@ export const ColorSchema = {
     tColorGrid: TextureSpec('texture', 'rgb', 'ubyte', 'linear'),
     dColorType: DefineSpec('string', ['uniform', 'attribute', 'instance', 'group', 'groupInstance', 'vertex', 'vertexInstance', 'volume', 'volumeInstance']),
     dUsePalette: DefineSpec('boolean'),
-    dColorGridType: DefineSpec('string', ['2d', '3d']),
 } as const;
 export type ColorSchema = typeof ColorSchema
 export type ColorValues = Values<ColorSchema>

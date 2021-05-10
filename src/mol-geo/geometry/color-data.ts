@@ -27,7 +27,6 @@ export type ColorData = {
     uColorGridTransform: ValueCell<Vec4>,
     dColorType: ValueCell<string>,
     dUsePalette: ValueCell<boolean>,
-    dColorGridType: ValueCell<string>,
 }
 
 export function createColors(locationIt: LocationIterator, positionIt: LocationIterator, colorTheme: ColorTheme<any>, colorData?: ColorData): ColorData {
@@ -103,7 +102,6 @@ export function createValueColor(value: Color, colorData?: ColorData): ColorData
             uColorGridTransform: ValueCell.create(Vec4.create(0, 0, 0, 1)),
             dColorType: ValueCell.create('uniform'),
             dUsePalette: ValueCell.create(false),
-            dColorGridType: ValueCell.create('2d'),
         };
     }
 }
@@ -132,7 +130,6 @@ export function createTextureColor(colors: TextureImage<Uint8Array>, type: Color
             uColorGridTransform: ValueCell.create(Vec4.create(0, 0, 0, 1)),
             dColorType: ValueCell.create(type),
             dUsePalette: ValueCell.create(false),
-            dColorGridType: ValueCell.create('2d'),
         };
     }
 }
@@ -225,7 +222,6 @@ export function createGridColor(grid: ColorVolume, type: ColorType, colorData?: 
         ValueCell.update(colorData.uColorGridDim, Vec3.clone(dimension));
         ValueCell.update(colorData.uColorGridTransform, Vec4.clone(transform));
         ValueCell.updateIfChanged(colorData.dColorType, type);
-        ValueCell.updateIfChanged(colorData.dColorGridType, colors.getDepth() ? '3d' : '2d');
         return colorData;
     } else {
         return {
@@ -238,7 +234,6 @@ export function createGridColor(grid: ColorVolume, type: ColorType, colorData?: 
             uColorGridTransform: ValueCell.create(Vec4.clone(transform)),
             dColorType: ValueCell.create(type),
             dUsePalette: ValueCell.create(false),
-            dColorGridType: ValueCell.create('2d'),
         };
     }
 }
