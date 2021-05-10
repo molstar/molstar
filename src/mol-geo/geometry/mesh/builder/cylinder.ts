@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -25,12 +25,12 @@ const tmpCylinderMatScale = Mat4();
 const tmpCylinderStart = Vec3();
 const tmpUp = Vec3();
 
-function setCylinderMat(m: Mat4, start: Vec3, dir: Vec3, length: number) {
+function setCylinderMat(m: Mat4, start: Vec3, dir: Vec3, length: number, matchDir: boolean) {
     Vec3.setMagnitude(tmpCylinderMatDir, dir, length / 2);
     Vec3.add(tmpCylinderCenter, start, tmpCylinderMatDir);
     // ensure the direction used to create the rotation is always pointing in the same
     // direction so the triangles of adjacent cylinder will line up
-    Vec3.matchDirection(tmpUp, up, tmpCylinderMatDir);
+    if (matchDir) Vec3.matchDirection(tmpUp, up, tmpCylinderMatDir);
     Mat4.fromScaling(tmpCylinderMatScale, Vec3.set(tmpCylinderScale, 1, length, 1));
     Vec3.makeRotation(tmpCylinderMatRot, tmpUp, tmpCylinderMatDir);
     Mat4.mul(m, tmpCylinderMatRot, tmpCylinderMatScale);
@@ -69,10 +69,17 @@ function getCylinder(props: CylinderProps) {
 
 export type BasicCylinderProps = Omit<CylinderProps, 'height'>
 
+export function addSimpleCylinder(state: MeshBuilder.State, start: Vec3, end: Vec3, props: BasicCylinderProps) {
+    const d = Vec3.distance(start, end);
+    Vec3.sub(tmpCylinderDir, end, start);
+    setCylinderMat(tmpCylinderMat, start, tmpCylinderDir, d, false);
+    MeshBuilder.addPrimitive(state, tmpCylinderMat, getCylinder(props));
+}
+
 export function addCylinder(state: MeshBuilder.State, start: Vec3, end: Vec3, lengthScale: number, props: BasicCylinderProps) {
     const d = Vec3.distance(start, end) * lengthScale;
     Vec3.sub(tmpCylinderDir, end, start);
-    setCylinderMat(tmpCylinderMat, start, tmpCylinderDir, d);
+    setCylinderMat(tmpCylinderMat, start, tmpCylinderDir, d, true);
     MeshBuilder.addPrimitive(state, tmpCylinderMat, getCylinder(props));
 }
 
@@ -82,11 +89,11 @@ export function addDoubleCylinder(state: MeshBuilder.State, start: Vec3, end: Ve
     Vec3.sub(tmpCylinderDir, end, start);
     // positivly shifted cylinder
     Vec3.add(tmpCylinderStart, start, shift);
-    setCylinderMat(tmpCylinderMat, tmpCylinderStart, tmpCylinderDir, d);
+    setCylinderMat(tmpCylinderMat, tmpCylinderStart, tmpCylinderDir, d, true);
     MeshBuilder.addPrimitive(state, tmpCylinderMat, cylinder);
     // negativly shifted cylinder
     Vec3.sub(tmpCylinderStart, start, shift);
-    setCylinderMat(tmpCylinderMat, tmpCylinderStart, tmpCylinderDir, d);
+    setCylinderMat(tmpCylinderMat, tmpCylinderStart, tmpCylinderDir, d, true);
     MeshBuilder.addPrimitive(state, tmpCylinderMat, cylinder);
 }
 
@@ -109,7 +116,7 @@ export function addFixedCountDashedCylinder(state: MeshBuilder.State, start: Vec
         const f = step * (j * 2 + 1);
         Vec3.setMagnitude(tmpCylinderDir, tmpCylinderDir, d * f);
         Vec3.add(tmpCylinderStart, start, tmpCylinderDir);
-        setCylinderMat(tmpCylinderMat, tmpCylinderStart, tmpCylinderDir, d * step);
+        setCylinderMat(tmpCylinderMat, tmpCylinderStart, tmpCylinderDir, d * step, false);
         MeshBuilder.addPrimitive(state, tmpCylinderMat, cylinder);
     }
 }

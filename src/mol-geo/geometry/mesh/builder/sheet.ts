@@ -36,6 +36,7 @@ const v3magnitude = Vec3.magnitude;
 const v3negate = Vec3.negate;
 const v3copy = Vec3.copy;
 const v3cross = Vec3.cross;
+const v3set = Vec3.set;
 const caAdd3 = ChunkedArray.add3;
 const caAdd = ChunkedArray.add;
 
@@ -43,14 +44,14 @@ function addCap(offset: number, state: MeshBuilder.State, controlPoints: ArrayLi
     const { vertices, normals, indices } = state;
     const vertexCount = vertices.elementCount;
 
-    v3fromArray(verticalLeftVector, normalVectors, offset);
-    v3scale(verticalLeftVector, verticalLeftVector, leftHeight);
+    v3fromArray(tA, normalVectors, offset);
+    v3scale(verticalLeftVector, tA, leftHeight);
+    v3scale(verticalRightVector, tA, rightHeight);
 
-    v3fromArray(verticalRightVector, normalVectors, offset);
-    v3scale(verticalRightVector, verticalRightVector, rightHeight);
+    v3fromArray(tB, binormalVectors, offset);
+    v3scale(horizontalVector, tB, width);
 
-    v3fromArray(horizontalVector, binormalVectors, offset);
-    v3scale(horizontalVector, horizontalVector, width);
+    v3cross(normalVector, tB, tA);
 
     v3fromArray(positionVector, controlPoints, offset);
 
@@ -73,8 +74,6 @@ function addCap(offset: number, state: MeshBuilder.State, controlPoints: ArrayLi
         v3copy(verticalVector, verticalLeftVector);
     }
 
-    v3cross(normalVector, horizontalVector, verticalVector);
-
     for (let i = 0; i < 4; ++i) {
         caAdd3(normals, normalVector[0], normalVector[1], normalVector[2]);
     }
@@ -93,6 +92,8 @@ export function addSheet(state: MeshBuilder.State, controlPoints: ArrayLike<numb
         v3fromArray(tA, controlPoints, 0);
         v3fromArray(tB, controlPoints, linearSegments * 3);
         offsetLength = arrowHeight / v3magnitude(v3sub(tV, tB, tA));
+    } else {
+        v3set(normalOffset, 0, 0, 0);
     }
 
     for (let i = 0; i <= linearSegments; ++i) {
@@ -119,7 +120,7 @@ export function addSheet(state: MeshBuilder.State, controlPoints: ArrayLike<numb
         v3fromArray(torsionVector, binormalVectors, i3);
 
         v3add(tA, v3add(tA, positionVector, horizontalVector), verticalVector);
-        v3copy(tB, normalVector);
+        v3add(tB, normalVector, normalOffset);
         caAdd3(vertices, tA[0], tA[1], tA[2]);
         caAdd3(normals, tB[0], tB[1], tB[2]);
 
@@ -128,7 +129,7 @@ export function addSheet(state: MeshBuilder.State, controlPoints: ArrayLike<numb
         caAdd3(normals, tB[0], tB[1], tB[2]);
 
         // v3add(tA, v3sub(tA, positionVector, horizontalVector), verticalVector) // reuse tA
-        v3add(tB, v3negate(tB, torsionVector), normalOffset);
+        v3negate(tB, torsionVector);
         caAdd3(vertices, tA[0], tA[1], tA[2]);
         caAdd3(normals, tB[0], tB[1], tB[2]);
 
@@ -137,7 +138,7 @@ export function addSheet(state: MeshBuilder.State, controlPoints: ArrayLike<numb
         caAdd3(normals, tB[0], tB[1], tB[2]);
 
         // v3sub(tA, v3sub(tA, positionVector, horizontalVector), verticalVector) // reuse tA
-        v3negate(tB, normalVector);
+        v3add(tB, v3negate(tB, normalVector), normalOffset);
         caAdd3(vertices, tA[0], tA[1], tA[2]);
         caAdd3(normals, tB[0], tB[1], tB[2]);
 
@@ -146,7 +147,7 @@ export function addSheet(state: MeshBuilder.State, controlPoints: ArrayLike<numb
         caAdd3(normals, tB[0], tB[1], tB[2]);
 
         // v3sub(tA, v3add(tA, positionVector, horizontalVector), verticalVector) // reuse tA
-        v3add(tB, torsionVector, normalOffset);
+        v3copy(tB, torsionVector);
         caAdd3(vertices, tA[0], tA[1], tA[2]);
         caAdd3(normals, tB[0], tB[1], tB[2]);
 

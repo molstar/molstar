@@ -7,6 +7,9 @@
 
 The goal of **Mol\*** (*/'mol-star/*) is to provide a technology stack that serves as a basis for the next-generation data delivery and analysis tools for (not only) macromolecular structure data. Mol* development was jointly initiated by PDBe and RCSB PDB to combine and build on the strengths of [LiteMol](https://litemol.org) (developed by PDBe) and [NGL](https://nglviewer.org) (developed by RCSB PDB) viewers.
 
+When using Mol*, please cite:
+
+David Sehnal, Sebastian Bittrich, Mandar Deshpande, Radka Svobodová, Karel Berka, Václav Bazgier, Sameer Velankar, Stephen K Burley, Jaroslav Koča, Alexander S Rose: [Mol* Viewer: modern web app for 3D visualization and analysis of large biomolecular structures](https://doi.org/10.1093/nar/gkab314), *Nucleic Acids Research*, 2021; https://doi.org/10.1093/nar/gkab314.
 
 ## Project Structure Overview
 

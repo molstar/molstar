@@ -34,6 +34,7 @@ import { CustomStructureProperty } from '../../../mol-model-props/common/custom-
 import { Trajectory } from '../trajectory';
 import { RuntimeContext, Task } from '../../../mol-task';
 import { computeStructureBoundary } from './util/boundary';
+import { PrincipalAxes } from '../../../mol-math/linear-algebra/matrix/principal-axes';
 
 /** Internal structure state */
 type State = {
@@ -1290,6 +1291,14 @@ namespace Structure {
 
     export type Index = number;
     export const Index = CustomStructureProperty.createSimple<Index>('index', 'root');
+
+    const PrincipalAxesProp = '__PrincipalAxes__';
+    export function getPrincipalAxes(structure: Structure): PrincipalAxes {
+        if (structure.currentPropertyData[PrincipalAxesProp]) return structure.currentPropertyData[PrincipalAxesProp];
+        const principalAxes = StructureElement.Loci.getPrincipalAxes(Structure.toStructureElementLoci(structure));
+        structure.currentPropertyData[PrincipalAxesProp] = principalAxes;
+        return principalAxes;
+    }
 }
 
 export { Structure };

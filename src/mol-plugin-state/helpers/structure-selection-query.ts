@@ -374,15 +374,50 @@ const connectedOnly = StructureSelectionQuery('Connected to Ligand or Carbohydra
 ]), { category: StructureSelectionCategory.Internal, isHidden: true });
 
 const disulfideBridges = StructureSelectionQuery('Disulfide Bridges', MS.struct.modifier.union([
-    MS.struct.modifier.wholeResidues([
+    MS.struct.combinator.merge([
         MS.struct.modifier.union([
-            MS.struct.generator.bondedAtomicPairs({
-                0: MS.core.flags.hasAny([
-                    MS.struct.bondProperty.flags(),
-                    MS.core.type.bitflags([BondType.Flag.Disulfide])
+            MS.struct.modifier.wholeResidues([
+                MS.struct.filter.isConnectedTo({
+                    0: MS.struct.generator.atomGroups({
+                        'residue-test': MS.core.set.has([MS.set('CYS'), MS.ammp('auth_comp_id')]),
+                        'atom-test': MS.core.set.has([MS.set('SG'), MS.ammp('label_atom_id')])
+                    }),
+                    target: MS.struct.generator.atomGroups({
+                        'residue-test': MS.core.set.has([MS.set('CYS'), MS.ammp('auth_comp_id')]),
+                        'atom-test': MS.core.set.has([MS.set('SG'), MS.ammp('label_atom_id')])
+                    }),
+                    'bond-test': true
+                })
+            ])
+        ]),
+        MS.struct.modifier.union([
+            MS.struct.modifier.wholeResidues([
+                MS.struct.modifier.union([
+                    MS.struct.generator.bondedAtomicPairs({
+                        0: MS.core.flags.hasAny([
+                            MS.struct.bondProperty.flags(),
+                            MS.core.type.bitflags([BondType.Flag.Disulfide])
+                        ])
+                    })
                 ])
-            })
+            ])
         ])
+    ])
+]), { category: StructureSelectionCategory.Bond });
+
+const nosBridges = StructureSelectionQuery('NOS Bridges', MS.struct.modifier.union([
+    MS.struct.modifier.wholeResidues([
+        MS.struct.filter.isConnectedTo({
+            0: MS.struct.generator.atomGroups({
+                'residue-test': MS.core.set.has([MS.set('CSO', 'LYS'), MS.ammp('auth_comp_id')]),
+                'atom-test': MS.core.set.has([MS.set('OD', 'NZ'), MS.ammp('label_atom_id')])
+            }),
+            target: MS.struct.generator.atomGroups({
+                'residue-test': MS.core.set.has([MS.set('CSO', 'LYS'), MS.ammp('auth_comp_id')]),
+                'atom-test': MS.core.set.has([MS.set('OD', 'NZ'), MS.ammp('label_atom_id')])
+            }),
+            'bond-test': true
+        })
     ])
 ]), { category: StructureSelectionCategory.Bond });
 
@@ -652,6 +687,7 @@ export const StructureSelectionQueries = {
     ligandConnectedOnly,
     connectedOnly,
     disulfideBridges,
+    nosBridges,
     nonStandardPolymer,
     coarse,
     ring,

@@ -7,14 +7,28 @@
 import { PluginComponent } from '../../mol-plugin-state/component';
 import { PluginContext } from '../../mol-plugin/context';
 import { Task } from '../../mol-task';
-import { ObjExporter } from './export';
 import { PluginStateObject } from '../../mol-plugin-state/objects';
 import { StateSelection } from '../../mol-state';
+import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { SetUtils } from '../../mol-util/set';
-import { zip } from '../../mol-util/zip/zip';
+import { ObjExporter } from './obj-exporter';
+import { GlbExporter } from './glb-exporter';
+import { StlExporter } from './stl-exporter';
+
+export const GeometryParams = {
+    format: PD.Select('glb', [
+        ['glb', 'glTF 2.0 Binary (.glb)'],
+        ['stl', 'Stl (.stl)'],
+        ['obj', 'Wavefront (.obj)']
+    ])
+};
 
 export class GeometryControls extends PluginComponent {
-    getFilename() {
+    readonly behaviors = {
+        params: this.ev.behavior<PD.Values<typeof GeometryParams>>(PD.getDefaultValues(GeometryParams))
+    }
+
+    private getFilename() {
         const models = this.plugin.state.data.select(StateSelection.Generators.rootsOfType(PluginStateObject.Molecule.Model)).map(s => s.obj!.data);
         const uniqueIds = new Set<string>();
         models.forEach(m => uniqueIds.add(m.entryId.toUpperCase()));
@@ -22,37 +36,35 @@ export class GeometryControls extends PluginComponent {
         return `${idString || 'molstar-model'}`;
     }
 
-    exportObj() {
-        const task = Task.create('Export OBJ', async ctx => {
+    exportGeometry() {
+        const task = Task.create('Export Geometry', async ctx => {
             try {
                 const renderObjects = this.plugin.canvas3d?.getRenderObjects()!;
-
                 const filename = this.getFilename();
-                const objExporter = new ObjExporter(filename);
+
+                let renderObjectExporter: ObjExporter | GlbExporter | StlExporter;
+                switch (this.behaviors.params.value.format) {
+                    case 'obj':
+                        renderObjectExporter = new ObjExporter(filename);
+                        break;
+                    case 'glb':
+                        renderObjectExporter = new GlbExporter();
+                        break;
+                    case 'stl':
+                        renderObjectExporter = new StlExporter();
+                        break;
+                    default: throw new Error('Unsupported format.');
+                }
+
                 for (let i = 0, il = renderObjects.length; i < il; ++i) {
                     await ctx.update({ message: `Exporting object ${i}/${il}` });
-                    await objExporter.add(renderObjects[i], this.plugin.canvas3d?.webgl!, ctx);
+                    await renderObjectExporter.add(renderObjects[i], this.plugin.canvas3d?.webgl!, ctx);
                 }
-                const { obj, mtl } = objExporter.getData();
 
-                const asciiWrite = (data: Uint8Array, str: string) => {
-                    for (let i = 0, il = str.length; i < il; ++i) {
-                        data[i] = str.charCodeAt(i);
-                    }
-                };
-                const objData = new Uint8Array(obj.length);
-                asciiWrite(objData, obj);
-                const mtlData = new Uint8Array(mtl.length);
-                asciiWrite(mtlData, mtl);
-
-                const zipDataObj = {
-                    [filename + '.obj']: objData,
-                    [filename + '.mtl']: mtlData
-                };
-                const zipData = await zip(ctx, zipDataObj);
+                const blob = await renderObjectExporter.getBlob(ctx);
                 return {
-                    zipData,
-                    filename: filename + '.zip'
+                    blob,
+                    filename: filename + '.' + renderObjectExporter.fileExtension
                 };
             } catch (e) {
                 this.plugin.log.error('' + e);

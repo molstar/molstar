@@ -5,7 +5,11 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
-- [empty]
+- Add glTF (GLB) and STL support to ``geo-export`` extension.
+- Protein crosslink improvements
+    - Change O-S bond distance to allow for NOS bridges (doi:10.1038/s41586-021-03513-3)
+    - Added NOS-bridges query & improved disulfide-bridges query
+- Fix #178: ``IndexPairBonds`` for non-single residue structures (bug due to atom reordering).
 
 ## [v2.0.5] - 2021-04-26
 
@@ -19,7 +23,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Add `Torus` primitive.
 - Lazy volume loading support.
 - [Breaking] ``Viewer.loadVolumeFromUrl`` signature change.
-  - ``loadVolumeFromUrl(url, format, isBinary, isovalues, entryId)`` => ``loadVolumeFromUrl({ url, format, isBinary }, isovalues, { entryId, isLazy })``
+    - ``loadVolumeFromUrl(url, format, isBinary, isovalues, entryId)`` => ``loadVolumeFromUrl({ url, format, isBinary }, isovalues, { entryId, isLazy })``
 - Add ``TextureMesh`` support to ``geo-export`` extension.
 
 ## [v2.0.4] - 2021-04-20
