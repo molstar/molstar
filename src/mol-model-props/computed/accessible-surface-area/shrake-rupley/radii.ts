@@ -50,15 +50,15 @@ export function assignRadiusForHeavyAtoms(ctx: ShrakeRupleyContext) {
                 continue;
             }
 
+            const atomId = label_atom_id(l);
             const moleculeType = getElementMoleculeType(unit, eI);
             // skip water and optionally non-polymer groups
-            if (moleculeType === MoleculeType.Water || (!ctx.nonPolymer && !isPolymer(moleculeType))) {
+            if (moleculeType === MoleculeType.Water || (!ctx.nonPolymer && !isPolymer(moleculeType)) || (ctx.alphaOnly && atomId !== 'CA')) {
                 atomRadiusType[mj] = VdWLookup[0];
                 serialResidueIndex[mj] = -1;
                 continue;
             }
 
-            const atomId = label_atom_id(l);
             const compId = label_comp_id(l);
 
             if (isNucleic(moleculeType)) {
