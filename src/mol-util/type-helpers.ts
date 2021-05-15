@@ -30,3 +30,7 @@ export interface FiniteArray<T, L extends number = number> extends ReadonlyArray
 export function assertUnreachable(x: never): never {
     throw new Error('unreachable');
 }
+
+export function isPromiseLike<T = any>(x: any): x is Promise<T> {
+    return typeof x?.then === 'function';
+}

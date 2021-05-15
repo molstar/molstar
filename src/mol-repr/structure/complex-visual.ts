@@ -35,6 +35,7 @@ import { StructureParams, StructureMeshParams, StructureTextParams, StructureDir
 import { Clipping } from '../../mol-theme/clipping';
 import { TextureMesh } from '../../mol-geo/geometry/texture-mesh/texture-mesh';
 import { WebGLContext } from '../../mol-gl/webgl/context';
+import { isPromiseLike } from '../../mol-util/type-helpers';
 
 export interface  ComplexVisual<P extends StructureParams> extends Visual<Structure, P> { }
 
@@ -213,7 +214,7 @@ export function ComplexVisual<G extends Geometry, P extends StructureParams & Ge
             prepareUpdate(theme, props, structure || currentStructure);
             if (updateState.createGeometry) {
                 const newGeometry = createGeometry(ctx, newStructure, newTheme, newProps, geometry);
-                if (newGeometry instanceof Promise) {
+                if (isPromiseLike(newGeometry)) {
                     return newGeometry.then(g => {
                         update(g);
                         finalize(ctx);

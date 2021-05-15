@@ -39,6 +39,7 @@ import { SizeValues } from '../../mol-gl/renderable/schema';
 import { StructureParams, StructureMeshParams, StructureSpheresParams, StructurePointsParams, StructureLinesParams, StructureTextParams, StructureDirectVolumeParams, StructureTextureMeshParams, StructureCylindersParams } from './params';
 import { Clipping } from '../../mol-theme/clipping';
 import { WebGLContext } from '../../mol-gl/webgl/context';
+import { isPromiseLike } from '../../mol-util/type-helpers';
 
 export type StructureGroup = { structure: Structure, group: Unit.SymmetryGroup }
 
@@ -269,7 +270,7 @@ export function UnitsVisual<G extends Geometry, P extends StructureParams & Geom
             prepareUpdate(theme, props, structureGroup || currentStructureGroup);
             if (updateState.createGeometry) {
                 const newGeometry = _createGeometry(ctx, newStructureGroup.group.units[0], newStructureGroup.structure, newTheme, newProps, geometry);
-                if (newGeometry instanceof Promise) {
+                if (isPromiseLike(newGeometry)) {
                     return newGeometry.then(g => {
                         update(g);
                         finalize(ctx);

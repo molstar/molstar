@@ -31,6 +31,7 @@ import { Task } from '../../mol-task';
 import { SizeValues } from '../../mol-gl/renderable/schema';
 import { Clipping } from '../../mol-theme/clipping';
 import { WebGLContext } from '../../mol-gl/webgl/context';
+import { isPromiseLike } from '../../mol-util/type-helpers';
 
 export interface VolumeVisual<P extends VolumeParams> extends Visual<Volume, P> { }
 
@@ -173,7 +174,7 @@ export function VolumeVisual<G extends Geometry, P extends VolumeParams & Geomet
             prepareUpdate(theme, props, volume || currentVolume);
             if (updateState.createGeometry) {
                 const newGeometry = createGeometry(ctx, newVolume, newTheme, newProps, geometry);
-                return newGeometry instanceof Promise ? newGeometry.then(update) : update(newGeometry);
+                return isPromiseLike(newGeometry) ? newGeometry.then(update) : update(newGeometry);
             } else {
                 update();
             }
