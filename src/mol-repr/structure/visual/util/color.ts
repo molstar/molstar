@@ -10,6 +10,7 @@ import { MeshValues } from '../../../../mol-gl/renderable/mesh';
 import { TextureMeshValues } from '../../../../mol-gl/renderable/texture-mesh';
 import { WebGLContext } from '../../../../mol-gl/webgl/context';
 import { Texture } from '../../../../mol-gl/webgl/texture';
+import { smoothstep } from '../../../../mol-math/interpolate';
 import { Theme } from '../../../../mol-theme/theme';
 import { ValueCell } from '../../../../mol-util';
 import { ParamDefinition as PD } from '../../../../mol-util/param-definition';
@@ -33,13 +34,9 @@ export function getColorSmoothingProps(props: PD.Values<ColorSmoothingParams>, t
             resolution *= props.smoothColors.params.resolutionFactor;
             stride = props.smoothColors.params.sampleStride;
         } else {
-            if (resolution > 0.5 && resolution < 1) {
-                resolution *= 2 * resolution;
-            } else if (resolution > 1) {
-                stride = 3;
-            } else {
-                resolution *= 2;
-            }
+            // https://graphtoy.com/?f1(x,t)=(2-smoothstep(0,1.1,x))*x&coords=0.7,0.6,1.8
+            resolution *= 2 - smoothstep(0, 1.1, resolution);
+            if (resolution > 0.8) stride = 3;
         }
         return { resolution, stride, webgl };
     };
