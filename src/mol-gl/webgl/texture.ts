@@ -408,7 +408,7 @@ export function loadImageTexture(src: string, cell: ValueCell<Texture>, texture:
 //
 
 export function createNullTexture(gl?: GLRenderingContext): Texture {
-    const target = 3553;
+    const target = gl?.TEXTURE_2D ?? 3553;
     return {
         id: getNextTextureId(),
         target,
