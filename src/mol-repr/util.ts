@@ -53,6 +53,7 @@ export interface QualityProps {
     radialSegments: number
     linearSegments: number
     resolution: number
+    probePositions: number
     doubleSided: boolean
     xrayShaded: boolean
     alpha: number
@@ -110,6 +111,7 @@ export function getQualityProps(props: Partial<QualityProps>, data?: any) {
     let radialSegments = defaults(props.radialSegments, 12);
     let linearSegments = defaults(props.linearSegments, 8);
     let resolution = defaults(props.resolution, 2);
+    let probePositions = defaults(props.probePositions, 12);
     let doubleSided = defaults(props.doubleSided, true);
 
     let volume = 0;
@@ -130,6 +132,7 @@ export function getQualityProps(props: Partial<QualityProps>, data?: any) {
             radialSegments = 36;
             linearSegments = 18;
             resolution = 0.1;
+            probePositions = 72;
             doubleSided = true;
             break;
         case 'higher':
@@ -137,6 +140,7 @@ export function getQualityProps(props: Partial<QualityProps>, data?: any) {
             radialSegments = 28;
             linearSegments = 14;
             resolution = 0.3;
+            probePositions = 48;
             doubleSided = true;
             break;
         case 'high':
@@ -144,6 +148,7 @@ export function getQualityProps(props: Partial<QualityProps>, data?: any) {
             radialSegments = 20;
             linearSegments = 10;
             resolution = 0.5;
+            probePositions = 36;
             doubleSided = true;
             break;
         case 'medium':
@@ -151,6 +156,7 @@ export function getQualityProps(props: Partial<QualityProps>, data?: any) {
             radialSegments = 12;
             linearSegments = 8;
             resolution = 0.8;
+            probePositions = 24;
             doubleSided = true;
             break;
         case 'low':
@@ -158,6 +164,7 @@ export function getQualityProps(props: Partial<QualityProps>, data?: any) {
             radialSegments = 8;
             linearSegments = 3;
             resolution = 1.3;
+            probePositions = 24;
             doubleSided = false;
             break;
         case 'lower':
@@ -165,6 +172,7 @@ export function getQualityProps(props: Partial<QualityProps>, data?: any) {
             radialSegments = 4;
             linearSegments = 2;
             resolution = 3;
+            probePositions = 12;
             doubleSided = false;
             break;
         case 'lowest':
@@ -172,6 +180,7 @@ export function getQualityProps(props: Partial<QualityProps>, data?: any) {
             radialSegments = 2;
             linearSegments = 1;
             resolution = 8;
+            probePositions = 12;
             doubleSided = false;
             break;
         case 'custom':
@@ -192,6 +201,7 @@ export function getQualityProps(props: Partial<QualityProps>, data?: any) {
         radialSegments,
         linearSegments,
         resolution,
+        probePositions,
         doubleSided
     };
 }
