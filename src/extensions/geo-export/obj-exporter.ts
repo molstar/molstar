@@ -4,14 +4,13 @@
  * @author Sukolsak Sakshuwong <sukolsak@stanford.edu>
  */
 
-import { BaseValues } from '../../mol-gl/renderable/schema';
 import { asciiWrite } from '../../mol-io/common/ascii';
 import { Vec3, Mat3, Mat4 } from '../../mol-math/linear-algebra';
 import { RuntimeContext } from '../../mol-task';
 import { StringBuilder } from '../../mol-util';
 import { Color } from '../../mol-util/color/color';
 import { zip } from '../../mol-util/zip/zip';
-import { MeshExporter } from './mesh-exporter';
+import { MeshExporter, AddMeshInput } from './mesh-exporter';
 
 // avoiding namespace lookup improved performance in Chrome (Aug 2020)
 const v3fromArray = Vec3.fromArray;
@@ -67,7 +66,9 @@ export class ObjExporter extends MeshExporter<ObjData> {
         }
     }
 
-    protected async addMeshWithColors(vertices: Float32Array, normals: Float32Array, indices: Uint32Array | undefined, groups: Float32Array | Uint8Array, vertexCount: number, drawCount: number, values: BaseValues, instanceIndex: number, isGeoTexture: boolean, ctx: RuntimeContext) {
+    protected async addMeshWithColors(input: AddMeshInput) {
+        const { mesh, meshes, values, isGeoTexture, webgl, ctx } = input;
+
         const obj = this.obj;
         const t = Mat4();
         const n = Mat3();
@@ -81,95 +82,130 @@ export class ObjExporter extends MeshExporter<ObjData> {
         const dTransparency = values.dTransparency.ref.value;
         const tTransparency = values.tTransparency.ref.value;
         const aTransform = values.aTransform.ref.value;
+        const instanceCount = values.uInstanceCount.ref.value;
 
-        Mat4.fromArray(t, aTransform, instanceIndex * 16);
-        mat3directionTransform(n, t);
-
-        const currentProgress = (vertexCount * 2 + drawCount) * instanceIndex;
-        await ctx.update({ isIndeterminate: false, current: currentProgress, max: (vertexCount * 2 + drawCount) * values.uInstanceCount.ref.value });
-
-        // position
-        for (let i = 0; i < vertexCount; ++i) {
-            if (i % 1000 === 0 && ctx.shouldUpdate) await ctx.update({ current: currentProgress + i });
-            v3transformMat4(tmpV, v3fromArray(tmpV, vertices, i * stride), t);
-            StringBuilder.writeSafe(obj, 'v ');
-            StringBuilder.writeFloat(obj, tmpV[0], 1000);
-            StringBuilder.whitespace1(obj);
-            StringBuilder.writeFloat(obj, tmpV[1], 1000);
-            StringBuilder.whitespace1(obj);
-            StringBuilder.writeFloat(obj, tmpV[2], 1000);
-            StringBuilder.newline(obj);
+        let interpolatedColors: Uint8Array;
+        if (colorType === 'volume' || colorType === 'volumeInstance') {
+            interpolatedColors = ObjExporter.getInterpolatedColors(mesh!.vertices, mesh!.vertexCount, values, stride, colorType, webgl!);
         }
 
-        // normal
-        for (let i = 0; i < vertexCount; ++i) {
-            if (i % 1000 === 0 && ctx.shouldUpdate) await ctx.update({ current: currentProgress + vertexCount + i });
-            v3transformMat3(tmpV, v3fromArray(tmpV, normals, i * stride), n);
-            StringBuilder.writeSafe(obj, 'vn ');
-            StringBuilder.writeFloat(obj, tmpV[0], 100);
-            StringBuilder.whitespace1(obj);
-            StringBuilder.writeFloat(obj, tmpV[1], 100);
-            StringBuilder.whitespace1(obj);
-            StringBuilder.writeFloat(obj, tmpV[2], 100);
-            StringBuilder.newline(obj);
-        }
+        await ctx.update({ isIndeterminate: false, current: 0, max: instanceCount });
 
-        // face
-        for (let i = 0; i < drawCount; i += 3) {
-            if (i % 3000 === 0 && ctx.shouldUpdate) await ctx.update({ current: currentProgress + vertexCount * 2 + i });
-            let color: Color;
-            switch (colorType) {
-                case 'uniform':
-                    color = Color.fromNormalizedArray(values.uColor.ref.value, 0);
-                    break;
-                case 'instance':
-                    color = Color.fromArray(tColor, instanceIndex * 3);
-                    break;
-                case 'group': {
-                    const group = isGeoTexture ? ObjExporter.getGroup(groups, i) : groups[indices![i]];
-                    color = Color.fromArray(tColor, group * 3);
-                    break;
-                }
-                case 'groupInstance': {
-                    const group = isGeoTexture ? ObjExporter.getGroup(groups, i) : groups[indices![i]];
-                    color = Color.fromArray(tColor, (instanceIndex * groupCount + group) * 3);
-                    break;
-                }
-                case 'vertex':
-                    color = Color.fromArray(tColor, indices![i] * 3);
-                    break;
-                case 'vertexInstance':
-                    color = Color.fromArray(tColor, (instanceIndex * drawCount + indices![i]) * 3);
-                    break;
-                default: throw new Error('Unsupported color type.');
+        for (let instanceIndex = 0; instanceIndex < instanceCount; ++instanceIndex) {
+            if (ctx.shouldUpdate) await ctx.update({ current: instanceIndex + 1 });
+
+            let vertices: Float32Array;
+            let normals: Float32Array;
+            let indices: Uint32Array | undefined;
+            let groups: Float32Array | Uint8Array;
+            let vertexCount: number;
+            let drawCount: number;
+            if (mesh !== undefined) {
+                vertices = mesh.vertices;
+                normals = mesh.normals;
+                indices = mesh.indices;
+                groups = mesh.groups;
+                vertexCount = mesh.vertexCount;
+                drawCount = mesh.drawCount;
+            } else {
+                const mesh = meshes![instanceIndex];
+                vertices = mesh.vertexBuffer.ref.value;
+                normals = mesh.normalBuffer.ref.value;
+                indices = mesh.indexBuffer.ref.value;
+                groups = mesh.groupBuffer.ref.value;
+                vertexCount = mesh.vertexCount;
+                drawCount = indices.length;
             }
 
-            let alpha = uAlpha;
-            if (dTransparency) {
-                const group = isGeoTexture ? ObjExporter.getGroup(groups, i) : groups[indices![i]];
-                const transparency = tTransparency.array[instanceIndex * groupCount + group] / 255;
-                alpha *= 1 - transparency;
+            Mat4.fromArray(t, aTransform, instanceIndex * 16);
+            mat3directionTransform(n, t);
+
+            // position
+            for (let i = 0; i < vertexCount; ++i) {
+                v3transformMat4(tmpV, v3fromArray(tmpV, vertices, i * stride), t);
+                StringBuilder.writeSafe(obj, 'v ');
+                StringBuilder.writeFloat(obj, tmpV[0], 1000);
+                StringBuilder.whitespace1(obj);
+                StringBuilder.writeFloat(obj, tmpV[1], 1000);
+                StringBuilder.whitespace1(obj);
+                StringBuilder.writeFloat(obj, tmpV[2], 1000);
+                StringBuilder.newline(obj);
             }
 
-            this.updateMaterial(color, alpha);
+            // normal
+            for (let i = 0; i < vertexCount; ++i) {
+                v3transformMat3(tmpV, v3fromArray(tmpV, normals, i * stride), n);
+                StringBuilder.writeSafe(obj, 'vn ');
+                StringBuilder.writeFloat(obj, tmpV[0], 100);
+                StringBuilder.whitespace1(obj);
+                StringBuilder.writeFloat(obj, tmpV[1], 100);
+                StringBuilder.whitespace1(obj);
+                StringBuilder.writeFloat(obj, tmpV[2], 100);
+                StringBuilder.newline(obj);
+            }
 
-            const v1 = this.vertexOffset + (isGeoTexture ? i : indices![i]) + 1;
-            const v2 = this.vertexOffset + (isGeoTexture ? i + 1 : indices![i + 1]) + 1;
-            const v3 = this.vertexOffset + (isGeoTexture ? i + 2 : indices![i + 2]) + 1;
-            StringBuilder.writeSafe(obj, 'f ');
-            StringBuilder.writeInteger(obj, v1);
-            StringBuilder.writeSafe(obj, '//');
-            StringBuilder.writeIntegerAndSpace(obj, v1);
-            StringBuilder.writeInteger(obj, v2);
-            StringBuilder.writeSafe(obj, '//');
-            StringBuilder.writeIntegerAndSpace(obj, v2);
-            StringBuilder.writeInteger(obj, v3);
-            StringBuilder.writeSafe(obj, '//');
-            StringBuilder.writeInteger(obj, v3);
-            StringBuilder.newline(obj);
+            // face
+            for (let i = 0; i < drawCount; i += 3) {
+                let color: Color;
+                switch (colorType) {
+                    case 'uniform':
+                        color = Color.fromNormalizedArray(values.uColor.ref.value, 0);
+                        break;
+                    case 'instance':
+                        color = Color.fromArray(tColor, instanceIndex * 3);
+                        break;
+                    case 'group': {
+                        const group = isGeoTexture ? ObjExporter.getGroup(groups, i) : groups[indices![i]];
+                        color = Color.fromArray(tColor, group * 3);
+                        break;
+                    }
+                    case 'groupInstance': {
+                        const group = isGeoTexture ? ObjExporter.getGroup(groups, i) : groups[indices![i]];
+                        color = Color.fromArray(tColor, (instanceIndex * groupCount + group) * 3);
+                        break;
+                    }
+                    case 'vertex':
+                        color = Color.fromArray(tColor, indices![i] * 3);
+                        break;
+                    case 'vertexInstance':
+                        color = Color.fromArray(tColor, (instanceIndex * drawCount + indices![i]) * 3);
+                        break;
+                    case 'volume':
+                        color = Color.fromArray(interpolatedColors!, (isGeoTexture ? i : indices![i]) * 3);
+                        break;
+                    case 'volumeInstance':
+                        color = Color.fromArray(interpolatedColors!, (instanceIndex * vertexCount + (isGeoTexture ? i : indices![i])) * 3);
+                        break;
+                    default: throw new Error('Unsupported color type.');
+                }
+
+                let alpha = uAlpha;
+                if (dTransparency) {
+                    const group = isGeoTexture ? ObjExporter.getGroup(groups, i) : groups[indices![i]];
+                    const transparency = tTransparency.array[instanceIndex * groupCount + group] / 255;
+                    alpha *= 1 - transparency;
+                }
+
+                this.updateMaterial(color, alpha);
+
+                const v1 = this.vertexOffset + (isGeoTexture ? i : indices![i]) + 1;
+                const v2 = this.vertexOffset + (isGeoTexture ? i + 1 : indices![i + 1]) + 1;
+                const v3 = this.vertexOffset + (isGeoTexture ? i + 2 : indices![i + 2]) + 1;
+                StringBuilder.writeSafe(obj, 'f ');
+                StringBuilder.writeInteger(obj, v1);
+                StringBuilder.writeSafe(obj, '//');
+                StringBuilder.writeIntegerAndSpace(obj, v1);
+                StringBuilder.writeInteger(obj, v2);
+                StringBuilder.writeSafe(obj, '//');
+                StringBuilder.writeIntegerAndSpace(obj, v2);
+                StringBuilder.writeInteger(obj, v3);
+                StringBuilder.writeSafe(obj, '//');
+                StringBuilder.writeInteger(obj, v3);
+                StringBuilder.newline(obj);
+            }
+
+            this.vertexOffset += vertexCount;
         }
-
-        this.vertexOffset += vertexCount;
     }
 
     getData() {
