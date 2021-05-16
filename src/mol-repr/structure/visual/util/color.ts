@@ -20,7 +20,7 @@ export const ColorSmoothingParams = {
         auto: PD.Group({}),
         on: PD.Group({
             resolutionFactor: PD.Numeric(2, { min: 1, max: 6, step: 0.1 }),
-            sampleStride: PD.Numeric(6, { min: 1, max: 12, step: 1 }),
+            sampleStride: PD.Numeric(3, { min: 1, max: 12, step: 1 }),
         }),
         off: PD.Group({})
     }),
@@ -29,14 +29,14 @@ export type ColorSmoothingParams = typeof ColorSmoothingParams
 
 export function getColorSmoothingProps(props: PD.Values<ColorSmoothingParams>, theme: Theme, resolution?: number, webgl?: WebGLContext) {
     if ((props.smoothColors.name === 'on' || (props.smoothColors.name === 'auto' && theme.color.preferSmoothing)) && resolution && resolution < 3 && webgl) {
-        let stride = 6;
+        let stride = 3;
         if (props.smoothColors.name === 'on') {
             resolution *= props.smoothColors.params.resolutionFactor;
             stride = props.smoothColors.params.sampleStride;
         } else {
             // https://graphtoy.com/?f1(x,t)=(2-smoothstep(0,1.1,x))*x&coords=0.7,0.6,1.8
             resolution *= 2 - smoothstep(0, 1.1, resolution);
-            if (resolution > 0.8) stride = 3;
+            resolution = Math.max(0.5, resolution);
         }
         return { resolution, stride, webgl };
     };
