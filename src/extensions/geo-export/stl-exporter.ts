@@ -4,12 +4,11 @@
  * @author Sukolsak Sakshuwong <sukolsak@stanford.edu>
  */
 
-import { BaseValues } from '../../mol-gl/renderable/schema';
 import { asciiWrite } from '../../mol-io/common/ascii';
 import { Vec3, Mat4 } from '../../mol-math/linear-algebra';
 import { PLUGIN_VERSION } from '../../mol-plugin/version';
 import { RuntimeContext } from '../../mol-task';
-import { MeshExporter } from './mesh-exporter';
+import { MeshExporter, AddMeshInput } from './mesh-exporter';
 
 // avoiding namespace lookup improved performance in Chrome (Aug 2020)
 const v3fromArray = Vec3.fromArray;
@@ -28,7 +27,9 @@ export class StlExporter extends MeshExporter<StlData> {
     private triangleBuffers: ArrayBuffer[] = [];
     private triangleCount = 0;
 
-    protected async addMeshWithColors(vertices: Float32Array, normals: Float32Array, indices: Uint32Array | undefined, groups: Float32Array | Uint8Array, vertexCount: number, drawCount: number, values: BaseValues, instanceIndex: number, isGeoTexture: boolean, ctx: RuntimeContext) {
+    protected async addMeshWithColors(input: AddMeshInput) {
+        const { mesh, meshes, values, isGeoTexture, ctx } = input;
+
         const t = Mat4();
         const tmpV = Vec3();
         const v1 = Vec3();
@@ -36,51 +37,68 @@ export class StlExporter extends MeshExporter<StlData> {
         const v3 = Vec3();
         const stride = isGeoTexture ? 4 : 3;
 
-        const aTransform = values.aTransform.ref.value;
-        Mat4.fromArray(t, aTransform, instanceIndex * 16);
+        const instanceCount = values.uInstanceCount.ref.value;
 
-        const currentProgress = (vertexCount + drawCount) * instanceIndex;
-        await ctx.update({ isIndeterminate: false, current: currentProgress, max: (vertexCount + drawCount) * values.uInstanceCount.ref.value });
+        for (let instanceIndex = 0; instanceIndex < instanceCount; ++instanceIndex) {
+            if (ctx.shouldUpdate) await ctx.update({ current: instanceIndex + 1 });
 
-        // position
-        const vertexArray = new Float32Array(vertexCount * 3);
-        for (let i = 0; i < vertexCount; ++i) {
-            if (i % 1000 === 0 && ctx.shouldUpdate) await ctx.update({ current: currentProgress + i });
-            v3transformMat4(tmpV, v3fromArray(tmpV, vertices, i * stride), t);
-            v3toArray(tmpV, vertexArray, i * 3);
+            let vertices: Float32Array;
+            let indices: Uint32Array | undefined;
+            let vertexCount: number;
+            let drawCount: number;
+            if (mesh !== undefined) {
+                vertices = mesh.vertices;
+                indices = mesh.indices;
+                vertexCount = mesh.vertexCount;
+                drawCount = mesh.drawCount;
+            } else {
+                const mesh = meshes![instanceIndex];
+                vertices = mesh.vertexBuffer.ref.value;
+                indices = mesh.indexBuffer.ref.value;
+                vertexCount = mesh.vertexCount;
+                drawCount = mesh.triangleCount * 3;
+            }
+
+            const aTransform = values.aTransform.ref.value;
+            Mat4.fromArray(t, aTransform, instanceIndex * 16);
+
+            // position
+            const vertexArray = new Float32Array(vertexCount * 3);
+            for (let i = 0; i < vertexCount; ++i) {
+                v3transformMat4(tmpV, v3fromArray(tmpV, vertices, i * stride), t);
+                v3toArray(tmpV, vertexArray, i * 3);
+            }
+
+            // face
+            const triangleBuffer = new ArrayBuffer(50 * drawCount);
+            const dataView = new DataView(triangleBuffer);
+            for (let i = 0; i < drawCount; i += 3) {
+                v3fromArray(v1, vertexArray, (isGeoTexture ? i : indices![i]) * 3);
+                v3fromArray(v2, vertexArray, (isGeoTexture ? i + 1 : indices![i + 1]) * 3);
+                v3fromArray(v3, vertexArray, (isGeoTexture ? i + 2 : indices![i + 2]) * 3);
+                v3triangleNormal(tmpV, v1, v2, v3);
+
+                const byteOffset = 50 * i;
+                dataView.setFloat32(byteOffset, tmpV[0], true);
+                dataView.setFloat32(byteOffset + 4, tmpV[1], true);
+                dataView.setFloat32(byteOffset + 8, tmpV[2], true);
+
+                dataView.setFloat32(byteOffset + 12, v1[0], true);
+                dataView.setFloat32(byteOffset + 16, v1[1], true);
+                dataView.setFloat32(byteOffset + 20, v1[2], true);
+
+                dataView.setFloat32(byteOffset + 24, v2[0], true);
+                dataView.setFloat32(byteOffset + 28, v2[1], true);
+                dataView.setFloat32(byteOffset + 32, v2[2], true);
+
+                dataView.setFloat32(byteOffset + 36, v3[0], true);
+                dataView.setFloat32(byteOffset + 40, v3[1], true);
+                dataView.setFloat32(byteOffset + 44, v3[2], true);
+            }
+
+            this.triangleBuffers.push(triangleBuffer);
+            this.triangleCount += drawCount;
         }
-
-        // face
-        const triangleBuffer = new ArrayBuffer(50 * drawCount);
-        const dataView = new DataView(triangleBuffer);
-        for (let i = 0; i < drawCount; i += 3) {
-            if (i % 3000 === 0 && ctx.shouldUpdate) await ctx.update({ current: currentProgress + vertexCount + i });
-
-            v3fromArray(v1, vertexArray, (isGeoTexture ? i : indices![i]) * 3);
-            v3fromArray(v2, vertexArray, (isGeoTexture ? i + 1 : indices![i + 1]) * 3);
-            v3fromArray(v3, vertexArray, (isGeoTexture ? i + 2 : indices![i + 2]) * 3);
-            v3triangleNormal(tmpV, v1, v2, v3);
-
-            const byteOffset = 50 * i;
-            dataView.setFloat32(byteOffset, tmpV[0], true);
-            dataView.setFloat32(byteOffset + 4, tmpV[1], true);
-            dataView.setFloat32(byteOffset + 8, tmpV[2], true);
-
-            dataView.setFloat32(byteOffset + 12, v1[0], true);
-            dataView.setFloat32(byteOffset + 16, v1[1], true);
-            dataView.setFloat32(byteOffset + 20, v1[2], true);
-
-            dataView.setFloat32(byteOffset + 24, v2[0], true);
-            dataView.setFloat32(byteOffset + 28, v2[1], true);
-            dataView.setFloat32(byteOffset + 32, v2[2], true);
-
-            dataView.setFloat32(byteOffset + 36, v3[0], true);
-            dataView.setFloat32(byteOffset + 40, v3[1], true);
-            dataView.setFloat32(byteOffset + 44, v3[2], true);
-        }
-
-        this.triangleBuffers.push(triangleBuffer);
-        this.triangleCount += drawCount;
     }
 
     getData() {

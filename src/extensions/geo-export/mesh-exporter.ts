@@ -14,6 +14,8 @@ import { TextureMeshValues } from '../../mol-gl/renderable/texture-mesh';
 import { BaseValues, SizeValues } from '../../mol-gl/renderable/schema';
 import { TextureImage } from '../../mol-gl/renderable/util';
 import { WebGLContext } from '../../mol-gl/webgl/context';
+import { getTrilinearlyInterpolated } from '../../mol-geo/geometry/mesh/color-smoothing';
+import { Mesh } from '../../mol-geo/geometry/mesh/mesh';
 import { MeshBuilder } from '../../mol-geo/geometry/mesh/mesh-builder';
 import { addSphere } from '../../mol-geo/geometry/mesh/builder/sphere';
 import { addCylinder } from '../../mol-geo/geometry/mesh/builder/cylinder';
@@ -23,8 +25,26 @@ import { RuntimeContext } from '../../mol-task';
 import { decodeFloatRGB } from '../../mol-util/float-packing';
 import { RenderObjectExporter, RenderObjectExportData } from './render-object-exporter';
 
+const GeoExportName = 'geo-export';
+
 // avoiding namespace lookup improved performance in Chrome (Aug 2020)
 const v3fromArray = Vec3.fromArray;
+
+export interface AddMeshInput {
+    mesh: {
+        vertices: Float32Array
+        normals: Float32Array
+        indices: Uint32Array | undefined
+        groups: Float32Array | Uint8Array
+        vertexCount: number
+        drawCount: number
+    } | undefined
+    meshes: Mesh[] | undefined
+    values: BaseValues
+    isGeoTexture: boolean
+    webgl: WebGLContext | undefined
+    ctx: RuntimeContext
+}
 
 export abstract class MeshExporter<D extends RenderObjectExportData> implements RenderObjectExporter<D> {
     abstract readonly fileExtension: string;
@@ -68,37 +88,58 @@ export abstract class MeshExporter<D extends RenderObjectExportData> implements 
         return decodeFloatRGB(r, g, b);
     }
 
-    protected abstract addMeshWithColors(vertices: Float32Array, normals: Float32Array, indices: Uint32Array | undefined, groups: Float32Array | Uint8Array, vertexCount: number, drawCount: number, values: BaseValues, instanceIndex: number, isGeoTexture: boolean, ctx: RuntimeContext): void;
+    protected static getInterpolatedColors(vertices: Float32Array, vertexCount: number, values: BaseValues, stride: number, colorType: 'volume' | 'volumeInstance', webgl: WebGLContext) {
+        const colorGridTransform = values.uColorGridTransform.ref.value;
+        const colorGridDim = values.uColorGridDim.ref.value;
+        const colorTexDim = values.uColorTexDim.ref.value;
+        const aTransform = values.aTransform.ref.value;
+        const instanceCount = values.uInstanceCount.ref.value;
 
-    private async addMesh(values: MeshValues, ctx: RuntimeContext) {
+        if (!webgl.namedFramebuffers[GeoExportName]) {
+            webgl.namedFramebuffers[GeoExportName] = webgl.resources.framebuffer();
+        }
+        const framebuffer = webgl.namedFramebuffers[GeoExportName];
+
+        const [ width, height ] = values.uColorTexDim.ref.value;
+        const colorGrid = new Uint8Array(width * height * 4);
+
+        framebuffer.bind();
+        values.tColorGrid.ref.value.attachFramebuffer(framebuffer, 0);
+        webgl.readPixels(0, 0, width, height, colorGrid);
+
+        const interpolated = getTrilinearlyInterpolated({ vertexCount, instanceCount, transformBuffer: aTransform, positionBuffer: vertices, colorType, grid: colorGrid, gridDim: colorGridDim, gridTexDim: colorTexDim, gridTransform: colorGridTransform, vertexStride: stride, colorStride: 4 });
+        return interpolated.array;
+    }
+
+    protected abstract addMeshWithColors(inpit: AddMeshInput): void;
+
+    private async addMesh(values: MeshValues, webgl: WebGLContext, ctx: RuntimeContext) {
         const aPosition = values.aPosition.ref.value;
         const aNormal = values.aNormal.ref.value;
         const elements = values.elements.ref.value;
         const aGroup = values.aGroup.ref.value;
-        const instanceCount = values.instanceCount.ref.value;
         const vertexCount = values.uVertexCount.ref.value;
         const drawCount = values.drawCount.ref.value;
 
-        for (let instanceIndex = 0; instanceIndex < instanceCount; ++instanceIndex) {
-            await this.addMeshWithColors(aPosition, aNormal, elements, aGroup, vertexCount, drawCount, values, instanceIndex, false, ctx);
-        }
+        await this.addMeshWithColors({ mesh: { vertices: aPosition, normals: aNormal, indices: elements, groups: aGroup, vertexCount, drawCount }, meshes: undefined, values, isGeoTexture: false, webgl, ctx });
     }
 
-    private async addLines(values: LinesValues, ctx: RuntimeContext) {
+    private async addLines(values: LinesValues, webgl: WebGLContext, ctx: RuntimeContext) {
         // TODO
     }
 
-    private async addPoints(values: PointsValues, ctx: RuntimeContext) {
+    private async addPoints(values: PointsValues, webgl: WebGLContext, ctx: RuntimeContext) {
         // TODO
     }
 
-    private async addSpheres(values: SpheresValues, ctx: RuntimeContext) {
+    private async addSpheres(values: SpheresValues, webgl: WebGLContext, ctx: RuntimeContext) {
         const center = Vec3();
 
         const aPosition = values.aPosition.ref.value;
         const aGroup = values.aGroup.ref.value;
         const instanceCount = values.instanceCount.ref.value;
         const vertexCount = values.uVertexCount.ref.value;
+        const meshes: Mesh[] = [];
 
         for (let instanceIndex = 0; instanceIndex < instanceCount; ++instanceIndex) {
             const state = MeshBuilder.createState(512, 256);
@@ -112,16 +153,13 @@ export abstract class MeshExporter<D extends RenderObjectExportData> implements 
                 addSphere(state, center, radius, 2);
             }
 
-            const mesh = MeshBuilder.getMesh(state);
-            const vertices = mesh.vertexBuffer.ref.value;
-            const normals = mesh.normalBuffer.ref.value;
-            const indices = mesh.indexBuffer.ref.value;
-            const groups = mesh.groupBuffer.ref.value;
-            await this.addMeshWithColors(vertices, normals, indices, groups, mesh.vertexCount, indices.length, values, instanceIndex, false, ctx);
+            meshes.push(MeshBuilder.getMesh(state));
         }
+
+        await this.addMeshWithColors({ mesh: undefined, meshes, values, isGeoTexture: false, webgl, ctx });
     }
 
-    private async addCylinders(values: CylindersValues, ctx: RuntimeContext) {
+    private async addCylinders(values: CylindersValues, webgl: WebGLContext, ctx: RuntimeContext) {
         const start = Vec3();
         const end = Vec3();
 
@@ -132,6 +170,7 @@ export abstract class MeshExporter<D extends RenderObjectExportData> implements 
         const aGroup = values.aGroup.ref.value;
         const instanceCount = values.instanceCount.ref.value;
         const vertexCount = values.uVertexCount.ref.value;
+        const meshes: Mesh[] = [];
 
         for (let instanceIndex = 0; instanceIndex < instanceCount; ++instanceIndex) {
             const state = MeshBuilder.createState(512, 256);
@@ -150,17 +189,13 @@ export abstract class MeshExporter<D extends RenderObjectExportData> implements 
                 addCylinder(state, start, end, 1, cylinderProps);
             }
 
-            const mesh = MeshBuilder.getMesh(state);
-            const vertices = mesh.vertexBuffer.ref.value;
-            const normals = mesh.normalBuffer.ref.value;
-            const indices = mesh.indexBuffer.ref.value;
-            const groups = mesh.groupBuffer.ref.value;
-            await this.addMeshWithColors(vertices, normals, indices, groups, mesh.vertexCount, indices.length, values, instanceIndex, false, ctx);
+            meshes.push(MeshBuilder.getMesh(state));
         }
+
+        await this.addMeshWithColors({ mesh: undefined, meshes, values, isGeoTexture: false, webgl, ctx });
     }
 
     private async addTextureMesh(values: TextureMeshValues, webgl: WebGLContext, ctx: RuntimeContext) {
-        const GeoExportName = 'geo-export';
         if (!webgl.namedFramebuffers[GeoExportName]) {
             webgl.namedFramebuffers[GeoExportName] = webgl.resources.framebuffer();
         }
@@ -180,12 +215,9 @@ export abstract class MeshExporter<D extends RenderObjectExportData> implements 
         webgl.readPixels(0, 0, width, height, groups);
 
         const vertexCount = values.uVertexCount.ref.value;
-        const instanceCount = values.instanceCount.ref.value;
         const drawCount = values.drawCount.ref.value;
 
-        for (let instanceIndex = 0; instanceIndex < instanceCount; ++instanceIndex) {
-            await this.addMeshWithColors(vertices, normals, undefined, groups, vertexCount, drawCount, values, instanceIndex, true, ctx);
-        }
+        await this.addMeshWithColors({ mesh: { vertices, normals, indices: undefined, groups, vertexCount, drawCount }, meshes: undefined, values, isGeoTexture: true, webgl, ctx });
     }
 
     add(renderObject: GraphicsRenderObject, webgl: WebGLContext, ctx: RuntimeContext) {
@@ -193,15 +225,15 @@ export abstract class MeshExporter<D extends RenderObjectExportData> implements 
 
         switch (renderObject.type) {
             case 'mesh':
-                return this.addMesh(renderObject.values as MeshValues, ctx);
+                return this.addMesh(renderObject.values as MeshValues, webgl, ctx);
             case 'lines':
-                return this.addLines(renderObject.values as LinesValues, ctx);
+                return this.addLines(renderObject.values as LinesValues, webgl, ctx);
             case 'points':
-                return this.addPoints(renderObject.values as PointsValues, ctx);
+                return this.addPoints(renderObject.values as PointsValues, webgl, ctx);
             case 'spheres':
-                return this.addSpheres(renderObject.values as SpheresValues, ctx);
+                return this.addSpheres(renderObject.values as SpheresValues, webgl, ctx);
             case 'cylinders':
-                return this.addCylinders(renderObject.values as CylindersValues, ctx);
+                return this.addCylinders(renderObject.values as CylindersValues, webgl, ctx);
             case 'texture-mesh':
                 return this.addTextureMesh(renderObject.values as TextureMeshValues, webgl, ctx);
         }

@@ -134,7 +134,7 @@ export function calcMeshColorSmoothing(input: ColorSmoothingInput, resolution: n
 
         return { kind: 'volume' as const, texture, gridTexDim, gridDim, gridTransform, type };
     } else {
-        const interpolated = getTrilinearlyInterpolated({ vertexCount, instanceCount, transformBuffer, positionBuffer, colorType: type, grid, gridDim, gridTexDim, gridTransform });
+        const interpolated = getTrilinearlyInterpolated({ vertexCount, instanceCount, transformBuffer, positionBuffer, colorType: type, grid, gridDim, gridTexDim, gridTransform, vertexStride: 3, colorStride: 3 });
 
         return {
             kind: 'vertex' as const,
@@ -157,10 +157,12 @@ interface ColorInterpolationInput {
     gridTexDim: Vec2
     gridDim: Vec3
     gridTransform: Vec4
+    vertexStride: number
+    colorStride: number
 }
 
 export function getTrilinearlyInterpolated(input: ColorInterpolationInput): TextureImage<Uint8Array> {
-    const { vertexCount, positionBuffer, transformBuffer, grid, gridDim, gridTexDim, gridTransform } = input;
+    const { vertexCount, positionBuffer, transformBuffer, grid, gridDim, gridTexDim, gridTransform, vertexStride, colorStride } = input;
 
     const isInstanceType = input.colorType.endsWith('Instance');
     const instanceCount = isInstanceType ? input.instanceCount : 1;
@@ -176,7 +178,7 @@ export function getTrilinearlyInterpolated(input: ColorInterpolationInput): Text
         const column = Math.floor(((z * xn) % width) / xn);
         const row = Math.floor((z * xn) / width);
         const px = column * xn + x;
-        return 3 * ((row * yn * width) + (y * width) + px);
+        return colorStride * ((row * yn * width) + (y * width) + px);
     }
 
     const v = Vec3();
@@ -186,7 +188,7 @@ export function getTrilinearlyInterpolated(input: ColorInterpolationInput): Text
 
     for (let i = 0; i < instanceCount; ++i) {
         for (let j = 0; j < vertexCount; ++j) {
-            Vec3.fromArray(v, positionBuffer, j * 3);
+            Vec3.fromArray(v, positionBuffer, j * vertexStride);
             if (isInstanceType) Vec3.transformMat4Offset(v, v, transformBuffer, 0, 0, i * 16);
             Vec3.sub(v, v, min);
             Vec3.scale(v, v, scaleFactor);
