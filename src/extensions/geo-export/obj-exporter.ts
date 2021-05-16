@@ -180,7 +180,7 @@ export class ObjExporter extends MeshExporter<ObjData> {
                 indices = mesh.indexBuffer.ref.value;
                 groups = mesh.groupBuffer.ref.value;
                 vertexCount = mesh.vertexCount;
-                drawCount = indices.length;
+                drawCount = mesh.triangleCount * 3;
             }
 
             Mat4.fromArray(t, aTransform, instanceIndex * 16);

@@ -56,7 +56,7 @@ export class StlExporter extends MeshExporter<StlData> {
                 vertices = mesh.vertexBuffer.ref.value;
                 indices = mesh.indexBuffer.ref.value;
                 vertexCount = mesh.vertexCount;
-                drawCount = indices.length;
+                drawCount = mesh.triangleCount * 3;
             }
 
             const aTransform = values.aTransform.ref.value;
