@@ -72,6 +72,7 @@ export function AtomIdColorTheme(ctx: ThemeDataContext, props: PD.Values<AtomIdC
     return {
         factory: AtomIdColorTheme,
         granularity: 'group',
+        preferSmoothing: true,
         color,
         props,
         description: Description,

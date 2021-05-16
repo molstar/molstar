@@ -12,7 +12,7 @@ import { Geometry, GeometryUtils } from '../../mol-geo/geometry/geometry';
 import { LocationIterator } from '../../mol-geo/util/location-iterator';
 import { Theme } from '../../mol-theme/theme';
 import { createUnitsTransform, includesUnitKind } from './visual/util/common';
-import { createRenderObject, GraphicsRenderObject } from '../../mol-gl/render-object';
+import { createRenderObject, GraphicsRenderObject, RenderObjectValues } from '../../mol-gl/render-object';
 import { PickingId } from '../../mol-geo/geometry/picking';
 import { Loci, isEveryLoci, EmptyLoci } from '../../mol-model/loci';
 import { Interval } from '../../mol-data/int';
@@ -38,6 +38,8 @@ import { TextureMesh } from '../../mol-geo/geometry/texture-mesh/texture-mesh';
 import { SizeValues } from '../../mol-gl/renderable/schema';
 import { StructureParams, StructureMeshParams, StructureSpheresParams, StructurePointsParams, StructureLinesParams, StructureTextParams, StructureDirectVolumeParams, StructureTextureMeshParams, StructureCylindersParams } from './params';
 import { Clipping } from '../../mol-theme/clipping';
+import { WebGLContext } from '../../mol-gl/webgl/context';
+import { isPromiseLike } from '../../mol-util/type-helpers';
 
 export type StructureGroup = { structure: Structure, group: Unit.SymmetryGroup }
 
@@ -59,6 +61,7 @@ interface UnitsVisualBuilder<P extends StructureParams, G extends Geometry> {
     eachLocation(loci: Loci, structureGroup: StructureGroup, apply: (interval: Interval) => boolean, isMarking: boolean): boolean
     setUpdateState(state: VisualUpdateState, newProps: PD.Values<P>, currentProps: PD.Values<P>, newTheme: Theme, currentTheme: Theme, newStructureGroup: StructureGroup, currentStructureGroup: StructureGroup): void
     mustRecreate?: (structureGroup: StructureGroup, props: PD.Values<P>) => boolean
+    processValues?: (values: RenderObjectValues<G['kind']>, geometry: G, props: PD.Values<P>, theme: Theme, webgl?: WebGLContext) => void
     dispose?: (geometry: G) => void
 }
 
@@ -67,7 +70,7 @@ interface UnitsVisualGeometryBuilder<P extends StructureParams, G extends Geomet
 }
 
 export function UnitsVisual<G extends Geometry, P extends StructureParams & Geometry.Params<G>>(builder: UnitsVisualGeometryBuilder<P, G>, materialId: number): UnitsVisual<P> {
-    const { defaultProps, createGeometry, createLocationIterator, getLoci, eachLocation, setUpdateState, mustRecreate, dispose } = builder;
+    const { defaultProps, createGeometry, createLocationIterator, getLoci, eachLocation, setUpdateState, mustRecreate, processValues, dispose } = builder;
     const { createEmpty: createEmptyGeometry, updateValues, updateBoundingSphere, updateRenderableState, createPositionIterator } = builder.geometryUtils;
     const updateState = VisualUpdateState.create();
 
@@ -157,7 +160,11 @@ export function UnitsVisual<G extends Geometry, P extends StructureParams & Geom
                 updateState.updateColor = true;
                 updateState.updateSize = true;
             }
-            if (newTheme.color.granularity.startsWith('vertex')) {
+            if (newTheme.color.granularity.startsWith('vertex') ||
+                renderObject.values.dColorType.ref.value.startsWith('vertex') ||
+                newTheme.color.granularity.startsWith('volume') ||
+                renderObject.values.dColorType.ref.value.startsWith('volume')
+            ) {
                 updateState.updateColor = true;
             }
         }
@@ -250,6 +257,12 @@ export function UnitsVisual<G extends Geometry, P extends StructureParams & Geom
         }
     }
 
+    function finalize(ctx: VisualContext) {
+        if (renderObject) {
+            processValues?.(renderObject.values, geometry, currentProps, currentTheme, ctx.webgl);
+        }
+    }
+
     return {
         get groupCount() { return locationIt ? locationIt.count : 0; },
         get renderObject () { return locationIt && locationIt.count ? renderObject : undefined; },
@@ -257,10 +270,17 @@ export function UnitsVisual<G extends Geometry, P extends StructureParams & Geom
             prepareUpdate(theme, props, structureGroup || currentStructureGroup);
             if (updateState.createGeometry) {
                 const newGeometry = _createGeometry(ctx, newStructureGroup.group.units[0], newStructureGroup.structure, newTheme, newProps, geometry);
-                return newGeometry instanceof Promise ? newGeometry.then(update) : update(newGeometry as G);
+                if (isPromiseLike(newGeometry)) {
+                    return newGeometry.then(g => {
+                        update(g);
+                        finalize(ctx);
+                    });
+                }
+                update(newGeometry);
             } else {
                 update();
             }
+            finalize(ctx);
         },
         getLoci(pickingId: PickingId) {
             return renderObject ? getLoci(pickingId, currentStructureGroup, renderObject.id) : EmptyLoci;

@@ -84,6 +84,7 @@ export function HydrophobicityColorTheme(ctx: ThemeDataContext, props: PD.Values
     return {
         factory: HydrophobicityColorTheme,
         granularity: 'group',
+        preferSmoothing: true,
         color,
         props,
         description: Description,

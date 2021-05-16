@@ -48,6 +48,7 @@ export function PartialChargeColorTheme(ctx: ThemeDataContext, props: PD.Values<
     return {
         factory: PartialChargeColorTheme,
         granularity: 'group',
+        preferSmoothing: true,
         color,
         props,
         description: Description,

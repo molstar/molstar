@@ -64,6 +64,7 @@ export function AccessibleSurfaceAreaColorTheme(ctx: ThemeDataContext, props: PD
     return {
         factory: AccessibleSurfaceAreaColorTheme,
         granularity: 'group',
+        preferSmoothing: true,
         color,
         props,
         contextHash,

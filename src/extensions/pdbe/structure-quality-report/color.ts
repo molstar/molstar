@@ -79,6 +79,7 @@ export function StructureQualityReportColorTheme(ctx: ThemeDataContext, props: P
     return {
         factory: StructureQualityReportColorTheme,
         granularity: 'group',
+        preferSmoothing: true,
         color: color,
         props: props,
         description: 'Assigns residue colors according to the number of quality issues or a specific quality issue. Data from wwPDB Validation Report, obtained via PDBe.',

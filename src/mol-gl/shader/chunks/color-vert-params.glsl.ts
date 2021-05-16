@@ -9,6 +9,12 @@ export const color_vert_params = `
         varying vec4 vColor;
         uniform vec2 uColorTexDim;
         uniform sampler2D tColor;
+    #elif defined(dColorType_grid)
+        varying vec4 vColor;
+        uniform vec2 uColorTexDim;
+        uniform vec3 uColorGridDim;
+        uniform vec4 uColorGridTransform;
+        uniform sampler2D tColorGrid;
     #endif
 
     #ifdef dOverpaint

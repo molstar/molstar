@@ -1,25 +1,30 @@
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { ValueCell } from '../../mol-util';
 import { TextureImage, createTextureImage } from '../../mol-gl/renderable/util';
 import { Color } from '../../mol-util/color';
-import { Vec2, Vec3 } from '../../mol-math/linear-algebra';
+import { Vec2, Vec3, Vec4 } from '../../mol-math/linear-algebra';
 import { LocationIterator } from '../util/location-iterator';
 import { NullLocation } from '../../mol-model/location';
 import { LocationColor, ColorTheme } from '../../mol-theme/color';
 import { Geometry } from './geometry';
+import { createNullTexture, Texture } from '../../mol-gl/webgl/texture';
 
-export type ColorType = 'uniform' | 'instance' | 'group' | 'groupInstance' | 'vertex' | 'vertexInstance'
+export type ColorType = 'uniform' | 'instance' | 'group' | 'groupInstance' | 'vertex' | 'vertexInstance' | 'volume' | 'volumeInstance'
 
 export type ColorData = {
     uColor: ValueCell<Vec3>,
     tColor: ValueCell<TextureImage<Uint8Array>>,
+    tColorGrid: ValueCell<Texture>,
     tPalette: ValueCell<TextureImage<Uint8Array>>,
     uColorTexDim: ValueCell<Vec2>,
+    uColorGridDim: ValueCell<Vec3>,
+    uColorGridTransform: ValueCell<Vec4>,
     dColorType: ValueCell<string>,
     dUsePalette: ValueCell<boolean>,
 }
@@ -43,8 +48,43 @@ function _createColors(locationIt: LocationIterator, positionIt: LocationIterato
         case 'groupInstance': return createGroupInstanceColor(locationIt, colorTheme.color, colorData);
         case 'vertex': return createVertexColor(positionIt, colorTheme.color, colorData);
         case 'vertexInstance': return createVertexInstanceColor(positionIt, colorTheme.color, colorData);
+        case 'volume': return createGridColor((colorTheme as any).grid, 'volume', colorData);
+        case 'volumeInstance': return createGridColor((colorTheme as any).grid, 'volumeInstance', colorData);
     }
 }
+
+function updatePaletteTexture(palette: ColorTheme.Palette, cell: ValueCell<TextureImage<Uint8Array>>) {
+    let isSynced = true;
+    const texture = cell.ref.value;
+    if (palette.colors.length !== texture.width || texture.filter !== palette.filter) {
+        isSynced = false;
+    } else {
+        const data = texture.array;
+        let o = 0;
+        for (const c of palette.colors) {
+            const [r, g, b] = Color.toRgb(c);
+            if (data[o++] !== r || data[o++] !== g || data[o++] !== b) {
+                isSynced = false;
+                break;
+            }
+        }
+    }
+
+    if (isSynced) return;
+
+    const array = new Uint8Array(palette.colors.length * 3);
+    let o = 0;
+    for (const c of palette.colors) {
+        const [r, g, b] = Color.toRgb(c);
+        array[o++] = r;
+        array[o++] = g;
+        array[o++] = b;
+    }
+
+    ValueCell.update(cell, { array, height: 1, width: palette.colors.length, filter: palette.filter });
+}
+
+//
 
 export function createValueColor(value: Color, colorData?: ColorData): ColorData {
     if (colorData) {
@@ -55,8 +95,11 @@ export function createValueColor(value: Color, colorData?: ColorData): ColorData
         return {
             uColor: ValueCell.create(Color.toVec3Normalized(Vec3(), value)),
             tColor: ValueCell.create({ array: new Uint8Array(3), width: 1, height: 1 }),
+            tColorGrid: ValueCell.create(createNullTexture()),
             tPalette: ValueCell.create({ array: new Uint8Array(3), width: 1, height: 1 }),
             uColorTexDim: ValueCell.create(Vec2.create(1, 1)),
+            uColorGridDim: ValueCell.create(Vec3.create(1, 1, 1)),
+            uColorGridTransform: ValueCell.create(Vec4.create(0, 0, 0, 1)),
             dColorType: ValueCell.create('uniform'),
             dUsePalette: ValueCell.create(false),
         };
@@ -68,7 +111,9 @@ function createUniformColor(locationIt: LocationIterator, color: LocationColor, 
     return createValueColor(color(NullLocation, false), colorData);
 }
 
-function createTextureColor(colors: TextureImage<Uint8Array>, type: ColorType, colorData?: ColorData): ColorData {
+//
+
+export function createTextureColor(colors: TextureImage<Uint8Array>, type: ColorType, colorData?: ColorData): ColorData {
     if (colorData) {
         ValueCell.update(colorData.tColor, colors);
         ValueCell.update(colorData.uColorTexDim, Vec2.create(colors.width, colors.height));
@@ -78,8 +123,11 @@ function createTextureColor(colors: TextureImage<Uint8Array>, type: ColorType, c
         return {
             uColor: ValueCell.create(Vec3()),
             tColor: ValueCell.create(colors),
+            tColorGrid: ValueCell.create(createNullTexture()),
             tPalette: ValueCell.create({ array: new Uint8Array(3), width: 1, height: 1 }),
             uColorTexDim: ValueCell.create(Vec2.create(colors.width, colors.height)),
+            uColorGridDim: ValueCell.create(Vec3.create(1, 1, 1)),
+            uColorGridTransform: ValueCell.create(Vec4.create(0, 0, 0, 1)),
             dColorType: ValueCell.create(type),
             dUsePalette: ValueCell.create(false),
         };
@@ -156,33 +204,36 @@ function createVertexInstanceColor(locationIt: LocationIterator, color: Location
     return createTextureColor(colors, 'vertexInstance', colorData);
 }
 
-function updatePaletteTexture(palette: ColorTheme.Palette, cell: ValueCell<TextureImage<Uint8Array>>) {
-    let isSynced = true;
-    const texture = cell.ref.value;
-    if (palette.colors.length !== texture.width || texture.filter !== palette.filter) {
-        isSynced = false;
+//
+
+interface ColorVolume {
+    colors: Texture
+    dimension: Vec3
+    transform: Vec4
+}
+
+export function createGridColor(grid: ColorVolume, type: ColorType, colorData?: ColorData): ColorData {
+    const { colors, dimension, transform } = grid;
+    const width = colors.getWidth();
+    const height = colors.getHeight();
+    if (colorData) {
+        ValueCell.update(colorData.tColorGrid, colors);
+        ValueCell.update(colorData.uColorTexDim, Vec2.create(width, height));
+        ValueCell.update(colorData.uColorGridDim, Vec3.clone(dimension));
+        ValueCell.update(colorData.uColorGridTransform, Vec4.clone(transform));
+        ValueCell.updateIfChanged(colorData.dColorType, type);
+        return colorData;
     } else {
-        const data = texture.array;
-        let o = 0;
-        for (const c of palette.colors) {
-            const [r, g, b] = Color.toRgb(c);
-            if (data[o++] !== r || data[o++] !== g || data[o++] !== b) {
-                isSynced = false;
-                break;
-            }
-        }
+        return {
+            uColor: ValueCell.create(Vec3()),
+            tColor: ValueCell.create({ array: new Uint8Array(3), width: 1, height: 1 }),
+            tColorGrid: ValueCell.create(colors),
+            tPalette: ValueCell.create({ array: new Uint8Array(3), width: 1, height: 1 }),
+            uColorTexDim: ValueCell.create(Vec2.create(width, height)),
+            uColorGridDim: ValueCell.create(Vec3.clone(dimension)),
+            uColorGridTransform: ValueCell.create(Vec4.clone(transform)),
+            dColorType: ValueCell.create(type),
+            dUsePalette: ValueCell.create(false),
+        };
     }
-
-    if (isSynced) return;
-
-    const array = new Uint8Array(palette.colors.length * 3);
-    let o = 0;
-    for (const c of palette.colors) {
-        const [r, g, b] = Color.toRgb(c);
-        array[o++] = r;
-        array[o++] = g;
-        array[o++] = b;
-    }
-
-    ValueCell.update(cell, { array, height: 1, width: palette.colors.length, filter: palette.filter });
 }

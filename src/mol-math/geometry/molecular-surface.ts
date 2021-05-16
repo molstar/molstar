@@ -49,7 +49,7 @@ function getAngleTables (probePositions: number): AnglesTables {
 export const MolecularSurfaceCalculationParams = {
     probeRadius: PD.Numeric(1.4, { min: 0, max: 10, step: 0.1 }, { description: 'Radius of the probe tracing the molecular surface.' }),
     resolution: PD.Numeric(0.5, { min: 0.01, max: 20, step: 0.01 }, { description: 'Grid resolution/cell spacing.', ...BaseGeometry.CustomQualityParamInfo }),
-    probePositions: PD.Numeric(30, { min: 12, max: 90, step: 1 }, { description: 'Number of positions tested for probe target intersection.', ...BaseGeometry.CustomQualityParamInfo }),
+    probePositions: PD.Numeric(36, { min: 12, max: 90, step: 1 }, { description: 'Number of positions tested for probe target intersection.', ...BaseGeometry.CustomQualityParamInfo }),
 };
 export const DefaultMolecularSurfaceCalculationProps = PD.getDefaultValues(MolecularSurfaceCalculationParams);
 export type MolecularSurfaceCalculationProps = typeof DefaultMolecularSurfaceCalculationProps
@@ -370,5 +370,5 @@ export async function calcMolecularSurface(ctx: RuntimeContext, position: Requir
     Mat4.fromScaling(transform, Vec3.create(resolution, resolution, resolution));
     Mat4.setTranslation(transform, expandedBox.min);
     // console.log({ field, idField, transform, updateChunk })
-    return { field, idField, transform };
+    return { field, idField, transform, resolution };
 }

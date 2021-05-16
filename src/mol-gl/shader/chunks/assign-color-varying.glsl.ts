@@ -12,6 +12,12 @@ export const assign_color_varying = `
         vColor.rgb = readFromTexture(tColor, VertexID, uColorTexDim).rgb;
     #elif defined(dColorType_vertexInstance)
         vColor.rgb = readFromTexture(tColor, int(aInstance) * uVertexCount + VertexID, uColorTexDim).rgb;
+    #elif defined(dColorType_volume)
+        vec3 gridPos = (uColorGridTransform.w * (position - uColorGridTransform.xyz)) / uColorGridDim;
+        vColor.rgb = texture3dFrom2dLinear(tColorGrid, gridPos, uColorGridDim, uColorTexDim).rgb;
+    #elif defined(dColorType_volumeInstance)
+        vec3 gridPos = (uColorGridTransform.w * (vModelPosition - uColorGridTransform.xyz)) / uColorGridDim;
+        vColor.rgb = texture3dFrom2dLinear(tColorGrid, gridPos, uColorGridDim, uColorTexDim).rgb;
     #endif
 
     #ifdef dUsePalette

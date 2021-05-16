@@ -96,6 +96,7 @@ export function GeometryQualityColorTheme(ctx: ThemeDataContext, props: PD.Value
     return {
         factory: GeometryQualityColorTheme,
         granularity: 'group',
+        preferSmoothing: true,
         color,
         props,
         contextHash,

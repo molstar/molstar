@@ -21,10 +21,12 @@ export type GaussianDensityProps = typeof DefaultGaussianDensityProps
 
 export type GaussianDensityData = {
     radiusFactor: number
+    resolution: number
 } & DensityData
 
 export type GaussianDensityTextureData = {
     radiusFactor: number
+    resolution: number
 } & DensityTextureData
 
 export function computeGaussianDensity(position: PositionData, box: Box3D, radius: (index: number) => number,  props: GaussianDensityProps) {

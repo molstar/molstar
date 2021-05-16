@@ -58,6 +58,7 @@ export function DensityFitColorTheme(ctx: ThemeDataContext, props: {}): ColorThe
     return {
         factory: DensityFitColorTheme,
         granularity: 'group',
+        preferSmoothing: true,
         color,
         props,
         contextHash,

@@ -88,7 +88,7 @@ export function createRenderTarget(gl: GLRenderingContext, resources: WebGLResou
 export function createNullRenderTarget(gl: GLRenderingContext): RenderTarget {
     return {
         id: getNextRenderTargetId(),
-        texture: createNullTexture(gl, 'image-uint8'),
+        texture: createNullTexture(gl),
         framebuffer: createNullFramebuffer(),
 
         getWidth: () => 0,

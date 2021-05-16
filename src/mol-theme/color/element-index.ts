@@ -64,6 +64,7 @@ export function ElementIndexColorTheme(ctx: ThemeDataContext, props: PD.Values<E
     return {
         factory: ElementIndexColorTheme,
         granularity: 'groupInstance',
+        preferSmoothing: true,
         color,
         props,
         description: Description,

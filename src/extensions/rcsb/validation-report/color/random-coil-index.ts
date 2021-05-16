@@ -49,6 +49,7 @@ export function RandomCoilIndexColorTheme(ctx: ThemeDataContext, props: {}): Col
     return {
         factory: RandomCoilIndexColorTheme,
         granularity: 'group',
+        preferSmoothing: true,
         color,
         props,
         contextHash,

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -184,9 +184,12 @@ export const ColorSchema = {
     // aColor: AttributeSpec('float32', 3, 0), // TODO
     uColor: UniformSpec('v3', 'material'),
     uColorTexDim: UniformSpec('v2'),
+    uColorGridDim: UniformSpec('v3'),
+    uColorGridTransform: UniformSpec('v4'),
     tColor: TextureSpec('image-uint8', 'rgb', 'ubyte', 'nearest'),
     tPalette: TextureSpec('image-uint8', 'rgb', 'ubyte', 'nearest'),
-    dColorType: DefineSpec('string', ['uniform', 'attribute', 'instance', 'group', 'groupInstance', 'vertex', 'vertexInstance']),
+    tColorGrid: TextureSpec('texture', 'rgb', 'ubyte', 'linear'),
+    dColorType: DefineSpec('string', ['uniform', 'attribute', 'instance', 'group', 'groupInstance', 'vertex', 'vertexInstance', 'volume', 'volumeInstance']),
     dUsePalette: DefineSpec('boolean'),
 } as const;
 export type ColorSchema = typeof ColorSchema

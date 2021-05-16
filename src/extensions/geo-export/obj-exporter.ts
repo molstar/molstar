@@ -4,14 +4,14 @@
  * @author Sukolsak Sakshuwong <sukolsak@stanford.edu>
  */
 
-import { BaseValues } from '../../mol-gl/renderable/schema';
+import { sort, arraySwap } from '../../mol-data/util';
 import { asciiWrite } from '../../mol-io/common/ascii';
 import { Vec3, Mat3, Mat4 } from '../../mol-math/linear-algebra';
 import { RuntimeContext } from '../../mol-task';
 import { StringBuilder } from '../../mol-util';
 import { Color } from '../../mol-util/color/color';
 import { zip } from '../../mol-util/zip/zip';
-import { MeshExporter } from './mesh-exporter';
+import { MeshExporter, AddMeshInput } from './mesh-exporter';
 
 // avoiding namespace lookup improved performance in Chrome (Aug 2020)
 const v3fromArray = Vec3.fromArray;
@@ -67,7 +67,73 @@ export class ObjExporter extends MeshExporter<ObjData> {
         }
     }
 
-    protected async addMeshWithColors(vertices: Float32Array, normals: Float32Array, indices: Uint32Array | undefined, groups: Float32Array | Uint8Array, vertexCount: number, drawCount: number, values: BaseValues, instanceIndex: number, isGeoTexture: boolean, ctx: RuntimeContext) {
+    private static quantizeColors(colorArray: Uint8Array, vertexCount: number) {
+        if (vertexCount <= 1024) return;
+        const rgb = Vec3();
+        const min = Vec3();
+        const max = Vec3();
+        const sum = Vec3();
+        const colorMap = new Map<Color, Color>();
+        const colorComparers = [
+            (colors: Color[], i: number, j: number) => (Color.toVec3(rgb, colors[i])[0] - Color.toVec3(rgb, colors[j])[0]),
+            (colors: Color[], i: number, j: number) => (Color.toVec3(rgb, colors[i])[1] - Color.toVec3(rgb, colors[j])[1]),
+            (colors: Color[], i: number, j: number) => (Color.toVec3(rgb, colors[i])[2] - Color.toVec3(rgb, colors[j])[2]),
+        ];
+
+        const medianCut = (colors: Color[], l: number, r: number, depth: number) => {
+            if (l > r) return;
+            if (l === r || depth >= 10) {
+                // Find the average color.
+                Vec3.set(sum, 0, 0, 0);
+                for (let i = l; i <= r; ++i) {
+                    Color.toVec3(rgb, colors[i]);
+                    Vec3.add(sum, sum, rgb);
+                }
+                Vec3.round(rgb, Vec3.scale(rgb, sum, 1 / (r - l + 1)));
+                const averageColor = Color.fromArray(rgb, 0);
+                for (let i = l; i <= r; ++i) colorMap.set(colors[i], averageColor);
+                return;
+            }
+
+            // Find the color channel with the greatest range.
+            Vec3.set(min, 255, 255, 255);
+            Vec3.set(max, 0, 0, 0);
+            for (let i = l; i <= r; ++i) {
+                Color.toVec3(rgb, colors[i]);
+                for (let j = 0; j < 3; ++j) {
+                    Vec3.min(min, min, rgb);
+                    Vec3.max(max, max, rgb);
+                }
+            }
+            let k = 0;
+            if (max[1] - min[1] > max[k] - min[k]) k = 1;
+            if (max[2] - min[2] > max[k] - min[k]) k = 2;
+
+            sort(colors, l, r + 1, colorComparers[k], arraySwap);
+
+            const m = (l + r) >> 1;
+            medianCut(colors, l, m, depth + 1);
+            medianCut(colors, m + 1, r, depth + 1);
+        };
+
+        // Create an array of unique colors and use the median cut algorithm.
+        const colorSet = new Set<Color>();
+        for (let i = 0; i < vertexCount; ++i) {
+            colorSet.add(Color.fromArray(colorArray, i * 3));
+        }
+        const colors = Array.from(colorSet);
+        medianCut(colors, 0, colors.length - 1, 0);
+
+        // Map actual colors to quantized colors.
+        for (let i = 0; i < vertexCount; ++i) {
+            const color = colorMap.get(Color.fromArray(colorArray, i * 3));
+            Color.toArray(color!, colorArray, i * 3);
+        }
+    }
+
+    protected async addMeshWithColors(input: AddMeshInput) {
+        const { mesh, meshes, values, isGeoTexture, webgl, ctx } = input;
+
         const obj = this.obj;
         const t = Mat4();
         const n = Mat3();
@@ -81,95 +147,131 @@ export class ObjExporter extends MeshExporter<ObjData> {
         const dTransparency = values.dTransparency.ref.value;
         const tTransparency = values.tTransparency.ref.value;
         const aTransform = values.aTransform.ref.value;
+        const instanceCount = values.uInstanceCount.ref.value;
 
-        Mat4.fromArray(t, aTransform, instanceIndex * 16);
-        mat3directionTransform(n, t);
-
-        const currentProgress = (vertexCount * 2 + drawCount) * instanceIndex;
-        await ctx.update({ isIndeterminate: false, current: currentProgress, max: (vertexCount * 2 + drawCount) * values.uInstanceCount.ref.value });
-
-        // position
-        for (let i = 0; i < vertexCount; ++i) {
-            if (i % 1000 === 0 && ctx.shouldUpdate) await ctx.update({ current: currentProgress + i });
-            v3transformMat4(tmpV, v3fromArray(tmpV, vertices, i * stride), t);
-            StringBuilder.writeSafe(obj, 'v ');
-            StringBuilder.writeFloat(obj, tmpV[0], 1000);
-            StringBuilder.whitespace1(obj);
-            StringBuilder.writeFloat(obj, tmpV[1], 1000);
-            StringBuilder.whitespace1(obj);
-            StringBuilder.writeFloat(obj, tmpV[2], 1000);
-            StringBuilder.newline(obj);
+        let interpolatedColors: Uint8Array;
+        if (colorType === 'volume' || colorType === 'volumeInstance') {
+            interpolatedColors = ObjExporter.getInterpolatedColors(mesh!.vertices, mesh!.vertexCount, values, stride, colorType, webgl!);
+            ObjExporter.quantizeColors(interpolatedColors, mesh!.vertexCount);
         }
 
-        // normal
-        for (let i = 0; i < vertexCount; ++i) {
-            if (i % 1000 === 0 && ctx.shouldUpdate) await ctx.update({ current: currentProgress + vertexCount + i });
-            v3transformMat3(tmpV, v3fromArray(tmpV, normals, i * stride), n);
-            StringBuilder.writeSafe(obj, 'vn ');
-            StringBuilder.writeFloat(obj, tmpV[0], 100);
-            StringBuilder.whitespace1(obj);
-            StringBuilder.writeFloat(obj, tmpV[1], 100);
-            StringBuilder.whitespace1(obj);
-            StringBuilder.writeFloat(obj, tmpV[2], 100);
-            StringBuilder.newline(obj);
-        }
+        await ctx.update({ isIndeterminate: false, current: 0, max: instanceCount });
 
-        // face
-        for (let i = 0; i < drawCount; i += 3) {
-            if (i % 3000 === 0 && ctx.shouldUpdate) await ctx.update({ current: currentProgress + vertexCount * 2 + i });
-            let color: Color;
-            switch (colorType) {
-                case 'uniform':
-                    color = Color.fromNormalizedArray(values.uColor.ref.value, 0);
-                    break;
-                case 'instance':
-                    color = Color.fromArray(tColor, instanceIndex * 3);
-                    break;
-                case 'group': {
-                    const group = isGeoTexture ? ObjExporter.getGroup(groups, i) : groups[indices![i]];
-                    color = Color.fromArray(tColor, group * 3);
-                    break;
-                }
-                case 'groupInstance': {
-                    const group = isGeoTexture ? ObjExporter.getGroup(groups, i) : groups[indices![i]];
-                    color = Color.fromArray(tColor, (instanceIndex * groupCount + group) * 3);
-                    break;
-                }
-                case 'vertex':
-                    color = Color.fromArray(tColor, indices![i] * 3);
-                    break;
-                case 'vertexInstance':
-                    color = Color.fromArray(tColor, (instanceIndex * drawCount + indices![i]) * 3);
-                    break;
-                default: throw new Error('Unsupported color type.');
+        for (let instanceIndex = 0; instanceIndex < instanceCount; ++instanceIndex) {
+            if (ctx.shouldUpdate) await ctx.update({ current: instanceIndex + 1 });
+
+            let vertices: Float32Array;
+            let normals: Float32Array;
+            let indices: Uint32Array | undefined;
+            let groups: Float32Array | Uint8Array;
+            let vertexCount: number;
+            let drawCount: number;
+            if (mesh !== undefined) {
+                vertices = mesh.vertices;
+                normals = mesh.normals;
+                indices = mesh.indices;
+                groups = mesh.groups;
+                vertexCount = mesh.vertexCount;
+                drawCount = mesh.drawCount;
+            } else {
+                const mesh = meshes![instanceIndex];
+                vertices = mesh.vertexBuffer.ref.value;
+                normals = mesh.normalBuffer.ref.value;
+                indices = mesh.indexBuffer.ref.value;
+                groups = mesh.groupBuffer.ref.value;
+                vertexCount = mesh.vertexCount;
+                drawCount = mesh.triangleCount * 3;
             }
 
-            let alpha = uAlpha;
-            if (dTransparency) {
-                const group = isGeoTexture ? ObjExporter.getGroup(groups, i) : groups[indices![i]];
-                const transparency = tTransparency.array[instanceIndex * groupCount + group] / 255;
-                alpha *= 1 - transparency;
+            Mat4.fromArray(t, aTransform, instanceIndex * 16);
+            mat3directionTransform(n, t);
+
+            // position
+            for (let i = 0; i < vertexCount; ++i) {
+                v3transformMat4(tmpV, v3fromArray(tmpV, vertices, i * stride), t);
+                StringBuilder.writeSafe(obj, 'v ');
+                StringBuilder.writeFloat(obj, tmpV[0], 1000);
+                StringBuilder.whitespace1(obj);
+                StringBuilder.writeFloat(obj, tmpV[1], 1000);
+                StringBuilder.whitespace1(obj);
+                StringBuilder.writeFloat(obj, tmpV[2], 1000);
+                StringBuilder.newline(obj);
             }
 
-            this.updateMaterial(color, alpha);
+            // normal
+            for (let i = 0; i < vertexCount; ++i) {
+                v3transformMat3(tmpV, v3fromArray(tmpV, normals, i * stride), n);
+                StringBuilder.writeSafe(obj, 'vn ');
+                StringBuilder.writeFloat(obj, tmpV[0], 100);
+                StringBuilder.whitespace1(obj);
+                StringBuilder.writeFloat(obj, tmpV[1], 100);
+                StringBuilder.whitespace1(obj);
+                StringBuilder.writeFloat(obj, tmpV[2], 100);
+                StringBuilder.newline(obj);
+            }
 
-            const v1 = this.vertexOffset + (isGeoTexture ? i : indices![i]) + 1;
-            const v2 = this.vertexOffset + (isGeoTexture ? i + 1 : indices![i + 1]) + 1;
-            const v3 = this.vertexOffset + (isGeoTexture ? i + 2 : indices![i + 2]) + 1;
-            StringBuilder.writeSafe(obj, 'f ');
-            StringBuilder.writeInteger(obj, v1);
-            StringBuilder.writeSafe(obj, '//');
-            StringBuilder.writeIntegerAndSpace(obj, v1);
-            StringBuilder.writeInteger(obj, v2);
-            StringBuilder.writeSafe(obj, '//');
-            StringBuilder.writeIntegerAndSpace(obj, v2);
-            StringBuilder.writeInteger(obj, v3);
-            StringBuilder.writeSafe(obj, '//');
-            StringBuilder.writeInteger(obj, v3);
-            StringBuilder.newline(obj);
+            // face
+            for (let i = 0; i < drawCount; i += 3) {
+                let color: Color;
+                switch (colorType) {
+                    case 'uniform':
+                        color = Color.fromNormalizedArray(values.uColor.ref.value, 0);
+                        break;
+                    case 'instance':
+                        color = Color.fromArray(tColor, instanceIndex * 3);
+                        break;
+                    case 'group': {
+                        const group = isGeoTexture ? ObjExporter.getGroup(groups, i) : groups[indices![i]];
+                        color = Color.fromArray(tColor, group * 3);
+                        break;
+                    }
+                    case 'groupInstance': {
+                        const group = isGeoTexture ? ObjExporter.getGroup(groups, i) : groups[indices![i]];
+                        color = Color.fromArray(tColor, (instanceIndex * groupCount + group) * 3);
+                        break;
+                    }
+                    case 'vertex':
+                        color = Color.fromArray(tColor, indices![i] * 3);
+                        break;
+                    case 'vertexInstance':
+                        color = Color.fromArray(tColor, (instanceIndex * drawCount + indices![i]) * 3);
+                        break;
+                    case 'volume':
+                        color = Color.fromArray(interpolatedColors!, (isGeoTexture ? i : indices![i]) * 3);
+                        break;
+                    case 'volumeInstance':
+                        color = Color.fromArray(interpolatedColors!, (instanceIndex * vertexCount + (isGeoTexture ? i : indices![i])) * 3);
+                        break;
+                    default: throw new Error('Unsupported color type.');
+                }
+
+                let alpha = uAlpha;
+                if (dTransparency) {
+                    const group = isGeoTexture ? ObjExporter.getGroup(groups, i) : groups[indices![i]];
+                    const transparency = tTransparency.array[instanceIndex * groupCount + group] / 255;
+                    alpha *= 1 - transparency;
+                }
+
+                this.updateMaterial(color, alpha);
+
+                const v1 = this.vertexOffset + (isGeoTexture ? i : indices![i]) + 1;
+                const v2 = this.vertexOffset + (isGeoTexture ? i + 1 : indices![i + 1]) + 1;
+                const v3 = this.vertexOffset + (isGeoTexture ? i + 2 : indices![i + 2]) + 1;
+                StringBuilder.writeSafe(obj, 'f ');
+                StringBuilder.writeInteger(obj, v1);
+                StringBuilder.writeSafe(obj, '//');
+                StringBuilder.writeIntegerAndSpace(obj, v1);
+                StringBuilder.writeInteger(obj, v2);
+                StringBuilder.writeSafe(obj, '//');
+                StringBuilder.writeIntegerAndSpace(obj, v2);
+                StringBuilder.writeInteger(obj, v3);
+                StringBuilder.writeSafe(obj, '//');
+                StringBuilder.writeInteger(obj, v3);
+                StringBuilder.newline(obj);
+            }
+
+            this.vertexOffset += vertexCount;
         }
-
-        this.vertexOffset += vertexCount;
     }
 
     getData() {

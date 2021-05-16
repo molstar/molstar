@@ -22,7 +22,7 @@ import { gaussianDensity_vert } from '../../../mol-gl/shader/gaussian-density.ve
 import { gaussianDensity_frag } from '../../../mol-gl/shader/gaussian-density.frag';
 import { Framebuffer } from '../../../mol-gl/webgl/framebuffer';
 
-export const GaussianDensitySchema = {
+const GaussianDensitySchema = {
     drawCount: ValueSpec('number'),
     instanceCount: ValueSpec('number'),
 
@@ -49,9 +49,6 @@ export const GaussianDensitySchema = {
 type GaussianDensityValues = Values<typeof GaussianDensitySchema>
 type GaussianDensityRenderable = ComputeRenderable<GaussianDensityValues>
 const GaussianDensityName = 'gaussian-density';
-const GaussianDensityShaderCode = ShaderCode(
-    GaussianDensityName, gaussianDensity_vert, gaussianDensity_frag
-);
 
 function getFramebuffer(webgl: WebGLContext): Framebuffer {
     if (!webgl.namedFramebuffers[GaussianDensityName]) {
@@ -73,12 +70,12 @@ export function GaussianDensityGPU(position: PositionData, box: Box3D, radius: (
     // it's faster than texture3d
     // console.time('GaussianDensityTexture2d')
     const tmpTexture = getTexture('tmp', webgl, 'image-uint8', 'rgba', 'ubyte', 'linear');
-    const { scale, bbox, texture, gridDim, gridTexDim, radiusFactor } = calcGaussianDensityTexture2d(webgl, position, box, radius, false, props, tmpTexture);
+    const { scale, bbox, texture, gridDim, gridTexDim, radiusFactor, resolution } = calcGaussianDensityTexture2d(webgl, position, box, radius, false, props, tmpTexture);
     // webgl.waitForGpuCommandsCompleteSync()
     // console.timeEnd('GaussianDensityTexture2d')
     const { field, idField } = fieldFromTexture2d(webgl, texture, gridDim, gridTexDim);
 
-    return { field, idField, transform: getTransform(scale, bbox), radiusFactor };
+    return { field, idField, transform: getTransform(scale, bbox), radiusFactor, resolution };
 }
 
 export function GaussianDensityTexture(webgl: WebGLContext, position: PositionData, box: Box3D, radius: (index: number) => number, props: GaussianDensityProps, oldTexture?: Texture): GaussianDensityTextureData {
@@ -95,8 +92,8 @@ export function GaussianDensityTexture3d(webgl: WebGLContext, position: Position
     return finalizeGaussianDensityTexture(calcGaussianDensityTexture3d(webgl, position, box, radius, props, oldTexture));
 }
 
-function finalizeGaussianDensityTexture({ texture, scale, bbox, gridDim, gridTexDim, gridTexScale, radiusFactor }: _GaussianDensityTextureData): GaussianDensityTextureData {
-    return { transform: getTransform(scale, bbox), texture, bbox, gridDim, gridTexDim, gridTexScale, radiusFactor };
+function finalizeGaussianDensityTexture({ texture, scale, bbox, gridDim, gridTexDim, gridTexScale, radiusFactor, resolution }: _GaussianDensityTextureData): GaussianDensityTextureData {
+    return { transform: getTransform(scale, bbox), texture, bbox, gridDim, gridTexDim, gridTexScale, radiusFactor, resolution };
 }
 
 function getTransform(scale: Vec3, bbox: Box3D) {
@@ -116,6 +113,7 @@ type _GaussianDensityTextureData = {
     gridTexDim: Vec3
     gridTexScale: Vec2
     radiusFactor: number
+    resolution: number
 }
 
 function calcGaussianDensityTexture2d(webgl: WebGLContext, position: PositionData, box: Box3D, radius: (index: number) => number, powerOfTwo: boolean, props: GaussianDensityProps, texture?: Texture): _GaussianDensityTextureData {
@@ -200,7 +198,7 @@ function calcGaussianDensityTexture2d(webgl: WebGLContext, position: PositionDat
 
     // printTexture(webgl, minDistTex, 0.75);
 
-    return { texture, scale, bbox: expandedBox, gridDim: dim, gridTexDim, gridTexScale, radiusFactor };
+    return { texture, scale, bbox: expandedBox, gridDim: dim, gridTexDim, gridTexScale, radiusFactor, resolution };
 }
 
 function calcGaussianDensityTexture3d(webgl: WebGLContext, position: PositionData, box: Box3D, radius: (index: number) => number, props: GaussianDensityProps, texture?: Texture): _GaussianDensityTextureData {
@@ -256,7 +254,7 @@ function calcGaussianDensityTexture3d(webgl: WebGLContext, position: PositionDat
     setupGroupIdRendering(webgl, renderable);
     render(texture, false);
 
-    return { texture, scale, bbox: expandedBox, gridDim: dim, gridTexDim: dim, gridTexScale, radiusFactor };
+    return { texture, scale, bbox: expandedBox, gridDim: dim, gridTexDim: dim, gridTexScale, radiusFactor, resolution };
 }
 
 //
@@ -362,7 +360,8 @@ function createGaussianDensityRenderable(webgl: WebGLContext, drawCount: number,
     };
 
     const schema = { ...GaussianDensitySchema };
-    const renderItem =  createComputeRenderItem(webgl, 'points', GaussianDensityShaderCode, schema, values);
+    const shaderCode = ShaderCode(GaussianDensityName, gaussianDensity_vert, gaussianDensity_frag);
+    const renderItem =  createComputeRenderItem(webgl, 'points', shaderCode, schema, values);
 
     return createComputeRenderable(renderItem, values);
 }
@@ -430,7 +429,7 @@ function getTexture2dSize(gridDim: Vec3) {
     return { texDimX, texDimY, texRows, texCols, powerOfTwoSize: texDimY < powerOfTwoSize ? powerOfTwoSize : powerOfTwoSize * 2 };
 }
 
-export function fieldFromTexture2d(ctx: WebGLContext, texture: Texture, dim: Vec3, texDim: Vec3) {
+function fieldFromTexture2d(ctx: WebGLContext, texture: Texture, dim: Vec3, texDim: Vec3) {
     // console.time('fieldFromTexture2d')
     const [ dx, dy, dz ] = dim;
     const [ width, height ] = texDim;
