@@ -160,6 +160,7 @@ export class GlbExporter extends MeshExporter<GlbData> {
                     alpha *= 1 - transparency;
                 }
 
+                color = Color.sRGBToLinear(color);
                 Color.toArrayNormalized(color, colorArray, i * 4);
                 colorArray[i * 4 + 3] = alpha;
             }
