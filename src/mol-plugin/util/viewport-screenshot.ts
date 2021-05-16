@@ -108,6 +108,7 @@ class ViewportScreenshotHelper extends PluginComponent {
     private createPass(mutlisample: boolean) {
         const c = this.plugin.canvas3d!;
         const { colorBufferFloat, textureFloat } = c.webgl.extensions;
+        const aoProps = this.plugin.canvas3d!.props.postprocessing.occlusion;
         return this.plugin.canvas3d!.getImagePass({
             transparentBackground: this.values.transparent,
             cameraHelper: { axes: this.values.axes },
@@ -117,7 +118,9 @@ class ViewportScreenshotHelper extends PluginComponent {
             },
             postprocessing: {
                 ...c.props.postprocessing,
-                antialiasing: { name: 'off', params: {} }
+                occlusion: aoProps.name === 'on'
+                    ? { name: 'on', params: { ...aoProps.params, samples: 128 } }
+                    : aoProps
             }
         });
     }
@@ -130,13 +133,16 @@ class ViewportScreenshotHelper extends PluginComponent {
     private _imagePass: ImagePass;
     get imagePass() {
         if (this._imagePass) {
+            const aoProps = this.plugin.canvas3d!.props.postprocessing.occlusion;
             this._imagePass.setProps({
                 cameraHelper: { axes: this.values.axes },
                 transparentBackground: this.values.transparent,
                 // TODO: optimize because this creates a copy of a large object!
                 postprocessing: {
                     ...this.plugin.canvas3d!.props.postprocessing,
-                    antialiasing: { name: 'off', params: {} }
+                    occlusion: aoProps.name === 'on'
+                        ? { name: 'on', params: { ...aoProps.params, samples: 128 } }
+                        : aoProps
                 }
             });
             return this._imagePass;
