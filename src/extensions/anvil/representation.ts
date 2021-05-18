@@ -9,7 +9,6 @@ import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { Vec3, Mat4 } from '../../mol-math/linear-algebra';
 import { Representation, RepresentationContext, RepresentationParamsGetter } from '../../mol-repr/representation';
 import { Structure } from '../../mol-model/structure';
-import { Spheres } from '../../mol-geo/geometry/spheres/spheres';
 import { StructureRepresentationProvider, StructureRepresentation, StructureRepresentationStateBuilder } from '../../mol-repr/structure/representation';
 import { MembraneOrientation } from './prop';
 import { ThemeRegistryContext } from '../../mol-theme/theme';
@@ -30,17 +29,8 @@ import { CustomProperty } from '../../mol-model-props/common/custom-property';
 
 const SharedParams = {
     color: PD.Color(ColorNames.lightgrey),
-    radiusFactor: PD.Numeric(0.8333, { min: 0.1, max: 3.0, step: 0.01 }, { description: 'Scale the radius of the membrane layer' })
+    radiusFactor: PD.Numeric(1.0, { min: 0.1, max: 3.0, step: 0.01 }, { description: 'Scale the radius of the membrane layer' })
 };
-
-const BilayerSpheresParams = {
-    ...Spheres.Params,
-    ...SharedParams,
-    sphereSize: PD.Numeric(1, { min: 0.1, max: 10, step: 0.1 }, { description: 'Size of spheres that represent membrane planes' }),
-    density: PD.Numeric(1, { min: 0.25, max: 10, step: 0.25 }, { description: 'Distance between spheres'})
-};
-export type BilayerSpheresParams = typeof BilayerSpheresParams
-export type BilayerSpheresProps = PD.Values<BilayerSpheresParams>
 
 const BilayerPlanesParams = {
     ...Mesh.Params,
@@ -66,7 +56,6 @@ const MembraneOrientationVisuals = {
 };
 
 export const MembraneOrientationParams = {
-    ...BilayerSpheresParams,
     ...BilayerPlanesParams,
     ...BilayerRimsParams,
     visuals: PD.MultiSelect(['bilayer-planes', 'bilayer-rims'], PD.objectToOptions(MembraneOrientationVisuals)),
