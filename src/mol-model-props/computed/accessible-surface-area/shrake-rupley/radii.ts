@@ -5,7 +5,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { ShrakeRupleyContext, VdWLookup } from './common';
+import { MaxAsa, ShrakeRupleyContext, VdWLookup } from './common';
 import { getElementIdx, isHydrogen } from '../../../../mol-model/structure/structure/unit/bonds/common';
 import { isPolymer, isNucleic, MoleculeType, ElementSymbol } from '../../../../mol-model/structure/model/types';
 import { VdwRadius } from '../../../../mol-model/structure/model/properties/atomic';
@@ -53,7 +53,7 @@ export function assignRadiusForHeavyAtoms(ctx: ShrakeRupleyContext) {
             const atomId = label_atom_id(l);
             const moleculeType = getElementMoleculeType(unit, eI);
             // skip water and optionally non-polymer groups
-            if (moleculeType === MoleculeType.Water || (!ctx.nonPolymer && !isPolymer(moleculeType)) || (ctx.alphaOnly && atomId !== 'CA')) {
+            if (moleculeType === MoleculeType.Water || (!ctx.nonPolymer && !isPolymer(moleculeType)) || (ctx.alphaOnly && (atomId !== 'CA' || !MaxAsa[label_comp_id(l)]))) {
                 atomRadiusType[mj] = VdWLookup[0];
                 serialResidueIndex[mj] = -1;
                 continue;
