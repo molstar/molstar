@@ -11,7 +11,7 @@ import { Vec3, Mat4 } from '../../mol-math/linear-algebra';
 import { PLUGIN_VERSION } from '../../mol-plugin/version';
 import { RuntimeContext } from '../../mol-task';
 import { Color } from '../../mol-util/color/color';
-import { arrayMinMax, fillSerial } from '../../mol-util/array';
+import { fillSerial } from '../../mol-util/array';
 import { NumberArray } from '../../mol-util/type-helpers';
 import { MeshExporter, AddMeshInput } from './mesh-exporter';
 
@@ -35,11 +35,11 @@ export class GlbExporter extends MeshExporter<GlbData> {
     private binaryBuffer: ArrayBuffer[] = [];
     private byteOffset = 0;
 
-    private static vecMinMax(a: NumberArray, length: number) {
-        const min: number[] = (new Array(length)).fill(Infinity);
-        const max: number[] = (new Array(length)).fill(-Infinity);
-        for (let i = 0, il = a.length; i < il; i += length) {
-            for (let j = 0; j < length; ++j) {
+    private static vec3MinMax(a: NumberArray) {
+        const min: number[] = [Infinity, Infinity, Infinity];
+        const max: number[] = [-Infinity, -Infinity, -Infinity];
+        for (let i = 0, il = a.length; i < il; i += 3) {
+            for (let j = 0; j < 3; ++j) {
                 min[j] = Math.min(a[i + j], min[j]);
                 max[j] = Math.max(a[i + j], max[j]);
             }
@@ -76,9 +76,7 @@ export class GlbExporter extends MeshExporter<GlbData> {
             indexArray = indices!.slice(0, drawCount);
         }
 
-        const [ vertexMin, vertexMax ] = GlbExporter.vecMinMax(vertexArray, 3);
-        const [ normalMin, normalMax ] = GlbExporter.vecMinMax(normalArray, 3);
-        const [ indexMin, indexMax ] = arrayMinMax(indexArray);
+        const [ vertexMin, vertexMax ] = GlbExporter.vec3MinMax(vertexArray);
 
         // binary buffer
         let vertexBuffer = vertexArray.buffer;
@@ -134,18 +132,14 @@ export class GlbExporter extends MeshExporter<GlbData> {
             byteOffset: 0,
             componentType: 5126, // FLOAT
             count: vertexCount,
-            type: 'VEC3',
-            max: normalMax,
-            min: normalMin
+            type: 'VEC3'
         });
         this.accessors.push({
             bufferView: bufferViewOffset + 2,
             byteOffset: 0,
             componentType: 5125, // UNSIGNED_INT
             count: drawCount,
-            type: 'SCALAR',
-            max: [ indexMax ],
-            min: [ indexMin ]
+            type: 'SCALAR'
         });
 
         return {
@@ -212,8 +206,6 @@ export class GlbExporter extends MeshExporter<GlbData> {
             colorArray[i * 4 + 3] = alpha;
         }
 
-        const [ colorMin, colorMax ] = GlbExporter.vecMinMax(colorArray, 4);
-
         // binary buffer
         let colorBuffer = colorArray.buffer;
         if (!IsNativeEndianLittle) {
@@ -238,9 +230,7 @@ export class GlbExporter extends MeshExporter<GlbData> {
             byteOffset: 0,
             componentType: 5126, // FLOAT
             count: vertexCount,
-            type: 'VEC4',
-            max: colorMax,
-            min: colorMin
+            type: 'VEC4'
         });
 
         return accessorOffset;
