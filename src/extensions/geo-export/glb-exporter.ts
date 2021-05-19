@@ -8,6 +8,7 @@ import { BaseValues } from '../../mol-gl/renderable/schema';
 import { asciiWrite } from '../../mol-io/common/ascii';
 import { IsNativeEndianLittle, flipByteOrder } from '../../mol-io/common/binary';
 import { Vec3, Mat4 } from '../../mol-math/linear-algebra';
+import { PLUGIN_VERSION } from '../../mol-plugin/version';
 import { RuntimeContext } from '../../mol-task';
 import { Color } from '../../mol-util/color/color';
 import { arrayMinMax, fillSerial } from '../../mol-util/array';
@@ -322,7 +323,8 @@ export class GlbExporter extends MeshExporter<GlbData> {
 
         const gltf = {
             asset: {
-                version: '2.0'
+                version: '2.0',
+                generator: `Mol* ${PLUGIN_VERSION}`
             },
             scenes: [{
                 nodes: fillSerial(new Array(this.nodes.length) as number[])
