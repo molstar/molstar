@@ -29,7 +29,7 @@ import { CustomProperty } from '../../mol-model-props/common/custom-property';
 
 const SharedParams = {
     color: PD.Color(ColorNames.lightgrey),
-    radiusFactor: PD.Numeric(1.0, { min: 0.1, max: 3.0, step: 0.01 }, { description: 'Scale the radius of the membrane layer' })
+    radiusFactor: PD.Numeric(1.2, { min: 0.1, max: 3.0, step: 0.01 }, { description: 'Scale the radius of the membrane layer' })
 };
 
 const BilayerPlanesParams = {
