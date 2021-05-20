@@ -73,7 +73,6 @@ function initialize(structure: Structure, props: ANVILProps): ANVILContext {
 
     const vec = Vec3();
     let m = 0;
-    let e = 0, b = 0;
     for (let i = 0, il = structure.units.length; i < il; ++i) {
         const unit = structure.units[i];
         const { elements } = unit;
@@ -105,16 +104,9 @@ function initialize(structure: Structure, props: ANVILProps): ANVILContext {
             // keep track of offsets and exposed state to reuse
             offsets[m] = structure.serialMapping.getSerialIndex(l.unit, l.element);
             exposed[m] = AccessibleSurfaceArea.getValue(l, asa) / MaxAsa[label_comp_id(l)] > asaCutoff;
-            if (exposed[m]) {
-                e++;
-            } else {
-                b++;
-            }
             m++;
         }
     }
-    console.log('CAs = ' + m);
-    console.log('exposed ' + e + ' - buried ' + b);
 
     // omit potentially empty tail
     offsets = offsets.slice(0, m);
@@ -145,20 +137,16 @@ function initialize(structure: Structure, props: ANVILProps): ANVILContext {
 export async function calculate(runtime: RuntimeContext, structure: Structure, params: ANVILProps): Promise<MembraneOrientation> {
     const ctx = initialize(structure, params);
     const initialHphobHphil = HphobHphil.filtered(ctx);
-    console.log(`init: ${initialHphobHphil.hphob} - ${initialHphobHphil.hphil}`);
 
-    console.log('sync: ' + runtime.isSynchronous);
     if (runtime.shouldUpdate) {
         await runtime.update({ message: 'Placing initial membrane...' });
     }
     const initialMembrane = findMembrane(ctx, generateSpherePoints(ctx, ctx.numberOfSpherePoints), initialHphobHphil)!;
-    console.log(`initial: ${initialMembrane.qmax}`);
 
     if (runtime.shouldUpdate) {
         await runtime.update({ message: 'Refining membrane placement...' });
     }
     const refinedMembrane = findMembrane(ctx, findProximateAxes(ctx, initialMembrane), initialHphobHphil)!;
-    console.log(`refined: ${refinedMembrane.qmax}`);
     let membrane = initialMembrane.qmax! > refinedMembrane.qmax! ? initialMembrane : refinedMembrane;
 
     if (ctx.adjust) {
@@ -166,30 +154,29 @@ export async function calculate(runtime: RuntimeContext, structure: Structure, p
             await runtime.update({ message: 'Adjusting membrane thickness...' });
         }
         membrane = adjustThickness(ctx, membrane, initialHphobHphil);
-        console.log('Membrane width: ' + Vec3.distance(membrane.planePoint1, membrane.planePoint2));
     }
 
     const normalVector = Vec3.zero();
     const center =  Vec3.zero();
+    const jitter = [0.001, 0.001, 0.001] as Vec3;
     Vec3.sub(normalVector, membrane.planePoint1, membrane.planePoint2);
     Vec3.normalize(normalVector, normalVector);
 
     // prevent degenerate matrices (e.g., 5cbg - assembly 1 which is oriented along the y-axis)
     if (Math.abs(normalVector[0]) === 1 || Math.abs(normalVector[1]) === 1 || Math.abs(normalVector[2]) === 1) {
-        normalVector[0] += 0.001;
-        normalVector[1] += 0.001;
-        normalVector[2] += 0.001;
+        Vec3.add(normalVector, normalVector, jitter);
     }
 
     Vec3.add(center, membrane.planePoint1, membrane.planePoint2);
     Vec3.scale(center, center, 0.5);
+    Vec3.add(center, center, jitter);
     const extent = adjustExtent(ctx, membrane, center);
 
     return {
         planePoint1: membrane.planePoint1,
         planePoint2: membrane.planePoint2,
         normalVector,
-        centroid: ctx.centroid,
+        centroid: center,
         radius: extent
     };
 }
@@ -322,7 +309,6 @@ function adjustThickness(ctx: ANVILContext, membrane: MembraneCandidate, initial
         maxThickness -= step;
     }
 
-    console.log('Number of TM segments: ' + maxNos);
     return optimalThickness;
 }
 
