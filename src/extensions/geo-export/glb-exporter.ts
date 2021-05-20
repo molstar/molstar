@@ -22,6 +22,7 @@ const v3toArray = Vec3.toArray;
 
 // https://github.com/KhronosGroup/glTF/tree/master/specification/2.0
 
+const UNSIGNED_BYTE = 5121;
 const UNSIGNED_INT = 5125;
 const FLOAT = 5126;
 const ARRAY_BUFFER = 34962;
@@ -52,7 +53,7 @@ export class GlbExporter extends MeshExporter<GlbData> {
         return [ min, max ];
     }
 
-    private addBuffer(buffer: ArrayBuffer, componentType: number, type: string, count: number, target: number, min?: any, max?: any) {
+    private addBuffer(buffer: ArrayBuffer, componentType: number, type: string, count: number, target: number, min?: any, max?: any, normalized?: boolean) {
         this.binaryBuffer.push(buffer);
 
         const bufferViewOffset = this.bufferViews.length;
@@ -72,7 +73,8 @@ export class GlbExporter extends MeshExporter<GlbData> {
             count,
             type,
             min,
-            max
+            max,
+            normalized
         });
         return accessorOffset;
     }
@@ -130,7 +132,7 @@ export class GlbExporter extends MeshExporter<GlbData> {
         const dTransparency = values.dTransparency.ref.value;
         const tTransparency = values.tTransparency.ref.value;
 
-        const colorArray = new Float32Array(vertexCount * 4);
+        const colorArray = new Uint8Array(vertexCount * 4);
 
         for (let i = 0; i < vertexCount; ++i) {
             let color: Color;
@@ -174,8 +176,8 @@ export class GlbExporter extends MeshExporter<GlbData> {
             }
 
             color = Color.sRGBToLinear(color);
-            Color.toArrayNormalized(color, colorArray, i * 4);
-            colorArray[i * 4 + 3] = alpha;
+            Color.toArray(color, colorArray, i * 4);
+            colorArray[i * 4 + 3] = Math.round(alpha * 255);
         }
 
         let colorBuffer = colorArray.buffer;
@@ -183,7 +185,7 @@ export class GlbExporter extends MeshExporter<GlbData> {
             colorBuffer = flipByteOrder(new Uint8Array(colorBuffer), 4);
         }
 
-        return this.addBuffer(colorBuffer, FLOAT, 'VEC4', vertexCount, ARRAY_BUFFER);
+        return this.addBuffer(colorBuffer, UNSIGNED_BYTE, 'VEC4', vertexCount, ARRAY_BUFFER, undefined, undefined, true);
     }
 
     protected async addMeshWithColors(input: AddMeshInput) {
