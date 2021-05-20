@@ -4,16 +4,17 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { ParamDefinition as PD } from '../../../mol-util/param-definition';
-import { Structure, Unit, StructureElement } from '../../../mol-model/structure';
-import { Features } from './features';
-import { InteractionType, FeatureType } from './common';
-import { IntraContactsBuilder, InterContactsBuilder } from './contacts-builder';
-import { Mat4, Vec3 } from '../../../mol-math/linear-algebra';
-import { altLoc, connectedTo, typeSymbol } from '../chemistry/util';
 import { OrderedSet } from '../../../mol-data/int';
+import { Mat4, Vec3 } from '../../../mol-math/linear-algebra';
+import { Structure, StructureElement, Unit } from '../../../mol-model/structure';
 import { VdwRadius } from '../../../mol-model/structure/model/properties/atomic';
 import { Elements } from '../../../mol-model/structure/model/properties/atomic/types';
+import { StructureLookup3DResultContext } from '../../../mol-model/structure/structure/util/lookup3d';
+import { ParamDefinition as PD } from '../../../mol-util/param-definition';
+import { altLoc, connectedTo, typeSymbol } from '../chemistry/util';
+import { FeatureType, InteractionType } from './common';
+import { InterContactsBuilder, IntraContactsBuilder } from './contacts-builder';
+import { Features } from './features';
 
 export const ContactsParams = {
     lineOfSightDistFactor: PD.Numeric(1.0, { min: 0, max: 3, step: 0.1 }),
@@ -53,7 +54,7 @@ function validPair(structure: Structure, infoA: Features.Info, infoB: Features.I
 
 //
 
-function invalidAltLoc (unitA: Unit.Atomic, indexA: StructureElement.UnitIndex, unitB: Unit.Atomic, indexB: StructureElement.UnitIndex) {
+function invalidAltLoc(unitA: Unit.Atomic, indexA: StructureElement.UnitIndex, unitB: Unit.Atomic, indexB: StructureElement.UnitIndex) {
     const altA = altLoc(unitA, indexA);
     const altB = altLoc(unitB, indexB);
     return altA && altB && altA !== altB;
@@ -71,6 +72,9 @@ const tmpVec = Vec3();
 const tmpVecA = Vec3();
 const tmpVecB = Vec3();
 
+// need to use a separate context for structure.lookup3d.find because of nested queries
+const lineOfSightLookupCtx = StructureLookup3DResultContext();
+
 function checkLineOfSight(structure: Structure, infoA: Features.Info, infoB: Features.Info, distFactor: number) {
     const featureA = infoA.feature;
     const featureB = infoB.feature;
@@ -83,7 +87,7 @@ function checkLineOfSight(structure: Structure, infoA: Features.Info, infoB: Fea
 
     const distMax = distFactor * MAX_LINE_OF_SIGHT_DISTANCE;
 
-    const { count, indices, units, squaredDistances } = structure.lookup3d.find(tmpVec[0], tmpVec[1], tmpVec[2], distMax);
+    const { count, indices, units, squaredDistances } = structure.lookup3d.find(tmpVec[0], tmpVec[1], tmpVec[2], distMax, lineOfSightLookupCtx);
     if (count === 0) return true;
 
     for (let r = 0; r < count; ++r) {

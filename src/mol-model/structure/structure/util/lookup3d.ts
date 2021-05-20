@@ -12,6 +12,7 @@ import { OrderedSet } from '../../../../mol-data/int';
 import { StructureUniqueSubsetBuilder } from './unique-subset-builder';
 import { StructureElement } from '../element';
 import { Unit } from '../unit';
+import { UnitIndex } from '../element/util';
 
 export interface StructureResult extends Result<StructureElement.UnitIndex> {
     units: Unit[]
@@ -40,6 +41,16 @@ export namespace StructureResult {
     }
 }
 
+export interface StructureLookup3DResultContext {
+    result: StructureResult,
+    closeUnitsResult: Result<number>,
+    unitGroupResult: Result<UnitIndex>,
+}
+
+export function StructureLookup3DResultContext(): StructureLookup3DResultContext {
+    return { result: StructureResult.create(), closeUnitsResult: Result.create(), unitGroupResult: Result.create() };
+}
+
 export class StructureLookup3D {
     private unitLookup: Lookup3D;
     private pivot = Vec3();
@@ -48,12 +59,17 @@ export class StructureLookup3D {
         return this.unitLookup.find(x, y, z, radius);
     }
 
-    private result = StructureResult.create();
-    find(x: number, y: number, z: number, radius: number): StructureResult {
-        Result.reset(this.result);
+    private findContext = StructureLookup3DResultContext();
+
+    find(x: number, y: number, z: number, radius: number, ctx?: StructureLookup3DResultContext): StructureResult {
+        return this._find(x, y, z, radius, ctx ?? this.findContext);
+    }
+
+    private _find(x: number, y: number, z: number, radius: number, ctx: StructureLookup3DResultContext): StructureResult {
+        Result.reset(ctx.result);
         const { units } = this.structure;
-        const closeUnits = this.unitLookup.find(x, y, z, radius);
-        if (closeUnits.count === 0) return this.result;
+        const closeUnits = this.unitLookup.find(x, y, z, radius, ctx.closeUnitsResult);
+        if (closeUnits.count === 0) return ctx.result;
 
         for (let t = 0, _t = closeUnits.count; t < _t; t++) {
             const unit = units[closeUnits.indices[t]];
@@ -62,12 +78,12 @@ export class StructureLookup3D {
                 Vec3.transformMat4(this.pivot, this.pivot, unit.conformation.operator.inverse);
             }
             const unitLookup = unit.lookup3d;
-            const groupResult = unitLookup.find(this.pivot[0], this.pivot[1], this.pivot[2], radius);
+            const groupResult = unitLookup.find(this.pivot[0], this.pivot[1], this.pivot[2], radius, ctx.unitGroupResult);
             for (let j = 0, _j = groupResult.count; j < _j; j++) {
-                StructureResult.add(this.result, unit, groupResult.indices[j], groupResult.squaredDistances[j]);
+                StructureResult.add(ctx.result, unit, groupResult.indices[j], groupResult.squaredDistances[j]);
             }
         }
-        return this.result;
+        return ctx.result;
     }
 
     findIntoBuilder(x: number, y: number, z: number, radius: number, builder: StructureUniqueSubsetBuilder) {

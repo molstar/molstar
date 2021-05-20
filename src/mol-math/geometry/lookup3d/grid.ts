@@ -24,19 +24,20 @@ function GridLookup3D<T extends number = number>(data: PositionData, boundary: B
 export { GridLookup3D };
 
 class GridLookup3DImpl<T extends number = number> implements GridLookup3D<T> {
-    private ctx: QueryContext<T>;
+    private ctx: QueryContext;
     boundary: Lookup3D['boundary'];
     buckets: GridLookup3D['buckets'];
     result: Result<T>
 
-    find(x: number, y: number, z: number, radius: number): Result<T> {
+    find(x: number, y: number, z: number, radius: number, result?: Result<T>): Result<T> {
         this.ctx.x = x;
         this.ctx.y = y;
         this.ctx.z = z;
         this.ctx.radius = radius;
         this.ctx.isCheck = false;
-        query(this.ctx);
-        return this.ctx.result;
+        const ret = result ?? this.result;
+        query(this.ctx, ret);
+        return ret;
     }
 
     check(x: number, y: number, z: number, radius: number): boolean {
@@ -45,15 +46,15 @@ class GridLookup3DImpl<T extends number = number> implements GridLookup3D<T> {
         this.ctx.z = z;
         this.ctx.radius = radius;
         this.ctx.isCheck = true;
-        return query(this.ctx);
+        return query(this.ctx, this.result);
     }
 
     constructor(data: PositionData, boundary: Boundary, cellSizeOrCount?: Vec3 | number) {
         const structure = build(data, boundary, cellSizeOrCount);
-        this.ctx = createContext<T>(structure);
+        this.ctx = createContext(structure);
         this.boundary = { box: structure.boundingBox, sphere: structure.boundingSphere };
         this.buckets = { offset: structure.bucketOffset, count: structure.bucketCounts, array: structure.bucketArray };
-        this.result = this.ctx.result;
+        this.result = Result.create();
     }
 }
 
@@ -215,23 +216,22 @@ function build(data: PositionData, boundary: Boundary, cellSizeOrCount?: Vec3 | 
     return _build(state);
 }
 
-interface QueryContext<T extends number = number> {
+interface QueryContext {
     grid: Grid3D,
     x: number,
     y: number,
     z: number,
     radius: number,
-    result: Result<T>,
     isCheck: boolean
 }
 
-function createContext<T extends number = number>(grid: Grid3D): QueryContext<T> {
-    return { grid, x: 0.1, y: 0.1, z: 0.1, radius: 0.1, result: Result.create(), isCheck: false };
+function createContext(grid: Grid3D): QueryContext {
+    return { grid, x: 0.1, y: 0.1, z: 0.1, radius: 0.1, isCheck: false };
 }
 
-function query<T extends number = number>(ctx: QueryContext<T>): boolean {
+function query<T extends number = number>(ctx: QueryContext, result: Result<T>): boolean {
     const { min, size: [sX, sY, sZ], bucketOffset, bucketCounts, bucketArray, grid, data: { x: px, y: py, z: pz, indices, radius }, delta, maxRadius } = ctx.grid;
-    const { radius: inputRadius, isCheck, x, y, z, result } = ctx;
+    const { radius: inputRadius, isCheck, x, y, z } = ctx;
 
     const r = inputRadius + maxRadius;
     const rSq = r * r;
