@@ -123,7 +123,7 @@ function initialize(structure: Structure, props: ANVILProps): ANVILContext {
         Vec3.set(vec, x(l), y(l), z(l));
         centroidHelper.radiusStep(vec);
     }
-    const extent = Math.sqrt(centroidHelper.radiusSq);
+    const extent = 1.2 * Math.sqrt(centroidHelper.radiusSq);
 
     return {
         ...props,
