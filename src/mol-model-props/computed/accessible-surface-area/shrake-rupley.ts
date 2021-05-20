@@ -101,9 +101,8 @@ namespace AccessibleSurfaceArea {
     }
 
     export function getValue(location: StructureElement.Location, accessibleSurfaceArea: AccessibleSurfaceArea) {
-        const { getSerialIndex } = location.structure.root.serialMapping;
         const { area, serialResidueIndex } = accessibleSurfaceArea;
-        const rSI = serialResidueIndex[getSerialIndex(location.unit, location.element)];
+        const rSI = serialResidueIndex[location.element];
         if (rSI === -1) return -1;
         return area[rSI];
     }
