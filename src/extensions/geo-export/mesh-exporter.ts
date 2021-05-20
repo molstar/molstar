@@ -100,7 +100,7 @@ export abstract class MeshExporter<D extends RenderObjectExportData> implements 
         }
         const framebuffer = webgl.namedFramebuffers[GeoExportName];
 
-        const [ width, height ] = values.uColorTexDim.ref.value;
+        const [ width, height ] = colorTexDim;
         const colorGrid = new Uint8Array(width * height * 4);
 
         framebuffer.bind();
@@ -113,29 +113,19 @@ export abstract class MeshExporter<D extends RenderObjectExportData> implements 
 
     protected static getInstance(input: AddMeshInput, instanceIndex: number) {
         const { mesh, meshes } = input;
-        let vertices: Float32Array;
-        let normals: Float32Array;
-        let indices: Uint32Array | undefined;
-        let groups: Float32Array | Uint8Array;
-        let vertexCount: number;
-        let drawCount: number;
         if (mesh !== undefined) {
-            vertices = mesh.vertices;
-            normals = mesh.normals;
-            indices = mesh.indices;
-            groups = mesh.groups;
-            vertexCount = mesh.vertexCount;
-            drawCount = mesh.drawCount;
+            return mesh;
         } else {
             const mesh = meshes![instanceIndex];
-            vertices = mesh.vertexBuffer.ref.value;
-            normals = mesh.normalBuffer.ref.value;
-            indices = mesh.indexBuffer.ref.value;
-            groups = mesh.groupBuffer.ref.value;
-            vertexCount = mesh.vertexCount;
-            drawCount = mesh.triangleCount * 3;
+            return {
+                vertices: mesh.vertexBuffer.ref.value,
+                normals: mesh.normalBuffer.ref.value,
+                indices: mesh.indexBuffer.ref.value,
+                groups: mesh.groupBuffer.ref.value,
+                vertexCount: mesh.vertexCount,
+                drawCount: mesh.triangleCount * 3
+            };
         }
-        return { vertices, normals, indices, groups, vertexCount, drawCount };
     }
 
     protected abstract addMeshWithColors(input: AddMeshInput): void;
