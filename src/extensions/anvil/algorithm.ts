@@ -16,6 +16,8 @@ import { AccessibleSurfaceArea } from '../../mol-model-props/computed/accessible
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { MembraneOrientation } from './prop';
 
+const LARGE_CA_THRESHOLD = 5000;
+
 interface ANVILContext {
     structure: Structure,
 
@@ -27,7 +29,7 @@ interface ANVILContext {
     adjust: number,
 
     offsets: ArrayLike<number>,
-    exposed: ArrayLike<boolean>,
+    exposed: ArrayLike<number>,
     centroid: Vec3,
     extent: number
 };
@@ -56,7 +58,6 @@ export function computeANVIL(structure: Structure, props: ANVILProps) {
     });
 }
 
-
 const centroidHelper = new CentroidHelper();
 function initialize(structure: Structure, props: ANVILProps): ANVILContext {
     const l = StructureElement.Location.create(structure);
@@ -65,7 +66,7 @@ function initialize(structure: Structure, props: ANVILProps): ANVILContext {
     centroidHelper.reset();
 
     let offsets = new Array<number>(elementCount);
-    let exposed = new Array<boolean>(elementCount);
+    let exposed = new Array<number>(elementCount);
 
     const accessibleSurfaceArea = structure && AccessibleSurfaceAreaProvider.get(structure);
     const asa = accessibleSurfaceArea.value!;
@@ -73,6 +74,7 @@ function initialize(structure: Structure, props: ANVILProps): ANVILContext {
 
     const vec = Vec3();
     let m = 0;
+    let n = 0;
     for (let i = 0, il = structure.units.length; i < il; ++i) {
         const unit = structure.units[i];
         const { elements } = unit;
@@ -102,15 +104,16 @@ function initialize(structure: Structure, props: ANVILProps): ANVILContext {
             centroidHelper.includeStep(vec);
 
             // keep track of offsets and exposed state to reuse
-            offsets[m] = structure.serialMapping.getSerialIndex(l.unit, l.element);
-            exposed[m] = AccessibleSurfaceArea.getValue(l, asa) / MaxAsa[label_comp_id(l)] > asaCutoff;
-            m++;
+            offsets[m++] = structure.serialMapping.getSerialIndex(l.unit, l.element);
+            if (AccessibleSurfaceArea.getValue(l, asa) / MaxAsa[label_comp_id(l)] > asaCutoff) {
+                exposed[n++] = structure.serialMapping.getSerialIndex(l.unit, l.element);
+            }
         }
     }
 
     // omit potentially empty tail
     offsets = offsets.slice(0, m);
-    exposed = exposed.slice(0, m);
+    exposed = exposed.slice(0, n);
 
     // calculate centroid and extent
     centroidHelper.finishedIncludeStep();
@@ -121,7 +124,6 @@ function initialize(structure: Structure, props: ANVILProps): ANVILContext {
         centroidHelper.radiusStep(vec);
     }
     const extent = Math.sqrt(centroidHelper.radiusSq);
-    console.log(`center: ${centroid}, radius: ${Math.sqrt(centroidHelper.radiusSq)}`);
 
     return {
         ...props,
@@ -139,19 +141,19 @@ export async function calculate(runtime: RuntimeContext, structure: Structure, p
     const initialHphobHphil = HphobHphil.filtered(ctx);
 
     if (runtime.shouldUpdate) {
-        await runtime.update({ message: 'Placing initial membrane...' });
+        await runtime.update({ message: 'Placing initial membrane...', current: 1, max: 3 });
     }
     const initialMembrane = findMembrane(ctx, generateSpherePoints(ctx, ctx.numberOfSpherePoints), initialHphobHphil)!;
 
     if (runtime.shouldUpdate) {
-        await runtime.update({ message: 'Refining membrane placement...' });
+        await runtime.update({ message: 'Refining membrane placement...', current: 2, max: 3 });
     }
     const refinedMembrane = findMembrane(ctx, findProximateAxes(ctx, initialMembrane), initialHphobHphil)!;
     let membrane = initialMembrane.qmax! > refinedMembrane.qmax! ? initialMembrane : refinedMembrane;
 
-    if (ctx.adjust) {
+    if (ctx.adjust && ctx.offsets.length < LARGE_CA_THRESHOLD) {
         if (runtime.shouldUpdate) {
-            await runtime.update({ message: 'Adjusting membrane thickness...' });
+            await runtime.update({ message: 'Adjusting membrane thickness...', current: 3, max: 3 });
         }
         membrane = adjustThickness(ctx, membrane, initialHphobHphil);
     }
@@ -195,7 +197,7 @@ namespace MembraneCandidate {
         return {
             planePoint1: c1,
             planePoint2: c2,
-            stats: stats
+            stats
         };
     }
 
@@ -240,19 +242,14 @@ function findMembrane(ctx: ANVILContext, spherePoints: Vec3[], initialStats: Hph
             const dMax = Math.max(d1, d2);
 
             // evaluate how well this membrane slice embeddeds the peculiar residues
-            const stats = HphobHphil.filtered(ctx, (testPoint: Vec3) => _isInMembranePlane(testPoint, diam, dMin, dMax));
+            const stats = HphobHphil.filtered(ctx, { normalVector: diam, dMin, dMax });
             qvartemp.push(MembraneCandidate.initial(c1, c2, stats));
         }
 
         let jmax = Math.floor((minThickness / stepSize) - 1);
 
         for (let width = 0, widthl = maxThickness; width <= widthl;) {
-            const imax = qvartemp.length - 1 - jmax;
-
-            for (let i = 0, il = imax; i < il; i++) {
-                const c1 = qvartemp[i].planePoint1;
-                const c2 = qvartemp[i + jmax].planePoint2;
-
+            for (let i = 0, il = qvartemp.length - 1 - jmax; i < il; i++) {
                 let hphob = 0;
                 let hphil = 0;
                 for (let j = 0; j < jmax; j++) {
@@ -271,7 +268,7 @@ function findMembrane(ctx: ANVILContext, spherePoints: Vec3[], initialStats: Hph
                     const qvaltest = qValue(stats, initialStats);
                     if (qvaltest >= qmax) {
                         qmax = qvaltest;
-                        membrane = MembraneCandidate.scored(spherePoint, c1, c2, stats, qmax, centroid);
+                        membrane = MembraneCandidate.scored(spherePoint, qvartemp[i].planePoint1, qvartemp[i + jmax].planePoint2, stats, qmax, centroid);
                     }
                 }
             }
@@ -525,25 +522,20 @@ namespace HphobHphil {
     }
 
     const testPoint = Vec3();
-    export function filtered(ctx: ANVILContext, filter?: (test: Vec3) => boolean): HphobHphil {
-        const { offsets, exposed, structure } = ctx;
+    export function filtered(ctx: ANVILContext, filter?: { normalVector: Vec3, dMin: number, dMax: number }): HphobHphil {
+        const { exposed, structure } = ctx;
         const { label_comp_id } = StructureProperties.atom;
         const l = StructureElement.Location.create(structure);
         const { x, y, z } = StructureProperties.atom;
         let hphob = 0;
         let hphil = 0;
-        for (let k = 0, kl = offsets.length; k < kl; k++) {
-            // ignore buried residues
-            if (!exposed[k]) {
-                continue;
-            }
-
-            setLocation(l, structure, offsets[k]);
+        for (let k = 0, kl = exposed.length; k < kl; k++) {
+            setLocation(l, structure, exposed[k]);
 
             // testPoints have to be in putative membrane layer
             if (filter) {
                 Vec3.set(testPoint, x(l), y(l), z(l));
-                if (!filter(testPoint)) {
+                if (!_isInMembranePlane(testPoint, filter.normalVector, filter.dMin, filter.dMax)) {
                     continue;
                 }
             }
