@@ -19,7 +19,7 @@ export const ShrakeRupleyComputationParams = {
     probeSize: PD.Numeric(1.4, { min: 0.1, max: 4, step: 0.01 }, { description: 'Corresponds to the size of a water molecule: 1.4 (original paper), 1.5 (occassionally used)' }),
     // buriedRasaThreshold: PD.Numeric(0.16, { min: 0.0, max: 1.0 }, { description: 'below this cutoff of relative accessible surface area a residue will be considered buried - see: Rost B, Sander C: Conservation and prediction of solvent accessibility in protein families. Proteins 1994.' }),
     nonPolymer: PD.Boolean(false, { description: 'Include non-polymer atoms as occluders.' }),
-    traceOnly: PD.Boolean(false, { description: 'Compute only using alpha-carbons, if true increase probeSize accordingly (e.g., 4 A).' })
+    traceOnly: PD.Boolean(false, { description: 'Compute only using alpha-carbons, if true increase probeSize accordingly (e.g., 4 A). Considers only canonical amino acids.' })
 };
 export type ShrakeRupleyComputationParams = typeof ShrakeRupleyComputationParams
 export type ShrakeRupleyComputationProps = PD.Values<ShrakeRupleyComputationParams>
