@@ -12,7 +12,7 @@ export interface ShrakeRupleyContext {
     spherePoints: Vec3[],
     probeSize: number,
     nonPolymer: boolean,
-    alphaOnly: boolean,
+    traceOnly: boolean,
     scalingConstant: number,
     maxLookupRadius: number,
     atomRadiusType: Int8Array,

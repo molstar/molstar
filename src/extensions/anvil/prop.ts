@@ -77,7 +77,7 @@ export const MembraneOrientationProvider: CustomStructureProperty.Provider<Membr
 
 async function computeAnvil(ctx: CustomProperty.Context, data: Structure, props: Partial<ANVILProps>): Promise<MembraneOrientation> {
     // can't get away with the default 92 points here
-    await AccessibleSurfaceAreaProvider.attach(ctx, data, { probeSize: 4.0, alphaOnly: true, numberOfSpherePoints: 184 });
+    await AccessibleSurfaceAreaProvider.attach(ctx, data, { probeSize: 4.0, traceOnly: true, numberOfSpherePoints: 184 });
     const p = { ...PD.getDefaultValues(ANVILParams), ...props };
     return await computeANVIL(data, p).runInContext(ctx.runtime);
 }
