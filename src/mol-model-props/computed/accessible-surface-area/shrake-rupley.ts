@@ -102,9 +102,16 @@ namespace AccessibleSurfaceArea {
 
     export function getValue(location: StructureElement.Location, accessibleSurfaceArea: AccessibleSurfaceArea) {
         const { area, serialResidueIndex } = accessibleSurfaceArea;
-        const rSI = serialResidueIndex[location.element];
+        const rSI = serialResidueIndex[indexOf(location.structure.root.serialMapping.elementIndices, location.element)];
         if (rSI === -1) return -1;
         return area[rSI];
+    }
+
+    function indexOf<T>(a: ArrayLike<T>, e: T): number {
+        for (let i = 0, il = a.length; i < il; i++) {
+            if (a[i] === e) return i;
+        }
+        return -1;
     }
 
     export function getNormalizedValue(location: StructureElement.Location, accessibleSurfaceArea: AccessibleSurfaceArea) {
