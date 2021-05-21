@@ -96,7 +96,7 @@ async function createGaussianSurfaceMesh(ctx: VisualContext, unit: Unit, structu
     (surface.meta as GaussianSurfaceMeta) = { resolution };
 
     Mesh.transform(surface, transform);
-    if (ctx.webgl && !ctx.webgl.isWebGL2) Mesh.uniformTriangleGroup(surface);
+    if (ctx.webgl && !ctx.webgl.isWebGL2) Mesh.uniformTriangleGroup(surface, false);
 
     const sphere = Sphere3D.expand(Sphere3D(), unit.boundary.sphere, props.radiusOffset + getUnitExtraRadius(unit));
     surface.setBoundingSphere(sphere);
@@ -157,7 +157,7 @@ async function createStructureGaussianSurfaceMesh(ctx: VisualContext, structure:
     (surface.meta as GaussianSurfaceMeta) = { resolution };
 
     Mesh.transform(surface, transform);
-    if (ctx.webgl && !ctx.webgl.isWebGL2) Mesh.uniformTriangleGroup(surface);
+    if (ctx.webgl && !ctx.webgl.isWebGL2) Mesh.uniformTriangleGroup(surface, false);
 
     const sphere = Sphere3D.expand(Sphere3D(), structure.boundary.sphere, props.radiusOffset + getStructureExtraRadius(structure));
     surface.setBoundingSphere(sphere);

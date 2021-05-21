@@ -132,7 +132,7 @@ export class ObjExporter extends MeshExporter<ObjData> {
     }
 
     protected async addMeshWithColors(input: AddMeshInput) {
-        const { mesh, meshes, values, isGeoTexture, webgl, ctx } = input;
+        const { mesh, values, isGeoTexture, webgl, ctx } = input;
 
         const obj = this.obj;
         const t = Mat4();
@@ -160,28 +160,7 @@ export class ObjExporter extends MeshExporter<ObjData> {
         for (let instanceIndex = 0; instanceIndex < instanceCount; ++instanceIndex) {
             if (ctx.shouldUpdate) await ctx.update({ current: instanceIndex + 1 });
 
-            let vertices: Float32Array;
-            let normals: Float32Array;
-            let indices: Uint32Array | undefined;
-            let groups: Float32Array | Uint8Array;
-            let vertexCount: number;
-            let drawCount: number;
-            if (mesh !== undefined) {
-                vertices = mesh.vertices;
-                normals = mesh.normals;
-                indices = mesh.indices;
-                groups = mesh.groups;
-                vertexCount = mesh.vertexCount;
-                drawCount = mesh.drawCount;
-            } else {
-                const mesh = meshes![instanceIndex];
-                vertices = mesh.vertexBuffer.ref.value;
-                normals = mesh.normalBuffer.ref.value;
-                indices = mesh.indexBuffer.ref.value;
-                groups = mesh.groupBuffer.ref.value;
-                vertexCount = mesh.vertexCount;
-                drawCount = mesh.triangleCount * 3;
-            }
+            const { vertices, normals, indices, groups, vertexCount, drawCount } = ObjExporter.getInstance(input, instanceIndex);
 
             Mat4.fromArray(t, aTransform, instanceIndex * 16);
             mat3directionTransform(n, t);
@@ -234,7 +213,7 @@ export class ObjExporter extends MeshExporter<ObjData> {
                         color = Color.fromArray(tColor, indices![i] * 3);
                         break;
                     case 'vertexInstance':
-                        color = Color.fromArray(tColor, (instanceIndex * drawCount + indices![i]) * 3);
+                        color = Color.fromArray(tColor, (instanceIndex * vertexCount + indices![i]) * 3);
                         break;
                     case 'volume':
                         color = Color.fromArray(interpolatedColors!, (isGeoTexture ? i : indices![i]) * 3);

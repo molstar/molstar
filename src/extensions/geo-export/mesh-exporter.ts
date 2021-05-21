@@ -100,7 +100,7 @@ export abstract class MeshExporter<D extends RenderObjectExportData> implements 
         }
         const framebuffer = webgl.namedFramebuffers[GeoExportName];
 
-        const [ width, height ] = values.uColorTexDim.ref.value;
+        const [ width, height ] = colorTexDim;
         const colorGrid = new Uint8Array(width * height * 4);
 
         framebuffer.bind();
@@ -111,7 +111,24 @@ export abstract class MeshExporter<D extends RenderObjectExportData> implements 
         return interpolated.array;
     }
 
-    protected abstract addMeshWithColors(inpit: AddMeshInput): void;
+    protected static getInstance(input: AddMeshInput, instanceIndex: number) {
+        const { mesh, meshes } = input;
+        if (mesh !== undefined) {
+            return mesh;
+        } else {
+            const mesh = meshes![instanceIndex];
+            return {
+                vertices: mesh.vertexBuffer.ref.value,
+                normals: mesh.normalBuffer.ref.value,
+                indices: mesh.indexBuffer.ref.value,
+                groups: mesh.groupBuffer.ref.value,
+                vertexCount: mesh.vertexCount,
+                drawCount: mesh.triangleCount * 3
+            };
+        }
+    }
+
+    protected abstract addMeshWithColors(input: AddMeshInput): void;
 
     private async addMesh(values: MeshValues, webgl: WebGLContext, ctx: RuntimeContext) {
         const aPosition = values.aPosition.ref.value;

@@ -28,7 +28,7 @@ export class StlExporter extends MeshExporter<StlData> {
     private triangleCount = 0;
 
     protected async addMeshWithColors(input: AddMeshInput) {
-        const { mesh, meshes, values, isGeoTexture, ctx } = input;
+        const { values, isGeoTexture, ctx } = input;
 
         const t = Mat4();
         const tmpV = Vec3();
@@ -37,29 +37,14 @@ export class StlExporter extends MeshExporter<StlData> {
         const v3 = Vec3();
         const stride = isGeoTexture ? 4 : 3;
 
+        const aTransform = values.aTransform.ref.value;
         const instanceCount = values.uInstanceCount.ref.value;
 
         for (let instanceIndex = 0; instanceIndex < instanceCount; ++instanceIndex) {
             if (ctx.shouldUpdate) await ctx.update({ current: instanceIndex + 1 });
 
-            let vertices: Float32Array;
-            let indices: Uint32Array | undefined;
-            let vertexCount: number;
-            let drawCount: number;
-            if (mesh !== undefined) {
-                vertices = mesh.vertices;
-                indices = mesh.indices;
-                vertexCount = mesh.vertexCount;
-                drawCount = mesh.drawCount;
-            } else {
-                const mesh = meshes![instanceIndex];
-                vertices = mesh.vertexBuffer.ref.value;
-                indices = mesh.indexBuffer.ref.value;
-                vertexCount = mesh.vertexCount;
-                drawCount = mesh.triangleCount * 3;
-            }
+            const { vertices, indices, vertexCount, drawCount } = StlExporter.getInstance(input, instanceIndex);
 
-            const aTransform = values.aTransform.ref.value;
             Mat4.fromArray(t, aTransform, instanceIndex * 16);
 
             // position
