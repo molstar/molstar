@@ -44,7 +44,7 @@ export class SmaaPass {
     }
 
     constructor(private webgl: WebGLContext, input: Texture) {
-        if (typeof HTMLImageElement === undefined) {
+        if (typeof HTMLImageElement === 'undefined') {
             if (isDebugMode) console.log(`Missing "HTMLImageElement" required for "SMAA"`);
             return;
         }
