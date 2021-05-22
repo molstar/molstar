@@ -17,6 +17,7 @@ import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { MembraneOrientation } from './prop';
 
 const LARGE_CA_THRESHOLD = 5000;
+const UPDATE_INTERVAL = 10;
 
 interface ANVILContext {
     structure: Structure,
@@ -90,7 +91,7 @@ function initialize(structure: Structure, props: ANVILProps): ANVILContext {
             }
 
             // only CA is considered for downstream operations
-            if (label_atom_id(l) !== 'CA') {
+            if (label_atom_id(l) !== 'CA' && label_atom_id(l) !== 'BB') {
                 continue;
             }
 
@@ -140,22 +141,12 @@ export async function calculate(runtime: RuntimeContext, structure: Structure, p
     const ctx = initialize(structure, params);
     const initialHphobHphil = HphobHphil.filtered(ctx);
 
-    if (runtime.shouldUpdate) {
-        await runtime.update({ message: 'Placing initial membrane...', current: 1, max: 3 });
-    }
-    const initialMembrane = findMembrane(ctx, generateSpherePoints(ctx, ctx.numberOfSpherePoints), initialHphobHphil)!;
-
-    if (runtime.shouldUpdate) {
-        await runtime.update({ message: 'Refining membrane placement...', current: 2, max: 3 });
-    }
-    const refinedMembrane = findMembrane(ctx, findProximateAxes(ctx, initialMembrane), initialHphobHphil)!;
+    const initialMembrane = (await findMembrane(runtime, 'Placing initial membrane...', ctx, generateSpherePoints(ctx, ctx.numberOfSpherePoints), initialHphobHphil))!;
+    const refinedMembrane = (await findMembrane(runtime, 'Refining membrane placement...', ctx, findProximateAxes(ctx, initialMembrane), initialHphobHphil))!;
     let membrane = initialMembrane.qmax! > refinedMembrane.qmax! ? initialMembrane : refinedMembrane;
 
     if (ctx.adjust && ctx.offsets.length < LARGE_CA_THRESHOLD) {
-        if (runtime.shouldUpdate) {
-            await runtime.update({ message: 'Adjusting membrane thickness...', current: 3, max: 3 });
-        }
-        membrane = adjustThickness(ctx, membrane, initialHphobHphil);
+        membrane = await adjustThickness(runtime, 'Adjusting membrane thickness...', ctx, membrane, initialHphobHphil);
     }
 
     const normalVector = Vec3.zero();
@@ -215,7 +206,7 @@ namespace MembraneCandidate {
     }
 }
 
-function findMembrane(ctx: ANVILContext, spherePoints: Vec3[], initialStats: HphobHphil): MembraneCandidate | undefined {
+async function findMembrane(runtime: RuntimeContext, message: string | undefined, ctx: ANVILContext, spherePoints: Vec3[], initialStats: HphobHphil): Promise<MembraneCandidate | undefined> {
     const { centroid, stepSize, minThickness, maxThickness } = ctx;
     // best performing membrane
     let membrane: MembraneCandidate | undefined;
@@ -225,6 +216,10 @@ function findMembrane(ctx: ANVILContext, spherePoints: Vec3[], initialStats: Hph
     // construct slices of thickness 1.0 along the axis connecting the centroid and the spherePoint
     const diam = Vec3();
     for (let n = 0, nl = spherePoints.length; n < nl; n++) {
+        if (runtime?.shouldUpdate && message && n % UPDATE_INTERVAL === 0) {
+            await runtime.update({ message, current: n + 1, max: nl + 1 });
+        }
+
         const spherePoint = spherePoints[n];
         Vec3.sub(diam, centroid, spherePoint);
         Vec3.scale(diam, diam, 2);
@@ -281,7 +276,7 @@ function findMembrane(ctx: ANVILContext, spherePoints: Vec3[], initialStats: Hph
 }
 
 /** Adjust membrane thickness by maximizing the number of membrane segments. */
-function adjustThickness(ctx: ANVILContext, membrane: MembraneCandidate, initialHphobHphil: HphobHphil): MembraneCandidate {
+async function adjustThickness(runtime: RuntimeContext, message: string | undefined, ctx: ANVILContext, membrane: MembraneCandidate, initialHphobHphil: HphobHphil): Promise<MembraneCandidate> {
     const { minThickness } = ctx;
     const step = 0.3;
     let maxThickness = Vec3.distance(membrane.planePoint1, membrane.planePoint2);
@@ -289,13 +284,20 @@ function adjustThickness(ctx: ANVILContext, membrane: MembraneCandidate, initial
     let maxNos = membraneSegments(ctx, membrane).length;
     let optimalThickness = membrane;
 
+    let n = 0;
+    const nl = Math.ceil((maxThickness - minThickness) / step);
     while (maxThickness > minThickness) {
+        n++;
+        if (runtime?.shouldUpdate && message && n % UPDATE_INTERVAL === 0) {
+            await runtime.update({ message, current: n, max: nl });
+        }
+
         const p = {
             ...ctx,
             maxThickness,
             stepSize: step
         };
-        const temp = findMembrane(p, [membrane.spherePoint!], initialHphobHphil);
+        const temp = await findMembrane(runtime, void 0, p, [membrane.spherePoint!], initialHphobHphil);
         if (temp) {
             const nos = membraneSegments(ctx, temp).length;
             if (nos > maxNos) {
