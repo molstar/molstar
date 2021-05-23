@@ -169,7 +169,7 @@ export function getAttachment(gl: GLRenderingContext, extensions: WebGLExtension
 }
 
 function isImage(x: TextureImage<any> | TextureVolume<any> | HTMLImageElement): x is HTMLImageElement {
-    return typeof HTMLImageElement !== undefined && (x instanceof HTMLImageElement);
+    return typeof HTMLImageElement !== 'undefined' && (x instanceof HTMLImageElement);
 }
 
 function isTexture2d(x: TextureImage<any> | TextureVolume<any>, target: number, gl: GLRenderingContext): x is TextureImage<any> {
