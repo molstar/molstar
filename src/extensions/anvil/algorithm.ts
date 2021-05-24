@@ -216,8 +216,8 @@ async function findMembrane(runtime: RuntimeContext, message: string | undefined
     // construct slices of thickness 1.0 along the axis connecting the centroid and the spherePoint
     const diam = Vec3();
     for (let n = 0, nl = spherePoints.length; n < nl; n++) {
-        if (runtime?.shouldUpdate && message && n % UPDATE_INTERVAL === 0) {
-            await runtime.update({ message, current: n + 1, max: nl + 1 });
+        if (runtime?.shouldUpdate && message && (n + 1) % UPDATE_INTERVAL === 0) {
+            await runtime.update({ message, current: (n + 1), max: nl });
         }
 
         const spherePoint = spherePoints[n];
@@ -319,7 +319,6 @@ function membraneSegments(ctx: ANVILContext, membrane: MembraneCandidate): Array
     const testPoint = Vec3();
     const { auth_asym_id } = StructureProperties.chain;
     const { auth_seq_id } = StructureProperties.residue;
-    const { x, y, z } = StructureProperties.atom;
 
     const d1 = -Vec3.dot(normalVector!, planePoint1);
     const d2 = -Vec3.dot(normalVector!, planePoint2);
@@ -348,7 +347,7 @@ function membraneSegments(ctx: ANVILContext, membrane: MembraneCandidate): Array
         }
 
         authSeqId = auth_seq_id(l);
-        Vec3.set(testPoint, x(l), y(l), z(l));
+        Vec3.set(testPoint, l.unit.conformation.x(l.element), l.unit.conformation.y(l.element), l.unit.conformation.z(l.element));
         if (_isInMembranePlane(testPoint, normalVector!, dMin, dMax)) {
             inMembrane[authAsymId].add(authSeqId);
         } else {
@@ -394,11 +393,11 @@ function membraneSegments(ctx: ANVILContext, membrane: MembraneCandidate): Array
 
         // evaluate residues 1 pos outside of membrane
         setLocation(l, structure, offsets[start - 1]);
-        Vec3.set(testPoint, x(l), y(l), z(l));
+        Vec3.set(testPoint, l.unit.conformation.x(l.element), l.unit.conformation.y(l.element), l.unit.conformation.z(l.element));
         const d3 = -Vec3.dot(normalVector!, testPoint);
 
         setLocation(l, structure, offsets[end + 1]);
-        Vec3.set(testPoint, x(l), y(l), z(l));
+        Vec3.set(testPoint, l.unit.conformation.x(l.element), l.unit.conformation.y(l.element), l.unit.conformation.z(l.element));
         const d4 = -Vec3.dot(normalVector!, testPoint);
 
         if (Math.min(d3, d4) < dMin && Math.max(d3, d4) > dMax) {
@@ -528,7 +527,6 @@ namespace HphobHphil {
         const { exposed, structure } = ctx;
         const { label_comp_id } = StructureProperties.atom;
         const l = StructureElement.Location.create(structure);
-        const { x, y, z } = StructureProperties.atom;
         let hphob = 0;
         let hphil = 0;
         for (let k = 0, kl = exposed.length; k < kl; k++) {
@@ -536,7 +534,7 @@ namespace HphobHphil {
 
             // testPoints have to be in putative membrane layer
             if (filter) {
-                Vec3.set(testPoint, x(l), y(l), z(l));
+                Vec3.set(testPoint, l.unit.conformation.x(l.element), l.unit.conformation.y(l.element), l.unit.conformation.z(l.element));
                 if (!_isInMembranePlane(testPoint, filter.normalVector, filter.dMin, filter.dMax)) {
                     continue;
                 }
