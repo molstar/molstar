@@ -48,16 +48,17 @@ const sharedConfig = {
             'node_modules',
             path.resolve(__dirname, 'lib/')
         ],
+        fallback: {
+            fs: false
+        }
     },
     watchOptions: {
         aggregateTimeout: 750
-    },
-    devtool: ''
+    }
 };
 
 function createEntry(src, outFolder, outFilename, isNode) {
     return {
-        node: isNode ? void 0 : { fs: 'empty' }, // TODO find better solution? Currently used in file-handle.ts
         target: isNode ? 'node' : void 0,
         entry: path.resolve(__dirname, `lib/${src}.js`),
         output: { filename: `${outFilename}.js`, path: path.resolve(__dirname, `build/${outFolder}`) },
@@ -67,7 +68,6 @@ function createEntry(src, outFolder, outFilename, isNode) {
 
 function createEntryPoint(name, dir, out, library) {
     return {
-        node: { fs: 'empty' }, // TODO find better solution? Currently used in file-handle.ts
         entry: path.resolve(__dirname, `lib/${dir}/${name}.js`),
         output: { filename: `${library || name}.js`, path: path.resolve(__dirname, `build/${out}`), library: library || out, libraryTarget: 'umd' },
         ...sharedConfig
