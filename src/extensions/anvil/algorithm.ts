@@ -151,18 +151,11 @@ export async function calculate(runtime: RuntimeContext, structure: Structure, p
 
     const normalVector = Vec3.zero();
     const center =  Vec3.zero();
-    const jitter = [0.001, 0.001, 0.001] as Vec3;
     Vec3.sub(normalVector, membrane.planePoint1, membrane.planePoint2);
     Vec3.normalize(normalVector, normalVector);
 
-    // prevent degenerate matrices (e.g., 5cbg - assembly 1 which is oriented along the y-axis)
-    if (Math.abs(normalVector[0]) === 1 || Math.abs(normalVector[1]) === 1 || Math.abs(normalVector[2]) === 1) {
-        Vec3.add(normalVector, normalVector, jitter);
-    }
-
     Vec3.add(center, membrane.planePoint1, membrane.planePoint2);
     Vec3.scale(center, center, 0.5);
-    Vec3.add(center, center, jitter);
     const extent = adjustExtent(ctx, membrane, center);
 
     return {

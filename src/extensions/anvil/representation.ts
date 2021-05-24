@@ -119,8 +119,11 @@ function getLayerCircle(builder: LinesBuilder, p: Vec3, centroid: Vec3, normal: 
 }
 
 const tmpMat = Mat4();
+const tmpV = Vec3();
+const jitter = Vec3.create(0.001, 0.001, 0.001);
 function getCircle(p: Vec3, centroid: Vec3, normal: Vec3, radius: number) {
-    Mat4.targetTo(tmpMat, p, centroid, normal);
+    Vec3.add(tmpV, centroid, jitter);
+    Mat4.targetTo(tmpMat, p, tmpV, normal);
     Mat4.setTranslation(tmpMat, p);
     Mat4.mul(tmpMat, tmpMat, Mat4.rotX90);
 
