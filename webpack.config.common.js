@@ -49,7 +49,10 @@ const sharedConfig = {
             path.resolve(__dirname, 'lib/')
         ],
         fallback: {
-            fs: false
+            fs: false,
+            crypto: require.resolve('crypto-browserify'),
+            path: require.resolve('path-browserify'),
+            stream: require.resolve('stream-browserify'),
         }
     },
     watchOptions: {
