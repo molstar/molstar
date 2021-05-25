@@ -223,7 +223,8 @@ namespace MembraneCandidate {
 
 async function findMembrane(runtime: RuntimeContext, message: string | undefined, ctx: ANVILContext, spherePoints: Vec3[], initialStats: HphobHphil): Promise<MembraneCandidate | undefined> {
     const { centroid, stepSize, minThickness, maxThickness, exposed, structure } = ctx;
-    const { x, y, z } = StructureProperties.atom;
+    const { units } = structure;
+    const { elementIndices, unitIndices } = structure.serialMapping;
     // best performing membrane
     let membrane: MembraneCandidate | undefined;
     // score of the best performing membrane
@@ -231,6 +232,7 @@ async function findMembrane(runtime: RuntimeContext, message: string | undefined
 
     // construct slices of thickness 1.0 along the axis connecting the centroid and the spherePoint
     const diam = v3zero();
+    const testPoint = v3zero();
     for (let n = 0, nl = spherePoints.length; n < nl; n++) {
         if (runtime?.shouldUpdate && message && (n + 1) % UPDATE_INTERVAL === 0) {
             await runtime.update({ message, current: (n + 1), max: nl });
@@ -241,23 +243,22 @@ async function findMembrane(runtime: RuntimeContext, message: string | undefined
         v3scale(diam, diam, 2);
         const diamDot = v3dot(diam, diam);
         const diamNorm = Math.sqrt(diamDot);
-        const qvartemp = [];
 
         const filter: Map<number, Set<number>> = new Map<number, Set<number>>();
-        const l = StructureElement.Location.create(structure);
-        const testPoint = v3zero();
         for (let i = 0, il = exposed.length; i < il; i++) {
-            setLocation(l, structure, exposed[i]);
-            v3set(testPoint, x(l), y(l), z(l));
+            const unit = units[unitIndices[exposed[i]]];
+            const elementIndex = elementIndices[exposed[i]];
+            v3set(testPoint, unit.conformation.x(elementIndex), unit.conformation.y(elementIndex), unit.conformation.z(elementIndex));
             v3sub(testPoint, testPoint, spherePoint);
             const membership = Math.floor(v3dot(testPoint, diam) / diamNorm / stepSize);
             if (!filter.has(membership)) {
                 filter.set(membership, new Set<number>([i]));
             } else {
-                filter.get(membership)?.add(i);
+                filter.get(membership)!.add(i);
             }
         }
 
+        const qvartemp = [];
         for (let i = 0, il = diamNorm - stepSize; i < il; i += stepSize) {
             const c1 = v3zero();
             const c2 = v3zero();
@@ -550,29 +551,15 @@ namespace HphobHphil {
         };
     }
 
-    // const testPoint = v3zero();
-    // export function filtered(ctx: ANVILContext, filter?: { normalVector: Vec3, dMin: number, dMax: number }): HphobHphil {
     export function filtered(ctx: ANVILContext, filter?: Set<number>): HphobHphil {
-        // const { exposed, structure, hydrophobic } = ctx;
         const { exposed, hydrophobic } = ctx;
-        // const l = StructureElement.Location.create(structure);
         let hphob = 0;
         let hphil = 0;
         for (let k = 0, kl = exposed.length; k < kl; k++) {
-            // setLocation(l, structure, exposed[k]);
-
             // testPoints have to be in putative membrane layer
             if (filter && !filter.has(k)) {
                 continue;
             }
-
-            // testPoints have to be in putative membrane layer
-            // if (filter) {
-            //     v3set(testPoint, l.unit.conformation.x(l.element), l.unit.conformation.y(l.element), l.unit.conformation.z(l.element));
-            //     if (!_isInMembranePlane(testPoint, filter.normalVector, filter.dMin, filter.dMax)) {
-            //         continue;
-            //     }
-            // }
 
             if (hydrophobic[k]) {
                 hphob++;
