@@ -12,6 +12,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Fix #178: ``IndexPairBonds`` for non-single residue structures (bug due to atom reordering).
 - Add volumetric color smoothing for MolecularSurface and GaussianSurface representations (#173)
 - Fix nested 3d grid lookup that caused results being overwritten in non-covalent interactions computation.
+- Basic implementation of ``BestDatabaseSequenceMapping`` (parse from CIF, color theme, superposition).
 
 ## [v2.0.5] - 2021-04-26
 
