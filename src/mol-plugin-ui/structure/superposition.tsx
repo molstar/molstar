@@ -20,6 +20,9 @@ import { ParameterControls } from '../controls/parameters';
 import { stripTags } from '../../mol-util/string';
 import { StructureSelectionHistoryEntry } from '../../mol-plugin-state/manager/structure/selection';
 import { ToggleSelectionModeButton } from './selection';
+import { alignAndSuperposeWithBestDatabaseMapping } from '../../mol-model/structure/structure/util/superposition-db-mapping';
+import { PluginCommands } from '../../mol-plugin/commands';
+import { BestDatabaseSequenceMapping } from '../../mol-model-props/sequence/best-database-mapping';
 
 export class StructureSuperpositionControls extends CollapsableControls {
     defaultState() {
@@ -55,6 +58,7 @@ const SuperpositionTag = 'SuperpositionTransform';
 type SuperpositionControlsState = {
     isBusy: boolean,
     action?: 'byChains' | 'byAtoms' | 'options',
+    canUseDb?: boolean,
     options: StructureSuperpositionOptions
 }
 
@@ -68,9 +72,10 @@ interface AtomsLociEntry extends LociEntry {
     atoms: StructureSelectionHistoryEntry[]
 };
 
-export class SuperpositionControls extends PurePluginUIComponent<{}, SuperpositionControlsState> {
+export class SuperpositionControls extends PurePluginUIComponent<{ }, SuperpositionControlsState> {
     state: SuperpositionControlsState = {
         isBusy: false,
+        canUseDb: false,
         action: undefined,
         options: DefaultStructureSuperpositionOptions
     }
@@ -86,6 +91,10 @@ export class SuperpositionControls extends PurePluginUIComponent<{}, Superpositi
 
         this.subscribe(this.plugin.behaviors.state.isBusy, v => {
             this.setState({ isBusy: v });
+        });
+
+        this.subscribe(this.plugin.managers.structure.hierarchy.behaviors.selection, sel => {
+            this.setState({ canUseDb: sel.structures.every(s => !!s.cell.obj?.data && s.cell.obj.data.models.some(m => BestDatabaseSequenceMapping.Provider.isApplicable(m)) ) });
         });
     }
 
@@ -163,6 +172,25 @@ export class SuperpositionControls extends PurePluginUIComponent<{}, Superpositi
             this.plugin.log.info(`Superposed ${count} ${count === 1 ? 'atom' : 'atoms'} of [${labelA}] and [${labelB}] with RMSD ${rmsd.toFixed(2)}.`);
         }
     }
+
+    superposeDb = async () => {
+        const input = this.plugin.managers.structure.hierarchy.behaviors.selection.value.structures;
+
+        const transforms = alignAndSuperposeWithBestDatabaseMapping(input.map(s => s.cell.obj?.data!));
+
+        let rmsd = 0;
+
+        for (const xform of transforms) {
+            await this.transform(input[xform.other].cell, xform.transform.bTransform);
+            rmsd += xform.transform.rmsd;
+        }
+
+        rmsd /= transforms.length - 1;
+
+        this.plugin.log.info(`Superposed ${input.length} structures with avg. RMSD ${rmsd.toFixed(2)}.`);
+        await new Promise(res => requestAnimationFrame(res));
+        PluginCommands.Camera.Reset(this.plugin);
+    };
 
     toggleByChains = () => this.setState({ action: this.state.action === 'byChains' ? void 0 : 'byChains' });
     toggleByAtoms = () => this.setState({ action: this.state.action === 'byAtoms' ? void 0 : 'byAtoms' });
@@ -293,6 +321,14 @@ export class SuperpositionControls extends PurePluginUIComponent<{}, Superpositi
         </>;
     }
 
+    superposeByDbMapping() {
+        return <>
+            <Button icon={SuperposeChainsSvg} title='Superpose structures using database mapping.' className='msp-btn msp-btn-block' onClick={this.superposeDb} style={{ marginTop: '1px' }} disabled={this.state.isBusy}>
+                DB
+            </Button>
+        </>;
+    }
+
     private setOptions = (values: StructureSuperpositionOptions) => {
         this.setState({ options: values });
     }
@@ -300,8 +336,9 @@ export class SuperpositionControls extends PurePluginUIComponent<{}, Superpositi
     render() {
         return <>
             <div className='msp-flex-row'>
-                <ToggleButton icon={SuperposeChainsSvg} label='By Chains' toggle={this.toggleByChains} isSelected={this.state.action === 'byChains'} disabled={this.state.isBusy} />
-                <ToggleButton icon={SuperposeAtomsSvg} label='By Atoms' toggle={this.toggleByAtoms} isSelected={this.state.action === 'byAtoms'} disabled={this.state.isBusy} />
+                <ToggleButton icon={SuperposeChainsSvg} label='Chains' toggle={this.toggleByChains} isSelected={this.state.action === 'byChains'} disabled={this.state.isBusy} />
+                <ToggleButton icon={SuperposeAtomsSvg} label='Atoms' toggle={this.toggleByAtoms} isSelected={this.state.action === 'byAtoms'} disabled={this.state.isBusy} />
+                {this.state.canUseDb && this.superposeByDbMapping()}
                 <ToggleButton icon={TuneSvg} label='' title='Options' toggle={this.toggleOptions} isSelected={this.state.action === 'options'} disabled={this.state.isBusy} style={{ flex: '0 0 40px', padding: 0 }} />
             </div>
             {this.state.action === 'byChains' && this.addByChains()}

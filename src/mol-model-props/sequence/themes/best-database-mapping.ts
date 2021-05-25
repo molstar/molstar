@@ -21,7 +21,7 @@ const Description = 'Assigns a color based on best dababase sequence mapping.';
 const globalAccessionMap = new Map<string, number>();
 
 export const BestDatabaseSequenceMappingColorThemeParams = {
-    ...getPaletteParams({ type: 'colors', colorList: 'set-3' }),
+    ...getPaletteParams({ type: 'colors', colorList: 'set-1' }),
 };
 export type BestDatabaseSequenceMappingColorThemeParams = typeof BestDatabaseSequenceMappingColorThemeParams
 export function getBestDatabaseSequenceMappingColorThemeParams(ctx: ThemeDataContext) {
@@ -35,7 +35,7 @@ export function BestDatabaseSequenceMappingColorTheme(ctx: ThemeDataContext, pro
             const mapping = BestDatabaseSequenceMapping.Provider.get(m).value;
             if (!mapping) continue;
             for (const acc of mapping.accession) {
-                if (!acc) continue;
+                if (!acc || globalAccessionMap.has(acc)) continue;
                 globalAccessionMap.set(acc, globalAccessionMap.size);
             }
         }
