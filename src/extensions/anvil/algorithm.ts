@@ -18,7 +18,6 @@ import { MembraneOrientation } from './prop';
 
 const LARGE_CA_THRESHOLD = 5000;
 const UPDATE_INTERVAL = 10;
-const EMPTY_SET = new Set<number>();
 
 interface ANVILContext {
     structure: Structure,
@@ -67,6 +66,7 @@ const v3clone = Vec3.clone;
 const v3create = Vec3.create;
 const v3distance = Vec3.distance;
 const v3dot = Vec3.dot;
+const v3magnitude = Vec3.magnitude;
 const v3normalize = Vec3.normalize;
 const v3scale = Vec3.scale;
 const v3scaleAndAdd = Vec3.scaleAndAdd;
@@ -76,20 +76,16 @@ const v3sub = Vec3.sub;
 const v3zero = Vec3.zero;
 
 const centroidHelper = new CentroidHelper();
-async function initialize(runtime: RuntimeContext, structure: Structure, props: ANVILProps): Promise<ANVILContext> {
+async function initialize(structure: Structure, props: ANVILProps, accessibleSurfaceArea: AccessibleSurfaceArea): Promise<ANVILContext> {
     const l = StructureElement.Location.create(structure);
     const { label_atom_id, label_comp_id, x, y, z } = StructureProperties.atom;
     const elementCount = structure.polymerResidueCount;
+    const asaCutoff = props.asaCutoff / 100;
     centroidHelper.reset();
 
     let offsets = new Array<number>(elementCount);
     let exposed = new Array<number>(elementCount);
     let hydrophobic = new Array<boolean>(elementCount);
-
-    // can't get away with the default 92 points here
-    const p = { ...PD.getDefaultValues(AccessibleSurfaceAreaParams), ...props, probeSize: 4.0, traceOnly: true, numberOfSpherePoints: 184 };
-    const accessibleSurfaceArea = await AccessibleSurfaceArea.compute(structure, p).runInContext(runtime);
-    const asaCutoff = props.asaCutoff / 100;
 
     const vec = v3zero();
     let m = 0;
@@ -160,7 +156,11 @@ async function initialize(runtime: RuntimeContext, structure: Structure, props: 
 }
 
 export async function calculate(runtime: RuntimeContext, structure: Structure, params: ANVILProps): Promise<MembraneOrientation> {
-    const ctx = await initialize(runtime, structure, params);
+    // can't get away with the default 92 points here
+    const asaProps = { ...PD.getDefaultValues(AccessibleSurfaceAreaParams), probeSize: 4.0, traceOnly: true, numberOfSpherePoints: 184 };
+    const accessibleSurfaceArea = await AccessibleSurfaceArea.compute(structure, asaProps).runInContext(runtime);
+
+    const ctx = await initialize(structure, params, accessibleSurfaceArea);
     const initialHphobHphil = HphobHphil.filtered(ctx);
 
     const initialMembrane = (await findMembrane(runtime, 'Placing initial membrane...', ctx, generateSpherePoints(ctx, ctx.numberOfSpherePoints), initialHphobHphil))!;
@@ -241,21 +241,19 @@ async function findMembrane(runtime: RuntimeContext, message: string | undefined
         const spherePoint = spherePoints[n];
         v3sub(diam, centroid, spherePoint);
         v3scale(diam, diam, 2);
-        const diamDot = v3dot(diam, diam);
-        const diamNorm = Math.sqrt(diamDot);
+        const diamNorm = v3magnitude(diam);
 
-        const filter: Map<number, Set<number>> = new Map<number, Set<number>>();
+        const filter: Set<number>[] = [];
+        for (let i = 0, il = diamNorm - stepSize; i < il; i += stepSize) {
+            filter[filter.length] = new Set<number>();
+        }
+
         for (let i = 0, il = exposed.length; i < il; i++) {
             const unit = units[unitIndices[exposed[i]]];
             const elementIndex = elementIndices[exposed[i]];
             v3set(testPoint, unit.conformation.x(elementIndex), unit.conformation.y(elementIndex), unit.conformation.z(elementIndex));
             v3sub(testPoint, testPoint, spherePoint);
-            const membership = Math.floor(v3dot(testPoint, diam) / diamNorm / stepSize);
-            if (!filter.has(membership)) {
-                filter.set(membership, new Set<number>([i]));
-            } else {
-                filter.get(membership)!.add(i);
-            }
+            filter[Math.floor(v3dot(testPoint, diam) / diamNorm / stepSize)].add(i);
         }
 
         const qvartemp = [];
@@ -266,7 +264,7 @@ async function findMembrane(runtime: RuntimeContext, message: string | undefined
             v3scaleAndAdd(c2, spherePoint, diam, (i + stepSize) / diamNorm);
 
             // evaluate how well this membrane slice embeddeds the peculiar residues
-            const stats = HphobHphil.filtered(ctx, filter.get(i) || EMPTY_SET);
+            const stats = HphobHphil.filtered(ctx, filter[Math.round(i / stepSize)]);
             qvartemp.push(MembraneCandidate.initial(c1, c2, stats));
         }
 
