@@ -23,6 +23,7 @@ import { UUID } from '../../../../mol-util';
 import { FileHandle } from '../../../../mol-io/common/file-handle';
 import { createTypedArray, TypedArrayValueType } from '../../../../mol-io/common/typed-array';
 import { LimitsConfig } from '../../config';
+import { fileHandleFromDescriptor } from '../../../common/file-handle';
 
 export async function execute(params: Data.QueryParams, outputProvider: () => Data.QueryOutputStream) {
     const start = getTime();
@@ -34,7 +35,7 @@ export async function execute(params: Data.QueryParams, outputProvider: () => Da
 
     let sourceFile: FileHandle | undefined;
     try {
-        sourceFile = FileHandle.fromDescriptor(await File.openRead(params.sourceFilename), params.sourceFilename);
+        sourceFile = fileHandleFromDescriptor(await File.openRead(params.sourceFilename), params.sourceFilename);
         await _execute(sourceFile, params, guid, outputProvider);
         return true;
     } catch (e) {
