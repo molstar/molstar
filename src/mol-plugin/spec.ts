@@ -120,6 +120,7 @@ export const DefaultPluginSpec = (): PluginSpec => ({
 
         PluginSpec.Behavior(PluginBehaviors.CustomProps.StructureInfo),
         PluginSpec.Behavior(PluginBehaviors.CustomProps.AccessibleSurfaceArea),
+        PluginSpec.Behavior(PluginBehaviors.CustomProps.BestDatabaseSequenceMapping),
         PluginSpec.Behavior(PluginBehaviors.CustomProps.Interactions),
         PluginSpec.Behavior(PluginBehaviors.CustomProps.SecondaryStructure),
         PluginSpec.Behavior(PluginBehaviors.CustomProps.ValenceModel),
