@@ -5,7 +5,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Structure, StructureElement, StructureProperties } from '../../mol-model/structure';
+import { Structure, StructureElement, StructureProperties, Unit } from '../../mol-model/structure';
 import { Task, RuntimeContext } from '../../mol-task';
 import { CentroidHelper } from '../../mol-math/geometry/centroid-helper';
 import { AccessibleSurfaceAreaParams } from '../../mol-model-props/computed/accessible-surface-area';
@@ -342,7 +342,8 @@ async function adjustThickness(runtime: RuntimeContext, message: string | undefi
 function membraneSegments(ctx: ANVILContext, membrane: MembraneCandidate): ArrayLike<{ start: number, end: number }> {
     const { offsets, structure, adjust } = ctx;
     const { normalVector, planePoint1, planePoint2 } = membrane;
-    const l = StructureElement.Location.create(structure);
+    const { units } = structure;
+    const { elementIndices, unitIndices } = structure.serialMapping;
     const testPoint = v3zero();
     const { auth_asym_id } = StructureProperties.chain;
     const { auth_seq_id } = StructureProperties.residue;
@@ -355,26 +356,28 @@ function membraneSegments(ctx: ANVILContext, membrane: MembraneCandidate): Array
     const inMembrane: { [k: string]: Set<number> } = Object.create(null);
     const outMembrane: { [k: string]: Set<number> } = Object.create(null);
     const segments: Array<{ start: number, end: number }> = [];
-    setLocation(l, structure, offsets[0]);
     let authAsymId;
     let lastAuthAsymId = null;
     let authSeqId;
-    let lastAuthSeqId = auth_seq_id(l) - 1;
+    let lastAuthSeqId = units[0].model.atomicHierarchy.residues.auth_seq_id.value((units[0] as Unit.Atomic).chainIndex[0]) - 1;
     let startOffset = 0;
     let endOffset = 0;
 
     // collect all residues in membrane layer
     for (let k = 0, kl = offsets.length; k < kl; k++) {
-        setLocation(l, structure, offsets[k]);
-        authAsymId = auth_asym_id(l);
+        const unit = units[unitIndices[offsets[k]]];
+        if (!Unit.isAtomic(unit)) throw 'Property only available for atomic models.';
+        const elementIndex = elementIndices[offsets[k]];
+
+        authAsymId = unit.model.atomicHierarchy.chains.auth_asym_id.value(unit.chainIndex[elementIndex]);
         if (authAsymId !== lastAuthAsymId) {
             if (!inMembrane[authAsymId]) inMembrane[authAsymId] = new Set<number>();
             if (!outMembrane[authAsymId]) outMembrane[authAsymId] = new Set<number>();
             lastAuthAsymId = authAsymId;
         }
 
-        authSeqId = auth_seq_id(l);
-        v3set(testPoint, l.unit.conformation.x(l.element), l.unit.conformation.y(l.element), l.unit.conformation.z(l.element));
+        authSeqId = unit.model.atomicHierarchy.residues.auth_seq_id.value(unit.residueIndex[elementIndex]);
+        v3set(testPoint, unit.conformation.x(elementIndex), unit.conformation.y(elementIndex), unit.conformation.z(elementIndex));
         if (_isInMembranePlane(testPoint, normalVector!, dMin, dMax)) {
             inMembrane[authAsymId].add(authSeqId);
         } else {
@@ -383,9 +386,12 @@ function membraneSegments(ctx: ANVILContext, membrane: MembraneCandidate): Array
     }
 
     for (let k = 0, kl = offsets.length; k < kl; k++) {
-        setLocation(l, structure, offsets[k]);
-        authAsymId = auth_asym_id(l);
-        authSeqId = auth_seq_id(l);
+        const unit = units[unitIndices[offsets[k]]];
+        if (!Unit.isAtomic(unit)) throw 'Property only available for atomic models.';
+        const elementIndex = elementIndices[offsets[k]];
+
+        authAsymId = unit.model.atomicHierarchy.chains.auth_asym_id.value(unit.chainIndex[elementIndex]);
+        authSeqId = unit.model.atomicHierarchy.residues.auth_seq_id.value(unit.residueIndex[elementIndex]);
         if (inMembrane[authAsymId].has(authSeqId)) {
             // chain change
             if (authAsymId !== lastAuthAsymId) {
@@ -411,6 +417,8 @@ function membraneSegments(ctx: ANVILContext, membrane: MembraneCandidate): Array
     }
     segments.push({ start: startOffset, end: endOffset });
 
+    const l = StructureElement.Location.create(structure);
+    setLocation(l, structure, offsets[0]);
     let startAuth;
     let endAuth;
     const refinedSegments: Array<{ start: number, end: number }> = [];
