@@ -8,7 +8,7 @@
 import { Structure, StructureElement, StructureProperties } from '../../mol-model/structure';
 import { Task, RuntimeContext } from '../../mol-task';
 import { CentroidHelper } from '../../mol-math/geometry/centroid-helper';
-import { AccessibleSurfaceAreaProvider } from '../../mol-model-props/computed/accessible-surface-area';
+import { AccessibleSurfaceAreaParams } from '../../mol-model-props/computed/accessible-surface-area';
 import { Vec3 } from '../../mol-math/linear-algebra';
 import { getElementMoleculeType } from '../../mol-model/structure/util';
 import { MoleculeType } from '../../mol-model/structure/model/types';
@@ -60,7 +60,7 @@ export function computeANVIL(structure: Structure, props: ANVILProps) {
 }
 
 const centroidHelper = new CentroidHelper();
-function initialize(structure: Structure, props: ANVILProps): ANVILContext {
+async function initialize(runtime: RuntimeContext, structure: Structure, props: ANVILProps): Promise<ANVILContext> {
     const l = StructureElement.Location.create(structure);
     const { label_atom_id, label_comp_id, x, y, z } = StructureProperties.atom;
     const elementCount = structure.polymerResidueCount;
@@ -69,8 +69,9 @@ function initialize(structure: Structure, props: ANVILProps): ANVILContext {
     let offsets = new Array<number>(elementCount);
     let exposed = new Array<number>(elementCount);
 
-    const accessibleSurfaceArea = structure && AccessibleSurfaceAreaProvider.get(structure);
-    const asa = accessibleSurfaceArea.value!;
+    // can't get away with the default 92 points here
+    const p = { ...PD.getDefaultValues(AccessibleSurfaceAreaParams), ...props, probeSize: 4.0, traceOnly: true, numberOfSpherePoints: 184 };
+    const accessibleSurfaceArea = await AccessibleSurfaceArea.compute(structure, p).runInContext(runtime);
     const asaCutoff = props.asaCutoff / 100;
 
     const vec = Vec3();
@@ -106,7 +107,7 @@ function initialize(structure: Structure, props: ANVILProps): ANVILContext {
 
             // keep track of offsets and exposed state to reuse
             offsets[m++] = structure.serialMapping.getSerialIndex(l.unit, l.element);
-            if (AccessibleSurfaceArea.getValue(l, asa) / MaxAsa[label_comp_id(l)] > asaCutoff) {
+            if (AccessibleSurfaceArea.getValue(l, accessibleSurfaceArea) / MaxAsa[label_comp_id(l)] > asaCutoff) {
                 exposed[n++] = structure.serialMapping.getSerialIndex(l.unit, l.element);
             }
         }
@@ -138,7 +139,7 @@ function initialize(structure: Structure, props: ANVILProps): ANVILContext {
 }
 
 export async function calculate(runtime: RuntimeContext, structure: Structure, params: ANVILProps): Promise<MembraneOrientation> {
-    const ctx = initialize(structure, params);
+    const ctx = await initialize(runtime, structure, params);
     const initialHphobHphil = HphobHphil.filtered(ctx);
 
     const initialMembrane = (await findMembrane(runtime, 'Placing initial membrane...', ctx, generateSpherePoints(ctx, ctx.numberOfSpherePoints), initialHphobHphil))!;
