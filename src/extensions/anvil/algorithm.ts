@@ -345,7 +345,6 @@ function membraneSegments(ctx: ANVILContext, membrane: MembraneCandidate): Array
     const { units } = structure;
     const { elementIndices, unitIndices } = structure.serialMapping;
     const testPoint = v3zero();
-    const { auth_asym_id } = StructureProperties.chain;
     const { auth_seq_id } = StructureProperties.residue;
 
     const d1 = -v3dot(normalVector!, planePoint1);
@@ -418,7 +417,6 @@ function membraneSegments(ctx: ANVILContext, membrane: MembraneCandidate): Array
     segments.push({ start: startOffset, end: endOffset });
 
     const l = StructureElement.Location.create(structure);
-    setLocation(l, structure, offsets[0]);
     let startAuth;
     let endAuth;
     const refinedSegments: Array<{ start: number, end: number }> = [];
