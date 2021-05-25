@@ -18,6 +18,7 @@ import { MembraneOrientation } from './prop';
 
 const LARGE_CA_THRESHOLD = 5000;
 const UPDATE_INTERVAL = 10;
+const EMPTY_SET = new Set<number>();
 
 interface ANVILContext {
     structure: Structure,
@@ -31,6 +32,7 @@ interface ANVILContext {
 
     offsets: ArrayLike<number>,
     exposed: ArrayLike<number>,
+    hydrophobic: ArrayLike<boolean>,
     centroid: Vec3,
     extent: number
 };
@@ -65,7 +67,6 @@ const v3clone = Vec3.clone;
 const v3create = Vec3.create;
 const v3distance = Vec3.distance;
 const v3dot = Vec3.dot;
-const v3magnitude = Vec3.magnitude;
 const v3normalize = Vec3.normalize;
 const v3scale = Vec3.scale;
 const v3scaleAndAdd = Vec3.scaleAndAdd;
@@ -83,6 +84,7 @@ async function initialize(runtime: RuntimeContext, structure: Structure, props: 
 
     let offsets = new Array<number>(elementCount);
     let exposed = new Array<number>(elementCount);
+    let hydrophobic = new Array<boolean>(elementCount);
 
     // can't get away with the default 92 points here
     const p = { ...PD.getDefaultValues(AccessibleSurfaceAreaParams), ...props, probeSize: 4.0, traceOnly: true, numberOfSpherePoints: 184 };
@@ -123,7 +125,9 @@ async function initialize(runtime: RuntimeContext, structure: Structure, props: 
             // keep track of offsets and exposed state to reuse
             offsets[m++] = structure.serialMapping.getSerialIndex(l.unit, l.element);
             if (AccessibleSurfaceArea.getValue(l, accessibleSurfaceArea) / MaxAsa[label_comp_id(l)] > asaCutoff) {
-                exposed[n++] = structure.serialMapping.getSerialIndex(l.unit, l.element);
+                exposed[n] = structure.serialMapping.getSerialIndex(l.unit, l.element);
+                hydrophobic[n] = isHydrophobic(label_comp_id(l));
+                n++;
             }
         }
     }
@@ -131,6 +135,7 @@ async function initialize(runtime: RuntimeContext, structure: Structure, props: 
     // omit potentially empty tail
     offsets = offsets.slice(0, m);
     exposed = exposed.slice(0, n);
+    hydrophobic = hydrophobic.splice(0, n);
 
     // calculate centroid and extent
     centroidHelper.finishedIncludeStep();
@@ -148,6 +153,7 @@ async function initialize(runtime: RuntimeContext, structure: Structure, props: 
 
         offsets,
         exposed,
+        hydrophobic,
         centroid,
         extent
     };
@@ -216,7 +222,8 @@ namespace MembraneCandidate {
 }
 
 async function findMembrane(runtime: RuntimeContext, message: string | undefined, ctx: ANVILContext, spherePoints: Vec3[], initialStats: HphobHphil): Promise<MembraneCandidate | undefined> {
-    const { centroid, stepSize, minThickness, maxThickness } = ctx;
+    const { centroid, stepSize, minThickness, maxThickness, exposed, structure } = ctx;
+    const { x, y, z } = StructureProperties.atom;
     // best performing membrane
     let membrane: MembraneCandidate | undefined;
     // score of the best performing membrane
@@ -232,21 +239,33 @@ async function findMembrane(runtime: RuntimeContext, message: string | undefined
         const spherePoint = spherePoints[n];
         v3sub(diam, centroid, spherePoint);
         v3scale(diam, diam, 2);
-        const diamNorm = v3magnitude(diam);
+        const diamDot = v3dot(diam, diam);
+        const diamNorm = Math.sqrt(diamDot);
         const qvartemp = [];
+
+        const filter: Map<number, Set<number>> = new Map<number, Set<number>>();
+        const l = StructureElement.Location.create(structure);
+        const testPoint = v3zero();
+        for (let i = 0, il = exposed.length; i < il; i++) {
+            setLocation(l, structure, exposed[i]);
+            v3set(testPoint, x(l), y(l), z(l));
+            v3sub(testPoint, testPoint, spherePoint);
+            const membership = Math.floor(v3dot(testPoint, diam) / diamNorm / stepSize);
+            if (!filter.has(membership)) {
+                filter.set(membership, new Set<number>([i]));
+            } else {
+                filter.get(membership)?.add(i);
+            }
+        }
 
         for (let i = 0, il = diamNorm - stepSize; i < il; i += stepSize) {
             const c1 = v3zero();
             const c2 = v3zero();
             v3scaleAndAdd(c1, spherePoint, diam, i / diamNorm);
             v3scaleAndAdd(c2, spherePoint, diam, (i + stepSize) / diamNorm);
-            const d1 = -v3dot(diam, c1);
-            const d2 = -v3dot(diam, c2);
-            const dMin = Math.min(d1, d2);
-            const dMax = Math.max(d1, d2);
 
             // evaluate how well this membrane slice embeddeds the peculiar residues
-            const stats = HphobHphil.filtered(ctx, { normalVector: diam, dMin, dMax });
+            const stats = HphobHphil.filtered(ctx, filter.get(i) || EMPTY_SET);
             qvartemp.push(MembraneCandidate.initial(c1, c2, stats));
         }
 
@@ -531,25 +550,31 @@ namespace HphobHphil {
         };
     }
 
-    const testPoint = v3zero();
-    export function filtered(ctx: ANVILContext, filter?: { normalVector: Vec3, dMin: number, dMax: number }): HphobHphil {
-        const { exposed, structure } = ctx;
-        const { label_comp_id } = StructureProperties.atom;
-        const l = StructureElement.Location.create(structure);
+    // const testPoint = v3zero();
+    // export function filtered(ctx: ANVILContext, filter?: { normalVector: Vec3, dMin: number, dMax: number }): HphobHphil {
+    export function filtered(ctx: ANVILContext, filter?: Set<number>): HphobHphil {
+        // const { exposed, structure, hydrophobic } = ctx;
+        const { exposed, hydrophobic } = ctx;
+        // const l = StructureElement.Location.create(structure);
         let hphob = 0;
         let hphil = 0;
         for (let k = 0, kl = exposed.length; k < kl; k++) {
-            setLocation(l, structure, exposed[k]);
+            // setLocation(l, structure, exposed[k]);
 
             // testPoints have to be in putative membrane layer
-            if (filter) {
-                v3set(testPoint, l.unit.conformation.x(l.element), l.unit.conformation.y(l.element), l.unit.conformation.z(l.element));
-                if (!_isInMembranePlane(testPoint, filter.normalVector, filter.dMin, filter.dMax)) {
-                    continue;
-                }
+            if (filter && !filter.has(k)) {
+                continue;
             }
 
-            if (isHydrophobic(label_comp_id(l))) {
+            // testPoints have to be in putative membrane layer
+            // if (filter) {
+            //     v3set(testPoint, l.unit.conformation.x(l.element), l.unit.conformation.y(l.element), l.unit.conformation.z(l.element));
+            //     if (!_isInMembranePlane(testPoint, filter.normalVector, filter.dMin, filter.dMax)) {
+            //         continue;
+            //     }
+            // }
+
+            if (hydrophobic[k]) {
                 hphob++;
             } else {
                 hphil++;
