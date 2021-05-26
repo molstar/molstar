@@ -107,9 +107,22 @@ namespace AccessibleSurfaceArea {
         return area[rSI];
     }
 
-    function indexOf<T>(a: ArrayLike<T>, e: T): number {
-        for (let i = 0, il = a.length; i < il; i++) {
-            if (a[i] === e) return i;
+    function indexOf(a: ArrayLike<number>, e: number): number {
+        let min = 0, max = a.length - 1;
+
+        while (min <= max) {
+            if (min + 11 > max) {
+                for (let i = min; i <= max; i++) {
+                    if (e === a[i]) return i;
+                }
+                return -1;
+            }
+
+            const mid = (min + max) >> 1;
+            const v = a[mid];
+            if (e < v) max = mid - 1;
+            else if (e > v) min = mid + 1;
+            else return mid;
         }
         return -1;
     }
