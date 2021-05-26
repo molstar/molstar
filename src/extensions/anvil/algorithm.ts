@@ -82,9 +82,9 @@ async function initialize(structure: Structure, props: ANVILProps, accessibleSur
     const asaCutoff = props.asaCutoff / 100;
     centroidHelper.reset();
 
-    let offsets = new Array<number>();
-    let exposed = new Array<number>();
-    let hydrophobic = new Array<boolean>();
+    const offsets = new Array<number>();
+    const exposed = new Array<number>();
+    const hydrophobic = new Array<boolean>();
 
     const vec = v3zero();
     for (let i = 0, il = structure.units.length; i < il; ++i) {
