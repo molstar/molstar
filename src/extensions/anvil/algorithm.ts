@@ -17,7 +17,8 @@ import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { MembraneOrientation } from './prop';
 
 const LARGE_CA_THRESHOLD = 5000;
-const UPDATE_INTERVAL = 10;
+const DEFAULT_UPDATE_INTERVAL = 10;
+const LARGE_CA_UPDATE_INTERVAL = 1;
 
 interface ANVILContext {
     structure: Structure,
@@ -33,7 +34,8 @@ interface ANVILContext {
     exposed: ArrayLike<number>,
     hydrophobic: ArrayLike<boolean>,
     centroid: Vec3,
-    extent: number
+    extent: number,
+    large: boolean
 };
 
 export const ANVILParams = {
@@ -142,7 +144,8 @@ async function initialize(structure: Structure, props: ANVILProps, accessibleSur
         exposed,
         hydrophobic,
         centroid,
-        extent
+        extent,
+        large: offsets.length > LARGE_CA_THRESHOLD
     };
 }
 
@@ -158,7 +161,7 @@ export async function calculate(runtime: RuntimeContext, structure: Structure, p
     const refinedMembrane = (await findMembrane(runtime, 'Refining membrane placement...', ctx, findProximateAxes(ctx, initialMembrane), initialHphobHphil))!;
     let membrane = initialMembrane.qmax! > refinedMembrane.qmax! ? initialMembrane : refinedMembrane;
 
-    if (ctx.adjust && ctx.offsets.length < LARGE_CA_THRESHOLD) {
+    if (ctx.adjust && !ctx.large) {
         membrane = await adjustThickness(runtime, 'Adjusting membrane thickness...', ctx, membrane, initialHphobHphil);
     }
 
@@ -213,7 +216,7 @@ namespace MembraneCandidate {
 }
 
 async function findMembrane(runtime: RuntimeContext, message: string | undefined, ctx: ANVILContext, spherePoints: Vec3[], initialStats: HphobHphil): Promise<MembraneCandidate | undefined> {
-    const { centroid, stepSize, minThickness, maxThickness } = ctx;
+    const { centroid, stepSize, minThickness, maxThickness, large } = ctx;
     // best performing membrane
     let membrane: MembraneCandidate | undefined;
     // score of the best performing membrane
@@ -222,7 +225,7 @@ async function findMembrane(runtime: RuntimeContext, message: string | undefined
     // construct slices of thickness 1.0 along the axis connecting the centroid and the spherePoint
     const diam = v3zero();
     for (let n = 0, nl = spherePoints.length; n < nl; n++) {
-        if (runtime.shouldUpdate && message && (n + 1) % UPDATE_INTERVAL === 0) {
+        if (runtime.shouldUpdate && message && (n + 1) % (large ? LARGE_CA_UPDATE_INTERVAL : DEFAULT_UPDATE_INTERVAL) === 0) {
             await runtime.update({ message, current: (n + 1), max: nl });
         }
 
@@ -280,7 +283,7 @@ async function findMembrane(runtime: RuntimeContext, message: string | undefined
 
 /** Adjust membrane thickness by maximizing the number of membrane segments. */
 async function adjustThickness(runtime: RuntimeContext, message: string | undefined, ctx: ANVILContext, membrane: MembraneCandidate, initialHphobHphil: HphobHphil): Promise<MembraneCandidate> {
-    const { minThickness } = ctx;
+    const { minThickness, large } = ctx;
     const step = 0.3;
     let maxThickness = v3distance(membrane.planePoint1, membrane.planePoint2);
 
@@ -291,7 +294,7 @@ async function adjustThickness(runtime: RuntimeContext, message: string | undefi
     const nl = Math.ceil((maxThickness - minThickness) / step);
     while (maxThickness > minThickness) {
         n++;
-        if (runtime.shouldUpdate && message && n % UPDATE_INTERVAL === 0) {
+        if (runtime.shouldUpdate && message && n % (large ? LARGE_CA_UPDATE_INTERVAL : DEFAULT_UPDATE_INTERVAL) === 0) {
             await runtime.update({ message, current: n, max: nl });
         }
 
