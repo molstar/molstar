@@ -152,7 +152,7 @@ export async function calculate(runtime: RuntimeContext, structure: Structure, p
     const accessibleSurfaceArea = await AccessibleSurfaceArea.compute(structure, asaProps).runInContext(runtime);
 
     const ctx = await initialize(structure, params, accessibleSurfaceArea);
-    const initialHphobHphil = HphobHphil.filtered(ctx);
+    const initialHphobHphil = HphobHphil.initial(ctx);
 
     const initialMembrane = (await findMembrane(runtime, 'Placing initial membrane...', ctx, generateSpherePoints(ctx, ctx.numberOfSpherePoints), initialHphobHphil))!;
     const refinedMembrane = (await findMembrane(runtime, 'Refining membrane placement...', ctx, findProximateAxes(ctx, initialMembrane), initialHphobHphil))!;
@@ -213,9 +213,7 @@ namespace MembraneCandidate {
 }
 
 async function findMembrane(runtime: RuntimeContext, message: string | undefined, ctx: ANVILContext, spherePoints: Vec3[], initialStats: HphobHphil): Promise<MembraneCandidate | undefined> {
-    const { centroid, stepSize, minThickness, maxThickness, exposed, structure } = ctx;
-    const { units } = structure;
-    const { elementIndices, unitIndices } = structure.serialMapping;
+    const { centroid, stepSize, minThickness, maxThickness } = ctx;
     // best performing membrane
     let membrane: MembraneCandidate | undefined;
     // score of the best performing membrane
@@ -223,7 +221,6 @@ async function findMembrane(runtime: RuntimeContext, message: string | undefined
 
     // construct slices of thickness 1.0 along the axis connecting the centroid and the spherePoint
     const diam = v3zero();
-    const testPoint = v3zero();
     for (let n = 0, nl = spherePoints.length; n < nl; n++) {
         if (runtime.shouldUpdate && message && (n + 1) % UPDATE_INTERVAL === 0) {
             await runtime.update({ message, current: (n + 1), max: nl });
@@ -234,19 +231,7 @@ async function findMembrane(runtime: RuntimeContext, message: string | undefined
         v3scale(diam, diam, 2);
         const diamNorm = v3magnitude(diam);
 
-        const filter: Set<number>[] = [];
-        for (let i = 0, il = diamNorm - stepSize; i < il; i += stepSize) {
-            filter[filter.length] = new Set<number>();
-        }
-
-        for (let i = 0, il = exposed.length; i < il; i++) {
-            const unit = units[unitIndices[exposed[i]]];
-            const elementIndex = elementIndices[exposed[i]];
-            v3set(testPoint, unit.conformation.x(elementIndex), unit.conformation.y(elementIndex), unit.conformation.z(elementIndex));
-            v3sub(testPoint, testPoint, spherePoint);
-            filter[Math.floor(v3dot(testPoint, diam) / diamNorm / stepSize)].add(i);
-        }
-
+        const sliceStats = HphobHphil.sliced(ctx, stepSize, spherePoint, diam, diamNorm);
         const qvartemp = [];
         for (let i = 0, il = diamNorm - stepSize; i < il; i += stepSize) {
             const c1 = v3zero();
@@ -255,7 +240,7 @@ async function findMembrane(runtime: RuntimeContext, message: string | undefined
             v3scaleAndAdd(c2, spherePoint, diam, (i + stepSize) / diamNorm);
 
             // evaluate how well this membrane slice embeddeds the peculiar residues
-            const stats = HphobHphil.filtered(ctx, filter[Math.round(i / stepSize)]);
+            const stats = sliceStats[Math.round(i / stepSize)];
             qvartemp.push(MembraneCandidate.initial(c1, c2, stats));
         }
 
@@ -277,7 +262,7 @@ async function findMembrane(runtime: RuntimeContext, message: string | undefined
                 }
 
                 if (hphob !== 0) {
-                    const stats = HphobHphil.of(hphob, hphil);
+                    const stats = { hphob, hphil };
                     const qvaltest = qValue(stats, initialStats);
                     if (qvaltest >= qmax) {
                         qmax = qvaltest;
@@ -539,30 +524,42 @@ interface HphobHphil {
 }
 
 namespace HphobHphil {
-    export function of(hphob: number, hphil: number) {
-        return {
-            hphob: hphob,
-            hphil: hphil
-        };
-    }
-
-    export function filtered(ctx: ANVILContext, filter?: Set<number>): HphobHphil {
+    export function initial(ctx: ANVILContext): HphobHphil {
         const { exposed, hydrophobic } = ctx;
         let hphob = 0;
         let hphil = 0;
         for (let k = 0, kl = exposed.length; k < kl; k++) {
-            // testPoints have to be in putative membrane layer
-            if (filter && !filter.has(k)) {
-                continue;
-            }
-
             if (hydrophobic[k]) {
                 hphob++;
             } else {
                 hphil++;
             }
         }
-        return of(hphob, hphil);
+        return { hphob, hphil };
+    }
+
+    const testPoint = v3zero();
+    export function sliced(ctx: ANVILContext, stepSize: number, spherePoint: Vec3, diam: Vec3, diamNorm: number): HphobHphil[] {
+        const { exposed, hydrophobic, structure } = ctx;
+        const { units, serialMapping } = structure;
+        const { unitIndices, elementIndices } = serialMapping;
+        const sliceStats: HphobHphil[] = [];
+        for (let i = 0, il = diamNorm - stepSize; i < il; i += stepSize) {
+            sliceStats[sliceStats.length] = { hphob: 0, hphil: 0 };
+        }
+
+        for (let i = 0, il = exposed.length; i < il; i++) {
+            const unit = units[unitIndices[exposed[i]]];
+            const elementIndex = elementIndices[exposed[i]];
+            v3set(testPoint, unit.conformation.x(elementIndex), unit.conformation.y(elementIndex), unit.conformation.z(elementIndex));
+            v3sub(testPoint, testPoint, spherePoint);
+            if (hydrophobic[i]) {
+                sliceStats[Math.floor(v3dot(testPoint, diam) / diamNorm / stepSize)].hphob++;
+            } else {
+                sliceStats[Math.floor(v3dot(testPoint, diam) / diamNorm / stepSize)].hphil++;
+            }
+        }
+        return sliceStats;
     }
 }
 
