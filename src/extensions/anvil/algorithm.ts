@@ -485,9 +485,9 @@ function generateSpherePoints(ctx: ANVILContext, numberOfSpherePoints: number): 
     const points = [];
     let oldPhi = 0, h, theta, phi;
     for(let k = 1, kl = numberOfSpherePoints + 1; k < kl; k++) {
-        h = -1 + 2 * (k - 1) / (numberOfSpherePoints - 1);
+        h = -1 + 2 * (k - 1) / (2 * numberOfSpherePoints - 1);
         theta = Math.acos(h);
-        phi = (k === 1 || k === numberOfSpherePoints) ? 0 : (oldPhi + 3.6 / Math.sqrt(numberOfSpherePoints * (1 - h * h))) % (2 * Math.PI);
+        phi = (k === 1 || k === numberOfSpherePoints) ? 0 : (oldPhi + 3.6 / Math.sqrt(2 * numberOfSpherePoints * (1 - h * h))) % (2 * Math.PI);
 
         const point = v3create(
             extent * Math.sin(phi) * Math.sin(theta) + centroid[0],
