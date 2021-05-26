@@ -79,17 +79,14 @@ const centroidHelper = new CentroidHelper();
 async function initialize(structure: Structure, props: ANVILProps, accessibleSurfaceArea: AccessibleSurfaceArea): Promise<ANVILContext> {
     const l = StructureElement.Location.create(structure);
     const { label_atom_id, label_comp_id, x, y, z } = StructureProperties.atom;
-    const elementCount = structure.polymerResidueCount;
     const asaCutoff = props.asaCutoff / 100;
     centroidHelper.reset();
 
-    let offsets = new Array<number>(elementCount);
-    let exposed = new Array<number>(elementCount);
-    let hydrophobic = new Array<boolean>(elementCount);
+    let offsets = new Array<number>();
+    let exposed = new Array<number>();
+    let hydrophobic = new Array<boolean>();
 
     const vec = v3zero();
-    let m = 0;
-    let n = 0;
     for (let i = 0, il = structure.units.length; i < il; ++i) {
         const unit = structure.units[i];
         const { elements } = unit;
@@ -119,19 +116,13 @@ async function initialize(structure: Structure, props: ANVILProps, accessibleSur
             centroidHelper.includeStep(vec);
 
             // keep track of offsets and exposed state to reuse
-            offsets[m++] = structure.serialMapping.getSerialIndex(l.unit, l.element);
+            offsets.push(structure.serialMapping.getSerialIndex(l.unit, l.element));
             if (AccessibleSurfaceArea.getValue(l, accessibleSurfaceArea) / MaxAsa[label_comp_id(l)] > asaCutoff) {
-                exposed[n] = structure.serialMapping.getSerialIndex(l.unit, l.element);
-                hydrophobic[n] = isHydrophobic(label_comp_id(l));
-                n++;
+                exposed.push(structure.serialMapping.getSerialIndex(l.unit, l.element));
+                hydrophobic.push(isHydrophobic(label_comp_id(l)));
             }
         }
     }
-
-    // omit potentially empty tail
-    offsets = offsets.slice(0, m);
-    exposed = exposed.slice(0, n);
-    hydrophobic = hydrophobic.splice(0, n);
 
     // calculate centroid and extent
     centroidHelper.finishedIncludeStep();
