@@ -225,7 +225,7 @@ async function findMembrane(runtime: RuntimeContext, message: string | undefined
     const diam = v3zero();
     const testPoint = v3zero();
     for (let n = 0, nl = spherePoints.length; n < nl; n++) {
-        if (runtime?.shouldUpdate && message && (n + 1) % UPDATE_INTERVAL === 0) {
+        if (runtime.shouldUpdate && message && (n + 1) % UPDATE_INTERVAL === 0) {
             await runtime.update({ message, current: (n + 1), max: nl });
         }
 
@@ -306,7 +306,7 @@ async function adjustThickness(runtime: RuntimeContext, message: string | undefi
     const nl = Math.ceil((maxThickness - minThickness) / step);
     while (maxThickness > minThickness) {
         n++;
-        if (runtime?.shouldUpdate && message && n % UPDATE_INTERVAL === 0) {
+        if (runtime.shouldUpdate && message && n % UPDATE_INTERVAL === 0) {
             await runtime.update({ message, current: n, max: nl });
         }
 
