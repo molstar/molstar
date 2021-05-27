@@ -8,7 +8,6 @@
 import { ShrakeRupleyContext, VdWLookup } from './common';
 import { Vec3 } from '../../../../mol-math/linear-algebra';
 import { RuntimeContext } from '../../../../mol-task';
-import { StructureProperties, StructureElement, Structure } from '../../../../mol-model/structure/structure';
 
 // TODO
 // - iterate over units and elements
@@ -28,35 +27,27 @@ export async function computeArea(runtime: RuntimeContext, ctx: ShrakeRupleyCont
     }
 }
 
+const v3set = Vec3.set;
 const aPos = Vec3();
-
-function setLocation(l: StructureElement.Location, structure: Structure, serialIndex: number) {
-    l.structure = structure;
-    l.unit = structure.units[structure.serialMapping.unitIndices[serialIndex]];
-    l.element = structure.serialMapping.elementIndices[serialIndex];
-    return l;
-}
 
 function computeRange(ctx: ShrakeRupleyContext, begin: number, end: number) {
     const { structure, atomRadiusType, serialResidueIndex, area, spherePoints, scalingConstant, maxLookupRadius, probeSize } = ctx;
-    const aLoc = StructureElement.Location.create(structure);
-    const bLoc = StructureElement.Location.create(structure);
-    const { x, y, z } = StructureProperties.atom;
-    const { lookup3d, serialMapping, unitIndexMap } = structure;
-    const { cumulativeUnitElementCount } = serialMapping;
+    const { lookup3d, serialMapping, unitIndexMap, units } = structure;
+    const { cumulativeUnitElementCount, elementIndices, unitIndices } = serialMapping;
 
     for (let aI = begin; aI < end; ++aI) {
         const vdw1 = VdWLookup[atomRadiusType[aI]];
         if (vdw1 === VdWLookup[0]) continue;
 
-        setLocation(aLoc, structure, aI);
-        const aX = x(aLoc);
-        const aY = y(aLoc);
-        const aZ = z(aLoc);
-        Vec3.set(aPos, x(aLoc), y(aLoc), z(aLoc));
+        const aUnit = units[unitIndices[aI]];
+        const aElementIndex = elementIndices[aI];
+        const aX = aUnit.conformation.x(aElementIndex);
+        const aY = aUnit.conformation.y(aElementIndex);
+        const aZ = aUnit.conformation.z(aElementIndex);
+        v3set(aPos, aX, aY, aZ);
 
         // pre-filter by lookup3d (provides >10x speed-up compared to naive evaluation)
-        const { count, units, indices, squaredDistances } = lookup3d.find(aX, aY, aZ, maxLookupRadius);
+        const { count, units: lUnits, indices, squaredDistances } = lookup3d.find(aX, aY, aZ, maxLookupRadius);
 
         // see optimizations proposed in Eisenhaber et al., 1995 (https://doi.org/10.1002/jcc.540160303)
         // collect neighbors for each atom
@@ -64,23 +55,26 @@ function computeRange(ctx: ShrakeRupleyContext, begin: number, end: number) {
         const cutoff1 = probeSize + radius1;
         let neighbors = []; // TODO reuse
         for (let iI = 0; iI < count; ++iI) {
-            const bUnit = units[iI];
-            StructureElement.Location.set(bLoc, ctx.structure, bUnit, bUnit.elements[indices[iI]]);
+            const bUnit = lUnits[iI];
             const bI = cumulativeUnitElementCount[unitIndexMap.get(bUnit.id)] + indices[iI];
+            const bElementIndex = elementIndices[bI];
 
             const vdw2 = VdWLookup[atomRadiusType[bI]];
-            if (StructureElement.Location.areEqual(aLoc, bLoc) || vdw2 === VdWLookup[0]) continue;
+            if ((aUnit === bUnit && aElementIndex === bElementIndex) || vdw2 === VdWLookup[0]) continue;
 
             const cutoff2 = (cutoff1 + vdw2) * (cutoff1 + vdw2);
             const radius2 = probeSize + vdw2;
             if (squaredDistances[iI] < cutoff2) {
-                setLocation(bLoc, structure, bI);
+                const bElementIndex = elementIndices[bI];
+                const bX = bUnit.conformation.x(bElementIndex);
+                const bY = bUnit.conformation.y(bElementIndex);
+                const bZ = bUnit.conformation.z(bElementIndex);
                 // while here: compute values for later lookup
                 neighbors[neighbors.length] = [squaredDistances[iI],
                     (squaredDistances[iI] + radius1 * radius1 - radius2 * radius2) / (2 * radius1),
-                    x(bLoc) - aPos[0],
-                    y(bLoc) - aPos[1],
-                    z(bLoc) - aPos[2]];
+                    bX - aPos[0],
+                    bY - aPos[1],
+                    bZ - aPos[2]];
             }
         }
 
@@ -89,10 +83,10 @@ function computeRange(ctx: ShrakeRupleyContext, begin: number, end: number) {
 
         let accessiblePointCount = 0;
         sl: for (let sI = 0; sI < spherePoints.length; ++sI) {
-            const [sx, sy, sz] = spherePoints[sI];
+            const [sX, sY, sZ] = spherePoints[sI];
             for (let nI = 0; nI < neighbors.length; ++nI) {
-                const [, sqRadius, nx, ny, nz] = neighbors[nI];
-                const dot = sx * nx + sy * ny + sz * nz;
+                const [, sqRadius, nX, nY, nZ] = neighbors[nI];
+                const dot = sX * nX + sY * nY + sZ * nZ;
                 if (dot > sqRadius) {
                     continue sl;
                 }
