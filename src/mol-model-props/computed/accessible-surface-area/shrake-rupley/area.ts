@@ -62,19 +62,15 @@ function computeRange(ctx: ShrakeRupleyContext, begin: number, end: number) {
             const vdw2 = VdWLookup[atomRadiusType[bI]];
             if ((aUnit === bUnit && aElementIndex === bElementIndex) || vdw2 === VdWLookup[0]) continue;
 
-            const cutoff2 = (cutoff1 + vdw2) * (cutoff1 + vdw2);
             const radius2 = probeSize + vdw2;
-            if (squaredDistances[iI] < cutoff2) {
+            if (squaredDistances[iI] < (cutoff1 + vdw2) * (cutoff1 + vdw2)) {
                 const bElementIndex = elementIndices[bI];
-                const bX = bUnit.conformation.x(bElementIndex);
-                const bY = bUnit.conformation.y(bElementIndex);
-                const bZ = bUnit.conformation.z(bElementIndex);
                 // while here: compute values for later lookup
                 neighbors[neighbors.length] = [squaredDistances[iI],
                     (squaredDistances[iI] + radius1 * radius1 - radius2 * radius2) / (2 * radius1),
-                    bX - aPos[0],
-                    bY - aPos[1],
-                    bZ - aPos[2]];
+                    bUnit.conformation.x(bElementIndex) - aPos[0],
+                    bUnit.conformation.y(bElementIndex) - aPos[1],
+                    bUnit.conformation.z(bElementIndex) - aPos[2]];
             }
         }
 
