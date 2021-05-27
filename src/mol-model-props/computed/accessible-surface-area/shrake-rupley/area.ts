@@ -29,8 +29,6 @@ export async function computeArea(runtime: RuntimeContext, ctx: ShrakeRupleyCont
 }
 
 const aPos = Vec3();
-const bPos = Vec3();
-const testPoint = Vec3();
 
 function setLocation(l: StructureElement.Location, structure: Structure, serialIndex: number) {
     l.structure = structure;
@@ -48,57 +46,60 @@ function computeRange(ctx: ShrakeRupleyContext, begin: number, end: number) {
     const { cumulativeUnitElementCount } = serialMapping;
 
     for (let aI = begin; aI < end; ++aI) {
-        const radius1 = VdWLookup[atomRadiusType[aI]];
-        if (radius1 === VdWLookup[0]) continue;
+        const vdw1 = VdWLookup[atomRadiusType[aI]];
+        if (vdw1 === VdWLookup[0]) continue;
 
         setLocation(aLoc, structure, aI);
         const aX = x(aLoc);
         const aY = y(aLoc);
         const aZ = z(aLoc);
+        Vec3.set(aPos, x(aLoc), y(aLoc), z(aLoc));
 
         // pre-filter by lookup3d (provides >10x speed-up compared to naive evaluation)
         const { count, units, indices, squaredDistances } = lookup3d.find(aX, aY, aZ, maxLookupRadius);
 
+        // see optimizations proposed in Eisenhaber et al., 1995 (https://doi.org/10.1002/jcc.540160303)
         // collect neighbors for each atom
-        const cutoff1 = probeSize + probeSize + radius1;
-        const neighbors = []; // TODO reuse
+        const radius1 = probeSize + vdw1;
+        const cutoff1 = probeSize + radius1;
+        let neighbors = []; // TODO reuse
         for (let iI = 0; iI < count; ++iI) {
             const bUnit = units[iI];
             StructureElement.Location.set(bLoc, ctx.structure, bUnit, bUnit.elements[indices[iI]]);
             const bI = cumulativeUnitElementCount[unitIndexMap.get(bUnit.id)] + indices[iI];
 
-            const radius2 = VdWLookup[atomRadiusType[bI]];
-            if (StructureElement.Location.areEqual(aLoc, bLoc) || radius2 === VdWLookup[0]) continue;
+            const vdw2 = VdWLookup[atomRadiusType[bI]];
+            if (StructureElement.Location.areEqual(aLoc, bLoc) || vdw2 === VdWLookup[0]) continue;
 
-            const cutoff2 = (cutoff1 + radius2) * (cutoff1 + radius2);
+            const cutoff2 = (cutoff1 + vdw2) * (cutoff1 + vdw2);
+            const radius2 = probeSize + vdw2;
             if (squaredDistances[iI] < cutoff2) {
-                neighbors[neighbors.length] = bI;
+                setLocation(bLoc, structure, bI);
+                // while here: compute values for later lookup
+                neighbors[neighbors.length] = [squaredDistances[iI],
+                    (squaredDistances[iI] + radius1 * radius1 - radius2 * radius2) / (2 * radius1),
+                    x(bLoc) - aPos[0],
+                    y(bLoc) - aPos[1],
+                    z(bLoc) - aPos[2]];
             }
         }
 
-        // for all neighbors: test all sphere points
-        Vec3.set(aPos, aX, aY, aZ);
-        const scale = probeSize + radius1;
-        let accessiblePointCount = 0;
-        for (let sI = 0; sI < spherePoints.length; ++sI) {
-            Vec3.scaleAndAdd(testPoint, aPos, spherePoints[sI], scale);
-            let accessible = true;
+        // sort ascendingly by distance for improved downstream performance
+        neighbors = neighbors.sort((a, b) => a[0] - b[0]);
 
-            for (let _nI = 0; _nI < neighbors.length; ++_nI) {
-                const nI = neighbors[_nI];
-                setLocation(bLoc, structure, nI);
-                Vec3.set(bPos, x(bLoc), y(bLoc), z(bLoc));
-                const radius3 = VdWLookup[atomRadiusType[nI]];
-                const cutoff3 = (radius3 + probeSize) * (radius3 + probeSize);
-                if (Vec3.squaredDistance(testPoint, bPos) < cutoff3) {
-                    accessible = false;
-                    break;
+        let accessiblePointCount = 0;
+        sl: for (let sI = 0; sI < spherePoints.length; ++sI) {
+            const [sx, sy, sz] = spherePoints[sI];
+            for (let nI = 0; nI < neighbors.length; ++nI) {
+                const [, sqRadius, nx, ny, nz] = neighbors[nI];
+                const dot = sx * nx + sy * ny + sz * nz;
+                if (dot > sqRadius) {
+                    continue sl;
                 }
             }
-
-            if (accessible) ++accessiblePointCount;
+            ++accessiblePointCount;
         }
 
-        area[serialResidueIndex[aI]] += scalingConstant * accessiblePointCount * scale * scale;
+        area[serialResidueIndex[aI]] += scalingConstant * accessiblePointCount * radius1 * radius1;
     }
 }
