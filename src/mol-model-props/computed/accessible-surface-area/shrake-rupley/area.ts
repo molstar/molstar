@@ -53,7 +53,7 @@ function computeRange(ctx: ShrakeRupleyContext, begin: number, end: number) {
         // collect neighbors for each atom
         const radius1 = probeSize + vdw1;
         const cutoff1 = probeSize + radius1;
-        let neighbors = []; // TODO reuse
+        const neighbors = []; // TODO reuse
         for (let iI = 0; iI < count; ++iI) {
             const bUnit = lUnits[iI];
             const bI = cumulativeUnitElementCount[unitIndexMap.get(bUnit.id)] + indices[iI];
@@ -75,7 +75,7 @@ function computeRange(ctx: ShrakeRupleyContext, begin: number, end: number) {
         }
 
         // sort ascendingly by distance for improved downstream performance
-        neighbors = neighbors.sort((a, b) => a[0] - b[0]);
+        neighbors.sort((a, b) => a[0] - b[0]);
 
         let accessiblePointCount = 0;
         sl: for (let sI = 0; sI < spherePoints.length; ++sI) {
