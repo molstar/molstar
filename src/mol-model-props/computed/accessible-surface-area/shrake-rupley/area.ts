@@ -6,7 +6,6 @@
  */
 
 import { ShrakeRupleyContext, VdWLookup } from './common';
-import { Vec3 } from '../../../../mol-math/linear-algebra';
 import { RuntimeContext } from '../../../../mol-task';
 
 // TODO
@@ -27,9 +26,6 @@ export async function computeArea(runtime: RuntimeContext, ctx: ShrakeRupleyCont
     }
 }
 
-const v3set = Vec3.set;
-const aPos = Vec3();
-
 function computeRange(ctx: ShrakeRupleyContext, begin: number, end: number) {
     const { structure, atomRadiusType, serialResidueIndex, area, spherePoints, scalingConstant, maxLookupRadius, probeSize } = ctx;
     const { lookup3d, serialMapping, unitIndexMap, units } = structure;
@@ -44,7 +40,6 @@ function computeRange(ctx: ShrakeRupleyContext, begin: number, end: number) {
         const aX = aUnit.conformation.x(aElementIndex);
         const aY = aUnit.conformation.y(aElementIndex);
         const aZ = aUnit.conformation.z(aElementIndex);
-        v3set(aPos, aX, aY, aZ);
 
         // pre-filter by lookup3d (provides >10x speed-up compared to naive evaluation)
         const { count, units: lUnits, indices, squaredDistances } = lookup3d.find(aX, aY, aZ, maxLookupRadius);
@@ -68,9 +63,9 @@ function computeRange(ctx: ShrakeRupleyContext, begin: number, end: number) {
                 // while here: compute values for later lookup
                 neighbors[neighbors.length] = [squaredDistances[iI],
                     (squaredDistances[iI] + radius1 * radius1 - radius2 * radius2) / (2 * radius1),
-                    bUnit.conformation.x(bElementIndex) - aPos[0],
-                    bUnit.conformation.y(bElementIndex) - aPos[1],
-                    bUnit.conformation.z(bElementIndex) - aPos[2]];
+                    bUnit.conformation.x(bElementIndex) - aX,
+                    bUnit.conformation.y(bElementIndex) - aY,
+                    bUnit.conformation.z(bElementIndex) - aZ];
             }
         }
 
