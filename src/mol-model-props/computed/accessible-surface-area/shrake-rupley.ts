@@ -13,6 +13,7 @@ import { Structure, StructureElement, StructureProperties } from '../../../mol-m
 import { assignRadiusForHeavyAtoms } from './shrake-rupley/radii';
 import { ShrakeRupleyContext, VdWLookup, MaxAsa, DefaultMaxAsa } from './shrake-rupley/common';
 import { computeArea } from './shrake-rupley/area';
+import { SortedArray } from '../../../mol-data/int';
 
 export const ShrakeRupleyComputationParams = {
     numberOfSpherePoints: PD.Numeric(92, { min: 12, max: 360, step: 1 }, { description: 'Number of sphere points to sample per atom: 92 (original paper), 960 (BioJava), 3000 (EPPIC) - see Shrake A, Rupley JA: Environment and exposure to solvent of protein atoms. Lysozyme and insulin. J Mol Biol 1973.' }),
@@ -102,29 +103,9 @@ namespace AccessibleSurfaceArea {
 
     export function getValue(location: StructureElement.Location, accessibleSurfaceArea: AccessibleSurfaceArea) {
         const { area, serialResidueIndex } = accessibleSurfaceArea;
-        const rSI = serialResidueIndex[indexOf(location.structure.root.serialMapping.elementIndices, location.element)];
+        const rSI = serialResidueIndex[SortedArray.indexOf(location.structure.root.serialMapping.elementIndices as unknown as SortedArray, location.element)];
         if (rSI === -1) return -1;
         return area[rSI];
-    }
-
-    function indexOf(a: ArrayLike<number>, e: number): number {
-        let min = 0, max = a.length - 1;
-
-        while (min <= max) {
-            if (min + 11 > max) {
-                for (let i = min; i <= max; i++) {
-                    if (e === a[i]) return i;
-                }
-                return -1;
-            }
-
-            const mid = (min + max) >> 1;
-            const v = a[mid];
-            if (e < v) max = mid - 1;
-            else if (e > v) min = mid + 1;
-            else return mid;
-        }
-        return -1;
     }
 
     export function getNormalizedValue(location: StructureElement.Location, accessibleSurfaceArea: AccessibleSurfaceArea) {
