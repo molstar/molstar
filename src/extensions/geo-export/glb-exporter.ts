@@ -5,6 +5,7 @@
  */
 
 import { BaseValues } from '../../mol-gl/renderable/schema';
+import { Style } from '../../mol-gl/renderer';
 import { asciiWrite } from '../../mol-io/common/ascii';
 import { IsNativeEndianLittle, flipByteOrder } from '../../mol-io/common/binary';
 import { Vec3, Mat4 } from '../../mol-math/linear-algebra';
@@ -278,7 +279,13 @@ export class GlbExporter extends MeshExporter<GlbData> {
             }],
             bufferViews: this.bufferViews,
             accessors: this.accessors,
-            materials: [{}]
+            materials: [{
+                pbrMetallicRoughness: {
+                    baseColorFactor: [1, 1, 1, 1],
+                    metallicFactor: this.style.metalness,
+                    roughnessFactor: this.style.roughness
+                }
+            }]
         };
 
         const createChunk = (chunkType: number, data: ArrayBuffer[], byteLength: number, padChar: number): [ArrayBuffer[], number] => {
@@ -325,5 +332,9 @@ export class GlbExporter extends MeshExporter<GlbData> {
 
     async getBlob(ctx: RuntimeContext) {
         return new Blob([this.getData().glb], { type: 'model/gltf-binary' });
+    }
+
+    constructor(private style: Style) {
+        super();
     }
 }
