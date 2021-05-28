@@ -4,6 +4,7 @@
  * @author Sukolsak Sakshuwong <sukolsak@stanford.edu>
  */
 
+import { getStyle } from '../../mol-gl/renderer';
 import { PluginComponent } from '../../mol-plugin-state/component';
 import { PluginContext } from '../../mol-plugin/context';
 import { Task } from '../../mol-task';
@@ -48,7 +49,8 @@ export class GeometryControls extends PluginComponent {
                         renderObjectExporter = new ObjExporter(filename);
                         break;
                     case 'glb':
-                        renderObjectExporter = new GlbExporter();
+                        const style = getStyle(this.plugin.canvas3d?.props.renderer.style!);
+                        renderObjectExporter = new GlbExporter(style);
                         break;
                     case 'stl':
                         renderObjectExporter = new StlExporter();

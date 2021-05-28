@@ -110,10 +110,18 @@ export const RendererParams = {
 };
 export type RendererProps = PD.Values<typeof RendererParams>
 
-function getStyle(props: RendererProps['style']) {
+export type Style = {
+    lightIntensity: number
+    ambientIntensity: number
+    metalness: number
+    roughness: number
+    reflectivity: number
+}
+
+export function getStyle(props: RendererProps['style']): Style {
     switch (props.name) {
         case 'custom':
-            return props.params;
+            return props.params as Style;
         case 'flat':
             return {
                 lightIntensity: 0, ambientIntensity: 1,
