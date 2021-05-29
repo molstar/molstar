@@ -19,7 +19,7 @@ export const ColorSmoothingParams = {
     smoothColors: PD.MappedStatic('auto', {
         auto: PD.Group({}),
         on: PD.Group({
-            resolutionFactor: PD.Numeric(2, { min: 1, max: 6, step: 0.1 }),
+            resolutionFactor: PD.Numeric(2, { min: 0.5, max: 6, step: 0.1 }),
             sampleStride: PD.Numeric(3, { min: 1, max: 12, step: 1 }),
         }),
         off: PD.Group({})
@@ -37,6 +37,7 @@ export function getColorSmoothingProps(props: PD.Values<ColorSmoothingParams>, t
             // https://graphtoy.com/?f1(x,t)=(2-smoothstep(0,1.1,x))*x&coords=0.7,0.6,1.8
             resolution *= 2 - smoothstep(0, 1.1, resolution);
             resolution = Math.max(0.5, resolution);
+            if (resolution > 1.2) stride = 2;
         }
         return { resolution, stride, webgl };
     };
