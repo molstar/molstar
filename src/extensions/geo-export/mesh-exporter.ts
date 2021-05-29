@@ -158,6 +158,12 @@ export abstract class MeshExporter<D extends RenderObjectExportData> implements 
         const vertexCount = values.uVertexCount.ref.value;
         const meshes: Mesh[] = [];
 
+        const sphereCount = vertexCount / 4 * instanceCount;
+        let detail: number;
+        if (sphereCount < 2000) detail = 3;
+        else if (sphereCount < 20000) detail = 2;
+        else detail = 1;
+
         for (let instanceIndex = 0; instanceIndex < instanceCount; ++instanceIndex) {
             const state = MeshBuilder.createState(512, 256);
 
@@ -167,7 +173,7 @@ export abstract class MeshExporter<D extends RenderObjectExportData> implements 
                 const group = aGroup[i];
                 const radius = MeshExporter.getSize(values, instanceIndex, group);
                 state.currentGroup = group;
-                addSphere(state, center, radius, 2);
+                addSphere(state, center, radius, detail);
             }
 
             meshes.push(MeshBuilder.getMesh(state));
@@ -189,6 +195,12 @@ export abstract class MeshExporter<D extends RenderObjectExportData> implements 
         const vertexCount = values.uVertexCount.ref.value;
         const meshes: Mesh[] = [];
 
+        const cylinderCount = vertexCount / 6 * instanceCount;
+        let radialSegments: number;
+        if (cylinderCount < 2000) radialSegments = 36;
+        else if (cylinderCount < 20000) radialSegments = 24;
+        else radialSegments = 12;
+
         for (let instanceIndex = 0; instanceIndex < instanceCount; ++instanceIndex) {
             const state = MeshBuilder.createState(512, 256);
 
@@ -201,7 +213,7 @@ export abstract class MeshExporter<D extends RenderObjectExportData> implements 
                 const cap = aCap[i];
                 const topCap = cap === 1 || cap === 3;
                 const bottomCap = cap >= 2;
-                const cylinderProps = { radiusTop: radius, radiusBottom: radius, topCap, bottomCap, radialSegments: 32 };
+                const cylinderProps = { radiusTop: radius, radiusBottom: radius, topCap, bottomCap, radialSegments };
                 state.currentGroup = aGroup[i];
                 addCylinder(state, start, end, 1, cylinderProps);
             }
