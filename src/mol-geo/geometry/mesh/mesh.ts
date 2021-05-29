@@ -177,10 +177,16 @@ export namespace Mesh {
         ValueCell.update(mesh.vertexBuffer, v);
     }
 
-    type OriginalData = {
+    export type OriginalData = {
         indexBuffer: Uint32Array
         vertexCount: number
         triangleCount: number
+    }
+
+    /** Meshes may contain some original data in case any processing was done. */
+    export function getOriginalData(x: Mesh | MeshValues) {
+        const { originalData } = 'kind' in x ? x.meta : x.meta.ref.value as Mesh['meta'];
+        return originalData as OriginalData | undefined;
     }
 
     /**
