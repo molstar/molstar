@@ -291,7 +291,7 @@ export function isH(atomicNumber: ArrayLike<number>, element: ElementIndex) {
 export function isTrace(unit: Unit, element: ElementIndex) {
     if (Unit.isCoarse(unit)) return true;
     const atomId = unit.model.atomicHierarchy.atoms.label_atom_id.value(element);
-    if (atomId === 'CA' || atomId === 'P') return true;
+    if (atomId === 'CA' || atomId === 'BB' || atomId === 'P') return true;
     return false;
 }
 
