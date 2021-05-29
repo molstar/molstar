@@ -124,16 +124,20 @@ export function getSymmetrySelectParam(structure?: Structure) {
     if (structure) {
         const assemblySymmetryData = AssemblySymmetryDataProvider.get(structure).value;
         if (assemblySymmetryData) {
-            const options: [number, string][] = [];
+            const options: [number, string][] = [
+                [-1, 'Off']
+            ];
             for (let i = 0, il = assemblySymmetryData.length; i < il; ++i) {
                 const { symbol, kind } = assemblySymmetryData[i];
                 if (symbol !== 'C1') {
                     options.push([ i, `${i + 1}: ${symbol} ${kind}` ]);
                 }
             }
-            if (options.length) {
+            if (options.length > 1) {
                 param.options = options;
-                param.defaultValue = options[0][0];
+                param.defaultValue = options[1][0];
+            } else {
+                options.length = 0;
             }
         }
     }

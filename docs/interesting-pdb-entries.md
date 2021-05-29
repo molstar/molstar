@@ -29,3 +29,7 @@
 * Long linear sugar chain (4HG6)
 * Anisotropic B-factors/Ellipsoids (1EJG)
 * NOS bridges (LYS-CSO in 7B0L, 6ZWJ, 6ZWH)
+
+Assembly symmetries
+* 5M30 (Assembly 1, C3 local and pseudo)
+* 1RB8 (Assembly 1, I global)

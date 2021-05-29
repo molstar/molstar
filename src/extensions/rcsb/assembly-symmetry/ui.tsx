@@ -73,7 +73,6 @@ export class AssemblySymmetryControls extends CollapsableControls<{}, AssemblySy
         const structure = this.pivot.cell.obj?.data;
         const params = PD.clone(structure ? AssemblySymmetryProvider.getParams(structure) : AssemblySymmetryProvider.defaultParams);
         params.serverUrl.isHidden = true;
-        params.symmetryIndex.options = [[-1, 'Off'], ...params.symmetryIndex.options];
         return params;
     }
 
