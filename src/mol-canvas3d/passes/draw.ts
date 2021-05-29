@@ -290,13 +290,18 @@ export class DrawPass {
         renderer.setViewport(x, y, width, height);
         renderer.update(camera);
 
+        if (transparentBackground) {
+            this.drawTarget.bind();
+            renderer.clear(false);
+        }
+
         if (this.wboitEnabled) {
             this._renderWboit(renderer, camera, scene, transparentBackground, postprocessingProps);
         } else {
             this._renderBlended(renderer, camera, scene, !volumeRendering && !postprocessingEnabled && !antialiasingEnabled && toDrawingBuffer, transparentBackground, postprocessingProps);
         }
 
-        if (PostprocessingPass.isEnabled(postprocessingProps)) {
+        if (postprocessingEnabled) {
             this.postprocessing.target.bind();
         } else if (!toDrawingBuffer || volumeRendering || this.wboitEnabled) {
             this.colorTarget.bind();
@@ -323,7 +328,7 @@ export class DrawPass {
             this.drawTarget.bind();
 
             this.webgl.state.disable(this.webgl.gl.DEPTH_TEST);
-            if (PostprocessingPass.isEnabled(postprocessingProps)) {
+            if (postprocessingEnabled) {
                 this.copyFboPostprocessing.render();
             } else if (volumeRendering || this.wboitEnabled) {
                 this.copyFboTarget.render();
