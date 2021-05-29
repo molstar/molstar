@@ -143,7 +143,9 @@ export function EntitySourceColorTheme(ctx: ThemeDataContext, props: PD.Values<E
             const seqToSrc = seqToSrcByModelEntity.get(mK);
             if (seqToSrc) {
                 // minus 1 to convert seqId to array index
-                return palette.color(seqToSrc[StructureProperties.residue.label_seq_id(location) - 1] - 1);
+                const src = seqToSrc[StructureProperties.residue.label_seq_id(location) - 1] - 1;
+                // check for -1 as not all sequence ids have a src given
+                return src === -1 ? DefaultColor : palette.color(src);
             } else {
                 return DefaultColor;
             }
