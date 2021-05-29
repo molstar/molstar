@@ -5,7 +5,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { ShrakeRupleyContext, VdWLookup } from './common';
+import { MaxAsa, ShrakeRupleyContext, VdWLookup } from './common';
 import { getElementIdx, isHydrogen } from '../../../../mol-model/structure/structure/unit/bonds/common';
 import { isPolymer, isNucleic, MoleculeType, ElementSymbol } from '../../../../mol-model/structure/model/types';
 import { VdwRadius } from '../../../../mol-model/structure/model/properties/atomic';
@@ -45,21 +45,26 @@ export function assignRadiusForHeavyAtoms(ctx: ShrakeRupleyContext) {
 
             // skip hydrogen atoms
             if (isHydrogen(elementIdx)) {
-                atomRadiusType[mj] = VdWLookup[0];
-                serialResidueIndex[mj] = -1;
-                continue;
-            }
-
-            const moleculeType = getElementMoleculeType(unit, eI);
-            // skip water and optionally non-polymer groups
-            if (moleculeType === MoleculeType.Water || (!ctx.nonPolymer && !isPolymer(moleculeType))) {
-                atomRadiusType[mj] = VdWLookup[0];
+                atomRadiusType[mj] = 0;
                 serialResidueIndex[mj] = -1;
                 continue;
             }
 
             const atomId = label_atom_id(l);
+            const moleculeType = getElementMoleculeType(unit, eI);
+            // skip water and optionally non-polymer groups
+            if (moleculeType === MoleculeType.Water || (!ctx.nonPolymer && !isPolymer(moleculeType))) {
+                atomRadiusType[mj] = 0;
+                serialResidueIndex[mj] = -1;
+                continue;
+            }
+
             const compId = label_comp_id(l);
+            if (ctx.traceOnly && ((atomId !== 'CA' && atomId !== 'BB') || !MaxAsa[compId])) {
+                atomRadiusType[mj] = 0;
+                serialResidueIndex[mj] = serialResidueIdx;
+                continue;
+            }
 
             if (isNucleic(moleculeType)) {
                 atomRadiusType[mj] = determineRadiusNucl(atomId, element, compId);

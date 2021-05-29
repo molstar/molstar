@@ -9,7 +9,6 @@ import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { Vec3, Mat4 } from '../../mol-math/linear-algebra';
 import { Representation, RepresentationContext, RepresentationParamsGetter } from '../../mol-repr/representation';
 import { Structure } from '../../mol-model/structure';
-import { Spheres } from '../../mol-geo/geometry/spheres/spheres';
 import { StructureRepresentationProvider, StructureRepresentation, StructureRepresentationStateBuilder } from '../../mol-repr/structure/representation';
 import { MembraneOrientation } from './prop';
 import { ThemeRegistryContext } from '../../mol-theme/theme';
@@ -30,17 +29,8 @@ import { CustomProperty } from '../../mol-model-props/common/custom-property';
 
 const SharedParams = {
     color: PD.Color(ColorNames.lightgrey),
-    radiusFactor: PD.Numeric(0.8333, { min: 0.1, max: 3.0, step: 0.01 }, { description: 'Scale the radius of the membrane layer' })
+    radiusFactor: PD.Numeric(1.2, { min: 0.1, max: 3.0, step: 0.01 }, { description: 'Scale the radius of the membrane layer' })
 };
-
-const BilayerSpheresParams = {
-    ...Spheres.Params,
-    ...SharedParams,
-    sphereSize: PD.Numeric(1, { min: 0.1, max: 10, step: 0.1 }, { description: 'Size of spheres that represent membrane planes' }),
-    density: PD.Numeric(1, { min: 0.25, max: 10, step: 0.25 }, { description: 'Distance between spheres'})
-};
-export type BilayerSpheresParams = typeof BilayerSpheresParams
-export type BilayerSpheresProps = PD.Values<BilayerSpheresParams>
 
 const BilayerPlanesParams = {
     ...Mesh.Params,
@@ -66,7 +56,6 @@ const MembraneOrientationVisuals = {
 };
 
 export const MembraneOrientationParams = {
-    ...BilayerSpheresParams,
     ...BilayerPlanesParams,
     ...BilayerRimsParams,
     visuals: PD.MultiSelect(['bilayer-planes', 'bilayer-rims'], PD.objectToOptions(MembraneOrientationVisuals)),
@@ -104,16 +93,16 @@ function membraneLabel(data: Structure) {
 }
 
 function getBilayerRims(ctx: RuntimeContext, data: Structure, props: BilayerRimsProps, shape?: Shape<Lines>): Shape<Lines> {
-    const { planePoint1: p1, planePoint2: p2, centroid, normalVector: normal, radius } = MembraneOrientationProvider.get(data).value!;
+    const { planePoint1: p1, planePoint2: p2, centroid, radius } = MembraneOrientationProvider.get(data).value!;
     const scaledRadius = props.radiusFactor * radius;
     const builder = LinesBuilder.create(128, 64, shape?.geometry);
-    getLayerCircle(builder, p1, centroid, normal, scaledRadius, props);
-    getLayerCircle(builder, p2, centroid, normal, scaledRadius, props);
+    getLayerCircle(builder, p1, centroid, scaledRadius, props);
+    getLayerCircle(builder, p2, centroid, scaledRadius, props);
     return Shape.create('Bilayer rims', data, builder.getLines(), () => props.color, () => props.linesSize, () => membraneLabel(data));
 }
 
-function getLayerCircle(builder: LinesBuilder, p: Vec3, centroid: Vec3, normal: Vec3, radius: number, props: BilayerRimsProps, shape?: Shape<Lines>) {
-    const circle = getCircle(p, centroid, normal, radius);
+function getLayerCircle(builder: LinesBuilder, p: Vec3, centroid: Vec3, radius: number, props: BilayerRimsProps, shape?: Shape<Lines>) {
+    const circle = getCircle(p, centroid, radius);
     const { indices, vertices } = circle;
     for (let j = 0, jl = indices.length; j < jl; j += 3) {
         if (props.dashedLines && j % 2 === 1) continue; // draw every other segment to get dashes
@@ -130,8 +119,13 @@ function getLayerCircle(builder: LinesBuilder, p: Vec3, centroid: Vec3, normal: 
 }
 
 const tmpMat = Mat4();
-function getCircle(p: Vec3, centroid: Vec3, normal: Vec3, radius: number) {
-    Mat4.targetTo(tmpMat, p, centroid, normal);
+const tmpV = Vec3();
+function getCircle(p: Vec3, centroid: Vec3, radius: number) {
+    if (Vec3.dot(Vec3.unitY, Vec3.sub(tmpV, p, centroid)) === 0) {
+        Mat4.targetTo(tmpMat, p, centroid, Vec3.unitY);
+    } else {
+        Mat4.targetTo(tmpMat, p, centroid, Vec3.unitX);
+    }
     Mat4.setTranslation(tmpMat, p);
     Mat4.mul(tmpMat, tmpMat, Mat4.rotX90);
 
@@ -140,16 +134,16 @@ function getCircle(p: Vec3, centroid: Vec3, normal: Vec3, radius: number) {
 }
 
 function getBilayerPlanes(ctx: RuntimeContext, data: Structure, props: BilayerPlanesProps, shape?: Shape<Mesh>): Shape<Mesh> {
-    const { planePoint1: p1, planePoint2: p2, centroid, normalVector: normal, radius } = MembraneOrientationProvider.get(data).value!;
+    const { planePoint1: p1, planePoint2: p2, centroid, radius } = MembraneOrientationProvider.get(data).value!;
     const state = MeshBuilder.createState(128, 64, shape && shape.geometry);
     const scaledRadius = props.radiusFactor * radius;
-    getLayerPlane(state, p1, centroid, normal, scaledRadius);
-    getLayerPlane(state, p2, centroid, normal, scaledRadius);
+    getLayerPlane(state, p1, centroid, scaledRadius);
+    getLayerPlane(state, p2, centroid, scaledRadius);
     return Shape.create('Bilayer planes', data, MeshBuilder.getMesh(state), () => props.color, () => 1, () => membraneLabel(data));
 }
 
-function getLayerPlane(state: MeshBuilder.State, p: Vec3, centroid: Vec3, normal: Vec3, radius: number) {
-    const circle = getCircle(p, centroid, normal, radius);
+function getLayerPlane(state: MeshBuilder.State, p: Vec3, centroid: Vec3, radius: number) {
+    const circle = getCircle(p, centroid, radius);
     state.currentGroup = 0;
     MeshBuilder.addPrimitive(state, Mat4.id, circle);
     MeshBuilder.addPrimitiveFlipped(state, Mat4.id, circle);

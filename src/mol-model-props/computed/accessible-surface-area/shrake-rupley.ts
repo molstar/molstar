@@ -13,12 +13,14 @@ import { Structure, StructureElement, StructureProperties } from '../../../mol-m
 import { assignRadiusForHeavyAtoms } from './shrake-rupley/radii';
 import { ShrakeRupleyContext, VdWLookup, MaxAsa, DefaultMaxAsa } from './shrake-rupley/common';
 import { computeArea } from './shrake-rupley/area';
+import { SortedArray } from '../../../mol-data/int';
 
 export const ShrakeRupleyComputationParams = {
     numberOfSpherePoints: PD.Numeric(92, { min: 12, max: 360, step: 1 }, { description: 'Number of sphere points to sample per atom: 92 (original paper), 960 (BioJava), 3000 (EPPIC) - see Shrake A, Rupley JA: Environment and exposure to solvent of protein atoms. Lysozyme and insulin. J Mol Biol 1973.' }),
     probeSize: PD.Numeric(1.4, { min: 0.1, max: 4, step: 0.01 }, { description: 'Corresponds to the size of a water molecule: 1.4 (original paper), 1.5 (occassionally used)' }),
     // buriedRasaThreshold: PD.Numeric(0.16, { min: 0.0, max: 1.0 }, { description: 'below this cutoff of relative accessible surface area a residue will be considered buried - see: Rost B, Sander C: Conservation and prediction of solvent accessibility in protein families. Proteins 1994.' }),
-    nonPolymer: PD.Boolean(false, { description: 'Include non-polymer atoms as occluders.' })
+    nonPolymer: PD.Boolean(false, { description: 'Include non-polymer atoms as occluders.' }),
+    traceOnly: PD.Boolean(false, { description: 'Compute only using alpha-carbons, if true increase probeSize accordingly (e.g., 4 A). Considers only canonical amino acids.' })
 };
 export type ShrakeRupleyComputationParams = typeof ShrakeRupleyComputationParams
 export type ShrakeRupleyComputationProps = PD.Values<ShrakeRupleyComputationParams>
@@ -57,12 +59,13 @@ namespace AccessibleSurfaceArea {
 
     function initialize(structure: Structure, props: ShrakeRupleyComputationProps): ShrakeRupleyContext {
         const { elementCount, atomicResidueCount } = structure;
-        const { probeSize, nonPolymer, numberOfSpherePoints } = props;
+        const { probeSize, nonPolymer, traceOnly, numberOfSpherePoints } = props;
 
         return {
             structure,
             probeSize,
             nonPolymer,
+            traceOnly,
             spherePoints: generateSpherePoints(numberOfSpherePoints),
             scalingConstant: 4.0 * Math.PI / numberOfSpherePoints,
             maxLookupRadius: 2 * props.probeSize + 2 * VdWLookup[2], // 2x probe size + 2x largest VdW
@@ -99,9 +102,8 @@ namespace AccessibleSurfaceArea {
     }
 
     export function getValue(location: StructureElement.Location, accessibleSurfaceArea: AccessibleSurfaceArea) {
-        const { getSerialIndex } = location.structure.root.serialMapping;
         const { area, serialResidueIndex } = accessibleSurfaceArea;
-        const rSI = serialResidueIndex[getSerialIndex(location.unit, location.element)];
+        const rSI = serialResidueIndex[SortedArray.indexOf(SortedArray.ofSortedArray(location.structure.root.serialMapping.elementIndices), location.element)];
         if (rSI === -1) return -1;
         return area[rSI];
     }

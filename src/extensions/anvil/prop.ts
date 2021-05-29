@@ -11,7 +11,6 @@ import { CustomPropertyDescriptor } from '../../mol-model/custom-property';
 import { ANVILParams, ANVILProps, computeANVIL, isInMembranePlane } from './algorithm';
 import { CustomStructureProperty } from '../../mol-model-props/common/custom-structure-property';
 import { CustomProperty } from '../../mol-model-props/common/custom-property';
-import { AccessibleSurfaceAreaProvider } from '../../mol-model-props/computed/accessible-surface-area';
 import { Vec3 } from '../../mol-math/linear-algebra';
 import { QuerySymbolRuntime } from '../../mol-script/runtime/query/base';
 import { CustomPropSymbol } from '../../mol-script/language/symbol';
@@ -76,7 +75,6 @@ export const MembraneOrientationProvider: CustomStructureProperty.Provider<Membr
 });
 
 async function computeAnvil(ctx: CustomProperty.Context, data: Structure, props: Partial<ANVILProps>): Promise<MembraneOrientation> {
-    await AccessibleSurfaceAreaProvider.attach(ctx, data);
     const p = { ...PD.getDefaultValues(ANVILParams), ...props };
     return await computeANVIL(data, p).runInContext(ctx.runtime);
 }

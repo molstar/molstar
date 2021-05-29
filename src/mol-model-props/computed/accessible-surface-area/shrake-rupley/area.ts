@@ -6,9 +6,7 @@
  */
 
 import { ShrakeRupleyContext, VdWLookup } from './common';
-import { Vec3 } from '../../../../mol-math/linear-algebra';
 import { RuntimeContext } from '../../../../mol-task';
-import { StructureProperties, StructureElement, Structure } from '../../../../mol-model/structure/structure';
 
 // TODO
 // - iterate over units and elements
@@ -28,77 +26,65 @@ export async function computeArea(runtime: RuntimeContext, ctx: ShrakeRupleyCont
     }
 }
 
-const aPos = Vec3();
-const bPos = Vec3();
-const testPoint = Vec3();
-
-function setLocation(l: StructureElement.Location, structure: Structure, serialIndex: number) {
-    l.structure = structure;
-    l.unit = structure.units[structure.serialMapping.unitIndices[serialIndex]];
-    l.element = structure.serialMapping.elementIndices[serialIndex];
-    return l;
-}
-
 function computeRange(ctx: ShrakeRupleyContext, begin: number, end: number) {
     const { structure, atomRadiusType, serialResidueIndex, area, spherePoints, scalingConstant, maxLookupRadius, probeSize } = ctx;
-    const aLoc = StructureElement.Location.create(structure);
-    const bLoc = StructureElement.Location.create(structure);
-    const { x, y, z } = StructureProperties.atom;
-    const { lookup3d, serialMapping, unitIndexMap } = structure;
-    const { cumulativeUnitElementCount } = serialMapping;
+    const { lookup3d, serialMapping, unitIndexMap, units } = structure;
+    const { cumulativeUnitElementCount, elementIndices, unitIndices } = serialMapping;
 
     for (let aI = begin; aI < end; ++aI) {
-        const radius1 = VdWLookup[atomRadiusType[aI]];
-        if (radius1 === VdWLookup[0]) continue;
+        const vdw1 = VdWLookup[atomRadiusType[aI]];
+        if (vdw1 === VdWLookup[0]) continue;
 
-        setLocation(aLoc, structure, aI);
-        const aX = x(aLoc);
-        const aY = y(aLoc);
-        const aZ = z(aLoc);
+        const aUnit = units[unitIndices[aI]];
+        const aElementIndex = elementIndices[aI];
+        const aX = aUnit.conformation.x(aElementIndex);
+        const aY = aUnit.conformation.y(aElementIndex);
+        const aZ = aUnit.conformation.z(aElementIndex);
 
         // pre-filter by lookup3d (provides >10x speed-up compared to naive evaluation)
-        const { count, units, indices, squaredDistances } = lookup3d.find(aX, aY, aZ, maxLookupRadius);
+        const { count, units: lUnits, indices, squaredDistances } = lookup3d.find(aX, aY, aZ, maxLookupRadius);
 
+        // see optimizations proposed in Eisenhaber et al., 1995 (https://doi.org/10.1002/jcc.540160303)
         // collect neighbors for each atom
-        const cutoff1 = probeSize + probeSize + radius1;
+        const radius1 = probeSize + vdw1;
+        const cutoff1 = probeSize + radius1;
         const neighbors = []; // TODO reuse
         for (let iI = 0; iI < count; ++iI) {
-            const bUnit = units[iI];
-            StructureElement.Location.set(bLoc, ctx.structure, bUnit, bUnit.elements[indices[iI]]);
+            const bUnit = lUnits[iI];
             const bI = cumulativeUnitElementCount[unitIndexMap.get(bUnit.id)] + indices[iI];
+            const bElementIndex = elementIndices[bI];
 
-            const radius2 = VdWLookup[atomRadiusType[bI]];
-            if (StructureElement.Location.areEqual(aLoc, bLoc) || radius2 === VdWLookup[0]) continue;
+            const vdw2 = VdWLookup[atomRadiusType[bI]];
+            if ((aUnit === bUnit && aElementIndex === bElementIndex) || vdw2 === VdWLookup[0]) continue;
 
-            const cutoff2 = (cutoff1 + radius2) * (cutoff1 + radius2);
-            if (squaredDistances[iI] < cutoff2) {
-                neighbors[neighbors.length] = bI;
+            const radius2 = probeSize + vdw2;
+            if (squaredDistances[iI] < (cutoff1 + vdw2) * (cutoff1 + vdw2)) {
+                const bElementIndex = elementIndices[bI];
+                // while here: compute values for later lookup
+                neighbors[neighbors.length] = [squaredDistances[iI],
+                    (squaredDistances[iI] + radius1 * radius1 - radius2 * radius2) / (2 * radius1),
+                    bUnit.conformation.x(bElementIndex) - aX,
+                    bUnit.conformation.y(bElementIndex) - aY,
+                    bUnit.conformation.z(bElementIndex) - aZ];
             }
         }
 
-        // for all neighbors: test all sphere points
-        Vec3.set(aPos, aX, aY, aZ);
-        const scale = probeSize + radius1;
-        let accessiblePointCount = 0;
-        for (let sI = 0; sI < spherePoints.length; ++sI) {
-            Vec3.scaleAndAdd(testPoint, aPos, spherePoints[sI], scale);
-            let accessible = true;
+        // sort ascendingly by distance for improved downstream performance
+        neighbors.sort((a, b) => a[0] - b[0]);
 
-            for (let _nI = 0; _nI < neighbors.length; ++_nI) {
-                const nI = neighbors[_nI];
-                setLocation(bLoc, structure, nI);
-                Vec3.set(bPos, x(bLoc), y(bLoc), z(bLoc));
-                const radius3 = VdWLookup[atomRadiusType[nI]];
-                const cutoff3 = (radius3 + probeSize) * (radius3 + probeSize);
-                if (Vec3.squaredDistance(testPoint, bPos) < cutoff3) {
-                    accessible = false;
-                    break;
+        let accessiblePointCount = 0;
+        sl: for (let sI = 0; sI < spherePoints.length; ++sI) {
+            const [sX, sY, sZ] = spherePoints[sI];
+            for (let nI = 0; nI < neighbors.length; ++nI) {
+                const [, sqRadius, nX, nY, nZ] = neighbors[nI];
+                const dot = sX * nX + sY * nY + sZ * nZ;
+                if (dot > sqRadius) {
+                    continue sl;
                 }
             }
-
-            if (accessible) ++accessiblePointCount;
+            ++accessiblePointCount;
         }
 
-        area[serialResidueIndex[aI]] += scalingConstant * accessiblePointCount * scale * scale;
+        area[serialResidueIndex[aI]] += scalingConstant * accessiblePointCount * radius1 * radius1;
     }
 }
