@@ -50,7 +50,7 @@ export interface Mesh {
 
     setBoundingSphere(boundingSphere: Sphere3D): void
 
-    meta?: unknown
+    readonly meta: { [k: string]: unknown }
 }
 
 export namespace Mesh {
@@ -111,7 +111,8 @@ export namespace Mesh {
             setBoundingSphere(sphere: Sphere3D) {
                 Sphere3D.copy(boundingSphere, sphere);
                 currentHash = hashCode(mesh);
-            }
+            },
+            meta: {}
         };
         return mesh;
     }
@@ -174,6 +175,12 @@ export namespace Mesh {
             transformDirectionArray(n, mesh.normalBuffer.ref.value, 0, mesh.vertexCount);
         }
         ValueCell.update(mesh.vertexBuffer, v);
+    }
+
+    type OriginalData = {
+        indexBuffer: Uint32Array
+        vertexCount: number
+        triangleCount: number
     }
 
     /**
@@ -324,6 +331,9 @@ export namespace Mesh {
         ValueCell.update(indexBuffer, newIb) as ValueCell<Uint32Array>;
         ValueCell.update(normalBuffer, newNb) as ValueCell<Float32Array>;
 
+        // keep some original data, e.g., for geometry export
+        (mesh.meta.originalData as OriginalData) = { indexBuffer: ib, vertexCount, triangleCount };
+
         return mesh;
     }
 
@@ -408,6 +418,8 @@ export namespace Mesh {
             dFlipSided: ValueCell.create(props.flipSided),
             dIgnoreLight: ValueCell.create(props.ignoreLight),
             dXrayShaded: ValueCell.create(props.xrayShaded),
+
+            meta: ValueCell.create(mesh.meta),
         };
     }
 

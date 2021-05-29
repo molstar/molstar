@@ -52,7 +52,7 @@ async function createMolecularSurfaceMesh(ctx: VisualContext, unit: Unit, struct
 
     const sphere = Sphere3D.expand(Sphere3D(), unit.boundary.sphere, props.probeRadius + getUnitExtraRadius(unit));
     surface.setBoundingSphere(sphere);
-    (surface.meta as MolecularSurfaceMeta) = { resolution };
+    (surface.meta.resolution as MolecularSurfaceMeta['resolution']) = resolution;
 
     return surface;
 }
@@ -83,7 +83,7 @@ export function MolecularSurfaceMeshVisual(materialId: number): UnitsVisual<Mole
             const csp = getColorSmoothingProps(props, theme, resolution, webgl);
             if (csp) {
                 applyMeshColorSmoothing(values, csp.resolution, csp.stride, csp.webgl, colorTexture);
-                (geometry.meta as MolecularSurfaceMeta).colorTexture = values.tColorGrid.ref.value;
+                (geometry.meta.colorTexture as MolecularSurfaceMeta['colorTexture']) = values.tColorGrid.ref.value;
             }
         },
         dispose: (geometry: Mesh) => {

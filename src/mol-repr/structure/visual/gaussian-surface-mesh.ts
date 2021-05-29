@@ -93,7 +93,7 @@ async function createGaussianSurfaceMesh(ctx: VisualContext, unit: Unit, structu
         idField
     };
     const surface = await computeMarchingCubesMesh(params, mesh).runAsChild(ctx.runtime);
-    (surface.meta as GaussianSurfaceMeta) = { resolution };
+    (surface.meta.resolution as GaussianSurfaceMeta['resolution']) = resolution;
 
     Mesh.transform(surface, transform);
     if (ctx.webgl && !ctx.webgl.isWebGL2) Mesh.uniformTriangleGroup(surface, false);
@@ -133,7 +133,7 @@ export function GaussianSurfaceMeshVisual(materialId: number): UnitsVisual<Gauss
             const csp = getColorSmoothingProps(props, theme, resolution, webgl);
             if (csp) {
                 applyMeshColorSmoothing(values, csp.resolution, csp.stride, csp.webgl, colorTexture);
-                (geometry.meta as GaussianSurfaceMeta).colorTexture = values.tColorGrid.ref.value;
+                (geometry.meta.colorTexture as GaussianSurfaceMeta['colorTexture']) = values.tColorGrid.ref.value;
             }
         },
         dispose: (geometry: Mesh) => {
@@ -154,7 +154,7 @@ async function createStructureGaussianSurfaceMesh(ctx: VisualContext, structure:
         idField
     };
     const surface = await computeMarchingCubesMesh(params, mesh).runAsChild(ctx.runtime);
-    (surface.meta as GaussianSurfaceMeta) = { resolution };
+    (surface.meta.resolution as GaussianSurfaceMeta['resolution']) = resolution;
 
     Mesh.transform(surface, transform);
     if (ctx.webgl && !ctx.webgl.isWebGL2) Mesh.uniformTriangleGroup(surface, false);
@@ -193,7 +193,7 @@ export function StructureGaussianSurfaceMeshVisual(materialId: number): ComplexV
             const csp = getColorSmoothingProps(props, theme, resolution, webgl);
             if (csp) {
                 applyMeshColorSmoothing(values, csp.resolution, csp.stride, csp.webgl, colorTexture);
-                (geometry.meta as GaussianSurfaceMeta).colorTexture = values.tColorGrid.ref.value;
+                (geometry.meta.colorTexture as GaussianSurfaceMeta['colorTexture']) = values.tColorGrid.ref.value;
             }
         },
         dispose: (geometry: Mesh) => {

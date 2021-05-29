@@ -7,7 +7,7 @@
 import { Renderable, RenderableState, createRenderable } from '../renderable';
 import { WebGLContext } from '../webgl/context';
 import { createGraphicsRenderItem } from '../webgl/render-item';
-import { GlobalUniformSchema, BaseSchema, AttributeSpec, ElementsSpec, DefineSpec, Values, InternalSchema, InternalValues, GlobalTextureSchema } from './schema';
+import { GlobalUniformSchema, BaseSchema, AttributeSpec, ElementsSpec, DefineSpec, Values, InternalSchema, InternalValues, GlobalTextureSchema, ValueSpec } from './schema';
 import { MeshShaderCode } from '../shader-code';
 import { ValueCell } from '../../mol-util';
 
@@ -22,6 +22,7 @@ export const MeshSchema = {
     dFlipSided: DefineSpec('boolean'),
     dIgnoreLight: DefineSpec('boolean'),
     dXrayShaded: DefineSpec('boolean'),
+    meta: ValueSpec('any')
 } as const;
 export type MeshSchema = typeof MeshSchema
 export type MeshValues = Values<MeshSchema>
