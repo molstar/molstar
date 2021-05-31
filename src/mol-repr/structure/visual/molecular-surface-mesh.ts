@@ -48,7 +48,7 @@ async function createMolecularSurfaceMesh(ctx: VisualContext, unit: Unit, struct
     const surface = await computeMarchingCubesMesh(params, mesh).runAsChild(ctx.runtime);
 
     Mesh.transform(surface, transform);
-    if (ctx.webgl && !ctx.webgl.isWebGL2) Mesh.uniformTriangleGroup(surface, false);
+    if (ctx.webgl && !ctx.webgl.isWebGL2) Mesh.uniformTriangleGroup(surface);
 
     const sphere = Sphere3D.expand(Sphere3D(), unit.boundary.sphere, props.probeRadius + getUnitExtraRadius(unit));
     surface.setBoundingSphere(sphere);

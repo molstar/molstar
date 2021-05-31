@@ -133,12 +133,22 @@ export abstract class MeshExporter<D extends RenderObjectExportData> implements 
     private async addMesh(values: MeshValues, webgl: WebGLContext, ctx: RuntimeContext) {
         const aPosition = values.aPosition.ref.value;
         const aNormal = values.aNormal.ref.value;
-        const elements = values.elements.ref.value;
         const aGroup = values.aGroup.ref.value;
-        const vertexCount = values.uVertexCount.ref.value;
-        const drawCount = values.drawCount.ref.value;
+        const originalData = Mesh.getOriginalData(values);
+        let indices: Uint32Array;
+        let vertexCount: number;
+        let drawCount: number;
+        if (originalData) {
+            indices = originalData.indexBuffer;
+            vertexCount = originalData.vertexCount;
+            drawCount = originalData.triangleCount * 3;
+        } else {
+            indices = values.elements.ref.value;
+            vertexCount = values.uVertexCount.ref.value;
+            drawCount = values.drawCount.ref.value;
+        }
 
-        await this.addMeshWithColors({ mesh: { vertices: aPosition, normals: aNormal, indices: elements, groups: aGroup, vertexCount, drawCount }, meshes: undefined, values, isGeoTexture: false, webgl, ctx });
+        await this.addMeshWithColors({ mesh: { vertices: aPosition, normals: aNormal, indices, groups: aGroup, vertexCount, drawCount }, meshes: undefined, values, isGeoTexture: false, webgl, ctx });
     }
 
     private async addLines(values: LinesValues, webgl: WebGLContext, ctx: RuntimeContext) {
