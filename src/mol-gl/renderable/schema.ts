@@ -17,6 +17,7 @@ export type ValueKindType = {
     'string': string
     'boolean': boolean
     'any': any
+    'unknown': unknown
 
     'm4': Mat4,
     'float32': Float32Array
