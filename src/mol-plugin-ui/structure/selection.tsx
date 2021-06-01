@@ -13,7 +13,7 @@ import { StructureComponentManager } from '../../mol-plugin-state/manager/struct
 import { StructureComponentRef, StructureRef } from '../../mol-plugin-state/manager/structure/hierarchy-state';
 import { StructureSelectionModifier } from '../../mol-plugin-state/manager/structure/selection';
 import { PluginContext } from '../../mol-plugin/context';
-import { compileResidueListSelection } from '../../mol-script/util/residue-list';
+import { compileIdListSelection } from '../../mol-script/util/id-list';
 import { memoizeLatest } from '../../mol-util/memoize';
 import { ParamDefinition } from '../../mol-util/param-definition';
 import { capitalize, stripTags } from '../../mol-util/string';
@@ -172,7 +172,7 @@ export class StructureSelectionActionsControls extends PluginUIComponent<{}, Str
         //       the plan is to add support to input queries in different languages
         //       after this has been implemented in mol-script
         const helpers = [
-            { kind: 'residue-list' as SelectionHelperType, category: 'Helpers', label: 'Residue List', description: 'Create a selection from a list of residue ranges.' }
+            { kind: 'residue-list' as SelectionHelperType, category: 'Helpers', label: 'Atom/Residue Identifier List', description: 'Create a selection from a list of atom/residue ranges.' }
         ];
         this.helpersItems = ActionMenu.createItems(helpers, {
             label: q => q.label,
@@ -252,7 +252,7 @@ export class StructureSelectionActionsControls extends PluginUIComponent<{}, Str
         } else if (ActionHeader.has(this.state.action as any) && this.state.helper === 'residue-list') {
             const close = () => this.setState({ action: void 0, helper: void 0 });
             children = <div className='msp-selection-viewport-controls-actions'>
-                <ControlGroup header='Residue List' title='Click to close.' initialExpanded={true} hideExpander={true} hideOffset={true} onHeaderClick={close} topRightIcon={CloseSvg}>
+                <ControlGroup header='Atom/Residue Identifier List' title='Click to close.' initialExpanded={true} hideExpander={true} hideOffset={true} onHeaderClick={close} topRightIcon={CloseSvg}>
                     <ResidueListSelectionHelper modifier={this.state.action as any} plugin={this.plugin} close={close} />
                 </ControlGroup>
             </div>;
@@ -384,8 +384,8 @@ class ApplyThemeControls extends PurePluginUIComponent<ApplyThemeControlsProps, 
 }
 
 const ResidueListIdTypeParams = {
-    idType: ParamDefinition.Select<'auth' | 'label'>('auth', ParamDefinition.arrayToOptions(['auth', 'label'])),
-    residues: ParamDefinition.Text('', { description: 'A comma separated list of residue ranges in given chain, e.g. A 10-15, B 25, C 30:i' })
+    idType: ParamDefinition.Select<'auth' | 'label' | 'atom-id'>('auth', ParamDefinition.arrayToOptions(['auth', 'label', 'atom-id'])),
+    identifiers: ParamDefinition.Text('', { description: 'A comma separated list of atom identifiers (e.g. 10, 15-25) or residue ranges in given chain (e.g. A 10-15, B 25, C 30:i)' })
 };
 
 const DefaultResidueListIdTypeParams = ParamDefinition.getDefaultValues(ResidueListIdTypeParams);
@@ -394,11 +394,11 @@ function ResidueListSelectionHelper({ modifier, plugin, close }: { modifier: Str
     const [state, setState] = React.useState(DefaultResidueListIdTypeParams);
 
     const apply = () => {
-        if (state.residues.length === 0) return;
+        if (state.identifiers.trim().length === 0) return;
 
         try {
             close();
-            const query = compileResidueListSelection(state.residues, state.idType);
+            const query = compileIdListSelection(state.identifiers, state.idType);
             plugin.managers.structure.selection.fromCompiledQuery(modifier, query, false);
         } catch (e) {
             plugin.log.error(`Failed to create selection: ${e}`);
@@ -407,7 +407,7 @@ function ResidueListSelectionHelper({ modifier, plugin, close }: { modifier: Str
 
     return <>
         <ParameterControls params={ResidueListIdTypeParams} values={state} onChangeValues={setState} onEnter={apply} />
-        <Button className='msp-btn-commit msp-btn-commit-on' disabled={state.residues.length === 0} onClick={apply} style={{ marginTop: '1px' }}>
+        <Button className='msp-btn-commit msp-btn-commit-on' disabled={state.identifiers.trim().length === 0} onClick={apply} style={{ marginTop: '1px' }}>
             {capitalize(modifier)} Selection
         </Button>
     </>;

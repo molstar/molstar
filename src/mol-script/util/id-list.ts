@@ -8,6 +8,7 @@ import { StructureQuery } from '../../mol-model/structure/query';
 import { Expression } from '../language/expression';
 import { MolScriptBuilder as MS } from '../language/builder';
 import { compile } from '../runtime/query/base';
+import { UniqueArray } from '../../mol-data/generic';
 
 // TODO: make this into a separate "language"?
 
@@ -15,7 +16,7 @@ type ResidueListSelectionEntry =
     | { kind: 'single', asym_id: string; seq_id: number; ins_code?: string }
     | { kind: 'range', asym_id: string; seq_id_beg: number; seq_id_end: number; }
 
-function entriesToQuery(xs: ResidueListSelectionEntry[], kind: 'auth' | 'label') {
+function residueEntriesToQuery(xs: ResidueListSelectionEntry[], kind: 'auth' | 'label') {
     const groups: Expression[] = [];
 
     const asym_id_key = kind === 'auth' ? 'auth_asym_id' as const : 'label_asym_id' as const;
@@ -45,6 +46,23 @@ function entriesToQuery(xs: ResidueListSelectionEntry[], kind: 'auth' | 'label')
     return compile(query) as StructureQuery;
 }
 
+function atomEntriesToQuery(xs: [number, number][]) {
+    const set = UniqueArray.create<number>();
+
+    for (const [a, b] of xs) {
+        for (let i = a; i <= b; i++) {
+            UniqueArray.add(set, i, i);
+        }
+    }
+
+    const query = MS.struct.generator.atomGroups({
+        'atom-test': MS.core.set.has([MS.set(...set.array), MS.ammp('id')])
+    });
+
+    return compile(query) as StructureQuery;
+}
+
+
 function parseRange(c: string, s: string[], e: number): ResidueListSelectionEntry | undefined {
     if (!c || s.length === 0 || Number.isNaN(+s[0])) return;
     if (Number.isNaN(e)) {
@@ -65,8 +83,20 @@ function parseResidueListSelection(input: string): ResidueListSelectionEntry[] {
         .filter(e => !!e) as ResidueListSelectionEntry[];
 }
 
+function parseAtomListSelection(input: string): [number, number][] {
+    return input.split(',') // 1-3, 3 => [1-3, 3]
+        .map(e => e.trim().split(/\s+|[-]/g).filter(e => !!e)) // [1-3, 3] => [[1, 3], [3]]
+        .filter(e => e.length === 1 || e.length === 2)
+        .map(e => e.length === 1 ? [+e[0], +e[0]] : [+e[0], +e[1]]) as [number, number][];
+}
+
 // parses a list of residue ranges, e.g. A 10-100, B 30, C 12:i
-export function compileResidueListSelection(input: string, idType: 'auth' | 'label') {
-    const entries = parseResidueListSelection(input);
-    return entriesToQuery(entries, idType);
+export function compileIdListSelection(input: string, idType: 'auth' | 'label' | 'atom-id') {
+    if (idType === 'atom-id') {
+        const entries = parseAtomListSelection(input);
+        return atomEntriesToQuery(entries);
+    } else {
+        const entries = parseResidueListSelection(input);
+        return residueEntriesToQuery(entries, idType);
+    }
 }
