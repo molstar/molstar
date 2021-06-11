@@ -276,10 +276,12 @@ const VolumeStreamingVisual = PluginStateTransform.BuiltIn({
         // TODO: is this correct behavior?
         if (!channel) return StateTransformer.UpdateResult.Unchanged;
 
+        const visible = b.data.repr.state.visible;
         const params = createVolumeProps(a.data, newParams.channel);
         const props = { ...b.data.repr.props, ...params.type.params };
         b.data.repr.setTheme(Theme.create(plugin.representation.volume.themes, { volume: channel.data }, params));
         await b.data.repr.createOrUpdate(props, channel.data).runInContext(ctx);
+        b.data.repr.setState({ visible });
         b.data.sourceData = channel.data;
 
         // TODO: set the transform here as well in case the structure moves?
