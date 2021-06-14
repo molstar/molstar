@@ -6,6 +6,7 @@
 
 import { sort, arraySwap } from '../../mol-data/util';
 import { asciiWrite } from '../../mol-io/common/ascii';
+import { Box3D } from '../../mol-math/geometry';
 import { Vec3, Mat3, Mat4 } from '../../mol-math/linear-algebra';
 import { RuntimeContext } from '../../mol-task';
 import { StringBuilder } from '../../mol-util';
@@ -35,6 +36,7 @@ export class ObjExporter extends MeshExporter<ObjData> {
     private currentColor: Color | undefined;
     private currentAlpha: number | undefined;
     private materialSet = new Set<string>();
+    private centerTransform: Mat4;
 
     private updateMaterial(color: Color, alpha: number) {
         if (this.currentColor === color && this.currentAlpha === alpha) return;
@@ -163,6 +165,7 @@ export class ObjExporter extends MeshExporter<ObjData> {
             const { vertices, normals, indices, groups, vertexCount, drawCount } = ObjExporter.getInstance(input, instanceIndex);
 
             Mat4.fromArray(t, aTransform, instanceIndex * 16);
+            Mat4.mul(t, this.centerTransform, t);
             mat3directionTransform(n, t);
 
             // position
@@ -273,8 +276,12 @@ export class ObjExporter extends MeshExporter<ObjData> {
         return new Blob([await zip(ctx, zipDataObj)], { type: 'application/zip' });
     }
 
-    constructor(private filename: string) {
+    constructor(private filename: string, boundingBox: Box3D) {
         super();
         StringBuilder.writeSafe(this.obj, `mtllib ${filename}.mtl\n`);
+        const tmpV = Vec3();
+        Vec3.add(tmpV, boundingBox.min, boundingBox.max);
+        Vec3.scale(tmpV, tmpV, -0.5);
+        this.centerTransform = Mat4.fromTranslation(Mat4(), tmpV);
     }
 }

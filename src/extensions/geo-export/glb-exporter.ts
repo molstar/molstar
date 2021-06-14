@@ -8,6 +8,7 @@ import { BaseValues } from '../../mol-gl/renderable/schema';
 import { Style } from '../../mol-gl/renderer';
 import { asciiWrite } from '../../mol-io/common/ascii';
 import { IsNativeEndianLittle, flipByteOrder } from '../../mol-io/common/binary';
+import { Box3D } from '../../mol-math/geometry';
 import { Vec3, Mat4 } from '../../mol-math/linear-algebra';
 import { PLUGIN_VERSION } from '../../mol-plugin/version';
 import { RuntimeContext } from '../../mol-task';
@@ -41,6 +42,7 @@ export class GlbExporter extends MeshExporter<GlbData> {
     private bufferViews: Record<string, any>[] = [];
     private binaryBuffer: ArrayBuffer[] = [];
     private byteOffset = 0;
+    private centerTransform: Mat4;
 
     private static vec3MinMax(a: NumberArray) {
         const min: number[] = [Infinity, Infinity, Infinity];
@@ -252,11 +254,12 @@ export class GlbExporter extends MeshExporter<GlbData> {
             }
 
             // node
-            const node: Record<string, any> = {
-                mesh: meshIndex!
-            };
             Mat4.fromArray(t, aTransform, instanceIndex * 16);
-            if (!Mat4.isIdentity(t)) node.matrix = t.slice();
+            Mat4.mul(t, this.centerTransform, t);
+            const node: Record<string, any> = {
+                mesh: meshIndex!,
+                matrix: t.slice()
+            };
             this.nodes.push(node);
         }
     }
@@ -334,7 +337,11 @@ export class GlbExporter extends MeshExporter<GlbData> {
         return new Blob([this.getData().glb], { type: 'model/gltf-binary' });
     }
 
-    constructor(private style: Style) {
+    constructor(private style: Style, boundingBox: Box3D) {
         super();
+        const tmpV = Vec3();
+        Vec3.add(tmpV, boundingBox.min, boundingBox.max);
+        Vec3.scale(tmpV, tmpV, -0.5);
+        this.centerTransform = Mat4.fromTranslation(Mat4(), tmpV);
     }
 }

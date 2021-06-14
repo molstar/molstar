@@ -5,6 +5,7 @@
  */
 
 import { asciiWrite } from '../../mol-io/common/ascii';
+import { Box3D } from '../../mol-math/geometry';
 import { Vec3, Mat4 } from '../../mol-math/linear-algebra';
 import { PLUGIN_VERSION } from '../../mol-plugin/version';
 import { RuntimeContext } from '../../mol-task';
@@ -26,6 +27,7 @@ export class StlExporter extends MeshExporter<StlData> {
     readonly fileExtension = 'stl';
     private triangleBuffers: ArrayBuffer[] = [];
     private triangleCount = 0;
+    private centerTransform: Mat4;
 
     protected async addMeshWithColors(input: AddMeshInput) {
         const { values, isGeoTexture, ctx } = input;
@@ -46,6 +48,7 @@ export class StlExporter extends MeshExporter<StlData> {
             const { vertices, indices, vertexCount, drawCount } = StlExporter.getInstance(input, instanceIndex);
 
             Mat4.fromArray(t, aTransform, instanceIndex * 16);
+            Mat4.mul(t, this.centerTransform, t);
 
             // position
             const vertexArray = new Float32Array(vertexCount * 3);
@@ -104,5 +107,13 @@ export class StlExporter extends MeshExporter<StlData> {
 
     async getBlob(ctx: RuntimeContext) {
         return new Blob([this.getData().stl], { type: 'model/stl' });
+    }
+
+    constructor(boundingBox: Box3D) {
+        super();
+        const tmpV = Vec3();
+        Vec3.add(tmpV, boundingBox.min, boundingBox.max);
+        Vec3.scale(tmpV, tmpV, -0.5);
+        this.centerTransform = Mat4.fromTranslation(Mat4(), tmpV);
     }
 }

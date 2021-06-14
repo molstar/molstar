@@ -242,6 +242,7 @@ interface Canvas3D {
     requestCameraReset(options?: { durationMs?: number, snapshot?: Camera.SnapshotProvider }): void
     readonly camera: Camera
     readonly boundingSphere: Readonly<Sphere3D>
+    readonly boundingSphereVisible: Readonly<Sphere3D>
     setProps(props: PartialCanvas3DProps | ((old: Canvas3DProps) => Partial<Canvas3DProps> | void), doNotRequestDraw?: boolean /* = false */): void
     getImagePass(props: Partial<ImageProps>): ImagePass
     getRenderObjects(): GraphicsRenderObject[]
@@ -717,6 +718,7 @@ namespace Canvas3D {
             },
             camera,
             boundingSphere: scene.boundingSphere,
+            boundingSphereVisible: scene.boundingSphereVisible,
             get notifyDidDraw() { return notifyDidDraw; },
             set notifyDidDraw(v: boolean) { notifyDidDraw = v; },
             didDraw,
