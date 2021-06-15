@@ -278,7 +278,7 @@ function checkConnected(ctx: IsConnectedToCtx, structure: Structure) {
 
             for (let li = 0; li < buCount; li++) {
                 const lu = bondedUnits[li];
-                const bUnit = structure.unitMap.get(lu.unitB) as Unit.Atomic;
+                const bUnit = input.unitMap.get(lu.unitB) as Unit.Atomic;
                 const bElements = bUnit.elements;
                 const bonds = lu.getEdges(inputIndex);
                 for (let bi = 0, _bi = bonds.length; bi < _bi; bi++) {
