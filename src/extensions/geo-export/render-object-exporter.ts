@@ -9,7 +9,7 @@ import { WebGLContext } from '../../mol-gl/webgl/context';
 import { RuntimeContext } from '../../mol-task';
 
 export type RenderObjectExportData = {
-    [k: string]: string | Uint8Array | undefined
+    [k: string]: string | Uint8Array | ArrayBuffer | undefined
 }
 
 export interface RenderObjectExporter<D extends RenderObjectExportData> {

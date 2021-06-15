@@ -13,15 +13,17 @@ import { PluginStateObject } from '../../mol-plugin-state/objects';
 import { StateSelection } from '../../mol-state';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { SetUtils } from '../../mol-util/set';
-import { ObjExporter } from './obj-exporter';
 import { GlbExporter } from './glb-exporter';
+import { ObjExporter } from './obj-exporter';
 import { StlExporter } from './stl-exporter';
+import { UsdzExporter } from './usdz-exporter';
 
 export const GeometryParams = {
     format: PD.Select('glb', [
         ['glb', 'glTF 2.0 Binary (.glb)'],
         ['stl', 'Stl (.stl)'],
-        ['obj', 'Wavefront (.obj)']
+        ['obj', 'Wavefront (.obj)'],
+        ['usdz', 'Universal Scene Description (.usdz)']
     ])
 };
 
@@ -44,11 +46,12 @@ export class GeometryControls extends PluginComponent {
                 const renderObjects = this.plugin.canvas3d?.getRenderObjects()!;
                 const filename = this.getFilename();
 
-                const boundingBox = Box3D.fromSphere3D(Box3D(), this.plugin.canvas3d?.boundingSphereVisible!);
-                let renderObjectExporter: GlbExporter | ObjExporter | StlExporter;
+                const style = getStyle(this.plugin.canvas3d?.props.renderer.style!);
+                const boundingSphere = this.plugin.canvas3d?.boundingSphereVisible!;
+                const boundingBox = Box3D.fromSphere3D(Box3D(), boundingSphere);
+                let renderObjectExporter: GlbExporter | ObjExporter | StlExporter | UsdzExporter;
                 switch (this.behaviors.params.value.format) {
                     case 'glb':
-                        const style = getStyle(this.plugin.canvas3d?.props.renderer.style!);
                         renderObjectExporter = new GlbExporter(style, boundingBox);
                         break;
                     case 'obj':
@@ -56,6 +59,9 @@ export class GeometryControls extends PluginComponent {
                         break;
                     case 'stl':
                         renderObjectExporter = new StlExporter(boundingBox);
+                        break;
+                    case 'usdz':
+                        renderObjectExporter = new UsdzExporter(style, boundingBox, boundingSphere.radius);
                         break;
                     default: throw new Error('Unsupported format.');
                 }
