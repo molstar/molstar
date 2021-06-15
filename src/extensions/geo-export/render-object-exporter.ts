@@ -15,6 +15,6 @@ export type RenderObjectExportData = {
 export interface RenderObjectExporter<D extends RenderObjectExportData> {
     readonly fileExtension: string
     add(renderObject: GraphicsRenderObject, webgl: WebGLContext, ctx: RuntimeContext): Promise<void> | undefined
-    getData(): D
+    getData(ctx: RuntimeContext): Promise<D>
     getBlob(ctx: RuntimeContext): Promise<Blob>
 }

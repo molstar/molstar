@@ -278,7 +278,7 @@ export abstract class MeshExporter<D extends RenderObjectExportData> implements 
         }
     }
 
-    abstract getData(): D;
+    abstract getData(ctx: RuntimeContext): Promise<D>;
 
     abstract getBlob(ctx: RuntimeContext): Promise<Blob>;
 }

@@ -256,7 +256,7 @@ export class ObjExporter extends MeshExporter<ObjData> {
         }
     }
 
-    getData() {
+    async getData() {
         return {
             obj: StringBuilder.getString(this.obj),
             mtl: StringBuilder.getString(this.mtl)
@@ -264,7 +264,7 @@ export class ObjExporter extends MeshExporter<ObjData> {
     }
 
     async getBlob(ctx: RuntimeContext) {
-        const { obj, mtl } = this.getData();
+        const { obj, mtl } = await this.getData();
         const objData = new Uint8Array(obj.length);
         asciiWrite(objData, obj);
         const mtlData = new Uint8Array(mtl.length);

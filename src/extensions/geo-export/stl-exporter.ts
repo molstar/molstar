@@ -89,7 +89,7 @@ export class StlExporter extends MeshExporter<StlData> {
         }
     }
 
-    getData() {
+    async getData() {
         const stl = new Uint8Array(84 + 50 * this.triangleCount);
 
         asciiWrite(stl, `Exported from Mol* ${PLUGIN_VERSION}`);
@@ -106,7 +106,7 @@ export class StlExporter extends MeshExporter<StlData> {
     }
 
     async getBlob(ctx: RuntimeContext) {
-        return new Blob([this.getData().stl], { type: 'model/stl' });
+        return new Blob([(await this.getData()).stl], { type: 'model/stl' });
     }
 
     constructor(boundingBox: Box3D) {
