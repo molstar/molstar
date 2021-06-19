@@ -455,18 +455,20 @@ const LazyVolume = PluginStateTransform.BuiltIn({
         url: PD.Url(''),
         isBinary: PD.Boolean(false),
         format: PD.Text('ccp4'), // TODO: use Select based on available formats
-        entryId: PD.Text(''),
+        entryId: PD.Value<string | string[]>('', { isHidden: true }),
         isovalues: PD.ObjectList({
             type: PD.Text<'absolute' | 'relative'>('relative'), // TODO: Select
             value: PD.Numeric(0),
             color: PD.Color(ColorNames.black),
-            alpha: PD.Numeric(1, { min: 0, max: 1, step: 0.01 })
+            alpha: PD.Numeric(1, { min: 0, max: 1, step: 0.01 }),
+            volumeIndex: PD.Numeric(0),
         }, e => `${e.type} ${e.value}`)
     }
 })({
     apply({ a, params }) {
         return Task.create('Lazy Volume', async ctx => {
-            return new SO.Volume.Lazy(params, { label: `${params.entryId || params.url}`, description: 'Lazy Volume' });
+            const entryId = Array.isArray(params.entryId) ? params.entryId.join(', ') : params.entryId;
+            return new SO.Volume.Lazy(params, { label: `${entryId || params.url}`, description: 'Lazy Volume' });
         });
     }
 });

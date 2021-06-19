@@ -125,12 +125,13 @@ export namespace PluginStateObject {
             url: string | Asset.Url,
             isBinary: boolean,
             format: string,
-            entryId?: string,
+            entryId?: string | string[],
             isovalues: {
                 type: 'absolute' | 'relative',
                 value: number,
                 color: Color,
-                alpha?: number
+                alpha?: number,
+                volumeIndex?: number,
             }[]
         }
 

@@ -205,19 +205,21 @@ export class VolumeSourceControls extends CollapsableControls<{}, VolumeSourceCo
         try {
             const plugin = this.plugin;
             await plugin.dataTransaction(async () => {
-                const data = await plugin.builders.data.download({ url, isBinary, label: entryId }, { state: { isGhost: true } });
+                const data = await plugin.builders.data.download({ url, isBinary }, { state: { isGhost: true } });
                 const parsed = await plugin.dataFormats.get(format)!.parse(plugin, data, { entryId });
-                const volume = (parsed.volume || parsed.volumes[0]) as StateObjectSelector<PluginStateObject.Volume.Data>;
-                if (!volume?.isOk) throw new Error('Failed to parse any volume.');
+                const firstVolume = (parsed.volume || parsed.volumes[0]) as StateObjectSelector<PluginStateObject.Volume.Data>;
+                if (!firstVolume?.isOk) throw new Error('Failed to parse any volume.');
 
-                const repr = plugin.build().to(volume);
+                const repr = plugin.build();
                 for (const iso of isovalues) {
-                    repr.apply(StateTransforms.Representation.VolumeRepresentation3D, createVolumeRepresentationParams(this.plugin, volume.data!, {
-                        type: 'isosurface',
-                        typeParams: { alpha: iso.alpha ?? 1, isoValue: iso.type === 'absolute' ? { kind: 'absolute', absoluteValue: iso.value } : { kind: 'relative', relativeValue: iso.value } },
-                        color: 'uniform',
-                        colorParams: { value: iso.color }
-                    }));
+                    repr
+                        .to(parsed.volumes?.[iso.volumeIndex ?? 0] ?? parsed.volume)
+                        .apply(StateTransforms.Representation.VolumeRepresentation3D, createVolumeRepresentationParams(this.plugin, firstVolume.data!, {
+                            type: 'isosurface',
+                            typeParams: { alpha: iso.alpha ?? 1, isoValue: iso.type === 'absolute' ? { kind: 'absolute', absoluteValue: iso.value } : { kind: 'relative', relativeValue: iso.value } },
+                            color: 'uniform',
+                            colorParams: { value: iso.color }
+                        }));
                 }
 
                 await repr.commit();

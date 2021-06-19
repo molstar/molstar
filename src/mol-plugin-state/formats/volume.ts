@@ -191,6 +191,9 @@ export const CubeProvider = DataFormatProvider({
     }
 });
 
+
+type DsCifParams = { entryId?: string | string[] };
+
 export const DscifProvider = DataFormatProvider({
     label: 'DensityServer CIF',
     description: 'DensityServer CIF',
@@ -200,7 +203,7 @@ export const DscifProvider = DataFormatProvider({
     isApplicable: (info, data) => {
         return guessCifVariant(info, data) === 'dscif' ? true : false;
     },
-    parse: async (plugin, data, params?: Params) => {
+    parse: async (plugin, data, params?: DsCifParams) => {
         const cifCell = await plugin.build().to(data).apply(StateTransforms.Data.ParseCif).commit();
         const b = plugin.build().to(cifCell);
         const blocks = cifCell.obj!.data.blocks.slice(1); // zero block contains query meta-data
@@ -208,8 +211,11 @@ export const DscifProvider = DataFormatProvider({
         if (blocks.length !== 1 && blocks.length !== 2) throw new Error('unknown number of blocks');
 
         const volumes: StateObjectSelector<PluginStateObject.Volume.Data>[] = [];
+        let i = 0;
         for (const block of blocks) {
-            volumes.push(b.apply(StateTransforms.Volume.VolumeFromDensityServerCif, { blockHeader: block.header, entryId: params?.entryId }).selector);
+            const entryId = Array.isArray(params?.entryId) ? params?.entryId[i] : params?.entryId;
+            volumes.push(b.apply(StateTransforms.Volume.VolumeFromDensityServerCif, { blockHeader: block.header, entryId }).selector);
+            i++;
         }
 
         await b.commit();

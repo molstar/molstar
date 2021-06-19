@@ -243,7 +243,46 @@ export class Viewer {
         }));
     }
 
-    async loadVolumeFromUrl({ url, format, isBinary }: { url: string, format: BuildInVolumeFormat, isBinary: boolean }, isovalues: VolumeIsovalueInfo[], options?: { entryId?: string, isLazy?: boolean }) {
+    /**
+     * @example Load X-ray density from volume server
+        viewer.loadVolumeFromUrl({
+            url: 'https://www.ebi.ac.uk/pdbe/densities/x-ray/1tqn/cell?detail=3',
+            format: 'dscif',
+            isBinary: true
+        }, [{
+            type: 'relative',
+            value: 1.5,
+            color: 0x3362B2
+        }, {
+            type: 'relative',
+            value: 3,
+            color: 0x33BB33,
+            volumeIndex: 1
+        }, {
+            type: 'relative',
+            value: -3,
+            color: 0xBB3333,
+            volumeIndex: 1
+        }], {
+            entryId: ['2FO-FC', 'FO-FC'],
+            isLazy: true
+        });
+     * *********************
+     * @example Load EM density from volume server
+        viewer.loadVolumeFromUrl({
+            url: 'https://maps.rcsb.org/em/emd-30210/cell?detail=6',
+            format: 'dscif',
+            isBinary: true
+        }, [{
+            type: 'relative',
+            value: 1,
+            color: 0x3377aa
+        }], {
+            entryId: 'EMD-30210',
+            isLazy: true
+        });
+     */
+    async loadVolumeFromUrl({ url, format, isBinary }: { url: string, format: BuildInVolumeFormat, isBinary: boolean }, isovalues: VolumeIsovalueInfo[], options?: { entryId?: string | string[], isLazy?: boolean }) {
         const plugin = this.plugin;
 
         if (!plugin.dataFormats.get(format)) {
@@ -257,26 +296,28 @@ export class Viewer {
                 format,
                 entryId: options?.entryId,
                 isBinary,
-                isovalues: isovalues.map(v => ({ alpha: 1, ...v }))
+                isovalues: isovalues.map(v => ({ alpha: 1, volumeIndex: 0, ...v }))
             });
             return update.commit();
         }
 
         return plugin.dataTransaction(async () => {
-            const data = await plugin.builders.data.download({ url, isBinary, label: options?.entryId }, { state: { isGhost: true } });
+            const data = await plugin.builders.data.download({ url, isBinary }, { state: { isGhost: true } });
 
             const parsed = await plugin.dataFormats.get(format)!.parse(plugin, data, { entryId: options?.entryId });
-            const volume = (parsed.volume || parsed.volumes[0]) as StateObjectSelector<PluginStateObject.Volume.Data>;
-            if (!volume?.isOk) throw new Error('Failed to parse any volume.');
+            const firstVolume = (parsed.volume || parsed.volumes[0]) as StateObjectSelector<PluginStateObject.Volume.Data>;
+            if (!firstVolume?.isOk) throw new Error('Failed to parse any volume.');
 
-            const repr = plugin.build().to(volume);
+            const repr = plugin.build();
             for (const iso of isovalues) {
-                repr.apply(StateTransforms.Representation.VolumeRepresentation3D, createVolumeRepresentationParams(this.plugin, volume.data!, {
-                    type: 'isosurface',
-                    typeParams: { alpha: iso.alpha ?? 1, isoValue: iso.type === 'absolute' ? { kind: 'absolute', absoluteValue: iso.value } : { kind: 'relative', relativeValue: iso.value } },
-                    color: 'uniform',
-                    colorParams: { value: iso.color }
-                }));
+                repr
+                    .to(parsed.volumes?.[iso.volumeIndex ?? 0] ?? parsed.volume)
+                    .apply(StateTransforms.Representation.VolumeRepresentation3D, createVolumeRepresentationParams(this.plugin, firstVolume.data!, {
+                        type: 'isosurface',
+                        typeParams: { alpha: iso.alpha ?? 1, isoValue: iso.type === 'absolute' ? { kind: 'absolute', absoluteValue: iso.value } : { kind: 'relative', relativeValue: iso.value } },
+                        color: 'uniform',
+                        colorParams: { value: iso.color }
+                    }));
             }
 
             await repr.commit();
@@ -296,5 +337,6 @@ export interface VolumeIsovalueInfo {
     type: 'absolute' | 'relative',
     value: number,
     color: Color,
-    alpha?: number
+    alpha?: number,
+    volumeIndex?: number
 }
