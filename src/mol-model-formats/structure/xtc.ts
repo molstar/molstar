@@ -30,6 +30,7 @@ export function coordinatesFromXtc(file: XtcFile): Task<Coordinates> {
                 x: file.frames[i].x,
                 y: file.frames[i].y,
                 z: file.frames[i].z,
+                xyzOrdering: { isIdentity: true },
                 time: Time(offsetTime.value + deltaTime.value * i, deltaTime.unit)
             });
         }

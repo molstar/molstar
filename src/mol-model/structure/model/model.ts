@@ -105,9 +105,7 @@ export namespace Model {
                 ...model,
                 id: UUID.create22(),
                 modelNum: i,
-                atomicConformation: isIdentity
-                    ? Coordinates.getAtomicConformation(f, model.atomicConformation.atomId)
-                    : Coordinates.getAtomicConformationReordered(f, model.atomicConformation.atomId, srcIndexArray!),
+                atomicConformation: Coordinates.getAtomicConformation(f, model.atomicConformation.atomId, srcIndexArray),
                 // TODO: add support for supplying sphere and gaussian coordinates in addition to atomic coordinates?
                 // coarseConformation: coarse.conformation,
                 customProperties: new CustomProperties(),

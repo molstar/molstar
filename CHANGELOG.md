@@ -6,6 +6,7 @@ Note that since we don't clearly distinguish between a public and private interf
 ## [Unreleased]
 
 - Add ability to specify ``volumeIndex`` in ``Viewer.loadVolumeFromUrl`` to better support Volume Server inputs.
+- Support in-place reordering for trajectory ``Frame.x/y/z`` arrays for better memory efficiency.
 
 ## [v2.0.6] - 2021-06-01
 

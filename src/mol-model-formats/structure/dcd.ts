@@ -38,6 +38,8 @@ export function coordinatesFromDcd(dcdFile: DcdFile): Task<Coordinates> {
                 x: dcdFrame.x,
                 y: dcdFrame.y,
                 z: dcdFrame.z,
+
+                xyzOrdering: { isIdentity: true }
             };
 
             if (dcdFrame.cell) {
