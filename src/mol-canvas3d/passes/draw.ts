@@ -290,7 +290,7 @@ export class DrawPass {
         renderer.setViewport(x, y, width, height);
         renderer.update(camera);
 
-        if (transparentBackground) {
+        if (transparentBackground && !antialiasingEnabled && toDrawingBuffer) {
             this.drawTarget.bind();
             renderer.clear(false);
         }
