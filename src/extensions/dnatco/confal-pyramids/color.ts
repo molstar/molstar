@@ -181,6 +181,6 @@ export const ConfalPyramidsColorThemeProvider: ColorTheme.Provider<ConfalPyramid
     isApplicable: (ctx: ThemeDataContext) => !!ctx.structure && ctx.structure.models.some(m => ConfalPyramids.isApplicable(m)),
     ensureCustomProperties: {
         attach: (ctx: CustomProperty.Context, data: ThemeDataContext) => data.structure ? ConfalPyramidsProvider.attach(ctx, data.structure.models[0], void 0, true) : Promise.resolve(),
-        detach: (data) => data.structure && data.structure.models[0].customProperties.reference(ConfalPyramidsProvider.descriptor, false)
+        detach: (data) => data.structure && ConfalPyramidsProvider.ref(data.structure.models[0], false)
     }
 };

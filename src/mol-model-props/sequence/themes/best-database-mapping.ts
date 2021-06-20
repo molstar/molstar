@@ -98,7 +98,7 @@ export const BestDatabaseSequenceMappingColorThemeProvider: ColorTheme.Provider<
         detach: (data) => {
             if (!data.structure) return;
             for (const m of data.structure.models) {
-                m.customProperties.reference(BestDatabaseSequenceMapping.Provider.descriptor, false);
+                BestDatabaseSequenceMapping.Provider.ref(m, false);
             }
         }
     }

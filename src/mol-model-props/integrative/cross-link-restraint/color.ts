@@ -70,6 +70,6 @@ export const CrossLinkColorThemeProvider: ColorTheme.Provider<CrossLinkColorThem
     isApplicable: (ctx: ThemeDataContext) => !!ctx.structure && CrossLinkRestraint.isApplicable(ctx.structure),
     ensureCustomProperties: {
         attach: (ctx: CustomProperty.Context, data: ThemeDataContext) => data.structure ? CrossLinkRestraintProvider.attach(ctx, data.structure, void 0, true) : Promise.resolve(),
-        detach: (data) => data.structure && data.structure.customPropertyDescriptors.reference(CrossLinkRestraintProvider.descriptor, false)
+        detach: (data) => data.structure && CrossLinkRestraintProvider.ref(data.structure, false)
     }
 };
