@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -103,7 +103,9 @@ export class ImagePass {
         } else {
             this.webgl.readPixels(viewport.x, height - viewport.y - viewport.height, w, h, array);
         }
-        PixelData.flipY({ array, width: w, height: h });
+        const pixelData = PixelData.create(array, w, h);
+        PixelData.flipY(pixelData);
+        PixelData.divideByAlpha(pixelData);
         return new ImageData(new Uint8ClampedArray(array), w, h);
     }
 }

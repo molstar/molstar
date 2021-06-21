@@ -29,7 +29,7 @@ namespace BestDatabaseSequenceMapping {
         type: 'static',
         defaultParams: {},
         getParams: () => ({}),
-        isApplicable: (data: Model) => MmcifFormat.is(data.sourceData) && data.sourceData.data.frame.categories?.atom_site.fieldNames.indexOf('db_name') >= 0,
+        isApplicable: (data: Model) => MmcifFormat.is(data.sourceData) && data.sourceData.data.frame.categories?.atom_site?.fieldNames.indexOf('db_name') >= 0,
         obtain: async (ctx, data) => {
             return { value: fromCif(data) };
         }
