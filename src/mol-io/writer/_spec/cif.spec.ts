@@ -3,7 +3,10 @@ import { CifWriter } from '../cif';
 import { decodeMsgPack } from '../../common/msgpack/decode';
 import { EncodedFile, EncodedCategory } from '../../common/binary-cif';
 import { Field } from '../../reader/cif/binary/field';
+import { TextEncoder } from '../cif/encoder/text';
 import * as C from '../cif/encoder';
+import { Column, Database, Table } from '../../../mol-data/db';
+import { parseCifText } from '../../reader/cif/text/parser';
 
 const cartn_x = Data.CifField.ofNumbers([1.001, 1.002, 1.003, 1.004, 1.005, 1.006, 1.007, 1.008, 1.009]);
 const cartn_y = Data.CifField.ofNumbers([-3.0, -2.666, -2.3333, -2.0, -1.666, -1.333, -1.0, -0.666, -0.333]);
@@ -36,6 +39,30 @@ const encoding_aware_encoder = CifWriter.createEncoder({
             'encoding': 'delta-rle'
         }
     ])
+});
+
+test('cif writer value escaping', async () => {
+    const values = ['1', ' ', '  ', ` ' `, `a'`, `b"`, `"`, '  a  ', `"'"`, `'"`, `\na`];
+    const table = Table.ofArrays({ values: Column.Schema.str }, { values });
+
+    const encoder = new TextEncoder();
+    C.Encoder.writeDatabase(encoder, 'test', Database.ofTables('test', { test: table._schema }, { test: table }));
+    encoder.encode();
+    const data = encoder.getData();
+
+    const result = await parseCifText(data).run();
+    if (result.isError) {
+        expect(false).toBe(true);
+        return;
+    }
+
+    const cat = result.result.blocks[0].categories['test'];
+    const parsed = cat.getField('values')?.toStringArray();
+
+    expect(values.length).toBe(parsed?.length);
+    for (let i = 0; i < values.length; i++) {
+        expect(values[i]).toBe(parsed?.[i]);
+    }
 });
 
 describe('encoding-config', () => {

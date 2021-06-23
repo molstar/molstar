@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * Adapted from CIFTools.js (https://github.com/dsehnal/CIFTools.js)
  *
@@ -208,55 +208,61 @@ function writeChecked(builder: StringBuilder, val: string) {
         return false;
     }
 
-    let escape = val.charCodeAt(0) === 95 /* _ */, escapeCharStart = '\'', escapeCharEnd = '\' ';
-    let hasWhitespace = false;
-    let hasSingle = false;
-    let hasDouble = false;
-    for (let i = 0, _l = val.length - 1; i < _l; i++) {
+    const fst = val.charCodeAt(0);
+    let escape = false;
+    let escapeKind = 0; // 0 => ', 1 => "
+    let hasSingleQuote = false, hasDoubleQuote = false;
+    for (let i = 0, _l = val.length - 1; i <= _l; i++) {
         const c = val.charCodeAt(i);
 
         switch (c) {
-            case 9: hasWhitespace = true; break; // \t
+            case 9: // \t
+                escape = true;
+                break;
             case 10: // \n
                 writeMultiline(builder, val);
                 return true;
-            case 32: hasWhitespace = true; break; // ' '
+            case 32: // ' '
+                escape = true;
+                break;
             case 34: // "
-                if (hasSingle) {
+                // no need to escape quote if it's the last char and the length is > 1
+                if (i && i === _l) break;
+
+                if (hasSingleQuote) {
+                    // the string already has a " => use multiline value
                     writeMultiline(builder, val);
                     return true;
                 }
 
-                hasDouble = true;
+                hasDoubleQuote = true;
                 escape = true;
-                escapeCharStart = '\'';
-                escapeCharEnd = '\' ';
+                escapeKind = 0;
                 break;
             case 39: // '
-                if (hasDouble) {
+                // no need to escape quote if it's the last char and the length is > 1
+                if (i && i === _l) break;
+
+                if (hasDoubleQuote) {
                     writeMultiline(builder, val);
                     return true;
                 }
 
+                hasSingleQuote = true;
                 escape = true;
-                hasSingle = true;
-                escapeCharStart = '"';
-                escapeCharEnd = '" ';
+                escapeKind = 1;
                 break;
         }
     }
 
-    const fst = val.charCodeAt(0);
-    if (!escape && (fst === 35 /* # */|| fst === 36 /* $ */ || fst === 59 /* ; */ || fst === 91 /* [ */ || fst === 93 /* ] */ || hasWhitespace)) {
-        escapeCharStart = '\'';
-        escapeCharEnd = '\' ';
+    if (!escape && (fst === 35 /* # */ || fst === 36 /* $ */ || fst === 59 /* ; */ || fst === 91 /* [ */ || fst === 93 /* ] */ || fst === 95 /* _ */)) {
         escape = true;
     }
 
     if (escape) {
-        StringBuilder.writeSafe(builder, escapeCharStart);
+        StringBuilder.writeSafe(builder, escapeKind ? '"' : '\'');
         StringBuilder.writeSafe(builder, val);
-        StringBuilder.writeSafe(builder, escapeCharEnd);
+        StringBuilder.writeSafe(builder, escapeKind ? '" ' : '\' ');
     } else {
         StringBuilder.writeSafe(builder, val);
         StringBuilder.writeSafe(builder, ' ');
