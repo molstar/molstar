@@ -12,7 +12,7 @@ import { Theme } from '../../../mol-theme/theme';
 import { Mesh } from '../../../mol-geo/geometry/mesh/mesh';
 import { Vec3 } from '../../../mol-math/linear-algebra';
 import { arrayEqual } from '../../../mol-util';
-import { createLinkCylinderImpostors, createLinkCylinderMesh, LinkStyle } from './util/link';
+import { createLinkCylinderImpostors, createLinkCylinderMesh, LinkBuilderProps, LinkStyle } from './util/link';
 import { UnitsMeshParams, UnitsVisual, UnitsMeshVisual, StructureGroup, UnitsCylindersParams, UnitsCylindersVisual } from '../units-visual';
 import { VisualUpdateState } from '../../util';
 import { BondType } from '../../../mol-model/structure/model/types';
@@ -26,7 +26,7 @@ import { SortedArray } from '../../../mol-data/int';
 // avoiding namespace lookup improved performance in Chrome (Aug 2020)
 const isBondType = BondType.is;
 
-function getIntraUnitBondCylinderBuilderProps(unit: Unit.Atomic, structure: Structure, theme: Theme, props: PD.Values<IntraUnitBondCylinderParams>) {
+function getIntraUnitBondCylinderBuilderProps(unit: Unit.Atomic, structure: Structure, theme: Theme, props: PD.Values<IntraUnitBondCylinderParams>): LinkBuilderProps {
     const elements = unit.elements;
     const bonds = unit.bonds;
     const { edgeCount, a, b, edgeProps, offset } = bonds;
@@ -41,9 +41,8 @@ function getIntraUnitBondCylinderBuilderProps(unit: Unit.Atomic, structure: Stru
     const locE = StructureElement.Location.create(structure, unit);
     const locB = Bond.Location(structure, unit, undefined, structure, unit, undefined);
 
-    if (props.includeParent) {
-        const { child } = structure;
-        if (!child) throw new Error('expected child to exist');
+    const { child } = structure;
+    if (props.includeParent && child) {
         const childUnit = child.unitMap.get(unit.id);
         if (!childUnit) throw new Error('expected childUnit to exist');
 

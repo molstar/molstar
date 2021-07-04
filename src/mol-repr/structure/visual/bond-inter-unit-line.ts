@@ -10,7 +10,7 @@ import { Structure, StructureElement, Bond, Unit } from '../../../mol-model/stru
 import { Theme } from '../../../mol-theme/theme';
 import { Vec3 } from '../../../mol-math/linear-algebra';
 import { BitFlags, arrayEqual } from '../../../mol-util';
-import { LinkStyle, createLinkLines } from './util/link';
+import { LinkStyle, createLinkLines, LinkBuilderProps } from './util/link';
 import { ComplexVisual, ComplexLinesVisual, ComplexLinesParams } from '../complex-visual';
 import { VisualUpdateState } from '../../util';
 import { BondType } from '../../../mol-model/structure/model/types';
@@ -39,7 +39,7 @@ function createInterUnitBondLines(ctx: VisualContext, structure: Structure, them
     const ref = Vec3();
     const loc = StructureElement.Location.create();
 
-    const builderProps = {
+    const builderProps: LinkBuilderProps = {
         linkCount: edgeCount,
         referencePosition: (edgeIndex: number) => {
             const b = edges[edgeIndex];

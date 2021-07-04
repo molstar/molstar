@@ -120,6 +120,11 @@ export function UnitsVisual<G extends Geometry, P extends StructureParams & Geom
             updateState.updateColor = true;
         }
 
+        if (currentStructureGroup.structure.child !== newStructureGroup.structure.child) {
+            // console.log('new child');
+            updateState.createGeometry = true;
+        }
+
         if (!deepEqual(newProps.unitKinds, currentProps.unitKinds)) {
             // console.log('new unitKinds');
             updateState.createGeometry = true;

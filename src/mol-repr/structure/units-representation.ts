@@ -66,7 +66,7 @@ export function UnitsRepresentation<P extends StructureParams>(label: string, ct
                     visuals.set(group.hashCode, { visual, group });
                     if (runtime.shouldUpdate) await runtime.update({ message: 'Creating or updating UnitsVisual', current: i, max: _groups.length });
                 }
-            } else if (structure && !Structure.areUnitIdsAndIndicesEqual(structure, _structure)) {
+            } else if (structure && (!Structure.areUnitIdsAndIndicesEqual(structure, _structure) || structure.child !== _structure.child)) {
                 // console.log(label, 'structures not equivalent');
                 // Tries to re-use existing visuals for the groups of the new structure.
                 // Creates additional visuals if needed, destroys left-over visuals.

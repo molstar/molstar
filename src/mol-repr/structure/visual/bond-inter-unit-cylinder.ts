@@ -11,7 +11,7 @@ import { Theme } from '../../../mol-theme/theme';
 import { Mesh } from '../../../mol-geo/geometry/mesh/mesh';
 import { Vec3 } from '../../../mol-math/linear-algebra';
 import { BitFlags, arrayEqual } from '../../../mol-util';
-import { createLinkCylinderImpostors, createLinkCylinderMesh, LinkStyle } from './util/link';
+import { createLinkCylinderImpostors, createLinkCylinderMesh, LinkBuilderProps, LinkStyle } from './util/link';
 import { ComplexMeshParams, ComplexVisual, ComplexMeshVisual, ComplexCylindersParams, ComplexCylindersVisual } from '../complex-visual';
 import { VisualUpdateState } from '../../util';
 import { BondType } from '../../../mol-model/structure/model/types';
@@ -34,7 +34,7 @@ function setRefPosition(pos: Vec3, structure: Structure, unit: Unit.Atomic, inde
 
 const tmpRef = Vec3();
 
-function getInterUnitBondCylinderBuilderProps(structure: Structure, theme: Theme, props: PD.Values<InterUnitBondCylinderParams>) {
+function getInterUnitBondCylinderBuilderProps(structure: Structure, theme: Theme, props: PD.Values<InterUnitBondCylinderParams>): LinkBuilderProps {
     const locE = StructureElement.Location.create(structure);
     const locB = Bond.Location(structure, undefined, undefined, structure, undefined, undefined);
 
@@ -46,10 +46,8 @@ function getInterUnitBondCylinderBuilderProps(structure: Structure, theme: Theme
 
     let stub: undefined | ((edgeIndex: number) => boolean);
 
-    if (props.includeParent) {
-        const { child } = structure;
-        if (!child) throw new Error('expected child to exist');
-
+    const { child } = structure;
+    if (props.includeParent && child) {
         stub = (edgeIndex: number) => {
             const b = edges[edgeIndex];
             const childUnitA = child.unitMap.get(b.unitA);

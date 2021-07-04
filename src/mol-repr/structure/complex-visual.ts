@@ -118,6 +118,11 @@ export function ComplexVisual<G extends Geometry, P extends StructureParams & Ge
             updateState.createGeometry = true;
         }
 
+        if (currentStructure.child !== newStructure.child) {
+            // console.log('new child');
+            updateState.createGeometry = true;
+        }
+
         if (updateState.updateSize && !('uSize' in renderObject.values)) {
             updateState.createGeometry = true;
         }

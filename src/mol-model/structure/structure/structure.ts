@@ -368,13 +368,16 @@ class Structure {
 
     private _child: Structure | undefined;
     private _target: Structure | undefined;
+    private _proxy: Structure | undefined;
 
     /**
      * For `structure` with `parent` this returns a proxy that
      * targets `parent` and has `structure` attached as a child.
      */
     asParent(): Structure {
-        return this.parent ? new Structure(this.parent.units, this.parent.unitMap, this.parent.unitIndexMap, this.parent.state, { child: this, target: this.parent }) : this;
+        if (this._proxy) return this._proxy;
+        this._proxy = this.parent ? new Structure(this.parent.units, this.parent.unitMap, this.parent.unitIndexMap, this.parent.state, { child: this, target: this.parent }) : this;
+        return this._proxy;
     }
 
     get child(): Structure | undefined {

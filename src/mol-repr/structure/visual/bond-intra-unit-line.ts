@@ -10,7 +10,7 @@ import { Unit, Structure, StructureElement } from '../../../mol-model/structure'
 import { Theme } from '../../../mol-theme/theme';
 import { Vec3 } from '../../../mol-math/linear-algebra';
 import { arrayEqual } from '../../../mol-util';
-import { LinkStyle, createLinkLines } from './util/link';
+import { LinkStyle, createLinkLines, LinkBuilderProps } from './util/link';
 import { UnitsVisual, UnitsLinesParams, UnitsLinesVisual, StructureGroup } from '../units-visual';
 import { VisualUpdateState } from '../../util';
 import { BondType } from '../../../mol-model/structure/model/types';
@@ -28,10 +28,6 @@ function createIntraUnitBondLines(ctx: VisualContext, unit: Unit, structure: Str
     const { child } = structure;
     const childUnit = child?.unitMap.get(unit.id);
     if (child && !childUnit) return Lines.createEmpty(lines);
-
-    if (props.includeParent) {
-        if (!child) throw new Error('expected child to exist');
-    }
 
     const location = StructureElement.Location.create(structure, unit);
 
