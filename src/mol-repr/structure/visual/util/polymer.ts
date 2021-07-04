@@ -14,7 +14,7 @@ import { PickingId } from '../../../../mol-geo/geometry/picking';
 import { StructureGroup } from '../../../structure/units-visual';
 import { getResidueLoci } from './common';
 
-export * from './polymer/backbone-iterator';
+export * from './polymer/backbone';
 export * from './polymer/gap-iterator';
 export * from './polymer/trace-iterator';
 export * from './polymer/curve-segment';

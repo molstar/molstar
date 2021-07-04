@@ -6,6 +6,7 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Add backbone representation
 
 ## [v2.0.7] - 2021-06-23
 
