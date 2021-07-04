@@ -40,7 +40,7 @@ function getInterUnitBondCylinderBuilderProps(structure: Structure, theme: Theme
 
     const bonds = structure.interUnitBonds;
     const { edgeCount, edges } = bonds;
-    const { sizeFactor, sizeAspectRatio, adjustCylinderLength } = props;
+    const { sizeFactor, sizeAspectRatio, adjustCylinderLength, aromaticBonds } = props;
 
     const delta = Vec3();
 
@@ -135,13 +135,15 @@ function getInterUnitBondCylinderBuilderProps(structure: Structure, theme: Theme
             if (BondType.is(f, BondType.Flag.MetallicCoordination) || BondType.is(f, BondType.Flag.HydrogenBond)) {
                 // show metall coordinations and hydrogen bonds with dashed cylinders
                 return LinkStyle.Dashed;
-            } else if (o === 2) {
-                return LinkStyle.Double;
             } else if (o === 3) {
                 return LinkStyle.Triple;
-            } else {
-                return LinkStyle.Solid;
+            } else if (aromaticBonds && BondType.is(f, BondType.Flag.Aromatic)) {
+                return LinkStyle.Aromatic;
+            } else if (o === 2) {
+                return LinkStyle.Double;
             }
+
+            return LinkStyle.Solid;
         },
         radius: (edgeIndex: number) => {
             return radius(edgeIndex) * sizeAspectRatio;

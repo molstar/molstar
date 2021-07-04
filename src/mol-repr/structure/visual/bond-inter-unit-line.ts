@@ -32,7 +32,7 @@ function setRefPosition(pos: Vec3, structure: Structure, unit: Unit.Atomic, inde
 function createInterUnitBondLines(ctx: VisualContext, structure: Structure, theme: Theme, props: PD.Values<InterUnitBondLineParams>, lines?: Lines) {
     const bonds = structure.interUnitBonds;
     const { edgeCount, edges } = bonds;
-    const { sizeFactor } = props;
+    const { sizeFactor, aromaticBonds } = props;
 
     if (!edgeCount) return Lines.createEmpty(lines);
 
@@ -73,13 +73,15 @@ function createInterUnitBondLines(ctx: VisualContext, structure: Structure, them
             if (BondType.is(f, BondType.Flag.MetallicCoordination) || BondType.is(f, BondType.Flag.HydrogenBond)) {
                 // show metall coordinations and hydrogen bonds with dashed cylinders
                 return LinkStyle.Dashed;
-            } else if (o === 2) {
-                return LinkStyle.Double;
             } else if (o === 3) {
                 return LinkStyle.Triple;
-            } else {
-                return LinkStyle.Solid;
+            }else if (aromaticBonds && BondType.is(f, BondType.Flag.Aromatic)) {
+                return LinkStyle.Aromatic;
+            } else if (o === 2) {
+                return LinkStyle.Double;
             }
+
+            return LinkStyle.Solid;
         },
         radius: (edgeIndex: number) => {
             const b = edges[edgeIndex];
