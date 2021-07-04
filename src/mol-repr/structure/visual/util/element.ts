@@ -46,7 +46,7 @@ export function makeElementIgnoreTest(structure: Structure, unit: Unit, props: E
     const childUnit = child?.unitMap.get(unit.id);
     if (child && !childUnit) throw new Error('expected childUnit to exist if child exists');
 
-    if (!child && ((!ignoreHydrogens && !traceOnly) || traceOnly)) return;
+    if (!child && !ignoreHydrogens && !traceOnly) return;
 
     return (element: ElementIndex) => {
         return (
