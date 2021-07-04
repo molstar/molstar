@@ -306,7 +306,8 @@ export class PostprocessingPass {
         this.nSamples = 1;
         this.blurKernelSize = 1;
 
-        this.target = webgl.createRenderTarget(width, height, false, 'uint8', 'nearest');
+        // needs to be linear for anti-aliasing pass
+        this.target = webgl.createRenderTarget(width, height, false, 'uint8', 'linear');
 
         this.outlinesTarget = webgl.createRenderTarget(width, height, false);
         this.outlinesRenderable = getOutlinesRenderable(webgl, depthTexture);

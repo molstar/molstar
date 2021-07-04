@@ -186,6 +186,7 @@ export interface Texture {
     readonly format: number
     readonly internalFormat: number
     readonly type: number
+    readonly filter: number
 
     getWidth: () => number
     getHeight: () => number
@@ -326,6 +327,7 @@ export function createTexture(gl: GLRenderingContext, extensions: WebGLExtension
         format,
         internalFormat,
         type,
+        filter,
 
         getWidth: () => width,
         getHeight: () => height,
@@ -415,6 +417,7 @@ export function createNullTexture(gl?: GLRenderingContext): Texture {
         format: 0,
         internalFormat: 0,
         type: 0,
+        filter: 0,
 
         getWidth: () => 0,
         getHeight: () => 0,
