@@ -105,6 +105,10 @@ export function arraySetRemove<T>(xs: T[], x: T) {
     return true;
 }
 
+/**
+ * Caution, O(n^2) complexity. Only use for small input sizes.
+ * For larger inputs consider using `SortedArray`.
+ */
 export function arrayAreIntersecting<T>(xs: T[], ys: T[]) {
     for (let i = 0, il = xs.length; i < il; ++i) {
         if (ys.includes(xs[i])) return true;
@@ -112,6 +116,10 @@ export function arrayAreIntersecting<T>(xs: T[], ys: T[]) {
     return false;
 }
 
+/**
+ * Caution, O(n^2) complexity. Only use for small input sizes.
+ * For larger inputs consider using `SortedArray`.
+ */
 export function arrayIntersectionSize<T>(xs: T[], ys: T[]) {
     let count = 0;
     for (let i = 0, il = xs.length; i < il; ++i) {
