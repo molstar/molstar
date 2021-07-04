@@ -474,7 +474,9 @@ namespace Vec3 {
 
     /** Computes the angle between 2 vectors, reports in radians. */
     export function angle(a: Vec3, b: Vec3) {
-        const theta = dot(a, b) / Math.sqrt(squaredMagnitude(a) * squaredMagnitude(b));
+        const denominator = Math.sqrt(squaredMagnitude(a) * squaredMagnitude(b));
+        if (denominator === 0) return Math.PI / 2;
+        const theta = dot(a, b) / denominator;
         return Math.acos(clamp(theta, -1, 1)); // clamp to avoid numerical problems
     }
 
