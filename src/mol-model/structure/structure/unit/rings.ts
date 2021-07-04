@@ -117,7 +117,6 @@ namespace UnitRing {
                 // comes e.g. from `chem_comp_bond.pdbx_aromatic_flag`
                 if (BondType.is(BondType.Flag.Aromatic, flags[j])) {
                     if (SortedArray.has(ring, b[j])) aromaticBondCount += 1;
-
                 }
             }
         }
