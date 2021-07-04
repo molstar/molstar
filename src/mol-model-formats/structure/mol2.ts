@@ -6,7 +6,7 @@
 
 import { Column, Table } from '../../mol-data/db';
 import { Model } from '../../mol-model/structure/model';
-import { MoleculeType } from '../../mol-model/structure/model/types';
+import { BondType, MoleculeType } from '../../mol-model/structure/model/types';
 import { RuntimeContext, Task } from '../../mol-task';
 import { createModels } from './basic/parser';
 import { BasicSchema, createBasic } from './basic/schema';
@@ -74,8 +74,33 @@ async function getModels(mol2: Mol2File, ctx: RuntimeContext) {
         if (_models.frameCount > 0) {
             const indexA = Column.ofIntArray(Column.mapToArray(bonds.origin_atom_id, x => x - 1, Int32Array));
             const indexB = Column.ofIntArray(Column.mapToArray(bonds.target_atom_id, x => x - 1, Int32Array));
-            const order = Column.ofIntArray(Column.mapToArray(bonds.bond_type, x => x === 'ar' ? 1 : parseInt(x), Int8Array));
-            const pairBonds = IndexPairBonds.fromData({ pairs: { indexA, indexB, order }, count: atoms.count });
+            const order = Column.ofIntArray(Column.mapToArray(bonds.bond_type, x => {
+                switch (x) {
+                    case 'ar': // aromatic
+                    case 'am': // amide
+                    case 'un': // unknown
+                        return 1;
+                    case 'du': // dummy
+                    case 'nc': // not connected
+                        return 0;
+                    default:
+                        return parseInt(x);
+                }
+            }, Int8Array));
+            const flag = Column.ofIntArray(Column.mapToArray(bonds.bond_type, x => {
+                switch (x) {
+                    case 'ar': // aromatic
+                        return BondType.Flag.Aromatic | BondType.Flag.Covalent;
+                    case 'du': // dummy
+                    case 'nc': // not connected
+                        return BondType.Flag.None;
+                    case 'am': // amide
+                    case 'un': // unknown
+                    default:
+                        return BondType.Flag.Covalent;
+                }
+            }, Int8Array));
+            const pairBonds = IndexPairBonds.fromData({ pairs: { indexA, indexB, order, flag }, count: atoms.count });
 
             const first = _models.representative;
             IndexPairBonds.Provider.set(first, pairBonds);
