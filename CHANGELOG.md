@@ -6,6 +6,7 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Add parameter for to display aromatic bonds as dashes next to solid cylinder/line.
 - Add backbone representation
 - Fix outline in orthographic mode and set default scale to 2.
 

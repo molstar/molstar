@@ -620,9 +620,9 @@ export namespace BondType {
         'covalent': Flag.Covalent,
         'metal-coordination': Flag.MetallicCoordination,
         'hydrogen-bond': Flag.HydrogenBond,
-        'disulfide': Flag.HydrogenBond,
-        'aromatic': Flag.HydrogenBond,
-        'computed': Flag.HydrogenBond,
+        'disulfide': Flag.Disulfide,
+        'aromatic': Flag.Aromatic,
+        'computed': Flag.Computed,
     };
     export type Names = keyof typeof Names
 

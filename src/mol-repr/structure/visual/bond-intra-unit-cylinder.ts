@@ -22,6 +22,7 @@ import { IntAdjacencyGraph } from '../../../mol-math/graph';
 import { WebGLContext } from '../../../mol-gl/webgl/context';
 import { Cylinders } from '../../../mol-geo/geometry/cylinders/cylinders';
 import { SortedArray } from '../../../mol-data/int';
+import { arrayIntersectionSize } from '../../../mol-util/array';
 
 // avoiding namespace lookup improved performance in Chrome (Aug 2020)
 const isBondType = BondType.is;
@@ -31,7 +32,7 @@ function getIntraUnitBondCylinderBuilderProps(unit: Unit.Atomic, structure: Stru
     const bonds = unit.bonds;
     const { edgeCount, a, b, edgeProps, offset } = bonds;
     const { order: _order, flags: _flags } = edgeProps;
-    const { sizeFactor, sizeAspectRatio, adjustCylinderLength } = props;
+    const { sizeFactor, sizeAspectRatio, adjustCylinderLength, aromaticBonds } = props;
 
     const vRef = Vec3(), delta = Vec3();
     const pos = unit.conformation.invariantPosition;
@@ -69,6 +70,8 @@ function getIntraUnitBondCylinderBuilderProps(unit: Unit.Atomic, structure: Stru
         return theme.size.size(locE) * sizeFactor;
     };
 
+    const { elementRingIndices, elementAromaticRingIndices } = unit.rings;
+
     return {
         linkCount: edgeCount * 2,
         referencePosition: (edgeIndex: number) => {
@@ -76,17 +79,28 @@ function getIntraUnitBondCylinderBuilderProps(unit: Unit.Atomic, structure: Stru
 
             if (aI > bI) [aI, bI] = [bI, aI];
             if (offset[aI + 1] - offset[aI] === 1) [aI, bI] = [bI, aI];
-            // TODO prefer reference atoms within rings
+
+            const aR = elementRingIndices.get(aI);
+            let maxSize = 0;
 
             for (let i = offset[aI], il = offset[aI + 1]; i < il; ++i) {
                 const _bI = b[i];
-                if (_bI !== bI && _bI !== aI) return pos(elements[_bI], vRef);
+                if (_bI !== bI && _bI !== aI) {
+                    if (aR) {
+                        const _bR = elementRingIndices.get(_bI);
+                        if (!_bR) continue;
+
+                        const size = arrayIntersectionSize(aR, _bR);
+                        if (size > maxSize) {
+                            maxSize = size;
+                            pos(elements[_bI], vRef);
+                        }
+                    } else {
+                        return pos(elements[_bI], vRef);
+                    }
+                }
             }
-            for (let i = offset[bI], il = offset[bI + 1]; i < il; ++i) {
-                const _aI = a[i];
-                if (_aI !== aI && _aI !== bI) return pos(elements[_aI], vRef);
-            }
-            return null;
+            return maxSize > 0 ? vRef : null;
         },
         position: (posA: Vec3, posB: Vec3, edgeIndex: number) => {
             pos(elements[a[edgeIndex]], posA);
@@ -110,13 +124,24 @@ function getIntraUnitBondCylinderBuilderProps(unit: Unit.Atomic, structure: Stru
             if (isBondType(f, BondType.Flag.MetallicCoordination) || isBondType(f, BondType.Flag.HydrogenBond)) {
                 // show metall coordinations and hydrogen bonds with dashed cylinders
                 return LinkStyle.Dashed;
-            } else if (o === 2) {
-                return LinkStyle.Double;
             } else if (o === 3) {
                 return LinkStyle.Triple;
-            } else {
-                return LinkStyle.Solid;
+            } else if (aromaticBonds) {
+                const aI = a[edgeIndex], bI = b[edgeIndex];
+                const aR = elementAromaticRingIndices.get(aI);
+                const bR = elementAromaticRingIndices.get(bI);
+                const arCount = (aR && bR) ? arrayIntersectionSize(aR, bR) : 0;
+
+                if (arCount || isBondType(f, BondType.Flag.Aromatic)) {
+                    if (arCount === 2) {
+                        return LinkStyle.MirroredAromatic;
+                    } else {
+                        return LinkStyle.Aromatic;
+                    }
+                }
             }
+
+            return o === 2 ? LinkStyle.Double : LinkStyle.Solid;
         },
         radius: (edgeIndex: number) => {
             return radius(edgeIndex) * sizeAspectRatio;
@@ -197,7 +222,8 @@ export function IntraUnitBondCylinderImpostorVisual(materialId: number): UnitsVi
                 newProps.stubCap !== currentProps.stubCap ||
                 !arrayEqual(newProps.includeTypes, currentProps.includeTypes) ||
                 !arrayEqual(newProps.excludeTypes, currentProps.excludeTypes) ||
-                newProps.adjustCylinderLength !== currentProps.adjustCylinderLength
+                newProps.adjustCylinderLength !== currentProps.adjustCylinderLength ||
+                newProps.aromaticBonds !== currentProps.aromaticBonds
             );
 
             const newUnit = newStructureGroup.group.units[0];
@@ -239,7 +265,8 @@ export function IntraUnitBondCylinderMeshVisual(materialId: number): UnitsVisual
                 newProps.stubCap !== currentProps.stubCap ||
                 !arrayEqual(newProps.includeTypes, currentProps.includeTypes) ||
                 !arrayEqual(newProps.excludeTypes, currentProps.excludeTypes) ||
-                newProps.adjustCylinderLength !== currentProps.adjustCylinderLength
+                newProps.adjustCylinderLength !== currentProps.adjustCylinderLength ||
+                newProps.aromaticBonds !== currentProps.aromaticBonds
             );
 
             const newUnit = newStructureGroup.group.units[0];

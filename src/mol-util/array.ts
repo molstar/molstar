@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -103,6 +103,29 @@ export function arraySetRemove<T>(xs: T[], x: T) {
     }
     xs.pop();
     return true;
+}
+
+/**
+ * Caution, O(n^2) complexity. Only use for small input sizes.
+ * For larger inputs consider using `SortedArray`.
+ */
+export function arrayAreIntersecting<T>(xs: T[], ys: T[]) {
+    for (let i = 0, il = xs.length; i < il; ++i) {
+        if (ys.includes(xs[i])) return true;
+    }
+    return false;
+}
+
+/**
+ * Caution, O(n^2) complexity. Only use for small input sizes.
+ * For larger inputs consider using `SortedArray`.
+ */
+export function arrayIntersectionSize<T>(xs: T[], ys: T[]) {
+    let count = 0;
+    for (let i = 0, il = xs.length; i < il; ++i) {
+        if (ys.includes(xs[i])) count += 1;
+    }
+    return count;
 }
 
 export function arrayEqual<T>(xs?: ArrayLike<T>, ys?: ArrayLike<T>) {
