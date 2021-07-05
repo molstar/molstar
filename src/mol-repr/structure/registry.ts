@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -21,6 +21,7 @@ import { PuttyRepresentationProvider } from './representation/putty';
 import { SpacefillRepresentationProvider } from './representation/spacefill';
 import { LineRepresentationProvider } from './representation/line';
 import { GaussianVolumeRepresentationProvider } from './representation/gaussian-volume';
+import { BackboneRepresentationProvider } from './representation/backbone';
 
 export class StructureRepresentationRegistry extends RepresentationRegistry<Structure, StructureRepresentationState> {
     constructor() {
@@ -35,6 +36,7 @@ export class StructureRepresentationRegistry extends RepresentationRegistry<Stru
 export namespace StructureRepresentationRegistry {
     export const BuiltIn = {
         'cartoon': CartoonRepresentationProvider,
+        'backbone': BackboneRepresentationProvider,
         'ball-and-stick': BallAndStickRepresentationProvider,
         'carbohydrate': CarbohydrateRepresentationProvider,
         'ellipsoid': EllipsoidRepresentationProvider,
