@@ -364,8 +364,9 @@ function updateClip(camera: Camera) {
         near = Math.max(Math.min(radiusMax, 5), near);
         far = Math.max(5, far);
     } else {
-        near = Math.max(0, near);
-        far = Math.max(0, far);
+        // not too close to 0 as it causes issues with outline rendering
+        near = Math.max(Math.min(radiusMax, 5), near);
+        far = Math.max(5, far);
     }
 
     if (near === far) {

@@ -10,7 +10,7 @@ import { Unit, Structure, StructureElement } from '../../../mol-model/structure'
 import { Theme } from '../../../mol-theme/theme';
 import { Vec3 } from '../../../mol-math/linear-algebra';
 import { arrayEqual } from '../../../mol-util';
-import { LinkStyle, createLinkLines, LinkBuilderProps } from './util/link';
+import { LinkStyle, createLinkLines } from './util/link';
 import { UnitsVisual, UnitsLinesParams, UnitsLinesVisual, StructureGroup } from '../units-visual';
 import { VisualUpdateState } from '../../util';
 import { BondType } from '../../../mol-model/structure/model/types';
