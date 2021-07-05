@@ -26,9 +26,6 @@ uniform bool uTransparentBackground;
 uniform float uOcclusionBias;
 uniform float uOcclusionRadius;
 
-uniform float uOutlineScale;
-uniform float uOutlineThreshold;
-
 uniform float uMaxPossibleViewZDiff;
 
 const vec3 occlusionColor = vec3(0.0);

@@ -250,7 +250,7 @@ export const PostprocessingParams = {
     }, { cycle: true, description: 'Darken occluded crevices with the ambient occlusion effect' }),
     outline: PD.MappedStatic('off', {
         on: PD.Group({
-            scale: PD.Numeric(1, { min: 1, max: 5, step: 1 }),
+            scale: PD.Numeric(2, { min: 1, max: 5, step: 1 }),
             threshold: PD.Numeric(0.33, { min: 0.01, max: 1, step: 0.01 }),
         }),
         off: PD.Group({})
@@ -434,8 +434,12 @@ export class PostprocessingPass {
         }
 
         if (props.outline.name === 'on') {
-            const factor = Math.pow(1000, props.outline.params.threshold) / 1000;
-            const maxPossibleViewZDiff = factor * (camera.far - camera.near);
+            let { threshold } = props.outline.params;
+            // orthographic needs lower threshold
+            if (camera.state.mode === 'orthographic') threshold /= 5;
+            const factor = Math.pow(1000, threshold) / 1000;
+            // use radiusMax for stable outlines when zooming
+            const maxPossibleViewZDiff = factor * camera.state.radiusMax;
             const outlineScale = props.outline.params.scale - 1;
 
             ValueCell.updateIfChanged(this.outlinesRenderable.values.uNear, camera.near);
@@ -443,7 +447,6 @@ export class PostprocessingPass {
             ValueCell.updateIfChanged(this.outlinesRenderable.values.uMaxPossibleViewZDiff, maxPossibleViewZDiff);
 
             ValueCell.updateIfChanged(this.renderable.values.uMaxPossibleViewZDiff, maxPossibleViewZDiff);
-            ValueCell.updateIfChanged(this.renderable.values.uOutlineThreshold, props.outline.params.threshold);
             if (this.renderable.values.dOutlineScale.ref.value !== outlineScale) { needsUpdateMain = true; }
             ValueCell.updateIfChanged(this.renderable.values.dOutlineScale, outlineScale);
         }

@@ -6,6 +6,7 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Fix outline in orthographic mode and set default scale to 2.
 
 ## [v2.0.7] - 2021-06-23
 
