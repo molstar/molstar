@@ -1,12 +1,12 @@
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { Vec3 } from '../../../../../mol-math/linear-algebra';
 import { NumberArray } from '../../../../../mol-util/type-helpers';
-import { lerp } from '../../../../../mol-math/interpolate';
+import { lerp, smoothstep } from '../../../../../mol-math/interpolate';
 
 // avoiding namespace lookup improved performance in Chrome (Aug 2020)
 const v3fromArray = Vec3.fromArray;
@@ -19,6 +19,8 @@ const v3copy = Vec3.copy;
 const v3cross = Vec3.cross;
 const v3orthogonalize = Vec3.orthogonalize;
 const v3matchDirection = Vec3.matchDirection;
+const v3scale = Vec3.scale;
+const v3add = Vec3.add;
 
 export interface CurveSegmentState {
     curvePoints: NumberArray,
@@ -92,6 +94,7 @@ const tangentVec = Vec3();
 const normalVec = Vec3();
 const binormalVec = Vec3();
 const prevNormal = Vec3();
+const nextNormal = Vec3();
 const firstTangentVec = Vec3();
 const lastTangentVec = Vec3();
 const firstNormalVec = Vec3();
@@ -116,8 +119,10 @@ export function interpolateNormals(state: CurveSegmentState, controls: CurveSegm
 
     v3copy(prevNormal, firstNormalVec);
 
+    const n1 = n - 1;
     for (let i = 0; i < n; ++i) {
-        const t = i === 0 ? 0 : 1 / (n - i);
+        const j = smoothstep(0, n1, i) * n1;
+        const t = i === 0 ? 0 : 1 / (n - j);
 
         v3fromArray(tangentVec, tangentVectors, i * 3);
 
@@ -126,6 +131,19 @@ export function interpolateNormals(state: CurveSegmentState, controls: CurveSegm
 
         v3copy(prevNormal, normalVec);
 
+        v3normalize(binormalVec, v3cross(binormalVec, tangentVec, normalVec));
+        v3toArray(binormalVec, binormalVectors, i * 3);
+    }
+
+    for (let i = 1; i < n1; ++i) {
+        v3fromArray(prevNormal, normalVectors, (i - 1) * 3);
+        v3fromArray(normalVec, normalVectors, i * 3);
+        v3fromArray(nextNormal, normalVectors, (i + 1) * 3);
+
+        v3scale(normalVec, v3add(normalVec, prevNormal, v3add(normalVec, nextNormal, normalVec)), 1 / 3);
+        v3toArray(normalVec, normalVectors, i * 3);
+
+        v3fromArray(tangentVec, tangentVectors, i * 3);
         v3normalize(binormalVec, v3cross(binormalVec, tangentVec, normalVec));
         v3toArray(binormalVec, binormalVectors, i * 3);
     }
