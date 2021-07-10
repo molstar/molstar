@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -17,6 +17,7 @@ import { PolymerGapParams, PolymerGapVisual } from '../visual/polymer-gap-cylind
 import { PolymerTraceParams, PolymerTraceVisual } from '../visual/polymer-trace-mesh';
 import { SecondaryStructureProvider } from '../../../mol-model-props/computed/secondary-structure';
 import { CustomProperty } from '../../../mol-model-props/common/custom-property';
+import { HelixOrientationProvider } from '../../../mol-model-props/computed/helix-orientation';
 
 const CartoonVisuals = {
     'polymer-trace': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, PolymerTraceParams>) => UnitsRepresentation('Polymer trace mesh', ctx, getParams, PolymerTraceVisual),
@@ -67,7 +68,17 @@ export const CartoonRepresentationProvider = StructureRepresentationProvider({
     defaultSizeTheme: { name: 'uniform' },
     isApplicable: (structure: Structure) => structure.polymerResidueCount > 0,
     ensureCustomProperties: {
-        attach: (ctx: CustomProperty.Context, structure: Structure) => SecondaryStructureProvider.attach(ctx, structure, void 0, true),
-        detach: (data) => SecondaryStructureProvider.ref(data, false)
+        attach: async (ctx: CustomProperty.Context, structure: Structure) => {
+            await SecondaryStructureProvider.attach(ctx, structure, void 0, true);
+            for (const m of structure.models) {
+                await HelixOrientationProvider.attach(ctx, m, void 0, true);
+            }
+        },
+        detach: (data) => {
+            SecondaryStructureProvider.ref(data, false);
+            for (const m of data.models) {
+                HelixOrientationProvider.ref(m, false);
+            }
+        }
     }
 });

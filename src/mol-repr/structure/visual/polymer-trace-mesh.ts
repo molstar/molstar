@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -27,6 +27,7 @@ export const PolymerTraceMeshParams = {
     sizeFactor: PD.Numeric(0.2, { min: 0, max: 10, step: 0.01 }),
     aspectRatio: PD.Numeric(5, { min: 0.1, max: 10, step: 0.1 }),
     arrowFactor: PD.Numeric(1.5, { min: 0, max: 3, step: 0.1 }),
+    tubularHelices: PD.Boolean(false),
     detail: PD.Numeric(0, { min: 0, max: 3, step: 1 }, BaseGeometry.CustomQualityParamInfo),
     linearSegments: PD.Numeric(8, { min: 1, max: 48, step: 1 }, BaseGeometry.CustomQualityParamInfo),
     radialSegments: PD.Numeric(16, { min: 2, max: 56, step: 2 }, BaseGeometry.CustomQualityParamInfo)
@@ -40,7 +41,7 @@ function createPolymerTraceMesh(ctx: VisualContext, unit: Unit, structure: Struc
     const polymerElementCount = unit.polymerElements.length;
 
     if (!polymerElementCount) return Mesh.createEmpty(mesh);
-    const { sizeFactor, detail, linearSegments, radialSegments, aspectRatio, arrowFactor } = props;
+    const { sizeFactor, detail, linearSegments, radialSegments, aspectRatio, arrowFactor, tubularHelices } = props;
 
     const vertexCount = linearSegments * radialSegments * polymerElementCount + (radialSegments + 1) * polymerElementCount * 2;
     const builderState = MeshBuilder.createState(vertexCount, vertexCount / 10, mesh);
@@ -50,7 +51,7 @@ function createPolymerTraceMesh(ctx: VisualContext, unit: Unit, structure: Struc
     const { curvePoints, normalVectors, binormalVectors, widthValues, heightValues } = state;
 
     let i = 0;
-    const polymerTraceIt = PolymerTraceIterator(unit, structure);
+    const polymerTraceIt = PolymerTraceIterator(unit, structure, { ignoreSecondaryStructure: false, useHelixOrientation: tubularHelices });
     while (polymerTraceIt.hasNext) {
         const v = polymerTraceIt.move();
         builderState.currentGroup = i;
@@ -58,7 +59,7 @@ function createPolymerTraceMesh(ctx: VisualContext, unit: Unit, structure: Struc
         const isNucleicType = isNucleic(v.moleculeType);
         const isSheet = SecondaryStructureType.is(v.secStrucType, SecondaryStructureType.Flag.Beta);
         const isHelix = SecondaryStructureType.is(v.secStrucType, SecondaryStructureType.Flag.Helix);
-        const tension = isHelix ? HelixTension : StandardTension;
+        const tension = isHelix && !tubularHelices ? HelixTension : StandardTension;
         const shift = isNucleicType ? NucleicShift : StandardShift;
 
         interpolateCurveSegment(state, v, tension, shift);
@@ -112,9 +113,19 @@ function createPolymerTraceMesh(ctx: VisualContext, unit: Unit, structure: Struc
         } else {
             let h0: number, h1: number, h2: number;
             if (isHelix && !v.isCoarseBackbone) {
-                h0 = w0 * aspectRatio;
-                h1 = w1 * aspectRatio;
-                h2 = w2 * aspectRatio;
+                if (tubularHelices) {
+                    w0 *= aspectRatio * 1.5;
+                    w1 *= aspectRatio * 1.5;
+                    w2 *= aspectRatio * 1.5;
+
+                    h0 = w0;
+                    h1 = w1;
+                    h2 = w2;
+                } else {
+                    h0 = w0 * aspectRatio;
+                    h1 = w1 * aspectRatio;
+                    h2 = w2 * aspectRatio;
+                }
             } else if (isNucleicType && !v.isCoarseBackbone) {
                 h0 = w0 * aspectRatio;
                 h1 = w1 * aspectRatio;
@@ -172,6 +183,7 @@ export function PolymerTraceVisual(materialId: number): UnitsVisual<PolymerTrace
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<PolymerTraceParams>, currentProps: PD.Values<PolymerTraceParams>, newTheme: Theme, currentTheme: Theme, newStructureGroup: StructureGroup, currentStructureGroup: StructureGroup) => {
             state.createGeometry = (
                 newProps.sizeFactor !== currentProps.sizeFactor ||
+                newProps.tubularHelices !== currentProps.tubularHelices ||
                 newProps.detail !== currentProps.detail ||
                 newProps.linearSegments !== currentProps.linearSegments ||
                 newProps.radialSegments !== currentProps.radialSegments ||
