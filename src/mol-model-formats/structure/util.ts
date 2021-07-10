@@ -61,6 +61,14 @@ export function guessElementSymbolString(str: string) {
         ) return str;
     }
 
+    if (l === 3) { // three chars
+        if (str === 'SOD') return 'NA';
+        if (str === 'POT') return 'K';
+        if (str === 'CES') return 'CS';
+        if (str === 'CAL') return 'CA';
+        if (str === 'CLA') return 'CL';
+    }
+
     const c = str[0];
     if (c === 'C' || c === 'H' || c === 'N' || c === 'O' || c === 'P' || c === 'S') return c;
 

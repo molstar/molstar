@@ -39,6 +39,18 @@ const ProteinOneLetterCodes: { [name: string]: AminoAlphabet }  = {
 
     'SEC': 'U',  // as per IUPAC definition
     'PYL': 'O',  // as per IUPAC definition
+
+    // charmm ff
+    'HSD': 'H', 'HSE': 'H', 'HSP': 'H',
+    'LSN': 'K',
+    'ASPP': 'D',
+    'GLUP': 'E',
+
+    // amber ff
+    'HID': 'H', 'HIE': 'H', 'HIP': 'H',
+    'LYN': 'K',
+    'ASH': 'D',
+    'GLH': 'E',
 };
 
 const DnaOneLetterCodes: { [name: string]: NuclecicAlphabet } = {
