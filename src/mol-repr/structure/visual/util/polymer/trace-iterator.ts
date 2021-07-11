@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -14,14 +14,31 @@ import { CoarseSphereConformation, CoarseGaussianConformation } from '../../../.
 import { getPolymerRanges } from '../polymer';
 import { AtomicConformation } from '../../../../../mol-model/structure/model/properties/atomic';
 import { SecondaryStructureProvider } from '../../../../../mol-model-props/computed/secondary-structure';
+import { HelixOrientationProvider } from '../../../../../mol-model-props/computed/helix-orientation';
+import { SecondaryStructure } from '../../../../../mol-model/structure/model/properties/seconday-structure';
+
+function isHelixSS(ss: SecondaryStructureType.Flag) {
+    return SecondaryStructureType.is(ss, SecondaryStructureType.Flag.Helix);
+}
+
+function isSheetSS(ss: SecondaryStructureType.Flag) {
+    return SecondaryStructureType.is(ss, SecondaryStructureType.Flag.Beta);
+}
+
+//
+
+type PolymerTraceIteratorOptions = {
+    ignoreSecondaryStructure?: boolean,
+    useHelixOrientation?: boolean
+}
 
 /**
  * Iterates over individual residues/coarse elements in polymers of a unit while
  * providing information about the neighbourhood in the underlying model for drawing splines
  */
-export function PolymerTraceIterator(unit: Unit, structure: Structure, ignoreSecondaryStructure = false): Iterator<PolymerTraceElement> {
+export function PolymerTraceIterator(unit: Unit, structure: Structure, options: PolymerTraceIteratorOptions = {}): Iterator<PolymerTraceElement> {
     switch (unit.kind) {
-        case Unit.Kind.Atomic: return new AtomicPolymerTraceIterator(unit, structure, ignoreSecondaryStructure);
+        case Unit.Kind.Atomic: return new AtomicPolymerTraceIterator(unit, structure, options);
         case Unit.Kind.Spheres:
         case Unit.Kind.Gaussians:
             return new CoarsePolymerTraceIterator(unit, structure);
@@ -91,6 +108,8 @@ export class AtomicPolymerTraceIterator implements Iterator<PolymerTraceElement>
     private directionToElementIndex: ArrayLike<ElementIndex | -1>
     private moleculeType: ArrayLike<MoleculeType>
     private atomicConformation: AtomicConformation
+    private secondaryStructure: SecondaryStructure | undefined
+    private helixOrientationCenters: ArrayLike<number> | undefined
 
     private p0 = Vec3()
     private p1 = Vec3()
@@ -107,11 +126,20 @@ export class AtomicPolymerTraceIterator implements Iterator<PolymerTraceElement>
 
     hasNext: boolean = false;
 
-    private pos(target: Vec3, index: number) {
+    private atomicPos(target: Vec3, index: ElementIndex | -1) {
         if (index !== -1) {
             target[0] = this.atomicConformation.x[index];
             target[1] = this.atomicConformation.y[index];
             target[2] = this.atomicConformation.z[index];
+        }
+    }
+
+    private pos(target: Vec3, residueIndex: ResidueIndex, ss: SecondaryStructureType.Flag) {
+        const index = this.traceElementIndex[residueIndex];
+        if (this.helixOrientationCenters && isHelixSS(ss)) {
+            Vec3.fromArray(target, this.helixOrientationCenters, residueIndex * 3);
+        } else {
+            this.atomicPos(target, index);
         }
     }
 
@@ -140,23 +168,31 @@ export class AtomicPolymerTraceIterator implements Iterator<PolymerTraceElement>
         return residueIndex as ResidueIndex;
     }
 
-    private getSecStruc: (residueIndex: ResidueIndex) => SecondaryStructureType.Flag
+    private getSecStruc(residueIndex: ResidueIndex): SecondaryStructureType.Flag {
+        if (this.secondaryStructure) {
+            const { type, getIndex } = this.secondaryStructure;
+            const ss = type[getIndex(residueIndex)];
+            // normalize helix-type
+            return isHelixSS(ss) ? SecondaryStructureType.Flag.Helix : ss;
+        } else {
+            return SecStrucTypeNA;
+        }
+    }
 
-    private setControlPoint(out: Vec3, p1: Vec3, p2: Vec3, p3: Vec3, residueIndex: ResidueIndex) {
-        const ss =  this.getSecStruc(residueIndex);
-        if (SecondaryStructureType.is(ss, SecondaryStructureType.Flag.Beta)) {
+    private setControlPoint(out: Vec3, p1: Vec3, p2: Vec3, p3: Vec3, ss: SecondaryStructureType.Flag) {
+        if (isSheetSS(ss) || (this.helixOrientationCenters && isHelixSS(ss))) {
             Vec3.scale(out, Vec3.add(out, p1, Vec3.add(out, p3, Vec3.add(out, p2, p2))), 1 / 4);
         } else {
             Vec3.copy(out, p2);
         }
     }
 
-    private setFromToVector(out: Vec3, residueIndex: ResidueIndex) {
-        if (this.value.isCoarseBackbone) {
+    private setFromToVector(out: Vec3, residueIndex: ResidueIndex, ss: SecondaryStructureType.Flag) {
+        if (this.value.isCoarseBackbone || (this.helixOrientationCenters && isHelixSS(ss))) {
             Vec3.set(out, 1, 0, 0);
         } else {
-            this.pos(tmpVecA, this.directionFromElementIndex[residueIndex]);
-            this.pos(tmpVecB, this.directionToElementIndex[residueIndex]);
+            this.atomicPos(tmpVecA, this.directionFromElementIndex[residueIndex]);
+            this.atomicPos(tmpVecB, this.directionToElementIndex[residueIndex]);
             Vec3.sub(out, tmpVecB, tmpVecA);
         }
     }
@@ -203,7 +239,7 @@ export class AtomicPolymerTraceIterator implements Iterator<PolymerTraceElement>
 
             this.prevCoarseBackbone = this.currCoarseBackbone;
             this.currCoarseBackbone = this.nextCoarseBackbone;
-            this.nextCoarseBackbone = residueIndex === residueIndexNext1 ? false : (this.directionFromElementIndex[residueIndexNext1] === -1 || this.directionToElementIndex[residueIndexNext1] === -1);
+            this.nextCoarseBackbone = this.directionFromElementIndex[residueIndexNext1] === -1 || this.directionToElementIndex[residueIndexNext1] === -1;
 
             value.secStrucType = this.currSecStrucType;
             value.secStrucFirst = this.prevSecStrucType !== this.currSecStrucType;
@@ -214,7 +250,6 @@ export class AtomicPolymerTraceIterator implements Iterator<PolymerTraceElement>
             value.first = residueIndex === this.residueSegmentMin;
             value.last = residueIndex === this.residueSegmentMax;
             value.moleculeType = this.moleculeType[residueIndex];
-            value.isCoarseBackbone = this.directionFromElementIndex[residueIndex] === -1 || this.directionToElementIndex[residueIndex] === -1;
 
             value.initial = residueIndex === residueIndexPrev1;
             value.final = residueIndex === residueIndexNext1;
@@ -223,53 +258,132 @@ export class AtomicPolymerTraceIterator implements Iterator<PolymerTraceElement>
             value.center.element = this.traceElementIndex[residueIndex];
             value.centerNext.element = this.traceElementIndex[residueIndexNext1];
 
-            this.pos(this.p0, this.traceElementIndex[residueIndexPrev3]);
-            this.pos(this.p1, this.traceElementIndex[residueIndexPrev2]);
-            this.pos(this.p2, this.traceElementIndex[residueIndexPrev1]);
-            this.pos(this.p3, this.traceElementIndex[residueIndex]);
-            this.pos(this.p4, this.traceElementIndex[residueIndexNext1]);
-            this.pos(this.p5, this.traceElementIndex[residueIndexNext2]);
-            this.pos(this.p6, this.traceElementIndex[residueIndexNext3]);
+            const ssPrev3 = this.getSecStruc(residueIndexPrev3);
+            const ssPrev2 = this.getSecStruc(residueIndexPrev2);
+            const ssPrev1 = this.getSecStruc(residueIndexPrev1);
+            const ss = this.getSecStruc(residueIndex);
+            const ssNext1 = this.getSecStruc(residueIndexNext1);
+            const ssNext2 = this.getSecStruc(residueIndexNext2);
+            const ssNext3 = this.getSecStruc(residueIndexNext3);
 
-            this.setFromToVector(this.d01, residueIndexPrev1);
-            this.setFromToVector(this.d12, residueIndex);
-            this.setFromToVector(this.d23, residueIndexNext1);
-            this.setFromToVector(this.d34, residueIndexNext2);
+            this.pos(this.p0, residueIndexPrev3, ssPrev3);
+            this.pos(this.p1, residueIndexPrev2, ssPrev2);
+            this.pos(this.p2, residueIndexPrev1, ssPrev1);
+            this.pos(this.p3, residueIndex, ss);
+            this.pos(this.p4, residueIndexNext1, ssNext1);
+            this.pos(this.p5, residueIndexNext2, ssNext2);
+            this.pos(this.p6, residueIndexNext3, ssNext3);
+
+            const isHelixPrev3 = isHelixSS(ssPrev3);
+            const isHelixPrev2 = isHelixSS(ssPrev2);
+            const isHelixPrev1 = isHelixSS(ssPrev1);
+            const isHelix = isHelixSS(ss);
+            const isHelixNext1 = isHelixSS(ssNext1);
+            const isHelixNext2 = isHelixSS(ssNext2);
+            const isHelixNext3 = isHelixSS(ssNext3);
+
+            // handle positions for tubular helices
+            if (this.helixOrientationCenters) {
+                if (isHelix !== isHelixPrev1) {
+                    if (isHelix) {
+                        Vec3.copy(this.p0, this.p3);
+                        Vec3.copy(this.p1, this.p3);
+                        Vec3.copy(this.p2, this.p3);
+                    } else if(isHelixPrev1) {
+                        Vec3.scale(tmpDir, Vec3.sub(tmpDir, this.p2, this.p3), 2);
+                        Vec3.add(this.p2, this.p3, tmpDir);
+                        Vec3.add(this.p1, this.p2, tmpDir);
+                        Vec3.add(this.p0, this.p1, tmpDir);
+                    }
+                } else if (isHelix !== isHelixPrev2) {
+                    if (isHelix) {
+                        Vec3.copy(this.p0, this.p2);
+                        Vec3.copy(this.p1, this.p2);
+                    } else if(isHelixPrev2) {
+                        Vec3.scale(tmpDir, Vec3.sub(tmpDir, this.p1, this.p2), 2);
+                        Vec3.add(this.p1, this.p2, tmpDir);
+                        Vec3.add(this.p0, this.p1, tmpDir);
+                    }
+                } else if (isHelix !== isHelixPrev3) {
+                    if (isHelix) {
+                        Vec3.copy(this.p0, this.p1);
+                    } else if(isHelixPrev3) {
+                        Vec3.scale(tmpDir, Vec3.sub(tmpDir, this.p0, this.p1), 2);
+                        Vec3.add(this.p0, this.p1, tmpDir);
+                    }
+                }
+
+                if (isHelix !== isHelixNext1) {
+                    if (isHelix) {
+                        Vec3.copy(this.p4, this.p3);
+                        Vec3.copy(this.p5, this.p3);
+                        Vec3.copy(this.p6, this.p3);
+                    } else if(isHelixNext1) {
+                        Vec3.scale(tmpDir, Vec3.sub(tmpDir, this.p4, this.p3), 2);
+                        Vec3.add(this.p4, this.p3, tmpDir);
+                        Vec3.add(this.p5, this.p4, tmpDir);
+                        Vec3.add(this.p6, this.p5, tmpDir);
+                    }
+                } else if (isHelix !== isHelixNext2) {
+                    if (isHelix) {
+                        Vec3.copy(this.p5, this.p4);
+                        Vec3.copy(this.p6, this.p4);
+                    } else if(isHelixNext2) {
+                        Vec3.scale(tmpDir, Vec3.sub(tmpDir, this.p5, this.p4), 2);
+                        Vec3.add(this.p5, this.p4, tmpDir);
+                        Vec3.add(this.p6, this.p5, tmpDir);
+                    }
+                } else if (isHelix !== isHelixNext3) {
+                    if (isHelix) {
+                        Vec3.copy(this.p6, this.p5);
+                    } else if(isHelixNext3) {
+                        Vec3.scale(tmpDir, Vec3.sub(tmpDir, this.p6, this.p5), 2);
+                        Vec3.add(this.p6, this.p5, tmpDir);
+                    }
+                }
+            }
+
+            this.setFromToVector(this.d01, residueIndexPrev1, ssPrev1);
+            this.setFromToVector(this.d12, residueIndex, ss);
+            this.setFromToVector(this.d23, residueIndexNext1, ssNext1);
+            this.setFromToVector(this.d34, residueIndexNext2, ssNext2);
+
+            const helixFlag = isHelix && this.helixOrientationCenters;
 
             // extend termini
-            const f = 0.5;
-            if (residueIndex === residueIndexPrev1) {
-                Vec3.scale(tmpDir, Vec3.sub(tmpDir, this.p3, this.p4), f);
+            const f = 1.5;
+            if (residueIndex === residueIndexPrev1 || (ss !== ssPrev1 && helixFlag)) {
+                Vec3.setMagnitude(tmpDir, Vec3.sub(tmpDir, this.p3, this.p4), f);
                 Vec3.add(this.p2, this.p3, tmpDir);
                 Vec3.add(this.p1, this.p2, tmpDir);
                 Vec3.add(this.p0, this.p1, tmpDir);
-            } else if (residueIndexPrev1 === residueIndexPrev2) {
-                Vec3.scale(tmpDir, Vec3.sub(tmpDir, this.p2, this.p3), f);
+            } else if (residueIndexPrev1 === residueIndexPrev2 || (ss !== ssPrev2 && helixFlag)) {
+                Vec3.setMagnitude(tmpDir, Vec3.sub(tmpDir, this.p2, this.p3), f);
                 Vec3.add(this.p1, this.p2, tmpDir);
                 Vec3.add(this.p0, this.p1, tmpDir);
-            } else if (residueIndexPrev2 === residueIndexPrev3) {
-                Vec3.scale(tmpDir, Vec3.sub(tmpDir, this.p1, this.p2), f);
+            } else if (residueIndexPrev2 === residueIndexPrev3 || (ss !== ssPrev3 && helixFlag)) {
+                Vec3.setMagnitude(tmpDir, Vec3.sub(tmpDir, this.p1, this.p2), f);
                 Vec3.add(this.p0, this.p1, tmpDir);
             }
-            if (residueIndex === residueIndexNext1) {
-                Vec3.scale(tmpDir, Vec3.sub(tmpDir, this.p3, this.p2), f);
+            if (residueIndex === residueIndexNext1 || (ss !== ssNext1 && helixFlag)) {
+                Vec3.setMagnitude(tmpDir, Vec3.sub(tmpDir, this.p3, this.p2), f);
                 Vec3.add(this.p4, this.p3, tmpDir);
                 Vec3.add(this.p5, this.p4, tmpDir);
                 Vec3.add(this.p6, this.p5, tmpDir);
-            } else if (residueIndexNext1 === residueIndexNext2) {
-                Vec3.scale(tmpDir, Vec3.sub(tmpDir, this.p4, this.p3), f);
+            } else if (residueIndexNext1 === residueIndexNext2 || (ss !== ssNext2 && helixFlag)) {
+                Vec3.setMagnitude(tmpDir, Vec3.sub(tmpDir, this.p4, this.p3), f);
                 Vec3.add(this.p5, this.p4, tmpDir);
                 Vec3.add(this.p6, this.p5, tmpDir);
-            } else if (residueIndexNext2 === residueIndexNext3) {
-                Vec3.scale(tmpDir, Vec3.sub(tmpDir, this.p5, this.p4), f);
+            } else if (residueIndexNext2 === residueIndexNext3 || (ss !== ssNext3 && helixFlag)) {
+                Vec3.setMagnitude(tmpDir, Vec3.sub(tmpDir, this.p5, this.p4), f);
                 Vec3.add(this.p6, this.p5, tmpDir);
             }
 
-            this.setControlPoint(value.p0, this.p0, this.p1, this.p2, residueIndexPrev2);
-            this.setControlPoint(value.p1, this.p1, this.p2, this.p3, residueIndexPrev1);
-            this.setControlPoint(value.p2, this.p2, this.p3, this.p4, residueIndex);
-            this.setControlPoint(value.p3, this.p3, this.p4, this.p5, residueIndexNext1);
-            this.setControlPoint(value.p4, this.p4, this.p5, this.p6, residueIndexNext2);
+            this.setControlPoint(value.p0, this.p0, this.p1, this.p2, ssPrev2);
+            this.setControlPoint(value.p1, this.p1, this.p2, this.p3, ssPrev1);
+            this.setControlPoint(value.p2, this.p2, this.p3, this.p4, ss);
+            this.setControlPoint(value.p3, this.p3, this.p4, this.p5, ssNext1);
+            this.setControlPoint(value.p4, this.p4, this.p5, this.p6, ssNext2);
 
             this.setDirection(value.d12, this.d01, this.d12, this.d23);
             this.setDirection(value.d23, this.d12, this.d23, this.d34);
@@ -284,7 +398,7 @@ export class AtomicPolymerTraceIterator implements Iterator<PolymerTraceElement>
         return this.value;
     }
 
-    constructor(private unit: Unit.Atomic, structure: Structure, ignoreSecondaryStructure = false) {
+    constructor(private unit: Unit.Atomic, structure: Structure, options: PolymerTraceIteratorOptions = {}) {
         this.atomicConformation = unit.model.atomicConformation;
         this.residueAtomSegments = unit.model.atomicHierarchy.residueAtomSegments;
         this.polymerRanges = unit.model.atomicRanges.polymerRanges;
@@ -298,12 +412,15 @@ export class AtomicPolymerTraceIterator implements Iterator<PolymerTraceElement>
         this.value = createPolymerTraceElement(structure, unit);
         this.hasNext = this.residueIt.hasNext && this.polymerIt.hasNext;
 
-        const secondaryStructure = !ignoreSecondaryStructure && SecondaryStructureProvider.get(structure).value?.get(unit.invariantId);
-        if (secondaryStructure) {
-            const { type, getIndex } = secondaryStructure;
-            this.getSecStruc = (residueIndex: ResidueIndex) => type[getIndex(residueIndex as ResidueIndex)];
-        } else {
-            this.getSecStruc = (residueIndex: ResidueIndex) => SecStrucTypeNA;
+        if (!options.ignoreSecondaryStructure) {
+            this.secondaryStructure = SecondaryStructureProvider.get(structure).value?.get(unit.invariantId);
+        }
+
+        if (options.useHelixOrientation) {
+            const helixOrientation = HelixOrientationProvider.get(unit.model).value;
+            if (!helixOrientation) throw new Error('missing helix-orientation');
+
+            this.helixOrientationCenters = helixOrientation.centers;
         }
     }
 }
