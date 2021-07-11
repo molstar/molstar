@@ -15,7 +15,7 @@ export interface HelixOrientation {
     centers: ArrayLike<number>
 }
 
-/** Use same definition as GROMACS' helixorient */
+/** Usees same definition as GROMACS' helixorient */
 export function calcHelixOrientation(model: Model): HelixOrientation {
     const { x, y, z } = model.atomicConformation;
     const { polymerType, traceElementIndex } = model.atomicHierarchy.derived.residue;
@@ -27,10 +27,6 @@ export function calcHelixOrientation(model: Model): HelixOrientation {
 
     const centers = new Float32Array(n * 3);
     const axes = new Float32Array(n * 3);
-    // const twists = new Float32Array(n);
-    // const diffs = new Float32Array(n);
-    // const rises = new Float32Array(n);
-    // const radii = new Float32Array(n);
 
     let i = 0;
     let j = -1;
@@ -88,12 +84,7 @@ export function calcHelixOrientation(model: Model): HelixOrientation {
             Vec3.normalize(axis, axis);
             Vec3.toArray(axis, axes, j3);
 
-            // if (j > 0) {
-            //     diffs[j] = Vec3.angle(axis, prevAxis);
-            // }
-
             const tmp = Math.cos(Vec3.angle(diff13, diff24));
-            // twists[j] = 180.0 / Math.PI * Math.acos(tmp);
 
             const diff13Length = Vec3.magnitude(diff13);
             const diff24Length = Vec3.magnitude(diff24);
@@ -104,9 +95,6 @@ export function calcHelixOrientation(model: Model): HelixOrientation {
                 // angle between diff13 and diff24 is close to 0
                 Math.max(2.0, 2.0 * (1.0 - tmp))
             );
-            // radii[j] = r;
-
-            // rises[j] = Math.abs(Vec3.dot(r23, axis));
 
             Vec3.scale(v1, diff13, r / diff13Length);
             Vec3.sub(v1, a2, v1);
@@ -142,7 +130,6 @@ export function calcHelixOrientation(model: Model): HelixOrientation {
         Vec3.set(a1, x[eI], y[eI], z[eI]);Vec3.copy(vt, a1);
         Vec3.projectPointOnVector(vt, vt, axis, v1);
         Vec3.toArray(vt, centers, e3);
-
     }
 
     return {
