@@ -6,6 +6,7 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Add `tubularHelices` parameter to Cartoon representation
 - Add USDZ support to ``geo-export`` extension.
 
 ## [v2.1.0] - 2021-07-05

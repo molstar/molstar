@@ -11,6 +11,7 @@ import { Vec3 } from '../../mol-math/linear-algebra';
 import { degToRad, halfPI } from '../../mol-math/misc';
 import { Cell } from '../../mol-math/geometry/spacegroup/cell';
 import { Mutable } from '../../mol-util/type-helpers';
+import { EPSILON, equalEps } from '../../mol-math/linear-algebra/3d/common';
 
 const charmmTimeUnitFactor = 20.45482949774598;
 
@@ -66,7 +67,12 @@ export function coordinatesFromDcd(dcdFile: DcdFile): Task<Coordinates> {
                 } else {
                     frame.cell = Cell.create(
                         Vec3.create(c[0], c[2], c[5]),
-                        Vec3.create(degToRad(c[1]), degToRad(c[3]), degToRad(c[4]))
+                        // interpret angles very close to 0 as 90 deg
+                        Vec3.create(
+                            degToRad(equalEps(c[1], 0, EPSILON) ? 90 : c[1]),
+                            degToRad(equalEps(c[3], 0, EPSILON) ? 90 : c[3]),
+                            degToRad(equalEps(c[4], 0, EPSILON) ? 90 : c[4])
+                        )
                     );
                 }
             }

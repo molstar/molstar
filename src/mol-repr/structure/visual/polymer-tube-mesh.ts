@@ -46,7 +46,7 @@ function createPolymerTubeMesh(ctx: VisualContext, unit: Unit, structure: Struct
     const { curvePoints, normalVectors, binormalVectors, widthValues, heightValues } = state;
 
     let i = 0;
-    const polymerTraceIt = PolymerTraceIterator(unit, structure, true);
+    const polymerTraceIt = PolymerTraceIterator(unit, structure, { ignoreSecondaryStructure: true });
     while (polymerTraceIt.hasNext) {
         const v = polymerTraceIt.move();
         builderState.currentGroup = i;

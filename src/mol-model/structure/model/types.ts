@@ -99,7 +99,7 @@ export const PolymerTypeAtomRoleId: { [k in PolymerType]: { [k in AtomRole]: Set
     [PolymerType.Protein]: {
         trace: new Set(['CA']),
         directionFrom: new Set(['C']),
-        directionTo: new Set(['O', 'OC1', 'O1', 'OX1', 'OXT']),
+        directionTo: new Set(['O', 'OC1', 'O1', 'OX1', 'OXT', 'OT1']),
         backboneStart: new Set(['N']),
         backboneEnd: new Set(['C']),
         // CA1 is used e.g. in GFP chromophores
@@ -246,8 +246,13 @@ export const AminoAcidNamesL = new Set([
     'HIS', 'ARG', 'LYS', 'ILE', 'PHE', 'LEU', 'TRP', 'ALA', 'MET', 'PRO', 'CYS',
     'ASN', 'VAL', 'GLY', 'SER', 'GLN', 'TYR', 'ASP', 'GLU', 'THR', 'SEC', 'PYL',
     'UNK', // unknown amino acid from CCD
-    'MSE', 'SEP', 'TPO', 'PTR', 'PCA' // common
+    'MSE', 'SEP', 'TPO', 'PTR', 'PCA', // common from CCD
 
+    // charmm ff
+    'HSD', 'HSE', 'HSP', 'LSN', 'ASPP', 'GLUP',
+
+    // amber ff
+    'HID', 'HIE', 'HIP', 'LYN', 'ASH', 'GLH',
 ]);
 export const AminoAcidNamesD = new Set([
     'DAL', // D-ALANINE
@@ -586,7 +591,13 @@ export const MaxAsa = {
     'THR': 163.0,
     'TRP': 264.0,
     'TYR': 255.0,
-    'VAL': 165.0
+    'VAL': 165.0,
+
+    // charmm ff
+    'HSD': 216.0, 'HSE': 216.0, 'HSP': 216.0,
+
+    // amber ff
+    'HID': 216.0, 'HIE': 216.0, 'HIP': 216.0, 'ASH': 187.0, 'GLH': 214.0,
 };
 export const DefaultMaxAsa = 121.0;
 
@@ -680,6 +691,12 @@ export const ResidueHydrophobicity = {
     'THR': [0.14, 0.25, 0.11],
     'TRP': [-1.85, -2.09, -0.24],
     'TYR': [-0.94, -0.71, 0.23],
-    'VAL': [0.07, -0.46, -0.53]
+    'VAL': [0.07, -0.46, -0.53],
+
+    // charmm ff
+    'HSD': [0.17, 0.11, -0.06], 'HSE': [0.17, 0.11, -0.06], 'HSP': [0.96, 2.33, 1.37],
+
+    // amber ff
+    'HID': [0.17, 0.11, -0.06], 'HIE': [0.17, 0.11, -0.06], 'HIP': [0.96, 2.33, 1.37],
 };
 export const DefaultResidueHydrophobicity = [0.00, 0.00, 0.00];

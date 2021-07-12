@@ -250,7 +250,7 @@ export const PostprocessingParams = {
     }, { cycle: true, description: 'Darken occluded crevices with the ambient occlusion effect' }),
     outline: PD.MappedStatic('off', {
         on: PD.Group({
-            scale: PD.Numeric(2, { min: 1, max: 5, step: 1 }),
+            scale: PD.Numeric(1, { min: 1, max: 5, step: 1 }),
             threshold: PD.Numeric(0.33, { min: 0.01, max: 1, step: 0.01 }),
         }),
         off: PD.Group({})
