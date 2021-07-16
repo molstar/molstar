@@ -13,14 +13,17 @@ import { Tokenizer, TokenBuilder } from '../common/text/tokenizer';
 import { TokenColumnProvider as TokenColumn } from '../common/text/column/token';
 
 /** http://c4.cabrillo.edu/404/ctfile.pdf - page 41 */
+
+export interface SdfFileCompound {
+    readonly molFile: MolFile,
+    readonly dataItems: {
+        readonly dataHeader: Column<string>,
+        readonly data: Column<string>
+    }
+}
+
 export interface SdfFile {
-    readonly compounds: {
-        readonly molFile: MolFile,
-        readonly dataItems: {
-            readonly dataHeader: Column<string>,
-            readonly data: Column<string>
-        }
-    }[]
+    readonly compounds: SdfFileCompound[]
 }
 
 const delimiter = '$$$$';

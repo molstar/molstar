@@ -17,7 +17,7 @@ import { ModelFormat } from '../format';
 import { IndexPairBonds } from './property/bonds/index-pair';
 import { Trajectory } from '../../mol-model/structure';
 
-async function getModels(mol: MolFile, ctx: RuntimeContext) {
+export async function getMolModels(mol: MolFile, format: ModelFormat<any> | undefined, ctx: RuntimeContext) {
     const { atoms, bonds } = mol;
 
     const MOL = Column.ofConst('MOL', mol.atoms.count, Column.Schema.str);
@@ -61,7 +61,7 @@ async function getModels(mol: MolFile, ctx: RuntimeContext) {
         atom_site
     });
 
-    const models = await createModels(basics, MolFormat.create(mol), ctx);
+    const models = await createModels(basics, format ?? MolFormat.create(mol), ctx);
 
     if (models.frameCount > 0) {
         const indexA = Column.ofIntArray(Column.mapToArray(bonds.atomIdxA, x => x - 1, Int32Array));
@@ -91,5 +91,5 @@ namespace MolFormat {
 }
 
 export function trajectoryFromMol(mol: MolFile): Task<Trajectory> {
-    return Task.create('Parse MOL', ctx => getModels(mol, ctx));
+    return Task.create('Parse MOL', ctx => getMolModels(mol, void 0, ctx));
 }
