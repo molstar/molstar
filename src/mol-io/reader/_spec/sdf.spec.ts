@@ -22,8 +22,8 @@ M  END
 > <DATABASE_NAME>
 drugbank
 
-> <SMILES>
-[O-]P([O-])([O-])=O
+> 5225 <TEST_FIELD>
+whatever
 
 > <INCHI_IDENTIFIER>
 InChI=1S/H3O4P/c1-5(2,3)4/h(H3,1,2,3,4)/p-3
@@ -362,22 +362,25 @@ describe('sdf reader', () => {
         expect(bonds.atomIdxB.value(3)).toBe(5);
         expect(bonds.order.value(3)).toBe(1);
 
-        expect(dataItems.dataHeader.value(0)).toBe('DATABASE_ID');
+        expect(dataItems.dataHeader.value(0)).toBe('<DATABASE_ID>');
         expect(dataItems.data.value(0)).toBe('0');
 
-        expect(dataItems.dataHeader.value(1)).toBe('DATABASE_NAME');
+        expect(dataItems.dataHeader.value(1)).toBe('<DATABASE_NAME>');
         expect(dataItems.data.value(1)).toBe('drugbank');
 
-        expect(dataItems.dataHeader.value(31)).toBe('SYNONYMS');
+        expect(dataItems.dataHeader.value(2)).toBe('5225 <TEST_FIELD>');
+        expect(dataItems.data.value(2)).toBe('whatever');
+
+        expect(dataItems.dataHeader.value(31)).toBe('<SYNONYMS>');
         expect(dataItems.data.value(31)).toBe('Orthophosphate; Phosphate');
 
         expect(compound1.dataItems.data.value(0)).toBe('0');
         expect(compound2.dataItems.data.value(0)).toBe('1');
 
-        expect(compound3.dataItems.dataHeader.value(2)).toBe('PUBCHEM_CONFORMER_DIVERSEORDER');
+        expect(compound3.dataItems.dataHeader.value(2)).toBe('<PUBCHEM_CONFORMER_DIVERSEORDER>');
         expect(compound3.dataItems.data.value(2)).toBe('1\n11\n10\n3\n15\n17\n13\n5\n16\n7\n14\n9\n8\n4\n18\n6\n12\n2');
 
-        expect(compound3.dataItems.dataHeader.value(21)).toBe('PUBCHEM_COORDINATE_TYPE');
+        expect(compound3.dataItems.dataHeader.value(21)).toBe('<PUBCHEM_COORDINATE_TYPE>');
         expect(compound3.dataItems.data.value(21)).toBe('2\n5\n10');
     });
 });
