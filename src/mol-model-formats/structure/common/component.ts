@@ -13,20 +13,25 @@ import { mmCIF_chemComp_schema } from '../../../mol-io/reader/cif/schema/mmcif-e
 type Component = Table.Row<Pick<mmCIF_chemComp_schema, 'id' | 'name' | 'type'>>
 
 const ProteinAtomIdsList = [
-    new Set([ 'CA' ]),
-    new Set([ 'C' ]),
-    new Set([ 'N' ])
+    new Set(['CA']),
+    new Set(['C']),
+    new Set(['N'])
 ];
 const RnaAtomIdsList = [
-    new Set([ 'P', 'O3\'', 'O3*' ]),
-    new Set([ 'C4\'', 'C4*' ]),
-    new Set([ 'O2\'', 'O2*', 'F2\'', 'F2*' ])
+    new Set(['P', 'O3\'', 'O3*']),
+    new Set(['C4\'', 'C4*']),
+    new Set(['O2\'', 'O2*', 'F2\'', 'F2*'])
 ];
 const DnaAtomIdsList = [
-    new Set([ 'P', 'O3\'', 'O3*' ]),
-    new Set([ 'C3\'', 'C3*' ]),
-    new Set([ 'O2\'', 'O2*', 'F2\'', 'F2*' ])
+    new Set(['P', 'O3\'', 'O3*']),
+    new Set(['C3\'', 'C3*']),
+    new Set(['O2\'', 'O2*', 'F2\'', 'F2*'])
 ];
+
+/** Used to reduce false positives for atom name-based type guessing */
+const NonPolymerNames = new Set([
+    'FMN', 'NCN', 'FNS', 'FMA' // Mononucleotides
+]);
 
 const StandardComponents = (function() {
     const map = new Map<string, Component>();
@@ -151,9 +156,11 @@ export class ComponentBuilder {
                 this.set(StandardComponents.get(compId)!);
             } else if (WaterNames.has(compId)) {
                 this.set({ id: compId, name: 'WATER', type: 'non-polymer' });
+            } else if (NonPolymerNames.has(compId)) {
+                this.set({ id: compId, name: this.namesMap.get(compId) || compId, type: 'non-polymer' });
             } else {
                 const atomIds = this.getAtomIds(index);
-                if (CharmmIonComponents.has(compId) && atomIds.size === 1) {
+                if (atomIds.size === 1 && CharmmIonComponents.has(compId)) {
                     this.set(CharmmIonComponents.get(compId)!);
                 } else {
                     const type = this.getType(atomIds);
