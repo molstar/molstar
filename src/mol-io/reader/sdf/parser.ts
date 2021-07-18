@@ -13,15 +13,19 @@ import { Tokenizer, TokenBuilder } from '../common/text/tokenizer';
 import { TokenColumnProvider as TokenColumn } from '../common/text/column/token';
 
 /** http://c4.cabrillo.edu/404/ctfile.pdf - page 41 */
-export interface SdfFile {
-    readonly compounds: {
-        readonly molFile: MolFile,
-        readonly dataItems: {
-            readonly dataHeader: Column<string>,
-            readonly data: Column<string>
-        }
-    }[]
+
+export interface SdfFileCompound {
+    readonly molFile: MolFile,
+    readonly dataItems: {
+        readonly dataHeader: Column<string>,
+        readonly data: Column<string>
+    }
 }
+
+export interface SdfFile {
+    readonly compounds: SdfFileCompound[]
+}
+
 
 const delimiter = '$$$$';
 function handleDataItems(tokenizer: Tokenizer): { dataHeader: Column<string>, data: Column<string> } {
@@ -33,8 +37,8 @@ function handleDataItems(tokenizer: Tokenizer): { dataHeader: Column<string>, da
         if (line.startsWith(delimiter)) break;
         if (!line) continue;
 
-        if (line.startsWith('> <')) {
-            TokenBuilder.add(dataHeader, tokenizer.tokenStart + 3, tokenizer.tokenEnd - 1);
+        if (line.startsWith('> ')) {
+            TokenBuilder.add(dataHeader, tokenizer.tokenStart + 2, tokenizer.tokenEnd);
 
             Tokenizer.markLine(tokenizer);
             const start = tokenizer.tokenStart;
@@ -42,7 +46,7 @@ function handleDataItems(tokenizer: Tokenizer): { dataHeader: Column<string>, da
             let added = false;
             while (tokenizer.position < tokenizer.length) {
                 const line2 = Tokenizer.readLine(tokenizer);
-                if (!line2 || line2.startsWith(delimiter) || line2.startsWith('> <')) {
+                if (!line2 || line2.startsWith(delimiter) || line2.startsWith('> ')) {
                     TokenBuilder.add(data, start, end);
                     added = true;
                     break;

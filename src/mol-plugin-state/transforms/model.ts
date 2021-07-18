@@ -40,6 +40,7 @@ import { coordinatesFromXtc } from '../../mol-model-formats/structure/xtc';
 import { parseXyz } from '../../mol-io/reader/xyz/parser';
 import { trajectoryFromXyz } from '../../mol-model-formats/structure/xyz';
 import { parseSdf } from '../../mol-io/reader/sdf/parser';
+import { trajectoryFromSdf } from '../../mol-model-formats/structure/sdf';
 
 export { CoordinatesFromDcd };
 export { CoordinatesFromXtc };
@@ -308,8 +309,8 @@ const TrajectoryFromSDF = PluginStateTransform.BuiltIn({
 
             const models: Model[] = [];
 
-            for (const { molFile } of parsed.result.compounds) {
-                const traj = await trajectoryFromMol(molFile).runInContext(ctx);
+            for (const compound of parsed.result.compounds) {
+                const traj = await trajectoryFromSdf(compound).runInContext(ctx);
                 for (let i = 0; i < traj.frameCount; i++) {
                     models.push(await Task.resolveInContext(traj.getFrameAtIndex(i), ctx));
                 }

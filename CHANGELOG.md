@@ -7,6 +7,11 @@ Note that since we don't clearly distinguish between a public and private interf
 ## [Unreleased]
 
 - Add `tubularHelices` parameter to Cartoon representation
+- Add `SdfFormat` and update SDF parser to be able to parse data headers according to spec (hopefully :)) #230
+- Fix mononucleotides detected as polymer components (#229)
+- Set default outline scale back to 1
+- Improved DCD reader cell angle handling (intepret near 0 angles as 90 deg)
+- Handle more residue/atom names commonly used in force-fields
 - Add USDZ support to ``geo-export`` extension.
 
 ## [v2.1.0] - 2021-07-05
