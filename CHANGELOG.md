@@ -12,6 +12,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Set default outline scale back to 1
 - Improved DCD reader cell angle handling (intepret near 0 angles as 90 deg)
 - Handle more residue/atom names commonly used in force-fields
+- Add USDZ support to ``geo-export`` extension.
 
 ## [v2.1.0] - 2021-07-05
 

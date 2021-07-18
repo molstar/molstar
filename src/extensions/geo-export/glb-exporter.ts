@@ -264,7 +264,7 @@ export class GlbExporter extends MeshExporter<GlbData> {
         }
     }
 
-    getData() {
+    async getData() {
         const binaryBufferLength = this.byteOffset;
 
         const gltf = {
@@ -334,7 +334,7 @@ export class GlbExporter extends MeshExporter<GlbData> {
     }
 
     async getBlob(ctx: RuntimeContext) {
-        return new Blob([this.getData().glb], { type: 'model/gltf-binary' });
+        return new Blob([(await this.getData()).glb], { type: 'model/gltf-binary' });
     }
 
     constructor(private style: Style, boundingBox: Box3D) {
