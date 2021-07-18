@@ -1,0 +1,262 @@
+/**
+ * Copyright (c) 2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author Sukolsak Sakshuwong <sukolsak@stanford.edu>
+ */
+
+import { Style } from '../../mol-gl/renderer';
+import { asciiWrite } from '../../mol-io/common/ascii';
+import { Box3D } from '../../mol-math/geometry';
+import { Vec3, Mat3, Mat4 } from '../../mol-math/linear-algebra';
+import { PLUGIN_VERSION } from '../../mol-plugin/version';
+import { RuntimeContext } from '../../mol-task';
+import { StringBuilder } from '../../mol-util';
+import { Color } from '../../mol-util/color/color';
+import { zip } from '../../mol-util/zip/zip';
+import { MeshExporter, AddMeshInput } from './mesh-exporter';
+
+// avoiding namespace lookup improved performance in Chrome (Aug 2020)
+const v3fromArray = Vec3.fromArray;
+const v3transformMat4 = Vec3.transformMat4;
+const v3transformMat3 = Vec3.transformMat3;
+const mat3directionTransform = Mat3.directionTransform;
+
+// https://graphics.pixar.com/usd/docs/index.html
+
+export type UsdzData = {
+    usdz: ArrayBuffer
+}
+
+export class UsdzExporter extends MeshExporter<UsdzData> {
+    readonly fileExtension = 'usdz';
+    private meshes: string[] = [];
+    private materials: string[] = [];
+    private materialSet = new Set<number>();
+    private centerTransform: Mat4;
+
+    private static getMaterialKey(color: Color, alpha: number) {
+        return color * 256 + Math.round(alpha * 255);
+    }
+
+    private addMaterial(color: Color, alpha: number) {
+        const materialKey = UsdzExporter.getMaterialKey(color, alpha);
+        if (this.materialSet.has(materialKey)) return;
+        this.materialSet.add(materialKey);
+        const [r, g, b] = Color.toRgbNormalized(color);
+        this.materials.push(`
+def Material "material${materialKey}"
+{
+    token outputs:surface.connect = </material${materialKey}/shader.outputs:surface>
+    def Shader "shader"
+    {
+        uniform token info:id = "UsdPreviewSurface"
+        color3f inputs:diffuseColor = (${r},${g},${b})
+        float inputs:opacity = ${alpha}
+        float inputs:metallic = ${this.style.metalness}
+        float inputs:roughness = ${this.style.roughness}
+        token outputs:surface
+    }
+}
+`);
+    }
+
+    protected async addMeshWithColors(input: AddMeshInput) {
+        const { mesh, values, isGeoTexture, webgl, ctx } = input;
+
+        const t = Mat4();
+        const n = Mat3();
+        const tmpV = Vec3();
+        const stride = isGeoTexture ? 4 : 3;
+
+        const groupCount = values.uGroupCount.ref.value;
+        const colorType = values.dColorType.ref.value;
+        const tColor = values.tColor.ref.value.array;
+        const uAlpha = values.uAlpha.ref.value;
+        const dTransparency = values.dTransparency.ref.value;
+        const tTransparency = values.tTransparency.ref.value;
+        const aTransform = values.aTransform.ref.value;
+        const instanceCount = values.uInstanceCount.ref.value;
+
+        let interpolatedColors: Uint8Array;
+        if (colorType === 'volume' || colorType === 'volumeInstance') {
+            interpolatedColors = UsdzExporter.getInterpolatedColors(mesh!.vertices, mesh!.vertexCount, values, stride, colorType, webgl!);
+            UsdzExporter.quantizeColors(interpolatedColors, mesh!.vertexCount);
+        }
+
+        await ctx.update({ isIndeterminate: false, current: 0, max: instanceCount });
+
+        for (let instanceIndex = 0; instanceIndex < instanceCount; ++instanceIndex) {
+            if (ctx.shouldUpdate) await ctx.update({ current: instanceIndex + 1 });
+
+            const { vertices, normals, indices, groups, vertexCount, drawCount } = UsdzExporter.getInstance(input, instanceIndex);
+
+            Mat4.fromArray(t, aTransform, instanceIndex * 16);
+            Mat4.mul(t, this.centerTransform, t);
+            mat3directionTransform(n, t);
+
+            const vertexBuilder = StringBuilder.create();
+            const normalBuilder = StringBuilder.create();
+            const indexBuilder = StringBuilder.create();
+
+            // position
+            for (let i = 0; i < vertexCount; ++i) {
+                v3transformMat4(tmpV, v3fromArray(tmpV, vertices, i * stride), t);
+                StringBuilder.writeSafe(vertexBuilder, (i === 0) ? '(' : ',(');
+                StringBuilder.writeFloat(vertexBuilder, tmpV[0], 10000);
+                StringBuilder.writeSafe(vertexBuilder, ',');
+                StringBuilder.writeFloat(vertexBuilder, tmpV[1], 10000);
+                StringBuilder.writeSafe(vertexBuilder, ',');
+                StringBuilder.writeFloat(vertexBuilder, tmpV[2], 10000);
+                StringBuilder.writeSafe(vertexBuilder, ')');
+            }
+
+            // normal
+            for (let i = 0; i < vertexCount; ++i) {
+                v3transformMat3(tmpV, v3fromArray(tmpV, normals, i * stride), n);
+                StringBuilder.writeSafe(normalBuilder, (i === 0) ? '(' : ',(');
+                StringBuilder.writeFloat(normalBuilder, tmpV[0], 100);
+                StringBuilder.writeSafe(normalBuilder, ',');
+                StringBuilder.writeFloat(normalBuilder, tmpV[1], 100);
+                StringBuilder.writeSafe(normalBuilder, ',');
+                StringBuilder.writeFloat(normalBuilder, tmpV[2], 100);
+                StringBuilder.writeSafe(normalBuilder, ')');
+            }
+
+            // face
+            for (let i = 0; i < drawCount; ++i) {
+                const v = isGeoTexture ? i : indices![i];
+                if (i > 0) StringBuilder.writeSafe(indexBuilder, ',');
+                StringBuilder.writeInteger(indexBuilder, v);
+            }
+
+            // color
+            const faceIndicesByMaterial = new Map<number, number[]>();
+            for (let i = 0; i < drawCount; i += 3) {
+                let color: Color;
+                switch (colorType) {
+                    case 'uniform':
+                        color = Color.fromNormalizedArray(values.uColor.ref.value, 0);
+                        break;
+                    case 'instance':
+                        color = Color.fromArray(tColor, instanceIndex * 3);
+                        break;
+                    case 'group': {
+                        const group = isGeoTexture ? UsdzExporter.getGroup(groups, i) : groups[indices![i]];
+                        color = Color.fromArray(tColor, group * 3);
+                        break;
+                    }
+                    case 'groupInstance': {
+                        const group = isGeoTexture ? UsdzExporter.getGroup(groups, i) : groups[indices![i]];
+                        color = Color.fromArray(tColor, (instanceIndex * groupCount + group) * 3);
+                        break;
+                    }
+                    case 'vertex':
+                        color = Color.fromArray(tColor, indices![i] * 3);
+                        break;
+                    case 'vertexInstance':
+                        color = Color.fromArray(tColor, (instanceIndex * vertexCount + indices![i]) * 3);
+                        break;
+                    case 'volume':
+                        color = Color.fromArray(interpolatedColors!, (isGeoTexture ? i : indices![i]) * 3);
+                        break;
+                    case 'volumeInstance':
+                        color = Color.fromArray(interpolatedColors!, (instanceIndex * vertexCount + (isGeoTexture ? i : indices![i])) * 3);
+                        break;
+                    default: throw new Error('Unsupported color type.');
+                }
+
+                let alpha = uAlpha;
+                if (dTransparency) {
+                    const group = isGeoTexture ? UsdzExporter.getGroup(groups, i) : groups[indices![i]];
+                    const transparency = tTransparency.array[instanceIndex * groupCount + group] / 255;
+                    alpha *= 1 - transparency;
+                }
+
+                this.addMaterial(color, alpha);
+
+                const materialKey = UsdzExporter.getMaterialKey(color, alpha);
+                let faceIndices = faceIndicesByMaterial.get(materialKey);
+                if (faceIndices === undefined) {
+                    faceIndices = [];
+                    faceIndicesByMaterial.set(materialKey, faceIndices);
+                }
+                faceIndices.push(i / 3);
+            }
+
+            // If this mesh uses only one material, bind it to the material directly.
+            // Otherwise, use GeomSubsets to bind it to multiple materials.
+            let materialBinding: string;
+            if (faceIndicesByMaterial.size === 1) {
+                const materialKey = faceIndicesByMaterial.keys().next().value;
+                materialBinding = `rel material:binding = </material${materialKey}>`;
+            } else {
+                const geomSubsets: string[] = [];
+                faceIndicesByMaterial.forEach((faceIndices: number[], materialKey: number) => {
+                    geomSubsets.push(`
+    def GeomSubset "g${materialKey}"
+    {
+        uniform token elementType = "face"
+        uniform token familyName = "materialBind"
+        int[] indices = [${faceIndices.join(',')}]
+        rel material:binding = </material${materialKey}>
+    }
+`);
+                });
+                materialBinding = geomSubsets.join('');
+            }
+
+            this.meshes.push(`
+def Mesh "mesh${this.meshes.length}"
+{
+    int[] faceVertexCounts = [${new Array(drawCount / 3).fill(3).join(',')}]
+    int[] faceVertexIndices = [${StringBuilder.getString(indexBuilder)}]
+    point3f[] points = [${StringBuilder.getString(vertexBuilder)}]
+    normal3f[] primvars:normals = [${StringBuilder.getString(normalBuilder)}] (
+        interpolation = "vertex"
+    )
+    uniform token subdivisionScheme = "none"
+    ${materialBinding}
+}
+`);
+        }
+    }
+
+    async getData(ctx: RuntimeContext) {
+        const header = `#usda 1.0
+(
+    customLayerData = {
+        string creator = "Mol* ${PLUGIN_VERSION}"
+    }
+    metersPerUnit = 1
+)
+`;
+        const usda = [header, ...this.materials, ...this.meshes].join('');
+        const usdaData = new Uint8Array(usda.length);
+        asciiWrite(usdaData, usda);
+        const zipDataObj = {
+            ['model.usda']: usdaData
+        };
+        return {
+            usdz: await zip(ctx, zipDataObj, true)
+        };
+    }
+
+    async getBlob(ctx: RuntimeContext) {
+        const { usdz } = await this.getData(ctx);
+        return new Blob([usdz], { type: 'model/vnd.usdz+zip' });
+    }
+
+    constructor(private style: Style, boundingBox: Box3D, radius: number) {
+        super();
+        const t = Mat4();
+        // scale the model so that it fits within 1 meter
+        Mat4.fromUniformScaling(t, Math.min(1 / (radius * 2), 1));
+        // translate the model so that it sits on the ground plane (y = 0)
+        Mat4.translate(t, t, Vec3.create(
+            -(boundingBox.min[0] + boundingBox.max[0]) / 2,
+            -boundingBox.min[1],
+            -(boundingBox.min[2] + boundingBox.max[2]) / 2
+        ));
+        this.centerTransform = t;
+    }
+}
