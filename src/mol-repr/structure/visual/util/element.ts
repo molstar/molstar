@@ -17,10 +17,9 @@ import { PickingId } from '../../../../mol-geo/geometry/picking';
 import { LocationIterator } from '../../../../mol-geo/util/location-iterator';
 import { VisualContext } from '../../../../mol-repr/visual';
 import { Theme } from '../../../../mol-theme/theme';
-import { StructureGroup } from '../../../../mol-repr/structure/units-visual';
 import { Spheres } from '../../../../mol-geo/geometry/spheres/spheres';
 import { SpheresBuilder } from '../../../../mol-geo/geometry/spheres/spheres-builder';
-import { isTrace, isH } from './common';
+import { isTrace, isH, StructureGroup } from './common';
 import { Sphere3D } from '../../../../mol-math/geometry';
 
 // avoiding namespace lookup improved performance in Chrome (Aug 2020)

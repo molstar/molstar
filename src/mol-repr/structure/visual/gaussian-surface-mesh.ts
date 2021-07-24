@@ -5,7 +5,7 @@
  */
 
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
-import { UnitsMeshParams, UnitsTextureMeshParams, UnitsVisual, UnitsMeshVisual, UnitsTextureMeshVisual, StructureGroup } from '../units-visual';
+import { UnitsMeshParams, UnitsTextureMeshParams, UnitsVisual, UnitsMeshVisual, UnitsTextureMeshVisual } from '../units-visual';
 import { GaussianDensityParams, computeUnitGaussianDensity, computeUnitGaussianDensityTexture2d, GaussianDensityProps, computeStructureGaussianDensity, computeStructureGaussianDensityTexture2d } from './util/gaussian';
 import { VisualContext } from '../../visual';
 import { Unit, Structure } from '../../../mol-model/structure';
@@ -18,7 +18,7 @@ import { TextureMesh } from '../../../mol-geo/geometry/texture-mesh/texture-mesh
 import { extractIsosurface } from '../../../mol-gl/compute/marching-cubes/isosurface';
 import { Sphere3D } from '../../../mol-math/geometry';
 import { ComplexVisual, ComplexMeshParams, ComplexMeshVisual, ComplexTextureMeshVisual, ComplexTextureMeshParams } from '../complex-visual';
-import { getUnitExtraRadius, getStructureExtraRadius, getVolumeSliceInfo } from './util/common';
+import { getUnitExtraRadius, getStructureExtraRadius, getVolumeSliceInfo, StructureGroup } from './util/common';
 import { WebGLContext } from '../../../mol-gl/webgl/context';
 import { MeshValues } from '../../../mol-gl/renderable/mesh';
 import { TextureMeshValues } from '../../../mol-gl/renderable/texture-mesh';

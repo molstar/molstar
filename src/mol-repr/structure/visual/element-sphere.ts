@@ -6,12 +6,13 @@
  */
 
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
-import { UnitsMeshParams, UnitsSpheresParams, UnitsVisual, UnitsSpheresVisual, UnitsMeshVisual, StructureGroup } from '../units-visual';
+import { UnitsMeshParams, UnitsSpheresParams, UnitsVisual, UnitsSpheresVisual, UnitsMeshVisual } from '../units-visual';
 import { WebGLContext } from '../../../mol-gl/webgl/context';
 import { createElementSphereImpostor, ElementIterator, getElementLoci, eachElement, createElementSphereMesh } from './util/element';
 import { VisualUpdateState } from '../../util';
 import { BaseGeometry } from '../../../mol-geo/geometry/base';
 import { Structure } from '../../../mol-model/structure';
+import { StructureGroup } from './util/common';
 
 export const ElementSphereParams = {
     ...UnitsMeshParams,

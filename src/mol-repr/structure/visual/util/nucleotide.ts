@@ -9,8 +9,7 @@ import { Loci, EmptyLoci } from '../../../../mol-model/loci';
 import { Interval } from '../../../../mol-data/int';
 import { LocationIterator } from '../../../../mol-geo/util/location-iterator';
 import { PickingId } from '../../../../mol-geo/geometry/picking';
-import { StructureGroup } from '../../../../mol-repr/structure/units-visual';
-import { getResidueLoci } from './common';
+import { getResidueLoci, StructureGroup } from './common';
 import { eachAtomicUnitTracedElement } from './polymer';
 
 export namespace NucleotideLocationIterator {

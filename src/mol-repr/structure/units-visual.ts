@@ -11,7 +11,7 @@ import { Visual, VisualContext } from '../visual';
 import { Geometry, GeometryUtils } from '../../mol-geo/geometry/geometry';
 import { LocationIterator } from '../../mol-geo/util/location-iterator';
 import { Theme } from '../../mol-theme/theme';
-import { createUnitsTransform, includesUnitKind } from './visual/util/common';
+import { createUnitsTransform, includesUnitKind, StructureGroup } from './visual/util/common';
 import { createRenderObject, GraphicsRenderObject, RenderObjectValues } from '../../mol-gl/render-object';
 import { PickingId } from '../../mol-geo/geometry/picking';
 import { Loci, isEveryLoci, EmptyLoci } from '../../mol-model/loci';
@@ -41,13 +41,11 @@ import { Clipping } from '../../mol-theme/clipping';
 import { WebGLContext } from '../../mol-gl/webgl/context';
 import { isPromiseLike } from '../../mol-util/type-helpers';
 
-export type StructureGroup = { structure: Structure, group: Unit.SymmetryGroup }
-
 export interface UnitsVisual<P extends RepresentationProps = {}> extends Visual<StructureGroup, P> { }
 
-function createUnitsRenderObject<G extends Geometry>(group: Unit.SymmetryGroup, geometry: G, locationIt: LocationIterator, theme: Theme, props: PD.Values<Geometry.Params<G>>, materialId: number) {
+function createUnitsRenderObject<G extends Geometry>(structureGroup: StructureGroup, geometry: G, locationIt: LocationIterator, theme: Theme, props: PD.Values<StructureParams & Geometry.Params<G>>, materialId: number) {
     const { createValues, createRenderableState } = Geometry.getUtils(geometry);
-    const transform = createUnitsTransform(group);
+    const transform = createUnitsTransform(structureGroup, props.includeParent);
     const values = createValues(geometry, transform, locationIt, theme, props);
     const state = createRenderableState(props);
     return createRenderObject(geometry.kind, values, state, materialId);
@@ -179,7 +177,7 @@ export function UnitsVisual<G extends Geometry, P extends StructureParams & Geom
         if (updateState.createNew) {
             locationIt = createLocationIterator(newStructureGroup);
             if (newGeometry) {
-                renderObject = createUnitsRenderObject(newStructureGroup.group, newGeometry, locationIt, newTheme, newProps, materialId);
+                renderObject = createUnitsRenderObject(newStructureGroup, newGeometry, locationIt, newTheme, newProps, materialId);
                 positionIt = createPositionIterator(newGeometry, renderObject.values);
             } else {
                 throw new Error('expected geometry to be given');
@@ -198,7 +196,7 @@ export function UnitsVisual<G extends Geometry, P extends StructureParams & Geom
 
             if (updateState.updateMatrix) {
                 // console.log('update matrix');
-                createUnitsTransform(newStructureGroup.group, renderObject.values);
+                createUnitsTransform(newStructureGroup, newProps.includeParent, renderObject.values);
             }
 
             if (updateState.createGeometry) {

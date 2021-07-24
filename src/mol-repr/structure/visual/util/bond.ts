@@ -8,13 +8,12 @@ import { BondType } from '../../../../mol-model/structure/model/types';
 import { Unit, StructureElement, Structure, Bond } from '../../../../mol-model/structure';
 import { ParamDefinition as PD } from '../../../../mol-util/param-definition';
 import { LocationIterator } from '../../../../mol-geo/util/location-iterator';
-import { StructureGroup } from '../../units-visual';
 import { LinkCylinderParams, LinkLineParams } from './link';
 import { ObjectKeys } from '../../../../mol-util/type-helpers';
 import { PickingId } from '../../../../mol-geo/geometry/picking';
 import { EmptyLoci, Loci } from '../../../../mol-model/loci';
 import { Interval, OrderedSet, SortedArray } from '../../../../mol-data/int';
-import { isH, isHydrogen } from './common';
+import { isH, isHydrogen, StructureGroup } from './common';
 
 export const BondParams = {
     includeTypes: PD.MultiSelect(ObjectKeys(BondType.Names), PD.objectToOptions(BondType.Names)),

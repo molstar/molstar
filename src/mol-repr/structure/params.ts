@@ -22,6 +22,7 @@ export function getUnitKindsParam(defaultValue: UnitKind[]) {
 
 export const StructureParams = {
     unitKinds: getUnitKindsParam(['atomic', 'spheres']),
+    includeParent: PD.Boolean(false, { isHidden: true }),
 };
 export type StructureParams = typeof StructureParams
 

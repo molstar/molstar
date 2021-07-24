@@ -5,7 +5,7 @@
  */
 
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
-import { UnitsMeshParams, UnitsVisual, UnitsMeshVisual, StructureGroup } from '../../../mol-repr/structure/units-visual';
+import { UnitsMeshParams, UnitsVisual, UnitsMeshVisual } from '../../../mol-repr/structure/units-visual';
 import { VisualUpdateState } from '../../../mol-repr/util';
 import { VisualContext } from '../../../mol-repr/visual';
 import { Unit, Structure, StructureElement } from '../../../mol-model/structure';
@@ -22,6 +22,7 @@ import { UnitIndex } from '../../../mol-model/structure/structure/element/elemen
 import { LocationIterator } from '../../../mol-geo/util/location-iterator';
 import { MoleculeType } from '../../../mol-model/structure/model/types';
 import { BaseGeometry } from '../../../mol-geo/geometry/base';
+import { StructureGroup } from './util/common';
 
 export const OrientationEllipsoidMeshParams = {
     ...UnitsMeshParams,

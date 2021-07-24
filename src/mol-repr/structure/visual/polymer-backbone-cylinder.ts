@@ -14,7 +14,7 @@ import { Vec3 } from '../../../mol-math/linear-algebra';
 import { CylinderProps } from '../../../mol-geo/primitive/cylinder';
 import { eachPolymerElement, getPolymerElementLoci, NucleicShift, PolymerLocationIterator, StandardShift } from './util/polymer';
 import { addCylinder } from '../../../mol-geo/geometry/mesh/builder/cylinder';
-import { UnitsMeshParams, UnitsVisual, UnitsMeshVisual, UnitsCylindersVisual, UnitsCylindersParams, StructureGroup } from '../units-visual';
+import { UnitsMeshParams, UnitsVisual, UnitsMeshVisual, UnitsCylindersVisual, UnitsCylindersParams } from '../units-visual';
 import { VisualUpdateState } from '../../util';
 import { BaseGeometry } from '../../../mol-geo/geometry/base';
 import { Sphere3D } from '../../../mol-math/geometry';
@@ -23,6 +23,7 @@ import { WebGLContext } from '../../../mol-gl/webgl/context';
 import { Cylinders } from '../../../mol-geo/geometry/cylinders/cylinders';
 import { CylindersBuilder } from '../../../mol-geo/geometry/cylinders/cylinders-builder';
 import { eachPolymerBackboneLink } from './util/polymer/backbone';
+import { StructureGroup } from './util/common';
 
 // avoiding namespace lookup improved performance in Chrome (Aug 2020)
 const v3scale = Vec3.scale;

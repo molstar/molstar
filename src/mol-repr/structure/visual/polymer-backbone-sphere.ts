@@ -12,7 +12,7 @@ import { Mesh } from '../../../mol-geo/geometry/mesh/mesh';
 import { MeshBuilder } from '../../../mol-geo/geometry/mesh/mesh-builder';
 import { Vec3 } from '../../../mol-math/linear-algebra';
 import { eachPolymerElement, getPolymerElementLoci, PolymerLocationIterator } from './util/polymer';
-import { UnitsMeshParams, UnitsVisual, UnitsMeshVisual, UnitsSpheresVisual, UnitsSpheresParams, StructureGroup } from '../units-visual';
+import { UnitsMeshParams, UnitsVisual, UnitsMeshVisual, UnitsSpheresVisual, UnitsSpheresParams } from '../units-visual';
 import { VisualUpdateState } from '../../util';
 import { BaseGeometry } from '../../../mol-geo/geometry/base';
 import { Sphere3D } from '../../../mol-math/geometry';
@@ -22,6 +22,7 @@ import { WebGLContext } from '../../../mol-gl/webgl/context';
 import { Spheres } from '../../../mol-geo/geometry/spheres/spheres';
 import { SpheresBuilder } from '../../../mol-geo/geometry/spheres/spheres-builder';
 import { eachPolymerBackboneElement } from './util/polymer/backbone';
+import { StructureGroup } from './util/common';
 
 export const PolymerBackboneSphereParams = {
     ...UnitsMeshParams,
