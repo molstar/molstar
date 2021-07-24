@@ -14,6 +14,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Handle more residue/atom names commonly used in force-fields
 - Add USDZ support to ``geo-export`` extension.
 - Fix `includeParent` support for multi-instance bond visuals.
+- Add `operator` Loci granularity, selecting everything with the same operator name.
 
 ## [v2.1.0] - 2021-07-05
 

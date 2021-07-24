@@ -488,6 +488,27 @@ export namespace Loci {
         return Loci(loci.structure, elements);
     }
 
+    export function extendToWholeOperators(loci: Loci): Loci {
+        const elements: Loci['elements'][0][] = [];
+        const operators = new Set<string>();
+        const { units } = loci.structure;
+
+        for (let i = 0, len = loci.elements.length; i < len; i++) {
+            const e = loci.elements[i];
+            operators.add(e.unit.conformation.operator.name);
+        }
+
+        for (let i = 0, il = units.length; i < il; ++i) {
+            const unit = units[i];
+            if (operators.has(unit.conformation.operator.name)) {
+                const indices = OrderedSet.ofBounds(0, unit.elements.length) as OrderedSet<UnitIndex>;
+                elements[elements.length] = { unit, indices };
+            }
+        }
+
+        return Loci(loci.structure, elements);
+    }
+
     //
 
     const boundaryHelper = new BoundaryHelper('98');

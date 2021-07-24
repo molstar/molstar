@@ -231,6 +231,11 @@ namespace Loci {
                 ? StructureElement.Loci.extendToWholeModels(loci)
                 : loci;
         },
+        'operator': (loci: Loci) => {
+            return StructureElement.Loci.is(loci)
+                ? StructureElement.Loci.extendToWholeOperators(loci)
+                : loci;
+        },
         'structure': (loci: Loci) => {
             return StructureElement.Loci.is(loci)
                 ? Structure.toStructureElementLoci(loci.structure)
