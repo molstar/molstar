@@ -25,6 +25,7 @@ export const EllipsoidParams = {
     ...EllipsoidMeshParams,
     ...IntraUnitBondCylinderParams,
     ...InterUnitBondCylinderParams,
+    includeParent: PD.Boolean(false),
     adjustCylinderLength: PD.Boolean(false, { isHidden: true }), // not useful here
     unitKinds: getUnitKindsParam(['atomic']),
     sizeFactor: PD.Numeric(1, { min: 0.01, max: 10, step: 0.01 }),
