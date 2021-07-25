@@ -52,7 +52,8 @@ export namespace RootStructureDefinition {
             }, { isFlat: true }),
             'symmetry': PD.Group({
                 ijkMin: PD.Vec3(Vec3.create(-1, -1, -1), { step: 1 }, { label: 'Min IJK', fieldLabels: { x: 'I', y: 'J', z: 'K' } }),
-                ijkMax: PD.Vec3(Vec3.create(1, 1, 1), { step: 1 }, { label: 'Max IJK', fieldLabels: { x: 'I', y: 'J', z: 'K' } })
+                ijkMax: PD.Vec3(Vec3.create(1, 1, 1), { step: 1 }, { label: 'Max IJK', fieldLabels: { x: 'I', y: 'J', z: 'K' } }),
+                dynamicBonds: PD.Boolean(false),
             }, { isFlat: true }),
             'symmetry-assembly': PD.Group({
                 generators: PD.ObjectList({
@@ -130,8 +131,8 @@ export namespace RootStructureDefinition {
         return new SO.Molecule.Structure(s, props);
     }
 
-    async function buildSymmetry(ctx: RuntimeContext, model: Model, ijkMin: Vec3, ijkMax: Vec3) {
-        const base = Structure.ofModel(model);
+    async function buildSymmetry(ctx: RuntimeContext, model: Model, ijkMin: Vec3, ijkMax: Vec3, dynamicBonds: boolean) {
+        const base = Structure.ofModel(model, dynamicBonds);
         const s = await StructureSymmetry.buildSymmetryRange(base, ijkMin, ijkMax).runInContext(ctx);
         const props = { label: `Symmetry [${ijkMin}] to [${ijkMax}]`, description: Structure.elementDescription(s) };
         return new SO.Molecule.Structure(s, props);
@@ -169,7 +170,7 @@ export namespace RootStructureDefinition {
             return buildAssembly(plugin, ctx, model, params.params.id);
         }
         if (params.name === 'symmetry') {
-            return buildSymmetry(ctx, model, params.params.ijkMin, params.params.ijkMax);
+            return buildSymmetry(ctx, model, params.params.ijkMin, params.params.ijkMax, params.params.dynamicBonds);
         }
         if (params.name === 'symmetry-mates') {
             return buildSymmetryMates(ctx, model, params.params.radius);

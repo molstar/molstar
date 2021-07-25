@@ -10,10 +10,12 @@ import { ElementSymbol } from '../../../model/types';
 export interface BondComputationProps {
     forceCompute: boolean
     noCompute: boolean
+    maxRadius: number
 }
 export const DefaultBondComputationProps: BondComputationProps = {
     forceCompute: false,
-    noCompute: false
+    noCompute: false,
+    maxRadius: 4,
 };
 
 // H,D,T are all mapped to H

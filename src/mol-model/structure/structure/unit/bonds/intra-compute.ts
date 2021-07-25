@@ -44,7 +44,9 @@ function getDistance(unit: Unit.Atomic, indexA: ElementIndex, indexB: ElementInd
 
 const __structConnAdded = new Set<StructureElement.UnitIndex>();
 
-function findIndexPairBonds(unit: Unit.Atomic) {
+function findIndexPairBonds(unit: Unit.Atomic, props: BondComputationProps) {
+    const { maxRadius } = props;
+
     const indexPairs = IndexPairBonds.Provider.get(unit.model)!;
     const { elements: atoms } = unit;
     const { type_symbol } = unit.model.atomicHierarchy.atoms;
@@ -74,7 +76,8 @@ function findIndexPairBonds(unit: Unit.Atomic) {
             if (isHa && type_symbol.value(bI) === 'H') continue;
 
             const d = edgeProps.distance[i];
-            if (d === -1 || d === void 0 || equalEps(getDistance(unit, aI, bI), d, 0.5)) {
+            const dist = getDistance(unit, aI, bI);
+            if ((d !== -1 && equalEps(dist, d, 0.5)) || dist < maxRadius) {
                 atomA[atomA.length] = _aI;
                 atomB[atomB.length] = _bI;
                 order[order.length] = edgeProps.order[i];
@@ -87,7 +90,7 @@ function findIndexPairBonds(unit: Unit.Atomic) {
 }
 
 function findBonds(unit: Unit.Atomic, props: BondComputationProps): IntraUnitBonds {
-    const MAX_RADIUS = 4;
+    const { maxRadius } = props;
 
     const { x, y, z } = unit.model.atomicConformation;
     const atomCount = unit.elements.length;
@@ -168,7 +171,7 @@ function findBonds(unit: Unit.Atomic, props: BondComputationProps): IntraUnitBon
         const atomIdA = label_atom_id.value(aI);
         const componentPairs = componentMap ? componentMap.get(atomIdA) : void 0;
 
-        const { indices, count, squaredDistances } = query3d.find(x[aI], y[aI], z[aI], MAX_RADIUS);
+        const { indices, count, squaredDistances } = query3d.find(x[aI], y[aI], z[aI], maxRadius);
         const isHa = isHydrogen(aeI);
         const thresholdA = getElementThreshold(aeI);
         const altA = label_alt_id.value(aI);
@@ -246,7 +249,7 @@ function computeIntraUnitBonds(unit: Unit.Atomic, props?: Partial<BondComputatio
     }
 
     if (!p.forceCompute && IndexPairBonds.Provider.get(unit.model)!) {
-        return findIndexPairBonds(unit);
+        return findIndexPairBonds(unit, p);
     } else {
         return findBonds(unit, p);
     }

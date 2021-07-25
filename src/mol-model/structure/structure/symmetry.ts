@@ -205,7 +205,10 @@ function getOperatorsCached333(symmetry: Symmetry, ref: Vec3) {
 }
 
 function assembleOperators(structure: Structure, operators: ReadonlyArray<SymmetryOperator>) {
-    const assembler = Structure.Builder({ label: structure.label });
+    const assembler = Structure.Builder({
+        label: structure.label,
+        dynamicBonds: structure.dynamicBonds
+    });
     const { units } = structure;
     for (const oper of operators) {
         for (const unit of units) {

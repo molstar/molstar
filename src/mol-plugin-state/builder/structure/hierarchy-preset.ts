@@ -132,7 +132,7 @@ async function applyCrystalSymmetry(props: { ijkMin: Vec3, ijkMax: Vec3, theme?:
 
     const structure = await builder.createStructure(modelProperties || model, {
         name: 'symmetry',
-        params: props
+        params: { ...props, dynamicBonds: false }
     });
     const structureProperties = await builder.insertStructureProperties(structure, params.structureProperties);
 
