@@ -70,6 +70,13 @@ export function sortedCantorPairing(a: number, b: number) {
     return a < b ? cantorPairing(a, b) : cantorPairing(b, a);
 }
 
+export function invertCantorPairing(z: number) {
+    const w = Math.floor((Math.sqrt(8 * z + 1) - 1) / 2);
+    const t = (w * w + w) / 2;
+    const y = z - t;
+    return [w - y, y];
+}
+
 /**
  * 32 bit FNV-1a hash, see http://isthe.com/chongo/tech/comp/fnv/
  */

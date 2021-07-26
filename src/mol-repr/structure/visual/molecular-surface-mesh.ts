@@ -47,6 +47,9 @@ async function createMolecularSurfaceMesh(ctx: VisualContext, unit: Unit, struct
     };
     const surface = await computeMarchingCubesMesh(params, mesh).runAsChild(ctx.runtime);
 
+    const iterations = Math.ceil(2 / props.resolution);
+    if (props.smoothEdges) Mesh.smoothEdges(surface, iterations);
+
     Mesh.transform(surface, transform);
     if (ctx.webgl && !ctx.webgl.isWebGL2) Mesh.uniformTriangleGroup(surface);
 
@@ -71,6 +74,7 @@ export function MolecularSurfaceMeshVisual(materialId: number): UnitsVisual<Mole
             if (newProps.ignoreHydrogens !== currentProps.ignoreHydrogens) state.createGeometry = true;
             if (newProps.traceOnly !== currentProps.traceOnly) state.createGeometry = true;
             if (newProps.includeParent !== currentProps.includeParent) state.createGeometry = true;
+            if (newProps.smoothEdges !== currentProps.smoothEdges) state.createGeometry = true;
             if (newProps.smoothColors.name !== currentProps.smoothColors.name) {
                 state.updateColor = true;
             } else if (newProps.smoothColors.name === 'on' && currentProps.smoothColors.name === 'on') {
