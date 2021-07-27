@@ -7,7 +7,7 @@
 import { merge } from 'rxjs';
 import { CollapsableControls, CollapsableState } from '../../mol-plugin-ui/base';
 import { Button } from '../../mol-plugin-ui/controls/common';
-import { GetAppSvg, CubeSendSvg } from '../../mol-plugin-ui/controls/icons';
+import { GetAppSvg, CubeScanSvg, CubeSendSvg } from '../../mol-plugin-ui/controls/icons';
 import { ParameterControls } from '../../mol-plugin-ui/controls/parameters';
 import { download } from '../../mol-util/download';
 import { GeometryParams, GeometryControls } from './controls';
@@ -18,6 +18,7 @@ interface State {
 
 export class GeometryExporterUI extends CollapsableControls<{}, State> {
     private _controls: GeometryControls | undefined;
+    private isARSupported: boolean | undefined;
 
     get controls() {
         return this._controls || (this._controls = new GeometryControls(this.plugin));
@@ -32,6 +33,9 @@ export class GeometryExporterUI extends CollapsableControls<{}, State> {
     }
 
     protected renderControls(): JSX.Element {
+        if (this.isARSupported === undefined) {
+            this.isARSupported = !!document.createElement('a').relList?.supports?.('ar');
+        }
         const ctrl = this.controls;
         return <>
             <ParameterControls
@@ -45,6 +49,13 @@ export class GeometryExporterUI extends CollapsableControls<{}, State> {
                 disabled={this.state.busy || !this.plugin.canvas3d?.reprCount.value}>
                 Save
             </Button>
+            {this.isARSupported && ctrl.behaviors.params.value.format === 'usdz' &&
+                <Button icon={CubeScanSvg}
+                    onClick={this.viewInAR} style={{ marginTop: 1 }}
+                    disabled={this.state.busy || !this.plugin.canvas3d?.reprCount.value}>
+                    View in AR
+                </Button>
+            }
         </>;
     }
 
@@ -71,6 +82,24 @@ export class GeometryExporterUI extends CollapsableControls<{}, State> {
             this.setState({ busy: false });
 
             download(data.blob, data.filename);
+        } catch {
+            this.setState({ busy: false });
+        }
+    }
+
+    viewInAR = async () => {
+        try {
+            this.setState({ busy: true });
+            const data = await this.controls.exportGeometry();
+            this.setState({ busy: false });
+            const a = document.createElement('a');
+            a.rel = 'ar';
+            a.href = URL.createObjectURL(data.blob);
+            // For in-place viewing of USDZ on iOS, the link must contain a single child that is either an img or picture.
+            // https://webkit.org/blog/8421/viewing-augmented-reality-assets-in-safari-for-ios/
+            a.appendChild(document.createElement('img'));
+            setTimeout(() => URL.revokeObjectURL(a.href), 4E4); // 40s
+            setTimeout(() => a.dispatchEvent(new MouseEvent('click')));
         } catch {
             this.setState({ busy: false });
         }

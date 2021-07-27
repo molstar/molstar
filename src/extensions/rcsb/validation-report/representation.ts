@@ -16,7 +16,7 @@ import { RepresentationContext, RepresentationParamsGetter, Representation } fro
 import { UnitsRepresentation, StructureRepresentation, StructureRepresentationStateBuilder, StructureRepresentationProvider, ComplexRepresentation } from '../../../mol-repr/structure/representation';
 import { VisualContext } from '../../../mol-repr/visual';
 import { createLinkCylinderMesh, LinkCylinderParams, LinkStyle } from '../../../mol-repr/structure/visual/util/link';
-import { UnitsMeshParams, UnitsVisual, UnitsMeshVisual, StructureGroup } from '../../../mol-repr/structure/units-visual';
+import { UnitsMeshParams, UnitsVisual, UnitsMeshVisual } from '../../../mol-repr/structure/units-visual';
 import { VisualUpdateState } from '../../../mol-repr/util';
 import { LocationIterator } from '../../../mol-geo/util/location-iterator';
 import { ClashesProvider, IntraUnitClashes, InterUnitClashes, ValidationReport } from './prop';
@@ -28,6 +28,7 @@ import { CentroidHelper } from '../../../mol-math/geometry/centroid-helper';
 import { Sphere3D } from '../../../mol-math/geometry';
 import { bondLabel } from '../../../mol-theme/label';
 import { getUnitKindsParam } from '../../../mol-repr/structure/params';
+import { StructureGroup } from '../../../mol-repr/structure/visual/util/common';
 
 //
 

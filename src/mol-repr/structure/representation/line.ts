@@ -23,6 +23,7 @@ const LineVisuals = {
 export const LineParams = {
     ...IntraUnitBondLineParams,
     ...InterUnitBondLineParams,
+    includeParent: PD.Boolean(false),
     sizeFactor: PD.Numeric(1.5, { min: 0.01, max: 10, step: 0.01 }),
     unitKinds: getUnitKindsParam(['atomic']),
     visuals: PD.MultiSelect(['intra-bond', 'inter-bond'], PD.objectToOptions(LineVisuals))

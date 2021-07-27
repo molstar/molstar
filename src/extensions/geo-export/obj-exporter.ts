@@ -4,7 +4,6 @@
  * @author Sukolsak Sakshuwong <sukolsak@stanford.edu>
  */
 
-import { sort, arraySwap } from '../../mol-data/util';
 import { asciiWrite } from '../../mol-io/common/ascii';
 import { Box3D } from '../../mol-math/geometry';
 import { Vec3, Mat3, Mat4 } from '../../mol-math/linear-algebra';
@@ -66,70 +65,6 @@ export class ObjExporter extends MeshExporter<ObjData> {
             StringBuilder.writeSafe(mtl, 'd '); // dissolve
             StringBuilder.writeFloat(mtl, alpha, 1000);
             StringBuilder.newline(mtl);
-        }
-    }
-
-    private static quantizeColors(colorArray: Uint8Array, vertexCount: number) {
-        if (vertexCount <= 1024) return;
-        const rgb = Vec3();
-        const min = Vec3();
-        const max = Vec3();
-        const sum = Vec3();
-        const colorMap = new Map<Color, Color>();
-        const colorComparers = [
-            (colors: Color[], i: number, j: number) => (Color.toVec3(rgb, colors[i])[0] - Color.toVec3(rgb, colors[j])[0]),
-            (colors: Color[], i: number, j: number) => (Color.toVec3(rgb, colors[i])[1] - Color.toVec3(rgb, colors[j])[1]),
-            (colors: Color[], i: number, j: number) => (Color.toVec3(rgb, colors[i])[2] - Color.toVec3(rgb, colors[j])[2]),
-        ];
-
-        const medianCut = (colors: Color[], l: number, r: number, depth: number) => {
-            if (l > r) return;
-            if (l === r || depth >= 10) {
-                // Find the average color.
-                Vec3.set(sum, 0, 0, 0);
-                for (let i = l; i <= r; ++i) {
-                    Color.toVec3(rgb, colors[i]);
-                    Vec3.add(sum, sum, rgb);
-                }
-                Vec3.round(rgb, Vec3.scale(rgb, sum, 1 / (r - l + 1)));
-                const averageColor = Color.fromArray(rgb, 0);
-                for (let i = l; i <= r; ++i) colorMap.set(colors[i], averageColor);
-                return;
-            }
-
-            // Find the color channel with the greatest range.
-            Vec3.set(min, 255, 255, 255);
-            Vec3.set(max, 0, 0, 0);
-            for (let i = l; i <= r; ++i) {
-                Color.toVec3(rgb, colors[i]);
-                for (let j = 0; j < 3; ++j) {
-                    Vec3.min(min, min, rgb);
-                    Vec3.max(max, max, rgb);
-                }
-            }
-            let k = 0;
-            if (max[1] - min[1] > max[k] - min[k]) k = 1;
-            if (max[2] - min[2] > max[k] - min[k]) k = 2;
-
-            sort(colors, l, r + 1, colorComparers[k], arraySwap);
-
-            const m = (l + r) >> 1;
-            medianCut(colors, l, m, depth + 1);
-            medianCut(colors, m + 1, r, depth + 1);
-        };
-
-        // Create an array of unique colors and use the median cut algorithm.
-        const colorSet = new Set<Color>();
-        for (let i = 0; i < vertexCount; ++i) {
-            colorSet.add(Color.fromArray(colorArray, i * 3));
-        }
-        const colors = Array.from(colorSet);
-        medianCut(colors, 0, colors.length - 1, 0);
-
-        // Map actual colors to quantized colors.
-        for (let i = 0; i < vertexCount; ++i) {
-            const color = colorMap.get(Color.fromArray(colorArray, i * 3));
-            Color.toArray(color!, colorArray, i * 3);
         }
     }
 
@@ -256,7 +191,7 @@ export class ObjExporter extends MeshExporter<ObjData> {
         }
     }
 
-    getData() {
+    async getData() {
         return {
             obj: StringBuilder.getString(this.obj),
             mtl: StringBuilder.getString(this.mtl)
@@ -264,7 +199,7 @@ export class ObjExporter extends MeshExporter<ObjData> {
     }
 
     async getBlob(ctx: RuntimeContext) {
-        const { obj, mtl } = this.getData();
+        const { obj, mtl } = await this.getData();
         const objData = new Uint8Array(obj.length);
         asciiWrite(objData, obj);
         const mtlData = new Uint8Array(mtl.length);

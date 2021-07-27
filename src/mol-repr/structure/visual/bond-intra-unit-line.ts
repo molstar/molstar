@@ -11,7 +11,7 @@ import { Theme } from '../../../mol-theme/theme';
 import { Vec3 } from '../../../mol-math/linear-algebra';
 import { arrayEqual } from '../../../mol-util';
 import { LinkStyle, createLinkLines, LinkBuilderProps } from './util/link';
-import { UnitsVisual, UnitsLinesParams, UnitsLinesVisual, StructureGroup } from '../units-visual';
+import { UnitsVisual, UnitsLinesParams, UnitsLinesVisual } from '../units-visual';
 import { VisualUpdateState } from '../../util';
 import { BondType } from '../../../mol-model/structure/model/types';
 import { BondIterator, BondLineParams, getIntraBondLoci, eachIntraBond, makeIntraBondIgnoreTest } from './util/bond';
@@ -19,6 +19,7 @@ import { Sphere3D } from '../../../mol-math/geometry';
 import { Lines } from '../../../mol-geo/geometry/lines/lines';
 import { IntAdjacencyGraph } from '../../../mol-math/graph';
 import { arrayIntersectionSize } from '../../../mol-util/array';
+import { StructureGroup } from './util/common';
 
 // avoiding namespace lookup improved performance in Chrome (Aug 2020)
 const isBondType = BondType.is;

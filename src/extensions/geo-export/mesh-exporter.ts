@@ -4,6 +4,7 @@
  * @author Sukolsak Sakshuwong <sukolsak@stanford.edu>
  */
 
+import { sort, arraySwap } from '../../mol-data/util';
 import { GraphicsRenderObject } from '../../mol-gl/render-object';
 import { MeshValues } from '../../mol-gl/renderable/mesh';
 import { LinesValues } from '../../mol-gl/renderable/lines';
@@ -22,6 +23,7 @@ import { addCylinder } from '../../mol-geo/geometry/mesh/builder/cylinder';
 import { sizeDataFactor } from '../../mol-geo/geometry/size-data';
 import { Vec3 } from '../../mol-math/linear-algebra';
 import { RuntimeContext } from '../../mol-task';
+import { Color } from '../../mol-util/color/color';
 import { decodeFloatRGB } from '../../mol-util/float-packing';
 import { RenderObjectExporter, RenderObjectExportData } from './render-object-exporter';
 
@@ -109,6 +111,70 @@ export abstract class MeshExporter<D extends RenderObjectExportData> implements 
 
         const interpolated = getTrilinearlyInterpolated({ vertexCount, instanceCount, transformBuffer: aTransform, positionBuffer: vertices, colorType, grid: colorGrid, gridDim: colorGridDim, gridTexDim: colorTexDim, gridTransform: colorGridTransform, vertexStride: stride, colorStride: 4 });
         return interpolated.array;
+    }
+
+    protected static quantizeColors(colorArray: Uint8Array, vertexCount: number) {
+        if (vertexCount <= 1024) return;
+        const rgb = Vec3();
+        const min = Vec3();
+        const max = Vec3();
+        const sum = Vec3();
+        const colorMap = new Map<Color, Color>();
+        const colorComparers = [
+            (colors: Color[], i: number, j: number) => (Color.toVec3(rgb, colors[i])[0] - Color.toVec3(rgb, colors[j])[0]),
+            (colors: Color[], i: number, j: number) => (Color.toVec3(rgb, colors[i])[1] - Color.toVec3(rgb, colors[j])[1]),
+            (colors: Color[], i: number, j: number) => (Color.toVec3(rgb, colors[i])[2] - Color.toVec3(rgb, colors[j])[2]),
+        ];
+
+        const medianCut = (colors: Color[], l: number, r: number, depth: number) => {
+            if (l > r) return;
+            if (l === r || depth >= 10) {
+                // Find the average color.
+                Vec3.set(sum, 0, 0, 0);
+                for (let i = l; i <= r; ++i) {
+                    Color.toVec3(rgb, colors[i]);
+                    Vec3.add(sum, sum, rgb);
+                }
+                Vec3.round(rgb, Vec3.scale(rgb, sum, 1 / (r - l + 1)));
+                const averageColor = Color.fromArray(rgb, 0);
+                for (let i = l; i <= r; ++i) colorMap.set(colors[i], averageColor);
+                return;
+            }
+
+            // Find the color channel with the greatest range.
+            Vec3.set(min, 255, 255, 255);
+            Vec3.set(max, 0, 0, 0);
+            for (let i = l; i <= r; ++i) {
+                Color.toVec3(rgb, colors[i]);
+                for (let j = 0; j < 3; ++j) {
+                    Vec3.min(min, min, rgb);
+                    Vec3.max(max, max, rgb);
+                }
+            }
+            let k = 0;
+            if (max[1] - min[1] > max[k] - min[k]) k = 1;
+            if (max[2] - min[2] > max[k] - min[k]) k = 2;
+
+            sort(colors, l, r + 1, colorComparers[k], arraySwap);
+
+            const m = (l + r) >> 1;
+            medianCut(colors, l, m, depth + 1);
+            medianCut(colors, m + 1, r, depth + 1);
+        };
+
+        // Create an array of unique colors and use the median cut algorithm.
+        const colorSet = new Set<Color>();
+        for (let i = 0; i < vertexCount; ++i) {
+            colorSet.add(Color.fromArray(colorArray, i * 3));
+        }
+        const colors = Array.from(colorSet);
+        medianCut(colors, 0, colors.length - 1, 0);
+
+        // Map actual colors to quantized colors.
+        for (let i = 0; i < vertexCount; ++i) {
+            const color = colorMap.get(Color.fromArray(colorArray, i * 3));
+            Color.toArray(color!, colorArray, i * 3);
+        }
     }
 
     protected static getInstance(input: AddMeshInput, instanceIndex: number) {
@@ -278,7 +344,7 @@ export abstract class MeshExporter<D extends RenderObjectExportData> implements 
         }
     }
 
-    abstract getData(): D;
+    abstract getData(ctx: RuntimeContext): Promise<D>;
 
     abstract getBlob(ctx: RuntimeContext): Promise<Blob>;
 }

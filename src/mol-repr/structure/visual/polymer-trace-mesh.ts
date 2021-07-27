@@ -14,7 +14,7 @@ import { createCurveSegmentState, PolymerTraceIterator, interpolateCurveSegment,
 import { isNucleic, SecondaryStructureType } from '../../../mol-model/structure/model/types';
 import { addSheet } from '../../../mol-geo/geometry/mesh/builder/sheet';
 import { addTube } from '../../../mol-geo/geometry/mesh/builder/tube';
-import { UnitsMeshParams, UnitsVisual, UnitsMeshVisual, StructureGroup } from '../units-visual';
+import { UnitsMeshParams, UnitsVisual, UnitsMeshVisual } from '../units-visual';
 import { VisualUpdateState } from '../../util';
 import { SecondaryStructureProvider } from '../../../mol-model-props/computed/secondary-structure';
 import { addRibbon } from '../../../mol-geo/geometry/mesh/builder/ribbon';
@@ -22,6 +22,7 @@ import { addSphere } from '../../../mol-geo/geometry/mesh/builder/sphere';
 import { Vec3 } from '../../../mol-math/linear-algebra';
 import { BaseGeometry } from '../../../mol-geo/geometry/base';
 import { Sphere3D } from '../../../mol-math/geometry';
+import { StructureGroup } from './util/common';
 
 export const PolymerTraceMeshParams = {
     sizeFactor: PD.Numeric(0.2, { min: 0, max: 10, step: 0.01 }),

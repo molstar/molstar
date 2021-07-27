@@ -71,7 +71,13 @@ export function getAltResidueLociFromId(structure: Structure, unit: Unit.Atomic,
 
 //
 
-export function createUnitsTransform({ units }: Unit.SymmetryGroup, transformData?: TransformData) {
+export type StructureGroup = { structure: Structure, group: Unit.SymmetryGroup }
+
+export function createUnitsTransform(structureGroup: StructureGroup, includeParent: boolean, transformData?: TransformData) {
+    const { child } = structureGroup.structure;
+    const units: ReadonlyArray<Unit> = includeParent && child
+        ? structureGroup.group.units.filter(u => child.unitMap.has(u.id))
+        : structureGroup.group.units;
     const unitCount = units.length;
     const n = unitCount * 16;
     const array = transformData && transformData.aTransform.ref.value.length >= n ? transformData.aTransform.ref.value : new Float32Array(n);

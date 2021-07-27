@@ -8,7 +8,6 @@
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { StructureRepresentation, StructureRepresentationStateBuilder, StructureRepresentationState } from './representation';
 import { Visual } from '../visual';
-import { StructureGroup } from './units-visual';
 import { RepresentationContext, RepresentationParamsGetter } from '../representation';
 import { Structure, Unit, StructureElement, Bond } from '../../mol-model/structure';
 import { Subject } from 'rxjs';
@@ -25,6 +24,7 @@ import { Interval } from '../../mol-data/int';
 import { StructureParams } from './params';
 import { Clipping } from '../../mol-theme/clipping';
 import { WebGLContext } from '../../mol-gl/webgl/context';
+import { StructureGroup } from './visual/util/common';
 
 export interface UnitsVisual<P extends StructureParams> extends Visual<StructureGroup, P> { }
 

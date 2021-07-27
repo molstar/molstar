@@ -20,10 +20,10 @@ import { Structure, StructureProperties, Unit } from '../../../mol-model/structu
 import { CustomProperty } from '../../../mol-model-props/common/custom-property';
 import { Representation, RepresentationContext, RepresentationParamsGetter } from '../../../mol-repr/representation';
 import { StructureRepresentation, StructureRepresentationProvider, StructureRepresentationStateBuilder, UnitsRepresentation } from '../../../mol-repr/structure/representation';
-import { StructureGroup, UnitsMeshParams, UnitsMeshVisual, UnitsVisual } from '../../../mol-repr/structure/units-visual';
+import { UnitsMeshParams, UnitsMeshVisual, UnitsVisual } from '../../../mol-repr/structure/units-visual';
 import { VisualUpdateState } from '../../../mol-repr/util';
 import { VisualContext } from '../../../mol-repr/visual';
-import { getAltResidueLociFromId } from '../../../mol-repr/structure/visual/util/common';
+import { getAltResidueLociFromId, StructureGroup } from '../../../mol-repr/structure/visual/util/common';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { Theme, ThemeRegistryContext } from '../../../mol-theme/theme';
 import { NullLocation } from '../../../mol-model/location';

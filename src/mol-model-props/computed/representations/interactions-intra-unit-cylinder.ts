@@ -15,12 +15,13 @@ import { VisualContext } from '../../../mol-repr/visual';
 import { Theme } from '../../../mol-theme/theme';
 import { InteractionsProvider } from '../interactions';
 import { createLinkCylinderMesh, LinkCylinderParams, LinkStyle } from '../../../mol-repr/structure/visual/util/link';
-import { UnitsMeshParams, UnitsVisual, UnitsMeshVisual, StructureGroup } from '../../../mol-repr/structure/units-visual';
+import { UnitsMeshParams, UnitsVisual, UnitsMeshVisual } from '../../../mol-repr/structure/units-visual';
 import { VisualUpdateState } from '../../../mol-repr/util';
 import { LocationIterator } from '../../../mol-geo/util/location-iterator';
 import { Interactions } from '../interactions/interactions';
 import { InteractionFlag } from '../interactions/common';
 import { Sphere3D } from '../../../mol-math/geometry';
+import { StructureGroup } from '../../../mol-repr/structure/visual/util/common';
 
 async function createIntraUnitInteractionsCylinderMesh(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: PD.Values<InteractionsIntraUnitParams>, mesh?: Mesh) {
     if (!Unit.isAtomic(unit)) return Mesh.createEmpty(mesh);
