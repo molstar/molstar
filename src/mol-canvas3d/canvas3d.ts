@@ -222,9 +222,11 @@ interface Canvas3D {
     animate(): void
     /**
      * Pause animation loop and optionally any rendering
-     * @param noDraw pause any rendering
+     * @param noDraw pause any rendering (drawPaused = true)
      */
     pause(noDraw?: boolean): void
+    /** Sets drawPaused = false without starting the built in animation loop */
+    resume(): void
     identify(x: number, y: number): PickData | undefined
     mark(loci: Representation.Loci, action: MarkerAction): void
     getLoci(pickingId: PickingId | undefined): Representation.Loci
@@ -305,7 +307,6 @@ namespace Canvas3D {
         const interactionHelper = new Canvas3dInteractionHelper(identify, getLoci, input, camera);
         const multiSampleHelper = new MultiSampleHelper(passes.multiSample);
 
-        let drawPending = false;
         let cameraResetRequested = false;
         let nextCameraResetDuration: number | undefined = void 0;
         let nextCameraResetSnapshot: Camera.SnapshotProvider | undefined = void 0;
@@ -373,9 +374,13 @@ namespace Canvas3D {
             let didRender = false;
             controls.update(currentTime);
             const cameraChanged = camera.update();
-            const multiSampleChanged = multiSampleHelper.update(force || cameraChanged, p.multiSample);
 
-            if (resized || force || cameraChanged || multiSampleChanged) {
+            const shouldRender = force || cameraChanged || resized || forceNextRender;
+            forceNextRender = false;
+
+            const multiSampleChanged = multiSampleHelper.update(shouldRender, p.multiSample);
+
+            if (shouldRender || multiSampleChanged) {
                 let cam: Camera | StereoCamera = camera;
                 if (p.camera.stereo.name === 'on') {
                     stereoCamera.update();
@@ -394,24 +399,20 @@ namespace Canvas3D {
             return didRender;
         }
 
-        let forceNextDraw = false;
+        let forceNextRender = false;
         let forceDrawAfterAllCommited = false;
         let currentTime = 0;
         let drawPaused = false;
 
         function draw(force?: boolean) {
             if (drawPaused) return;
-            if (render(!!force || forceNextDraw) && notifyDidDraw) {
+            if (render(!!force) && notifyDidDraw) {
                 didDraw.next(now() - startTime as now.Timestamp);
             }
-            forceNextDraw = false;
-            drawPending = false;
         }
 
         function requestDraw(force?: boolean) {
-            if (drawPending) return;
-            drawPending = true;
-            forceNextDraw = !!force;
+            forceNextRender = forceNextRender || !!force;
         }
 
         let animationFrameHandle = 0;
@@ -703,6 +704,7 @@ namespace Canvas3D {
             animate,
             resetTime,
             pause,
+            resume: () => { drawPaused = false; },
             identify,
             mark,
             getLoci,
@@ -816,6 +818,8 @@ namespace Canvas3D {
         };
 
         function updateViewport() {
+            const oldX = x, oldY = y, oldWidth = width, oldHeight = height;
+
             if (p.viewport.name === 'canvas') {
                 x = 0;
                 y = 0;
@@ -836,6 +840,9 @@ namespace Canvas3D {
                 // console.log({ x, y, width, height });
             }
 
+            if (oldX !== x || oldY !== y || oldWidth !== width || oldHeight !== height) {
+                forceNextRender = true;
+            }
         }
 
         function syncViewport() {
