@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2020 Mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2021 Mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -11,14 +11,15 @@ import { FormatPropertyProvider } from '../../common/property';
 import { BondType } from '../../../../mol-model/structure/model/types';
 import { ElementIndex } from '../../../../mol-model/structure';
 
-export type IndexPairBondsProps = {
+export type IndexPairsProps = {
     readonly order: ArrayLike<number>
     readonly distance: ArrayLike<number>
     readonly flag: ArrayLike<BondType.Flag>
 }
-export type IndexPairBonds = IntAdjacencyGraph<ElementIndex, IndexPairBondsProps>
+export type IndexPairs = IntAdjacencyGraph<ElementIndex, IndexPairsProps>
+export type IndexPairBonds = { bonds: IndexPairs, maxDistance: number }
 
-function getGraph(indexA: ArrayLike<ElementIndex>, indexB: ArrayLike<ElementIndex>, props: Partial<IndexPairBondsProps>, count: number): IndexPairBonds {
+function getGraph(indexA: ArrayLike<ElementIndex>, indexB: ArrayLike<ElementIndex>, props: Partial<IndexPairsProps>, count: number): IndexPairs {
     const builder = new IntAdjacencyGraph.EdgeBuilder(count, indexA, indexB);
     const order = new Int8Array(builder.slotCount);
     const distance = new Array(builder.slotCount);
@@ -51,13 +52,16 @@ export namespace IndexPairBonds {
         count: number
     }
 
-    export function fromData(data: Data) {
+    export function fromData(data: Data, maxDistance = 4): IndexPairBonds {
         const { pairs, count } = data;
         const indexA = pairs.indexA.toArray() as ArrayLike<ElementIndex>;
         const indexB = pairs.indexB.toArray() as ArrayLike<ElementIndex>;
         const order = pairs.order && pairs.order.toArray();
         const distance = pairs.distance && pairs.distance.toArray();
         const flag = pairs.flag && pairs.flag.toArray();
-        return getGraph(indexA, indexB, { order, distance, flag }, count);
+        return {
+            bonds: getGraph(indexA, indexB, { order, distance, flag }, count),
+            maxDistance
+        };
     }
 }

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2020 Mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2021 Mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -73,11 +73,12 @@ function findPairBonds(unitA: Unit.Atomic, unitB: Unit.Atomic, props: BondComput
         if (Vec3.squaredDistance(_imageA, bCenter) > testDistanceSq) continue;
 
         if (!props.forceCompute && indexPairs) {
-            const { order, distance, flag } = indexPairs.edgeProps;
+            const { maxDistance } = indexPairs;
+            const { offset, b, edgeProps: { order, distance, flag } } = indexPairs.bonds;
 
             const srcA = sourceIndex.value(aI);
-            for (let i = indexPairs.offset[srcA], il = indexPairs.offset[srcA + 1]; i < il; ++i) {
-                const bI = invertedIndex![indexPairs.b[i]];
+            for (let i = offset[srcA], il = offset[srcA + 1]; i < il; ++i) {
+                const bI = invertedIndex![b[i]];
 
                 const _bI = SortedArray.indexOf(unitB.elements, bI) as StructureElement.UnitIndex;
                 if (_bI < 0) continue;
@@ -85,7 +86,7 @@ function findPairBonds(unitA: Unit.Atomic, unitB: Unit.Atomic, props: BondComput
 
                 const d = distance[i];
                 const dist = getDistance(unitA, aI, unitB, bI);
-                if ((d !== -1 && equalEps(dist, d, 0.5)) || dist < maxRadius) {
+                if ((d !== -1 && equalEps(dist, d, 0.5)) || dist < maxDistance) {
                     builder.add(_aI, _bI, { order: order[i], flag: flag[i] });
                 }
             }
@@ -187,8 +188,9 @@ const DefaultInterBondComputationProps = {
 
 function findBonds(structure: Structure, props: InterBondComputationProps) {
     const builder = new InterUnitGraph.Builder<number, StructureElement.UnitIndex, InterUnitEdgeProps>();
+    const hasIndexPairBonds = structure.models.some(m => IndexPairBonds.Provider.get(m));
 
-    if (props.noCompute || structure.isCoarseGrained) {
+    if (props.noCompute || (structure.isCoarseGrained && !hasIndexPairBonds)) {
         // TODO add function that only adds bonds defined in structConn and avoids using
         //      structure.lookup and unit.lookup (expensive for large structure and not
         //      needed for archival files or files with an MD topology)

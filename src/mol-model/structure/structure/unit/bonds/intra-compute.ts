@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2020 Mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2021 Mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -44,14 +44,13 @@ function getDistance(unit: Unit.Atomic, indexA: ElementIndex, indexB: ElementInd
 
 const __structConnAdded = new Set<StructureElement.UnitIndex>();
 
-function findIndexPairBonds(unit: Unit.Atomic, props: BondComputationProps) {
-    const { maxRadius } = props;
-
+function findIndexPairBonds(unit: Unit.Atomic) {
     const indexPairs = IndexPairBonds.Provider.get(unit.model)!;
     const { elements: atoms } = unit;
     const { type_symbol } = unit.model.atomicHierarchy.atoms;
     const atomCount = unit.elements.length;
-    const { edgeProps } = indexPairs;
+    const { maxDistance } = indexPairs;
+    const { offset, b, edgeProps: { order, distance, flag } } = indexPairs.bonds;
 
     const { atomSourceIndex: sourceIndex } = unit.model.atomicHierarchy;
     const { invertedIndex } = Model.getInvertedAtomSourceIndex(unit.model);
@@ -59,7 +58,7 @@ function findIndexPairBonds(unit: Unit.Atomic, props: BondComputationProps) {
     const atomA: StructureElement.UnitIndex[] = [];
     const atomB: StructureElement.UnitIndex[] = [];
     const flags: number[] = [];
-    const order: number[] = [];
+    const orders: number[] = [];
 
     for (let _aI = 0 as StructureElement.UnitIndex; _aI < atomCount; _aI++) {
         const aI =  atoms[_aI];
@@ -67,26 +66,26 @@ function findIndexPairBonds(unit: Unit.Atomic, props: BondComputationProps) {
 
         const srcA = sourceIndex.value(aI);
 
-        for (let i = indexPairs.offset[srcA], il = indexPairs.offset[srcA + 1]; i < il; ++i) {
-            const bI = invertedIndex[indexPairs.b[i]];
+        for (let i = offset[srcA], il = offset[srcA + 1]; i < il; ++i) {
+            const bI = invertedIndex[b[i]];
             if (aI >= bI) continue;
 
             const _bI = SortedArray.indexOf(unit.elements, bI) as StructureElement.UnitIndex;
             if (_bI < 0) continue;
             if (isHa && type_symbol.value(bI) === 'H') continue;
 
-            const d = edgeProps.distance[i];
+            const d = distance[i];
             const dist = getDistance(unit, aI, bI);
-            if ((d !== -1 && equalEps(dist, d, 0.5)) || dist < maxRadius) {
+            if ((d !== -1 && equalEps(dist, d, 0.5)) || dist < maxDistance) {
                 atomA[atomA.length] = _aI;
                 atomB[atomB.length] = _bI;
-                order[order.length] = edgeProps.order[i];
-                flags[flags.length] = edgeProps.flag[i];
+                orders[order.length] = order[i];
+                flags[flags.length] = flag[i];
             }
         }
     }
 
-    return getGraph(atomA, atomB, order, flags, atomCount, false);
+    return getGraph(atomA, atomB, orders, flags, atomCount, false);
 }
 
 function findBonds(unit: Unit.Atomic, props: BondComputationProps): IntraUnitBonds {
@@ -248,8 +247,8 @@ function computeIntraUnitBonds(unit: Unit.Atomic, props?: Partial<BondComputatio
         return IntraUnitBonds.Empty;
     }
 
-    if (!p.forceCompute && IndexPairBonds.Provider.get(unit.model)!) {
-        return findIndexPairBonds(unit, p);
+    if (!p.forceCompute && IndexPairBonds.Provider.get(unit.model)) {
+        return findIndexPairBonds(unit);
     } else {
         return findBonds(unit, p);
     }
