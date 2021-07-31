@@ -472,6 +472,21 @@ const surroundingLigands = StructureSelectionQuery('Surrounding Ligands (5 \u212
     referencesCurrent: true
 });
 
+const surroundingAtoms = StructureSelectionQuery('Surrounding Atoms (5 \u212B) of Selection', MS.struct.modifier.union([
+    MS.struct.modifier.exceptBy({
+        0: MS.struct.modifier.includeSurroundings({
+            0: MS.internal.generator.current(),
+            radius: 5,
+            'as-whole-residues': false
+        }),
+        by: MS.internal.generator.current()
+    })
+]), {
+    description: 'Select atoms within 5 \u212B of the current selection.',
+    category: StructureSelectionCategory.Manipulate,
+    referencesCurrent: true
+});
+
 const complement = StructureSelectionQuery('Inverse / Complement of Selection', MS.struct.modifier.union([
     MS.struct.modifier.exceptBy({
         0: MS.struct.generator.all(),
@@ -694,6 +709,7 @@ export const StructureSelectionQueries = {
     aromaticRing,
     surroundings,
     surroundingLigands,
+    surroundingAtoms,
     complement,
     covalentlyBonded,
     covalentlyOrMetallicBonded,

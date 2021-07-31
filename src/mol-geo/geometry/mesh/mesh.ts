@@ -387,9 +387,6 @@ export namespace Mesh {
 
     function createValues(mesh: Mesh, transform: TransformData, locationIt: LocationIterator, theme: Theme, props: PD.Values<Params>): MeshValues {
         const { instanceCount, groupCount } = locationIt;
-        if (instanceCount !== transform.instanceCount.ref.value) {
-            throw new Error('instanceCount values in TransformData and LocationIterator differ');
-        }
         const positionIt = createPositionIterator(mesh, transform);
 
         const color = createColors(locationIt, positionIt, theme.color);

@@ -27,8 +27,8 @@ export const ColorSmoothingParams = {
 };
 export type ColorSmoothingParams = typeof ColorSmoothingParams
 
-export function getColorSmoothingProps(props: PD.Values<ColorSmoothingParams>, theme: Theme, resolution?: number, webgl?: WebGLContext) {
-    if ((props.smoothColors.name === 'on' || (props.smoothColors.name === 'auto' && theme.color.preferSmoothing)) && resolution && resolution < 3 && webgl) {
+export function getColorSmoothingProps(props: PD.Values<ColorSmoothingParams>, theme: Theme, resolution?: number) {
+    if ((props.smoothColors.name === 'on' || (props.smoothColors.name === 'auto' && theme.color.preferSmoothing)) && resolution && resolution < 3) {
         let stride = 3;
         if (props.smoothColors.name === 'on') {
             resolution *= props.smoothColors.params.resolutionFactor;
@@ -39,7 +39,7 @@ export function getColorSmoothingProps(props: PD.Values<ColorSmoothingParams>, t
             resolution = Math.max(0.5, resolution);
             if (resolution > 1.2) stride = 2;
         }
-        return { resolution, stride, webgl };
+        return { resolution, stride };
     };
 }
 
