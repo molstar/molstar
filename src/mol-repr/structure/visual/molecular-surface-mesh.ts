@@ -80,9 +80,9 @@ export function MolecularSurfaceMeshVisual(materialId: number): UnitsVisual<Mole
         },
         processValues: (values: MeshValues, geometry: Mesh, props: PD.Values<MolecularSurfaceMeshParams>, theme: Theme, webgl?: WebGLContext) => {
             const { resolution, colorTexture } = geometry.meta as MolecularSurfaceMeta;
-            const csp = getColorSmoothingProps(props, theme, resolution, webgl);
+            const csp = getColorSmoothingProps(props, theme, resolution);
             if (csp) {
-                applyMeshColorSmoothing(values, csp.resolution, csp.stride, csp.webgl, colorTexture);
+                applyMeshColorSmoothing(values, csp.resolution, csp.stride, webgl, colorTexture);
                 (geometry.meta.colorTexture as MolecularSurfaceMeta['colorTexture']) = values.tColorGrid.ref.value;
             }
         },
