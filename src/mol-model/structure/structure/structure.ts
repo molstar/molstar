@@ -383,7 +383,15 @@ class Structure {
      */
     asParent(): Structure {
         if (this._proxy) return this._proxy;
-        this._proxy = this.parent ? new Structure(this.parent.units, this.parent.unitMap, this.parent.unitIndexMap, this.parent.state, { child: this, target: this.parent }) : this;
+        if (this.parent) {
+            if (!this.parent.coordinateSystem.isIdentity) {
+                throw new Error('parent coordinate system must be identity');
+            }
+            const s = this.coordinateSystem.isIdentity ? this.parent : Structure.transform(this.parent, this.coordinateSystem.matrix);
+            this._proxy = new Structure(s.units, s.unitMap, s.unitIndexMap, { ...s.state, dynamicBonds: this.dynamicBonds }, { child: this, target: this.parent });
+        } else {
+            this._proxy = this;
+        }
         return this._proxy;
     }
 
