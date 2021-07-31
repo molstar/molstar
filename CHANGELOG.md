@@ -6,6 +6,9 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+
+## [v2.2.0] - 2021-07-31
+
 - Add `tubularHelices` parameter to Cartoon representation
 - Add `SdfFormat` and update SDF parser to be able to parse data headers according to spec (hopefully :)) #230
 - Fix mononucleotides detected as polymer components (#229)
