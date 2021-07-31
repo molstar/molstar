@@ -759,12 +759,12 @@ namespace Structure {
      * Generally, a single unit corresponds to a single chain, with the exception
      * of consecutive "single atom chains" with same entity_id and same auth_asym_id.
      */
-    export function ofModel(model: Model, dynamicBonds = false): Structure {
+    export function ofModel(model: Model, props: Props = {}): Structure {
         const chains = model.atomicHierarchy.chainAtomSegments;
         const { index } = model.atomicHierarchy;
         const { auth_asym_id } = model.atomicHierarchy.chains;
         const { atomicChainOperatorMappinng } = model;
-        const builder = new StructureBuilder({ label: model.label, dynamicBonds });
+        const builder = new StructureBuilder({ label: model.label, ...props });
 
         for (let c = 0 as ChainIndex; c < chains.count; c++) {
             const operator = atomicChainOperatorMappinng.get(c) || SymmetryOperator.Default;

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -132,7 +132,7 @@ async function applyCrystalSymmetry(props: { ijkMin: Vec3, ijkMax: Vec3, theme?:
 
     const structure = await builder.createStructure(modelProperties || model, {
         name: 'symmetry',
-        params: { ...props, dynamicBonds: false }
+        params: props
     });
     const structureProperties = await builder.insertStructureProperties(structure, params.structureProperties);
 
