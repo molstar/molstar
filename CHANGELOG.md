@@ -16,6 +16,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Fix `includeParent` support for multi-instance bond visuals.
 - Add `operator` Loci granularity, selecting everything with the same operator name.
 - Prefer ``_label_seq_id`` fields in secondary structure assignment.
+- Support new EMDB API (https://www.ebi.ac.uk/emdb/api/entry/map/[EMBD-ID]) for EM volume contour levels.
 
 ## [v2.1.0] - 2021-07-05
 
