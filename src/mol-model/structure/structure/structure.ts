@@ -620,6 +620,10 @@ namespace Structure {
     export interface Props {
         parent?: Structure
         interUnitBonds?: InterUnitBonds
+        /**
+         * Ensure bonds are recalculated upon model changes.
+         * Also enables calculation of inter-unit bonds in water molecules.
+         */
         dynamicBonds?: boolean,
         coordinateSystem?: SymmetryOperator
         label?: string
