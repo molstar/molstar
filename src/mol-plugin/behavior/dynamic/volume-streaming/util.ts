@@ -76,8 +76,22 @@ export async function getContourLevelEmdb(plugin: PluginContext, taskCtx: Runtim
 }
 
 export async function getContourLevelPdbe(plugin: PluginContext, taskCtx: RuntimeContext, emdbId: string) {
+    // TODO: parametrize URL in plugin settings?
     emdbId = emdbId.toUpperCase();
-    // TODO: parametrize to a differnt URL? in plugin settings perhaps
+    const header = await plugin.fetch({ url: `https://www.ebi.ac.uk/emdb/api/entry/map/${emdbId}`, type: 'json' }).runInContext(taskCtx);
+    const contours = header?.map?.contour_list?.contour;
+
+    if (!contours || contours.length === 0) {
+        // try fallback to the old API
+        return getContourLevelPdbeLegacy(plugin, taskCtx, emdbId);
+    }
+
+    return contours.find((c: any) => c.primary)?.level ?? contours[0].level;
+}
+
+async function getContourLevelPdbeLegacy(plugin: PluginContext, taskCtx: RuntimeContext, emdbId: string) {
+    // TODO: parametrize URL in plugin settings?
+    emdbId = emdbId.toUpperCase();
     const header = await plugin.fetch({ url: `https://www.ebi.ac.uk/pdbe/api/emdb/entry/map/${emdbId}`, type: 'json' }).runInContext(taskCtx);
     const emdbEntry = header?.[emdbId];
     let contourLevel: number | undefined = void 0;

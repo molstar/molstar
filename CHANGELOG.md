@@ -6,6 +6,10 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Add surronding atoms (5 Angstrom) structure selection query
+
+## [v2.2.0] - 2021-07-31
+
 - Add `tubularHelices` parameter to Cartoon representation
 - Add `SdfFormat` and update SDF parser to be able to parse data headers according to spec (hopefully :)) #230
 - Fix mononucleotides detected as polymer components (#229)
@@ -15,6 +19,12 @@ Note that since we don't clearly distinguish between a public and private interf
 - Add USDZ support to ``geo-export`` extension.
 - Fix `includeParent` support for multi-instance bond visuals.
 - Add `operator` Loci granularity, selecting everything with the same operator name.
+- Prefer ``_label_seq_id`` fields in secondary structure assignment.
+- Support new EMDB API (https://www.ebi.ac.uk/emdb/api/entry/map/[EMBD-ID]) for EM volume contour levels.
+- ``Canvas3D`` tweaks:
+    - Update ``forceDraw`` logic.
+    - Ensure the scene is re-rendered when viewport size changes.
+    - Support ``noDraw`` mode in ``PluginAnimationLoop``.
 
 ## [v2.1.0] - 2021-07-05
 

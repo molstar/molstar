@@ -31,17 +31,23 @@ export class PluginAnimationLoop {
         this.plugin.canvas3d?.resetTime(t);
     }
 
-    start() {
+    start(options?: { immediate?: boolean }) {
+        this.plugin.canvas3d?.resume();
         this._isAnimating = true;
         this.resetTime();
-        this.currentFrame = requestAnimationFrame(this.frame);
+        // TODO: should immediate be the default mode?
+        if (options?.immediate) this.frame();
+        else this.currentFrame = requestAnimationFrame(this.frame);
     }
 
-    stop() {
+    stop(options?: { noDraw?: boolean }) {
         this._isAnimating = false;
         if (this.currentFrame !== void 0) {
             cancelAnimationFrame(this.currentFrame);
             this.currentFrame = void 0;
+        }
+        if (options?.noDraw) {
+            this.plugin.canvas3d?.pause(options?.noDraw);
         }
     }
 

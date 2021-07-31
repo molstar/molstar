@@ -130,9 +130,9 @@ export function GaussianSurfaceMeshVisual(materialId: number): UnitsVisual<Gauss
         },
         processValues: (values: MeshValues, geometry: Mesh, props: PD.Values<GaussianSurfaceMeshParams>, theme: Theme, webgl?: WebGLContext) => {
             const { resolution, colorTexture } = geometry.meta as GaussianSurfaceMeta;
-            const csp = getColorSmoothingProps(props, theme, resolution, webgl);
+            const csp = getColorSmoothingProps(props, theme, resolution);
             if (csp) {
-                applyMeshColorSmoothing(values, csp.resolution, csp.stride, csp.webgl, colorTexture);
+                applyMeshColorSmoothing(values, csp.resolution, csp.stride, webgl, colorTexture);
                 (geometry.meta.colorTexture as GaussianSurfaceMeta['colorTexture']) = values.tColorGrid.ref.value;
             }
         },
@@ -190,9 +190,9 @@ export function StructureGaussianSurfaceMeshVisual(materialId: number): ComplexV
         },
         processValues: (values: MeshValues, geometry: Mesh, props: PD.Values<GaussianSurfaceMeshParams>, theme: Theme, webgl?: WebGLContext) => {
             const { resolution, colorTexture } = geometry.meta as GaussianSurfaceMeta;
-            const csp = getColorSmoothingProps(props, theme, resolution, webgl);
+            const csp = getColorSmoothingProps(props, theme, resolution);
             if (csp) {
-                applyMeshColorSmoothing(values, csp.resolution, csp.stride, csp.webgl, colorTexture);
+                applyMeshColorSmoothing(values, csp.resolution, csp.stride, webgl, colorTexture);
                 (geometry.meta.colorTexture as GaussianSurfaceMeta['colorTexture']) = values.tColorGrid.ref.value;
             }
         },
@@ -263,9 +263,9 @@ export function GaussianSurfaceTextureMeshVisual(materialId: number): UnitsVisua
         },
         processValues: (values: TextureMeshValues, geometry: TextureMesh, props: PD.Values<GaussianSurfaceMeshParams>, theme: Theme, webgl?: WebGLContext) => {
             const { resolution, colorTexture } = geometry.meta as GaussianSurfaceMeta;
-            const csp = getColorSmoothingProps(props, theme, resolution, webgl);
-            if (csp) {
-                applyTextureMeshColorSmoothing(values, csp.resolution, csp.stride, csp.webgl, colorTexture);
+            const csp = getColorSmoothingProps(props, theme, resolution);
+            if (csp && webgl) {
+                applyTextureMeshColorSmoothing(values, csp.resolution, csp.stride, webgl, colorTexture);
                 (geometry.meta as GaussianSurfaceMeta).colorTexture = values.tColorGrid.ref.value;
             }
         },
@@ -339,9 +339,9 @@ export function StructureGaussianSurfaceTextureMeshVisual(materialId: number): C
         },
         processValues: (values: TextureMeshValues, geometry: TextureMesh, props: PD.Values<GaussianSurfaceMeshParams>, theme: Theme, webgl?: WebGLContext) => {
             const { resolution, colorTexture } = geometry.meta as GaussianSurfaceMeta;
-            const csp = getColorSmoothingProps(props, theme, resolution, webgl);
-            if (csp) {
-                applyTextureMeshColorSmoothing(values, csp.resolution, csp.stride, csp.webgl, colorTexture);
+            const csp = getColorSmoothingProps(props, theme, resolution);
+            if (csp && webgl) {
+                applyTextureMeshColorSmoothing(values, csp.resolution, csp.stride, webgl, colorTexture);
                 (geometry.meta as GaussianSurfaceMeta).colorTexture = values.tColorGrid.ref.value;
             }
         },
