@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -70,11 +70,13 @@ export function sortedCantorPairing(a: number, b: number) {
     return a < b ? cantorPairing(a, b) : cantorPairing(b, a);
 }
 
-export function invertCantorPairing(z: number) {
+export function invertCantorPairing(out: [number, number], z: number) {
     const w = Math.floor((Math.sqrt(8 * z + 1) - 1) / 2);
     const t = (w * w + w) / 2;
     const y = z - t;
-    return [w - y, y];
+    out[0] = w - y;
+    out[1] = y;
+    return out;
 }
 
 /**

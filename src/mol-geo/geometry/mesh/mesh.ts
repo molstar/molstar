@@ -396,11 +396,12 @@ export namespace Mesh {
 
     function getBorderVertices(edgeCounts: Map<number, number>) {
         const borderVertices = new Set<number>();
+        const pair: [number, number] = [0, 0];
         edgeCounts.forEach((c, z) => {
             if (c === 1) {
-                const [a, b] = invertCantorPairing(z);
-                borderVertices.add(a);
-                borderVertices.add(b);
+                invertCantorPairing(pair, z);
+                borderVertices.add(pair[0]);
+                borderVertices.add(pair[1]);
             }
         });
 
@@ -429,7 +430,6 @@ export namespace Mesh {
     function trimEdges(mesh: Mesh, neighboursMap: number[][]) {
         const { indexBuffer, triangleCount } = mesh;
         const ib = indexBuffer.ref.value;
-        // const vc = getVertexCounts(mesh);
 
         // new
         const index = ChunkedArray.create(Uint32Array, 3, 1024, triangleCount);
