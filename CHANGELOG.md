@@ -7,6 +7,9 @@ Note that since we don't clearly distinguish between a public and private interf
 ## [Unreleased]
 
 - Add surronding atoms (5 Angstrom) structure selection query
+- Add ``invertCantorPairing`` helper function
+- Add ``Mesh`` processing helpers: ``.trimByPositionTest`` and ``.smoothEdges``
+- Add ``clipSphere`` param to molecular-surface-mesh visual
 
 ## [v2.2.0] - 2021-07-31
 
