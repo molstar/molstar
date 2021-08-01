@@ -606,6 +606,37 @@ export namespace Mesh {
         return mesh;
     }
 
+    export function trimByPositionTest(mesh: Mesh, test: (p: Vec3) => boolean) {
+        const { vertexBuffer, indexBuffer, triangleCount } = mesh;
+        const vb = vertexBuffer.ref.value;
+        const ib = indexBuffer.ref.value;
+
+        // new
+        const index = ChunkedArray.create(Uint32Array, 3, 1024, triangleCount);
+
+        const v = Vec3();
+
+        let newTriangleCount = 0;
+        for (let i = 0; i < triangleCount; ++i) {
+            const a = ib[i * 3];
+            const b = ib[i * 3 + 1];
+            const c = ib[i * 3 + 2];
+
+            if (!test(Vec3.fromArray(v, vb, a * 3))) continue;
+            if (!test(Vec3.fromArray(v, vb, b * 3))) continue;
+            if (!test(Vec3.fromArray(v, vb, c * 3))) continue;
+
+            ChunkedArray.add3(index, a, b, c);
+            newTriangleCount += 1;
+        }
+
+        const newIb = ChunkedArray.compact(index);
+        mesh.triangleCount = newTriangleCount;
+        ValueCell.update(indexBuffer, newIb) as ValueCell<Uint32Array>;
+
+        return mesh;
+    }
+
     //
 
     export const Params = {

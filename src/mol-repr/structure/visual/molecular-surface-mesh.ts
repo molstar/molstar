@@ -11,7 +11,7 @@ import { VisualContext } from '../../visual';
 import { Unit, Structure } from '../../../mol-model/structure';
 import { Theme } from '../../../mol-theme/theme';
 import { Mesh } from '../../../mol-geo/geometry/mesh/mesh';
-import { computeUnitMolecularSurface, MolecularSurfaceProps } from './util/molecular-surface';
+import { computeUnitMolecularSurface } from './util/molecular-surface';
 import { computeMarchingCubesMesh } from '../../../mol-geo/util/marching-cubes/algorithm';
 import { ElementIterator, getElementLoci, eachElement } from './util/element';
 import { VisualUpdateState } from '../../util';
@@ -21,14 +21,23 @@ import { MeshValues } from '../../../mol-gl/renderable/mesh';
 import { Texture } from '../../../mol-gl/webgl/texture';
 import { WebGLContext } from '../../../mol-gl/webgl/context';
 import { applyMeshColorSmoothing, ColorSmoothingParams, getColorSmoothingProps } from './util/color';
+import { Mat4, Vec3 } from '../../../mol-math/linear-algebra';
 
 export const MolecularSurfaceMeshParams = {
     ...UnitsMeshParams,
     ...MolecularSurfaceCalculationParams,
     ...CommonSurfaceParams,
     ...ColorSmoothingParams,
+    clipSphere: PD.MappedStatic('off', {
+        on: PD.Group({
+            center: PD.Vec3(Vec3()),
+            radius: PD.Numeric(1, { min: 0, max: 100, step: 0.1 })
+        }),
+        off: PD.Group({})
+    }),
 };
 export type MolecularSurfaceMeshParams = typeof MolecularSurfaceMeshParams
+export type MolecularSurfaceMeshProps = PD.Values<MolecularSurfaceMeshParams>
 
 type MolecularSurfaceMeta = {
     resolution?: number
@@ -37,7 +46,7 @@ type MolecularSurfaceMeta = {
 
 //
 
-async function createMolecularSurfaceMesh(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: MolecularSurfaceProps, mesh?: Mesh): Promise<Mesh> {
+async function createMolecularSurfaceMesh(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: MolecularSurfaceMeshProps, mesh?: Mesh): Promise<Mesh> {
     const { transform, field, idField, resolution } = await computeUnitMolecularSurface(structure, unit, props).runInContext(ctx.runtime);
 
     const params = {
@@ -47,8 +56,15 @@ async function createMolecularSurfaceMesh(ctx: VisualContext, unit: Unit, struct
     };
     const surface = await computeMarchingCubesMesh(params, mesh).runAsChild(ctx.runtime);
 
-    const iterations = Math.ceil(2 / props.resolution);
-    if (props.smoothEdges) Mesh.smoothEdges(surface, iterations);
+    if (props.clipSphere.name === 'on') {
+        const { center, radius } = props.clipSphere.params;
+        const c = Vec3.transformMat4(Vec3(), center, Mat4.invert(Mat4(), transform));
+        const r = radius / Mat4.getMaxScaleOnAxis(transform);
+        Mesh.trimByPositionTest(surface, p => Vec3.distance(p, c) < r);
+
+        const iterations = Math.ceil(2 / props.resolution);
+        Mesh.smoothEdges(surface, iterations);
+    }
 
     Mesh.transform(surface, transform);
     if (ctx.webgl && !ctx.webgl.isWebGL2) Mesh.uniformTriangleGroup(surface);
@@ -74,12 +90,19 @@ export function MolecularSurfaceMeshVisual(materialId: number): UnitsVisual<Mole
             if (newProps.ignoreHydrogens !== currentProps.ignoreHydrogens) state.createGeometry = true;
             if (newProps.traceOnly !== currentProps.traceOnly) state.createGeometry = true;
             if (newProps.includeParent !== currentProps.includeParent) state.createGeometry = true;
-            if (newProps.smoothEdges !== currentProps.smoothEdges) state.createGeometry = true;
+
             if (newProps.smoothColors.name !== currentProps.smoothColors.name) {
                 state.updateColor = true;
             } else if (newProps.smoothColors.name === 'on' && currentProps.smoothColors.name === 'on') {
                 if (newProps.smoothColors.params.resolutionFactor !== currentProps.smoothColors.params.resolutionFactor) state.updateColor = true;
                 if (newProps.smoothColors.params.sampleStride !== currentProps.smoothColors.params.sampleStride) state.updateColor = true;
+            }
+
+            if (newProps.clipSphere.name !== currentProps.clipSphere.name) {
+                state.createGeometry = true;
+            } else if (newProps.clipSphere.name === 'on' && currentProps.clipSphere.name === 'on') {
+                if (!Vec3.exactEquals(newProps.clipSphere.params.center, currentProps.clipSphere.params.center)) state.createGeometry = true;
+                if (newProps.clipSphere.params.radius !== currentProps.clipSphere.params.radius) state.createGeometry = true;
             }
         },
         processValues: (values: MeshValues, geometry: Mesh, props: PD.Values<MolecularSurfaceMeshParams>, theme: Theme, webgl?: WebGLContext) => {
