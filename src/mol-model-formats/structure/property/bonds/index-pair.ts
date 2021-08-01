@@ -10,6 +10,7 @@ import { Column } from '../../../../mol-data/db';
 import { FormatPropertyProvider } from '../../common/property';
 import { BondType } from '../../../../mol-model/structure/model/types';
 import { ElementIndex } from '../../../../mol-model/structure';
+import { DefaultBondMaxRadius } from '../../../../mol-model/structure/structure/unit/bonds/common';
 
 export type IndexPairsProps = {
     readonly order: ArrayLike<number>
@@ -52,7 +53,11 @@ export namespace IndexPairBonds {
         count: number
     }
 
-    export function fromData(data: Data, maxDistance = 4): IndexPairBonds {
+    export const DefaultProps = { maxDistance: DefaultBondMaxRadius };
+    export type Props = typeof DefaultProps
+
+    export function fromData(data: Data, props: Partial<Props> = {}): IndexPairBonds {
+        const p = { ...DefaultProps, ...props };
         const { pairs, count } = data;
         const indexA = pairs.indexA.toArray() as ArrayLike<ElementIndex>;
         const indexB = pairs.indexB.toArray() as ArrayLike<ElementIndex>;
@@ -61,7 +66,7 @@ export namespace IndexPairBonds {
         const flag = pairs.flag && pairs.flag.toArray();
         return {
             bonds: getGraph(indexA, indexB, { order, distance, flag }, count),
-            maxDistance
+            maxDistance: p.maxDistance
         };
     }
 }
