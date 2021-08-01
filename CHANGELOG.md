@@ -7,21 +7,25 @@ Note that since we don't clearly distinguish between a public and private interf
 ## [Unreleased]
 
 - Add surronding atoms (5 Angstrom) structure selection query
+- [Breaking] Add maxDistance prop to ``IndexPairBonds``
+- Fix coordinateSystem not handled in ``Structure.asParent``
+- Add dynamicBonds to ``Structure`` props (force re-calc on model change)
+    - Expose as optional param in root structure transform helper
 - Add ``invertCantorPairing`` helper function
 - Add ``Mesh`` processing helpers: ``.trimByPositionTest`` and ``.smoothEdges``
 - Add ``clipSphere`` param to molecular-surface-mesh visual
 
 ## [v2.2.0] - 2021-07-31
 
-- Add `tubularHelices` parameter to Cartoon representation
-- Add `SdfFormat` and update SDF parser to be able to parse data headers according to spec (hopefully :)) #230
+- Add ``tubularHelices`` parameter to Cartoon representation
+- Add ``SdfFormat`` and update SDF parser to be able to parse data headers according to spec (hopefully :)) #230
 - Fix mononucleotides detected as polymer components (#229)
 - Set default outline scale back to 1
 - Improved DCD reader cell angle handling (interpret near 0 angles as 90 deg)
 - Handle more residue/atom names commonly used in force-fields
 - Add USDZ support to ``geo-export`` extension.
-- Fix `includeParent` support for multi-instance bond visuals.
-- Add `operator` Loci granularity, selecting everything with the same operator name.
+- Fix ``includeParent`` support for multi-instance bond visuals.
+- Add ``operator`` Loci granularity, selecting everything with the same operator name.
 - Prefer ``_label_seq_id`` fields in secondary structure assignment.
 - Support new EMDB API (https://www.ebi.ac.uk/emdb/api/entry/map/[EMBD-ID]) for EM volume contour levels.
 - ``Canvas3D`` tweaks:
@@ -61,8 +65,8 @@ Note that since we don't clearly distinguish between a public and private interf
 - Add ability to select residues from a list of identifiers to the Selection UI.
 - Fix SSAO bugs when used with ``Canvas3D`` viewport.
 - Support for  full pausing (no draw) rendering: ``Canvas3D.pause(true)``.
-- Add `MeshBuilder.addMesh`.
-- Add `Torus` primitive.
+- Add ``MeshBuilder.addMesh``.
+- Add ``Torus`` primitive.
 - Lazy volume loading support.
 - [Breaking] ``Viewer.loadVolumeFromUrl`` signature change.
     - ``loadVolumeFromUrl(url, format, isBinary, isovalues, entryId)`` => ``loadVolumeFromUrl({ url, format, isBinary }, isovalues, { entryId, isLazy })``
@@ -80,12 +84,12 @@ Note that since we don't clearly distinguish between a public and private interf
 - Support for ``ColorTheme.palette`` designed for providing gradient-like coloring.
 
 ### Changed
-- [Breaking] The `zip` function is now asynchronous and expects a `RuntimeContext`. Also added `Zip()` returning a `Task`.
+- [Breaking] The ``zip`` function is now asynchronous and expects a ``RuntimeContext``. Also added ``Zip()`` returning a ``Task``.
 - [Breaking] Add ``CubeGridFormat`` in ``alpha-orbitals`` extension.
 
 ## [v2.0.2] - 2021-03-29
 ### Added
-- `Canvas3D.getRenderObjects`.
+- ``Canvas3D.getRenderObjects``.
 - [WIP] Animate state interpolating, including model trajectories
 
 ### Changed

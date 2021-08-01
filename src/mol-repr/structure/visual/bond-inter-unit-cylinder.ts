@@ -203,7 +203,7 @@ export function InterUnitBondCylinderImpostorVisual(materialId: number): Complex
         createLocationIterator: BondIterator.fromStructure,
         getLoci: getInterBondLoci,
         eachLocation: eachInterBond,
-        setUpdateState: (state: VisualUpdateState, newProps: PD.Values<InterUnitBondCylinderParams>, currentProps: PD.Values<InterUnitBondCylinderParams>) => {
+        setUpdateState: (state: VisualUpdateState, newProps: PD.Values<InterUnitBondCylinderParams>, currentProps: PD.Values<InterUnitBondCylinderParams>, newTheme: Theme, currentTheme: Theme, newStructure: Structure, currentStructure: Structure) => {
             state.createGeometry = (
                 newProps.sizeAspectRatio !== currentProps.sizeAspectRatio ||
                 newProps.linkScale !== currentProps.linkScale ||
@@ -218,6 +218,13 @@ export function InterUnitBondCylinderImpostorVisual(materialId: number): Complex
                 !arrayEqual(newProps.excludeTypes, currentProps.excludeTypes) ||
                 newProps.adjustCylinderLength !== currentProps.adjustCylinderLength
             );
+
+            if (newStructure.interUnitBonds !== currentStructure.interUnitBonds) {
+                state.createGeometry = true;
+                state.updateTransform = true;
+                state.updateColor = true;
+                state.updateSize = true;
+            }
         },
         mustRecreate: (structure: Structure, props: PD.Values<InterUnitBondCylinderParams>, webgl?: WebGLContext) => {
             return !props.tryUseImpostor || !webgl;
@@ -232,7 +239,7 @@ export function InterUnitBondCylinderMeshVisual(materialId: number): ComplexVisu
         createLocationIterator: BondIterator.fromStructure,
         getLoci: getInterBondLoci,
         eachLocation: eachInterBond,
-        setUpdateState: (state: VisualUpdateState, newProps: PD.Values<InterUnitBondCylinderParams>, currentProps: PD.Values<InterUnitBondCylinderParams>) => {
+        setUpdateState: (state: VisualUpdateState, newProps: PD.Values<InterUnitBondCylinderParams>, currentProps: PD.Values<InterUnitBondCylinderParams>, newTheme: Theme, currentTheme: Theme, newStructure: Structure, currentStructure: Structure) => {
             state.createGeometry = (
                 newProps.sizeFactor !== currentProps.sizeFactor ||
                 newProps.sizeAspectRatio !== currentProps.sizeAspectRatio ||
@@ -249,6 +256,13 @@ export function InterUnitBondCylinderMeshVisual(materialId: number): ComplexVisu
                 !arrayEqual(newProps.excludeTypes, currentProps.excludeTypes) ||
                 newProps.adjustCylinderLength !== currentProps.adjustCylinderLength
             );
+
+            if (newStructure.interUnitBonds !== currentStructure.interUnitBonds) {
+                state.createGeometry = true;
+                state.updateTransform = true;
+                state.updateColor = true;
+                state.updateSize = true;
+            }
         },
         mustRecreate: (structure: Structure, props: PD.Values<InterUnitBondCylinderParams>, webgl?: WebGLContext) => {
             return props.tryUseImpostor && !!webgl;

@@ -7,13 +7,18 @@
 
 import { ElementSymbol } from '../../../model/types';
 
+/** Default for atomic bonds */
+export const DefaultBondMaxRadius = 4;
+
 export interface BondComputationProps {
     forceCompute: boolean
     noCompute: boolean
+    maxRadius: number
 }
 export const DefaultBondComputationProps: BondComputationProps = {
     forceCompute: false,
-    noCompute: false
+    noCompute: false,
+    maxRadius: DefaultBondMaxRadius,
 };
 
 // H,D,T are all mapped to H
