@@ -42,6 +42,7 @@ type State = {
     boundary?: Boundary,
     lookup3d?: StructureLookup3D,
     interUnitBonds?: InterUnitBonds,
+    dynamicBonds: boolean,
     unitSymmetryGroups?: ReadonlyArray<Unit.SymmetryGroup>,
     unitSymmetryGroupsIndexMap?: IntMap<number>,
     unitsSortedByVolume?: ReadonlyArray<Unit>;
@@ -231,8 +232,12 @@ class Structure {
 
     get interUnitBonds() {
         if (this.state.interUnitBonds) return this.state.interUnitBonds;
-        this.state.interUnitBonds = computeInterUnitBonds(this);
+        this.state.interUnitBonds = computeInterUnitBonds(this, { ignoreWater: !this.dynamicBonds });
         return this.state.interUnitBonds;
+    }
+
+    get dynamicBonds() {
+        return this.state.dynamicBonds;
     }
 
     get unitSymmetryGroups(): ReadonlyArray<Unit.SymmetryGroup> {
@@ -351,18 +356,20 @@ class Structure {
     }
 
     remapModel(m: Model) {
+        const { dynamicBonds, interUnitBonds } = this.state;
         const units: Unit[] = [];
         for (const ug of this.unitSymmetryGroups) {
-            const unit = ug.units[0].remapModel(m);
+            const unit = ug.units[0].remapModel(m, dynamicBonds);
             units.push(unit);
             for (let i = 1, il = ug.units.length; i < il; ++i) {
                 const u = ug.units[i];
-                units.push(u.remapModel(m, unit.props));
+                units.push(u.remapModel(m, dynamicBonds, unit.props));
             }
         }
         return Structure.create(units, {
             label: this.label,
-            interUnitBonds: this.state.interUnitBonds,
+            interUnitBonds: dynamicBonds ? undefined : interUnitBonds,
+            dynamicBonds
         });
     }
 
@@ -376,7 +383,13 @@ class Structure {
      */
     asParent(): Structure {
         if (this._proxy) return this._proxy;
-        this._proxy = this.parent ? new Structure(this.parent.units, this.parent.unitMap, this.parent.unitIndexMap, this.parent.state, { child: this, target: this.parent }) : this;
+        if (this.parent) {
+            const p = this.parent.coordinateSystem.isIdentity ? this.parent : Structure.transform(this.parent, this.parent.coordinateSystem.inverse);
+            const s = this.coordinateSystem.isIdentity ? p : Structure.transform(p, this.coordinateSystem.matrix);
+            this._proxy = new Structure(s.units, s.unitMap, s.unitIndexMap, { ...s.state, dynamicBonds: this.dynamicBonds }, { child: this, target: this.parent });
+        } else {
+            this._proxy = this;
+        }
         return this._proxy;
     }
 
@@ -398,6 +411,7 @@ class Structure {
         // always assign to ensure object shape
         this._child = asParent?.child;
         this._target = asParent?.target;
+        this._proxy = undefined;
     }
 }
 
@@ -604,6 +618,11 @@ namespace Structure {
     export interface Props {
         parent?: Structure
         interUnitBonds?: InterUnitBonds
+        /**
+         * Ensure bonds are recalculated upon model changes.
+         * Also enables calculation of inter-unit bonds in water molecules.
+         */
+        dynamicBonds?: boolean,
         coordinateSystem?: SymmetryOperator
         label?: string
         /** Master model for structures of a protein model and multiple ligand models */
@@ -683,6 +702,7 @@ namespace Structure {
             polymerResidueCount: -1,
             polymerGapCount: -1,
             polymerUnitCount: -1,
+            dynamicBonds: false,
             coordinateSystem: SymmetryOperator.Default,
             label: ''
         };
@@ -690,6 +710,9 @@ namespace Structure {
         // handle props
         if (props.parent) state.parent = props.parent.parent || props.parent;
         if (props.interUnitBonds) state.interUnitBonds = props.interUnitBonds;
+
+        if (props.dynamicBonds) state.dynamicBonds = props.dynamicBonds;
+        else if (props.parent) state.dynamicBonds = props.parent.dynamicBonds;
 
         if (props.coordinateSystem) state.coordinateSystem = props.coordinateSystem;
         else if (props.parent) state.coordinateSystem = props.parent.coordinateSystem;
@@ -738,12 +761,12 @@ namespace Structure {
      * Generally, a single unit corresponds to a single chain, with the exception
      * of consecutive "single atom chains" with same entity_id and same auth_asym_id.
      */
-    export function ofModel(model: Model): Structure {
+    export function ofModel(model: Model, props: Props = {}): Structure {
         const chains = model.atomicHierarchy.chainAtomSegments;
         const { index } = model.atomicHierarchy;
         const { auth_asym_id } = model.atomicHierarchy.chains;
         const { atomicChainOperatorMappinng } = model;
-        const builder = new StructureBuilder({ label: model.label });
+        const builder = new StructureBuilder({ label: model.label, ...props });
 
         for (let c = 0 as ChainIndex; c < chains.count; c++) {
             const operator = atomicChainOperatorMappinng.get(c) || SymmetryOperator.Default;

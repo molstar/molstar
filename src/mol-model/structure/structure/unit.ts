@@ -144,7 +144,7 @@ namespace Unit {
 
         getChild(elements: StructureElement.Set): Unit,
         applyOperator(id: number, operator: SymmetryOperator, dontCompose?: boolean /* = false */): Unit,
-        remapModel(model: Model): Unit,
+        remapModel(model: Model, dynamicBonds: boolean): Unit,
 
         readonly boundary: Boundary
         readonly lookup3d: Lookup3D<StructureElement.UnitIndex>
@@ -218,9 +218,9 @@ namespace Unit {
             return new Atomic(id, this.invariantId, this.chainGroupId, this.traits, this.model, this.elements, SymmetryOperator.createMapping(op, this.model.atomicConformation, this.conformation.r), this.props);
         }
 
-        remapModel(model: Model, props?: AtomicProperties) {
+        remapModel(model: Model, dynamicBonds: boolean, props?: AtomicProperties) {
             if (!props) {
-                props = { ...this.props, bonds: tryRemapBonds(this, this.props.bonds, model) };
+                props = { ...this.props, bonds: dynamicBonds ? undefined : tryRemapBonds(this, this.props.bonds, model) };
                 if (!Unit.isSameConformation(this, model)) {
                     props.boundary = undefined;
                     props.lookup3d = undefined;
@@ -378,7 +378,7 @@ namespace Unit {
             return createCoarse(id, this.invariantId, this.chainGroupId, this.traits, this.model, this.kind, this.elements, SymmetryOperator.createMapping(op, this.getCoarseConformation(), this.conformation.r), this.props);
         }
 
-        remapModel(model: Model, props?: CoarseProperties): Unit.Spheres | Unit.Gaussians {
+        remapModel(model: Model, dynamicBonds: boolean, props?: CoarseProperties): Unit.Spheres | Unit.Gaussians {
             const coarseConformation = this.getCoarseConformation();
             const modelCoarseConformation = getCoarseConformation(this.kind, model);
 

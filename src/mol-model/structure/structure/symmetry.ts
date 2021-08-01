@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -27,7 +27,11 @@ namespace StructureSymmetry {
             if (!assembly) throw new Error(`Assembly '${asmName}' is not defined.`);
 
             const coordinateSystem = SymmetryOperator.create(assembly.id, Mat4.identity(), { assembly: { id: assembly.id, operId: 0, operList: [] } });
-            const assembler = Structure.Builder({ coordinateSystem, label: structure.label });
+            const assembler = Structure.Builder({
+                coordinateSystem,
+                label: structure.label,
+                dynamicBonds: structure.dynamicBonds
+            });
 
             const queryCtx = new QueryContext(structure);
 
@@ -57,7 +61,11 @@ namespace StructureSymmetry {
             if (models.length !== 1) throw new Error('Can only build symmetry assemblies from structures based on 1 model.');
 
             const modelCenter = Vec3();
-            const assembler = Structure.Builder({ label: structure.label, representativeModel: models[0] });
+            const assembler = Structure.Builder({
+                label: structure.label,
+                representativeModel: models[0],
+                dynamicBonds: structure.dynamicBonds
+            });
 
             const queryCtx = new QueryContext(structure);
 
@@ -205,7 +213,10 @@ function getOperatorsCached333(symmetry: Symmetry, ref: Vec3) {
 }
 
 function assembleOperators(structure: Structure, operators: ReadonlyArray<SymmetryOperator>) {
-    const assembler = Structure.Builder({ label: structure.label });
+    const assembler = Structure.Builder({
+        label: structure.label,
+        dynamicBonds: structure.dynamicBonds
+    });
     const { units } = structure;
     for (const oper of operators) {
         for (const unit of units) {
@@ -263,7 +274,10 @@ async function findMatesRadius(ctx: RuntimeContext, structure: Structure, radius
         return `${unit.invariantId}|${oper.name}`;
     }
 
-    const assembler = Structure.Builder({ label: structure.label });
+    const assembler = Structure.Builder({
+        label: structure.label,
+        dynamicBonds: structure.dynamicBonds
+    });
 
     const { units } = structure;
     const center = Vec3.zero();

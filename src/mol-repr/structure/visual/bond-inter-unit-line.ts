@@ -120,7 +120,7 @@ export function InterUnitBondLineVisual(materialId: number): ComplexVisual<Inter
         createLocationIterator: BondIterator.fromStructure,
         getLoci: getInterBondLoci,
         eachLocation: eachInterBond,
-        setUpdateState: (state: VisualUpdateState, newProps: PD.Values<InterUnitBondLineParams>, currentProps: PD.Values<InterUnitBondLineParams>) => {
+        setUpdateState: (state: VisualUpdateState, newProps: PD.Values<InterUnitBondLineParams>, currentProps: PD.Values<InterUnitBondLineParams>, newTheme: Theme, currentTheme: Theme, newStructure: Structure, currentStructure: Structure) => {
             state.createGeometry = (
                 newProps.sizeFactor !== currentProps.sizeFactor ||
                 newProps.linkScale !== currentProps.linkScale ||
@@ -130,6 +130,13 @@ export function InterUnitBondLineVisual(materialId: number): ComplexVisual<Inter
                 !arrayEqual(newProps.includeTypes, currentProps.includeTypes) ||
                 !arrayEqual(newProps.excludeTypes, currentProps.excludeTypes)
             );
+
+            if (newStructure.interUnitBonds !== currentStructure.interUnitBonds) {
+                state.createGeometry = true;
+                state.updateTransform = true;
+                state.updateColor = true;
+                state.updateSize = true;
+            }
         }
     }, materialId);
 }
