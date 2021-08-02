@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -142,9 +142,10 @@ namespace Visual {
 
         const { tClipping, uGroupCount, instanceCount } = renderObject.values;
         const count = uGroupCount.ref.value * instanceCount.ref.value;
+        const { layers, variant, objects } = clipping;
 
         // ensure texture has right size
-        createClipping(clipping.layers.length ? count : 0, renderObject.values);
+        createClipping(layers.length ? count : 0, variant, objects, renderObject.values);
         const { array } = tClipping.ref.value;
 
         // clear if requested

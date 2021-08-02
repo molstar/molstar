@@ -101,6 +101,7 @@ export const DefaultPluginSpec = (): PluginSpec => ({
         PluginSpec.Action(StateTransforms.Representation.UnwindStructureAssemblyRepresentation3D),
         PluginSpec.Action(StateTransforms.Representation.OverpaintStructureRepresentation3DFromScript),
         PluginSpec.Action(StateTransforms.Representation.TransparencyStructureRepresentation3DFromScript),
+        PluginSpec.Action(StateTransforms.Representation.ClippingStructureRepresentation3DFromScript),
 
         PluginSpec.Action(AssignColorVolume),
         PluginSpec.Action(StateTransforms.Volume.VolumeFromCcp4),

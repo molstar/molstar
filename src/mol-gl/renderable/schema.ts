@@ -137,12 +137,6 @@ export const GlobalUniformSchema = {
 
     uTransparentBackground: UniformSpec('b'),
 
-    uClipObjectType: UniformSpec('i[]'),
-    uClipObjectInvert: UniformSpec('b[]'),
-    uClipObjectPosition: UniformSpec('v3[]'),
-    uClipObjectRotation: UniformSpec('v4[]'),
-    uClipObjectScale: UniformSpec('v3[]'),
-
     // all the following could in principle be per object
     // as a kind of 'material' parameter set
     // would need to test performance implications
@@ -238,6 +232,12 @@ export const ClippingSchema = {
     uClippingTexDim: UniformSpec('v2'),
     tClipping: TextureSpec('image-uint8', 'alpha', 'ubyte', 'nearest'),
     dClipping: DefineSpec('boolean'),
+
+    uClipObjectType: UniformSpec('i[]'),
+    uClipObjectInvert: UniformSpec('b[]'),
+    uClipObjectPosition: UniformSpec('v3[]'),
+    uClipObjectRotation: UniformSpec('v4[]'),
+    uClipObjectScale: UniformSpec('v3[]'),
 } as const;
 export type ClippingSchema = typeof ClippingSchema
 export type ClippingValues = Values<ClippingSchema>

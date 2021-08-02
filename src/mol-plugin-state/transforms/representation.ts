@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -518,6 +518,7 @@ const ClippingStructureRepresentation3DFromScript = PluginStateTransform.BuiltIn
                 groups: Clipping.Groups.Flag.None,
             }]
         }),
+        ...Clipping.Params
     })
 })({
     canAutoUpdate() {
@@ -525,7 +526,7 @@ const ClippingStructureRepresentation3DFromScript = PluginStateTransform.BuiltIn
     },
     apply({ a, params }) {
         const structure = a.data.sourceData;
-        const clipping = Clipping.ofScript(params.layers, structure);
+        const clipping = Clipping.ofScript(params.layers, structure, Clipping.getClip(params));
 
         return new SO.Molecule.Structure.Representation3DState({
             state: { clipping },
@@ -540,7 +541,7 @@ const ClippingStructureRepresentation3DFromScript = PluginStateTransform.BuiltIn
         if (a.data.repr !== b.data.repr) return StateTransformer.UpdateResult.Recreate;
 
         const oldClipping = b.data.state.clipping!;
-        const newClipping = Clipping.ofScript(newParams.layers, structure);
+        const newClipping = Clipping.ofScript(newParams.layers, structure, Clipping.getClip(newParams));
         if (Clipping.areEqual(oldClipping, newClipping)) return StateTransformer.UpdateResult.Unchanged;
 
         b.data.state.clipping = newClipping;
@@ -567,6 +568,7 @@ const ClippingStructureRepresentation3DFromBundle = PluginStateTransform.BuiltIn
             }],
             isHidden: true
         }),
+        ...Clipping.Params
     })
 })({
     canAutoUpdate() {
@@ -574,7 +576,7 @@ const ClippingStructureRepresentation3DFromBundle = PluginStateTransform.BuiltIn
     },
     apply({ a, params }) {
         const structure = a.data.sourceData;
-        const clipping = Clipping.ofBundle(params.layers, structure);
+        const clipping = Clipping.ofBundle(params.layers, structure, Clipping.getClip(params));
 
         return new SO.Molecule.Structure.Representation3DState({
             state: { clipping },
@@ -589,7 +591,7 @@ const ClippingStructureRepresentation3DFromBundle = PluginStateTransform.BuiltIn
         if (a.data.repr !== b.data.repr) return StateTransformer.UpdateResult.Recreate;
 
         const oldClipping = b.data.state.clipping!;
-        const newClipping = Clipping.ofBundle(newParams.layers, structure);
+        const newClipping = Clipping.ofBundle(newParams.layers, structure, Clipping.getClip(newParams));
         if (Clipping.areEqual(oldClipping, newClipping)) return StateTransformer.UpdateResult.Unchanged;
 
         b.data.state.clipping = newClipping;

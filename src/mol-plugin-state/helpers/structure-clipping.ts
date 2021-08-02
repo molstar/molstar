@@ -59,7 +59,8 @@ async function eachRepr(plugin: PluginContext, components: StructureComponentRef
 
 /** filter clipping layers for given structure */
 function getFilteredBundle(layers: Clipping.BundleLayer[], structure: Structure) {
-    const clipping = Clipping.ofBundle(layers, structure.root);
+    // TODO
+    const clipping = Clipping.Empty; // ofBundle(layers, structure.root);
     const merged = Clipping.merge(clipping);
     return Clipping.filter(merged, structure);
 }
