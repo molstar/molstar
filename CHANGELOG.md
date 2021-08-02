@@ -14,6 +14,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Add overpaint support to geometry exporters
 - ``InputObserver`` improvements
   - normalize wheel speed across browsers/platforms
+  - support Safari gestures (used by ``TrackballControls``)
 
 ## [v2.2.0] - 2021-07-31
 

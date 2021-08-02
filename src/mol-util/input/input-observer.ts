@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { Subject, Observable } from 'rxjs';
@@ -59,6 +60,7 @@ export const DefaultInputObserverProps = {
     noContextMenu: true,
     noPinchZoom: true,
     noTextSelect: true,
+    preventGestures: false,
     mask: (x: number, y: number) => true,
 
     pixelScale: 1
@@ -170,6 +172,15 @@ export type PinchInput = {
     isStart: boolean
 } & BaseInput
 
+export type GestureInput = {
+    scale: number,
+    rotation: number,
+    deltaScale: number,
+    deltaRotation: number
+    isStart?: boolean,
+    isEnd?: boolean
+}
+
 export type KeyInput = {
     key: string,
     modifiers: ModifiersKeys
@@ -194,6 +205,11 @@ type PointerEvent = {
     preventDefault?: () => void
 }
 
+type GestureEvent = {
+    scale: number,
+    rotation: number,
+} & MouseEvent
+
 interface InputObserver {
     noScroll: boolean
     noContextMenu: boolean
@@ -207,6 +223,7 @@ interface InputObserver {
     readonly interactionEnd: Observable<undefined>,
     readonly wheel: Observable<WheelInput>,
     readonly pinch: Observable<PinchInput>,
+    readonly gesture: Observable<GestureInput>,
     readonly click: Observable<ClickInput>,
     readonly move: Observable<MoveInput>,
     readonly leave: Observable<undefined>,
@@ -226,6 +243,7 @@ function createEvents() {
         move: new Subject<MoveInput>(),
         wheel: new Subject<WheelInput>(),
         pinch: new Subject<PinchInput>(),
+        gesture: new Subject<GestureInput>(),
         resize: new Subject<ResizeInput>(),
         leave: new Subject<undefined>(),
         enter: new Subject<undefined>(),
@@ -254,7 +272,7 @@ namespace InputObserver {
     }
 
     export function fromElement(element: Element, props: InputObserverProps = {}): InputObserver {
-        let { noScroll, noMiddleClickScroll, noContextMenu, noPinchZoom, noTextSelect, mask, pixelScale } = { ...DefaultInputObserverProps, ...props };
+        let { noScroll, noMiddleClickScroll, noContextMenu, noPinchZoom, noTextSelect, mask, pixelScale, preventGestures } = { ...DefaultInputObserverProps, ...props };
 
         let width = element.clientWidth * pixelRatio();
         let height = element.clientHeight * pixelRatio();
@@ -287,7 +305,7 @@ namespace InputObserver {
         let isInside = false;
 
         const events = createEvents();
-        const { drag, interactionEnd, wheel, pinch, click, move, leave, enter, resize, modifiers, key } = events;
+        const { drag, interactionEnd, wheel, pinch, gesture, click, move, leave, enter, resize, modifiers, key } = events;
 
         attach();
 
@@ -324,6 +342,10 @@ namespace InputObserver {
             element.addEventListener('touchmove', onTouchMove as any, false);
             element.addEventListener('touchend', onTouchEnd as any, false);
 
+            element.addEventListener('gesturechange', onGestureChange as any, false);
+            element.addEventListener('gesturestart', onGestureStart as any, false);
+            element.addEventListener('gestureend', onGestureEnd as any, false);
+
             // reset buttons and modifier keys state when browser window looses focus
             window.addEventListener('blur', handleBlur);
             window.addEventListener('keyup', handleKeyUp as EventListener, false);
@@ -350,6 +372,10 @@ namespace InputObserver {
             element.removeEventListener('touchstart', onTouchStart as any, false);
             element.removeEventListener('touchmove', onTouchMove as any, false);
             element.removeEventListener('touchend', onTouchEnd as any, false);
+
+            element.removeEventListener('gesturechange', onGestureChange as any, false);
+            element.removeEventListener('gesturestart', onGestureStart as any, false);
+            element.removeEventListener('gestureend', onGestureEnd as any, false);
 
             window.removeEventListener('blur', handleBlur);
             window.removeEventListener('keyup', handleKeyUp as EventListener, false);
@@ -429,6 +455,8 @@ namespace InputObserver {
         }
 
         function onTouchStart(ev: TouchEvent) {
+            ev.preventDefault();
+
             if (ev.touches.length === 1) {
                 buttons = button = ButtonsType.Flag.Primary;
                 onPointerDown(ev.touches[0]);
@@ -605,6 +633,45 @@ namespace InputObserver {
             if (dx || dy || dz) {
                 wheel.next({ x, y, pageX, pageY, ...normalizeWheel(ev), buttons, button, modifiers: getModifierKeys() });
             }
+        }
+
+        function tryPreventGesture(ev: GestureEvent) {
+            // console.log(ev, preventGestures);
+            if (!preventGestures) return;
+            ev.preventDefault();
+            ev.stopImmediatePropagation?.();
+            ev.stopPropagation?.();
+        }
+
+        let prevGestureScale = 0, prevGestureRotation = 0;
+
+        function onGestureStart(ev: GestureEvent) {
+            tryPreventGesture(ev);
+            prevGestureScale = ev.scale;
+            prevGestureRotation = ev.rotation;
+            gesture.next({ scale: ev.scale, rotation: ev.rotation, deltaRotation: 0, deltaScale: 0, isStart: true });
+        }
+
+        function gestureDelta(ev: GestureEvent, isEnd?: boolean) {
+            gesture.next({
+                scale: ev.scale,
+                rotation: ev.rotation,
+                deltaRotation: ev.rotation - prevGestureRotation,
+                deltaScale: ev.scale - prevGestureScale,
+                isEnd
+            });
+            prevGestureRotation = ev.rotation;
+            prevGestureScale = ev.scale;
+        }
+
+        function onGestureChange(ev: GestureEvent) {
+            tryPreventGesture(ev);
+            gestureDelta(ev);
+        }
+
+        function onGestureEnd(ev: GestureEvent) {
+            tryPreventGesture(ev);
+            gestureDelta(ev, true);
         }
 
         function onMouseEnter(ev: Event) {
