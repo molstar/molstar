@@ -144,6 +144,8 @@ export type WheelInput = {
     dx: number,
     dy: number,
     dz: number,
+    spinX: number,
+    spinY: number
 } & BaseInput
 
 export type ClickInput = {
@@ -290,14 +292,14 @@ namespace InputObserver {
         attach();
 
         return {
-            get noScroll () { return noScroll; },
-            set noScroll (value: boolean) { noScroll = value; },
-            get noContextMenu () { return noContextMenu; },
-            set noContextMenu (value: boolean) { noContextMenu = value; },
+            get noScroll() { return noScroll; },
+            set noScroll(value: boolean) { noScroll = value; },
+            get noContextMenu() { return noContextMenu; },
+            set noContextMenu(value: boolean) { noContextMenu = value; },
 
-            get width () { return width; },
-            get height () { return height; },
-            get pixelRatio () { return pixelRatio(); },
+            get width() { return width; },
+            get height() { return height; },
+            get pixelRatio() { return pixelRatio(); },
 
             ...events,
 
@@ -305,7 +307,7 @@ namespace InputObserver {
         };
 
         function attach() {
-            element.addEventListener('contextmenu', onContextMenu as any, false );
+            element.addEventListener('contextmenu', onContextMenu as any, false);
 
             element.addEventListener('wheel', onMouseWheel as any, false);
             element.addEventListener('mousedown', onMouseDown as any, false);
@@ -335,7 +337,7 @@ namespace InputObserver {
             if (disposed) return;
             disposed = true;
 
-            element.removeEventListener( 'contextmenu', onContextMenu as any, false );
+            element.removeEventListener('contextmenu', onContextMenu as any, false);
 
             element.removeEventListener('wheel', onMouseWheel as any, false);
             element.removeEventListener('mousedown', onMouseDown as any, false);
@@ -544,7 +546,7 @@ namespace InputObserver {
             eventOffset(pointerEnd, ev);
             if (Vec2.distance(pointerEnd, pointerDown) < 4) {
                 const { pageX, pageY } = ev;
-                const [ x, y ] = pointerEnd;
+                const [x, y] = pointerEnd;
 
                 click.next({ x, y, pageX, pageY, buttons, button, modifiers: getModifierKeys() });
             }
@@ -553,7 +555,7 @@ namespace InputObserver {
         function onPointerMove(ev: PointerEvent) {
             eventOffset(pointerEnd, ev);
             const { pageX, pageY } = ev;
-            const [ x, y ] = pointerEnd;
+            const [x, y] = pointerEnd;
             const inside = insideBounds(pointerEnd);
             move.next({ x, y, pageX, pageY, buttons, button, modifiers: getModifierKeys(), inside });
 
@@ -569,7 +571,7 @@ namespace InputObserver {
             const isStart = dragging === DraggingState.Started;
             if (isStart && !mask(ev.clientX, ev.clientY)) return;
 
-            const [ dx, dy ] = pointerDelta;
+            const [dx, dy] = pointerDelta;
             drag.next({ x, y, dx, dy, pageX, pageY, buttons, button, modifiers: getModifierKeys(), isStart });
 
             Vec2.copy(pointerStart, pointerEnd);
@@ -581,7 +583,7 @@ namespace InputObserver {
 
             eventOffset(pointerEnd, ev);
             const { pageX, pageY } = ev;
-            const [ x, y ] = pointerEnd;
+            const [x, y] = pointerEnd;
 
             if (noScroll) {
                 ev.preventDefault();
@@ -601,7 +603,7 @@ namespace InputObserver {
             buttons = button = ButtonsType.Flag.Auxilary;
 
             if (dx || dy || dz) {
-                wheel.next({ x, y, pageX, pageY, dx, dy, dz, buttons, button, modifiers: getModifierKeys() });
+                wheel.next({ x, y, pageX, pageY, ...normalizeWheel(ev), buttons, button, modifiers: getModifierKeys() });
             }
         }
 
@@ -647,5 +649,55 @@ namespace InputObserver {
         }
     }
 }
+
+
+// Adapted from https://stackoverflow.com/a/30134826
+// License: https://creativecommons.org/licenses/by-sa/3.0/
+function normalizeWheel(event: any) {
+    // Reasonable defaults
+    const PIXEL_STEP = 10;
+    const LINE_HEIGHT = 40;
+    const PAGE_HEIGHT = 800;
+    let spinX = 0, spinY = 0,
+        dx = 0, dy = 0, dz = 0;       // pixelX, pixelY, pixelZ
+
+    // Legacy
+    if ('detail' in event) { spinY = event.detail; }
+    if ('wheelDelta' in event) { spinY = -event.wheelDelta / 120; }
+    if ('wheelDeltaY' in event) { spinY = -event.wheelDeltaY / 120; }
+    if ('wheelDeltaX' in event) { spinX = -event.wheelDeltaX / 120; }
+
+    // side scrolling on FF with DOMMouseScroll
+    if ('axis' in event && event.axis === event.HORIZONTAL_AXIS) {
+        spinX = spinY;
+        spinY = 0;
+    }
+
+    dx = spinX * PIXEL_STEP;
+    dy = spinY * PIXEL_STEP;
+
+    if ('deltaY' in event) { dy = event.deltaY; }
+    if ('deltaX' in event) { dx = event.deltaX; }
+    if ('deltaZ' in event) { dz = event.deltaX; }
+
+    if ((dx || dy || dz) && event.deltaMode) {
+        if (event.deltaMode == 1) {          // delta in LINE units
+            dx *= LINE_HEIGHT;
+            dy *= LINE_HEIGHT;
+            dz *= LINE_HEIGHT;
+        } else {                             // delta in PAGE units
+            dx *= PAGE_HEIGHT;
+            dy *= PAGE_HEIGHT;
+            dz *= PAGE_HEIGHT;
+        }
+    }
+
+    // Fall-back if spin cannot be determined
+    if (dx && !spinX) { spinX = (dx < 1) ? -1 : 1; }
+    if (dy && !spinY) { spinY = (dy < 1) ? -1 : 1; }
+
+    return { spinX, spinY, dx, dy, dz };
+}
+
 
 export { InputObserver };

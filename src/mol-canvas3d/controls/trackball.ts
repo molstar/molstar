@@ -390,15 +390,15 @@ namespace TrackballControls {
             _isInteracting = false;
         }
 
-        function onWheel({ x, y, dx, dy, dz, buttons, modifiers }: WheelInput) {
+        function onWheel({ x, y, spinX, spinY, dz, buttons, modifiers }: WheelInput) {
             if (outsideViewport(x, y)) return;
 
-            const delta = absMax(dx, dy, dz);
+            const delta = absMax(spinX * 0.075, spinY * 0.075, dz * 0.0001);
             if (Binding.match(p.bindings.scrollZoom, buttons, modifiers)) {
-                _zoomEnd[1] += delta * 0.0001;
+                _zoomEnd[1] += delta;
             }
             if (Binding.match(p.bindings.scrollFocus, buttons, modifiers)) {
-                _focusEnd[1] += delta * 0.0001;
+                _focusEnd[1] += delta;
             }
         }
 
