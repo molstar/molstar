@@ -72,6 +72,8 @@ def Material "material${materialKey}"
         const colorType = values.dColorType.ref.value;
         const tColor = values.tColor.ref.value.array;
         const uAlpha = values.uAlpha.ref.value;
+        const dOverpaint = values.dOverpaint.ref.value;
+        const tOverpaint = values.tOverpaint.ref.value.array;
         const dTransparency = values.dTransparency.ref.value;
         const tTransparency = values.tTransparency.ref.value;
         const aTransform = values.aTransform.ref.value;
@@ -163,6 +165,13 @@ def Material "material${materialKey}"
                         color = Color.fromArray(interpolatedColors!, (instanceIndex * vertexCount + (isGeoTexture ? i : indices![i])) * 3);
                         break;
                     default: throw new Error('Unsupported color type.');
+                }
+
+                if (dOverpaint) {
+                    const group = isGeoTexture ? UsdzExporter.getGroup(groups, i) : groups[indices![i]];
+                    const overpaintColor = Color.fromArray(tOverpaint, (instanceIndex * groupCount + group) * 4);
+                    const overpaintAlpha = tOverpaint[(instanceIndex * groupCount + group) * 4 + 3] / 255;
+                    color = Color.interpolate(color, overpaintColor, overpaintAlpha);
                 }
 
                 let alpha = uAlpha;

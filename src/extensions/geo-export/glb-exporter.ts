@@ -132,6 +132,8 @@ export class GlbExporter extends MeshExporter<GlbData> {
         const uColor = values.uColor.ref.value;
         const tColor = values.tColor.ref.value.array;
         const uAlpha = values.uAlpha.ref.value;
+        const dOverpaint = values.dOverpaint.ref.value;
+        const tOverpaint = values.tOverpaint.ref.value.array;
         const dTransparency = values.dTransparency.ref.value;
         const tTransparency = values.tTransparency.ref.value;
 
@@ -169,6 +171,13 @@ export class GlbExporter extends MeshExporter<GlbData> {
                     color = Color.fromArray(interpolatedColors!, (instanceIndex * vertexCount + i) * 3);
                     break;
                 default: throw new Error('Unsupported color type.');
+            }
+
+            if (dOverpaint) {
+                const group = isGeoTexture ? GlbExporter.getGroup(groups, i) : groups[i];
+                const overpaintColor = Color.fromArray(tOverpaint, (instanceIndex * groupCount + group) * 4);
+                const overpaintAlpha = tOverpaint[(instanceIndex * groupCount + group) * 4 + 3] / 255;
+                color = Color.interpolate(color, overpaintColor, overpaintAlpha);
             }
 
             let alpha = uAlpha;
