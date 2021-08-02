@@ -50,6 +50,7 @@ export const TrackballControlsParams = {
     maxDistance: PD.Numeric(1e150, {}, { isHidden: true }),
 
     gestureScaleFactor: PD.Numeric(1, {}, { isHidden: true }),
+    maxWheelDelta: PD.Numeric(0.02, {}, { isHidden: true }),
 
     bindings: PD.Value(DefaultTrackballBindings, { isHidden: true }),
 
@@ -396,7 +397,10 @@ namespace TrackballControls {
         function onWheel({ x, y, spinX, spinY, dz, buttons, modifiers }: WheelInput) {
             if (outsideViewport(x, y)) return;
 
-            const delta = absMax(spinX * 0.075, spinY * 0.075, dz * 0.0001);
+            let delta = absMax(spinX * 0.075, spinY * 0.075, dz * 0.0001);
+            if (delta < -p.maxWheelDelta) delta = -p.maxWheelDelta;
+            else if (delta > p.maxWheelDelta) delta = p.maxWheelDelta;
+
             if (Binding.match(p.bindings.scrollZoom, buttons, modifiers)) {
                 _zoomEnd[1] += delta;
             }

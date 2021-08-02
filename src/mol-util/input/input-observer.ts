@@ -617,21 +617,11 @@ namespace InputObserver {
                 ev.preventDefault();
             }
 
-            let scale = 1;
-            switch (ev.deltaMode) {
-                case 0: scale = 1; break; // pixels
-                case 1: scale = 40; break; // lines
-                case 2: scale = 800; break; // pages
-            }
-
-            const dx = (ev.deltaX || 0) * scale;
-            const dy = (ev.deltaY || 0) * scale;
-            const dz = (ev.deltaZ || 0) * scale;
-
+            const normalized = normalizeWheel(ev);
             buttons = button = ButtonsType.Flag.Auxilary;
 
-            if (dx || dy || dz) {
-                wheel.next({ x, y, pageX, pageY, ...normalizeWheel(ev), buttons, button, modifiers: getModifierKeys() });
+            if (normalized.dx || normalized.dy || normalized.dz) {
+                wheel.next({ x, y, pageX, pageY, ...normalized, buttons, button, modifiers: getModifierKeys() });
             }
         }
 
@@ -748,7 +738,7 @@ function normalizeWheel(event: any) {
     if ('deltaZ' in event) { dz = event.deltaX; }
 
     if ((dx || dy || dz) && event.deltaMode) {
-        if (event.deltaMode == 1) {          // delta in LINE units
+        if (event.deltaMode === 1) {          // delta in LINE units
             dx *= LINE_HEIGHT;
             dy *= LINE_HEIGHT;
             dz *= LINE_HEIGHT;
