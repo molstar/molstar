@@ -167,7 +167,7 @@ export class GlbExporter extends MeshExporter<GlbData> {
         const aTransform = values.aTransform.ref.value;
         const instanceCount = values.uInstanceCount.ref.value;
 
-        let interpolatedColors: Uint8Array;
+        let interpolatedColors: Uint8Array | undefined;
         if (colorType === 'volume' || colorType === 'volumeInstance') {
             const stride = isGeoTexture ? 4 : 3;
             interpolatedColors = GlbExporter.getInterpolatedColors(mesh!.vertices, mesh!.vertexCount, values, stride, colorType, webgl!);
@@ -201,7 +201,7 @@ export class GlbExporter extends MeshExporter<GlbData> {
 
                 // create a color buffer if needed
                 if (instanceIndex === 0 || !sameColorBuffer) {
-                    colorAccessorIndex = this.addColorBuffer(values, groups, vertexCount, instanceIndex, isGeoTexture, interpolatedColors!);
+                    colorAccessorIndex = this.addColorBuffer(values, groups, vertexCount, instanceIndex, isGeoTexture, interpolatedColors);
                 }
 
                 // glTF mesh

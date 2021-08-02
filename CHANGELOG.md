@@ -11,6 +11,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Fix coordinateSystem not handled in ``Structure.asParent``
 - Add dynamicBonds to ``Structure`` props (force re-calc on model change)
     - Expose as optional param in root structure transform helper
+- Add overpaint support to geometry exporters
 
 ## [v2.2.0] - 2021-07-31
 
