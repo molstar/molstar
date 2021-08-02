@@ -6,6 +6,9 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+
+## [v2.2.1] - 2021-08-02
+
 - Add surrounding atoms (5 Angstrom) structure selection query
 - [Breaking] Add maxDistance prop to ``IndexPairBonds``
 - Fix coordinateSystem not handled in ``Structure.asParent``
