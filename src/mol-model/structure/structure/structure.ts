@@ -194,8 +194,8 @@ class Structure {
     }
 
     /** The parent or itself in case this is the root */
-    get root() {
-        return this.state.parent || this;
+    get root(): Structure {
+        return this.state.parent ?? this;
     }
 
     /** The root/top-most parent or `undefined` in case this is the root */
