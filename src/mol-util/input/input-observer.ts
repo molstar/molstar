@@ -168,6 +168,7 @@ export type MoveInput = {
 export type PinchInput = {
     delta: number,
     fraction: number,
+    fractionDelta: number,
     distance: number,
     isStart: boolean
 } & BaseInput
@@ -277,7 +278,7 @@ namespace InputObserver {
         let width = element.clientWidth * pixelRatio();
         let height = element.clientHeight * pixelRatio();
 
-        let lastTouchDistance = 0;
+        let lastTouchDistance = 0, lastTouchFraction = 0;
         const pointerDown = Vec2();
         const pointerStart = Vec2();
         const pointerEnd = Vec2();
@@ -470,6 +471,7 @@ namespace InputObserver {
                 pinch.next({
                     distance: touchDistance,
                     fraction: 1,
+                    fractionDelta: 0,
                     delta: 0,
                     isStart: true,
                     buttons,
@@ -510,15 +512,18 @@ namespace InputObserver {
                 } else {
                     buttons = ButtonsType.Flag.Auxilary;
                     updateModifierKeys(ev);
+                    const fraction = lastTouchDistance / touchDistance;
                     pinch.next({
                         delta: touchDelta,
-                        fraction: lastTouchDistance / touchDistance,
+                        fraction,
+                        fractionDelta: lastTouchFraction - fraction,
                         distance: touchDistance,
                         isStart: false,
                         buttons,
                         button,
                         modifiers: getModifierKeys()
                     });
+                    lastTouchFraction = fraction;
                 }
                 lastTouchDistance = touchDistance;
             } else if (ev.touches.length === 3) {
@@ -646,8 +651,8 @@ namespace InputObserver {
             gesture.next({
                 scale: ev.scale,
                 rotation: ev.rotation,
-                deltaRotation: ev.rotation - prevGestureRotation,
-                deltaScale: ev.scale - prevGestureScale,
+                deltaRotation: prevGestureRotation - ev.rotation,
+                deltaScale: prevGestureScale - ev.scale,
                 isEnd
             });
             prevGestureRotation = ev.rotation;

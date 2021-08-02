@@ -409,16 +409,16 @@ namespace TrackballControls {
             }
         }
 
-        function onPinch({ fraction, buttons, modifiers }: PinchInput) {
+        function onPinch({ fractionDelta, buttons, modifiers }: PinchInput) {
             if (Binding.match(p.bindings.scrollZoom, buttons, modifiers)) {
                 _isInteracting = true;
-                _zoomEnd[1] += (fraction - 1) * 0.1;
+                _zoomEnd[1] += p.gestureScaleFactor * fractionDelta;
             }
         }
 
         function onGesture({ deltaScale }: GestureInput) {
             _isInteracting = true;
-            _zoomEnd[1] -= p.gestureScaleFactor * deltaScale;
+            _zoomEnd[1] += p.gestureScaleFactor * deltaScale;
         }
 
         function dispose() {
