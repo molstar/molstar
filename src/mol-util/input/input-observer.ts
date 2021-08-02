@@ -740,7 +740,7 @@ function normalizeWheel(event: any) {
 
     if ('deltaY' in event) { dy = event.deltaY; }
     if ('deltaX' in event) { dx = event.deltaX; }
-    if ('deltaZ' in event) { dz = event.deltaX; }
+    if ('deltaZ' in event) { dz = event.deltaZ; }
 
     if ((dx || dy || dz) && event.deltaMode) {
         if (event.deltaMode === 1) {          // delta in LINE units
