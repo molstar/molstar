@@ -126,59 +126,16 @@ export class GlbExporter extends MeshExporter<GlbData> {
         };
     }
 
-    private addColorBuffer(values: BaseValues, groups: Float32Array | Uint8Array, vertexCount: number, instanceIndex: number, isGeoTexture: boolean, interpolatedColors: Uint8Array) {
+    private addColorBuffer(values: BaseValues, groups: Float32Array | Uint8Array, vertexCount: number, instanceIndex: number, isGeoTexture: boolean, interpolatedColors: Uint8Array | undefined) {
         const groupCount = values.uGroupCount.ref.value;
-        const colorType = values.dColorType.ref.value;
-        const uColor = values.uColor.ref.value;
-        const tColor = values.tColor.ref.value.array;
         const uAlpha = values.uAlpha.ref.value;
-        const dOverpaint = values.dOverpaint.ref.value;
-        const tOverpaint = values.tOverpaint.ref.value.array;
         const dTransparency = values.dTransparency.ref.value;
         const tTransparency = values.tTransparency.ref.value;
 
         const colorArray = new Uint8Array(vertexCount * 4);
 
         for (let i = 0; i < vertexCount; ++i) {
-            let color: Color;
-            switch (colorType) {
-                case 'uniform':
-                    color = Color.fromNormalizedArray(uColor, 0);
-                    break;
-                case 'instance':
-                    color = Color.fromArray(tColor, instanceIndex * 3);
-                    break;
-                case 'group': {
-                    const group = isGeoTexture ? GlbExporter.getGroup(groups, i) : groups[i];
-                    color = Color.fromArray(tColor, group * 3);
-                    break;
-                }
-                case 'groupInstance': {
-                    const group = isGeoTexture ? GlbExporter.getGroup(groups, i) : groups[i];
-                    color = Color.fromArray(tColor, (instanceIndex * groupCount + group) * 3);
-                    break;
-                }
-                case 'vertex':
-                    color = Color.fromArray(tColor, i * 3);
-                    break;
-                case 'vertexInstance':
-                    color = Color.fromArray(tColor, (instanceIndex * vertexCount + i) * 3);
-                    break;
-                case 'volume':
-                    color = Color.fromArray(interpolatedColors!, i * 3);
-                    break;
-                case 'volumeInstance':
-                    color = Color.fromArray(interpolatedColors!, (instanceIndex * vertexCount + i) * 3);
-                    break;
-                default: throw new Error('Unsupported color type.');
-            }
-
-            if (dOverpaint) {
-                const group = isGeoTexture ? GlbExporter.getGroup(groups, i) : groups[i];
-                const overpaintColor = Color.fromArray(tOverpaint, (instanceIndex * groupCount + group) * 4);
-                const overpaintAlpha = tOverpaint[(instanceIndex * groupCount + group) * 4 + 3] / 255;
-                color = Color.interpolate(color, overpaintColor, overpaintAlpha);
-            }
+            let color = GlbExporter.getColor(values, groups, vertexCount, instanceIndex, isGeoTexture, interpolatedColors, i);
 
             let alpha = uAlpha;
             if (dTransparency) {

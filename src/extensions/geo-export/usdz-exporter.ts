@@ -70,16 +70,13 @@ def Material "material${materialKey}"
 
         const groupCount = values.uGroupCount.ref.value;
         const colorType = values.dColorType.ref.value;
-        const tColor = values.tColor.ref.value.array;
         const uAlpha = values.uAlpha.ref.value;
-        const dOverpaint = values.dOverpaint.ref.value;
-        const tOverpaint = values.tOverpaint.ref.value.array;
         const dTransparency = values.dTransparency.ref.value;
         const tTransparency = values.tTransparency.ref.value;
         const aTransform = values.aTransform.ref.value;
         const instanceCount = values.uInstanceCount.ref.value;
 
-        let interpolatedColors: Uint8Array;
+        let interpolatedColors: Uint8Array | undefined;
         if (colorType === 'volume' || colorType === 'volumeInstance') {
             interpolatedColors = UsdzExporter.getInterpolatedColors(mesh!.vertices, mesh!.vertexCount, values, stride, colorType, webgl!);
             UsdzExporter.quantizeColors(interpolatedColors, mesh!.vertexCount);
@@ -134,45 +131,8 @@ def Material "material${materialKey}"
             // color
             const faceIndicesByMaterial = new Map<number, number[]>();
             for (let i = 0; i < drawCount; i += 3) {
-                let color: Color;
-                switch (colorType) {
-                    case 'uniform':
-                        color = Color.fromNormalizedArray(values.uColor.ref.value, 0);
-                        break;
-                    case 'instance':
-                        color = Color.fromArray(tColor, instanceIndex * 3);
-                        break;
-                    case 'group': {
-                        const group = isGeoTexture ? UsdzExporter.getGroup(groups, i) : groups[indices![i]];
-                        color = Color.fromArray(tColor, group * 3);
-                        break;
-                    }
-                    case 'groupInstance': {
-                        const group = isGeoTexture ? UsdzExporter.getGroup(groups, i) : groups[indices![i]];
-                        color = Color.fromArray(tColor, (instanceIndex * groupCount + group) * 3);
-                        break;
-                    }
-                    case 'vertex':
-                        color = Color.fromArray(tColor, indices![i] * 3);
-                        break;
-                    case 'vertexInstance':
-                        color = Color.fromArray(tColor, (instanceIndex * vertexCount + indices![i]) * 3);
-                        break;
-                    case 'volume':
-                        color = Color.fromArray(interpolatedColors!, (isGeoTexture ? i : indices![i]) * 3);
-                        break;
-                    case 'volumeInstance':
-                        color = Color.fromArray(interpolatedColors!, (instanceIndex * vertexCount + (isGeoTexture ? i : indices![i])) * 3);
-                        break;
-                    default: throw new Error('Unsupported color type.');
-                }
-
-                if (dOverpaint) {
-                    const group = isGeoTexture ? UsdzExporter.getGroup(groups, i) : groups[indices![i]];
-                    const overpaintColor = Color.fromArray(tOverpaint, (instanceIndex * groupCount + group) * 4);
-                    const overpaintAlpha = tOverpaint[(instanceIndex * groupCount + group) * 4 + 3] / 255;
-                    color = Color.interpolate(color, overpaintColor, overpaintAlpha);
-                }
+                const v = isGeoTexture ? i : indices![i];
+                const color = UsdzExporter.getColor(values, groups, vertexCount, instanceIndex, isGeoTexture, interpolatedColors, v);
 
                 let alpha = uAlpha;
                 if (dTransparency) {
