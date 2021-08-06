@@ -64,20 +64,15 @@ function createHistopyramidReductionRenderable(ctx: WebGLContext, inputLevel: Te
 }
 
 type TextureFramebuffer = { texture: Texture, framebuffer: Framebuffer }
-const LevelTexturesFramebuffers: TextureFramebuffer[] = [];
 function getLevelTextureFramebuffer(ctx: WebGLContext, level: number) {
-    let textureFramebuffer = LevelTexturesFramebuffers[level];
     const size = Math.pow(2, level);
-    if (textureFramebuffer === undefined) {
-        const texture = ctx.isWebGL2
-            ? getTexture(`level${level}`, ctx, 'image-int32', 'alpha', 'int', 'nearest')
-            : getTexture(`level${level}`, ctx, 'image-uint8', 'rgba', 'ubyte', 'nearest');
-        texture.define(size, size);
-        const framebuffer = getFramebuffer(`level${level}`, ctx);
-        texture.attachFramebuffer(framebuffer, 0);
-        textureFramebuffer = { texture, framebuffer };
-        LevelTexturesFramebuffers[level] = textureFramebuffer;
-    }
+    const texture = ctx.isWebGL2
+        ? getTexture(`level${level}`, ctx, 'image-int32', 'alpha', 'int', 'nearest')
+        : getTexture(`level${level}`, ctx, 'image-uint8', 'rgba', 'ubyte', 'nearest');
+    texture.define(size, size);
+    const framebuffer = getFramebuffer(`level${level}`, ctx);
+    texture.attachFramebuffer(framebuffer, 0);
+    const textureFramebuffer = { texture, framebuffer };
     return textureFramebuffer;
 }
 
