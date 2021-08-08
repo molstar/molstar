@@ -53,10 +53,6 @@ export interface Mesh {
     setBoundingSphere(boundingSphere: Sphere3D): void
 
     readonly meta: { [k: string]: unknown }
-
-    //
-
-
 }
 
 export namespace Mesh {
