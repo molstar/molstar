@@ -12,8 +12,9 @@ Note that since we don't clearly distinguish between a public and private interf
 - Add dynamicBonds to ``Structure`` props (force re-calc on model change)
     - Expose as optional param in root structure transform helper
 - Add ``invertCantorPairing`` helper function
-- Add ``Mesh`` processing helpers: ``.trimByPositionTest`` and ``.smoothEdges``
-- Add ``clipSphere`` param to molecular-surface-mesh visual
+- Add ``Mesh`` processing helper ``.smoothEdges``
+- Smooth border of molecular-surface with ``includeParent`` enabled
+- Hide ``includeParent`` option from gaussian-surface visuals (not particularly useful)
 
 ## [v2.2.0] - 2021-07-31
 

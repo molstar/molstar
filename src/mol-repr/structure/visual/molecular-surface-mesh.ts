@@ -21,20 +21,12 @@ import { MeshValues } from '../../../mol-gl/renderable/mesh';
 import { Texture } from '../../../mol-gl/webgl/texture';
 import { WebGLContext } from '../../../mol-gl/webgl/context';
 import { applyMeshColorSmoothing, ColorSmoothingParams, getColorSmoothingProps } from './util/color';
-import { Mat4, Vec3 } from '../../../mol-math/linear-algebra';
 
 export const MolecularSurfaceMeshParams = {
     ...UnitsMeshParams,
     ...MolecularSurfaceCalculationParams,
     ...CommonSurfaceParams,
     ...ColorSmoothingParams,
-    clipSphere: PD.MappedStatic('off', {
-        on: PD.Group({
-            center: PD.Vec3(Vec3()),
-            radius: PD.Numeric(1, { min: 0, max: 100, step: 0.1 })
-        }),
-        off: PD.Group({})
-    }),
 };
 export type MolecularSurfaceMeshParams = typeof MolecularSurfaceMeshParams
 export type MolecularSurfaceMeshProps = PD.Values<MolecularSurfaceMeshParams>
@@ -56,12 +48,7 @@ async function createMolecularSurfaceMesh(ctx: VisualContext, unit: Unit, struct
     };
     const surface = await computeMarchingCubesMesh(params, mesh).runAsChild(ctx.runtime);
 
-    if (props.clipSphere.name === 'on') {
-        const { center, radius } = props.clipSphere.params;
-        const c = Vec3.transformMat4(Vec3(), center, Mat4.invert(Mat4(), transform));
-        const r = radius / Mat4.getMaxScaleOnAxis(transform);
-        Mesh.trimByPositionTest(surface, p => Vec3.distance(p, c) < r);
-
+    if (props.includeParent) {
         const iterations = Math.ceil(2 / props.resolution);
         Mesh.smoothEdges(surface, iterations);
     }
@@ -96,13 +83,6 @@ export function MolecularSurfaceMeshVisual(materialId: number): UnitsVisual<Mole
             } else if (newProps.smoothColors.name === 'on' && currentProps.smoothColors.name === 'on') {
                 if (newProps.smoothColors.params.resolutionFactor !== currentProps.smoothColors.params.resolutionFactor) state.updateColor = true;
                 if (newProps.smoothColors.params.sampleStride !== currentProps.smoothColors.params.sampleStride) state.updateColor = true;
-            }
-
-            if (newProps.clipSphere.name !== currentProps.clipSphere.name) {
-                state.createGeometry = true;
-            } else if (newProps.clipSphere.name === 'on' && currentProps.clipSphere.name === 'on') {
-                if (!Vec3.exactEquals(newProps.clipSphere.params.center, currentProps.clipSphere.params.center)) state.createGeometry = true;
-                if (newProps.clipSphere.params.radius !== currentProps.clipSphere.params.radius) state.createGeometry = true;
             }
         },
         processValues: (values: MeshValues, geometry: Mesh, props: PD.Values<MolecularSurfaceMeshParams>, theme: Theme, webgl?: WebGLContext) => {
