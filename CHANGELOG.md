@@ -6,6 +6,7 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Fix ``TransformData`` issues [#133](https://github.com/molstar/molstar/issues/133)
 
 ## [v2.2.1] - 2021-08-02
 

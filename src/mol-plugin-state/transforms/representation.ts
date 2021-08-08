@@ -236,23 +236,23 @@ const ExplodeStructureRepresentation3D = PluginStateTransform.BuiltIn({
     },
     apply({ a, params }) {
         const structure = a.data.sourceData;
-        const unitTransforms = new StructureUnitTransforms(structure.root);
-        explodeStructure(structure, unitTransforms, params.t);
+        const unitTransforms = new StructureUnitTransforms(structure);
+        explodeStructure(structure, unitTransforms, params.t, structure.root.boundary.sphere);
         return new SO.Molecule.Structure.Representation3DState({
             state: { unitTransforms },
-            initialState: { unitTransforms: new StructureUnitTransforms(structure.root) },
-            info: structure.root,
+            initialState: { unitTransforms: new StructureUnitTransforms(structure) },
+            info: structure,
             repr: a.data.repr
         }, { label: `Explode T = ${params.t.toFixed(2)}` });
     },
     update({ a, b, newParams, oldParams }) {
         const structure = a.data.sourceData;
-        if (b.data.info !== structure.root) return StateTransformer.UpdateResult.Recreate;
+        if (b.data.info !== structure) return StateTransformer.UpdateResult.Recreate;
         if (a.data.repr !== b.data.repr) return StateTransformer.UpdateResult.Recreate;
 
         if (oldParams.t === newParams.t) return StateTransformer.UpdateResult.Unchanged;
         const unitTransforms = b.data.state.unitTransforms!;
-        explodeStructure(structure.root, unitTransforms, newParams.t);
+        explodeStructure(structure, unitTransforms, newParams.t, structure.root.boundary.sphere);
         b.label = `Explode T = ${newParams.t.toFixed(2)}`;
         b.data.repr = a.data.repr;
         return StateTransformer.UpdateResult.Updated;
@@ -275,27 +275,27 @@ const SpinStructureRepresentation3D = PluginStateTransform.BuiltIn({
     },
     apply({ a, params }) {
         const structure = a.data.sourceData;
-        const unitTransforms = new StructureUnitTransforms(structure.root);
+        const unitTransforms = new StructureUnitTransforms(structure);
 
         const { axis, origin } = getSpinStructureAxisAndOrigin(structure.root, params);
         spinStructure(structure, unitTransforms, params.t, axis, origin);
         return new SO.Molecule.Structure.Representation3DState({
             state: { unitTransforms },
-            initialState: { unitTransforms: new StructureUnitTransforms(structure.root) },
-            info: structure.root,
+            initialState: { unitTransforms: new StructureUnitTransforms(structure) },
+            info: structure,
             repr: a.data.repr
         }, { label: `Spin T = ${params.t.toFixed(2)}` });
     },
     update({ a, b, newParams, oldParams }) {
         const structure = a.data.sourceData;
-        if (b.data.info !== structure.root) return StateTransformer.UpdateResult.Recreate;
+        if (b.data.info !== structure) return StateTransformer.UpdateResult.Recreate;
         if (a.data.repr !== b.data.repr) return StateTransformer.UpdateResult.Recreate;
 
         if (oldParams.t === newParams.t && oldParams.axis === newParams.axis && oldParams.origin === newParams.origin) return StateTransformer.UpdateResult.Unchanged;
 
         const unitTransforms = b.data.state.unitTransforms!;
         const { axis, origin } = getSpinStructureAxisAndOrigin(structure.root, newParams);
-        spinStructure(structure.root, unitTransforms, newParams.t, axis, origin);
+        spinStructure(structure, unitTransforms, newParams.t, axis, origin);
         b.label = `Spin T = ${newParams.t.toFixed(2)}`;
         b.data.repr = a.data.repr;
         return StateTransformer.UpdateResult.Updated;
