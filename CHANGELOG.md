@@ -6,15 +6,23 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
-- Add surronding atoms (5 Angstrom) structure selection query
-- [Breaking] Add maxDistance prop to ``IndexPairBonds``
-- Fix coordinateSystem not handled in ``Structure.asParent``
-- Add dynamicBonds to ``Structure`` props (force re-calc on model change)
-    - Expose as optional param in root structure transform helper
 - Add ``invertCantorPairing`` helper function
 - Add ``Mesh`` processing helper ``.smoothEdges``
 - Smooth border of molecular-surface with ``includeParent`` enabled
 - Hide ``includeParent`` option from gaussian-surface visuals (not particularly useful)
+
+## [v2.2.1] - 2021-08-02
+
+- Add surrounding atoms (5 Angstrom) structure selection query
+- [Breaking] Add maxDistance prop to ``IndexPairBonds``
+- Fix coordinateSystem not handled in ``Structure.asParent``
+- Add ``dynamicBonds`` to ``Structure`` props (force re-calc on model change)
+    - Expose as optional param in root structure transform helper
+- Add overpaint support to geometry exporters
+- ``InputObserver`` improvements
+  - normalize wheel speed across browsers/platforms
+  - support Safari gestures (used by ``TrackballControls``)
+  - ``PinchInput.fractionDelta`` and use it in ``TrackballControls``
 
 ## [v2.2.0] - 2021-07-31
 

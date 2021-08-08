@@ -129,7 +129,7 @@ namespace Canvas3DContext {
         });
         if (gl === null) throw new Error('Could not create a WebGL rendering context');
 
-        const input = InputObserver.fromElement(canvas, { pixelScale });
+        const input = InputObserver.fromElement(canvas, { pixelScale, preventGestures: true });
         const webgl = createContext(gl, { pixelScale });
         const passes = new Passes(webgl, attribs);
 

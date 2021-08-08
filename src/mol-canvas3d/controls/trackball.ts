@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -10,7 +10,7 @@
 
 import { Quat, Vec2, Vec3, EPSILON } from '../../mol-math/linear-algebra';
 import { Viewport } from '../camera/util';
-import { InputObserver, DragInput, WheelInput, PinchInput, ButtonsType, ModifiersKeys } from '../../mol-util/input/input-observer';
+import { InputObserver, DragInput, WheelInput, PinchInput, ButtonsType, ModifiersKeys, GestureInput } from '../../mol-util/input/input-observer';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { Camera } from '../camera';
 import { absMax } from '../../mol-math/misc';
@@ -48,6 +48,9 @@ export const TrackballControlsParams = {
 
     minDistance: PD.Numeric(0.01, {}, { isHidden: true }),
     maxDistance: PD.Numeric(1e150, {}, { isHidden: true }),
+
+    gestureScaleFactor: PD.Numeric(1, {}, { isHidden: true }),
+    maxWheelDelta: PD.Numeric(0.02, {}, { isHidden: true }),
 
     bindings: PD.Value(DefaultTrackballBindings, { isHidden: true }),
 
@@ -91,6 +94,7 @@ namespace TrackballControls {
         const interactionEndSub = input.interactionEnd.subscribe(onInteractionEnd);
         const wheelSub = input.wheel.subscribe(onWheel);
         const pinchSub = input.pinch.subscribe(onPinch);
+        const gestureSub = input.gesture.subscribe(onGesture);
 
         let _isInteracting = false;
 
@@ -390,23 +394,31 @@ namespace TrackballControls {
             _isInteracting = false;
         }
 
-        function onWheel({ x, y, dx, dy, dz, buttons, modifiers }: WheelInput) {
+        function onWheel({ x, y, spinX, spinY, dz, buttons, modifiers }: WheelInput) {
             if (outsideViewport(x, y)) return;
 
-            const delta = absMax(dx, dy, dz);
+            let delta = absMax(spinX * 0.075, spinY * 0.075, dz * 0.0001);
+            if (delta < -p.maxWheelDelta) delta = -p.maxWheelDelta;
+            else if (delta > p.maxWheelDelta) delta = p.maxWheelDelta;
+
             if (Binding.match(p.bindings.scrollZoom, buttons, modifiers)) {
-                _zoomEnd[1] += delta * 0.0001;
+                _zoomEnd[1] += delta;
             }
             if (Binding.match(p.bindings.scrollFocus, buttons, modifiers)) {
-                _focusEnd[1] += delta * 0.0001;
+                _focusEnd[1] += delta;
             }
         }
 
-        function onPinch({ fraction, buttons, modifiers }: PinchInput) {
+        function onPinch({ fractionDelta, buttons, modifiers }: PinchInput) {
             if (Binding.match(p.bindings.scrollZoom, buttons, modifiers)) {
                 _isInteracting = true;
-                _zoomEnd[1] += (fraction - 1) * 0.1;
+                _zoomEnd[1] += p.gestureScaleFactor * fractionDelta;
             }
+        }
+
+        function onGesture({ deltaScale }: GestureInput) {
+            _isInteracting = true;
+            _zoomEnd[1] += p.gestureScaleFactor * deltaScale;
         }
 
         function dispose() {
@@ -416,6 +428,7 @@ namespace TrackballControls {
             dragSub.unsubscribe();
             wheelSub.unsubscribe();
             pinchSub.unsubscribe();
+            gestureSub.unsubscribe();
             interactionEndSub.unsubscribe();
         }
 

@@ -194,6 +194,57 @@ export abstract class MeshExporter<D extends RenderObjectExportData> implements 
         }
     }
 
+    protected static getColor(values: BaseValues, groups: Float32Array | Uint8Array, vertexCount: number, instanceIndex: number, isGeoTexture: boolean, interpolatedColors: Uint8Array | undefined, vertexIndex: number): Color {
+        const groupCount = values.uGroupCount.ref.value;
+        const colorType = values.dColorType.ref.value;
+        const uColor = values.uColor.ref.value;
+        const tColor = values.tColor.ref.value.array;
+        const dOverpaint = values.dOverpaint.ref.value;
+        const tOverpaint = values.tOverpaint.ref.value.array;
+
+        let color: Color;
+        switch (colorType) {
+            case 'uniform':
+                color = Color.fromNormalizedArray(uColor, 0);
+                break;
+            case 'instance':
+                color = Color.fromArray(tColor, instanceIndex * 3);
+                break;
+            case 'group': {
+                const group = isGeoTexture ? MeshExporter.getGroup(groups, vertexIndex) : groups[vertexIndex];
+                color = Color.fromArray(tColor, group * 3);
+                break;
+            }
+            case 'groupInstance': {
+                const group = isGeoTexture ? MeshExporter.getGroup(groups, vertexIndex) : groups[vertexIndex];
+                color = Color.fromArray(tColor, (instanceIndex * groupCount + group) * 3);
+                break;
+            }
+            case 'vertex':
+                color = Color.fromArray(tColor, vertexIndex * 3);
+                break;
+            case 'vertexInstance':
+                color = Color.fromArray(tColor, (instanceIndex * vertexCount + vertexIndex) * 3);
+                break;
+            case 'volume':
+                color = Color.fromArray(interpolatedColors!, vertexIndex * 3);
+                break;
+            case 'volumeInstance':
+                color = Color.fromArray(interpolatedColors!, (instanceIndex * vertexCount + vertexIndex) * 3);
+                break;
+            default: throw new Error('Unsupported color type.');
+        }
+
+        if (dOverpaint) {
+            const group = isGeoTexture ? MeshExporter.getGroup(groups, vertexIndex) : groups[vertexIndex];
+            const overpaintColor = Color.fromArray(tOverpaint, (instanceIndex * groupCount + group) * 4);
+            const overpaintAlpha = tOverpaint[(instanceIndex * groupCount + group) * 4 + 3] / 255;
+            color = Color.interpolate(color, overpaintColor, overpaintAlpha);
+        }
+
+        return color;
+    }
+
     protected abstract addMeshWithColors(input: AddMeshInput): void;
 
     private async addMesh(values: MeshValues, webgl: WebGLContext, ctx: RuntimeContext) {
