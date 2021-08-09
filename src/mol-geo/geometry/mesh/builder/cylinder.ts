@@ -21,7 +21,6 @@ const tmpCylinderCenter = Vec3();
 const tmpCylinderMat = Mat4();
 const tmpCylinderMatRot = Mat4();
 const tmpCylinderScale = Vec3();
-const tmpCylinderMatScale = Mat4();
 const tmpCylinderStart = Vec3();
 const tmpUp = Vec3();
 
@@ -32,9 +31,9 @@ function setCylinderMat(m: Mat4, start: Vec3, dir: Vec3, length: number, matchDi
     // direction so the triangles of adjacent cylinder will line up
     if (matchDir) Vec3.matchDirection(tmpUp, up, tmpCylinderMatDir);
     else Vec3.copy(tmpUp, up);
-    Mat4.fromScaling(tmpCylinderMatScale, Vec3.set(tmpCylinderScale, 1, length, 1));
+    Vec3.set(tmpCylinderScale, 1, length, 1);
     Vec3.makeRotation(tmpCylinderMatRot, tmpUp, tmpCylinderMatDir);
-    Mat4.mul(m, tmpCylinderMatRot, tmpCylinderMatScale);
+    Mat4.scale(m, tmpCylinderMatRot, tmpCylinderScale);
     return Mat4.setTranslation(m, tmpCylinderCenter);
 }
 

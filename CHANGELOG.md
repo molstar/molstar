@@ -10,6 +10,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Add ``Mesh`` processing helper ``.smoothEdges``
 - Smooth border of molecular-surface with ``includeParent`` enabled
 - Hide ``includeParent`` option from gaussian-surface visuals (not particularly useful)
+- Fix ``TransformData`` issues [#133](https://github.com/molstar/molstar/issues/133)
 
 ## [v2.2.1] - 2021-08-02
 
