@@ -50,7 +50,7 @@ async function createMolecularSurfaceMesh(ctx: VisualContext, unit: Unit, struct
 
     if (props.includeParent) {
         const iterations = Math.ceil(2 / props.resolution);
-        Mesh.smoothEdges(surface, iterations);
+        Mesh.smoothEdges(surface, { iterations, maxNewEdgeLength: Math.sqrt(2) });
     }
 
     Mesh.transform(surface, transform);

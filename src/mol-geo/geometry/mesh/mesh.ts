@@ -450,7 +450,7 @@ export namespace Mesh {
         return mesh;
     }
 
-    function fillEdges(mesh: Mesh, neighboursMap: number[][], borderNeighboursMap: Map<number, number[]>) {
+    function fillEdges(mesh: Mesh, neighboursMap: number[][], borderNeighboursMap: Map<number, number[]>, maxLengthSquared: number) {
         const { vertexBuffer, indexBuffer, normalBuffer, triangleCount } = mesh;
         const vb = vertexBuffer.ref.value;
         const ib = indexBuffer.ref.value;
@@ -512,10 +512,7 @@ export namespace Mesh {
             Vec3.sub(vAC, vC, vA);
             Vec3.add(vABC, vAB, vAC);
 
-            // NOTE: this will only work for Meshes from Marching cubes
-            //       do we need a general solution?
-            //       1.41 ~= diagonal of a unit square
-            if (Vec3.squaredDistance(vA, vB) >= 1.42) continue;
+            if (Vec3.squaredDistance(vA, vB) >= maxLengthSquared) continue;
 
             let add = false;
             for (const nb of neighboursMap[v]) {
@@ -597,7 +594,7 @@ export namespace Mesh {
         }
     }
 
-    export function smoothEdges(mesh: Mesh, iterations: number) {
+    export function smoothEdges(mesh: Mesh, options: { iterations: number, maxNewEdgeLength: number }) {
         trimEdges(mesh, getNeighboursMap(mesh));
 
         for (let k = 0; k < 10; ++k) {
@@ -606,7 +603,7 @@ export namespace Mesh {
             const neighboursMap = getNeighboursMap(mesh);
             const borderVertices = getBorderVertices(edgeCounts);
             const borderNeighboursMap = getBorderNeighboursMap(neighboursMap, borderVertices, edgeCounts);
-            fillEdges(mesh, neighboursMap, borderNeighboursMap);
+            fillEdges(mesh, neighboursMap, borderNeighboursMap, options.maxNewEdgeLength * options.maxNewEdgeLength);
             if (mesh.triangleCount === oldTriangleCount) break;
         }
 
@@ -614,7 +611,7 @@ export namespace Mesh {
         const neighboursMap = getNeighboursMap(mesh);
         const borderVertices = getBorderVertices(edgeCounts);
         const borderNeighboursMap = getBorderNeighboursMap(neighboursMap, borderVertices, edgeCounts);
-        laplacianEdgeSmoothing(mesh, borderNeighboursMap, { iterations, lambda: 0.5 });
+        laplacianEdgeSmoothing(mesh, borderNeighboursMap, { iterations: options.iterations, lambda: 0.5 });
         return mesh;
     }
 
