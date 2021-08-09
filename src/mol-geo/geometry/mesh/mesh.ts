@@ -8,7 +8,7 @@
 import { ValueCell } from '../../../mol-util';
 import { Vec3, Mat4, Mat3, Vec4 } from '../../../mol-math/linear-algebra';
 import { Sphere3D } from '../../../mol-math/geometry';
-import { transformPositionArray, transformDirectionArray, computeIndexedVertexNormals, GroupMapping, createGroupMapping} from '../../util';
+import { transformPositionArray, transformDirectionArray, computeIndexedVertexNormals, GroupMapping, createGroupMapping } from '../../util';
 import { GeometryUtils } from '../geometry';
 import { createMarkers } from '../marker-data';
 import { TransformData } from '../transform-data';
@@ -480,51 +480,66 @@ export namespace Mesh {
         const AngleThreshold = degToRad(120);
         const added = new Set<number>();
 
-        borderNeighboursMap.forEach((nbs, v) => {
-            if (nbs.length >= 2) {
-                if (neighboursMap[nbs[0]].includes(nbs[1]) &&
-                    !borderNeighboursMap.get(nbs[0])?.includes(nbs[1])
-                ) return;
+        const indices = Array.from(borderNeighboursMap.keys())
+            .filter(v => borderNeighboursMap.get(v)!.length < 2)
+            .map(v => {
+                const bnd = borderNeighboursMap.get(v)!;
 
                 Vec3.fromArray(vA, vb, v * 3);
-                Vec3.fromArray(vAN, nb, v * 3);
-                Vec3.fromArray(vB, vb, nbs[0] * 3);
-                Vec3.fromArray(vC, vb, nbs[1] * 3);
+                Vec3.fromArray(vB, vb, bnd[0] * 3);
+                Vec3.fromArray(vC, vb, bnd[1] * 3);
                 Vec3.sub(vAB, vB, vA);
                 Vec3.sub(vAC, vC, vA);
-                Vec3.add(vABC, vAB, vAC);
 
-                let add = false;
-                for (const nb of neighboursMap[v]) {
-                    if (nbs.includes(nb)) continue;
+                return [v, Vec3.angle(vAB, vAC)];
+            });
 
-                    Vec3.fromArray(vD, vb, nb * 3);
-                    Vec3.sub(vAD, vD, vA);
-                    if (Vec3.dot(vABC, vAD) < 0) {
-                        add = true;
-                        break;
-                    }
-                }
+        // start with the smallest angle
+        indices.sort(([, a], [, b]) => a - b);
 
-                let count = 0;
-                if (add) {
-                    if (added.has(v)) count += 1;
-                    if (added.has(nbs[0])) count += 1;
-                    if (added.has(nbs[1])) count += 1;
-                }
+        for (const [v, angle] of indices) {
+            if (added.has(v) || angle > AngleThreshold) continue;
 
-                if (add && count < 2 && Vec3.angle(vAB, vAC) < AngleThreshold) {
-                    Vec3.triangleNormal(vN, vA, vB, vC);
-                    if (Vec3.dot(vN, vAN) > 0) {
-                        ChunkedArray.add3(index, v, nbs[0], nbs[1]);
-                    } else {
-                        ChunkedArray.add3(index, nbs[1], nbs[0], v);
-                    }
-                    added.add(v); added.add(nbs[0]); added.add(nbs[1]);
-                    newTriangleCount += 1;
+            const nbs = borderNeighboursMap.get(v)!;
+            if (neighboursMap[nbs[0]].includes(nbs[1]) &&
+                !borderNeighboursMap.get(nbs[0])?.includes(nbs[1])
+            ) continue;
+
+            Vec3.fromArray(vA, vb, v * 3);
+            Vec3.fromArray(vB, vb, nbs[0] * 3);
+            Vec3.fromArray(vC, vb, nbs[1] * 3);
+            Vec3.sub(vAB, vB, vA);
+            Vec3.sub(vAC, vC, vA);
+            Vec3.add(vABC, vAB, vAC);
+
+            // NOTE: this will only work for Meshes from Marching cubes
+            //       do we need a general solution?
+            //       1.41 ~= diagonal of a unit square
+            if (Vec3.squaredDistance(vA, vB) >= 1.42) continue;
+
+            let add = false;
+            for (const nb of neighboursMap[v]) {
+                if (nbs.includes(nb)) continue;
+
+                Vec3.fromArray(vD, vb, nb * 3);
+                Vec3.sub(vAD, vD, vA);
+                if (Vec3.dot(vABC, vAD) < 0) {
+                    add = true;
+                    break;
                 }
             }
-        });
+            if (!add) continue;
+
+            Vec3.fromArray(vAN, nb, v * 3);
+            Vec3.triangleNormal(vN, vA, vB, vC);
+            if (Vec3.dot(vN, vAN) > 0) {
+                ChunkedArray.add3(index, v, nbs[0], nbs[1]);
+            } else {
+                ChunkedArray.add3(index, nbs[1], nbs[0], v);
+            }
+            added.add(v); added.add(nbs[0]); added.add(nbs[1]);
+            newTriangleCount += 1;
+        }
 
         const newIb = ChunkedArray.compact(index);
         mesh.triangleCount = newTriangleCount;
@@ -584,6 +599,7 @@ export namespace Mesh {
 
     export function smoothEdges(mesh: Mesh, iterations: number) {
         trimEdges(mesh, getNeighboursMap(mesh));
+
         for (let k = 0; k < 10; ++k) {
             const oldTriangleCount = mesh.triangleCount;
             const edgeCounts = getEdgeCounts(mesh);
