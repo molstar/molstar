@@ -64,21 +64,19 @@ function createHistopyramidReductionRenderable(ctx: WebGLContext, inputLevel: Te
 }
 
 type TextureFramebuffer = { texture: Texture, framebuffer: Framebuffer }
-const LevelTexturesFramebuffers: TextureFramebuffer[] = [];
 function getLevelTextureFramebuffer(ctx: WebGLContext, level: number) {
-    let textureFramebuffer = LevelTexturesFramebuffers[level];
     const size = Math.pow(2, level);
-    if (textureFramebuffer === undefined) {
-        const texture = ctx.isWebGL2
-            ? getTexture(`level${level}`, ctx, 'image-int32', 'alpha', 'int', 'nearest')
-            : getTexture(`level${level}`, ctx, 'image-uint8', 'rgba', 'ubyte', 'nearest');
-        texture.define(size, size);
-        const framebuffer = getFramebuffer(`level${level}`, ctx);
+    const name = `level${level}`;
+    const texture = ctx.isWebGL2
+        ? getTexture(name, ctx, 'image-int32', 'alpha', 'int', 'nearest')
+        : getTexture(name, ctx, 'image-uint8', 'rgba', 'ubyte', 'nearest');
+    texture.define(size, size);
+    let framebuffer = tryGetFramebuffer(name, ctx);
+    if (!framebuffer) {
+        framebuffer = getFramebuffer(name, ctx);
         texture.attachFramebuffer(framebuffer, 0);
-        textureFramebuffer = { texture, framebuffer };
-        LevelTexturesFramebuffers[level] = textureFramebuffer;
     }
-    return textureFramebuffer;
+    return { texture, framebuffer };
 }
 
 function setRenderingDefaults(ctx: WebGLContext) {
@@ -106,6 +104,11 @@ function getTexture(name: string, webgl: WebGLContext, kind: TextureKind, format
         webgl.namedTextures[_name] = webgl.resources.texture(kind, format, type, filter);
     }
     return webgl.namedTextures[_name];
+}
+
+function tryGetFramebuffer(name: string, webgl: WebGLContext): Framebuffer | undefined {
+    const _name = `${HistogramPyramidName}-${name}`;
+    return webgl.namedFramebuffers[_name];
 }
 
 export interface HistogramPyramid {
