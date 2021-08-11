@@ -30,7 +30,7 @@ import { Asset } from '../../mol-util/assets';
 import { Color } from '../../mol-util/color';
 import { readFromFile } from '../../mol-util/data-source';
 import { objectForEach } from '../../mol-util/object';
-//import fetch from 'node-fetch';
+// import fetch from 'node-fetch';
 
 function getCellPackModelUrl(fileName: string, baseUrl: string) {
     return `${baseUrl}/results/${fileName}`;
@@ -42,14 +42,14 @@ class TrajectoryCache {
     get(id: string) { return this.map.get(id); }
 }
 
-async function getModel(plugin: PluginContext, id: string, ingredient: Ingredient, 
-                        baseUrl: string, trajCache: TrajectoryCache, location: string,
-                        file?: Asset.File 
-                        ) {
+async function getModel(plugin: PluginContext, id: string, ingredient: Ingredient,
+    baseUrl: string, trajCache: TrajectoryCache, location: string,
+    file?: Asset.File
+) {
     const assetManager = plugin.managers.asset;
     const modelIndex = (ingredient.source.model) ? parseInt(ingredient.source.model) : 0;
     let surface = (ingredient.ingtype) ? (ingredient.ingtype === 'transmembrane') : false;
-    if (location == 'surface') surface = true;
+    if (location === 'surface') surface = true;
     let trajectory = trajCache.get(id);
     let assets: Asset.Wrapper[] = [];
     if (!trajectory) {
@@ -108,8 +108,6 @@ async function getModel(plugin: PluginContext, id: string, ingredient: Ingredien
 
 async function getStructure(plugin: PluginContext, model: Model, source: Ingredient, props: { assembly?: string } = {}) {
     let structure = Structure.ofModel(model);
-    //const label = { label: 'Model', description: Structure.elementDescription(base) };
-    //let structure = new PSO.Molecule.Structure(base, label);
     const { assembly } = props;
 
     if (assembly) {
@@ -117,33 +115,27 @@ async function getStructure(plugin: PluginContext, model: Model, source: Ingredi
     }
     let query;
     if (source.source.selection){
-        var sel: any = source.source.selection;
-        //selection can have the model ID as well. remove it
+        let sel: any = source.source.selection;
+        // selection can have the model ID as well. remove it
         const asymIds: string[] = sel.replaceAll(' ', '').replaceAll(':', '').split('or').slice(1);
-        //console.log("selection is ", source.selection, asymIds);
-        //query = MS.struct.modifier.union([
-        //    MS.struct.generator.atomGroups({
-        //        'entity-test': MS.core.rel.eq([MS.ammp('entityType'), 'polymer']),
-        //        'chain-test': MS.core.set.has([MS.set(...asymIds), MS.ammp('auth_asym_id')])
-        //    })
-        //]);
+        // console.log("selection is ", source.selection, asymIds);
         query = MS.struct.modifier.union([
             MS.struct.generator.atomGroups({
                 'chain-test': MS.core.set.has([MS.set(...asymIds), MS.ammp('auth_asym_id')])
             })
-        ]);        
+        ]);
     } else {
         query = MS.struct.modifier.union([
             MS.struct.generator.atomGroups({
                 'entity-test': MS.core.rel.eq([MS.ammp('entityType'), 'polymer'])
             })
-        ]);    
+        ]);
     }
     const compiled = compile<StructureSelection>(query);
     const result = compiled(new QueryContext(structure));
     structure = StructureSelection.unionStructure(result);
-    //change here if possible the label or the?  
-    //structure.label =  source.name; 
+    // change here if possible the label or the?
+    // structure.label =  source.name;
     return structure;
 }
 
@@ -184,7 +176,7 @@ function getCurveTransforms(ingredient: Ingredient) {
     for (let i = 0; i < n; ++i) {
         const cname = `curve${i}`;
         if (!(cname in ingredient)) {
-            console.warn(`Expected '${cname}' in ingredient`)
+            console.warn(`Expected '${cname}' in ingredient`);
             continue;
         }
         const _points = ingredient[cname] as Vec3[];
@@ -323,7 +315,7 @@ async function getCurve(plugin: PluginContext, name: string, ingredient: Ingredi
     });
 
     const curveModel = await plugin.runTask(curveModelTask);
-    //ingredient.source.selection = undefined;
+    // ingredient.source.selection = undefined;
     return getStructure(plugin, curveModel, ingredient);
 }
 
@@ -345,11 +337,11 @@ async function getIngredientStructure(plugin: PluginContext, ingredient: Ingredi
     if (!model) return;
     let structure: Structure;
     if (nbCurve) {
-        //console.log("await getCurve", name, nbCurve, model);
+        // console.log("await getCurve", name, nbCurve, model);
         structure = await getCurve(plugin, name, ingredient, getCurveTransforms(ingredient), model);
-        //console.log("getCurve", structure);
+        // console.log("getCurve", structure);
     } else {
-        if ( (!results || results.length===0)) return;
+        if ( (!results || results.length === 0)) return;
         let bu: string|undefined = source.bu ? source.bu : undefined;
         if (bu){
             if (bu === 'AU') {
@@ -361,10 +353,10 @@ async function getIngredientStructure(plugin: PluginContext, ingredient: Ingredi
         structure = await getStructure(plugin, model, ingredient, { assembly: bu });
         // transform with offset and pcp
         let legacy: boolean = true;
-        //if (name === 'MG_213_214_298_6MER_ADP') {
+        // if (name === 'MG_213_214_298_6MER_ADP') {
         //    console.log("getStructure ", ingredient.offset,ingredient.principalVector,ingredient);
-        //}
-        var pcp = ingredient.principalVector?ingredient.principalVector:ingredient.principalAxis;
+        // }
+        let pcp = ingredient.principalVector ? ingredient.principalVector : ingredient.principalAxis;
         if (pcp){
             legacy = false;
             const structureMean = getStructureMean(structure);
@@ -375,10 +367,9 @@ async function getIngredientStructure(plugin: PluginContext, ingredient: Ingredi
             if (ingredient.offset){
                 let o: Vec3 = Vec3.create(ingredient.offset[0], ingredient.offset[1], ingredient.offset[2]);
                 if (!Vec3.exactEquals(o, Vec3.zero())){ // -1, 1, 4e-16 ??
-                    if (location !== 'surface')//(name === 'MG_213_214_298_6MER_ADP') 
-                    {
+                    if (location !== 'surface'){
                         Vec3.negate(o, o);
-                        //console.log("after negate offset ",name, o);
+                        // console.log("after negate offset ",name, o);
                     }
                     const m: Mat4 = Mat4.identity();
                     Mat4.setTranslation(m, o);
@@ -388,23 +379,23 @@ async function getIngredientStructure(plugin: PluginContext, ingredient: Ingredi
             if (pcp){
                 let p: Vec3 = Vec3.create(pcp[0], pcp[1], pcp[2]);
                 if (!Vec3.exactEquals(p, Vec3.unitZ)){
-                    //if (location !== 'surface')//(name === 'MG_213_214_298_6MER_ADP') 
-                    //{
-                        //Vec3.negate(p, p);
-                        //console.log("after negate ", p);
+                    // if (location !== 'surface')//(name === 'MG_213_214_298_6MER_ADP')
+                    // {
+                    // Vec3.negate(p, p);
+                    // console.log("after negate ", p);
                     // }
                     const q: Quat = Quat.identity();
                     Quat.rotationTo(q, p, Vec3.unitZ);
                     const m: Mat4 = Mat4.fromQuat(Mat4.zero(), q);
-                    //if (location !== 'surface') Mat4.invert(m, m);
+                    // if (location !== 'surface') Mat4.invert(m, m);
                     structure = Structure.transform(structure, m);
-                    //if (location === 'surface') console.log('surface',name,ingredient.principalVector, q);
+                    // if (location === 'surface') console.log('surface',name,ingredient.principalVector, q);
                 }
             }
         }
-        
+
         structure = getAssembly(name, getResultTransforms(results, legacy), structure);
-        //console.log("getStructure ", name, structure.label, structure);
+        // console.log("getStructure ", name, structure.label, structure);
     }
 
     return { structure, assets };
@@ -417,7 +408,7 @@ export function createStructureFromCellPack(plugin: PluginContext, packing: Cell
         const trajCache = new TrajectoryCache();
         const structures: Structure[] = [];
         const colors: Color[] = [];
-        //let skipColors: boolean = false;
+        // let skipColors: boolean = false;
         for (const iName in ingredients) {
             if (ctx.shouldUpdate) await ctx.update(iName);
             const ingredientStructure = await getIngredientStructure(plugin, ingredients[iName], baseUrl, ingredientFiles, trajCache, location);
@@ -428,8 +419,8 @@ export function createStructureFromCellPack(plugin: PluginContext, packing: Cell
                 if (c){
                     colors.push(Color.fromNormalizedRgb(c[0], c[1], c[2]));
                 } else {
-                    colors.push(Color.fromNormalizedRgb(1,0,0));
-                    //skipColors = true;
+                    colors.push(Color.fromNormalizedRgb(1, 0, 0));
+                    // skipColors = true;
                 }
             }
         }
@@ -453,7 +444,7 @@ export function createStructureFromCellPack(plugin: PluginContext, packing: Cell
         }
 
         if (ctx.shouldUpdate) await ctx.update(`${name} - structure`);
-        const structure = Structure.create(units, {label: name+"."+location});
+        const structure = Structure.create(units, {label: name + '.' + location});
         for( let i = 0, il = structure.models.length; i < il; ++i) {
             Model.TrajectoryInfo.set(structure.models[i], { size: il, index: i });
         }
@@ -463,7 +454,7 @@ export function createStructureFromCellPack(plugin: PluginContext, packing: Cell
 
 async function handleHivRna(plugin: PluginContext, packings: CellPacking[], baseUrl: string) {
     for (let i = 0, il = packings.length; i < il; ++i) {
-        if (packings[i].name === 'HIV1_capsid_3j3q_PackInner_0_1_0'|| packings[i].name === 'HIV_capsid') {
+        if (packings[i].name === 'HIV1_capsid_3j3q_PackInner_0_1_0' || packings[i].name === 'HIV_capsid') {
             const url = Asset.getUrlAsset(plugin.managers.asset, `${baseUrl}/extras/rna_allpoints.json`);
             const json = await plugin.runTask(plugin.managers.asset.resolve(url, 'json', false));
             const points = json.data.points as number[];
@@ -519,50 +510,49 @@ async function loadMembrane(plugin: PluginContext, name: string, state: State, p
         type: {
             name: 'assembly' as const,
             params: { id: '1' }
-        } 
+        }
     };
-    if (params.source.name === 'id' && params.source.params !== "MycoplasmaGenitalium.json")
-    //old membrane
-    {
+    if (params.source.name === 'id' && params.source.params !== 'MycoplasmaGenitalium.json'){
+        // old membrane
         const membrane = await b.apply(StateTransforms.Data.ParseCif, undefined, { state: { isGhost: true } })
-        .apply(StateTransforms.Model.TrajectoryFromMmCif, undefined, { state: { isGhost: true } })
-        .apply(StateTransforms.Model.ModelFromTrajectory, undefined, { state: { isGhost: true } })
-        .apply(StructureFromAssemblies, undefined, { state: { isGhost: true } })
-        .commit({ revertOnError: true });
+            .apply(StateTransforms.Model.TrajectoryFromMmCif, undefined, { state: { isGhost: true } })
+            .apply(StateTransforms.Model.ModelFromTrajectory, undefined, { state: { isGhost: true } })
+            .apply(StructureFromAssemblies, undefined, { state: { isGhost: true } })
+            .commit({ revertOnError: true });
         const membraneParams = {
             representation: params.preset.representation,
         };
-        await CellpackMembranePreset.apply(membrane, membraneParams, plugin);        
+        await CellpackMembranePreset.apply(membrane, membraneParams, plugin);
     } else {
         const membrane = await b.apply(StateTransforms.Data.ParseCif, undefined, { state: { isGhost: true } })
-        .apply(StateTransforms.Model.TrajectoryFromMmCif, undefined, { state: { isGhost: true } })
-        .apply(StateTransforms.Model.ModelFromTrajectory, undefined, { state: { isGhost: true } })
-        .apply(StateTransforms.Model.StructureFromModel, props, { state: { isGhost: true } })
-        .commit({ revertOnError: true });     
+            .apply(StateTransforms.Model.TrajectoryFromMmCif, undefined, { state: { isGhost: true } })
+            .apply(StateTransforms.Model.ModelFromTrajectory, undefined, { state: { isGhost: true } })
+            .apply(StateTransforms.Model.StructureFromModel, props, { state: { isGhost: true } })
+            .commit({ revertOnError: true });
         const membraneParams = {
             representation: params.preset.representation,
         };
-        await CellpackMembranePreset.apply(membrane, membraneParams, plugin);           
-    }  
+        await CellpackMembranePreset.apply(membrane, membraneParams, plugin);
+    }
 }
 
 async function loadPackings(plugin: PluginContext, runtime: RuntimeContext, state: State, params: LoadCellPackModelParams) {
     const ingredientFiles = params.ingredients || [];
 
     let cellPackJson: StateBuilder.To<PSO.Format.Json, StateTransformer<PSO.Data.String, PSO.Format.Json>>;
-    let modelFile: Asset.File|null= params.results;
+    let modelFile: Asset.File|null = params.results;
     if (params.source.name === 'id') {
         const url = Asset.getUrlAsset(plugin.managers.asset, getCellPackModelUrl(params.source.params, params.baseUrl));
-        //console.log("getting "+params.source.params+" "+url.url);
+        // console.log("getting "+params.source.params+" "+url.url);
         cellPackJson = state.build().toRoot()
             .apply(StateTransforms.Data.Download, { url, isBinary: false, label: params.source.params }, { state: { isGhost: true } });
 
-        if (params.source.params === "MycoplasmaGenitalium.json"){
+        if (params.source.params === 'MycoplasmaGenitalium.json'){
             const m_url = Asset.getUrlAsset(plugin.managers.asset, `${params.baseUrl}/results/results_149_curated_serialized.bin`);
-            //console.log("getting results "+m_url.url);
+            // console.log("getting results "+m_url.url);
             const model_data = await fetch(m_url.url);
             modelFile = Asset.File(new File([await model_data.arrayBuffer()], 'model.bin'));
-            //console.log("MycoplasmaGenitalium.json loading setup ?",modelFile);
+            // console.log("MycoplasmaGenitalium.json loading setup ?",modelFile);
         }
     } else {
         const file = params.source.params;
@@ -588,17 +578,17 @@ async function loadPackings(plugin: PluginContext, runtime: RuntimeContext, stat
         }
         cellPackJson = state.build().toRoot()
             .apply(StateTransforms.Data.ReadFile, { file: jsonFile, isBinary: false, label: jsonFile.name }, { state: { isGhost: true } });
-        
+
     }
 
     const cellPackBuilder = cellPackJson
         .apply(StateTransforms.Data.ParseJson, undefined, { state: { isGhost: true } })
-        .apply(ParseCellPack,{modeFile:modelFile});
-        
+        .apply(ParseCellPack, {modeFile:modelFile});
+
     const cellPackObject = await state.updateTree(cellPackBuilder).runInContext(runtime);
-    
+
     const { packings } = cellPackObject.obj!.data;
-    
+
     await handleHivRna(plugin, packings, params.baseUrl);
 
     for (let i = 0, il = packings.length; i < il; ++i) {
@@ -619,15 +609,15 @@ async function loadPackings(plugin: PluginContext, runtime: RuntimeContext, stat
                 await loadMembrane(plugin, packings[i].name, state, params);
             }
             if (typeof(packings[i].mb) !== 'undefined'){
-                var nSpheres =  packings[i].mb!.positions.length/3;
-                for (var j=0;j<nSpheres;j++) {
+                let nSpheres =  packings[i].mb!.positions.length / 3;
+                for (let j = 0;j < nSpheres;j++) {
                     await state.build()
-                    .toRoot()
-                    .apply(CreateSphere, {center:Vec3.create(packings[i].mb!.positions[j*3+0],
-                                                            packings[i].mb!.positions[j*3+1],
-                                                            packings[i].mb!.positions[j*3+2]),
-                                                            radius:packings[i].mb!.radii[j] })
-                    .commit()
+                        .toRoot()
+                        .apply(CreateSphere, {center:Vec3.create(packings[i].mb!.positions[j * 3 + 0],
+                            packings[i].mb!.positions[j * 3 + 1],
+                            packings[i].mb!.positions[j * 3 + 2]),
+                        radius:packings[i].mb!.radii[j] })
+                        .commit();
                 }
             }
         }
@@ -644,8 +634,8 @@ const LoadCellPackModelParams = {
             ['influenza_model1.json', 'Influenza envelope'],
             ['InfluenzaModel2.json', 'Influenza Complete'],
             ['ExosomeModel.json', 'Exosome Model'],
-            //['Mycoplasma1.5_mixed_pdb_fixed.cpr', 'Mycoplasma simple'],
-            //['MycoplasmaModel.json', 'Mycoplasma WholeCell model'],
+            // ['Mycoplasma1.5_mixed_pdb_fixed.cpr', 'Mycoplasma simple'],
+            // ['MycoplasmaModel.json', 'Mycoplasma WholeCell model'],
             ['MycoplasmaGenitalium.json', 'Mycoplasma Genitalium curated model'],
         ] as const, { description: 'Download the model definition with `id` from the server at `baseUrl.`' }),
         'file': PD.File({ accept: '.json,.cpr,.zip', description: 'Open model definition from .json/.cpr file or open .zip file containing model definition plus ingredients.' }),

@@ -9,8 +9,8 @@ import { StructureRepresentationPresetProvider, presetStaticComponent } from '..
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { ColorNames } from '../../mol-util/color/names';
 import { CellPackGenerateColorThemeProvider } from './color/generate';
-//import { CellPackInfoProvider } from './property';
-//import { CellPackProvidedColorThemeProvider } from './color/provided';
+// import { CellPackInfoProvider } from './property';
+// import { CellPackProvidedColorThemeProvider } from './color/provided';
 
 export const CellpackPackingPresetParams = {
     traceOnly: PD.Boolean(true),
@@ -42,9 +42,9 @@ export const CellpackPackingPreset = StructureRepresentationPresetProvider({
             Object.assign(reprProps, { sizeFactor: 2 });
         }
 
-        //const info = structureCell.obj?.data && CellPackInfoProvider.get(structureCell.obj?.data).value;
-        //default is generated
-        const color = CellPackGenerateColorThemeProvider.name;//info?.colors ? CellPackProvidedColorThemeProvider.name : CellPackGenerateColorThemeProvider.name;
+        // const info = structureCell.obj?.data && CellPackInfoProvider.get(structureCell.obj?.data).value;
+        // default is generated
+        const color = CellPackGenerateColorThemeProvider.name;// info?.colors ? CellPackProvidedColorThemeProvider.name : CellPackGenerateColorThemeProvider.name;
 
         const { update, builder, typeParams } = StructureRepresentationPresetProvider.reprBuilder(plugin, {});
         const representations = {
