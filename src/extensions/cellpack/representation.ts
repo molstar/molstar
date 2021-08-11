@@ -28,7 +28,7 @@ const MembraneSphereParams = {
     cellColor: PD.Color(ColorNames.orange),
     cellScale: PD.Numeric(2, { min: 0.1, max: 5, step: 0.1 }),
     radius: PD.Numeric(2, { min: 0.1, max: 5, step: 0.1 }),
-    center: PD.Vec3(Vec3.create(0,0,0)),
+    center: PD.Vec3(Vec3.create(0, 0, 0)),
     quality: { ...Mesh.Params.quality, isEssential: false },
 };
 
@@ -47,14 +47,14 @@ export type UnitcellProps = PD.Values<MBParams>
 function getMBMesh(data: MembraneSphereData, props: UnitcellProps, mesh?: Mesh) {
     const state = MeshBuilder.createState(256, 128, mesh);
     const radius = props.radius;
-    var p = DefaultPolyhedronProps;
+    let p = DefaultPolyhedronProps;
     p.detail = 3;
     p.radius = radius;
     const { vertices, indices } = Icosahedron();
     const asphere = Polyhedron(vertices, indices, p);
-    //const asphere = Sphere(3);
-    var trans:Mat4 = Mat4.identity();
-    //Mat4.fromScaling(trans, Vec3.create(radius,radius,radius));
+    // const asphere = Sphere(3);
+    let trans: Mat4 = Mat4.identity();
+    // Mat4.fromScaling(trans, Vec3.create(radius,radius,radius));
     state.currentGroup = 1;
     MeshBuilder.addPrimitive(state, trans, asphere);
     const m = MeshBuilder.getMesh(state);
@@ -63,7 +63,7 @@ function getMBMesh(data: MembraneSphereData, props: UnitcellProps, mesh?: Mesh) 
 
 function getMBShape(ctx: RuntimeContext, data: MembraneSphereData, props: UnitcellProps, shape?: Shape<Mesh>) {
     const geo = getMBMesh(data, props, shape && shape.geometry);
-    const label = "mb";
+    const label = 'mb';
     return Shape.create(label, data, geo, () => props.cellColor, () => 1, () => label);
 }
 

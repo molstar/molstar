@@ -24,7 +24,7 @@ export interface Cell {
     recipe: Recipe
     cytoplasme?: Packing
     compartments?: { [key: string]: Compartment }
-    mapping_ids?: { [key: number]: [number,string] }
+    mapping_ids?: { [key: number]: [number, string] }
 }
 
 export interface Recipe {
