@@ -6,7 +6,11 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+
+## [v2.2.2] - 2021-08-11
+
 - Fix ``TransformData`` issues [#133](https://github.com/molstar/molstar/issues/133)
+- Fix ``mol-script`` query compiler const expression recognition.
 
 ## [v2.2.1] - 2021-08-02
 

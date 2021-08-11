@@ -120,7 +120,7 @@ class SymbolRuntimeImpl<S extends MSymbol> implements QuerySymbolRuntime {
             constArgs = true;
         } else if (Expression.isArgumentsArray(inputArgs)) {
             args = [];
-            constArgs = false;
+            constArgs = true;
             for (const arg of inputArgs) {
                 const compiled = _compile(ctx, arg);
                 constArgs = constArgs && compiled.isConst;
@@ -128,7 +128,7 @@ class SymbolRuntimeImpl<S extends MSymbol> implements QuerySymbolRuntime {
             }
         } else {
             args = Object.create(null);
-            constArgs = false;
+            constArgs = true;
             for (const key of Object.keys(inputArgs)) {
                 const compiled = _compile(ctx, inputArgs[key]);
                 constArgs = constArgs && compiled.isConst;
