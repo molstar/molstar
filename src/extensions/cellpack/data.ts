@@ -15,6 +15,7 @@ export interface CellPacking {
     name: string,
     location: 'surface' | 'interior' | 'cytoplasme',
     ingredients: Packing['ingredients']
+    mb?: Membrane
 }
 
 //
@@ -23,6 +24,7 @@ export interface Cell {
     recipe: Recipe
     cytoplasme?: Packing
     compartments?: { [key: string]: Compartment }
+    mapping_ids?: { [key: number]: [number,string] }
 }
 
 export interface Recipe {
@@ -35,6 +37,12 @@ export interface Recipe {
 export interface Compartment {
     surface?: Packing
     interior?: Packing
+    mb?: Membrane
+}
+
+export interface Membrane{
+    positions: number[];
+    radii: number[];
 }
 
 export interface Packing {
@@ -64,11 +72,13 @@ export interface Ingredient {
     [curveX: string]: unknown;
     /** the orientation in the membrane */
     principalAxis?: Vec3;
+    principalVector?: Vec3;
     /** offset along membrane */
     offset?: Vec3;
     ingtype?: string;
     color?: Vec3;
     confidence?: number;
+    Type?: string;
 }
 
 export interface IngredientSource {
