@@ -12,7 +12,7 @@ import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { Mesh } from '../../mol-geo/geometry/mesh/mesh';
 import { MeshBuilder } from '../../mol-geo/geometry/mesh/mesh-builder';
 import { Polyhedron, DefaultPolyhedronProps } from '../../mol-geo/primitive/polyhedron';
-import { Icosahedron } from '../../mol-geo/primitive/Icosahedron';
+import { Icosahedron } from '../../mol-geo/primitive/icosahedron';
 import { Mat4, Vec3 } from '../../mol-math/linear-algebra';
 import { RepresentationParamsGetter, Representation, RepresentationContext } from '../../mol-repr/representation';
 
