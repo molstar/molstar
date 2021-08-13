@@ -19,6 +19,7 @@ import { Vec3, Quat } from '../../mol-math/linear-algebra';
 import { readFromFile } from '../../mol-util/data-source';
 import { StateTransformer } from '../../mol-state';
 import { MBRepresentation, MBParams } from './representation';
+import { IsNativeEndianLittle, flipByteOrder } from '../../mol-io/common/binary';;
 
 // export const DefaultCellPackBaseUrl = 'https://mesoscope.scripps.edu/data/cellPACK_data/cellPACK_database_1.1.0/';
 export const DefaultCellPackBaseUrl = 'https://raw.githubusercontent.com/mesoscope/cellPACK_data/master/cellPACK_database_1.1.0/';
@@ -99,7 +100,12 @@ const ParseCellPack = PluginStateTransform.BuiltIn({
             }
             if (params.modeFile && params.modeFile.file){
                 const model_data = await readFromFile(params.modeFile.file, 'binary').runInContext(ctx);// async ?
-                let numbers = new DataView(model_data.buffer);
+                let buffer = model_data.buffer;
+                if (!IsNativeEndianLittle) {
+                    // flip the byte order
+                    buffer = flipByteOrder(model_data, 4);
+                }
+                let numbers = new DataView(buffer);
                 let ninst = getFloatValue(numbers, 0);
                 let npoints = getFloatValue(numbers, 4);
                 let ncurve = getFloatValue(numbers, 8);
@@ -120,15 +126,15 @@ const ParseCellPack = PluginStateTransform.BuiltIn({
                 // let ctrl_info= new Float32Array();//#curve_id, curve_type, angle, uLength
                 let offset = 12;
                 if (ninst !== 0){
-                    pos = new Float32Array(model_data.buffer, offset, ninst * 4);offset += ninst * 4 * 4;
-                    quat = new Float32Array(model_data.buffer, offset, ninst * 4);offset += ninst * 4 * 4;
+                    pos = new Float32Array(buffer, offset, ninst * 4);offset += ninst * 4 * 4;
+                    quat = new Float32Array(buffer, offset, ninst * 4);offset += ninst * 4 * 4;
                 }
                 if ( npoints !== 0 ) {
-                    ctr_pos = new Float32Array(model_data.buffer, offset, npoints * 4);offset += npoints * 4 * 4;
+                    ctr_pos = new Float32Array(buffer, offset, npoints * 4);offset += npoints * 4 * 4;
                     // ctr_norm = new Float32Array(model_data,offset,ncurve*4);
                     offset += npoints * 4 * 4;
-                    ctr_info = new Float32Array(model_data.buffer, offset, npoints * 4);offset += npoints * 4 * 4;
-                    curve_ids = new Float32Array(model_data.buffer, offset, ncurve * 4);offset += ncurve * 4 * 4;
+                    ctr_info = new Float32Array(buffer, offset, npoints * 4);offset += npoints * 4 * 4;
+                    curve_ids = new Float32Array(buffer, offset, ncurve * 4);offset += ncurve * 4 * 4;
                 }
                 // data_from_buffer = {"pos":pos,"quat":quat,"ctrl_pts":ctrl_pts,"ctrl_normal":ctrl_normal,"ctrl_info":ctrl_info};
                 // create all the bodys then the instance ?
