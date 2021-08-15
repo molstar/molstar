@@ -36,6 +36,12 @@ namespace IntTuple {
         return _float64[0] as any;
     }
 
+    /** snd - fst */
+    export function diff(t: IntTuple) {
+        _float64[0] = t as any;
+        return _int32[1] - _int32[0];
+    }
+
     export function fst(t: IntTuple): number {
         _float64[0] = t as any;
         return _int32[0];
