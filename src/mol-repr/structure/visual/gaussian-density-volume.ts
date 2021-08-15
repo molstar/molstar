@@ -44,6 +44,7 @@ export const GaussianDensityVolumeParams = {
     ...ComplexDirectVolumeParams,
     ...GaussianDensityParams,
     ignoreHydrogens: PD.Boolean(false),
+    includeParent: PD.Boolean(false, { isHidden: true }),
 };
 export type GaussianDensityVolumeParams = typeof GaussianDensityVolumeParams
 
@@ -99,6 +100,7 @@ export const UnitsGaussianDensityVolumeParams = {
     ...UnitsDirectVolumeParams,
     ...GaussianDensityParams,
     ignoreHydrogens: PD.Boolean(false),
+    includeParent: PD.Boolean(false, { isHidden: true }),
 };
 export type UnitsGaussianDensityVolumeParams = typeof UnitsGaussianDensityVolumeParams
 

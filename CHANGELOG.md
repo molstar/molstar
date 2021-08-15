@@ -6,6 +6,10 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Add ``invertCantorPairing`` helper function
+- Add ``Mesh`` processing helper ``.smoothEdges``
+- Smooth border of molecular-surface with ``includeParent`` enabled
+- Hide ``includeParent`` option from gaussian-surface visuals (not particularly useful)
 
 ## [v2.2.2] - 2021-08-11
 
