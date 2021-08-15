@@ -334,10 +334,10 @@ export namespace Mesh {
         mesh.vertexCount = newVertexCount;
         mesh.triangleCount = newTriangleCount;
 
-        ValueCell.update(vertexBuffer, newVb) as ValueCell<Float32Array>;
-        ValueCell.update(groupBuffer, newGb) as ValueCell<Float32Array>;
-        ValueCell.update(indexBuffer, newIb) as ValueCell<Uint32Array>;
-        ValueCell.update(normalBuffer, newNb) as ValueCell<Float32Array>;
+        ValueCell.update(vertexBuffer, newVb);
+        ValueCell.update(groupBuffer, newGb);
+        ValueCell.update(indexBuffer, newIb);
+        ValueCell.update(normalBuffer, newNb);
 
         // keep some original data, e.g., for geometry export
         (mesh.meta.originalData as OriginalData) = { indexBuffer: ib, vertexCount, triangleCount };
@@ -445,7 +445,7 @@ export namespace Mesh {
 
         const newIb = ChunkedArray.compact(index);
         mesh.triangleCount = newTriangleCount;
-        ValueCell.update(indexBuffer, newIb) as ValueCell<Uint32Array>;
+        ValueCell.update(indexBuffer, newIb);
 
         return mesh;
     }
@@ -540,7 +540,7 @@ export namespace Mesh {
 
         const newIb = ChunkedArray.compact(index);
         mesh.triangleCount = newTriangleCount;
-        ValueCell.update(indexBuffer, newIb) as ValueCell<Uint32Array>;
+        ValueCell.update(indexBuffer, newIb);
 
         return mesh;
     }
