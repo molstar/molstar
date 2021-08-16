@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Ludovic Autin <ludovic.autin@gmail.com>
  */
 
 import { ShapeRepresentation } from '../../mol-repr/shape/representation';
@@ -11,8 +12,9 @@ import { RuntimeContext } from '../../mol-task';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { Mesh } from '../../mol-geo/geometry/mesh/mesh';
 import { MeshBuilder } from '../../mol-geo/geometry/mesh/mesh-builder';
-import { Polyhedron, DefaultPolyhedronProps } from '../../mol-geo/primitive/polyhedron';
-import { Icosahedron } from '../../mol-geo/primitive/icosahedron';
+// import { Polyhedron, DefaultPolyhedronProps } from '../../mol-geo/primitive/polyhedron';
+// import { Icosahedron } from '../../mol-geo/primitive/icosahedron';
+import { Sphere } from '../../mol-geo/primitive/sphere';
 import { Mat4, Vec3 } from '../../mol-math/linear-algebra';
 import { RepresentationParamsGetter, Representation, RepresentationContext } from '../../mol-repr/representation';
 
@@ -47,14 +49,14 @@ export type UnitcellProps = PD.Values<MBParams>
 function getMBMesh(data: MembraneSphereData, props: UnitcellProps, mesh?: Mesh) {
     const state = MeshBuilder.createState(256, 128, mesh);
     const radius = props.radius;
-    let p = DefaultPolyhedronProps;
-    p.detail = 3;
-    p.radius = radius;
-    const { vertices, indices } = Icosahedron();
-    const asphere = Polyhedron(vertices, indices, p);
-    // const asphere = Sphere(3);
-    let trans: Mat4 = Mat4.identity();
-    // Mat4.fromScaling(trans, Vec3.create(radius,radius,radius));
+    // const p = DefaultPolyhedronProps;
+    // p.detail = 3;
+    // p.radius = radius;
+    // const { vertices, indices } = Icosahedron();
+    // const asphere = Polyhedron(vertices, indices, p);
+    const asphere = Sphere(3);
+    const trans: Mat4 = Mat4.identity();
+    Mat4.fromScaling(trans, Vec3.create(radius, radius, radius));
     state.currentGroup = 1;
     MeshBuilder.addPrimitive(state, trans, asphere);
     const m = MeshBuilder.getMesh(state);

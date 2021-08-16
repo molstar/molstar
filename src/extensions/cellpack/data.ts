@@ -15,6 +15,8 @@ export interface CellPacking {
     name: string,
     location: 'surface' | 'interior' | 'cytoplasme',
     ingredients: Packing['ingredients']
+    geom?: string
+    geom_type?: string
     mb?: Membrane
 }
 
@@ -22,9 +24,14 @@ export interface CellPacking {
 
 export interface Cell {
     recipe: Recipe
+    options?: RecipeOptions
     cytoplasme?: Packing
     compartments?: { [key: string]: Compartment }
     mapping_ids?: { [key: number]: [number, string] }
+}
+
+export interface RecipeOptions {
+    resultfile?: string
 }
 
 export interface Recipe {
@@ -37,12 +44,15 @@ export interface Recipe {
 export interface Compartment {
     surface?: Packing
     interior?: Packing
+    geom?: string
+    geom_type?: string
     mb?: Membrane
 }
 
 export interface Membrane{
-    positions: number[];
-    radii: number[];
+    positions?: number[];
+    radii?: number[];
+    source?: string;
 }
 
 export interface Packing {
