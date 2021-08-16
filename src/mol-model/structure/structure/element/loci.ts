@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -22,9 +22,10 @@ import { NumberArray } from '../../../../mol-util/type-helpers';
 import { StructureProperties } from '../properties';
 import { BoundaryHelper } from '../../../../mol-math/geometry/boundary-helper';
 import { Boundary } from '../../../../mol-math/geometry/boundary';
+import { IntTuple } from '../../../../mol-data/int/tuple';
 
 // avoiding namespace lookup improved performance in Chrome (Aug 2020)
-const osSize = OrderedSet.size;
+const itDiff = IntTuple.diff;
 
 /** Represents multiple structure element index locations */
 export interface Loci {
@@ -74,7 +75,15 @@ export namespace Loci {
 
     export function size(loci: Loci) {
         let s = 0;
-        for (const u of loci.elements) s += osSize(u.indices);
+        // inlined for max performance, crucial for marking large cellpack models
+        // `for (const u of loci.elements) s += OrderedSet.size(u.indices);`
+        for (const { indices } of loci.elements) {
+            if (typeof indices === 'number') {
+                s += itDiff(indices as IntTuple);
+            } else {
+                s += (indices as SortedArray).length;
+            }
+        }
         return s;
     }
 

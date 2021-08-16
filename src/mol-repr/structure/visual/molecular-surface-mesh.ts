@@ -11,7 +11,7 @@ import { VisualContext } from '../../visual';
 import { Unit, Structure } from '../../../mol-model/structure';
 import { Theme } from '../../../mol-theme/theme';
 import { Mesh } from '../../../mol-geo/geometry/mesh/mesh';
-import { computeUnitMolecularSurface, MolecularSurfaceProps } from './util/molecular-surface';
+import { computeUnitMolecularSurface } from './util/molecular-surface';
 import { computeMarchingCubesMesh } from '../../../mol-geo/util/marching-cubes/algorithm';
 import { ElementIterator, getElementLoci, eachElement } from './util/element';
 import { VisualUpdateState } from '../../util';
@@ -29,6 +29,7 @@ export const MolecularSurfaceMeshParams = {
     ...ColorSmoothingParams,
 };
 export type MolecularSurfaceMeshParams = typeof MolecularSurfaceMeshParams
+export type MolecularSurfaceMeshProps = PD.Values<MolecularSurfaceMeshParams>
 
 type MolecularSurfaceMeta = {
     resolution?: number
@@ -37,7 +38,7 @@ type MolecularSurfaceMeta = {
 
 //
 
-async function createMolecularSurfaceMesh(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: MolecularSurfaceProps, mesh?: Mesh): Promise<Mesh> {
+async function createMolecularSurfaceMesh(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: MolecularSurfaceMeshProps, mesh?: Mesh): Promise<Mesh> {
     const { transform, field, idField, resolution } = await computeUnitMolecularSurface(structure, unit, props).runInContext(ctx.runtime);
 
     const params = {
@@ -46,6 +47,11 @@ async function createMolecularSurfaceMesh(ctx: VisualContext, unit: Unit, struct
         idField
     };
     const surface = await computeMarchingCubesMesh(params, mesh).runAsChild(ctx.runtime);
+
+    if (props.includeParent) {
+        const iterations = Math.ceil(2 / props.resolution);
+        Mesh.smoothEdges(surface, { iterations, maxNewEdgeLength: Math.sqrt(2) });
+    }
 
     Mesh.transform(surface, transform);
     if (ctx.webgl && !ctx.webgl.isWebGL2) Mesh.uniformTriangleGroup(surface);
@@ -71,6 +77,7 @@ export function MolecularSurfaceMeshVisual(materialId: number): UnitsVisual<Mole
             if (newProps.ignoreHydrogens !== currentProps.ignoreHydrogens) state.createGeometry = true;
             if (newProps.traceOnly !== currentProps.traceOnly) state.createGeometry = true;
             if (newProps.includeParent !== currentProps.includeParent) state.createGeometry = true;
+
             if (newProps.smoothColors.name !== currentProps.smoothColors.name) {
                 state.updateColor = true;
             } else if (newProps.smoothColors.name === 'on' && currentProps.smoothColors.name === 'on') {

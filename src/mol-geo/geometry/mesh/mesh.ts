@@ -8,13 +8,13 @@
 import { ValueCell } from '../../../mol-util';
 import { Vec3, Mat4, Mat3, Vec4 } from '../../../mol-math/linear-algebra';
 import { Sphere3D } from '../../../mol-math/geometry';
-import { transformPositionArray, transformDirectionArray, computeIndexedVertexNormals, GroupMapping, createGroupMapping} from '../../util';
+import { transformPositionArray, transformDirectionArray, computeIndexedVertexNormals, GroupMapping, createGroupMapping } from '../../util';
 import { GeometryUtils } from '../geometry';
 import { createMarkers } from '../marker-data';
 import { TransformData } from '../transform-data';
 import { LocationIterator, PositionLocation } from '../../util/location-iterator';
 import { createColors } from '../color-data';
-import { ChunkedArray, hashFnv32a } from '../../../mol-data/util';
+import { ChunkedArray, hashFnv32a, invertCantorPairing, sortedCantorPairing } from '../../../mol-data/util';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { calculateInvariantBoundingSphere, calculateTransformBoundingSphere } from '../../../mol-gl/renderable/util';
 import { Theme } from '../../../mol-theme/theme';
@@ -25,6 +25,8 @@ import { createEmptyOverpaint } from '../overpaint-data';
 import { createEmptyTransparency } from '../transparency-data';
 import { createEmptyClipping } from '../clipping-data';
 import { RenderableState } from '../../../mol-gl/renderable';
+import { arraySetAdd } from '../../../mol-util/array';
+import { degToRad } from '../../../mol-math/misc';
 
 export interface Mesh {
     readonly kind: 'mesh',
@@ -332,14 +334,284 @@ export namespace Mesh {
         mesh.vertexCount = newVertexCount;
         mesh.triangleCount = newTriangleCount;
 
-        ValueCell.update(vertexBuffer, newVb) as ValueCell<Float32Array>;
-        ValueCell.update(groupBuffer, newGb) as ValueCell<Float32Array>;
-        ValueCell.update(indexBuffer, newIb) as ValueCell<Uint32Array>;
-        ValueCell.update(normalBuffer, newNb) as ValueCell<Float32Array>;
+        ValueCell.update(vertexBuffer, newVb);
+        ValueCell.update(groupBuffer, newGb);
+        ValueCell.update(indexBuffer, newIb);
+        ValueCell.update(normalBuffer, newNb);
 
         // keep some original data, e.g., for geometry export
         (mesh.meta.originalData as OriginalData) = { indexBuffer: ib, vertexCount, triangleCount };
 
+        return mesh;
+    }
+
+    //
+
+    function getNeighboursMap(mesh: Mesh) {
+        const { vertexCount, triangleCount } = mesh;
+        const elements = mesh.indexBuffer.ref.value;
+
+        const neighboursMap: number[][] = [];
+        for (let i = 0; i < vertexCount; ++i) {
+            neighboursMap[i] = [];
+        }
+
+        for (let i = 0; i < triangleCount; ++i) {
+            const v1 = elements[i * 3];
+            const v2 = elements[i * 3 + 1];
+            const v3 = elements[i * 3 + 2];
+            arraySetAdd(neighboursMap[v1], v2);
+            arraySetAdd(neighboursMap[v1], v3);
+            arraySetAdd(neighboursMap[v2], v1);
+            arraySetAdd(neighboursMap[v2], v3);
+            arraySetAdd(neighboursMap[v3], v1);
+            arraySetAdd(neighboursMap[v3], v2);
+        }
+        return neighboursMap;
+    }
+
+    function getEdgeCounts(mesh: Mesh) {
+        const { triangleCount } = mesh;
+        const elements = mesh.indexBuffer.ref.value;
+
+        const edgeCounts = new Map<number, number>();
+        const add = (a: number, b: number) => {
+            const z = sortedCantorPairing(a, b);
+            const c = edgeCounts.get(z) || 0;
+            edgeCounts.set(z, c + 1);
+        };
+
+        for (let i = 0; i < triangleCount; ++i) {
+            const a = elements[i * 3];
+            const b = elements[i * 3 + 1];
+            const c = elements[i * 3 + 2];
+            add(a, b); add(a, c); add(b, c);
+        }
+        return edgeCounts;
+    }
+
+    function getBorderVertices(edgeCounts: Map<number, number>) {
+        const borderVertices = new Set<number>();
+        const pair: [number, number] = [0, 0];
+        edgeCounts.forEach((c, z) => {
+            if (c === 1) {
+                invertCantorPairing(pair, z);
+                borderVertices.add(pair[0]);
+                borderVertices.add(pair[1]);
+            }
+        });
+
+        return borderVertices;
+    }
+
+    function getBorderNeighboursMap(neighboursMap: number[][], borderVertices: Set<number>, edgeCounts: Map<number, number>) {
+        const borderNeighboursMap = new Map<number, number[]>();
+        const add = (v: number, nb: number) => {
+            if (borderNeighboursMap.has(v)) arraySetAdd(borderNeighboursMap.get(v)!, nb);
+            else borderNeighboursMap.set(v, [nb]);
+        };
+
+        borderVertices.forEach(v => {
+            const neighbours = neighboursMap[v];
+            for (const nb of neighbours) {
+                if (borderVertices.has(nb) && edgeCounts.get(sortedCantorPairing(v, nb)) === 1) {
+                    add(v, nb);
+                }
+            }
+        });
+
+        return borderNeighboursMap;
+    }
+
+    function trimEdges(mesh: Mesh, neighboursMap: number[][]) {
+        const { indexBuffer, triangleCount } = mesh;
+        const ib = indexBuffer.ref.value;
+
+        // new
+        const index = ChunkedArray.create(Uint32Array, 3, 1024, triangleCount);
+
+        let newTriangleCount = 0;
+        for (let i = 0; i < triangleCount; ++i) {
+            const a = ib[i * 3];
+            const b = ib[i * 3 + 1];
+            const c = ib[i * 3 + 2];
+            if (neighboursMap[a].length === 2 ||
+                neighboursMap[b].length === 2 ||
+                neighboursMap[c].length === 2) continue;
+
+            ChunkedArray.add3(index, a, b, c);
+            newTriangleCount += 1;
+        }
+
+        const newIb = ChunkedArray.compact(index);
+        mesh.triangleCount = newTriangleCount;
+        ValueCell.update(indexBuffer, newIb);
+
+        return mesh;
+    }
+
+    function fillEdges(mesh: Mesh, neighboursMap: number[][], borderNeighboursMap: Map<number, number[]>, maxLengthSquared: number) {
+        const { vertexBuffer, indexBuffer, normalBuffer, triangleCount } = mesh;
+        const vb = vertexBuffer.ref.value;
+        const ib = indexBuffer.ref.value;
+        const nb = normalBuffer.ref.value;
+
+        // new
+        const index = ChunkedArray.create(Uint32Array, 3, 1024, triangleCount);
+
+        let newTriangleCount = 0;
+        for (let i = 0; i < triangleCount; ++i) {
+            ChunkedArray.add3(index, ib[i * 3], ib[i * 3 + 1], ib[i * 3 + 2]);
+            newTriangleCount += 1;
+        }
+
+        const vA = Vec3();
+        const vB = Vec3();
+        const vC = Vec3();
+        const vD = Vec3();
+        const vAB = Vec3();
+        const vAC = Vec3();
+        const vAD = Vec3();
+        const vABC = Vec3();
+
+        const vAN = Vec3();
+        const vN = Vec3();
+
+        const AngleThreshold = degToRad(120);
+        const added = new Set<number>();
+
+        const indices = Array.from(borderNeighboursMap.keys())
+            .filter(v => borderNeighboursMap.get(v)!.length < 2)
+            .map(v => {
+                const bnd = borderNeighboursMap.get(v)!;
+
+                Vec3.fromArray(vA, vb, v * 3);
+                Vec3.fromArray(vB, vb, bnd[0] * 3);
+                Vec3.fromArray(vC, vb, bnd[1] * 3);
+                Vec3.sub(vAB, vB, vA);
+                Vec3.sub(vAC, vC, vA);
+
+                return [v, Vec3.angle(vAB, vAC)];
+            });
+
+        // start with the smallest angle
+        indices.sort(([, a], [, b]) => a - b);
+
+        for (const [v, angle] of indices) {
+            if (added.has(v) || angle > AngleThreshold) continue;
+
+            const nbs = borderNeighboursMap.get(v)!;
+            if (neighboursMap[nbs[0]].includes(nbs[1]) &&
+                !borderNeighboursMap.get(nbs[0])?.includes(nbs[1])
+            ) continue;
+
+            Vec3.fromArray(vA, vb, v * 3);
+            Vec3.fromArray(vB, vb, nbs[0] * 3);
+            Vec3.fromArray(vC, vb, nbs[1] * 3);
+            Vec3.sub(vAB, vB, vA);
+            Vec3.sub(vAC, vC, vA);
+            Vec3.add(vABC, vAB, vAC);
+
+            if (Vec3.squaredDistance(vA, vB) >= maxLengthSquared) continue;
+
+            let add = false;
+            for (const nb of neighboursMap[v]) {
+                if (nbs.includes(nb)) continue;
+
+                Vec3.fromArray(vD, vb, nb * 3);
+                Vec3.sub(vAD, vD, vA);
+                if (Vec3.dot(vABC, vAD) < 0) {
+                    add = true;
+                    break;
+                }
+            }
+            if (!add) continue;
+
+            Vec3.fromArray(vAN, nb, v * 3);
+            Vec3.triangleNormal(vN, vA, vB, vC);
+            if (Vec3.dot(vN, vAN) > 0) {
+                ChunkedArray.add3(index, v, nbs[0], nbs[1]);
+            } else {
+                ChunkedArray.add3(index, nbs[1], nbs[0], v);
+            }
+            added.add(v); added.add(nbs[0]); added.add(nbs[1]);
+            newTriangleCount += 1;
+        }
+
+        const newIb = ChunkedArray.compact(index);
+        mesh.triangleCount = newTriangleCount;
+        ValueCell.update(indexBuffer, newIb);
+
+        return mesh;
+    }
+
+    function laplacianEdgeSmoothing(mesh: Mesh, borderNeighboursMap: Map<number, number[]>, options: { iterations: number, lambda: number }) {
+        const { iterations, lambda } = options;
+
+        const a = Vec3();
+        const b = Vec3();
+        const c = Vec3();
+        const t = Vec3();
+
+        const mu = -lambda;
+
+        let dst = new Float32Array(mesh.vertexBuffer.ref.value.length);
+
+        const step = (f: number) => {
+            const pos = mesh.vertexBuffer.ref.value;
+            dst.set(pos);
+
+            borderNeighboursMap.forEach((nbs, v) => {
+                if (nbs.length !== 2) return;
+
+                Vec3.fromArray(a, pos, v * 3);
+                Vec3.fromArray(b, pos, nbs[0] * 3);
+                Vec3.fromArray(c, pos, nbs[1] * 3);
+
+                const wab = 1 / Vec3.distance(a, b);
+                const wac = 1 / Vec3.distance(a, c);
+                Vec3.scale(b, b, wab);
+                Vec3.scale(c, c, wac);
+
+                Vec3.add(t, b, c);
+                Vec3.scale(t, t, 1 / (wab + wac));
+                Vec3.sub(t, t, a);
+
+                Vec3.scale(t, t, f);
+                Vec3.add(t, a, t);
+
+                Vec3.toArray(t, dst, v * 3);
+            });
+
+            const tmp = mesh.vertexBuffer.ref.value;
+            ValueCell.update(mesh.vertexBuffer, dst);
+            dst = tmp;
+        };
+
+        for (let k = 0; k < iterations; ++k) {
+            step(lambda);
+            step(mu);
+        }
+    }
+
+    export function smoothEdges(mesh: Mesh, options: { iterations: number, maxNewEdgeLength: number }) {
+        trimEdges(mesh, getNeighboursMap(mesh));
+
+        for (let k = 0; k < 10; ++k) {
+            const oldTriangleCount = mesh.triangleCount;
+            const edgeCounts = getEdgeCounts(mesh);
+            const neighboursMap = getNeighboursMap(mesh);
+            const borderVertices = getBorderVertices(edgeCounts);
+            const borderNeighboursMap = getBorderNeighboursMap(neighboursMap, borderVertices, edgeCounts);
+            fillEdges(mesh, neighboursMap, borderNeighboursMap, options.maxNewEdgeLength * options.maxNewEdgeLength);
+            if (mesh.triangleCount === oldTriangleCount) break;
+        }
+
+        const edgeCounts = getEdgeCounts(mesh);
+        const neighboursMap = getNeighboursMap(mesh);
+        const borderVertices = getBorderVertices(edgeCounts);
+        const borderNeighboursMap = getBorderNeighboursMap(neighboursMap, borderVertices, edgeCounts);
+        laplacianEdgeSmoothing(mesh, borderNeighboursMap, { iterations: options.iterations, lambda: 0.5 });
         return mesh;
     }
 

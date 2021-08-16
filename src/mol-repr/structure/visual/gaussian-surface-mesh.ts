@@ -30,6 +30,7 @@ const SharedParams = {
     ...ColorSmoothingParams,
     ignoreHydrogens: PD.Boolean(false),
     tryUseGpu: PD.Boolean(true),
+    includeParent: PD.Boolean(false, { isHidden: true }),
 };
 type SharedParams = typeof SharedParams
 

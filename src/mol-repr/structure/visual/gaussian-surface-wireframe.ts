@@ -42,6 +42,7 @@ export const GaussianWireframeParams = {
     sizeFactor: PD.Numeric(3, { min: 0, max: 10, step: 0.1 }),
     lineSizeAttenuation: PD.Boolean(false),
     ignoreHydrogens: PD.Boolean(false),
+    includeParent: PD.Boolean(false, { isHidden: true }),
 };
 export type GaussianWireframeParams = typeof GaussianWireframeParams
 
