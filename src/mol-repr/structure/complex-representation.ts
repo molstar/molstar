@@ -14,7 +14,7 @@ import { getNextMaterialId, GraphicsRenderObject } from '../../mol-gl/render-obj
 import { Theme } from '../../mol-theme/theme';
 import { Task } from '../../mol-task';
 import { PickingId } from '../../mol-geo/geometry/picking';
-import { EmptyLoci, Loci, isEveryLoci, isDataLoci } from '../../mol-model/loci';
+import { EmptyLoci, Loci, isEveryLoci, isDataLoci, EveryLoci } from '../../mol-model/loci';
 import { MarkerAction, MarkerActions } from '../../mol-util/marker-action';
 import { Overpaint } from '../../mol-theme/overpaint';
 import { StructureParams } from './params';
@@ -77,6 +77,10 @@ export function ComplexRepresentation<P extends StructureParams>(label: string, 
             if (!Structure.areRootsEquivalent(loci.structure, _structure)) return false;
             // Remap `loci` from equivalent structure to the current `_structure`
             loci = Loci.remap(loci, _structure);
+            if (StructureElement.Loci.is(loci) && StructureElement.Loci.isWholeStructure(loci)) {
+                // Change to `EveryLoci` to allow for downstream optimizations
+                loci = EveryLoci;
+            }
         } else if (!isEveryLoci(loci) && !isDataLoci(loci)) {
             return false;
         }
