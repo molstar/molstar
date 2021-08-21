@@ -6,11 +6,12 @@
 
 import { WebGLContext } from '../../mol-gl/webgl/context';
 import { Texture } from '../../mol-gl/webgl/texture';
-import { printTextureImage } from '../../mol-gl/renderable/util';
+import { PrintImageOptions, printTextureImage } from '../../mol-gl/renderable/util';
 import { defaults, ValueCell } from '../../mol-util';
 import { ValueSpec, AttributeSpec, UniformSpec, Values } from '../../mol-gl/renderable/schema';
 import { Vec2 } from '../../mol-math/linear-algebra';
 import { GLRenderingContext } from '../../mol-gl/webgl/compat';
+import { PixelData } from '../../mol-util/image';
 
 export const QuadPositions = new Float32Array([
     1.0,  1.0,  -1.0,  1.0,  -1.0, -1.0, // First triangle
@@ -41,7 +42,7 @@ function getArrayForTexture(gl: GLRenderingContext, texture: Texture, size: numb
     throw new Error('unknown/unsupported texture type');
 }
 
-export function readTexture(ctx: WebGLContext, texture: Texture, width?: number, height?: number) {
+export function readTexture(ctx: WebGLContext, texture: Texture, width?: number, height?: number): PixelData {
     const { gl, resources } = ctx;
     width = defaults(width, texture.getWidth());
     height = defaults(height, texture.getHeight());
@@ -55,6 +56,8 @@ export function readTexture(ctx: WebGLContext, texture: Texture, width?: number,
     return { array, width, height };
 }
 
-export function printTexture(ctx: WebGLContext, texture: Texture, scale: number) {
-    printTextureImage(readTexture(ctx, texture), scale);
+export function printTexture(ctx: WebGLContext, texture: Texture, options: Partial<PrintImageOptions> = {}) {
+    const pixelData = readTexture(ctx, texture);
+    PixelData.flipY(pixelData);
+    printTextureImage(pixelData, options);
 }

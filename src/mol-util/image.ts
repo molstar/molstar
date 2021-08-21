@@ -7,13 +7,13 @@
 export { PixelData };
 
 interface PixelData {
-    readonly array: Uint8Array
+    readonly array: Uint8Array | Float32Array
     readonly width: number
     readonly height: number
 }
 
 namespace PixelData {
-    export function create(array: Uint8Array, width: number, height: number): PixelData {
+    export function create(array: Uint8Array | Float32Array, width: number, height: number): PixelData {
         return { array, width, height };
     }
 
@@ -36,8 +36,9 @@ namespace PixelData {
     /** to undo pre-multiplied alpha */
     export function divideByAlpha(pixelData: PixelData): PixelData {
         const { array } = pixelData;
+        const factor = (array instanceof Uint8Array) ? 255 : 1;
         for (let i = 0, il = array.length; i < il; i += 4) {
-            const a = array[i + 3] / 255;
+            const a = array[i + 3] / factor;
             array[i] /= a;
             array[i + 1] /= a;
             array[i + 2] /= a;
