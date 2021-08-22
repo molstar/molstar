@@ -106,7 +106,6 @@ export type RenderableSchema = {
 }
 export type RenderableValues = { readonly [k: string]: ValueCell<any> }
 
-
 //
 
 export const GlobalUniformSchema = {
@@ -161,10 +160,13 @@ export const GlobalUniformSchema = {
 
     uHighlightColor: UniformSpec('v3'),
     uSelectColor: UniformSpec('v3'),
+    uHighlightStrength: UniformSpec('f'),
+    uSelectStrength: UniformSpec('f'),
 
     uXrayEdgeFalloff: UniformSpec('f'),
 
     uRenderWboit: UniformSpec('b'),
+    uMarkingDepthTest: UniformSpec('b'),
 } as const;
 export type GlobalUniformSchema = typeof GlobalUniformSchema
 export type GlobalUniformValues = Values<GlobalUniformSchema>
@@ -210,6 +212,8 @@ export type SizeValues = Values<SizeSchema>
 export const MarkerSchema = {
     uMarkerTexDim: UniformSpec('v2'),
     tMarker: TextureSpec('image-uint8', 'alpha', 'ubyte', 'nearest'),
+    markerAverage: ValueSpec('number'),
+    markerStatus: ValueSpec('number'),
 } as const;
 export type MarkerSchema = typeof MarkerSchema
 export type MarkerValues = Values<MarkerSchema>

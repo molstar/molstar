@@ -20,6 +20,23 @@ export const assign_material_color = `
     #else
         vec4 material = packDepthToRGBA(gl_FragCoord.z);
     #endif
+#elif defined(dRenderVariant_markingDepth)
+    if (vMarker > 0.0)
+        discard;
+    #ifdef enabledFragDepth
+        vec4 material = packDepthToRGBA(gl_FragDepthEXT);
+    #else
+        vec4 material = packDepthToRGBA(gl_FragCoord.z);
+    #endif
+#elif defined(dRenderVariant_markingMask)
+    if (vMarker == 0.0)
+        discard;
+    float depthTest = 1.0;
+    if (uMarkingDepthTest) {
+        depthTest = (fragmentDepth >= getDepth(gl_FragCoord.xy / uDrawingBufferSize)) ? 1.0 : 0.0;
+    }
+    bool isHighlight = intMod(floor(vMarker * 255.0 + 0.5), 2.0) > 0.1;
+    vec4 material = vec4(0.0, depthTest, isHighlight ? 1.0 : 0.0, 1.0);
 #endif
 
 // apply screendoor transparency

@@ -21,6 +21,8 @@ uniform int uGroupCount;
 
 uniform vec3 uHighlightColor;
 uniform vec3 uSelectColor;
+uniform float uHighlightStrength;
+uniform float uSelectStrength;
 #if __VERSION__ == 100
     varying float vMarker;
 #else
@@ -52,4 +54,20 @@ bool interior;
 uniform float uXrayEdgeFalloff;
 
 uniform mat4 uProjection;
+
+uniform bool uRenderWboit;
+uniform bool uMarkingDepthTest;
+
+uniform sampler2D tDepth;
+uniform vec2 uDrawingBufferSize;
+
+float getDepth(const in vec2 coords) {
+    // always packed due to merged depth from primitives and volumes
+    return unpackRGBAToDepth(texture2D(tDepth, coords));
+}
+
+float calcDepth(const in vec3 pos) {
+    vec2 clipZW = pos.z * uProjection[2].zw + uProjection[3].zw;
+    return 0.5 + 0.5 * clipZW.x / clipZW.y;
+}
 `;

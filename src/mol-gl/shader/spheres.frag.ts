@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -13,7 +13,6 @@ precision highp int;
 #include color_frag_params
 #include light_frag_params
 #include common_clip
-#include wboit_params
 
 varying float vRadius;
 varying float vRadiusSq;
@@ -85,6 +84,8 @@ void main(void){
         #include check_picking_alpha
         gl_FragColor = material;
     #elif defined(dRenderVariant_depth)
+        gl_FragColor = material;
+    #elif defined(dRenderVariant_marking)
         gl_FragColor = material;
     #elif defined(dRenderVariant_color)
         #ifdef dIgnoreLight

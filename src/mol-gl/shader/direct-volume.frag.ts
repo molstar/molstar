@@ -53,6 +53,8 @@ uniform int uGroupCount;
 
 uniform vec3 uHighlightColor;
 uniform vec3 uSelectColor;
+uniform float uHighlightStrength;
+uniform float uSelectStrength;
 uniform vec2 uMarkerTexDim;
 uniform sampler2D tMarker;
 
@@ -68,6 +70,8 @@ uniform float uInteriorDarkening;
 uniform bool uInteriorColorFlag;
 uniform vec3 uInteriorColor;
 bool interior;
+
+uniform bool uRenderWboit;
 
 uniform float uNear;
 uniform float uFar;
@@ -122,7 +126,10 @@ uniform mat4 uCartnToUnit;
     }
 #endif
 
-#include wboit_params
+float calcDepth(const in vec3 pos) {
+    vec2 clipZW = pos.z * uProjection[2].zw + uProjection[3].zw;
+    return 0.5 + 0.5 * clipZW.x / clipZW.y;
+}
 
 vec4 transferFunction(float value) {
     return texture2D(tTransferTex, vec2(value, 0.0));
@@ -431,6 +438,11 @@ vec4 raymarch(vec3 startLoc, vec3 step, vec3 rayDir) {
 void main() {
     if (gl_FrontFacing)
         discard;
+
+    #ifdef dRenderVariant_marking
+        // not supported
+        discard;
+    #endif
 
     #if defined(dRenderVariant_pick) || defined(dRenderVariant_depth)
         #if defined(dRenderMode_volume)

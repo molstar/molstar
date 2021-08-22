@@ -120,3 +120,88 @@ export function applyMarkerAction(array: Uint8Array, set: OrderedSet, action: Ma
     }
     return true;
 }
+
+
+export interface MarkerInfo {
+    /**
+     * 0: none marked;
+     * 1: all marked;
+     * -1: unclear, need to be calculated
+     */
+    average: 0 | 1 | -1
+    /**
+     * 0: none marked;
+     * 1: all highlighted;
+     * 2: all selected;
+     * 3: all highlighted and selected
+     * -1: mixed/unclear
+     */
+    status: 0 | 1 | 2 | 3 | -1
+}
+
+export function getMarkerInfo(action: MarkerAction, currentStatus: number): MarkerInfo {
+    let average: MarkerInfo['average'] = -1;
+    let status: MarkerInfo['status'] = -1;
+    switch (action) {
+        case MarkerAction.Highlight:
+            if (currentStatus === 0 || currentStatus === 1) {
+                average = 1;
+                status = 1;
+            } else if (currentStatus === 2 || currentStatus === 3) {
+                average = 1;
+                status = 3;
+            } else {
+                average = 1;
+            }
+            break;
+        case MarkerAction.RemoveHighlight:
+            if (currentStatus === 0 || currentStatus === 1) {
+                average = 0;
+                status = 0;
+            } else if (currentStatus === 2 || currentStatus === 3) {
+                average = 1;
+                status = 2;
+            }
+            break;
+        case MarkerAction.Select:
+            if (currentStatus === 1 || currentStatus === 3) {
+                average = 1;
+                status = 3;
+            } else if (currentStatus === 0 || currentStatus === 2) {
+                average = 1;
+                status = 2;
+            } else {
+                average = 1;
+            }
+            break;
+        case MarkerAction.Deselect:
+            if (currentStatus === 1 || currentStatus === 3) {
+                average = 1;
+                status = 1;
+            } else if (currentStatus === 0 || currentStatus === 2) {
+                average = 0;
+                status = 0;
+            }
+            break;
+        case MarkerAction.Toggle:
+            if (currentStatus === 1) {
+                average = 1;
+                status = 3;
+            } else if (currentStatus === 2) {
+                average = 0;
+                status = 0;
+            } else if (currentStatus === 3) {
+                average = 1;
+                status = 1;
+            } else if (currentStatus === 0) {
+                average = 1;
+                status = 2;
+            }
+            break;
+        case MarkerAction.Clear:
+            average = 0;
+            status = 0;
+            break;
+    }
+    return { average, status };
+}

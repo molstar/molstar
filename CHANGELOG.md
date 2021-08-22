@@ -13,6 +13,9 @@ Note that since we don't clearly distinguish between a public and private interf
 - Improved ``StructureElement.Loci.size`` performance (for marking large cellpack models)
 - Fix new ``TransformData`` issues (camera/bounding helper not showing up)
 - Improve marking performance (avoid superfluous calls to ``StructureElement.Loci.isWholeStructure``)
+- Add optional marking pass
+    - Outlines visible and hidden parts of highlighted/selected groups
+    - Add highlightStrength/selectStrength renderer params
 
 ## [v2.2.2] - 2021-08-11
 

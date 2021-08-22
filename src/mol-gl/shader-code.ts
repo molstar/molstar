@@ -65,7 +65,6 @@ import { size_vert_params } from './shader/chunks/size-vert-params.glsl';
 import { texture3d_from_1d_trilinear } from './shader/chunks/texture3d-from-1d-trilinear.glsl';
 import { texture3d_from_2d_linear } from './shader/chunks/texture3d-from-2d-linear.glsl';
 import { texture3d_from_2d_nearest } from './shader/chunks/texture3d-from-2d-nearest.glsl';
-import { wboit_params } from './shader/chunks/wboit-params.glsl';
 import { wboit_write } from './shader/chunks/wboit-write.glsl';
 
 const ShaderChunks: { [k: string]: string } = {
@@ -99,7 +98,6 @@ const ShaderChunks: { [k: string]: string } = {
     texture3d_from_1d_trilinear,
     texture3d_from_2d_linear,
     texture3d_from_2d_nearest,
-    wboit_params,
     wboit_write
 };
 
