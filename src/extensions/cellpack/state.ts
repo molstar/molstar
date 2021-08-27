@@ -16,9 +16,12 @@ import { PluginContext } from '../../mol-plugin/context';
 import { CellPackInfoProvider } from './property';
 import { Structure, StructureSymmetry, Unit, Model } from '../../mol-model/structure';
 import { ModelSymmetry } from '../../mol-model-formats/structure/property/symmetry';
-import { Vec3 } from '../../mol-math/linear-algebra';
+import { Vec3, Quat } from '../../mol-math/linear-algebra';
 import { StateTransformer } from '../../mol-state';
 import { MBRepresentation, MBParams } from './representation';
+import { readFromFile } from '../../mol-util/data-source';
+import { IsNativeEndianLittle, flipByteOrder } from '../../mol-io/common/binary';;
+import { getFloatValue } from './util';
 
 export const DefaultCellPackBaseUrl = 'https://raw.githubusercontent.com/mesoscope/cellPACK_data/master/cellPACK_database_1.1.0';
 export class CellPack extends PSO.Create<_CellPack>({ name: 'CellPack', typeClass: 'Object' }) { }
@@ -32,10 +35,12 @@ const ParseCellPack = PluginStateTransform.BuiltIn({
     to: CellPack,
     params: a => {
         return {
+            modelFile: PD.File({accept: '.bin'}),
+            baseUrl: PD.Text(DefaultCellPackBaseUrl)
         };
     }
 })({
-    apply({a, params}) {
+    apply({ a, params, cache }, plugin: PluginContext) {
         return Task.create('Parse CellPack', async ctx => {
             const cell = a.data as Cell;
             let counter_id = 0;
@@ -95,9 +100,101 @@ const ParseCellPack = PluginStateTransform.BuiltIn({
                     }
                 }
             }
+            const { options } = cell;
+            if (!params.modelFile && options) {
+                if (options.resultfile) {
+                    const asset = await plugin.runTask(plugin.managers.asset.resolve(Asset.getUrlAsset(plugin.managers.asset, `${params.baseUrl}/results/${options.resultfile}`), 'binary', true));
+                    (cache as any).asset = asset;
+                    params.modelFile = Asset.File(new File([asset.data], 'model.bin'));
+                }
+            }
+            if (params.modelFile && params.modelFile.file){
+                const model_data = await readFromFile(params.modelFile.file!, 'binary').runInContext(ctx);// async ?
+                let buffer = model_data.buffer;
+                if (!IsNativeEndianLittle) {
+                    // flip the byte order
+                    buffer = flipByteOrder(model_data, 4);
+                }
+                const numbers = new DataView(buffer);
+                const ninst = getFloatValue(numbers, 0);
+                const npoints = getFloatValue(numbers, 4);
+                const ncurve = getFloatValue(numbers, 8);
+
+                let pos = new Float32Array();
+                let quat = new Float32Array();
+                let ctr_pos = new Float32Array();
+                let ctr_info = new Float32Array();
+                let curve_ids = new Float32Array();
+
+                let offset = 12;
+                if (ninst !== 0){
+                    pos = new Float32Array(buffer, offset, ninst * 4);offset += ninst * 4 * 4;
+                    quat = new Float32Array(buffer, offset, ninst * 4);offset += ninst * 4 * 4;
+                }
+                if ( npoints !== 0 ) {
+                    ctr_pos = new Float32Array(buffer, offset, npoints * 4);offset += npoints * 4 * 4;
+                    offset += npoints * 4 * 4;
+                    ctr_info = new Float32Array(buffer, offset, npoints * 4);offset += npoints * 4 * 4;
+                    curve_ids = new Float32Array(buffer, offset, ncurve * 4);offset += ncurve * 4 * 4;
+                }
+
+                for (let i = 0; i < ninst; i++) {
+                    const x: number =  pos[i * 4 + 0];
+                    const y: number =  pos[i * 4 + 1];
+                    const z: number =  pos[i * 4 + 2];
+                    const ingr_id = pos[i * 4 + 3] as number;
+                    const pid = cell.mapping_ids![ingr_id];
+                    if (!packings[pid[0]].ingredients[pid[1]].results) {
+                        packings[pid[0]].ingredients[pid[1]].results = [];
+                    }
+                    packings[pid[0]].ingredients[pid[1]].results.push([Vec3.create(x, y, z),
+                        Quat.create(quat[i * 4 + 0], quat[i * 4 + 1], quat[i * 4 + 2], quat[i * 4 + 3])]);
+                }
+                let counter = 0;
+                let ctr_points: Vec3[] = [];
+                let prev_ctype = 0;
+                let prev_cid = 0;
+
+                for (let i = 0; i < npoints; i++) {
+                    const x: number = -ctr_pos[i * 4 + 0];
+                    const y: number =  ctr_pos[i * 4 + 1];
+                    const z: number =  ctr_pos[i * 4 + 2];
+                    const cid: number = ctr_info[i * 4 + 0];// curve id
+                    const ctype: number = curve_ids[cid * 4 + 0];// curve type
+                    // cid  148 165 -1 0
+                    // console.log("cid ",cid,ctype,prev_cid,prev_ctype);//165,148
+                    if (prev_ctype !== ctype){
+                        const pid = cell.mapping_ids![-prev_ctype - 1];
+                        const cname = `curve${counter}`;
+                        packings[pid[0]].ingredients[pid[1]].nbCurve = counter + 1;
+                        packings[pid[0]].ingredients[pid[1]][cname] = ctr_points;
+                        ctr_points = [];
+                        counter = 0;
+                    } else if (prev_cid !== cid){
+                        ctr_points = [];
+                        const pid = cell.mapping_ids![-prev_ctype - 1];
+                        const cname = `curve${counter}`;
+                        packings[pid[0]].ingredients[pid[1]][cname] = ctr_points;
+                        counter += 1;
+                    }
+                    ctr_points.push(Vec3.create(x, y, z));
+                    prev_ctype = ctype;
+                    prev_cid = cid;
+                }
+                // do the last one
+                if ( npoints !== 0 ) {
+                    const pid = cell.mapping_ids![-prev_ctype - 1];
+                    const cname = `curve${counter}`;
+                    packings[pid[0]].ingredients[pid[1]].nbCurve = counter + 1;
+                    packings[pid[0]].ingredients[pid[1]][cname] = ctr_points;
+                }
+            }
             return new CellPack({ cell, packings });
         });
-    }
+    },
+    dispose({ cache }) {
+        ((cache as any)?.asset as Asset.Wrapper | undefined)?.dispose();
+    },
 });
 
 export { StructureFromCellpack };
