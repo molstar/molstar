@@ -6,11 +6,16 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+
+## [v2.2.3] - 2021-08-25
+
 - Add ``invertCantorPairing`` helper function
 - Add ``Mesh`` processing helper ``.smoothEdges``
 - Smooth border of molecular-surface with ``includeParent`` enabled
 - Hide ``includeParent`` option from gaussian-surface visuals (not particularly useful)
 - Improved ``StructureElement.Loci.size`` performance (for marking large cellpack models)
+- Fix new ``TransformData`` issues (camera/bounding helper not showing up)
+- Improve marking performance (avoid superfluous calls to ``StructureElement.Loci.isWholeStructure``)
 
 ## [v2.2.2] - 2021-08-11
 

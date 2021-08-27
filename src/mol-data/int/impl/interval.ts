@@ -16,7 +16,7 @@ export const start = Tuple.fst;
 export const end = Tuple.snd;
 export const min = Tuple.fst;
 export function max(i: Tuple) { return Tuple.snd(i) - 1; }
-export function size(i: Tuple) { return Tuple.snd(i) - Tuple.fst(i); }
+export const size = Tuple.diff;
 export const hashCode = Tuple.hashCode;
 export const toString = Tuple.toString;
 

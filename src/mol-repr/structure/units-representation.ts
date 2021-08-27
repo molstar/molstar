@@ -15,7 +15,7 @@ import { getNextMaterialId, GraphicsRenderObject } from '../../mol-gl/render-obj
 import { Theme } from '../../mol-theme/theme';
 import { Task } from '../../mol-task';
 import { PickingId } from '../../mol-geo/geometry/picking';
-import { Loci, EmptyLoci, isEmptyLoci, isEveryLoci, isDataLoci } from '../../mol-model/loci';
+import { Loci, EmptyLoci, isEmptyLoci, isEveryLoci, isDataLoci, EveryLoci } from '../../mol-model/loci';
 import { MarkerAction, MarkerActions, applyMarkerAction } from '../../mol-util/marker-action';
 import { Overpaint } from '../../mol-theme/overpaint';
 import { Transparency } from '../../mol-theme/transparency';
@@ -196,6 +196,10 @@ export function UnitsRepresentation<P extends StructureParams>(label: string, ct
             if (!Structure.areRootsEquivalent(loci.structure, _structure)) return false;
             // Remap `loci` from equivalent structure to the current `_structure`
             loci = Loci.remap(loci, _structure);
+            if (StructureElement.Loci.is(loci) && StructureElement.Loci.isWholeStructure(loci)) {
+                // Change to `EveryLoci` to allow for downstream optimizations
+                loci = EveryLoci;
+            }
         } else if (!isEveryLoci(loci) && !isDataLoci(loci)) {
             return false;
         }

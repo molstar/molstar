@@ -60,11 +60,8 @@ export function createTransform(transformArray: Float32Array, instanceCount: num
         ValueCell.update(transformData.aInstance, fillSerial(aInstance, instanceCount));
 
         ValueCell.update(transformData.hasReflection, hasReflection);
-
-        updateTransformData(transformData);
-        return transformData;
     } else {
-        return {
+        transformData = {
             aTransform: ValueCell.create(new Float32Array(instanceCount * 16)),
             matrix: ValueCell.create(Mat4.identity()),
             transform: ValueCell.create(new Float32Array(transformArray)),
@@ -75,6 +72,9 @@ export function createTransform(transformArray: Float32Array, instanceCount: num
             hasReflection: ValueCell.create(hasReflection),
         };
     }
+
+    updateTransformData(transformData);
+    return transformData;
 }
 
 const identityTransform = new Float32Array(16);
