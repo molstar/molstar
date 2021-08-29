@@ -66,7 +66,10 @@ export namespace Loci {
     }
 
     export function isEmpty(loci: Loci) {
-        return size(loci) === 0;
+        for (const u of loci.elements) {
+            if(OrderedSet.size(u.indices) > 0) return false;
+        }
+        return true;
     }
 
     export function isWholeStructure(loci: Loci) {
@@ -140,7 +143,7 @@ export namespace Loci {
         return Structure.create(units, { parent: loci.structure.parent });
     }
 
-    // TODO: there should be a version that property supports partitioned units
+    // TODO: there should be a version that properly supports partitioned units
     export function remap(loci: Loci, structure: Structure): Loci {
         if (structure === loci.structure) return loci;
 
@@ -467,7 +470,7 @@ export namespace Loci {
     }
 
     function getUnitIndices(elements: SortedArray<ElementIndex>, indices: SortedArray<ElementIndex>) {
-        return SortedArray.indicesOf<ElementIndex, UnitIndex>(elements, indices);
+        return OrderedSet.ofSortedArray(SortedArray.indicesOf<ElementIndex, UnitIndex>(elements, indices));
     }
 
     export function extendToAllInstances(loci: Loci): Loci {
