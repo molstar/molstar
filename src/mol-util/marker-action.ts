@@ -35,6 +35,20 @@ export namespace MarkerActions {
         MarkerAction.Select | MarkerAction.Deselect | MarkerAction.Toggle |
         MarkerAction.Clear
     ) as MarkerActions;
+
+    export function isReverse(a: MarkerAction, b: MarkerAction) {
+        return (
+            (a === MarkerAction.Highlight && b === MarkerAction.RemoveHighlight) ||
+            (a === MarkerAction.RemoveHighlight && b === MarkerAction.Highlight) ||
+            (a === MarkerAction.Select && b === MarkerAction.Deselect) ||
+            (a === MarkerAction.Deselect && b === MarkerAction.Select) ||
+            (a === MarkerAction.Toggle && b === MarkerAction.Toggle)
+        );
+    }
+}
+
+export function setMarkerValue(array: Uint8Array, status: 0 | 1 | 2 | 3, count: number) {
+    array.fill(status, 0, count);
 }
 
 export function applyMarkerActionAtPosition(array: Uint8Array, i: number, action: MarkerAction) {
@@ -204,4 +218,58 @@ export function getMarkerInfo(action: MarkerAction, currentStatus: number): Mark
             break;
     }
     return { average, status };
+}
+
+/**
+ * Assumes the action is applied to a partial set that is
+ * neither the empty set nor the full set.
+ */
+export function getPartialMarkerAverage(action: MarkerAction, currentStatus: number): MarkerInfo['average'] {
+    switch (action) {
+        case MarkerAction.Highlight:
+            return 1;
+        case MarkerAction.RemoveHighlight:
+            if (currentStatus === 0) {
+                return 0;
+            } else if (currentStatus === 1) {
+                return -1;
+            } else if (currentStatus === 2 || currentStatus === 3) {
+                return 1;
+            }
+            return -1;
+        case MarkerAction.Select:
+            return 1;
+        case MarkerAction.Deselect:
+            if (currentStatus === 1 || currentStatus === 3) {
+                return 1;
+            } else if (currentStatus === 0) {
+                return 0;
+            } else if (currentStatus === 2) {
+                return -1;
+            }
+            return -1;
+        case MarkerAction.Toggle:
+            if (currentStatus === 1) {
+                return 1;
+            } else if (currentStatus === 2) {
+                return 1;
+            } else if (currentStatus === 3) {
+                return 1;
+            } else if (currentStatus === 0) {
+                return 1;
+            }
+            return -1;
+        case MarkerAction.Clear:
+            if (currentStatus === 1) {
+                return 1;
+            } else if (currentStatus === 2) {
+                return 1;
+            } else if (currentStatus === 3) {
+                return 1;
+            } else if (currentStatus === 0) {
+                return 0;
+            }
+            return -1;
+    }
+    return -1;
 }

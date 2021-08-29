@@ -7,8 +7,8 @@
 import { RuntimeContext } from '../mol-task';
 import { GraphicsRenderObject } from '../mol-gl/render-object';
 import { PickingId } from '../mol-geo/geometry/picking';
-import { Loci, isEmptyLoci, isEveryLoci } from '../mol-model/loci';
-import { MarkerAction, applyMarkerAction, getMarkerInfo } from '../mol-util/marker-action';
+import { Loci, isEmptyLoci, isEveryLoci, EveryLoci } from '../mol-model/loci';
+import { MarkerAction, applyMarkerAction, getMarkerInfo, setMarkerValue, getPartialMarkerAverage, MarkerActions, MarkerInfo } from '../mol-util/marker-action';
 import { ParamDefinition as PD } from '../mol-util/param-definition';
 import { WebGLContext } from '../mol-gl/webgl/context';
 import { Theme } from '../mol-theme/theme';
@@ -68,32 +68,63 @@ namespace Visual {
         if (renderObject) renderObject.state.colorOnly = colorOnly;
     }
 
-    export function mark(renderObject: GraphicsRenderObject | undefined, loci: Loci, action: MarkerAction, lociApply: LociApply) {
-        if (!renderObject) return false;
+    export type PreviousMark = { loci: Loci, action: MarkerAction, status: MarkerInfo['status'] }
 
-        const { tMarker, markerAverage, markerStatus, uGroupCount, instanceCount } = renderObject.values;
+    export function mark(renderObject: GraphicsRenderObject | undefined, loci: Loci, action: MarkerAction, lociApply: LociApply, previous?: PreviousMark) {
+        if (!renderObject || isEmptyLoci(loci)) return false;
+
+        const { tMarker, dMarkerType, uMarker, markerAverage, markerStatus, uGroupCount, instanceCount } = renderObject.values;
         const count = uGroupCount.ref.value * instanceCount.ref.value;
         const { array } = tMarker.ref.value;
 
+        if (!isEveryLoci(loci)) {
+            let intervalSize = 0;
+            lociApply(loci, interval => {
+                intervalSize += Interval.size(interval);
+                return true;
+            }, true);
+            if (intervalSize === count) loci = EveryLoci;
+        }
+
         let changed = false;
         let average = -1;
-        let status = -1;
+        let status: MarkerInfo['status'] = -1;
         if (isEveryLoci(loci)) {
-            changed = applyMarkerAction(array, Interval.ofLength(count), action);
-            if (changed) {
-                const info = getMarkerInfo(action, markerStatus.ref.value);
-                average = info.average;
-                status = info.status;
+            const info = getMarkerInfo(action, markerStatus.ref.value);
+            if (info.status !== -1) {
+                changed = markerStatus.ref.value !== info.status;
+                if (changed) setMarkerValue(array, info.status, count);
+            } else {
+                changed = applyMarkerAction(array, Interval.ofLength(count), action);
             }
-        } else if (!isEmptyLoci(loci)) {
+            average = info.average;
+            status = info.status;
+        } else {
             changed = lociApply(loci, interval => applyMarkerAction(array, interval, action), true);
+            if (changed) {
+                average = getPartialMarkerAverage(action, markerStatus.ref.value);
+                if (previous && previous.status !== -1 && average === -1 &&
+                    MarkerActions.isReverse(previous.action, action) &&
+                    Loci.areEqual(loci, previous.loci)
+                ) {
+                    status = previous.status;
+                    average = status === 0 ? 0 : 1;
+                }
+            }
         }
         if (changed) {
             if (average === -1) {
                 average = getMarkersAverage(array, count);
                 if (average === 0) status = 0;
             }
-            ValueCell.update(tMarker, tMarker.ref.value);
+            if (previous) {
+                previous.action = action;
+                previous.loci = loci;
+                previous.status = markerStatus.ref.value as MarkerInfo['status'];
+            }
+            ValueCell.updateIfChanged(uMarker, status);
+            if (status === -1) ValueCell.update(tMarker, tMarker.ref.value);
+            ValueCell.updateIfChanged(dMarkerType, status === -1 ? 'groupInstance' : 'uniform');
             ValueCell.updateIfChanged(markerAverage, average);
             ValueCell.updateIfChanged(markerStatus, status);
         }

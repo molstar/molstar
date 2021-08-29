@@ -1,4 +1,13 @@
 export const assign_material_color = `
+#if defined(dRenderVariant_color) || defined(dRenderVariant_marking)
+    #if defined(dMarkerType_uniform)
+        float marker = uMarker;
+    #elif defined(dMarkerType_groupInstance)
+        float marker = vMarker;
+    #endif
+    marker = floor(marker * 255.0 + 0.5); // rounding required to work on some cards on win
+#endif
+
 #if defined(dRenderVariant_color)
     #if defined(dUsePalette)
         vec4 material = vec4(texture2D(tPalette, vec2(vPaletteV, 0.5)).rgb, uAlpha);
@@ -21,7 +30,7 @@ export const assign_material_color = `
         vec4 material = packDepthToRGBA(gl_FragCoord.z);
     #endif
 #elif defined(dRenderVariant_markingDepth)
-    if (vMarker > 0.0)
+    if (marker > 0.0)
         discard;
     #ifdef enabledFragDepth
         vec4 material = packDepthToRGBA(gl_FragDepthEXT);
@@ -29,13 +38,13 @@ export const assign_material_color = `
         vec4 material = packDepthToRGBA(gl_FragCoord.z);
     #endif
 #elif defined(dRenderVariant_markingMask)
-    if (vMarker == 0.0)
+    if (marker == 0.0)
         discard;
     float depthTest = 1.0;
     if (uMarkingDepthTest) {
         depthTest = (fragmentDepth >= getDepth(gl_FragCoord.xy / uDrawingBufferSize)) ? 1.0 : 0.0;
     }
-    bool isHighlight = intMod(floor(vMarker * 255.0 + 0.5), 2.0) > 0.1;
+    bool isHighlight = intMod(marker, 2.0) > 0.1;
     vec4 material = vec4(0.0, depthTest, isHighlight ? 1.0 : 0.0, 1.0);
 #endif
 

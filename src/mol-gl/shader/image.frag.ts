@@ -116,20 +116,25 @@ void main() {
             discard;
         gl_FragColor = packDepthToRGBA(gl_FragCoord.z);
     #elif defined(dRenderVariant_marking)
-        float group = decodeFloatRGB(texture2D(tGroupTex, vUv).rgb);
-        float vMarker = readFromTexture(tMarker, vInstance * float(uGroupCount) + group, uMarkerTexDim).a;
+        #if defined(dMarkerType_uniform)
+            float marker = uMarker;
+        #elif defined(dMarkerType_groupInstance)
+            float group = decodeFloatRGB(texture2D(tGroupTex, vUv).rgb);
+            float marker = readFromTexture(tMarker, vInstance * float(uGroupCount) + group, uMarkerTexDim).a;
+            marker = floor(marker * 255.0 + 0.5); // rounding required to work on some cards on win
+        #endif
         #if defined(dRenderVariant_markingDepth)
-            if (vMarker > 0.0 || imageData.a < 0.05)
+            if (marker > 0.0 || imageData.a < 0.05)
                 discard;
             gl_FragColor = packDepthToRGBA(gl_FragCoord.z);
         #elif defined(dRenderVariant_markingMask)
-            if (vMarker == 0.0 || imageData.a < 0.05)
+            if (marker == 0.0 || imageData.a < 0.05)
                 discard;
             float depthTest = 1.0;
             if (uMarkingDepthTest) {
                 depthTest = (fragmentDepth >= getDepth(gl_FragCoord.xy / uDrawingBufferSize)) ? 1.0 : 0.0;
             }
-            bool isHighlight = intMod(floor(vMarker * 255.0 + 0.5), 2.0) > 0.1;
+            bool isHighlight = intMod(marker, 2.0) > 0.1;
             gl_FragColor = vec4(0.0, depthTest, isHighlight ? 1.0 : 0.0, 1.0);
         #endif
     #elif defined(dRenderVariant_color)
@@ -138,8 +143,13 @@ void main() {
         gl_FragColor = imageData;
         gl_FragColor.a *= uAlpha;
 
-        float group = decodeFloatRGB(texture2D(tGroupTex, vUv).rgb);
-        float vMarker = readFromTexture(tMarker, vInstance * float(uGroupCount) + group, uMarkerTexDim).a;
+        #if defined(dMarkerType_uniform)
+            float marker = uMarker;
+        #elif defined(dMarkerType_groupInstance)
+            float group = decodeFloatRGB(texture2D(tGroupTex, vUv).rgb);
+            float marker = readFromTexture(tMarker, vInstance * float(uGroupCount) + group, uMarkerTexDim).a;
+            marker = floor(marker * 255.0 + 0.5); // rounding required to work on some cards on win
+        #endif
 
         #include apply_marker_color
         #include apply_fog

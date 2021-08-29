@@ -26,12 +26,16 @@ uniform vec4 uInvariantBoundingSphere;
     #endif
 #endif
 
-uniform vec2 uMarkerTexDim;
-uniform sampler2D tMarker;
-#if __VERSION__ == 100
-    varying float vMarker;
-#else
-    flat out float vMarker;
+#if defined(dMarkerType_uniform)
+    uniform float uMarker;
+#elif defined(dMarkerType_groupInstance)
+    uniform vec2 uMarkerTexDim;
+    uniform sampler2D tMarker;
+    #if __VERSION__ == 100
+        varying float vMarker;
+    #else
+        flat out float vMarker;
+    #endif
 #endif
 
 varying vec3 vModelPosition;

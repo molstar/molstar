@@ -71,6 +71,7 @@ export function UnitsVisual<G extends Geometry, P extends StructureParams & Geom
     const { defaultProps, createGeometry, createLocationIterator, getLoci, eachLocation, setUpdateState, mustRecreate, processValues, dispose } = builder;
     const { createEmpty: createEmptyGeometry, updateValues, updateBoundingSphere, updateRenderableState, createPositionIterator } = builder.geometryUtils;
     const updateState = VisualUpdateState.create();
+    const previousMark: Visual.PreviousMark = { loci: EmptyLoci, action: MarkerAction.None, status: -1 };
 
     let renderObject: GraphicsRenderObject<G['kind']> | undefined;
 
@@ -289,7 +290,7 @@ export function UnitsVisual<G extends Geometry, P extends StructureParams & Geom
             return renderObject ? getLoci(pickingId, currentStructureGroup, renderObject.id) : EmptyLoci;
         },
         mark(loci: Loci, action: MarkerAction) {
-            return Visual.mark(renderObject, loci, action, lociApply);
+            return Visual.mark(renderObject, loci, action, lociApply, previousMark);
         },
         setVisibility(visible: boolean) {
             Visual.setVisibility(renderObject, visible);

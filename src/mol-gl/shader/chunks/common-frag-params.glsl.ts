@@ -23,10 +23,15 @@ uniform vec3 uHighlightColor;
 uniform vec3 uSelectColor;
 uniform float uHighlightStrength;
 uniform float uSelectStrength;
-#if __VERSION__ == 100
-    varying float vMarker;
-#else
-    flat in float vMarker;
+
+#if defined(dMarkerType_uniform)
+    uniform float uMarker;
+#elif defined(dMarkerType_groupInstance)
+    #if __VERSION__ == 100
+        varying float vMarker;
+    #else
+        flat in float vMarker;
+    #endif
 #endif
 
 varying vec3 vModelPosition;
