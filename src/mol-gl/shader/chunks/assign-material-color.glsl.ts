@@ -45,7 +45,11 @@ export const assign_material_color = `
         depthTest = (fragmentDepth >= getDepth(gl_FragCoord.xy / uDrawingBufferSize)) ? 1.0 : 0.0;
     }
     bool isHighlight = intMod(marker, 2.0) > 0.1;
-    vec4 material = vec4(0.0, depthTest, isHighlight ? 1.0 : 0.0, 1.0);
+    float viewZ = depthToViewZ(uIsOrtho, fragmentDepth, uNear, uFar);
+    float fogFactor = smoothstep(uFogNear, uFogFar, abs(viewZ));
+    if (fogFactor == 1.0)
+        discard;
+    vec4 material = vec4(0.0, depthTest, isHighlight ? 1.0 : 0.0, 1.0 - fogFactor);
 #endif
 
 // apply screendoor transparency

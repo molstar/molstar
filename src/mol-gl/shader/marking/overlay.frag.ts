@@ -15,7 +15,7 @@ void main() {
     if (edgeValue.a > 0.0) {
         vec3 edgeColor = edgeValue.b == 1.0 ? uHighlightEdgeColor : uSelectEdgeColor;
         gl_FragColor.rgb = edgeValue.g > 0.0 ? edgeColor : edgeColor * uInnerEdgeFactor;
-        gl_FragColor.a = edgeValue.r == 1.0 ? uGhostEdgeStrength : 1.0;
+        gl_FragColor.a = (edgeValue.r == 1.0 ? uGhostEdgeStrength : 1.0) * edgeValue.a;
     } else {
         gl_FragColor = vec4(0.0);
     }
