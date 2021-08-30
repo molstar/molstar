@@ -76,6 +76,7 @@ namespace Visual {
         const { tMarker, dMarkerType, uMarker, markerAverage, markerStatus, uGroupCount, instanceCount } = renderObject.values;
         const count = uGroupCount.ref.value * instanceCount.ref.value;
         const { array } = tMarker.ref.value;
+        const currentStatus = markerStatus.ref.value as MarkerInfo['status'];
 
         if (!isEveryLoci(loci)) {
             let intervalSize = 0;
@@ -90,9 +91,9 @@ namespace Visual {
         let average = -1;
         let status: MarkerInfo['status'] = -1;
         if (isEveryLoci(loci)) {
-            const info = getMarkerInfo(action, markerStatus.ref.value);
+            const info = getMarkerInfo(action, currentStatus);
             if (info.status !== -1) {
-                changed = markerStatus.ref.value !== info.status;
+                changed = currentStatus !== info.status;
                 if (changed) setMarkerValue(array, info.status, count);
             } else {
                 changed = applyMarkerAction(array, Interval.ofLength(count), action);
@@ -102,13 +103,13 @@ namespace Visual {
         } else {
             changed = lociApply(loci, interval => applyMarkerAction(array, interval, action), true);
             if (changed) {
-                average = getPartialMarkerAverage(action, markerStatus.ref.value);
+                average = getPartialMarkerAverage(action, currentStatus);
                 if (previous && previous.status !== -1 && average === -1 &&
                     MarkerActions.isReverse(previous.action, action) &&
                     Loci.areEqual(loci, previous.loci)
                 ) {
                     status = previous.status;
-                    average = status === 0 ? 0 : 1;
+                    average = status === 0 ? 0 : 0.5;
                 }
             }
         }
@@ -120,7 +121,7 @@ namespace Visual {
             if (previous) {
                 previous.action = action;
                 previous.loci = loci;
-                previous.status = markerStatus.ref.value as MarkerInfo['status'];
+                previous.status = currentStatus;
             }
             ValueCell.updateIfChanged(uMarker, status);
             if (status === -1) ValueCell.update(tMarker, tMarker.ref.value);

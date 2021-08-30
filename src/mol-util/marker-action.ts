@@ -153,7 +153,7 @@ export interface MarkerInfo {
     status: 0 | 1 | 2 | 3 | -1
 }
 
-export function getMarkerInfo(action: MarkerAction, currentStatus: number): MarkerInfo {
+export function getMarkerInfo(action: MarkerAction, currentStatus: MarkerInfo['status']): MarkerInfo {
     let average: MarkerInfo['average'] = -1;
     let status: MarkerInfo['status'] = -1;
     switch (action) {
@@ -224,52 +224,45 @@ export function getMarkerInfo(action: MarkerAction, currentStatus: number): Mark
  * Assumes the action is applied to a partial set that is
  * neither the empty set nor the full set.
  */
-export function getPartialMarkerAverage(action: MarkerAction, currentStatus: number): MarkerInfo['average'] {
+export function getPartialMarkerAverage(action: MarkerAction, currentStatus: MarkerInfo['status']) {
     switch (action) {
         case MarkerAction.Highlight:
-            return 1;
+            return 0.5;
         case MarkerAction.RemoveHighlight:
             if (currentStatus === 0) {
                 return 0;
-            } else if (currentStatus === 1) {
-                return -1;
             } else if (currentStatus === 2 || currentStatus === 3) {
-                return 1;
+                return 0.5;
+            } else { // 1 | -1
+                return -1;
             }
-            return -1;
         case MarkerAction.Select:
-            return 1;
+            return 0.5;
         case MarkerAction.Deselect:
             if (currentStatus === 1 || currentStatus === 3) {
-                return 1;
+                return 0.5;
             } else if (currentStatus === 0) {
                 return 0;
-            } else if (currentStatus === 2) {
+            } else { // 2 | -1
                 return -1;
             }
-            return -1;
         case MarkerAction.Toggle:
-            if (currentStatus === 1) {
-                return 1;
-            } else if (currentStatus === 2) {
-                return 1;
-            } else if (currentStatus === 3) {
-                return 1;
-            } else if (currentStatus === 0) {
-                return 1;
+            if (currentStatus === -1) {
+                return -1;
+            } else { // 0 | 1 | 2 | 3
+                return 0.5;
             }
-            return -1;
         case MarkerAction.Clear:
-            if (currentStatus === 1) {
-                return 1;
-            } else if (currentStatus === 2) {
-                return 1;
-            } else if (currentStatus === 3) {
-                return 1;
+            if (currentStatus === -1) {
+                return -1;
             } else if (currentStatus === 0) {
                 return 0;
+            } else { // 1 | 2 | 3
+                return 0.5;
             }
+        case MarkerAction.None:
             return -1;
+        default:
+            assertUnreachable(action);
     }
-    return -1;
 }
