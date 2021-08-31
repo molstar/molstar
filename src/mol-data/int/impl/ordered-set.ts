@@ -19,7 +19,7 @@ export const ofBounds = I.ofBounds;
 export function ofSortedArray(xs: Nums): OrderedSetImpl {
     if (!xs.length) return Empty;
     // check if the array is just a range
-    if (xs[xs.length - 1] - xs[0] + 1 === xs.length) return I.ofRange(xs[0], xs[xs.length - 1]);
+    if (S.isRange(xs)) return I.ofRange(xs[0], xs[xs.length - 1]);
     return xs as any;
 }
 
