@@ -210,7 +210,7 @@ export type SizeSchema = typeof SizeSchema
 export type SizeValues = Values<SizeSchema>
 
 export const MarkerSchema = {
-    uMarker: UniformSpec('f', 'material'),
+    uMarker: UniformSpec('f'),
     uMarkerTexDim: UniformSpec('v2'),
     tMarker: TextureSpec('image-uint8', 'alpha', 'ubyte', 'nearest'),
     dMarkerType: DefineSpec('string', ['uniform', 'groupInstance']),
