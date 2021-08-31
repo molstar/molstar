@@ -253,6 +253,14 @@ export namespace Loci {
         return isSubset;
     }
 
+    function makeIndexSet(newIndices: ArrayLike<UnitIndex>): OrderedSet<UnitIndex> {
+        if (newIndices.length > 3 && SortedArray.isRange(newIndices)) {
+            return Interval.ofRange(newIndices[0], newIndices[newIndices.length - 1]);
+        } else {
+            return SortedArray.ofSortedArray(newIndices);
+        }
+    }
+
     export function extendToWholeResidues(loci: Loci, restrictToConformation?: boolean): Loci {
         const elements: Loci['elements'][0][] = [];
         const residueAltIds = new Set<string>();
@@ -297,7 +305,7 @@ export namespace Loci {
                     }
                 }
 
-                elements[elements.length] = { unit: lociElement.unit, indices: SortedArray.ofSortedArray(newIndices) };
+                elements[elements.length] = { unit: lociElement.unit, indices: makeIndexSet(newIndices) };
             } else {
                 // coarse elements are already by-residue
                 elements[elements.length] = lociElement;
@@ -317,14 +325,6 @@ export namespace Loci {
 
     function isWholeUnit(element: Loci['elements'][0]) {
         return element.unit.elements.length === OrderedSet.size(element.indices);
-    }
-
-    function makeIndexSet(newIndices: number[]): OrderedSet<UnitIndex> {
-        if (newIndices.length > 12 && newIndices[newIndices.length - 1] - newIndices[0] === newIndices.length - 1) {
-            return Interval.ofRange(newIndices[0], newIndices[newIndices.length - 1]);
-        } else {
-            return SortedArray.ofSortedArray(newIndices);
-        }
     }
 
     function collectChains(unit: Unit, chainIndices: Set<ChainIndex>, elements: Loci['elements'][0][]) {
@@ -470,7 +470,10 @@ export namespace Loci {
     }
 
     function getUnitIndices(elements: SortedArray<ElementIndex>, indices: SortedArray<ElementIndex>) {
-        return OrderedSet.ofSortedArray(SortedArray.indicesOf<ElementIndex, UnitIndex>(elements, indices));
+        if (SortedArray.areEqual(elements, indices) && SortedArray.isRange(elements)) {
+            return Interval.ofLength(elements.length);
+        }
+        return makeIndexSet(SortedArray.indicesOf<ElementIndex, UnitIndex>(elements, indices));
     }
 
     export function extendToAllInstances(loci: Loci): Loci {

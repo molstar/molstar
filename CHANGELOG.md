@@ -10,9 +10,15 @@ Note that since we don't clearly distinguish between a public and private interf
 - Add ``Mesh`` processing helper ``.smoothEdges``
 - Smooth border of molecular-surface with ``includeParent`` enabled
 - Hide ``includeParent`` option from gaussian-surface visuals (not particularly useful)
-- Improved ``StructureElement.Loci.size`` performance (for marking large cellpack models)
 - Fix new ``TransformData`` issues (camera/bounding helper not showing up)
-- Improve marking performance (avoid superfluous calls to ``StructureElement.Loci.isWholeStructure``)
+- Improve marking performance
+    - Avoid superfluous calls to ``StructureElement.Loci.isWholeStructure``
+    - Check if loci is superset of visual
+    - Check if loci overlaps with unit visual
+    - Ensure ``Interval`` is used for ranges instead of ``SortedArray``
+    - Inline ``StructureElement.Loci.size`` code
+    - Add uniform marker type
+    - Special case for reversing previous mark
 - Add optional marking pass
     - Outlines visible and hidden parts of highlighted/selected groups
     - Add highlightStrength/selectStrength renderer params

@@ -290,7 +290,18 @@ export function UnitsVisual<G extends Geometry, P extends StructureParams & Geom
             return renderObject ? getLoci(pickingId, currentStructureGroup, renderObject.id) : EmptyLoci;
         },
         mark(loci: Loci, action: MarkerAction) {
-            return Visual.mark(renderObject, loci, action, lociApply, previousMark);
+            let hasInvariantId = true;
+            if (StructureElement.Loci.is(loci)) {
+                hasInvariantId = false;
+                const { invariantId } = currentStructureGroup.group.units[0];
+                for (const e of loci.elements) {
+                    if (e.unit.invariantId === invariantId) {
+                        hasInvariantId = true;
+                        break;
+                    }
+                }
+            }
+            return hasInvariantId ? Visual.mark(renderObject, loci, action, lociApply, previousMark) : false;
         },
         setVisibility(visible: boolean) {
             Visual.setVisibility(renderObject, visible);

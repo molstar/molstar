@@ -84,6 +84,7 @@ namespace Visual {
                 intervalSize += Interval.size(interval);
                 return true;
             }, true);
+            if (intervalSize === 0) return false;
             if (intervalSize === count) loci = EveryLoci;
         }
 
