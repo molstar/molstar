@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -134,17 +134,17 @@ describe('renderer', () => {
         scene.commit();
         expect(ctx.stats.resourceCounts.attribute).toBe(ctx.isWebGL2 ? 4 : 5);
         expect(ctx.stats.resourceCounts.texture).toBe(7);
-        expect(ctx.stats.resourceCounts.vertexArray).toBe(6);
-        expect(ctx.stats.resourceCounts.program).toBe(6);
-        expect(ctx.stats.resourceCounts.shader).toBe(12);
+        expect(ctx.stats.resourceCounts.vertexArray).toBe(8);
+        expect(ctx.stats.resourceCounts.program).toBe(8);
+        expect(ctx.stats.resourceCounts.shader).toBe(16);
 
         scene.remove(points);
         scene.commit();
         expect(ctx.stats.resourceCounts.attribute).toBe(0);
         expect(ctx.stats.resourceCounts.texture).toBe(0);
         expect(ctx.stats.resourceCounts.vertexArray).toBe(0);
-        expect(ctx.stats.resourceCounts.program).toBe(6);
-        expect(ctx.stats.resourceCounts.shader).toBe(12);
+        expect(ctx.stats.resourceCounts.program).toBe(8);
+        expect(ctx.stats.resourceCounts.shader).toBe(16);
 
         ctx.resources.destroy();
         expect(ctx.stats.resourceCounts.program).toBe(0);

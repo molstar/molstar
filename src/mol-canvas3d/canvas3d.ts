@@ -38,6 +38,7 @@ import { StereoCamera, StereoCameraParams } from './camera/stereo';
 import { Helper } from './helper/helper';
 import { Passes } from './passes/passes';
 import { shallowEqual } from '../mol-util';
+import { MarkingParams } from './passes/marking';
 
 export const Canvas3DParams = {
     camera: PD.Group({
@@ -80,6 +81,7 @@ export const Canvas3DParams = {
 
     multiSample: PD.Group(MultiSampleParams),
     postprocessing: PD.Group(PostprocessingParams),
+    marking: PD.Group(MarkingParams),
     renderer: PD.Group(RendererParams),
     trackball: PD.Group(TrackballControlsParams),
     debug: PD.Group(DebugHelperParams),
@@ -390,7 +392,7 @@ namespace Canvas3D {
                 if (MultiSamplePass.isEnabled(p.multiSample)) {
                     multiSampleHelper.render(renderer, cam, scene, helper, true, p.transparentBackground, p);
                 } else {
-                    passes.draw.render(renderer, cam, scene, helper, true, p.transparentBackground, p.postprocessing);
+                    passes.draw.render(renderer, cam, scene, helper, true, p.transparentBackground, p.postprocessing, p.marking);
                 }
                 pickHelper.dirty = true;
                 didRender = true;
@@ -636,6 +638,7 @@ namespace Canvas3D {
                 viewport: p.viewport,
 
                 postprocessing: { ...p.postprocessing },
+                marking: { ...p.marking },
                 multiSample: { ...p.multiSample },
                 renderer: { ...renderer.props },
                 trackball: { ...controls.props },
@@ -771,6 +774,7 @@ namespace Canvas3D {
                 }
 
                 if (props.postprocessing) Object.assign(p.postprocessing, props.postprocessing);
+                if (props.marking) Object.assign(p.marking, props.marking);
                 if (props.multiSample) Object.assign(p.multiSample, props.multiSample);
                 if (props.renderer) renderer.setProps(props.renderer);
                 if (props.trackball) controls.setProps(props.trackball);
@@ -835,9 +839,6 @@ namespace Canvas3D {
                 height = Math.round(p.viewport.params.height * gl.drawingBufferHeight);
                 y = Math.round(gl.drawingBufferHeight - height - p.viewport.params.y * gl.drawingBufferHeight);
                 width = Math.round(p.viewport.params.width * gl.drawingBufferWidth);
-                // if (x + width >= gl.drawingBufferWidth) width = gl.drawingBufferWidth - x;
-                // if (y + height >= gl.drawingBufferHeight) height = gl.drawingBufferHeight - y - 1;
-                // console.log({ x, y, width, height });
             }
 
             if (oldX !== x || oldY !== y || oldWidth !== width || oldHeight !== height) {

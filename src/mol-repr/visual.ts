@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -7,8 +7,8 @@
 import { RuntimeContext } from '../mol-task';
 import { GraphicsRenderObject } from '../mol-gl/render-object';
 import { PickingId } from '../mol-geo/geometry/picking';
-import { Loci, isEmptyLoci, isEveryLoci } from '../mol-model/loci';
-import { MarkerAction, applyMarkerAction } from '../mol-util/marker-action';
+import { Loci, isEmptyLoci, isEveryLoci, EveryLoci } from '../mol-model/loci';
+import { MarkerAction, applyMarkerAction, getMarkerInfo, setMarkerValue, getPartialMarkerAverage, MarkerActions, MarkerInfo } from '../mol-util/marker-action';
 import { ParamDefinition as PD } from '../mol-util/param-definition';
 import { WebGLContext } from '../mol-gl/webgl/context';
 import { Theme } from '../mol-theme/theme';
@@ -23,6 +23,7 @@ import { Transparency } from '../mol-theme/transparency';
 import { createTransparency, clearTransparency, applyTransparencyValue, getTransparencyAverage } from '../mol-geo/geometry/transparency-data';
 import { Clipping } from '../mol-theme/clipping';
 import { createClipping, applyClippingGroups, clearClipping } from '../mol-geo/geometry/clipping-data';
+import { getMarkersAverage } from '../mol-geo/geometry/marker-data';
 
 export interface VisualContext {
     readonly runtime: RuntimeContext
@@ -67,20 +68,68 @@ namespace Visual {
         if (renderObject) renderObject.state.colorOnly = colorOnly;
     }
 
-    export function mark(renderObject: GraphicsRenderObject | undefined, loci: Loci, action: MarkerAction, lociApply: LociApply) {
-        if (!renderObject) return false;
+    export type PreviousMark = { loci: Loci, action: MarkerAction, status: MarkerInfo['status'] }
 
-        const { tMarker, uGroupCount, instanceCount } = renderObject.values;
+    export function mark(renderObject: GraphicsRenderObject | undefined, loci: Loci, action: MarkerAction, lociApply: LociApply, previous?: PreviousMark) {
+        if (!renderObject || isEmptyLoci(loci)) return false;
+
+        const { tMarker, dMarkerType, uMarker, markerAverage, markerStatus, uGroupCount, instanceCount } = renderObject.values;
         const count = uGroupCount.ref.value * instanceCount.ref.value;
         const { array } = tMarker.ref.value;
+        const currentStatus = markerStatus.ref.value as MarkerInfo['status'];
+
+        if (!isEveryLoci(loci)) {
+            let intervalSize = 0;
+            lociApply(loci, interval => {
+                intervalSize += Interval.size(interval);
+                return true;
+            }, true);
+            if (intervalSize === 0) return false;
+            if (intervalSize === count) loci = EveryLoci;
+        }
 
         let changed = false;
+        let average = -1;
+        let status: MarkerInfo['status'] = -1;
         if (isEveryLoci(loci)) {
-            changed = applyMarkerAction(array, Interval.ofLength(count), action);
-        } else if (!isEmptyLoci(loci)) {
+            const info = getMarkerInfo(action, currentStatus);
+            if (info.status !== -1) {
+                changed = currentStatus !== info.status;
+                if (changed) setMarkerValue(array, info.status, count);
+            } else {
+                changed = applyMarkerAction(array, Interval.ofLength(count), action);
+            }
+            average = info.average;
+            status = info.status;
+        } else {
             changed = lociApply(loci, interval => applyMarkerAction(array, interval, action), true);
+            if (changed) {
+                average = getPartialMarkerAverage(action, currentStatus);
+                if (previous && previous.status !== -1 && average === -1 &&
+                    MarkerActions.isReverse(previous.action, action) &&
+                    Loci.areEqual(loci, previous.loci)
+                ) {
+                    status = previous.status;
+                    average = status === 0 ? 0 : 0.5;
+                }
+            }
         }
-        if (changed) ValueCell.update(tMarker, tMarker.ref.value);
+        if (changed) {
+            if (average === -1) {
+                average = getMarkersAverage(array, count);
+                if (average === 0) status = 0;
+            }
+            if (previous) {
+                previous.action = action;
+                previous.loci = loci;
+                previous.status = currentStatus;
+            }
+            ValueCell.updateIfChanged(uMarker, status);
+            if (status === -1) ValueCell.update(tMarker, tMarker.ref.value);
+            ValueCell.updateIfChanged(dMarkerType, status === -1 ? 'groupInstance' : 'uniform');
+            ValueCell.updateIfChanged(markerAverage, average);
+            ValueCell.updateIfChanged(markerStatus, status);
+        }
         return changed;
     }
 

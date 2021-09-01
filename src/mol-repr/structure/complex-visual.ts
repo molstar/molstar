@@ -67,6 +67,7 @@ export function ComplexVisual<G extends Geometry, P extends StructureParams & Ge
     const { defaultProps, createGeometry, createLocationIterator, getLoci, eachLocation, setUpdateState, mustRecreate, processValues, dispose } = builder;
     const { updateValues, updateBoundingSphere, updateRenderableState, createPositionIterator } = builder.geometryUtils;
     const updateState = VisualUpdateState.create();
+    const previousMark: Visual.PreviousMark = { loci: EmptyLoci, action: MarkerAction.None, status: -1 };
 
     let renderObject: GraphicsRenderObject<G['kind']> | undefined;
 
@@ -235,7 +236,7 @@ export function ComplexVisual<G extends Geometry, P extends StructureParams & Ge
             return renderObject ? getLoci(pickingId, currentStructure, renderObject.id) : EmptyLoci;
         },
         mark(loci: Loci, action: MarkerAction) {
-            return Visual.mark(renderObject, loci, action, lociApply);
+            return Visual.mark(renderObject, loci, action, lociApply, previousMark);
         },
         setVisibility(visible: boolean) {
             Visual.setVisibility(renderObject, visible);

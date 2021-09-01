@@ -22,9 +22,9 @@ import { Renderer } from '../../mol-gl/renderer';
 import { Scene } from '../../mol-gl/scene';
 import { Helper } from '../helper/helper';
 import { StereoCamera } from '../camera/stereo';
-
 import { quad_vert } from '../../mol-gl/shader/quad.vert';
 import { compose_frag } from '../../mol-gl/shader/compose.frag';
+import { MarkingProps } from './marking';
 
 const ComposeSchema = {
     ...QuadSchema,
@@ -55,7 +55,11 @@ export const MultiSampleParams = {
 };
 export type MultiSampleProps = PD.Values<typeof MultiSampleParams>
 
-type Props = { multiSample: MultiSampleProps, postprocessing: PostprocessingProps }
+type Props = {
+    multiSample: MultiSampleProps
+    postprocessing: PostprocessingProps
+    marking: MarkingProps
+}
 
 export class MultiSamplePass {
     static isEnabled(props: MultiSampleProps) {
@@ -144,7 +148,7 @@ export class MultiSamplePass {
             ValueCell.update(compose.values.uWeight, sampleWeight);
 
             // render scene
-            drawPass.render(renderer, camera, scene, helper, false, transparentBackground, props.postprocessing);
+            drawPass.render(renderer, camera, scene, helper, false, transparentBackground, props.postprocessing, props.marking);
 
             // compose rendered scene with compose target
             composeTarget.bind();
@@ -194,7 +198,7 @@ export class MultiSamplePass {
         const sampleWeight = 1.0 / offsetList.length;
 
         if (sampleIndex === -1) {
-            drawPass.render(renderer, camera, scene, helper, false, transparentBackground, props.postprocessing);
+            drawPass.render(renderer, camera, scene, helper, false, transparentBackground, props.postprocessing, props.marking);
             ValueCell.update(compose.values.uWeight, 1.0);
             ValueCell.update(compose.values.tColor, drawPass.getColorTarget(props.postprocessing).texture);
             compose.update();
@@ -222,7 +226,7 @@ export class MultiSamplePass {
                 camera.update();
 
                 // render scene
-                drawPass.render(renderer, camera, scene, helper, false, transparentBackground, props.postprocessing);
+                drawPass.render(renderer, camera, scene, helper, false, transparentBackground, props.postprocessing, props.marking);
 
                 // compose rendered scene with compose target
                 composeTarget.bind();

@@ -17,6 +17,7 @@ namespace SortedArray {
     /** create sorted array [min, max) (it does NOT contain the max value) */
     export const ofBounds: <T extends number = number>(min: T, max: T) => SortedArray<T> = (min, max) => Impl.ofRange(min, max - 1) as any;
     export const is: <T extends number = number>(v: any) => v is SortedArray<T> = Impl.is as any;
+    export const isRange: <T extends number = number>(array: ArrayLike<number>) => boolean = Impl.isRange as any;
 
     export const has: <T extends number = number>(array: SortedArray<T>, x: T) => boolean = Impl.has as any;
     /** Returns the index of `x` in `set` or -1 if not found. */

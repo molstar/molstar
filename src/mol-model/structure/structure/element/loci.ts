@@ -66,7 +66,10 @@ export namespace Loci {
     }
 
     export function isEmpty(loci: Loci) {
-        return size(loci) === 0;
+        for (const u of loci.elements) {
+            if(OrderedSet.size(u.indices) > 0) return false;
+        }
+        return true;
     }
 
     export function isWholeStructure(loci: Loci) {
@@ -140,7 +143,7 @@ export namespace Loci {
         return Structure.create(units, { parent: loci.structure.parent });
     }
 
-    // TODO: there should be a version that property supports partitioned units
+    // TODO: there should be a version that properly supports partitioned units
     export function remap(loci: Loci, structure: Structure): Loci {
         if (structure === loci.structure) return loci;
 
@@ -250,6 +253,14 @@ export namespace Loci {
         return isSubset;
     }
 
+    function makeIndexSet(newIndices: ArrayLike<UnitIndex>): OrderedSet<UnitIndex> {
+        if (newIndices.length > 3 && SortedArray.isRange(newIndices)) {
+            return Interval.ofRange(newIndices[0], newIndices[newIndices.length - 1]);
+        } else {
+            return SortedArray.ofSortedArray(newIndices);
+        }
+    }
+
     export function extendToWholeResidues(loci: Loci, restrictToConformation?: boolean): Loci {
         const elements: Loci['elements'][0][] = [];
         const residueAltIds = new Set<string>();
@@ -294,7 +305,7 @@ export namespace Loci {
                     }
                 }
 
-                elements[elements.length] = { unit: lociElement.unit, indices: SortedArray.ofSortedArray(newIndices) };
+                elements[elements.length] = { unit: lociElement.unit, indices: makeIndexSet(newIndices) };
             } else {
                 // coarse elements are already by-residue
                 elements[elements.length] = lociElement;
@@ -314,14 +325,6 @@ export namespace Loci {
 
     function isWholeUnit(element: Loci['elements'][0]) {
         return element.unit.elements.length === OrderedSet.size(element.indices);
-    }
-
-    function makeIndexSet(newIndices: number[]): OrderedSet<UnitIndex> {
-        if (newIndices.length > 12 && newIndices[newIndices.length - 1] - newIndices[0] === newIndices.length - 1) {
-            return Interval.ofRange(newIndices[0], newIndices[newIndices.length - 1]);
-        } else {
-            return SortedArray.ofSortedArray(newIndices);
-        }
     }
 
     function collectChains(unit: Unit, chainIndices: Set<ChainIndex>, elements: Loci['elements'][0][]) {
@@ -467,7 +470,10 @@ export namespace Loci {
     }
 
     function getUnitIndices(elements: SortedArray<ElementIndex>, indices: SortedArray<ElementIndex>) {
-        return SortedArray.indicesOf<ElementIndex, UnitIndex>(elements, indices);
+        if (SortedArray.isRange(elements) && SortedArray.areEqual(elements, indices)) {
+            return Interval.ofLength(elements.length);
+        }
+        return makeIndexSet(SortedArray.indicesOf<ElementIndex, UnitIndex>(elements, indices));
     }
 
     export function extendToAllInstances(loci: Loci): Loci {
