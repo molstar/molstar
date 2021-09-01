@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -12,7 +12,6 @@ precision highp int;
 #include common_frag_params
 #include color_frag_params
 #include common_clip
-#include wboit_params
 
 uniform sampler2D tFont;
 
@@ -65,6 +64,8 @@ void main(){
     #if defined(dRenderVariant_pick)
         #include check_picking_alpha
     #elif defined(dRenderVariant_depth)
+        gl_FragColor = material;
+    #elif defined(dRenderVariant_marking)
         gl_FragColor = material;
     #elif defined(dRenderVariant_color)
         #include apply_marker_color

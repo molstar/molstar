@@ -164,8 +164,9 @@ export function eachElement(loci: Loci, structureGroup: StructureGroup, apply: (
     const { structure, group } = structureGroup;
     if (!Structure.areEquivalent(loci.structure, structure)) return false;
     const elementCount = group.elements.length;
+    const { unitIndexMap } = group;
     for (const e of loci.elements) {
-        const unitIdx = group.unitIndexMap.get(e.unit.id);
+        const unitIdx = unitIndexMap.get(e.unit.id);
         if (unitIdx !== undefined) {
             const offset = unitIdx * elementCount; // to target unit instance
             if (Interval.is(e.indices)) {
