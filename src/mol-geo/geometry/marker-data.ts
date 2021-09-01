@@ -21,7 +21,7 @@ export function getMarkersAverage(array: Uint8Array, count: number): number {
     if (count === 0) return 0;
     let sum = 0;
     for (let i = 0; i < count; ++i) {
-        sum += +!!array[i];
+        sum += array[i] && 1;
     }
     return sum / count;
 }

@@ -470,7 +470,7 @@ export namespace Loci {
     }
 
     function getUnitIndices(elements: SortedArray<ElementIndex>, indices: SortedArray<ElementIndex>) {
-        if (SortedArray.areEqual(elements, indices) && SortedArray.isRange(elements)) {
+        if (SortedArray.isRange(elements) && SortedArray.areEqual(elements, indices)) {
             return Interval.ofLength(elements.length);
         }
         return makeIndexSet(SortedArray.indicesOf<ElementIndex, UnitIndex>(elements, indices));

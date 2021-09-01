@@ -60,10 +60,11 @@ export function getAt(xs: Nums, i: number) { return xs[i]; }
 
 export function areEqual(a: Nums, b: Nums) {
     if (a === b) return true;
-    const aSize = a.length;
+    let aSize = a.length;
     if (aSize !== b.length || a[0] !== b[0] || a[aSize - 1] !== b[aSize - 1]) return false;
     if (isRange(a)) return true;
-    for (let i = 0; i < aSize; i++) {
+    aSize--;
+    for (let i = 1; i < aSize; i++) {
         if (a[i] !== b[i]) return false;
     }
     return true;
