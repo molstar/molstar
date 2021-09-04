@@ -16,7 +16,7 @@ import { createLinkCylinderImpostors, createLinkCylinderMesh, LinkBuilderProps, 
 import { UnitsMeshParams, UnitsVisual, UnitsMeshVisual, UnitsCylindersParams, UnitsCylindersVisual } from '../units-visual';
 import { VisualUpdateState } from '../../util';
 import { BondType } from '../../../mol-model/structure/model/types';
-import { BondCylinderParams, BondIterator, eachIntraBond, getIntraBondLoci, makeIntraBondIgnoreTest } from './util/bond';
+import { BondCylinderParams, BondIterator, eachIntraBond, getIntraBondLoci, ignoreBondType, makeIntraBondIgnoreTest } from './util/bond';
 import { Sphere3D } from '../../../mol-math/geometry';
 import { IntAdjacencyGraph } from '../../../mol-math/graph';
 import { WebGLContext } from '../../../mol-gl/webgl/context';
@@ -33,7 +33,11 @@ function getIntraUnitBondCylinderBuilderProps(unit: Unit.Atomic, structure: Stru
     const bonds = unit.bonds;
     const { edgeCount, a, b, edgeProps, offset } = bonds;
     const { order: _order, flags: _flags } = edgeProps;
-    const { sizeFactor, sizeAspectRatio, adjustCylinderLength, aromaticBonds } = props;
+    const { sizeFactor, sizeAspectRatio, adjustCylinderLength, aromaticBonds, includeTypes, excludeTypes } = props;
+
+    const include = BondType.fromNames(includeTypes);
+    const exclude = BondType.fromNames(excludeTypes);
+    const ignoreComputedAromatic = ignoreBondType(include, exclude, BondType.Flag.Computed);
 
     const vRef = Vec3(), delta = Vec3();
     const pos = unit.conformation.invariantPosition;
@@ -123,7 +127,7 @@ function getIntraUnitBondCylinderBuilderProps(unit: Unit.Atomic, structure: Stru
             const o = _order[edgeIndex];
             const f = _flags[edgeIndex];
             if (isBondType(f, BondType.Flag.MetallicCoordination) || isBondType(f, BondType.Flag.HydrogenBond)) {
-                // show metall coordinations and hydrogen bonds with dashed cylinders
+                // show metallic coordinations and hydrogen bonds with dashed cylinders
                 return LinkStyle.Dashed;
             } else if (o === 3) {
                 return LinkStyle.Triple;
@@ -133,7 +137,7 @@ function getIntraUnitBondCylinderBuilderProps(unit: Unit.Atomic, structure: Stru
                 const bR = elementAromaticRingIndices.get(bI);
                 const arCount = (aR && bR) ? arrayIntersectionSize(aR, bR) : 0;
 
-                if (arCount || isBondType(f, BondType.Flag.Aromatic)) {
+                if (isBondType(f, BondType.Flag.Aromatic) || (arCount && !ignoreComputedAromatic)) {
                     if (arCount === 2) {
                         return LinkStyle.MirroredAromatic;
                     } else {

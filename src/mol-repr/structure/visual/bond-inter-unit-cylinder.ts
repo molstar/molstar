@@ -133,7 +133,7 @@ function getInterUnitBondCylinderBuilderProps(structure: Structure, theme: Theme
             const o = edges[edgeIndex].props.order;
             const f = BitFlags.create(edges[edgeIndex].props.flag);
             if (BondType.is(f, BondType.Flag.MetallicCoordination) || BondType.is(f, BondType.Flag.HydrogenBond)) {
-                // show metall coordinations and hydrogen bonds with dashed cylinders
+                // show metallic coordinations and hydrogen bonds with dashed cylinders
                 return LinkStyle.Dashed;
             } else if (o === 3) {
                 return LinkStyle.Triple;
