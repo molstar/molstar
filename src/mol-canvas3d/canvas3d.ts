@@ -230,7 +230,7 @@ interface Canvas3D {
     /** Sets drawPaused = false without starting the built in animation loop */
     resume(): void
     identify(x: number, y: number): PickData | undefined
-    mark(loci: Representation.Loci, action: MarkerAction): void
+    mark(loci: Representation.Loci, action: MarkerAction, noDraw?: boolean): void
     getLoci(pickingId: PickingId | undefined): Representation.Loci
 
     notifyDidDraw: boolean,
@@ -339,7 +339,7 @@ namespace Canvas3D {
             return { loci, repr };
         }
 
-        function mark(reprLoci: Representation.Loci, action: MarkerAction) {
+        function mark(reprLoci: Representation.Loci, action: MarkerAction, noDraw = false) {
             const { repr, loci } = reprLoci;
             let changed = false;
             if (repr) {
@@ -349,7 +349,7 @@ namespace Canvas3D {
                 changed = helper.camera.mark(loci, action) || changed;
                 reprRenderObjects.forEach((_, _repr) => { changed = _repr.mark(loci, action) || changed; });
             }
-            if (changed) {
+            if (changed && !noDraw) {
                 scene.update(void 0, true);
                 helper.handle.scene.update(void 0, true);
                 helper.camera.scene.update(void 0, true);

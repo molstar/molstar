@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -74,7 +74,13 @@ namespace InteractivityManager {
     export interface DragEvent { current: Representation.Loci, buttons: ButtonsType, button: ButtonsType.Flag, modifiers: ModifiersKeys, pageStart: Vec2, pageEnd: Vec2 }
     export interface ClickEvent { current: Representation.Loci, buttons: ButtonsType, button: ButtonsType.Flag, modifiers: ModifiersKeys, page?: Vec2, position?: Vec3 }
 
-    export type LociMarkProvider = (loci: Representation.Loci, action: MarkerAction) => void
+    /**
+     * The `noRender` argument indicates that the action should only update the internal
+     * data structure but not render anything user visible. For example 1) no drawing of
+     * the canvas3d scene or 2) no ui update of loci labels. This is useful because some
+     * actions require clearing any markings before they can be applied.
+     */
+    export type LociMarkProvider = (loci: Representation.Loci, action: MarkerAction, /* test */ noRender?: boolean) => void
 
     export abstract class LociMarkManager {
         protected providers: LociMarkProvider[] = [];
@@ -101,9 +107,9 @@ namespace InteractivityManager {
             return { loci: Loci.normalize(loci, granularity), repr };
         }
 
-        protected mark(current: Representation.Loci, action: MarkerAction) {
+        protected mark(current: Representation.Loci, action: MarkerAction, noRender = false) {
             if (!Loci.isEmpty(current.loci)) {
-                for (let p of this.providers) p(current, action);
+                for (let p of this.providers) p(current, action, noRender);
             }
         }
 
@@ -130,9 +136,9 @@ namespace InteractivityManager {
             this.prev.push(loci);
         }
 
-        clearHighlights = () => {
+        clearHighlights = (noRender = false) => {
             for (const p of this.prev) {
-                this.mark(p, MarkerAction.RemoveHighlight);
+                this.mark(p, MarkerAction.RemoveHighlight, noRender);
             }
             this.prev.length = 0;
         }
@@ -147,21 +153,29 @@ namespace InteractivityManager {
         highlightOnly(current: Representation.Loci, applyGranularity = true) {
             const normalized = this.normalizedLoci(current, applyGranularity);
             if (!this.isHighlighted(normalized)) {
-                this.clearHighlights();
-                this.addHighlight(normalized);
+                if (Loci.isEmpty(normalized.loci)) {
+                    this.clearHighlights();
+                } else {
+                    this.clearHighlights(true);
+                    this.addHighlight(normalized);
+                }
             }
         }
 
         highlightOnlyExtend(current: Representation.Loci, applyGranularity = true) {
             const normalized = this.normalizedLoci(current, applyGranularity);
             if (StructureElement.Loci.is(normalized.loci)) {
-                const loci = {
+                const extended = {
                     loci: this.sel.tryGetRange(normalized.loci) || normalized.loci,
                     repr: normalized.repr
                 };
-                if (!this.isHighlighted(loci)) {
-                    this.clearHighlights();
-                    this.addHighlight(loci);
+                if (!this.isHighlighted(extended)) {
+                    if (Loci.isEmpty(extended.loci)) {
+                        this.clearHighlights();
+                    } else {
+                        this.clearHighlights(true);
+                        this.addHighlight(extended);
+                    }
                 }
             }
         }
@@ -241,7 +255,7 @@ namespace InteractivityManager {
                     // do a full deselect/select for the current structure so visuals that are
                     // marked with granularity unequal to 'element' and join/intersect operations
                     // are handled properly
-                    super.mark({ loci: Structure.Loci(loci.structure) }, MarkerAction.Deselect);
+                    super.mark({ loci: Structure.Loci(loci.structure) }, MarkerAction.Deselect, true);
                     super.mark({ loci: this.sel.getLoci(loci.structure) }, MarkerAction.Select);
                 } else {
                     super.mark(current, action);

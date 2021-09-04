@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -92,9 +92,9 @@ export class LociLabelManager {
     }
 
     constructor(public ctx: PluginContext) {
-        ctx.managers.interactivity.lociHighlights.addProvider((loci, action) => {
+        ctx.managers.interactivity.lociHighlights.addProvider((loci, action, noRender) => {
             this.mark(loci, action);
-            this.showLabels();
+            if (!noRender) this.showLabels();
         });
     }
 }

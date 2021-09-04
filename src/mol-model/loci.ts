@@ -116,7 +116,7 @@ namespace Loci {
         return !!loci && loci.kind === 'every-loci';
     }
 
-    export function isEmpty(loci: Loci): loci is EmptyLoci {
+    export function isEmpty(loci: Loci) {
         if (isEveryLoci(loci)) return false;
         if (isEmptyLoci(loci)) return true;
         if (isDataLoci(loci)) return isDataLociEmpty(loci);
