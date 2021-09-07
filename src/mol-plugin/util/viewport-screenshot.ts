@@ -286,7 +286,7 @@ class ViewportScreenshotHelper extends PluginComponent {
         canvasCtx.putImageData(imageData, 0, 0);
         if (this.cropParams.auto) this.autocrop();
 
-        this.events.previewed.next();
+        this.events.previewed.next(void 0);
         return { canvas, width: w, height: h };
     }
 

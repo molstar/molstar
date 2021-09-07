@@ -325,7 +325,7 @@ export class Viewer {
     }
 
     handleResize() {
-        this.plugin.layout.events.updated.next();
+        this.plugin.layout.events.updated.next(void 0);
     }
 }
 

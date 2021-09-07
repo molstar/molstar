@@ -69,7 +69,7 @@ export class PluginLayout extends StatefulPluginComponent<PluginLayoutStateProps
         this.updateState(state);
         if (this.root && typeof state.isExpanded === 'boolean' && state.isExpanded !== prevExpanded) this.handleExpand();
 
-        this.events.updated.next();
+        this.events.updated.next(void 0);
     }
 
     root: HTMLElement | undefined;

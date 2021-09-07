@@ -175,7 +175,7 @@ export class StructureSelectionManager extends StatefulPluginComponent<Structure
             }
         }
 
-        this.events.additionsHistoryUpdated.next();
+        this.events.additionsHistoryUpdated.next(void 0);
     }
 
     private tryAddHistory(loci: StructureElement.Loci) {
@@ -194,7 +194,7 @@ export class StructureSelectionManager extends StatefulPluginComponent<Structure
             // move to top
             arrayRemoveAtInPlace(this.additionsHistory, idx);
             this.additionsHistory.unshift(entry);
-            this.events.additionsHistoryUpdated.next();
+            this.events.additionsHistoryUpdated.next(void 0);
             return;
         }
 
@@ -204,13 +204,13 @@ export class StructureSelectionManager extends StatefulPluginComponent<Structure
         this.additionsHistory.unshift({ id: UUID.create22(), loci, label });
         if (this.additionsHistory.length > HISTORY_CAPACITY) this.additionsHistory.pop();
 
-        this.events.additionsHistoryUpdated.next();
+        this.events.additionsHistoryUpdated.next(void 0);
     }
 
     private clearHistory() {
         if (this.state.additionsHistory.length !== 0) {
             this.state.additionsHistory = [];
-            this.events.additionsHistoryUpdated.next();
+            this.events.additionsHistoryUpdated.next(void 0);
         }
     }
 
@@ -225,7 +225,7 @@ export class StructureSelectionManager extends StatefulPluginComponent<Structure
             this.modifyHistory(e, 'remove');
         }
         if (historyEntryToRemove.length !== 0) {
-            this.events.additionsHistoryUpdated.next();
+            this.events.additionsHistoryUpdated.next(void 0);
         }
     }
 
@@ -239,7 +239,7 @@ export class StructureSelectionManager extends StatefulPluginComponent<Structure
                 this.referenceLoci = undefined;
             }
             this.state.stats = void 0;
-            this.events.changed.next();
+            this.events.changed.next(void 0);
         }
     }
 
@@ -276,7 +276,7 @@ export class StructureSelectionManager extends StatefulPluginComponent<Structure
                     changedHistory = true;
                 }
             }
-            if (changedHistory) this.events.additionsHistoryUpdated.next();
+            if (changedHistory) this.events.additionsHistoryUpdated.next(void 0);
         } else {
             // clear the selection for ref
             this.entries.set(ref, new SelectionEntry(StructureElement.Loci(structure, [])));
@@ -288,7 +288,7 @@ export class StructureSelectionManager extends StatefulPluginComponent<Structure
             this.clearHistoryForStructure(structure);
 
             this.state.stats = void 0;
-            this.events.changed.next();
+            this.events.changed.next(void 0);
         }
     }
 
@@ -305,8 +305,8 @@ export class StructureSelectionManager extends StatefulPluginComponent<Structure
         }
         this.referenceLoci = undefined;
         this.state.stats = void 0;
-        this.events.changed.next();
-        this.events.loci.clear.next();
+        this.events.changed.next(void 0);
+        this.events.loci.clear.next(void 0);
         this.clearHistory();
         return selections;
     }
@@ -426,7 +426,7 @@ export class StructureSelectionManager extends StatefulPluginComponent<Structure
 
         if (changed) {
             this.state.stats = void 0;
-            this.events.changed.next();
+            this.events.changed.next(void 0);
         }
     }
 

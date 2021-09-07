@@ -372,7 +372,7 @@ export function generateSchema(frames: CifFrame[], imports: Imports = new Map())
             const parent_name = item_linked.getField('parent_name');
             if (child_name && parent_name) {
                 for (let i = 0; i < item_linked.rowCount; ++i) {
-                    const childName = child_name.str(i);
+                    const childName: string = child_name.str(i);
                     const parentName = parent_name.str(i);
                     if (childName in links && links[childName] !== parentName) {
                         console.log(`${childName} linked to ${links[childName]}, ignoring link to ${parentName}`);

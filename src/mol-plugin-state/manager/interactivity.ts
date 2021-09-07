@@ -52,7 +52,7 @@ class InteractivityManager extends StatefulPluginComponent<InteractivityManagerS
         this.updateState({ props: _new });
         this.lociSelects.setProps(_new);
         this.lociHighlights.setProps(_new);
-        this.events.propsUpdated.next();
+        this.events.propsUpdated.next(void 0);
     }
 
     constructor(readonly plugin: PluginContext, props: Partial<InteractivityManager.Props> = {}) {

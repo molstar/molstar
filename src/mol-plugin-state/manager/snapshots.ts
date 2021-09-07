@@ -51,13 +51,13 @@ class PluginStateSnapshotManager extends StatefulPluginComponent<{
             current: this.state.current === id ? void 0 : this.state.current,
             entries: this.state.entries.delete(this.getIndex(e))
         });
-        this.events.changed.next();
+        this.events.changed.next(void 0);
     }
 
     add(e: PluginStateSnapshotManager.Entry) {
         this.entryMap.set(e.snapshot.id, e);
         this.updateState({ current: e.snapshot.id, entries: this.state.entries.push(e) });
-        this.events.changed.next();
+        this.events.changed.next(void 0);
     }
 
     replace(id: string, snapshot: PluginState.Snapshot) {
@@ -72,7 +72,7 @@ class PluginStateSnapshotManager extends StatefulPluginComponent<{
         });
         this.entryMap.set(snapshot.id, e);
         this.updateState({ current: e.snapshot.id, entries: this.state.entries.set(idx, e) });
-        this.events.changed.next();
+        this.events.changed.next(void 0);
     }
 
     move(id: string, dir: -1 | 1) {
@@ -91,21 +91,21 @@ class PluginStateSnapshotManager extends StatefulPluginComponent<{
         entries.set(from, f);
 
         this.updateState({ current: e.snapshot.id, entries: entries.asImmutable() });
-        this.events.changed.next();
+        this.events.changed.next(void 0);
     }
 
     clear() {
         if (this.state.entries.size === 0) return;
         this.entryMap.clear();
         this.updateState({ current: void 0, entries: List<PluginStateSnapshotManager.Entry>() });
-        this.events.changed.next();
+        this.events.changed.next(void 0);
     }
 
     setCurrent(id: string) {
         const e = this.getEntry(id);
         if (e) {
             this.updateState({ current: id as UUID });
-            this.events.changed.next();
+            this.events.changed.next(void 0);
         }
         return e && e.snapshot;
     }
@@ -152,7 +152,7 @@ class PluginStateSnapshotManager extends StatefulPluginComponent<{
             isPlaying: false,
             nextSnapshotDelayInMs: snapshot.playback ? snapshot.playback.nextSnapshotDelayInMs : PluginStateSnapshotManager.DefaultNextSnapshotDelayInMs
         });
-        this.events.changed.next();
+        this.events.changed.next(void 0);
         if (!current) return;
         const entry = this.getEntry(current);
         const next = entry && entry.snapshot;
@@ -288,7 +288,7 @@ class PluginStateSnapshotManager extends StatefulPluginComponent<{
                 this.next();
                 return;
             }
-            this.events.changed.next();
+            this.events.changed.next(void 0);
             const snapshot = e.snapshot;
             const delay = typeof snapshot.durationInMs !== 'undefined' ? snapshot.durationInMs : this.state.nextSnapshotDelayInMs;
             this.timeoutHandle = setTimeout(this.next, delay);
@@ -301,7 +301,7 @@ class PluginStateSnapshotManager extends StatefulPluginComponent<{
         this.updateState({ isPlaying: false });
         if (typeof this.timeoutHandle !== 'undefined') clearTimeout(this.timeoutHandle);
         this.timeoutHandle = void 0;
-        this.events.changed.next();
+        this.events.changed.next(void 0);
     }
 
     togglePlay() {

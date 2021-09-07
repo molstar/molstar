@@ -558,7 +558,7 @@ namespace InputObserver {
         }
 
         function endDrag() {
-            interactionEnd.next();
+            interactionEnd.next(void 0);
         }
 
         function onPointerDown(ev: PointerEvent) {
@@ -671,16 +671,16 @@ namespace InputObserver {
 
         function onMouseEnter(ev: Event) {
             isInside = true;
-            enter.next();
+            enter.next(void 0);
         }
 
         function onMouseLeave(ev: Event) {
             isInside = false;
-            leave.next();
+            leave.next(void 0);
         }
 
         function onResize(ev: Event) {
-            resize.next();
+            resize.next({});
         }
 
         function insideBounds(pos: Vec2) {

@@ -34,11 +34,11 @@ class PluginAnimationManager extends StatefulPluginComponent<PluginAnimationMana
     get animations() { return this._animations; }
 
     private triggerUpdate() {
-        this.events.updated.next();
+        this.events.updated.next(void 0);
     }
 
     private triggerApply() {
-        this.events.applied.next();
+        this.events.applied.next(void 0);
     }
 
     getParams(): PD.Params {

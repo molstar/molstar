@@ -119,7 +119,7 @@
     "stream-browserify": "^3.0.0",
     "style-loader": "^2.0.0",
     "ts-jest": "^26.4.4",
-    "typescript": "^4.2.4",
+    "typescript": "^4.4.2",
     "webpack": "^5.37.1",
     "webpack-cli": "^4.7.0",
     "webpack-version-file-plugin": "^0.4.0"
@@ -141,14 +141,14 @@
     "cors": "^2.8.5",
     "express": "^4.17.1",
     "h264-mp4-encoder": "^1.0.12",
-    "immer": "^8.0.1",
+    "immer": "^9.0.6",
     "immutable": "^3.8.2",
     "node-fetch": "^2.6.1",
-    "react": "^17.0.1",
-    "react-dom": "^17.0.1",
-    "rxjs": "^6.6.6",
+    "react": "^17.0.2",
+    "react-dom": "^17.0.2",
+    "rxjs": "^7.3.0",
     "swagger-ui-dist": "^3.37.2",
-    "tslib": "^2.1.0",
+    "tslib": "^2.3.1",
     "util.promisify": "^1.0.1",
     "xhr2": "^0.2.0"
   }

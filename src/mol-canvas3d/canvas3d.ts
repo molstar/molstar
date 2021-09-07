@@ -732,7 +732,7 @@ namespace Canvas3D {
             resized,
             setProps: (properties, doNotRequestDraw = false) => {
                 const props: PartialCanvas3DProps = typeof properties === 'function'
-                    ? produce(getProps(), properties)
+                    ? produce(getProps(), properties as any)
                     : properties;
 
                 const cameraState: Partial<Camera.Snapshot> = Object.create(null);
