@@ -101,6 +101,10 @@ async function initialize(structure: Structure, props: ANVILProps, accessibleSur
     const hydrophobic = new Array<boolean>();
     const definition = props.tmdetDefinition ? TMDET_DEFINITION : ANVIL_DEFINITION;
 
+    function isPartOfEntity(l: StructureElement.Location): boolean {
+        return !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.model.atomicHierarchy.residues.label_seq_id.valueKind(l.unit.residueIndex[l.element]) === 0;
+    }
+
     const vec = v3zero();
     for (let i = 0, il = structure.units.length; i < il; ++i) {
         const unit = structure.units[i];
@@ -111,8 +115,8 @@ async function initialize(structure: Structure, props: ANVILProps, accessibleSur
             const eI = elements[j];
             l.element = eI;
 
-            // consider only amino acids
-            if (getElementMoleculeType(unit, eI) !== MoleculeType.Protein) {
+            // consider only amino acids in chains
+            if (getElementMoleculeType(unit, eI) !== MoleculeType.Protein || !isPartOfEntity(l)) {
                 continue;
             }
 
@@ -357,7 +361,7 @@ function membraneSegments(ctx: ANVILContext, membrane: MembraneCandidate): Array
     // collect all residues in membrane layer
     for (let k = 0, kl = offsets.length; k < kl; k++) {
         const unit = units[unitIndices[offsets[k]]];
-        if (!Unit.isAtomic(unit)) throw 'Property only available for atomic models.';
+        if (!Unit.isAtomic(unit)) notAtomic();
         const elementIndex = elementIndices[offsets[k]];
 
         authAsymId = unit.model.atomicHierarchy.chains.auth_asym_id.value(unit.chainIndex[elementIndex]);
@@ -378,7 +382,7 @@ function membraneSegments(ctx: ANVILContext, membrane: MembraneCandidate): Array
 
     for (let k = 0, kl = offsets.length; k < kl; k++) {
         const unit = units[unitIndices[offsets[k]]];
-        if (!Unit.isAtomic(unit)) throw 'Property only available for atomic models.';
+        if (!Unit.isAtomic(unit)) notAtomic();
         const elementIndex = elementIndices[offsets[k]];
 
         authAsymId = unit.model.atomicHierarchy.chains.auth_asym_id.value(unit.chainIndex[elementIndex]);
@@ -439,6 +443,10 @@ function membraneSegments(ctx: ANVILContext, membrane: MembraneCandidate): Array
     }
 
     return refinedSegments;
+}
+
+function notAtomic(): never {
+    throw 'Property only available for atomic models.';
 }
 
 /** Filter for membrane residues and calculate the final extent of the membrane layer */
