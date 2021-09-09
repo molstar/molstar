@@ -61,7 +61,7 @@ const TMDET_DEFINITION = new Set(['LEU', 'ILE', 'VAL', 'PHE', 'MET', 'GLY', 'TRP
  * Guillaume Postic, Yassine Ghouzam, Vincent Guiraud, and Jean-Christophe Gelly
  * Protein Engineering, Design & Selection, 2015, 1–5
  * doi: 10.1093/protein/gzv063
- * 
+ *
  * ANVIL is derived from TMDET, the corresponding classification of hydrophobic amino acids is provided as optional parameter:
  * Gabor E. Tusnady, Zsuzsanna Dosztanyi and Istvan Simon
  * Transmembrane proteins in the Protein Data Bank: identification and classification
