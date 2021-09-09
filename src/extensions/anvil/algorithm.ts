@@ -44,10 +44,16 @@ export const ANVILParams = {
     minThickness: PD.Numeric(20, { min: 10, max: 30, step: 1}, { description: 'Minimum membrane thickness used during refinement' }),
     maxThickness: PD.Numeric(40, { min: 30, max: 50, step: 1}, { description: 'Maximum membrane thickness used during refinement' }),
     asaCutoff: PD.Numeric(40, { min: 10, max: 100, step: 1 }, { description: 'Relative ASA cutoff above which residues will be considered' }),
-    adjust: PD.Numeric(14, { min: 0, max: 30, step: 1 }, { description: 'Minimum length of membrane-spanning regions (original values: 14 for alpha-helices and 5 for beta sheets). Set to 0 to not optimize membrane thickness.' })
+    adjust: PD.Numeric(14, { min: 0, max: 30, step: 1 }, { description: 'Minimum length of membrane-spanning regions (original values: 14 for alpha-helices and 5 for beta sheets). Set to 0 to not optimize membrane thickness.' }),
+    tmdetDefinition: PD.Boolean(false, { description: `Use TMDET's classification of membrane-favoring amino acids. TMDET's classification shows better performance on porins and other beta-barrel structures.` })
 };
 export type ANVILParams = typeof ANVILParams
 export type ANVILProps = PD.Values<ANVILParams>
+
+/** ANVIL-specific (not general) definition of membrane-favoring amino acids */
+const ANVIL_DEFINITION = new Set(['ALA', 'CYS', 'GLY', 'HIS', 'ILE', 'LEU', 'MET', 'PHE', 'SER', 'TRP', 'VAL']);
+/** TMDET-specific (not general) definition of membrane-favoring amino acids */
+const TMDET_DEFINITION = new Set(['LEU', 'ILE', 'VAL', 'PHE', 'MET', 'GLY', 'TRP', 'TYR']);
 
 /**
  * Implements:
@@ -55,6 +61,12 @@ export type ANVILProps = PD.Values<ANVILParams>
  * Guillaume Postic, Yassine Ghouzam, Vincent Guiraud, and Jean-Christophe Gelly
  * Protein Engineering, Design & Selection, 2015, 1–5
  * doi: 10.1093/protein/gzv063
+ * 
+ * ANVIL is derived from TMDET, the corresponding classification of hydrophobic amino acids is provided as optional parameter:
+ * Gabor E. Tusnady, Zsuzsanna Dosztanyi and Istvan Simon
+ * Transmembrane proteins in the Protein Data Bank: identification and classification
+ * Bioinformatics, 2004, 2964-2972
+ * doi: 10.1093/bioinformatics/bth340
  */
 export function computeANVIL(structure: Structure, props: ANVILProps) {
     return Task.create('Compute Membrane Orientation', async runtime => {
@@ -87,6 +99,7 @@ async function initialize(structure: Structure, props: ANVILProps, accessibleSur
     const offsets = new Array<number>();
     const exposed = new Array<number>();
     const hydrophobic = new Array<boolean>();
+    const definition = props.tmdetDefinition ? TMDET_DEFINITION : ANVIL_DEFINITION;
 
     const vec = v3zero();
     for (let i = 0, il = structure.units.length; i < il; ++i) {
@@ -121,7 +134,7 @@ async function initialize(structure: Structure, props: ANVILProps, accessibleSur
             offsets.push(structure.serialMapping.getSerialIndex(l.unit, l.element));
             if (AccessibleSurfaceArea.getValue(l, accessibleSurfaceArea) / MaxAsa[label_comp_id(l)] > asaCutoff) {
                 exposed.push(structure.serialMapping.getSerialIndex(l.unit, l.element));
-                hydrophobic.push(isHydrophobic(label_comp_id(l)));
+                hydrophobic.push(isHydrophobic(definition, label_comp_id(l)));
             }
         }
     }
@@ -566,11 +579,9 @@ namespace HphobHphil {
     }
 }
 
-/** ANVIL-specific (not general) definition of membrane-favoring amino acids */
-const HYDROPHOBIC_AMINO_ACIDS = new Set(['ALA', 'CYS', 'GLY', 'HIS', 'ILE', 'LEU', 'MET', 'PHE', 'SER', 'TRP', 'VAL']);
-/** Returns true if ANVIL considers this as amino acid that favors being embedded in a membrane */
-export function isHydrophobic(label_comp_id: string): boolean {
-    return HYDROPHOBIC_AMINO_ACIDS.has(label_comp_id);
+/** Returns true if the definition considers this as membrane-favoring amino acid */
+export function isHydrophobic(definition: Set<string>, label_comp_id: string): boolean {
+    return definition.has(label_comp_id);
 }
 
 /** Accessible surface area used for normalization. ANVIL uses 'Total-Side REL' values from NACCESS, from: Hubbard, S. J., & Thornton, J. M. (1993). naccess. Computer Program, Department of Biochemistry and Molecular Biology, University College London, 2(1). */
