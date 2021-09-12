@@ -9,7 +9,7 @@ import { StateAction, StateBuilder, StateTransformer, State } from '../../mol-st
 import { PluginContext } from '../../mol-plugin/context';
 import { PluginStateObject as PSO } from '../../mol-plugin-state/objects';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
-import { Ingredient, CellPacking } from './data';
+import { Ingredient, CellPacking, Membrane } from './data';
 import { getFromPdb, getFromCellPackDB, IngredientFiles, parseCif, parsePDBfile, getStructureMean, getFromOPM } from './util';
 import { Model, Structure, StructureSymmetry, StructureSelection, QueryContext, Unit, Trajectory } from '../../mol-model/structure';
 import { trajectoryFromMmCIF, MmcifFormat } from '../../mol-model-formats/structure/mmcif';
@@ -530,6 +530,23 @@ async function loadMembrane(plugin: PluginContext, name: string, state: State, p
     }
 }
 
+async function handleMembraneSpheres(state: State, mb: Membrane) {
+    const nSpheres = mb.positions!.length / 3;
+    console.log('ok mb ', nSpheres);
+    for (let j = 0; j < nSpheres; j++) {
+        await state.build()
+            .toRoot()
+            .apply(CreateSphere, {
+                center: Vec3.create(
+                    mb.positions![j * 3 + 0],
+                    mb.positions![j * 3 + 1],
+                    mb.positions![j * 3 + 2]
+                ),
+                radius: mb!.radii![j]
+            })
+            .commit();
+    }
+}
 
 async function loadPackings(plugin: PluginContext, runtime: RuntimeContext, state: State, params: LoadCellPackModelParams) {
     const ingredientFiles = params.ingredients || [];
@@ -600,21 +617,7 @@ async function loadPackings(plugin: PluginContext, runtime: RuntimeContext, stat
                     if (packings[i].geom_type === 'file') {
                         await loadMembrane(plugin, packings[i].geom!, state, params);
                     } else if (packings[i].mb) {
-                        const nSpheres = packings[i].mb!.positions!.length / 3;
-                        console.log('ok mb ', nSpheres);
-                        for (let j = 0; j < nSpheres; j++) {
-                            await state.build()
-                                .toRoot()
-                                .apply(CreateSphere, {
-                                    center: Vec3.create(
-                                        packings[i].mb!.positions![j * 3 + 0],
-                                        packings[i].mb!.positions![j * 3 + 1],
-                                        packings[i].mb!.positions![j * 3 + 2]
-                                    ),
-                                    radius:packings[i].mb!.radii![j]
-                                })
-                                .commit();
-                        }
+                        await handleMembraneSpheres(state, packings[i].mb!);
                     }
                 } else {
                     // try loading membrane from repo as a bcif file or from the given list of files.
@@ -624,21 +627,7 @@ async function loadPackings(plugin: PluginContext, runtime: RuntimeContext, stat
                 }
             } else if (params.membrane === 'spheres'){
                 if (packings[i].mb) {
-                    const nSpheres = packings[i].mb!.positions!.length / 3;
-                    console.log('ok mb ', nSpheres);
-                    for (let j = 0; j < nSpheres; j++) {
-                        await state.build()
-                            .toRoot()
-                            .apply(CreateSphere, {
-                                center: Vec3.create(
-                                    packings[i].mb!.positions![j * 3 + 0],
-                                    packings[i].mb!.positions![j * 3 + 1],
-                                    packings[i].mb!.positions![j * 3 + 2]
-                                ),
-                                radius:packings[i].mb!.radii![j]
-                            })
-                            .commit();
-                    }
+                    await handleMembraneSpheres(state, packings[i].mb!);
                 }
             }
         }
