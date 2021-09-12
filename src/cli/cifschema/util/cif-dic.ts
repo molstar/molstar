@@ -34,6 +34,8 @@ export function getFieldType(type: string, description: string, values?: string[
         case 'seq-one-letter-code':
         case 'author':
         case 'orcid_id':
+        case 'pdbx_PDB_obsoleted_db_id':
+        case 'pdbx_related_db_id':
         case 'sequence_dep':
         case 'pdb_id':
         case 'emd_id':
