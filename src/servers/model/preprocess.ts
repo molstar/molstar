@@ -5,10 +5,10 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import * as cluster from 'cluster';
+import cluster from 'cluster';
 import { runChild } from './preprocess/parallel';
 
-if (cluster.isMaster) {
+if (cluster.isPrimary) {
     require('./preprocess/master');
 } else {
     runChild();

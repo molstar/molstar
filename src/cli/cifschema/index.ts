@@ -178,44 +178,44 @@ const CIF_CORE_ATTR_PATH = `${DIC_DIR}/templ_attr.cif`;
 const CIF_CORE_ATTR_URL = 'https://raw.githubusercontent.com/COMCIFS/cif_core/master/templ_attr.cif';
 
 const parser = new argparse.ArgumentParser({
-    addHelp: true,
+    add_help: true,
     description: 'Create schema from mmcif dictionary (v50 plus IHM and entity_branch extensions, downloaded from wwPDB)'
 });
-parser.addArgument([ '--preset', '-p' ], {
-    defaultValue: '',
+parser.add_argument('--preset', '-p', {
+    default: '',
     choices: ['', 'mmCIF', 'CCD', 'BIRD', 'CifCore'],
     help: 'Preset name'
 });
-parser.addArgument([ '--name', '-n' ], {
-    defaultValue: '',
+parser.add_argument('--name', '-n', {
+    default: '',
     help: 'Schema name'
 });
-parser.addArgument([ '--out', '-o' ], {
+parser.add_argument('--out', '-o', {
     help: 'Generated schema output path, if not given printed to stdout'
 });
-parser.addArgument([ '--targetFormat', '-tf' ], {
-    defaultValue: 'typescript-molstar',
+parser.add_argument('--targetFormat', '-tf', {
+    default: 'typescript-molstar',
     choices: ['typescript-molstar', 'json-internal'],
     help: 'Target format'
 });
-parser.addArgument([ '--dicPath', '-d' ], {
-    defaultValue: '',
+parser.add_argument('--dicPath', '-d', {
+    default: '',
     help: 'Path to dictionary'
 });
-parser.addArgument([ '--fieldNamesPath', '-fn' ], {
-    defaultValue: '',
+parser.add_argument('--fieldNamesPath', '-fn', {
+    default: '',
     help: 'Field names to include'
 });
-parser.addArgument([ '--forceDicDownload', '-f' ], {
-    action: 'storeTrue',
+parser.add_argument('--forceDicDownload', '-f', {
+    action: 'store_true',
     help: 'Force download of dictionaries'
 });
-parser.addArgument([ '--moldataImportPath', '-mip' ], {
-    defaultValue: 'molstar/lib/mol-data',
+parser.add_argument('--moldataImportPath', '-mip', {
+    default: 'molstar/lib/mol-data',
     help: 'mol-data import path (for typescript target only)'
 });
-parser.addArgument([ '--addAliases', '-aa' ], {
-    action: 'storeTrue',
+parser.add_argument('--addAliases', '-aa', {
+    action: 'store_true',
     help: 'Add field name/path aliases'
 });
 interface Args {
@@ -230,7 +230,7 @@ interface Args {
     moldataImportPath: string
     addAliases: boolean
 }
-const args: Args = parser.parseArgs();
+const args: Args = parser.parse_args();
 
 const FORCE_DIC_DOWNLOAD = args.forceDicDownload;
 

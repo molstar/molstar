@@ -75,13 +75,13 @@ async function run(url: string, meshFilename: string) {
 }
 
 const parser = new argparse.ArgumentParser({
-    addHelp: true,
+    add_help: true,
     description: 'Info about VolumeData from mol-model module'
 });
-parser.addArgument([ '--emdb', '-e' ], {
+parser.add_argument('--emdb', '-e', {
     help: 'EMDB id, for example 8116',
 });
-parser.addArgument([ '--mesh' ], {
+parser.add_argument('--mesh', {
     help: 'Mesh filename',
     required: true
 });
@@ -89,6 +89,6 @@ interface Args {
     emdb?: string,
     mesh: string
 }
-const args: Args = parser.parseArgs();
+const args: Args = parser.parse_args();
 
 run(`https://ds.litemol.org/em/emd-${args.emdb}/cell?detail=4`, args.mesh);

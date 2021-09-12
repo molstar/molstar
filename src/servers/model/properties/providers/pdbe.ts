@@ -77,12 +77,12 @@ function apiQueryProvider(urlPrefix: string, cache: any) {
             const rawData = await fetchRetry(`${urlPrefix}/${model.entryId.toLowerCase()}`, 1500, 5);
             // TODO: is this ok?
             if (rawData.status !== 200) return { };
-            const json = (await rawData.json())[model.entryId.toLowerCase()] || { };
+            const json = ((await rawData.json()) as any)[model.entryId.toLowerCase()] || { };
             cache[cacheKey] = json;
             return json;
         } catch (e) {
             // TODO: handle better
-            ConsoleLogger.warn('Props', `Count not retrieve prop @${`${urlPrefix}/${model.entryId.toLowerCase()}`}`);
+            ConsoleLogger.warn('Props', `Could not retrieve prop @${`${urlPrefix}/${model.entryId.toLowerCase()}`}`);
             return { };
         }
     };

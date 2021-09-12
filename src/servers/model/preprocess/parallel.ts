@@ -5,7 +5,7 @@
  */
 
 import * as path from 'path';
-import * as cluster from 'cluster';
+import cluster from 'cluster';
 import { now } from '../../../mol-util/now';
 import { PerformanceMonitor } from '../../../mol-util/performance-monitor';
 import { preprocessFile } from './preprocess';

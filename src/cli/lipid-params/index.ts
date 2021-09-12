@@ -70,21 +70,21 @@ export const LipidNames = new Set(${lipidNames.replace(/"/g, "'").replace(/,/g, 
 }
 
 const parser = new argparse.ArgumentParser({
-    addHelp: true,
+    add_help: true,
     description: 'Create lipid params (from martini lipids itp)'
 });
-parser.addArgument([ '--out', '-o' ], {
+parser.add_argument('--out', '-o', {
     help: 'Generated lipid params output path, if not given printed to stdout'
 });
-parser.addArgument([ '--forceDownload', '-f' ], {
-    action: 'storeTrue',
+parser.add_argument('--forceDownload', '-f', {
+    action: 'store_true',
     help: 'Force download of martini lipids itp'
 });
 interface Args {
     out: string
     forceDownload: boolean
 }
-const args: Args = parser.parseArgs();
+const args: Args = parser.parse_args();
 
 const FORCE_DOWNLOAD = args.forceDownload;
 
