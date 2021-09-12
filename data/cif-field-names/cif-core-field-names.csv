@@ -2,11 +2,11 @@ audit.block_doi
 
 database_code.depnum_ccdc_archive
 database_code.depnum_ccdc_fiz
-database_code.ICSD
-database_code.MDF
-database_code.NBS
-database_code.CSD
-database_code.COD
+database_code.icsd
+database_code.mdf
+database_code.nbs
+database_code.csd
+database_code.cod
 
 chemical.name_systematic
 chemical.name_common
@@ -24,8 +24,8 @@ atom_type_scat.dispersion_imag
 atom_type_scat.source
 
 space_group.crystal_system
-space_group.name_H-M_full
-space_group.IT_number
+space_group.name_h-m_full
+space_group.it_number
 space_group_symop.operation_xyz
 
 cell.length_a
@@ -35,14 +35,14 @@ cell.angle_alpha
 cell.angle_beta
 cell.angle_gamma
 cell.volume
-cell.formula_units_Z
+cell.formula_units_z
 
 atom_site.label
 atom_site.type_symbol
 atom_site.fract_x
 atom_site.fract_y
 atom_site.fract_z
-atom_site.U_iso_or_equiv
+atom_site.u_iso_or_equiv
 atom_site.adp_type
 atom_site.occupancy
 atom_site.calc_flag
@@ -52,20 +52,13 @@ atom_site.disorder_group
 atom_site.site_symmetry_multiplicity
 
 atom_site_aniso.label
-atom_site_aniso.U
-atom_site_aniso.U_11
-atom_site_aniso.U_22
-atom_site_aniso.U_33
-atom_site_aniso.U_23
-atom_site_aniso.U_13
-atom_site_aniso.U_12
-atom_site_aniso.U_su
-atom_site_aniso.U_11_su
-atom_site_aniso.U_22_su
-atom_site_aniso.U_33_su
-atom_site_aniso.U_23_su
-atom_site_aniso.U_13_su
-atom_site_aniso.U_12_su
+atom_site_aniso.u
+atom_site_aniso.u_11
+atom_site_aniso.u_22
+atom_site_aniso.u_33
+atom_site_aniso.u_23
+atom_site_aniso.u_13
+atom_site_aniso.u_12
 
 geom_bond.atom_site_label_1
 geom_bond.atom_site_label_2
