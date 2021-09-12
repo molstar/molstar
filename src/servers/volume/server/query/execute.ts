@@ -166,11 +166,11 @@ function createQueryContext(data: Data.DataContext, params: Data.QueryParams, gu
 
     const dimensions = Box.dimensions(queryBox);
     if (dimensions.some(d => isNaN(d))) {
-        throw `The query box is not defined.`;
+        throw new Error('The query box is not defined.');
     }
 
     if (dimensions[0] * dimensions[1] * dimensions[2] > LimitsConfig.maxFractionalBoxVolume) {
-        throw `The query box volume is too big.`;
+        throw new Error('The query box volume is too big.');
     }
 
     const samplingInfo = pickSampling(data, queryBox, params.forcedSamplingLevel !== void 0 ? params.forcedSamplingLevel : 0, params.detail);

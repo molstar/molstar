@@ -124,7 +124,7 @@ async function getFieldNamesFilter(fieldNamesPath: string): Promise<Filter> {
     const csvFile = parsed.result;
 
     const fieldNamesCol = csvFile.table.getColumn('0');
-    if (!fieldNamesCol) throw 'error getting fields columns';
+    if (!fieldNamesCol) throw new Error('error getting fields columns');
     const fieldNames = fieldNamesCol.toStringArray();
 
     const filter: Filter = {};

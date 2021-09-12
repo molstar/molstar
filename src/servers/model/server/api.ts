@@ -125,7 +125,7 @@ const RadiusParam: QueryParamInfo = {
     description: 'Value in Angstroms.',
     validation(v: any) {
         if (v < 1 || v > 10) {
-            throw `Invalid radius for residue interaction query (must be a value between 1 and 10).`;
+            throw new Error('Invalid radius for residue interaction query (must be a value between 1 and 10).');
         }
     }
 };
@@ -286,7 +286,7 @@ function _normalizeQueryParams(params: { [p: string]: string }, paramList: Query
         let el: any;
         if (typeof value === 'undefined' || (typeof value !== 'undefined' && value !== null && value['length'] === 0)) {
             if (p.required) {
-                throw `The parameter '${key}' is required.`;
+                throw new Error(`The parameter '${key}' is required.`);
             }
             if (typeof p.defaultValue !== 'undefined') el = p.defaultValue;
         } else {

@@ -601,7 +601,7 @@ export function createGl(width: number, height: number, contextAttributes: WebGL
             switch (pname) {
                 case gl.SHADER_TYPE: return items[shader as number].type;
                 case gl.COMPILE_STATUS: return true;
-                default: throw `getShaderParameter ${pname}`;
+                default: throw new Error(`getShaderParameter ${pname}`);
             }
         },
         shaderSource: function () { },
@@ -628,7 +628,7 @@ export function createGl(width: number, height: number, contextAttributes: WebGL
                 case gl.DELETE_STATUS: return false;
                 case gl.VALIDATE_STATUS: return true;
                 case gl.ATTACHED_SHADERS: return 2;
-                default: throw `getProgramParameter ${pname}`;
+                default: throw new Error(`getProgramParameter ${pname}`);
             }
         },
         deleteShader: function () { },

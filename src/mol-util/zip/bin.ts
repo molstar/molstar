@@ -81,7 +81,7 @@ export function writeUTF8(buff: Uint8Array, p: number, str: string) {
             buff[p + i + 2] = (128 | ((code >> 6) & 63));
             buff[p + i + 3] = (128 | ((code >> 0) & 63));
             i += 4;
-        } else throw 'e';
+        } else throw new Error('e');
     }
     return i;
 }
@@ -100,7 +100,7 @@ export function sizeUTF8(str: string) {
         } else if((code & (0xffffffff - (1 << 21) + 1)) === 0) {
             i += 4;
         } else {
-            throw 'e';
+            throw new Error('e');
         }
     }
     return i;

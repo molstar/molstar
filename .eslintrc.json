@@ -38,7 +38,8 @@
                 "selector": "ExportDefaultDeclaration",
                 "message": "Default exports are not allowed"
             }
-        ]
+        ],
+        "no-throw-literal": "error"
     },
     "overrides": [
         {

@@ -106,7 +106,7 @@ async function _readLocal(runtime: RuntimeContext, data: Uint8Array, o: number, 
         await inflateRaw(runtime, file, buf);
         out[name] = buf;
     } else {
-        throw `unknown compression method: ${cmpr}`;
+        throw new Error(`unknown compression method: ${cmpr}`);
     }
 }
 

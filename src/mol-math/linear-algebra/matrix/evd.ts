@@ -263,7 +263,7 @@ function symmetricDiagonalize(a: number[], d: number[], e: number[], order: numb
                 // Check for convergence. If too many iterations have been performed,
                 // throw exception that Convergence Failed
                 if (iter >= maxiter) {
-                    throw 'SVD: Not converging.';
+                    throw new Error('SVD: Not converging.');
                 }
             } while (Math.abs(e[l]) > eps * tst1);
         }

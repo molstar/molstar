@@ -446,7 +446,7 @@ function membraneSegments(ctx: ANVILContext, membrane: MembraneCandidate): Array
 }
 
 function notAtomic(): never {
-    throw 'Property only available for atomic models.';
+    throw new Error('Property only available for atomic models.');
 }
 
 /** Filter for membrane residues and calculate the final extent of the membrane layer */
