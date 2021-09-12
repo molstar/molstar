@@ -535,55 +535,48 @@ async function loadPackings(plugin: PluginContext, runtime: RuntimeContext, stat
     const ingredientFiles = params.ingredients || [];
 
     let cellPackJson: StateBuilder.To<PSO.Format.Json, StateTransformer<PSO.Data.String, PSO.Format.Json>>;
-    let modelFile: Asset.File|null = params.results;
+    let resultsFile: Asset.File | null = params.results;
     if (params.source.name === 'id') {
         const url = Asset.getUrlAsset(plugin.managers.asset, getCellPackModelUrl(params.source.params, params.baseUrl));
         cellPackJson = state.build().toRoot()
             .apply(StateTransforms.Data.Download, { url, isBinary: false, label: params.source.params }, { state: { isGhost: true } });
     } else {
         const file = params.source.params;
-        const rfile = params.results;
         if (!file?.file) {
             plugin.log.error('No file selected');
             return;
         }
 
-        let jsonFile: Asset.File;
+        let modelFile: Asset.File;
         if (file.name.toLowerCase().endsWith('.zip')) {
             const data = await readFromFile(file.file, 'zip').runInContext(runtime);
-            jsonFile = Asset.File(new File([data['model.json']], 'model.json'));
-            modelFile = Asset.File(new File([data['model.bin']], 'model.bin'));
+            if (data['model.json']) {
+                modelFile = Asset.File(new File([data['model.json']], 'model.json'));
+            } else {
+                throw new Error('model.json missing from zip file');
+            }
+            if (data['results.bin']) {
+                resultsFile = Asset.File(new File([data['results.bin']], 'results.bin'));
+            }
             objectForEach(data, (v, k) => {
                 if (k === 'model.json') return;
-                else if (k === 'model.bin') return;
+                if (k === 'results.bin') return;
                 ingredientFiles.push(Asset.File(new File([v], k)));
             });
         } else {
-            jsonFile = file;
-            modelFile = rfile;
+            modelFile = file;
         }
         cellPackJson = state.build().toRoot()
-            .apply(StateTransforms.Data.ReadFile, { file: jsonFile, isBinary: false, label: jsonFile.name }, { state: { isGhost: true } });
+            .apply(StateTransforms.Data.ReadFile, { file: modelFile, isBinary: false, label: modelFile.name }, { state: { isGhost: true } });
     }
 
     const cellPackBuilder = cellPackJson
         .apply(StateTransforms.Data.ParseJson, undefined, { state: { isGhost: true } })
-        .apply(ParseCellPack, {modelFile:modelFile, baseUrl:params.baseUrl});
+        .apply(ParseCellPack, { resultsFile, baseUrl: params.baseUrl });
 
     const cellPackObject = await state.updateTree(cellPackBuilder).runInContext(runtime);
 
-    let { packings } = cellPackObject.obj!.data;
-    /* const { options } = cell;
-    if (!modelFile && options) {
-        if (options.resultfile) {
-            const asset = await plugin.runTask(plugin.managers.asset.resolve(Asset.getUrlAsset(plugin.managers.asset, `${params.baseUrl}/results/${options.resultfile}`), 'binary', true));
-            modelFile = Asset.File(new File([asset.data], 'model.bin'));
-        }
-    }
-    if (modelFile) {
-        packings = await loadPackingResultsBinary(plugin, runtime, modelFile, cellPackObject.obj!.data);
-    }
-     */
+    const { packings } = cellPackObject.obj!.data;
     await handleHivRna(plugin, packings, params.baseUrl);
 
     for (let i = 0, il = packings.length; i < il; ++i) {
@@ -599,7 +592,7 @@ async function loadPackings(plugin: PluginContext, runtime: RuntimeContext, stat
             representation: params.preset.representation,
         };
         await CellpackPackingPreset.apply(packing, packingParams, plugin);
-        if ( packings[i].location === 'surface') {
+        if (packings[i].location === 'surface') {
             console.log('ok surface ' + params.membrane);
             if (params.membrane === 'lipids'){
                 console.log('ok packings[i].geom_type ' + packings[i].geom_type);
@@ -607,15 +600,19 @@ async function loadPackings(plugin: PluginContext, runtime: RuntimeContext, stat
                     if (packings[i].geom_type === 'file') {
                         await loadMembrane(plugin, packings[i].geom!, state, params);
                     } else if (packings[i].mb) {
-                        let nSpheres =  packings[i].mb!.positions!.length / 3;
+                        const nSpheres = packings[i].mb!.positions!.length / 3;
                         console.log('ok mb ', nSpheres);
-                        for (let j = 0;j < nSpheres;j++) {
+                        for (let j = 0; j < nSpheres; j++) {
                             await state.build()
                                 .toRoot()
-                                .apply(CreateSphere, {center:Vec3.create(packings[i].mb!.positions![j * 3 + 0],
-                                    packings[i].mb!.positions![j * 3 + 1],
-                                    packings[i].mb!.positions![j * 3 + 2]),
-                                radius:packings[i].mb!.radii![j] })
+                                .apply(CreateSphere, {
+                                    center: Vec3.create(
+                                        packings[i].mb!.positions![j * 3 + 0],
+                                        packings[i].mb!.positions![j * 3 + 1],
+                                        packings[i].mb!.positions![j * 3 + 2]
+                                    ),
+                                    radius:packings[i].mb!.radii![j]
+                                })
                                 .commit();
                         }
                     }
@@ -627,15 +624,19 @@ async function loadPackings(plugin: PluginContext, runtime: RuntimeContext, stat
                 }
             } else if (params.membrane === 'spheres'){
                 if (packings[i].mb) {
-                    let nSpheres =  packings[i].mb!.positions!.length / 3;
+                    const nSpheres = packings[i].mb!.positions!.length / 3;
                     console.log('ok mb ', nSpheres);
-                    for (let j = 0;j < nSpheres;j++) {
+                    for (let j = 0; j < nSpheres; j++) {
                         await state.build()
                             .toRoot()
-                            .apply(CreateSphere, {center:Vec3.create(packings[i].mb!.positions![j * 3 + 0],
-                                packings[i].mb!.positions![j * 3 + 1],
-                                packings[i].mb!.positions![j * 3 + 2]),
-                            radius:packings[i].mb!.radii![j] })
+                            .apply(CreateSphere, {
+                                center: Vec3.create(
+                                    packings[i].mb!.positions![j * 3 + 0],
+                                    packings[i].mb!.positions![j * 3 + 1],
+                                    packings[i].mb!.positions![j * 3 + 2]
+                                ),
+                                radius:packings[i].mb!.radii![j]
+                            })
                             .commit();
                     }
                 }
@@ -659,9 +660,9 @@ const LoadCellPackModelParams = {
         'file': PD.File({ accept: '.json,.cpr,.zip', description: 'Open model definition from .json/.cpr file or open .zip file containing model definition plus ingredients.', label: 'Recipe file' }),
     }, { options: [['id', 'Id'], ['file', 'File']] }),
     baseUrl: PD.Text(DefaultCellPackBaseUrl),
-    results : PD.File({ accept: '.bin,.json', description: 'open results file in binary format from cellpackgpu for the specified recipe', label: 'Results file'}),
+    results : PD.File({ accept: '.bin', description: 'open results file in binary format from cellpackgpu for the specified recipe', label: 'Results file'}),
     membrane: PD.Select('lipids', PD.arrayToOptions(['lipids', 'spheres', 'none'])),
-    ingredients: PD.FileList({ accept: '.cif,.bcif,.pdb', label: 'Ingredients' }),
+    ingredients: PD.FileList({ accept: '.cif,.bcif,.pdb', label: 'Ingredient files' }),
     preset: PD.Group({
         traceOnly: PD.Boolean(false),
         representation: PD.Select('gaussian-surface', PD.arrayToOptions(['spacefill', 'gaussian-surface', 'point', 'orientation']))
