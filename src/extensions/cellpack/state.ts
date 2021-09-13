@@ -47,18 +47,17 @@ const ParseCellPack = PluginStateTransform.BuiltIn({
             let comp_counter = 0;
             const packings: CellPacking[] = [];
             const { compartments, cytoplasme } = cell;
-            let iName = '';
-            if(!cell.mapping_ids) cell.mapping_ids = {};
+            if (!cell.mapping_ids) cell.mapping_ids = {};
             if (cytoplasme) {
                 packings.push({ name: 'Cytoplasme', location: 'cytoplasme', ingredients: cytoplasme.ingredients });
-                for (iName in cytoplasme.ingredients){
+                for (const iName in cytoplasme.ingredients) {
                     if (cytoplasme.ingredients[iName].ingtype === 'fiber') {
                         cell.mapping_ids[-(fiber_counter_id + 1)] = [comp_counter, iName];
                         if (!cytoplasme.ingredients[iName].nbCurve) cytoplasme.ingredients[iName].nbCurve = 0;
                         fiber_counter_id++;
                     } else {
                         cell.mapping_ids[counter_id] = [comp_counter, iName];
-                        if (!cytoplasme.ingredients[iName].results) {cytoplasme.ingredients[iName].results = [];}
+                        if (!cytoplasme.ingredients[iName].results) { cytoplasme.ingredients[iName].results = []; }
                         counter_id++;
                     }
                 }
@@ -69,14 +68,14 @@ const ParseCellPack = PluginStateTransform.BuiltIn({
                     const { surface, interior } = compartments[name];
                     if (surface) {
                         packings.push({ name, location: 'surface', ingredients: surface.ingredients, geom: compartments[name].geom, geom_type: compartments[name].geom_type, mb: compartments[name].mb });
-                        for (iName in surface.ingredients){
+                        for (const iName in surface.ingredients) {
                             if (surface.ingredients[iName].ingtype === 'fiber') {
                                 cell.mapping_ids[-(fiber_counter_id + 1)] = [comp_counter, iName];
                                 if (!surface.ingredients[iName].nbCurve) surface.ingredients[iName].nbCurve = 0;
                                 fiber_counter_id++;
                             } else {
                                 cell.mapping_ids[counter_id] = [comp_counter, iName];
-                                if (!surface.ingredients[iName].results) {surface.ingredients[iName].results = [];}
+                                if (!surface.ingredients[iName].results) { surface.ingredients[iName].results = []; }
                                 counter_id++;
                             }
                         }
@@ -84,14 +83,14 @@ const ParseCellPack = PluginStateTransform.BuiltIn({
                     }
                     if (interior) {
                         packings.push({ name, location: 'interior', ingredients: interior.ingredients });
-                        for (iName in interior.ingredients){
+                        for (const iName in interior.ingredients) {
                             if (interior.ingredients[iName].ingtype === 'fiber') {
                                 cell.mapping_ids[-(fiber_counter_id + 1)] = [comp_counter, iName];
                                 if (!interior.ingredients[iName].nbCurve) interior.ingredients[iName].nbCurve = 0;
                                 fiber_counter_id++;
                             } else {
                                 cell.mapping_ids[counter_id] = [comp_counter, iName];
-                                if (!interior.ingredients[iName].results) {interior.ingredients[iName].results = [];}
+                                if (!interior.ingredients[iName].results) { interior.ingredients[iName].results = []; }
                                 counter_id++;
                             }
                         }
@@ -107,7 +106,7 @@ const ParseCellPack = PluginStateTransform.BuiltIn({
                 const url = `${params.baseUrl}/results/${options.resultfile}`;
                 resultsAsset = await plugin.runTask(plugin.managers.asset.resolve(Asset.getUrlAsset(plugin.managers.asset, url), 'binary', true));
             }
-            if (resultsAsset){
+            if (resultsAsset) {
                 (cache as any).asset = resultsAsset;
                 const results = resultsAsset.data;
                 // flip the byte order if needed
@@ -119,7 +118,7 @@ const ParseCellPack = PluginStateTransform.BuiltIn({
 
                 let offset = 12;
 
-                if (ninst !== 0){
+                if (ninst !== 0) {
                     const pos = new Float32Array(buffer, offset, ninst * 4);
                     offset += ninst * 4 * 4;
                     const quat = new Float32Array(buffer, offset, ninst * 4);
@@ -155,20 +154,20 @@ const ParseCellPack = PluginStateTransform.BuiltIn({
 
                     for (let i = 0; i < npoints; i++) {
                         const x: number = -ctr_pos[i * 4 + 0];
-                        const y: number =  ctr_pos[i * 4 + 1];
-                        const z: number =  ctr_pos[i * 4 + 2];
+                        const y: number = ctr_pos[i * 4 + 1];
+                        const z: number = ctr_pos[i * 4 + 2];
                         const cid: number = ctr_info[i * 4 + 0]; // curve id
                         const ctype: number = curve_ids[cid * 4 + 0]; // curve type
                         // cid  148 165 -1 0
                         // console.log("cid ",cid,ctype,prev_cid,prev_ctype);//165,148
-                        if (prev_ctype !== ctype){
+                        if (prev_ctype !== ctype) {
                             const pid = cell.mapping_ids![-prev_ctype - 1];
                             const cname = `curve${counter}`;
                             packings[pid[0]].ingredients[pid[1]].nbCurve = counter + 1;
                             packings[pid[0]].ingredients[pid[1]][cname] = ctr_points;
                             ctr_points = [];
                             counter = 0;
-                        } else if (prev_cid !== cid){
+                        } else if (prev_cid !== cid) {
                             ctr_points = [];
                             const pid = cell.mapping_ids![-prev_ctype - 1];
                             const cname = `curve${counter}`;
@@ -312,8 +311,8 @@ export const CreateSphere = CreateTransformer({
     apply({ a, params }, plugin: PluginContext) {
         return Task.create('Custom Sphere', async ctx => {
             const data = params;
-            const repr = MBRepresentation({ webgl: plugin.canvas3d?.webgl, ...plugin.representation.structure.themes },  () => (MBParams));
-            await repr.createOrUpdate({ ...params, quality: 'custom', doubleSided:true }, data).runInContext(ctx);
+            const repr = MBRepresentation({ webgl: plugin.canvas3d?.webgl, ...plugin.representation.structure.themes }, () => (MBParams));
+            await repr.createOrUpdate({ ...params, quality: 'custom', doubleSided: true }, data).runInContext(ctx);
             return new PSO.Shape.Representation3D({ repr, sourceData: a }, { label: `My Sphere` });
         });
     }
