@@ -41,7 +41,7 @@ export async function getFromPdb(plugin: PluginContext, pdbId: string, assetMana
     return { mmcif: cif.blocks[0], asset };
 }
 
-export async function getFromOPM(plugin: PluginContext, pdbId: string, assetManager: AssetManager){
+export async function getFromOPM(plugin: PluginContext, pdbId: string, assetManager: AssetManager) {
     const asset = await plugin.runTask(assetManager.resolve(Asset.getUrlAsset(assetManager, `https://opm-assets.storage.googleapis.com/pdb/${pdbId.toLowerCase()}.pdb`), 'string'));
     return { pdb: await parsePDBfile(plugin, asset.data, pdbId), asset };
 }

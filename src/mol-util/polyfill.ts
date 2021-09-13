@@ -489,7 +489,7 @@ if (Object.defineProperty !== undefined) {
 }
 
 if (!Object.entries) {
-    Object.entries = function (obj: any){
+    Object.entries = function (obj: any) {
         const ownProps = Object.keys(obj);
         let i = ownProps.length;
         const resArray = new Array(i); // preallocate the Array

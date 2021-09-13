@@ -195,7 +195,7 @@ export function getMatFromResamplePoints(points: NumberArray, segmentLength: num
     let new_points: Vec3[] = [];
     if (resample) new_points = ResampleControlPoints(points, segmentLength);
     else {
-        for (let idx = 0; idx < points.length / 3; ++idx){
+        for (let idx = 0; idx < points.length / 3; ++idx) {
             new_points.push(Vec3.fromArray(Vec3.zero(), points, idx * 3));
         }
     }

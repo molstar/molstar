@@ -68,7 +68,7 @@ async function getModel(plugin: PluginContext, id: string, ingredient: Ingredien
                 throw new Error(`unsupported file type '${file.name}'`);
             }
         } else if (id.match(/^[1-9][a-zA-Z0-9]{3,3}$/i)) {
-            if (surface){
+            if (surface) {
                 try {
                     const data = await getFromOPM(plugin, id, assetManager);
                     assets.push(data.asset);
@@ -108,7 +108,7 @@ async function getStructure(plugin: PluginContext, model: Model, source: Ingredi
         structure = await plugin.runTask(StructureSymmetry.buildAssembly(structure, assembly));
     }
     let query;
-    if (source.selection){
+    if (source.selection) {
         const asymIds: string[] = source.selection.replace(' ', '').replace(':', '').split('or');
         query = MS.struct.modifier.union([
             MS.struct.generator.atomGroups({
@@ -157,9 +157,9 @@ function getCurveTransforms(ingredient: Ingredient) {
     const n = ingredient.nbCurve || 0;
     const instances: Mat4[] = [];
     let segmentLength = 3.4;
-    if (ingredient.uLength){
+    if (ingredient.uLength) {
         segmentLength = ingredient.uLength;
-    } else if (ingredient.radii){
+    } else if (ingredient.radii) {
         segmentLength = ingredient.radii[0].radii
             ? ingredient.radii[0].radii[0] * 2.0
             : 3.4;
@@ -333,7 +333,7 @@ async function getIngredientStructure(plugin: PluginContext, ingredient: Ingredi
         structure = await getCurve(plugin, name, ingredient, getCurveTransforms(ingredient), model);
     } else {
         let bu: string|undefined = source.bu ? source.bu : undefined;
-        if (bu){
+        if (bu) {
             if (bu === 'AU') {
                 bu = undefined;
             } else {
@@ -343,22 +343,22 @@ async function getIngredientStructure(plugin: PluginContext, ingredient: Ingredi
         structure = await getStructure(plugin, model, source, { assembly: bu });
         // transform with offset and pcp
         let legacy: boolean = true;
-        if (ingredient.offset || ingredient.principalAxis){
+        if (ingredient.offset || ingredient.principalAxis) {
             legacy = false;
             const structureMean = getStructureMean(structure);
             Vec3.negate(structureMean, structureMean);
             const m1: Mat4 = Mat4.identity();
             Mat4.setTranslation(m1, structureMean);
             structure = Structure.transform(structure, m1);
-            if (ingredient.offset){
-                if (!Vec3.exactEquals(ingredient.offset, Vec3.zero())){
+            if (ingredient.offset) {
+                if (!Vec3.exactEquals(ingredient.offset, Vec3.zero())) {
                     const m: Mat4 = Mat4.identity();
                     Mat4.setTranslation(m, ingredient.offset);
                     structure = Structure.transform(structure, m);
                 }
             }
-            if (ingredient.principalAxis){
-                if (!Vec3.exactEquals(ingredient.principalAxis, Vec3.unitZ)){
+            if (ingredient.principalAxis) {
+                if (!Vec3.exactEquals(ingredient.principalAxis, Vec3.unitZ)) {
                     const q: Quat = Quat.identity();
                     Quat.rotationTo(q, ingredient.principalAxis, Vec3.unitZ);
                     const m: Mat4 = Mat4.fromQuat(Mat4.zero(), q);
@@ -387,7 +387,7 @@ export function createStructureFromCellPack(plugin: PluginContext, packing: Cell
                 structures.push(ingredientStructure.structure);
                 assets.push(...ingredientStructure.assets);
                 const c = ingredients[iName].color;
-                if (c){
+                if (c) {
                     colors.push(Color.fromNormalizedRgb(c[0], c[1], c[2]));
                 } else {
                     skipColors = true;
@@ -454,7 +454,7 @@ async function loadMembrane(plugin: PluginContext, name: string, state: State, p
                 break;
             }
         }
-        if (!file){
+        if (!file) {
             // check for cif directly
             const cifileName = `${name}.cif`;
             for (const f of params.ingredients) {
@@ -544,7 +544,7 @@ async function loadPackings(plugin: PluginContext, runtime: RuntimeContext, stat
             representation: params.preset.representation,
         };
         await CellpackPackingPreset.apply(packing, packingParams, plugin);
-        if (packings[i].location === 'surface' && params.membrane){
+        if (packings[i].location === 'surface' && params.membrane) {
             await loadMembrane(plugin, packings[i].name, state, params);
         }
     }

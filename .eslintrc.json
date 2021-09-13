@@ -53,7 +53,8 @@
         "func-call-spacing": "off",
         "no-multi-spaces": "error",
         "block-spacing": "error",
-        "keyword-spacing": "off"
+        "keyword-spacing": "off",
+        "space-before-blocks": "error"
     },
     "overrides": [
         {

@@ -120,7 +120,7 @@ const StructureFromAssemblies = PluginStateTransform.BuiltIn({
             let structure: Structure = initial_structure;
             // the list of asambly *?
             const symmetry = ModelSymmetry.Provider.get(model);
-            if (symmetry && symmetry.assemblies.length !== 0){
+            if (symmetry && symmetry.assemblies.length !== 0) {
                 for (const a of symmetry.assemblies) {
                     const s = await StructureSymmetry.buildAssembly(initial_structure, a.id).runInContext(ctx);
                     structures.push(s);

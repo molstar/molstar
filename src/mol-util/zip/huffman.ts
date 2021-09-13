@@ -32,7 +32,7 @@ export function _hufTree(hst: NumberArray, tree: number[], MAXL: number) {
         tree[(l2 << 1) + 1] = 1;
         return 1;
     }
-    list.sort(function (a, b){ return a.f - b.f; });
+    list.sort(function (a, b) { return a.f - b.f; });
     let a = list[0], b = list[1], i0 = 0, i1 = 1, i2 = 2;
     list[0] = {
         lit: -1,
@@ -80,7 +80,7 @@ function setDepth(t: HufTree, d: number): number {
 function restrictDepth(dps: HufTree[], MD: number, maxl: number) {
     let i = 0, dbt = 0;
     const bCost = 1 << (maxl - MD);
-    dps.sort(function (a: HufTree, b: HufTree){ return b.d === a.d ? a.f - b.f : b.d - a.d; });
+    dps.sort(function (a: HufTree, b: HufTree) { return b.d === a.d ? a.f - b.f : b.d - a.d; });
 
     for (i = 0; i < dps.length; i++) {
         if (dps[i].d > MD) {

@@ -7,7 +7,7 @@
  * MIT License, Copyright (c) 2018 Photopea
  */
 
-export const U = (function (){
+export const U = (function () {
     const u16 = Uint16Array, u32 = Uint32Array;
     return {
         next_code: new u16(16),
@@ -33,7 +33,7 @@ export const U = (function (){
     };
 })();
 
-(function (){
+(function () {
     const len = 1 << 15;
     for (let i = 0; i < len; i++) {
         let x = i;

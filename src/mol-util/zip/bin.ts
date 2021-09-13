@@ -33,7 +33,7 @@ export function writeUint(buff: Uint8Array, p: number, n: number) {
     buff[p + 3] = (n >> 24) & 255;
 }
 
-function readASCII(buff: Uint8Array, p: number, l: number){
+function readASCII(buff: Uint8Array, p: number, l: number) {
     let s = '';
     for (let i = 0; i < l; i++) s += String.fromCharCode(buff[p + i]);
     return s;
