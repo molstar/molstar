@@ -59,7 +59,7 @@ export function parseHelix(lines: Tokens, lineStart: number, lineEnd: number): C
     const getLine = (n: number) => lines.data.substring(lines.indices[2 * n], lines.indices[2 * n + 1]);
 
     for (let i = lineStart; i < lineEnd; i++) {
-        let line = getLine(i);
+        const line = getLine(i);
         // COLUMNS        DATA  TYPE     FIELD         DEFINITION
         // -----------------------------------------------------------------------------------
         // 1 -  6        Record name    "HELIX "
@@ -164,7 +164,7 @@ export function parseSheet(lines: Tokens, lineStart: number, lineEnd: number): C
     const getLine = (n: number) => lines.data.substring(lines.indices[2 * n], lines.indices[2 * n + 1]);
 
     for (let i = lineStart; i < lineEnd; i++) {
-        let line = getLine(i);
+        const line = getLine(i);
         // COLUMNS       DATA  TYPE     FIELD          DEFINITION
         // -------------------------------------------------------------------------------------
         // 1 -  6        Record name   "SHEET "

@@ -164,7 +164,7 @@ namespace Spacegroup {
     }
 
     function getRotation(x: number, y: number, z: number) {
-        let r: string[] = [];
+        const r: string[] = [];
         if (x > 0) r.push('+X');
         else if (x < 0) r.push('-X');
         if (y > 0) r.push('+Y');

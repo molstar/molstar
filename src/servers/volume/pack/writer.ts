@@ -57,9 +57,9 @@ function fillCubeBuffer(ctx: Data.Context, sampling: Data.Sampling, u: number, v
 }
 
 function updateProgress(progress: Data.Progress, progressDone: number) {
-    let old = (100 * progress.current / progress.max).toFixed(0);
+    const old = (100 * progress.current / progress.max).toFixed(0);
     progress.current += progressDone;
-    let $new = (100 * progress.current / progress.max).toFixed(0);
+    const $new = (100 * progress.current / progress.max).toFixed(0);
     if (old !== $new) {
         process.stdout.write(`\rWriting data...    ${$new}%`);
     }

@@ -94,7 +94,7 @@ export class Cache<T> {
 
     get(key: string) {
         if (!this.entryMap.has(key)) return void 0;
-        let e = this.entryMap.get(key)!;
+        const e = this.entryMap.get(key)!;
         this.refresh(e);
         ConsoleLogger.log('Cache', `${key} accessed.`);
         return e.value.item;

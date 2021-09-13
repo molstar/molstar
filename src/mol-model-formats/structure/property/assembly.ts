@@ -100,7 +100,7 @@ function expandOperators1(operatorNames: string[][], list: string[][], i: number
         return;
     }
 
-    let ops = operatorNames[i], len = ops.length;
+    const ops = operatorNames[i], len = ops.length;
     for (let j = 0; j < len; j++) {
         current[i] = ops[j];
         expandOperators1(operatorNames, list, i - 1, current);
@@ -111,8 +111,8 @@ function getAssemblyOperators(matrices: Matrices, operatorNames: string[][], sta
     const operators: SymmetryOperator[] = [];
 
     let index = startIndex;
-    for (let op of operatorNames) {
-        let m = Mat4.identity();
+    for (const op of operatorNames) {
+        const m = Mat4.identity();
         for (let i = 0; i < op.length; i++) {
             Mat4.mul(m, m, matrices.get(op[i])!);
         }

@@ -63,7 +63,7 @@ export function printSecStructure(model: Model) {
     const count = residues._rowCount;
     let rI = 0;
     while (rI < count) {
-        let start = rI;
+        const start = rI;
         while (rI < count && key[start] === key[rI]) rI++;
         rI--;
 

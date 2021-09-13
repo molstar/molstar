@@ -73,7 +73,7 @@ namespace StructureQualityReport {
     }
 
     export function fromCif(ctx: CustomProperty.Context, model: Model, props: StructureQualityReportProps): StructureQualityReport | undefined {
-        let info = PropertyWrapper.tryGetInfoFromCif('pdbe_structure_quality_report', model);
+        const info = PropertyWrapper.tryGetInfoFromCif('pdbe_structure_quality_report', model);
         if (!info) return;
         const data = getCifData(model);
         const issueMap = createIssueMapFromCif(model, data.residues, data.groups);

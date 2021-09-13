@@ -198,7 +198,7 @@ function _copyOut(src: number[], off: number, len: number, tree: number[]) {
     let mx = 0, i = 0;
     const tl = tree.length >>> 1;
     while(i < len) {
-        let v = src[i + off];
+        const v = src[i + off];
         tree[(i << 1)] = 0;
         tree[(i << 1) + 1] = v;
         if(v > mx)mx = v;

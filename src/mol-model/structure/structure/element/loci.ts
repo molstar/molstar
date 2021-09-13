@@ -692,7 +692,8 @@ export namespace Loci {
         const ranges: number[] = [];
         const set: number[] = [];
 
-        let i = 0, len = xs.length;
+        let i = 0;
+        const len = xs.length;
         while (i < len) {
             const start = i;
             i++;

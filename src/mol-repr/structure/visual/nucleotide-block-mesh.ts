@@ -24,18 +24,18 @@ import { Sphere3D } from '../../../mol-math/geometry';
 
 // TODO support blocks for multiple locations (including from microheterogeneity)
 
-const p1 = Vec3.zero();
-const p2 = Vec3.zero();
-const p3 = Vec3.zero();
-const p4 = Vec3.zero();
-const p5 = Vec3.zero();
-const p6 = Vec3.zero();
-const v12 = Vec3.zero();
-const v34 = Vec3.zero();
-const vC = Vec3.zero();
-const center = Vec3.zero();
+const p1 = Vec3();
+const p2 = Vec3();
+const p3 = Vec3();
+const p4 = Vec3();
+const p5 = Vec3();
+const p6 = Vec3();
+const v12 = Vec3();
+const v34 = Vec3();
+const vC = Vec3();
+const center = Vec3();
 const t = Mat4.identity();
-const sVec = Vec3.zero();
+const sVec = Vec3();
 const box = Box();
 
 export const NucleotideBlockMeshParams = {
@@ -77,7 +77,8 @@ function createNucleotideBlockMesh(ctx: VisualContext, unit: Unit, structure: St
             if (isNucleic(moleculeType[residueIndex])) {
                 const compId = label_comp_id.value(residueAtomSegments.offsets[residueIndex]);
                 let idx1: ElementIndex | -1 = -1, idx2: ElementIndex | -1 = -1, idx3: ElementIndex | -1 = -1, idx4: ElementIndex | -1 = -1, idx5: ElementIndex | -1 = -1, idx6: ElementIndex | -1 = -1;
-                let width = 4.5, height = 4.5, depth = 2.5 * sizeFactor;
+                const width = 4.5, depth = 2.5 * sizeFactor;
+                let height = 4.5;
 
                 let isPurine = isPurineBase(compId);
                 let isPyrimidine = isPyrimidineBase(compId);

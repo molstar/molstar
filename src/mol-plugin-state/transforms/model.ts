@@ -411,7 +411,7 @@ const ModelFromTrajectory = PluginStateTransform.BuiltIn({
             if (modelIndex < 0) modelIndex += a.data.frameCount;
             const model = await Task.resolveInContext(a.data.getFrameAtIndex(modelIndex), ctx);
             const label = `Model ${modelIndex + 1}`;
-            let description = a.data.frameCount === 1 ? undefined : `of ${a.data.frameCount}`;
+            const description = a.data.frameCount === 1 ? undefined : `of ${a.data.frameCount}`;
             return new SO.Molecule.Model(model, { label, description });
         });
     },

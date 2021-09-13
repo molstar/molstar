@@ -105,8 +105,8 @@ export function areIntersecting<C extends Coords.Coord<S>, S extends Coords.Spac
 }
 
 export function intersect<C extends Coords.Coord<S>, S extends Coords.Space>(box1: Box<C>, box2: Box<C>): Box<C> | undefined {
-    let a = Coords.clone(box1.a);
-    let b = Coords.clone(box1.a);
+    const a = Coords.clone(box1.a);
+    const b = Coords.clone(box1.a);
 
     for (let i = 0; i < 3; i++) {
         const x = box1.a[i], y = box1.b[i];

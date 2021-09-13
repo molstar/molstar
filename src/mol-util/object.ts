@@ -23,7 +23,7 @@ export function assignIfUndefined<T>(to: Partial<T>, full: T): T {
 export function shallowMerge2<T>(source: T, update: Partial<T>): T {
     // Adapted from LiteMol (https://github.com/dsehnal/LiteMol)
     let changed = false;
-    for (let k of Object.keys(update)) {
+    for (const k of Object.keys(update)) {
         if (!hasOwnProperty.call(update, k)) continue;
 
         if ((update as any)[k] !== (source as any)[k]) {
@@ -43,9 +43,9 @@ export function shallowEqual<T>(a: T, b: T) {
     }
     if (!b) return false;
 
-    let keys = Object.keys(a);
+    const keys = Object.keys(a);
     if (Object.keys(b).length !== keys.length) return false;
-    for (let k of keys) {
+    for (const k of keys) {
         if (!hasOwnProperty.call(a, k) || (a as any)[k] !== (b as any)[k]) return false;
     }
 
@@ -88,7 +88,7 @@ export function deepClone<T>(source: T): T {
     // `instanceof Object` does not find `Object.create(null)`
     if (typeof source === 'object' && !('prototype' in source)) {
         const copy: { [k: string]: any } = {};
-        for (let k in source) {
+        for (const k in source) {
             if (hasOwnProperty.call(source, k)) copy[k] = deepClone(source[k]);
         }
         return copy as any as T;

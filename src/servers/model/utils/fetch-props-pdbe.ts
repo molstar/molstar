@@ -70,7 +70,7 @@ async function process() {
         console.log(`${prog}/${entries.length} ${e.entries.length} entries.`);
         const data = Object.create(null);
 
-        for (let ee of e.entries) {
+        for (const ee of e.entries) {
             const query = await fetch(`https://www.ebi.ac.uk/pdbe/api/validation/residuewise_outlier_summary/entry/${ee}`);
             try {
                 if (query.status === 200) data[ee] = ((await query.json()) as any)[ee] || { };

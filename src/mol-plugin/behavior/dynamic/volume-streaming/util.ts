@@ -107,7 +107,7 @@ export async function getEmdbIds(plugin: PluginContext, taskCtx: RuntimeContext,
     const summary = await plugin.fetch({ url: `https://www.ebi.ac.uk/pdbe/api/pdb/entry/summary/${pdbId}`, type: 'json' }).runInContext(taskCtx);
 
     const summaryEntry = summary?.[pdbId];
-    let emdbIds: string[] = [];
+    const emdbIds: string[] = [];
     if (summaryEntry?.[0]?.related_structures) {
         const emdb = summaryEntry[0].related_structures.filter((s: any) => s.resource === 'EMDB' && s.relationship === 'associated EM volume');
         if (!emdb.length) {

@@ -217,15 +217,15 @@ namespace Mat4 {
      * Returns the scaling factor component of a transformation matrix.
      */
     export function getScaling(out: Vec3, mat: Mat4) {
-        let m11 = mat[0];
-        let m12 = mat[1];
-        let m13 = mat[2];
-        let m21 = mat[4];
-        let m22 = mat[5];
-        let m23 = mat[6];
-        let m31 = mat[8];
-        let m32 = mat[9];
-        let m33 = mat[10];
+        const m11 = mat[0];
+        const m12 = mat[1];
+        const m13 = mat[2];
+        const m21 = mat[4];
+        const m22 = mat[5];
+        const m23 = mat[6];
+        const m31 = mat[8];
+        const m32 = mat[9];
+        const m33 = mat[10];
         out[0] = Math.sqrt(m11 * m11 + m12 * m12 + m13 * m13);
         out[1] = Math.sqrt(m21 * m21 + m22 * m22 + m23 * m23);
         out[2] = Math.sqrt(m31 * m31 + m32 * m32 + m33 * m33);
@@ -237,7 +237,7 @@ namespace Mat4 {
      */
     export function getRotation(out: Quat, mat: Mat4) {
         // Algorithm taken from http://www.euclideanspace.com/maths/geometry/rotations/conversions/matrixToQuaternion/index.htm
-        let trace = mat[0] + mat[5] + mat[10];
+        const trace = mat[0] + mat[5] + mat[10];
         let S = 0;
 
         if (trace > 0) {
@@ -536,15 +536,8 @@ namespace Mat4 {
     }
 
     export function rotate(out: Mat4, a: Mat4, rad: number, axis: Vec3) {
-        let x = axis[0], y = axis[1], z = axis[2],
-            len = Math.sqrt(x * x + y * y + z * z),
-            s, c, t,
-            a00, a01, a02, a03,
-            a10, a11, a12, a13,
-            a20, a21, a22, a23,
-            b00, b01, b02,
-            b10, b11, b12,
-            b20, b21, b22;
+        let x = axis[0], y = axis[1], z = axis[2];
+        let len = Math.sqrt(x * x + y * y + z * z);
 
         if (Math.abs(len) < EPSILON) {
             return identity();
@@ -555,18 +548,18 @@ namespace Mat4 {
         y *= len;
         z *= len;
 
-        s = Math.sin(rad);
-        c = Math.cos(rad);
-        t = 1 - c;
+        const s = Math.sin(rad);
+        const c = Math.cos(rad);
+        const t = 1 - c;
 
-        a00 = a[0]; a01 = a[1]; a02 = a[2]; a03 = a[3];
-        a10 = a[4]; a11 = a[5]; a12 = a[6]; a13 = a[7];
-        a20 = a[8]; a21 = a[9]; a22 = a[10]; a23 = a[11];
+        const a00 = a[0], a01 = a[1], a02 = a[2], a03 = a[3];
+        const a10 = a[4], a11 = a[5], a12 = a[6], a13 = a[7];
+        const a20 = a[8], a21 = a[9], a22 = a[10], a23 = a[11];
 
         // Construct the elements of the rotation matrix
-        b00 = x * x * t + c; b01 = y * x * t + z * s; b02 = z * x * t - y * s;
-        b10 = x * y * t - z * s; b11 = y * y * t + c; b12 = z * y * t + x * s;
-        b20 = x * z * t + y * s; b21 = y * z * t - x * s; b22 = z * z * t + c;
+        const b00 = x * x * t + c, b01 = y * x * t + z * s, b02 = z * x * t - y * s;
+        const b10 = x * y * t - z * s, b11 = y * y * t + c, b12 = z * y * t + x * s;
+        const b20 = x * z * t + y * s, b21 = y * z * t - x * s, b22 = z * z * t + c;
 
         // Perform rotation-specific matrix multiplication
         out[0] = a00 * b00 + a10 * b01 + a20 * b02;
@@ -592,9 +585,8 @@ namespace Mat4 {
     }
 
     export function fromRotation(out: Mat4, rad: number, axis: Vec3) {
-        let x = axis[0], y = axis[1], z = axis[2],
-            len = Math.sqrt(x * x + y * y + z * z),
-            s, c, t;
+        let x = axis[0], y = axis[1], z = axis[2];
+        let len = Math.sqrt(x * x + y * y + z * z);
 
         if (Math.abs(len) < EPSILON) { return setIdentity(out); }
 
@@ -603,9 +595,9 @@ namespace Mat4 {
         y *= len;
         z *= len;
 
-        s = Math.sin(rad);
-        c = Math.cos(rad);
-        t = 1 - c;
+        const s = Math.sin(rad);
+        const c = Math.cos(rad);
+        const t = 1 - c;
 
         // Perform rotation-specific matrix multiplication
         out[0] = x * x * t + c;

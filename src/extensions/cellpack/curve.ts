@@ -49,7 +49,7 @@ function ResampleControlPoints(points: NumberArray, segmentLength: number) {
     // controlPoints.Insert(0, controlPoints[0] + (controlPoints[0] - controlPoints[1]) / 2.0f);
     // controlPoints.Add(controlPoints[nP - 1] + (controlPoints[nP - 1] - controlPoints[nP - 2]) / 2.0f);
 
-    let resampledControlPoints: Vec3[] = [];
+    const resampledControlPoints: Vec3[] = [];
     // resampledControlPoints.Add(controlPoints[0]);
     // resampledControlPoints.Add(controlPoints[1]);
 

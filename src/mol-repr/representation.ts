@@ -226,7 +226,7 @@ namespace Representation {
         let version = 0;
         const updated = new Subject<number>();
         const currentState = stateBuilder.create();
-        let currentTheme = Theme.createEmpty();
+        const currentTheme = Theme.createEmpty();
 
         let currentParams: P;
         let currentProps: PD.Values<P>;

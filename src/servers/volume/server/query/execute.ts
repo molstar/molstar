@@ -49,7 +49,7 @@ export async function execute(params: Data.QueryParams, outputProvider: () => Da
 }
 
 function getTime() {
-    let t = process.hrtime();
+    const t = process.hrtime();
     return t[0] * 1000 + t[1] / 1000000;
 }
 
@@ -101,7 +101,7 @@ async function createDataContext(file: FileHandle): Promise<Data.DataContext> {
 function createQuerySampling(data: Data.DataContext, sampling: Data.Sampling, queryBox: Box.Fractional): Data.QuerySamplingInfo {
     const fractionalBox = Box.gridToFractional(Box.expandGridBox(Box.fractionalToGrid(queryBox, sampling.dataDomain), 1));
     const blocks = findUniqueBlocks(data, sampling, fractionalBox);
-    let ret = {
+    const ret = {
         sampling,
         fractionalBox,
         gridDomain: Box.fractionalToDomain<'Query'>(fractionalBox, 'Query', sampling.dataDomain.delta),

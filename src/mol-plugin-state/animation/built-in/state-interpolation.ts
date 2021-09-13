@@ -27,7 +27,7 @@ export const AnimateStateInterpolation = PluginStateAnimation.create({
 
         const currentT = (t.current % ctx.params.transtionDurationInMs) / ctx.params.transtionDurationInMs;
 
-        let srcIndex = Math.floor(t.current / ctx.params.transtionDurationInMs) % snapshots.size;
+        const srcIndex = Math.floor(t.current / ctx.params.transtionDurationInMs) % snapshots.size;
         let tarIndex = Math.ceil(t.current / ctx.params.transtionDurationInMs);
         if (tarIndex === srcIndex) tarIndex++;
         tarIndex = tarIndex % snapshots.size;

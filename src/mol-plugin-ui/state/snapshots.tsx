@@ -337,7 +337,8 @@ class RemoteStateSnapshotList extends PurePluginUIComponent<
         if (!entry) return;
 
         e.preventDefault();
-        let url = `${window.location}`, qi = url.indexOf('?');
+        let url = `${window.location}`;
+        const qi = url.indexOf('?');
         if (qi > 0) url = url.substr(0, qi);
 
         window.open(`${url}?snapshot-url=${encodeURIComponent(entry.url)}`, '_blank');

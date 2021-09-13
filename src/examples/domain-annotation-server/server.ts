@@ -15,7 +15,7 @@ async function getMappings(id: string) {
 };
 
 
-let PORT = process.env.port || 1338;
+const PORT = process.env.port || 1338;
 
 const app = express();
 

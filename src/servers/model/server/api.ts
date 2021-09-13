@@ -270,7 +270,7 @@ export const QueryList = (function () {
 
 // normalize the queries
 (function () {
-    for (let q of QueryList) {
+    for (const q of QueryList) {
         const m = q.definition;
         m.name = q.name;
         m.jsonParams = m.jsonParams || [];

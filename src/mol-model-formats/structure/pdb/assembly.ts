@@ -198,7 +198,7 @@ export function parseMtrix(lines: Tokens, lineStart: number, lineEnd: number): C
 
     const getLine = (n: number) => lines.data.substring(lines.indices[2 * n], lines.indices[2 * n + 1]);
     for (let i = lineStart; i < lineEnd; i++) {
-        let line = getLine(i);
+        const line = getLine(i);
 
         const ncs = line.split(/\s+/);
         const row = parseInt(line[5]) - 1;

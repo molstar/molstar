@@ -21,7 +21,7 @@ function setupShutdown() {
         if (ServerConfig.shutdownTimeoutVarianceMinutes > 0) {
             tVar = 2 * (Math.random() - 0.5) * ServerConfig.shutdownTimeoutVarianceMinutes;
         }
-        let tMs = (ServerConfig.shutdownTimeoutMinutes + tVar) * 60 * 1000;
+        const tMs = (ServerConfig.shutdownTimeoutMinutes + tVar) * 60 * 1000;
 
         console.log(`----------------------------------------------------------------------------`);
         console.log(`  The server will shut down in ${PerformanceMonitor.format(tMs)} to prevent slow performance.`);
@@ -43,7 +43,7 @@ function setupShutdown() {
 configureServer();
 
 function startServer() {
-    let app = express();
+    const app = express();
     app.use(compression({
         level: 6, memLevel: 9, chunkSize: 16 * 16384,
         filter: (req, res) => {

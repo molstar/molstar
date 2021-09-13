@@ -118,7 +118,7 @@ namespace Overpaint {
     export function toBundle(overpaint: Overpaint) {
         const layers: BundleLayer[] = [];
         for (let i = 0, il = overpaint.layers.length; i < il; ++i) {
-            let { loci, color, clear } = overpaint.layers[i];
+            const { loci, color, clear } = overpaint.layers[i];
             const bundle = StructureElement.Bundle.fromLoci(loci);
             layers.push({ bundle, color, clear });
         }

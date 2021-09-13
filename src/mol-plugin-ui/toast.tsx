@@ -13,13 +13,13 @@ import { CancelSvg } from './controls/icons';
 
 class ToastEntry extends PluginUIComponent<{ entry: PluginToastManager.Entry }> {
     private hide = () => {
-        let entry = this.props.entry;
+        const entry = this.props.entry;
         (entry.hide || function () { }).call(null);
     };
 
     render() {
-        let entry = this.props.entry;
-        let message = typeof entry.message === 'string'
+        const entry = this.props.entry;
+        const message = typeof entry.message === 'string'
             ? <div dangerouslySetInnerHTML={{ __html: entry.message }} />
             : <div><entry.message /></div>;
 

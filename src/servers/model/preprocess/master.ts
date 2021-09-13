@@ -68,7 +68,7 @@ if (Object.keys(cmdArgs).filter(k => (cmdArgs as any)[k] !== null).length === 0 
     process.exit(0);
 }
 
-let entries: PreprocessEntry[] = [];
+const entries: PreprocessEntry[] = [];
 let config: PreprocessConfig = { numProcesses: cmdArgs.folderIn ? +(cmdArgs.folderNumProcesses || 1) : 1, customProperties: void 0 };
 
 if (cmdArgs.input) entries.push({ source: cmdArgs.input, cif: cmdArgs.outCIF, bcif: cmdArgs.outBCIF });

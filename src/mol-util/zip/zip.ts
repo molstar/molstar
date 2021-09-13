@@ -224,7 +224,8 @@ export async function zip(runtime: RuntimeContext, obj: { [k: string]: Uint8Arra
         const file = zpd[p];  fof.push(o);
         o = _writeHeader(data, o, p, file, 0);
     }
-    let i = 0, ioff = o;
+    let i = 0;
+    const ioff = o;
     for(const p in zpd) {
         const file = zpd[p];
         fof.push(o);

@@ -227,7 +227,7 @@ function readRecordsChunk(chunkSize: number, state: State) {
 }
 
 function readRecordsChunks(state: State) {
-    let newRecord = moveNext(state);
+    const newRecord = moveNext(state);
     if (newRecord) ++state.recordCount;
     return chunkedSubtask(state.runtimeCtx, 100000, state, readRecordsChunk,
         (ctx, state) => ctx.update({ message: 'Parsing...', current: state.tokenizer.position, max: state.data.length }));

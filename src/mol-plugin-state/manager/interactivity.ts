@@ -109,7 +109,7 @@ namespace InteractivityManager {
 
         protected mark(current: Representation.Loci, action: MarkerAction, noRender = false) {
             if (!Loci.isEmpty(current.loci)) {
-                for (let p of this.providers) p(current, action, noRender);
+                for (const p of this.providers) p(current, action, noRender);
             }
         }
 

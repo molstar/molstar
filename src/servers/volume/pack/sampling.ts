@@ -77,7 +77,7 @@ function getSamplingCounts(baseSampleCount: number[], blockSize: number) {
     let prev = baseSampleCount;
     let hasSingleBoxSampling = false;
     while (true) {
-        let next = [0, 0, 0];
+        const next = [0, 0, 0];
         let max = 0;
         for (let i = 0; i < 3; i++) {
             const s = Math.floor((prev[i] + 1) / 2);

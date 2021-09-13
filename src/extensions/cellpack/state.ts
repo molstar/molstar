@@ -115,7 +115,7 @@ const StructureFromAssemblies = PluginStateTransform.BuiltIn({
             // TODO: optimze
             // TODO: think of ways how to fast-track changes to this for animations
             const model = a.data;
-            let initial_structure = Structure.ofModel(model);
+            const initial_structure = Structure.ofModel(model);
             const structures: Structure[] = [];
             let structure: Structure = initial_structure;
             // the list of asambly *?

@@ -46,7 +46,7 @@ async function getModel(plugin: PluginContext, id: string, ingredient: Ingredien
     const modelIndex = (ingredient.source.model) ? parseInt(ingredient.source.model) : 0;
     const surface = (ingredient.ingtype) ? (ingredient.ingtype === 'transmembrane') : false;
     let trajectory = trajCache.get(id);
-    let assets: Asset.Wrapper[] = [];
+    const assets: Asset.Wrapper[] = [];
     if (!trajectory) {
         if (file) {
             if (file.name.endsWith('.cif')) {
@@ -177,7 +177,7 @@ function getCurveTransforms(ingredient: Ingredient) {
             continue;
         }
         // test for resampling
-        let distance: number = Vec3.distance(_points[0], _points[1]);
+        const distance: number = Vec3.distance(_points[0], _points[1]);
         if (distance >= segmentLength + 2.0) {
             console.info(distance);
             resampling = true;
@@ -402,7 +402,7 @@ export function createStructureFromCellPack(plugin: PluginContext, packing: Cell
         for (const s of structures) {
             if (ctx.shouldUpdate) await ctx.update(`${s.label}`);
             let maxInvariantId = 0;
-            let maxChainGroupId = 0;
+            const maxChainGroupId = 0;
             for (const u of s.units) {
                 const invariantId = u.invariantId + offsetInvariantId;
                 const chainGroupId = u.chainGroupId + offsetChainGroupId;

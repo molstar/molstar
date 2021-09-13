@@ -26,10 +26,10 @@ export class PerformanceMonitor {
     static format(t: number) {
         if (isNaN(t)) return 'n/a';
 
-        let h = Math.floor(t / (60 * 60 * 1000)),
+        const h = Math.floor(t / (60 * 60 * 1000)),
             m = Math.floor(t / (60 * 1000) % 60),
-            s = Math.floor(t / 1000 % 60),
-            ms = Math.floor(t % 1000).toString();
+            s = Math.floor(t / 1000 % 60);
+        let ms = Math.floor(t % 1000).toString();
 
         while (ms.length < 3) ms = '0' + ms;
 
@@ -49,7 +49,7 @@ export class PerformanceMonitor {
 
     /** Returns the time in milliseconds and removes them from the cache. */
     time(name: string): number {
-        let start = this.starts.get(name)!, end = this.ends.get(name)!;
+        const start = this.starts.get(name)!, end = this.ends.get(name)!;
 
         this.starts.delete(name);
         this.ends.delete(name);
@@ -59,7 +59,7 @@ export class PerformanceMonitor {
 
     timeSum(...names: string[]) {
         let t = 0;
-        for (let m of names.map(n => this.ends.get(n)! - this.starts.get(n)!)) t += m;
+        for (const m of names.map(n => this.ends.get(n)! - this.starts.get(n)!)) t += m;
         return t;
     }
 }

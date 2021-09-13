@@ -19,7 +19,7 @@ export function FixedColumn<T extends Column.Schema>(lines: Tokens, offset: numb
     const { valueType: type } = schema;
 
     const value: Column<T['T']>['value'] = type === 'str' ? row => {
-        let s = indices[2 * row] + offset, le = indices[2 * row + 1];
+        const s = indices[2 * row] + offset, le = indices[2 * row + 1];
         if (s >= le) return '';
         let e = s + width;
         if (e > le) e = le;

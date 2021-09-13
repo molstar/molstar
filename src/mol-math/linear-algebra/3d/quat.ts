@@ -70,7 +70,7 @@ namespace Quat {
 
     export function setAxisAngle(out: Quat, axis: Vec3, rad: number) {
         rad = rad * 0.5;
-        let s = Math.sin(rad);
+        const s = Math.sin(rad);
         out[0] = s * axis[0];
         out[1] = s * axis[1];
         out[2] = s * axis[2];
@@ -89,8 +89,8 @@ namespace Quat {
      *  [0, 0, 1] and 270. This method favors the latter.
      */
     export function getAxisAngle(out_axis: Vec3, q: Quat) {
-        let rad = Math.acos(q[3]) * 2.0;
-        let s = Math.sin(rad / 2.0);
+        const rad = Math.acos(q[3]) * 2.0;
+        const s = Math.sin(rad / 2.0);
         if (s !== 0.0) {
             out_axis[0] = q[0] / s;
             out_axis[1] = q[1] / s;
@@ -105,8 +105,8 @@ namespace Quat {
     }
 
     export function multiply(out: Quat, a: Quat, b: Quat) {
-        let ax = a[0], ay = a[1], az = a[2], aw = a[3];
-        let bx = b[0], by = b[1], bz = b[2], bw = b[3];
+        const ax = a[0], ay = a[1], az = a[2], aw = a[3];
+        const bx = b[0], by = b[1], bz = b[2], bw = b[3];
 
         out[0] = ax * bw + aw * bx + ay * bz - az * by;
         out[1] = ay * bw + aw * by + az * bx - ax * bz;
@@ -118,8 +118,8 @@ namespace Quat {
     export function rotateX(out: Quat, a: Quat, rad: number) {
         rad *= 0.5;
 
-        let ax = a[0], ay = a[1], az = a[2], aw = a[3];
-        let bx = Math.sin(rad), bw = Math.cos(rad);
+        const ax = a[0], ay = a[1], az = a[2], aw = a[3];
+        const bx = Math.sin(rad), bw = Math.cos(rad);
 
         out[0] = ax * bw + aw * bx;
         out[1] = ay * bw + az * bx;
@@ -131,8 +131,8 @@ namespace Quat {
     export function rotateY(out: Quat, a: Quat, rad: number) {
         rad *= 0.5;
 
-        let ax = a[0], ay = a[1], az = a[2], aw = a[3];
-        let by = Math.sin(rad), bw = Math.cos(rad);
+        const ax = a[0], ay = a[1], az = a[2], aw = a[3];
+        const by = Math.sin(rad), bw = Math.cos(rad);
 
         out[0] = ax * bw - az * by;
         out[1] = ay * bw + aw * by;
@@ -144,8 +144,8 @@ namespace Quat {
     export function rotateZ(out: Quat, a: Quat, rad: number) {
         rad *= 0.5;
 
-        let ax = a[0], ay = a[1], az = a[2], aw = a[3];
-        let bz = Math.sin(rad), bw = Math.cos(rad);
+        const ax = a[0], ay = a[1], az = a[2], aw = a[3];
+        const bz = Math.sin(rad), bw = Math.cos(rad);
 
         out[0] = ax * bw + ay * bz;
         out[1] = ay * bw - ax * bz;
@@ -160,7 +160,7 @@ namespace Quat {
      * Any existing W component will be ignored.
      */
     export function calculateW(out: Quat, a: Quat) {
-        let x = a[0], y = a[1], z = a[2];
+        const x = a[0], y = a[1], z = a[2];
 
         out[0] = x;
         out[1] = y;
@@ -175,7 +175,7 @@ namespace Quat {
     export function slerp(out: Quat, a: Quat, b: Quat, t: number) {
         // benchmarks:
         //    http://jsperf.com/quaternion-slerp-implementations
-        let ax = a[0], ay = a[1], az = a[2], aw = a[3];
+        const ax = a[0], ay = a[1], az = a[2], aw = a[3];
         let bx = b[0], by = b[1], bz = b[2], bw = b[3];
 
         let omega, cosom, sinom, scale0, scale1;
@@ -213,9 +213,9 @@ namespace Quat {
     }
 
     export function invert(out: Quat, a: Quat) {
-        let a0 = a[0], a1 = a[1], a2 = a[2], a3 = a[3];
-        let dot = a0 * a0 + a1 * a1 + a2 * a2 + a3 * a3;
-        let invDot = dot ? 1.0 / dot : 0;
+        const a0 = a[0], a1 = a[1], a2 = a[2], a3 = a[3];
+        const dot = a0 * a0 + a1 * a1 + a2 * a2 + a3 * a3;
+        const invDot = dot ? 1.0 / dot : 0;
 
         // TODO: Would be faster to return [0,0,0,0] immediately if dot == 0
 
@@ -263,8 +263,8 @@ namespace Quat {
             let i = 0;
             if (m[4] > m[0]) i = 1;
             if (m[8] > m[i * 3 + i]) i = 2;
-            let j = (i + 1) % 3;
-            let k = (i + 2) % 3;
+            const j = (i + 1) % 3;
+            const k = (i + 2) % 3;
 
             fRoot = Math.sqrt(m[i * 3 + i] - m[j * 3 + j] - m[k * 3 + k] + 1.0);
             out[i] = 0.5 * fRoot;
@@ -355,10 +355,10 @@ namespace Quat {
     }
 
     export function normalize(out: Quat, a: Quat) {
-        let x = a[0];
-        let y = a[1];
-        let z = a[2];
-        let w = a[3];
+        const x = a[0];
+        const y = a[1];
+        const z = a[2];
+        const w = a[3];
         let len = x * x + y * y + z * z + w * w;
         if (len > 0) {
             len = 1 / Math.sqrt(len);
@@ -380,7 +380,7 @@ namespace Quat {
     const rotTmpVec3UnitX = [1, 0, 0] as Vec3;
     const rotTmpVec3UnitY = [0, 1, 0] as Vec3;
     export function rotationTo(out: Quat, a: Vec3, b: Vec3) {
-        let dot = Vec3.dot(a, b);
+        const dot = Vec3.dot(a, b);
         if (dot < -0.999999) {
             Vec3.cross(rotTmpVec3, rotTmpVec3UnitX, a);
             if (Vec3.magnitude(rotTmpVec3) < 0.000001)
@@ -407,8 +407,8 @@ namespace Quat {
     /**
      * Performs a spherical linear interpolation with two control points
      */
-    let sqlerpTemp1 = zero();
-    let sqlerpTemp2 = zero();
+    const sqlerpTemp1 = zero();
+    const sqlerpTemp2 = zero();
     export function sqlerp(out: Quat, a: Quat, b: Quat, c: Quat, d: Quat, t: number) {
         slerp(sqlerpTemp1, a, d, t);
         slerp(sqlerpTemp2, b, c, t);

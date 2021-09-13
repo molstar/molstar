@@ -70,8 +70,8 @@ export function fillSerial<T extends NumberArray> (array: T, n?: number) {
 }
 
 export function arrayRemoveInPlace<T>(xs: T[], x: T) {
-    let i = 0, l = xs.length, found = false;
-    for (; i < l; i++) {
+    let i = 0, found = false;
+    for (const il = xs.length; i < il; i++) {
         if (xs[i] === x) {
             found = true;
             break;

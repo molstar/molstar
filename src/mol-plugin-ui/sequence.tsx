@@ -140,7 +140,7 @@ function getChainOptions(structure: Structure, modelEntityId: string) {
 
         // TODO handle special case
         // - more than one chain in a unit
-        let label = elementLabel(l, { granularity: 'chain', hidePrefix: true, htmlStyling: false });
+        const label = elementLabel(l, { granularity: 'chain', hidePrefix: true, htmlStyling: false });
 
         options.push([id, label]);
         seen.add(id);

@@ -55,7 +55,7 @@ export function stringToWords(str: string) {
 }
 
 export function substringStartsWith(str: string, start: number, end: number, target: string) {
-    let len = target.length;
+    const len = target.length;
     if (len > end - start) return false;
     for (let i = 0; i < len; i++) {
         if (str.charCodeAt(start + i) !== target.charCodeAt(i)) return false;

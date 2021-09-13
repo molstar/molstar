@@ -101,14 +101,14 @@ export namespace ComponentBond {
         readonly map: Map<string, Map<string, { order: number, flags: number }>> = new Map();
 
         add(a: string, b: string, order: number, flags: number, swap = true) {
-            let e = this.map.get(a);
+            const e = this.map.get(a);
             if (e !== void 0) {
-                let f = e.get(b);
+                const f = e.get(b);
                 if (f === void 0) {
                     e.set(b, { order, flags });
                 }
             } else {
-                let map = new Map<string, { order: number, flags: number }>();
+                const map = new Map<string, { order: number, flags: number }>();
                 map.set(b, { order, flags });
                 this.map.set(a, map);
             }

@@ -104,7 +104,7 @@ export function calcMeshColorSmoothing(input: ColorSmoothingInput, resolution: n
                         const d = Math.sqrt(dx * dx + dy * dy + dz * dz);
                         if (d > p) continue;
 
-                        let s = p - d;
+                        const s = p - d;
                         const index = getIndex(xi, yi, zi);
                         data[index] += r * s;
                         data[index + 1] += g * s;

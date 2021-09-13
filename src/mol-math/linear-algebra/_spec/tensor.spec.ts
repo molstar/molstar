@@ -266,14 +266,14 @@ describe('tensor', () => {
 
     it('indexing', () => {
         function permutations<T>(inputArr: T[]): T[][] {
-            let result: T[][] = [];
+            const result: T[][] = [];
             function permute(arr: any, m: any = []) {
                 if (arr.length === 0) {
                     result.push(m);
                 } else {
                     for (let i = 0; i < arr.length; i++) {
-                        let curr = arr.slice();
-                        let next = curr.splice(i, 1);
+                        const curr = arr.slice();
+                        const next = curr.splice(i, 1);
                         permute(curr.slice(), m.concat(next));
                     }
                 }

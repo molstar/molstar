@@ -54,10 +54,10 @@ export function createTypedArray(type: TypedArrayValueType, size: number) {
 }
 
 export function createTypedArrayBufferContext(size: number, type: TypedArrayValueType): TypedArrayBufferContext {
-    let elementByteSize = getElementByteSize(type);
-    let arrayBuffer = new ArrayBuffer(elementByteSize * size);
-    let readBuffer = SimpleBuffer.fromArrayBuffer(arrayBuffer);
-    let valuesBuffer = SimpleBuffer.IsNativeEndianLittle ? arrayBuffer : new ArrayBuffer(elementByteSize * size);
+    const elementByteSize = getElementByteSize(type);
+    const arrayBuffer = new ArrayBuffer(elementByteSize * size);
+    const readBuffer = SimpleBuffer.fromArrayBuffer(arrayBuffer);
+    const valuesBuffer = SimpleBuffer.IsNativeEndianLittle ? arrayBuffer : new ArrayBuffer(elementByteSize * size);
     return {
         type,
         elementByteSize,

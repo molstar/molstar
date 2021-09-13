@@ -231,7 +231,7 @@ export type ParamControl = React.ComponentClass<ParamProps<any>>
 function renderSimple(options: { props: ParamProps<any>, state: { showHelp: boolean }, control: JSX.Element, addOn: JSX.Element | null, toggleHelp: () => void }) {
     const { props, state, control, toggleHelp, addOn } = options;
 
-    let _className = [];
+    const _className = [];
     if (props.param.shortLabel) _className.push('msp-control-label-short');
     if (props.param.twoColumns) _className.push('msp-control-col-2');
     const className = _className.join(' ');

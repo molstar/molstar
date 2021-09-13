@@ -154,10 +154,10 @@ function getSsaoBlurRenderable(ctx: WebGLContext, ssaoDepthTexture: Texture, dir
 }
 
 function getBlurKernel(kernelSize: number): number[] {
-    let sigma = kernelSize / 3.0;
-    let halfKernelSize = Math.floor((kernelSize + 1) / 2);
+    const sigma = kernelSize / 3.0;
+    const halfKernelSize = Math.floor((kernelSize + 1) / 2);
 
-    let kernel = [];
+    const kernel = [];
     for (let x = 0; x < halfKernelSize; x++) {
         kernel.push((1.0 / ((Math.sqrt(2 * Math.PI)) * sigma)) * Math.exp(-x * x / (2 * sigma * sigma)));
     }
@@ -166,7 +166,7 @@ function getBlurKernel(kernelSize: number): number[] {
 }
 
 function getSamples(vectorSamples: Vec3[], nSamples: number): number[] {
-    let samples = [];
+    const samples = [];
     for (let i = 0; i < nSamples; i++) {
         let scale = (i * i + 2.0 * i + 1) / (nSamples * nSamples);
         scale = 0.1 + scale * (1.0 - 0.1);
@@ -314,7 +314,7 @@ export class PostprocessingPass {
 
         this.randomHemisphereVector = [];
         for (let i = 0; i < 256; i++) {
-            let v = Vec3();
+            const v = Vec3();
             v[0] = Math.random() * 2.0 - 1.0;
             v[1] = Math.random() * 2.0 - 1.0;
             v[2] = Math.random();
@@ -376,7 +376,7 @@ export class PostprocessingPass {
         const outlinesEnabled = props.outline.name === 'on';
         const occlusionEnabled = props.occlusion.name === 'on';
 
-        let invProjection = Mat4.identity();
+        const invProjection = Mat4.identity();
         Mat4.invert(invProjection, camera.projection);
 
         if (props.occlusion.name === 'on') {

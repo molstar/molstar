@@ -110,7 +110,7 @@ export class PluginLayout extends StatefulPluginComponent<PluginLayoutStateProps
                     }
                 }
 
-                for (let v of viewports) {
+                for (const v of viewports) {
                     head.removeChild(v);
                 }
 
@@ -160,7 +160,7 @@ export class PluginLayout extends StatefulPluginComponent<PluginLayoutStateProps
 
                 if (this.rootState) {
                     const t = this.rootState;
-                    for (let v of t.viewports) {
+                    for (const v of t.viewports) {
                         head.appendChild(v);
                     }
 

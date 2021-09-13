@@ -125,7 +125,7 @@ function getIntraClashLoci(pickingId: PickingId, structureGroup: StructureGroup,
 }
 
 function eachIntraClash(loci: Loci, structureGroup: StructureGroup, apply: (interval: Interval) => boolean) {
-    let changed = false;
+    const changed = false;
     // TODO
     return changed;
 }
@@ -240,7 +240,7 @@ function getInterClashLoci(pickingId: PickingId, structure: Structure, id: numbe
 }
 
 function eachInterClash(loci: Loci, structure: Structure, apply: (interval: Interval) => boolean) {
-    let changed = false;
+    const changed = false;
     // TODO
     return changed;
 }

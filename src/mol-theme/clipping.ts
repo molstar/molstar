@@ -72,7 +72,7 @@ namespace Clipping {
         }
 
         export function toNames(groups: Groups): Names[] {
-            let names: Names[] = [];
+            const names: Names[] = [];
             if (is(groups, Flag.One)) names.push('one');
             if (is(groups, Flag.Two)) names.push('two');
             if (is(groups, Flag.Three)) names.push('three');
@@ -188,7 +188,7 @@ namespace Clipping {
     export function toBundle(clipping: Clipping) {
         const layers: BundleLayer[] = [];
         for (let i = 0, il = clipping.layers.length; i < il; ++i) {
-            let { loci, groups } = clipping.layers[i];
+            const { loci, groups } = clipping.layers[i];
             const bundle = StructureElement.Bundle.fromLoci(loci);
             layers.push({ bundle, groups });
         }

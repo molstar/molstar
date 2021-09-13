@@ -33,7 +33,7 @@ export function CellPackGenerateColorTheme(ctx: ThemeDataContext, props: PD.Valu
 
     if (ctx.structure && info) {
         const colors = distinctColors(info.packingsCount);
-        let hcl = Hcl.fromColor(Hcl(), colors[info.packingIndex]);
+        const hcl = Hcl.fromColor(Hcl(), colors[info.packingIndex]);
 
         const hue = [Math.max(0, hcl[0] - 35), Math.min(360, hcl[0] + 35)] as [number, number];
 
