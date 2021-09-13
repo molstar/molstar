@@ -51,7 +51,8 @@
         }],
         "space-before-function-paren": "off",
         "func-call-spacing": "off",
-        "no-multi-spaces": "error"
+        "no-multi-spaces": "error",
+        "block-spacing": "error"
     },
     "overrides": [
         {
