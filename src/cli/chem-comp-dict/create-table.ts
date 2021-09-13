@@ -171,7 +171,7 @@ async function createBonds(
         pdbx_aromatic_flag, pdbx_stereo_config, molstar_protonation_variant
     });
 
-    const bondDatabase =  Database.ofTables(
+    const bondDatabase = Database.ofTables(
         CCB_TABLE_NAME,
         { chem_comp_bond: mmCIF_chemCompBond_schema },
         { chem_comp_bond: bondTable }

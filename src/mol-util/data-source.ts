@@ -247,7 +247,7 @@ function processAjax<T extends DataType>(req: XMLHttpRequest, type: T): DataResp
 }
 
 function getRequestResponseType(type: DataType): XMLHttpRequestResponseType {
-    switch(type) {
+    switch (type) {
         case 'json': return 'json';
         case 'xml': return 'document';
         case 'string': return 'text';

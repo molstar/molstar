@@ -262,9 +262,9 @@ namespace Loci {
     export type Granularity = keyof typeof Granularity
     export const GranularityOptions = ParamDefinition.objectToOptions(Granularity, k => {
         switch (k) {
-            case 'element': return'Atom/Coarse Element';
+            case 'element': return 'Atom/Coarse Element';
             case 'elementInstances': return ['Atom/Coarse Element Instances', 'With Symmetry'];
-            case 'structure': return'Structure/Shape';
+            case 'structure': return 'Structure/Shape';
             default: return k.indexOf('Instances')
                 ? [stringToWords(k), 'With Symmetry'] : stringToWords(k);
         }

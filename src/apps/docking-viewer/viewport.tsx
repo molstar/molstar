@@ -238,7 +238,7 @@ export class ViewportComponent extends PluginUIComponent {
     pocketPreset = () => this.set(PocketPreset);
     interactionsPreset = () => this.set(InteractionsPreset);
 
-    get showButtons () {
+    get showButtons() {
         return this.plugin.config.get(ShowButtons);
     }
 

@@ -61,7 +61,7 @@ function getColumns(block: G3dDataBlock) {
     objectForEach(data, (hs, h) => {
         objectForEach(hs, (chs, ch) => {
             const entity_id = `${ch}-${h}`;
-            const l =  chs.start.length;
+            const l = chs.start.length;
             if (l === 0) return;
 
             let x = chs.x[0];

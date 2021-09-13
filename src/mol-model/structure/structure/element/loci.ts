@@ -67,7 +67,7 @@ export namespace Loci {
 
     export function isEmpty(loci: Loci) {
         for (const u of loci.elements) {
-            if(OrderedSet.size(u.indices) > 0) return false;
+            if (OrderedSet.size(u.indices) > 0) return false;
         }
         return true;
     }

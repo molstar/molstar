@@ -38,7 +38,7 @@ type MappingRow = Table.Row<S.mapping>;
 
 function writeDomain(enc: CifWriter.Encoder, domain: DomainAnnotation | undefined) {
     if (!domain) return;
-    enc.writeCategory({ name: `pdbx_${domain.name}_domain_annotation`, instance: () =>  CifWriter.Category.ofTable(domain.domains) });
+    enc.writeCategory({ name: `pdbx_${domain.name}_domain_annotation`, instance: () => CifWriter.Category.ofTable(domain.domains) });
     enc.writeCategory({ name: `pdbx_${domain.name}_domain_mapping`, instance: () => CifWriter.Category.ofTable(domain.mappings) });
 }
 

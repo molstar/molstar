@@ -63,7 +63,7 @@ export type QueryCompiledSymbolRuntime = { kind: 'const', value: any } | { kind:
 export type CompiledQueryFn<T = any> = { isConst: boolean, fn: QueryFn }
 
 export namespace QueryCompiledSymbol {
-    export function Const(value: any): QueryCompiledSymbolRuntime  {
+    export function Const(value: any): QueryCompiledSymbolRuntime {
         return { kind: 'const', value };
     }
 
@@ -73,7 +73,7 @@ export namespace QueryCompiledSymbol {
 }
 
 export namespace CompiledQueryFn {
-    export function Const(value: any): CompiledQueryFn  {
+    export function Const(value: any): CompiledQueryFn {
         return { isConst: true, fn: function CompiledQueryFn_Const(ctx) { return value; } };
     }
 

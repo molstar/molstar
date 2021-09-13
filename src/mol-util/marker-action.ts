@@ -74,7 +74,7 @@ export function applyMarkerAction(array: Uint8Array, set: OrderedSet, action: Ma
         const viewEnd = viewStart + ((end - 4 * viewStart) >> 2);
 
         const frontStart = start;
-        const frontEnd =  Math.min(4 * viewStart, end);
+        const frontEnd = Math.min(4 * viewStart, end);
         const backStart = Math.max(start, 4 * viewEnd);
         const backEnd = end;
 

@@ -36,7 +36,7 @@ const tmpConjBondItB = new Bond.ElementBondIterator();
  *   N,O with degree 4 cannot be conjugated.
  *   N,O adjacent to P=O or S=O do not qualify (keeps sulfonamide N sp3 geom)
  */
-function isConjugated (structure: Structure, unit: Unit.Atomic, index: StructureElement.UnitIndex) {
+function isConjugated(structure: Structure, unit: Unit.Atomic, index: StructureElement.UnitIndex) {
     const element = typeSymbol(unit, index);
     const hetero = element === Elements.O || element === Elements.N;
 
@@ -65,7 +65,7 @@ function isConjugated (structure: Structure, unit: Unit.Atomic, index: Structure
     return false;
 }
 
-export function explicitValence (structure: Structure, unit: Unit.Atomic, index: StructureElement.UnitIndex) {
+export function explicitValence(structure: Structure, unit: Unit.Atomic, index: StructureElement.UnitIndex) {
     let v = 0;
     // intra-unit bonds
     const { offset, edgeProps: { flags, order } } = unit.bonds;
@@ -94,7 +94,7 @@ const tmpChargeBondItB = new Bond.ElementBondIterator();
  * If only charge or hydrogens are to be assigned it takes
  * a much simpler view and deduces one from the other
  */
-export function calculateHydrogensCharge (structure: Structure, unit: Unit.Atomic, index: StructureElement.UnitIndex, props: ValenceModelProps) {
+export function calculateHydrogensCharge(structure: Structure, unit: Unit.Atomic, index: StructureElement.UnitIndex, props: ValenceModelProps) {
     const hydrogenCount = bondToElementCount(structure, unit, index, Elements.H);
     const element = typeSymbol(unit, index);
     let charge = formalCharge(unit, index);

@@ -147,7 +147,7 @@ export class StructureBuilder {
             type: { name: 'static', params: type },
             nullIfEmpty: true,
             label: (params?.label || '').trim()
-        },  `static-${type}`, params?.tags);
+        }, `static-${type}`, params?.tags);
     }
 
     tryCreateComponentFromSelection(structure: StateObjectRef<SO.Molecule.Structure>, selection: StructureSelectionQuery, key: string, params?: { label?: string, tags?: string[] }): Promise<StateObjectSelector<SO.Molecule.Structure> | undefined> {

@@ -8,7 +8,7 @@ import { Database, Filter, Column } from './schema';
 import { indentString } from '../../../mol-util/string';
 import { FieldPath } from '../../../mol-io/reader/cif/schema';
 
-function header (name: string, info: string, moldataImportPath: string) {
+function header(name: string, info: string, moldataImportPath: string) {
     return `/**
  * Copyright (c) 2017-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -22,7 +22,7 @@ import { Database, Column } from '${moldataImportPath}/db';
 import Schema = Column.Schema;`;
 }
 
-function footer (name: string) {
+function footer(name: string) {
     return `
 export type ${name}_Schema = typeof ${name}_Schema;
 export interface ${name}_Database extends Database<${name}_Schema> {};`;
@@ -89,7 +89,7 @@ function doc(description: string, spacesCount: number) {
     ].join('\n');
 }
 
-export function generate (name: string, info: string, schema: Database, fields: Filter | undefined, moldataImportPath: string, addAliases: boolean) {
+export function generate(name: string, info: string, schema: Database, fields: Filter | undefined, moldataImportPath: string, addAliases: boolean) {
     const codeLines: string[] = [];
 
     if (fields) {

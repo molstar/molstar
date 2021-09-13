@@ -35,7 +35,7 @@ const sharedConfig = {
             'process.env.DEBUG': JSON.stringify(process.env.DEBUG),
             '__MOLSTAR_DEBUG_TIMESTAMP__': webpack.DefinePlugin.runtimeValue(() => `${new Date().valueOf()}`, true)
         }),
-        new MiniCssExtractPlugin({ filename: 'molstar.css',  }),
+        new MiniCssExtractPlugin({ filename: 'molstar.css' }),
         new VersionFile({
             extras: { timestamp: `${new Date().valueOf()}` },
             packageFile: path.resolve(__dirname, 'package.json'),

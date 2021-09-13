@@ -29,7 +29,7 @@ export class PointComponent extends React.Component<any, {show: boolean}> {
     }
 
     public render() {
-        return([
+        return ([
             <circle
                 r="10"
                 key={`${this.props.id}circle`}

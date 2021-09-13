@@ -15,7 +15,7 @@ export type NuclecicAlphabet =
     | '-' /** = Gap */
 
 // from NGL
-const ProteinOneLetterCodes: { [name: string]: AminoAlphabet }  = {
+const ProteinOneLetterCodes: { [name: string]: AminoAlphabet } = {
     'HIS': 'H',
     'ARG': 'R',
     'LYS': 'K',
@@ -37,8 +37,8 @@ const ProteinOneLetterCodes: { [name: string]: AminoAlphabet }  = {
     'GLU': 'E',
     'THR': 'T',
 
-    'SEC': 'U',  // as per IUPAC definition
-    'PYL': 'O',  // as per IUPAC definition
+    'SEC': 'U', // as per IUPAC definition
+    'PYL': 'O', // as per IUPAC definition
 
     // charmm ff
     'HSD': 'H', 'HSE': 'H', 'HSP': 'H',

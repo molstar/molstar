@@ -8,7 +8,7 @@ import { Vec3, Mat4, Mat3 } from '../mol-math/linear-algebra';
 import { NumberArray } from '../mol-util/type-helpers';
 import { arrayMax } from '../mol-util/array';
 
-export function normalizeVec3Array<T extends NumberArray> (a: T, count: number) {
+export function normalizeVec3Array<T extends NumberArray>(a: T, count: number) {
     for (let i = 0, il = count * 3; i < il; i += 3) {
         const x = a[i];
         const y = a[i + 1];
@@ -23,7 +23,7 @@ export function normalizeVec3Array<T extends NumberArray> (a: T, count: number) 
 
 const tmpV3 = Vec3();
 
-export function transformPositionArray (t: Mat4, array: NumberArray, offset: number, count: number) {
+export function transformPositionArray(t: Mat4, array: NumberArray, offset: number, count: number) {
     for (let i = 0, il = count * 3; i < il; i += 3) {
         Vec3.fromArray(tmpV3, array, offset + i);
         Vec3.transformMat4(tmpV3, tmpV3, t);
@@ -31,7 +31,7 @@ export function transformPositionArray (t: Mat4, array: NumberArray, offset: num
     }
 }
 
-export function transformDirectionArray (n: Mat3, array: NumberArray, offset: number, count: number) {
+export function transformDirectionArray(n: Mat3, array: NumberArray, offset: number, count: number) {
     for (let i = 0, il = count * 3; i < il; i += 3) {
         Vec3.fromArray(tmpV3, array, offset + i);
         Vec3.transformMat3(tmpV3, tmpV3, n);
@@ -60,7 +60,7 @@ const ab = Vec3();
  *      http://www.iquilezles.org/www/articles/normals/normals.htm
  * - normals array must contain only zeros
  */
-export function computeIndexedVertexNormals<T extends NumberArray> (vertices: NumberArray, indices: NumberArray, normals: T, vertexCount: number, triangleCount: number) {
+export function computeIndexedVertexNormals<T extends NumberArray>(vertices: NumberArray, indices: NumberArray, normals: T, vertexCount: number, triangleCount: number) {
 
     for (let i = 0, il = triangleCount * 3; i < il; i += 3) {
         const ai = indices[i] * 3;
@@ -95,7 +95,7 @@ export function computeIndexedVertexNormals<T extends NumberArray> (vertices: Nu
  * vertex normals for unindexed triangle soup
  * - normals array must contain only zeros
  */
-export function computeVertexNormals<T extends NumberArray> (vertices: NumberArray, normals: T, vertexCount: number) {
+export function computeVertexNormals<T extends NumberArray>(vertices: NumberArray, normals: T, vertexCount: number) {
     for (let i = 0, il = vertexCount * 3; i < il; i += 9) {
         Vec3.fromArray(a, vertices, i);
         Vec3.fromArray(b, vertices, i + 3);

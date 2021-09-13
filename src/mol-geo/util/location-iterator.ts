@@ -53,8 +53,8 @@ export function LocationIterator(groupCount: number, instanceCount: number, stri
     let voidInstances = false;
 
     return {
-        get hasNext () { return hasNext; },
-        get isNextNewInstance () { return isNextNewInstance; },
+        get hasNext() { return hasNext; },
+        get isNextNewInstance() { return isNextNewInstance; },
         groupCount,
         instanceCount,
         count: groupCount * instanceCount,

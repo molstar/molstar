@@ -46,7 +46,7 @@ type StructureMeasurementManagerAddOptions = {
     labelParams?: Partial<PD.Values<LociLabelTextParams>>
 }
 
-class StructureMeasurementManager extends StatefulPluginComponent<StructureMeasurementManagerState>  {
+class StructureMeasurementManager extends StatefulPluginComponent<StructureMeasurementManagerState> {
     readonly behaviors = {
         state: this.ev.behavior(this.state)
     };

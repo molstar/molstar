@@ -62,7 +62,7 @@ export namespace PDBePreferredAssembly {
         if (model.customProperties.has(Descriptor)) return true;
 
         let asmName: string | undefined = fromCifData(model);
-        if (asmName === void 0 &&  params.PDBe_apiSourceJson) {
+        if (asmName === void 0 && params.PDBe_apiSourceJson) {
             const data = await params.PDBe_apiSourceJson(model);
             if (!data) return false;
             asmName = asmNameFromJson(model, data);

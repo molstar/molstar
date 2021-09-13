@@ -250,7 +250,7 @@ class MolStarProteopediaWrapper {
     setBackground(color: number) {
         if (!this.plugin.canvas3d) return;
         const renderer = this.plugin.canvas3d.props.renderer;
-        PluginCommands.Canvas3D.SetSettings(this.plugin, { settings: { renderer: { ...renderer,  backgroundColor: Color(color) } } });
+        PluginCommands.Canvas3D.SetSettings(this.plugin, { settings: { renderer: { ...renderer, backgroundColor: Color(color) } } });
     }
 
     toggleSpin() {

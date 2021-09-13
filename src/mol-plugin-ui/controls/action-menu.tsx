@@ -40,7 +40,7 @@ export namespace ActionMenu {
     export type OnSelect = (item: Item | undefined, e?: React.MouseEvent<HTMLButtonElement>) => void
     export type OnSelectMany = (itemOrItems: Item[] | undefined, e?: React.MouseEvent<HTMLButtonElement>) => void
 
-    export type Items =  Header | Item | Items[]
+    export type Items = Header | Item | Items[]
     export type Header = { kind: 'header', label: string, isIndependent?: boolean, initiallyExpanded?: boolean, description?: string }
     export type Item = { kind: 'item', label: string, icon?: React.FC, disabled?: boolean, selected?: boolean, value: unknown, addOn?: JSX.Element, description?: string }
 

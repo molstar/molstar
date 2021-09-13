@@ -41,10 +41,10 @@ export const DnatcoConfalPyramidsPreset = StructureRepresentationPresetProvider(
 
         let pyramidsRepr;
         if (representations)
-            pyramidsRepr = builder.buildRepresentation(update, pyramids,  { type: ConfalPyramidsRepresentationProvider, typeParams, color: ConfalPyramidsColorThemeProvider }, { tag: 'confal-pyramdis' });
+            pyramidsRepr = builder.buildRepresentation(update, pyramids, { type: ConfalPyramidsRepresentationProvider, typeParams, color: ConfalPyramidsColorThemeProvider }, { tag: 'confal-pyramdis' });
 
         await update.commit({ revertOnError: true });
-        return  { components: { ...components, pyramids }, representations: { ...representations, pyramidsRepr } };
+        return { components: { ...components, pyramids }, representations: { ...representations, pyramidsRepr } };
     }
 });
 

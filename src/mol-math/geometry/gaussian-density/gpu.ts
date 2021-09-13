@@ -361,7 +361,7 @@ function createGaussianDensityRenderable(webgl: WebGLContext, drawCount: number,
 
     const schema = { ...GaussianDensitySchema };
     const shaderCode = ShaderCode(GaussianDensityName, gaussianDensity_vert, gaussianDensity_frag);
-    const renderItem =  createComputeRenderItem(webgl, 'points', shaderCode, schema, values);
+    const renderItem = createComputeRenderItem(webgl, 'points', shaderCode, schema, values);
 
     return createComputeRenderable(renderItem, values);
 }
@@ -461,7 +461,7 @@ function fieldFromTexture2d(ctx: WebGLContext, texture: Texture, dim: Vec3, texD
         for (let iy = 0; iy < dy; ++iy) {
             for (let ix = 0; ix < dx; ++ix) {
                 const idx = 4 * (tmpCol * dx + (iy + tmpRow) * width + ix);
-                data[j] = image[idx + 3]  / 255;
+                data[j] = image[idx + 3] / 255;
                 idData[j] = decodeFloatRGB(image[idx], image[idx + 1], image[idx + 2]);
                 j++;
             }

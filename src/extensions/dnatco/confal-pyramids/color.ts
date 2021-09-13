@@ -27,7 +27,7 @@ const ColorMapping: ReadonlyMap<ConformerClasses, Color> = new Map([
     ['B', Color(0xC8CFFF)],
     ['BII', Color(0x0059DA)],
     ['miB', Color(0x3BE8FB)],
-    ['Z',  Color(0x01F60E)],
+    ['Z', Color(0x01F60E)],
     ['IC', Color(0xFA5CFB)],
     ['OPN', Color(0xE90000)],
     ['SYN', Color(0xFFFF01)],

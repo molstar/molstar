@@ -7,15 +7,15 @@
 export const halfPI = Math.PI / 2;
 export const PiDiv180 = Math.PI / 180;
 
-export function degToRad (deg: number) {
-    return deg * PiDiv180;  // deg * Math.PI / 180
+export function degToRad(deg: number) {
+    return deg * PiDiv180; // deg * Math.PI / 180
 }
 
-export function radToDeg (rad: number) {
-    return rad / PiDiv180;  // rad * 180 / Math.PI
+export function radToDeg(rad: number) {
+    return rad / PiDiv180; // rad * 180 / Math.PI
 }
 
-export function isPowerOfTwo (x: number) {
+export function isPowerOfTwo(x: number) {
     return (x !== 0) && (x & (x - 1)) === 0;
 }
 

@@ -73,7 +73,7 @@ async function getModel(plugin: PluginContext, id: string, ingredient: Ingredien
                 throw new Error(`unsupported file type '${file.name}'`);
             }
         } else if (id.match(/^[1-9][a-zA-Z0-9]{3,3}$/i)) {
-            if (surface){
+            if (surface) {
                 try {
                     const data = await getFromOPM(plugin, id, assetManager);
                     assets.push(data.asset);
@@ -114,11 +114,10 @@ async function getStructure(plugin: PluginContext, model: Model, source: Ingredi
         structure = await plugin.runTask(StructureSymmetry.buildAssembly(structure, assembly));
     }
     let query;
-    if (source.source.selection){
-        let sel: any = source.source.selection;
+    if (source.source.selection) {
+        const sel = source.source.selection;
         // selection can have the model ID as well. remove it
-        const asymIds: string[] = sel.replaceAll(' ', '').replaceAll(':', '').split('or').slice(1);
-        // console.log("selection is ", source.selection, asymIds);
+        const asymIds: string[] = sel.replace(/ /g, '').replace(/:/g, '').split('or').slice(1);
         query = MS.struct.modifier.union([
             MS.struct.generator.atomGroups({
                 'chain-test': MS.core.set.has([MS.set(...asymIds), MS.ammp('auth_asym_id')])
@@ -165,9 +164,9 @@ function getCurveTransforms(ingredient: Ingredient) {
     const n = ingredient.nbCurve || 0;
     const instances: Mat4[] = [];
     let segmentLength = 3.4;
-    if (ingredient.uLength){
+    if (ingredient.uLength) {
         segmentLength = ingredient.uLength;
-    } else if (ingredient.radii){
+    } else if (ingredient.radii) {
         segmentLength = ingredient.radii[0].radii
             ? ingredient.radii[0].radii[0] * 2.0
             : 3.4;
@@ -339,9 +338,9 @@ async function getIngredientStructure(plugin: PluginContext, ingredient: Ingredi
     if (nbCurve) {
         structure = await getCurve(plugin, name, ingredient, getCurveTransforms(ingredient), model);
     } else {
-        if ( (!results || results.length === 0)) return;
+        if ((!results || results.length === 0)) return;
         let bu: string|undefined = source.bu ? source.bu : undefined;
-        if (bu){
+        if (bu) {
             if (bu === 'AU') {
                 bu = undefined;
             } else {
@@ -351,18 +350,18 @@ async function getIngredientStructure(plugin: PluginContext, ingredient: Ingredi
         structure = await getStructure(plugin, model, ingredient, { assembly: bu });
         // transform with offset and pcp
         let legacy: boolean = true;
-        let pcp = ingredient.principalVector ? ingredient.principalVector : ingredient.principalAxis;
-        if (pcp){
+        const pcp = ingredient.principalVector ? ingredient.principalVector : ingredient.principalAxis;
+        if (pcp) {
             legacy = false;
             const structureMean = getStructureMean(structure);
             Vec3.negate(structureMean, structureMean);
             const m1: Mat4 = Mat4.identity();
             Mat4.setTranslation(m1, structureMean);
             structure = Structure.transform(structure, m1);
-            if (ingredient.offset){
-                let o: Vec3 = Vec3.create(ingredient.offset[0], ingredient.offset[1], ingredient.offset[2]);
-                if (!Vec3.exactEquals(o, Vec3.zero())){ // -1, 1, 4e-16 ??
-                    if (location !== 'surface'){
+            if (ingredient.offset) {
+                const o: Vec3 = Vec3.create(ingredient.offset[0], ingredient.offset[1], ingredient.offset[2]);
+                if (!Vec3.exactEquals(o, Vec3.zero())) { // -1, 1, 4e-16 ??
+                    if (location !== 'surface') {
                         Vec3.negate(o, o);
                     }
                     const m: Mat4 = Mat4.identity();
@@ -370,9 +369,9 @@ async function getIngredientStructure(plugin: PluginContext, ingredient: Ingredi
                     structure = Structure.transform(structure, m);
                 }
             }
-            if (pcp){
-                let p: Vec3 = Vec3.create(pcp[0], pcp[1], pcp[2]);
-                if (!Vec3.exactEquals(p, Vec3.unitZ)){
+            if (pcp) {
+                const p: Vec3 = Vec3.create(pcp[0], pcp[1], pcp[2]);
+                if (!Vec3.exactEquals(p, Vec3.unitZ)) {
                     const q: Quat = Quat.identity();
                     Quat.rotationTo(q, p, Vec3.unitZ);
                     const m: Mat4 = Mat4.fromQuat(Mat4.zero(), q);
@@ -402,7 +401,7 @@ export function createStructureFromCellPack(plugin: PluginContext, packing: Cell
                 structures.push(ingredientStructure.structure);
                 assets.push(...ingredientStructure.assets);
                 const c = ingredients[iName].color;
-                if (c){
+                if (c) {
                     colors.push(Color.fromNormalizedRgb(c[0], c[1], c[2]));
                 } else {
                     colors.push(Color.fromNormalizedRgb(1, 0, 0));
@@ -429,8 +428,8 @@ export function createStructureFromCellPack(plugin: PluginContext, packing: Cell
         }
 
         if (ctx.shouldUpdate) await ctx.update(`${name} - structure`);
-        const structure = Structure.create(units, {label: name + '.' + location});
-        for(let i = 0, il = structure.models.length; i < il; ++i) {
+        const structure = Structure.create(units, { label: name + '.' + location });
+        for (let i = 0, il = structure.models.length; i < il; ++i) {
             Model.TrajectoryInfo.set(structure.models[i], { size: il, index: i });
         }
         return { structure, assets, colors: colors };
@@ -468,7 +467,7 @@ async function loadMembrane(plugin: PluginContext, name: string, state: State, p
                 break;
             }
         }
-        if (!file){
+        if (!file) {
             // check for cif directly
             const cifileName = `${name}.cif`;
             for (const f of params.ingredients) {
@@ -506,7 +505,7 @@ async function loadMembrane(plugin: PluginContext, name: string, state: State, p
             params: { id: '1' }
         }
     };
-    if ( legacy_membrane ){
+    if (legacy_membrane) {
         // old membrane
         const membrane = await b.apply(StateTransforms.Data.ParseCif, undefined, { state: { isGhost: true } })
             .apply(StateTransforms.Model.TrajectoryFromMmCif, undefined, { state: { isGhost: true } })
@@ -611,9 +610,9 @@ async function loadPackings(plugin: PluginContext, runtime: RuntimeContext, stat
         await CellpackPackingPreset.apply(packing, packingParams, plugin);
         if (packings[i].location === 'surface') {
             console.log('ok surface ' + params.membrane);
-            if (params.membrane === 'lipids'){
+            if (params.membrane === 'lipids') {
                 console.log('ok packings[i].geom_type ' + packings[i].geom_type);
-                if (packings[i].geom_type){
+                if (packings[i].geom_type) {
                     if (packings[i].geom_type === 'file') {
                         await loadMembrane(plugin, packings[i].geom!, state, params);
                     } else if (packings[i].mb) {
@@ -625,7 +624,7 @@ async function loadPackings(plugin: PluginContext, runtime: RuntimeContext, stat
                         await loadMembrane(plugin, packings[i].name, state, params);
                     }
                 }
-            } else if (params.membrane === 'spheres'){
+            } else if (params.membrane === 'spheres') {
                 if (packings[i].mb) {
                     await handleMembraneSpheres(state, packings[i].mb!);
                 }
@@ -649,7 +648,7 @@ const LoadCellPackModelParams = {
         'file': PD.File({ accept: '.json,.cpr,.zip', description: 'Open model definition from .json/.cpr file or open .zip file containing model definition plus ingredients.', label: 'Recipe file' }),
     }, { options: [['id', 'Id'], ['file', 'File']] }),
     baseUrl: PD.Text(DefaultCellPackBaseUrl),
-    results : PD.File({ accept: '.bin', description: 'open results file in binary format from cellpackgpu for the specified recipe', label: 'Results file'}),
+    results: PD.File({ accept: '.bin', description: 'open results file in binary format from cellpackgpu for the specified recipe', label: 'Results file' }),
     membrane: PD.Select('lipids', PD.arrayToOptions(['lipids', 'spheres', 'none'])),
     ingredients: PD.FileList({ accept: '.cif,.bcif,.pdb', label: 'Ingredient files' }),
     preset: PD.Group({

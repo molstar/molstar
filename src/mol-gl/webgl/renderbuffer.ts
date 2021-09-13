@@ -53,7 +53,7 @@ function getRenderbuffer(gl: GLRenderingContext) {
     return renderbuffer;
 }
 
-export function createRenderbuffer (gl: GLRenderingContext, format: RenderbufferFormat, attachment: RenderbufferAttachment, _width: number, _height: number): Renderbuffer {
+export function createRenderbuffer(gl: GLRenderingContext, format: RenderbufferFormat, attachment: RenderbufferAttachment, _width: number, _height: number): Renderbuffer {
     let _renderbuffer = getRenderbuffer(gl);
 
     const bind = () => gl.bindRenderbuffer(gl.RENDERBUFFER, _renderbuffer);

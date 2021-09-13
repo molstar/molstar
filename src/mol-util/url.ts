@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-export function urlQueryParameter (id: string) {
+export function urlQueryParameter(id: string) {
     if (typeof window === 'undefined') return undefined;
     const a = new RegExp(`${id}=([^&#=]*)`);
     const m = a.exec(window.location.search);

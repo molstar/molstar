@@ -334,7 +334,7 @@ $$$$
 
 describe('sdf reader', () => {
     it('basic', async () => {
-        const parsed =  await parseSdf(SdfString).run();
+        const parsed = await parseSdf(SdfString).run();
         if (parsed.isError) {
             throw new Error(parsed.message);
         }

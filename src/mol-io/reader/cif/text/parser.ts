@@ -64,7 +64,7 @@ interface TokenizerState {
 function eatValue(state: TokenizerState) {
     while (state.position < state.length) {
         switch (state.data.charCodeAt(state.position)) {
-            case 9:  // \t
+            case 9: // \t
             case 10: // \n
             case 13: // \r
             case 32: // ' '
@@ -96,7 +96,7 @@ function eatEscaped(state: TokenizerState, esc: number) {
         if (c === esc) {
             next = state.data.charCodeAt(state.position + 1);
             switch (next) {
-                case 9:  // \t
+                case 9: // \t
                 case 10: // \n
                 case 13: // \r
                 case 32: // ' '
@@ -198,7 +198,7 @@ function eatImportGet(state: TokenizerState) {
     // skipWhitespace(state)
     while (state.position < state.length) {
         switch (state.data.charCodeAt(state.position)) {
-            case 93:  // ]
+            case 93: // ]
                 ++state.position;
                 state.tokenEnd = state.position;
                 state.isImportGet = false;

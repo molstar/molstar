@@ -160,7 +160,7 @@ async function getModels(db: CifCore_Database, format: CifCoreFormat, ctx: Runti
         ModelSymmetry.Provider.set(first, symmetry);
 
         const bondCount = db.geom_bond._rowCount;
-        if(bondCount > 0) {
+        if (bondCount > 0) {
             const labelIndexMap: { [label: string]: number } = {};
             const { label } = db.atom_site;
             for (let i = 0, il = label.rowCount; i < il; ++i) {

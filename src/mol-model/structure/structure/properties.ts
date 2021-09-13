@@ -39,8 +39,8 @@ const atom = {
     y: p(l => l.unit.conformation.y(l.element)),
     z: p(l => l.unit.conformation.z(l.element)),
     id: p(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.model.atomicConformation.atomId.value(l.element)),
-    occupancy: p(l => !Unit.isAtomic(l.unit) ?  notAtomic() : l.unit.model.atomicConformation.occupancy.value(l.element)),
-    B_iso_or_equiv: p(l => !Unit.isAtomic(l.unit) ?  notAtomic() : l.unit.model.atomicConformation.B_iso_or_equiv.value(l.element)),
+    occupancy: p(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.model.atomicConformation.occupancy.value(l.element)),
+    B_iso_or_equiv: p(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.model.atomicConformation.B_iso_or_equiv.value(l.element)),
     sourceIndex: p(l => Unit.isAtomic(l.unit)
         ? l.unit.model.atomicHierarchy.atomSourceIndex.value(l.element)
         // TODO: when implemented, this should map to the source index.

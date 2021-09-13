@@ -14,8 +14,8 @@ import { GLRenderingContext } from '../../mol-gl/webgl/compat';
 import { PixelData } from '../../mol-util/image';
 
 export const QuadPositions = new Float32Array([
-    1.0,  1.0,  -1.0,  1.0,  -1.0, -1.0, // First triangle
-    -1.0, -1.0,   1.0, -1.0,   1.0,  1.0  // Second triangle
+    1.0, 1.0, -1.0, 1.0, -1.0, -1.0, // First triangle
+    -1.0, -1.0, 1.0, -1.0, 1.0, 1.0 // Second triangle
 ]);
 
 export const QuadSchema = {

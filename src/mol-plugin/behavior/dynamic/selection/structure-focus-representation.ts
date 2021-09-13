@@ -157,7 +157,7 @@ class StructureFocusRepresentationBehavior extends PluginBehavior.WithSubscriber
         });
 
         if (this.params.excludeTargetFromSurroundings) {
-            surroundings =  MS.struct.modifier.exceptBy({
+            surroundings = MS.struct.modifier.exceptBy({
                 0: surroundings,
                 by: target
             });

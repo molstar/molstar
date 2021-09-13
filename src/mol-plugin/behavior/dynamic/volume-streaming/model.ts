@@ -13,7 +13,7 @@ export class VolumeServerInfo extends PluginStateObject.Create<VolumeServerInfo.
 
 export namespace VolumeServerInfo {
     export type Kind = 'x-ray' | 'em'
-    export interface EntryData  {
+    export interface EntryData {
         kind: Kind,
         // for em, the EMDB access code, for x-ray, the PDB id
         dataId: string,

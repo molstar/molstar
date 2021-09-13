@@ -150,7 +150,7 @@ export const MembraneOrientationPreset = StructureRepresentationPresetProvider({
     params: () => StructureRepresentationPresetProvider.CommonParams,
     async apply(ref, params, plugin) {
         const structureCell = StateObjectRef.resolveAndCheck(plugin.state.data, ref);
-        const structure  = structureCell?.obj?.data;
+        const structure = structureCell?.obj?.data;
         if (!structureCell || !structure) return {};
 
         if (!MembraneOrientationProvider.get(structure).value) {

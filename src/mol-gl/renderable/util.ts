@@ -9,7 +9,7 @@ import { Vec3, Mat4 } from '../../mol-math/linear-algebra';
 import { BoundaryHelper } from '../../mol-math/geometry/boundary-helper';
 import { TextureFilter } from '../webgl/texture';
 
-export function calculateTextureInfo (n: number, itemSize: number) {
+export function calculateTextureInfo(n: number, itemSize: number) {
     n = Math.max(n, 2); // observed issues with 1 pixel textures
     const sqN = Math.sqrt(n);
     let width = Math.ceil(sqN);

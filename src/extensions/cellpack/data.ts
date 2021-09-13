@@ -93,9 +93,9 @@ export interface Ingredient {
 
 export interface IngredientSource {
     pdb: string;
-    bu?: string;  /** biological unit e.g AU,BU1,etc.. */
+    bu?: string; /** biological unit e.g AU,BU1,etc.. */
     selection?: string; /** NGL selection or :A or :B etc.. */
-    model?: string;     /** model number e.g 0,1,2... */
+    model?: string; /** model number e.g 0,1,2... */
     transform: {
         center: boolean;
         translate?: Vec3;

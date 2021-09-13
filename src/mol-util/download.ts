@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-function openUrl (url: string) {
+function openUrl(url: string) {
     const opened = window.open(url, '_blank');
     if (!opened) {
         window.location.href = url;
@@ -21,7 +21,7 @@ function click(node: HTMLAnchorElement) {
     }
 }
 
-export function download (data: Blob | string, downloadName = 'download') {
+export function download(data: Blob | string, downloadName = 'download') {
     // using ideas from https://github.com/eligrey/FileSaver.js/blob/master/FileSaver.js
 
     if (!data) return;

@@ -35,7 +35,7 @@ function getBoundingBox(gridDimension: Vec3, transform: Mat4) {
 export function createDirectVolume2d(ctx: RuntimeContext, webgl: WebGLContext, volume: Volume, directVolume?: DirectVolume) {
     const gridDimension = volume.grid.cells.space.dimensions as Vec3;
     const { width, height } = getVolumeTexture2dLayout(gridDimension);
-    if(Math.max(width, height) > webgl.maxTextureSize / 2) {
+    if (Math.max(width, height) > webgl.maxTextureSize / 2) {
         throw new Error('volume too large for direct-volume rendering');
     }
 
@@ -77,7 +77,7 @@ function getUnitToCartn(grid: Grid) {
 
 export function createDirectVolume3d(ctx: RuntimeContext, webgl: WebGLContext, volume: Volume, directVolume?: DirectVolume) {
     const gridDimension = volume.grid.cells.space.dimensions as Vec3;
-    if(Math.max(...gridDimension) > webgl.max3dTextureSize / 2) {
+    if (Math.max(...gridDimension) > webgl.max3dTextureSize / 2) {
         throw new Error('volume too large for direct-volume rendering');
     }
 

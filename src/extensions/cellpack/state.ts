@@ -230,7 +230,7 @@ const StructureFromCellpack = PluginStateTransform.BuiltIn({
     },
     dispose({ b, cache }) {
         const assets = (cache as any).assets as Asset.Wrapper[];
-        if(assets) {
+        if (assets) {
             for (const a of assets) a.dispose();
         }
 
@@ -266,7 +266,7 @@ const StructureFromAssemblies = PluginStateTransform.BuiltIn({
             let structure: Structure = initial_structure;
             // the list of asambly *?
             const symmetry = ModelSymmetry.Provider.get(model);
-            if (symmetry && symmetry.assemblies.length !== 0){
+            if (symmetry && symmetry.assemblies.length !== 0) {
                 for (const a of symmetry.assemblies) {
                     const s = await StructureSymmetry.buildAssembly(initial_structure, a.id).runInContext(ctx);
                     structures.push(s);
@@ -283,7 +283,7 @@ const StructureFromAssemblies = PluginStateTransform.BuiltIn({
                     offsetInvariantId += maxInvariantId + 1;
                 }
                 structure = builder.getStructure();
-                for(let i = 0, il = structure.models.length; i < il; ++i) {
+                for (let i = 0, il = structure.models.length; i < il; ++i) {
                     Model.TrajectoryInfo.set(structure.models[i], { size: il, index: i });
                 }
             }

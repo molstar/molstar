@@ -316,7 +316,7 @@ export function generateSchema(frames: CifFrame[], imports: Imports = new Map())
     frames.forEach(d => {
         // category definitions in mmCIF start with '_' and don't include a '.'
         // category definitions in cifCore don't include a '.'
-        if (d.header[0] === '_'  || d.header.includes('.')) return;
+        if (d.header[0] === '_' || d.header.includes('.')) return;
         const categoryName = d.header.toLowerCase();
         // console.log(d.header, d.categoryNames, d.categories)
         let descriptionField: Data.CifField | undefined;

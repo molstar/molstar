@@ -339,7 +339,7 @@ void main() {
 }`;
 
 const TextureTestTexCoords = new Float32Array([
-    -1.0, -1.0, 1.0, -1.0, -1.0,  1.0, -1.0,  1.0, 1.0, -1.0, 1.0,  1.0
+    -1.0, -1.0, 1.0, -1.0, -1.0, 1.0, -1.0, 1.0, 1.0, -1.0, 1.0, 1.0
 ]);
 
 // adapted from https://stackoverflow.com/questions/28827511/

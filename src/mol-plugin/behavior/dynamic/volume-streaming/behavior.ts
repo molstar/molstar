@@ -143,7 +143,7 @@ export namespace VolumeStreaming {
 
         channels: Channels = {}
 
-        public get info () {
+        public get info() {
             return this.infoMap.get(this.params.entry.name)!;
         }
 

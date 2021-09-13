@@ -172,14 +172,14 @@ const _a_fasterHalfCos = new ArrayBuffer(4);
 const _i_fasterHalfCos = new Int32Array(_a_fasterHalfCos);
 const _f_fasterHalfCos = new Float32Array(_a_fasterHalfCos);
 
-function fasterHalfCos (v: number) {
+function fasterHalfCos(v: number) {
     _f_fasterHalfCos[0] = v;
     _i_fasterHalfCos[0] &= 0x7FFFFFFF;
     const qpprox = 1.0 - twoOverPi * _f_fasterHalfCos[0];
     return qpprox + _p_fasterHalfCos * qpprox * (1.0 - qpprox * qpprox);
 }
 
-export function fastTan (v: number) {
+export function fastTan(v: number) {
     const k = (v * invTwoPi) | 0;
     const half = (v < 0) ? -0.5 : 0.5;
     const x = v - (half + k) * twoPi;

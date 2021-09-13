@@ -65,7 +65,7 @@ export function getVolumeTexture2dLayout(dim: Vec3, padding = 0) {
     let rows = 1;
     let columns = width;
     if (powerOfTwoSize < width * dim[2]) {
-        columns =  Math.floor(powerOfTwoSize / width);
+        columns = Math.floor(powerOfTwoSize / width);
         rows = Math.ceil(dim[2] / columns);
         width *= columns;
         height *= rows;

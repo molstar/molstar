@@ -75,7 +75,7 @@ function createInterUnitBondLines(ctx: VisualContext, structure: Structure, them
                 return LinkStyle.Dashed;
             } else if (o === 3) {
                 return LinkStyle.Triple;
-            }else if (aromaticBonds && BondType.is(f, BondType.Flag.Aromatic)) {
+            } else if (aromaticBonds && BondType.is(f, BondType.Flag.Aromatic)) {
                 return LinkStyle.Aromatic;
             } else if (o === 2) {
                 return LinkStyle.Double;

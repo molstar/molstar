@@ -45,15 +45,15 @@ export function getUniformType(gl: GLRenderingContext, kind: UniformKind) {
 export type UniformSetter = (gl: GLRenderingContext, location: number, value: any) => void
 export type UniformSetters = { [k: string]: UniformSetter }
 
-function uniform1f (gl: GLRenderingContext, location: number, value: any) { gl.uniform1f(location, value); }
-function uniform1fv (gl: GLRenderingContext, location: number, value: any) { gl.uniform1fv(location, value); }
-function uniform1i (gl: GLRenderingContext, location: number, value: any) { gl.uniform1i(location, value); }
-function uniform1iv (gl: GLRenderingContext, location: number, value: any) { gl.uniform1iv(location, value); }
-function uniform2fv (gl: GLRenderingContext, location: number, value: any) { gl.uniform2fv(location, value); }
-function uniform3fv (gl: GLRenderingContext, location: number, value: any) { gl.uniform3fv(location, value); }
-function uniform4fv (gl: GLRenderingContext, location: number, value: any) { gl.uniform4fv(location, value); }
-function uniformMatrix3fv (gl: GLRenderingContext, location: number, value: any) { gl.uniformMatrix3fv(location, false, value); }
-function uniformMatrix4fv (gl: GLRenderingContext, location: number, value: any) { gl.uniformMatrix4fv(location, false, value); }
+function uniform1f(gl: GLRenderingContext, location: number, value: any) { gl.uniform1f(location, value); }
+function uniform1fv(gl: GLRenderingContext, location: number, value: any) { gl.uniform1fv(location, value); }
+function uniform1i(gl: GLRenderingContext, location: number, value: any) { gl.uniform1i(location, value); }
+function uniform1iv(gl: GLRenderingContext, location: number, value: any) { gl.uniform1iv(location, value); }
+function uniform2fv(gl: GLRenderingContext, location: number, value: any) { gl.uniform2fv(location, value); }
+function uniform3fv(gl: GLRenderingContext, location: number, value: any) { gl.uniform3fv(location, value); }
+function uniform4fv(gl: GLRenderingContext, location: number, value: any) { gl.uniform4fv(location, value); }
+function uniformMatrix3fv(gl: GLRenderingContext, location: number, value: any) { gl.uniformMatrix3fv(location, false, value); }
+function uniformMatrix4fv(gl: GLRenderingContext, location: number, value: any) { gl.uniformMatrix4fv(location, false, value); }
 
 function getUniformSetter(kind: UniformKind): UniformSetter {
     switch (kind) {

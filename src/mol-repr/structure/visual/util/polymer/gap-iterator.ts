@@ -24,7 +24,7 @@ interface PolymerGapPair {
     centerB: StructureElement.Location
 }
 
-function createPolymerGapPair (structure: Structure, unit: Unit) {
+function createPolymerGapPair(structure: Structure, unit: Unit) {
     return {
         centerA: StructureElement.Location.create(structure, unit),
         centerB: StructureElement.Location.create(structure, unit),

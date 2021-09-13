@@ -85,7 +85,7 @@ export const InitAssemblySymmetry3D = StateAction.build({
         const assemblySymmetryData = AssemblySymmetryDataProvider.get(a.data).value;
         const symmetryIndex = assemblySymmetryData ? AssemblySymmetry.firstNonC1(assemblySymmetryData) : -1;
         await AssemblySymmetryProvider.attach(propCtx, a.data, { symmetryIndex });
-    } catch(e) {
+    } catch (e) {
         plugin.log.error(`Assembly Symmetry: ${e}`);
         return;
     }

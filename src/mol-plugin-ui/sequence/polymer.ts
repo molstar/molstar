@@ -92,7 +92,7 @@ export class PolymerSequenceWrapper extends SequenceWrapper<StructureUnit> {
         for (let i = 0; i < length; ++i) {
             if (this.missing.has(this.modelNum, this.asymId, this.seqId(i))) missing.push(i);
         }
-        this.observed = OrderedSet.subtract(Interval.ofBounds(0, length),  SortedArray.ofSortedArray(missing));
+        this.observed = OrderedSet.subtract(Interval.ofBounds(0, length), SortedArray.ofSortedArray(missing));
     }
 }
 

@@ -44,7 +44,7 @@ function createLookUp(entities: Entities, chain: Map<number, Map<string, number>
         const sm = seq.get(cKey)!;
         const { elementIndices, seqRanges } = sm;
         const idx = SortedRanges.firstIntersectionIndex(seqRanges, OrderedSet.ofSingleton(s));
-        return (idx !== -1 ? elementIndices[idx] : -1)  as ElementIndex;
+        return (idx !== -1 ? elementIndices[idx] : -1) as ElementIndex;
     };
     return { findChainKey, findSequenceKey };
 }

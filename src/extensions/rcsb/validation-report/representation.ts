@@ -107,7 +107,7 @@ function getIntraClashLabel(structure: Structure, unit: Unit.Atomic, clashes: In
 
 function IntraClashLoci(structure: Structure, unit: Unit.Atomic, clashes: IntraUnitClashes, elements: number[]) {
     return DataLoci('intra-clashes', { unit, clashes }, elements,
-        (boundingSphere: Sphere3D) =>  getIntraClashBoundingSphere(unit, clashes, elements, boundingSphere),
+        (boundingSphere: Sphere3D) => getIntraClashBoundingSphere(unit, clashes, elements, boundingSphere),
         () => getIntraClashLabel(structure, unit, clashes, elements));
 }
 
@@ -226,7 +226,7 @@ function getInterClashLabel(structure: Structure, clashes: InterUnitClashes, ele
 
 function InterClashLoci(structure: Structure, clashes: InterUnitClashes, elements: number[]) {
     return DataLoci('inter-clashes', clashes, elements,
-        (boundingSphere: Sphere3D) =>  getInterClashBoundingSphere(structure, clashes, elements, boundingSphere),
+        (boundingSphere: Sphere3D) => getInterClashBoundingSphere(structure, clashes, elements, boundingSphere),
         () => getInterClashLabel(structure, clashes, elements));
 }
 

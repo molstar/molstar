@@ -85,7 +85,7 @@ export class PluginToastManager extends StatefulPluginComponent<{
     private hide(e: PluginToastManager.Entry | undefined) {
         if (!e) return;
         if (e.timeout !== void 0) clearTimeout(e.timeout);
-        e.hide = <any>void 0;
+        e.hide = <any> void 0;
         if (this.updateState({ entries: this.state.entries.delete(e.id) })) this.events.changed.next(void 0);
     }
 

@@ -51,7 +51,7 @@ export function ListCol(subType: 'int' | 'str' | 'float' | 'coord', separator: s
 
 export type Filter = { [ table: string ]: { [ column: string ]: true } }
 
-export function mergeFilters (...filters: Filter[]) {
+export function mergeFilters(...filters: Filter[]) {
     const n = filters.length;
     const mergedFilter: Filter = {};
     const fields: Map<string, number> = new Map();

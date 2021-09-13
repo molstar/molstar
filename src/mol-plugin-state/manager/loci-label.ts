@@ -48,7 +48,7 @@ export class LociLabelManager {
         if (idx === -1 && action === MarkerAction.Highlight) {
             this.locis.push(loci);
             this.isDirty = true;
-        } else if(idx !== -1 && action === MarkerAction.RemoveHighlight) {
+        } else if (idx !== -1 && action === MarkerAction.RemoveHighlight) {
             arrayRemoveAtInPlace(this.locis, idx);
             this.isDirty = true;
         }

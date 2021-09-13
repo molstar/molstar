@@ -172,9 +172,9 @@ export function ShapeRepresentation<D, G extends Geometry, P extends Geometry.Pa
 
     return {
         label: 'Shape geometry',
-        get groupCount () { return locationIt ? locationIt.count : 0; },
-        get props () { return currentProps; },
-        get params () { return currentParams; },
+        get groupCount() { return locationIt ? locationIt.count : 0; },
+        get props() { return currentProps; },
+        get params() { return currentParams; },
         get state() { return _state; },
         get theme() { return _theme; },
         renderObjects,
@@ -217,7 +217,7 @@ export function ShapeRepresentation<D, G extends Geometry, P extends Geometry.Pa
             Representation.updateState(_state, state);
         },
         setTheme(theme: Theme) {
-            if(isDebugMode) {
+            if (isDebugMode) {
                 console.warn('The `ShapeRepresentation` theme is fixed to `ShapeGroupColorTheme` and `ShapeGroupSizeTheme`. Colors are taken from `Shape.getColor` and sizes from `Shape.getSize`');
             }
         },

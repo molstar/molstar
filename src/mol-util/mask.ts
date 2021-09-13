@@ -55,7 +55,7 @@ namespace Mask {
             this._forEach(f, ctx);
             return ctx;
         }
-        constructor(private mask: boolean[], public size: number) { this.length = mask.length;  }
+        constructor(private mask: boolean[], public size: number) { this.length = mask.length; }
     }
 
     class AllMask implements Mask {

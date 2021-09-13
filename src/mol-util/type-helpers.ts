@@ -18,7 +18,7 @@ export type UintArray = Uint8Array | Uint16Array | Uint32Array | number[]
 export type ValueOf<T> = T[keyof T]
 export type ArrayCtor<T> = { new(size: number): { [i: number]: T, length: number } }
 /** assignable ArrayLike version */
-export type AssignableArrayLike<T> =  { [i: number]: T, length: number }
+export type AssignableArrayLike<T> = { [i: number]: T, length: number }
 
 export type NonNullableArray<T extends any[] | ReadonlyArray<any>> = T extends any[] ? NonNullable<T[0]>[] : ReadonlyArray<NonNullable<T[0]>>
 

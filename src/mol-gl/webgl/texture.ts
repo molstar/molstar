@@ -400,7 +400,7 @@ export function createTextures(ctx: WebGLContext, schema: RenderableSchema, valu
  */
 export function loadImageTexture(src: string, cell: ValueCell<Texture>, texture: Texture) {
     const img = new Image();
-    img.onload = function() {
+    img.onload = function () {
         texture.load(img);
         ValueCell.update(cell, texture);
     };

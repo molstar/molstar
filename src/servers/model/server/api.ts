@@ -107,7 +107,7 @@ const AtomSiteTestJsonParam: QueryParamInfo = {
     exampleValues: [[{ label_seq_id: 30, label_asym_id: 'A' }, { label_seq_id: 31, label_asym_id: 'A' }], { label_comp_id: 'ALA' }]
 };
 
-export const AtomSiteTestRestParams = (function() {
+export const AtomSiteTestRestParams = (function () {
     const params: QueryParamInfo[] = [];
     for (const k of Object.keys(AtomSiteSchemaElement)) {
         const p = (AtomSiteSchemaElement as any)[k] as QueryParamInfo;

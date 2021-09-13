@@ -971,12 +971,12 @@ export const GroupData = [
     [0, 52, 16, 1, 26, 59, 20, 65],
     [0, 31, 1, 63],
     [0, 1, 24, 62],
-    [0, 15, 1, 9],  // 'P 1 21/n 1'
+    [0, 15, 1, 9], // 'P 1 21/n 1'
     // X,Y,Z
     // -X+1/2,Y+1/2,-Z+1/2
     // -X,-Y,-Z
     // X+1/2,-Y+1/2,Z+1/2
-    [0, 5, 1, 8],  // 'P 1 21/a 1'
+    [0, 5, 1, 8], // 'P 1 21/a 1'
     // X,Y,Z
     // -X+1/2,Y+1/2,-Z
     // -X,-Y,-Z
@@ -1357,37 +1357,37 @@ export function getSpacegroupIndexFromNumber(num: number) {
         case 1166: return 171;
         case 1167: return 173;
 
-        case 1003: return 237;  // 'P 1 1 2'  !(dyad along z)
-        case 1004: return 238;  // 'P 1 1 21'  !(unique axis c)
-        case 1005: return 239;  // 'B 1 1 2' 'B 2'
-        case 2005: return 240;  // 'A 1 2 1'
-        case 3005: return 241;  // 'C 1 21 1' ! (Origin on screw at 1/4X)
-        case 4005: return 242;  // 'I 1 2 1' 'I 2' !!! GJK @ 2003-06-02
-        case 5005: return 243;  // 'I 1 21 1'
-        case 1006: return 244;  // 'P 1 1 m'
-        case 1007: return 245;  // 'P 1 1 b'
-        case 1008: return 246;  // 'B 1 1 m'
-        case 1009: return 247;  // 'B 1 1 b'
-        case 1010: return 248;  // 'P 1 1 2/m'
-        case 1011: return 249;  // 'P 1 1 21/m'
-        case 1012: return 250;  // 'B 1 1 2/m'
-        case 1013: return 251;  // 'P 1 1 2/b'
-        case 1014: return 252;  // 'P 1 1 21/b'
-        case 2014: return 253;  // 'P 1 21/n 1'
-        case 3014: return 254;  // 'P 1 21/a 1'
-        case 1015: return 255;  // 'B 1 1 2/b'
-        case 1017: return 256;  // 'P 21 2 2' !(unique axis a)
-        case 2017: return 257;  // 'P 2 21 2' !(unique axis b)
-        case 1018: return 258;  // 'P 21 21 2 (a)' ! origin on 21 21, shift (1/4,1/4,0)
-        case 2018: return 259;  // 'P 21 2 21'  !(unique axis b)
-        case 3018: return 260;  // 'P 2 21 21'  !(unique axis a)
-        case 1020: return 261;  // 'C 2 2 21a)' ! P212121 with C centring, shift(1/4,0,0)
-        case 1021: return 262;  // 'C 2 2 2a'  ! C21212a origin on 21 21
-        case 1022: return 263;  // 'F 2 2 2a' ! same as 1018 with face centring  shift (1/4,0,0)
-        case 1023: return 264;  // 'I 2 2 2a'  ! as 1018 with origin shift (1/4,1/4,1/4)
-        case 1059: return 265;  // 'P 21/m 21/m 2/n a'
-        case 1094: return 266;  // 'P 42 21 2a' ! (as P21212a) origin on 21 21 ie Shift 1/4,1/4,1/4
-        case 1197: return 267;  // 'I 2 3a' ! Expansion of 1023 which is an expansion of 1018
+        case 1003: return 237; // 'P 1 1 2'  !(dyad along z)
+        case 1004: return 238; // 'P 1 1 21'  !(unique axis c)
+        case 1005: return 239; // 'B 1 1 2' 'B 2'
+        case 2005: return 240; // 'A 1 2 1'
+        case 3005: return 241; // 'C 1 21 1' ! (Origin on screw at 1/4X)
+        case 4005: return 242; // 'I 1 2 1' 'I 2' !!! GJK @ 2003-06-02
+        case 5005: return 243; // 'I 1 21 1'
+        case 1006: return 244; // 'P 1 1 m'
+        case 1007: return 245; // 'P 1 1 b'
+        case 1008: return 246; // 'B 1 1 m'
+        case 1009: return 247; // 'B 1 1 b'
+        case 1010: return 248; // 'P 1 1 2/m'
+        case 1011: return 249; // 'P 1 1 21/m'
+        case 1012: return 250; // 'B 1 1 2/m'
+        case 1013: return 251; // 'P 1 1 2/b'
+        case 1014: return 252; // 'P 1 1 21/b'
+        case 2014: return 253; // 'P 1 21/n 1'
+        case 3014: return 254; // 'P 1 21/a 1'
+        case 1015: return 255; // 'B 1 1 2/b'
+        case 1017: return 256; // 'P 21 2 2' !(unique axis a)
+        case 2017: return 257; // 'P 2 21 2' !(unique axis b)
+        case 1018: return 258; // 'P 21 21 2 (a)' ! origin on 21 21, shift (1/4,1/4,0)
+        case 2018: return 259; // 'P 21 2 21'  !(unique axis b)
+        case 3018: return 260; // 'P 2 21 21'  !(unique axis a)
+        case 1020: return 261; // 'C 2 2 21a)' ! P212121 with C centring, shift(1/4,0,0)
+        case 1021: return 262; // 'C 2 2 2a'  ! C21212a origin on 21 21
+        case 1022: return 263; // 'F 2 2 2a' ! same as 1018 with face centring  shift (1/4,0,0)
+        case 1023: return 264; // 'I 2 2 2a'  ! as 1018 with origin shift (1/4,1/4,1/4)
+        case 1059: return 265; // 'P 21/m 21/m 2/n a'
+        case 1094: return 266; // 'P 42 21 2a' ! (as P21212a) origin on 21 21 ie Shift 1/4,1/4,1/4
+        case 1197: return 267; // 'I 2 3a' ! Expansion of 1023 which is an expansion of 1018
     }
 
     let offset = 0;

@@ -183,7 +183,7 @@ export async function calculate(runtime: RuntimeContext, structure: Structure, p
     }
 
     const normalVector = v3zero();
-    const center =  v3zero();
+    const center = v3zero();
     v3sub(normalVector, membrane.planePoint1, membrane.planePoint2);
     v3normalize(normalVector, normalVector);
 
@@ -404,7 +404,7 @@ function membraneSegments(ctx: ANVILContext, membrane: MembraneCandidate): Array
                 }
                 lastAuthSeqId = authSeqId;
                 endOffset = k;
-            } else  {
+            } else {
                 lastAuthSeqId++;
                 endOffset++;
             }
@@ -476,11 +476,11 @@ function adjustExtent(ctx: ANVILContext, membrane: MembraneCandidate, centroid: 
 }
 
 function qValue(currentStats: HphobHphil, initialStats: HphobHphil): number {
-    if(initialStats.hphob < 1) {
+    if (initialStats.hphob < 1) {
         initialStats.hphob = 0.1;
     }
 
-    if(initialStats.hphil < 1) {
+    if (initialStats.hphil < 1) {
         initialStats.hphil += 1;
     }
 
@@ -505,7 +505,7 @@ function generateSpherePoints(ctx: ANVILContext, numberOfSpherePoints: number): 
     const { centroid, extent } = ctx;
     const points = [];
     let oldPhi = 0, h, theta, phi;
-    for(let k = 1, kl = numberOfSpherePoints + 1; k < kl; k++) {
+    for (let k = 1, kl = numberOfSpherePoints + 1; k < kl; k++) {
         h = -1 + 2 * (k - 1) / (2 * numberOfSpherePoints - 1);
         theta = Math.acos(h);
         phi = (k === 1 || k === numberOfSpherePoints) ? 0 : (oldPhi + 3.6 / Math.sqrt(2 * numberOfSpherePoints * (1 - h * h))) % (2 * Math.PI);

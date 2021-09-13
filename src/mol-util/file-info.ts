@@ -27,7 +27,7 @@ export interface FileInfo {
     src: FileInput
 }
 
-export function getFileInfo (file: FileInput): FileInfo {
+export function getFileInfo(file: FileInput): FileInfo {
     let path: string;
     let compressed: string|false;
     let protocol = '';

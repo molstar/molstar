@@ -126,7 +126,7 @@ export class MeasurementControls extends PurePluginUIComponent<{}, { isBusy: boo
     }
 
     toggleAdd = () => this.setState({ action: this.state.action === 'add' ? void 0 : 'add' });
-    toggleOptions = () => this.setState({ action: this.state.action === 'options' ? void 0 : 'options'  });
+    toggleOptions = () => this.setState({ action: this.state.action === 'options' ? void 0 : 'options' });
 
     highlight(loci: StructureElement.Loci) {
         this.plugin.managers.interactivity.lociHighlights.highlightOnly({ loci }, false);

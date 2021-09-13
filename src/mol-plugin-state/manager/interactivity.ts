@@ -103,7 +103,7 @@ namespace InteractivityManager {
 
         protected normalizedLoci(reprLoci: Representation.Loci, applyGranularity = true) {
             const { loci, repr } = reprLoci;
-            const granularity =  applyGranularity ? this.props.granularity : undefined;
+            const granularity = applyGranularity ? this.props.granularity : undefined;
             return { loci: Loci.normalize(loci, granularity), repr };
         }
 

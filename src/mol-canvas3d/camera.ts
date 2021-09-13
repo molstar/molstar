@@ -34,7 +34,7 @@ class Camera implements ICamera {
     readonly inverseProjectionView: Mat4 = Mat4.identity();
 
     private pixelScale: number
-    get pixelRatio () {
+    get pixelRatio() {
         const dpr = (typeof window !== 'undefined') ? window.devicePixelRatio : 1;
         return dpr * this.pixelScale;
     }
