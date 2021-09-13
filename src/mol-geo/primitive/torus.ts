@@ -47,7 +47,7 @@ export function Torus(props?: TorusProps): Primitive {
             vertices.push(...vertex);
 
             // normal
-            Vec3.set(center, radius * Math.cos(u), radius * Math.sin(u), 0 );
+            Vec3.set(center, radius * Math.cos(u), radius * Math.sin(u), 0);
             Vec3.sub(normal, vertex, center);
             Vec3.normalize(normal, normal);
             normals.push(...normal);

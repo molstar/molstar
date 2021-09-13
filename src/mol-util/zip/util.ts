@@ -19,14 +19,14 @@ export const U = (function(){
         df0: [1, 2, 3, 4, 5, 7, 9, 13, 17, 25, 33, 49, 65, 97, 129, 193, 257, 385, 513, 769, 1025, 1537, 2049, 3073, 4097, 6145, 8193, 12289, 16385, 24577, 65535, 65535],
         dxb: [0, 0, 0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5,  6,  6,  7,  7,  8,  8,   9,   9,  10,  10,  11,  11,  12,   12,   13,   13,     0,     0],
         ddef: new u32(32),
-        flmap: new u16(  512),  fltree: [] as number[],
-        fdmap: new u16(   32),  fdtree: [] as number[],
+        flmap: new u16(512),  fltree: [] as number[],
+        fdmap: new u16(32),  fdtree: [] as number[],
         lmap: new u16(32768),  ltree: [] as number[],  ttree: [] as number[],
         dmap: new u16(32768),  dtree: [] as number[],
-        imap: new u16(  512),  itree: [] as number[],
+        imap: new u16(512),  itree: [] as number[],
         // rev9 : new u16(  512)
         rev15: new u16(1 << 15),
-        lhst: new u32(286), dhst: new u32( 30), ihst: new u32(19),
+        lhst: new u32(286), dhst: new u32(30), ihst: new u32(19),
         lits: new u32(15000),
         strt: new u16(1 << 16),
         prev: new u16(1 << 15)

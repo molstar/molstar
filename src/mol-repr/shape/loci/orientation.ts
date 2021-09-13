@@ -92,7 +92,7 @@ function buildAxesMesh(data: OrientationData, props: OrientationProps, mesh?: Me
 function getAxesShape(ctx: RuntimeContext, data: OrientationData, props: OrientationProps, shape?: Shape<Mesh>) {
     const mesh = buildAxesMesh(data, props, shape && shape.geometry);
     const name = getOrientationName(data);
-    const getLabel = function (groupId: number ) {
+    const getLabel = function (groupId: number) {
         return orientationLabel(data.locis[groupId]);
     };
     return Shape.create(name, data, mesh, () => props.color, () => 1, getLabel);
@@ -115,7 +115,7 @@ function buildBoxMesh(data: OrientationData, props: OrientationProps, mesh?: Mes
 function getBoxShape(ctx: RuntimeContext, data: OrientationData, props: OrientationProps, shape?: Shape<Mesh>) {
     const mesh = buildBoxMesh(data, props, shape && shape.geometry);
     const name = getOrientationName(data);
-    const getLabel = function (groupId: number ) {
+    const getLabel = function (groupId: number) {
         return orientationLabel(data.locis[groupId]);
     };
     return Shape.create(name, data, mesh, () => props.color, () => 1, getLabel);
@@ -144,7 +144,7 @@ function buildEllipsoidMesh(data: OrientationData, props: OrientationProps, mesh
 function getEllipsoidShape(ctx: RuntimeContext, data: OrientationData, props: OrientationProps, shape?: Shape<Mesh>) {
     const mesh = buildEllipsoidMesh(data, props, shape && shape.geometry);
     const name = getOrientationName(data);
-    const getLabel = function (groupId: number ) {
+    const getLabel = function (groupId: number) {
         return orientationLabel(data.locis[groupId]);
     };
     return Shape.create(name, data, mesh, () => props.color, () => 1, getLabel);

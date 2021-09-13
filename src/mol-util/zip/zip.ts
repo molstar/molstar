@@ -237,7 +237,7 @@ export async function zip(runtime: RuntimeContext, obj: { [k: string]: Uint8Arra
     writeUshort(data, o, i);  o += 2;
     writeUshort(data, o, i);  o += 2;	// number of c d records
     writeUint(data, o, csize);  o += 4;
-    writeUint(data, o, ioff );  o += 4;
+    writeUint(data, o, ioff);  o += 4;
     o += 2;
     return data.buffer;
 }

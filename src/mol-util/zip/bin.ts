@@ -64,7 +64,7 @@ export function writeUTF8(buff: Uint8Array, p: number, str: string) {
     for(let ci = 0; ci < strl; ci++) {
         const code = str.charCodeAt(ci);
         if((code & (0xffffffff - (1 << 7) + 1)) === 0) {
-            buff[p + i] = (     code     );
+            buff[p + i] = (code);
             i++;
         } else if((code & (0xffffffff - (1 << 11) + 1)) === 0) {
             buff[p + i] = (192 | (code >> 6));

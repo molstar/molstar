@@ -166,7 +166,7 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
             updatedCopyPoint = Vec2.create(this.updatedX, this.updatedY);
         } else if (svgP.x < padding) {
             updatedCopyPoint = Vec2.create(padding, svgP.y);
-        } else if( svgP.x > (this.width + (padding))) {
+        } else if(svgP.x > (this.width + (padding))) {
             updatedCopyPoint = Vec2.create(this.width + padding, svgP.y);
         } else if (svgP.y > (this.height + (padding))) {
             updatedCopyPoint = Vec2.create(svgP.x, this.height + padding);
@@ -239,7 +239,7 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
         const points = this.state.points;
         const padding = this.padding / 2;
 
-        if( svgP.x < (padding) ||
+        if(svgP.x < (padding) ||
             svgP.x > (this.width + (padding)) ||
             svgP.y > (this.height + (padding)) ||
             svgP.y < (this.padding / 2)) {

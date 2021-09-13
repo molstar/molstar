@@ -545,7 +545,7 @@ namespace Vec3 {
         return add(out, scale(out, copy(out, vector), scalar), origin);
     }
 
-    export function projectOnVector(out: Vec3, p: Vec3, vector: Vec3 ) {
+    export function projectOnVector(out: Vec3, p: Vec3, vector: Vec3) {
         const scalar = dot(vector, p) / squaredMagnitude(vector);
         return scale(out, vector, scalar);
     }

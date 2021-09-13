@@ -35,10 +35,10 @@ export function MarchinCubesMeshBuilder(vertexChunkSize: number, mesh?: Mesh): M
     return {
         addVertex: (x: number, y: number, z: number) => {
             ++vertexCount;
-            return ChunkedArray.add3(vertices, x, y, z );
+            return ChunkedArray.add3(vertices, x, y, z);
         },
         addNormal: (x: number, y: number, z: number) => {
-            ChunkedArray.add3(normals, x, y, z );
+            ChunkedArray.add3(normals, x, y, z);
         },
         addGroup: (group: number) => {
             ChunkedArray.add(groups, group);

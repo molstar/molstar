@@ -140,8 +140,8 @@ export namespace Tensor {
                     const u = dimensions[0], v = dimensions[1], uv = u * v;
                     return {
                         get: (t, i, j, k) => t[i + j * u + k * uv],
-                        set: (t, i, j, k, x ) => t[i + j * u + k * uv] = x,
-                        add: (t, i, j, k, x ) => t[i + j * u + k * uv] += x,
+                        set: (t, i, j, k, x) => t[i + j * u + k * uv] = x,
+                        add: (t, i, j, k, x) => t[i + j * u + k * uv] += x,
                         dataOffset: (i, j, k) => i + j * u + k * uv,
                         getCoords: (o, c) => {
                             const p = Math.floor(o / u);
@@ -156,8 +156,8 @@ export namespace Tensor {
                     const u = dimensions[0], v = dimensions[2], uv = u * v;
                     return {
                         get: (t, i, j, k) => t[i + k * u + j * uv],
-                        set: (t, i, j, k, x ) => t[i + k * u + j * uv] = x,
-                        add: (t, i, j, k, x ) => t[i + k * u + j * uv] += x,
+                        set: (t, i, j, k, x) => t[i + k * u + j * uv] = x,
+                        add: (t, i, j, k, x) => t[i + k * u + j * uv] += x,
                         dataOffset: (i, j, k) => i + k * u + j * uv,
                         getCoords: (o, c) => {
                             const p = Math.floor(o / u);
@@ -172,8 +172,8 @@ export namespace Tensor {
                     const u = dimensions[1], v = dimensions[0], uv = u * v;
                     return {
                         get: (t, i, j, k) => t[j + i * u + k * uv],
-                        set: (t, i, j, k, x ) => t[j + i * u + k * uv] = x,
-                        add: (t, i, j, k, x ) => t[j + i * u + k * uv] += x,
+                        set: (t, i, j, k, x) => t[j + i * u + k * uv] = x,
+                        add: (t, i, j, k, x) => t[j + i * u + k * uv] += x,
                         dataOffset: (i, j, k) => j + i * u + k * uv,
                         getCoords: (o, c) => {
                             const p = Math.floor(o / u);
@@ -188,8 +188,8 @@ export namespace Tensor {
                     const u = dimensions[1], v = dimensions[2], uv = u * v;
                     return {
                         get: (t, i, j, k) => t[j + k * u + i * uv],
-                        set: (t, i, j, k, x ) => t[j + k * u + i * uv] = x,
-                        add: (t, i, j, k, x ) => t[j + k * u + i * uv] += x,
+                        set: (t, i, j, k, x) => t[j + k * u + i * uv] = x,
+                        add: (t, i, j, k, x) => t[j + k * u + i * uv] += x,
                         dataOffset: (i, j, k) => j + k * u + i * uv,
                         getCoords: (o, c) => {
                             const p = Math.floor(o / u);
@@ -204,8 +204,8 @@ export namespace Tensor {
                     const u = dimensions[2], v = dimensions[0], uv = u * v;
                     return {
                         get: (t, i, j, k) => t[k + i * u + j * uv],
-                        set: (t, i, j, k, x ) => t[k + i * u + j * uv] = x,
-                        add: (t, i, j, k, x ) => t[k + i * u + j * uv] += x,
+                        set: (t, i, j, k, x) => t[k + i * u + j * uv] = x,
+                        add: (t, i, j, k, x) => t[k + i * u + j * uv] += x,
                         dataOffset: (i, j, k) => k + i * u + j * uv,
                         getCoords: (o, c) => {
                             const p = Math.floor(o / u);
@@ -220,8 +220,8 @@ export namespace Tensor {
                     const u = dimensions[2], v = dimensions[1], uv = u * v;
                     return {
                         get: (t, i, j, k) => t[k + j * u + i * uv],
-                        set: (t, i, j, k, x ) => t[k + j * u + i * uv] = x,
-                        add: (t, i, j, k, x ) => t[k + j * u + i * uv] += x,
+                        set: (t, i, j, k, x) => t[k + j * u + i * uv] = x,
+                        add: (t, i, j, k, x) => t[k + j * u + i * uv] += x,
                         dataOffset: (i, j, k) => k + j * u + i * uv,
                         getCoords: (o, c) => {
                             const p = Math.floor(o / u);

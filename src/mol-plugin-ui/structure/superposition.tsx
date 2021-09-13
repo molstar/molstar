@@ -94,7 +94,7 @@ export class SuperpositionControls extends PurePluginUIComponent<{ }, Superposit
         });
 
         this.subscribe(this.plugin.managers.structure.hierarchy.behaviors.selection, sel => {
-            this.setState({ canUseDb: sel.structures.every(s => !!s.cell.obj?.data && s.cell.obj.data.models.some(m => BestDatabaseSequenceMapping.Provider.isApplicable(m)) ) });
+            this.setState({ canUseDb: sel.structures.every(s => !!s.cell.obj?.data && s.cell.obj.data.models.some(m => BestDatabaseSequenceMapping.Provider.isApplicable(m))) });
         });
     }
 

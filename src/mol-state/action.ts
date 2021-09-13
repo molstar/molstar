@@ -62,7 +62,7 @@ namespace StateAction {
             create(params) { return { action, params }; },
             id: UUID.create22(),
             definition,
-            createDefaultParams(a, globalCtx) { return definition.params ? PD.getDefaultValues( definition.params(a, globalCtx)) : {} as any; }
+            createDefaultParams(a, globalCtx) { return definition.params ? PD.getDefaultValues(definition.params(a, globalCtx)) : {} as any; }
         };
         return action;
     }

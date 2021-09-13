@@ -85,7 +85,7 @@ export function createState(gl: GLRenderingContext): WebGLState {
         currentRenderItemId: -1,
 
         enable: (cap: number) => {
-            if (enabledCapabilities[cap] !== true ) {
+            if (enabledCapabilities[cap] !== true) {
                 gl.enable(cap);
                 enabledCapabilities[cap] = true;
             }

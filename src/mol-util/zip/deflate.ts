@@ -221,7 +221,7 @@ function _writeBlock(BFINAL: number, lits: Uint32Array, li: number, ebits: numbe
     for(let j = 0; j < 30; j++) U.dhst[j] = 0;
     for(let j = 0; j < 19; j++) U.ihst[j] = 0;
 
-    const BTYPE = (cstSize < fxdSize && cstSize < dynSize) ? 0 : ( fxdSize < dynSize ? 1 : 2 );
+    const BTYPE = (cstSize < fxdSize && cstSize < dynSize) ? 0 : (fxdSize < dynSize ? 1 : 2);
     _putsF(out, pos, BFINAL);
     _putsF(out, pos + 1, BTYPE);
     pos += 3;

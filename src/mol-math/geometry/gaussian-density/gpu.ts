@@ -454,7 +454,7 @@ function fieldFromTexture2d(ctx: WebGLContext, texture: Texture, dim: Vec3, texD
     let tmpCol = 0;
     let tmpRow = 0;
     for (let iz = 0; iz < dz; ++iz) {
-        if (tmpCol >= fboTexCols ) {
+        if (tmpCol >= fboTexCols) {
             tmpCol = 0;
             tmpRow += dy;
         }

@@ -244,7 +244,7 @@ export class MultiSamplePass {
                 compose.render();
 
                 sampleIndex += 1;
-                if (sampleIndex >= offsetList.length ) break;
+                if (sampleIndex >= offsetList.length) break;
             }
         }
 

@@ -42,7 +42,8 @@
         "no-throw-literal": "error",
         "key-spacing": "error",
         "object-curly-spacing": ["error", "always"],
-        "array-bracket-spacing": "error"
+        "array-bracket-spacing": "error",
+        "space-in-parens": "error"
     },
     "overrides": [
         {

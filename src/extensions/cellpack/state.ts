@@ -137,7 +137,7 @@ const StructureFromAssemblies = PluginStateTransform.BuiltIn({
                     offsetInvariantId += maxInvariantId + 1;
                 }
                 structure = builder.getStructure();
-                for( let i = 0, il = structure.models.length; i < il; ++i) {
+                for(let i = 0, il = structure.models.length; i < il; ++i) {
                     Model.TrajectoryInfo.set(structure.models[i], { size: il, index: i });
                 }
             }

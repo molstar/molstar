@@ -183,7 +183,7 @@ namespace Quat {
         // calc cosine
         cosom = ax * bx + ay * by + az * bz + aw * bw;
         // adjust signs (if necessary)
-        if ( cosom < 0.0 ) {
+        if (cosom < 0.0) {
             cosom = -cosom;
             bx = - bx;
             by = - by;
@@ -191,7 +191,7 @@ namespace Quat {
             bw = - bw;
         }
         // calculate coefficients
-        if ( (1.0 - cosom) > 0.000001 ) {
+        if ((1.0 - cosom) > 0.000001) {
             // standard case (slerp)
             omega  = Math.acos(cosom);
             sinom  = Math.sin(omega);
@@ -250,7 +250,7 @@ namespace Quat {
         const fTrace = m[0] + m[4] + m[8];
         let fRoot;
 
-        if ( fTrace > 0.0 ) {
+        if (fTrace > 0.0) {
             // |w| > 1/2, may as well choose w > 1/2
             fRoot = Math.sqrt(fTrace + 1.0);  // 2w
             out[3] = 0.5 * fRoot;
@@ -261,8 +261,8 @@ namespace Quat {
         } else {
             // |w| <= 1/2
             let i = 0;
-            if ( m[4] > m[0] ) i = 1;
-            if ( m[8] > m[i * 3 + i] ) i = 2;
+            if (m[4] > m[0]) i = 1;
+            if (m[8] > m[i * 3 + i]) i = 2;
             let j = (i + 1) % 3;
             let k = (i + 2) % 3;
 

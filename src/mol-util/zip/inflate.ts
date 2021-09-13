@@ -221,5 +221,5 @@ function _bitsF(dt: NumberArray, pos: number, length: number) {
 }
 
 function _get17(dt: NumberArray, pos: number) {	// return at least 17 meaningful bytes
-    return (dt[pos >>> 3] | (dt[(pos >>> 3) + 1] << 8) | (dt[(pos >>> 3) + 2] << 16) ) >>> (pos & 7);
+    return (dt[pos >>> 3] | (dt[(pos >>> 3) + 1] << 8) | (dt[(pos >>> 3) + 2] << 16)) >>> (pos & 7);
 }

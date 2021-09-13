@@ -211,7 +211,7 @@ export function getMatFromResamplePoints(points: NumberArray, segmentLength: num
         if (d >= segmentLength) {
             // use twist or random?
             const quat = Quat.rotationTo(Quat.zero(), Vec3.create(0, 0, 1), frames[i].t); // Quat.rotationTo(Quat.zero(), Vec3.create(0,0,1),new_normal[i]);//Quat.rotationTo(Quat.zero(), Vec3.create(0,0,1),direction);new_normal
-            const rq = Quat.setAxisAngle(Quat.zero(), frames[i].t, Math.random() * 3.60 ); // Quat.setAxisAngle(Quat.zero(),direction, Math.random()*3.60 );//Quat.identity();//
+            const rq = Quat.setAxisAngle(Quat.zero(), frames[i].t, Math.random() * 3.60); // Quat.setAxisAngle(Quat.zero(),direction, Math.random()*3.60 );//Quat.identity();//
             const m = Mat4.fromQuat(Mat4.zero(), Quat.multiply(Quat.zero(), rq, quat)); // Mat4.fromQuat(Mat4.zero(),Quat.multiply(Quat.zero(),quat1,quat2));//Mat4.fromQuat(Mat4.zero(),quat);//Mat4.identity();//Mat4.fromQuat(Mat4.zero(),Quat.multiply(Quat.zero(),rq,quat));
             // let pos:Vec3 = Vec3.add(Vec3.zero(),pti1,pti)
             // pos = Vec3.scale(pos,pos,1.0/2.0);
