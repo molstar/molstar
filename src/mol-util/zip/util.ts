@@ -66,13 +66,13 @@ export const U = (function (){
     */
     makeCodes(U.fltree, 9);
     codes2map(U.fltree, 9, U.flmap);
-    revCodes (U.fltree, 9);
+    revCodes(U.fltree, 9);
 
     pushV(U.fdtree, 32, 5);
     // for(i=0;i<32; i++) U.fdtree.push(0,5);
     makeCodes(U.fdtree, 5);
     codes2map(U.fdtree, 5, U.fdmap);
-    revCodes (U.fdtree, 5);
+    revCodes(U.fdtree, 5);
 
     pushV(U.itree, 19, 0);  pushV(U.ltree, 286, 0);  pushV(U.dtree, 30, 0);  pushV(U.ttree, 320, 0);
     /*

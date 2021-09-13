@@ -33,7 +33,7 @@ describe('linked list', () => {
         expect(list.count).toBe(5);
     });
 
-    it ('remove', () => {
+    it('remove', () => {
         const list = create([1, 2, 3, 4]);
         const fst = list.removeFirst();
         expect(fst).toBe(1);
