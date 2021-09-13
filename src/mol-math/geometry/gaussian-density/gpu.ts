@@ -122,7 +122,7 @@ function calcGaussianDensityTexture2d(webgl: WebGLContext, position: PositionDat
     const { smoothness, resolution } = props;
 
     const { drawCount, positions, radii, groups, scale, expandedBox, dim, maxRadius } = prepareGaussianDensityData(position, box, radius, props);
-    const [ dx, dy, dz ] = dim;
+    const [dx, dy, dz] = dim;
     const { texDimX, texDimY, texCols, powerOfTwoSize } = getTexture2dSize(dim);
     // console.log({ texDimX, texDimY, texCols, powerOfTwoSize, dim });
     const gridTexDim = Vec3.create(texDimX, texDimY, 0);
@@ -207,7 +207,7 @@ function calcGaussianDensityTexture3d(webgl: WebGLContext, position: PositionDat
     const { smoothness, resolution } = props;
 
     const { drawCount, positions, radii, groups, scale, expandedBox, dim, maxRadius } = prepareGaussianDensityData(position, box, radius, props);
-    const [ dx, dy, dz ] = dim;
+    const [dx, dy, dz] = dim;
 
     const minDistTex = getTexture('min-dist-3d', webgl, 'volume-uint8', 'rgba', 'ubyte', 'nearest');
     minDistTex.define(dx, dy, dz);
@@ -431,8 +431,8 @@ function getTexture2dSize(gridDim: Vec3) {
 
 function fieldFromTexture2d(ctx: WebGLContext, texture: Texture, dim: Vec3, texDim: Vec3) {
     // console.time('fieldFromTexture2d')
-    const [ dx, dy, dz ] = dim;
-    const [ width, height ] = texDim;
+    const [dx, dy, dz] = dim;
+    const [width, height] = texDim;
     const fboTexCols = Math.floor(width / dx);
 
     const space = Tensor.Space(dim, [2, 1, 0], Float32Array);

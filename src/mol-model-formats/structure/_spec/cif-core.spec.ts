@@ -98,7 +98,7 @@ describe('cif-core read', () => {
 
         expect(cifCore.cell.length_a.value(0)).toBe(11.0829);
         expect(cifCore.space_group['name_h-m_full'].value(0)).toBe('P-1');
-        expect(cifCore.atom_site_aniso.u.value(0)).toEqual(new Float64Array([ 0.0425, 0, 0, 0.00089, 0.0423, 0, 0.01515, 0.00066, 0.0375 ]));
+        expect(cifCore.atom_site_aniso.u.value(0)).toEqual(new Float64Array([0.0425, 0, 0, 0.00089, 0.0423, 0, 0.01515, 0.00066, 0.0375]));
         expect.assertions(3);
     });
 });

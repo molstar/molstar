@@ -17,7 +17,7 @@ const records = [
 describe('PDB to-cif', () => {
     it('guess-element-symbol', () => {
         for (let i = 0, il = records.length; i < il; ++i) {
-            const [ data, element ] = records[i];
+            const [data, element] = records[i];
             const tokens = TokenBuilder.create(data, 2);
             guessElementSymbolTokens(tokens, data, 12, 16);
             expect(data.substring(tokens.indices[0], tokens.indices[1])).toBe(element);

@@ -104,7 +104,7 @@ function createPoints() {
 
 describe('renderer', () => {
     it('basic', () => {
-        const [ width, height ] = [ 32, 32 ];
+        const [width, height] = [32, 32];
         const gl = createGl(width, height, { preserveDrawingBuffer: true });
         const { ctx, renderer } = createRenderer(gl);
 
@@ -123,7 +123,7 @@ describe('renderer', () => {
     });
 
     it('points', async () => {
-        const [ width, height ] = [ 32, 32 ];
+        const [width, height] = [32, 32];
         const gl = createGl(width, height, { preserveDrawingBuffer: true });
         const { ctx } = createRenderer(gl);
         const scene = Scene.create(ctx);

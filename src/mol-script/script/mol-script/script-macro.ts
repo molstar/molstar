@@ -34,6 +34,6 @@ export function pickArgs(args: any, ...names: string[]) {
 export function aggregate(property: any, fn: any, initial?: any) {
     return B.struct.atomSet.reduce({
         initial: initial !== void 0 ? initial : property,
-        value: fn([ B.struct.slot.elementSetReduce(), property ])
+        value: fn([B.struct.slot.elementSetReduce(), property])
     });
 }

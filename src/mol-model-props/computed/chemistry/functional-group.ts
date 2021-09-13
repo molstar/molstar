@@ -213,7 +213,7 @@ export function isAcetamidine (structure: Structure, unit: Unit.Atomic, index: S
     return terminalNitrogenCount === 2;
 }
 
-const PolarElements = new Set<ElementSymbol>([ 'N', 'O', 'S', 'F', 'CL', 'BR', 'I' ] as ElementSymbol[]);
+const PolarElements = new Set<ElementSymbol>(['N', 'O', 'S', 'F', 'CL', 'BR', 'I'] as ElementSymbol[]);
 export function isPolar(element: ElementSymbol) { return PolarElements.has(element); }
 
 export function hasPolarNeighbour (structure: Structure, unit: Unit.Atomic, index: StructureElement.UnitIndex) {

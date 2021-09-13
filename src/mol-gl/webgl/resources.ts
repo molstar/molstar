@@ -104,7 +104,7 @@ export function createResources(gl: GLRenderingContext, state: WebGLState, stats
 
     const programCache = createReferenceCache(
         (props: ProgramProps) => {
-            const array = [ props.shaderCode.id ];
+            const array = [props.shaderCode.id];
             Object.keys(props.defineValues).forEach(k => array.push(hashString(k), defineValueHash(props.defineValues[k].ref.value)));
             return hashFnv32a(array).toString();
         },

@@ -121,10 +121,10 @@ type EposQuality = '6' | '14' | '26' | '98'
 function getEposDir(quality: EposQuality) {
     let dir: number[][];
     switch (quality) {
-        case '6': dir = [ ...Type001 ]; break;
-        case '14': dir = [ ...Type001, ...Type111 ]; break;
-        case '26': dir = [ ...Type001, ...Type111, ...Type011 ]; break;
-        case '98': dir = [ ...Type001, ...Type111, ...Type011, ...Type012, ...Type112, ...Type122 ]; break;
+        case '6': dir = [...Type001]; break;
+        case '14': dir = [...Type001, ...Type111]; break;
+        case '26': dir = [...Type001, ...Type111, ...Type011]; break;
+        case '98': dir = [...Type001, ...Type111, ...Type011, ...Type012, ...Type112, ...Type122]; break;
     }
     return dir.map(a => {
         const v = Vec3.create(a[0], a[1], a[2]);

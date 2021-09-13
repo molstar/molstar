@@ -283,7 +283,7 @@ export function calculateHydrogensCharge (structure: Structure, unit: Unit.Atomi
             }
     }
 
-    return [ charge, implicitHCount, implicitHCount + hydrogenCount, geom ];
+    return [charge, implicitHCount, implicitHCount + hydrogenCount, geom];
 }
 
 function calcUnitValenceModel(structure: Structure, unit: Unit.Atomic, props: ValenceModelProps) {
@@ -309,7 +309,7 @@ function calcUnitValenceModel(structure: Structure, unit: Unit.Atomic, props: Va
 
     for (let i = 0; i < n; ++i) {
         const j = (hasParent ? mapping![i] : i) as StructureElement.UnitIndex;
-        const [ chg, implH, totH, geom ] = calculateHydrogensCharge(structure, unit, j, props);
+        const [chg, implH, totH, geom] = calculateHydrogensCharge(structure, unit, j, props);
         charge[i] = chg;
         implicitH[i] = implH;
         totalH[i] = totH;

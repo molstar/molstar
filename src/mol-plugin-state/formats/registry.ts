@@ -46,7 +46,7 @@ export class DataFormatRegistry {
     get options() {
         if (this._options) return this._options;
         const options: [string, string, string][] = [];
-        this._list.forEach(({ name, provider }) => options.push([ name, provider.label, provider.category || '' ]));
+        this._list.forEach(({ name, provider }) => options.push([name, provider.label, provider.category || '']));
         this._options = options;
         return options;
     }

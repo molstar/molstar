@@ -189,7 +189,7 @@ function getContainer(d: Data.CifFrame, imports: Imports, ctx: FrameData) {
 function getCode(d: Data.CifFrame, imports: Imports, ctx: FrameData): [string, string[] | undefined, string | undefined ] | undefined {
     const code = getField('item_type', 'code', d, imports, ctx) || getField('type', 'contents', d, imports, ctx);
     if (code) {
-        return [ code.str(0), getEnums(d, imports, ctx), getContainer(d, imports, ctx) ];
+        return [code.str(0), getEnums(d, imports, ctx), getContainer(d, imports, ctx)];
     } else {
         console.log(`item_type.code or type.contents not found for '${d.header}'`);
     }

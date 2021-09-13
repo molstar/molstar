@@ -32,10 +32,10 @@ export function getStreamingMethod(s?: Structure, defaultKind: VolumeServerInfo.
 /** Returns EMD ID when available, otherwise falls back to PDB ID */
 export function getEmIds(model: Model): string[] {
     const ids: string[] = [];
-    if (!MmcifFormat.is(model.sourceData)) return [ model.entryId ];
+    if (!MmcifFormat.is(model.sourceData)) return [model.entryId];
 
     const { db_id, db_name, content_type } = model.sourceData.data.db.pdbx_database_related;
-    if (!db_name.isDefined) return [ model.entryId ];
+    if (!db_name.isDefined) return [model.entryId];
 
     for (let i = 0, il = db_name.rowCount; i < il; ++i) {
         if (db_name.value(i).toUpperCase() === 'EMDB' && content_type.value(i) === 'associated EM volume') {
@@ -47,7 +47,7 @@ export function getEmIds(model: Model): string[] {
 }
 
 export function getXrayIds(model: Model): string[] {
-    return [ model.entryId ];
+    return [model.entryId];
 }
 
 export function getIds(method: VolumeServerInfo.Kind, s?: Structure): string[] {

@@ -103,15 +103,15 @@ function deflateChunk(ctx: DeflateContext, count: number) {
  */
 const Opts = [
     /*      good lazy nice chain */
-    /* 0 */ [ 0,   0,   0,    0, 0], /* store only */
-    /* 1 */ [ 4,   4,   8,    4, 0], /* max speed, no lazy matches */
-    /* 2 */ [ 4,   5,  16,    8, 0],
-    /* 3 */ [ 4,   6,  16,   16, 0],
+    /* 0 */ [0,   0,   0,    0, 0], /* store only */
+    /* 1 */ [4,   4,   8,    4, 0], /* max speed, no lazy matches */
+    /* 2 */ [4,   5,  16,    8, 0],
+    /* 3 */ [4,   6,  16,   16, 0],
 
-    /* 4 */ [ 4,  10,  16,   32, 0], /* lazy matches */
-    /* 5 */ [ 8,  16,  32,   32, 0],
-    /* 6 */ [ 8,  16, 128,  128, 0],
-    /* 7 */ [ 8,  32, 128,  256, 0],
+    /* 4 */ [4,  10,  16,   32, 0], /* lazy matches */
+    /* 5 */ [8,  16,  32,   32, 0],
+    /* 6 */ [8,  16, 128,  128, 0],
+    /* 7 */ [8,  32, 128,  256, 0],
     /* 8 */ [32, 128, 258, 1024, 1],
     /* 9 */ [32, 258, 258, 4096, 1] /* max compression */
 ] as const;
@@ -210,7 +210,7 @@ function _hash(data: Uint8Array, i: number) {
 
 function _writeBlock(BFINAL: number, lits: Uint32Array, li: number, ebits: number, data: Uint8Array, o0: number, l0: number, out: Uint8Array, pos: number) {
     U.lhst[256]++;
-    const [ ML, MD, MH, numl, numd, numh, lset, dset ] = getTrees();
+    const [ML, MD, MH, numl, numd, numh, lset, dset] = getTrees();
 
     const cstSize = (((pos + 3) & 7) === 0 ? 0 : 8 - ((pos + 3) & 7)) + 32 + (l0 << 3);
     const fxdSize = ebits + contSize(U.fltree, U.lhst) + contSize(U.fdtree, U.dhst);

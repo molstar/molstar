@@ -39,7 +39,7 @@ export function calcMeshColorSmoothing(input: ColorSmoothingInput, resolution: n
     Vec3.add(gridDim, gridDim, Vec3.create(2, 2, 2));
     const { min } = box;
 
-    const [ xn, yn ] = gridDim;
+    const [xn, yn] = gridDim;
     const { width, height } = getVolumeTexture2dLayout(gridDim);
     // console.log({ width, height, dim });
 

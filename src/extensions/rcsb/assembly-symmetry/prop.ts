@@ -130,7 +130,7 @@ export function getSymmetrySelectParam(structure?: Structure) {
             for (let i = 0, il = assemblySymmetryData.length; i < il; ++i) {
                 const { symbol, kind } = assemblySymmetryData[i];
                 if (symbol !== 'C1') {
-                    options.push([ i, `${i + 1}: ${symbol} ${kind}` ]);
+                    options.push([i, `${i + 1}: ${symbol} ${kind}`]);
                 }
             }
             if (options.length > 1) {

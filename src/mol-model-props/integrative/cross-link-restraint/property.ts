@@ -180,7 +180,7 @@ function extractIntra(pairs: CrossLinkRestraint[], unit: Unit) {
 
     r.forEach((il, ri) => {
         if (il.length < 2) return;
-        const [ indexA, indexB ] = il;
+        const [indexA, indexB] = il;
         pairs.push(
             createCrossLinkRestraint(unit, indexA, unit, indexB, restraints, ri),
             createCrossLinkRestraint(unit, indexB, unit, indexA, restraints, ri)

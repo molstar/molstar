@@ -476,10 +476,10 @@ export function createGl(width: number, height: number, contextAttributes: WebGL
                 // Int arrays
                 case gl.MAX_VIEWPORT_DIMS:
                 case gl.SCISSOR_BOX:
-                    return new Int32Array([ 0, 0, 4096, 4096 ]);
+                    return new Int32Array([0, 0, 4096, 4096]);
                 case gl.VIEWPORT:
                     const { x, y, width, height } = viewport;
-                    return new Int32Array([ x, y, width, height ]);
+                    return new Int32Array([x, y, width, height]);
 
                 // Float arrays
                 case gl.ALIASED_LINE_WIDTH_RANGE:
@@ -487,12 +487,12 @@ export function createGl(width: number, height: number, contextAttributes: WebGL
                 case gl.ALIASED_POINT_SIZE_RANGE:
                     return new Float32Array([0, 255]);
                 case gl.DEPTH_RANGE:
-                    return new Float32Array([ depthRange.zNear, depthRange.zFar ]);
+                    return new Float32Array([depthRange.zNear, depthRange.zFar]);
                 case gl.BLEND_COLOR:
                     return new Float32Array([0, 0, 0, 0]);
                 case gl.COLOR_CLEAR_VALUE:
                     const { r, g, b, a } = colorClearValue;
-                    return new Float32Array([ r, g, b, a ]);
+                    return new Float32Array([r, g, b, a]);
 
                 case gl.COLOR_WRITEMASK:
                     return 0;

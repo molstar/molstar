@@ -676,7 +676,7 @@ export namespace Loci {
             opQueries.length === 1
                 ? opQueries[0]
                 // Need to union before merge for fast performance
-                : MS.struct.combinator.merge(opQueries.map(q => MS.struct.modifier.union([ q ])))
+                : MS.struct.combinator.merge(opQueries.map(q => MS.struct.modifier.union([q])))
         ]);
     }
 
@@ -712,12 +712,12 @@ export namespace Loci {
         return multimodel
             ? {
                 atom: { set, ranges },
-                chain: { opName: [ opName ] },
+                chain: { opName: [opName] },
                 entity: { modelLabel, modelIndex }
             }
             : {
                 atom: { set, ranges },
-                chain: { opName: [ opName ] },
+                chain: { opName: [opName] },
             };
     }
 }

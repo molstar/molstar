@@ -28,11 +28,11 @@ export namespace Color {
     }
 
     export function toRgb(hexColor: Color): [number, number, number] {
-        return [ hexColor >> 16 & 255, hexColor >> 8 & 255, hexColor & 255 ];
+        return [hexColor >> 16 & 255, hexColor >> 8 & 255, hexColor & 255];
     }
 
     export function toRgbNormalized(hexColor: Color): [number, number, number] {
-        return [ (hexColor >> 16 & 255) / 255, (hexColor >> 8 & 255) / 255, (hexColor & 255) / 255 ];
+        return [(hexColor >> 16 & 255) / 255, (hexColor >> 8 & 255) / 255, (hexColor & 255) / 255];
     }
 
     export function fromRgb(r: number, g: number, b: number): Color {

@@ -161,7 +161,7 @@ const QueryMap = {
             })));
             return Queries.filters.first(ligands);
         },
-        jsonParams: [ AtomSiteTestJsonParam ],
+        jsonParams: [AtomSiteTestJsonParam],
         restParams: AtomSiteTestRestParams
     }),
     'atoms': Q<{ atom_site: AtomSiteSchema }>({
@@ -170,7 +170,7 @@ const QueryMap = {
         query: p => {
             return Queries.combinators.merge(getAtomsTests(p.atom_site).map(test => Queries.generators.atoms(test)));
         },
-        jsonParams: [ AtomSiteTestJsonParam ],
+        jsonParams: [AtomSiteTestJsonParam],
         restParams: AtomSiteTestRestParams
     }),
     'symmetryMates': Q<{ radius: number }>({
@@ -180,7 +180,7 @@ const QueryMap = {
         structureTransform(p, s) {
             return StructureSymmetry.builderSymmetryMates(s, p.radius).run();
         },
-        jsonParams: [ RadiusParam ],
+        jsonParams: [RadiusParam],
         filter: QuerySchemas.assembly
     }),
     'assembly': Q<{ name: string }>({
@@ -216,8 +216,8 @@ const QueryMap = {
             if (p.assembly_name) return StructureSymmetry.buildAssembly(s, '' + p.assembly_name).run();
             return StructureSymmetry.builderSymmetryMates(s, p.radius !== void 0 ? p.radius : 5).run();
         },
-        jsonParams: [ AtomSiteTestJsonParam, RadiusParam, AssemblyNameParam ],
-        restParams: [ ...AtomSiteTestRestParams, RadiusParam, AssemblyNameParam ],
+        jsonParams: [AtomSiteTestJsonParam, RadiusParam, AssemblyNameParam],
+        restParams: [...AtomSiteTestRestParams, RadiusParam, AssemblyNameParam],
         filter: QuerySchemas.interaction
     }),
     'residueSurroundings': Q<{ atom_site: AtomSiteSchema, radius: number }>({
@@ -227,8 +227,8 @@ const QueryMap = {
             const center = Queries.combinators.merge(getAtomsTests(p.atom_site).map(test => Queries.generators.atoms(test)));
             return Queries.modifiers.includeSurroundings(center, { radius: p.radius, wholeResidues: true });
         },
-        jsonParams: [ AtomSiteTestJsonParam, RadiusParam ],
-        restParams: [ ...AtomSiteTestRestParams, RadiusParam ],
+        jsonParams: [AtomSiteTestJsonParam, RadiusParam],
+        restParams: [...AtomSiteTestRestParams, RadiusParam],
         filter: QuerySchemas.interaction
     }),
     'surroundingLigands': Q<{ atom_site: AtomSiteSchema, radius: number, assembly_name: string, omit_water: boolean }>({
@@ -248,8 +248,8 @@ const QueryMap = {
             if (p.assembly_name) return StructureSymmetry.buildAssembly(s, '' + p.assembly_name).run();
             return StructureSymmetry.builderSymmetryMates(s, p.radius !== void 0 ? p.radius : 5).run();
         },
-        jsonParams: [ AtomSiteTestJsonParam, RadiusParam, OmitWaterParam, AssemblyNameParam ],
-        restParams: [ ...AtomSiteTestRestParams, RadiusParam, OmitWaterParam, AssemblyNameParam ],
+        jsonParams: [AtomSiteTestJsonParam, RadiusParam, OmitWaterParam, AssemblyNameParam],
+        restParams: [...AtomSiteTestRestParams, RadiusParam, OmitWaterParam, AssemblyNameParam],
         filter: QuerySchemas.interaction
     }),
 };

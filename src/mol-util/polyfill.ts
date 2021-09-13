@@ -54,7 +54,7 @@ if (typeof window.HTMLCanvasElement !== 'undefined' && !window.HTMLCanvasElement
                 a8[ j ] = bin.charCodeAt(j++);
             }
 
-            callback(new window.Blob([ a8 ], { 'type': type || 'image/png' }));
+            callback(new window.Blob([a8], { 'type': type || 'image/png' }));
         }
 
     });
@@ -397,7 +397,7 @@ if (typeof window !== 'undefined') {
         // MIT license
 
         let lastTime = 0;
-        let vendors = [ 'ms', 'moz', 'webkit', 'o' ];
+        let vendors = ['ms', 'moz', 'webkit', 'o'];
 
         for (let x = 0; x < vendors.length && !window.requestAnimationFrame; ++x) {
             window.requestAnimationFrame = (

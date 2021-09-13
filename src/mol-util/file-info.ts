@@ -9,10 +9,10 @@ export type FileInput = File | Blob | string
 
 // TODO only support compressed files for which uncompression support is available???
 // TODO store globally with decompression plugins?
-const compressedExtList = [ 'gz', 'zip' ];
+const compressedExtList = ['gz', 'zip'];
 
 // TODO store globally with parser plugins?
-const binaryExtList = [ 'bcif', 'ccp4', 'dcd' ];
+const binaryExtList = ['bcif', 'ccp4', 'dcd'];
 
 export interface FileInfo {
     path: string

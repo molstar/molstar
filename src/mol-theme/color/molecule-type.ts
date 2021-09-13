@@ -72,7 +72,7 @@ export function MoleculeTypeColorTheme(ctx: ThemeDataContext, props: PD.Values<M
         description: Description,
         legend: TableLegend(Object.keys(MoleculeTypeColors).map(name => {
             return [name, (MoleculeTypeColors as any)[name] as Color] as [string, Color];
-        }).concat([[ 'Other/unknown', DefaultMoleculeTypeColor ]]))
+        }).concat([['Other/unknown', DefaultMoleculeTypeColor]]))
     };
 }
 
