@@ -227,8 +227,8 @@ function getHydrogenBondsOptions(props: HydrogenBondsProps) {
     return {
         ...getGeometryOptions(props),
         includeWater: props.water,
-        maxSulfurDistSq: props.sulfurDistanceMax *  props.sulfurDistanceMax,
-        maxDistSq: props.distanceMax *  props.distanceMax
+        maxSulfurDistSq: props.sulfurDistanceMax * props.sulfurDistanceMax,
+        maxDistSq: props.distanceMax * props.distanceMax
     };
 }
 type HydrogenBondsOptions = ReturnType<typeof getHydrogenBondsOptions>

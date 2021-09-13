@@ -120,7 +120,7 @@ namespace Spacegroup {
      */
     export function getSymmetryOperatorRef(spacegroup: Spacegroup, spgrOp: number, i: number, j: number, k: number, ref: Vec3) {
 
-        const operator =  Mat4.zero();
+        const operator = Mat4.zero();
 
         Vec3.set(_ijkVec, i, j, k);
         Vec3.floor(_translationRef, ref);

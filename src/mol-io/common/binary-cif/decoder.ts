@@ -104,8 +104,8 @@ function runLength(data: Int32Array, encoding: Encoding.RunLength) {
     const output = getIntArray(encoding.srcType, encoding.srcSize);
     let dataOffset = 0;
     for (let i = 0, il = data.length; i < il; i += 2) {
-        const value = data[i];  // value to be repeated
-        const length = data[i + 1];  // number of repeats
+        const value = data[i]; // value to be repeated
+        const length = data[i + 1]; // number of repeats
         for (let j = 0; j < length; ++j) {
             output[dataOffset++] = value;
         }

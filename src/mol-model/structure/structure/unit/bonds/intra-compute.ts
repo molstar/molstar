@@ -61,7 +61,7 @@ function findIndexPairBonds(unit: Unit.Atomic) {
     const orders: number[] = [];
 
     for (let _aI = 0 as StructureElement.UnitIndex; _aI < atomCount; _aI++) {
-        const aI =  atoms[_aI];
+        const aI = atoms[_aI];
         const isHa = type_symbol.value(aI) === 'H';
 
         const srcA = sourceIndex.value(aI);
@@ -118,7 +118,7 @@ function findBonds(unit: Unit.Atomic, props: BondComputationProps): IntraUnitBon
     const structConnAdded = __structConnAdded;
 
     for (let _aI = 0 as StructureElement.UnitIndex; _aI < atomCount; _aI++) {
-        const aI =  atoms[_aI];
+        const aI = atoms[_aI];
 
         const elemA = type_symbol.value(aI);
         if (isWatery && (elemA !== 'H' || elemA !== 'O')) isWatery = false;

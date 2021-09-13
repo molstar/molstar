@@ -103,7 +103,7 @@ class Alignment {
                 Si[j] = Math.max(
                     Si1[j - 1] + scoreFn(i - 1, j - 1), // match
                     Vi[j], // del
-                    Hi[j]  // ins
+                    Hi[j] // ins
                 );
             }
         }

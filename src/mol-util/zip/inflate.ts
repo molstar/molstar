@@ -82,10 +82,10 @@ function inflateBlocks(ctx: InflateContext, count: number) {
             makeCodes(U.itree, tl);
             codes2map(U.itree, tl, U.imap);
 
-            lmap = U.lmap;  dmap = U.dmap;
+            lmap = U.lmap; dmap = U.dmap;
 
             pos = _decodeTiny(U.imap, (1 << tl) - 1, HLIT + HDIST, data, pos, U.ttree);
-            const mx0 = _copyOut(U.ttree,    0, HLIT, U.ltree);
+            const mx0 = _copyOut(U.ttree, 0, HLIT, U.ltree);
             ML = (1 << mx0) - 1;
             const mx1 = _copyOut(U.ttree, HLIT, HDIST, U.dtree);
             MD = (1 << mx1) - 1;
@@ -174,11 +174,11 @@ function _decodeTiny(lmap: NumberArray, LL: number, len: number, data: Uint8Arra
         } else {
             let ll = 0, n = 0;
             if(lit === 16) {
-                n = (3  + _bitsE(data, pos, 2));
+                n = (3 + _bitsE(data, pos, 2));
                 pos += 2;
                 ll = tree[i - 1];
             } else if(lit === 17) {
-                n = (3  + _bitsE(data, pos, 3));
+                n = (3 + _bitsE(data, pos, 3));
                 pos += 3;
             } else if(lit === 18) {
                 n = (11 + _bitsE(data, pos, 7));

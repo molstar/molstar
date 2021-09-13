@@ -69,7 +69,7 @@ export namespace TextBuilder {
                 } else if (attachment.startsWith('middle')) {
                     yShift = bHeight / 2;
                 } else {
-                    yShift = 0;  // "bottom"
+                    yShift = 0; // "bottom"
                 }
                 // horizontal
                 if (attachment.endsWith('right')) {
@@ -77,7 +77,7 @@ export namespace TextBuilder {
                 } else if (attachment.endsWith('center')) {
                     xShift = bWidth / 2;
                 } else {
-                    xShift = 0;  // "left"
+                    xShift = 0; // "left"
                 }
 
                 if (tether) {

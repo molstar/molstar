@@ -67,7 +67,7 @@ namespace Lab {
         x = Xn * lab_xyz(x);
         z = Zn * lab_xyz(z);
 
-        const r = xyz_rgb(3.2404542 * x - 1.5371385 * y - 0.4985314 * z);  // D65 -> sRGB
+        const r = xyz_rgb(3.2404542 * x - 1.5371385 * y - 0.4985314 * z); // D65 -> sRGB
         const g = xyz_rgb(-0.9692660 * x + 1.8760108 * y + 0.0415560 * z);
         const b = xyz_rgb(0.0556434 * x - 0.2040259 * y + 1.0572252 * z);
 
@@ -127,7 +127,7 @@ namespace Lab {
 
     const T0 = 0.137931034; // 4 / 29
     const T1 = 0.206896552; // 6 / 29
-    const T2 = 0.12841855;  // 3 * t1 * t1
+    const T2 = 0.12841855; // 3 * t1 * t1
     const T3 = 0.008856452; // t1 * t1 * t1
 
     /** convert component from xyz to rgb */

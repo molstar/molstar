@@ -58,8 +58,8 @@ const CopySchema = {
     tColor: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
     uTexSize: UniformSpec('v2'),
 };
-const  CopyShaderCode = ShaderCode('copy', quad_vert, copy_frag);
-type  CopyRenderable = ComputeRenderable<Values<typeof CopySchema>>
+const CopyShaderCode = ShaderCode('copy', quad_vert, copy_frag);
+type CopyRenderable = ComputeRenderable<Values<typeof CopySchema>>
 
 function getCopyRenderable(ctx: WebGLContext, colorTexture: Texture): CopyRenderable {
     const values: Values<typeof CopySchema> = {

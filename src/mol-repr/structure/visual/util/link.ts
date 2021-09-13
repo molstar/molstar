@@ -49,7 +49,7 @@ export function calculateShiftDir(out: Vec3, v1: Vec3, v2: Vec3, v3: Vec3 | null
     if (v3 !== null) {
         Vec3.sub(tmpShiftV13, v1, v3);
     } else {
-        Vec3.copy(tmpShiftV13, v1);  // no reference point, use v1
+        Vec3.copy(tmpShiftV13, v1); // no reference point, use v1
     }
     Vec3.normalize(tmpShiftV13, tmpShiftV13);
 

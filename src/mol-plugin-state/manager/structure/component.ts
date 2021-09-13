@@ -111,7 +111,7 @@ class StructureComponentManager extends StatefulPluginComponent<StructureCompone
         }
     }
 
-    applyPreset<P extends StructureRepresentationPresetProvider>(structures: ReadonlyArray<StructureRef>, provider: P, params?: StructureRepresentationPresetProvider.Params<P>): Promise<any>  {
+    applyPreset<P extends StructureRepresentationPresetProvider>(structures: ReadonlyArray<StructureRef>, provider: P, params?: StructureRepresentationPresetProvider.Params<P>): Promise<any> {
         return this.plugin.dataTransaction(async () => {
             for (const s of structures) {
                 const preset = await this.plugin.builders.structure.representation.applyPreset(s.cell, provider, params);
@@ -171,7 +171,7 @@ class StructureComponentManager extends StatefulPluginComponent<StructureCompone
         const mng = this.plugin.managers.structure.selection;
         mng.clear();
         for (const c of components) {
-            const loci =  Structure.toSubStructureElementLoci(c.structure.cell.obj!.data, c.cell.obj?.data!);
+            const loci = Structure.toSubStructureElementLoci(c.structure.cell.obj!.data, c.cell.obj?.data!);
             mng.fromLoci('set', loci);
         }
     }

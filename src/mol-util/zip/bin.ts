@@ -19,7 +19,7 @@ export function readUshort(buff: Uint8Array, p: number) {
 }
 
 export function writeUshort(buff: Uint8Array, p: number, n: number) {
-    buff[p] = (n) & 255;  buff[p + 1] = (n >> 8) & 255;
+    buff[p] = (n) & 255; buff[p + 1] = (n >> 8) & 255;
 }
 
 export function readUint(buff: Uint8Array, p: number) {

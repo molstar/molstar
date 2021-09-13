@@ -105,7 +105,7 @@ export abstract class LigandEncoder implements Encoder<string> {
             if (src.rowCount === 0) continue;
 
             const it = src.keys();
-            while (it.hasNext)  {
+            while (it.hasNext) {
                 const key = it.move();
 
                 const lai = label_atom_id.value(key, data, index) as string;

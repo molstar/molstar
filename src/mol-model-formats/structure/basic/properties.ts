@@ -77,7 +77,7 @@ function getSaccharideComponentMap(data: BasicData): SaccharideComponentMap {
     }
 
     if (data.chem_comp._rowCount > 0) {
-        const { id, type  } = data.chem_comp;
+        const { id, type } = data.chem_comp;
         for (let i = 0, il = id.rowCount; i < il; ++i) {
             const _id = id.value(i);
             if (map.has(_id)) continue;

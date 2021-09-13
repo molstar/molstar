@@ -25,7 +25,7 @@ export function _hufTree(hst: NumberArray, tree: number[], MAXL: number) {
     }
     for(let i = 0; i < hl; i++) if(hst[i] !== 0) list.push({ lit: i, f: hst[i], d: undefined as any });
     const end = list.length, l2 = list.slice(0);
-    if(end === 0) return 0;  // empty histogram (usually for dist)
+    if(end === 0) return 0; // empty histogram (usually for dist)
     if(end === 1) {
         const lit = list[0].lit, l2 = lit === 0 ? 1 : 0;
         tree[(lit << 1) + 1] = 1;

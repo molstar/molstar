@@ -16,7 +16,7 @@ export function getButtons(event: MouseEvent | Touch) {
         if ('buttons' in event) {
             return event.buttons;
         } else if ('which' in event) {
-            const b = (event as any).which;  // 'any' to support older browsers
+            const b = (event as any).which; // 'any' to support older browsers
             if (b === 2) {
                 return 4;
             } else if (b === 3) {
@@ -721,7 +721,7 @@ function normalizeWheel(event: any) {
     const LINE_HEIGHT = 40;
     const PAGE_HEIGHT = 800;
     let spinX = 0, spinY = 0,
-        dx = 0, dy = 0, dz = 0;       // pixelX, pixelY, pixelZ
+        dx = 0, dy = 0, dz = 0; // pixelX, pixelY, pixelZ
 
     // Legacy
     if ('detail' in event) { spinY = event.detail; }
@@ -743,11 +743,11 @@ function normalizeWheel(event: any) {
     if ('deltaZ' in event) { dz = event.deltaZ; }
 
     if ((dx || dy || dz) && event.deltaMode) {
-        if (event.deltaMode === 1) {          // delta in LINE units
+        if (event.deltaMode === 1) { // delta in LINE units
             dx *= LINE_HEIGHT;
             dy *= LINE_HEIGHT;
             dz *= LINE_HEIGHT;
-        } else {                             // delta in PAGE units
+        } else { // delta in PAGE units
             dx *= PAGE_HEIGHT;
             dy *= PAGE_HEIGHT;
             dz *= PAGE_HEIGHT;

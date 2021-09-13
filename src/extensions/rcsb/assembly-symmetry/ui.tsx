@@ -7,7 +7,7 @@
 import { CollapsableState, CollapsableControls } from '../../../mol-plugin-ui/base';
 import { ApplyActionControl } from '../../../mol-plugin-ui/state/apply-action';
 import { InitAssemblySymmetry3D, AssemblySymmetry3D, AssemblySymmetryPreset, tryCreateAssemblySymmetry } from './behavior';
-import { AssemblySymmetryProvider,  AssemblySymmetryProps, AssemblySymmetryDataProvider, AssemblySymmetry } from './prop';
+import { AssemblySymmetryProvider, AssemblySymmetryProps, AssemblySymmetryDataProvider, AssemblySymmetry } from './prop';
 import { ParameterControls } from '../../../mol-plugin-ui/controls/parameters';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { StructureHierarchyManager } from '../../../mol-plugin-state/manager/structure/hierarchy';

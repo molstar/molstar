@@ -183,7 +183,7 @@ export async function calculate(runtime: RuntimeContext, structure: Structure, p
     }
 
     const normalVector = v3zero();
-    const center =  v3zero();
+    const center = v3zero();
     v3sub(normalVector, membrane.planePoint1, membrane.planePoint2);
     v3normalize(normalVector, normalVector);
 
@@ -404,7 +404,7 @@ function membraneSegments(ctx: ANVILContext, membrane: MembraneCandidate): Array
                 }
                 lastAuthSeqId = authSeqId;
                 endOffset = k;
-            } else  {
+            } else {
                 lastAuthSeqId++;
                 endOffset++;
             }

@@ -50,7 +50,8 @@
             "ignoreReadBeforeAssign": false
         }],
         "space-before-function-paren": "off",
-        "func-call-spacing": "off"
+        "func-call-spacing": "off",
+        "no-multi-spaces": "error"
     },
     "overrides": [
         {

@@ -169,8 +169,8 @@ async function parseInternal(data: string, ctx: RuntimeContext): Promise<Result<
     const state = State(tokenizer, ctx);
 
     let title = undefined as string[] | undefined;
-    let atoms = undefined  as PsfFile['atoms'] | undefined;
-    let bonds = undefined  as PsfFile['bonds'] | undefined;
+    let atoms = undefined as PsfFile['atoms'] | undefined;
+    let bonds = undefined as PsfFile['bonds'] | undefined;
 
     const id = readLine(state.tokenizer).trim();
 

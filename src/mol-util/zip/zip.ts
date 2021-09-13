@@ -32,15 +32,15 @@ export async function unzip(runtime: RuntimeContext, buf: ArrayBuffer, onlyNames
 
     // const csize = readUint(data, o);
     o += 4;
-    const coffs = readUint(data, o);  o += 4;
+    const coffs = readUint(data, o); o += 4;
 
     o = coffs;
     for(let i = 0; i < cnu; i++) {
         // const sign = readUint(data, o);
         o += 4;
-        o += 4;  // versions;
-        o += 4;  // flag + compr
-        o += 4;  // time
+        o += 4; // versions;
+        o += 4; // flag + compr
+        o += 4; // time
 
         // const crc32 = readUint(data, o);
         o += 4;
@@ -52,10 +52,10 @@ export async function unzip(runtime: RuntimeContext, buf: ArrayBuffer, onlyNames
         const nl = readUshort(data, o);
         const el = readUshort(data, o + 2);
         const cl = readUshort(data, o + 4);
-        o += 6;  // name, extra, comment
-        o += 8;  // disk, attribs
+        o += 6; // name, extra, comment
+        o += 8; // disk, attribs
 
-        const roff = readUint(data, o);  o += 4;
+        const roff = readUint(data, o); o += 4;
         o += nl + el + cl;
 
         await _readLocal(runtime, data, roff, out, csize, usize, onlyNames);
@@ -72,7 +72,7 @@ async function _readLocal(runtime: RuntimeContext, data: Uint8Array, o: number, 
     // const gpflg = readUshort(data, o);
     o += 2;
     // if((gpflg&8)!=0) throw "unknown sizes";
-    const cmpr  = readUshort(data, o);
+    const cmpr = readUshort(data, o);
     o += 2;
 
     // const time  = readUint(data, o);
@@ -90,7 +90,7 @@ async function _readLocal(runtime: RuntimeContext, data: Uint8Array, o: number, 
     o += 2;
 
     const name = readUTF8(data, o, nlen);
-    o += nlen;  // console.log(name);
+    o += nlen; // console.log(name);
     o += elen;
 
     if(onlyNames) {
@@ -178,7 +178,7 @@ export async function deflate(runtime: RuntimeContext, data: Uint8Array, opts?: 
     if(opts === undefined) opts = { level: 6 };
     let off = 0;
     const buf = new Uint8Array(50 + Math.floor(data.length * 1.1));
-    buf[off] = 120;  buf[off + 1] = 156;  off += 2;
+    buf[off] = 120; buf[off + 1] = 156; off += 2;
     off = await _deflateRaw(runtime, data, buf, off, opts.level);
     const crcValue = adler(data, 0, data.length);
     buf[off + 0] = ((crcValue >>> 24) & 255);
@@ -214,14 +214,14 @@ export async function zip(runtime: RuntimeContext, obj: { [k: string]: Uint8Arra
     }
 
     for(const p in zpd) tot += zpd[p].file.length + 30 + 46 + 2 * sizeUTF8(p);
-    tot +=  22;
+    tot += 22;
 
     const data = new Uint8Array(tot);
     let o = 0;
     const fof = [];
 
     for(const p in zpd) {
-        const file = zpd[p];  fof.push(o);
+        const file = zpd[p]; fof.push(o);
         o = _writeHeader(data, o, p, file, 0);
     }
     let i = 0;
@@ -233,12 +233,12 @@ export async function zip(runtime: RuntimeContext, obj: { [k: string]: Uint8Arra
     }
     const csize = o - ioff;
 
-    writeUint(data, o, 0x06054b50);  o += 4;
-    o += 4;  // disks
-    writeUshort(data, o, i);  o += 2;
-    writeUshort(data, o, i);  o += 2;	// number of c d records
-    writeUint(data, o, csize);  o += 4;
-    writeUint(data, o, ioff);  o += 4;
+    writeUint(data, o, 0x06054b50); o += 4;
+    o += 4; // disks
+    writeUshort(data, o, i); o += 2;
+    writeUshort(data, o, i); o += 2;	// number of c d records
+    writeUint(data, o, csize); o += 4;
+    writeUint(data, o, ioff); o += 4;
     o += 2;
     return data.buffer;
 }
@@ -253,26 +253,26 @@ function _writeHeader(data: Uint8Array, o: number, p: string, obj: { cpr: boolea
     const file = obj.file;
 
     writeUint(data, o, t === 0 ? 0x04034b50 : 0x02014b50); o += 4; // sign
-    if(t === 1) o += 2;  // ver made by
-    writeUshort(data, o, 20);  o += 2;	// ver
-    writeUshort(data, o,  0);  o += 2;    // gflip
-    writeUshort(data, o,  obj.cpr ? 8 : 0);  o += 2;	// cmpr
+    if(t === 1) o += 2; // ver made by
+    writeUshort(data, o, 20); o += 2;	// ver
+    writeUshort(data, o, 0); o += 2; // gflip
+    writeUshort(data, o, obj.cpr ? 8 : 0); o += 2;	// cmpr
 
-    writeUint(data, o,  0);  o += 4;	// time
-    writeUint(data, o, obj.crc);  o += 4;	// crc32
-    writeUint(data, o, file.length);  o += 4;	// csize
-    writeUint(data, o, obj.usize);  o += 4;	// usize
+    writeUint(data, o, 0); o += 4;	// time
+    writeUint(data, o, obj.crc); o += 4;	// crc32
+    writeUint(data, o, file.length); o += 4;	// csize
+    writeUint(data, o, obj.usize); o += 4;	// usize
 
-    writeUshort(data, o, sizeUTF8(p));  o += 2;	// nlen
-    writeUshort(data, o, 0);  o += 2;	// elen
+    writeUshort(data, o, sizeUTF8(p)); o += 2;	// nlen
+    writeUshort(data, o, 0); o += 2;	// elen
 
     if(t === 1) {
-        o += 2;  // comment length
-        o += 2;  // disk number
-        o += 6;  // attributes
-        writeUint(data, o, roff);  o += 4;	// usize
+        o += 2; // comment length
+        o += 2; // disk number
+        o += 6; // attributes
+        writeUint(data, o, roff); o += 4;	// usize
     }
-    const nlen = writeUTF8(data, o, p);  o += nlen;
+    const nlen = writeUTF8(data, o, p); o += nlen;
     if(t === 0) {
         data.set(file, o);
         o += file.length;

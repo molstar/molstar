@@ -51,7 +51,7 @@ M  END`;
 
 describe('mol reader', () => {
     it('basic', async () => {
-        const parsed =  await parseMol(MolString).run();
+        const parsed = await parseMol(MolString).run();
         if (parsed.isError) {
             throw new Error(parsed.message);
         }

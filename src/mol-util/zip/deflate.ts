@@ -45,7 +45,7 @@ function deflateChunk(ctx: DeflateContext, count: number) {
 
     const end = Math.min(i + count, dlen);
 
-    for(; i < end; i++)  {
+    for(; i < end; i++) {
         c = nc;
 
         if(i + 1 < dlen - 2) {
@@ -74,9 +74,9 @@ function deflateChunk(ctx: DeflateContext, count: number) {
 
             if(mch !== 0) {
                 const len = mch >>> 16, dst = mch & 0xffff;
-                const lgi = _goodIndex(len, U.of0);  U.lhst[257 + lgi]++;
-                const dgi = _goodIndex(dst, U.df0);  U.dhst[dgi]++;  ebits += U.exb[lgi] + U.dxb[dgi];
-                lits[li] = (len << 23) | (i - cvrd);  lits[li + 1] = (dst << 16) | (lgi << 8) | dgi;  li += 2;
+                const lgi = _goodIndex(len, U.of0); U.lhst[257 + lgi]++;
+                const dgi = _goodIndex(dst, U.df0); U.dhst[dgi]++; ebits += U.exb[lgi] + U.dxb[dgi];
+                lits[li] = (len << 23) | (i - cvrd); lits[li + 1] = (dst << 16) | (lgi << 8) | dgi; li += 2;
                 cvrd = i + len;
             } else {
                 U.lhst[data[i]]++;
@@ -103,15 +103,15 @@ function deflateChunk(ctx: DeflateContext, count: number) {
  */
 const Opts = [
     /*      good lazy nice chain */
-    /* 0 */ [0,   0,   0,    0, 0], /* store only */
-    /* 1 */ [4,   4,   8,    4, 0], /* max speed, no lazy matches */
-    /* 2 */ [4,   5,  16,    8, 0],
-    /* 3 */ [4,   6,  16,   16, 0],
+    /* 0 */ [0, 0, 0, 0, 0], /* store only */
+    /* 1 */ [4, 4, 8, 4, 0], /* max speed, no lazy matches */
+    /* 2 */ [4, 5, 16, 8, 0],
+    /* 3 */ [4, 6, 16, 16, 0],
 
-    /* 4 */ [4,  10,  16,   32, 0], /* lazy matches */
-    /* 5 */ [8,  16,  32,   32, 0],
-    /* 6 */ [8,  16, 128,  128, 0],
-    /* 7 */ [8,  32, 128,  256, 0],
+    /* 4 */ [4, 10, 16, 32, 0], /* lazy matches */
+    /* 5 */ [8, 16, 32, 32, 0],
+    /* 6 */ [8, 16, 128, 128, 0],
+    /* 7 */ [8, 32, 128, 256, 0],
     /* 8 */ [32, 128, 258, 1024, 1],
     /* 9 */ [32, 258, 258, 4096, 1] /* max compression */
 ] as const;
@@ -164,25 +164,25 @@ function _bestMatch(data: Uint8Array, i: number, prev: Uint16Array, c: number, n
     // console.log("----", i);
     let dif = ((ci - pi + (1 << 15)) & 0x7fff);
     if(pi === ci || c !== _hash(data, i - dif)) return 0;
-    let tl = 0, td = 0;  // top length, top distance
+    let tl = 0, td = 0; // top length, top distance
     const dlim = Math.min(0x7fff, i);
     while(dif <= dlim && --chain !== 0 && pi !== ci /* && c==UZIP.F._hash(data,i-dif)*/) {
         if(tl === 0 || (data[i + tl] === data[i + tl - dif])) {
             let cl = _howLong(data, i, dif);
             if(cl > tl) {
-                tl = cl;  td = dif;  if(tl >= nice) break;    //*
+                tl = cl; td = dif; if(tl >= nice) break; //*
                 if(dif + 2 < cl) cl = dif + 2;
                 let maxd = 0; // pi does not point to the start of the word
                 for(let j = 0; j < cl - 2; j++) {
-                    const ei =  (i - dif + j + (1 << 15)) & 0x7fff;
+                    const ei = (i - dif + j + (1 << 15)) & 0x7fff;
                     const li = prev[ei];
                     const curd = (ei - li + (1 << 15)) & 0x7fff;
-                    if(curd > maxd) {  maxd = curd;  pi = ei; }
+                    if(curd > maxd) { maxd = curd; pi = ei; }
                 }
             }
         }
 
-        ci = pi;  pi = prev[ci];
+        ci = pi; pi = prev[ci];
         dif += ((ci - pi + (1 << 15)) & 0x7fff);
     }
     return (tl << 16) | td;
@@ -233,17 +233,17 @@ function _writeBlock(BFINAL: number, lits: Uint32Array, li: number, ebits: numbe
     } else {
         let ltree: number[], dtree: number[];
         if(BTYPE === 1) {
-            ltree = U.fltree;  dtree = U.fdtree;
+            ltree = U.fltree; dtree = U.fdtree;
         } else if(BTYPE === 2) {
-            makeCodes(U.ltree, ML);  revCodes(U.ltree, ML);
-            makeCodes(U.dtree, MD);  revCodes(U.dtree, MD);
-            makeCodes(U.itree, MH);  revCodes(U.itree, MH);
+            makeCodes(U.ltree, ML); revCodes(U.ltree, ML);
+            makeCodes(U.dtree, MD); revCodes(U.dtree, MD);
+            makeCodes(U.itree, MH); revCodes(U.itree, MH);
 
-            ltree = U.ltree;  dtree = U.dtree;
+            ltree = U.ltree; dtree = U.dtree;
 
-            _putsE(out, pos, numl - 257);  pos += 5;  // 286
-            _putsE(out, pos, numd -  1);  pos += 5;  // 30
-            _putsE(out, pos, numh -  4);  pos += 4;  // 19
+            _putsE(out, pos, numl - 257); pos += 5; // 286
+            _putsE(out, pos, numd - 1); pos += 5; // 30
+            _putsE(out, pos, numh - 4); pos += 4; // 19
 
             for(let i = 0; i < numh; i++) _putsE(out, pos + i * 3, U.itree[(U.ordr[i] << 1) + 1]);
             pos += 3 * numh;
@@ -261,10 +261,10 @@ function _writeBlock(BFINAL: number, lits: Uint32Array, li: number, ebits: numbe
             if(len !== 0) {
                 const qc = lits[si + 1], dst = (qc >> 16), lgi = (qc >> 8) & 255, dgi = (qc & 255);
                 pos = _writeLit(257 + lgi, ltree, out, pos);
-                _putsE(out, pos, len - U.of0[lgi]);  pos += U.exb[lgi];
+                _putsE(out, pos, len - U.of0[lgi]); pos += U.exb[lgi];
 
                 pos = _writeLit(dgi, dtree, out, pos);
-                _putsF(out, pos, dst - U.df0[dgi]);  pos += U.dxb[dgi];  off += len;
+                _putsF(out, pos, dst - U.df0[dgi]); pos += U.dxb[dgi]; off += len;
             }
         }
         pos = _writeLit(256, ltree, out, pos);
@@ -300,7 +300,7 @@ function getTrees() {
     const numd = _lenCodes(U.dtree, dset);
     for(let i = 0; i < lset.length; i += 2) U.ihst[lset[i]]++;
     for(let i = 0; i < dset.length; i += 2) U.ihst[dset[i]]++;
-    const MH = _hufTree(U.ihst, U.itree,  7);
+    const MH = _hufTree(U.ihst, U.itree, 7);
     let numh = 19;
     while(numh > 4 && U.itree[(U.ordr[numh - 1] << 1) + 1] === 0) numh--;
     return [ML, MD, MH, numl, numd, numh, lset, dset] as const;
@@ -314,7 +314,7 @@ function contSize(tree: number[], hst: NumberArray) {
 
 function _codeTiny(set: number[], tree: number[], out: Uint8Array, pos: number) {
     for(let i = 0; i < set.length; i += 2) {
-        const l = set[i], rst = set[i + 1];  // console.log(l, pos, tree[(l<<1)+1]);
+        const l = set[i], rst = set[i + 1]; // console.log(l, pos, tree[(l<<1)+1]);
         pos = _writeLit(l, tree, out, pos);
         const rsl = l === 16 ? 2 : (l === 17 ? 3 : 7);
         if(l > 15) {
@@ -328,9 +328,9 @@ function _codeTiny(set: number[], tree: number[], out: Uint8Array, pos: number) 
 
 function _lenCodes(tree: number[], set: number[]) {
     let len = tree.length;
-    while(len !== 2 && tree[len - 1] === 0) len -= 2;  // when no distances, keep one code with length 0
+    while(len !== 2 && tree[len - 1] === 0) len -= 2; // when no distances, keep one code with length 0
     for(let i = 0; i < len; i += 2) {
-        const l = tree[i + 1], nxt = (i + 3 < len ? tree[i + 3] : -1),  nnxt = (i + 5 < len ? tree[i + 5] : -1),  prv = (i === 0 ? -1 : tree[i - 1]);
+        const l = tree[i + 1], nxt = (i + 3 < len ? tree[i + 3] : -1), nnxt = (i + 5 < len ? tree[i + 5] : -1), prv = (i === 0 ? -1 : tree[i - 1]);
         if(l === 0 && nxt === l && nnxt === l) {
             let lz = i + 5;
             while(lz + 2 < len && tree[lz + 2] === l) lz += 2;

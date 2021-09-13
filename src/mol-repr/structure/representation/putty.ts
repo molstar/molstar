@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { PolymerTubeVisual,  PolymerTubeParams } from '../visual/polymer-tube-mesh';
+import { PolymerTubeVisual, PolymerTubeParams } from '../visual/polymer-tube-mesh';
 import { PolymerGapVisual, PolymerGapParams } from '../visual/polymer-gap-cylinder';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { UnitsRepresentation } from '../units-representation';

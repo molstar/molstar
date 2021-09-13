@@ -32,7 +32,7 @@ export const VdWLookup = [
     1.85, // 6: S
     1.80, // 7: C (nucleic)
     1.60, // 8: N (nucleic)
-    1.40  // 9: P (nucleic)
+    1.40 // 9: P (nucleic)
 ]; // can still be appended on-the-fly for rare elements like selenium
 
 /** Maximum accessible surface area observed for amino acids. Taken from: http://dx.doi.org/10.1371/journal.pone.0080635 */

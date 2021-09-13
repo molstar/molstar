@@ -186,7 +186,7 @@ function getGrouping(vertex: PlyTable, props: PD.Values<PlyShapeParams>): Groupi
     const maxId = column ? arrayMax(ids) : rowCount - 1; // assumes uint ids
     const map = new Uint32Array(maxId + 1);
     for (let i = 0, il = ids.length; i < il; ++i) map[ids[i]] = i;
-    return { ids, map, label  };
+    return { ids, map, label };
 }
 
 type Coloring = { kind: 'vertex' | 'material' | 'uniform', red: Column<number>, green: Column<number>, blue: Column<number> }

@@ -25,7 +25,7 @@ export function is(xs: any): xs is Nums { return xs && (Array.isArray(xs) || !!x
 export function isRange(xs: Nums) { return xs[xs.length - 1] - xs[0] + 1 === xs.length; }
 
 export function start(xs: Nums) { return xs[0]; }
-export function end(xs: Nums) { return xs[xs.length - 1] + 1;  }
+export function end(xs: Nums) { return xs[xs.length - 1] + 1; }
 export function min(xs: Nums) { return xs[0]; }
 export function max(xs: Nums) { return xs[xs.length - 1]; }
 export function size(xs: Nums) { return xs.length; }

@@ -966,7 +966,7 @@ function createObject(ctx: UpdateContext, cell: StateObjectCell, transformer: St
     return runTask(transformer.definition.apply({ a, params, cache: cell.cache, spine: ctx.spine, dependencies: resolveDependencies(cell) }, ctx.parent.globalContext), ctx.taskCtx);
 }
 
-async function updateObject(ctx: UpdateContext, cell: StateObjectCell,  transformer: StateTransformer, a: StateObject, b: StateObject, oldParams: any, newParams: any) {
+async function updateObject(ctx: UpdateContext, cell: StateObjectCell, transformer: StateTransformer, a: StateObject, b: StateObject, oldParams: any, newParams: any) {
     if (!transformer.definition.update) {
         return StateTransformer.UpdateResult.Recreate;
     }

@@ -166,7 +166,7 @@ function flattenFrame(frame: Data.CifFrame): FlatFrame {
     const flatFrame = Object.create(null);
     for (const c of Object.keys(frame.categories)) {
         for (const f of frame.categories[c].fieldNames) {
-            const p =  FieldPath.create(c, f, true);
+            const p = FieldPath.create(c, f, true);
             flatFrame[p] = frame.categories[c].getField(f);
         }
     }

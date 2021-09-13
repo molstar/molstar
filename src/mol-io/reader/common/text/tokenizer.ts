@@ -185,7 +185,7 @@ namespace Tokenizer {
     export function eatValue(state: Tokenizer) {
         while (state.position < state.length) {
             switch (state.data.charCodeAt(state.position)) {
-                case 9:  // \t
+                case 9: // \t
                 case 10: // \n
                 case 13: // \r
                 case 32: // ' '

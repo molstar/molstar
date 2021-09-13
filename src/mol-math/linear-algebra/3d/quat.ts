@@ -193,8 +193,8 @@ namespace Quat {
         // calculate coefficients
         if ((1.0 - cosom) > 0.000001) {
             // standard case (slerp)
-            omega  = Math.acos(cosom);
-            sinom  = Math.sin(omega);
+            omega = Math.acos(cosom);
+            sinom = Math.sin(omega);
             scale0 = Math.sin((1.0 - t) * omega) / sinom;
             scale1 = Math.sin(t * omega) / sinom;
         } else {
@@ -252,9 +252,9 @@ namespace Quat {
 
         if (fTrace > 0.0) {
             // |w| > 1/2, may as well choose w > 1/2
-            fRoot = Math.sqrt(fTrace + 1.0);  // 2w
+            fRoot = Math.sqrt(fTrace + 1.0); // 2w
             out[3] = 0.5 * fRoot;
-            fRoot = 0.5 / fRoot;  // 1/(4w)
+            fRoot = 0.5 / fRoot; // 1/(4w)
             out[0] = (m[5] - m[7]) * fRoot;
             out[1] = (m[6] - m[2]) * fRoot;
             out[2] = (m[1] - m[3]) * fRoot;

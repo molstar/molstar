@@ -38,12 +38,12 @@ export const ResidueNameColors = ColorMap({
     'VAL': 0xFF8CFF,
 
     // rna bases
-    'A': 0xDC143C,  // Crimson Red
-    'G': 0x32CD32,  // Lime Green
-    'I': 0x9ACD32,  // Yellow Green
-    'C': 0xFFD700,  // Gold Yellow
-    'T': 0x4169E1,  // Royal Blue
-    'U': 0x40E0D0,  // Turquoise Cyan
+    'A': 0xDC143C, // Crimson Red
+    'G': 0x32CD32, // Lime Green
+    'I': 0x9ACD32, // Yellow Green
+    'C': 0xFFD700, // Gold Yellow
+    'T': 0x4169E1, // Royal Blue
+    'U': 0x40E0D0, // Turquoise Cyan
 
     // dna bases
     'DA': 0xDC143C,

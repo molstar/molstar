@@ -111,7 +111,7 @@ function GetSmoothNormals(points: Vec3[]) {
     let p1 = points[1];
     let p2 = points[2];
     const p21 = Vec3.sub(tmpV1, p2, p1);
-    const p01 =  Vec3.sub(tmpV2, p0, p1);
+    const p01 = Vec3.sub(tmpV2, p0, p1);
     const p0121 = Vec3.cross(tmpV3, p01, p21);
     Vec3.normalize(prevV, p0121);
     smoothNormals.push(Vec3.clone(prevV));
@@ -179,7 +179,7 @@ function GetMiniFrame(points: Vec3[], normals: Vec3[]) {
         const v1t = Vec3.scale(mfTmpV5, v1, (2.0 / c1) * Vec3.dot(v1, frames[i].t));
         const tan_L_i = Vec3.sub(mfTmpV6, frames[i].t, v1t);
         // # compute reflection vector of R_2
-        const v2 =  Vec3.sub(mfTmpV7, t2, tan_L_i);
+        const v2 = Vec3.sub(mfTmpV7, t2, tan_L_i);
         const c2 = Vec3.dot(v2, v2);
         // compute r_(i+1) = R_2 * r_i^L
         const v2l = Vec3.scale(mfTmpV8, v1, (2.0 / c2) * Vec3.dot(v2, ref_L_i));

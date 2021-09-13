@@ -137,7 +137,7 @@ const empty = StructureRepresentationPresetProvider({
     id: 'preset-structure-representation-empty',
     display: { name: 'Empty', description: 'Removes all existing representations.' },
     async apply(ref, params, plugin) {
-        return {  };
+        return { };
     }
 });
 

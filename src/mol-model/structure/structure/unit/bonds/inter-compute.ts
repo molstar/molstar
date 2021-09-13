@@ -139,7 +139,7 @@ function findPairBonds(unitA: Unit.Atomic, unitB: Unit.Atomic, props: BondComput
             // TODO: is this condition good enough?
             // - It works for cases like 3WQJ (label_asym_id: I) which have partial occupancy.
             // - Does NOT work for cases like 1RB8 (DC 7) with full occupancy.
-            if (hasOccupancy && occupancyB.value(bI) < 1 && occA < 1)  {
+            if (hasOccupancy && occupancyB.value(bI) < 1 && occA < 1) {
                 if (auth_seq_idA.value(aI) === auth_seq_idB.value(bI)) {
                     continue;
                 }

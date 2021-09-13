@@ -14,16 +14,16 @@ export const U = (function (){
         bl_count: new u16(16),
         ordr: [16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15],
         of0: [3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 15, 17, 19, 23, 27, 31, 35, 43, 51, 59, 67, 83, 99, 115, 131, 163, 195, 227, 258, 999, 999, 999],
-        exb: [0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4,  4,  5,  5,  5,  5,  0,  0,  0,  0],
+        exb: [0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 0, 0, 0, 0],
         ldef: new u16(32),
         df0: [1, 2, 3, 4, 5, 7, 9, 13, 17, 25, 33, 49, 65, 97, 129, 193, 257, 385, 513, 769, 1025, 1537, 2049, 3073, 4097, 6145, 8193, 12289, 16385, 24577, 65535, 65535],
-        dxb: [0, 0, 0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5,  6,  6,  7,  7,  8,  8,   9,   9,  10,  10,  11,  11,  12,   12,   13,   13,     0,     0],
+        dxb: [0, 0, 0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9, 10, 10, 11, 11, 12, 12, 13, 13, 0, 0],
         ddef: new u32(32),
-        flmap: new u16(512),  fltree: [] as number[],
-        fdmap: new u16(32),  fdtree: [] as number[],
-        lmap: new u16(32768),  ltree: [] as number[],  ttree: [] as number[],
-        dmap: new u16(32768),  dtree: [] as number[],
-        imap: new u16(512),  itree: [] as number[],
+        flmap: new u16(512), fltree: [] as number[],
+        fdmap: new u16(32), fdtree: [] as number[],
+        lmap: new u16(32768), ltree: [] as number[], ttree: [] as number[],
+        dmap: new u16(32768), dtree: [] as number[],
+        imap: new u16(512), itree: [] as number[],
         // rev9 : new u16(  512)
         rev15: new u16(1 << 15),
         lhst: new u32(286), dhst: new u32(30), ihst: new u32(19),
@@ -74,7 +74,7 @@ export const U = (function (){
     codes2map(U.fdtree, 5, U.fdmap);
     revCodes(U.fdtree, 5);
 
-    pushV(U.itree, 19, 0);  pushV(U.ltree, 286, 0);  pushV(U.dtree, 30, 0);  pushV(U.ttree, 320, 0);
+    pushV(U.itree, 19, 0); pushV(U.ltree, 286, 0); pushV(U.dtree, 30, 0); pushV(U.ttree, 320, 0);
     /*
     for(var i=0; i< 19; i++) U.itree.push(0,0);
     for(var i=0; i<286; i++) U.ltree.push(0,0);
@@ -87,7 +87,7 @@ export function codes2map(tree: number[], MAX_BITS: number, map: Uint16Array) {
     const max_code = tree.length;
     const r15 = U.rev15;
     for(let i = 0; i < max_code; i += 2) {
-        if(tree[i + 1] !== 0)  {
+        if(tree[i + 1] !== 0) {
             const lit = i >> 1;
             const cl = tree[i + 1], val = (lit << 4) | cl; // :  (0x8000 | (U.of0[lit-257]<<7) | (U.exb[lit-257]<<4) | cl);
             const rest = (MAX_BITS - cl);
@@ -96,13 +96,13 @@ export function codes2map(tree: number[], MAX_BITS: number, map: Uint16Array) {
             // tree[i]=r15[i0]>>>(15-MAX_BITS);
             while(i0 !== i1) {
                 const p0 = r15[i0] >>> (15 - MAX_BITS);
-                map[p0] = val;  i0++;
+                map[p0] = val; i0++;
             }
         }
     }
 }
 
-export function makeCodes(tree: number[], MAX_BITS: number) {  // code, length
+export function makeCodes(tree: number[], MAX_BITS: number) { // code, length
     const max_code = tree.length;
 
     const bl_count = U.bl_count;

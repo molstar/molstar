@@ -161,7 +161,7 @@ function writeCifLoop(category: Category, instance: Category.Instance, source: C
         if (src.rowCount === 0) continue;
 
         const it = src.keys();
-        while (it.hasNext)  {
+        while (it.hasNext) {
             const key = it.move();
 
             let multiline = false;

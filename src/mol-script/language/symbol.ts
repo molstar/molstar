@@ -7,7 +7,7 @@
 import { Type } from './type';
 import { Expression } from './expression';
 
-export type Argument<T extends Type = Type>  = {
+export type Argument<T extends Type = Type> = {
     type: T,
     isOptional: boolean,
     isRest: boolean,
@@ -31,7 +31,7 @@ export namespace Arguments {
         map: { [P in keyof T]: Argument<T[P]> },
         '@type': T
     }
-    export type PropTypes<Map extends { [key: string]: Argument<any>  }> = { [P in keyof Map]: Map[P]['type']['@type'] }
+    export type PropTypes<Map extends { [key: string]: Argument<any> }> = { [P in keyof Map]: Map[P]['type']['@type'] }
     export function Dictionary<Map extends { [key: string]: Argument<any> }>(map: Map): Arguments<PropTypes<Map>> {
         return { kind: 'dictionary', map, '@type': 0 as any };
     }
