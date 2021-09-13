@@ -25,8 +25,8 @@ import { Viewport } from '../camera/util';
 import { isDebugMode } from '../../mol-util/debug';
 
 export const SmaaParams = {
-    edgeThreshold:PD.Numeric(0.1, { min: 0.05, max: 0.15, step: 0.01 }),
-    maxSearchSteps:PD.Numeric(16, { min: 0, max: 32, step: 1 }),
+    edgeThreshold: PD.Numeric(0.1, { min: 0.05, max: 0.15, step: 0.01 }),
+    maxSearchSteps: PD.Numeric(16, { min: 0, max: 32, step: 1 }),
 };
 export type SmaaProps = PD.Values<typeof SmaaParams>
 

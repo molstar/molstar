@@ -41,7 +41,7 @@ function getSymmetry(db: CifCore_Database): Symmetry {
 
     return {
         spacegroup: Spacegroup.create(spaceCell),
-        assemblies : [],
+        assemblies: [],
         isNonStandardCrystalFrame: false,
         ncsOperators: []
     };

@@ -39,7 +39,8 @@
                 "message": "Default exports are not allowed"
             }
         ],
-        "no-throw-literal": "error"
+        "no-throw-literal": "error",
+        "key-spacing": "error"
     },
     "overrides": [
         {

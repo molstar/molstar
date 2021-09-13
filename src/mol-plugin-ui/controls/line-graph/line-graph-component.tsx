@@ -30,7 +30,7 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
         super(props);
         this.myRef = React.createRef();
         this.state = {
-            points:[
+            points: [
                 Vec2.create(0, 0),
                 Vec2.create(1, 0)
             ],
