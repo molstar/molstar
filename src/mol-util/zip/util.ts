@@ -35,7 +35,7 @@ export const U = (function (){
 
 (function (){
     const len = 1 << 15;
-    for(let i = 0; i < len; i++) {
+    for (let i = 0; i < len; i++) {
         let x = i;
         x = (((x & 0xaaaaaaaa) >>> 1) | ((x & 0x55555555) << 1));
         x = (((x & 0xcccccccc) >>> 2) | ((x & 0x33333333) << 2));
@@ -45,10 +45,10 @@ export const U = (function (){
     }
 
     function pushV(tgt: number[], n: number, sv: number) {
-        while(n-- !== 0) tgt.push(0, sv);
+        while (n-- !== 0) tgt.push(0, sv);
     }
 
-    for(let i = 0; i < 32; i++) {
+    for (let i = 0; i < 32; i++) {
         U.ldef[i] = (U.of0[i] << 3) | U.exb[i];
         U.ddef[i] = (U.df0[i] << 4) | U.dxb[i];
     }
@@ -86,15 +86,15 @@ export const U = (function (){
 export function codes2map(tree: number[], MAX_BITS: number, map: Uint16Array) {
     const max_code = tree.length;
     const r15 = U.rev15;
-    for(let i = 0; i < max_code; i += 2) {
-        if(tree[i + 1] !== 0) {
+    for (let i = 0; i < max_code; i += 2) {
+        if (tree[i + 1] !== 0) {
             const lit = i >> 1;
             const cl = tree[i + 1], val = (lit << 4) | cl; // :  (0x8000 | (U.of0[lit-257]<<7) | (U.exb[lit-257]<<4) | cl);
             const rest = (MAX_BITS - cl);
             let i0 = tree[i] << rest;
             const i1 = i0 + (1 << rest);
             // tree[i]=r15[i0]>>>(15-MAX_BITS);
-            while(i0 !== i1) {
+            while (i0 !== i1) {
                 const p0 = r15[i0] >>> (15 - MAX_BITS);
                 map[p0] = val; i0++;
             }
@@ -106,8 +106,8 @@ export function makeCodes(tree: number[], MAX_BITS: number) { // code, length
     const max_code = tree.length;
 
     const bl_count = U.bl_count;
-    for(let i = 0; i <= MAX_BITS; i++) bl_count[i] = 0;
-    for(let i = 1; i < max_code; i += 2) bl_count[tree[i]]++;
+    for (let i = 0; i <= MAX_BITS; i++) bl_count[i] = 0;
+    for (let i = 1; i < max_code; i += 2) bl_count[tree[i]]++;
 
     const next_code = U.next_code;	// smallest code for each length
 
@@ -129,7 +129,7 @@ export function makeCodes(tree: number[], MAX_BITS: number) { // code, length
 
 export function revCodes(tree: number[], MAX_BITS: number) {
     const r15 = U.rev15, imb = 15 - MAX_BITS;
-    for(let i = 0; i < tree.length; i += 2) {
+    for (let i = 0; i < tree.length; i += 2) {
         const i0 = (tree[i] << (MAX_BITS - tree[i + 1]));
         tree[i] = r15[i0] >>> imb;
     }

@@ -58,7 +58,7 @@ export const BestDatabaseSequenceMapping = PluginBehavior.create<{ autoAttach: b
 //
 
 function bestDatabaseSequenceMappingLabel(loci: Loci): string | undefined {
-    if(loci.kind === 'element-loci') {
+    if (loci.kind === 'element-loci') {
         if (loci.elements.length === 0) return;
 
         const e = loci.elements[0];

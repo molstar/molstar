@@ -35,9 +35,9 @@ export function adler(data: Uint8Array, o: number, len: number) {
     let a = 1, b = 0;
     let off = o;
     const end = o + len;
-    while(off < end) {
+    while (off < end) {
         const eend = Math.min(off + 5552, end);
-        while(off < eend) {
+        while (off < eend) {
             a += data[off++];
             b += a;
         }

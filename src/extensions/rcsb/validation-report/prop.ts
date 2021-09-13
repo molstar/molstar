@@ -112,7 +112,7 @@ namespace ValidationReport {
     }
 
     export async function obtain(ctx: CustomProperty.Context, model: Model, props: ValidationReportProps): Promise<CustomProperty.Data<ValidationReport>> {
-        switch(props.source.name) {
+        switch (props.source.name) {
             case 'file': return open(ctx, model, props.source.params);
             case 'server': return fetch(ctx, model, props.source.params);
         }

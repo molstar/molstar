@@ -100,7 +100,7 @@ export function makeInterBondIgnoreTest(structure: Structure, props: BondProps):
             const b = edges[edgeIndex];
             const uA = structure.unitMap.get(b.unitA);
             const uB = structure.unitMap.get(b.unitB);
-            if(isHydrogen(uA, uA.elements[b.indexA]) || isHydrogen(uB, uB.elements[b.indexB])) return true;
+            if (isHydrogen(uA, uA.elements[b.indexA]) || isHydrogen(uB, uB.elements[b.indexB])) return true;
         }
 
         if (!allBondTypes) {

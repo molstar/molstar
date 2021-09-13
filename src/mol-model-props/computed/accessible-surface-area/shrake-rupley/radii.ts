@@ -94,7 +94,7 @@ function determineRadiusAmino(atomId: string, element: ElementSymbol, compId: st
             return atomId === 'NZ' ? 4 : 3;
         case 'C':
             switch (atomId) {
-                case 'C': case 'CE1': case'CE2': case 'CE3': case 'CH2': case 'CZ': case 'CZ2': case 'CZ3':
+                case 'C': case 'CE1': case 'CE2': case 'CE3': case 'CH2': case 'CZ': case 'CZ2': case 'CZ3':
                     return 1;
                 case 'CA': case 'CB': case 'CE': case 'CG1': case 'CG2':
                     return 2;

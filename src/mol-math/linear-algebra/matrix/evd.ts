@@ -19,9 +19,9 @@ export namespace EVD {
         return {
             size,
             matrix: Matrix.create(size, size),
-            eigenValues: <any>new Float64Array(size),
-            D: <any>new Float64Array(size),
-            E: <any>new Float64Array(size)
+            eigenValues: <any> new Float64Array(size),
+            D: <any> new Float64Array(size),
+            E: <any> new Float64Array(size)
         };
     }
 

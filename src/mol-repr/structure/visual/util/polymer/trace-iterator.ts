@@ -289,7 +289,7 @@ export class AtomicPolymerTraceIterator implements Iterator<PolymerTraceElement>
                         Vec3.copy(this.p0, this.p3);
                         Vec3.copy(this.p1, this.p3);
                         Vec3.copy(this.p2, this.p3);
-                    } else if(isHelixPrev1) {
+                    } else if (isHelixPrev1) {
                         Vec3.scale(tmpDir, Vec3.sub(tmpDir, this.p2, this.p3), 2);
                         Vec3.add(this.p2, this.p3, tmpDir);
                         Vec3.add(this.p1, this.p2, tmpDir);
@@ -299,7 +299,7 @@ export class AtomicPolymerTraceIterator implements Iterator<PolymerTraceElement>
                     if (isHelix) {
                         Vec3.copy(this.p0, this.p2);
                         Vec3.copy(this.p1, this.p2);
-                    } else if(isHelixPrev2) {
+                    } else if (isHelixPrev2) {
                         Vec3.scale(tmpDir, Vec3.sub(tmpDir, this.p1, this.p2), 2);
                         Vec3.add(this.p1, this.p2, tmpDir);
                         Vec3.add(this.p0, this.p1, tmpDir);
@@ -307,7 +307,7 @@ export class AtomicPolymerTraceIterator implements Iterator<PolymerTraceElement>
                 } else if (isHelix !== isHelixPrev3) {
                     if (isHelix) {
                         Vec3.copy(this.p0, this.p1);
-                    } else if(isHelixPrev3) {
+                    } else if (isHelixPrev3) {
                         Vec3.scale(tmpDir, Vec3.sub(tmpDir, this.p0, this.p1), 2);
                         Vec3.add(this.p0, this.p1, tmpDir);
                     }
@@ -318,7 +318,7 @@ export class AtomicPolymerTraceIterator implements Iterator<PolymerTraceElement>
                         Vec3.copy(this.p4, this.p3);
                         Vec3.copy(this.p5, this.p3);
                         Vec3.copy(this.p6, this.p3);
-                    } else if(isHelixNext1) {
+                    } else if (isHelixNext1) {
                         Vec3.scale(tmpDir, Vec3.sub(tmpDir, this.p4, this.p3), 2);
                         Vec3.add(this.p4, this.p3, tmpDir);
                         Vec3.add(this.p5, this.p4, tmpDir);
@@ -328,7 +328,7 @@ export class AtomicPolymerTraceIterator implements Iterator<PolymerTraceElement>
                     if (isHelix) {
                         Vec3.copy(this.p5, this.p4);
                         Vec3.copy(this.p6, this.p4);
-                    } else if(isHelixNext2) {
+                    } else if (isHelixNext2) {
                         Vec3.scale(tmpDir, Vec3.sub(tmpDir, this.p5, this.p4), 2);
                         Vec3.add(this.p5, this.p4, tmpDir);
                         Vec3.add(this.p6, this.p5, tmpDir);
@@ -336,7 +336,7 @@ export class AtomicPolymerTraceIterator implements Iterator<PolymerTraceElement>
                 } else if (isHelix !== isHelixNext3) {
                     if (isHelix) {
                         Vec3.copy(this.p6, this.p5);
-                    } else if(isHelixNext3) {
+                    } else if (isHelixNext3) {
                         Vec3.scale(tmpDir, Vec3.sub(tmpDir, this.p6, this.p5), 2);
                         Vec3.add(this.p6, this.p5, tmpDir);
                     }

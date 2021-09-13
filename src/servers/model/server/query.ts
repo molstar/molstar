@@ -166,7 +166,7 @@ async function resolveMultiFile(job: Job) {
             encoder.startDataBlock(structure.cifFrame.header);
             hasDataBlock = true;
             await resolveJobEntry(entry, structure, encoder);
-        } catch(e) {
+        } catch (e) {
             if (!hasDataBlock) {
                 header = createErrorDataBlock(entry, encoder);
             }

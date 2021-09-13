@@ -217,7 +217,7 @@ export function ShapeRepresentation<D, G extends Geometry, P extends Geometry.Pa
             Representation.updateState(_state, state);
         },
         setTheme(theme: Theme) {
-            if(isDebugMode) {
+            if (isDebugMode) {
                 console.warn('The `ShapeRepresentation` theme is fixed to `ShapeGroupColorTheme` and `ShapeGroupSizeTheme`. Colors are taken from `Shape.getColor` and sizes from `Shape.getSize`');
             }
         },

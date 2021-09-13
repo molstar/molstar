@@ -52,7 +52,8 @@
         "space-before-function-paren": "off",
         "func-call-spacing": "off",
         "no-multi-spaces": "error",
-        "block-spacing": "error"
+        "block-spacing": "error",
+        "keyword-spacing": "off"
     },
     "overrides": [
         {
@@ -109,7 +110,8 @@
                     "named": "never",
                     "asyncArrow": "always"
                 }],
-                "@typescript-eslint/func-call-spacing": ["error"]
+                "@typescript-eslint/func-call-spacing": ["error"],
+                "@typescript-eslint/keyword-spacing": ["error"]
             }
         }
     ]

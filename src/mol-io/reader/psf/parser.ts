@@ -174,7 +174,7 @@ async function parseInternal(data: string, ctx: RuntimeContext): Promise<Result<
 
     const id = readLine(state.tokenizer).trim();
 
-    while(tokenizer.tokenEnd < tokenizer.length) {
+    while (tokenizer.tokenEnd < tokenizer.length) {
         const line = readLine(state.tokenizer).trim();
         if (line.includes('!NTITLE')) {
             const numTitle = parseInt(line.split(reWhitespace)[0]);

@@ -35,7 +35,7 @@ export function writeUint(buff: Uint8Array, p: number, n: number) {
 
 function readASCII(buff: Uint8Array, p: number, l: number){
     let s = '';
-    for(let i = 0; i < l; i++) s += String.fromCharCode(buff[p + i]);
+    for (let i = 0; i < l; i++) s += String.fromCharCode(buff[p + i]);
     return s;
 }
 
@@ -49,10 +49,10 @@ function pad(n: string) {
 
 export function readUTF8(buff: Uint8Array, p: number, l: number) {
     let s = '', ns;
-    for(let i = 0; i < l; i++) s += '%' + pad(buff[p + i].toString(16));
+    for (let i = 0; i < l; i++) s += '%' + pad(buff[p + i].toString(16));
     try {
         ns = decodeURIComponent(s);
-    } catch(e) {
+    } catch (e) {
         return readASCII(buff, p, l);
     }
     return ns;
@@ -61,21 +61,21 @@ export function readUTF8(buff: Uint8Array, p: number, l: number) {
 export function writeUTF8(buff: Uint8Array, p: number, str: string) {
     const strl = str.length;
     let i = 0;
-    for(let ci = 0; ci < strl; ci++) {
+    for (let ci = 0; ci < strl; ci++) {
         const code = str.charCodeAt(ci);
-        if((code & (0xffffffff - (1 << 7) + 1)) === 0) {
+        if ((code & (0xffffffff - (1 << 7) + 1)) === 0) {
             buff[p + i] = (code);
             i++;
-        } else if((code & (0xffffffff - (1 << 11) + 1)) === 0) {
+        } else if ((code & (0xffffffff - (1 << 11) + 1)) === 0) {
             buff[p + i] = (192 | (code >> 6));
             buff[p + i + 1] = (128 | ((code >> 0) & 63));
             i += 2;
-        } else if((code & (0xffffffff - (1 << 16) + 1)) === 0) {
+        } else if ((code & (0xffffffff - (1 << 16) + 1)) === 0) {
             buff[p + i] = (224 | (code >> 12));
             buff[p + i + 1] = (128 | ((code >> 6) & 63));
             buff[p + i + 2] = (128 | ((code >> 0) & 63));
             i += 3;
-        } else if((code & (0xffffffff - (1 << 21) + 1)) === 0) {
+        } else if ((code & (0xffffffff - (1 << 21) + 1)) === 0) {
             buff[p + i] = (240 | (code >> 18));
             buff[p + i + 1] = (128 | ((code >> 12) & 63));
             buff[p + i + 2] = (128 | ((code >> 6) & 63));
@@ -89,15 +89,15 @@ export function writeUTF8(buff: Uint8Array, p: number, str: string) {
 export function sizeUTF8(str: string) {
     const strl = str.length;
     let i = 0;
-    for(let ci = 0; ci < strl; ci++) {
+    for (let ci = 0; ci < strl; ci++) {
         const code = str.charCodeAt(ci);
         if ((code & (0xffffffff - (1 << 7) + 1)) === 0) {
             i++ ;
-        } else if((code & (0xffffffff - (1 << 11) + 1)) === 0) {
+        } else if ((code & (0xffffffff - (1 << 11) + 1)) === 0) {
             i += 2;
-        } else if((code & (0xffffffff - (1 << 16) + 1)) === 0) {
+        } else if ((code & (0xffffffff - (1 << 16) + 1)) === 0) {
             i += 3;
-        } else if((code & (0xffffffff - (1 << 21) + 1)) === 0) {
+        } else if ((code & (0xffffffff - (1 << 21) + 1)) === 0) {
             i += 4;
         } else {
             throw new Error('e');

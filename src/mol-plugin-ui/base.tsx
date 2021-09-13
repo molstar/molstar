@@ -85,7 +85,7 @@ export abstract class CollapsableControls<P = {}, S = {}, SS = {}> extends Plugi
     }
 
     componentDidUpdate(prevProps: P & CollapsableProps) {
-        if(this.props.initiallyCollapsed !== undefined && prevProps.initiallyCollapsed !== this.props.initiallyCollapsed) {
+        if (this.props.initiallyCollapsed !== undefined && prevProps.initiallyCollapsed !== this.props.initiallyCollapsed) {
             this.setState({ isCollapsed: this.props.initiallyCollapsed as any });
         }
     }

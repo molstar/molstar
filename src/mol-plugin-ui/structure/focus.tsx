@@ -77,7 +77,7 @@ function getFocusEntries(structure: Structure) {
             for (let i = 0, il = u.elements.length; i < il; ++i) {
                 const eI = u.elements[i];
                 const rI = residueIndex[eI];
-                if(rI !== prev) {
+                if (rI !== prev) {
                     l.element = eI;
                     addSymmetryGroupEntries(entityEntries, l, ug, 'residue');
                     prev = rI;

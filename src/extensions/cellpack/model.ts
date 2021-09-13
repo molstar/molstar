@@ -415,7 +415,7 @@ export function createStructureFromCellPack(plugin: PluginContext, packing: Cell
 
         if (ctx.shouldUpdate) await ctx.update(`${name} - structure`);
         const structure = Structure.create(units);
-        for(let i = 0, il = structure.models.length; i < il; ++i) {
+        for (let i = 0, il = structure.models.length; i < il; ++i) {
             Model.TrajectoryInfo.set(structure.models[i], { size: il, index: i });
         }
         return { structure, assets, colors: skipColors ? undefined : colors };
