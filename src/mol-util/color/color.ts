@@ -28,11 +28,11 @@ export namespace Color {
     }
 
     export function toRgb(hexColor: Color): [number, number, number] {
-        return [ hexColor >> 16 & 255, hexColor >> 8 & 255, hexColor & 255 ];
+        return [hexColor >> 16 & 255, hexColor >> 8 & 255, hexColor & 255];
     }
 
     export function toRgbNormalized(hexColor: Color): [number, number, number] {
-        return [ (hexColor >> 16 & 255) / 255, (hexColor >> 8 & 255) / 255, (hexColor & 255) / 255 ];
+        return [(hexColor >> 16 & 255) / 255, (hexColor >> 8 & 255) / 255, (hexColor & 255) / 255];
     }
 
     export function fromRgb(r: number, g: number, b: number): Color {
@@ -53,17 +53,17 @@ export namespace Color {
 
     /** Copies hex color to rgb array */
     export function toArray(hexColor: Color, array: NumberArray, offset: number) {
-        array[ offset ] = (hexColor >> 16 & 255);
-        array[ offset + 1 ] = (hexColor >> 8 & 255);
-        array[ offset + 2 ] = (hexColor & 255);
+        array[offset] = (hexColor >> 16 & 255);
+        array[offset + 1] = (hexColor >> 8 & 255);
+        array[offset + 2] = (hexColor & 255);
         return array;
     }
 
     /** Copies normalized (0 to 1) hex color to rgb array */
     export function toArrayNormalized<T extends NumberArray>(hexColor: Color, array: T, offset: number) {
-        array[ offset ] = (hexColor >> 16 & 255) / 255;
-        array[ offset + 1 ] = (hexColor >> 8 & 255) / 255;
-        array[ offset + 2 ] = (hexColor & 255) / 255;
+        array[offset] = (hexColor >> 16 & 255) / 255;
+        array[offset + 1] = (hexColor >> 8 & 255) / 255;
+        array[offset + 2] = (hexColor & 255) / 255;
         return array;
     }
 

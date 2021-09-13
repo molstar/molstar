@@ -198,7 +198,7 @@ function _copyOut(src: number[], off: number, len: number, tree: number[]) {
     let mx = 0, i = 0;
     const tl = tree.length >>> 1;
     while(i < len) {
-        let v = src[i + off];
+        const v = src[i + off];
         tree[(i << 1)] = 0;
         tree[(i << 1) + 1] = v;
         if(v > mx)mx = v;
@@ -221,5 +221,5 @@ function _bitsF(dt: NumberArray, pos: number, length: number) {
 }
 
 function _get17(dt: NumberArray, pos: number) {	// return at least 17 meaningful bytes
-    return (dt[pos >>> 3] | (dt[(pos >>> 3) + 1] << 8) | (dt[(pos >>> 3) + 2] << 16) ) >>> (pos & 7);
+    return (dt[pos >>> 3] | (dt[(pos >>> 3) + 1] << 8) | (dt[(pos >>> 3) + 2] << 16)) >>> (pos & 7);
 }

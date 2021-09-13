@@ -31,10 +31,10 @@ namespace now {
 function formatTimespan(t: number, includeMsZeroes = true) {
     if (isNaN(t)) return 'n/a';
 
-    let h = Math.floor(t / (60 * 60 * 1000)),
+    const h = Math.floor(t / (60 * 60 * 1000)),
         m = Math.floor(t / (60 * 1000) % 60),
-        s = Math.floor(t / 1000 % 60),
-        ms = Math.floor(t % 1000).toString();
+        s = Math.floor(t / 1000 % 60);
+    let ms = Math.floor(t % 1000).toString();
 
     while (ms.length < 3) ms = '0' + ms;
     while (!includeMsZeroes && ms.length > 1 && ms[ms.length - 1] === '0') ms = ms.substr(0, ms.length - 1);

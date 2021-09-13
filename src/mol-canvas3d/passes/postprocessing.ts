@@ -154,10 +154,10 @@ function getSsaoBlurRenderable(ctx: WebGLContext, ssaoDepthTexture: Texture, dir
 }
 
 function getBlurKernel(kernelSize: number): number[] {
-    let sigma = kernelSize / 3.0;
-    let halfKernelSize = Math.floor((kernelSize + 1) / 2);
+    const sigma = kernelSize / 3.0;
+    const halfKernelSize = Math.floor((kernelSize + 1) / 2);
 
-    let kernel = [];
+    const kernel = [];
     for (let x = 0; x < halfKernelSize; x++) {
         kernel.push((1.0 / ((Math.sqrt(2 * Math.PI)) * sigma)) * Math.exp(-x * x / (2 * sigma * sigma)));
     }
@@ -166,7 +166,7 @@ function getBlurKernel(kernelSize: number): number[] {
 }
 
 function getSamples(vectorSamples: Vec3[], nSamples: number): number[] {
-    let samples = [];
+    const samples = [];
     for (let i = 0; i < nSamples; i++) {
         let scale = (i * i + 2.0 * i + 1) / (nSamples * nSamples);
         scale = 0.1 + scale * (1.0 - 0.1);
@@ -241,7 +241,7 @@ function getPostprocessingRenderable(ctx: WebGLContext, colorTexture: Texture, d
 export const PostprocessingParams = {
     occlusion: PD.MappedStatic('on', {
         on: PD.Group({
-            samples: PD.Numeric(32, {min: 1, max: 256, step: 1}),
+            samples: PD.Numeric(32, { min: 1, max: 256, step: 1 }),
             radius: PD.Numeric(5, { min: 0, max: 10, step: 0.1 }, { description: 'Final radius is 2^x.' }),
             bias: PD.Numeric(0.8, { min: 0, max: 3, step: 0.1 }),
             blurKernelSize: PD.Numeric(15, { min: 1, max: 25, step: 2 }),
@@ -314,7 +314,7 @@ export class PostprocessingPass {
 
         this.randomHemisphereVector = [];
         for (let i = 0; i < 256; i++) {
-            let v = Vec3();
+            const v = Vec3();
             v[0] = Math.random() * 2.0 - 1.0;
             v[1] = Math.random() * 2.0 - 1.0;
             v[2] = Math.random();
@@ -376,7 +376,7 @@ export class PostprocessingPass {
         const outlinesEnabled = props.outline.name === 'on';
         const occlusionEnabled = props.occlusion.name === 'on';
 
-        let invProjection = Mat4.identity();
+        const invProjection = Mat4.identity();
         Mat4.invert(invProjection, camera.projection);
 
         if (props.occlusion.name === 'on') {

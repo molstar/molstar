@@ -34,6 +34,8 @@ export function getFieldType(type: string, description: string, values?: string[
         case 'seq-one-letter-code':
         case 'author':
         case 'orcid_id':
+        case 'pdbx_PDB_obsoleted_db_id':
+        case 'pdbx_related_db_id':
         case 'sequence_dep':
         case 'pdb_id':
         case 'emd_id':
@@ -79,7 +81,7 @@ export function getFieldType(type: string, description: string, values?: string[
         case 'List(Real,Real)':
         case 'List(Real,Real,Real,Real)':
         case 'Date':
-        case 'Datetime':
+        case 'DateTime':
         case 'Tag':
         case 'Implied':
             return wrapContainer('str', ',', description, container);
@@ -187,7 +189,7 @@ function getContainer(d: Data.CifFrame, imports: Imports, ctx: FrameData) {
 function getCode(d: Data.CifFrame, imports: Imports, ctx: FrameData): [string, string[] | undefined, string | undefined ] | undefined {
     const code = getField('item_type', 'code', d, imports, ctx) || getField('type', 'contents', d, imports, ctx);
     if (code) {
-        return [ code.str(0), getEnums(d, imports, ctx), getContainer(d, imports, ctx) ];
+        return [code.str(0), getEnums(d, imports, ctx), getContainer(d, imports, ctx)];
     } else {
         console.log(`item_type.code or type.contents not found for '${d.header}'`);
     }
@@ -232,29 +234,26 @@ const FORCE_INT_FIELDS = [
     '_struct_sheet_range.end_auth_seq_id',
 ];
 
+/**
+ * Note that name and mapped name must share a prefix. This is not always the case in
+ * the cifCore dictionary, but for downstream code to work a container field with the
+ * same prefix as the member fields must be given here and in the field names filter
+ * list.
+ */
 const FORCE_MATRIX_FIELDS_MAP: { [k: string]: string } = {
-    'atom_site_aniso.U_11': 'U',
-    'atom_site_aniso.U_22': 'U',
-    'atom_site_aniso.U_33': 'U',
-    'atom_site_aniso.U_23': 'U',
-    'atom_site_aniso.U_13': 'U',
-    'atom_site_aniso.U_12': 'U',
-    'atom_site_aniso.U_11_su': 'U_su',
-    'atom_site_aniso.U_22_su': 'U_su',
-    'atom_site_aniso.U_33_su': 'U_su',
-    'atom_site_aniso.U_23_su': 'U_su',
-    'atom_site_aniso.U_13_su': 'U_su',
-    'atom_site_aniso.U_12_su': 'U_su',
+    'atom_site_aniso.u_11': 'u', // is matrix_u in the the dic
+    'atom_site_aniso.u_22': 'u',
+    'atom_site_aniso.u_33': 'u',
+    'atom_site_aniso.u_23': 'u',
+    'atom_site_aniso.u_13': 'u',
+    'atom_site_aniso.u_12': 'u',
 };
 const FORCE_MATRIX_FIELDS = Object.keys(FORCE_MATRIX_FIELDS_MAP);
 
 const EXTRA_ALIASES: Database['aliases'] = {
-    'atom_site_aniso.U': [
-        'atom_site_anisotrop_U'
-    ],
-    'atom_site_aniso.U_su': [
-        'atom_site_aniso_U_esd',
-        'atom_site_anisotrop_U_esd',
+    'atom_site_aniso.matrix_u': [
+        'atom_site_anisotrop_U',
+        'atom_site_aniso.U'
     ],
 };
 
@@ -372,7 +371,7 @@ export function generateSchema(frames: CifFrame[], imports: Imports = new Map())
             const parent_name = item_linked.getField('parent_name');
             if (child_name && parent_name) {
                 for (let i = 0; i < item_linked.rowCount; ++i) {
-                    const childName = child_name.str(i);
+                    const childName: string = child_name.str(i);
                     const parentName = parent_name.str(i);
                     if (childName in links && links[childName] !== parentName) {
                         console.log(`${childName} linked to ${links[childName]}, ignoring link to ${parentName}`);

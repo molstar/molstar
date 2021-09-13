@@ -68,7 +68,7 @@ function validateIndex(index: Index) {
 }
 
 function remove(id: string) {
-    let index = readIndex();
+    const index = readIndex();
     let i = 0;
     for (const e of index) {
         if (e.id !== id) {

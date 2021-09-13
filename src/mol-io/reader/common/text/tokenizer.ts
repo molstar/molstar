@@ -206,7 +206,7 @@ namespace Tokenizer {
     export function skipWhitespace(state: Tokenizer): number {
         let prev = -1;
         while (state.position < state.length) {
-            let c = state.data.charCodeAt(state.position);
+            const c = state.data.charCodeAt(state.position);
             switch (c) {
                 case 9: // '\t'
                 case 32: // ' '

@@ -208,11 +208,11 @@ export const ColorLists = {
      */
     'rainbow': ColorList('Rainbow', 'sequential',
         '',
-        [ 0x3361E1, 0x35A845, 0xF9FF00, 0xEC8711, 0xBF2222 ]
+        [0x3361E1, 0x35A845, 0xF9FF00, 0xEC8711, 0xBF2222]
     ),
     'red-white-blue': ColorList('Red-White-Blue', 'diverging',
         '',
-        [ 0xBF2222, 0xFFFFFF, 0x3361E1 ]
+        [0xBF2222, 0xFFFFFF, 0x3361E1]
     ),
 };
 

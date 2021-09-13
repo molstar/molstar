@@ -51,7 +51,7 @@ async function getModel(plugin: PluginContext, id: string, ingredient: Ingredien
     let surface = (ingredient.ingtype) ? (ingredient.ingtype === 'transmembrane') : false;
     if (location === 'surface') surface = true;
     let trajectory = trajCache.get(id);
-    let assets: Asset.Wrapper[] = [];
+    const assets: Asset.Wrapper[] = [];
     if (!trajectory) {
         if (file) {
             if (file.name.endsWith('.cif')) {
@@ -185,7 +185,7 @@ function getCurveTransforms(ingredient: Ingredient) {
             continue;
         }
         // test for resampling
-        let distance: number = Vec3.distance(_points[0], _points[1]);
+        const distance: number = Vec3.distance(_points[0], _points[1]);
         if (distance >= segmentLength + 2.0) {
             console.info(distance);
             resampling = true;
@@ -204,7 +204,7 @@ function getAssembly(name: string, transforms: Mat4[], structure: Structure) {
 
     for (let i = 0, il = transforms.length; i < il; ++i) {
         const id = `${i + 1}`;
-        const op = SymmetryOperator.create(id, transforms[i], { assembly: { id, operId: i, operList: [ id ] } });
+        const op = SymmetryOperator.create(id, transforms[i], { assembly: { id, operId: i, operList: [id] } });
         for (const unit of units) {
             builder.addWithOperator(unit, op);
         }
@@ -417,7 +417,7 @@ export function createStructureFromCellPack(plugin: PluginContext, packing: Cell
         for (const s of structures) {
             if (ctx.shouldUpdate) await ctx.update(`${s.label}`);
             let maxInvariantId = 0;
-            let maxChainGroupId = 0;
+            const maxChainGroupId = 0;
             for (const u of s.units) {
                 const invariantId = u.invariantId + offsetInvariantId;
                 const chainGroupId = u.chainGroupId + offsetChainGroupId;
@@ -430,7 +430,7 @@ export function createStructureFromCellPack(plugin: PluginContext, packing: Cell
 
         if (ctx.shouldUpdate) await ctx.update(`${name} - structure`);
         const structure = Structure.create(units, {label: name + '.' + location});
-        for( let i = 0, il = structure.models.length; i < il; ++i) {
+        for(let i = 0, il = structure.models.length; i < il; ++i) {
             Model.TrajectoryInfo.set(structure.models[i], { size: il, index: i });
         }
         return { structure, assets, colors: colors };

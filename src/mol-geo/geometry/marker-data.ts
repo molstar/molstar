@@ -17,10 +17,42 @@ export type MarkerData = {
     markerStatus: ValueCell<number>
 }
 
+const MarkerCountLut = new Uint8Array(0x0303 + 1);
+MarkerCountLut[0x0001] = 1;
+MarkerCountLut[0x0002] = 1;
+MarkerCountLut[0x0003] = 1;
+MarkerCountLut[0x0100] = 1;
+MarkerCountLut[0x0200] = 1;
+MarkerCountLut[0x0300] = 1;
+MarkerCountLut[0x0101] = 2;
+MarkerCountLut[0x0201] = 2;
+MarkerCountLut[0x0301] = 2;
+MarkerCountLut[0x0102] = 2;
+MarkerCountLut[0x0202] = 2;
+MarkerCountLut[0x0302] = 2;
+MarkerCountLut[0x0103] = 2;
+MarkerCountLut[0x0203] = 2;
+MarkerCountLut[0x0303] = 2;
+
+/**
+ * Calculates the average number of entries that have any marker flag set.
+ *
+ * For alternative implementations and performance tests see
+ * `src\perf-tests\markers-average.ts`.
+ */
 export function getMarkersAverage(array: Uint8Array, count: number): number {
     if (count === 0) return 0;
+
+    const view = new Uint32Array(array.buffer, 0, array.buffer.byteLength >> 2);
+    const viewEnd = (count - 4) >> 2;
+    const backStart = 4 * viewEnd;
+
     let sum = 0;
-    for (let i = 0; i < count; ++i) {
+    for (let i = 0; i < viewEnd; ++i) {
+        const v = view[i];
+        sum += MarkerCountLut[v & 0xFFFF] + MarkerCountLut[v >> 16];
+    }
+    for (let i = backStart; i < count; ++i) {
         sum += array[i] && 1;
     }
     return sum / count;

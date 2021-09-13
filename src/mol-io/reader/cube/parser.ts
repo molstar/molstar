@@ -52,7 +52,7 @@ const bohrToAngstromFactor = 0.529177210859;
 function readHeader(tokenizer: Tokenizer) {
     const headerLines = Tokenizer.readLines(tokenizer, 6);
     const h = (k: number, l: number) => {
-        const field = +headerLines[k].trim().split(/\s+/g)[ l ];
+        const field = +headerLines[k].trim().split(/\s+/g)[l];
         return Number.isNaN(field) ? 0 : field;
     };
     const basis = (i: number) => {

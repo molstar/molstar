@@ -254,7 +254,7 @@ export namespace MonadicParser {
         const numParsers = parsers.length;
         return new MonadicParser<any[]>((input, index) => {
             let result: MonadicParser.Result<any> | undefined;
-            let accum = new Array(numParsers);
+            const accum = new Array(numParsers);
             let i = index;
             for (let j = 0; j < numParsers; j++) {
                 result = mergeReplies(parsers[j]._(input, i), result);

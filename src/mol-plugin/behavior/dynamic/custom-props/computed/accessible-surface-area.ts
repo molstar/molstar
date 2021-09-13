@@ -30,7 +30,7 @@ export const AccessibleSurfaceArea = PluginBehavior.create<{ autoAttach: boolean
         }
 
         update(p: { autoAttach: boolean, showTooltip: boolean }) {
-            let updated = (
+            const updated = (
                 this.params.autoAttach !== p.autoAttach ||
                 this.params.showTooltip !== p.showTooltip
             );

@@ -112,7 +112,8 @@ function createResidueText(ctx: VisualContext, structure: Structure, theme: Them
         const residueIndex = unit.model.atomicHierarchy.residueAtomSegments.index;
         const groupOffset = cumulativeUnitElementCount[i];
 
-        let j = 0, jl = elements.length;
+        let j = 0;
+        const jl = elements.length;
         while (j < jl) {
             const start = j, rI = residueIndex[elements[j]];
             j++;

@@ -41,7 +41,7 @@ function getAngleTables (probePositions: number): AnglesTables {
         sinTable[i] = Math.sin(theta);
         theta += step;
     }
-    return { cosTable, sinTable};
+    return { cosTable, sinTable };
 }
 
 //
@@ -330,12 +330,12 @@ export async function calcMolecularSurface(ctx: RuntimeContext, position: Requir
 
     const pad = maxRadius + resolution;
     const expandedBox = Box3D.expand(Box3D(), box, Vec3.create(pad, pad, pad));
-    const [ minX, minY, minZ ] = expandedBox.min;
+    const [minX, minY, minZ] = expandedBox.min;
     const scaledBox = Box3D.scale(Box3D(), expandedBox, scaleFactor);
     const dim = Box3D.size(Vec3(), scaledBox);
     Vec3.ceil(dim, dim);
 
-    const [ dimX, dimY, dimZ ] = dim;
+    const [dimX, dimY, dimZ] = dim;
     const iu = dimZ, iv = dimY, iuv = iu * iv;
 
     const { cosTable, sinTable } = getAngleTables(probePositions);

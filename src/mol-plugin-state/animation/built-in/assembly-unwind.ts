@@ -25,7 +25,7 @@ export const AnimateAssemblyUnwind = PluginStateAnimation.create({
         }
 
         return {
-            durationInMs: PD.Numeric(3000, { min: 100, max: 10000, step: 100}),
+            durationInMs: PD.Numeric(3000, { min: 100, max: 10000, step: 100 }),
             playOnce: PD.Boolean(false),
             target: PD.Select(targets[0][0], targets)
         };

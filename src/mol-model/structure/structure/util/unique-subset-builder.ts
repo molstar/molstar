@@ -71,7 +71,7 @@ export class StructureUniqueSubsetBuilder {
             const id = this.ids[i];
             const parent = this.parent.unitMap.get(id);
 
-            let unit: ArrayLike<number> = this.unitMap.get(id).array;
+            const unit: ArrayLike<number> = this.unitMap.get(id).array;
 
             const l = unit.length;
 

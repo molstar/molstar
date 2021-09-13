@@ -123,7 +123,7 @@ export class MultiSamplePass {
         //
         // This manual approach to MSAA re-renders the scene once for
         // each sample with camera jitter and accumulates the results.
-        const offsetList = JitterVectors[ Math.max(0, Math.min(props.multiSample.sampleLevel, 5)) ];
+        const offsetList = JitterVectors[Math.max(0, Math.min(props.multiSample.sampleLevel, 5))];
 
         const { x, y, width, height } = camera.viewport;
         const baseSampleWeight = 1.0 / offsetList.length;
@@ -190,7 +190,7 @@ export class MultiSamplePass {
         //
         // This manual approach to MSAA re-renders the scene once for
         // each sample with camera jitter and accumulates the results.
-        const offsetList = JitterVectors[ Math.max(0, Math.min(props.multiSample.sampleLevel, 5)) ];
+        const offsetList = JitterVectors[Math.max(0, Math.min(props.multiSample.sampleLevel, 5))];
 
         if (sampleIndex === -2 || sampleIndex >= offsetList.length) return -2;
 
@@ -244,7 +244,7 @@ export class MultiSamplePass {
                 compose.render();
 
                 sampleIndex += 1;
-                if (sampleIndex >= offsetList.length ) break;
+                if (sampleIndex >= offsetList.length) break;
             }
         }
 
@@ -278,33 +278,33 @@ export class MultiSamplePass {
 
 const JitterVectors = [
     [
-        [ 0, 0 ]
+        [0, 0]
     ],
     [
-        [ 4, 4 ], [ -4, -4 ]
+        [4, 4], [-4, -4]
     ],
     [
-        [ -2, -6 ], [ 6, -2 ], [ -6, 2 ], [ 2, 6 ]
+        [-2, -6], [6, -2], [-6, 2], [2, 6]
     ],
     [
-        [ 1, -3 ], [ -1, 3 ], [ 5, 1 ], [ -3, -5 ],
-        [ -5, 5 ], [ -7, -1 ], [ 3, 7 ], [ 7, -7 ]
+        [1, -3], [-1, 3], [5, 1], [-3, -5],
+        [-5, 5], [-7, -1], [3, 7], [7, -7]
     ],
     [
-        [ 1, 1 ], [ -1, -3 ], [ -3, 2 ], [ 4, -1 ],
-        [ -5, -2 ], [ 2, 5 ], [ 5, 3 ], [ 3, -5 ],
-        [ -2, 6 ], [ 0, -7 ], [ -4, -6 ], [ -6, 4 ],
-        [ -8, 0 ], [ 7, -4 ], [ 6, 7 ], [ -7, -8 ]
+        [1, 1], [-1, -3], [-3, 2], [4, -1],
+        [-5, -2], [2, 5], [5, 3], [3, -5],
+        [-2, 6], [0, -7], [-4, -6], [-6, 4],
+        [-8, 0], [7, -4], [6, 7], [-7, -8]
     ],
     [
-        [ -4, -7 ], [ -7, -5 ], [ -3, -5 ], [ -5, -4 ],
-        [ -1, -4 ], [ -2, -2 ], [ -6, -1 ], [ -4, 0 ],
-        [ -7, 1 ], [ -1, 2 ], [ -6, 3 ], [ -3, 3 ],
-        [ -7, 6 ], [ -3, 6 ], [ -5, 7 ], [ -1, 7 ],
-        [ 5, -7 ], [ 1, -6 ], [ 6, -5 ], [ 4, -4 ],
-        [ 2, -3 ], [ 7, -2 ], [ 1, -1 ], [ 4, -1 ],
-        [ 2, 1 ], [ 6, 2 ], [ 0, 4 ], [ 4, 4 ],
-        [ 2, 5 ], [ 7, 5 ], [ 5, 6 ], [ 3, 7 ]
+        [-4, -7], [-7, -5], [-3, -5], [-5, -4],
+        [-1, -4], [-2, -2], [-6, -1], [-4, 0],
+        [-7, 1], [-1, 2], [-6, 3], [-3, 3],
+        [-7, 6], [-3, 6], [-5, 7], [-1, 7],
+        [5, -7], [1, -6], [6, -5], [4, -4],
+        [2, -3], [7, -2], [1, -1], [4, -1],
+        [2, 1], [6, 2], [0, 4], [4, 4],
+        [2, 5], [7, 5], [5, 6], [3, 7]
     ]
 ];
 

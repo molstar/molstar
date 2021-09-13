@@ -129,7 +129,7 @@ namespace Transparency {
     export function toBundle(transparency: Transparency<StructureElement.Loci>) {
         const layers: BundleLayer[] = [];
         for (let i = 0, il = transparency.layers.length; i < il; ++i) {
-            let { loci, value } = transparency.layers[i];
+            const { loci, value } = transparency.layers[i];
             const bundle = StructureElement.Bundle.fromLoci(loci);
             layers.push({ bundle, value });
         }

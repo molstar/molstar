@@ -15,7 +15,7 @@ export const AnimateUnitsExplode = PluginStateAnimation.create({
     name: 'built-in.animate-units-explode',
     display: { name: 'Explode Units' },
     params: () => ({
-        durationInMs: PD.Numeric(3000, { min: 100, max: 10000, step: 100})
+        durationInMs: PD.Numeric(3000, { min: 100, max: 10000, step: 100 })
     }),
     initialState: () => ({ t: 0 }),
     async setup(_, __, plugin) {

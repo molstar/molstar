@@ -261,7 +261,7 @@ const StructureFromAssemblies = PluginStateTransform.BuiltIn({
             // TODO: optimze
             // TODO: think of ways how to fast-track changes to this for animations
             const model = a.data;
-            let initial_structure = Structure.ofModel(model);
+            const initial_structure = Structure.ofModel(model);
             const structures: Structure[] = [];
             let structure: Structure = initial_structure;
             // the list of asambly *?
@@ -283,7 +283,7 @@ const StructureFromAssemblies = PluginStateTransform.BuiltIn({
                     offsetInvariantId += maxInvariantId + 1;
                 }
                 structure = builder.getStructure();
-                for( let i = 0, il = structure.models.length; i < il; ++i) {
+                for(let i = 0, il = structure.models.length; i < il; ++i) {
                     Model.TrajectoryInfo.set(structure.models[i], { size: il, index: i });
                 }
             }

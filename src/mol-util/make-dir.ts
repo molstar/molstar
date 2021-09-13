@@ -7,7 +7,7 @@
 import * as fs from 'fs';
 
 export function makeDir(path: string, root?: string): boolean {
-    let dirs = path.split(/\/|\\/g),
+    const dirs = path.split(/\/|\\/g),
         dir = dirs.shift();
 
     root = (root || '') + dir + '/';

@@ -21,12 +21,12 @@ const constant = {
 };
 
 function notAtomic(): never {
-    throw 'Property only available for atomic models.';
+    throw new Error('Property only available for atomic models.');
 }
 
 function notCoarse(kind?: string): never {
-    if (!!kind) throw `Property only available for coarse models (${kind}).`;
-    throw `Property only available for coarse models.`;
+    if (!!kind) throw new Error(`Property only available for coarse models (${kind}).`);
+    throw new Error('Property only available for coarse models.');
 }
 
 // TODO: remove the type checks?

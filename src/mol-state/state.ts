@@ -298,7 +298,7 @@ class State {
     private async _revertibleTreeUpdate(taskCtx: RuntimeContext, params: UpdateParams, options: Partial<State.UpdateOptions>) {
         const old = this.tree;
         const ret = await this._updateTree(taskCtx, params);
-        let revert = ((ret.ctx.hadError || ret.ctx.wasAborted) && options.revertOnError) || (ret.ctx.wasAborted && options.revertIfAborted);
+        const revert = ((ret.ctx.hadError || ret.ctx.wasAborted) && options.revertOnError) || (ret.ctx.wasAborted && options.revertIfAborted);
         if (revert) {
             this.reverted = true;
             return await this._updateTree(taskCtx, { tree: old, options: params.options });
@@ -870,7 +870,7 @@ async function updateNode(ctx: UpdateContext, currentRef: Ref): Promise<UpdateNo
         return { action: 'none' };
     }
 
-    let parentCell = transform.transformer.definition.from.length === 0
+    const parentCell = transform.transformer.definition.from.length === 0
         ? ctx.cells.get(current.transform.parent)
         : StateSelection.findAncestorOfType(tree, ctx.cells, currentRef, transform.transformer.definition.from);
     if (!parentCell) {

@@ -28,7 +28,7 @@ export function parseCmpnd(lines: Tokens, lineStart: number, lineEnd: number) {
     const Compounds: EntityCompound[] = [];
 
     for (let i = lineStart; i < lineEnd; i++) {
-        let line = getLine(i);
+        const line = getLine(i);
         // COLUMNS       DATA TYPE       FIELD         DEFINITION
         // ----------------------------------------------------------------------------------
         //  1 -  6       Record name     "COMPND"
@@ -73,7 +73,7 @@ export function parseHetnam(lines: Tokens, lineStart: number, lineEnd: number) {
     const hetnams = new Map<string, string>();
 
     for (let i = lineStart; i < lineEnd; i++) {
-        let line = getLine(i);
+        const line = getLine(i);
         // COLUMNS       DATA  TYPE    FIELD           DEFINITION
         // ----------------------------------------------------------------------------
         //  1 -  6       Record name   "HETNAM"

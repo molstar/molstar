@@ -309,7 +309,7 @@ function buildSectorMesh(data: DihedralData, props: DihedralProps, mesh?: Mesh):
 function getSectorShape(ctx: RuntimeContext, data: DihedralData, props: DihedralProps, shape?: Shape<Mesh>) {
     const mesh = buildSectorMesh(data, props, shape && shape.geometry);
     const name = getDihedralName(data);
-    const getLabel = (groupId: number ) => dihedralLabel(data.quads[groupId]);
+    const getLabel = (groupId: number) => dihedralLabel(data.quads[groupId]);
     return Shape.create(name, data, mesh, () => props.color, () => 1, getLabel);
 }
 
@@ -337,7 +337,7 @@ function buildText(data: DihedralData, props: DihedralProps, text?: Text): Text 
 function getTextShape(ctx: RuntimeContext, data: DihedralData, props: DihedralProps, shape?: Shape<Text>) {
     const text = buildText(data, props, shape && shape.geometry);
     const name = getDihedralName(data);
-    const getLabel = (groupId: number ) => dihedralLabel(data.quads[groupId]);
+    const getLabel = (groupId: number) => dihedralLabel(data.quads[groupId]);
     return Shape.create(name, data, text, () => props.textColor, () => props.textSize, getLabel);
 }
 

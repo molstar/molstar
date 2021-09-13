@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -31,6 +31,9 @@ H H 0.0000 0.0000 'International Tables Vol C Tables 4.2.6.8 and 6.1.1.4'
 N N 0.0311 0.0180 'International Tables Vol C Tables 4.2.6.8 and 6.1.1.4'
 O O 0.0492 0.0322 'International Tables Vol C Tables 4.2.6.8 and 6.1.1.4'
 F F 0.0727 0.0534 'International Tables Vol C Tables 4.2.6.8 and 6.1.1.4'
+
+_symmetry_cell_setting           Triclinic
+_symmetry_space_group_name_H-M   P-1
 
 _cell_length_a                   11.0829(8)
 _cell_length_b                   14.6829(10)
@@ -82,7 +85,8 @@ describe('cif-core read', () => {
         const block = cifFile.blocks[0];
 
         expect(block.getField('cell_length_a')!.float(0)).toBe(11.0829);
-        expect.assertions(1);
+        expect(block.getField('symmetry_space_group_name_H-M')!.str(0)).toBe('P-1');
+        expect.assertions(2);
     });
 
     it('schema', async () => {
@@ -93,7 +97,8 @@ describe('cif-core read', () => {
         const cifCore = CIF.schema.cifCore(block);
 
         expect(cifCore.cell.length_a.value(0)).toBe(11.0829);
-        expect(cifCore.atom_site_aniso.U.value(0)).toEqual(new Float64Array([ 0.0425, 0, 0, 0.00089, 0.0423, 0, 0.01515, 0.00066, 0.0375 ]));
-        expect.assertions(2);
+        expect(cifCore.space_group['name_h-m_full'].value(0)).toBe('P-1');
+        expect(cifCore.atom_site_aniso.u.value(0)).toEqual(new Float64Array([0.0425, 0, 0, 0.00089, 0.0423, 0, 0.01515, 0.00066, 0.0375]));
+        expect.assertions(3);
     });
 });

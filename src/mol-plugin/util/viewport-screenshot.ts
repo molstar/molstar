@@ -96,7 +96,7 @@ class ViewportScreenshotHelper extends PluginComponent {
 
     private getSize() {
         const values = this.values;
-        switch (values.resolution.name ) {
+        switch (values.resolution.name) {
             case 'viewport': return this.getCanvasSize();
             case 'hd': return { width: 1280, height: 720 };
             case 'full-hd': return { width: 1920, height: 1080 };
@@ -286,7 +286,7 @@ class ViewportScreenshotHelper extends PluginComponent {
         canvasCtx.putImageData(imageData, 0, 0);
         if (this.cropParams.auto) this.autocrop();
 
-        this.events.previewed.next();
+        this.events.previewed.next(void 0);
         return { canvas, width: w, height: h };
     }
 

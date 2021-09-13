@@ -140,7 +140,7 @@ type encode_mmCIF_categories_Params = {
 export function encode_mmCIF_categories(encoder: CifWriter.Encoder, structures: Structure | Structure[], params?: encode_mmCIF_categories_Params) {
     const first = Array.isArray(structures) ? structures[0] : (structures as Structure);
     const models = first.models;
-    if (models.length !== 1) throw 'Can\'t export stucture composed from multiple models.';
+    if (models.length !== 1) throw new Error('Can\'t export stucture composed from multiple models.');
 
     const ctx: CifExportContext = params?.exportCtx || CifExportContext.create(structures);
 

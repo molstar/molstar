@@ -60,7 +60,7 @@ export const InitVolumeStreaming = StateAction.build({
     const entries: InfoEntryProps[] = [];
 
     for (let i = 0, il = params.entries.length; i < il; ++i) {
-        let dataId = params.entries[i].id.toLowerCase();
+        const dataId = params.entries[i].id.toLowerCase();
         let emDefaultContourLevel: number | undefined;
 
         if (params.method === 'em') {

@@ -89,10 +89,10 @@ export function Cylinder(props?: CylinderProps): Primitive {
 
             for (let y = 0; y < heightSegments; ++y) {
                 // we use the index array to access the correct indices
-                const a = indexArray[ y ][ x ];
-                const b = indexArray[ y + 1 ][ x ];
-                const c = indexArray[ y + 1 ][ x + 1 ];
-                const d = indexArray[ y ][ x + 1 ];
+                const a = indexArray[y][x];
+                const b = indexArray[y + 1][x];
+                const c = indexArray[y + 1][x + 1];
+                const d = indexArray[y][x + 1];
 
                 // faces
                 indices.push(a, b, d);
@@ -107,7 +107,7 @@ export function Cylinder(props?: CylinderProps): Primitive {
         const sign = (top === true) ? 1 : - 1;
 
         // save the index of the first center vertex
-        let centerIndexStart = index;
+        const centerIndexStart = index;
 
         // first we generate the center vertex data of the cap.
         // because the geometry needs one set of uvs per face,
@@ -125,7 +125,7 @@ export function Cylinder(props?: CylinderProps): Primitive {
         }
 
         // save the index of the last center vertex
-        let centerIndexEnd = index;
+        const centerIndexEnd = index;
 
         // now we generate the surrounding vertices, normals and uvs
         for (let x = 0; x <= radialSegments; ++x) {

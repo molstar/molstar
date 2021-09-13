@@ -111,7 +111,7 @@ export const SymbolTable = [
             Macro(MSymbol('sel.atom.atoms', Arguments.Dictionary({
                 0: Argument(Type.Bool, { isOptional: true, defaultValue: true, description: 'Test applied to each atom.' })
             }), StructureQueryTypes.ElementSelection, 'A selection of singleton atom sets.'),
-            args => B.struct.generator.atomGroups({ 'atom-test':  tryGetArg(args, 0, true) })),
+            args => B.struct.generator.atomGroups({ 'atom-test': tryGetArg(args, 0, true) })),
 
             Macro(MSymbol('sel.atom.res', Arguments.Dictionary({
                 0: Argument(Type.Bool, { isOptional: true, defaultValue: true, description: 'Test applied to the 1st atom of each residue.' })

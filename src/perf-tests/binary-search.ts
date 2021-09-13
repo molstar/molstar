@@ -128,9 +128,9 @@ function run(f: () => number, n: number) {
     const list = createData(size);
     const queryPoints = createData(size);
 
-    let obj = prepareObj(list);
-    let set = prepareSet(list);
-    let mask = prepareMask(list);
+    const obj = prepareObj(list);
+    const set = prepareSet(list);
+    const mask = prepareMask(list);
 
     console.log('list', testBinary(list, queryPoints));
     console.log('obj', testObj(obj, queryPoints));

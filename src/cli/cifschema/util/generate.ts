@@ -128,7 +128,7 @@ export function generate (name: string, info: string, schema: Database, fields: 
         codeLines.push('');
         codeLines.push(`export const ${name}_Aliases = {`);
         Object.keys(schema.aliases).forEach(path => {
-            const [ table, columnName ] = path.split('.');
+            const [table, columnName] = path.split('.');
             if (fields && !fields[table]) return;
             if (fields && !fields[table][columnName]) return;
 

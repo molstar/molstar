@@ -149,13 +149,13 @@ export class Canvas3dInteractionHelper {
     }
 
     constructor(private canvasIdentify: Canvas3D['identify'], private getLoci: Canvas3D['getLoci'], private input: InputObserver, private camera: Camera, private maxFps: number = 30) {
-        input.drag.subscribe(({x, y, buttons, button, modifiers }) => {
+        input.drag.subscribe(({ x, y, buttons, button, modifiers }) => {
             this.isInteracting = true;
             // console.log('drag');
             this.drag(x, y, buttons, button, modifiers);
         });
 
-        input.move.subscribe(({x, y, inside, buttons, button, modifiers }) => {
+        input.move.subscribe(({ x, y, inside, buttons, button, modifiers }) => {
             if (!inside || this.isInteracting) return;
             // console.log('move');
             this.move(x, y, buttons, button, modifiers);
@@ -166,7 +166,7 @@ export class Canvas3dInteractionHelper {
             this.leave();
         });
 
-        input.click.subscribe(({x, y, buttons, button, modifiers }) => {
+        input.click.subscribe(({ x, y, buttons, button, modifiers }) => {
             if (this.outsideViewport(x, y)) return;
             // console.log('click');
             this.click(x, y, buttons, button, modifiers);

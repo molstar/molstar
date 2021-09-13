@@ -271,12 +271,12 @@ class VolumeRepresentationControls extends PurePluginUIComponent<{ representatio
         });
     }
 
-    remove = () => this.plugin.managers.volume.hierarchy.remove([ this.props.representation ], true);
+    remove = () => this.plugin.managers.volume.hierarchy.remove([this.props.representation], true);
 
     toggleVisible = (e: React.MouseEvent<HTMLElement>) => {
         e.preventDefault();
         e.currentTarget.blur();
-        this.plugin.managers.volume.hierarchy.toggleVisibility([ this.props.representation ]);
+        this.plugin.managers.volume.hierarchy.toggleVisibility([this.props.representation]);
     }
 
     toggleUpdate = () => this.setState({ action: this.state.action === 'update' ? void 0 : 'update' });

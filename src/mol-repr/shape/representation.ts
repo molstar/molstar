@@ -44,7 +44,7 @@ export function ShapeRepresentation<D, G extends Geometry, P extends Geometry.Pa
     const renderObjects: GraphicsRenderObject<G['kind']>[] = [];
     let _renderObject: GraphicsRenderObject<G['kind']> | undefined;
     let _shape: Shape<G>;
-    let _theme = Theme.createEmpty();
+    const _theme = Theme.createEmpty();
     let currentProps: PD.Values<P> = PD.getDefaultValues(geometryUtils.Params as P); // TODO avoid casting
     let currentParams: P;
     let locationIt: LocationIterator;

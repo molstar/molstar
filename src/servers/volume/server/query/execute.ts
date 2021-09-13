@@ -49,7 +49,7 @@ export async function execute(params: Data.QueryParams, outputProvider: () => Da
 }
 
 function getTime() {
-    let t = process.hrtime();
+    const t = process.hrtime();
     return t[0] * 1000 + t[1] / 1000000;
 }
 
@@ -101,7 +101,7 @@ async function createDataContext(file: FileHandle): Promise<Data.DataContext> {
 function createQuerySampling(data: Data.DataContext, sampling: Data.Sampling, queryBox: Box.Fractional): Data.QuerySamplingInfo {
     const fractionalBox = Box.gridToFractional(Box.expandGridBox(Box.fractionalToGrid(queryBox, sampling.dataDomain), 1));
     const blocks = findUniqueBlocks(data, sampling, fractionalBox);
-    let ret = {
+    const ret = {
         sampling,
         fractionalBox,
         gridDomain: Box.fractionalToDomain<'Query'>(fractionalBox, 'Query', sampling.dataDomain.delta),
@@ -166,11 +166,11 @@ function createQueryContext(data: Data.DataContext, params: Data.QueryParams, gu
 
     const dimensions = Box.dimensions(queryBox);
     if (dimensions.some(d => isNaN(d))) {
-        throw `The query box is not defined.`;
+        throw new Error('The query box is not defined.');
     }
 
     if (dimensions[0] * dimensions[1] * dimensions[2] > LimitsConfig.maxFractionalBoxVolume) {
-        throw `The query box volume is too big.`;
+        throw new Error('The query box volume is too big.');
     }
 
     const samplingInfo = pickSampling(data, queryBox, params.forcedSamplingLevel !== void 0 ? params.forcedSamplingLevel : 0, params.detail);

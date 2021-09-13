@@ -25,10 +25,10 @@ import { Trajectory } from '../../mol-model/structure';
 import { cantorPairing } from '../../mol-data/util';
 
 function getSpacegroupNameOrNumber(space_group: CifCore_Database['space_group']) {
-    const groupNumber = space_group.IT_number.value(0);
-    const groupName = space_group['name_H-M_full'].value(0);
-    if (!space_group.IT_number.isDefined) return groupName;
-    if (!space_group['name_H-M_full'].isDefined) return groupNumber;
+    const groupNumber = space_group.it_number.value(0);
+    const groupName = space_group['name_h-m_full'].value(0).replace('-', ' ');
+    if (!space_group.it_number.isDefined) return groupName;
+    if (!space_group['name_h-m_full'].isDefined) return groupNumber;
     return groupNumber;
 }
 
@@ -41,7 +41,7 @@ function getSymmetry(db: CifCore_Database): Symmetry {
 
     return {
         spacegroup: Spacegroup.create(spaceCell),
-        assemblies : [],
+        assemblies: [],
         isNonStandardCrystalFrame: false,
         ncsOperators: []
     };
@@ -129,7 +129,7 @@ async function getModels(db: CifCore_Database, format: CifCoreFormat, ctx: Runti
         pdbx_formal_charge: formalCharge,
 
         pdbx_PDB_model_num: Column.ofConst(1, atomCount, Column.Schema.int),
-        B_iso_or_equiv: db.atom_site.U_iso_or_equiv,
+        B_iso_or_equiv: db.atom_site.u_iso_or_equiv,
     }, atomCount);
 
     const name = (
@@ -231,15 +231,14 @@ function atomSiteAnisotropFromCifCore(model: Model) {
     if (!CifCoreFormat.is(model.sourceData)) return;
     const { atom_site, atom_site_aniso } = model.sourceData.data.db;
     const data = Table.ofPartialColumns(AtomSiteAnisotrop.Schema, {
-        U: atom_site_aniso.U,
-        U_esd: atom_site_aniso.U_su
+        U: atom_site_aniso.u,
     }, atom_site_aniso._rowCount);
     const elementToAnsiotrop = AtomSiteAnisotrop.getElementToAnsiotropFromLabel(atom_site.label, atom_site_aniso.label);
     return { data, elementToAnsiotrop };
 }
 function atomSiteAnisotropApplicableCifCore(model: Model) {
     if (!CifCoreFormat.is(model.sourceData)) return false;
-    return model.sourceData.data.db.atom_site_aniso.U.isDefined;
+    return model.sourceData.data.db.atom_site_aniso.u.isDefined;
 }
 AtomSiteAnisotrop.Provider.formatRegistry.add('cifCore', atomSiteAnisotropFromCifCore, atomSiteAnisotropApplicableCifCore);
 
@@ -261,11 +260,11 @@ namespace CifCoreFormat {
         const name = (
             db.database_code.depnum_ccdc_archive.value(0) ||
             db.database_code.depnum_ccdc_fiz.value(0) ||
-            db.database_code.ICSD.value(0) ||
-            db.database_code.MDF.value(0) ||
-            db.database_code.NBS.value(0) ||
-            db.database_code.CSD.value(0) ||
-            db.database_code.COD.value(0) ||
+            db.database_code.icsd.value(0) ||
+            db.database_code.mdf.value(0) ||
+            db.database_code.nbs.value(0) ||
+            db.database_code.csd.value(0) ||
+            db.database_code.cod.value(0) ||
             db._name
         );
 

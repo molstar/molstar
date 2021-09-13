@@ -125,7 +125,7 @@ export function ResidueNameColorTheme(ctx: ThemeDataContext, props: PD.Values<Re
         description: Description,
         legend: TableLegend(Object.keys(ResidueNameColors).map(name => {
             return [name, (ResidueNameColors as any)[name] as Color] as [string, Color];
-        }).concat([[ 'Unknown', DefaultResidueNameColor ]]))
+        }).concat([['Unknown', DefaultResidueNameColor]]))
     };
 }
 

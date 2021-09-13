@@ -8,7 +8,7 @@
 
 export function utf8Write(data: Uint8Array, offset: number, str: string) {
     for (let i = 0, l = str.length; i < l; i++) {
-        let codePoint = str.charCodeAt(i);
+        const codePoint = str.charCodeAt(i);
 
         // One byte of UTF-8
         if (codePoint < 0x80) {
@@ -44,7 +44,7 @@ export function utf8Write(data: Uint8Array, offset: number, str: string) {
 }
 
 const __chars = function () {
-    let data: string[] = [];
+    const data: string[] = [];
     for (let i = 0; i < 1024; i++) data[i] = String.fromCharCode(i);
     return data;
 }();
@@ -54,11 +54,12 @@ function throwError(err: string) {
 }
 
 function _utf8Read(data: Uint8Array, offset: number, length: number) {
-    let chars = __chars;
-    let str: string[] | undefined = void 0, chunk: string[] = [], chunkSize = 512, chunkOffset = 0;
+    const chars = __chars;
+    let str: string[] | undefined = void 0, chunkOffset = 0;
+    const chunk: string[] = [], chunkSize = 512;
 
     for (let i = offset, end = offset + length; i < end; i++) {
-        let byte = data[i];
+        const byte = data[i];
         if ((byte & 0x80) === 0x00) {
             // One byte character
             chunk[chunkOffset++] = chars[byte];
@@ -108,7 +109,7 @@ export function utf8Read(data: Uint8Array, offset: number, length: number) {
 export function utf8ByteCount(str: string) {
     let count = 0;
     for (let i = 0, l = str.length; i < l; i++) {
-        let codePoint = str.charCodeAt(i);
+        const codePoint = str.charCodeAt(i);
         if (codePoint < 0x80) {
             count += 1;
             continue;

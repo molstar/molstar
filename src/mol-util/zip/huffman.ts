@@ -78,7 +78,8 @@ function setDepth(t: HufTree, d: number): number {
 }
 
 function restrictDepth(dps: HufTree[], MD: number, maxl: number) {
-    let i = 0, bCost = 1 << (maxl - MD), dbt = 0;
+    let i = 0, dbt = 0;
+    const bCost = 1 << (maxl - MD);
     dps.sort(function(a: HufTree, b: HufTree){return b.d === a.d ? a.f - b.f : b.d - a.d;});
 
     for(i = 0; i < dps.length; i++) {

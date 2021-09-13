@@ -53,7 +53,7 @@ export class GlbExporter extends MeshExporter<GlbData> {
                 max[j] = Math.max(a[i + j], max[j]);
             }
         }
-        return [ min, max ];
+        return [min, max];
     }
 
     private addBuffer(buffer: ArrayBuffer, componentType: number, type: string, count: number, target: number, min?: any, max?: any, normalized?: boolean) {
@@ -108,7 +108,7 @@ export class GlbExporter extends MeshExporter<GlbData> {
             indexArray = indices!.slice(0, drawCount);
         }
 
-        const [ vertexMin, vertexMax ] = GlbExporter.vec3MinMax(vertexArray);
+        const [vertexMin, vertexMax] = GlbExporter.vec3MinMax(vertexArray);
 
         let vertexBuffer = vertexArray.buffer;
         let normalBuffer = normalArray.buffer;
@@ -273,14 +273,14 @@ export class GlbExporter extends MeshExporter<GlbData> {
             if (padding) {
                 chunk.push(padding.buffer);
             }
-            return [ chunk, 8 + byteLength ];
+            return [chunk, 8 + byteLength];
         };
         const jsonString = JSON.stringify(gltf);
         const jsonBuffer = new Uint8Array(jsonString.length);
         asciiWrite(jsonBuffer, jsonString);
 
-        const [ jsonChunk, jsonChunkLength ] = createChunk(0x4E4F534A, [jsonBuffer.buffer], jsonBuffer.length, 0x20);
-        const [ binaryChunk, binaryChunkLength ] = createChunk(0x004E4942, this.binaryBuffer, binaryBufferLength, 0x00);
+        const [jsonChunk, jsonChunkLength] = createChunk(0x4E4F534A, [jsonBuffer.buffer], jsonBuffer.length, 0x20);
+        const [binaryChunk, binaryChunkLength] = createChunk(0x004E4942, this.binaryBuffer, binaryBufferLength, 0x00);
 
         const glbBufferLength = 12 + jsonChunkLength + binaryChunkLength;
         const header = new ArrayBuffer(12);

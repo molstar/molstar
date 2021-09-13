@@ -14,7 +14,7 @@ import { DihedralData } from '../../mol-repr/shape/loci/dihedral';
 export function getDistanceDataFromStructureSelections(s: ReadonlyArray<PluginStateObject.Molecule.Structure.SelectionEntry>): DistanceData {
     const lociA = s[0].loci;
     const lociB = s[1].loci;
-    return { pairs: [ { loci: [lociA, lociB] as const }] };
+    return { pairs: [{ loci: [lociA, lociB] as const }] };
 }
 
 export function getAngleDataFromStructureSelections(s: ReadonlyArray<PluginStateObject.Molecule.Structure.SelectionEntry>): AngleData {

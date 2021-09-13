@@ -1,12 +1,13 @@
 schema: https://data.rcsb.org/graphql
 documents: './src/extensions/rcsb/graphql/symmetry.gql.ts'
 generates:
-  './src/extensions/rcsb/graphql/types.ts':
-    plugins:
-      - add: '/* eslint-disable */'
-      - time
-      - typescript
-      - typescript-operations
-    config:
-      immutableTypes: true
-      skipTypename: true
+    './src/extensions/rcsb/graphql/types.ts':
+        plugins:
+            - add:
+                content: '/* eslint-disable */'
+            - time
+            - typescript
+            - typescript-operations
+        config:
+            immutableTypes: true
+            skipTypename: true

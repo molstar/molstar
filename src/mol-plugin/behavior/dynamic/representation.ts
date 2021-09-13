@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -42,9 +42,9 @@ export const HighlightLoci = PluginBehavior.create({
     name: 'representation-highlight-loci',
     category: 'interaction',
     ctor: class extends PluginBehavior.Handler<HighlightLociProps> {
-        private lociMarkProvider = (interactionLoci: Representation.Loci, action: MarkerAction) => {
+        private lociMarkProvider = (interactionLoci: Representation.Loci, action: MarkerAction, noRender?: boolean) => {
             if (!this.ctx.canvas3d || !this.params.mark) return;
-            this.ctx.canvas3d.mark(interactionLoci, action);
+            this.ctx.canvas3d.mark(interactionLoci, action, noRender);
         }
         register() {
             this.subscribeObservable(this.ctx.behaviors.interaction.hover, ({ current, buttons, modifiers }) => {
@@ -104,9 +104,9 @@ export const SelectLoci = PluginBehavior.create({
     category: 'interaction',
     ctor: class extends PluginBehavior.Handler<SelectLociProps> {
         private spine: StateTreeSpine.Impl
-        private lociMarkProvider = (reprLoci: Representation.Loci, action: MarkerAction) => {
+        private lociMarkProvider = (reprLoci: Representation.Loci, action: MarkerAction, noRender?: boolean) => {
             if (!this.ctx.canvas3d || !this.params.mark) return;
-            this.ctx.canvas3d.mark({ loci: reprLoci.loci }, action);
+            this.ctx.canvas3d.mark({ loci: reprLoci.loci }, action, noRender);
         }
         private applySelectMark(ref: string, clear?: boolean) {
             const cell = this.ctx.state.data.cells.get(ref);

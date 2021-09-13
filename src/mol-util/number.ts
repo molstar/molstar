@@ -13,7 +13,7 @@
 export function getMantissaMultiplier(v: number, maxDigits: number, delta: number) {
     let m = 1, i;
     for (i = 0; i < maxDigits; i++) {
-        let mv = m * v;
+        const mv = m * v;
         if (Math.abs(Math.round(mv) - mv) <= delta) return i;
         m *= 10;
     }

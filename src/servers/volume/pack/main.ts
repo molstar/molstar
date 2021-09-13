@@ -22,14 +22,14 @@ export async function pack(input: { name: string, filename: string }[], blockSiz
 }
 
 function getTime() {
-    let t = process.hrtime();
+    const t = process.hrtime();
     return t[0] * 1000 + t[1] / 1000000;
 }
 
 function updateAllocationProgress(progress: Data.Progress, progressDone: number) {
-    let old = (100 * progress.current / progress.max).toFixed(0);
+    const old = (100 * progress.current / progress.max).toFixed(0);
     progress.current += progressDone;
-    let $new = (100 * progress.current / progress.max).toFixed(0);
+    const $new = (100 * progress.current / progress.max).toFixed(0);
     if (old !== $new) {
         process.stdout.write(`\rAllocating...      ${$new}%`);
     }
@@ -125,7 +125,7 @@ async function create(filename: string, sourceDensities: { name: string, filenam
         const time = getTime() - startedTime;
         console.log(`[Done] ${time.toFixed(0)}ms.`);
     } finally {
-        for (let f of files) f.close();
+        for (const f of files) f.close();
 
         // const ff = await File.openRead(filename);
         // const hh = await DataFormat.readHeader(ff);

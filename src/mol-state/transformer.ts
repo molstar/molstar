@@ -179,7 +179,7 @@ namespace Transformer {
             namespace,
             id,
             definition,
-            createDefaultParams(a, globalCtx) { return definition.params ? PD.getDefaultValues( definition.params(a, globalCtx)) : {} as any; }
+            createDefaultParams(a, globalCtx) { return definition.params ? PD.getDefaultValues(definition.params(a, globalCtx)) : {} as any; }
         };
         registry.set(id, t);
         _index(t);

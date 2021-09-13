@@ -76,7 +76,7 @@ export const ValenceModel = PluginBehavior.create<{ autoAttach: boolean, showToo
         }
 
         update(p: { autoAttach: boolean, showTooltip: boolean }) {
-            let updated = (
+            const updated = (
                 this.params.autoAttach !== p.autoAttach ||
                 this.params.showTooltip !== p.showTooltip
             );

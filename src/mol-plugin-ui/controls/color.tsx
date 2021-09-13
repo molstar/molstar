@@ -50,7 +50,7 @@ export class CombinedColorControl extends React.PureComponent<ParamProps<PD.Colo
     }
 
     onB = (v: number) => {
-        const [r, g, ] = Color.toRgb(this.props.value);
+        const [r, g] = Color.toRgb(this.props.value);
         const value = Color.fromRgb(r, g, v);
         if (value !== this.props.value) this.update(value);
     }

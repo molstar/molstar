@@ -106,7 +106,7 @@ async function _readLocal(runtime: RuntimeContext, data: Uint8Array, o: number, 
         await inflateRaw(runtime, file, buf);
         out[name] = buf;
     } else {
-        throw `unknown compression method: ${cmpr}`;
+        throw new Error(`unknown compression method: ${cmpr}`);
     }
 }
 
@@ -224,7 +224,8 @@ export async function zip(runtime: RuntimeContext, obj: { [k: string]: Uint8Arra
         const file = zpd[p];  fof.push(o);
         o = _writeHeader(data, o, p, file, 0);
     }
-    let i = 0, ioff = o;
+    let i = 0;
+    const ioff = o;
     for(const p in zpd) {
         const file = zpd[p];
         fof.push(o);
@@ -237,7 +238,7 @@ export async function zip(runtime: RuntimeContext, obj: { [k: string]: Uint8Arra
     writeUshort(data, o, i);  o += 2;
     writeUshort(data, o, i);  o += 2;	// number of c d records
     writeUint(data, o, csize);  o += 4;
-    writeUint(data, o, ioff );  o += 4;
+    writeUint(data, o, ioff);  o += 4;
     o += 2;
     return data.buffer;
 }

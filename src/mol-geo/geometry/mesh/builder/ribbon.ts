@@ -36,7 +36,7 @@ const torsionVector = Vec3();
 export function addRibbon(state: MeshBuilder.State, controlPoints: ArrayLike<number>, normalVectors: ArrayLike<number>, binormalVectors: ArrayLike<number>, linearSegments: number, widthValues: ArrayLike<number>, heightValues: ArrayLike<number>, arrowHeight: number) {
     const { currentGroup, vertices, normals, indices, groups } = state;
 
-    let vertexCount = vertices.elementCount;
+    const vertexCount = vertices.elementCount;
     let offsetLength = 0;
 
     if (arrowHeight > 0) {

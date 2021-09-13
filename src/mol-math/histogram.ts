@@ -13,7 +13,7 @@ export interface Histogram {
     counts: Int32Array
 }
 
-export function calculateHistogram(data: ArrayLike<number>, binCount: number, options?: { min: number, max: number, } ): Histogram {
+export function calculateHistogram(data: ArrayLike<number>, binCount: number, options?: { min: number, max: number, }): Histogram {
     if (!options) {
         const [min, max] = arrayMinMax(data);
         return _calcHistogram(data, binCount, min, max);

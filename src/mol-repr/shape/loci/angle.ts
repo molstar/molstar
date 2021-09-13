@@ -204,7 +204,7 @@ function buildSectorMesh(data: AngleData, props: AngleProps, mesh?: Mesh): Mesh 
 function getSectorShape(ctx: RuntimeContext, data: AngleData, props: AngleProps, shape?: Shape<Mesh>) {
     const mesh = buildSectorMesh(data, props, shape && shape.geometry);
     const name = getAngleName(data);
-    const getLabel = (groupId: number ) => angleLabel(data.triples[groupId]);
+    const getLabel = (groupId: number) => angleLabel(data.triples[groupId]);
     return Shape.create(name, data, mesh, () => props.color, () => 1, getLabel);
 }
 
@@ -231,7 +231,7 @@ function buildText(data: AngleData, props: AngleProps, text?: Text): Text {
 function getTextShape(ctx: RuntimeContext, data: AngleData, props: AngleProps, shape?: Shape<Text>) {
     const text = buildText(data, props, shape && shape.geometry);
     const name = getAngleName(data);
-    const getLabel = (groupId: number ) => angleLabel(data.triples[groupId]);
+    const getLabel = (groupId: number) => angleLabel(data.triples[groupId]);
     return Shape.create(name, data, text, () => props.textColor, () => props.textSize, getLabel);
 }
 

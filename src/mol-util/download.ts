@@ -39,9 +39,9 @@ export function download (data: Blob | string, downloadName = 'download') {
             setTimeout(() => URL.revokeObjectURL(a.href), 4E4); // 40s
             setTimeout(() => click(a));
         }
-    } else if (typeof navigator !== 'undefined' && navigator.msSaveOrOpenBlob) {
+    } else if (typeof navigator !== 'undefined' && (navigator as any).msSaveOrOpenBlob) {
         // native saveAs in IE 10+
-        navigator.msSaveOrOpenBlob(data, downloadName);
+        (navigator as any).msSaveOrOpenBlob(data, downloadName);
     } else {
         const ua = window.navigator.userAgent;
         const isSafari = /Safari/i.test(ua);

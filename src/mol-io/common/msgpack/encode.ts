@@ -21,7 +21,7 @@ function encodedSize(value: any) {
 
     // Raw Bytes
     if (type === 'string') {
-        let length = utf8ByteCount(value);
+        const length = utf8ByteCount(value);
         if (length < 0x20) {
             return 1 + length;
         }
@@ -37,7 +37,7 @@ function encodedSize(value: any) {
     }
 
     if (value instanceof Uint8Array) {
-        let length = value.byteLength;
+        const length = value.byteLength;
         if (length < 0x100) {
             return 2 + length;
         }
@@ -89,10 +89,10 @@ function encodedSize(value: any) {
                 size += encodedSize(value[i]);
             }
         } else {
-            let keys = Object.keys(value);
+            const keys = Object.keys(value);
             length = keys.length;
             for (let i = 0; i < length; i++) {
-                let key = keys[i];
+                const key = keys[i];
                 size += encodedSize(key) + encodedSize(value[key]);
             }
         }
@@ -111,11 +111,11 @@ function encodedSize(value: any) {
 }
 
 function encodeInternal(value: any, view: DataView, bytes: Uint8Array, offset: number) {
-    let type = typeof value;
+    const type = typeof value;
 
     // Strings Bytes
     if (type === 'string') {
-        let length = utf8ByteCount(value);
+        const length = utf8ByteCount(value);
         // fix str
         if (length < 0x20) {
             view.setUint8(offset, length | 0xa0);
@@ -146,8 +146,8 @@ function encodeInternal(value: any, view: DataView, bytes: Uint8Array, offset: n
     }
 
     if (value instanceof Uint8Array) {
-        let length = value.byteLength;
-        let bytes = new Uint8Array(view.buffer);
+        const length = value.byteLength;
+        const bytes = new Uint8Array(view.buffer);
         // bin 8
         if (length < 0x100) {
             view.setUint8(offset, 0xc4);
@@ -251,7 +251,7 @@ function encodeInternal(value: any, view: DataView, bytes: Uint8Array, offset: n
     // Container Types
     if (type === 'object') {
         let length: number, size = 0;
-        let isArray = Array.isArray(value);
+        const isArray = Array.isArray(value);
         let keys: string[] | undefined;
 
         if (isArray) {

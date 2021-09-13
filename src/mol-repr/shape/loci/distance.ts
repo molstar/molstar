@@ -105,7 +105,7 @@ function buildLines(data: DistanceData, props: DistanceProps, lines?: Lines): Li
 function getLinesShape(ctx: RuntimeContext, data: DistanceData, props: DistanceProps, shape?: Shape<Lines>) {
     const lines = buildLines(data, props, shape && shape.geometry);
     const name = getDistanceName(data, props.unitLabel);
-    const getLabel = (groupId: number ) => distanceLabel(data.pairs[groupId], props);
+    const getLabel = (groupId: number) => distanceLabel(data.pairs[groupId], props);
     return Shape.create(name, data, lines, () => props.linesColor, () => props.linesSize, getLabel);
 }
 
@@ -127,7 +127,7 @@ function buildText(data: DistanceData, props: DistanceProps, text?: Text): Text 
 function getTextShape(ctx: RuntimeContext, data: DistanceData, props: DistanceProps, shape?: Shape<Text>) {
     const text = buildText(data, props, shape && shape.geometry);
     const name = getDistanceName(data, props.unitLabel);
-    const getLabel = (groupId: number ) => distanceLabel(data.pairs[groupId], props);
+    const getLabel = (groupId: number) => distanceLabel(data.pairs[groupId], props);
     return Shape.create(name, data, text, () => props.textColor, () => props.textSize, getLabel);
 }
 

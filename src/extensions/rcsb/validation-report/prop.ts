@@ -208,8 +208,8 @@ function createInterUnitClashes(structure: Structure, clashes: ValidationReport[
 
         for (let i = 0, il = clashes.edgeCount * 2; i < il; ++i) {
             // TODO create lookup
-            let indexA = SortedArray.indexOf(elementsA, a[i]);
-            let indexB = SortedArray.indexOf(elementsB, b[i]);
+            const indexA = SortedArray.indexOf(elementsA, a[i]);
+            const indexB = SortedArray.indexOf(elementsB, b[i]);
 
             if (indexA !== -1 && indexB !== -1) {
                 unitA.conformation.position(a[i], pA);
@@ -250,8 +250,8 @@ function createIntraUnitClashes(unit: Unit.Atomic, clashes: ValidationReport['cl
 
     for (let i = 0, il = edgeCount * 2; i < il; ++i) {
         // TODO create lookup
-        let indexA = SortedArray.indexOf(elements, a[i]);
-        let indexB = SortedArray.indexOf(elements, b[i]);
+        const indexA = SortedArray.indexOf(elements, a[i]);
+        const indexB = SortedArray.indexOf(elements, b[i]);
 
         if (indexA !== -1 && indexB !== -1) {
             unit.conformation.position(a[i], pA);
@@ -431,7 +431,7 @@ function parseValidationReportXml(xml: XMLDocument, model: Model): ValidationRep
 
     const groups = xml.getElementsByTagName('ModelledSubgroup');
     for (let i = 0, il = groups.length; i < il; ++i) {
-        const g = groups[ i ];
+        const g = groups[i];
         const ga = g.attributes;
 
         const pdbx_PDB_model_num = parseInt(getItem(ga, 'model'));

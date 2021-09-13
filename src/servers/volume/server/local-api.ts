@@ -44,7 +44,7 @@ export interface JobEntry {
 
 export async function run(jobs: JobEntry[]) {
     let progress = 0;
-    let started = getTime();
+    const started = getTime();
     for (const job of jobs) {
         try {
             await query(job);
@@ -58,7 +58,7 @@ export async function run(jobs: JobEntry[]) {
 }
 
 function getTime() {
-    let t = process.hrtime();
+    const t = process.hrtime();
     return t[0] * 1000 + t[1] / 1000000;
 }
 
@@ -100,7 +100,7 @@ async function query(job: JobEntry) {
 }
 
 function makeDir(path: string, root?: string): boolean {
-    let dirs = path.split(/\/|\\/g),
+    const dirs = path.split(/\/|\\/g),
         dir = dirs.shift();
 
     root = (root || '') + dir + '/';

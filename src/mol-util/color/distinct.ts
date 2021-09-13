@@ -144,7 +144,7 @@ export function distinctColors(count: number, props: Partial<DistinctColorsProps
             const As: number[] = [];
             const Bs: number[] = [];
 
-            for (let sample of zone) {
+            for (const sample of zone) {
                 Ls.push(sample[0]);
                 As.push(sample[1]);
                 Bs.push(sample[2]);

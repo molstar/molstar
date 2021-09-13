@@ -42,7 +42,7 @@ export async function GaussianDensityCPU(ctx: RuntimeContext, position: Position
     idData.fill(-1);
     const idField = Tensor.create(space, idData);
 
-    const [ dimX, dimY, dimZ ] = dim;
+    const [dimX, dimY, dimZ] = dim;
     const iu = dimZ, iv = dimY, iuv = iu * iv;
 
     const gridx = fillGridDim(dim[0], min[0], resolution);

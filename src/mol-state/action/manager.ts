@@ -38,7 +38,7 @@ class StateActionManager {
             }
         }
 
-        this.events.added.next();
+        this.events.added.next(void 0);
 
         return this;
     }
@@ -62,7 +62,7 @@ class StateActionManager {
             if (xs.length === 0) this.fromTypeIndex.delete(t.type);
         }
 
-        this.events.removed.next();
+        this.events.removed.next(void 0);
 
         return this;
     }

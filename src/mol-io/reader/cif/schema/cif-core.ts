@@ -1,7 +1,7 @@
 /**
  * Copyright (c) 2017-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
- * Code-generated 'CifCore' schema file. Dictionary versions: CifCore 3.0.14.
+ * Code-generated 'CifCore' schema file. Dictionary versions: CifCore 3.1.0.
  *
  * @author molstar/ciftools package
  */
@@ -10,8 +10,8 @@ import { Database, Column } from '../../../../mol-data/db';
 
 import Schema = Column.Schema;
 
-const int = Schema.int;
 const float = Schema.float;
+const int = Schema.int;
 const str = Schema.str;
 const Matrix = Schema.Matrix;
 
@@ -21,16 +21,6 @@ export const CifCore_Schema = {
      * the crystal unit cell and their measurement.
      */
     cell: {
-        /**
-         * The number of the formula units in the unit cell as specified
-         * by _chemical_formula.structural, _chemical_formula.moiety or
-         * _chemical_formula.sum.
-         */
-        formula_units_Z: int,
-        /**
-         * Volume of the crystal unit cell.
-         */
-        volume: float,
         /**
          * The angle between the bounding cell axes.
          */
@@ -44,6 +34,12 @@ export const CifCore_Schema = {
          */
         angle_gamma: float,
         /**
+         * The number of the formula units in the unit cell as specified
+         * by _chemical_formula.structural, _chemical_formula.moiety or
+         * _chemical_formula.sum.
+         */
+        formula_units_z: int,
+        /**
          * The length of each cell axis.
          */
         length_a: float,
@@ -55,6 +51,10 @@ export const CifCore_Schema = {
          * The length of each cell axis.
          */
         length_c: float,
+        /**
+         * Volume of the crystal unit cell.
+         */
+        volume: float,
     },
     /**
      * The CATEGORY of data items which describe the composition and
@@ -184,12 +184,12 @@ export const CifCore_Schema = {
         crystal_system: str,
         /**
          * The number as assigned in International Tables for Crystallography
-         * Vol A, specifying the proper affine class (i.e. the orientation
+         * Vol. A, specifying the proper affine class (i.e. the orientation
          * preserving affine class) of space groups (crystallographic space
          * group type) to which the space group belongs. This number defines
          * the space group type but not the coordinate system expressed.
          */
-        IT_number: int,
+        it_number: int,
         /**
          * The full international Hermann-Mauguin space-group symbol as
          * defined in Section 2.2.3 and given as the second item of the
@@ -220,7 +220,7 @@ export const CifCore_Schema = {
          * Space-group symmetry, edited by Th. Hahn, 5th ed.
          * Dordrecht: Kluwer Academic Publishers.
          */
-        'name_H-M_full': str,
+        'name_h-m_full': str,
     },
     /**
      * The CATEGORY of data items used to describe symmetry equivalent sites
@@ -340,8 +340,8 @@ export const CifCore_Schema = {
         /**
          * The digital object identifier (DOI) registered to identify
          * the data set publication represented by the current
-         * datablock. This can be used as a unique identifier for
-         * the datablock so long as the code used is a valid DOI
+         * data block. This can be used as a unique identifier for
+         * the data block so long as the code used is a valid DOI
          * (i.e. begins with a valid publisher prefix assigned by a
          * Registration Agency and a suffix guaranteed to be unique
          * by the publisher) and has had its metadata deposited
@@ -354,8 +354,8 @@ export const CifCore_Schema = {
          * structured extensible way. A DOI is an implementation
          * of the Internet concepts of Uniform Resource Name and
          * Universal Resource Locator managed according to the
-         * specifications of the International DOI Foundation (see
-         * http://www.doi.org).
+         * specifications of the International DOI Foundation
+         * (see http://www.doi.org).
          */
         block_doi: str,
     },
@@ -366,13 +366,13 @@ export const CifCore_Schema = {
      */
     database_code: {
         /**
-         * Code assigned by Crystallography Open Database (COD).
+         * Code assigned by the Crystallography Open Database (COD).
          */
-        COD: str,
+        cod: str,
         /**
          * Code assigned by the Cambridge Structural Database.
          */
-        CSD: str,
+        csd: str,
         /**
          * Deposition numbers assigned by the Cambridge Crystallographic
          * Data Centre (CCDC) to files containing structural information
@@ -388,15 +388,15 @@ export const CifCore_Schema = {
         /**
          * Code assigned by the Inorganic Crystal Structure Database.
          */
-        ICSD: str,
+        icsd: str,
         /**
          * Code assigned in the Metals Data File.
          */
-        MDF: str,
+        mdf: str,
         /**
          * Code assigned by the NBS (NIST) Crystal Data Database.
          */
-        NBS: str,
+        nbs: str,
     },
     /**
      * The CATEGORY of data items used to describe atom site information
@@ -511,7 +511,7 @@ export const CifCore_Schema = {
          * a* = the reciprocal-space cell lengths
          * Ref: Fischer, R. X. & Tillmanns, E. (1988). Acta Cryst. C44, 775-776.
          */
-        U_iso_or_equiv: float,
+        u_iso_or_equiv: float,
     },
     /**
      * The CATEGORY of data items used to describe the anisotropic
@@ -537,7 +537,7 @@ export const CifCore_Schema = {
          *
          * The unique elements of the real symmetric matrix are entered by row.
          */
-        U_11: float,
+        u_11: float,
         /**
          * These are the standard anisotropic atomic displacement
          * components in angstroms squared which appear in the
@@ -550,21 +550,7 @@ export const CifCore_Schema = {
          *
          * The unique elements of the real symmetric matrix are entered by row.
          */
-        U: Matrix(3, 3),
-        /**
-         * These are the standard uncertainty values (SU) for the standard
-         * form of the Uij anisotropic atomic displacement components (see
-         * _aniso_UIJ. Because these values are TYPE measurand, the su values
-         * may in practice be auto generated as part of the Uij calculation.
-         */
-        U_11_su: float,
-        /**
-         * These are the standard uncertainty values (SU) for the standard
-         * form of the Uij anisotropic atomic displacement components (see
-         * _aniso_UIJ. Because these values are TYPE measurand, the su values
-         * may in practice be auto generated as part of the Uij calculation.
-         */
-        U_su: Matrix(3, 3),
+        u: Matrix(3, 3),
         /**
          * These are the standard anisotropic atomic displacement
          * components in angstroms squared which appear in the
@@ -577,14 +563,7 @@ export const CifCore_Schema = {
          *
          * The unique elements of the real symmetric matrix are entered by row.
          */
-        U_12: float,
-        /**
-         * These are the standard uncertainty values (SU) for the standard
-         * form of the Uij anisotropic atomic displacement components (see
-         * _aniso_UIJ. Because these values are TYPE measurand, the su values
-         * may in practice be auto generated as part of the Uij calculation.
-         */
-        U_12_su: float,
+        u_12: float,
         /**
          * These are the standard anisotropic atomic displacement
          * components in angstroms squared which appear in the
@@ -597,14 +576,7 @@ export const CifCore_Schema = {
          *
          * The unique elements of the real symmetric matrix are entered by row.
          */
-        U_13: float,
-        /**
-         * These are the standard uncertainty values (SU) for the standard
-         * form of the Uij anisotropic atomic displacement components (see
-         * _aniso_UIJ. Because these values are TYPE measurand, the su values
-         * may in practice be auto generated as part of the Uij calculation.
-         */
-        U_13_su: float,
+        u_13: float,
         /**
          * These are the standard anisotropic atomic displacement
          * components in angstroms squared which appear in the
@@ -617,14 +589,7 @@ export const CifCore_Schema = {
          *
          * The unique elements of the real symmetric matrix are entered by row.
          */
-        U_22: float,
-        /**
-         * These are the standard uncertainty values (SU) for the standard
-         * form of the Uij anisotropic atomic displacement components (see
-         * _aniso_UIJ. Because these values are TYPE measurand, the su values
-         * may in practice be auto generated as part of the Uij calculation.
-         */
-        U_22_su: float,
+        u_22: float,
         /**
          * These are the standard anisotropic atomic displacement
          * components in angstroms squared which appear in the
@@ -637,14 +602,7 @@ export const CifCore_Schema = {
          *
          * The unique elements of the real symmetric matrix are entered by row.
          */
-        U_23: float,
-        /**
-         * These are the standard uncertainty values (SU) for the standard
-         * form of the Uij anisotropic atomic displacement components (see
-         * _aniso_UIJ. Because these values are TYPE measurand, the su values
-         * may in practice be auto generated as part of the Uij calculation.
-         */
-        U_23_su: float,
+        u_23: float,
         /**
          * These are the standard anisotropic atomic displacement
          * components in angstroms squared which appear in the
@@ -657,14 +615,7 @@ export const CifCore_Schema = {
          *
          * The unique elements of the real symmetric matrix are entered by row.
          */
-        U_33: float,
-        /**
-         * These are the standard uncertainty values (SU) for the standard
-         * form of the Uij anisotropic atomic displacement components (see
-         * _aniso_UIJ. Because these values are TYPE measurand, the su values
-         * may in practice be auto generated as part of the Uij calculation.
-         */
-        U_33_su: float,
+        u_33: float,
     },
     /**
      * The CATEGORY of data items used to describe atomic type information
@@ -710,17 +661,14 @@ export const CifCore_Schema = {
 };
 
 export const CifCore_Aliases = {
-    'atom_site_aniso.U': [
-        'atom_site_anisotrop_U',
+    'cell.formula_units_z': [
+        'cell_formula_units_Z',
     ],
-    'atom_site_aniso.U_su': [
-        'atom_site_aniso_U_esd',
-        'atom_site_anisotrop_U_esd',
-    ],
-    'space_group.IT_number': [
+    'space_group.it_number': [
+        'space_group_IT_number',
         'symmetry_Int_Tables_number',
     ],
-    'space_group.name_H-M_full': [
+    'space_group.name_h-m_full': [
         'symmetry_space_group_name_H-M',
     ],
     'space_group_symop.operation_xyz': [
@@ -735,6 +683,21 @@ export const CifCore_Aliases = {
     'geom_bond.distance': [
         'geom_bond_dist',
     ],
+    'database_code.cod': [
+        'database_code_COD',
+    ],
+    'database_code.csd': [
+        'database_code_CSD',
+    ],
+    'database_code.icsd': [
+        'database_code_ICSD',
+    ],
+    'database_code.mdf': [
+        'database_code_MDF',
+    ],
+    'database_code.nbs': [
+        'database_code_NBS',
+    ],
     'atom_site.adp_type': [
         'atom_site_thermal_displace_type',
     ],
@@ -744,50 +707,35 @@ export const CifCore_Aliases = {
     'atom_site.site_symmetry_multiplicity': [
         'atom_site_symmetry_multiplicity',
     ],
+    'atom_site.u_iso_or_equiv': [
+        'atom_site_U_iso_or_equiv',
+    ],
     'atom_site_aniso.label': [
         'atom_site_anisotrop_id',
     ],
-    'atom_site_aniso.U_11': [
+    'atom_site_aniso.u_11': [
+        'atom_site_aniso_U_11',
         'atom_site_anisotrop_U_11',
     ],
-    'atom_site_aniso.U_11_su': [
-        'atom_site_aniso_U_11_esd',
-        'atom_site_anisotrop_U_11_esd',
-    ],
-    'atom_site_aniso.U_12': [
+    'atom_site_aniso.u_12': [
+        'atom_site_aniso_U_12',
         'atom_site_anisotrop_U_12',
     ],
-    'atom_site_aniso.U_12_su': [
-        'atom_site_aniso_U_12_esd',
-        'atom_site_anisotrop_U_12_esd',
-    ],
-    'atom_site_aniso.U_13': [
+    'atom_site_aniso.u_13': [
+        'atom_site_aniso_U_13',
         'atom_site_anisotrop_U_13',
     ],
-    'atom_site_aniso.U_13_su': [
-        'atom_site_aniso_U_13_esd',
-        'atom_site_anisotrop_U_13_esd',
-    ],
-    'atom_site_aniso.U_22': [
+    'atom_site_aniso.u_22': [
+        'atom_site_aniso_U_22',
         'atom_site_anisotrop_U_22',
     ],
-    'atom_site_aniso.U_22_su': [
-        'atom_site_aniso_U_22_esd',
-        'atom_site_anisotrop_U_22_esd',
-    ],
-    'atom_site_aniso.U_23': [
+    'atom_site_aniso.u_23': [
+        'atom_site_aniso_U_23',
         'atom_site_anisotrop_U_23',
     ],
-    'atom_site_aniso.U_23_su': [
-        'atom_site_aniso_U_23_esd',
-        'atom_site_anisotrop_U_23_esd',
-    ],
-    'atom_site_aniso.U_33': [
+    'atom_site_aniso.u_33': [
+        'atom_site_aniso_U_33',
         'atom_site_anisotrop_U_33',
-    ],
-    'atom_site_aniso.U_33_su': [
-        'atom_site_aniso_U_33_esd',
-        'atom_site_anisotrop_U_33_esd',
     ],
 };
 

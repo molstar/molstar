@@ -91,11 +91,11 @@ namespace Matrix {
         const md = mat.data;
         const mean = new Array(ncols) as V;
 
-        for (let j = 0; j < ncols; ++j) mean[ j ] = 0.0;
+        for (let j = 0; j < ncols; ++j) mean[j] = 0.0;
         for (let i = 0, p = 0; i < nrows; ++i) {
-            for (let j = 0; j < ncols; ++j, ++p) mean[ j ] += md[ p ];
+            for (let j = 0; j < ncols; ++j, ++p) mean[j] += md[p];
         }
-        for (let j = 0; j < ncols; ++j) mean[ j ] /= nrows;
+        for (let j = 0; j < ncols; ++j) mean[j] /= nrows;
 
         return mean;
     }
@@ -106,7 +106,7 @@ namespace Matrix {
         const md = mat.data;
 
         for (let i = 0, p = 0; i < nrows; ++i) {
-            for (let j = 0; j < ncols; ++j, ++p) md[ p ] -= row[ j ];
+            for (let j = 0; j < ncols; ++j, ++p) md[p] -= row[j];
         }
         return mat;
     }

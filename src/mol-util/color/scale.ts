@@ -65,7 +65,7 @@ export namespace ColorScale {
             const max = src.length - 1;
 
             color = (v: number) => {
-                let t = clamp((v - min) / diff, 0, 1);
+                const t = clamp((v - min) / diff, 0, 1);
                 const i = SortedArray.findPredecessorIndex(off, t);
 
                 if (i === 0) {

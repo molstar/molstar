@@ -102,7 +102,7 @@ export abstract class MeshExporter<D extends RenderObjectExportData> implements 
         }
         const framebuffer = webgl.namedFramebuffers[GeoExportName];
 
-        const [ width, height ] = colorTexDim;
+        const [width, height] = colorTexDim;
         const colorGrid = new Uint8Array(width * height * 4);
 
         framebuffer.bind();
@@ -357,7 +357,7 @@ export abstract class MeshExporter<D extends RenderObjectExportData> implements 
         }
         const framebuffer = webgl.namedFramebuffers[GeoExportName];
 
-        const [ width, height ] = values.uGeoTexDim.ref.value;
+        const [width, height] = values.uGeoTexDim.ref.value;
         const vertices = new Float32Array(width * height * 4);
         const normals = new Float32Array(width * height * 4);
         const groups = webgl.isWebGL2 ? new Uint8Array(width * height * 4) : new Float32Array(width * height * 4);

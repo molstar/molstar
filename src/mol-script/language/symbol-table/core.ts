@@ -85,7 +85,7 @@ const ctrl = {
     }), Type.Union([Type.Variable('a', Type.Any), Type.Variable('b', Type.Any)])),
     assoc: symbol(Arguments.Dictionary({
         0: Argument(Type.Str, { description: 'Name' }),
-        1: Argument(Type.Variable('a', Type.Any), {description: 'Value to assign' })
+        1: Argument(Type.Variable('a', Type.Any), { description: 'Value to assign' })
     }), Type.Variable('a', Type.Any))
 };
 

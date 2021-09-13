@@ -63,10 +63,10 @@ export function assignGeometry (totalCoordination: number): AtomGeometry {
 }
 
 export const AtomGeometryAngles = new Map<AtomGeometry, number>([
-    [ AtomGeometry.Linear, degToRad(180) ],
-    [ AtomGeometry.Trigonal, degToRad(120) ],
-    [ AtomGeometry.Tetrahedral, degToRad(109.4721) ],
-    [ AtomGeometry.Octahedral, degToRad(90) ]
+    [AtomGeometry.Linear, degToRad(180)],
+    [AtomGeometry.Trigonal, degToRad(120)],
+    [AtomGeometry.Tetrahedral, degToRad(109.4721)],
+    [AtomGeometry.Octahedral, degToRad(90)]
 ]);
 
 // tmp objects for `calcAngles` and `calcPlaneAngle`

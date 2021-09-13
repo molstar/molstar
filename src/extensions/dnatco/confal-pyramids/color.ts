@@ -165,8 +165,8 @@ export function ConfalPyramidsColorTheme(ctx: ThemeDataContext, props: PD.Values
         legend: TableLegend(iterableToArray(ColorMapping.entries()).map(([conformer, color]) => {
             return [conformer, color] as [string, Color];
         }).concat([
-            [ 'Error', ErrorColor ],
-            [ 'Unknown', DefaultColor ]
+            ['Error', ErrorColor],
+            ['Unknown', DefaultColor]
         ]))
     };
 }

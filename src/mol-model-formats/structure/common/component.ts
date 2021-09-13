@@ -115,7 +115,7 @@ export class ComponentBuilder {
 
     private getAtomIds(index: number) {
         const atomIds = new Set<string>();
-        let prevSeqId = this.seqId.value(index);
+        const prevSeqId = this.seqId.value(index);
         while (index < this.seqId.rowCount) {
             const seqId = this.seqId.value(index);
             if (seqId !== prevSeqId) break;

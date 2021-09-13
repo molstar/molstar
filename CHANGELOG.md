@@ -4,8 +4,19 @@ All notable changes to this project will be documented in this file, following t
 Note that since we don't clearly distinguish between a public and private interfaces there will be changes in non-major versions that are potentially breaking. If we make breaking changes to less used interfaces we will highlight it in here.
 
 
-## [Unreleased]
+## [v2.3.0] - 2021-09-06
 
+- Take include/exclude flags into account when displaying aromatic bonds
+- Improve marking performance
+    - Avoid unnecessary draw calls/ui updates when marking
+    - Check if loci is superset of visual
+    - Check if loci overlaps with unit visual
+    - Ensure ``Interval`` is used for ranges instead of ``SortedArray``
+    - Add uniform marker type
+    - Special case for reversing previous mark
+- Add optional marking pass
+    - Outlines visible and hidden parts of highlighted/selected groups
+    - Add highlightStrength/selectStrength renderer params
 
 ## [v2.2.3] - 2021-08-25
 
@@ -13,18 +24,9 @@ Note that since we don't clearly distinguish between a public and private interf
 - Add ``Mesh`` processing helper ``.smoothEdges``
 - Smooth border of molecular-surface with ``includeParent`` enabled
 - Hide ``includeParent`` option from gaussian-surface visuals (not particularly useful)
+- Improved ``StructureElement.Loci.size`` performance (for marking large cellpack models)
 - Fix new ``TransformData`` issues (camera/bounding helper not showing up)
-- Improve marking performance
-    - Avoid superfluous calls to ``StructureElement.Loci.isWholeStructure``
-    - Check if loci is superset of visual
-    - Check if loci overlaps with unit visual
-    - Ensure ``Interval`` is used for ranges instead of ``SortedArray``
-    - Inline ``StructureElement.Loci.size`` code
-    - Add uniform marker type
-    - Special case for reversing previous mark
-- Add optional marking pass
-    - Outlines visible and hidden parts of highlighted/selected groups
-    - Add highlightStrength/selectStrength renderer params
+- Improve marking performance (avoid superfluous calls to ``StructureElement.Loci.isWholeStructure``)
 
 ## [v2.2.2] - 2021-08-11
 

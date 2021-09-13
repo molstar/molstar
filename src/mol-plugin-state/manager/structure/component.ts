@@ -53,7 +53,7 @@ class StructureComponentManager extends StatefulPluginComponent<StructureCompone
     async setOptions(options: StructureComponentManager.Options) {
         const interactionChanged = options.interactions !== this.state.options.interactions;
         this.updateState({ options });
-        this.events.optionsUpdated.next();
+        this.events.optionsUpdated.next(void 0);
 
         const update = this.dataState.build();
 
