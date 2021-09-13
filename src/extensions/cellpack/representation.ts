@@ -49,11 +49,6 @@ export type UnitcellProps = PD.Values<MBParams>
 function getMBMesh(data: MembraneSphereData, props: UnitcellProps, mesh?: Mesh) {
     const state = MeshBuilder.createState(256, 128, mesh);
     const radius = props.radius;
-    // const p = DefaultPolyhedronProps;
-    // p.detail = 3;
-    // p.radius = radius;
-    // const { vertices, indices } = Icosahedron();
-    // const asphere = Polyhedron(vertices, indices, p);
     const asphere = Sphere(3);
     const trans: Mat4 = Mat4.identity();
     Mat4.fromScaling(trans, Vec3.create(radius, radius, radius));
@@ -68,17 +63,6 @@ function getMBShape(ctx: RuntimeContext, data: MembraneSphereData, props: Unitce
     const label = 'mb';
     return Shape.create(label, data, geo, () => props.cellColor, () => 1, () => label);
 }
-
-//
-/*
-export function getMBData(model: Model, symmetry: Symmetry, props: UnitcellProps) {
-    const ref = Vec3();
-    if (props.ref === 'model') {
-        Vec3.transformMat4(ref, Model.getCenter(model), symmetry.spacegroup.cell.toFractional);
-    }
-    return { symmetry, ref };
-}
-*/
 
 export type MBRepresentation = Representation<MembraneSphereData, MBParams>
 export function MBRepresentation(ctx: RepresentationContext, getParams: RepresentationParamsGetter<MembraneSphereData, MBParams>): MBRepresentation {

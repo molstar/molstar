@@ -67,7 +67,11 @@ const ParseCellPack = PluginStateTransform.BuiltIn({
                 for (const name in compartments) {
                     const { surface, interior } = compartments[name];
                     if (surface) {
-                        packings.push({ name, location: 'surface', ingredients: surface.ingredients, geom: compartments[name].geom, geom_type: compartments[name].geom_type, mb: compartments[name].mb });
+                        let filename = '';
+                        if (compartments[name].geom_type === 'file') {
+                            filename = (compartments[name].geom) ? compartments[name].geom as string : '';
+                        }
+                        packings.push({ name, location: 'surface', ingredients: surface.ingredients, filename: filename, geom_type: compartments[name].geom_type, primitives: compartments[name].mb });
                         for (const iName in surface.ingredients) {
                             if (surface.ingredients[iName].ingtype === 'fiber') {
                                 cell.mapping_ids[-(fiber_counter_id + 1)] = [comp_counter, iName];
@@ -295,9 +299,9 @@ const StructureFromAssemblies = PluginStateTransform.BuiltIn({
 });
 
 const CreateTransformer = StateTransformer.builderFactory('cellPACK');
-export const CreateSphere = CreateTransformer({
-    name: 'create-sphere',
-    display: 'Sphere',
+export const CreateCompartmentSphere = CreateTransformer({
+    name: 'create-compartment-sphere',
+    display: 'CompartmentSphere',
     from: PSO.Root, // or whatever data source
     to: PSO.Shape.Representation3D,
     params: {
@@ -309,11 +313,11 @@ export const CreateSphere = CreateTransformer({
         return true;
     },
     apply({ a, params }, plugin: PluginContext) {
-        return Task.create('Custom Sphere', async ctx => {
+        return Task.create('Compartment Sphere', async ctx => {
             const data = params;
             const repr = MBRepresentation({ webgl: plugin.canvas3d?.webgl, ...plugin.representation.structure.themes }, () => (MBParams));
             await repr.createOrUpdate({ ...params, quality: 'custom', doubleSided: true }, data).runInContext(ctx);
-            return new PSO.Shape.Representation3D({ repr, sourceData: a }, { label: `My Sphere` });
+            return new PSO.Shape.Representation3D({ repr, sourceData: a }, { label: `Compartment Sphere` });
         });
     }
 });

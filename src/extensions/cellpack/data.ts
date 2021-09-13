@@ -13,11 +13,11 @@ export interface CellPack {
 
 export interface CellPacking {
     name: string,
-    location: 'surface' | 'interior' | 'cytoplasme',
+    location: 'surface' | 'interior' | 'cytoplasme'
     ingredients: Packing['ingredients']
-    geom?: string
-    geom_type?: string
-    mb?: Membrane
+    filename?: string
+    geom_type?: 'raw' | 'file' | 'sphere' | 'mb' | 'None'
+    primitives?: Primitives
 }
 
 //
@@ -44,16 +44,28 @@ export interface Recipe {
 export interface Compartment {
     surface?: Packing
     interior?: Packing
-    geom?: string
-    geom_type?: string
-    mb?: Membrane
+    geom?: unknown
+    geom_type?: 'raw' | 'file' | 'sphere' | 'mb' | 'None'
+    mb?: Primitives
 }
 
-export interface Membrane{
+// Primitives discribing a compartment
+export const enum PrimitiveType {
+    MetaBall = 0,
+    Sphere = 1,
+    Cube = 2,
+    Cylinder = 3,
+    Cone = 4,
+    Plane = 5,
+    None = 6
+}
+
+export interface Primitives{
     positions?: number[];
     radii?: number[];
-    source?: string;
+    types?: PrimitiveType[];
 }
+
 
 export interface Packing {
     ingredients: { [key: string]: Ingredient }

@@ -9,7 +9,7 @@ import { StateAction, StateBuilder, StateTransformer, State } from '../../mol-st
 import { PluginContext } from '../../mol-plugin/context';
 import { PluginStateObject as PSO } from '../../mol-plugin-state/objects';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
-import { Ingredient, CellPacking, Membrane } from './data';
+import { Ingredient, CellPacking, Primitives } from './data';
 import { getFromPdb, getFromCellPackDB, IngredientFiles, parseCif, parsePDBfile, getStructureMean, getFromOPM } from './util';
 import { Model, Structure, StructureSymmetry, StructureSelection, QueryContext, Unit, Trajectory } from '../../mol-model/structure';
 import { trajectoryFromMmCIF, MmcifFormat } from '../../mol-model-formats/structure/mmcif';
@@ -18,7 +18,7 @@ import { Mat4, Vec3, Quat } from '../../mol-math/linear-algebra';
 import { SymmetryOperator } from '../../mol-math/geometry';
 import { Task, RuntimeContext } from '../../mol-task';
 import { StateTransforms } from '../../mol-plugin-state/transforms';
-import { ParseCellPack, StructureFromCellpack, DefaultCellPackBaseUrl, StructureFromAssemblies, CreateSphere } from './state';
+import { ParseCellPack, StructureFromCellpack, DefaultCellPackBaseUrl, StructureFromAssemblies, CreateCompartmentSphere } from './state';
 import { MolScriptBuilder as MS } from '../../mol-script/language/builder';
 import { getMatFromResamplePoints } from './curve';
 import { compile } from '../../mol-script/runtime/query/compiler';
@@ -186,7 +186,7 @@ function getCurveTransforms(ingredient: Ingredient) {
         // test for resampling
         const distance: number = Vec3.distance(_points[0], _points[1]);
         if (distance >= segmentLength + 2.0) {
-            console.info(distance);
+            // console.info(distance);
             resampling = true;
         }
         const points = new Float32Array(_points.length * 3);
@@ -479,6 +479,7 @@ async function loadMembrane(plugin: PluginContext, name: string, state: State, p
         }
     }
     let legacy_membrane: boolean = false; // temporary variable until all membrane are converted to the new correct cif format
+    let geometry_membrane: boolean = false; // membrane can be a mesh geometry
     let b = state.build().toRoot();
     if (file) {
         if (file.name.endsWith('.cif')) {
@@ -493,6 +494,10 @@ async function loadMembrane(plugin: PluginContext, name: string, state: State, p
         } else if (name.toLowerCase().endsWith('.cif')) {
             const url = Asset.getUrlAsset(plugin.managers.asset, `${params.baseUrl}/membranes/${name}`);
             b = b.apply(StateTransforms.Data.Download, { url, isBinary: false, label: name }, { state: { isGhost: true } });
+        } else if (name.toLowerCase().endsWith('.ply')) {
+            const url = Asset.getUrlAsset(plugin.managers.asset, `${params.baseUrl}/geometries/${name}`);
+            b = b.apply(StateTransforms.Data.Download, { url, isBinary: false, label: name }, { state: { isGhost: true } });
+            geometry_membrane = true;
         } else {
             const url = Asset.getUrlAsset(plugin.managers.asset, `${params.baseUrl}/membranes/${name}.bcif`);
             b = b.apply(StateTransforms.Data.Download, { url, isBinary: true, label: name }, { state: { isGhost: true } });
@@ -516,6 +521,11 @@ async function loadMembrane(plugin: PluginContext, name: string, state: State, p
             representation: params.preset.representation,
         };
         await CellpackMembranePreset.apply(membrane, membraneParams, plugin);
+    } else if (geometry_membrane) {
+        await b.apply(StateTransforms.Data.ParsePly, undefined, { state: { isGhost: true } })
+            .apply(StateTransforms.Model.ShapeFromPly)
+            .apply(StateTransforms.Representation.ShapeRepresentation3D)
+            .commit({ revertOnError: true });
     } else {
         const membrane = await b.apply(StateTransforms.Data.ParseCif, undefined, { state: { isGhost: true } })
             .apply(StateTransforms.Model.TrajectoryFromMmCif, undefined, { state: { isGhost: true } })
@@ -529,19 +539,20 @@ async function loadMembrane(plugin: PluginContext, name: string, state: State, p
     }
 }
 
-async function handleMembraneSpheres(state: State, mb: Membrane) {
-    const nSpheres = mb.positions!.length / 3;
-    console.log('ok mb ', nSpheres);
+async function handleMembraneSpheres(state: State, primitives: Primitives) {
+    const nSpheres = primitives.positions!.length / 3;
+    // console.log('ok mb ', nSpheres);
+    // TODO : take in account the type of the primitives.
     for (let j = 0; j < nSpheres; j++) {
         await state.build()
             .toRoot()
-            .apply(CreateSphere, {
+            .apply(CreateCompartmentSphere, {
                 center: Vec3.create(
-                    mb.positions![j * 3 + 0],
-                    mb.positions![j * 3 + 1],
-                    mb.positions![j * 3 + 2]
+                    primitives.positions![j * 3 + 0],
+                    primitives.positions![j * 3 + 1],
+                    primitives.positions![j * 3 + 2]
                 ),
-                radius: mb!.radii![j]
+                radius: primitives!.radii![j]
             })
             .commit();
     }
@@ -609,14 +620,15 @@ async function loadPackings(plugin: PluginContext, runtime: RuntimeContext, stat
         };
         await CellpackPackingPreset.apply(packing, packingParams, plugin);
         if (packings[i].location === 'surface') {
-            console.log('ok surface ' + params.membrane);
+            // console.log('ok surface ' + params.membrane);
             if (params.membrane === 'lipids') {
-                console.log('ok packings[i].geom_type ' + packings[i].geom_type);
+                // console.log('ok packings[i].geom_type ' + packings[i].geom_type);
                 if (packings[i].geom_type) {
                     if (packings[i].geom_type === 'file') {
-                        await loadMembrane(plugin, packings[i].geom!, state, params);
-                    } else if (packings[i].mb) {
-                        await handleMembraneSpheres(state, packings[i].mb!);
+                        // TODO: load mesh files or vertex,faces data
+                        await loadMembrane(plugin, packings[i].filename!, state, params);
+                    } else if (packings[i].primitives) {
+                        await handleMembraneSpheres(state, packings[i].primitives!);
                     }
                 } else {
                     // try loading membrane from repo as a bcif file or from the given list of files.
@@ -625,8 +637,8 @@ async function loadPackings(plugin: PluginContext, runtime: RuntimeContext, stat
                     }
                 }
             } else if (params.membrane === 'spheres') {
-                if (packings[i].mb) {
-                    await handleMembraneSpheres(state, packings[i].mb!);
+                if (packings[i].primitives) {
+                    await handleMembraneSpheres(state, packings[i].primitives!);
                 }
             }
         }

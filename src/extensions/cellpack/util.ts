@@ -38,7 +38,6 @@ async function downloadPDB(plugin: PluginContext, url: string, id: string, asset
 }
 
 export async function getFromPdb(plugin: PluginContext, pdbId: string, assetManager: AssetManager) {
-    // ${pdbId.toUpperCase()}
     const { cif, asset } = await downloadCif(plugin, `https://models.rcsb.org/${pdbId}.bcif`, true, assetManager);
     return { mmcif: cif.blocks[0], asset };
 }
@@ -108,89 +107,3 @@ export function getFloatValue(value: DataView, offset: number) {
 
     return mantissa * Math.pow(10, exponent);
 }
-
-/*
-async function loadPackingResultsBinary(plugin: PluginContext, runtime: RuntimeContext, file: Asset.File, packing: CellPack){
-    const model_data = await readFromFile(file.file!, 'binary').runInContext(runtime);// async ?
-    let buffer = model_data.buffer;
-    let {cell, packings } = packing;
-    if (!IsNativeEndianLittle) {
-        // flip the byte order
-        buffer = flipByteOrder(model_data, 4);
-    }
-    const numbers = new DataView(buffer);
-    const ninst = getFloatValue(numbers, 0);
-    const npoints = getFloatValue(numbers, 4);
-    const ncurve = getFloatValue(numbers, 8);
-
-    let pos = new Float32Array();
-    let quat = new Float32Array();
-    let ctr_pos = new Float32Array();
-    let ctr_info = new Float32Array();
-    let curve_ids = new Float32Array();
-
-    let offset = 12;
-    if (ninst !== 0){
-        pos = new Float32Array(buffer, offset, ninst * 4);offset += ninst * 4 * 4;
-        quat = new Float32Array(buffer, offset, ninst * 4);offset += ninst * 4 * 4;
-    }
-    if ( npoints !== 0 ) {
-        ctr_pos = new Float32Array(buffer, offset, npoints * 4);offset += npoints * 4 * 4;
-        offset += npoints * 4 * 4;
-        ctr_info = new Float32Array(buffer, offset, npoints * 4);offset += npoints * 4 * 4;
-        curve_ids = new Float32Array(buffer, offset, ncurve * 4);offset += ncurve * 4 * 4;
-    }
-
-    for (let i = 0; i < ninst; i++) {
-        const x: number =  pos[i * 4 + 0];
-        const y: number =  pos[i * 4 + 1];
-        const z: number =  pos[i * 4 + 2];
-        const ingr_id = pos[i * 4 + 3] as number;
-        const pid = cell.mapping_ids![ingr_id];
-        if (!packings[pid[0]].ingredients[pid[1]].results) {
-            packings[pid[0]].ingredients[pid[1]].results = [];
-        }
-        packings[pid[0]].ingredients[pid[1]].results.push([Vec3.create(x, y, z),
-            Quat.create(quat[i * 4 + 0], quat[i * 4 + 1], quat[i * 4 + 2], quat[i * 4 + 3])]);
-    }
-    let counter = 0;
-    let ctr_points: Vec3[] = [];
-    let prev_ctype = 0;
-    let prev_cid = 0;
-
-    for (let i = 0; i < npoints; i++) {
-        const x: number = -ctr_pos[i * 4 + 0];
-        const y: number =  ctr_pos[i * 4 + 1];
-        const z: number =  ctr_pos[i * 4 + 2];
-        const cid: number = ctr_info[i * 4 + 0];// curve id
-        const ctype: number = curve_ids[cid * 4 + 0];// curve type
-        // cid  148 165 -1 0
-        // console.log("cid ",cid,ctype,prev_cid,prev_ctype);//165,148
-        if (prev_ctype !== ctype){
-            const pid = cell.mapping_ids![-prev_ctype - 1];
-            const cname = `curve${counter}`;
-            packings[pid[0]].ingredients[pid[1]].nbCurve = counter + 1;
-            packings[pid[0]].ingredients[pid[1]][cname] = ctr_points;
-            ctr_points = [];
-            counter = 0;
-        } else if (prev_cid !== cid){
-            ctr_points = [];
-            const pid = cell.mapping_ids![-prev_ctype - 1];
-            const cname = `curve${counter}`;
-            packings[pid[0]].ingredients[pid[1]][cname] = ctr_points;
-            counter += 1;
-        }
-        ctr_points.push(Vec3.create(x, y, z));
-        prev_ctype = ctype;
-        prev_cid = cid;
-    }
-    // do the last one
-    if ( npoints !== 0 ) {
-        const pid = cell.mapping_ids![-prev_ctype - 1];
-        const cname = `curve${counter}`;
-        packings[pid[0]].ingredients[pid[1]].nbCurve = counter + 1;
-        packings[pid[0]].ingredients[pid[1]][cname] = ctr_points;
-    }
-    return packings;
-}
-*/
