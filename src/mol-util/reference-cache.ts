@@ -56,7 +56,7 @@ export function createReferenceCache<T, P>(hashFn: (props: P) => string, ctor: (
                 }
             });
         },
-        get count () {
+        get count() {
             return map.size;
         },
         dispose: () => {

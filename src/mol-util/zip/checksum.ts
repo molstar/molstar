@@ -7,7 +7,7 @@
  * MIT License, Copyright (c) 2018 Photopea
  */
 
-const CrcTable = (function() {
+const CrcTable = (function () {
     const tab = new Uint32Array(256);
     for (let n = 0; n < 256; n++) {
         let c = n;

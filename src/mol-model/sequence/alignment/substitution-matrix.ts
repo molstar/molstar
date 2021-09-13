@@ -61,7 +61,7 @@ const blosum62 = [
 
 export type SubstitutionMatrixData = Readonly<{ [k: string]: Readonly<{ [k: string]: number }> }>;
 
-function prepareMatrix (cellNames: string, mat: number[][]): SubstitutionMatrixData {
+function prepareMatrix(cellNames: string, mat: number[][]): SubstitutionMatrixData {
     let j: number;
     let i = 0;
     const matDict: Mutable<SubstitutionMatrixData> = {};

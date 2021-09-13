@@ -48,7 +48,8 @@
         "prefer-const": ["error", {
             "destructuring": "all",
             "ignoreReadBeforeAssign": false
-        }]
+        }],
+        "space-before-function-paren": "off"
     },
     "overrides": [
         {
@@ -99,7 +100,12 @@
                     "error",
                     "1tbs", { "allowSingleLine": true }
                 ],
-                "@typescript-eslint/comma-spacing": "error"
+                "@typescript-eslint/comma-spacing": "error",
+                "@typescript-eslint/space-before-function-paren": ["error", {
+                    "anonymous": "always",
+                    "named": "never",
+                    "asyncArrow": "always"
+                }]
             }
         }
     ]

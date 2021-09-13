@@ -84,14 +84,14 @@ if (!Math.sign) {
 
 if (!Number.isInteger) {
     // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Number/isInteger
-    Number.isInteger = function isInteger (nVal) {
+    Number.isInteger = function isInteger(nVal) {
         return typeof nVal === 'number' && isFinite(nVal) && nVal > -9007199254740992 && nVal < 9007199254740992 && Math.floor(nVal) === nVal;
     };
 }
 
 if (!Number.isNaN) {
     // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Number/isNaN
-    Number.isNaN = function isNaN (value) {
+    Number.isNaN = function isNaN(value) {
         return value !== value; // eslint-disable-line no-self-compare
     };
 }
@@ -329,7 +329,7 @@ if (!Array.from) {
         };
 
         // The length property of the from method is 1.
-        return function from (this: any, arrayLike: any/* , mapFn, thisArg */) {
+        return function from(this: any, arrayLike: any/* , mapFn, thisArg */) {
         // 1. Let C be the this value.
             const C = this;
 
@@ -489,7 +489,7 @@ if (Object.defineProperty !== undefined) {
 }
 
 if (!Object.entries) {
-    Object.entries = function(obj: any){
+    Object.entries = function (obj: any){
         const ownProps = Object.keys(obj);
         let i = ownProps.length;
         const resArray = new Array(i); // preallocate the Array
@@ -504,7 +504,7 @@ if (!Object.entries) {
 // https://tc39.github.io/ecma262/#sec-array.prototype.find
 if (!Array.prototype.find) {
     Object.defineProperty(Array.prototype, 'find', {
-        value: function(predicate: any) {
+        value: function (predicate: any) {
             // 1. Let O be ? ToObject(this value).
             if (this == null) {
                 throw TypeError('"this" is null or not defined');
@@ -551,7 +551,7 @@ if (!Array.prototype.find) {
 // from https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/fill
 if (!Array.prototype.fill) {
     Object.defineProperty(Array.prototype, 'fill', {
-        value: function(value: any) {
+        value: function (value: any) {
 
             // Steps 1-2.
             if (this == null) {
@@ -596,7 +596,7 @@ if (!Array.prototype.fill) {
 
 if (!Array.prototype.copyWithin) {
     Object.defineProperty(Array.prototype, 'copyWithin', {
-        value: function(target: any, start: any/* , end*/) {
+        value: function (target: any, start: any/* , end*/) {
             // Steps 1-2.
             if (this == null) {
                 throw new TypeError('this is null or not defined');

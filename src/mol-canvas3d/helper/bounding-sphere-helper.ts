@@ -121,7 +121,7 @@ export class BoundingSphereHelper {
     }
     get props() { return this._props as Readonly<DebugHelperProps>; }
 
-    setProps (props: Partial<DebugHelperProps>) {
+    setProps(props: Partial<DebugHelperProps>) {
         Object.assign(this._props, props);
         if (this.isEnabled) this.update();
     }

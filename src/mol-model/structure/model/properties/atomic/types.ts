@@ -52,12 +52,12 @@ export function isTransitionMetal(element: ElementSymbol) {
     );
 }
 
-export function isLanthanide (element: ElementSymbol) {
+export function isLanthanide(element: ElementSymbol) {
     const no = AtomNumber(element);
     return no >= 57 && no <= 71;
 }
 
-export function isActinide (element: ElementSymbol) {
+export function isActinide(element: ElementSymbol) {
     const no = AtomNumber(element);
     return no >= 89 && no <= 103;
 }

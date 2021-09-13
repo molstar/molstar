@@ -335,37 +335,37 @@ export function createGl(width: number, height: number, contextAttributes: WebGL
         canvas: {
             width, height
         } as HTMLCanvasElement,
-        getAttachedShaders: function(program: WebGLProgram) {
+        getAttachedShaders: function (program: WebGLProgram) {
             return [] as WebGLShader[];
         },
-        getBufferParameter: function(target: number, pname: number) {
+        getBufferParameter: function (target: number, pname: number) {
             return 0;
         },
-        getContextAttributes: function() { return contextAttributes; },
-        getFramebufferAttachmentParameter: function() {},
-        getProgramInfoLog: function() { return ''; },
-        getShaderInfoLog: function() { return ''; },
-        getRenderbufferParameter: function() {},
-        getShaderPrecisionFormat: function(shadertype: number, precisiontype: number) {
+        getContextAttributes: function () { return contextAttributes; },
+        getFramebufferAttachmentParameter: function () {},
+        getProgramInfoLog: function () { return ''; },
+        getShaderInfoLog: function () { return ''; },
+        getRenderbufferParameter: function () {},
+        getShaderPrecisionFormat: function (shadertype: number, precisiontype: number) {
             return {
                 precision: 0,
                 rangeMax: 0,
                 rangeMin: 0
             };
         },
-        getShaderSource: function(shader: WebGLShader | null) { return ''; },
-        getTexParameter: function() {},
-        getUniform: function() {},
-        getVertexAttrib: function() {},
-        getVertexAttribOffset: function(index: number, pname: number) { return 0; },
-        hint: function(target: number, mode: number) {},
-        isBuffer: function(buffer: WebGLBuffer | null) { return true; },
-        isEnabled: function(cap: number) { return true; },
-        isFramebuffer: function(framebuffer: WebGLFramebuffer | null) { return true; },
-        isProgram: function(program: WebGLProgram | null) { return true; },
-        isRenderbuffer: function(renderbuffer: WebGLRenderbuffer | null) { return true; },
-        isShader: function(shader: WebGLShader | null) { return true; },
-        isTexture: function(texture: WebGLTexture | null) { return true; },
+        getShaderSource: function (shader: WebGLShader | null) { return ''; },
+        getTexParameter: function () {},
+        getUniform: function () {},
+        getVertexAttrib: function () {},
+        getVertexAttribOffset: function (index: number, pname: number) { return 0; },
+        hint: function (target: number, mode: number) {},
+        isBuffer: function (buffer: WebGLBuffer | null) { return true; },
+        isEnabled: function (cap: number) { return true; },
+        isFramebuffer: function (framebuffer: WebGLFramebuffer | null) { return true; },
+        isProgram: function (program: WebGLProgram | null) { return true; },
+        isRenderbuffer: function (renderbuffer: WebGLRenderbuffer | null) { return true; },
+        isShader: function (shader: WebGLShader | null) { return true; },
+        isTexture: function (texture: WebGLTexture | null) { return true; },
         getExtension: function (extensionName: string): any {
             switch (extensionName) {
                 case 'EXT_blend_minmax': return {
@@ -386,10 +386,10 @@ export function createGl(width: number, height: number, contextAttributes: WebGL
                 } as EXT_sRGB;
                 case 'OES_vertex_array_object': return {
                     VERTEX_ARRAY_BINDING_OES: 0,
-                    bindVertexArrayOES: function(arrayObject: WebGLVertexArrayObjectOES) { },
-                    createVertexArrayOES: function(): WebGLVertexArrayObjectOES { return {}; },
-                    deleteVertexArrayOES: function(arrayObject: WebGLVertexArrayObjectOES) { },
-                    isVertexArrayOES: function(value: any) { return true; }
+                    bindVertexArrayOES: function (arrayObject: WebGLVertexArrayObjectOES) { },
+                    createVertexArrayOES: function (): WebGLVertexArrayObjectOES { return {}; },
+                    deleteVertexArrayOES: function (arrayObject: WebGLVertexArrayObjectOES) { },
+                    isVertexArrayOES: function (value: any) { return true; }
                 } as OES_vertex_array_object;
                 case 'WEBGL_color_buffer_float': return {
                     FRAMEBUFFER_ATTACHMENT_COMPONENT_TYPE_EXT: 0,
@@ -404,8 +404,8 @@ export function createGl(width: number, height: number, contextAttributes: WebGL
                 } as WEBGL_debug_shaders;
                 case 'WEBGL_draw_buffers': return null;
                 case 'WEBGL_lose_context': return {
-                    loseContext: function() { },
-                    restoreContext: function() { },
+                    loseContext: function () { },
+                    restoreContext: function () { },
                 } as WEBGL_lose_context;
                 case 'WEBGL_depth_texture': return {
                     UNSIGNED_INT_24_8_WEBGL: 0
@@ -426,9 +426,9 @@ export function createGl(width: number, height: number, contextAttributes: WebGL
                 } as OES_standard_derivatives;
                 case 'OES_element_index_uint': return {} as OES_element_index_uint;
                 case 'ANGLE_instanced_arrays': return {
-                    drawArraysInstancedANGLE: function(mode: number, first: number, count: number, primcount: number) {},
-                    drawElementsInstancedANGLE: function(mode: number, count: number, type: number, offset: number, primcount: number) {},
-                    vertexAttribDivisorANGLE: function(index: number, divisor: number) {},
+                    drawArraysInstancedANGLE: function (mode: number, first: number, count: number, primcount: number) {},
+                    drawElementsInstancedANGLE: function (mode: number, count: number, type: number, offset: number, primcount: number) {},
+                    vertexAttribDivisorANGLE: function (index: number, divisor: number) {},
                     VERTEX_ATTRIB_ARRAY_DIVISOR_ANGLE: 0
                 } as ANGLE_instanced_arrays;
             }

@@ -152,7 +152,7 @@ export namespace MeshBuilder {
         });
     }
 
-    export function getMesh (state: State): Mesh {
+    export function getMesh(state: State): Mesh {
         const { vertices, normals, indices, groups, mesh } = state;
         const vb = ChunkedArray.compact(vertices, true) as Float32Array;
         const ib = ChunkedArray.compact(indices, true) as Uint32Array;

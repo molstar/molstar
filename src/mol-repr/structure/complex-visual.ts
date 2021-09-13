@@ -215,7 +215,7 @@ export function ComplexVisual<G extends Geometry, P extends StructureParams & Ge
 
     return {
         get groupCount() { return locationIt ? locationIt.count : 0; },
-        get renderObject () { return locationIt && locationIt.count ? renderObject : undefined; },
+        get renderObject() { return locationIt && locationIt.count ? renderObject : undefined; },
         createOrUpdate(ctx: VisualContext, theme: Theme, props: Partial<PD.Values<P>> = {}, structure?: Structure) {
             prepareUpdate(theme, props, structure || currentStructure);
             if (updateState.createGeometry) {

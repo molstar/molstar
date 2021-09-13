@@ -61,7 +61,7 @@ const FAR_RANGE = 1;
 const tmpVec4 = Vec4();
 
 /** Transform point into 2D window coordinates. */
-export function cameraProject (out: Vec4, point: Vec3, viewport: Viewport, projectionView: Mat4) {
+export function cameraProject(out: Vec4, point: Vec3, viewport: Viewport, projectionView: Mat4) {
     const { x: vX, y: vY, width: vWidth, height: vHeight } = viewport;
 
     // clip space -> NDC -> window coordinates, implicit 1.0 for w component
@@ -90,7 +90,7 @@ export function cameraProject (out: Vec4, point: Vec3, viewport: Viewport, proje
  * Transform point from screen space to 3D coordinates.
  * The point must have x and y set to 2D window coordinates and z between 0 (near) and 1 (far).
  */
-export function cameraUnproject (out: Vec3, point: Vec3, viewport: Viewport, inverseProjectionView: Mat4) {
+export function cameraUnproject(out: Vec3, point: Vec3, viewport: Viewport, inverseProjectionView: Mat4) {
     const { x: vX, y: vY, width: vWidth, height: vHeight } = viewport;
 
     const x = point[0] - vX;

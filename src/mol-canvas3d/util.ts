@@ -12,7 +12,7 @@ export function setCanvasSize(canvas: HTMLCanvasElement, width: number, height: 
 }
 
 /** Resize canvas to container element taking `devicePixelRatio` into account */
-export function resizeCanvas (canvas: HTMLCanvasElement, container: HTMLElement, scale = 1) {
+export function resizeCanvas(canvas: HTMLCanvasElement, container: HTMLElement, scale = 1) {
     let width = window.innerWidth;
     let height = window.innerHeight;
     if (container !== document.body) {

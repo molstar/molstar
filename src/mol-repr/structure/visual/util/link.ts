@@ -44,7 +44,7 @@ const tmpShiftV13 = Vec3();
 const up = Vec3.create(0, 1, 0);
 
 /** Calculate 'shift' direction that is perpendiculat to v1 - v2 and goes through v3 */
-export function calculateShiftDir (out: Vec3, v1: Vec3, v2: Vec3, v3: Vec3 | null) {
+export function calculateShiftDir(out: Vec3, v1: Vec3, v2: Vec3, v3: Vec3 | null) {
     Vec3.normalize(tmpShiftV12, Vec3.sub(tmpShiftV12, v1, v2));
     if (v3 !== null) {
         Vec3.sub(tmpShiftV13, v1, v3);

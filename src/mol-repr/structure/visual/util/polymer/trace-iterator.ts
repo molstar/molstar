@@ -63,7 +63,7 @@ interface PolymerTraceElement {
 
 const SecStrucTypeNA = SecondaryStructureType.create(SecondaryStructureType.Flag.NA);
 
-function createPolymerTraceElement (structure: Structure, unit: Unit): PolymerTraceElement {
+function createPolymerTraceElement(structure: Structure, unit: Unit): PolymerTraceElement {
     return {
         center: StructureElement.Location.create(structure, unit),
         centerPrev: StructureElement.Location.create(structure, unit),

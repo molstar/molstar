@@ -233,7 +233,7 @@ function readRecordsChunks(state: State) {
         (ctx, state) => ctx.update({ message: 'Parsing...', current: state.tokenizer.position, max: state.data.length }));
 }
 
-function addColumn (state: State) {
+function addColumn(state: State) {
     state.columnNames.push(Tokenizer.getTokenString(state.tokenizer));
     state.tokens.push(TokenBuilder.create(state.tokenizer.data, state.data.length / 80));
 }

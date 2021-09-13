@@ -8,7 +8,7 @@ import { memoize1 } from '../../../mol-util/memoize';
 
 const ChainIdAlphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 
-function _getChainId (index: number) {
+function _getChainId(index: number) {
     const n = ChainIdAlphabet.length;
     let j = index;
     let k = 0;

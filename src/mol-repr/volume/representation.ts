@@ -169,7 +169,7 @@ export function VolumeVisual<G extends Geometry, P extends VolumeParams & Geomet
 
     return {
         get groupCount() { return locationIt ? locationIt.count : 0; },
-        get renderObject () { return renderObject; },
+        get renderObject() { return renderObject; },
         async createOrUpdate(ctx: VisualContext, theme: Theme, props: Partial<PD.Values<P>> = {}, volume?: Volume) {
             prepareUpdate(theme, props, volume || currentVolume);
             if (updateState.createGeometry) {
@@ -300,7 +300,7 @@ export function VolumeRepresentation<P extends VolumeParams>(label: string, ctx:
         get groupCount() {
             return visual ? visual.groupCount : 0;
         },
-        get props () { return _props; },
+        get props() { return _props; },
         get params() { return _params; },
         get state() { return _state; },
         get theme() { return _theme; },

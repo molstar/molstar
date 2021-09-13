@@ -184,7 +184,7 @@ normalizeTable(core);
 
 export const SymbolList = symbolList(core);
 
-export const SymbolMap = (function() {
+export const SymbolMap = (function () {
     const map: { [id: string]: MSymbol | undefined } = Object.create(null);
     for (const s of SymbolList) map[s.id] = s;
     return map;

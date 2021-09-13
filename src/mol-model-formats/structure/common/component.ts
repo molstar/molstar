@@ -33,7 +33,7 @@ const NonPolymerNames = new Set([
     'FMN', 'NCN', 'FNS', 'FMA' // Mononucleotides
 ]);
 
-const StandardComponents = (function() {
+const StandardComponents = (function () {
     const map = new Map<string, Component>();
     const components: Component[] = [
         { id: 'HIS', name: 'HISTIDINE', type: 'L-peptide linking' },
@@ -83,7 +83,7 @@ const StandardComponents = (function() {
     return map;
 })();
 
-const CharmmIonComponents = (function() {
+const CharmmIonComponents = (function () {
     const map = new Map<string, Component>();
     const components: Component[] = [
         { id: 'ZN2', name: 'ZINC ION', type: 'Ion' },
@@ -126,7 +126,7 @@ export class ComponentBuilder {
         return atomIds;
     }
 
-    private hasAtomIds (atomIds: Set<string>, atomIdsList: Set<string>[]) {
+    private hasAtomIds(atomIds: Set<string>, atomIdsList: Set<string>[]) {
         for (let i = 0, il = atomIdsList.length; i < il; ++i) {
             if (!SetUtils.areIntersecting(atomIds, atomIdsList[i])) {
                 return false;

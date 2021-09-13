@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-export function readFile (file: File, isBinary = false) {
+export function readFile(file: File, isBinary = false) {
     const fileReader = new FileReader();
     return new Promise<string | Uint8Array>((resolve, reject) => {
         fileReader.onerror = () => {

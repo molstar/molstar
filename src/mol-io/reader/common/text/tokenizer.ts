@@ -44,7 +44,7 @@ namespace Tokenizer {
     }
 
     /** Resets the state */
-    export function reset (state: Tokenizer) {
+    export function reset(state: Tokenizer) {
         state.position = 0;
         state.lineNumber = 1;
         state.tokenStart = 0;

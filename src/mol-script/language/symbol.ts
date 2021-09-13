@@ -64,7 +64,7 @@ export interface MSymbol<A extends Arguments = Arguments, T extends Type = Type>
 }
 
 export function MSymbol<A extends Arguments, T extends Type>(name: string, args: A, type: T, description?: string) {
-    const symbol: MSymbol<A, T> = function(args: ExpressionArguments<A['@type']>) {
+    const symbol: MSymbol<A, T> = function (args: ExpressionArguments<A['@type']>) {
         return Expression.Apply(Expression.Symbol(symbol.id), args as any);
     } as any;
     symbol.info = { namespace: '', name, description };
@@ -75,7 +75,7 @@ export function MSymbol<A extends Arguments, T extends Type>(name: string, args:
 }
 
 export function CustomPropSymbol<T extends Type>(namespace: string, name: string, type: T, description?: string) {
-    const symbol: MSymbol<Arguments<{}>, T> = function(args: ExpressionArguments<Arguments<{}>['@type']>) {
+    const symbol: MSymbol<Arguments<{}>, T> = function (args: ExpressionArguments<Arguments<{}>['@type']>) {
         return Expression.Apply(Expression.Symbol(symbol.id), args as any);
     } as any;
     symbol.info = { namespace, name, description };

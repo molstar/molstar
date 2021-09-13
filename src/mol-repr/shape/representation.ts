@@ -172,9 +172,9 @@ export function ShapeRepresentation<D, G extends Geometry, P extends Geometry.Pa
 
     return {
         label: 'Shape geometry',
-        get groupCount () { return locationIt ? locationIt.count : 0; },
-        get props () { return currentProps; },
-        get params () { return currentParams; },
+        get groupCount() { return locationIt ? locationIt.count : 0; },
+        get props() { return currentProps; },
+        get params() { return currentParams; },
         get state() { return _state; },
         get theme() { return _theme; },
         renderObjects,

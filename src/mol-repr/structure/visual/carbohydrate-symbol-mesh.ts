@@ -189,14 +189,14 @@ function CarbohydrateElementIterator(structure: Structure): LocationIterator {
     const groupCount = carbElements.length * 2;
     const instanceCount = 1;
     const location = StructureElement.Location.create(structure);
-    function getLocation (groupIndex: number, instanceIndex: number) {
+    function getLocation(groupIndex: number, instanceIndex: number) {
         const carb = carbElements[Math.floor(groupIndex / 2)];
         const ring = carb.unit.rings.all[carb.ringIndex];
         location.unit = carb.unit;
         location.element = carb.unit.elements[ring[0]];
         return location;
     }
-    function isSecondary (elementIndex: number, instanceIndex: number) {
+    function isSecondary(elementIndex: number, instanceIndex: number) {
         return (elementIndex % 2) === 1;
     }
     return LocationIterator(groupCount, instanceCount, 1, getLocation, true, isSecondary);

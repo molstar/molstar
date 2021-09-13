@@ -158,7 +158,7 @@ export namespace Tasks {
     }
 }
 
-(async function() {
+(async function () {
     // await Tasks.testImmediate();
     // await Tasks.testImmediate();
 

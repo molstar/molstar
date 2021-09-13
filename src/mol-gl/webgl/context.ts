@@ -51,7 +51,7 @@ export function checkError(gl: GLRenderingContext) {
     }
 }
 
-function unbindResources (gl: GLRenderingContext) {
+function unbindResources(gl: GLRenderingContext) {
     // bind null to all texture units
     const maxTextureImageUnits = gl.getParameter(gl.MAX_TEXTURE_IMAGE_UNITS);
     for (let i = 0; i < maxTextureImageUnits; ++i) {
@@ -280,7 +280,7 @@ export function createContext(gl: GLRenderingContext, props: Partial<{ pixelScal
     return {
         gl,
         isWebGL2: isWebGL2(gl),
-        get pixelRatio () {
+        get pixelRatio() {
             const dpr = (typeof window !== 'undefined') ? window.devicePixelRatio : 1;
             return dpr * (props.pixelScale || 1);
         },
@@ -290,17 +290,17 @@ export function createContext(gl: GLRenderingContext, props: Partial<{ pixelScal
         stats,
         resources,
 
-        get maxTextureSize () { return parameters.maxTextureSize; },
-        get max3dTextureSize () { return parameters.max3dTextureSize; },
-        get maxRenderbufferSize () { return parameters.maxRenderbufferSize; },
-        get maxDrawBuffers () { return parameters.maxDrawBuffers; },
-        get maxTextureImageUnits () { return parameters.maxTextureImageUnits; },
+        get maxTextureSize() { return parameters.maxTextureSize; },
+        get max3dTextureSize() { return parameters.max3dTextureSize; },
+        get maxRenderbufferSize() { return parameters.maxRenderbufferSize; },
+        get maxDrawBuffers() { return parameters.maxDrawBuffers; },
+        get maxTextureImageUnits() { return parameters.maxTextureImageUnits; },
 
         namedComputeRenderables: Object.create(null),
         namedFramebuffers: Object.create(null),
         namedTextures: Object.create(null),
 
-        get isContextLost () {
+        get isContextLost() {
             return isContextLost || gl.isContextLost();
         },
         contextRestored,

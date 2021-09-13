@@ -131,7 +131,7 @@ class CategoryTable implements Table<any> { // tslint:disable-line:class-name
         const cache = Object.create(null);
         for (const k of fieldKeys) {
             Object.defineProperty(this, k, {
-                get: function() {
+                get: function () {
                     if (cache[k]) return cache[k];
                     const fType = schema[k];
                     if (fType.valueType === 'list') {

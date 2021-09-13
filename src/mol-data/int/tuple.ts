@@ -15,7 +15,7 @@ interface IntTuple { '@type': 'int-tuple' }
 namespace IntTuple {
     export const Zero: IntTuple = 0 as any;
 
-    const { _int32, _float64, _int32_1, _float64_1 } = (function() {
+    const { _int32, _float64, _int32_1, _float64_1 } = (function () {
         const data = new ArrayBuffer(8);
         const data_1 = new ArrayBuffer(8);
         return {

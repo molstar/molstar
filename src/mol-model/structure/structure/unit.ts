@@ -84,7 +84,7 @@ namespace Unit {
         return {
             elements: units[0].elements,
             units,
-            get unitIndexMap () {
+            get unitIndexMap() {
                 if (props.unitIndexMap) return props.unitIndexMap;
                 props.unitIndexMap = getUnitIndexMap(units);
                 return props.unitIndexMap;
@@ -112,7 +112,7 @@ namespace Unit {
         }
     }
 
-    export function conformationId (unit: Unit) {
+    export function conformationId(unit: Unit) {
         return Unit.isAtomic(unit) ? unit.model.atomicConformation.id : unit.model.coarseConformation.id;
     }
 

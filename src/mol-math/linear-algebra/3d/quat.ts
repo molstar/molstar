@@ -279,7 +279,7 @@ namespace Quat {
 
     const fromUnitVec3Temp = [0, 0, 0] as Vec3;
     /** Quaternion from two normalized unit vectors. */
-    export function fromUnitVec3 (out: Quat, a: Vec3, b: Vec3) {
+    export function fromUnitVec3(out: Quat, a: Vec3, b: Vec3) {
         // assumes a and b are normalized
         let r = Vec3.dot(a, b) + 1;
         if (r < EPSILON) {
