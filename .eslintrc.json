@@ -43,7 +43,8 @@
         "key-spacing": "error",
         "object-curly-spacing": ["error", "always"],
         "array-bracket-spacing": "error",
-        "space-in-parens": "error"
+        "space-in-parens": "error",
+        "computed-property-spacing": "error"
     },
     "overrides": [
         {

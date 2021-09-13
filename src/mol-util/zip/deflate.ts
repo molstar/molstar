@@ -75,7 +75,7 @@ function deflateChunk(ctx: DeflateContext, count: number) {
             if(mch !== 0) {
                 const len = mch >>> 16, dst = mch & 0xffff;
                 const lgi = _goodIndex(len, U.of0);  U.lhst[257 + lgi]++;
-                const dgi = _goodIndex(dst, U.df0);  U.dhst[    dgi]++;  ebits += U.exb[lgi] + U.dxb[dgi];
+                const dgi = _goodIndex(dst, U.df0);  U.dhst[dgi]++;  ebits += U.exb[lgi] + U.dxb[dgi];
                 lits[li] = (len << 23) | (i - cvrd);  lits[li + 1] = (dst << 16) | (lgi << 8) | dgi;  li += 2;
                 cvrd = i + len;
             } else {

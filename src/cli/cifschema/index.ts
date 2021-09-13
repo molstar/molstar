@@ -131,8 +131,8 @@ async function getFieldNamesFilter(fieldNamesPath: string): Promise<Filter> {
     fieldNames.forEach((name, i) => {
         const [category, field] = name.split('.');
         // console.log(category, field)
-        if (!filter[ category ]) filter[ category ] = {};
-        filter[ category ][ field ] = true;
+        if (!filter[category]) filter[category] = {};
+        filter[category][field] = true;
     });
     return filter;
 }

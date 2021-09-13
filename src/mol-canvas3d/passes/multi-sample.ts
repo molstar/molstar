@@ -123,7 +123,7 @@ export class MultiSamplePass {
         //
         // This manual approach to MSAA re-renders the scene once for
         // each sample with camera jitter and accumulates the results.
-        const offsetList = JitterVectors[ Math.max(0, Math.min(props.multiSample.sampleLevel, 5)) ];
+        const offsetList = JitterVectors[Math.max(0, Math.min(props.multiSample.sampleLevel, 5))];
 
         const { x, y, width, height } = camera.viewport;
         const baseSampleWeight = 1.0 / offsetList.length;
@@ -190,7 +190,7 @@ export class MultiSamplePass {
         //
         // This manual approach to MSAA re-renders the scene once for
         // each sample with camera jitter and accumulates the results.
-        const offsetList = JitterVectors[ Math.max(0, Math.min(props.multiSample.sampleLevel, 5)) ];
+        const offsetList = JitterVectors[Math.max(0, Math.min(props.multiSample.sampleLevel, 5))];
 
         if (sampleIndex === -2 || sampleIndex >= offsetList.length) return -2;
 

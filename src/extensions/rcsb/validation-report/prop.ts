@@ -431,7 +431,7 @@ function parseValidationReportXml(xml: XMLDocument, model: Model): ValidationRep
 
     const groups = xml.getElementsByTagName('ModelledSubgroup');
     for (let i = 0, il = groups.length; i < il; ++i) {
-        const g = groups[ i ];
+        const g = groups[i];
         const ga = g.attributes;
 
         const pdbx_PDB_model_num = parseInt(getItem(ga, 'model'));

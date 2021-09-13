@@ -32,7 +32,7 @@ if (typeof window.HTMLCanvasElement !== 'undefined' && !window.HTMLCanvasElement
     Object.defineProperty(window.HTMLCanvasElement.prototype, 'toBlob', {
 
         value: function (callback: any, type: any, quality: any) {
-            let bin = window.atob(this.toDataURL(type, quality).split(',')[ 1 ]);
+            let bin = window.atob(this.toDataURL(type, quality).split(',')[1]);
             let len = bin.length;
             let len32 = len >> 2;
             let a8 = new Uint8Array(len);
@@ -51,7 +51,7 @@ if (typeof window.HTMLCanvasElement !== 'undefined' && !window.HTMLCanvasElement
             let tailLength = len & 3;
 
             while (tailLength--) {
-                a8[ j ] = bin.charCodeAt(j++);
+                a8[j] = bin.charCodeAt(j++);
             }
 
             callback(new window.Blob([a8], { 'type': type || 'image/png' }));
@@ -401,12 +401,12 @@ if (typeof window !== 'undefined') {
 
         for (let x = 0; x < vendors.length && !window.requestAnimationFrame; ++x) {
             window.requestAnimationFrame = (
-                (window as any)[ vendors[ x ] + 'RequestAnimationFrame' ]
+                (window as any)[vendors[x] + 'RequestAnimationFrame']
             );
 
             window.cancelAnimationFrame = (
-                (window as any)[ vendors[ x ] + 'CancelAnimationFrame' ] ||
-                (window as any)[ vendors[ x ] + 'CancelRequestAnimationFrame' ]
+                (window as any)[vendors[x] + 'CancelAnimationFrame'] ||
+                (window as any)[vendors[x] + 'CancelRequestAnimationFrame']
             );
         }
 
@@ -442,7 +442,7 @@ if (Function.prototype.name === undefined && Object.defineProperty !== undefined
     Object.defineProperty(Function.prototype, 'name', {
 
         get: function () {
-            return this.toString().match(/^\s*function\s*(\S*)\s*\(/)[ 1 ];
+            return this.toString().match(/^\s*function\s*(\S*)\s*\(/)[1];
         }
 
     });

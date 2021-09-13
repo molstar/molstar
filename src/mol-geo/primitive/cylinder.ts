@@ -89,10 +89,10 @@ export function Cylinder(props?: CylinderProps): Primitive {
 
             for (let y = 0; y < heightSegments; ++y) {
                 // we use the index array to access the correct indices
-                const a = indexArray[ y ][ x ];
-                const b = indexArray[ y + 1 ][ x ];
-                const c = indexArray[ y + 1 ][ x + 1 ];
-                const d = indexArray[ y ][ x + 1 ];
+                const a = indexArray[y][x];
+                const b = indexArray[y + 1][x];
+                const c = indexArray[y + 1][x + 1];
+                const d = indexArray[y][x + 1];
 
                 // faces
                 indices.push(a, b, d);

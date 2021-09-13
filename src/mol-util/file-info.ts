@@ -51,8 +51,8 @@ export function getFileInfo (file: FileInput): FileInfo {
 
     const protocolMatch = path.match(/^(.+):\/\/(.+)$/);
     if (protocolMatch) {
-        protocol = protocolMatch[ 1 ].toLowerCase();
-        path = protocolMatch[ 2 ] || '';
+        protocol = protocolMatch[1].toLowerCase();
+        path = protocolMatch[2] || '';
     }
 
     const dir = path.substring(0, path.lastIndexOf('/') + 1);

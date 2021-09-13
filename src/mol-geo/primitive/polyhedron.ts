@@ -46,9 +46,9 @@ export function Polyhedron(_vertices: ArrayLike<number>, _indices: ArrayLike<num
         // iterate over all faces and apply a subdivison with the given detail value
         for (let i = 0; i < _indices.length; i += 3) {
             // get the vertices of the face
-            Vec3.fromArray(a, _vertices, _indices[ i + 0 ] * 3);
-            Vec3.fromArray(b, _vertices, _indices[ i + 1 ] * 3);
-            Vec3.fromArray(c, _vertices, _indices[ i + 2 ] * 3);
+            Vec3.fromArray(a, _vertices, _indices[i + 0] * 3);
+            Vec3.fromArray(b, _vertices, _indices[i + 1] * 3);
+            Vec3.fromArray(c, _vertices, _indices[i + 2] * 3);
 
             // perform subdivision
             subdivideFace(a, b, c, detail);
