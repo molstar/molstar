@@ -259,7 +259,7 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
             }
             return a[0] - b[0];
         });
-        this.setState({points});
+        this.setState({ points });
         this.change(points);
     }
 
@@ -278,7 +278,7 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
             }
             return a[0] - b[0];
         });
-        this.setState({points});
+        this.setState({ points });
         this.change(points);
         event.stopPropagation();
     }

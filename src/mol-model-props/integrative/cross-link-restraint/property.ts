@@ -5,7 +5,7 @@
  */
 
 import { ModelCrossLinkRestraint } from './format';
-import { Unit, StructureElement, Structure, Bond} from '../../../mol-model/structure';
+import { Unit, StructureElement, Structure, Bond } from '../../../mol-model/structure';
 import { PairRestraints, PairRestraint } from '../pair-restraints';
 import { CustomStructureProperty } from '../../common/custom-structure-property';
 import { CustomProperty } from '../../common/custom-property';

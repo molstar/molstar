@@ -16,7 +16,7 @@ export const AnimateStructureSpin = PluginStateAnimation.create({
     display: { name: 'Spin Structure' },
     isExportable: true,
     params: () => ({
-        durationInMs: PD.Numeric(3000, { min: 100, max: 10000, step: 100})
+        durationInMs: PD.Numeric(3000, { min: 100, max: 10000, step: 100 })
     }),
     initialState: () => ({ t: 0 }),
     getDuration: p => ({ kind: 'fixed', durationMs: p.durationInMs }),

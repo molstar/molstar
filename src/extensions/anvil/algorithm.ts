@@ -41,8 +41,8 @@ interface ANVILContext {
 export const ANVILParams = {
     numberOfSpherePoints: PD.Numeric(175, { min: 35, max: 700, step: 1 }, { description: 'Number of spheres/directions to test for membrane placement. Original value is 350.' }),
     stepSize: PD.Numeric(1, { min: 0.25, max: 4, step: 0.25 }, { description: 'Thickness of membrane slices that will be tested' }),
-    minThickness: PD.Numeric(20, { min: 10, max: 30, step: 1}, { description: 'Minimum membrane thickness used during refinement' }),
-    maxThickness: PD.Numeric(40, { min: 30, max: 50, step: 1}, { description: 'Maximum membrane thickness used during refinement' }),
+    minThickness: PD.Numeric(20, { min: 10, max: 30, step: 1 }, { description: 'Minimum membrane thickness used during refinement' }),
+    maxThickness: PD.Numeric(40, { min: 30, max: 50, step: 1 }, { description: 'Maximum membrane thickness used during refinement' }),
     asaCutoff: PD.Numeric(40, { min: 10, max: 100, step: 1 }, { description: 'Relative ASA cutoff above which residues will be considered' }),
     adjust: PD.Numeric(14, { min: 0, max: 30, step: 1 }, { description: 'Minimum length of membrane-spanning regions (original values: 14 for alpha-helices and 5 for beta sheets). Set to 0 to not optimize membrane thickness.' }),
     tmdetDefinition: PD.Boolean(false, { description: `Use TMDET's classification of membrane-favoring amino acids. TMDET's classification shows better performance on porins and other beta-barrel structures.` })

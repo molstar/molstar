@@ -49,7 +49,7 @@ console.log(result);
 
 const CustomProp = CustomPropertyDescriptor({
     name: 'test_prop',
-    cifExport: { prefix: '', categories: [ ]},
+    cifExport: { prefix: '', categories: [ ] },
     symbols: {
         residueIndex: QuerySymbolRuntime.Dynamic(CustomPropSymbol('custom.test-prop', 'residue-index', Type.Num), ctx => {
             const e = ctx.element;

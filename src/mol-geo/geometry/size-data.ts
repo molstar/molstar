@@ -98,7 +98,7 @@ export function createTextureSize(sizes: TextureImage<Uint8Array>, type: SizeTyp
 
 /** Creates size texture with size for each instance/unit */
 export function createInstanceSize(locationIt: LocationIterator, sizeFn: LocationSize, sizeData?: SizeData): SizeData {
-    const { instanceCount} = locationIt;
+    const { instanceCount } = locationIt;
     const sizes = createTextureImage(Math.max(1, instanceCount), 3, Uint8Array, sizeData && sizeData.tSize.ref.value.array);
     locationIt.reset();
     while (locationIt.hasNext && !locationIt.isNextNewInstance) {

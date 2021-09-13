@@ -100,7 +100,7 @@ describe('table', () => {
             n: Column.ofArray({ array: ['row1', 'row2'], schema: Column.Schema.str }),
         });
         const s = { x: Column.Schema.int, y: Column.Schema.int };
-        const picked = Table.pickColumns(s, t, { y: Column.ofArray({ array: [3, 4], schema: Column.Schema.int })});
+        const picked = Table.pickColumns(s, t, { y: Column.ofArray({ array: [3, 4], schema: Column.Schema.int }) });
         expect(picked._columns).toEqual(['x', 'y']);
         expect(picked._rowCount).toEqual(2);
         expect(picked.x.toArray()).toEqual([10, -1]);

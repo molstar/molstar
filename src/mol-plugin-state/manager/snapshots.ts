@@ -193,7 +193,7 @@ class PluginStateSnapshotManager extends StatefulPluginComponent<{
         const json = JSON.stringify(this.getStateSnapshot({ params: options?.params }), null, 2);
 
         if (!options?.type || options.type === 'json' || options.type === 'molj') {
-            return new Blob([json], {type: 'application/json;charset=utf-8'});
+            return new Blob([json], { type: 'application/json;charset=utf-8' });
         } else {
             const state = new Uint8Array(utf8ByteCount(json));
             utf8Write(state, 0, json);
@@ -218,7 +218,7 @@ class PluginStateSnapshotManager extends StatefulPluginComponent<{
             }
 
             const zipFile = await this.plugin.runTask(Zip(zipDataObj));
-            return new Blob([zipFile], {type: 'application/zip'});
+            return new Blob([zipFile], { type: 'application/zip' });
         }
     }
 

@@ -143,7 +143,7 @@ function getSelector(asymIds: string[]) {
     return Q.generators.atoms({ chainTest: Q.pred.and(
         Q.pred.eq(ctx => StructureProperties.unit.operator_name(ctx.element), SymmetryOperator.DefaultName),
         Q.pred.inSet(ctx => StructureProperties.chain.label_asym_id(ctx.element), asymIds)
-    )});
+    ) });
 }
 
 function getOperatorsForIndex(symmetry: Symmetry, index: number, i: number, j: number, k: number, modelCenter: Vec3) {

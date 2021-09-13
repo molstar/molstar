@@ -6,7 +6,7 @@
 
 import { ValueCell } from '../../../mol-util';
 import { Mat4, Vec3, Vec4 } from '../../../mol-math/linear-algebra';
-import { transformPositionArray, GroupMapping, createGroupMapping} from '../../util';
+import { transformPositionArray, GroupMapping, createGroupMapping } from '../../util';
 import { GeometryUtils } from '../geometry';
 import { createColors } from '../color-data';
 import { createMarkers } from '../marker-data';

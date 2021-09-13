@@ -48,7 +48,7 @@ export function CellPackGenerateColorTheme(ctx: ThemeDataContext, props: PD.Valu
                 hue, chroma: [30, 80], luminance: [15, 85],
                 clusteringStepCount: 50, minSampleCount: 800, maxCount: 75
             }
-        }}, { minLabel: 'Min', maxLabel: 'Max' });
+        } }, { minLabel: 'Min', maxLabel: 'Max' });
         legend = palette.legend;
         const modelColor = new Map<number, Color>();
         for (let i = 0, il = models.length; i < il; ++i) {

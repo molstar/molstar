@@ -41,7 +41,7 @@ function getAngleTables (probePositions: number): AnglesTables {
         sinTable[i] = Math.sin(theta);
         theta += step;
     }
-    return { cosTable, sinTable};
+    return { cosTable, sinTable };
 }
 
 //

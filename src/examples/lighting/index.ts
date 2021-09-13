@@ -105,7 +105,7 @@ class LightingDemo {
                 ...this.plugin.canvas3d!.props.postprocessing,
                 ...props.postprocessing
             },
-        }});
+        } });
     }
 
     async load({ url, format = 'mmcif', isBinary = true, assemblyId = '' }: LoadParams, radius: number, bias: number) {

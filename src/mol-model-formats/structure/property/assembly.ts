@@ -62,7 +62,7 @@ function operatorGroupsProvider(generators: Generator[], matrices: Matrices): ()
             const selector = Q.generators.atoms({ chainTest: Q.pred.and(
                 Q.pred.eq(ctx => StructureProperties.unit.operator_name(ctx.element), SymmetryOperator.DefaultName),
                 Q.pred.inSet(ctx => StructureProperties.chain.label_asym_id(ctx.element), gen.asymIds)
-            )});
+            ) });
             groups[groups.length] = { selector, operators };
             operatorOffset += operators.length;
         }

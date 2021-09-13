@@ -40,7 +40,8 @@
             }
         ],
         "no-throw-literal": "error",
-        "key-spacing": "error"
+        "key-spacing": "error",
+        "object-curly-spacing": ["error", "always"]
     },
     "overrides": [
         {

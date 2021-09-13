@@ -141,7 +141,7 @@ export function bondLabel(bond: Bond.Location, options: Partial<LabelOptions> = 
     return bundleLabel({ loci: [
         StructureElement.Loci(bond.aStructure, [{ unit: bond.aUnit, indices: OrderedSet.ofSingleton(bond.aIndex) }]),
         StructureElement.Loci(bond.bStructure, [{ unit: bond.bUnit, indices: OrderedSet.ofSingleton(bond.bIndex) }])
-    ]}, options);
+    ] }, options);
 }
 
 export function bundleLabel(bundle: Loci.Bundle<any>, options: Partial<LabelOptions> = {}): string {

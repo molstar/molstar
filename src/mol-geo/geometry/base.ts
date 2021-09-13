@@ -52,8 +52,8 @@ export namespace BaseGeometry {
         if (!transform) transform = createIdentityTransform();
         const locationIterator = LocationIterator(1, transform.instanceCount.ref.value, 1, () => NullLocation, false, () => false);
         const theme: Theme = {
-            color: UniformColorTheme({}, { value: colorValue}),
-            size: UniformSizeTheme({}, { value: sizeValue})
+            color: UniformColorTheme({}, { value: colorValue }),
+            size: UniformSizeTheme({}, { value: sizeValue })
         };
         return { transform, locationIterator, theme };
     }

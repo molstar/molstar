@@ -75,7 +75,7 @@ export class StateExportImportControls extends PluginUIComponent<{ onAction?: ()
                     <Icon svg={OpenInBrowserSvg} inline /> Open <input onChange={this.open} type='file' multiple={false} accept='.molx,.molj' />
                 </div>
             </div>
-            <div className='msp-help-text' style={{ padding: '10px'}}>
+            <div className='msp-help-text' style={{ padding: '10px' }}>
                 <Icon svg={WarningSvg} /> This is an experimental feature and stored states/sessions might not be openable in a future version.
             </div>
         </>;

@@ -19,7 +19,7 @@ import { ensureDataAvailable, readCCD } from './util';
 function extractIonNames(ccd: DatabaseCollection<CCD_Schema>) {
     const ionNames: string[] = [];
     for (const k in ccd) {
-        const {chem_comp} = ccd[k];
+        const { chem_comp } = ccd[k];
         if (chem_comp.name.value(0).toUpperCase().includes(' ION')) {
             ionNames.push(chem_comp.id.value(0));
         }

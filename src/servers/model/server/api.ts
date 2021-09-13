@@ -68,7 +68,7 @@ export const AtomSiteSchemaElement = {
     label_entity_id: { type: QueryParamType.String, groupName: 'atom_site' },
 
     label_asym_id: { type: QueryParamType.String, groupName: 'atom_site' },
-    auth_asym_id: { type: QueryParamType.String, groupName: 'atom_site'},
+    auth_asym_id: { type: QueryParamType.String, groupName: 'atom_site' },
 
     label_comp_id: { type: QueryParamType.String, groupName: 'atom_site' },
     auth_comp_id: { type: QueryParamType.String, groupName: 'atom_site' },
