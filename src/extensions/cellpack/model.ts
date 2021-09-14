@@ -9,7 +9,7 @@ import { StateAction, StateBuilder, StateTransformer, State } from '../../mol-st
 import { PluginContext } from '../../mol-plugin/context';
 import { PluginStateObject as PSO } from '../../mol-plugin-state/objects';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
-import { Ingredient, CellPacking, Primitives } from './data';
+import { Ingredient, CellPacking, CompartmentPrimitives } from './data';
 import { getFromPdb, getFromCellPackDB, IngredientFiles, parseCif, parsePDBfile, getStructureMean, getFromOPM } from './util';
 import { Model, Structure, StructureSymmetry, StructureSelection, QueryContext, Unit, Trajectory } from '../../mol-model/structure';
 import { trajectoryFromMmCIF, MmcifFormat } from '../../mol-model-formats/structure/mmcif';
@@ -31,6 +31,7 @@ import { Asset } from '../../mol-util/assets';
 import { Color } from '../../mol-util/color';
 import { objectForEach } from '../../mol-util/object';
 import { readFromFile } from '../../mol-util/data-source';
+import { ColorNames } from '../../mol-util/color/names';
 
 function getCellPackModelUrl(fileName: string, baseUrl: string) {
     return `${baseUrl}/results/${fileName}`;
@@ -524,7 +525,8 @@ async function loadMembrane(plugin: PluginContext, name: string, state: State, p
     } else if (geometry_membrane) {
         await b.apply(StateTransforms.Data.ParsePly, undefined, { state: { isGhost: true } })
             .apply(StateTransforms.Model.ShapeFromPly)
-            .apply(StateTransforms.Representation.ShapeRepresentation3D)
+            .apply(StateTransforms.Representation.ShapeRepresentation3D, { xrayShaded: true,
+                doubleSided: true, coloring: { name: 'uniform', params: { color: ColorNames.orange } } })
             .commit({ revertOnError: true });
     } else {
         const membrane = await b.apply(StateTransforms.Data.ParseCif, undefined, { state: { isGhost: true } })
@@ -539,7 +541,7 @@ async function loadMembrane(plugin: PluginContext, name: string, state: State, p
     }
 }
 
-async function handleMembraneSpheres(state: State, primitives: Primitives) {
+async function handleMembraneSpheres(state: State, primitives: CompartmentPrimitives) {
     const nSpheres = primitives.positions!.length / 3;
     // console.log('ok mb ', nSpheres);
     // TODO : take in account the type of the primitives.
@@ -619,16 +621,14 @@ async function loadPackings(plugin: PluginContext, runtime: RuntimeContext, stat
             representation: params.preset.representation,
         };
         await CellpackPackingPreset.apply(packing, packingParams, plugin);
-        if (packings[i].location === 'surface') {
-            // console.log('ok surface ' + params.membrane);
+        if (packings[i].compartment) {
             if (params.membrane === 'lipids') {
-                // console.log('ok packings[i].geom_type ' + packings[i].geom_type);
-                if (packings[i].geom_type) {
-                    if (packings[i].geom_type === 'file') {
+                if (packings[i].compartment!.geom_type) {
+                    if (packings[i].compartment!.geom_type === 'file') {
                         // TODO: load mesh files or vertex,faces data
-                        await loadMembrane(plugin, packings[i].filename!, state, params);
-                    } else if (packings[i].primitives) {
-                        await handleMembraneSpheres(state, packings[i].primitives!);
+                        await loadMembrane(plugin, packings[i].compartment!.filename!, state, params);
+                    } else if (packings[i].compartment!.compartment_primitives) {
+                        await handleMembraneSpheres(state, packings[i].compartment!.compartment_primitives!);
                     }
                 } else {
                     // try loading membrane from repo as a bcif file or from the given list of files.
@@ -636,9 +636,13 @@ async function loadPackings(plugin: PluginContext, runtime: RuntimeContext, stat
                         await loadMembrane(plugin, packings[i].name, state, params);
                     }
                 }
-            } else if (params.membrane === 'spheres') {
-                if (packings[i].primitives) {
-                    await handleMembraneSpheres(state, packings[i].primitives!);
+            } else if (params.membrane === 'geometry') {
+                if (packings[i].compartment!.compartment_primitives) {
+                    await handleMembraneSpheres(state, packings[i].compartment!.compartment_primitives!);
+                } else if (packings[i].compartment!.geom_type === 'file') {
+                    if (packings[i].compartment!.filename!.toLowerCase().endsWith('.ply')) {
+                        await loadMembrane(plugin, packings[i].compartment!.filename!, state, params);
+                    }
                 }
             }
         }
@@ -650,10 +654,10 @@ const LoadCellPackModelParams = {
         'id': PD.Select('InfluenzaModel2.json', [
             ['blood_hiv_immature_inside.json', 'Blood HIV immature'],
             ['HIV_immature_model.json', 'HIV immature'],
-            ['BloodHIV1.0_mixed_fixed_nc1.cpr', 'Blood HIV'],
+            ['Blood_HIV.json', 'Blood HIV'],
             ['HIV-1_0.1.6-8_mixed_radii_pdb.json', 'HIV'],
             ['influenza_model1.json', 'Influenza envelope'],
-            ['InfluenzaModel2.json', 'Influenza Complete'],
+            ['InfluenzaModel2.json', 'Influenza complete'],
             ['ExosomeModel.json', 'Exosome Model'],
             ['MycoplasmaGenitalium.json', 'Mycoplasma Genitalium curated model'],
         ] as const, { description: 'Download the model definition with `id` from the server at `baseUrl.`' }),
@@ -661,7 +665,7 @@ const LoadCellPackModelParams = {
     }, { options: [['id', 'Id'], ['file', 'File']] }),
     baseUrl: PD.Text(DefaultCellPackBaseUrl),
     results: PD.File({ accept: '.bin', description: 'open results file in binary format from cellpackgpu for the specified recipe', label: 'Results file' }),
-    membrane: PD.Select('lipids', PD.arrayToOptions(['lipids', 'spheres', 'none'])),
+    membrane: PD.Select('lipids', PD.arrayToOptions(['lipids', 'geometry', 'none'])),
     ingredients: PD.FileList({ accept: '.cif,.bcif,.pdb', label: 'Ingredient files' }),
     preset: PD.Group({
         traceOnly: PD.Boolean(false),

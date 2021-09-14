@@ -66,12 +66,13 @@ const ParseCellPack = PluginStateTransform.BuiltIn({
             if (compartments) {
                 for (const name in compartments) {
                     const { surface, interior } = compartments[name];
+                    let filename = '';
+                    if (compartments[name].geom_type === 'file') {
+                        filename = (compartments[name].geom) ? compartments[name].geom as string : '';
+                    }
+                    const compartment = { filename: filename, geom_type: compartments[name].geom_type, compartment_primitives: compartments[name].mb };
                     if (surface) {
-                        let filename = '';
-                        if (compartments[name].geom_type === 'file') {
-                            filename = (compartments[name].geom) ? compartments[name].geom as string : '';
-                        }
-                        packings.push({ name, location: 'surface', ingredients: surface.ingredients, filename: filename, geom_type: compartments[name].geom_type, primitives: compartments[name].mb });
+                        packings.push({ name, location: 'surface', ingredients: surface.ingredients, compartment: compartment });
                         for (const iName in surface.ingredients) {
                             if (surface.ingredients[iName].ingtype === 'fiber') {
                                 cell.mapping_ids[-(fiber_counter_id + 1)] = [comp_counter, iName];
@@ -86,7 +87,8 @@ const ParseCellPack = PluginStateTransform.BuiltIn({
                         comp_counter++;
                     }
                     if (interior) {
-                        packings.push({ name, location: 'interior', ingredients: interior.ingredients });
+                        if (!surface) packings.push({ name, location: 'interior', ingredients: interior.ingredients, compartment: compartment });
+                        else packings.push({ name, location: 'interior', ingredients: interior.ingredients });
                         for (const iName in interior.ingredients) {
                             if (interior.ingredients[iName].ingtype === 'fiber') {
                                 cell.mapping_ids[-(fiber_counter_id + 1)] = [comp_counter, iName];
@@ -306,7 +308,8 @@ export const CreateCompartmentSphere = CreateTransformer({
     to: PSO.Shape.Representation3D,
     params: {
         center: PD.Vec3(Vec3()),
-        radius: PD.Numeric(1)
+        radius: PD.Numeric(1),
+        label: PD.Text(`Compartment Sphere`)
     }
 })({
     canAutoUpdate({ oldParams, newParams }) {
@@ -316,8 +319,8 @@ export const CreateCompartmentSphere = CreateTransformer({
         return Task.create('Compartment Sphere', async ctx => {
             const data = params;
             const repr = MBRepresentation({ webgl: plugin.canvas3d?.webgl, ...plugin.representation.structure.themes }, () => (MBParams));
-            await repr.createOrUpdate({ ...params, quality: 'custom', doubleSided: true }, data).runInContext(ctx);
-            return new PSO.Shape.Representation3D({ repr, sourceData: a }, { label: `Compartment Sphere` });
+            await repr.createOrUpdate({ ...params, quality: 'custom', xrayShaded: true, doubleSided: true }, data).runInContext(ctx);
+            return new PSO.Shape.Representation3D({ repr, sourceData: a }, { label: data.label });
         });
     }
 });

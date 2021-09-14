@@ -15,12 +15,14 @@ export interface CellPacking {
     name: string,
     location: 'surface' | 'interior' | 'cytoplasme'
     ingredients: Packing['ingredients']
-    filename?: string
-    geom_type?: 'raw' | 'file' | 'sphere' | 'mb' | 'None'
-    primitives?: Primitives
+    compartment?: CellCompartment
 }
 
-//
+export interface CellCompartment {
+    filename?: string
+    geom_type?: 'raw' | 'file' | 'sphere' | 'mb' | 'None'
+    compartment_primitives?: CompartmentPrimitives
+}
 
 export interface Cell {
     recipe: Recipe
@@ -46,11 +48,11 @@ export interface Compartment {
     interior?: Packing
     geom?: unknown
     geom_type?: 'raw' | 'file' | 'sphere' | 'mb' | 'None'
-    mb?: Primitives
+    mb?: CompartmentPrimitives
 }
 
 // Primitives discribing a compartment
-export const enum PrimitiveType {
+export const enum CompartmentPrimitiveType {
     MetaBall = 0,
     Sphere = 1,
     Cube = 2,
@@ -60,10 +62,10 @@ export const enum PrimitiveType {
     None = 6
 }
 
-export interface Primitives{
+export interface CompartmentPrimitives{
     positions?: number[];
     radii?: number[];
-    types?: PrimitiveType[];
+    types?: CompartmentPrimitiveType[];
 }
 
 
