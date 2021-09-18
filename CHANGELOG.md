@@ -7,6 +7,7 @@ Note that since we don't clearly distinguish between a public and private interf
 ## [Unreleased]
 
 - Add Charmm saccharide names
+- Treat missing occupancy column as occupany of 1
 
 ## [v2.3.0] - 2021-09-06
 
