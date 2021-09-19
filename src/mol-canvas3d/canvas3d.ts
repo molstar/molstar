@@ -23,7 +23,7 @@ import { Camera } from './camera';
 import { ParamDefinition as PD } from '../mol-util/param-definition';
 import { DebugHelperParams } from './helper/bounding-sphere-helper';
 import { SetUtils } from '../mol-util/set';
-import { Canvas3dInteractionHelper } from './helper/interaction-events';
+import { Canvas3dInteractionHelper, Canvas3dInteractionHelperParams } from './helper/interaction-events';
 import { PostprocessingParams } from './passes/postprocessing';
 import { MultiSampleHelper, MultiSampleParams, MultiSamplePass } from './passes/multi-sample';
 import { PickData } from './passes/pick';
@@ -84,6 +84,7 @@ export const Canvas3DParams = {
     marking: PD.Group(MarkingParams),
     renderer: PD.Group(RendererParams),
     trackball: PD.Group(TrackballControlsParams),
+    interaction: PD.Group(Canvas3dInteractionHelperParams),
     debug: PD.Group(DebugHelperParams),
     handle: PD.Group(HandleHelperParams),
 };
@@ -306,7 +307,7 @@ namespace Canvas3D {
         const helper = new Helper(webgl, scene, p);
 
         const pickHelper = new PickHelper(webgl, renderer, scene, helper, passes.pick, { x, y, width, height });
-        const interactionHelper = new Canvas3dInteractionHelper(identify, getLoci, input, camera);
+        const interactionHelper = new Canvas3dInteractionHelper(identify, getLoci, input, camera, p.interaction);
         const multiSampleHelper = new MultiSampleHelper(passes.multiSample);
 
         let cameraResetRequested = false;
@@ -642,6 +643,7 @@ namespace Canvas3D {
                 multiSample: { ...p.multiSample },
                 renderer: { ...renderer.props },
                 trackball: { ...controls.props },
+                interaction: { ...interactionHelper.props },
                 debug: { ...helper.debug.props },
                 handle: { ...helper.handle.props },
             };
@@ -778,6 +780,7 @@ namespace Canvas3D {
                 if (props.multiSample) Object.assign(p.multiSample, props.multiSample);
                 if (props.renderer) renderer.setProps(props.renderer);
                 if (props.trackball) controls.setProps(props.trackball);
+                if (props.interaction) interactionHelper.setProps(props.interaction);
                 if (props.debug) helper.debug.setProps(props.debug);
                 if (props.handle) helper.handle.setProps(props.handle);
 
