@@ -31,7 +31,7 @@ uniform float uOffsetZ;
 
 // uniform bool ortho;
 uniform float uPixelRatio;
-uniform float uViewportHeight;
+uniform vec4 uViewport;
 
 varying vec2 vTexCoord;
 
@@ -60,9 +60,9 @@ void main(void){
     // TODO
     // #ifdef FIXED_SIZE
     //     if (ortho) {
-    //         scale /= pixelRatio * ((uViewportHeight / 2.0) / -uCameraPosition.z) * 0.1;
+    //         scale /= pixelRatio * ((uViewport.w / 2.0) / -uCameraPosition.z) * 0.1;
     //     } else {
-    //         scale /= pixelRatio * ((uViewportHeight / 2.0) / -mvPosition.z) * 0.1;
+    //         scale /= pixelRatio * ((uViewport.w / 2.0) / -mvPosition.z) * 0.1;
     //     }
     // #endif
 

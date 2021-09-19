@@ -233,7 +233,6 @@ namespace Renderer {
             uViewOffset: ValueCell.create(viewOffset),
 
             uPixelRatio: ValueCell.create(ctx.pixelRatio),
-            uViewportHeight: ValueCell.create(viewport.height),
             uViewport: ValueCell.create(Viewport.toVec4(Vec4(), viewport)),
             uDrawingBufferSize: ValueCell.create(drawingBufferSize),
 
@@ -700,7 +699,6 @@ namespace Renderer {
                 gl.scissor(x, y, width, height);
                 if (x !== viewport.x || y !== viewport.y || width !== viewport.width || height !== viewport.height) {
                     Viewport.set(viewport, x, y, width, height);
-                    ValueCell.update(globalUniforms.uViewportHeight, height);
                     ValueCell.update(globalUniforms.uViewport, Vec4.set(globalUniforms.uViewport.ref.value, x, y, width, height));
                 }
             },

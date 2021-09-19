@@ -8,6 +8,7 @@ Note that since we don't clearly distinguish between a public and private interf
 
 - Add Charmm saccharide names
 - Treat missing occupancy column as occupany of 1
+- Fix line shader not accounting for aspect ratio
 
 ## [v2.3.0] - 2021-09-06
 
