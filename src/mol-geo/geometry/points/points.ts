@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -117,12 +117,19 @@ export namespace Points {
 
     //
 
+    export const StyleTypes = {
+        'square': 'Square',
+        'circle': 'Circle',
+        'fuzzy': 'Fuzzy',
+    };
+    export type StyleTypes = keyof typeof StyleTypes;
+    export const StyleTypeNames = Object.keys(StyleTypes) as StyleTypes[];
+
     export const Params = {
         ...BaseGeometry.Params,
         sizeFactor: PD.Numeric(1.5, { min: 0, max: 10, step: 0.1 }),
         pointSizeAttenuation: PD.Boolean(false),
-        pointFilledCircle: PD.Boolean(false),
-        pointEdgeBleach: PD.Numeric(0.2, { min: 0, max: 1, step: 0.05 }),
+        pointStyle: PD.Select('square', PD.objectToOptions(StyleTypes)),
     };
     export type Params = typeof Params
 
@@ -189,8 +196,7 @@ export namespace Points {
             ...BaseGeometry.createValues(props, counts),
             uSizeFactor: ValueCell.create(props.sizeFactor),
             dPointSizeAttenuation: ValueCell.create(props.pointSizeAttenuation),
-            dPointFilledCircle: ValueCell.create(props.pointFilledCircle),
-            uPointEdgeBleach: ValueCell.create(props.pointEdgeBleach),
+            dPointStyle: ValueCell.create(props.pointStyle),
         };
     }
 
@@ -204,8 +210,7 @@ export namespace Points {
         BaseGeometry.updateValues(values, props);
         ValueCell.updateIfChanged(values.uSizeFactor, props.sizeFactor);
         ValueCell.updateIfChanged(values.dPointSizeAttenuation, props.pointSizeAttenuation);
-        ValueCell.updateIfChanged(values.dPointFilledCircle, props.pointFilledCircle);
-        ValueCell.updateIfChanged(values.uPointEdgeBleach, props.pointEdgeBleach);
+        ValueCell.updateIfChanged(values.dPointStyle, props.pointStyle);
     }
 
     function updateBoundingSphere(values: PointsValues, points: Points) {
@@ -229,10 +234,7 @@ export namespace Points {
 
     function updateRenderableState(state: RenderableState, props: PD.Values<Params>) {
         BaseGeometry.updateRenderableState(state, props);
-        state.opaque = state.opaque && (
-            !props.pointFilledCircle ||
-            (props.pointFilledCircle && props.pointEdgeBleach === 0)
-        );
+        state.opaque = state.opaque && props.pointStyle !== 'fuzzy';
         state.writeDepth = state.opaque;
     }
 }
