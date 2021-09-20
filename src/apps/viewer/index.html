@@ -52,12 +52,16 @@
             var collapseLeftPanel = getParam('collapse-left-panel', '[^&]+').trim() === '1';
             var pdbProvider = getParam('pdb-provider', '[^&]+').trim().toLowerCase();
             var emdbProvider = getParam('emdb-provider', '[^&]+').trim().toLowerCase();
+            var mapProvider = getParam('map-provider', '[^&]+').trim().toLowerCase();
             var viewer = new molstar.Viewer('app', {
                 layoutShowControls: !hideControls,
                 viewportShowExpand: false,
                 collapseLeftPanel: collapseLeftPanel,
                 pdbProvider: pdbProvider || 'pdbe',
                 emdbProvider: emdbProvider || 'pdbe',
+                volumeStreamingServer: (mapProvider || 'pdbe') === 'rcsb'
+                    ? 'https://maps.rcsb.org'
+                    : 'https://www.ebi.ac.uk/pdbe/densities'
             });
 
             var snapshotId = getParam('snapshot-id', '[^&]+').trim();

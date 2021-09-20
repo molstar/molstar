@@ -4,6 +4,17 @@ All notable changes to this project will be documented in this file, following t
 Note that since we don't clearly distinguish between a public and private interfaces there will be changes in non-major versions that are potentially breaking. If we make breaking changes to less used interfaces we will highlight it in here.
 
 
+## [Unreleased]
+
+- Add Charmm saccharide names
+- Treat missing occupancy column as occupany of 1
+- Fix line shader not accounting for aspect ratio
+- [Breaking] Fix point repr & shader
+    - Was unusable with ``wboit``
+    - Replaced ``pointFilledCircle`` & ``pointEdgeBleach`` params by ``pointStyle`` (square, circle, fuzzy)
+    - Set ``pointSizeAttenuation`` to false by default
+    - Set ``sizeTheme`` to ``uniform`` by default
+
 ## [v2.3.0] - 2021-09-06
 
 - Take include/exclude flags into account when displaying aromatic bonds

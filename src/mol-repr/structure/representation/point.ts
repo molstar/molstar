@@ -32,11 +32,11 @@ export function PointRepresentation(ctx: RepresentationContext, getParams: Repre
 export const PointRepresentationProvider = StructureRepresentationProvider({
     name: 'point',
     label: 'Point',
-    description: 'Displays elements (atoms, coarse spheres) as spheres.',
+    description: 'Displays elements (atoms, coarse spheres) as points.',
     factory: PointRepresentation,
     getParams: getPointParams,
     defaultValues: PD.getDefaultValues(PointParams),
     defaultColorTheme: { name: 'element-symbol' },
-    defaultSizeTheme: { name: 'physical' },
+    defaultSizeTheme: { name: 'uniform' },
     isApplicable: (structure: Structure) => structure.elementCount > 0
 });

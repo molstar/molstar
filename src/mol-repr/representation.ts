@@ -226,7 +226,7 @@ namespace Representation {
         let version = 0;
         const updated = new Subject<number>();
         const currentState = stateBuilder.create();
-        const currentTheme = Theme.createEmpty();
+        let currentTheme = Theme.createEmpty();
 
         let currentParams: P;
         let currentProps: PD.Values<P>;
@@ -314,6 +314,7 @@ namespace Representation {
                 }
             },
             setTheme: (theme: Theme) => {
+                currentTheme = theme;
                 for (let i = 0, il = reprList.length; i < il; ++i) {
                     reprList[i].setTheme(theme);
                 }
