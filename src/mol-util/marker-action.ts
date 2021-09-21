@@ -105,8 +105,13 @@ export function applyMarkerAction(array: Uint8Array, set: OrderedSet, action: Ma
             applyMarkerActionAtPosition(array, i, action);
         }
 
-        for (let i = backStart; i < backEnd; ++i) {
-            applyMarkerActionAtPosition(array, i, action);
+        // to prevent applying "toggle" twice check for edge case where
+        // viewEnd <= viewStart, which resolves to the "front" and "back"
+        // intervals being the same range
+        if (frontStart !== backStart) {
+            for (let i = backStart; i < backEnd; ++i) {
+                applyMarkerActionAtPosition(array, i, action);
+            }
         }
     } else {
         switch (action) {
