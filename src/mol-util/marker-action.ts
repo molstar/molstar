@@ -68,10 +68,18 @@ export function applyMarkerAction(array: Uint8Array, set: OrderedSet, action: Ma
     if (Interval.is(set)) {
         const start = Interval.start(set);
         const end = Interval.end(set);
-        const view = new Uint32Array(array.buffer, 0, array.buffer.byteLength >> 2);
-
         const viewStart = (start + 3) >> 2;
         const viewEnd = viewStart + ((end - 4 * viewStart) >> 2);
+
+        if (viewEnd <= viewStart) {
+            // avoid edge cases with overlapping front/end intervals
+            for (let i = start; i < end; ++i) {
+                applyMarkerActionAtPosition(array, i, action);
+            }
+            return true;
+        }
+
+        const view = new Uint32Array(array.buffer, 0, array.buffer.byteLength >> 2);
 
         const frontStart = start;
         const frontEnd = Math.min(4 * viewStart, end);
@@ -105,13 +113,8 @@ export function applyMarkerAction(array: Uint8Array, set: OrderedSet, action: Ma
             applyMarkerActionAtPosition(array, i, action);
         }
 
-        // to prevent applying "toggle" twice check for edge case where
-        // viewEnd <= viewStart, which resolves to the "front" and "back"
-        // intervals being the same range
-        if (frontStart !== backStart) {
-            for (let i = backStart; i < backEnd; ++i) {
-                applyMarkerActionAtPosition(array, i, action);
-            }
+        for (let i = backStart; i < backEnd; ++i) {
+            applyMarkerActionAtPosition(array, i, action);
         }
     } else {
         switch (action) {
