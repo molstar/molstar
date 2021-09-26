@@ -15,6 +15,7 @@ Note that since we don't clearly distinguish between a public and private interf
     - Set ``pointSizeAttenuation`` to false by default
     - Set ``sizeTheme`` to ``uniform`` by default
 - Fix pickScale not taken into account in line/point shader
+- Add pixel-scale & pick-scale GET params to Viewer app
 
 ## [v2.3.0] - 2021-09-06
 
