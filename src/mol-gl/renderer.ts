@@ -62,6 +62,7 @@ interface Renderer {
     setViewport: (x: number, y: number, width: number, height: number) => void
     setTransparentBackground: (value: boolean) => void
     setDrawingBufferSize: (width: number, height: number) => void
+    setPixelRatio: (value: number) => void
 
     dispose: () => void
 }
@@ -709,6 +710,9 @@ namespace Renderer {
                 if (width !== drawingBufferSize[0] || height !== drawingBufferSize[1]) {
                     ValueCell.update(globalUniforms.uDrawingBufferSize, Vec2.set(drawingBufferSize, width, height));
                 }
+            },
+            setPixelRatio: (value: number) => {
+                ValueCell.update(globalUniforms.uPixelRatio, value);
             },
 
             props: p,

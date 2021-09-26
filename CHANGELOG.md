@@ -14,6 +14,7 @@ Note that since we don't clearly distinguish between a public and private interf
     - Replaced ``pointFilledCircle`` & ``pointEdgeBleach`` params by ``pointStyle`` (square, circle, fuzzy)
     - Set ``pointSizeAttenuation`` to false by default
     - Set ``sizeTheme`` to ``uniform`` by default
+- Fix pickScale not taken into account in line/point shader
 
 ## [v2.3.0] - 2021-09-06
 

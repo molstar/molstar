@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -177,6 +177,7 @@ export class PickHelper {
 
         renderer.setTransparentBackground(false);
         renderer.setDrawingBufferSize(this.pickPass.objectPickTarget.getWidth(), this.pickPass.objectPickTarget.getHeight());
+        renderer.setPixelRatio(this.pickScale);
 
         if (StereoCamera.is(camera)) {
             renderer.setViewport(pickX, pickY, halfPickWidth, pickHeight);
