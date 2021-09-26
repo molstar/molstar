@@ -17,6 +17,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Fix pickScale not taken into account in line/point shader
 - Add pixel-scale & pick-scale GET params to Viewer app
 - Fix selecting bonds not adding their atoms in selection manager
+- Add ``preferAtoms`` option to SelectLoci/HighlightLoci behaviors
 
 ## [v2.3.0] - 2021-09-06
 
