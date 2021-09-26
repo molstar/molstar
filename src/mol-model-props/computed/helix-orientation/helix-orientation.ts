@@ -127,7 +127,8 @@ export function calcHelixOrientation(model: Model): HelixOrientation {
         Vec3.fromArray(v2, centers, e3 - 6);
         Vec3.normalize(axis, Vec3.sub(axis, v1, v2));
         const eI = traceElementIndex[e];
-        Vec3.set(a1, x[eI], y[eI], z[eI]);Vec3.copy(vt, a1);
+        Vec3.set(a1, x[eI], y[eI], z[eI]);
+        Vec3.copy(vt, a1);
         Vec3.projectPointOnVector(vt, vt, axis, v1);
         Vec3.toArray(vt, centers, e3);
     }

@@ -197,7 +197,7 @@ export function configureLocal() {
         description: VOLUME_SERVER_HEADER
     });
     parser.add_argument('--jobs', { help: `Path to a JSON file with job specification.`, required: false });
-    parser.add_argument('--jobsTemplate', { help: 'Print example template for jobs.json and exit.', required: false, nargs: 0 });;
+    parser.add_argument('--jobsTemplate', { help: 'Print example template for jobs.json and exit.', required: false, nargs: 0 });
     addJsonConfigArgs(parser);
     addLimitsArgs(parser);
 

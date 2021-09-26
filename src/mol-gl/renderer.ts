@@ -81,6 +81,7 @@ export const RendererParams = {
     selectColor: PD.Color(Color.fromNormalizedRgb(0.2, 1.0, 0.1)),
     highlightStrength: PD.Numeric(0.7, { min: 0.0, max: 1.0, step: 0.1 }),
     selectStrength: PD.Numeric(0.7, { min: 0.0, max: 1.0, step: 0.1 }),
+    markerPriority: PD.Select(1, [[1, 'Highlight'], [2, 'Select']]),
 
     xrayEdgeFalloff: PD.Numeric(1, { min: 0.0, max: 3.0, step: 0.1 }),
 
@@ -274,6 +275,7 @@ namespace Renderer {
             uSelectColor: ValueCell.create(Color.toVec3Normalized(Vec3(), p.selectColor)),
             uHighlightStrength: ValueCell.create(p.highlightStrength),
             uSelectStrength: ValueCell.create(p.selectStrength),
+            uMarkerPriority: ValueCell.create(p.markerPriority),
 
             uXrayEdgeFalloff: ValueCell.create(p.xrayEdgeFalloff),
         };
@@ -669,6 +671,10 @@ namespace Renderer {
                 if (props.selectStrength !== undefined && props.selectStrength !== p.selectStrength) {
                     p.selectStrength = props.selectStrength;
                     ValueCell.update(globalUniforms.uSelectStrength, p.selectStrength);
+                }
+                if (props.markerPriority !== undefined && props.markerPriority !== p.markerPriority) {
+                    p.markerPriority = props.markerPriority;
+                    ValueCell.update(globalUniforms.uMarkerPriority, p.markerPriority);
                 }
 
                 if (props.xrayEdgeFalloff !== undefined && props.xrayEdgeFalloff !== p.xrayEdgeFalloff) {

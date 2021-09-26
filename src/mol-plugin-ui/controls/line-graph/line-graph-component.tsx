@@ -207,7 +207,7 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
 
         const updatedPoint = this.unNormalizePoint(Vec2.create(this.updatedX, this.updatedY));
         const points = this.state.points.filter((_, i) => i !== selected[0]);
-        points.push(updatedPoint);;
+        points.push(updatedPoint);
         points.sort((a, b) => {
             if (a[0] === b[0]) {
                 if (a[0] === 0) {
@@ -372,7 +372,7 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
         const data = points;
         const size = data.length;
 
-        for (let i = 0; i < size - 1;i++) {
+        for (let i = 0; i < size - 1; i++) {
             const x1 = data[i][0];
             const y1 = data[i][1];
             const x2 = data[i + 1][0];

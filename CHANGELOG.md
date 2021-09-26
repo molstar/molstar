@@ -20,6 +20,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Add ``preferAtoms`` option to SelectLoci/HighlightLoci behaviors
 - Make the implicit atoms of bond visuals pickable
     - Add ``preferAtomPixelPadding`` to Canvas3dInteractionHelper
+- Add ``markerPriority`` option to Renderer (useful in combination with edges of marking pass)
 
 ## [v2.3.0] - 2021-09-06
 
