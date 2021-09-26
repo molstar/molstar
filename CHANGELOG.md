@@ -7,7 +7,7 @@ Note that since we don't clearly distinguish between a public and private interf
 ## [Unreleased]
 
 - Add Charmm saccharide names
-- Treat missing occupancy column as occupany of 1
+- Treat missing occupancy column as occupancy of 1
 - Fix line shader not accounting for aspect ratio
 - [Breaking] Fix point repr & shader
     - Was unusable with ``wboit``
@@ -16,6 +16,7 @@ Note that since we don't clearly distinguish between a public and private interf
     - Set ``sizeTheme`` to ``uniform`` by default
 - Fix pickScale not taken into account in line/point shader
 - Add pixel-scale & pick-scale GET params to Viewer app
+- Fix selecting bonds not adding their atoms in selection manager
 
 ## [v2.3.0] - 2021-09-06
 
