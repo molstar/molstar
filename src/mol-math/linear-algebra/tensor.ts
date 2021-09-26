@@ -109,7 +109,10 @@ export namespace Tensor {
                 set: (t, d, x) => t[d] = x,
                 add: (t, d, x) => t[d] += x,
                 dataOffset: (d) => d,
-                getCoords: (o, c) => { c[0] = o; return c as number[]; }
+                getCoords: (o, c) => {
+                    c[0] = o;
+                    return c as number[];
+                }
             };
             case 2: {
                 // column major
@@ -120,7 +123,11 @@ export namespace Tensor {
                         set: (t, i, j, x) => t[j * rows + i] = x,
                         add: (t, i, j, x) => t[j * rows + i] += x,
                         dataOffset: (i, j) => j * rows + i,
-                        getCoords: (o, c) => { c[0] = o % rows; c[1] = Math.floor(o / rows) ; return c as number[]; }
+                        getCoords: (o, c) => {
+                            c[0] = o % rows;
+                            c[1] = Math.floor(o / rows);
+                            return c as number[];
+                        }
                     };
                 }
                 if (ao[0] === 1 && ao[1] === 0) {
@@ -130,7 +137,11 @@ export namespace Tensor {
                         set: (t, i, j, x) => t[i * cols + j] = x,
                         add: (t, i, j, x) => t[i * cols + j] += x,
                         dataOffset: (i, j) => i * cols + j,
-                        getCoords: (o, c) => { c[0] = Math.floor(o / cols); c[1] = o % cols; return c as number[]; }
+                        getCoords: (o, c) => {
+                            c[0] = Math.floor(o / cols);
+                            c[1] = o % cols;
+                            return c as number[];
+                        }
                     };
                 }
                 throw new Error('bad axis order');

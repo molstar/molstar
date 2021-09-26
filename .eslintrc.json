@@ -54,7 +54,8 @@
         "no-multi-spaces": "error",
         "block-spacing": "error",
         "keyword-spacing": "off",
-        "space-before-blocks": "error"
+        "space-before-blocks": "error",
+        "semi-spacing": "error"
     },
     "overrides": [
         {
