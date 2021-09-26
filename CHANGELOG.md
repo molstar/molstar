@@ -18,6 +18,8 @@ Note that since we don't clearly distinguish between a public and private interf
 - Add pixel-scale & pick-scale GET params to Viewer app
 - Fix selecting bonds not adding their atoms in selection manager
 - Add ``preferAtoms`` option to SelectLoci/HighlightLoci behaviors
+- Make the implicit atoms of bond visuals pickable
+    - Add ``preferAtomPixelPadding`` to Canvas3dInteractionHelper
 
 ## [v2.3.0] - 2021-09-06
 

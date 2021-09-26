@@ -12,8 +12,7 @@ import { RxEventHelper } from '../../mol-util/rx-event-helper';
 import { Vec2, Vec3 } from '../../mol-math/linear-algebra';
 import { Camera } from '../camera';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
-import { Bond, StructureElement } from '../../mol-model/structure';
-import { OrderedSet } from '../../mol-data/int';
+import { Bond } from '../../mol-model/structure';
 
 type Canvas3D = import('../canvas3d').Canvas3D
 type HoverEvent = import('../canvas3d').Canvas3D.HoverEvent
@@ -22,11 +21,13 @@ type ClickEvent = import('../canvas3d').Canvas3D.ClickEvent
 
 const enum InputEvent { Move, Click, Drag }
 
-const pA = Vec3();
+const tmpPosA = Vec3();
+const tmpPos = Vec3();
+const tmpNorm = Vec3();
 
 export const Canvas3dInteractionHelperParams = {
     maxFps: PD.Numeric(30, { min: 10, max: 60, step: 10 }),
-    preferAtomDistanceFactor: PD.Numeric(1.5, { min: 0, max: 3, step: 0.1 }),
+    preferAtomPixelPadding: PD.Numeric(5, { min: 0, max: 20, step: 1 }, { description: 'Number of extra pixels at which to prefer atoms over bonds.' }),
 };
 export type Canvas3dInteractionHelperParams = typeof Canvas3dInteractionHelperParams
 export type Canvas3dInteractionHelperProps = PD.Values<Canvas3dInteractionHelperParams>
@@ -166,15 +167,18 @@ export class Canvas3dInteractionHelper {
         const { repr, loci } = this.lociGetter(pickingId);
         if (position && repr && Bond.isLoci(loci) && loci.bonds.length === 2) {
             const { aUnit, aIndex } = loci.bonds[0];
-            aUnit.conformation.position(aUnit.elements[aIndex], pA);
-            // TODO: project position onto camera plane at pA
-            let size = repr.theme.size.size(loci.bonds[0]) * (repr.props.sizeFactor ?? 1);
+            aUnit.conformation.position(aUnit.elements[aIndex], tmpPosA);
+            Vec3.sub(tmpNorm, this.camera.state.position, this.camera.state.target);
+            Vec3.projectPointOnPlane(tmpPos, position, tmpNorm, tmpPosA);
+            const pixelSize = this.camera.getPixelSize(tmpPos);
+            let radius = repr.theme.size.size(loci.bonds[0]) * (repr.props.sizeFactor ?? 1);
             if (repr.props.lineSizeAttenuation === false) {
-                // TODO: properly scale?
-                size /= this.camera.pixelRatio * ((this.camera.viewport.height / 2.0) / -position[2]) * 5.0;
+                // divide by two to get radius
+                radius *= pixelSize / 2;
             }
-            if (Vec3.distance(position, pA) < size * this.props.preferAtomDistanceFactor) {
-                return { repr, loci: StructureElement.Loci(loci.structure, [{ unit: aUnit, indices: OrderedSet.ofSingleton(aIndex) }]) };
+            radius += this.props.preferAtomPixelPadding * pixelSize;
+            if (Vec3.distance(tmpPos, tmpPosA) < radius) {
+                return { repr, loci: Bond.toFirstStructureElementLoci(loci) };
             }
         }
         return { repr, loci };
