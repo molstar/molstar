@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -14,23 +14,28 @@ import { Representation, RepresentationParamsGetter, RepresentationContext } fro
 import { ThemeRegistryContext } from '../../../mol-theme/theme';
 import { Structure } from '../../../mol-model/structure';
 import { getUnitKindsParam } from '../params';
+import { ElementPointParams, ElementPointVisual } from '../visual/element-point';
 
 const LineVisuals = {
     'intra-bond': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, IntraUnitBondLineParams>) => UnitsRepresentation('Intra-unit bond line', ctx, getParams, IntraUnitBondLineVisual),
     'inter-bond': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, InterUnitBondLineParams>) => ComplexRepresentation('Inter-unit bond line', ctx, getParams, InterUnitBondLineVisual),
+    'element-point': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, ElementPointParams>) => UnitsRepresentation('Points', ctx, getParams, ElementPointVisual),
 };
 
 export const LineParams = {
     ...IntraUnitBondLineParams,
     ...InterUnitBondLineParams,
+    ...ElementPointParams,
     includeParent: PD.Boolean(false),
-    sizeFactor: PD.Numeric(1.5, { min: 0.01, max: 10, step: 0.01 }),
+    sizeFactor: PD.Numeric(3, { min: 0.01, max: 10, step: 0.01 }),
     unitKinds: getUnitKindsParam(['atomic']),
-    visuals: PD.MultiSelect(['intra-bond', 'inter-bond'], PD.objectToOptions(LineVisuals))
+    visuals: PD.MultiSelect(['intra-bond', 'inter-bond', 'element-point'], PD.objectToOptions(LineVisuals))
 };
 export type LineParams = typeof LineParams
 export function getLineParams(ctx: ThemeRegistryContext, structure: Structure) {
-    return PD.clone(LineParams);
+    const params = PD.clone(LineParams);
+    params.pointStyle.defaultValue = 'circle';
+    return params;
 }
 
 export type LineRepresentation = StructureRepresentation<LineParams>
@@ -41,7 +46,7 @@ export function LineRepresentation(ctx: RepresentationContext, getParams: Repres
 export const LineRepresentationProvider = StructureRepresentationProvider({
     name: 'line',
     label: 'Line',
-    description: 'Displays bonds as lines.',
+    description: 'Displays bonds as lines and atoms as points.',
     factory: LineRepresentation,
     getParams: getLineParams,
     defaultValues: PD.getDefaultValues(LineParams),
