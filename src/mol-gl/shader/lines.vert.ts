@@ -105,6 +105,7 @@ void main(){
     #else
         linewidth = size * uPixelRatio;
     #endif
+    linewidth = max(1.0, linewidth);
 
     // adjust for linewidth
     offset *= linewidth;
