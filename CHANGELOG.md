@@ -6,6 +6,8 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+## [v2.3.1] - 2021-09-28
+
 - Add Charmm saccharide names
 - Treat missing occupancy column as occupany of 1
 - Fix line shader not accounting for aspect ratio
@@ -15,6 +17,8 @@ Note that since we don't clearly distinguish between a public and private interf
     - Set ``pointSizeAttenuation`` to false by default
     - Set ``sizeTheme`` to ``uniform`` by default
 - Add ``markerPriority`` option to Renderer (useful in combination with edges of marking pass)
+- Add support support for ``chem_comp_bond`` and ``struct_conn`` categories (fixes ModelServer behavior where these categories should have been present)
+- Model and VolumeServer: fix argparse config
 
 ## [v2.3.0] - 2021-09-06
 
