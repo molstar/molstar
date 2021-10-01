@@ -115,19 +115,21 @@ namespace Canvas3DContext {
         preserveDrawingBuffer: true,
         pixelScale: 1,
         pickScale: 0.25,
-        enableWboit: true
+        enableWboit: true,
+        preferWebGl1: false
     };
     export type Attribs = typeof DefaultAttribs
 
     export function fromCanvas(canvas: HTMLCanvasElement, attribs: Partial<Attribs> = {}): Canvas3DContext {
         const a = { ...DefaultAttribs, ...attribs };
-        const { antialias, preserveDrawingBuffer, pixelScale } = a;
+        const { antialias, preserveDrawingBuffer, pixelScale, preferWebGl1 } = a;
         const gl = getGLContext(canvas, {
             antialias,
             preserveDrawingBuffer,
             alpha: true, // the renderer requires an alpha channel
             depth: true, // the renderer requires a depth buffer
             premultipliedAlpha: true, // the renderer outputs PMA
+            preferWebGl1
         });
         if (gl === null) throw new Error('Could not create a WebGL rendering context');
 

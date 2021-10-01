@@ -19,6 +19,16 @@ export class PluginConfigItem<T = any> {
 
 function item<T>(key: string, defaultValue?: T) { return new PluginConfigItem(key, defaultValue); }
 
+
+// adapted from https://stackoverflow.com/questions/9038625/detect-if-device-is-ios
+function is_iOS() {
+    if (typeof navigator === 'undefined' || typeof window === 'undefined') return false;
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    const isAppleDevice = navigator.userAgent.includes('Macintosh');
+    const isTouchScreen = navigator.maxTouchPoints >= 4; // true for iOS 13 (and hopefully beyond)
+    return !(window as any).MSStream && (isIOS || (isAppleDevice && isTouchScreen));
+}
+
 export const PluginConfig = {
     item,
     General: {
@@ -28,6 +38,9 @@ export const PluginConfig = {
         PixelScale: item('plugin-config.pixel-scale', 1),
         PickScale: item('plugin-config.pick-scale', 0.25),
         EnableWboit: item('plugin-config.enable-wboit', true),
+        // as of Oct 1 2021, WebGL 2 doesn't work on iOS 15.
+        // TODO: check back in a few weeks to see if it was fixed
+        PreferWebGl1: item('plugin-config.prefer-webgl1', is_iOS()),
     },
     State: {
         DefaultServer: item('plugin-state.server', 'https://webchem.ncbr.muni.cz/molstar-state'),

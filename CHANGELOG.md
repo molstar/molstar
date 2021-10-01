@@ -6,6 +6,11 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+## [v2.3.2] - 2021-10-01
+
+- Prefer WebGL1 on iOS devices until WebGL2 support has stabilized.
+
+
 ## [v2.3.1] - 2021-09-28
 
 - Add Charmm saccharide names
