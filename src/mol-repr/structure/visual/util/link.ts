@@ -83,10 +83,12 @@ export const enum LinkStyle {
     Solid = 0,
     Dashed = 1,
     Double = 2,
-    Triple = 3,
-    Disk = 4,
-    Aromatic = 5,
-    MirroredAromatic = 6,
+    OffsetDouble = 3,
+    Triple = 4,
+    OffsetTriple = 5,
+    Disk = 6,
+    Aromatic = 7,
+    MirroredAromatic = 8,
 }
 
 // avoiding namespace lookup improved performance in Chrome (Aug 2020)
@@ -128,14 +130,16 @@ export function createLinkCylinderMesh(ctx: VisualContext, linkBuilder: LinkBuil
 
         position(va, vb, edgeIndex);
         v3sub(tmpV12, vb, va);
+        const dirFlag = v3dot(tmpV12, up) > 0;
 
         const linkRadius = radius(edgeIndex);
         const linkStyle = style ? style(edgeIndex) : LinkStyle.Solid;
         const linkStub = stubCap && (stub ? stub(edgeIndex) : false);
-        const [topCap, bottomCap] = (v3dot(tmpV12, up) > 0) ? [linkStub, linkCap] : [linkCap, linkStub];
+        const [topCap, bottomCap] = dirFlag ? [linkStub, linkCap] : [linkCap, linkStub];
         builderState.currentGroup = edgeIndex;
 
-        const aromaticOffsetFactor = 4.5;
+        const aromaticOffsetFactor = 5.5;
+        const multipleOffsetFactor = 4;
 
         if (linkStyle === LinkStyle.Solid) {
             cylinderProps.radiusTop = cylinderProps.radiusBottom = linkRadius;
@@ -148,9 +152,9 @@ export function createLinkCylinderMesh(ctx: VisualContext, linkBuilder: LinkBuil
             cylinderProps.topCap = cylinderProps.bottomCap = dashCap;
 
             addFixedCountDashedCylinder(builderState, va, vb, 0.5, segmentCount, cylinderProps);
-        } else if (linkStyle === LinkStyle.Double || linkStyle === LinkStyle.Triple || linkStyle === LinkStyle.Aromatic || linkStyle === LinkStyle.MirroredAromatic) {
-            const order = linkStyle === LinkStyle.Double ? 2 :
-                linkStyle === LinkStyle.Triple ? 3 : 1.5;
+        } else if (linkStyle === LinkStyle.Double || linkStyle === LinkStyle.OffsetDouble || linkStyle === LinkStyle.Triple || linkStyle === LinkStyle.OffsetTriple || linkStyle === LinkStyle.Aromatic || linkStyle === LinkStyle.MirroredAromatic) {
+            const order = linkStyle === LinkStyle.Double || linkStyle === LinkStyle.OffsetDouble ? 2 :
+                linkStyle === LinkStyle.Triple || linkStyle === LinkStyle.OffsetTriple ? 3 : 1.5;
             const multiRadius = linkRadius * (linkScale / (0.5 * order));
             const absOffset = (linkRadius - multiRadius) * linkSpacing;
 
@@ -175,6 +179,30 @@ export function createLinkCylinderMesh(ctx: VisualContext, linkBuilder: LinkBuil
                     v3add(va, va, vShift);
                     v3add(vb, vb, vShift);
                     addFixedCountDashedCylinder(builderState, va, vb, 0.5, 3, cylinderProps);
+                }
+            } else if (linkStyle === LinkStyle.OffsetDouble || linkStyle === LinkStyle.OffsetTriple) {
+                v3setMagnitude(vShift, vShift, absOffset);
+
+                cylinderProps.radiusTop = cylinderProps.radiusBottom = linkRadius;
+                addCylinder(builderState, va, vb, 0.5, cylinderProps);
+
+                v3scale(tmpV12, tmpV12, linkSpacing * linkScale * 0.2);
+                v3add(va, va, tmpV12);
+                v3sub(vb, vb, tmpV12);
+
+                cylinderProps.radiusTop = cylinderProps.radiusBottom = multiRadius;
+                cylinderProps.topCap = dirFlag ? linkStub : dashCap;
+                cylinderProps.bottomCap = dirFlag ? dashCap : linkStub;
+                v3setMagnitude(vShift, vShift, absOffset * multipleOffsetFactor);
+                v3sub(va, va, vShift);
+                v3sub(vb, vb, vShift);
+                addCylinder(builderState, va, vb, 0.5, cylinderProps);
+
+                if (order === 3) {
+                    v3setMagnitude(vShift, vShift, absOffset * multipleOffsetFactor * 2);
+                    v3add(va, va, vShift);
+                    v3add(vb, vb, vShift);
+                    addCylinder(builderState, va, vb, 0.5, cylinderProps);
                 }
             } else {
                 v3setMagnitude(vShift, vShift, absOffset);
@@ -224,7 +252,8 @@ export function createLinkCylinderImpostors(ctx: VisualContext, linkBuilder: Lin
 
     const aromaticSegmentCount = 3;
     const aromaticLengthScale = 0.5 - (0.5 / 2 / aromaticSegmentCount);
-    const aromaticOffsetFactor = 4.5;
+    const aromaticOffsetFactor = 5.5;
+    const multipleOffsetFactor = 4;
 
     for (let edgeIndex = 0, _eI = linkCount; edgeIndex < _eI; ++edgeIndex) {
         if (ignore && ignore(edgeIndex)) continue;
@@ -242,9 +271,9 @@ export function createLinkCylinderImpostors(ctx: VisualContext, linkBuilder: Lin
             v3scale(tmpV12, v3sub(tmpV12, vb, va), lengthScale);
             v3sub(vb, vb, tmpV12);
             builder.addFixedCountDashes(va, vb, segmentCount, dashScale, dashCap, dashCap, edgeIndex);
-        } else if (linkStyle === LinkStyle.Double || linkStyle === LinkStyle.Triple || linkStyle === LinkStyle.Aromatic || linkStyle === LinkStyle.MirroredAromatic) {
-            const order = linkStyle === LinkStyle.Double ? 2 :
-                linkStyle === LinkStyle.Triple ? 3 : 1.5;
+        } else if (linkStyle === LinkStyle.Double || linkStyle === LinkStyle.OffsetDouble || linkStyle === LinkStyle.Triple || linkStyle === LinkStyle.OffsetTriple || linkStyle === LinkStyle.Aromatic || linkStyle === LinkStyle.MirroredAromatic) {
+            const order = linkStyle === LinkStyle.Double || linkStyle === LinkStyle.OffsetDouble ? 2 :
+                linkStyle === LinkStyle.Triple || linkStyle === LinkStyle.OffsetTriple ? 3 : 1.5;
             const multiScale = linkScale / (0.5 * order);
             const absOffset = (linkRadius - multiScale * linkRadius) * linkSpacing;
 
@@ -268,10 +297,20 @@ export function createLinkCylinderImpostors(ctx: VisualContext, linkBuilder: Lin
                     v3add(vb, vb, vShift);
                     builder.addFixedCountDashes(va, vb, aromaticSegmentCount, linkScale, dashCap, dashCap, edgeIndex);
                 }
+            } else if (linkStyle === LinkStyle.OffsetDouble || linkStyle === LinkStyle.OffsetTriple) {
+                v3setMagnitude(vShift, vShift, absOffset * multipleOffsetFactor);
+
+                builder.add(va[0], va[1], va[2], vm[0], vm[1], vm[2], 1, linkCap, linkStub, edgeIndex);
+
+                v3scale(tmpV12, v3sub(tmpV12, va, vb), linkSpacing * linkScale * 0.2);
+                v3sub(va, va, tmpV12);
+
+                if (order === 3) builder.add(va[0] + vShift[0], va[1] + vShift[1], va[2] + vShift[2], vm[0] + vShift[0], vm[1] + vShift[1], vm[2] + vShift[2], multiScale, linkCap, linkStub, edgeIndex);
+                builder.add(va[0] - vShift[0], va[1] - vShift[1], va[2] - vShift[2], vm[0] - vShift[0], vm[1] - vShift[1], vm[2] - vShift[2], multiScale, dashCap, linkStub, edgeIndex);
             } else {
                 v3setMagnitude(vShift, vShift, absOffset);
 
-                if (order === 3) builder.add(va[0], va[1], va[2], vm[0], vm[1], vm[2], multiScale, linkCap, false, edgeIndex);
+                if (order === 3) builder.add(va[0], va[1], va[2], vm[0], vm[1], vm[2], multiScale, linkCap, linkStub, edgeIndex);
                 builder.add(va[0] + vShift[0], va[1] + vShift[1], va[2] + vShift[2], vm[0] + vShift[0], vm[1] + vShift[1], vm[2] + vShift[2], multiScale, linkCap, linkStub, edgeIndex);
                 builder.add(va[0] - vShift[0], va[1] - vShift[1], va[2] - vShift[2], vm[0] - vShift[0], vm[1] - vShift[1], vm[2] - vShift[2], multiScale, linkCap, linkStub, edgeIndex);
             }
@@ -313,6 +352,7 @@ export function createLinkLines(ctx: VisualContext, linkBuilder: LinkBuilderProp
     const aromaticSegmentCount = 3;
     const aromaticLengthScale = 0.5 - (0.5 / 2 / aromaticSegmentCount);
     const aromaticOffsetFactor = 4.5;
+    const multipleOffsetFactor = 3;
 
     for (let edgeIndex = 0, _eI = linkCount; edgeIndex < _eI; ++edgeIndex) {
         if (ignore && ignore(edgeIndex)) continue;
@@ -328,9 +368,9 @@ export function createLinkLines(ctx: VisualContext, linkBuilder: LinkBuilderProp
             v3scale(tmpV12, v3sub(tmpV12, vb, va), lengthScale);
             v3sub(vb, vb, tmpV12);
             builder.addFixedCountDashes(va, vb, segmentCount, edgeIndex);
-        } else if (linkStyle === LinkStyle.Double || linkStyle === LinkStyle.Triple || linkStyle === LinkStyle.Aromatic || linkStyle === LinkStyle.MirroredAromatic) {
-            const order = linkStyle === LinkStyle.Double ? 2 :
-                linkStyle === LinkStyle.Triple ? 3 : 1.5;
+        } else if (linkStyle === LinkStyle.Double || linkStyle === LinkStyle.OffsetDouble || linkStyle === LinkStyle.Triple || linkStyle === LinkStyle.OffsetTriple || linkStyle === LinkStyle.Aromatic || linkStyle === LinkStyle.MirroredAromatic) {
+            const order = linkStyle === LinkStyle.Double || linkStyle === LinkStyle.OffsetDouble ? 2 :
+                linkStyle === LinkStyle.Triple || linkStyle === LinkStyle.OffsetTriple ? 3 : 1.5;
             const multiRadius = 1 * (linkScale / (0.5 * order));
             const absOffset = (1 - multiRadius) * linkSpacing;
 
@@ -354,8 +394,18 @@ export function createLinkLines(ctx: VisualContext, linkBuilder: LinkBuilderProp
                     v3add(vb, vb, vShift);
                     builder.addFixedCountDashes(va, vb, aromaticSegmentCount, edgeIndex);
                 }
+            } else if (linkStyle === LinkStyle.OffsetDouble || linkStyle === LinkStyle.OffsetTriple) {
+                v3setMagnitude(vShift, vShift, absOffset * multipleOffsetFactor);
+
+                builder.add(va[0], va[1], va[2], vm[0], vm[1], vm[2], edgeIndex);
+
+                v3scale(tmpV12, v3sub(tmpV12, va, vb), linkSpacing * linkScale);
+                v3sub(va, va, tmpV12);
+
+                if (order === 3) builder.add(va[0] + vShift[0], va[1] + vShift[1], va[2] + vShift[2], vm[0] + vShift[0], vm[1] + vShift[1], vm[2] + vShift[2], edgeIndex);
+                builder.add(va[0] - vShift[0], va[1] - vShift[1], va[2] - vShift[2], vm[0] - vShift[0], vm[1] - vShift[1], vm[2] - vShift[2], edgeIndex);
             } else {
-                v3setMagnitude(vShift, vShift, absOffset);
+                v3setMagnitude(vShift, vShift, absOffset * 1.5);
 
                 if (order === 3) builder.add(va[0], va[1], va[2], vm[0], vm[1], vm[2], edgeIndex);
                 builder.add(va[0] + vShift[0], va[1] + vShift[1], va[2] + vShift[2], vm[0] + vShift[0], vm[1] + vShift[1], vm[2] + vShift[2], edgeIndex);

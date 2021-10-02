@@ -29,6 +29,7 @@ export const LineParams = {
     ...InterUnitBondLineParams,
     ...ElementPointParams,
     ...ElementCrossParams,
+    multipleBonds: PD.Select('offset', PD.arrayToOptions(['off', 'symmetric', 'offset'] as const)),
     includeParent: PD.Boolean(false),
     sizeFactor: PD.Numeric(3, { min: 0.01, max: 10, step: 0.01 }),
     unitKinds: getUnitKindsParam(['atomic']),

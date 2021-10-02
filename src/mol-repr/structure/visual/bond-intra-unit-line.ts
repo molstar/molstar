@@ -39,7 +39,10 @@ function createIntraUnitBondLines(ctx: VisualContext, unit: Unit, structure: Str
     if (!edgeCount) return Lines.createEmpty(lines);
 
     const { order: _order, flags: _flags } = edgeProps;
-    const { sizeFactor, aromaticBonds, includeTypes, excludeTypes } = props;
+    const { sizeFactor, aromaticBonds, includeTypes, excludeTypes, multipleBonds } = props;
+
+    const mbOff = multipleBonds === 'off';
+    const mbSymmetric = multipleBonds === 'symmetric';
 
     const include = BondType.fromNames(includeTypes);
     const exclude = BondType.fromNames(excludeTypes);
@@ -91,7 +94,9 @@ function createIntraUnitBondLines(ctx: VisualContext, unit: Unit, structure: Str
                 // show metallic coordinations and hydrogen bonds with dashed cylinders
                 return LinkStyle.Dashed;
             } else if (o === 3) {
-                return LinkStyle.Triple;
+                return mbOff ? LinkStyle.Solid :
+                    mbSymmetric ? LinkStyle.Triple :
+                        LinkStyle.OffsetTriple;
             } else if (aromaticBonds) {
                 const aI = a[edgeIndex], bI = b[edgeIndex];
                 const aR = elementAromaticRingIndices.get(aI);
@@ -107,7 +112,9 @@ function createIntraUnitBondLines(ctx: VisualContext, unit: Unit, structure: Str
                 }
             }
 
-            return o === 2 ? LinkStyle.Double : LinkStyle.Solid;
+            return (o !== 2 || mbOff) ? LinkStyle.Solid :
+                mbSymmetric ? LinkStyle.Double :
+                    LinkStyle.OffsetDouble;
         },
         radius: (edgeIndex: number) => {
             location.element = elements[a[edgeIndex]];
@@ -150,7 +157,8 @@ export function IntraUnitBondLineVisual(materialId: number): UnitsVisual<IntraUn
                 newProps.ignoreHydrogens !== currentProps.ignoreHydrogens ||
                 !arrayEqual(newProps.includeTypes, currentProps.includeTypes) ||
                 !arrayEqual(newProps.excludeTypes, currentProps.excludeTypes) ||
-                newProps.aromaticBonds !== currentProps.aromaticBonds
+                newProps.aromaticBonds !== currentProps.aromaticBonds ||
+                newProps.multipleBonds !== currentProps.multipleBonds
             );
 
             const newUnit = newStructureGroup.group.units[0];
