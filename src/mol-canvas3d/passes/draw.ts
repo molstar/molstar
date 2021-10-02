@@ -362,6 +362,7 @@ export class DrawPass {
     render(renderer: Renderer, camera: Camera | StereoCamera, scene: Scene, helper: Helper, toDrawingBuffer: boolean, transparentBackground: boolean, postprocessingProps: PostprocessingProps, markingProps: MarkingProps) {
         renderer.setTransparentBackground(transparentBackground);
         renderer.setDrawingBufferSize(this.colorTarget.getWidth(), this.colorTarget.getHeight());
+        renderer.setPixelRatio(this.webgl.pixelRatio);
 
         if (StereoCamera.is(camera)) {
             this._render(renderer, camera.left, scene, helper, toDrawingBuffer, transparentBackground, postprocessingProps, markingProps);

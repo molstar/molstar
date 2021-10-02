@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -540,9 +540,17 @@ namespace Vec3 {
 
     /** Project `point` onto `vector` starting from `origin` */
     export function projectPointOnVector(out: Vec3, point: Vec3, vector: Vec3, origin: Vec3) {
-        sub(out, copy(out, point), origin);
+        sub(out, point, origin);
         const scalar = dot(vector, out) / squaredMagnitude(vector);
-        return add(out, scale(out, copy(out, vector), scalar), origin);
+        return add(out, scale(out, vector, scalar), origin);
+    }
+
+    const tmpProjectPlane = zero();
+    /** Project `point` onto `plane` defined by `normal` starting from `origin` */
+    export function projectPointOnPlane(out: Vec3, point: Vec3, normal: Vec3, origin: Vec3) {
+        normalize(tmpProjectPlane, normal);
+        sub(out, point, origin);
+        return sub(out, point, scale(tmpProjectPlane, tmpProjectPlane, dot(out, tmpProjectPlane)));
     }
 
     export function projectOnVector(out: Vec3, p: Vec3, vector: Vec3) {

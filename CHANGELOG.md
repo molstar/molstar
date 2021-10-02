@@ -6,6 +6,14 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Fix pickScale not taken into account in line/point shader
+- Add pixel-scale, pick-scale & pick-padding GET params to Viewer app
+- Fix selecting bonds not adding their atoms in selection manager
+- Add ``preferAtoms`` option to SelectLoci/HighlightLoci behaviors
+- Make the implicit atoms of bond visuals pickable
+    - Add ``preferAtomPixelPadding`` to Canvas3dInteractionHelper
+- Add points visual to Line representation
+- Add ``pickPadding`` config option (look around in case target pixel is empty)
 
 ## [v2.3.3] - 2021-10-01
 
@@ -15,11 +23,10 @@ Note that since we don't clearly distinguish between a public and private interf
 
 - Prefer WebGL1 on iOS devices until WebGL2 support has stabilized.
 
-
 ## [v2.3.1] - 2021-09-28
 
 - Add Charmm saccharide names
-- Treat missing occupancy column as occupany of 1
+- Treat missing occupancy column as occupancy of 1
 - Fix line shader not accounting for aspect ratio
 - [Breaking] Fix point repr & shader
     - Was unusable with ``wboit``
