@@ -116,6 +116,8 @@ namespace Canvas3DContext {
         preserveDrawingBuffer: true,
         pixelScale: 1,
         pickScale: 0.25,
+        /** extra pixels to around target to check in case target is empty */
+        pickPadding: 1,
         enableWboit: true,
         preferWebGl1: false
     };
@@ -308,7 +310,7 @@ namespace Canvas3D {
         const renderer = Renderer.create(webgl, p.renderer);
         const helper = new Helper(webgl, scene, p);
 
-        const pickHelper = new PickHelper(webgl, renderer, scene, helper, passes.pick, { x, y, width, height });
+        const pickHelper = new PickHelper(webgl, renderer, scene, helper, passes.pick, { x, y, width, height }, attribs.pickPadding);
         const interactionHelper = new Canvas3dInteractionHelper(identify, getLoci, input, camera, p.interaction);
         const multiSampleHelper = new MultiSampleHelper(passes.multiSample);
 

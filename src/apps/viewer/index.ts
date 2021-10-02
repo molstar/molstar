@@ -74,6 +74,7 @@ const DefaultViewerOptions = {
     disableAntialiasing: PluginConfig.General.DisableAntialiasing.defaultValue,
     pixelScale: PluginConfig.General.PixelScale.defaultValue,
     pickScale: PluginConfig.General.PickScale.defaultValue,
+    pickPadding: PluginConfig.General.PickPadding.defaultValue,
     enableWboit: PluginConfig.General.EnableWboit.defaultValue,
 
     viewportShowExpand: PluginConfig.Viewport.ShowExpand.defaultValue,
@@ -132,6 +133,7 @@ export class Viewer {
                 [PluginConfig.General.DisableAntialiasing, o.disableAntialiasing],
                 [PluginConfig.General.PixelScale, o.pixelScale],
                 [PluginConfig.General.PickScale, o.pickScale],
+                [PluginConfig.General.PickPadding, o.pickPadding],
                 [PluginConfig.General.EnableWboit, o.enableWboit],
                 [PluginConfig.Viewport.ShowExpand, o.viewportShowExpand],
                 [PluginConfig.Viewport.ShowControls, o.viewportShowControls],

@@ -27,7 +27,7 @@ const tmpNorm = Vec3();
 
 export const Canvas3dInteractionHelperParams = {
     maxFps: PD.Numeric(30, { min: 10, max: 60, step: 10 }),
-    preferAtomPixelPadding: PD.Numeric(5, { min: 0, max: 20, step: 1 }, { description: 'Number of extra pixels at which to prefer atoms over bonds.' }),
+    preferAtomPixelPadding: PD.Numeric(3, { min: 0, max: 20, step: 1 }, { description: 'Number of extra pixels at which to prefer atoms over bonds.' }),
 };
 export type Canvas3dInteractionHelperParams = typeof Canvas3dInteractionHelperParams
 export type Canvas3dInteractionHelperProps = PD.Values<Canvas3dInteractionHelperParams>

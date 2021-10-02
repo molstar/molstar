@@ -55,6 +55,7 @@
             var mapProvider = getParam('map-provider', '[^&]+').trim().toLowerCase();
             var pixelScale = getParam('pixel-scale', '[^&]+').trim();
             var pickScale = getParam('pick-scale', '[^&]+').trim();
+            var pickPadding = getParam('pick-padding', '[^&]+').trim();
             var viewer = new molstar.Viewer('app', {
                 layoutShowControls: !hideControls,
                 viewportShowExpand: false,
@@ -66,6 +67,7 @@
                     : 'https://www.ebi.ac.uk/pdbe/densities',
                 pixelScale: parseFloat(pixelScale) || 1,
                 pickScale: parseFloat(pickScale) || 0.25,
+                pickPadding: isNaN(parseFloat(pickPadding)) ? 1 : parseFloat(pickPadding),
             });
 
             var snapshotId = getParam('snapshot-id', '[^&]+').trim();

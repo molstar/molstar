@@ -143,8 +143,7 @@ export class PickHelper {
             this.setupBuffers();
         }
 
-        // TODO: make spiral size configurable
-        this.spiral = spiral2d(Math.ceil(this.pickScale * 5));
+        this.spiral = spiral2d(Math.round(this.pickScale * this.pickPadding));
     }
 
     private syncBuffers() {
@@ -266,7 +265,7 @@ export class PickHelper {
         }
     }
 
-    constructor(private webgl: WebGLContext, private renderer: Renderer, private scene: Scene, private helper: Helper, private pickPass: PickPass, viewport: Viewport) {
+    constructor(private webgl: WebGLContext, private renderer: Renderer, private scene: Scene, private helper: Helper, private pickPass: PickPass, viewport: Viewport, readonly pickPadding = 1) {
         this.setViewport(viewport.x, viewport.y, viewport.width, viewport.height);
     }
 }
