@@ -55,6 +55,7 @@ uniform vec3 uHighlightColor;
 uniform vec3 uSelectColor;
 uniform float uHighlightStrength;
 uniform float uSelectStrength;
+uniform int uMarkerPriority;
 
 #if defined(dMarkerType_uniform)
     uniform float uMarker;

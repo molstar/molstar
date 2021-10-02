@@ -6,6 +6,24 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Fix pickScale not taken into account in line/point shader
+- Add pixel-scale & pick-scale GET params to Viewer app
+- Fix selecting bonds not adding their atoms in selection manager
+- Add ``preferAtoms`` option to SelectLoci/HighlightLoci behaviors
+- Make the implicit atoms of bond visuals pickable
+    - Add ``preferAtomPixelPadding`` to Canvas3dInteractionHelper
+- Add points visual to Line representation
+
+## [v2.3.3] - 2021-10-01
+
+- Fix direct volume shader
+
+## [v2.3.2] - 2021-10-01
+
+- Prefer WebGL1 on iOS devices until WebGL2 support has stabilized.
+
+## [v2.3.1] - 2021-09-28
+
 - Add Charmm saccharide names
 - Treat missing occupancy column as occupancy of 1
 - Fix line shader not accounting for aspect ratio
@@ -14,14 +32,9 @@ Note that since we don't clearly distinguish between a public and private interf
     - Replaced ``pointFilledCircle`` & ``pointEdgeBleach`` params by ``pointStyle`` (square, circle, fuzzy)
     - Set ``pointSizeAttenuation`` to false by default
     - Set ``sizeTheme`` to ``uniform`` by default
-- Fix pickScale not taken into account in line/point shader
-- Add pixel-scale & pick-scale GET params to Viewer app
-- Fix selecting bonds not adding their atoms in selection manager
-- Add ``preferAtoms`` option to SelectLoci/HighlightLoci behaviors
-- Make the implicit atoms of bond visuals pickable
-    - Add ``preferAtomPixelPadding`` to Canvas3dInteractionHelper
 - Add ``markerPriority`` option to Renderer (useful in combination with edges of marking pass)
-- Add points visual to Line representation
+- Add support support for ``chem_comp_bond`` and ``struct_conn`` categories (fixes ModelServer behavior where these categories should have been present)
+- Model and VolumeServer: fix argparse config
 
 ## [v2.3.0] - 2021-09-06
 
