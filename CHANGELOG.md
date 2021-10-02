@@ -12,7 +12,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Add ``preferAtoms`` option to SelectLoci/HighlightLoci behaviors
 - Make the implicit atoms of bond visuals pickable
     - Add ``preferAtomPixelPadding`` to Canvas3dInteractionHelper
-- Add points visual to Line representation
+- Add points & crosses visuals to Line representation
 - Add ``pickPadding`` config option (look around in case target pixel is empty)
 
 ## [v2.3.3] - 2021-10-01
