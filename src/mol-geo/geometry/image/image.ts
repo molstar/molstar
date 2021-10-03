@@ -7,7 +7,7 @@
 import { hashFnv32a } from '../../../mol-data/util';
 import { LocationIterator } from '../../../mol-geo/util/location-iterator';
 import { RenderableState } from '../../../mol-gl/renderable';
-import { calculateTransformBoundingSphere, TextureImage } from '../../../mol-gl/renderable/util';
+import { calculateTransformBoundingSphere, createTextureImage, TextureImage } from '../../../mol-gl/renderable/util';
 import { Sphere3D } from '../../../mol-math/geometry';
 import { Vec2, Vec4, Vec3 } from '../../../mol-math/linear-algebra';
 import { Theme } from '../../../mol-theme/theme';
@@ -113,7 +113,10 @@ namespace Image {
     }
 
     export function createEmpty(image?: Image): Image {
-        return {} as Image; // TODO
+        const imageTexture = createTextureImage(0, 4, Uint8Array);
+        const corners = image ? image.cornerBuffer.ref.value : new Float32Array(8 * 3);
+        const groupTexture = createTextureImage(0, 4, Uint8Array);
+        return create(imageTexture, corners, groupTexture, image);
     }
 
     export const Params = {
