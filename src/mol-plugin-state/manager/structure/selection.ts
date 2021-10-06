@@ -113,7 +113,10 @@ export class StructureSelectionManager extends StatefulPluginComponent<Structure
 
         const sel = entry.selection;
         entry.selection = StructureElement.Loci.subtract(entry.selection, loci);
-        // this.addHistory(loci);
+
+        const historyEntry = this.additionsHistory.find(he => Loci.areEqual(he.loci, loci));
+        if (historyEntry)
+            this.modifyHistory(historyEntry, 'remove');
         this.referenceLoci = loci;
         this.events.loci.remove.next(loci);
         return !StructureElement.Loci.areEqual(sel, entry.selection);
