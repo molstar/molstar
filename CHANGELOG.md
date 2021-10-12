@@ -6,6 +6,8 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+## [v2.3.4] - 2021-10-12
+
 - Fix pickScale not taken into account in line/point shader
 - Add pixel-scale, pick-scale & pick-padding GET params to Viewer app
 - Fix selecting bonds not adding their atoms in selection manager
@@ -15,6 +17,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Add points & crosses visuals to Line representation
 - Add ``pickPadding`` config option (look around in case target pixel is empty)
 - Add ``multipleBonds`` param to bond visuals with options: off, symmetric, offset
+- Fix ``argparse`` config in servers.
 
 ## [v2.3.3] - 2021-10-01
 
