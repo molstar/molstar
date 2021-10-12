@@ -90,7 +90,6 @@ function addJsonConfigArgs(parser: argparse.ArgumentParser) {
             'If a property is not specified, cmd line param/OS variable/default value are used.'
         ].join('\n'),
         required: false,
-        action: 'store_true'
     });
     parser.add_argument('--printCfg', { help: 'Print current config for validation and exit.', required: false, action: 'store_true' });
     parser.add_argument('--cfgTemplate', { help: 'Prints default JSON config template to be modified and exits.', required: false, action: 'store_true' });
