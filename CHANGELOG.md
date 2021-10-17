@@ -6,6 +6,8 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Fix sequence viewer for PDB files with COMPND record and multichain entities.
+
 ## [v2.3.4] - 2021-10-12
 
 - Fix pickScale not taken into account in line/point shader
