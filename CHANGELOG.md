@@ -6,7 +6,10 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+## [v2.3.5] - 2021-10-19
+
 - Fix sequence viewer for PDB files with COMPND record and multichain entities.
+- Fix index pair bonds order assignment
 
 ## [v2.3.4] - 2021-10-12
 
