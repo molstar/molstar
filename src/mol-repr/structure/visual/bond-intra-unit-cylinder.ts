@@ -33,7 +33,10 @@ function getIntraUnitBondCylinderBuilderProps(unit: Unit.Atomic, structure: Stru
     const bonds = unit.bonds;
     const { edgeCount, a, b, edgeProps, offset } = bonds;
     const { order: _order, flags: _flags } = edgeProps;
-    const { sizeFactor, sizeAspectRatio, adjustCylinderLength, aromaticBonds, includeTypes, excludeTypes } = props;
+    const { sizeFactor, sizeAspectRatio, adjustCylinderLength, aromaticBonds, includeTypes, excludeTypes, multipleBonds } = props;
+
+    const mbOff = multipleBonds === 'off';
+    const mbSymmetric = multipleBonds === 'symmetric';
 
     const include = BondType.fromNames(includeTypes);
     const exclude = BondType.fromNames(excludeTypes);
@@ -130,7 +133,9 @@ function getIntraUnitBondCylinderBuilderProps(unit: Unit.Atomic, structure: Stru
                 // show metallic coordinations and hydrogen bonds with dashed cylinders
                 return LinkStyle.Dashed;
             } else if (o === 3) {
-                return LinkStyle.Triple;
+                return mbOff ? LinkStyle.Solid :
+                    mbSymmetric ? LinkStyle.Triple :
+                        LinkStyle.OffsetTriple;
             } else if (aromaticBonds) {
                 const aI = a[edgeIndex], bI = b[edgeIndex];
                 const aR = elementAromaticRingIndices.get(aI);
@@ -146,7 +151,9 @@ function getIntraUnitBondCylinderBuilderProps(unit: Unit.Atomic, structure: Stru
                 }
             }
 
-            return o === 2 ? LinkStyle.Double : LinkStyle.Solid;
+            return (o !== 2 || mbOff) ? LinkStyle.Solid :
+                mbSymmetric ? LinkStyle.Double :
+                    LinkStyle.OffsetDouble;
         },
         radius: (edgeIndex: number) => {
             return radius(edgeIndex) * sizeAspectRatio;
@@ -221,6 +228,9 @@ export function IntraUnitBondCylinderImpostorVisual(materialId: number): UnitsVi
                 newProps.linkSpacing !== currentProps.linkSpacing ||
                 newProps.ignoreHydrogens !== currentProps.ignoreHydrogens ||
                 newProps.linkCap !== currentProps.linkCap ||
+                newProps.aromaticScale !== currentProps.aromaticScale ||
+                newProps.aromaticSpacing !== currentProps.aromaticSpacing ||
+                newProps.aromaticDashCount !== currentProps.aromaticDashCount ||
                 newProps.dashCount !== currentProps.dashCount ||
                 newProps.dashScale !== currentProps.dashScale ||
                 newProps.dashCap !== currentProps.dashCap ||
@@ -228,7 +238,8 @@ export function IntraUnitBondCylinderImpostorVisual(materialId: number): UnitsVi
                 !arrayEqual(newProps.includeTypes, currentProps.includeTypes) ||
                 !arrayEqual(newProps.excludeTypes, currentProps.excludeTypes) ||
                 newProps.adjustCylinderLength !== currentProps.adjustCylinderLength ||
-                newProps.aromaticBonds !== currentProps.aromaticBonds
+                newProps.aromaticBonds !== currentProps.aromaticBonds ||
+                newProps.multipleBonds !== currentProps.multipleBonds
             );
 
             const newUnit = newStructureGroup.group.units[0];
@@ -264,6 +275,9 @@ export function IntraUnitBondCylinderMeshVisual(materialId: number): UnitsVisual
                 newProps.linkSpacing !== currentProps.linkSpacing ||
                 newProps.ignoreHydrogens !== currentProps.ignoreHydrogens ||
                 newProps.linkCap !== currentProps.linkCap ||
+                newProps.aromaticScale !== currentProps.aromaticScale ||
+                newProps.aromaticSpacing !== currentProps.aromaticSpacing ||
+                newProps.aromaticDashCount !== currentProps.aromaticDashCount ||
                 newProps.dashCount !== currentProps.dashCount ||
                 newProps.dashScale !== currentProps.dashScale ||
                 newProps.dashCap !== currentProps.dashCap ||
@@ -271,7 +285,8 @@ export function IntraUnitBondCylinderMeshVisual(materialId: number): UnitsVisual
                 !arrayEqual(newProps.includeTypes, currentProps.includeTypes) ||
                 !arrayEqual(newProps.excludeTypes, currentProps.excludeTypes) ||
                 newProps.adjustCylinderLength !== currentProps.adjustCylinderLength ||
-                newProps.aromaticBonds !== currentProps.aromaticBonds
+                newProps.aromaticBonds !== currentProps.aromaticBonds ||
+                newProps.multipleBonds !== currentProps.multipleBonds
             );
 
             const newUnit = newStructureGroup.group.units[0];

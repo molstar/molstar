@@ -89,10 +89,10 @@ function addJsonConfigArgs(parser: argparse.ArgumentParser) {
             'JSON config file path',
             'If a property is not specified, cmd line param/OS variable/default value are used.'
         ].join('\n'),
-        required: false
+        required: false,
     });
-    parser.add_argument('--printCfg', { help: 'Print current config for validation and exit.', required: false, nargs: 0 });
-    parser.add_argument('--cfgTemplate', { help: 'Prints default JSON config template to be modified and exits.', required: false, nargs: 0 });
+    parser.add_argument('--printCfg', { help: 'Print current config for validation and exit.', required: false, action: 'store_true' });
+    parser.add_argument('--cfgTemplate', { help: 'Prints default JSON config template to be modified and exits.', required: false, action: 'store_true' });
 }
 
 export interface ServerJsonConfig {
@@ -165,7 +165,7 @@ export function configureServer() {
     addLimitsArgs(parser);
     const config = parser.parse_args() as FullServerConfig & ServerJsonConfig;
 
-    if (config.cfgTemplate !== null) {
+    if (!!config.cfgTemplate) {
         console.log(JSON.stringify(ServerConfigTemplate, null, 2));
         process.exit(0);
     }
@@ -178,7 +178,7 @@ export function configureServer() {
             setConfig(cfg);
         }
 
-        if (config.printCfg !== null) {
+        if (config.printCfg) {
             console.log(JSON.stringify({ ...ServerConfig, ...LimitsConfig }, null, 2));
             process.exit(0);
         }
@@ -197,7 +197,7 @@ export function configureLocal() {
         description: VOLUME_SERVER_HEADER
     });
     parser.add_argument('--jobs', { help: `Path to a JSON file with job specification.`, required: false });
-    parser.add_argument('--jobsTemplate', { help: 'Print example template for jobs.json and exit.', required: false, nargs: 0 });;
+    parser.add_argument('--jobsTemplate', { help: 'Print example template for jobs.json and exit.', required: false, nargs: 0 });
     addJsonConfigArgs(parser);
     addLimitsArgs(parser);
 

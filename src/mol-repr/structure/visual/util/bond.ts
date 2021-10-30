@@ -20,6 +20,7 @@ export const BondParams = {
     excludeTypes: PD.MultiSelect([] as BondType.Names[], PD.objectToOptions(BondType.Names)),
     ignoreHydrogens: PD.Boolean(false),
     aromaticBonds: PD.Boolean(false, { description: 'Display aromatic bonds with dashes' }),
+    multipleBonds: PD.Select('symmetric', PD.arrayToOptions(['off', 'symmetric', 'offset'] as const)),
 };
 export const DefaultBondProps = PD.getDefaultValues(BondParams);
 export type BondProps = typeof DefaultBondProps
@@ -27,7 +28,7 @@ export type BondProps = typeof DefaultBondProps
 export const BondCylinderParams = {
     ...LinkCylinderParams,
     ...BondParams,
-    adjustCylinderLength: PD.Boolean(true, { description: 'Shorten cylinders to reduce overlap with spheres.' })
+    adjustCylinderLength: PD.Boolean(false, { description: 'Shorten cylinders to reduce overlap with spheres. Useful for for transparent bonds. Not working well with aromatic bonds.' })
 };
 export const DefaultBondCylinderProps = PD.getDefaultValues(BondCylinderParams);
 export type BondCylinderProps = typeof DefaultBondCylinderProps

@@ -229,10 +229,10 @@ function addJsonConfigArgs(parser: argparse.ArgumentParser) {
             'JSON config file path',
             'If a property is not specified, cmd line param/OS variable/default value are used.'
         ].join('\n'),
-        required: false
+        required: false,
     });
-    parser.add_argument('--printCfg', { help: 'Print current config for validation and exit.', required: false, nargs: 0 });
-    parser.add_argument('--cfgTemplate', { help: 'Prints default JSON config template to be modified and exits.', required: false, nargs: 0 });
+    parser.add_argument('--printCfg', { help: 'Print current config for validation and exit.', required: false, action: 'store_true' });
+    parser.add_argument('--cfgTemplate', { help: 'Prints default JSON config template to be modified and exits.', required: false, action: 'store_true' });
 }
 
 function setConfig(config: ModelServerConfig) {
@@ -271,7 +271,7 @@ function parseConfigArguments() {
 export function configureServer() {
     const config = parseConfigArguments();
 
-    if (config.cfgTemplate !== null) {
+    if (!!config.cfgTemplate) {
         console.log(JSON.stringify(ModelServerConfigTemplate, null, 2));
         process.exit(0);
     }
@@ -284,7 +284,7 @@ export function configureServer() {
             setConfig(cfg);
         }
 
-        if (config.printCfg !== null) {
+        if (!!config.printCfg) {
             console.log(JSON.stringify(ModelServerConfig, null, 2));
             process.exit(0);
         }

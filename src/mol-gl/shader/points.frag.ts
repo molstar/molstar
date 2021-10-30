@@ -13,10 +13,6 @@ precision highp int;
 #include color_frag_params
 #include common_clip
 
-#ifdef dPointFilledCircle
-    uniform float uPointEdgeBleach;
-#endif
-
 const vec2 center = vec2(0.5);
 const float radius = 0.5;
 
@@ -26,6 +22,15 @@ void main(){
     float fragmentDepth = gl_FragCoord.z;
     bool interior = false;
     #include assign_material_color
+
+    #if defined(dPointStyle_circle)
+        float dist = distance(gl_PointCoord, center);
+        if (dist > radius) discard;
+    #elif defined(dPointStyle_fuzzy)
+        float dist = distance(gl_PointCoord, center);
+        float fuzzyAlpha = 1.0 - smoothstep(0.0, radius, dist);
+        if (fuzzyAlpha < 0.0001) discard;
+    #endif
 
     #if defined(dRenderVariant_pick)
         #include check_picking_alpha
@@ -37,11 +42,8 @@ void main(){
     #elif defined(dRenderVariant_color)
         gl_FragColor = material;
 
-        #ifdef dPointFilledCircle
-            float dist = distance(gl_PointCoord, center);
-            float alpha = 1.0 - smoothstep(radius - uPointEdgeBleach, radius, dist);
-            if (alpha < 0.0001) discard;
-            gl_FragColor.a *= alpha;
+        #if defined(dPointStyle_fuzzy)
+            gl_FragColor.a *= fuzzyAlpha;
         #endif
 
         #include apply_marker_color

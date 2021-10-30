@@ -1,3 +1,6 @@
+# 0.9.8
+* fix support for chem_comp_bond and struct_conn categories
+
 # 0.9.7
 * add Surrounding Ligands query
 

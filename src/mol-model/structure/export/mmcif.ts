@@ -11,7 +11,7 @@ import { Structure } from '../structure';
 import { _atom_site } from './categories/atom_site';
 import CifCategory = CifWriter.Category
 import { _struct_conf, _struct_sheet_range } from './categories/secondary-structure';
-import { _chem_comp, _pdbx_chem_comp_identifier, _pdbx_nonpoly_scheme } from './categories/misc';
+import { _chem_comp, _chem_comp_bond, _pdbx_chem_comp_identifier, _pdbx_nonpoly_scheme } from './categories/misc';
 import { Model } from '../model';
 import { getUniqueEntityIndicesFromStructures, copy_mmCif_category, copy_source_mmCifCategory } from './categories/utils';
 import { _struct_asym, _entity_poly, _entity_poly_seq } from './categories/sequence';
@@ -81,9 +81,12 @@ const Categories = [
     copy_mmCif_category('pdbx_entity_branch_link'),
     copy_mmCif_category('pdbx_branch_scheme'),
 
+    // Struct conn
+    copy_mmCif_category('struct_conn'),
+
     // Misc
-    // TODO: filter for actual present residues?
     _chem_comp,
+    _chem_comp_bond,
     _pdbx_chem_comp_identifier,
     copy_mmCif_category('atom_sites'),
 

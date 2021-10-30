@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  *
@@ -18,7 +18,7 @@ precision highp int;
 #include common_clip
 
 uniform float uPixelRatio;
-uniform float uViewportHeight;
+uniform vec4 uViewport;
 
 attribute mat4 aTransform;
 attribute float aInstance;
@@ -39,6 +39,8 @@ void trimSegment(const in vec4 start, inout vec4 end) {
 }
 
 void main(){
+    float aspect = uViewport.z / uViewport.w;
+
     #include assign_group
     #include assign_color_varying
     #include assign_marker_varying
@@ -83,15 +85,15 @@ void main(){
     vec2 dir = ndcEnd - ndcStart;
 
     // account for clip-space aspect ratio
-    dir.x *= uPixelRatio;
+    dir.x *= aspect;
     dir = normalize(dir);
 
     // perpendicular to dir
     vec2 offset = vec2(dir.y, - dir.x);
 
     // undo aspect ratio adjustment
-    dir.x /= uPixelRatio;
-    offset.x /= uPixelRatio;
+    dir.x /= aspect;
+    offset.x /= aspect;
 
     // sign flip
     if (aMapping.x < 0.0) offset *= -1.0;
@@ -99,16 +101,17 @@ void main(){
     // calculate linewidth
     float linewidth;
     #ifdef dLineSizeAttenuation
-        linewidth = size * uPixelRatio * ((uViewportHeight / 2.0) / -start.z) * 5.0;
+        linewidth = size * uPixelRatio * ((uViewport.w / 2.0) / -start.z) * 5.0;
     #else
         linewidth = size * uPixelRatio;
     #endif
+    linewidth = max(1.0, linewidth);
 
     // adjust for linewidth
     offset *= linewidth;
 
     // adjust for clip-space to screen-space conversion
-    offset /= uViewportHeight;
+    offset /= uViewport.w;
 
     // select end
     vec4 clip = (aMapping.y < 0.5) ? clipStart : clipEnd;

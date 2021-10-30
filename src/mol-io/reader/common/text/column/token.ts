@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2017 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { Column, ColumnHelpers } from '../../../../../mol-data/db';
@@ -50,4 +51,12 @@ export function areValuesEqualProvider(tokens: Tokens) {
         }
         return true;
     };
+}
+
+export function areTokensEmpty(tokens: Tokens) {
+    const { count, indices } = tokens;
+    for (let i = 0; i < count; ++i) {
+        if (indices[2 * i] !== indices[2 * i + 1]) return false;
+    }
+    return true;
 }

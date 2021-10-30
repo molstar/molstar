@@ -369,7 +369,7 @@ namespace Unit {
         readonly props: CoarseProperties;
 
         getChild(elements: StructureElement.Set): Unit {
-            if (elements.length === this.elements.length) return this as any as Unit /** lets call this an ugly temporary hack */;
+            if (elements.length === this.elements.length) return this as any as Unit; // lets call this an ugly temporary hack
             return createCoarse(this.id, this.invariantId, this.chainGroupId, this.traits, this.model, this.kind, elements, this.conformation, CoarseProperties());
         }
 
@@ -465,7 +465,7 @@ namespace Unit {
     export class Gaussians extends Coarse<Kind.Gaussians, CoarseGaussianConformation> { }
 
     function createCoarse<K extends Kind.Gaussians | Kind.Spheres>(id: number, invariantId: number, chainGroupId: number, traits: Traits, model: Model, kind: K, elements: StructureElement.Set, conformation: SymmetryOperator.ArrayMapping<ElementIndex>, props: CoarseProperties): K extends Kind.Spheres ? Spheres : Gaussians {
-        return new Coarse(id, invariantId, chainGroupId, traits, model, kind, elements, conformation, props) as any /** lets call this an ugly temporary hack */;
+        return new Coarse(id, invariantId, chainGroupId, traits, model, kind, elements, conformation, props) as any; // lets call this an ugly temporary hack
     }
 
     export function areSameChainOperatorGroup(a: Unit, b: Unit) {

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -309,14 +309,48 @@ const UnknownSaccharideNames = [
     'PUF', 'GDA', '9WJ', // via updated CCD
 ];
 
+/**
+ * From http://glycam.org/docs/othertoolsservice/2016/06/09/3d-snfg-list-of-residue-names/#CHARMM
+ */
+const CharmmSaccharideNames: { [k: string]: string[] } = {
+    Glc: ['AGLC', 'BGLC'],
+    GlcNAc: ['AGLCNA', 'BGLCNA', 'BGLCN0'],
+    GlcA: ['AGLCA', 'BGLCA', 'BGLCA0'],
+    Man: ['AMAN', 'BMAN'],
+    Rha: ['ARHM', 'BRHM'],
+    Ara: ['AARB', 'BARB'],
+    Gal: ['AGAL', 'BGAL'],
+    GalNAc: ['AGALNA', 'BGALNA'],
+    Gul: ['AGUL', 'BGUL'],
+    Alt: ['AALT', 'BALT'],
+    All: ['AALL', 'BALL'],
+    Tal: ['ATAL', 'BTAL'],
+    Ido: ['AIDO', 'BIDO'],
+    IdoA: ['AIDOA', 'BIDOA'],
+    Fuc: ['AFUC', 'BFUC'],
+    Lyx: ['ALYF', 'BLYF'],
+    Xyl: ['AXYL', 'BXYL', 'AXYF', 'BXYF'],
+    Rib: ['ARIB', 'BRIB'],
+    Fru: ['AFRU', 'BFRU'],
+    Neu5Ac: ['ANE5AC', 'BNE5AC'],
+};
+
 export const SaccharideCompIdMap = (function () {
     const map = new Map<string, SaccharideComponent>();
     for (let i = 0, il = Monosaccharides.length; i < il; ++i) {
         const saccharide = Monosaccharides[i];
-        const names = CommonSaccharideNames[saccharide.abbr];
-        if (names) {
-            for (let j = 0, jl = names.length; j < jl; ++j) {
-                map.set(names[j], saccharide);
+
+        const common = CommonSaccharideNames[saccharide.abbr];
+        if (common) {
+            for (let j = 0, jl = common.length; j < jl; ++j) {
+                map.set(common[j], saccharide);
+            }
+        }
+
+        const charmm = CharmmSaccharideNames[saccharide.abbr];
+        if (charmm) {
+            for (let j = 0, jl = charmm.length; j < jl; ++j) {
+                map.set(charmm[j], saccharide);
             }
         }
     }

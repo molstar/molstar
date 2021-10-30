@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -7,9 +7,10 @@
 import { Renderable, RenderableState, createRenderable } from '../renderable';
 import { WebGLContext } from '../webgl/context';
 import { createGraphicsRenderItem } from '../webgl/render-item';
-import { GlobalUniformSchema, BaseSchema, AttributeSpec, UniformSpec, DefineSpec, Values, InternalSchema, SizeSchema, InternalValues, GlobalTextureSchema } from './schema';
+import { GlobalUniformSchema, BaseSchema, AttributeSpec, DefineSpec, Values, InternalSchema, SizeSchema, InternalValues, GlobalTextureSchema } from './schema';
 import { PointsShaderCode } from '../shader-code';
 import { ValueCell } from '../../mol-util';
+import { Points } from '../../mol-geo/geometry/points/points';
 
 export const PointsSchema = {
     ...BaseSchema,
@@ -17,8 +18,7 @@ export const PointsSchema = {
     aGroup: AttributeSpec('float32', 1, 0),
     aPosition: AttributeSpec('float32', 3, 0),
     dPointSizeAttenuation: DefineSpec('boolean'),
-    dPointFilledCircle: DefineSpec('boolean'),
-    uPointEdgeBleach: UniformSpec('f'),
+    dPointStyle: DefineSpec('string', Points.StyleTypeNames),
 };
 export type PointsSchema = typeof PointsSchema
 export type PointsValues = Values<PointsSchema>

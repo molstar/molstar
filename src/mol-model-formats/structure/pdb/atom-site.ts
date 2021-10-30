@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -10,6 +10,7 @@ import { mmCIF_Schema } from '../../../mol-io/reader/cif/schema/mmcif';
 import { TokenBuilder, Tokenizer } from '../../../mol-io/reader/common/text/tokenizer';
 import { guessElementSymbolTokens } from '../util';
 import { Column } from '../../../mol-data/db';
+import { areTokensEmpty } from '../../../mol-io/reader/common/text/column/token';
 
 type AtomSiteTemplate = typeof getAtomSiteTemplate extends (...args: any) => infer T ? T : never
 export function getAtomSiteTemplate(data: string, count: number) {
@@ -63,7 +64,7 @@ export function getAtomSite(sites: AtomSiteTemplate): { [K in keyof mmCIF_Schema
         label_seq_id: CifField.ofUndefined(sites.index, Column.Schema.int),
         label_entity_id: CifField.ofStrings(sites.label_entity_id),
 
-        occupancy: CifField.ofTokens(sites.occupancy),
+        occupancy: areTokensEmpty(sites.occupancy) ? CifField.ofUndefined(sites.index, Column.Schema.float) : CifField.ofTokens(sites.occupancy),
         type_symbol: CifField.ofTokens(sites.type_symbol),
 
         pdbx_PDB_ins_code: CifField.ofTokens(sites.pdbx_PDB_ins_code),
