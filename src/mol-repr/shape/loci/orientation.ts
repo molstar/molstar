@@ -27,7 +27,8 @@ export interface OrientationData {
 
 const SharedParams = {
     color: PD.Color(ColorNames.orange),
-    scale: PD.Numeric(2, { min: 0.1, max: 10, step: 0.1 })
+    scaleFactor: PD.Numeric(1, { min: 0.1, max: 10, step: 0.1 }),
+    radiusScale: PD.Numeric(2, { min: 0.1, max: 10, step: 0.1 })
 };
 
 const AxesParams = {
@@ -59,8 +60,6 @@ export const OrientationParams = {
     ...BoxParams,
     ...EllipsoidParams,
     visuals: PD.MultiSelect(['box'], PD.objectToOptions(OrientationVisuals)),
-    color: PD.Color(ColorNames.orange),
-    scale: PD.Numeric(2, { min: 0.1, max: 5, step: 0.1 })
 };
 export type OrientationParams = typeof OrientationParams
 export type OrientationProps = PD.Values<OrientationParams>
@@ -75,9 +74,10 @@ function getAxesName(locis: StructureElement.Loci[]) {
 function buildAxesMesh(data: OrientationData, props: OrientationProps, mesh?: Mesh): Mesh {
     const state = MeshBuilder.createState(256, 128, mesh);
     const principalAxes = StructureElement.Loci.getPrincipalAxesMany(data.locis);
+    Axes3D.scale(principalAxes.momentsAxes, principalAxes.momentsAxes, props.scaleFactor);
 
     state.currentGroup = 0;
-    addAxes(state, principalAxes.momentsAxes, props.scale, 2, 20);
+    addAxes(state, principalAxes.momentsAxes, props.radiusScale, 2, 20);
     return MeshBuilder.getMesh(state);
 }
 
@@ -97,9 +97,10 @@ function getBoxName(locis: StructureElement.Loci[]) {
 function buildBoxMesh(data: OrientationData, props: OrientationProps, mesh?: Mesh): Mesh {
     const state = MeshBuilder.createState(256, 128, mesh);
     const principalAxes = StructureElement.Loci.getPrincipalAxesMany(data.locis);
+    Axes3D.scale(principalAxes.boxAxes, principalAxes.boxAxes, props.scaleFactor);
 
     state.currentGroup = 0;
-    addOrientedBox(state, principalAxes.boxAxes, props.scale, 2, 20);
+    addOrientedBox(state, principalAxes.boxAxes, props.radiusScale, 2, 20);
     return MeshBuilder.getMesh(state);
 }
 
@@ -123,7 +124,7 @@ function buildEllipsoidMesh(data: OrientationData, props: OrientationProps, mesh
     const axes = principalAxes.boxAxes;
     const { origin, dirA, dirB } = axes;
     const size = Axes3D.size(Vec3(), axes);
-    Vec3.scale(size, size, 0.5);
+    Vec3.scale(size, size, 0.5 * props.scaleFactor);
     const radiusScale = Vec3.create(size[2], size[1], size[0]);
 
     state.currentGroup = 0;

@@ -26,7 +26,7 @@ export interface PlaneData {
 const _PlaneParams = {
     ...Mesh.Params,
     color: PD.Color(ColorNames.orange),
-    scale: PD.Numeric(1, { min: 0.1, max: 10, step: 0.1 })
+    scaleFactor: PD.Numeric(1, { min: 0.1, max: 10, step: 0.1 }),
 };
 type _PlaneParams = typeof _PlaneParams
 
@@ -37,8 +37,6 @@ const PlaneVisuals = {
 export const PlaneParams = {
     ..._PlaneParams,
     visuals: PD.MultiSelect(['plane'], PD.objectToOptions(PlaneVisuals)),
-    color: PD.Color(ColorNames.orange),
-    scale: PD.Numeric(1, { min: 0.1, max: 5, step: 0.1 })
 };
 export type PlaneParams = typeof PlaneParams
 export type PlaneProps = PD.Values<PlaneParams>
@@ -61,7 +59,7 @@ function buildPlaneMesh(data: PlaneData, props: PlaneProps, mesh?: Mesh): Mesh {
     Vec3.add(tmpV, axes.origin, axes.dirC);
     Mat4.targetTo(tmpMat, tmpV, axes.origin, axes.dirB);
     Mat4.scale(tmpMat, tmpMat, Axes3D.size(tmpV, axes));
-    Mat4.scaleUniformly(tmpMat, tmpMat, props.scale);
+    Mat4.scaleUniformly(tmpMat, tmpMat, props.scaleFactor);
     Mat4.setTranslation(tmpMat, axes.origin);
 
     state.currentGroup = 0;
