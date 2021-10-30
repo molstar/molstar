@@ -10,7 +10,7 @@ jobs:
     - uses: actions/setup-node@v2
       with:
         node-version: 14
-    - run: yarn install
+    - run: npm ci
     - run: sudo apt-get install xvfb
     - name: ESLint
       run: npm run lint
