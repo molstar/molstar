@@ -228,6 +228,9 @@ export function IntraUnitBondCylinderImpostorVisual(materialId: number): UnitsVi
                 newProps.linkSpacing !== currentProps.linkSpacing ||
                 newProps.ignoreHydrogens !== currentProps.ignoreHydrogens ||
                 newProps.linkCap !== currentProps.linkCap ||
+                newProps.aromaticScale !== currentProps.aromaticScale ||
+                newProps.aromaticSpacing !== currentProps.aromaticSpacing ||
+                newProps.aromaticDashCount !== currentProps.aromaticDashCount ||
                 newProps.dashCount !== currentProps.dashCount ||
                 newProps.dashScale !== currentProps.dashScale ||
                 newProps.dashCap !== currentProps.dashCap ||
@@ -272,6 +275,9 @@ export function IntraUnitBondCylinderMeshVisual(materialId: number): UnitsVisual
                 newProps.linkSpacing !== currentProps.linkSpacing ||
                 newProps.ignoreHydrogens !== currentProps.ignoreHydrogens ||
                 newProps.linkCap !== currentProps.linkCap ||
+                newProps.aromaticScale !== currentProps.aromaticScale ||
+                newProps.aromaticSpacing !== currentProps.aromaticSpacing ||
+                newProps.aromaticDashCount !== currentProps.aromaticDashCount ||
                 newProps.dashCount !== currentProps.dashCount ||
                 newProps.dashScale !== currentProps.dashScale ||
                 newProps.dashCap !== currentProps.dashCap ||
