@@ -8,6 +8,7 @@ Note that since we don't clearly distinguish between a public and private interf
 
 - Improve aromatic bond visuals (add ``aromaticScale``, ``aromaticSpacing``, ``aromaticDashCount`` params)
 - [Breaking] Change ``adjustCylinderLength`` default to ``false`` (set to true for focus representation)
+- Fix marker highlight color overriding select color
 
 ## [v2.3.5] - 2021-10-19
 
