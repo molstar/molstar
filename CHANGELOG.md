@@ -6,6 +6,9 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Improve aromatic bond visuals (add ``aromaticScale``, ``aromaticSpacing``, ``aromaticDashCount`` params)
+- [Breaking] Change ``adjustCylinderLength`` default to ``false`` (set to true for focus representation)
+
 ## [v2.3.5] - 2021-10-19
 
 - Fix sequence viewer for PDB files with COMPND record and multichain entities.
@@ -153,29 +156,22 @@ Note that since we don't clearly distinguish between a public and private interf
 - Fixed Measurements UI labels (#166)
 
 ## [v2.0.3] - 2021-04-09
-### Added
-- Support for ``ColorTheme.palette`` designed for providing gradient-like coloring.
 
-### Changed
+- Add support for ``ColorTheme.palette`` designed for providing gradient-like coloring.
 - [Breaking] The ``zip`` function is now asynchronous and expects a ``RuntimeContext``. Also added ``Zip()`` returning a ``Task``.
 - [Breaking] Add ``CubeGridFormat`` in ``alpha-orbitals`` extension.
 
 ## [v2.0.2] - 2021-03-29
-### Added
-- ``Canvas3D.getRenderObjects``.
+
+- Add ``Canvas3D.getRenderObjects``.
 - [WIP] Animate state interpolating, including model trajectories
-
-### Changed
 - Recognise MSE, SEP, TPO, PTR and PCA as non-standard amino-acids.
-
-### Fixed
-- VolumeFromDensityServerCif transform label
-
+- Fix VolumeFromDensityServerCif transform label
 
 ## [v2.0.1] - 2021-03-23
-### Fixed
+
 - Exclude tsconfig.commonjs.tsbuildinfo from npm bundle
 
-
 ## [v2.0.0] - 2021-03-23
+
 Too many changes to list as this is the start of the changelog... Notably, default exports are now forbidden.

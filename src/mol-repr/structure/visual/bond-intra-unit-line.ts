@@ -153,6 +153,7 @@ export function IntraUnitBondLineVisual(materialId: number): UnitsVisual<IntraUn
                 newProps.sizeFactor !== currentProps.sizeFactor ||
                 newProps.linkScale !== currentProps.linkScale ||
                 newProps.linkSpacing !== currentProps.linkSpacing ||
+                newProps.aromaticDashCount !== currentProps.aromaticDashCount ||
                 newProps.dashCount !== currentProps.dashCount ||
                 newProps.ignoreHydrogens !== currentProps.ignoreHydrogens ||
                 !arrayEqual(newProps.includeTypes, currentProps.includeTypes) ||
