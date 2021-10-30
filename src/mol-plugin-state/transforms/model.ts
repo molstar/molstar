@@ -645,7 +645,8 @@ const MultiStructureSelectionFromExpression = PluginStateTransform.BuiltIn({
                     totalSize += StructureElement.Loci.size(loci.loci);
 
                     continue;
-                } if (entry.expression !== sel.expression) {
+                }
+                if (entry.expression !== sel.expression) {
                     recreate = true;
                 } else {
                     // TODO: properly support "transitive" queries. For that Structure.areUnitAndIndicesEqual needs to be fixed;
