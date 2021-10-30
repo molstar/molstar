@@ -12,6 +12,6 @@ jobs:
         node-version: 14
     - run: yarn install
     - name: ESLint
-      uses: sibiraj-s/action-eslint@v2.0.0
-    - name: Jest Annotations & Coverage
-      uses: mattallty/jest-github-action@v1.0.3
+      uses: npm run eslint
+    - name: Jest
+      uses: npm run jest
