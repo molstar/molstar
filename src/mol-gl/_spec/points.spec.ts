@@ -6,9 +6,8 @@
 
 import { createRenderObject } from '../render-object';
 import { Scene } from '../scene';
-import getGLContext from 'gl';
+import { getGLContext, tryGetGLContext } from './gl';
 import { setDebugMode } from '../../mol-util/debug';
-import { createRenderer } from './renderer.spec';
 import { ColorNames } from '../../mol-util/color/names';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { Points } from '../../mol-geo/geometry/points/points';
@@ -22,15 +21,16 @@ export function createPoints() {
 }
 
 describe('points', () => {
-    it('basic', async () => {
-        const gl = getGLContext(32, 32);
-        const { ctx } = createRenderer(gl);
+    const ctx = tryGetGLContext(32, 32);
+
+    (ctx ? it : it.skip)('basic', async () => {
+        const ctx = getGLContext(32, 32);
         const scene = Scene.create(ctx);
         const points = createPoints();
         scene.add(points);
         setDebugMode(true);
         expect(() => scene.commit()).not.toThrow();
         setDebugMode(false);
-        gl.getExtension('STACKGL_destroy_context')?.destroy();
+        ctx.destroy();
     });
 });

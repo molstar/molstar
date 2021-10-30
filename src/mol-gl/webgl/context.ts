@@ -358,7 +358,10 @@ export function createContext(gl: GLRenderingContext, props: Partial<{ pixelScal
             unbindResources(gl);
 
             // to aid GC
-            if (!options?.doNotForceWebGLContextLoss) gl.getExtension('WEBGL_lose_context')?.loseContext();
+            if (!options?.doNotForceWebGLContextLoss) {
+                gl.getExtension('WEBGL_lose_context')?.loseContext();
+                gl.getExtension('STACKGL_destroy_context')?.destroy();
+            }
         }
     };
 }
