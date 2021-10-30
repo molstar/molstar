@@ -12,6 +12,6 @@ jobs:
         node-version: 14
     - run: yarn install
     - name: ESLint
-      run: npm run eslint
+      run: npm run lint
     - name: Jest
       run: npm run jest
