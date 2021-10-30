@@ -12,7 +12,9 @@ jobs:
         node-version: 14
     - run: npm ci
     - run: sudo apt-get install xvfb
-    - name: ESLint
+    - name: Lint
       run: npm run lint
-    - name: Jest
+    - name: Test
       run: xvfb-run --auto-servernum npm run jest
+    - name: Build
+      run: npm run build
