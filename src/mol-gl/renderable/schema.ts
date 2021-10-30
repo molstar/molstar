@@ -121,7 +121,6 @@ export const GlobalUniformSchema = {
 
     uIsOrtho: UniformSpec('f'),
     uPixelRatio: UniformSpec('f'),
-    uViewportHeight: UniformSpec('f'),
     uViewport: UniformSpec('v4'),
     uViewOffset: UniformSpec('v2'),
     uDrawingBufferSize: UniformSpec('v2'),
@@ -162,6 +161,7 @@ export const GlobalUniformSchema = {
     uSelectColor: UniformSpec('v3'),
     uHighlightStrength: UniformSpec('f'),
     uSelectStrength: UniformSpec('f'),
+    uMarkerPriority: UniformSpec('i'),
 
     uXrayEdgeFalloff: UniformSpec('f'),
 

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -16,7 +16,7 @@ precision highp int;
 #include common_clip
 
 uniform float uPixelRatio;
-uniform float uViewportHeight;
+uniform vec4 uViewport;
 
 attribute vec3 aPosition;
 attribute mat4 aTransform;
@@ -32,10 +32,11 @@ void main(){
     #include assign_size
 
     #ifdef dPointSizeAttenuation
-        gl_PointSize = size * uPixelRatio * ((uViewportHeight / 2.0) / -mvPosition.z) * 5.0;
+        gl_PointSize = size * uPixelRatio * ((uViewport.w / 2.0) / -mvPosition.z) * 5.0;
     #else
         gl_PointSize = size * uPixelRatio;
     #endif
+    gl_PointSize = max(1.0, gl_PointSize);
 
     gl_Position = uProjection * mvPosition;
 

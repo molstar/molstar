@@ -22,6 +22,18 @@ export const _chem_comp: CifCategory<CifExportContext> = {
     }
 };
 
+export const _chem_comp_bond: CifCategory<CifExportContext> = {
+    name: 'chem_comp_bond',
+    instance({ firstModel, structures, cache }) {
+        const chem_comp_bond = getModelMmCifCategory(structures[0].model, 'chem_comp_bond');
+        if (!chem_comp_bond) return CifCategory.Empty;
+        const { comp_id } = chem_comp_bond;
+        const names = cache.uniqueResidueNames || (cache.uniqueResidueNames = getUniqueResidueNamesFromStructures(structures));
+        const indices = Column.indicesOf(comp_id, id => names.has(id));
+        return CifCategory.ofTable(chem_comp_bond, indices);
+    }
+};
+
 export const _pdbx_chem_comp_identifier: CifCategory<CifExportContext> = {
     name: 'pdbx_chem_comp_identifier',
     instance({ firstModel, structures, cache }) {

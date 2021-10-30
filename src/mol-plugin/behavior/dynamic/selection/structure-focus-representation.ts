@@ -25,7 +25,7 @@ const StructureFocusRepresentationParams = (plugin: PluginContext) => {
         expandRadius: PD.Numeric(5, { min: 1, max: 10, step: 1 }),
         targetParams: PD.Group(reprParams, {
             label: 'Target',
-            customDefault: createStructureRepresentationParams(plugin, void 0, { type: 'ball-and-stick', size: 'physical', typeParams: { sizeFactor: 0.26, alpha: 0.51 } })
+            customDefault: createStructureRepresentationParams(plugin, void 0, { type: 'ball-and-stick', size: 'physical', typeParams: { sizeFactor: 0.26, alpha: 0.51, adjustCylinderLength: true } })
         }),
         surroundingsParams: PD.Group(reprParams, {
             label: 'Surroundings',

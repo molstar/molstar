@@ -9,7 +9,7 @@ import { LocationIterator, PositionLocation } from '../../../mol-geo/util/locati
 import { RenderableState } from '../../../mol-gl/renderable';
 import { DirectVolumeValues } from '../../../mol-gl/renderable/direct-volume';
 import { calculateTransformBoundingSphere } from '../../../mol-gl/renderable/util';
-import { Texture } from '../../../mol-gl/webgl/texture';
+import { createNullTexture, Texture } from '../../../mol-gl/webgl/texture';
 import { Box3D, Sphere3D } from '../../../mol-math/geometry';
 import { Mat4, Vec2, Vec3, Vec4 } from '../../../mol-math/linear-algebra';
 import { Theme } from '../../../mol-theme/theme';
@@ -129,7 +129,15 @@ export namespace DirectVolume {
     }
 
     export function createEmpty(directVolume?: DirectVolume): DirectVolume {
-        return {} as DirectVolume; // TODO
+        const bbox = Box3D();
+        const gridDimension = Vec3();
+        const transform = Mat4.identity();
+        const unitToCartn = Mat4.identity();
+        const cellDim = Vec3();
+        const texture = createNullTexture();
+        const stats = Grid.One.stats;
+        const packedGroup = false;
+        return create(bbox, gridDimension, transform, unitToCartn, cellDim, texture, stats, packedGroup, directVolume);
     }
 
     export function createRenderModeParam(stats?: Grid['stats']) {

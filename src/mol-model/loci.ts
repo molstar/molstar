@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -283,8 +283,8 @@ namespace Loci {
      * Converts structure related loci to StructureElement.Loci and applies
      * granularity if given
      */
-    export function normalize(loci: Loci, granularity?: Granularity) {
-        if (granularity !== 'element' && Bond.isLoci(loci)) {
+    export function normalize(loci: Loci, granularity?: Granularity, alwaysConvertBonds = false) {
+        if ((granularity !== 'element' || alwaysConvertBonds) && Bond.isLoci(loci)) {
             // convert Bond.Loci to a StructureElement.Loci so granularity can be applied
             loci = Bond.toStructureElementLoci(loci);
         }

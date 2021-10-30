@@ -79,7 +79,7 @@ function findIndexPairBonds(unit: Unit.Atomic) {
             if ((d !== -1 && equalEps(dist, d, 0.5)) || dist < maxDistance) {
                 atomA[atomA.length] = _aI;
                 atomB[atomB.length] = _bI;
-                orders[order.length] = order[i];
+                orders[orders.length] = order[i];
                 flags[flags.length] = flag[i];
             }
         }
@@ -133,7 +133,7 @@ function findBonds(unit: Unit.Atomic, props: BondComputationProps): IntraUnitBon
 
                 const p = partnerA.atomIndex === aI ? partnerB : partnerA;
                 const _bI = SortedArray.indexOf(unit.elements, p.atomIndex) as StructureElement.UnitIndex;
-                if (_bI < 0) continue;
+                if (_bI < 0 || atoms[_bI] < aI) continue;
 
                 atomA[atomA.length] = _aI;
                 atomB[atomB.length] = _bI;

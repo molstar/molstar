@@ -25,7 +25,7 @@ export function parseCmpnd(lines: Tokens, lineStart: number, lineEnd: number) {
 
     let currentSpec: Spec | undefined;
     let currentCompound: EntityCompound = { chains: [], description: '' };
-    const Compounds: EntityCompound[] = [];
+    const compounds: EntityCompound[] = [];
 
     for (let i = lineStart; i < lineEnd; i++) {
         const line = getLine(i);
@@ -55,7 +55,7 @@ export function parseCmpnd(lines: Tokens, lineStart: number, lineEnd: number) {
                 chains: [],
                 description: ''
             };
-            Compounds.push(currentCompound);
+            compounds.push(currentCompound);
         } else if (currentSpec === 'MOLECULE') {
             if (currentCompound.description) currentCompound.description += ' ';
             currentCompound.description += value;
@@ -64,7 +64,31 @@ export function parseCmpnd(lines: Tokens, lineStart: number, lineEnd: number) {
         }
     }
 
-    return Compounds;
+    // Define a seprate entity for each chain
+    // --------------------------------------
+    //
+    // This is a workaround for how sequences are currently determined for PDB files.
+    //
+    // The current approach infers the "observed sequence" from the atomic hierarchy.
+    // However, for example for PDB ID 3HHR, this approach fails, since chains B and C
+    // belong to the same entity but contain different observed sequence, which causes display
+    // errors in the sequence viewer (since the sequences are determined "per entity").
+    //
+    // A better approach could be to parse SEQRES categories and use it to construct
+    // entity_poly_seq category. However, this would require constructing label_seq_id (with gaps)
+    // from RES ID pdb column (auth_seq_id), which isn't a trivial exercise.
+    //
+    // (properly formatted) mmCIF structures do not exhibit this issue.
+    const singletons: EntityCompound[] = [];
+    for (const comp of compounds) {
+        for (const chain of comp.chains) {
+            singletons.push({
+                description: comp.description,
+                chains: [chain]
+            });
+        }
+    }
+    return singletons;
 }
 
 export function parseHetnam(lines: Tokens, lineStart: number, lineEnd: number) {

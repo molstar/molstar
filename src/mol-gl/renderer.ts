@@ -62,6 +62,7 @@ interface Renderer {
     setViewport: (x: number, y: number, width: number, height: number) => void
     setTransparentBackground: (value: boolean) => void
     setDrawingBufferSize: (width: number, height: number) => void
+    setPixelRatio: (value: number) => void
 
     dispose: () => void
 }
@@ -80,6 +81,7 @@ export const RendererParams = {
     selectColor: PD.Color(Color.fromNormalizedRgb(0.2, 1.0, 0.1)),
     highlightStrength: PD.Numeric(0.7, { min: 0.0, max: 1.0, step: 0.1 }),
     selectStrength: PD.Numeric(0.7, { min: 0.0, max: 1.0, step: 0.1 }),
+    markerPriority: PD.Select(1, [[1, 'Highlight'], [2, 'Select']]),
 
     xrayEdgeFalloff: PD.Numeric(1, { min: 0.0, max: 3.0, step: 0.1 }),
 
@@ -233,7 +235,6 @@ namespace Renderer {
             uViewOffset: ValueCell.create(viewOffset),
 
             uPixelRatio: ValueCell.create(ctx.pixelRatio),
-            uViewportHeight: ValueCell.create(viewport.height),
             uViewport: ValueCell.create(Viewport.toVec4(Vec4(), viewport)),
             uDrawingBufferSize: ValueCell.create(drawingBufferSize),
 
@@ -274,6 +275,7 @@ namespace Renderer {
             uSelectColor: ValueCell.create(Color.toVec3Normalized(Vec3(), p.selectColor)),
             uHighlightStrength: ValueCell.create(p.highlightStrength),
             uSelectStrength: ValueCell.create(p.selectStrength),
+            uMarkerPriority: ValueCell.create(p.markerPriority),
 
             uXrayEdgeFalloff: ValueCell.create(p.xrayEdgeFalloff),
         };
@@ -571,7 +573,7 @@ namespace Renderer {
                 // TODO: simplify, handle in renderable.state???
                 // uAlpha is updated in "render" so we need to recompute it here
                 const alpha = clamp(r.values.alpha.ref.value * r.state.alphaFactor, 0, 1);
-                if (alpha === 1 && r.values.transparencyAverage.ref.value !== 1 && r.values.dRenderMode?.ref.value !== 'volume' && !r.values.dPointFilledCircle?.ref.value && !r.values.dXrayShaded?.ref.value) {
+                if (alpha === 1 && r.values.transparencyAverage.ref.value !== 1 && r.values.dRenderMode?.ref.value !== 'volume' && r.values.dPointStyle?.ref.value !== 'fuzzy' && !r.values.dXrayShaded?.ref.value) {
                     renderObject(r, 'colorWboit');
                 }
             }
@@ -587,7 +589,7 @@ namespace Renderer {
                 // TODO: simplify, handle in renderable.state???
                 // uAlpha is updated in "render" so we need to recompute it here
                 const alpha = clamp(r.values.alpha.ref.value * r.state.alphaFactor, 0, 1);
-                if (alpha < 1 || r.values.transparencyAverage.ref.value > 0 || r.values.dRenderMode?.ref.value === 'volume' || r.values.dPointFilledCircle?.ref.value || !!r.values.uBackgroundColor || r.values.dXrayShaded?.ref.value) {
+                if (alpha < 1 || r.values.transparencyAverage.ref.value > 0 || r.values.dRenderMode?.ref.value === 'volume' || r.values.dPointStyle?.ref.value === 'fuzzy' || !!r.values.uBackgroundColor || r.values.dXrayShaded?.ref.value) {
                     renderObject(r, 'colorWboit');
                 }
             }
@@ -670,6 +672,10 @@ namespace Renderer {
                     p.selectStrength = props.selectStrength;
                     ValueCell.update(globalUniforms.uSelectStrength, p.selectStrength);
                 }
+                if (props.markerPriority !== undefined && props.markerPriority !== p.markerPriority) {
+                    p.markerPriority = props.markerPriority;
+                    ValueCell.update(globalUniforms.uMarkerPriority, p.markerPriority);
+                }
 
                 if (props.xrayEdgeFalloff !== undefined && props.xrayEdgeFalloff !== p.xrayEdgeFalloff) {
                     p.xrayEdgeFalloff = props.xrayEdgeFalloff;
@@ -700,7 +706,6 @@ namespace Renderer {
                 gl.scissor(x, y, width, height);
                 if (x !== viewport.x || y !== viewport.y || width !== viewport.width || height !== viewport.height) {
                     Viewport.set(viewport, x, y, width, height);
-                    ValueCell.update(globalUniforms.uViewportHeight, height);
                     ValueCell.update(globalUniforms.uViewport, Vec4.set(globalUniforms.uViewport.ref.value, x, y, width, height));
                 }
             },
@@ -711,6 +716,9 @@ namespace Renderer {
                 if (width !== drawingBufferSize[0] || height !== drawingBufferSize[1]) {
                     ValueCell.update(globalUniforms.uDrawingBufferSize, Vec2.set(drawingBufferSize, width, height));
                 }
+            },
+            setPixelRatio: (value: number) => {
+                ValueCell.update(globalUniforms.uPixelRatio, value);
             },
 
             props: p,

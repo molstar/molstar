@@ -3,9 +3,8 @@ export const assign_material_color = `
     #if defined(dMarkerType_uniform)
         float marker = uMarker;
     #elif defined(dMarkerType_groupInstance)
-        float marker = vMarker;
+        float marker = floor(vMarker * 255.0 + 0.5); // rounding required to work on some cards on win
     #endif
-    marker = floor(marker * 255.0 + 0.5); // rounding required to work on some cards on win
 #endif
 
 #if defined(dRenderVariant_color)
