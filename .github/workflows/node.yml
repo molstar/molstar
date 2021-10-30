@@ -11,7 +11,8 @@ jobs:
       with:
         node-version: 14
     - run: yarn install
+    - run: sudo apt-get install xvfb
     - name: ESLint
       run: npm run lint
     - name: Jest
-      run: npm run jest
+      run: xvfb-run --auto-servernum npm run jest
