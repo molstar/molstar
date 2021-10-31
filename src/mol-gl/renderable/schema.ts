@@ -141,12 +141,13 @@ export const GlobalUniformSchema = {
     uClipObjectRotation: UniformSpec('v4[]'),
     uClipObjectScale: UniformSpec('v3[]'),
 
+    uLightDirection: UniformSpec('v3'),
+    uLightColor: UniformSpec('v3'),
+    uAmbientColor: UniformSpec('v3'),
+
     // all the following could in principle be per object
     // as a kind of 'material' parameter set
     // would need to test performance implications
-    uLightIntensity: UniformSpec('f'),
-    uAmbientIntensity: UniformSpec('f'),
-
     uMetalness: UniformSpec('f'),
     uRoughness: UniformSpec('f'),
     uReflectivity: UniformSpec('f'),

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  *
@@ -36,12 +36,12 @@ geometry.normal = normal;
 geometry.viewDir = normalize(vViewPosition);
 
 IncidentLight directLight;
-directLight.direction = vec3(0.0, 0.0, -1.0);
-directLight.color = vec3(uLightIntensity);
+directLight.direction = uLightDirection;
+directLight.color = uLightColor;
 
 RE_Direct_Physical(directLight, geometry, physicalMaterial, reflectedLight);
 
-vec3 irradiance = vec3(uAmbientIntensity) * PI;
+vec3 irradiance = uAmbientColor * PI;
 RE_IndirectDiffuse_Physical(irradiance, geometry, physicalMaterial, reflectedLight);
 
 vec3 outgoingLight = reflectedLight.directDiffuse + reflectedLight.indirectDiffuse + reflectedLight.directSpecular;

@@ -85,6 +85,11 @@ export const RendererParams = {
 
     xrayEdgeFalloff: PD.Numeric(1, { min: 0.0, max: 3.0, step: 0.1 }),
 
+    lightInclination: PD.Numeric(180, { min: 0, max: 180, step: 1 }),
+    lightAzimuth: PD.Numeric(0, { min: 0, max: 360, step: 1 }),
+    lightColor: PD.Color(Color.fromNormalizedRgb(1.0, 1.0, 1.0)),
+    ambientColor: PD.Color(Color.fromNormalizedRgb(1.0, 1.0, 1.0)),
+
     style: PD.MappedStatic('matte', {
         custom: PD.Group({
             lightIntensity: PD.Numeric(0.6, { min: 0.0, max: 1.0, step: 0.01 }),
@@ -220,6 +225,14 @@ namespace Renderer {
         const cameraDir = Vec3();
         const viewOffset = Vec2();
 
+        const lightDirection = Vec3();
+        Vec3.directionFromSpherical(lightDirection, degToRad(p.lightInclination), degToRad(p.lightAzimuth), 1);
+
+        const lightColor = Color.toVec3Normalized(Vec3(), p.lightColor);
+        Vec3.scale(lightColor, lightColor, style.lightIntensity);
+        const ambientColor = Color.toVec3Normalized(Vec3(), p.ambientColor);
+        Vec3.scale(ambientColor, ambientColor, style.ambientIntensity);
+
         const globalUniforms: GlobalUniformValues = {
             uModel: ValueCell.create(Mat4.identity()),
             uView: ValueCell.create(view),
@@ -257,10 +270,11 @@ namespace Renderer {
             uClipObjectRotation: ValueCell.create(clip.objects.rotation),
             uClipObjectScale: ValueCell.create(clip.objects.scale),
 
-            // the following are general 'material' uniforms
-            uLightIntensity: ValueCell.create(style.lightIntensity),
-            uAmbientIntensity: ValueCell.create(style.ambientIntensity),
+            uLightDirection: ValueCell.create(lightDirection),
+            uLightColor: ValueCell.create(lightColor),
+            uAmbientColor: ValueCell.create(ambientColor),
 
+            // the following 3 are general 'material' uniforms
             uMetalness: ValueCell.create(style.metalness),
             uRoughness: ValueCell.create(style.roughness),
             uReflectivity: ValueCell.create(style.reflectivity),
@@ -682,11 +696,41 @@ namespace Renderer {
                     ValueCell.update(globalUniforms.uXrayEdgeFalloff, p.xrayEdgeFalloff);
                 }
 
+                if (props.lightInclination !== undefined && props.lightInclination !== p.lightInclination) {
+                    p.lightInclination = props.lightInclination;
+                    Vec3.directionFromSpherical(lightDirection, degToRad(p.lightInclination), degToRad(p.lightAzimuth), 1);
+                    ValueCell.update(globalUniforms.uLightDirection, lightDirection);
+                }
+                if (props.lightAzimuth !== undefined && props.lightAzimuth !== p.lightAzimuth) {
+                    p.lightAzimuth = props.lightAzimuth;
+                    Vec3.directionFromSpherical(lightDirection, degToRad(p.lightInclination), degToRad(p.lightAzimuth), 1);
+                    ValueCell.update(globalUniforms.uLightDirection, lightDirection);
+                }
+
+                if (props.lightColor !== undefined && props.lightColor !== p.lightColor) {
+                    p.lightColor = props.lightColor;
+                    Color.toVec3Normalized(lightColor, p.lightColor);
+                    Vec3.scale(lightColor, lightColor, style.lightIntensity);
+                    ValueCell.update(globalUniforms.uLightColor, lightColor);
+                }
+                if (props.ambientColor !== undefined && props.ambientColor !== p.ambientColor) {
+                    p.ambientColor = props.ambientColor;
+                    Color.toVec3Normalized(ambientColor, p.ambientColor);
+                    Vec3.scale(ambientColor, ambientColor, style.ambientIntensity);
+                    ValueCell.update(globalUniforms.uAmbientColor, ambientColor);
+                }
+
                 if (props.style !== undefined) {
                     p.style = props.style;
                     Object.assign(style, getStyle(props.style));
-                    ValueCell.updateIfChanged(globalUniforms.uLightIntensity, style.lightIntensity);
-                    ValueCell.updateIfChanged(globalUniforms.uAmbientIntensity, style.ambientIntensity);
+
+                    Color.toVec3Normalized(lightColor, p.lightColor);
+                    Vec3.scale(lightColor, lightColor, style.lightIntensity);
+                    ValueCell.update(globalUniforms.uLightColor, lightColor);
+                    Color.toVec3Normalized(ambientColor, p.ambientColor);
+                    Vec3.scale(ambientColor, ambientColor, style.ambientIntensity);
+                    ValueCell.update(globalUniforms.uAmbientColor, ambientColor);
+
                     ValueCell.updateIfChanged(globalUniforms.uMetalness, style.metalness);
                     ValueCell.updateIfChanged(globalUniforms.uRoughness, style.roughness);
                     ValueCell.updateIfChanged(globalUniforms.uReflectivity, style.reflectivity);

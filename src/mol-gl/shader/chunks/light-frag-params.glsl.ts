@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  *
@@ -8,8 +8,10 @@
  */
 
 export const light_frag_params = `
-uniform float uLightIntensity;
-uniform float uAmbientIntensity;
+uniform vec3 uLightDirection;
+uniform vec3 uLightColor;
+uniform vec3 uAmbientColor;
+
 uniform float uReflectivity;
 uniform float uMetalness;
 uniform float uRoughness;
