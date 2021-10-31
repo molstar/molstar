@@ -1,7 +1,7 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
- * @author Ludovic Autin <autin@scripps.edu>
+ * @author Ludovic Autin <ludovic.autin@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 

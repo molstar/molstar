@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Ludovic Autin <ludovic.autin@gmail.com>
  */
 
 import { StateObjectRef } from '../../mol-state';
@@ -9,8 +10,6 @@ import { StructureRepresentationPresetProvider, presetStaticComponent } from '..
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { ColorNames } from '../../mol-util/color/names';
 import { CellPackGenerateColorThemeProvider } from './color/generate';
-import { CellPackInfoProvider } from './property';
-import { CellPackProvidedColorThemeProvider } from './color/provided';
 
 export const CellpackPackingPresetParams = {
     traceOnly: PD.Boolean(true),
@@ -42,8 +41,8 @@ export const CellpackPackingPreset = StructureRepresentationPresetProvider({
             Object.assign(reprProps, { sizeFactor: 2 });
         }
 
-        const info = structureCell.obj?.data && CellPackInfoProvider.get(structureCell.obj?.data).value;
-        const color = info?.colors ? CellPackProvidedColorThemeProvider.name : CellPackGenerateColorThemeProvider.name;
+        // default is generated
+        const color = CellPackGenerateColorThemeProvider.name;
 
         const { update, builder, typeParams } = StructureRepresentationPresetProvider.reprBuilder(plugin, {});
         const representations = {
