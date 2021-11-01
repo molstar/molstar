@@ -36,6 +36,7 @@ void main(){
     #else
         gl_PointSize = size * uPixelRatio;
     #endif
+    gl_PointSize = max(1.0, gl_PointSize);
 
     gl_Position = uProjection * mvPosition;
 

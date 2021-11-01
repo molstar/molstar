@@ -53,6 +53,9 @@
             var pdbProvider = getParam('pdb-provider', '[^&]+').trim().toLowerCase();
             var emdbProvider = getParam('emdb-provider', '[^&]+').trim().toLowerCase();
             var mapProvider = getParam('map-provider', '[^&]+').trim().toLowerCase();
+            var pixelScale = getParam('pixel-scale', '[^&]+').trim();
+            var pickScale = getParam('pick-scale', '[^&]+').trim();
+            var pickPadding = getParam('pick-padding', '[^&]+').trim();
             var viewer = new molstar.Viewer('app', {
                 layoutShowControls: !hideControls,
                 viewportShowExpand: false,
@@ -61,7 +64,10 @@
                 emdbProvider: emdbProvider || 'pdbe',
                 volumeStreamingServer: (mapProvider || 'pdbe') === 'rcsb'
                     ? 'https://maps.rcsb.org'
-                    : 'https://www.ebi.ac.uk/pdbe/densities'
+                    : 'https://www.ebi.ac.uk/pdbe/densities',
+                pixelScale: parseFloat(pixelScale) || 1,
+                pickScale: parseFloat(pickScale) || 0.25,
+                pickPadding: isNaN(parseFloat(pickPadding)) ? 1 : parseFloat(pickPadding),
             });
 
             var snapshotId = getParam('snapshot-id', '[^&]+').trim();

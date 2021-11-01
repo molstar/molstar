@@ -92,7 +92,7 @@ export function sizeUTF8(str: string) {
     for (let ci = 0; ci < strl; ci++) {
         const code = str.charCodeAt(ci);
         if ((code & (0xffffffff - (1 << 7) + 1)) === 0) {
-            i++ ;
+            i++;
         } else if ((code & (0xffffffff - (1 << 11) + 1)) === 0) {
             i += 2;
         } else if ((code & (0xffffffff - (1 << 16) + 1)) === 0) {

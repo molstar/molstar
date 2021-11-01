@@ -6,14 +6,54 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Add additional measurement controls: orientation (box, axes, ellipsoid) & plane (best fit)
+- Improve aromatic bond visuals (add ``aromaticScale``, ``aromaticSpacing``, ``aromaticDashCount`` params)
+- [Breaking] Change ``adjustCylinderLength`` default to ``false`` (set to true for focus representation)
+- Fix marker highlight color overriding select color
+- CellPack extension update
+    - add binary model support
+    - add compartment (including membrane) geometry support
+    - add latest mycoplasma model example
+
+## [v2.3.5] - 2021-10-19
+
+- Fix sequence viewer for PDB files with COMPND record and multichain entities.
+- Fix index pair bonds order assignment
+
+## [v2.3.4] - 2021-10-12
+
+- Fix pickScale not taken into account in line/point shader
+- Add pixel-scale, pick-scale & pick-padding GET params to Viewer app
+- Fix selecting bonds not adding their atoms in selection manager
+- Add ``preferAtoms`` option to SelectLoci/HighlightLoci behaviors
+- Make the implicit atoms of bond visuals pickable
+    - Add ``preferAtomPixelPadding`` to Canvas3dInteractionHelper
+- Add points & crosses visuals to Line representation
+- Add ``pickPadding`` config option (look around in case target pixel is empty)
+- Add ``multipleBonds`` param to bond visuals with options: off, symmetric, offset
+- Fix ``argparse`` config in servers.
+
+## [v2.3.3] - 2021-10-01
+
+- Fix direct volume shader
+
+## [v2.3.2] - 2021-10-01
+
+- Prefer WebGL1 on iOS devices until WebGL2 support has stabilized.
+
+## [v2.3.1] - 2021-09-28
+
 - Add Charmm saccharide names
-- Treat missing occupancy column as occupany of 1
+- Treat missing occupancy column as occupancy of 1
 - Fix line shader not accounting for aspect ratio
 - [Breaking] Fix point repr & shader
     - Was unusable with ``wboit``
     - Replaced ``pointFilledCircle`` & ``pointEdgeBleach`` params by ``pointStyle`` (square, circle, fuzzy)
     - Set ``pointSizeAttenuation`` to false by default
     - Set ``sizeTheme`` to ``uniform`` by default
+- Add ``markerPriority`` option to Renderer (useful in combination with edges of marking pass)
+- Add support support for ``chem_comp_bond`` and ``struct_conn`` categories (fixes ModelServer behavior where these categories should have been present)
+- Model and VolumeServer: fix argparse config
 
 ## [v2.3.0] - 2021-09-06
 
@@ -122,29 +162,22 @@ Note that since we don't clearly distinguish between a public and private interf
 - Fixed Measurements UI labels (#166)
 
 ## [v2.0.3] - 2021-04-09
-### Added
-- Support for ``ColorTheme.palette`` designed for providing gradient-like coloring.
 
-### Changed
+- Add support for ``ColorTheme.palette`` designed for providing gradient-like coloring.
 - [Breaking] The ``zip`` function is now asynchronous and expects a ``RuntimeContext``. Also added ``Zip()`` returning a ``Task``.
 - [Breaking] Add ``CubeGridFormat`` in ``alpha-orbitals`` extension.
 
 ## [v2.0.2] - 2021-03-29
-### Added
-- ``Canvas3D.getRenderObjects``.
+
+- Add ``Canvas3D.getRenderObjects``.
 - [WIP] Animate state interpolating, including model trajectories
-
-### Changed
 - Recognise MSE, SEP, TPO, PTR and PCA as non-standard amino-acids.
-
-### Fixed
-- VolumeFromDensityServerCif transform label
-
+- Fix VolumeFromDensityServerCif transform label
 
 ## [v2.0.1] - 2021-03-23
-### Fixed
+
 - Exclude tsconfig.commonjs.tsbuildinfo from npm bundle
 
-
 ## [v2.0.0] - 2021-03-23
+
 Too many changes to list as this is the start of the changelog... Notably, default exports are now forbidden.

@@ -19,7 +19,7 @@ import { ModelSymmetry } from '../../mol-model-formats/structure/property/symmet
 import { Vec3, Quat } from '../../mol-math/linear-algebra';
 import { StateTransformer } from '../../mol-state';
 import { MBRepresentation, MBParams } from './representation';
-import { IsNativeEndianLittle, flipByteOrder } from '../../mol-io/common/binary';;
+import { IsNativeEndianLittle, flipByteOrder } from '../../mol-io/common/binary';
 import { getFloatValue } from './util';
 
 export const DefaultCellPackBaseUrl = 'https://raw.githubusercontent.com/mesoscope/cellPACK_data/master/cellPACK_database_1.1.0';

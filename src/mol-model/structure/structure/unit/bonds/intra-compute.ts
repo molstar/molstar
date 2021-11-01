@@ -79,7 +79,7 @@ function findIndexPairBonds(unit: Unit.Atomic) {
             if ((d !== -1 && equalEps(dist, d, 0.5)) || dist < maxDistance) {
                 atomA[atomA.length] = _aI;
                 atomB[atomB.length] = _bI;
-                orders[order.length] = order[i];
+                orders[orders.length] = order[i];
                 flags[flags.length] = flag[i];
             }
         }

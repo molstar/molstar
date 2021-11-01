@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -11,6 +11,7 @@ import { WebGLContext } from '../../mol-gl/webgl/context';
 import { GraphicsRenderVariant } from '../../mol-gl/webgl/render-item';
 import { RenderTarget } from '../../mol-gl/webgl/render-target';
 import { Vec3 } from '../../mol-math/linear-algebra';
+import { spiral2d } from '../../mol-math/misc';
 import { decodeFloatRGB, unpackRGBAToDepth } from '../../mol-util/float-packing';
 import { Camera, ICamera } from '../camera';
 import { StereoCamera } from '../camera/stereo';
@@ -88,6 +89,7 @@ export class PickPass {
 
         this.groupPickTarget.bind();
         this.renderVariant(renderer, camera, scene, helper, 'pickGroup');
+        // printTexture(this.webgl, this.groupPickTarget.texture, { id: 'group' })
 
         this.depthPickTarget.bind();
         this.renderVariant(renderer, camera, scene, helper, 'depth');
@@ -110,6 +112,8 @@ export class PickHelper {
     private pickWidth: number
     private pickHeight: number
     private halfPickWidth: number
+
+    private spiral: [number, number][]
 
     private setupBuffers() {
         const bufferSize = this.pickWidth * this.pickHeight * 4;
@@ -138,6 +142,8 @@ export class PickHelper {
 
             this.setupBuffers();
         }
+
+        this.spiral = spiral2d(Math.round(this.pickScale * this.pickPadding));
     }
 
     private syncBuffers() {
@@ -177,6 +183,7 @@ export class PickHelper {
 
         renderer.setTransparentBackground(false);
         renderer.setDrawingBufferSize(this.pickPass.objectPickTarget.getWidth(), this.pickPass.objectPickTarget.getHeight());
+        renderer.setPixelRatio(this.pickScale);
 
         if (StereoCamera.is(camera)) {
             renderer.setViewport(pickX, pickY, halfPickWidth, pickHeight);
@@ -192,7 +199,7 @@ export class PickHelper {
         this.dirty = false;
     }
 
-    identify(x: number, y: number, camera: Camera | StereoCamera): PickData | undefined {
+    private identifyInternal(x: number, y: number, camera: Camera | StereoCamera): PickData | undefined {
         const { webgl, pickScale } = this;
         if (webgl.isContextLost) return;
 
@@ -251,7 +258,14 @@ export class PickHelper {
         return { id: { objectId, instanceId, groupId }, position };
     }
 
-    constructor(private webgl: WebGLContext, private renderer: Renderer, private scene: Scene, private helper: Helper, private pickPass: PickPass, viewport: Viewport) {
+    identify(x: number, y: number, camera: Camera | StereoCamera): PickData | undefined {
+        for (const d of this.spiral) {
+            const pickData = this.identifyInternal(x + d[0], y + d[1], camera);
+            if (pickData) return pickData;
+        }
+    }
+
+    constructor(private webgl: WebGLContext, private renderer: Renderer, private scene: Scene, private helper: Helper, private pickPass: PickPass, viewport: Viewport, readonly pickPadding = 1) {
         this.setViewport(viewport.x, viewport.y, viewport.width, viewport.height);
     }
 }

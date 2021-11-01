@@ -62,6 +62,7 @@ interface Renderer {
     setViewport: (x: number, y: number, width: number, height: number) => void
     setTransparentBackground: (value: boolean) => void
     setDrawingBufferSize: (width: number, height: number) => void
+    setPixelRatio: (value: number) => void
 
     dispose: () => void
 }
@@ -80,6 +81,7 @@ export const RendererParams = {
     selectColor: PD.Color(Color.fromNormalizedRgb(0.2, 1.0, 0.1)),
     highlightStrength: PD.Numeric(0.7, { min: 0.0, max: 1.0, step: 0.1 }),
     selectStrength: PD.Numeric(0.7, { min: 0.0, max: 1.0, step: 0.1 }),
+    markerPriority: PD.Select(1, [[1, 'Highlight'], [2, 'Select']]),
 
     xrayEdgeFalloff: PD.Numeric(1, { min: 0.0, max: 3.0, step: 0.1 }),
 
@@ -273,6 +275,7 @@ namespace Renderer {
             uSelectColor: ValueCell.create(Color.toVec3Normalized(Vec3(), p.selectColor)),
             uHighlightStrength: ValueCell.create(p.highlightStrength),
             uSelectStrength: ValueCell.create(p.selectStrength),
+            uMarkerPriority: ValueCell.create(p.markerPriority),
 
             uXrayEdgeFalloff: ValueCell.create(p.xrayEdgeFalloff),
         };
@@ -669,6 +672,10 @@ namespace Renderer {
                     p.selectStrength = props.selectStrength;
                     ValueCell.update(globalUniforms.uSelectStrength, p.selectStrength);
                 }
+                if (props.markerPriority !== undefined && props.markerPriority !== p.markerPriority) {
+                    p.markerPriority = props.markerPriority;
+                    ValueCell.update(globalUniforms.uMarkerPriority, p.markerPriority);
+                }
 
                 if (props.xrayEdgeFalloff !== undefined && props.xrayEdgeFalloff !== p.xrayEdgeFalloff) {
                     p.xrayEdgeFalloff = props.xrayEdgeFalloff;
@@ -709,6 +716,9 @@ namespace Renderer {
                 if (width !== drawingBufferSize[0] || height !== drawingBufferSize[1]) {
                     ValueCell.update(globalUniforms.uDrawingBufferSize, Vec2.set(drawingBufferSize, width, height));
                 }
+            },
+            setPixelRatio: (value: number) => {
+                ValueCell.update(globalUniforms.uPixelRatio, value);
             },
 
             props: p,

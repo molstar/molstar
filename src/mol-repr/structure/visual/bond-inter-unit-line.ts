@@ -32,9 +32,13 @@ function setRefPosition(pos: Vec3, structure: Structure, unit: Unit.Atomic, inde
 function createInterUnitBondLines(ctx: VisualContext, structure: Structure, theme: Theme, props: PD.Values<InterUnitBondLineParams>, lines?: Lines) {
     const bonds = structure.interUnitBonds;
     const { edgeCount, edges } = bonds;
-    const { sizeFactor, aromaticBonds } = props;
 
     if (!edgeCount) return Lines.createEmpty(lines);
+
+    const { sizeFactor, aromaticBonds, multipleBonds } = props;
+
+    const mbOff = multipleBonds === 'off';
+    const mbSymmetric = multipleBonds === 'symmetric';
 
     const ref = Vec3();
     const loc = StructureElement.Location.create();
@@ -74,14 +78,16 @@ function createInterUnitBondLines(ctx: VisualContext, structure: Structure, them
                 // show metallic coordinations and hydrogen bonds with dashed cylinders
                 return LinkStyle.Dashed;
             } else if (o === 3) {
-                return LinkStyle.Triple;
+                return mbOff ? LinkStyle.Solid :
+                    mbSymmetric ? LinkStyle.Triple :
+                        LinkStyle.OffsetTriple;
             } else if (aromaticBonds && BondType.is(f, BondType.Flag.Aromatic)) {
                 return LinkStyle.Aromatic;
-            } else if (o === 2) {
-                return LinkStyle.Double;
             }
 
-            return LinkStyle.Solid;
+            return (o !== 2 || mbOff) ? LinkStyle.Solid :
+                mbSymmetric ? LinkStyle.Double :
+                    LinkStyle.OffsetDouble;
         },
         radius: (edgeIndex: number) => {
             const b = edges[edgeIndex];
@@ -125,10 +131,12 @@ export function InterUnitBondLineVisual(materialId: number): ComplexVisual<Inter
                 newProps.sizeFactor !== currentProps.sizeFactor ||
                 newProps.linkScale !== currentProps.linkScale ||
                 newProps.linkSpacing !== currentProps.linkSpacing ||
+                newProps.aromaticDashCount !== currentProps.aromaticDashCount ||
                 newProps.dashCount !== currentProps.dashCount ||
                 newProps.ignoreHydrogens !== currentProps.ignoreHydrogens ||
                 !arrayEqual(newProps.includeTypes, currentProps.includeTypes) ||
-                !arrayEqual(newProps.excludeTypes, currentProps.excludeTypes)
+                !arrayEqual(newProps.excludeTypes, currentProps.excludeTypes) ||
+                newProps.multipleBonds !== currentProps.multipleBonds
             );
 
             if (newStructure.interUnitBonds !== currentStructure.interUnitBonds) {

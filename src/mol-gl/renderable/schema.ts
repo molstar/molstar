@@ -161,6 +161,7 @@ export const GlobalUniformSchema = {
     uSelectColor: UniformSpec('v3'),
     uHighlightStrength: UniformSpec('f'),
     uSelectStrength: UniformSpec('f'),
+    uMarkerPriority: UniformSpec('i'),
 
     uXrayEdgeFalloff: UniformSpec('f'),
 

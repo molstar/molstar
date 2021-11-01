@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -8,7 +8,7 @@
 import { Unit, StructureElement } from '../../structure';
 import { Structure } from '../structure';
 import { BondType } from '../../model/types';
-import { SortedArray, Iterator } from '../../../../mol-data/int';
+import { SortedArray, Iterator, OrderedSet } from '../../../../mol-data/int';
 import { CentroidHelper } from '../../../../mol-math/geometry/centroid-helper';
 import { Sphere3D } from '../../../../mol-math/geometry';
 
@@ -130,6 +130,11 @@ namespace Bond {
         });
 
         return StructureElement.Loci(loci.structure, elements);
+    }
+
+    export function toFirstStructureElementLoci(loci: Loci): StructureElement.Loci {
+        const { aUnit, aIndex } = loci.bonds[0];
+        return StructureElement.Loci(loci.structure, [{ unit: aUnit, indices: OrderedSet.ofSingleton(aIndex) }]);
     }
 
     export function getType(structure: Structure, location: Location<Unit.Atomic>): BondType {

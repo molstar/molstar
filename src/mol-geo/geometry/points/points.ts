@@ -127,7 +127,7 @@ export namespace Points {
 
     export const Params = {
         ...BaseGeometry.Params,
-        sizeFactor: PD.Numeric(1.5, { min: 0, max: 10, step: 0.1 }),
+        sizeFactor: PD.Numeric(3, { min: 0, max: 10, step: 0.1 }),
         pointSizeAttenuation: PD.Boolean(false),
         pointStyle: PD.Select('square', PD.objectToOptions(StyleTypes)),
     };

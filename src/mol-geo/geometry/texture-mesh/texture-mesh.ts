@@ -19,7 +19,7 @@ import { createEmptyOverpaint } from '../overpaint-data';
 import { createEmptyTransparency } from '../transparency-data';
 import { TextureMeshValues } from '../../../mol-gl/renderable/texture-mesh';
 import { calculateTransformBoundingSphere } from '../../../mol-gl/renderable/util';
-import { Texture } from '../../../mol-gl/webgl/texture';
+import { createNullTexture, Texture } from '../../../mol-gl/webgl/texture';
 import { Vec2, Vec4 } from '../../../mol-math/linear-algebra';
 import { createEmptyClipping } from '../clipping-data';
 import { NullLocation } from '../../../mol-model/location';
@@ -97,7 +97,11 @@ export namespace TextureMesh {
     }
 
     export function createEmpty(textureMesh?: TextureMesh): TextureMesh {
-        return {} as TextureMesh; // TODO
+        const vt = textureMesh ? textureMesh.vertexTexture.ref.value : createNullTexture();
+        const gt = textureMesh ? textureMesh.groupTexture.ref.value : createNullTexture();
+        const nt = textureMesh ? textureMesh.normalTexture.ref.value : createNullTexture();
+        const bs = textureMesh ? textureMesh.boundingSphere : Sphere3D();
+        return create(0, 0, vt, gt, nt, bs, textureMesh);
     }
 
     export const Params = {
