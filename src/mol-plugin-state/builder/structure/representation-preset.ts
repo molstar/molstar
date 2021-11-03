@@ -379,6 +379,8 @@ const atomicDetail = StructureRepresentationPresetProvider({
         }
 
         await update.commit({ revertOnError: true });
+        await updateFocusRepr(plugin, structure, params.theme?.focus?.name ?? color, params.theme?.focus?.params ?? colorParams);
+
         return { components, representations };
     }
 });
