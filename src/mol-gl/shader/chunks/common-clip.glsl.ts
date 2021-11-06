@@ -89,8 +89,9 @@ export const common_clip = `
 
     // flag is a bit-flag for clip-objects to ignore (note, object ids start at 1 not 0)
     bool clipTest(vec4 sphere, int flag) {
+        #pragma unroll_loop_start
         for (int i = 0; i < dClipObjectCount; ++i) {
-            if (flag == 0 || hasBit(flag, i + 1)) {
+            if (flag == 0 || hasBit(flag, UNROLLED_LOOP_INDEX + 1)) {
                 // TODO take sphere radius into account?
                 bool test = getSignedDistance(sphere.xyz, uClipObjectType[i], uClipObjectPosition[i], uClipObjectRotation[i], uClipObjectScale[i]) <= 0.0;
                 if ((!uClipObjectInvert[i] && test) || (uClipObjectInvert[i] && !test)) {
@@ -98,6 +99,7 @@ export const common_clip = `
                 }
             }
         }
+        #pragma unroll_loop_end
         return false;
     }
 #endif

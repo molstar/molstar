@@ -101,7 +101,8 @@ const ShaderChunks: { [k: string]: string } = {
     wboit_write
 };
 
-const reInclude = /^(?!\/\/)\s*#include\s+(\S+)/gmi;
+const reInclude = /^(?!\/\/)\s*#include\s+(\S+)/gm;
+const reUnrollLoop = /#pragma unroll_loop_start\s+for\s*\(\s*int\s+i\s*=\s*(\d+)\s*;\s*i\s*<\s*(\d+)\s*;\s*\+\+i\s*\s*\)\s*{([\s\S]+?)}\s+#pragma unroll_loop_end/g;
 const reSingleLineComment = /[ \t]*\/\/.*\n/g;
 const reMultiLineComment = /[ \t]*\/\*[\s\S]*?\*\//g;
 const reMultipleLinebreaks = /\n{2,}/g;
@@ -117,6 +118,29 @@ function addIncludes(text: string) {
         .replace(reSingleLineComment, '\n')
         .replace(reMultiLineComment, '\n')
         .replace(reMultipleLinebreaks, '\n');
+}
+
+function unrollLoops(str: string) {
+    return str.replace(reUnrollLoop, loopReplacer);
+}
+
+function loopReplacer(match: string, start: string, end: string, snippet: string) {
+    let out = '';
+    for (let i = parseInt(start); i < parseInt(end); ++i) {
+        out += snippet
+            .replace(/\[\s*i\s*\]/g, `[${i}]`)
+            .replace(/UNROLLED_LOOP_INDEX/g, `${i}`);
+    }
+    return out;
+}
+
+function replaceCounts(str: string, defines: ShaderDefines) {
+    if (defines.dClipObjectCount) str = str.replace(/dClipObjectCount/g, `${defines.dClipObjectCount.ref.value}`);
+    return str;
+}
+
+function preprocess(str: string, defines: ShaderDefines) {
+    return unrollLoops(replaceCounts(str, defines));
 }
 
 export function ShaderCode(name: string, vert: string, frag: string, extensions: ShaderExtensions = {}, outTypes: FragOutTypes = {}): ShaderCode {
@@ -278,8 +302,8 @@ export function addShaderDefines(gl: GLRenderingContext, extensions: WebGLExtens
     return {
         id: shaderCodeId(),
         name: shaders.name,
-        vert: `${vertPrefix}${header}${shaders.vert}`,
-        frag: `${fragPrefix}${header}${frag}`,
+        vert: `${vertPrefix}${header}${preprocess(shaders.vert, defines)}`,
+        frag: `${fragPrefix}${header}${preprocess(frag, defines)}`,
         extensions: shaders.extensions,
         outTypes: shaders.outTypes
     };
