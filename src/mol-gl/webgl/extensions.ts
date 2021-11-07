@@ -36,13 +36,11 @@ export function createExtensions(gl: GLRenderingContext): WebGLExtensions {
     if (elementIndexUint === null) {
         throw new Error('Could not find support for "element_index_uint"');
     }
-
     const standardDerivatives = getStandardDerivatives(gl);
-    if (isDebugMode && standardDerivatives === null) {
-        // - non-support handled downstream (flat shading option is ignored)
-        // - can't be a required extension because it is not supported by `headless-gl`
-        console.log('Could not find support for "standard_derivatives"');
+    if (standardDerivatives === null) {
+        throw new Error('Could not find support for "standard_derivatives"');
     }
+
     const textureFloat = getTextureFloat(gl);
     if (isDebugMode && textureFloat === null) {
         console.log('Could not find support for "texture_float"');

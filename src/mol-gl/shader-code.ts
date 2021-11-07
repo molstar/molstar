@@ -17,7 +17,6 @@ const shaderCodeId = idFactory();
 
 type ShaderExtensionsValue = 'required' | 'optional'
 export interface ShaderExtensions {
-    readonly standardDerivatives?: ShaderExtensionsValue
     readonly fragDepth?: ShaderExtensionsValue
     readonly drawBuffers?: ShaderExtensionsValue
     readonly shaderTextureLod?: ShaderExtensionsValue
@@ -163,7 +162,7 @@ export const CylindersShaderCode = ShaderCode('cylinders', cylinders_vert, cylin
 
 import { text_vert } from './shader/text.vert';
 import { text_frag } from './shader/text.frag';
-export const TextShaderCode = ShaderCode('text', text_vert, text_frag, { standardDerivatives: 'required', drawBuffers: 'optional' });
+export const TextShaderCode = ShaderCode('text', text_vert, text_frag, { drawBuffers: 'optional' });
 
 import { lines_vert } from './shader/lines.vert';
 import { lines_frag } from './shader/lines.frag';
@@ -171,7 +170,7 @@ export const LinesShaderCode = ShaderCode('lines', lines_vert, lines_frag, { dra
 
 import { mesh_vert } from './shader/mesh.vert';
 import { mesh_frag } from './shader/mesh.frag';
-export const MeshShaderCode = ShaderCode('mesh', mesh_vert, mesh_frag, { standardDerivatives: 'optional', drawBuffers: 'optional' });
+export const MeshShaderCode = ShaderCode('mesh', mesh_vert, mesh_frag, { drawBuffers: 'optional' });
 
 import { directVolume_vert } from './shader/direct-volume.vert';
 import { directVolume_frag } from './shader/direct-volume.frag';
@@ -209,11 +208,9 @@ function getDefinesCode(defines: ShaderDefines) {
 }
 
 function getGlsl100FragPrefix(extensions: WebGLExtensions, shaderExtensions: ShaderExtensions) {
-    const prefix: string[] = [];
-    if (shaderExtensions.standardDerivatives) {
-        prefix.push('#extension GL_OES_standard_derivatives : enable');
-        prefix.push('#define enabledStandardDerivatives');
-    }
+    const prefix: string[] = [
+        '#extension GL_OES_standard_derivatives : enable'
+    ];
     if (shaderExtensions.fragDepth) {
         if (extensions.fragDepth) {
             prefix.push('#extension GL_EXT_frag_depth : enable');
@@ -268,9 +265,6 @@ function getGlsl300FragPrefix(gl: WebGL2RenderingContext, extensions: WebGLExten
         `layout(location = 0) out highp ${outTypes[0] || 'vec4'} out_FragData0;`
     ];
 
-    if (shaderExtensions.standardDerivatives) {
-        prefix.push('#define enabledStandardDerivatives');
-    }
     if (shaderExtensions.fragDepth) {
         prefix.push('#define enabledFragDepth');
     }
