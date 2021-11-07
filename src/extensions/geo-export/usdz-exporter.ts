@@ -2,9 +2,9 @@
  * Copyright (c) 2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Sukolsak Sakshuwong <sukolsak@stanford.edu>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Style } from '../../mol-gl/renderer';
 import { asciiWrite } from '../../mol-io/common/ascii';
 import { Box3D } from '../../mol-math/geometry';
 import { Vec3, Mat3, Mat4 } from '../../mol-math/linear-algebra';
@@ -31,17 +31,16 @@ export class UsdzExporter extends MeshExporter<UsdzData> {
     readonly fileExtension = 'usdz';
     private meshes: string[] = [];
     private materials: string[] = [];
-    private materialSet = new Set<number>();
+    private materialMap = new Map<string, number>();
     private centerTransform: Mat4;
 
-    private static getMaterialKey(color: Color, alpha: number) {
-        return color * 256 + Math.round(alpha * 255);
-    }
+    private addMaterial(color: Color, alpha: number, metalness: number, roughness: number): number {
+        const hash = `${color}|${alpha}|${metalness}|${roughness}`;
+        if (this.materialMap.has(hash)) return this.materialMap.get(hash)!;
 
-    private addMaterial(color: Color, alpha: number) {
-        const materialKey = UsdzExporter.getMaterialKey(color, alpha);
-        if (this.materialSet.has(materialKey)) return;
-        this.materialSet.add(materialKey);
+        const materialKey = this.materialMap.size;
+        this.materialMap.set(hash, materialKey);
+
         const [r, g, b] = Color.toRgbNormalized(color);
         this.materials.push(`
 def Material "material${materialKey}"
@@ -52,12 +51,13 @@ def Material "material${materialKey}"
         uniform token info:id = "UsdPreviewSurface"
         color3f inputs:diffuseColor = (${r},${g},${b})
         float inputs:opacity = ${alpha}
-        float inputs:metallic = ${this.style.metalness}
-        float inputs:roughness = ${this.style.roughness}
+        float inputs:metallic = ${metalness}
+        float inputs:roughness = ${roughness}
         token outputs:surface
     }
 }
 `);
+        return materialKey;
     }
 
     protected async addMeshWithColors(input: AddMeshInput) {
@@ -75,6 +75,8 @@ def Material "material${materialKey}"
         const tTransparency = values.tTransparency.ref.value;
         const aTransform = values.aTransform.ref.value;
         const instanceCount = values.uInstanceCount.ref.value;
+        const metalness = values.uMetalness.ref.value;
+        const roughness = values.uRoughness.ref.value;
 
         let interpolatedColors: Uint8Array | undefined;
         if (colorType === 'volume' || colorType === 'volumeInstance') {
@@ -141,9 +143,7 @@ def Material "material${materialKey}"
                     alpha *= 1 - transparency;
                 }
 
-                this.addMaterial(color, alpha);
-
-                const materialKey = UsdzExporter.getMaterialKey(color, alpha);
+                const materialKey = this.addMaterial(color, alpha, metalness, roughness);
                 let faceIndices = faceIndicesByMaterial.get(materialKey);
                 if (faceIndices === undefined) {
                     faceIndices = [];
@@ -215,7 +215,7 @@ def Mesh "mesh${this.meshes.length}"
         return new Blob([usdz], { type: 'model/vnd.usdz+zip' });
     }
 
-    constructor(private style: Style, boundingBox: Box3D, radius: number) {
+    constructor(boundingBox: Box3D, radius: number) {
         super();
         const t = Mat4();
         // scale the model so that it fits within 1 meter

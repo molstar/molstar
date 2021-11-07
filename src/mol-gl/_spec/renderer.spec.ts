@@ -73,6 +73,9 @@ function createPoints() {
         uGroupCount: ValueCell.create(3),
         uInvariantBoundingSphere: ValueCell.create(Vec4.ofSphere(invariantBoundingSphere.ref.value)),
 
+        uMetalness: ValueCell.create(0.0),
+        uRoughness: ValueCell.create(1.0),
+
         alpha: ValueCell.create(1.0),
         drawCount: ValueCell.create(3),
         instanceCount: ValueCell.create(1),
@@ -86,6 +89,8 @@ function createPoints() {
         uSizeFactor: ValueCell.create(1),
         dPointSizeAttenuation: ValueCell.create(true),
         dPointStyle: ValueCell.create('square'),
+
+        dLightCount: ValueCell.create(1),
     };
     const state: RenderableState = {
         disposed: false,

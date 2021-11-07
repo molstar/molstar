@@ -2,10 +2,10 @@
  * Copyright (c) 2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Sukolsak Sakshuwong <sukolsak@stanford.edu>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { BaseValues } from '../../mol-gl/renderable/schema';
-import { Style } from '../../mol-gl/renderer';
 import { asciiWrite } from '../../mol-io/common/ascii';
 import { IsNativeEndianLittle, flipByteOrder } from '../../mol-io/common/binary';
 import { Box3D } from '../../mol-math/geometry';
@@ -38,6 +38,8 @@ export class GlbExporter extends MeshExporter<GlbData> {
     readonly fileExtension = 'glb';
     private nodes: Record<string, any>[] = [];
     private meshes: Record<string, any>[] = [];
+    private materials: Record<string, any>[] = [];
+    private materialMap = new Map<string, number>();
     private accessors: Record<string, any>[] = [];
     private bufferViews: Record<string, any>[] = [];
     private binaryBuffer: ArrayBuffer[] = [];
@@ -157,6 +159,21 @@ export class GlbExporter extends MeshExporter<GlbData> {
         return this.addBuffer(colorBuffer, UNSIGNED_BYTE, 'VEC4', vertexCount, ARRAY_BUFFER, undefined, undefined, true);
     }
 
+    private addMaterial(metalness: number, roughness: number) {
+        const hash = `${metalness}|${roughness}`;
+        if (!this.materialMap.has(hash)) {
+            this.materialMap.set(hash, this.materials.length);
+            this.materials.push({
+                pbrMetallicRoughness: {
+                    baseColorFactor: [1, 1, 1, 1],
+                    metallicFactor: metalness,
+                    roughnessFactor: roughness
+                }
+            });
+        }
+        return this.materialMap.get(hash)!;
+    }
+
     protected async addMeshWithColors(input: AddMeshInput) {
         const { mesh, values, isGeoTexture, webgl, ctx } = input;
 
@@ -166,6 +183,10 @@ export class GlbExporter extends MeshExporter<GlbData> {
         const dTransparency = values.dTransparency.ref.value;
         const aTransform = values.aTransform.ref.value;
         const instanceCount = values.uInstanceCount.ref.value;
+        const metalness = values.uMetalness.ref.value;
+        const roughness = values.uRoughness.ref.value;
+
+        const material = this.addMaterial(metalness, roughness);
 
         let interpolatedColors: Uint8Array | undefined;
         if (colorType === 'volume' || colorType === 'volumeInstance') {
@@ -214,7 +235,7 @@ export class GlbExporter extends MeshExporter<GlbData> {
                             COLOR_0: colorAccessorIndex!
                         },
                         indices: indexAccessorIndex,
-                        material: 0
+                        material
                     }]
                 });
             }
@@ -248,13 +269,7 @@ export class GlbExporter extends MeshExporter<GlbData> {
             }],
             bufferViews: this.bufferViews,
             accessors: this.accessors,
-            materials: [{
-                pbrMetallicRoughness: {
-                    baseColorFactor: [1, 1, 1, 1],
-                    metallicFactor: this.style.metalness,
-                    roughnessFactor: this.style.roughness
-                }
-            }]
+            materials: this.materials
         };
 
         const createChunk = (chunkType: number, data: ArrayBuffer[], byteLength: number, padChar: number): [ArrayBuffer[], number] => {
@@ -303,7 +318,7 @@ export class GlbExporter extends MeshExporter<GlbData> {
         return new Blob([(await this.getData()).glb], { type: 'model/gltf-binary' });
     }
 
-    constructor(private style: Style, boundingBox: Box3D) {
+    constructor(boundingBox: Box3D) {
         super();
         const tmpV = Vec3();
         Vec3.add(tmpV, boundingBox.min, boundingBox.max);

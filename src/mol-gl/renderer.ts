@@ -70,7 +70,6 @@ interface Renderer {
 export const RendererParams = {
     backgroundColor: PD.Color(Color(0x000000), { description: 'Background color of the 3D canvas' }),
 
-    // the following are general 'material' parameters
     pickingAlphaThreshold: PD.Numeric(0.5, { min: 0.0, max: 1.0, step: 0.01 }, { description: 'The minimum opacity value needed for an object to be pickable.' }),
 
     interiorDarkening: PD.Numeric(0.5, { min: 0.0, max: 1.0, step: 0.01 }),
@@ -85,25 +84,19 @@ export const RendererParams = {
 
     xrayEdgeFalloff: PD.Numeric(1, { min: 0.0, max: 3.0, step: 0.1 }),
 
-    lightInclination: PD.Numeric(180, { min: 0, max: 180, step: 1 }),
-    lightAzimuth: PD.Numeric(0, { min: 0, max: 360, step: 1 }),
-    lightColor: PD.Color(Color.fromNormalizedRgb(1.0, 1.0, 1.0)),
+    light: PD.ObjectList({
+        inclination: PD.Numeric(180, { min: 0, max: 180, step: 1 }),
+        azimuth: PD.Numeric(0, { min: 0, max: 360, step: 1 }),
+        color: PD.Color(Color.fromNormalizedRgb(1.0, 1.0, 1.0)),
+        intensity: PD.Numeric(0.6, { min: 0.0, max: 1.0, step: 0.01 }),
+    }, o => Color.toHexString(o.color), { defaultValue: [{
+        inclination: 180,
+        azimuth: 0,
+        color: Color.fromNormalizedRgb(1.0, 1.0, 1.0),
+        intensity: 0.6
+    }] }),
     ambientColor: PD.Color(Color.fromNormalizedRgb(1.0, 1.0, 1.0)),
-
-    style: PD.MappedStatic('matte', {
-        custom: PD.Group({
-            lightIntensity: PD.Numeric(0.6, { min: 0.0, max: 1.0, step: 0.01 }),
-            ambientIntensity: PD.Numeric(0.4, { min: 0.0, max: 1.0, step: 0.01 }),
-            metalness: PD.Numeric(0.0, { min: 0.0, max: 1.0, step: 0.01 }),
-            roughness: PD.Numeric(1.0, { min: 0.0, max: 1.0, step: 0.01 }),
-            reflectivity: PD.Numeric(0.5, { min: 0.0, max: 1.0, step: 0.01 }),
-        }, { isExpanded: true }),
-        flat: PD.Group({}),
-        matte: PD.Group({}),
-        glossy: PD.Group({}),
-        metallic: PD.Group({}),
-        plastic: PD.Group({}),
-    }, { label: 'Lighting', description: 'Style in which the 3D scene is rendered/lighted' }),
+    ambientIntensity: PD.Numeric(0.4, { min: 0.0, max: 1.0, step: 0.01 }),
 
     clip: PD.Group({
         variant: PD.Select('instance', PD.arrayToOptions<Clipping.Variant>(['instance', 'pixel'])),
@@ -121,44 +114,27 @@ export const RendererParams = {
 };
 export type RendererProps = PD.Values<typeof RendererParams>
 
-export type Style = {
-    lightIntensity: number
-    ambientIntensity: number
-    metalness: number
-    roughness: number
-    reflectivity: number
+type Light = {
+    count: number
+    direction: number[]
+    color: number[]
 }
 
-export function getStyle(props: RendererProps['style']): Style {
-    switch (props.name) {
-        case 'custom':
-            return props.params as Style;
-        case 'flat':
-            return {
-                lightIntensity: 0, ambientIntensity: 1,
-                metalness: 0, roughness: 0.4, reflectivity: 0.5
-            };
-        case 'matte':
-            return {
-                lightIntensity: 0.7, ambientIntensity: 0.3,
-                metalness: 0, roughness: 1, reflectivity: 0.5
-            };
-        case 'glossy':
-            return {
-                lightIntensity: 0.7, ambientIntensity: 0.3,
-                metalness: 0, roughness: 0.4, reflectivity: 0.5
-            };
-        case 'metallic':
-            return {
-                lightIntensity: 0.7, ambientIntensity: 0.7,
-                metalness: 0.6, roughness: 0.6, reflectivity: 0.5
-            };
-        case 'plastic':
-            return {
-                lightIntensity: 0.7, ambientIntensity: 0.3,
-                metalness: 0, roughness: 0.2, reflectivity: 0.5
-            };
+const tmpDir = Vec3();
+const tmpColor = Vec3();
+function getLight(props: RendererProps['light'], light?: Light): Light {
+    const { direction, color } = light || {
+        direction: (new Array(5 * 3)).fill(0),
+        color: (new Array(5 * 3)).fill(0),
+    };
+    for (let i = 0, il = props.length; i < il; ++i) {
+        const p = props[i];
+        Vec3.directionFromSpherical(tmpDir, degToRad(p.inclination), degToRad(p.azimuth), 1);
+        Vec3.toArray(tmpDir, direction, i * 3);
+        Vec3.scale(tmpColor, Color.toVec3Normalized(tmpColor, p.color), p.intensity);
+        Vec3.toArray(tmpColor, color, i * 3);
     }
+    return { count: props.length, direction, color };
 }
 
 type Clip = {
@@ -200,7 +176,7 @@ namespace Renderer {
     export function create(ctx: WebGLContext, props: Partial<RendererProps> = {}): Renderer {
         const { gl, state, stats, extensions: { fragDepth } } = ctx;
         const p = PD.merge(RendererParams, PD.getDefaultValues(RendererParams), props);
-        const style = getStyle(p.style);
+        const light = getLight(p.light);
         const clip = getClip(p.clip);
 
         const viewport = Viewport();
@@ -225,13 +201,8 @@ namespace Renderer {
         const cameraDir = Vec3();
         const viewOffset = Vec2();
 
-        const lightDirection = Vec3();
-        Vec3.directionFromSpherical(lightDirection, degToRad(p.lightInclination), degToRad(p.lightAzimuth), 1);
-
-        const lightColor = Color.toVec3Normalized(Vec3(), p.lightColor);
-        Vec3.scale(lightColor, lightColor, style.lightIntensity);
-        const ambientColor = Color.toVec3Normalized(Vec3(), p.ambientColor);
-        Vec3.scale(ambientColor, ambientColor, style.ambientIntensity);
+        const ambientColor = Vec3();
+        Vec3.scale(ambientColor, Color.toArrayNormalized(p.ambientColor, ambientColor, 0), p.ambientIntensity);
 
         const globalUniforms: GlobalUniformValues = {
             uModel: ValueCell.create(Mat4.identity()),
@@ -270,14 +241,9 @@ namespace Renderer {
             uClipObjectRotation: ValueCell.create(clip.objects.rotation),
             uClipObjectScale: ValueCell.create(clip.objects.scale),
 
-            uLightDirection: ValueCell.create(lightDirection),
-            uLightColor: ValueCell.create(lightColor),
+            uLightDirection: ValueCell.create(light.direction),
+            uLightColor: ValueCell.create(light.color),
             uAmbientColor: ValueCell.create(ambientColor),
-
-            // the following 3 are general 'material' uniforms
-            uMetalness: ValueCell.create(style.metalness),
-            uRoughness: ValueCell.create(style.roughness),
-            uReflectivity: ValueCell.create(style.reflectivity),
 
             uPickingAlphaThreshold: ValueCell.create(p.pickingAlphaThreshold),
 
@@ -317,6 +283,10 @@ namespace Renderer {
                     ValueCell.update(r.values.dClipVariant, clip.variant);
                     definesNeedUpdate = true;
                 }
+            }
+            if (r.values.dLightCount.ref.value !== light.count) {
+                ValueCell.update(r.values.dLightCount, light.count);
+                definesNeedUpdate = true;
             }
             if (definesNeedUpdate) r.update();
 
@@ -696,44 +666,21 @@ namespace Renderer {
                     ValueCell.update(globalUniforms.uXrayEdgeFalloff, p.xrayEdgeFalloff);
                 }
 
-                if (props.lightInclination !== undefined && props.lightInclination !== p.lightInclination) {
-                    p.lightInclination = props.lightInclination;
-                    Vec3.directionFromSpherical(lightDirection, degToRad(p.lightInclination), degToRad(p.lightAzimuth), 1);
-                    ValueCell.update(globalUniforms.uLightDirection, lightDirection);
-                }
-                if (props.lightAzimuth !== undefined && props.lightAzimuth !== p.lightAzimuth) {
-                    p.lightAzimuth = props.lightAzimuth;
-                    Vec3.directionFromSpherical(lightDirection, degToRad(p.lightInclination), degToRad(p.lightAzimuth), 1);
-                    ValueCell.update(globalUniforms.uLightDirection, lightDirection);
-                }
-
-                if (props.lightColor !== undefined && props.lightColor !== p.lightColor) {
-                    p.lightColor = props.lightColor;
-                    Color.toVec3Normalized(lightColor, p.lightColor);
-                    Vec3.scale(lightColor, lightColor, style.lightIntensity);
-                    ValueCell.update(globalUniforms.uLightColor, lightColor);
+                if (props.light !== undefined && !deepEqual(props.light, p.light)) {
+                    p.light = props.light;
+                    Object.assign(light, getLight(props.light, light));
+                    ValueCell.update(globalUniforms.uLightDirection, light.direction);
+                    ValueCell.update(globalUniforms.uLightColor, light.color);
                 }
                 if (props.ambientColor !== undefined && props.ambientColor !== p.ambientColor) {
                     p.ambientColor = props.ambientColor;
-                    Color.toVec3Normalized(ambientColor, p.ambientColor);
-                    Vec3.scale(ambientColor, ambientColor, style.ambientIntensity);
+                    Vec3.scale(ambientColor, Color.toArrayNormalized(p.ambientColor, ambientColor, 0), p.ambientIntensity);
                     ValueCell.update(globalUniforms.uAmbientColor, ambientColor);
                 }
-
-                if (props.style !== undefined) {
-                    p.style = props.style;
-                    Object.assign(style, getStyle(props.style));
-
-                    Color.toVec3Normalized(lightColor, p.lightColor);
-                    Vec3.scale(lightColor, lightColor, style.lightIntensity);
-                    ValueCell.update(globalUniforms.uLightColor, lightColor);
-                    Color.toVec3Normalized(ambientColor, p.ambientColor);
-                    Vec3.scale(ambientColor, ambientColor, style.ambientIntensity);
+                if (props.ambientIntensity !== undefined && props.ambientIntensity !== p.ambientIntensity) {
+                    p.ambientIntensity = props.ambientIntensity;
+                    Vec3.scale(ambientColor, Color.toArrayNormalized(p.ambientColor, ambientColor, 0), p.ambientIntensity);
                     ValueCell.update(globalUniforms.uAmbientColor, ambientColor);
-
-                    ValueCell.updateIfChanged(globalUniforms.uMetalness, style.metalness);
-                    ValueCell.updateIfChanged(globalUniforms.uRoughness, style.roughness);
-                    ValueCell.updateIfChanged(globalUniforms.uReflectivity, style.reflectivity);
                 }
 
                 if (props.clip !== undefined && !deepEqual(props.clip, p.clip)) {

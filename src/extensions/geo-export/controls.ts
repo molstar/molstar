@@ -4,7 +4,6 @@
  * @author Sukolsak Sakshuwong <sukolsak@stanford.edu>
  */
 
-import { getStyle } from '../../mol-gl/renderer';
 import { Box3D } from '../../mol-math/geometry';
 import { PluginComponent } from '../../mol-plugin-state/component';
 import { PluginContext } from '../../mol-plugin/context';
@@ -46,13 +45,12 @@ export class GeometryControls extends PluginComponent {
                 const renderObjects = this.plugin.canvas3d?.getRenderObjects()!;
                 const filename = this.getFilename();
 
-                const style = getStyle(this.plugin.canvas3d?.props.renderer.style!);
                 const boundingSphere = this.plugin.canvas3d?.boundingSphereVisible!;
                 const boundingBox = Box3D.fromSphere3D(Box3D(), boundingSphere);
                 let renderObjectExporter: GlbExporter | ObjExporter | StlExporter | UsdzExporter;
                 switch (this.behaviors.params.value.format) {
                     case 'glb':
-                        renderObjectExporter = new GlbExporter(style, boundingBox);
+                        renderObjectExporter = new GlbExporter(boundingBox);
                         break;
                     case 'obj':
                         renderObjectExporter = new ObjExporter(filename, boundingBox);
@@ -61,7 +59,7 @@ export class GeometryControls extends PluginComponent {
                         renderObjectExporter = new StlExporter(boundingBox);
                         break;
                     case 'usdz':
-                        renderObjectExporter = new UsdzExporter(style, boundingBox, boundingSphere.radius);
+                        renderObjectExporter = new UsdzExporter(boundingBox, boundingSphere.radius);
                         break;
                     default: throw new Error('Unsupported format.');
                 }

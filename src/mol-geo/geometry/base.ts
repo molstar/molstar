@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -34,17 +34,20 @@ export const VisualQualityOptions = PD.arrayToOptions(VisualQualityNames);
 //
 
 export namespace BaseGeometry {
-    export const Params = {
-        alpha: PD.Numeric(1, { min: 0, max: 1, step: 0.01 }, { label: 'Opacity', isEssential: true, description: 'How opaque/transparent the representation is rendered.' }),
-        quality: PD.Select<VisualQuality>('auto', VisualQualityOptions, { isEssential: true, description: 'Visual/rendering quality of the representation.' }),
-    };
-    export type Params = typeof Params
-
+    export const MaterialCategory: PD.Info = { category: 'Material' };
     export const ShadingCategory: PD.Info = { category: 'Shading' };
     export const CustomQualityParamInfo: PD.Info = {
         category: 'Custom Quality',
         hideIf: (params: PD.Values<Params>) => typeof params.quality !== 'undefined' && params.quality !== 'custom'
     };
+
+    export const Params = {
+        alpha: PD.Numeric(1, { min: 0, max: 1, step: 0.01 }, { label: 'Opacity', isEssential: true, description: 'How opaque/transparent the representation is rendered.' }),
+        quality: PD.Select<VisualQuality>('auto', VisualQualityOptions, { isEssential: true, description: 'Visual/rendering quality of the representation.' }),
+        metalness: PD.Numeric(0.0, { min: 0.0, max: 1.0, step: 0.01 }, MaterialCategory),
+        roughness: PD.Numeric(1.0, { min: 0.0, max: 1.0, step: 0.01 }, MaterialCategory),
+    };
+    export type Params = typeof Params
 
     export type Counts = { drawCount: number, vertexCount: number, groupCount: number, instanceCount: number }
 
@@ -65,11 +68,16 @@ export namespace BaseGeometry {
             uVertexCount: ValueCell.create(counts.vertexCount),
             uGroupCount: ValueCell.create(counts.groupCount),
             drawCount: ValueCell.create(counts.drawCount),
+            uMetalness: ValueCell.create(props.metalness),
+            uRoughness: ValueCell.create(props.roughness),
+            dLightCount: ValueCell.create(1),
         };
     }
 
     export function updateValues(values: BaseValues, props: PD.Values<Params>) {
         ValueCell.updateIfChanged(values.alpha, props.alpha); // `uAlpha` is set in renderable.render
+        ValueCell.updateIfChanged(values.uMetalness, props.metalness);
+        ValueCell.updateIfChanged(values.uRoughness, props.roughness);
     }
 
     export function createRenderableState(props: Partial<PD.Values<Params>> = {}): RenderableState {
