@@ -14,6 +14,7 @@ Note that since we don't clearly distinguish between a public and private interf
     - add binary model support
     - add compartment (including membrane) geometry support
     - add latest mycoplasma model example
+- Prefer WebGL1 in Safari 15.1.
 
 ## [v2.3.5] - 2021-10-19
 

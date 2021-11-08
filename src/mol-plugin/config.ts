@@ -20,9 +20,19 @@ export class PluginConfigItem<T = any> {
 function item<T>(key: string, defaultValue?: T) { return new PluginConfigItem(key, defaultValue); }
 
 
-// adapted from https://stackoverflow.com/questions/9038625/detect-if-device-is-ios
-function is_iOS() {
+function preferWebGl1() {
     if (typeof navigator === 'undefined' || typeof window === 'undefined') return false;
+
+    // WebGL2 isn't working in MacOS 12.0.1 Safari 15.1 (but is working in Safari tech preview)
+    // prefer webgl 1 based on the userAgent substring
+    if (navigator.userAgent.indexOf('Version/15.1 Safari') > 0) {
+        return true;
+    }
+
+    // Check for iOS device which enabled WebGL2 recently but it doesn't seem
+    // to be full up to speed yet.
+
+    // adapted from https://stackoverflow.com/questions/9038625/detect-if-device-is-ios
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
     const isAppleDevice = navigator.userAgent.includes('Macintosh');
     const isTouchScreen = navigator.maxTouchPoints >= 4; // true for iOS 13 (and hopefully beyond)
@@ -41,7 +51,7 @@ export const PluginConfig = {
         EnableWboit: item('plugin-config.enable-wboit', true),
         // as of Oct 1 2021, WebGL 2 doesn't work on iOS 15.
         // TODO: check back in a few weeks to see if it was fixed
-        PreferWebGl1: item('plugin-config.prefer-webgl1', is_iOS()),
+        PreferWebGl1: item('plugin-config.prefer-webgl1', preferWebGl1()),
     },
     State: {
         DefaultServer: item('plugin-state.server', 'https://webchem.ncbr.muni.cz/molstar-state'),
