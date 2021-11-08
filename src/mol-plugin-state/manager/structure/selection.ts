@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -22,6 +22,7 @@ import { PluginStateObject as PSO } from '../../objects';
 import { UUID } from '../../../mol-util';
 import { StructureRef } from './hierarchy-state';
 import { Boundary } from '../../../mol-math/geometry/boundary';
+import { iterableToArray } from '../../../mol-data/util';
 
 interface StructureSelectionManagerState {
     entries: Map<string, SelectionEntry>,
@@ -405,14 +406,8 @@ export class StructureSelectionManager extends StatefulPluginComponent<Structure
     }
 
     getPrincipalAxes(): PrincipalAxes {
-        const elementCount = this.elementCount();
-        const positions = new Float32Array(3 * elementCount);
-        let offset = 0;
-        this.entries.forEach(v => {
-            StructureElement.Loci.toPositionsArray(v.selection, positions, offset);
-            offset += StructureElement.Loci.size(v.selection) * 3;
-        });
-        return PrincipalAxes.ofPositions(positions);
+        const values = iterableToArray(this.entries.values());
+        return StructureElement.Loci.getPrincipalAxesMany(values.map(v => v.selection));
     }
 
     modify(modifier: StructureSelectionModifier, loci: Loci) {

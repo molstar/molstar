@@ -65,12 +65,16 @@ export namespace RepresentationProvider {
 
 export type AnyRepresentationProvider = RepresentationProvider<any, {}, Representation.State>
 
-const EmptyRepresentationProvider = {
+export const EmptyRepresentationProvider: RepresentationProvider = {
+    name: '',
     label: '',
     description: '',
     factory: () => Representation.Empty,
     getParams: () => ({}),
-    defaultValues: {}
+    defaultValues: {},
+    defaultColorTheme: ColorTheme.EmptyProvider,
+    defaultSizeTheme: SizeTheme.EmptyProvider,
+    isApplicable: () => true
 };
 
 function getTypes(list: { name: string, provider: RepresentationProvider<any, any, any> }[]) {
@@ -114,7 +118,7 @@ export class RepresentationRegistry<D, S extends Representation.State> {
     }
 
     get<P extends PD.Params>(name: string): RepresentationProvider<D, P, S> {
-        return this._map.get(name) || EmptyRepresentationProvider as unknown as RepresentationProvider<D, P, S>;
+        return this._map.get(name) || EmptyRepresentationProvider;
     }
 
     get list() {

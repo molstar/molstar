@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -28,7 +28,7 @@ import { BaseGeometry } from '../../mol-geo/geometry/base';
 import { Script } from '../../mol-script/script';
 import { UnitcellParams, UnitcellRepresentation, getUnitcellData } from '../../mol-repr/shape/model/unitcell';
 import { DistanceParams, DistanceRepresentation } from '../../mol-repr/shape/loci/distance';
-import { getDistanceDataFromStructureSelections, getLabelDataFromStructureSelections, getOrientationDataFromStructureSelections, getAngleDataFromStructureSelections, getDihedralDataFromStructureSelections } from './helpers';
+import { getDistanceDataFromStructureSelections, getLabelDataFromStructureSelections, getOrientationDataFromStructureSelections, getAngleDataFromStructureSelections, getDihedralDataFromStructureSelections, getPlaneDataFromStructureSelections } from './helpers';
 import { LabelParams, LabelRepresentation } from '../../mol-repr/shape/loci/label';
 import { OrientationRepresentation, OrientationParams } from '../../mol-repr/shape/loci/orientation';
 import { AngleParams, AngleRepresentation } from '../../mol-repr/shape/loci/angle';
@@ -40,6 +40,7 @@ import { Mesh } from '../../mol-geo/geometry/mesh/mesh';
 import { getBoxMesh } from './shape';
 import { Shape } from '../../mol-model/shape';
 import { Box3D } from '../../mol-math/geometry';
+import { PlaneParams, PlaneRepresentation } from '../../mol-repr/shape/loci/plane';
 
 export { StructureRepresentation3D };
 export { ExplodeStructureRepresentation3D };
@@ -981,6 +982,39 @@ const StructureSelectionsOrientation3D = PluginStateTransform.BuiltIn({
         return Task.create('Structure Orientation', async ctx => {
             const props = { ...b.data.repr.props, ...newParams };
             const data = getOrientationDataFromStructureSelections(a.data);
+            await b.data.repr.createOrUpdate(props, data).runInContext(ctx);
+            b.data.sourceData = data;
+            return StateTransformer.UpdateResult.Updated;
+        });
+    },
+});
+
+export { StructureSelectionsPlane3D };
+type StructureSelectionsPlane3D = typeof StructureSelectionsPlane3D
+const StructureSelectionsPlane3D = PluginStateTransform.BuiltIn({
+    name: 'structure-selections-plane-3d',
+    display: '3D Plane',
+    from: SO.Molecule.Structure.Selections,
+    to: SO.Shape.Representation3D,
+    params: () => ({
+        ...PlaneParams,
+    })
+})({
+    canAutoUpdate({ oldParams, newParams }) {
+        return true;
+    },
+    apply({ a, params }, plugin: PluginContext) {
+        return Task.create('Structure Plane', async ctx => {
+            const data = getPlaneDataFromStructureSelections(a.data);
+            const repr = PlaneRepresentation({ webgl: plugin.canvas3d?.webgl, ...plugin.representation.structure.themes }, () => PlaneParams);
+            await repr.createOrUpdate(params, data).runInContext(ctx);
+            return new SO.Shape.Representation3D({ repr, sourceData: data }, { label: `Plane` });
+        });
+    },
+    update({ a, b, oldParams, newParams }, plugin: PluginContext) {
+        return Task.create('Structure Plane', async ctx => {
+            const props = { ...b.data.repr.props, ...newParams };
+            const data = getPlaneDataFromStructureSelections(a.data);
             await b.data.repr.createOrUpdate(props, data).runInContext(ctx);
             b.data.sourceData = data;
             return StateTransformer.UpdateResult.Updated;

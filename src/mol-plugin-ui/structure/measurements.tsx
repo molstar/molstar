@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -15,7 +15,8 @@ import { AngleData } from '../../mol-repr/shape/loci/angle';
 import { DihedralData } from '../../mol-repr/shape/loci/dihedral';
 import { DistanceData } from '../../mol-repr/shape/loci/distance';
 import { LabelData } from '../../mol-repr/shape/loci/label';
-import { angleLabel, dihedralLabel, distanceLabel, lociLabel } from '../../mol-theme/label';
+import { OrientationData } from '../../mol-repr/shape/loci/orientation';
+import { angleLabel, dihedralLabel, distanceLabel, lociLabel, structureElementLociLabelMany } from '../../mol-theme/label';
 import { FiniteArray } from '../../mol-util/type-helpers';
 import { CollapsableControls, PurePluginUIComponent } from '../base';
 import { ActionMenu } from '../controls/action-menu';
@@ -61,12 +62,13 @@ export class MeasurementList extends PurePluginUIComponent {
 
     render() {
         const measurements = this.plugin.managers.structure.measurement.state;
-
         return <div style={{ marginTop: '6px' }}>
             {this.renderGroup(measurements.labels, 'Labels')}
             {this.renderGroup(measurements.distances, 'Distances')}
             {this.renderGroup(measurements.angles, 'Angles')}
             {this.renderGroup(measurements.dihedrals, 'Dihedrals')}
+            {this.renderGroup(measurements.orientations, 'Orientations')}
+            {this.renderGroup(measurements.planes, 'Planes')}
         </div>;
     }
 }
@@ -77,11 +79,39 @@ export class MeasurementControls extends PurePluginUIComponent<{}, { isBusy: boo
     componentDidMount() {
         this.subscribe(this.selection.events.additionsHistoryUpdated, () => {
             this.forceUpdate();
+            this.updateOrderLabels();
         });
 
         this.subscribe(this.plugin.behaviors.state.isBusy, v => {
             this.setState({ isBusy: v });
         });
+    }
+
+    componentWillUnmount() {
+        this.clearOrderLabels();
+        super.componentWillUnmount();
+    }
+
+    componentDidUpdate(prevProps: {}, prevState: { isBusy: boolean, action?: 'add' | 'options' }) {
+        if (this.state.action !== prevState.action)
+            this.updateOrderLabels();
+    }
+
+    clearOrderLabels() {
+        this.plugin.managers.structure.measurement.addOrderLabels([]);
+    }
+
+    updateOrderLabels() {
+        if (this.state.action !== 'add') {
+            this.clearOrderLabels();
+            return;
+        }
+
+        const locis = [];
+        const history = this.selection.additionsHistory;
+        for (let idx = 0; idx < history.length && idx < 4; idx++)
+            locis.push(history[idx].loci);
+        this.plugin.managers.structure.measurement.addOrderLabels(locis);
     }
 
     get selection() {
@@ -108,13 +138,31 @@ export class MeasurementControls extends PurePluginUIComponent<{}, { isBusy: boo
         this.plugin.managers.structure.measurement.addLabel(loci[0].loci);
     }
 
+    addOrientation = () => {
+        const locis: StructureElement.Loci[] = [];
+        this.plugin.managers.structure.selection.entries.forEach(v => {
+            locis.push(v.selection);
+        });
+        this.plugin.managers.structure.measurement.addOrientation(locis);
+    }
+
+    addPlane = () => {
+        const locis: StructureElement.Loci[] = [];
+        this.plugin.managers.structure.selection.entries.forEach(v => {
+            locis.push(v.selection);
+        });
+        this.plugin.managers.structure.measurement.addPlane(locis);
+    }
+
     get actions(): ActionMenu.Items {
         const history = this.selection.additionsHistory;
         const ret: ActionMenu.Item[] = [
-            { kind: 'item', label: `Label ${history.length === 0 ? ' (1 selection required)' : ' (1st selection)'}`, value: this.addLabel, disabled: history.length === 0 },
-            { kind: 'item', label: `Distance ${history.length < 2 ? ' (2 selections required)' : ' (top 2 selections)'}`, value: this.measureDistance, disabled: history.length < 2 },
-            { kind: 'item', label: `Angle ${history.length < 3 ? ' (3 selections required)' : ' (top 3 selections)'}`, value: this.measureAngle, disabled: history.length < 3 },
-            { kind: 'item', label: `Dihedral ${history.length < 4 ? ' (4 selections required)' : ' (top 4 selections)'}`, value: this.measureDihedral, disabled: history.length < 4 },
+            { kind: 'item', label: `Label ${history.length === 0 ? ' (1 selection item required)' : ' (1st selection item)'}`, value: this.addLabel, disabled: history.length === 0 },
+            { kind: 'item', label: `Distance ${history.length < 2 ? ' (2 selection items required)' : ' (top 2 selection items)'}`, value: this.measureDistance, disabled: history.length < 2 },
+            { kind: 'item', label: `Angle ${history.length < 3 ? ' (3 selection items required)' : ' (top 3 items)'}`, value: this.measureAngle, disabled: history.length < 3 },
+            { kind: 'item', label: `Dihedral ${history.length < 4 ? ' (4 selection items required)' : ' (top 4 selection items)'}`, value: this.measureDihedral, disabled: history.length < 4 },
+            { kind: 'item', label: `Orientation ${history.length === 0 ? ' (selection required)' : ' (current selection)'}`, value: this.addOrientation, disabled: history.length === 0 },
+            { kind: 'item', label: `Plane ${history.length === 0 ? ' (selection required)' : ' (current selection)'}`, value: this.addPlane, disabled: history.length === 0 },
         ];
         return ret;
     }
@@ -142,8 +190,8 @@ export class MeasurementControls extends PurePluginUIComponent<{}, { isBusy: boo
 
     historyEntry(e: StructureSelectionHistoryEntry, idx: number) {
         const history = this.plugin.managers.structure.selection.additionsHistory;
-        return <div className='msp-flex-row' key={e.id}>
-            <Button noOverflow title='Click to focus. Hover to highlight.' onClick={() => this.focusLoci(e.loci)} style={{ width: 'auto', textAlign: 'left' }} onMouseEnter={() => this.highlight(e.loci)} onMouseLeave={() => this.plugin.managers.interactivity.lociHighlights.clearHighlights()}>
+        return <div className='msp-flex-row' key={e.id} onMouseEnter={() => this.highlight(e.loci)} onMouseLeave={() => this.plugin.managers.interactivity.lociHighlights.clearHighlights()}>
+            <Button noOverflow title='Click to focus. Hover to highlight.' onClick={() => this.focusLoci(e.loci)} style={{ width: 'auto', textAlign: 'left' }}>
                 {idx}. <span dangerouslySetInnerHTML={{ __html: e.label }} />
             </Button>
             {history.length > 1 && <IconButton svg={ArrowUpwardSvg} small={true} className='msp-form-control' onClick={() => this.moveHistory(e, 'up')} flex='20px' title={'Move up'} />}
@@ -219,7 +267,7 @@ class MeasurementEntry extends PurePluginUIComponent<{ cell: StructureMeasuremen
     }
 
     get selections() {
-        return this.props.cell.obj?.data.sourceData as Partial<DistanceData & AngleData & DihedralData & LabelData> | undefined;
+        return this.props.cell.obj?.data.sourceData as Partial<DistanceData & AngleData & DihedralData & LabelData & OrientationData> | undefined;
     }
 
     delete = () => {
@@ -266,6 +314,7 @@ class MeasurementEntry extends PurePluginUIComponent<{ cell: StructureMeasuremen
         if (selections.pairs) return selections.pairs[0].loci;
         if (selections.triples) return selections.triples[0].loci;
         if (selections.quads) return selections.quads[0].loci;
+        if (selections.locis) return selections.locis;
         return [];
     }
 
@@ -277,6 +326,7 @@ class MeasurementEntry extends PurePluginUIComponent<{ cell: StructureMeasuremen
         if (selections.pairs) return distanceLabel(selections.pairs[0], { condensed: true, unitLabel: this.plugin.managers.structure.measurement.state.options.distanceUnitLabel });
         if (selections.triples) return angleLabel(selections.triples[0], { condensed: true });
         if (selections.quads) return dihedralLabel(selections.quads[0], { condensed: true });
+        if (selections.locis) return structureElementLociLabelMany(selections.locis, { countsOnly: true });
         return '<empty>';
     }
 

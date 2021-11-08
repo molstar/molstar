@@ -6,9 +6,14 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Add additional measurement controls: orientation (box, axes, ellipsoid) & plane (best fit)
 - Improve aromatic bond visuals (add ``aromaticScale``, ``aromaticSpacing``, ``aromaticDashCount`` params)
 - [Breaking] Change ``adjustCylinderLength`` default to ``false`` (set to true for focus representation)
 - Fix marker highlight color overriding select color
+- CellPack extension update
+    - add binary model support
+    - add compartment (including membrane) geometry support
+    - add latest mycoplasma model example
 
 ## [v2.3.5] - 2021-10-19
 

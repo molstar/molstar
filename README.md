@@ -122,9 +122,9 @@ and navigate to `build/viewer`
 
 **Convert any CIF to BinaryCIF**
 
-    node lib/servers/model/preprocess -i file.cif -ob file.bcif
+    node lib/commonjs/servers/model/preprocess -i file.cif -ob file.bcif
 
-To see all available commands, use ``node lib/servers/model/preprocess -h``.
+To see all available commands, use ``node lib/commonjs/servers/model/preprocess -h``.
 
 Or
 

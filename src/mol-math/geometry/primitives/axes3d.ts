@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -48,7 +48,7 @@ namespace Axes3D {
         return out;
     }
 
-    const tmpTransformMat3 = Mat3.zero();
+    const tmpTransformMat3 = Mat3();
     /** Transform axes with a Mat4 */
     export function transform(out: Axes3D, a: Axes3D, m: Mat4): Axes3D {
         Vec3.transformMat4(out.origin, a.origin, m);
@@ -56,6 +56,13 @@ namespace Axes3D {
         Vec3.transformMat3(out.dirA, a.dirA, n);
         Vec3.transformMat3(out.dirB, a.dirB, n);
         Vec3.transformMat3(out.dirC, a.dirC, n);
+        return out;
+    }
+
+    export function scale(out: Axes3D, a: Axes3D, scale: number): Axes3D {
+        Vec3.scale(out.dirA, a.dirA, scale);
+        Vec3.scale(out.dirB, a.dirB, scale);
+        Vec3.scale(out.dirC, a.dirC, scale);
         return out;
     }
 }

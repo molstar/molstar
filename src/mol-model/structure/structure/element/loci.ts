@@ -582,6 +582,20 @@ export namespace Loci {
         return PrincipalAxes.ofPositions(positions);
     }
 
+    export function getPrincipalAxesMany(locis: Loci[]): PrincipalAxes {
+        let elementCount = 0;
+        locis.forEach(l => {
+            elementCount += size(l);
+        });
+        const positions = new Float32Array(3 * elementCount);
+        let offset = 0;
+        locis.forEach(l => {
+            toPositionsArray(l, positions, offset);
+            offset += size(l) * 3;
+        });
+        return PrincipalAxes.ofPositions(positions);
+    }
+
     function sourceIndex(unit: Unit, element: ElementIndex) {
         return Unit.isAtomic(unit)
             ? unit.model.atomicHierarchy.atomSourceIndex.value(element)
