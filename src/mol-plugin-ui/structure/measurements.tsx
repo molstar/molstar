@@ -190,8 +190,8 @@ export class MeasurementControls extends PurePluginUIComponent<{}, { isBusy: boo
 
     historyEntry(e: StructureSelectionHistoryEntry, idx: number) {
         const history = this.plugin.managers.structure.selection.additionsHistory;
-        return <div className='msp-flex-row' key={e.id}>
-            <Button noOverflow title='Click to focus. Hover to highlight.' onClick={() => this.focusLoci(e.loci)} style={{ width: 'auto', textAlign: 'left' }} onMouseEnter={() => this.highlight(e.loci)} onMouseLeave={() => this.plugin.managers.interactivity.lociHighlights.clearHighlights()}>
+        return <div className='msp-flex-row' key={e.id} onMouseEnter={() => this.highlight(e.loci)} onMouseLeave={() => this.plugin.managers.interactivity.lociHighlights.clearHighlights()}>
+            <Button noOverflow title='Click to focus. Hover to highlight.' onClick={() => this.focusLoci(e.loci)} style={{ width: 'auto', textAlign: 'left' }}>
                 {idx}. <span dangerouslySetInnerHTML={{ __html: e.label }} />
             </Button>
             {history.length > 1 && <IconButton svg={ArrowUpwardSvg} small={true} className='msp-form-control' onClick={() => this.moveHistory(e, 'up')} flex='20px' title={'Move up'} />}
