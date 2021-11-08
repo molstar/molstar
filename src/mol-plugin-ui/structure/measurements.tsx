@@ -62,7 +62,6 @@ export class MeasurementList extends PurePluginUIComponent {
 
     render() {
         const measurements = this.plugin.managers.structure.measurement.state;
-
         return <div style={{ marginTop: '6px' }}>
             {this.renderGroup(measurements.labels, 'Labels')}
             {this.renderGroup(measurements.distances, 'Distances')}
@@ -80,11 +79,39 @@ export class MeasurementControls extends PurePluginUIComponent<{}, { isBusy: boo
     componentDidMount() {
         this.subscribe(this.selection.events.additionsHistoryUpdated, () => {
             this.forceUpdate();
+            this.updateOrderLabels();
         });
 
         this.subscribe(this.plugin.behaviors.state.isBusy, v => {
             this.setState({ isBusy: v });
         });
+    }
+
+    componentWillUnmount() {
+        this.clearOrderLabels();
+        super.componentWillUnmount();
+    }
+
+    componentDidUpdate(prevProps: {}, prevState: { isBusy: boolean, action?: 'add' | 'options' }) {
+        if (this.state.action !== prevState.action)
+            this.updateOrderLabels();
+    }
+
+    clearOrderLabels() {
+        this.plugin.managers.structure.measurement.addOrderLabels([]);
+    }
+
+    updateOrderLabels() {
+        if (this.state.action !== 'add') {
+            this.clearOrderLabels();
+            return;
+        }
+
+        const locis = [];
+        const history = this.selection.additionsHistory;
+        for (let idx = 0; idx < history.length && idx < 4; idx++)
+            locis.push(history[idx].loci);
+        this.plugin.managers.structure.measurement.addOrderLabels(locis);
     }
 
     get selection() {
@@ -163,8 +190,8 @@ export class MeasurementControls extends PurePluginUIComponent<{}, { isBusy: boo
 
     historyEntry(e: StructureSelectionHistoryEntry, idx: number) {
         const history = this.plugin.managers.structure.selection.additionsHistory;
-        return <div className='msp-flex-row' key={e.id}>
-            <Button noOverflow title='Click to focus. Hover to highlight.' onClick={() => this.focusLoci(e.loci)} style={{ width: 'auto', textAlign: 'left' }} onMouseEnter={() => this.highlight(e.loci)} onMouseLeave={() => this.plugin.managers.interactivity.lociHighlights.clearHighlights()}>
+        return <div className='msp-flex-row' key={e.id} onMouseEnter={() => this.highlight(e.loci)} onMouseLeave={() => this.plugin.managers.interactivity.lociHighlights.clearHighlights()}>
+            <Button noOverflow title='Click to focus. Hover to highlight.' onClick={() => this.focusLoci(e.loci)} style={{ width: 'auto', textAlign: 'left' }}>
                 {idx}. <span dangerouslySetInnerHTML={{ __html: e.label }} />
             </Button>
             {history.length > 1 && <IconButton svg={ArrowUpwardSvg} small={true} className='msp-form-control' onClick={() => this.moveHistory(e, 'up')} flex='20px' title={'Move up'} />}
