@@ -96,6 +96,7 @@
     "@graphql-codegen/typescript-graphql-request": "^4.1.4",
     "@graphql-codegen/typescript-operations": "^2.1.6",
     "@types/cors": "^2.8.12",
+    "@types/gl": "^4.1.0",
     "@typescript-eslint/eslint-plugin": "^4.32.0",
     "@typescript-eslint/parser": "^4.32.0",
     "benchmark": "^2.1.4",
@@ -151,5 +152,8 @@
     "tslib": "^2.3.1",
     "util.promisify": "^1.1.1",
     "xhr2": "^0.2.1"
+  },
+  "optionalDependencies": {
+    "gl": "^4.9.2"
   }
 }
