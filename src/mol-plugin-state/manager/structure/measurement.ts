@@ -308,8 +308,8 @@ class StructureMeasurementManager extends StatefulPluginComponent<StructureMeasu
                 .apply(StateTransforms.Representation.StructureSelectionsLabel3D, {
                     textColor: Color.fromRgb(255, 255, 255),
                     borderColor: Color.fromRgb(0, 0, 0),
-                    borderWidth: 0.5,
                     textSize: 0.33,
+                    borderWidth: 0.3,
                     customText: `${order++}`
                 }, { tags: MeasurementOrderLabelTag });
         }
