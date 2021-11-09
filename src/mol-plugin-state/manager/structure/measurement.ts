@@ -310,6 +310,7 @@ class StructureMeasurementManager extends StatefulPluginComponent<StructureMeasu
                     borderColor: Color.fromRgb(0, 0, 0),
                     textSize: 0.33,
                     borderWidth: 0.3,
+                    offsetZ: 0.75,
                     customText: `${order++}`
                 }, { tags: MeasurementOrderLabelTag });
         }
