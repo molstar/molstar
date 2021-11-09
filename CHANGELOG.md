@@ -6,6 +6,9 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Added ``ViewerOptions.collapseRightPanel``
+- Added ``Viewer.loadTrajectory`` to support loading "composed" trajectories (e.g. from gro + xtc)
+
 ## [v2.3.6] - 2021-11-8
 
 - Add additional measurement controls: orientation (box, axes, ellipsoid) & plane (best fit)
