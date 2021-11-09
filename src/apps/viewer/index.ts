@@ -30,7 +30,7 @@ import { PluginCommands } from '../../mol-plugin/commands';
 import { PluginConfig } from '../../mol-plugin/config';
 import { PluginSpec } from '../../mol-plugin/spec';
 import { PluginState } from '../../mol-plugin/state';
-import { StateObjectSelector } from '../../mol-state';
+import { StateObjectSelector, StateTransformer } from '../../mol-state';
 import { Asset } from '../../mol-util/assets';
 import { Color } from '../../mol-util/color';
 import '../../mol-util/polyfill';
@@ -38,6 +38,13 @@ import { ObjectKeys } from '../../mol-util/type-helpers';
 import './embedded.html';
 import './favicon.ico';
 import './index.html';
+import { ParamDefinition } from '../../mol-util/param-definition';
+import { Task } from '../../mol-task';
+import { Coordinates, Time } from '../../mol-model/structure';
+import { PluginContext } from '../../mol-plugin/context';
+import { TrajectoryFromModelAndCoordinates } from '../../mol-plugin-state/transforms/model';
+import { BuildInStructureFormat } from '../../mol-plugin-state/formats/structure';
+import { PresetTrajectoryHierarchy } from '../../mol-plugin-state/builder/structure/hierarchy-preset';
 
 require('mol-plugin-ui/skin/light.scss');
 
@@ -328,6 +335,56 @@ export class Viewer {
         });
     }
 
+    /**
+     * @example
+     *  viewer.loadTrajectory({
+     *      model: { kind: 'model-url', url: 'villin.gro', format: 'gro' },
+     *      coordinates: { kind: 'coordinates-url', url: 'villin.xtc', format: 'xtc', isBinary: true },
+     *      preset: 'all-models' // or 'default'
+     *  });
+     */
+    async loadTrajectory(params: LoadTrajectoryParams) {
+        const plugin = this.plugin;
+
+        let model: StateObjectSelector, coords: StateObjectSelector;
+
+        if (params.model.kind === 'model-data' || params.model.kind === 'model-url') {
+            const data = params.model.kind === 'model-data'
+                ? await plugin.builders.data.rawData({ data: params.model.data, label: params.modelLabel })
+                : await plugin.builders.data.download({ url: params.model.url, isBinary: params.model.isBinary, label: params.modelLabel });
+
+            const trajectory = await plugin.builders.structure.parseTrajectory(data, params.model.format ?? 'mmcif');
+            model = await plugin.builders.structure.createModel(trajectory);
+        } else {
+            const data = params.model.kind === 'topology-data'
+                ? await plugin.builders.data.rawData({ data: params.model.data, label: params.modelLabel })
+                : await plugin.builders.data.download({ url: params.model.url, isBinary: params.model.isBinary, label: params.modelLabel });
+
+            const provider = plugin.dataFormats.get(params.model.format);
+            model = await provider!.parse(plugin, data);
+        }
+
+        {
+            const data = params.coordinates.kind === 'coordinates-data'
+                ? await plugin.builders.data.rawData({ data: params.coordinates.data, label: params.coordinatesLabel })
+                : await plugin.builders.data.download({ url: params.coordinates.url, isBinary: params.coordinates.isBinary, label: params.coordinatesLabel });
+
+            const provider = plugin.dataFormats.get(params.coordinates.format);
+            coords = await provider!.parse(plugin, data);
+        }
+
+        const trajectory = await plugin.build().toRoot()
+            .apply(TrajectoryFromModelAndCoordinates, {
+                modelRef: model.ref,
+                coordinatesRef: coords.ref
+            }, { dependsOn: [model.ref, coords.ref] })
+            .commit();
+
+        const preset = await plugin.builders.structure.hierarchy.applyPreset(trajectory, params.preset ?? 'default');
+
+        return { model, coords, preset };
+    }
+
     handleResize() {
         this.plugin.layout.events.updated.next(void 0);
     }
@@ -343,4 +400,16 @@ export interface VolumeIsovalueInfo {
     color: Color,
     alpha?: number,
     volumeIndex?: number
+}
+
+export interface LoadTrajectoryParams {
+    model: { kind: 'model-url', url: string, format?: BuiltInTrajectoryFormat /* mmcif */, isBinary?: boolean }
+    | { kind: 'model-data', data: string | number[] | ArrayBuffer | Uint8Array, format?: BuiltInTrajectoryFormat /* mmcif */ }
+    | { kind: 'topology-url', url: string, format: BuildInStructureFormat, isBinary?: boolean }
+    | { kind: 'topology-data', data: string | number[] | ArrayBuffer | Uint8Array, format: BuildInStructureFormat },
+    modelLabel?: string,
+    coordinates: { kind: 'coordinates-url', url: string, format: BuildInStructureFormat, isBinary?: boolean }
+    | { kind: 'coordinates-data', data: string | number[] | ArrayBuffer | Uint8Array, format: BuildInStructureFormat },
+    coordinatesLabel?: string,
+    preset?: keyof PresetTrajectoryHierarchy
 }
