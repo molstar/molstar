@@ -9,28 +9,31 @@ import { ANVILMembraneOrientation } from '../../extensions/anvil/behavior';
 import { CellPack } from '../../extensions/cellpack';
 import { DnatcoConfalPyramids } from '../../extensions/dnatco';
 import { G3DFormat, G3dProvider } from '../../extensions/g3d/format';
-import { Mp4Export } from '../../extensions/mp4-export';
 import { GeometryExport } from '../../extensions/geo-export';
+import { Mp4Export } from '../../extensions/mp4-export';
 import { PDBeStructureQualityReport } from '../../extensions/pdbe';
 import { RCSBAssemblySymmetry, RCSBValidationReport } from '../../extensions/rcsb';
 import { DownloadStructure, PdbDownloadProvider } from '../../mol-plugin-state/actions/structure';
 import { DownloadDensity } from '../../mol-plugin-state/actions/volume';
+import { PresetTrajectoryHierarchy } from '../../mol-plugin-state/builder/structure/hierarchy-preset';
 import { StructureRepresentationPresetProvider } from '../../mol-plugin-state/builder/structure/representation-preset';
 import { DataFormatProvider } from '../../mol-plugin-state/formats/provider';
+import { BuildInStructureFormat } from '../../mol-plugin-state/formats/structure';
 import { BuiltInTrajectoryFormat } from '../../mol-plugin-state/formats/trajectory';
 import { BuildInVolumeFormat } from '../../mol-plugin-state/formats/volume';
 import { createVolumeRepresentationParams } from '../../mol-plugin-state/helpers/volume-representation-params';
 import { PluginStateObject } from '../../mol-plugin-state/objects';
 import { StateTransforms } from '../../mol-plugin-state/transforms';
+import { TrajectoryFromModelAndCoordinates } from '../../mol-plugin-state/transforms/model';
 import { createPlugin } from '../../mol-plugin-ui';
 import { PluginUIContext } from '../../mol-plugin-ui/context';
-import { PluginLayoutControlsDisplay } from '../../mol-plugin/layout';
 import { DefaultPluginUISpec, PluginUISpec } from '../../mol-plugin-ui/spec';
 import { PluginCommands } from '../../mol-plugin/commands';
 import { PluginConfig } from '../../mol-plugin/config';
+import { PluginLayoutControlsDisplay } from '../../mol-plugin/layout';
 import { PluginSpec } from '../../mol-plugin/spec';
 import { PluginState } from '../../mol-plugin/state';
-import { StateObjectSelector, StateTransformer } from '../../mol-state';
+import { StateObjectSelector } from '../../mol-state';
 import { Asset } from '../../mol-util/assets';
 import { Color } from '../../mol-util/color';
 import '../../mol-util/polyfill';
@@ -38,13 +41,6 @@ import { ObjectKeys } from '../../mol-util/type-helpers';
 import './embedded.html';
 import './favicon.ico';
 import './index.html';
-import { ParamDefinition } from '../../mol-util/param-definition';
-import { Task } from '../../mol-task';
-import { Coordinates, Time } from '../../mol-model/structure';
-import { PluginContext } from '../../mol-plugin/context';
-import { TrajectoryFromModelAndCoordinates } from '../../mol-plugin-state/transforms/model';
-import { BuildInStructureFormat } from '../../mol-plugin-state/formats/structure';
-import { PresetTrajectoryHierarchy } from '../../mol-plugin-state/builder/structure/hierarchy-preset';
 
 require('mol-plugin-ui/skin/light.scss');
 
@@ -78,6 +74,7 @@ const DefaultViewerOptions = {
     layoutShowLog: true,
     layoutShowLeftPanel: true,
     collapseLeftPanel: false,
+    collapseRightPanel: false,
     disableAntialiasing: PluginConfig.General.DisableAntialiasing.defaultValue,
     pixelScale: PluginConfig.General.PixelScale.defaultValue,
     pickScale: PluginConfig.General.PickScale.defaultValue,
@@ -121,7 +118,7 @@ export class Viewer {
                     regionState: {
                         bottom: 'full',
                         left: o.collapseLeftPanel ? 'collapsed' : 'full',
-                        right: 'full',
+                        right: o.collapseRightPanel ? 'hidden' : 'full',
                         top: 'full',
                     }
                 },
