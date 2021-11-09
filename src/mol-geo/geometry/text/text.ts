@@ -245,7 +245,7 @@ export namespace Text {
             ...BaseGeometry.createValues(props, counts),
             uSizeFactor: ValueCell.create(props.sizeFactor),
 
-            uBorderWidth: ValueCell.create(clamp(props.borderWidth / 2, 0, 0.5)),
+            uBorderWidth: ValueCell.create(clamp(props.borderWidth, 0, 0.5)),
             uBorderColor: ValueCell.create(Color.toArrayNormalized(props.borderColor, Vec3.zero(), 0)),
             uOffsetX: ValueCell.create(props.offsetX),
             uOffsetY: ValueCell.create(props.offsetY),
