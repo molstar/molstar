@@ -17,10 +17,12 @@ import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { MeasurementRepresentationCommonTextParams, LociLabelTextParams } from '../../../mol-repr/shape/loci/common';
 import { LineParams } from '../../../mol-repr/structure/representation/line';
 import { Expression } from '../../../mol-script/language/expression';
+import { Color } from '../../../mol-util/color';
 
 export { StructureMeasurementManager };
 
 export const MeasurementGroupTag = 'measurement-group';
+export const MeasurementOrderLabelTag = 'measurement-order-label';
 
 export type StructureMeasurementCell = StateObjectCell<PluginStateObject.Shape.Representation3D, StateTransform<StateTransformer<PluginStateObject.Molecule.Structure.Selections, PluginStateObject.Shape.Representation3D, any>>>
 
@@ -281,6 +283,42 @@ class StructureMeasurementManager extends StatefulPluginComponent<StructureMeasu
         await PluginCommands.State.Update(this.plugin, { state, tree: update, options: { doNotLogTiming: true } });
     }
 
+    async addOrderLabels(locis: StructureElement.Loci[]) {
+        const update = this.getGroup();
+
+        const current = this.plugin.state.data.select(StateSelection.Generators.ofType(PluginStateObject.Molecule.Structure.Selections).withTag(MeasurementOrderLabelTag));
+        for (const obj of current)
+            update.delete(obj);
+
+        let order = 1;
+        for (const loci of locis) {
+            const cell = this.plugin.helpers.substructureParent.get(loci.structure);
+            if (!cell) continue;
+
+            const dependsOn = [cell.transform.ref];
+
+            update
+                .apply(StateTransforms.Model.MultiStructureSelectionFromExpression, {
+                    selections: [
+                        { key: 'a', ref: cell.transform.ref, expression: StructureElement.Loci.toExpression(loci) },
+                    ],
+                    isTransitive: true,
+                    label: 'Order'
+                }, { dependsOn, tags: MeasurementOrderLabelTag })
+                .apply(StateTransforms.Representation.StructureSelectionsLabel3D, {
+                    textColor: Color.fromRgb(255, 255, 255),
+                    borderColor: Color.fromRgb(0, 0, 0),
+                    textSize: 0.33,
+                    borderWidth: 0.3,
+                    offsetZ: 0.75,
+                    customText: `${order++}`
+                }, { tags: MeasurementOrderLabelTag });
+        }
+
+        const state = this.plugin.state.data;
+        await PluginCommands.State.Update(this.plugin, { state, tree: update, options: { doNotLogTiming: true } });
+    }
+
     private _empty: any[] = [];
     private getTransforms<T extends StateTransformer<A, B, any>, A extends PluginStateObject.Molecule.Structure.Selections, B extends StateObject>(transformer: T) {
         const state = this.plugin.state.data;
@@ -291,8 +329,15 @@ class StructureMeasurementManager extends StatefulPluginComponent<StructureMeasu
     }
 
     private sync() {
+        const labels = [];
+        for (const cell of this.getTransforms(StateTransforms.Representation.StructureSelectionsLabel3D) as StructureMeasurementCell[]) {
+            const tags = (cell.obj as any)['tags'] as string[];
+            if (!tags || !tags.includes(MeasurementOrderLabelTag))
+                labels.push(cell);
+        }
+
         const updated = this.updateState({
-            labels: this.getTransforms(StateTransforms.Representation.StructureSelectionsLabel3D),
+            labels,
             distances: this.getTransforms(StateTransforms.Representation.StructureSelectionsDistance3D),
             angles: this.getTransforms(StateTransforms.Representation.StructureSelectionsAngle3D),
             dihedrals: this.getTransforms(StateTransforms.Representation.StructureSelectionsDihedral3D),

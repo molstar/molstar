@@ -6,6 +6,11 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Added ``ViewerOptions.collapseRightPanel``
+- Added ``Viewer.loadTrajectory`` to support loading "composed" trajectories (e.g. from gro + xtc)
+
+## [v2.3.6] - 2021-11-8
+
 - Add additional measurement controls: orientation (box, axes, ellipsoid) & plane (best fit)
 - Improve aromatic bond visuals (add ``aromaticScale``, ``aromaticSpacing``, ``aromaticDashCount`` params)
 - [Breaking] Change ``adjustCylinderLength`` default to ``false`` (set to true for focus representation)
@@ -14,6 +19,7 @@ Note that since we don't clearly distinguish between a public and private interf
     - add binary model support
     - add compartment (including membrane) geometry support
     - add latest mycoplasma model example
+- Prefer WebGL1 in Safari 15.1.
 
 ## [v2.3.5] - 2021-10-19
 

@@ -9,25 +9,28 @@ import { ANVILMembraneOrientation } from '../../extensions/anvil/behavior';
 import { CellPack } from '../../extensions/cellpack';
 import { DnatcoConfalPyramids } from '../../extensions/dnatco';
 import { G3DFormat, G3dProvider } from '../../extensions/g3d/format';
-import { Mp4Export } from '../../extensions/mp4-export';
 import { GeometryExport } from '../../extensions/geo-export';
+import { Mp4Export } from '../../extensions/mp4-export';
 import { PDBeStructureQualityReport } from '../../extensions/pdbe';
 import { RCSBAssemblySymmetry, RCSBValidationReport } from '../../extensions/rcsb';
 import { DownloadStructure, PdbDownloadProvider } from '../../mol-plugin-state/actions/structure';
 import { DownloadDensity } from '../../mol-plugin-state/actions/volume';
+import { PresetTrajectoryHierarchy } from '../../mol-plugin-state/builder/structure/hierarchy-preset';
 import { StructureRepresentationPresetProvider } from '../../mol-plugin-state/builder/structure/representation-preset';
 import { DataFormatProvider } from '../../mol-plugin-state/formats/provider';
+import { BuildInStructureFormat } from '../../mol-plugin-state/formats/structure';
 import { BuiltInTrajectoryFormat } from '../../mol-plugin-state/formats/trajectory';
 import { BuildInVolumeFormat } from '../../mol-plugin-state/formats/volume';
 import { createVolumeRepresentationParams } from '../../mol-plugin-state/helpers/volume-representation-params';
 import { PluginStateObject } from '../../mol-plugin-state/objects';
 import { StateTransforms } from '../../mol-plugin-state/transforms';
+import { TrajectoryFromModelAndCoordinates } from '../../mol-plugin-state/transforms/model';
 import { createPlugin } from '../../mol-plugin-ui';
 import { PluginUIContext } from '../../mol-plugin-ui/context';
-import { PluginLayoutControlsDisplay } from '../../mol-plugin/layout';
 import { DefaultPluginUISpec, PluginUISpec } from '../../mol-plugin-ui/spec';
 import { PluginCommands } from '../../mol-plugin/commands';
 import { PluginConfig } from '../../mol-plugin/config';
+import { PluginLayoutControlsDisplay } from '../../mol-plugin/layout';
 import { PluginSpec } from '../../mol-plugin/spec';
 import { PluginState } from '../../mol-plugin/state';
 import { StateObjectSelector } from '../../mol-state';
@@ -71,6 +74,7 @@ const DefaultViewerOptions = {
     layoutShowLog: true,
     layoutShowLeftPanel: true,
     collapseLeftPanel: false,
+    collapseRightPanel: false,
     disableAntialiasing: PluginConfig.General.DisableAntialiasing.defaultValue,
     pixelScale: PluginConfig.General.PixelScale.defaultValue,
     pickScale: PluginConfig.General.PickScale.defaultValue,
@@ -114,7 +118,7 @@ export class Viewer {
                     regionState: {
                         bottom: 'full',
                         left: o.collapseLeftPanel ? 'collapsed' : 'full',
-                        right: 'full',
+                        right: o.collapseRightPanel ? 'hidden' : 'full',
                         top: 'full',
                     }
                 },
@@ -328,6 +332,56 @@ export class Viewer {
         });
     }
 
+    /**
+     * @example
+     *  viewer.loadTrajectory({
+     *      model: { kind: 'model-url', url: 'villin.gro', format: 'gro' },
+     *      coordinates: { kind: 'coordinates-url', url: 'villin.xtc', format: 'xtc', isBinary: true },
+     *      preset: 'all-models' // or 'default'
+     *  });
+     */
+    async loadTrajectory(params: LoadTrajectoryParams) {
+        const plugin = this.plugin;
+
+        let model: StateObjectSelector, coords: StateObjectSelector;
+
+        if (params.model.kind === 'model-data' || params.model.kind === 'model-url') {
+            const data = params.model.kind === 'model-data'
+                ? await plugin.builders.data.rawData({ data: params.model.data, label: params.modelLabel })
+                : await plugin.builders.data.download({ url: params.model.url, isBinary: params.model.isBinary, label: params.modelLabel });
+
+            const trajectory = await plugin.builders.structure.parseTrajectory(data, params.model.format ?? 'mmcif');
+            model = await plugin.builders.structure.createModel(trajectory);
+        } else {
+            const data = params.model.kind === 'topology-data'
+                ? await plugin.builders.data.rawData({ data: params.model.data, label: params.modelLabel })
+                : await plugin.builders.data.download({ url: params.model.url, isBinary: params.model.isBinary, label: params.modelLabel });
+
+            const provider = plugin.dataFormats.get(params.model.format);
+            model = await provider!.parse(plugin, data);
+        }
+
+        {
+            const data = params.coordinates.kind === 'coordinates-data'
+                ? await plugin.builders.data.rawData({ data: params.coordinates.data, label: params.coordinatesLabel })
+                : await plugin.builders.data.download({ url: params.coordinates.url, isBinary: params.coordinates.isBinary, label: params.coordinatesLabel });
+
+            const provider = plugin.dataFormats.get(params.coordinates.format);
+            coords = await provider!.parse(plugin, data);
+        }
+
+        const trajectory = await plugin.build().toRoot()
+            .apply(TrajectoryFromModelAndCoordinates, {
+                modelRef: model.ref,
+                coordinatesRef: coords.ref
+            }, { dependsOn: [model.ref, coords.ref] })
+            .commit();
+
+        const preset = await plugin.builders.structure.hierarchy.applyPreset(trajectory, params.preset ?? 'default');
+
+        return { model, coords, preset };
+    }
+
     handleResize() {
         this.plugin.layout.events.updated.next(void 0);
     }
@@ -343,4 +397,16 @@ export interface VolumeIsovalueInfo {
     color: Color,
     alpha?: number,
     volumeIndex?: number
+}
+
+export interface LoadTrajectoryParams {
+    model: { kind: 'model-url', url: string, format?: BuiltInTrajectoryFormat /* mmcif */, isBinary?: boolean }
+    | { kind: 'model-data', data: string | number[] | ArrayBuffer | Uint8Array, format?: BuiltInTrajectoryFormat /* mmcif */ }
+    | { kind: 'topology-url', url: string, format: BuildInStructureFormat, isBinary?: boolean }
+    | { kind: 'topology-data', data: string | number[] | ArrayBuffer | Uint8Array, format: BuildInStructureFormat },
+    modelLabel?: string,
+    coordinates: { kind: 'coordinates-url', url: string, format: BuildInStructureFormat, isBinary?: boolean }
+    | { kind: 'coordinates-data', data: string | number[] | ArrayBuffer | Uint8Array, format: BuildInStructureFormat },
+    coordinatesLabel?: string,
+    preset?: keyof PresetTrajectoryHierarchy
 }
