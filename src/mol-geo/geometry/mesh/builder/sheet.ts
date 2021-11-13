@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -40,7 +40,7 @@ const v3set = Vec3.set;
 const caAdd3 = ChunkedArray.add3;
 const caAdd = ChunkedArray.add;
 
-function addCap(offset: number, state: MeshBuilder.State, controlPoints: ArrayLike<number>, normalVectors: ArrayLike<number>, binormalVectors: ArrayLike<number>, width: number, leftHeight: number, rightHeight: number) {
+function addCap(offset: number, state: MeshBuilder.State, controlPoints: ArrayLike<number>, normalVectors: ArrayLike<number>, binormalVectors: ArrayLike<number>, width: number, leftHeight: number, rightHeight: number, flip: boolean) {
     const { vertices, normals, indices } = state;
     const vertexCount = vertices.elementCount;
 
@@ -74,11 +74,19 @@ function addCap(offset: number, state: MeshBuilder.State, controlPoints: ArrayLi
         v3copy(verticalVector, verticalLeftVector);
     }
 
-    for (let i = 0; i < 4; ++i) {
-        caAdd3(normals, normalVector[0], normalVector[1], normalVector[2]);
+    if (flip) {
+        for (let i = 0; i < 4; ++i) {
+            caAdd3(normals, -normalVector[0], -normalVector[1], -normalVector[2]);
+        }
+        caAdd3(indices, vertexCount, vertexCount + 1, vertexCount + 2);
+        caAdd3(indices, vertexCount + 2, vertexCount + 3, vertexCount);
+    } else {
+        for (let i = 0; i < 4; ++i) {
+            caAdd3(normals, normalVector[0], normalVector[1], normalVector[2]);
+        }
+        caAdd3(indices, vertexCount + 2, vertexCount + 1, vertexCount);
+        caAdd3(indices, vertexCount, vertexCount + 3, vertexCount + 2);
     }
-    caAdd3(indices, vertexCount + 2, vertexCount + 1, vertexCount);
-    caAdd3(indices, vertexCount, vertexCount + 3, vertexCount + 2);
 }
 
 /** set arrowHeight = 0 for no arrow */
@@ -193,19 +201,18 @@ export function addSheet(state: MeshBuilder.State, controlPoints: ArrayLike<numb
         const width = widthValues[0];
         const height = heightValues[0];
         const h = arrowHeight === 0 ? height : arrowHeight;
-        addCap(0, state, controlPoints, normalVectors, binormalVectors, width, h, h);
+        addCap(0, state, controlPoints, normalVectors, binormalVectors, width, h, h, false);
     } else if (arrowHeight > 0) {
         const width = widthValues[0];
         const height = heightValues[0];
-        addCap(0, state, controlPoints, normalVectors, binormalVectors, width, arrowHeight, -height);
-        addCap(0, state, controlPoints, normalVectors, binormalVectors, width, -arrowHeight, height);
+        addCap(0, state, controlPoints, normalVectors, binormalVectors, width, arrowHeight, -height, false);
+        addCap(0, state, controlPoints, normalVectors, binormalVectors, width, -arrowHeight, height, false);
     }
 
     if (endCap && arrowHeight === 0) {
         const width = widthValues[linearSegments];
         const height = heightValues[linearSegments];
-        // use negative height to flip the direction the cap's triangles are facing
-        addCap(linearSegments * 3, state, controlPoints, normalVectors, binormalVectors, width, -height, -height);
+        addCap(linearSegments * 3, state, controlPoints, normalVectors, binormalVectors, width, height, height, true);
     }
 
     const addedVertexCount = (linearSegments + 1) * 8 +

@@ -355,8 +355,8 @@ class Structure {
         return this.models.indexOf(m);
     }
 
-    remapModel(m: Model) {
-        const { dynamicBonds, interUnitBonds } = this.state;
+    remapModel(m: Model): Structure {
+        const { dynamicBonds, interUnitBonds, parent } = this.state;
         const units: Unit[] = [];
         for (const ug of this.unitSymmetryGroups) {
             const unit = ug.units[0].remapModel(m, dynamicBonds);
@@ -367,6 +367,7 @@ class Structure {
             }
         }
         return Structure.create(units, {
+            parent: parent?.remapModel(m),
             label: this.label,
             interUnitBonds: dynamicBonds ? undefined : interUnitBonds,
             dynamicBonds
