@@ -1,3 +1,5 @@
+@use "sass:math";
+
 .msp-control-row {
     position: relative;
     height: $row-height;
@@ -184,7 +186,7 @@
         z-index: 100000;
         background: $default-background;
         border-top: 1px solid $default-background;
-        padding-bottom: $control-spacing / 2;
+        padding-bottom: math.div($control-spacing, 2);
         width: 100%;
 
         // input[type=text] {
@@ -195,8 +197,8 @@
 
 .msp-toggle-color-picker-above {
     .msp-color-picker {
-        top: -2 * 32px - 16px - $control-spacing / 2;
-        height: 2 * 32px + 16px + $control-spacing / 2;
+        top: -2 * 32px - 16px - math.div($control-spacing, 2);
+        height: 2 * 32px + 16px + math.div($control-spacing, 2);
     }
 }
 
@@ -208,10 +210,6 @@
 }
 
 .msp-control-offset {
-    // border-left-width: $control-spacing / 2;
-    // border-left-style: solid;
-    // border-left-color: color-increase-contrast($default-background, 10%);
-    // padding-left: 1px;
     padding-left: $control-spacing;
 }
 
@@ -228,7 +226,7 @@
 // }
 
 .msp-control-group-wrapper {
-    //border-left-width: $control-spacing / 2;
+    //border-left-width: math.div($control-spacing, 2);
     //border-left-style: solid;
     //border-left-color: color-increase-contrast($default-background, 10%);
 
@@ -240,10 +238,10 @@
 .msp-control-group-header {
     background: $default-background;
     > button, div {
-        padding-left: 4px; // $control-spacing / 2 !important;
+        padding-left: 4px; // math.div($control-spacing, 2) !important;
         text-align: left;
-        height: 24px !important; // 2 * $row-height / 3 !important;
-        line-height: 24px !important; // 2 * $row-height / 3 !important;
+        height: 24px !important;
+        line-height: 24px !important;
         font-size: 85% !important;
         background: $default-background !important;
         color: color-lower-contrast($font-color, 15%);
@@ -253,8 +251,8 @@
         line-height: 24px !important;
     }
     > span {
-        padding-left: $control-spacing / 2;
-        line-height: 2 * $row-height / 3;
+        padding-left: math.div($control-spacing, 2);
+        line-height: math.div(2 * $row-height, 3);
         font-size: 70%;
         background: $default-background;
         color: color-lower-contrast($font-color, 15%);
@@ -267,7 +265,7 @@
 
 .msp-control-group-footer {
     background: color-increase-contrast($default-background, 5%);
-    height: $control-spacing / 2;
+    height: math.div($control-spacing, 2);
     font-size: 1px;
     margin-top: 1px;
 }
@@ -339,7 +337,7 @@
     margin-top: 1px;
 
     > div {
-        padding: ($control-spacing / 2) $control-spacing;
+        padding: (math.div($control-spacing, 2)) $control-spacing;
         text-align: left;
         color: color-lower-contrast($font-color, 15%);
     }
@@ -359,7 +357,7 @@
         height: $control-spacing * 3;
 
         > span {
-            padding: $control-spacing / 2;
+            padding: math.div($control-spacing, 2);
             color: white;
             font-weight: bold;
             background-color: rgba(0, 0, 0, 0.2);
@@ -370,7 +368,7 @@
 .msp-table-legend {
     > div {
         // min-width: 60px;
-        margin-right: $control-spacing / 2;
+        margin-right: math.div($control-spacing, 2);
         display: inline-flex;
 
         .msp-table-legend-color {
@@ -379,7 +377,7 @@
         }
 
         .msp-table-legend-text {
-            margin: 0 ($control-spacing / 2);
+            margin: 0 (math.div($control-spacing, 2));
         }
     }
 }
