@@ -61,7 +61,7 @@ export function download(data: Blob | string, downloadName = 'download') {
                 open(data);
             }
         } else {
-            const url = URL.createObjectURL(data);
+            const url = URL.createObjectURL(typeof data === 'string' ? new Blob([data]) : data);
             location.href = url;
             setTimeout(() => URL.revokeObjectURL(url), 4E4); // 40s
         }

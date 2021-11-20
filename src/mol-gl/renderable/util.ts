@@ -91,7 +91,7 @@ export function printImageData(imageData: ImageData, options: Partial<PrintImage
     }
 
     canvas.toBlob(imgBlob => {
-        const objectURL = URL.createObjectURL(imgBlob);
+        const objectURL = URL.createObjectURL(imgBlob!);
         const existingImg = document.getElementById(o.id) as HTMLImageElement;
         const img = existingImg || document.createElement('img');
         img.id = o.id;
