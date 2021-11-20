@@ -6,6 +6,10 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Fix double canvas context creation (in plugin context)
+
+## [v2.3.7] - 2021-11-8
+
 - Added ``ViewerOptions.collapseRightPanel``
 - Added ``Viewer.loadTrajectory`` to support loading "composed" trajectories (e.g. from gro + xtc)
 - Fix: handle parent in Structure.remapModel
