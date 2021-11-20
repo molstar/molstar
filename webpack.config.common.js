@@ -1,8 +1,17 @@
 const path = require('path');
+const fs = require('fs');
 const webpack = require('webpack');
 const ExtraWatchWebpackPlugin = require('extra-watch-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
-const VersionFile = require('webpack-version-file-plugin');
+const VERSION = require('./package.json').version;
+
+class VersionFilePlugin {
+    apply() {
+        fs.writeFileSync(
+            path.resolve(__dirname, 'lib/mol-plugin/version.js'),
+            `export var PLUGIN_VERSION = '${VERSION}';\nexport var PLUGIN_VERSION_DATE = new Date(typeof __MOLSTAR_DEBUG_TIMESTAMP__ !== 'undefined' ? __MOLSTAR_DEBUG_TIMESTAMP__ : ${new Date().valueOf()});`);
+    }
+}
 
 const sharedConfig = {
     module: {
@@ -36,12 +45,7 @@ const sharedConfig = {
             '__MOLSTAR_DEBUG_TIMESTAMP__': webpack.DefinePlugin.runtimeValue(() => `${new Date().valueOf()}`, true)
         }),
         new MiniCssExtractPlugin({ filename: 'molstar.css' }),
-        new VersionFile({
-            extras: { timestamp: `${new Date().valueOf()}` },
-            packageFile: path.resolve(__dirname, 'package.json'),
-            templateString: `export var PLUGIN_VERSION = '<%= package.version %>';\nexport var PLUGIN_VERSION_DATE = new Date(typeof __MOLSTAR_DEBUG_TIMESTAMP__ !== 'undefined' ? __MOLSTAR_DEBUG_TIMESTAMP__ : <%= extras.timestamp %>);`,
-            outputFile: path.resolve(__dirname, 'lib/mol-plugin/version.js')
-        })
+        new VersionFilePlugin(),
     ],
     resolve: {
         modules: [
