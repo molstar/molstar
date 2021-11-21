@@ -114,7 +114,7 @@ export function createResources(gl: GLRenderingContext, state: WebGLState, stats
 
     return {
         attribute: (array: ArrayType, itemSize: AttributeItemSize, divisor: number, usageHint?: UsageHint) => {
-            return wrap('attribute', createAttributeBuffer(gl, extensions, array, itemSize, divisor, usageHint));
+            return wrap('attribute', createAttributeBuffer(gl, state, extensions, array, itemSize, divisor, usageHint));
         },
         elements: (array: ElementsType, usageHint?: UsageHint) => {
             return wrap('elements', createElementsBuffer(gl, array, usageHint));
