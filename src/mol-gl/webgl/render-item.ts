@@ -67,15 +67,9 @@ function createProgramVariant(ctx: WebGLContext, variant: string, defineValues: 
 
 //
 
-type ProgramVariants = { [k: string]: Program }
-type VertexArrayVariants = { [k: string]: VertexArray | null }
+type ProgramVariants = Record<string, Program>
+type VertexArrayVariants = Record<string, VertexArray | null>
 
-interface ValueChanges {
-    attributes: boolean
-    defines: boolean
-    elements: boolean
-    textures: boolean
-}
 function createValueChanges() {
     return {
         attributes: false,
@@ -84,6 +78,8 @@ function createValueChanges() {
         textures: false,
     };
 }
+type ValueChanges = ReturnType<typeof createValueChanges>
+
 function resetValueChanges(valueChanges: ValueChanges) {
     valueChanges.attributes = false;
     valueChanges.defines = false;
@@ -294,7 +290,11 @@ export function createRenderItem<T extends string>(ctx: WebGLContext, drawMode: 
             }
 
             if (elementsBuffer && values.elements.ref.version !== versions.elements) {
-                if (elementsBuffer.length >= values.elements.ref.value.length) {
+                if (elementsBuffer.length >= values.elements.ref.value.length &&
+                    // whenever a VAO update will be triggered, also recreate elements
+                    // workaround for https://bugs.chromium.org/p/chromium/issues/detail?id=1272238
+                    !(valueChanges.attributes || valueChanges.defines)
+                ) {
                     // console.log('elements array large enough to update', values.elements.ref.id, values.elements.ref.version);
                     elementsBuffer.updateSubData(values.elements.ref.value, 0, elementsBuffer.length);
                 } else {
