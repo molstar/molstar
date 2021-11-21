@@ -6,11 +6,13 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+## [v2.3.8] - 2021-11-20
+
 - Fix double canvas context creation (in plugin context)
 - Fix unused vertex attribute handling (track which are used, disable the rest)
 - Workaround for VAO issue in Chrome 96 (can cause WebGL to crash on geometry updates)
 
-## [v2.3.7] - 2021-11-8
+## [v2.3.7] - 2021-11-15
 
 - Added ``ViewerOptions.collapseRightPanel``
 - Added ``Viewer.loadTrajectory`` to support loading "composed" trajectories (e.g. from gro + xtc)
