@@ -6,6 +6,10 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+## [v2.3.9] - 2021-11-20
+
+- Workaround: switch off VAO support for now
+
 ## [v2.3.8] - 2021-11-20
 
 - Fix double canvas context creation (in plugin context)

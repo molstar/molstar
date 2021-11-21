@@ -290,11 +290,7 @@ export function createRenderItem<T extends string>(ctx: WebGLContext, drawMode: 
             }
 
             if (elementsBuffer && values.elements.ref.version !== versions.elements) {
-                if (elementsBuffer.length >= values.elements.ref.value.length &&
-                    // whenever a VAO update will be triggered, also recreate elements
-                    // workaround for https://bugs.chromium.org/p/chromium/issues/detail?id=1272238
-                    !(valueChanges.attributes || valueChanges.defines)
-                ) {
+                if (elementsBuffer.length >= values.elements.ref.value.length) {
                     // console.log('elements array large enough to update', values.elements.ref.id, values.elements.ref.version);
                     elementsBuffer.updateSubData(values.elements.ref.value, 0, elementsBuffer.length);
                 } else {
