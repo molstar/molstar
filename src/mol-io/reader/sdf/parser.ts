@@ -67,6 +67,13 @@ function handleDataItems(tokenizer: Tokenizer): { dataHeader: Column<string>, da
     };
 }
 
+function handleCountsV2(countsAndVersion: string): { atomCount: number, bondCount: number } {
+    return {
+        atomCount: +countsAndVersion.substr(0, 3),
+        bondCount: +countsAndVersion.substr(3, 3)
+    };
+}
+
 function handleMolFile(tokenizer: Tokenizer) {
     const title = Tokenizer.readLine(tokenizer).trim();
     const program = Tokenizer.readLine(tokenizer).trim();
@@ -75,14 +82,7 @@ function handleMolFile(tokenizer: Tokenizer) {
     const countsAndVersion = Tokenizer.readLine(tokenizer);
     const molIsV3 = isV3(countsAndVersion);
 
-    let atomCount = NaN;
-    let bondCount = NaN;
-
-    if (molIsV3) {
-        ({ atomCount, bondCount } = handleCountsV3(tokenizer));
-    } else {
-        atomCount = +countsAndVersion.substr(0, 3), bondCount = +countsAndVersion.substr(3, 3);
-    }
+    const { atomCount, bondCount } = molIsV3 ? handleCountsV3(tokenizer) : handleCountsV2(countsAndVersion);
 
     if (Number.isNaN(atomCount) || Number.isNaN(bondCount)) {
         // try to skip to next molecule
