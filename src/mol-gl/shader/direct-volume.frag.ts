@@ -110,9 +110,10 @@ uniform mat4 uCartnToUnit;
     #endif
 
     #ifdef dOverpaint
-        varying vec4 vOverpaint;
-        uniform vec2 uOverpaintTexDim;
-        uniform sampler2D tOverpaint;
+        #if defined(dOverpaintType_groupInstance) || defined(dOverpaintType_vertexInstance)
+            uniform vec2 uOverpaintTexDim;
+            uniform sampler2D tOverpaint;
+        #endif
     #endif
 #endif
 
@@ -192,6 +193,8 @@ vec4 raymarch(vec3 startLoc, vec3 step, vec3 rayDir) {
     float nextValue;
 
     vec3 color = vec3(0.45, 0.55, 0.8);
+    vec4 overpaint = vec4(0.0);
+
     vec3 gradient = vec3(1.0);
     vec3 dx = vec3(gradOffset * scaleVol.x, 0.0, 0.0);
     vec3 dy = vec3(0.0, gradOffset * scaleVol.y, 0.0);
@@ -295,6 +298,16 @@ vec4 raymarch(vec3 startLoc, vec3 step, vec3 rayDir) {
                         color = texture3dFrom1dTrilinear(tColor, isoPos, uGridDim, uColorTexDim, 0.0).rgb;
                     #elif defined(dColorType_vertexInstance)
                         color = texture3dFrom1dTrilinear(tColor, isoPos, uGridDim, uColorTexDim, vInstance * float(uVertexCount)).rgb;
+                    #endif
+
+                    #ifdef dOverpaint
+                        #if defined(dOverpaintType_groupInstance)
+                            overpaint = readFromTexture(tOverpaint, vInstance * float(uGroupCount) + group, uOverpaintTexDim);
+                        #elif defined(dOverpaintType_vertexInstance)
+                            overpaint = texture3dFrom1dTrilinear(tOverpaint, isoPos, uGridDim, uOverpaintTexDim, vInstance * float(uVertexCount)).rgb;
+                        #endif
+
+                        color = mix(color, overpaint.rgb, overpaint.a);
                     #endif
 
                     // handle flipping and negative isosurfaces
