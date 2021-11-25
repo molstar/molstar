@@ -320,6 +320,10 @@ namespace Renderer {
             }
 
             if (r.values.dRenderMode) { // indicates direct-volume
+                if ((variant[0] === 'p' || variant === 'depth') && r.values.dRenderMode.ref.value === 'volume') {
+                    return; // no picking/depth in volume mode
+                }
+
                 // culling done in fragment shader
                 state.disable(gl.CULL_FACE);
                 state.frontFace(gl.CCW);
