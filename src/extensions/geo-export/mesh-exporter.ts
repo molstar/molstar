@@ -26,6 +26,7 @@ import { RuntimeContext } from '../../mol-task';
 import { Color } from '../../mol-util/color/color';
 import { decodeFloatRGB } from '../../mol-util/float-packing';
 import { RenderObjectExporter, RenderObjectExportData } from './render-object-exporter';
+import { readTexture } from '../../mol-gl/compute/util';
 
 const GeoExportName = 'geo-export';
 
@@ -97,18 +98,7 @@ export abstract class MeshExporter<D extends RenderObjectExportData> implements 
         const aTransform = values.aTransform.ref.value;
         const instanceCount = values.uInstanceCount.ref.value;
 
-        if (!webgl.namedFramebuffers[GeoExportName]) {
-            webgl.namedFramebuffers[GeoExportName] = webgl.resources.framebuffer();
-        }
-        const framebuffer = webgl.namedFramebuffers[GeoExportName];
-
-        const [width, height] = colorTexDim;
-        const colorGrid = new Uint8Array(width * height * 4);
-
-        framebuffer.bind();
-        values.tColorGrid.ref.value.attachFramebuffer(framebuffer, 0);
-        webgl.readPixels(0, 0, width, height, colorGrid);
-
+        const colorGrid = readTexture(webgl, values.tColorGrid.ref.value).array;
         const interpolated = getTrilinearlyInterpolated({ vertexCount, instanceCount, transformBuffer: aTransform, positionBuffer: vertices, colorType, grid: colorGrid, gridDim: colorGridDim, gridTexDim: colorTexDim, gridTransform: colorGridTransform, vertexStride: stride, colorStride: 4 });
         return interpolated.array;
     }

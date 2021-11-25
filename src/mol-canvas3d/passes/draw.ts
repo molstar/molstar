@@ -22,11 +22,11 @@ import { Helper } from '../helper/helper';
 
 import { quad_vert } from '../../mol-gl/shader/quad.vert';
 import { depthMerge_frag } from '../../mol-gl/shader/depth-merge.frag';
-import { copy_frag } from '../../mol-gl/shader/copy.frag';
 import { StereoCamera } from '../camera/stereo';
 import { WboitPass } from './wboit';
 import { AntialiasingPass, PostprocessingPass, PostprocessingProps } from './postprocessing';
 import { MarkingPass, MarkingProps } from './marking';
+import { CopyRenderable, createCopyRenderable } from '../../mol-gl/compute/util';
 
 const DepthMergeSchema = {
     ...QuadSchema,
@@ -49,27 +49,6 @@ function getDepthMergeRenderable(ctx: WebGLContext, depthTexturePrimitives: Text
 
     const schema = { ...DepthMergeSchema };
     const renderItem = createComputeRenderItem(ctx, 'triangles', DepthMergeShaderCode, schema, values);
-
-    return createComputeRenderable(renderItem, values);
-}
-
-const CopySchema = {
-    ...QuadSchema,
-    tColor: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
-    uTexSize: UniformSpec('v2'),
-};
-const CopyShaderCode = ShaderCode('copy', quad_vert, copy_frag);
-type CopyRenderable = ComputeRenderable<Values<typeof CopySchema>>
-
-function getCopyRenderable(ctx: WebGLContext, colorTexture: Texture): CopyRenderable {
-    const values: Values<typeof CopySchema> = {
-        ...QuadValues,
-        tColor: ValueCell.create(colorTexture),
-        uTexSize: ValueCell.create(Vec2.create(colorTexture.getWidth(), colorTexture.getHeight())),
-    };
-
-    const schema = { ...CopySchema };
-    const renderItem = createComputeRenderItem(ctx, 'triangles', CopyShaderCode, schema, values);
 
     return createComputeRenderable(renderItem, values);
 }
@@ -128,8 +107,8 @@ export class DrawPass {
         this.postprocessing = new PostprocessingPass(webgl, this);
         this.antialiasing = new AntialiasingPass(webgl, this);
 
-        this.copyFboTarget = getCopyRenderable(webgl, this.colorTarget.texture);
-        this.copyFboPostprocessing = getCopyRenderable(webgl, this.postprocessing.target.texture);
+        this.copyFboTarget = createCopyRenderable(webgl, this.colorTarget.texture);
+        this.copyFboPostprocessing = createCopyRenderable(webgl, this.postprocessing.target.texture);
     }
 
     reset() {
