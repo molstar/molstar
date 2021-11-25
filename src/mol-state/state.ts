@@ -20,7 +20,6 @@ import { now, formatTimespan } from '../mol-util/now';
 import { ParamDefinition } from '../mol-util/param-definition';
 import { StateTreeSpine } from './tree/spine';
 import { AsyncQueue } from '../mol-util/async-queue';
-import { isProductionMode } from '../mol-util/debug';
 import { arraySetAdd, arraySetRemove } from '../mol-util/array';
 import { UniqueArray } from '../mol-data/generic';
 import { assignIfUndefined } from '../mol-util/object';
@@ -207,14 +206,18 @@ class State {
                 if (!restored) {
                     restored = true;
                     await this.updateTree(snapshot).runInContext(ctx);
-                    this.events.log.next(LogEntry.error('' + e));
+                    this.events.log.next(LogEntry.error('Error during state transaction, reverting'));
                 }
                 if (isNested) {
                     this.inTransactionError = true;
                     throw e;
                 }
 
-                if (options?.rethrowErrors) throw e;
+                if (options?.rethrowErrors) {
+                    throw e;
+                } else {
+                    console.error(e);
+                }
             } finally {
                 if (!isNested) {
                     this.inTransaction = false;
@@ -829,7 +832,7 @@ async function updateSubtree(ctx: UpdateContext, root: Ref) {
         ctx.changed = true;
         if (!ctx.hadError) ctx.newCurrent = root;
         doError(ctx, root, e, false);
-        if (!isProductionMode) console.error(e);
+        console.error(e);
         return;
     }
 

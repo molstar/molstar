@@ -77,7 +77,7 @@ export class GeometryControls extends PluginComponent {
                     filename: filename + '.' + renderObjectExporter.fileExtension
                 };
             } catch (e) {
-                this.plugin.log.error('' + e);
+                this.plugin.log.error('Error during geometry export');
                 throw e;
             }
         });

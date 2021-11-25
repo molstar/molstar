@@ -10,7 +10,6 @@ import { Progress } from './progress';
 import { now } from '../../mol-util/now';
 import { Scheduler } from '../util/scheduler';
 import { UserTiming } from '../util/user-timing';
-import { isDebugMode } from '../../mol-util/debug';
 
 interface ExposedTask<T> extends Task<T> {
     f: (ctx: RuntimeContext) => Promise<T>,
@@ -116,7 +115,6 @@ async function execute<T>(task: ExposedTask<T>, ctx: ObservableRuntimeContext) {
                 task.onAbort();
             }
         }
-        if (isDebugMode) console.error(e);
         throw e;
     }
 }

@@ -73,7 +73,7 @@ export class Mp4Controls extends PluginComponent {
                 const filename = anim.anim.display.name.toLowerCase().replace(/\s/g, '-').replace(/[^a-z0-9_\-]/g, '');
                 return { movie, filename: `${this.plugin.helpers.viewportScreenshot?.getFilename('')}_${filename}.mp4` };
             } catch (e) {
-                this.plugin.log.error('' + e);
+                this.plugin.log.error('Error during animation export');
                 throw e;
             }
         });

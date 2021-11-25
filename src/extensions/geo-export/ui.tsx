@@ -79,10 +79,10 @@ export class GeometryExporterUI extends CollapsableControls<{}, State> {
         try {
             this.setState({ busy: true });
             const data = await this.controls.exportGeometry();
-            this.setState({ busy: false });
-
             download(data.blob, data.filename);
-        } catch {
+        } catch (e) {
+            console.error(e);
+        } finally {
             this.setState({ busy: false });
         }
     }
@@ -91,7 +91,6 @@ export class GeometryExporterUI extends CollapsableControls<{}, State> {
         try {
             this.setState({ busy: true });
             const data = await this.controls.exportGeometry();
-            this.setState({ busy: false });
             const a = document.createElement('a');
             a.rel = 'ar';
             a.href = URL.createObjectURL(data.blob);
@@ -100,7 +99,9 @@ export class GeometryExporterUI extends CollapsableControls<{}, State> {
             a.appendChild(document.createElement('img'));
             setTimeout(() => URL.revokeObjectURL(a.href), 4E4); // 40s
             setTimeout(() => a.dispatchEvent(new MouseEvent('click')));
-        } catch {
+        } catch (e) {
+            console.error(e);
+        } finally {
             this.setState({ busy: false });
         }
     }
