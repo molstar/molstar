@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -99,12 +99,12 @@ const residue = {
     secondary_structure_type: p(l => {
         if (!Unit.isAtomic(l.unit)) notAtomic();
         const secStruc = SecondaryStructureProvider.get(l.structure).value?.get(l.unit.invariantId);
-        return secStruc?.type[l.unit.residueIndex[l.element]] ?? SecondaryStructureType.Flag.NA;
+        return secStruc ? secStruc.type[secStruc.getIndex(l.unit.residueIndex[l.element])] : SecondaryStructureType.Flag.NA;
     }),
     secondary_structure_key: p(l => {
         if (!Unit.isAtomic(l.unit)) notAtomic();
         const secStruc = SecondaryStructureProvider.get(l.structure).value?.get(l.unit.invariantId);
-        return secStruc?.key[l.unit.residueIndex[l.element]] ?? -1;
+        return secStruc ? secStruc.key[secStruc.getIndex(l.unit.residueIndex[l.element])] : -1;
     }),
     chem_comp_type: p(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.model.properties.chemicalComponentMap.get(compId(l))!.type),
 };
