@@ -84,6 +84,7 @@ export function getFieldType(type: string, description: string, values?: string[
         case 'DateTime':
         case 'Tag':
         case 'Implied':
+        case 'Word':
             return wrapContainer('str', ',', description, container);
         case 'Real':
             return wrapContainer('float', ',', description, container);
