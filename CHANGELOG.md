@@ -6,6 +6,27 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+## [v2.4.0] - 2021-11-25
+
+- Fix secondary-structure property handling
+    - StructureElement.Property was incorrectly resolving type & key
+    - StructureSelectionQuery helpers 'helix' & 'beta' were not ensuring property availability
+- Re-enable VAO with better workaround (bind null elements buffer before deleting)
+- Add ``Representation.geometryVersion`` (increments whenever the geometry of any of its visuals changes)
+- Add support for grid-based smoothing of Overpaint and Transparency visual state for surfaces
+
+## [v2.3.9] - 2021-11-20
+
+- Workaround: switch off VAO support for now
+
+## [v2.3.8] - 2021-11-20
+
+- Fix double canvas context creation (in plugin context)
+- Fix unused vertex attribute handling (track which are used, disable the rest)
+- Workaround for VAO issue in Chrome 96 (can cause WebGL to crash on geometry updates)
+
+## [v2.3.7] - 2021-11-15
+
 - Added ``ViewerOptions.collapseRightPanel``
 - Added ``Viewer.loadTrajectory`` to support loading "composed" trajectories (e.g. from gro + xtc)
 - Fix: handle parent in Structure.remapModel

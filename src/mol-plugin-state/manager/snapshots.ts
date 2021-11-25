@@ -261,7 +261,8 @@ class PluginStateSnapshotManager extends StatefulPluginComponent<{
                 return this.setStateSnapshot(snapshot);
             }
         } catch (e) {
-            this.plugin.log.error(`Reading state: ${e}`);
+            console.error(e);
+            this.plugin.log.error('Error reading state');
         }
     }
 

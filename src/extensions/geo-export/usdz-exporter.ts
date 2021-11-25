@@ -41,7 +41,12 @@ export class UsdzExporter extends MeshExporter<UsdzData> {
         const materialKey = this.materialMap.size;
         this.materialMap.set(hash, materialKey);
 
-        const [r, g, b] = Color.toRgbNormalized(color);
+        // const [r, g, b] = Color.toRgbNormalized(color);
+        // private addMaterial(color: Color, alpha: number) {
+        //     const materialKey = UsdzExporter.getMaterialKey(color, alpha);
+        //     if (this.materialSet.has(materialKey)) return;
+        //     this.materialSet.add(materialKey);
+        const [r, g, b] = Color.toRgbNormalized(color).map(v => Math.round(v * 1000) / 1000);
         this.materials.push(`
 def Material "material${materialKey}"
 {
@@ -68,11 +73,10 @@ def Material "material${materialKey}"
         const tmpV = Vec3();
         const stride = isGeoTexture ? 4 : 3;
 
-        const groupCount = values.uGroupCount.ref.value;
         const colorType = values.dColorType.ref.value;
+        const overpaintType = values.dOverpaintType.ref.value;
+        const transparencyType = values.dTransparencyType.ref.value;
         const uAlpha = values.uAlpha.ref.value;
-        const dTransparency = values.dTransparency.ref.value;
-        const tTransparency = values.tTransparency.ref.value;
         const aTransform = values.aTransform.ref.value;
         const instanceCount = values.uInstanceCount.ref.value;
         const metalness = values.uMetalness.ref.value;
@@ -80,8 +84,19 @@ def Material "material${materialKey}"
 
         let interpolatedColors: Uint8Array | undefined;
         if (colorType === 'volume' || colorType === 'volumeInstance') {
-            interpolatedColors = UsdzExporter.getInterpolatedColors(mesh!.vertices, mesh!.vertexCount, values, stride, colorType, webgl!);
-            UsdzExporter.quantizeColors(interpolatedColors, mesh!.vertexCount);
+            interpolatedColors = UsdzExporter.getInterpolatedColors(webgl!, { vertices: mesh!.vertices, vertexCount: mesh!.vertexCount, values, stride, colorType });
+        }
+
+        let interpolatedOverpaint: Uint8Array | undefined;
+        if (overpaintType === 'volumeInstance') {
+            const stride = isGeoTexture ? 4 : 3;
+            interpolatedOverpaint = UsdzExporter.getInterpolatedOverpaint(webgl!, { vertices: mesh!.vertices, vertexCount: mesh!.vertexCount, values, stride, colorType: overpaintType });
+        }
+
+        let interpolatedTransparency: Uint8Array | undefined;
+        if (transparencyType === 'volumeInstance') {
+            const stride = isGeoTexture ? 4 : 3;
+            interpolatedTransparency = UsdzExporter.getInterpolatedTransparency(webgl!, { vertices: mesh!.vertices, vertexCount: mesh!.vertexCount, values, stride, colorType: transparencyType });
         }
 
         await ctx.update({ isIndeterminate: false, current: 0, max: instanceCount });
@@ -123,6 +138,8 @@ def Material "material${materialKey}"
                 StringBuilder.writeSafe(normalBuilder, ')');
             }
 
+            const geoData = { values, groups, vertexCount, instanceIndex, isGeoTexture };
+
             // face
             for (let i = 0; i < drawCount; ++i) {
                 const v = isGeoTexture ? i : indices![i];
@@ -131,17 +148,21 @@ def Material "material${materialKey}"
             }
 
             // color
-            const faceIndicesByMaterial = new Map<number, number[]>();
+            const quantizedColors = new Uint8Array(drawCount * 3);
             for (let i = 0; i < drawCount; i += 3) {
                 const v = isGeoTexture ? i : indices![i];
-                const color = UsdzExporter.getColor(values, groups, vertexCount, instanceIndex, isGeoTexture, interpolatedColors, v);
+                const color = UsdzExporter.getColor(v, geoData, interpolatedColors, interpolatedOverpaint);
+                Color.toArray(color, quantizedColors, i);
+            }
+            UsdzExporter.quantizeColors(quantizedColors, mesh!.vertexCount);
 
-                let alpha = uAlpha;
-                if (dTransparency) {
-                    const group = isGeoTexture ? UsdzExporter.getGroup(groups, i) : groups[indices![i]];
-                    const transparency = tTransparency.array[instanceIndex * groupCount + group] / 255;
-                    alpha *= 1 - transparency;
-                }
+            // material
+            const faceIndicesByMaterial = new Map<number, number[]>();
+            for (let i = 0; i < drawCount; i += 3) {
+                const color = Color.fromArray(quantizedColors, i);
+
+                const transparency = UsdzExporter.getTransparency(i, geoData, interpolatedTransparency);
+                const alpha = Math.round(uAlpha * (1 - transparency) * 10) / 10; // quantized
 
                 const materialKey = this.addMaterial(color, alpha, metalness, roughness);
                 let faceIndices = faceIndicesByMaterial.get(materialKey);

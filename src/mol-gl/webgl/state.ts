@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -59,11 +59,15 @@ export type WebGLState = {
     /** set the RGB blend equation and alpha blend equation separately, determines how a new pixel is combined with an existing */
     blendEquationSeparate: (modeRGB: number, modeAlpha: number) => void
 
+    enableVertexAttrib: (index: number) => void
+    clearVertexAttribsState: () => void
+    disableUnusedVertexAttribs: () => void
+
     reset: () => void
 }
 
 export function createState(gl: GLRenderingContext): WebGLState {
-    let enabledCapabilities: { [k: number]: boolean } = {};
+    let enabledCapabilities: Record<number, boolean> = {};
 
     let currentFrontFace = gl.getParameter(gl.FRONT_FACE);
     let currentCullFace = gl.getParameter(gl.CULL_FACE_MODE);
@@ -78,6 +82,16 @@ export function createState(gl: GLRenderingContext): WebGLState {
 
     let currentBlendEqRGB = gl.getParameter(gl.BLEND_EQUATION_RGB);
     let currentBlendEqAlpha = gl.getParameter(gl.BLEND_EQUATION_ALPHA);
+
+    let maxVertexAttribs = gl.getParameter(gl.MAX_VERTEX_ATTRIBS);
+    const vertexAttribsState: number[] = [];
+
+    const clearVertexAttribsState = () => {
+        for (let i = 0; i < maxVertexAttribs; ++i) {
+            vertexAttribsState[i] = 0;
+        }
+    };
+    clearVertexAttribsState();
 
     return {
         currentProgramId: -1,
@@ -168,6 +182,17 @@ export function createState(gl: GLRenderingContext): WebGLState {
             }
         },
 
+        enableVertexAttrib: (index: number) => {
+            gl.enableVertexAttribArray(index);
+            vertexAttribsState[index] = 1;
+        },
+        clearVertexAttribsState,
+        disableUnusedVertexAttribs: () => {
+            for (let i = 0; i < maxVertexAttribs; ++i) {
+                if (vertexAttribsState[i] === 0) gl.disableVertexAttribArray(i);
+            }
+        },
+
         reset: () => {
             enabledCapabilities = {};
 
@@ -184,6 +209,12 @@ export function createState(gl: GLRenderingContext): WebGLState {
 
             currentBlendEqRGB = gl.getParameter(gl.BLEND_EQUATION_RGB);
             currentBlendEqAlpha = gl.getParameter(gl.BLEND_EQUATION_ALPHA);
+
+            maxVertexAttribs = gl.getParameter(gl.MAX_VERTEX_ATTRIBS);
+            vertexAttribsState.length = 0;
+            for (let i = 0; i < maxVertexAttribs; ++i) {
+                vertexAttribsState[i] = 0;
+            }
         }
     };
 }

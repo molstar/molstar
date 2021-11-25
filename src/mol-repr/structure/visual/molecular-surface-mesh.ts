@@ -20,7 +20,8 @@ import { Sphere3D } from '../../../mol-math/geometry';
 import { MeshValues } from '../../../mol-gl/renderable/mesh';
 import { Texture } from '../../../mol-gl/webgl/texture';
 import { WebGLContext } from '../../../mol-gl/webgl/context';
-import { applyMeshColorSmoothing, ColorSmoothingParams, getColorSmoothingProps } from './util/color';
+import { applyMeshColorSmoothing } from '../../../mol-geo/geometry/mesh/color-smoothing';
+import { ColorSmoothingParams, getColorSmoothingProps } from '../../../mol-geo/geometry/base';
 
 export const MolecularSurfaceMeshParams = {
     ...UnitsMeshParams,
@@ -58,7 +59,7 @@ async function createMolecularSurfaceMesh(ctx: VisualContext, unit: Unit, struct
 
     const sphere = Sphere3D.expand(Sphere3D(), unit.boundary.sphere, props.probeRadius + getUnitExtraRadius(unit));
     surface.setBoundingSphere(sphere);
-    (surface.meta.resolution as MolecularSurfaceMeta['resolution']) = resolution;
+    (surface.meta as MolecularSurfaceMeta).resolution = resolution;
 
     return surface;
 }
@@ -87,10 +88,10 @@ export function MolecularSurfaceMeshVisual(materialId: number): UnitsVisual<Mole
         },
         processValues: (values: MeshValues, geometry: Mesh, props: PD.Values<MolecularSurfaceMeshParams>, theme: Theme, webgl?: WebGLContext) => {
             const { resolution, colorTexture } = geometry.meta as MolecularSurfaceMeta;
-            const csp = getColorSmoothingProps(props, theme, resolution);
+            const csp = getColorSmoothingProps(props.smoothColors, theme.color.preferSmoothing, resolution);
             if (csp) {
                 applyMeshColorSmoothing(values, csp.resolution, csp.stride, webgl, colorTexture);
-                (geometry.meta.colorTexture as MolecularSurfaceMeta['colorTexture']) = values.tColorGrid.ref.value;
+                (geometry.meta as MolecularSurfaceMeta).colorTexture = values.tColorGrid.ref.value;
             }
         },
         dispose: (geometry: Mesh) => {

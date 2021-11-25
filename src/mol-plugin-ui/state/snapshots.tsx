@@ -246,7 +246,8 @@ export class RemoteStateSnapshots extends PluginUIComponent<
 
             if (this._mounted) this.setState({ entries: entries.asImmutable(), isBusy: false });
         } catch (e) {
-            this.plugin.log.error('Fetching Remote Snapshots: ' + e);
+            console.error(e);
+            this.plugin.log.error('Error fetching remote snapshots');
             if (this._mounted) this.setState({ entries: OrderedMap(), isBusy: false });
         }
     }
@@ -294,7 +295,9 @@ export class RemoteStateSnapshots extends PluginUIComponent<
 
         try {
             await fetch(entry.removeUrl);
-        } catch { }
+        } catch (e) {
+            console.error(e);
+        }
     }
 
     render() {

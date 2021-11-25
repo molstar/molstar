@@ -114,7 +114,7 @@ export const CifCore_Schema = {
      * Abstracts. This ordering is used in _chemical_formula.moiety
      * and _chemical_formula.sum.
      *
-     * _chemical_formula.iupac      '[Mo (C O)4 (C18 H33 P)2]'
+     * _chemical_formula.IUPAC      '[Mo (C O)4 (C18 H33 P)2]'
      * _chemical_formula.moiety     'C40 H66 Mo O4 P2'
      * _chemical_formula.structural '((C O)4 (P (C6 H11)3)2)Mo'
      * _chemical_formula.sum         'C40 H66 Mo O4 P2'
@@ -146,7 +146,7 @@ export const CifCore_Schema = {
         sum: str,
         /**
          * Mass corresponding to the formulae _chemical_formula.structural,
-         * *_iupac, *_moiety or *_sum and, together with the Z value and cell
+         * *_IUPAC, *_moiety or *_sum and, together with the Z value and cell
          * parameters yield the density given as _exptl_crystal.density_diffrn.
          */
         weight: float,
@@ -478,7 +478,7 @@ export const CifCore_Schema = {
          * A concatenated series of single-letter codes which indicate the
          * refinement restraints or constraints applied to this site. This
          * item should not be used. It has been replaced by
-         * _atom_site.refinement_flags_posn, _adp and _occupancy. It is
+         * _atom_site.refinement_flags_posn, _ADP and _occupancy. It is
          * retained in this dictionary only to provide compatibility with
          * legacy CIFs.
          */
@@ -505,9 +505,9 @@ export const CifCore_Schema = {
          * atomic  displacement parameter, U(equiv), in angstroms squared,
          * calculated from anisotropic atomic displacement  parameters.
          *
-         * U(equiv) = (1/3) sum~i~[sum~j~(U^ij^ a*~i~ a*~j~ a~i~ a~j~)]
+         * U(equiv) = (1/3) sum~i~[sum~j~(U^ij^ a*~i~ a*~j~ a~i~.a~j~)]
          *
-         * a  = the real-space cell lengths
+         * a  = the real-space cell vectors
          * a* = the reciprocal-space cell lengths
          * Ref: Fischer, R. X. & Tillmanns, E. (1988). Acta Cryst. C44, 775-776.
          */
@@ -683,11 +683,20 @@ export const CifCore_Aliases = {
     'geom_bond.distance': [
         'geom_bond_dist',
     ],
+    'audit.block_doi': [
+        'audit_block_DOI',
+    ],
     'database_code.cod': [
         'database_code_COD',
     ],
     'database_code.csd': [
         'database_code_CSD',
+    ],
+    'database_code.depnum_ccdc_archive': [
+        'database_code_depnum_CCDC_archive',
+    ],
+    'database_code.depnum_ccdc_fiz': [
+        'database_code_depnum_CCDC_fiz',
     ],
     'database_code.icsd': [
         'database_code_ICSD',
@@ -699,6 +708,7 @@ export const CifCore_Aliases = {
         'database_code_NBS',
     ],
     'atom_site.adp_type': [
+        'atom_site_ADP_type',
         'atom_site_thermal_displace_type',
     ],
     'atom_site.label': [

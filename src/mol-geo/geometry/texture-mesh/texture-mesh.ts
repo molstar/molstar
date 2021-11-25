@@ -40,7 +40,7 @@ export interface TextureMesh {
 
     readonly boundingSphere: Sphere3D
 
-    meta?: unknown
+    readonly meta: { [k: string]: unknown }
 }
 
 export namespace TextureMesh {
@@ -92,6 +92,7 @@ export namespace TextureMesh {
                 normalTexture: ValueCell.create(normalTexture),
                 doubleBuffer: new DoubleBuffer(),
                 boundingSphere: Sphere3D.clone(boundingSphere),
+                meta: {}
             };
         }
     }
@@ -165,6 +166,8 @@ export namespace TextureMesh {
             dIgnoreLight: ValueCell.create(props.ignoreLight),
             dXrayShaded: ValueCell.create(props.xrayShaded),
             dGeoTexture: ValueCell.create(true),
+
+            meta: ValueCell.create(textureMesh.meta),
         };
     }
 

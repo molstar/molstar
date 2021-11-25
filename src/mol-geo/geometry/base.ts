@@ -15,6 +15,7 @@ import { ColorNames } from '../../mol-util/color/names';
 import { NullLocation } from '../../mol-model/location';
 import { UniformColorTheme } from '../../mol-theme/color/uniform';
 import { UniformSizeTheme } from '../../mol-theme/size/uniform';
+import { smoothstep } from '../../mol-math/interpolate';
 
 export const VisualQualityInfo = {
     'custom': {},
@@ -30,6 +31,40 @@ export const VisualQualityInfo = {
 export type VisualQuality = keyof typeof VisualQualityInfo
 export const VisualQualityNames = Object.keys(VisualQualityInfo) as VisualQuality[];
 export const VisualQualityOptions = PD.arrayToOptions(VisualQualityNames);
+
+//
+
+export const ColorSmoothingParams = {
+    smoothColors: PD.MappedStatic('auto', {
+        auto: PD.Group({}),
+        on: PD.Group({
+            resolutionFactor: PD.Numeric(2, { min: 0.5, max: 6, step: 0.1 }),
+            sampleStride: PD.Numeric(3, { min: 1, max: 12, step: 1 }),
+        }),
+        off: PD.Group({})
+    }),
+};
+export type ColorSmoothingParams = typeof ColorSmoothingParams
+
+export function hasColorSmoothingProp(props: PD.Values<any>): props is PD.Values<ColorSmoothingParams> {
+    return !!props.smoothColors;
+}
+
+export function getColorSmoothingProps(smoothColors: PD.Values<ColorSmoothingParams>['smoothColors'], preferSmoothing?: boolean, resolution?: number) {
+    if ((smoothColors.name === 'on' || (smoothColors.name === 'auto' && preferSmoothing)) && resolution && resolution < 3) {
+        let stride = 3;
+        if (smoothColors.name === 'on') {
+            resolution *= smoothColors.params.resolutionFactor;
+            stride = smoothColors.params.sampleStride;
+        } else {
+            // https://graphtoy.com/?f1(x,t)=(2-smoothstep(0,1.1,x))*x&coords=0.7,0.6,1.8
+            resolution *= 2 - smoothstep(0, 1.1, resolution);
+            resolution = Math.max(0.5, resolution);
+            if (resolution > 1.2) stride = 2;
+        }
+        return { resolution, stride };
+    };
+}
 
 //
 

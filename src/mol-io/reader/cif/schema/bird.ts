@@ -1,7 +1,7 @@
 /**
  * Copyright (c) 2017-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
- * Code-generated 'BIRD' schema file. Dictionary versions: mmCIF 5.350, IHM 1.17, CARB draft.
+ * Code-generated 'BIRD' schema file. Dictionary versions: mmCIF 5.352, IHM 1.17, CARB draft.
  *
  * @author molstar/ciftools package
  */
@@ -487,7 +487,7 @@ export const BIRD_Schema = {
         /**
          * An identifier for the wwPDB site creating or modifying the molecule.
          */
-        processing_site: Aliased<'RCSB' | 'PDBe' | 'PDBJ' | 'BMRB' | 'PDBC'>(str),
+        processing_site: Aliased<'RCSB' | 'PDBE' | 'PDBJ' | 'BMRB' | 'PDBC'>(str),
         /**
          * The action associated with this audit record.
          */

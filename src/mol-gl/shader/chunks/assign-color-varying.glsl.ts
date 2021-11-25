@@ -13,11 +13,11 @@ export const assign_color_varying = `
     #elif defined(dColorType_vertexInstance)
         vColor.rgb = readFromTexture(tColor, int(aInstance) * uVertexCount + VertexID, uColorTexDim).rgb;
     #elif defined(dColorType_volume)
-        vec3 gridPos = (uColorGridTransform.w * (position - uColorGridTransform.xyz)) / uColorGridDim;
-        vColor.rgb = texture3dFrom2dLinear(tColorGrid, gridPos, uColorGridDim, uColorTexDim).rgb;
+        vec3 cgridPos = (uColorGridTransform.w * (position - uColorGridTransform.xyz)) / uColorGridDim;
+        vColor.rgb = texture3dFrom2dLinear(tColorGrid, cgridPos, uColorGridDim, uColorTexDim).rgb;
     #elif defined(dColorType_volumeInstance)
-        vec3 gridPos = (uColorGridTransform.w * (vModelPosition - uColorGridTransform.xyz)) / uColorGridDim;
-        vColor.rgb = texture3dFrom2dLinear(tColorGrid, gridPos, uColorGridDim, uColorTexDim).rgb;
+        vec3 cgridPos = (uColorGridTransform.w * (vModelPosition - uColorGridTransform.xyz)) / uColorGridDim;
+        vColor.rgb = texture3dFrom2dLinear(tColorGrid, cgridPos, uColorGridDim, uColorTexDim).rgb;
     #endif
 
     #ifdef dUsePalette
@@ -25,7 +25,21 @@ export const assign_color_varying = `
     #endif
 
     #ifdef dOverpaint
-        vOverpaint = readFromTexture(tOverpaint, aInstance * float(uGroupCount) + group, uOverpaintTexDim);
+        #if defined(dOverpaintType_groupInstance)
+            vOverpaint = readFromTexture(tOverpaint, aInstance * float(uGroupCount) + group, uOverpaintTexDim);
+        #elif defined(dOverpaintType_vertexInstance)
+            vOverpaint = readFromTexture(tOverpaint, int(aInstance) * uVertexCount + VertexID, uOverpaintTexDim);
+        #elif defined(dOverpaintType_volumeInstance)
+            vec3 ogridPos = (uOverpaintGridTransform.w * (vModelPosition - uOverpaintGridTransform.xyz)) / uOverpaintGridDim;
+            vOverpaint = texture3dFrom2dLinear(tOverpaintGrid, ogridPos, uOverpaintGridDim, uOverpaintTexDim);
+        #endif
+
+        // pre-mix to avoid darkening due to empty overpaint
+        #ifdef dColorType_uniform
+            vOverpaint.rgb = mix(uColor.rgb, vOverpaint.rgb, vOverpaint.a);
+        #else
+            vOverpaint.rgb = mix(vColor.rgb, vOverpaint.rgb, vOverpaint.a);
+        #endif
     #endif
 #elif defined(dRenderVariant_pick)
     #if defined(dRenderVariant_pickObject)
@@ -39,6 +53,14 @@ export const assign_color_varying = `
 
 #ifdef dTransparency
     vGroup = group;
-    vTransparency = readFromTexture(tTransparency, aInstance * float(uGroupCount) + group, uTransparencyTexDim).a;
+
+    #if defined(dTransparencyType_groupInstance)
+        vTransparency = readFromTexture(tTransparency, aInstance * float(uGroupCount) + group, uTransparencyTexDim).a;
+    #elif defined(dTransparencyType_vertexInstance)
+        vTransparency = readFromTexture(tTransparency, int(aInstance) * uVertexCount + VertexID, uTransparencyTexDim).a;
+    #elif defined(dTransparencyType_volumeInstance)
+        vec3 tgridPos = (uTransparencyGridTransform.w * (vModelPosition - uTransparencyGridTransform.xyz)) / uTransparencyGridDim;
+        vTransparency = texture3dFrom2dLinear(tTransparencyGrid, tgridPos, uTransparencyGridDim, uTransparencyTexDim).a;
+    #endif
 #endif
 `;

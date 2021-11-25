@@ -23,6 +23,8 @@ import { BaseGeometry } from '../mol-geo/geometry/base';
 import { Visual } from './visual';
 import { CustomProperty } from '../mol-model-props/common/custom-property';
 import { Clipping } from '../mol-theme/clipping';
+import { SetUtils } from '../mol-util/set';
+import { cantorPairing } from '../mol-data/util';
 
 export type RepresentationProps = { [k: string]: any }
 
@@ -143,6 +145,7 @@ interface Representation<D, P extends PD.Params = {}, S extends Representation.S
     /** Number of addressable groups in all visuals of the representation */
     readonly groupCount: number
     readonly renderObjects: ReadonlyArray<GraphicsRenderObject>
+    readonly geometryVersion: number
     readonly props: Readonly<PD.Values<P>>
     readonly params: Readonly<P>
     readonly state: Readonly<S>
@@ -215,7 +218,7 @@ namespace Representation {
 
     export type Any = Representation<any, any, any>
     export const Empty: Any = {
-        label: '', groupCount: 0, renderObjects: [], props: {}, params: {}, updated: new Subject(), state: createState(), theme: Theme.createEmpty(),
+        label: '', groupCount: 0, renderObjects: [], geometryVersion: -1, props: {}, params: {}, updated: new Subject(), state: createState(), theme: Theme.createEmpty(),
         createOrUpdate: () => Task.constant('', undefined),
         setState: () => {},
         setTheme: () => {},
@@ -226,9 +229,32 @@ namespace Representation {
 
     export type Def<D, P extends PD.Params = {}, S extends State = State> = { [k: string]: RepresentationFactory<D, P, S> }
 
+    export class GeometryState {
+        private curr = new Set<number>();
+        private next = new Set<number>();
+
+        private _version = -1;
+        get version() {
+            return this._version;
+        }
+
+        add(id: number, version: number) {
+            this.next.add(cantorPairing(id, version));
+        }
+
+        snapshot() {
+            if (!SetUtils.areEqual(this.curr, this.next)) {
+                this._version += 1;
+            }
+            [this.curr, this.next] = [this.next, this.curr];
+            this.next.clear();
+        }
+    }
+
     export function createMulti<D, P extends PD.Params = {}, S extends State = State>(label: string, ctx: RepresentationContext, getParams: RepresentationParamsGetter<D, P>, stateBuilder: StateBuilder<S>, reprDefs: Def<D, P>): Representation<D, P, S> {
         let version = 0;
         const updated = new Subject<number>();
+        const geometryState = new GeometryState();
         const currentState = stateBuilder.create();
         let currentTheme = Theme.createEmpty();
 
@@ -271,6 +297,7 @@ namespace Representation {
                 }
                 return renderObjects;
             },
+            get geometryVersion() { return geometryState.version; },
             get props() { return currentProps; },
             get params() { return currentParams; },
             createOrUpdate: (props: Partial<P> = {}, data?: D) => {
@@ -288,7 +315,9 @@ namespace Representation {
                         if (!visuals || visuals.includes(reprMap[i])) {
                             await reprList[i].createOrUpdate(currentProps, currentData).runInContext(runtime);
                         }
+                        geometryState.add(i, reprList[i].geometryVersion);
                     }
+                    geometryState.snapshot();
                     updated.next(version++);
                 });
             },
@@ -314,7 +343,7 @@ namespace Representation {
             setState: (state: Partial<S>) => {
                 stateBuilder.update(currentState, state);
                 for (let i = 0, il = reprList.length; i < il; ++i) {
-                    reprList[i].setState(currentState);
+                    reprList[i].setState(state); // only set the new (partial) state
                 }
             },
             setTheme: (theme: Theme) => {
@@ -334,6 +363,7 @@ namespace Representation {
     export function fromRenderObject(label: string, renderObject: GraphicsRenderObject): Representation<GraphicsRenderObject, BaseGeometry.Params> {
         let version = 0;
         const updated = new Subject<number>();
+        const geometryState = new GeometryState();
         const currentState = Representation.createState();
         const currentTheme = Theme.createEmpty();
 
@@ -345,6 +375,7 @@ namespace Representation {
             updated,
             get groupCount() { return renderObject.values.uGroupCount.ref.value; },
             get renderObjects() { return [renderObject]; },
+            get geometryVersion() { return geometryState.version; },
             get props() { return currentProps; },
             get params() { return currentParams; },
             createOrUpdate: (props: Partial<PD.Values<BaseGeometry.Params>> = {}) => {
@@ -353,6 +384,8 @@ namespace Representation {
 
                 return Task.create(`Updating '${label}' representation`, async runtime => {
                     // TODO
+                    geometryState.add(0, renderObject.id);
+                    geometryState.snapshot();
                     updated.next(version++);
                 });
             },

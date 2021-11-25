@@ -33,7 +33,9 @@ async function tryObtainRecommendedIsoValue(plugin: PluginContext, volume?: Volu
         try {
             const absIsoLevel = await getContourLevelEmdb(plugin, ctx, entryId);
             RecommendedIsoValue.Provider.set(volume, Volume.IsoValue.absolute(absIsoLevel));
-        } catch (e) { }
+        } catch (e) {
+            console.warn(e);
+        }
     }));
 }
 

@@ -53,7 +53,8 @@ export const OpenFiles = StateAction.build({
                     await provider.visuals?.(plugin, parsed);
                 }
             } catch (e) {
-                plugin.log.error(e);
+                console.error(e);
+                plugin.log.error(`Error opening file '${file.name}'`);
             }
         }
     }).runInContext(taskCtx);
@@ -88,7 +89,8 @@ export const DownloadFile = StateAction.build({
                 await provider.visuals?.(plugin, parsed);
             }
         } catch (e) {
-            plugin.log.error(e);
+            console.error(e);
+            plugin.log.error(`Error downloading '${typeof params.url === 'string' ? params.url : params.url.url}'`);
         }
     }).runInContext(taskCtx);
 }));

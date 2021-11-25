@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -11,6 +11,7 @@ import { idFactory } from '../../mol-util/id-factory';
 import { ValueOf } from '../../mol-util/type-helpers';
 import { GLRenderingContext } from './compat';
 import { WebGLExtensions } from './extensions';
+import { WebGLState } from './state';
 
 const getNextBufferId = idFactory();
 
@@ -192,7 +193,7 @@ export interface AttributeBuffer extends Buffer {
     bind: (location: number) => void
 }
 
-export function createAttributeBuffer<T extends ArrayType, S extends AttributeItemSize>(gl: GLRenderingContext, extensions: WebGLExtensions, array: T, itemSize: S, divisor: number, usageHint: UsageHint = 'dynamic'): AttributeBuffer {
+export function createAttributeBuffer<T extends ArrayType, S extends AttributeItemSize>(gl: GLRenderingContext, state: WebGLState, extensions: WebGLExtensions, array: T, itemSize: S, divisor: number, usageHint: UsageHint = 'dynamic'): AttributeBuffer {
     const { instancedArrays } = extensions;
 
     const buffer = createBuffer(gl, array, usageHint, 'attribute');
@@ -204,12 +205,12 @@ export function createAttributeBuffer<T extends ArrayType, S extends AttributeIt
             gl.bindBuffer(_bufferType, buffer.getBuffer());
             if (itemSize === 16) {
                 for (let i = 0; i < 4; ++i) {
-                    gl.enableVertexAttribArray(location + i);
+                    state.enableVertexAttrib(location + i);
                     gl.vertexAttribPointer(location + i, 4, _dataType, false, 4 * 4 * _bpe, i * 4 * _bpe);
                     instancedArrays.vertexAttribDivisor(location + i, divisor);
                 }
             } else {
-                gl.enableVertexAttribArray(location);
+                state.enableVertexAttrib(location);
                 gl.vertexAttribPointer(location, itemSize, _dataType, false, 0, 0);
                 instancedArrays.vertexAttribDivisor(location, divisor);
             }

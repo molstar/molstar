@@ -27,7 +27,7 @@ uniform vec2 uColorTexDim;
 uniform sampler2D tColor;
 
 varying vec3 vPosition;
-varying vec3 vColor;
+varying vec4 vColor;
 
 uniform vec3 uBboxSize;
 uniform vec3 uBboxMin;
@@ -43,9 +43,9 @@ void main() {
     gl_Position = vec4(((position - uBboxMin) / uBboxSize) * 2.0 - 1.0, 1.0);
 
     #if defined(dColorType_group)
-        vColor = readFromTexture(tColor, group, uColorTexDim).rgb;
+        vColor = readFromTexture(tColor, group, uColorTexDim);
     #elif defined(dColorType_groupInstance)
-        vColor = readFromTexture(tColor, aInstance * float(uGroupCount) + group, uColorTexDim).rgb;
+        vColor = readFromTexture(tColor, aInstance * float(uGroupCount) + group, uColorTexDim);
     #endif
 }
 `;

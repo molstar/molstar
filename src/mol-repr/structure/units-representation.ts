@@ -8,7 +8,7 @@
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { StructureRepresentation, StructureRepresentationStateBuilder, StructureRepresentationState } from './representation';
 import { Visual } from '../visual';
-import { RepresentationContext, RepresentationParamsGetter } from '../representation';
+import { Representation, RepresentationContext, RepresentationParamsGetter } from '../representation';
 import { Structure, Unit, StructureElement, Bond } from '../../mol-model/structure';
 import { Subject } from 'rxjs';
 import { getNextMaterialId, GraphicsRenderObject } from '../../mol-gl/render-object';
@@ -34,6 +34,7 @@ export function UnitsRepresentation<P extends StructureParams>(label: string, ct
     const updated = new Subject<number>();
     const materialId = getNextMaterialId();
     const renderObjects: GraphicsRenderObject[] = [];
+    const geometryState = new Representation.GeometryState();
     const _state = StructureRepresentationStateBuilder.create();
     let visuals = new Map<number, { group: Unit.SymmetryGroup, visual: UnitsVisual<P> }>();
 
@@ -170,8 +171,12 @@ export function UnitsRepresentation<P extends StructureParams>(label: string, ct
             // update list of renderObjects
             renderObjects.length = 0;
             visuals.forEach(({ visual }) => {
-                if (visual.renderObject) renderObjects.push(visual.renderObject);
+                if (visual.renderObject) {
+                    renderObjects.push(visual.renderObject);
+                    geometryState.add(visual.renderObject.id, visual.geometryVersion);
+                }
             });
+            geometryState.snapshot();
             // set new structure
             if (structure) _structure = structure;
             // increment version
@@ -218,8 +223,8 @@ export function UnitsRepresentation<P extends StructureParams>(label: string, ct
         if (visible !== undefined) visual.setVisibility(visible);
         if (alphaFactor !== undefined) visual.setAlphaFactor(alphaFactor);
         if (pickable !== undefined) visual.setPickable(pickable);
-        if (overpaint !== undefined) visual.setOverpaint(overpaint);
-        if (transparency !== undefined) visual.setTransparency(transparency);
+        if (overpaint !== undefined) visual.setOverpaint(overpaint, webgl);
+        if (transparency !== undefined) visual.setTransparency(transparency, webgl);
         if (clipping !== undefined) visual.setClipping(clipping);
         if (transform !== undefined) visual.setTransform(transform);
         if (unitTransforms !== undefined) {
@@ -239,20 +244,14 @@ export function UnitsRepresentation<P extends StructureParams>(label: string, ct
         if (visible !== _state.visible) newState.visible = visible;
         if (alphaFactor !== _state.alphaFactor) newState.alphaFactor = alphaFactor;
         if (pickable !== _state.pickable) newState.pickable = pickable;
-        if (overpaint !== undefined && !Overpaint.areEqual(overpaint, _state.overpaint)) {
-            if (_structure) {
-                newState.overpaint = Overpaint.remap(overpaint, _structure);
-            }
+        if (overpaint !== undefined && _structure) {
+            newState.overpaint = Overpaint.remap(overpaint, _structure);
         }
-        if (transparency !== undefined && !Transparency.areEqual(transparency, _state.transparency)) {
-            if (_structure) {
-                newState.transparency = Transparency.remap(transparency, _structure);
-            }
+        if (transparency !== undefined && _structure) {
+            newState.transparency = Transparency.remap(transparency, _structure);
         }
-        if (clipping !== undefined && !Clipping.areEqual(clipping, _state.clipping)) {
-            if (_structure) {
-                newState.clipping = Clipping.remap(clipping, _structure);
-            }
+        if (clipping !== undefined && _structure) {
+            newState.clipping = Clipping.remap(clipping, _structure);
         }
         if (transform !== undefined && !Mat4.areEqual(transform, _state.transform, EPSILON)) {
             newState.transform = transform;
@@ -287,6 +286,7 @@ export function UnitsRepresentation<P extends StructureParams>(label: string, ct
             });
             return groupCount;
         },
+        get geometryVersion() { return geometryState.version; },
         get props() { return _props; },
         get params() { return _params; },
         get state() { return _state; },

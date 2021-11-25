@@ -401,7 +401,8 @@ function ResidueListSelectionHelper({ modifier, plugin, close }: { modifier: Str
             const query = compileIdListSelection(state.identifiers, state.idType);
             plugin.managers.structure.selection.fromCompiledQuery(modifier, query, false);
         } catch (e) {
-            plugin.log.error(`Failed to create selection: ${e}`);
+            console.error(e);
+            plugin.log.error('Failed to create selection');
         }
     };
 

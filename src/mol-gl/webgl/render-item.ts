@@ -67,15 +67,9 @@ function createProgramVariant(ctx: WebGLContext, variant: string, defineValues: 
 
 //
 
-type ProgramVariants = { [k: string]: Program }
-type VertexArrayVariants = { [k: string]: VertexArray | null }
+type ProgramVariants = Record<string, Program>
+type VertexArrayVariants = Record<string, VertexArray | null>
 
-interface ValueChanges {
-    attributes: boolean
-    defines: boolean
-    elements: boolean
-    textures: boolean
-}
 function createValueChanges() {
     return {
         attributes: false,
@@ -84,6 +78,8 @@ function createValueChanges() {
         textures: false,
     };
 }
+type ValueChanges = ReturnType<typeof createValueChanges>
+
 function resetValueChanges(valueChanges: ValueChanges) {
     valueChanges.attributes = false;
     valueChanges.defines = false;

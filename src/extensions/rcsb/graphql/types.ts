@@ -1,9 +1,10 @@
 /* eslint-disable */
 export type Maybe<T> = T | null;
+export type InputMaybe<T> = Maybe<T>;
 export type Exact<T extends { [key: string]: unknown }> = { [K in keyof T]: T[K] };
 export type MakeOptional<T, K extends keyof T> = Omit<T, K> & { [SubKey in K]?: Maybe<T[SubKey]> };
 export type MakeMaybe<T, K extends keyof T> = Omit<T, K> & { [SubKey in K]: Maybe<T[SubKey]> };
-// Generated on 2021-09-12T13:31:40-07:00
+// Generated on 2021-11-25T14:34:23-08:00
 
 /** All built-in and custom scalars, mapped to their actual values */
 export type Scalars = {
@@ -6769,7 +6770,7 @@ export type Query = {
 
 /** Query root */
 export type QueryAssembliesArgs = {
-  assembly_ids: ReadonlyArray<Maybe<Scalars['String']>>;
+  assembly_ids: ReadonlyArray<InputMaybe<Scalars['String']>>;
 };
 
 
@@ -6802,7 +6803,7 @@ export type QueryBranched_Entity_InstanceArgs = {
 
 /** Query root */
 export type QueryBranched_Entity_InstancesArgs = {
-  instance_ids: ReadonlyArray<Maybe<Scalars['String']>>;
+  instance_ids: ReadonlyArray<InputMaybe<Scalars['String']>>;
 };
 
 
@@ -6814,7 +6815,7 @@ export type QueryChem_CompArgs = {
 
 /** Query root */
 export type QueryChem_CompsArgs = {
-  comp_ids: ReadonlyArray<Maybe<Scalars['String']>>;
+  comp_ids: ReadonlyArray<InputMaybe<Scalars['String']>>;
 };
 
 
@@ -6852,7 +6853,7 @@ export type QueryNonpolymer_Entity_InstanceArgs = {
 
 /** Query root */
 export type QueryNonpolymer_Entity_InstancesArgs = {
-  instance_ids: ReadonlyArray<Maybe<Scalars['String']>>;
+  instance_ids: ReadonlyArray<InputMaybe<Scalars['String']>>;
 };
 
 
@@ -6878,7 +6879,7 @@ export type QueryPolymer_Entity_InstanceArgs = {
 
 /** Query root */
 export type QueryPolymer_Entity_InstancesArgs = {
-  instance_ids: ReadonlyArray<Maybe<Scalars['String']>>;
+  instance_ids: ReadonlyArray<InputMaybe<Scalars['String']>>;
 };
 
 
@@ -13144,4 +13145,4 @@ export type AssemblySymmetryQueryVariables = Exact<{
 }>;
 
 
-export type AssemblySymmetryQuery = { readonly assembly?: Maybe<{ readonly rcsb_struct_symmetry?: Maybe<ReadonlyArray<Maybe<{ readonly kind: string, readonly oligomeric_state: string, readonly stoichiometry: ReadonlyArray<Maybe<string>>, readonly symbol: string, readonly type: string, readonly clusters: ReadonlyArray<Maybe<{ readonly avg_rmsd?: Maybe<number>, readonly members: ReadonlyArray<Maybe<{ readonly asym_id: string, readonly pdbx_struct_oper_list_ids?: Maybe<ReadonlyArray<Maybe<string>>> }>> }>>, readonly rotation_axes?: Maybe<ReadonlyArray<Maybe<{ readonly order?: Maybe<number>, readonly start: ReadonlyArray<Maybe<number>>, readonly end: ReadonlyArray<Maybe<number>> }>>> }>>> }> };
+export type AssemblySymmetryQuery = { readonly assembly?: { readonly rcsb_struct_symmetry?: ReadonlyArray<{ readonly kind: string, readonly oligomeric_state: string, readonly stoichiometry: ReadonlyArray<string | null | undefined>, readonly symbol: string, readonly type: string, readonly clusters: ReadonlyArray<{ readonly avg_rmsd?: number | null | undefined, readonly members: ReadonlyArray<{ readonly asym_id: string, readonly pdbx_struct_oper_list_ids?: ReadonlyArray<string | null | undefined> | null | undefined } | null | undefined> } | null | undefined>, readonly rotation_axes?: ReadonlyArray<{ readonly order?: number | null | undefined, readonly start: ReadonlyArray<number | null | undefined>, readonly end: ReadonlyArray<number | null | undefined> } | null | undefined> | null | undefined } | null | undefined> | null | undefined } | null | undefined };
