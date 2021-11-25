@@ -390,6 +390,8 @@ export function calcTextureMeshColorSmoothing(input: ColorSmoothingInput, resolu
 //
 
 const ColorSmoothingRgbName = 'color-smoothing-rgb';
+const ColorSmoothingRgbaName = 'color-smoothing-rgba';
+const ColorSmoothingAlphaName = 'color-smoothing-alpha';
 
 function isSupportedColorType(x: string): x is 'group' | 'groupInstance' {
     return x === 'group' || x === 'groupInstance';
@@ -425,4 +427,76 @@ export function applyTextureMeshColorSmoothing(values: TextureMeshValues, resolu
     ValueCell.update(values.uColorTexDim, smoothingData.gridTexDim);
     ValueCell.update(values.uColorGridDim, smoothingData.gridDim);
     ValueCell.update(values.uColorGridTransform, smoothingData.gridTransform);
+}
+
+function isSupportedOverpaintType(x: string): x is 'groupInstance' {
+    return x === 'groupInstance';
+}
+
+export function applyTextureMeshOverpaintSmoothing(values: TextureMeshValues, resolution: number, stride: number, webgl: WebGLContext, colorTexture?: Texture) {
+    if (!isSupportedOverpaintType(values.dOverpaintType.ref.value)) return;
+
+    stride *= 3; // triple because TextureMesh is never indexed (no elements buffer)
+
+    if (!webgl.namedTextures[ColorSmoothingRgbaName]) {
+        webgl.namedTextures[ColorSmoothingRgbaName] = webgl.resources.texture('image-uint8', 'rgba', 'ubyte', 'nearest');
+    }
+    const colorData = webgl.namedTextures[ColorSmoothingRgbaName];
+    colorData.load(values.tOverpaint.ref.value);
+
+    const smoothingData = calcTextureMeshColorSmoothing({
+        vertexCount: values.uVertexCount.ref.value,
+        instanceCount: values.uInstanceCount.ref.value,
+        groupCount: values.uGroupCount.ref.value,
+        transformBuffer: values.aTransform.ref.value,
+        instanceBuffer: values.aInstance.ref.value,
+        positionTexture: values.tPosition.ref.value,
+        groupTexture: values.tGroup.ref.value,
+        colorData,
+        colorType: values.dOverpaintType.ref.value,
+        boundingSphere: values.boundingSphere.ref.value,
+        invariantBoundingSphere: values.invariantBoundingSphere.ref.value,
+    }, resolution, stride, webgl, colorTexture);
+
+    ValueCell.updateIfChanged(values.dOverpaintType, smoothingData.type);
+    ValueCell.update(values.tOverpaintGrid, smoothingData.texture);
+    ValueCell.update(values.uOverpaintTexDim, smoothingData.gridTexDim);
+    ValueCell.update(values.uOverpaintGridDim, smoothingData.gridDim);
+    ValueCell.update(values.uOverpaintGridTransform, smoothingData.gridTransform);
+}
+
+function isSupportedTransparencyType(x: string): x is 'groupInstance' {
+    return x === 'groupInstance';
+}
+
+export function applyTextureMeshTransparencySmoothing(values: TextureMeshValues, resolution: number, stride: number, webgl: WebGLContext, colorTexture?: Texture) {
+    if (!isSupportedTransparencyType(values.dTransparencyType.ref.value)) return;
+
+    stride *= 3; // triple because TextureMesh is never indexed (no elements buffer)
+
+    if (!webgl.namedTextures[ColorSmoothingAlphaName]) {
+        webgl.namedTextures[ColorSmoothingAlphaName] = webgl.resources.texture('image-uint8', 'alpha', 'ubyte', 'nearest');
+    }
+    const colorData = webgl.namedTextures[ColorSmoothingAlphaName];
+    colorData.load(values.tTransparency.ref.value);
+
+    const smoothingData = calcTextureMeshColorSmoothing({
+        vertexCount: values.uVertexCount.ref.value,
+        instanceCount: values.uInstanceCount.ref.value,
+        groupCount: values.uGroupCount.ref.value,
+        transformBuffer: values.aTransform.ref.value,
+        instanceBuffer: values.aInstance.ref.value,
+        positionTexture: values.tPosition.ref.value,
+        groupTexture: values.tGroup.ref.value,
+        colorData,
+        colorType: values.dTransparencyType.ref.value,
+        boundingSphere: values.boundingSphere.ref.value,
+        invariantBoundingSphere: values.invariantBoundingSphere.ref.value,
+    }, resolution, stride, webgl, colorTexture);
+
+    ValueCell.updateIfChanged(values.dTransparencyType, smoothingData.type);
+    ValueCell.update(values.tTransparencyGrid, smoothingData.texture);
+    ValueCell.update(values.uTransparencyTexDim, smoothingData.gridTexDim);
+    ValueCell.update(values.uTransparencyGridDim, smoothingData.gridDim);
+    ValueCell.update(values.uTransparencyGridTransform, smoothingData.gridTransform);
 }

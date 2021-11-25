@@ -54,6 +54,9 @@ export const assign_material_color = `
 // apply screendoor transparency
 #if defined(dTransparency)
     float ta = 1.0 - vTransparency;
+    #if defined(dRenderVariant_colorWboit)
+        if (vTransparency < 0.2) ta = 1.0; // hard cutoff looks better with wboit
+    #endif
 
     #if defined(dRenderVariant_pick)
         if (ta < uPickingAlphaThreshold)

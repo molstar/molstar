@@ -288,3 +288,71 @@ export function applyMeshColorSmoothing(values: MeshValues, resolution: number, 
         ValueCell.update(values.uColorTexDim, smoothingData.texDim);
     }
 }
+
+function isSupportedOverpaintType(x: string): x is 'groupInstance' {
+    return x === 'groupInstance';
+}
+
+export function applyMeshOverpaintSmoothing(values: MeshValues, resolution: number, stride: number, webgl?: WebGLContext, colorTexture?: Texture) {
+    if (!isSupportedOverpaintType(values.dOverpaintType.ref.value)) return;
+
+    const smoothingData = calcMeshColorSmoothing({
+        vertexCount: values.uVertexCount.ref.value,
+        instanceCount: values.uInstanceCount.ref.value,
+        groupCount: values.uGroupCount.ref.value,
+        transformBuffer: values.aTransform.ref.value,
+        instanceBuffer: values.aInstance.ref.value,
+        positionBuffer: values.aPosition.ref.value,
+        groupBuffer: values.aGroup.ref.value,
+        colorData: values.tOverpaint.ref.value,
+        colorType: values.dOverpaintType.ref.value,
+        boundingSphere: values.boundingSphere.ref.value,
+        invariantBoundingSphere: values.invariantBoundingSphere.ref.value,
+        itemSize: 4
+    }, resolution, stride, webgl, colorTexture);
+    if (smoothingData.kind === 'volume') {
+        ValueCell.updateIfChanged(values.dOverpaintType, smoothingData.type);
+        ValueCell.update(values.tOverpaintGrid, smoothingData.texture);
+        ValueCell.update(values.uOverpaintTexDim, smoothingData.gridTexDim);
+        ValueCell.update(values.uOverpaintGridDim, smoothingData.gridDim);
+        ValueCell.update(values.uOverpaintGridTransform, smoothingData.gridTransform);
+    } else if (smoothingData.kind === 'vertex') {
+        ValueCell.updateIfChanged(values.dOverpaintType, smoothingData.type);
+        ValueCell.update(values.tOverpaint, smoothingData.texture);
+        ValueCell.update(values.uOverpaintTexDim, smoothingData.texDim);
+    }
+}
+
+function isSupportedTransparencyType(x: string): x is 'groupInstance' {
+    return x === 'groupInstance';
+}
+
+export function applyMeshTransparencySmoothing(values: MeshValues, resolution: number, stride: number, webgl?: WebGLContext, colorTexture?: Texture) {
+    if (!isSupportedTransparencyType(values.dTransparencyType.ref.value)) return;
+
+    const smoothingData = calcMeshColorSmoothing({
+        vertexCount: values.uVertexCount.ref.value,
+        instanceCount: values.uInstanceCount.ref.value,
+        groupCount: values.uGroupCount.ref.value,
+        transformBuffer: values.aTransform.ref.value,
+        instanceBuffer: values.aInstance.ref.value,
+        positionBuffer: values.aPosition.ref.value,
+        groupBuffer: values.aGroup.ref.value,
+        colorData: values.tTransparency.ref.value,
+        colorType: values.dTransparencyType.ref.value,
+        boundingSphere: values.boundingSphere.ref.value,
+        invariantBoundingSphere: values.invariantBoundingSphere.ref.value,
+        itemSize: 1
+    }, resolution, stride, webgl, colorTexture);
+    if (smoothingData.kind === 'volume') {
+        ValueCell.updateIfChanged(values.dTransparencyType, smoothingData.type);
+        ValueCell.update(values.tTransparencyGrid, smoothingData.texture);
+        ValueCell.update(values.uTransparencyTexDim, smoothingData.gridTexDim);
+        ValueCell.update(values.uTransparencyGridDim, smoothingData.gridDim);
+        ValueCell.update(values.uTransparencyGridTransform, smoothingData.gridTransform);
+    } else if (smoothingData.kind === 'vertex') {
+        ValueCell.updateIfChanged(values.dTransparencyType, smoothingData.type);
+        ValueCell.update(values.tTransparency, smoothingData.texture);
+        ValueCell.update(values.uTransparencyTexDim, smoothingData.texDim);
+    }
+}

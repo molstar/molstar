@@ -106,12 +106,12 @@ export function ComplexRepresentation<P extends StructureParams>(label: string, 
         if (state.overpaint !== undefined && visual) {
             // Remap loci from equivalent structure to the current structure
             const remappedOverpaint = Overpaint.remap(state.overpaint, _structure);
-            visual.setOverpaint(remappedOverpaint);
+            visual.setOverpaint(remappedOverpaint, webgl);
         }
         if (state.transparency !== undefined && visual) {
             // Remap loci from equivalent structure to the current structure
             const remappedTransparency = Transparency.remap(state.transparency, _structure);
-            visual.setTransparency(remappedTransparency);
+            visual.setTransparency(remappedTransparency, webgl);
         }
         if (state.clipping !== undefined && visual) {
             // Remap loci from equivalent structure to the current structure

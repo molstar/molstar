@@ -18,9 +18,17 @@ export const color_vert_params = `
     #endif
 
     #ifdef dOverpaint
-        varying vec4 vOverpaint;
-        uniform vec2 uOverpaintTexDim;
-        uniform sampler2D tOverpaint;
+        #if defined(dOverpaintType_groupInstance) || defined(dOverpaintType_vertexInstance)
+            varying vec4 vOverpaint;
+            uniform vec2 uOverpaintTexDim;
+            uniform sampler2D tOverpaint;
+        #elif defined(dOverpaintType_volumeInstance)
+            varying vec4 vOverpaint;
+            uniform vec2 uOverpaintTexDim;
+            uniform vec3 uOverpaintGridDim;
+            uniform vec4 uOverpaintGridTransform;
+            uniform sampler2D tOverpaintGrid;
+        #endif
     #endif
 #elif defined(dRenderVariant_pick)
     #if __VERSION__ == 100
@@ -32,9 +40,17 @@ export const color_vert_params = `
 
 #ifdef dTransparency
     varying float vGroup;
-    varying float vTransparency;
-    uniform vec2 uTransparencyTexDim;
-    uniform sampler2D tTransparency;
+    #if defined(dTransparencyType_groupInstance) || defined(dTransparencyType_vertexInstance)
+        varying float vTransparency;
+        uniform vec2 uTransparencyTexDim;
+        uniform sampler2D tTransparency;
+    #elif defined(dTransparencyType_volumeInstance)
+        varying float vTransparency;
+        uniform vec2 uTransparencyTexDim;
+        uniform vec3 uTransparencyGridDim;
+        uniform vec4 uTransparencyGridTransform;
+        uniform sampler2D tTransparencyGrid;
+    #endif
 #endif
 
 #ifdef dUsePalette
