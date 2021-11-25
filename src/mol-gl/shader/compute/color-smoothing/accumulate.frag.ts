@@ -8,7 +8,7 @@ export const accumulate_frag = `
 precision highp float;
 
 varying vec3 vPosition;
-varying vec3 vColor;
+varying vec4 vColor;
 
 uniform float uCurrentSlice;
 uniform float uCurrentX;
@@ -23,6 +23,8 @@ void main() {
     float dist = distance(fragPos, vPosition);
     if (dist > p) discard;
 
-    gl_FragColor = vec4(vColor, 1.0) * (p - dist);
+    float f = p - dist;
+    gl_FragColor = vColor * f;
+    gl_FragData[1] = vec4(f);
 }
 `;

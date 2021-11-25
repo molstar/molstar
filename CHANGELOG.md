@@ -11,6 +11,7 @@ Note that since we don't clearly distinguish between a public and private interf
     - StructureSelectionQuery helpers 'helix' & 'beta' were not ensuring property availability
 - Re-enable VAO with better workaround (bind null elements buffer before deleting)
 - Add ``Representation.geometryVersion`` (increments whenever the geometry of any of its visuals changes)
+- Add support for grid-based smoothing of Overpaint and Transparency visual state for surfaces
 
 ## [v2.3.9] - 2021-11-20
 

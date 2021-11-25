@@ -14,10 +14,7 @@ precision highp sampler2D;
 #include common_vert_params
 #include color_vert_params
 #include common_clip
-
-#if defined(dColorType_grid)
-    #include texture3d_from_2d_linear
-#endif
+#include texture3d_from_2d_linear
 
 #ifdef dGeoTexture
     uniform vec2 uGeoTexDim;

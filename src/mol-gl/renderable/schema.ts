@@ -224,6 +224,11 @@ export const OverpaintSchema = {
     uOverpaintTexDim: UniformSpec('v2'),
     tOverpaint: TextureSpec('image-uint8', 'rgba', 'ubyte', 'nearest'),
     dOverpaint: DefineSpec('boolean'),
+
+    uOverpaintGridDim: UniformSpec('v3'),
+    uOverpaintGridTransform: UniformSpec('v4'),
+    tOverpaintGrid: TextureSpec('texture', 'rgba', 'ubyte', 'linear'),
+    dOverpaintType: DefineSpec('string', ['groupInstance', 'volumeInstance']),
 } as const;
 export type OverpaintSchema = typeof OverpaintSchema
 export type OverpaintValues = Values<OverpaintSchema>
@@ -233,6 +238,11 @@ export const TransparencySchema = {
     tTransparency: TextureSpec('image-uint8', 'alpha', 'ubyte', 'nearest'),
     dTransparency: DefineSpec('boolean'),
     transparencyAverage: ValueSpec('number'),
+
+    uTransparencyGridDim: UniformSpec('v3'),
+    uTransparencyGridTransform: UniformSpec('v4'),
+    tTransparencyGrid: TextureSpec('texture', 'alpha', 'ubyte', 'linear'),
+    dTransparencyType: DefineSpec('string', ['groupInstance', 'volumeInstance']),
 } as const;
 export type TransparencySchema = typeof TransparencySchema
 export type TransparencyValues = Values<TransparencySchema>

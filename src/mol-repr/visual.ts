@@ -24,6 +24,11 @@ import { createTransparency, clearTransparency, applyTransparencyValue, getTrans
 import { Clipping } from '../mol-theme/clipping';
 import { createClipping, applyClippingGroups, clearClipping } from '../mol-geo/geometry/clipping-data';
 import { getMarkersAverage } from '../mol-geo/geometry/marker-data';
+import { Texture } from '../mol-gl/webgl/texture';
+import { Geometry } from '../mol-geo/geometry/geometry';
+import { getColorSmoothingProps, hasColorSmoothingProp } from '../mol-geo/geometry/base';
+import { applyMeshOverpaintSmoothing, applyMeshTransparencySmoothing } from '../mol-geo/geometry/mesh/color-smoothing';
+import { applyTextureMeshOverpaintSmoothing, applyTextureMeshTransparencySmoothing } from '../mol-geo/geometry/texture-mesh/color-smoothing';
 
 export interface VisualContext {
     readonly runtime: RuntimeContext
@@ -44,8 +49,8 @@ interface Visual<D, P extends PD.Params> {
     setPickable: (pickable: boolean) => void
     setColorOnly: (colorOnly: boolean) => void
     setTransform: (matrix?: Mat4, instanceMatrices?: Float32Array | null) => void
-    setOverpaint: (overpaint: Overpaint) => void
-    setTransparency: (transparency: Transparency) => void
+    setOverpaint: (overpaint: Overpaint, webgl?: WebGLContext) => void
+    setTransparency: (transparency: Transparency, webgl?: WebGLContext) => void
     setClipping: (clipping: Clipping) => void
     destroy: () => void
     mustRecreate?: (data: D, props: PD.Values<P>, webgl?: WebGLContext) => boolean
@@ -134,10 +139,22 @@ namespace Visual {
         return changed;
     }
 
-    export function setOverpaint(renderObject: GraphicsRenderObject | undefined, overpaint: Overpaint, lociApply: LociApply, clear: boolean) {
+    type SurfaceMeta = {
+        resolution?: number
+        overpaintTexture?: Texture
+        transparencyTexture?: Texture
+    }
+
+    type SmoothingContext = {
+        geometry: Geometry,
+        props: PD.Values<any>,
+        webgl?: WebGLContext
+    }
+
+    export function setOverpaint(renderObject: GraphicsRenderObject | undefined, overpaint: Overpaint, lociApply: LociApply, clear: boolean, smoothing?: SmoothingContext) {
         if (!renderObject) return;
 
-        const { tOverpaint, uGroupCount, instanceCount } = renderObject.values;
+        const { tOverpaint, dOverpaintType, uGroupCount, instanceCount } = renderObject.values;
         const count = uGroupCount.ref.value * instanceCount.ref.value;
 
         // ensure texture has right size
@@ -159,12 +176,34 @@ namespace Visual {
             lociApply(loci, apply, false);
         }
         ValueCell.update(tOverpaint, tOverpaint.ref.value);
+        ValueCell.updateIfChanged(dOverpaintType, 'groupInstance');
+
+        if (overpaint.layers.length === 0) return;
+
+        if (smoothing && hasColorSmoothingProp(smoothing.props)) {
+            const { geometry, props, webgl } = smoothing;
+            if (geometry.kind === 'mesh') {
+                const { resolution, overpaintTexture } = geometry.meta as SurfaceMeta;
+                const csp = getColorSmoothingProps(props.smoothColors, true, resolution);
+                if (csp) {
+                    applyMeshOverpaintSmoothing(renderObject.values as any, csp.resolution, csp.stride, webgl, overpaintTexture);
+                    (geometry.meta as SurfaceMeta).overpaintTexture = renderObject.values.tOverpaintGrid.ref.value;
+                }
+            } else if (webgl && geometry.kind === 'texture-mesh') {
+                const { resolution, overpaintTexture } = geometry.meta as SurfaceMeta;
+                const csp = getColorSmoothingProps(props.smoothColors, true, resolution);
+                if (csp) {
+                    applyTextureMeshOverpaintSmoothing(renderObject.values as any, csp.resolution, csp.stride, webgl, overpaintTexture);
+                    (geometry.meta as SurfaceMeta).overpaintTexture = renderObject.values.tOverpaintGrid.ref.value;
+                }
+            }
+        }
     }
 
-    export function setTransparency(renderObject: GraphicsRenderObject | undefined, transparency: Transparency, lociApply: LociApply, clear: boolean) {
+    export function setTransparency(renderObject: GraphicsRenderObject | undefined, transparency: Transparency, lociApply: LociApply, clear: boolean, smoothing?: SmoothingContext) {
         if (!renderObject) return;
 
-        const { tTransparency, transparencyAverage, uGroupCount, instanceCount } = renderObject.values;
+        const { tTransparency, dTransparencyType, transparencyAverage, uGroupCount, instanceCount } = renderObject.values;
         const count = uGroupCount.ref.value * instanceCount.ref.value;
 
         // ensure texture has right size and variant
@@ -185,6 +224,28 @@ namespace Visual {
         }
         ValueCell.update(tTransparency, tTransparency.ref.value);
         ValueCell.updateIfChanged(transparencyAverage, getTransparencyAverage(array, count));
+        ValueCell.updateIfChanged(dTransparencyType, 'groupInstance');
+
+        if (transparency.layers.length === 0) return;
+
+        if (smoothing && hasColorSmoothingProp(smoothing.props)) {
+            const { geometry, props, webgl } = smoothing;
+            if (geometry.kind === 'mesh') {
+                const { resolution, transparencyTexture } = geometry.meta as SurfaceMeta;
+                const csp = getColorSmoothingProps(props.smoothColors, true, resolution);
+                if (csp) {
+                    applyMeshTransparencySmoothing(renderObject.values as any, csp.resolution, csp.stride, webgl, transparencyTexture);
+                    (geometry.meta as SurfaceMeta).transparencyTexture = renderObject.values.tTransparencyGrid.ref.value;
+                }
+            } else if (webgl && geometry.kind === 'texture-mesh') {
+                const { resolution, transparencyTexture } = geometry.meta as SurfaceMeta;
+                const csp = getColorSmoothingProps(props.smoothColors, true, resolution);
+                if (csp) {
+                    applyTextureMeshTransparencySmoothing(renderObject.values as any, csp.resolution, csp.stride, webgl, transparencyTexture);
+                    (geometry.meta as SurfaceMeta).transparencyTexture = renderObject.values.tTransparencyGrid.ref.value;
+                }
+            }
+        }
     }
 
     export function setClipping(renderObject: GraphicsRenderObject | undefined, clipping: Clipping, lociApply: LociApply, clear: boolean) {

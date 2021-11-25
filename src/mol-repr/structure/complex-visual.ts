@@ -258,11 +258,13 @@ export function ComplexVisual<G extends Geometry, P extends StructureParams & Ge
         setTransform(matrix?: Mat4, instanceMatrices?: Float32Array | null) {
             Visual.setTransform(renderObject, matrix, instanceMatrices);
         },
-        setOverpaint(overpaint: Overpaint) {
-            Visual.setOverpaint(renderObject, overpaint, lociApply, true);
+        setOverpaint(overpaint: Overpaint, webgl?: WebGLContext) {
+            const smoothing = { geometry, props: currentProps, webgl };
+            Visual.setOverpaint(renderObject, overpaint, lociApply, true, smoothing);
         },
-        setTransparency(transparency: Transparency) {
-            Visual.setTransparency(renderObject, transparency, lociApply, true);
+        setTransparency(transparency: Transparency, webgl?: WebGLContext) {
+            const smoothing = { geometry, props: currentProps, webgl };
+            Visual.setTransparency(renderObject, transparency, lociApply, true, smoothing);
         },
         setClipping(clipping: Clipping) {
             Visual.setClipping(renderObject, clipping, lociApply, true);

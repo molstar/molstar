@@ -223,8 +223,8 @@ export function UnitsRepresentation<P extends StructureParams>(label: string, ct
         if (visible !== undefined) visual.setVisibility(visible);
         if (alphaFactor !== undefined) visual.setAlphaFactor(alphaFactor);
         if (pickable !== undefined) visual.setPickable(pickable);
-        if (overpaint !== undefined) visual.setOverpaint(overpaint);
-        if (transparency !== undefined) visual.setTransparency(transparency);
+        if (overpaint !== undefined) visual.setOverpaint(overpaint, webgl);
+        if (transparency !== undefined) visual.setTransparency(transparency, webgl);
         if (clipping !== undefined) visual.setClipping(clipping);
         if (transform !== undefined) visual.setTransform(transform);
         if (unitTransforms !== undefined) {
