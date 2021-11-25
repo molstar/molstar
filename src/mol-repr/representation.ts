@@ -343,7 +343,7 @@ namespace Representation {
             setState: (state: Partial<S>) => {
                 stateBuilder.update(currentState, state);
                 for (let i = 0, il = reprList.length; i < il; ++i) {
-                    reprList[i].setState(currentState);
+                    reprList[i].setState(state); // only set the new (partial) state
                 }
             },
             setTheme: (theme: Theme) => {

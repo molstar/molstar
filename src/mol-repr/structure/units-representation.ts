@@ -244,20 +244,14 @@ export function UnitsRepresentation<P extends StructureParams>(label: string, ct
         if (visible !== _state.visible) newState.visible = visible;
         if (alphaFactor !== _state.alphaFactor) newState.alphaFactor = alphaFactor;
         if (pickable !== _state.pickable) newState.pickable = pickable;
-        if (overpaint !== undefined && !Overpaint.areEqual(overpaint, _state.overpaint)) {
-            if (_structure) {
-                newState.overpaint = Overpaint.remap(overpaint, _structure);
-            }
+        if (overpaint !== undefined && _structure) {
+            newState.overpaint = Overpaint.remap(overpaint, _structure);
         }
-        if (transparency !== undefined && !Transparency.areEqual(transparency, _state.transparency)) {
-            if (_structure) {
-                newState.transparency = Transparency.remap(transparency, _structure);
-            }
+        if (transparency !== undefined && _structure) {
+            newState.transparency = Transparency.remap(transparency, _structure);
         }
-        if (clipping !== undefined && !Clipping.areEqual(clipping, _state.clipping)) {
-            if (_structure) {
-                newState.clipping = Clipping.remap(clipping, _structure);
-            }
+        if (clipping !== undefined && _structure) {
+            newState.clipping = Clipping.remap(clipping, _structure);
         }
         if (transform !== undefined && !Mat4.areEqual(transform, _state.transform, EPSILON)) {
             newState.transform = transform;
