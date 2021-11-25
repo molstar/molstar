@@ -5,7 +5,6 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { BaseValues } from '../../mol-gl/renderable/schema';
 import { Style } from '../../mol-gl/renderer';
 import { asciiWrite } from '../../mol-io/common/ascii';
 import { IsNativeEndianLittle, flipByteOrder } from '../../mol-io/common/binary';
@@ -16,7 +15,7 @@ import { RuntimeContext } from '../../mol-task';
 import { Color } from '../../mol-util/color/color';
 import { fillSerial } from '../../mol-util/array';
 import { NumberArray } from '../../mol-util/type-helpers';
-import { MeshExporter, AddMeshInput } from './mesh-exporter';
+import { MeshExporter, AddMeshInput, MeshGeoData } from './mesh-exporter';
 
 // avoiding namespace lookup improved performance in Chrome (Aug 2020)
 const v3fromArray = Vec3.fromArray;
@@ -133,15 +132,16 @@ export class GlbExporter extends MeshExporter<GlbData> {
         };
     }
 
-    private addColorBuffer(values: BaseValues, groups: Float32Array | Uint8Array, vertexCount: number, instanceIndex: number, isGeoTexture: boolean, interpolatedColors: Uint8Array | undefined, interpolatedOverpaint: Uint8Array | undefined, interpolatedTransparency: Uint8Array | undefined) {
+    private addColorBuffer(geoData: MeshGeoData, interpolatedColors: Uint8Array | undefined, interpolatedOverpaint: Uint8Array | undefined, interpolatedTransparency: Uint8Array | undefined) {
+        const { values, vertexCount } = geoData;
         const uAlpha = values.uAlpha.ref.value;
 
         const colorArray = new Uint8Array(vertexCount * 4);
 
         for (let i = 0; i < vertexCount; ++i) {
-            let color = GlbExporter.getColor(values, groups, vertexCount, instanceIndex, isGeoTexture, interpolatedColors, interpolatedOverpaint, i);
+            let color = GlbExporter.getColor(i, geoData, interpolatedColors, interpolatedOverpaint);
 
-            const transparency = GlbExporter.getTransparency(values, groups, vertexCount, instanceIndex, isGeoTexture, interpolatedTransparency, i);
+            const transparency = GlbExporter.getTransparency(i, geoData, interpolatedTransparency);
             const alpha = uAlpha * (1 - transparency);
 
             color = Color.sRGBToLinear(color);
@@ -172,19 +172,19 @@ export class GlbExporter extends MeshExporter<GlbData> {
         let interpolatedColors: Uint8Array | undefined;
         if (colorType === 'volume' || colorType === 'volumeInstance') {
             const stride = isGeoTexture ? 4 : 3;
-            interpolatedColors = GlbExporter.getInterpolatedColors(mesh!.vertices, mesh!.vertexCount, values, stride, colorType, webgl!);
+            interpolatedColors = GlbExporter.getInterpolatedColors(webgl!, { vertices: mesh!.vertices, vertexCount: mesh!.vertexCount, values, stride, colorType });
         }
 
         let interpolatedOverpaint: Uint8Array | undefined;
         if (overpaintType === 'volumeInstance') {
             const stride = isGeoTexture ? 4 : 3;
-            interpolatedOverpaint = GlbExporter.getInterpolatedOverpaint(mesh!.vertices, mesh!.vertexCount, values, stride, overpaintType, webgl!);
+            interpolatedOverpaint = GlbExporter.getInterpolatedOverpaint(webgl!, { vertices: mesh!.vertices, vertexCount: mesh!.vertexCount, values, stride, colorType: overpaintType });
         }
 
         let interpolatedTransparency: Uint8Array | undefined;
         if (transparencyType === 'volumeInstance') {
             const stride = isGeoTexture ? 4 : 3;
-            interpolatedTransparency = GlbExporter.getInterpolatedTransparency(mesh!.vertices, mesh!.vertexCount, values, stride, transparencyType, webgl!);
+            interpolatedTransparency = GlbExporter.getInterpolatedTransparency(webgl!, { vertices: mesh!.vertices, vertexCount: mesh!.vertexCount, values, stride, colorType: transparencyType });
         }
 
         // instancing
@@ -215,7 +215,7 @@ export class GlbExporter extends MeshExporter<GlbData> {
 
                 // create a color buffer if needed
                 if (instanceIndex === 0 || !sameColorBuffer) {
-                    colorAccessorIndex = this.addColorBuffer(values, groups, vertexCount, instanceIndex, isGeoTexture, interpolatedColors, interpolatedOverpaint, interpolatedTransparency);
+                    colorAccessorIndex = this.addColorBuffer({ values, groups, vertexCount, instanceIndex, isGeoTexture }, interpolatedColors, interpolatedOverpaint, interpolatedTransparency);
                 }
 
                 // glTF mesh

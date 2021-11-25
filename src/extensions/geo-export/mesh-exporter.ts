@@ -50,6 +50,14 @@ export interface AddMeshInput {
     ctx: RuntimeContext
 }
 
+export type MeshGeoData = {
+    values: BaseValues,
+    groups: Float32Array | Uint8Array,
+    vertexCount: number,
+    instanceIndex: number,
+    isGeoTexture: boolean
+}
+
 export abstract class MeshExporter<D extends RenderObjectExportData> implements RenderObjectExporter<D> {
     abstract readonly fileExtension: string;
 
@@ -92,7 +100,8 @@ export abstract class MeshExporter<D extends RenderObjectExportData> implements 
         return decodeFloatRGB(r, g, b);
     }
 
-    protected static getInterpolatedColors(vertices: Float32Array, vertexCount: number, values: BaseValues, stride: 3 | 4, colorType: 'volume' | 'volumeInstance', webgl: WebGLContext) {
+    protected static getInterpolatedColors(webgl: WebGLContext, input: { vertices: Float32Array, vertexCount: number, values: BaseValues, stride: 3 | 4, colorType: 'volume' | 'volumeInstance' }) {
+        const { values, vertexCount, vertices, colorType, stride } = input;
         const colorGridTransform = values.uColorGridTransform.ref.value;
         const colorGridDim = values.uColorGridDim.ref.value;
         const colorTexDim = values.uColorTexDim.ref.value;
@@ -104,7 +113,8 @@ export abstract class MeshExporter<D extends RenderObjectExportData> implements 
         return interpolated.array;
     }
 
-    protected static getInterpolatedOverpaint(vertices: Float32Array, vertexCount: number, values: BaseValues, stride: 3 | 4, colorType: 'volumeInstance', webgl: WebGLContext) {
+    protected static getInterpolatedOverpaint(webgl: WebGLContext, input: { vertices: Float32Array, vertexCount: number, values: BaseValues, stride: 3 | 4, colorType: 'volumeInstance' }) {
+        const { values, vertexCount, vertices, colorType, stride } = input;
         const overpaintGridTransform = values.uOverpaintGridTransform.ref.value;
         const overpaintGridDim = values.uOverpaintGridDim.ref.value;
         const overpaintTexDim = values.uOverpaintTexDim.ref.value;
@@ -116,7 +126,8 @@ export abstract class MeshExporter<D extends RenderObjectExportData> implements 
         return interpolated.array;
     }
 
-    protected static getInterpolatedTransparency(vertices: Float32Array, vertexCount: number, values: BaseValues, stride: 3 | 4, colorType: 'volumeInstance', webgl: WebGLContext) {
+    protected static getInterpolatedTransparency(webgl: WebGLContext, input: { vertices: Float32Array, vertexCount: number, values: BaseValues, stride: 3 | 4, colorType: 'volumeInstance' }) {
+        const { values, vertexCount, vertices, colorType, stride } = input;
         const transparencyGridTransform = values.uTransparencyGridTransform.ref.value;
         const transparencyGridDim = values.uTransparencyGridDim.ref.value;
         const transparencyTexDim = values.uTransparencyTexDim.ref.value;
@@ -210,7 +221,8 @@ export abstract class MeshExporter<D extends RenderObjectExportData> implements 
         }
     }
 
-    protected static getColor(values: BaseValues, groups: Float32Array | Uint8Array, vertexCount: number, instanceIndex: number, isGeoTexture: boolean, interpolatedColors: Uint8Array | undefined, interpolatedOverpaint: Uint8Array | undefined, vertexIndex: number): Color {
+    protected static getColor(vertexIndex: number, geoData: MeshGeoData, interpolatedColors?: Uint8Array, interpolatedOverpaint?: Uint8Array): Color {
+        const { values, instanceIndex, isGeoTexture, groups, vertexCount } = geoData;
         const groupCount = values.uGroupCount.ref.value;
         const colorType = values.dColorType.ref.value;
         const uColor = values.uColor.ref.value;
@@ -285,7 +297,8 @@ export abstract class MeshExporter<D extends RenderObjectExportData> implements 
         return color;
     }
 
-    protected static getTransparency(values: BaseValues, groups: Float32Array | Uint8Array, vertexCount: number, instanceIndex: number, isGeoTexture: boolean, interpolatedTransparency: Uint8Array | undefined, vertexIndex: number): number {
+    protected static getTransparency(vertexIndex: number, geoData: MeshGeoData, interpolatedTransparency?: Uint8Array): number {
+        const { values, instanceIndex, isGeoTexture, groups, vertexCount } = geoData;
         const groupCount = values.uGroupCount.ref.value;
         const dTransparency = values.dTransparency.ref.value;
         const tTransparency = values.tTransparency.ref.value.array;
