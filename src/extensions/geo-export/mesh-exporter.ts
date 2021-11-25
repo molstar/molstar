@@ -91,7 +91,7 @@ export abstract class MeshExporter<D extends RenderObjectExportData> implements 
         return decodeFloatRGB(r, g, b);
     }
 
-    protected static getInterpolatedColors(vertices: Float32Array, vertexCount: number, values: BaseValues, stride: number, colorType: 'volume' | 'volumeInstance', webgl: WebGLContext) {
+    protected static getInterpolatedColors(vertices: Float32Array, vertexCount: number, values: BaseValues, stride: 3 | 4, colorType: 'volume' | 'volumeInstance', webgl: WebGLContext) {
         const colorGridTransform = values.uColorGridTransform.ref.value;
         const colorGridDim = values.uColorGridDim.ref.value;
         const colorTexDim = values.uColorTexDim.ref.value;
@@ -99,7 +99,7 @@ export abstract class MeshExporter<D extends RenderObjectExportData> implements 
         const instanceCount = values.uInstanceCount.ref.value;
 
         const colorGrid = readTexture(webgl, values.tColorGrid.ref.value).array;
-        const interpolated = getTrilinearlyInterpolated({ vertexCount, instanceCount, transformBuffer: aTransform, positionBuffer: vertices, colorType, grid: colorGrid, gridDim: colorGridDim, gridTexDim: colorTexDim, gridTransform: colorGridTransform, vertexStride: stride, colorStride: 4 });
+        const interpolated = getTrilinearlyInterpolated({ vertexCount, instanceCount, transformBuffer: aTransform, positionBuffer: vertices, colorType, grid: colorGrid, gridDim: colorGridDim, gridTexDim: colorTexDim, gridTransform: colorGridTransform, vertexStride: stride, colorStride: 4, outputStride: 3 });
         return interpolated.array;
     }
 
