@@ -6,6 +6,11 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Fix secondary-structure property handling
+    - StructureElement.Property was incorrectly resolving type & key
+    - StructureSelectionQuery helpers 'helix' & 'beta' were not ensuring property availability
+- Re-enable VAO with better workaround
+
 ## [v2.3.9] - 2021-11-20
 
 - Workaround: switch off VAO support for now
