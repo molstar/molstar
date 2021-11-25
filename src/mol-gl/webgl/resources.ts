@@ -133,7 +133,7 @@ export function createResources(gl: GLRenderingContext, state: WebGLState, stats
             return wrap('texture', createTexture(gl, extensions, kind, format, type, filter));
         },
         vertexArray: (program: Program, attributeBuffers: AttributeBuffers, elementsBuffer?: ElementsBuffer) => {
-            return wrap('vertexArray', createVertexArray(extensions, program, attributeBuffers, elementsBuffer));
+            return wrap('vertexArray', createVertexArray(gl, extensions, program, attributeBuffers, elementsBuffer));
         },
 
         getByteCounts: () => {

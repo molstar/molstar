@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { GLRenderingContext, COMPAT_instanced_arrays, COMPAT_standard_derivatives, COMPAT_vertex_array_object, getInstancedArrays, getStandardDerivatives, COMPAT_element_index_uint, getElementIndexUint, COMPAT_texture_float, getTextureFloat, COMPAT_texture_float_linear, getTextureFloatLinear, COMPAT_blend_minmax, getBlendMinMax, getFragDepth, COMPAT_frag_depth, COMPAT_color_buffer_float, getColorBufferFloat, COMPAT_draw_buffers, getDrawBuffers, getShaderTextureLod, COMPAT_shader_texture_lod, getDepthTexture, COMPAT_depth_texture, COMPAT_sRGB, getSRGB, getTextureHalfFloat, getTextureHalfFloatLinear, COMPAT_texture_half_float, COMPAT_texture_half_float_linear, COMPAT_color_buffer_half_float, getColorBufferHalfFloat } from './compat';
+import { GLRenderingContext, COMPAT_instanced_arrays, COMPAT_standard_derivatives, COMPAT_vertex_array_object, getInstancedArrays, getStandardDerivatives, COMPAT_element_index_uint, getElementIndexUint, COMPAT_texture_float, getTextureFloat, COMPAT_texture_float_linear, getTextureFloatLinear, COMPAT_blend_minmax, getBlendMinMax, getFragDepth, COMPAT_frag_depth, COMPAT_color_buffer_float, getColorBufferFloat, COMPAT_draw_buffers, getDrawBuffers, getShaderTextureLod, COMPAT_shader_texture_lod, getDepthTexture, COMPAT_depth_texture, COMPAT_sRGB, getSRGB, getTextureHalfFloat, getTextureHalfFloatLinear, COMPAT_texture_half_float, COMPAT_texture_half_float_linear, COMPAT_color_buffer_half_float, getColorBufferHalfFloat, getVertexArrayObject } from './compat';
 import { isDebugMode } from '../../mol-util/debug';
 
 export type WebGLExtensions = {
@@ -73,11 +73,7 @@ export function createExtensions(gl: GLRenderingContext): WebGLExtensions {
         // - can't be a required extension because it is not supported by `headless-gl`
         console.log('Could not find support for "blend_minmax"');
     }
-    // TODO: revisit
-    // switch off VAO support for now
-    // - https://bugs.chromium.org/p/angleproject/issues/detail?id=6599
-    // - https://bugs.chromium.org/p/chromium/issues/detail?id=1272238
-    const vertexArrayObject = null; // getVertexArrayObject(gl);
+    const vertexArrayObject = getVertexArrayObject(gl);
     if (isDebugMode && vertexArrayObject === null) {
         console.log('Could not find support for "vertex_array_object"');
     }
