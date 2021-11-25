@@ -35,6 +35,7 @@ interface Visual<D, P extends PD.Params> {
     /** Number of addressable groups in all instances of the visual */
     readonly groupCount: number
     readonly renderObject: GraphicsRenderObject | undefined
+    readonly geometryVersion: number
     createOrUpdate: (ctx: VisualContext, theme: Theme, props: PD.Values<P>, data?: D) => Promise<void> | void
     getLoci: (pickingId: PickingId) => Loci
     mark: (loci: Loci, action: MarkerAction) => boolean

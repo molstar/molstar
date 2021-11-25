@@ -8,7 +8,7 @@
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { StructureRepresentation, StructureRepresentationStateBuilder, StructureRepresentationState } from './representation';
 import { Visual } from '../visual';
-import { RepresentationContext, RepresentationParamsGetter } from '../representation';
+import { Representation, RepresentationContext, RepresentationParamsGetter } from '../representation';
 import { Structure, Unit, StructureElement, Bond } from '../../mol-model/structure';
 import { Subject } from 'rxjs';
 import { getNextMaterialId, GraphicsRenderObject } from '../../mol-gl/render-object';
@@ -34,6 +34,7 @@ export function UnitsRepresentation<P extends StructureParams>(label: string, ct
     const updated = new Subject<number>();
     const materialId = getNextMaterialId();
     const renderObjects: GraphicsRenderObject[] = [];
+    const geometryState = new Representation.GeometryState();
     const _state = StructureRepresentationStateBuilder.create();
     let visuals = new Map<number, { group: Unit.SymmetryGroup, visual: UnitsVisual<P> }>();
 
@@ -170,8 +171,12 @@ export function UnitsRepresentation<P extends StructureParams>(label: string, ct
             // update list of renderObjects
             renderObjects.length = 0;
             visuals.forEach(({ visual }) => {
-                if (visual.renderObject) renderObjects.push(visual.renderObject);
+                if (visual.renderObject) {
+                    renderObjects.push(visual.renderObject);
+                    geometryState.add(visual.renderObject.id, visual.geometryVersion);
+                }
             });
+            geometryState.snapshot();
             // set new structure
             if (structure) _structure = structure;
             // increment version
@@ -287,6 +292,7 @@ export function UnitsRepresentation<P extends StructureParams>(label: string, ct
             });
             return groupCount;
         },
+        get geometryVersion() { return geometryState.version; },
         get props() { return _props; },
         get params() { return _params; },
         get state() { return _state; },

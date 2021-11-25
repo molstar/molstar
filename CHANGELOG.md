@@ -9,7 +9,8 @@ Note that since we don't clearly distinguish between a public and private interf
 - Fix secondary-structure property handling
     - StructureElement.Property was incorrectly resolving type & key
     - StructureSelectionQuery helpers 'helix' & 'beta' were not ensuring property availability
-- Re-enable VAO with better workaround
+- Re-enable VAO with better workaround (bind null elements buffer before deleting)
+- Add ``Representation.geometryVersion`` (increments whenever the geometry of any of its visuals changes)
 
 ## [v2.3.9] - 2021-11-20
 

@@ -80,6 +80,7 @@ export function ComplexVisual<G extends Geometry, P extends StructureParams & Ge
     let currentStructure: Structure;
 
     let geometry: G;
+    let geometryVersion = -1;
     let locationIt: LocationIterator;
     let positionIt: LocationIterator;
 
@@ -187,7 +188,10 @@ export function ComplexVisual<G extends Geometry, P extends StructureParams & Ge
         currentProps = newProps;
         currentTheme = newTheme;
         currentStructure = newStructure;
-        if (newGeometry) geometry = newGeometry;
+        if (newGeometry) {
+            geometry = newGeometry;
+            geometryVersion += 1;
+        }
     }
 
     function lociIsSuperset(loci: Loci) {
@@ -216,6 +220,7 @@ export function ComplexVisual<G extends Geometry, P extends StructureParams & Ge
     return {
         get groupCount() { return locationIt ? locationIt.count : 0; },
         get renderObject() { return locationIt && locationIt.count ? renderObject : undefined; },
+        get geometryVersion() { return geometryVersion; },
         createOrUpdate(ctx: VisualContext, theme: Theme, props: Partial<PD.Values<P>> = {}, structure?: Structure) {
             prepareUpdate(theme, props, structure || currentStructure);
             if (updateState.createGeometry) {

@@ -44,6 +44,7 @@ export function ShapeRepresentation<D, G extends Geometry, P extends Geometry.Pa
     const renderObjects: GraphicsRenderObject<G['kind']>[] = [];
     let _renderObject: GraphicsRenderObject<G['kind']> | undefined;
     let _shape: Shape<G>;
+    let geometryVersion = -1;
     const _theme = Theme.createEmpty();
     let currentProps: PD.Values<P> = PD.getDefaultValues(geometryUtils.Params as P); // TODO avoid casting
     let currentParams: P;
@@ -157,6 +158,9 @@ export function ShapeRepresentation<D, G extends Geometry, P extends Geometry.Pa
             }
 
             currentProps = newProps;
+            if (updateState.createGeometry || updateState.createNew) {
+                geometryVersion += 1;
+            }
             // increment version
             updated.next(version++);
         });
@@ -178,6 +182,7 @@ export function ShapeRepresentation<D, G extends Geometry, P extends Geometry.Pa
         get state() { return _state; },
         get theme() { return _theme; },
         renderObjects,
+        get geometryVersion() { return geometryVersion; },
         updated,
         createOrUpdate,
         getLoci(pickingId?: PickingId) {
