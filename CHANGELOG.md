@@ -6,6 +6,8 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Fix: allow atoms in aromatic rings to do hydrogen bonds
+
 ## [v2.4.0] - 2021-11-25
 
 - Fix secondary-structure property handling
