@@ -6,7 +6,7 @@
  */
 
 import { Vec3 } from '../../../../mol-math/linear-algebra';
-import { ChunkedArray } from '../../../../mol-data/util';
+import { cantorPairing, ChunkedArray } from '../../../../mol-data/util';
 import { MeshBuilder } from '../mesh-builder';
 
 const normalVector = Vec3();
@@ -37,18 +37,20 @@ const v3unitX = Vec3.unitX;
 const caAdd3 = ChunkedArray.add3;
 
 const CosSinCache = new Map<number, { cos: number[], sin: number[] }>();
-function getCosSin(radialSegments: number) {
-    if (!CosSinCache.has(radialSegments)) {
+function getCosSin(radialSegments: number, shift: boolean) {
+    const offset = shift ? 1 : 0;
+    const hash = cantorPairing(radialSegments, offset);
+    if (!CosSinCache.has(hash)) {
         const cos: number[] = [];
         const sin: number[] = [];
         for (let j = 0; j < radialSegments; ++j) {
-            const t = 2 * Math.PI * j / radialSegments;
+            const t = (j * 2 + offset) / radialSegments * Math.PI;
             cos[j] = Math.cos(t);
             sin[j] = Math.sin(t);
         }
-        CosSinCache.set(radialSegments, { cos, sin });
+        CosSinCache.set(hash, { cos, sin });
     }
-    return CosSinCache.get(radialSegments)!;
+    return CosSinCache.get(hash)!;
 }
 
 export function addTube(state: MeshBuilder.State, controlPoints: ArrayLike<number>, normalVectors: ArrayLike<number>, binormalVectors: ArrayLike<number>, linearSegments: number, radialSegments: number, widthValues: ArrayLike<number>, heightValues: ArrayLike<number>, startCap: boolean, endCap: boolean, crossSection: 'elliptical' | 'rounded') {
@@ -56,9 +58,9 @@ export function addTube(state: MeshBuilder.State, controlPoints: ArrayLike<numbe
 
     let vertexCount = vertices.elementCount;
 
-    const { cos, sin } = getCosSin(radialSegments);
+    const { cos, sin } = getCosSin(radialSegments, crossSection === 'rounded');
 
-    const q1 = radialSegments / 4;
+    const q1 = Math.round(radialSegments / 4);
     const q3 = q1 * 3;
 
     for (let i = 0; i <= linearSegments; ++i) {
@@ -78,7 +80,13 @@ export function addTube(state: MeshBuilder.State, controlPoints: ArrayLike<numbe
                     ? (j < q1 || j >= q3) ? height - width : -height + width
                     : (j >= q1 && j < q3) ? -height + width : height - width;
                 v3scaleAndAdd(surfacePoint, surfacePoint, u, h);
-                add2AndScale2(normalVector, u, v, cos[j], sin[j]);
+                if (j === q1 || j === q1 - 1) {
+                    add2AndScale2(normalVector, u, v, 0, 1);
+                } else if (j === q3 || j === q3 - 1) {
+                    add2AndScale2(normalVector, u, v, 0, -1);
+                } else {
+                    add2AndScale2(normalVector, u, v, cos[j], sin[j]);
+                }
             } else {
                 add3AndScale2(surfacePoint, u, v, controlPoint, height * cos[j], width * sin[j]);
                 add2AndScale2(normalVector, u, v, width * cos[j], height * sin[j]);
