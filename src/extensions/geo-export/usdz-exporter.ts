@@ -41,11 +41,6 @@ export class UsdzExporter extends MeshExporter<UsdzData> {
         const materialKey = this.materialMap.size;
         this.materialMap.set(hash, materialKey);
 
-        // const [r, g, b] = Color.toRgbNormalized(color);
-        // private addMaterial(color: Color, alpha: number) {
-        //     const materialKey = UsdzExporter.getMaterialKey(color, alpha);
-        //     if (this.materialSet.has(materialKey)) return;
-        //     this.materialSet.add(materialKey);
         const [r, g, b] = Color.toRgbNormalized(color).map(v => Math.round(v * 1000) / 1000);
         this.materials.push(`
 def Material "material${materialKey}"

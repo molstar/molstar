@@ -55,9 +55,11 @@ const SimpleSettingsParams = {
         color: PD.Color(Color(0xFCFBF9), { label: 'Background', description: 'Custom background color' }),
         transparent: PD.Boolean(false)
     }, { pivot: 'color' }),
-    occlusion: Canvas3DParams.postprocessing.params.occlusion,
-    outline: Canvas3DParams.postprocessing.params.outline,
-    fog: Canvas3DParams.cameraFog,
+    lighting: PD.Group({
+        occlusion: Canvas3DParams.postprocessing.params.occlusion,
+        outline: Canvas3DParams.postprocessing.params.outline,
+        fog: Canvas3DParams.cameraFog,
+    }, { isFlat: true }),
     clipping: PD.Group<any>({
         ...Canvas3DParams.cameraClipping.params,
         ...(Canvas3DParams.renderer.params.clip as any).params as any
@@ -101,9 +103,11 @@ const SimpleSettingsMapping = ParamMapping({
                 color: renderer.backgroundColor,
                 transparent: canvas.transparentBackground
             },
-            occlusion: canvas.postprocessing.occlusion,
-            outline: canvas.postprocessing.outline,
-            fog: canvas.cameraFog,
+            lighting: {
+                occlusion: canvas.postprocessing.occlusion,
+                outline: canvas.postprocessing.outline,
+                fog: canvas.cameraFog,
+            },
             clipping: {
                 ...canvas.cameraClipping,
                 ...canvas.renderer.clip
@@ -117,9 +121,9 @@ const SimpleSettingsMapping = ParamMapping({
         canvas.camera = s.camera;
         canvas.transparentBackground = s.background.transparent;
         canvas.renderer.backgroundColor = s.background.color;
-        canvas.postprocessing.occlusion = s.occlusion;
-        canvas.postprocessing.outline = s.outline;
-        canvas.cameraFog = s.fog;
+        canvas.postprocessing.occlusion = s.lighting.occlusion;
+        canvas.postprocessing.outline = s.lighting.outline;
+        canvas.cameraFog = s.lighting.fog;
         canvas.cameraClipping = {
             radius: s.clipping.radius,
             far: s.clipping.far,

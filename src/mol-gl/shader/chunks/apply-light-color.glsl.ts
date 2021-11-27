@@ -42,7 +42,7 @@ geometry.viewDir = normalize(vViewPosition);
 IncidentLight directLight;
 #pragma unroll_loop_start
 for (int i = 0; i < dLightCount; ++i) {
-    directLight.direction = normalize(uLightDirection[i]);
+    directLight.direction = uLightDirection[i];
     directLight.color = uLightColor[i] * PI; // * PI for punctual light
     RE_Direct_Physical(directLight, geometry, physicalMaterial, reflectedLight);
 }
