@@ -32,6 +32,7 @@ import { SizeValues } from '../../mol-gl/renderable/schema';
 import { Clipping } from '../../mol-theme/clipping';
 import { WebGLContext } from '../../mol-gl/webgl/context';
 import { isPromiseLike } from '../../mol-util/type-helpers';
+import { Substance } from '../../mol-theme/substance';
 
 export interface VolumeVisual<P extends VolumeParams> extends Visual<Volume, P> { }
 
@@ -210,6 +211,9 @@ export function VolumeVisual<G extends Geometry, P extends VolumeParams & Geomet
         },
         setTransparency(transparency: Transparency) {
             return Visual.setTransparency(renderObject, transparency, lociApply, true);
+        },
+        setSubstance(substance: Substance) {
+            return Visual.setSubstance(renderObject, substance, lociApply, true);
         },
         setClipping(clipping: Clipping) {
             return Visual.setClipping(renderObject, clipping, lociApply, true);

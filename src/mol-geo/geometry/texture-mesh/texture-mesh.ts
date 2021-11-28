@@ -23,6 +23,7 @@ import { createNullTexture, Texture } from '../../../mol-gl/webgl/texture';
 import { Vec2, Vec4 } from '../../../mol-math/linear-algebra';
 import { createEmptyClipping } from '../clipping-data';
 import { NullLocation } from '../../../mol-model/location';
+import { createEmptySubstance } from '../substance-data';
 
 export interface TextureMesh {
     readonly kind: 'texture-mesh',
@@ -135,6 +136,7 @@ export namespace TextureMesh {
         const marker = createMarkers(instanceCount * groupCount);
         const overpaint = createEmptyOverpaint();
         const transparency = createEmptyTransparency();
+        const substance = createEmptySubstance();
         const clipping = createEmptyClipping();
 
         const counts = { drawCount: textureMesh.vertexCount, vertexCount: textureMesh.vertexCount, groupCount, instanceCount };
@@ -156,6 +158,7 @@ export namespace TextureMesh {
             ...marker,
             ...overpaint,
             ...transparency,
+            ...substance,
             ...clipping,
             ...transform,
 

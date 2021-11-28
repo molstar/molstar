@@ -25,6 +25,7 @@ import { hashFnv32a } from '../../../mol-data/util';
 import { createEmptyClipping } from '../clipping-data';
 import { CylindersValues } from '../../../mol-gl/renderable/cylinders';
 import { RenderableState } from '../../../mol-gl/renderable';
+import { createEmptySubstance } from '../substance-data';
 
 export interface Cylinders {
     readonly kind: 'cylinders',
@@ -200,6 +201,7 @@ export namespace Cylinders {
         const marker = createMarkers(instanceCount * groupCount);
         const overpaint = createEmptyOverpaint();
         const transparency = createEmptyTransparency();
+        const material = createEmptySubstance();
         const clipping = createEmptyClipping();
 
         const counts = { drawCount: cylinders.cylinderCount * 4 * 3, vertexCount: cylinders.cylinderCount * 6, groupCount, instanceCount };
@@ -224,6 +226,7 @@ export namespace Cylinders {
             ...marker,
             ...overpaint,
             ...transparency,
+            ...material,
             ...clipping,
             ...transform,
 

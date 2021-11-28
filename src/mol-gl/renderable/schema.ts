@@ -241,6 +241,19 @@ export const TransparencySchema = {
 export type TransparencySchema = typeof TransparencySchema
 export type TransparencyValues = Values<TransparencySchema>
 
+export const SubstanceSchema = {
+    uSubstanceTexDim: UniformSpec('v2'),
+    tSubstance: TextureSpec('image-uint8', 'rgb', 'ubyte', 'nearest'),
+    dSubstance: DefineSpec('boolean'),
+
+    uSubstanceGridDim: UniformSpec('v3'),
+    uSubstanceGridTransform: UniformSpec('v4'),
+    tSubstanceGrid: TextureSpec('texture', 'rgb', 'ubyte', 'linear'),
+    dSubstanceType: DefineSpec('string', ['groupInstance', 'volumeInstance']),
+} as const;
+export type SubstanceSchema = typeof SubstanceSchema
+export type SubstanceValues = Values<SubstanceSchema>
+
 export const ClippingSchema = {
     dClipObjectCount: DefineSpec('number'),
     dClipVariant: DefineSpec('string', ['instance', 'pixel']),
@@ -252,20 +265,13 @@ export const ClippingSchema = {
 export type ClippingSchema = typeof ClippingSchema
 export type ClippingValues = Values<ClippingSchema>
 
-export const MaterialSchema = {
-    uMetalness: UniformSpec('f'),
-    uRoughness: UniformSpec('f'),
-} as const;
-export type MaterialSchema = typeof MaterialSchema
-export type MaterialValues = Values<MaterialSchema>
-
 export const BaseSchema = {
     ...ColorSchema,
     ...MarkerSchema,
     ...OverpaintSchema,
     ...TransparencySchema,
+    ...SubstanceSchema,
     ...ClippingSchema,
-    ...MaterialSchema,
 
     dLightCount: DefineSpec('number'),
 
@@ -280,6 +286,9 @@ export const BaseSchema = {
      * final alpha, calculated as `values.alpha * state.alpha`
      */
     uAlpha: UniformSpec('f', 'material'),
+    uMetalness: UniformSpec('f', 'material'),
+    uRoughness: UniformSpec('f', 'material'),
+
     uVertexCount: UniformSpec('i'),
     uInstanceCount: UniformSpec('i'),
     uGroupCount: UniformSpec('i'),

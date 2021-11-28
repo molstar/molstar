@@ -356,3 +356,37 @@ export function applyMeshTransparencySmoothing(values: MeshValues, resolution: n
         ValueCell.update(values.uTransparencyTexDim, smoothingData.texDim);
     }
 }
+
+function isSupportedSubstanceType(x: string): x is 'groupInstance' {
+    return x === 'groupInstance';
+}
+
+export function applyMeshSubstanceSmoothing(values: MeshValues, resolution: number, stride: number, webgl?: WebGLContext, colorTexture?: Texture) {
+    if (!isSupportedSubstanceType(values.dSubstanceType.ref.value)) return;
+
+    const smoothingData = calcMeshColorSmoothing({
+        vertexCount: values.uVertexCount.ref.value,
+        instanceCount: values.uInstanceCount.ref.value,
+        groupCount: values.uGroupCount.ref.value,
+        transformBuffer: values.aTransform.ref.value,
+        instanceBuffer: values.aInstance.ref.value,
+        positionBuffer: values.aPosition.ref.value,
+        groupBuffer: values.aGroup.ref.value,
+        colorData: values.tSubstance.ref.value,
+        colorType: values.dSubstanceType.ref.value,
+        boundingSphere: values.boundingSphere.ref.value,
+        invariantBoundingSphere: values.invariantBoundingSphere.ref.value,
+        itemSize: 3
+    }, resolution, stride, webgl, colorTexture);
+    if (smoothingData.kind === 'volume') {
+        ValueCell.updateIfChanged(values.dSubstanceType, smoothingData.type);
+        ValueCell.update(values.tSubstanceGrid, smoothingData.texture);
+        ValueCell.update(values.uSubstanceTexDim, smoothingData.gridTexDim);
+        ValueCell.update(values.uSubstanceGridDim, smoothingData.gridDim);
+        ValueCell.update(values.uSubstanceGridTransform, smoothingData.gridTransform);
+    } else if (smoothingData.kind === 'vertex') {
+        ValueCell.updateIfChanged(values.dSubstanceType, smoothingData.type);
+        ValueCell.update(values.tSubstance, smoothingData.texture);
+        ValueCell.update(values.uSubstanceTexDim, smoothingData.texDim);
+    }
+}

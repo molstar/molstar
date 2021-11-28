@@ -25,13 +25,9 @@ vec4 color = material;
 ReflectedLight reflectedLight = ReflectedLight(vec3(0.0), vec3(0.0), vec3(0.0), vec3(0.0));
 
 PhysicalMaterial physicalMaterial;
-physicalMaterial.diffuseColor = color.rgb * (1.0 - uMetalness);
-vec3 dxy = max(abs(dFdx(normal)), abs(dFdy(normal)));
-float geometryRoughness = max(max(dxy.x, dxy.y), dxy.z);
-physicalMaterial.roughness = max(uRoughness, 0.0525);
-physicalMaterial.roughness += geometryRoughness;
-physicalMaterial.roughness = min(physicalMaterial.roughness, 1.0);
-physicalMaterial.specularColor = mix(vec3( 0.04 ), color.rgb, uMetalness);
+physicalMaterial.diffuseColor = color.rgb * (1.0 - metalness);
+physicalMaterial.roughness = max(roughness, 0.0525);
+physicalMaterial.specularColor = mix(vec3(0.04), color.rgb, metalness);
 physicalMaterial.specularF90 = 1.0;
 
 GeometricContext geometry;
@@ -52,8 +48,8 @@ vec3 irradiance = uAmbientColor * PI; // * PI for punctual light
 RE_IndirectDiffuse_Physical(irradiance, geometry, physicalMaterial, reflectedLight);
 
 // indirect specular only metals
-vec3 radiance = uAmbientColor * uMetalness;
-vec3 iblIrradiance = uAmbientColor * uMetalness;
+vec3 radiance = uAmbientColor * metalness;
+vec3 iblIrradiance = uAmbientColor * metalness;
 vec3 clearcoatRadiance = vec3(0.0);
 RE_IndirectSpecular_Physical(radiance, iblIrradiance, clearcoatRadiance, geometry, physicalMaterial, reflectedLight);
 
@@ -62,6 +58,6 @@ vec3 outgoingLight = reflectedLight.directDiffuse + reflectedLight.indirectDiffu
 gl_FragColor = vec4(outgoingLight, color.a);
 
 #ifdef dXrayShaded
-    gl_FragColor.a *= 1.0 - pow(abs(dot(normal, vec3(0, 0, 1))), uXrayEdgeFalloff);
+    gl_FragColor.a *= 1.0 - pow(abs(dot(normal, vec3(0.0, 0.0, 1.0))), uXrayEdgeFalloff);
 #endif
 `;

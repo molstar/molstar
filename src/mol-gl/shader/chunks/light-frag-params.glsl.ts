@@ -12,10 +12,6 @@ uniform vec3 uLightDirection[dLightCount];
 uniform vec3 uLightColor[dLightCount];
 uniform vec3 uAmbientColor;
 
-uniform float uReflectivity;
-uniform float uMetalness;
-uniform float uRoughness;
-
 struct PhysicalMaterial {
     vec3 diffuseColor;
     float roughness;

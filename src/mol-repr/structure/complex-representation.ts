@@ -21,6 +21,7 @@ import { StructureParams } from './params';
 import { Clipping } from '../../mol-theme/clipping';
 import { Transparency } from '../../mol-theme/transparency';
 import { WebGLContext } from '../../mol-gl/webgl/context';
+import { Substance } from '../../mol-theme/substance';
 
 export function ComplexRepresentation<P extends StructureParams>(label: string, ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, P>, visualCtor: (materialId: number, structure: Structure, props: PD.Values<P>, webgl?: WebGLContext) => ComplexVisual<P>): StructureRepresentation<P> {
     let version = 0;
@@ -112,6 +113,11 @@ export function ComplexRepresentation<P extends StructureParams>(label: string, 
             // Remap loci from equivalent structure to the current structure
             const remappedTransparency = Transparency.remap(state.transparency, _structure);
             visual.setTransparency(remappedTransparency, webgl);
+        }
+        if (state.substance !== undefined && visual) {
+            // Remap loci from equivalent structure to the current structure
+            const remappedSubstance = Substance.remap(state.substance, _structure);
+            visual.setSubstance(remappedSubstance, webgl);
         }
         if (state.clipping !== undefined && visual) {
             // Remap loci from equivalent structure to the current structure

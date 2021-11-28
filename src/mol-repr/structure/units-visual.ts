@@ -40,6 +40,7 @@ import { StructureParams, StructureMeshParams, StructureSpheresParams, Structure
 import { Clipping } from '../../mol-theme/clipping';
 import { WebGLContext } from '../../mol-gl/webgl/context';
 import { isPromiseLike } from '../../mol-util/type-helpers';
+import { Substance } from '../../mol-theme/substance';
 
 export interface UnitsVisual<P extends RepresentationProps = {}> extends Visual<StructureGroup, P> { }
 
@@ -330,6 +331,10 @@ export function UnitsVisual<G extends Geometry, P extends StructureParams & Geom
         setTransparency(transparency: Transparency, webgl?: WebGLContext) {
             const smoothing = { geometry, props: currentProps, webgl };
             Visual.setTransparency(renderObject, transparency, lociApply, true, smoothing);
+        },
+        setSubstance(substance: Substance, webgl?: WebGLContext) {
+            const smoothing = { geometry, props: currentProps, webgl };
+            Visual.setSubstance(renderObject, substance, lociApply, true, smoothing);
         },
         setClipping(clipping: Clipping) {
             Visual.setClipping(renderObject, clipping, lociApply, true);

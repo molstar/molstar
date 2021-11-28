@@ -28,6 +28,7 @@ import { createTransferFunctionTexture, getControlPointsFromVec2Array } from './
 import { createEmptyClipping } from '../clipping-data';
 import { Grid, Volume } from '../../../mol-model/volume';
 import { ColorNames } from '../../../mol-util/color/names';
+import { createEmptySubstance } from '../substance-data';
 
 const VolumeBox = Box();
 
@@ -246,6 +247,7 @@ export namespace DirectVolume {
         const marker = createMarkers(instanceCount * groupCount);
         const overpaint = createEmptyOverpaint();
         const transparency = createEmptyTransparency();
+        const material = createEmptySubstance();
         const clipping = createEmptyClipping();
 
         const [x, y, z] = gridDimension.ref.value;
@@ -270,6 +272,7 @@ export namespace DirectVolume {
             ...marker,
             ...overpaint,
             ...transparency,
+            ...material,
             ...clipping,
             ...transform,
             ...BaseGeometry.createValues(props, counts),

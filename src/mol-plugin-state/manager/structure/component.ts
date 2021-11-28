@@ -30,6 +30,7 @@ import { Clipping } from '../../../mol-theme/clipping';
 import { setStructureClipping } from '../../helpers/structure-clipping';
 import { setStructureTransparency } from '../../helpers/structure-transparency';
 import { StructureFocusRepresentation } from '../../../mol-plugin/behavior/dynamic/selection/structure-focus-representation';
+import { setStructureSubstance } from '../../helpers/structure-substance';
 import { Material } from '../../../mol-util/material';
 
 export { StructureComponentManager };
@@ -375,14 +376,19 @@ class StructureComponentManager extends StatefulPluginComponent<StructureCompone
 
             const getLoci = async (s: Structure) => StructureSelection.toLociWithSourceUnits(await params.selection.getSelection(this.plugin, ctx, s));
             for (const s of xs) {
-                if (params.action.name === 'reset') {
-                    await setStructureOverpaint(this.plugin, s.components, -1, getLoci, params.representations);
-                } else if (params.action.name === 'color') {
+                if (params.action.name === 'color') {
                     const p = params.action.params;
                     await setStructureOverpaint(this.plugin, s.components, p.color, getLoci, params.representations);
+                } else if (params.action.name === 'resetColor') {
+                    await setStructureOverpaint(this.plugin, s.components, -1, getLoci, params.representations);
                 } else if (params.action.name === 'transparency') {
                     const p = params.action.params;
                     await setStructureTransparency(this.plugin, s.components, p.value, getLoci, params.representations);
+                } else if (params.action.name === 'material') {
+                    const p = params.action.params;
+                    await setStructureSubstance(this.plugin, s.components, p.material, getLoci, params.representations);
+                } else if (params.action.name === 'resetMaterial') {
+                    await setStructureSubstance(this.plugin, s.components, -1, getLoci, params.representations);
                 } else if (params.action.name === 'clipping') {
                     const p = params.action.params;
                     await setStructureClipping(this.plugin, s.components, Clipping.Groups.fromNames(p.excludeGroups), getLoci, params.representations);
@@ -481,10 +487,14 @@ namespace StructureComponentManager {
                 color: PD.Group({
                     color: PD.Color(ColorNames.blue, { isExpanded: true }),
                 }, { isFlat: true }),
-                reset: PD.EmptyGroup({ label: 'Reset Color' }),
+                resetColor: PD.EmptyGroup({ label: 'Reset Color' }),
                 transparency: PD.Group({
                     value: PD.Numeric(0.5, { min: 0, max: 1, step: 0.01 }),
                 }, { isFlat: true }),
+                material: PD.Group({
+                    material: Material.getParam({ isFlat: true }),
+                }, { isFlat: true }),
+                resetMaterial: PD.EmptyGroup({ label: 'Reset Material' }),
                 clipping: PD.Group({
                     excludeGroups: PD.MultiSelect([] as Clipping.Groups.Names[], PD.objectToOptions(Clipping.Groups.Names)),
                 }, { isFlat: true }),

@@ -25,6 +25,7 @@ import { StructureParams } from './params';
 import { Clipping } from '../../mol-theme/clipping';
 import { WebGLContext } from '../../mol-gl/webgl/context';
 import { StructureGroup } from './visual/util/common';
+import { Substance } from '../../mol-theme/substance';
 
 export interface UnitsVisual<P extends StructureParams> extends Visual<StructureGroup, P> { }
 
@@ -218,13 +219,14 @@ export function UnitsRepresentation<P extends StructureParams>(label: string, ct
     }
 
     function setVisualState(visual: UnitsVisual<P>, group: Unit.SymmetryGroup, state: Partial<StructureRepresentationState>) {
-        const { visible, alphaFactor, pickable, overpaint, transparency, clipping, transform, unitTransforms } = state;
+        const { visible, alphaFactor, pickable, overpaint, transparency, substance, clipping, transform, unitTransforms } = state;
 
         if (visible !== undefined) visual.setVisibility(visible);
         if (alphaFactor !== undefined) visual.setAlphaFactor(alphaFactor);
         if (pickable !== undefined) visual.setPickable(pickable);
         if (overpaint !== undefined) visual.setOverpaint(overpaint, webgl);
         if (transparency !== undefined) visual.setTransparency(transparency, webgl);
+        if (substance !== undefined) visual.setSubstance(substance, webgl);
         if (clipping !== undefined) visual.setClipping(clipping);
         if (transform !== undefined) visual.setTransform(transform);
         if (unitTransforms !== undefined) {
@@ -238,7 +240,7 @@ export function UnitsRepresentation<P extends StructureParams>(label: string, ct
     }
 
     function setState(state: Partial<StructureRepresentationState>) {
-        const { visible, alphaFactor, pickable, overpaint, transparency, clipping, transform, unitTransforms, syncManually, markerActions } = state;
+        const { visible, alphaFactor, pickable, overpaint, transparency, substance, clipping, transform, unitTransforms, syncManually, markerActions } = state;
         const newState: Partial<StructureRepresentationState> = {};
 
         if (visible !== _state.visible) newState.visible = visible;
@@ -249,6 +251,9 @@ export function UnitsRepresentation<P extends StructureParams>(label: string, ct
         }
         if (transparency !== undefined && _structure) {
             newState.transparency = Transparency.remap(transparency, _structure);
+        }
+        if (substance !== undefined && _structure) {
+            newState.substance = Substance.remap(substance, _structure);
         }
         if (clipping !== undefined && _structure) {
             newState.clipping = Clipping.remap(clipping, _structure);

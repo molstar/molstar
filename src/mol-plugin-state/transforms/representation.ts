@@ -41,6 +41,8 @@ import { getBoxMesh } from './shape';
 import { Shape } from '../../mol-model/shape';
 import { Box3D } from '../../mol-math/geometry';
 import { PlaneParams, PlaneRepresentation } from '../../mol-repr/shape/loci/plane';
+import { Substance } from '../../mol-theme/substance';
+import { Material } from '../../mol-util/material';
 
 export { StructureRepresentation3D };
 export { ExplodeStructureRepresentation3D };
@@ -50,6 +52,8 @@ export { OverpaintStructureRepresentation3DFromScript };
 export { OverpaintStructureRepresentation3DFromBundle };
 export { TransparencyStructureRepresentation3DFromScript };
 export { TransparencyStructureRepresentation3DFromBundle };
+export { SubstanceStructureRepresentation3DFromScript };
+export { SubstanceStructureRepresentation3DFromBundle };
 export { ClippingStructureRepresentation3DFromScript };
 export { ClippingStructureRepresentation3DFromBundle };
 export { VolumeRepresentation3D };
@@ -525,6 +529,121 @@ const TransparencyStructureRepresentation3DFromBundle = PluginStateTransform.Bui
         b.data.state.transparency = newTransparency;
         b.data.repr = a.data.repr;
         b.label = `Transparency (${newTransparency.layers.length} Layers)`;
+        return StateTransformer.UpdateResult.Updated;
+    }
+});
+
+type SubstanceStructureRepresentation3DFromScript = typeof SubstanceStructureRepresentation3DFromScript
+const SubstanceStructureRepresentation3DFromScript = PluginStateTransform.BuiltIn({
+    name: 'substance-structure-representation-3d-from-script',
+    display: 'Substance 3D Representation',
+    from: SO.Molecule.Structure.Representation3D,
+    to: SO.Molecule.Structure.Representation3DState,
+    params: () => ({
+        layers: PD.ObjectList({
+            script: PD.Script(Script('(sel.atom.all)', 'mol-script')),
+            material: Material.getParam(),
+            clear: PD.Boolean(false)
+        }, e => `${e.clear ? 'Clear' : Material.toString(e.material)}`, {
+            defaultValue: [{
+                script: Script('(sel.atom.all)', 'mol-script'),
+                material: Material.fromNormalized(0, 1),
+                clear: false
+            }]
+        }),
+    })
+})({
+    canAutoUpdate() {
+        return true;
+    },
+    apply({ a, params }) {
+        const structure = a.data.sourceData;
+        const geometryVersion = a.data.repr.geometryVersion;
+        const substance = Substance.ofScript(params.layers, structure);
+
+        return new SO.Molecule.Structure.Representation3DState({
+            state: { substance },
+            initialState: { substance: Substance.Empty },
+            info: { structure, geometryVersion },
+            repr: a.data.repr
+        }, { label: `Substance (${substance.layers.length} Layers)` });
+    },
+    update({ a, b, newParams, oldParams }) {
+        const info = b.data.info as { structure: Structure, geometryVersion: number };
+        const newStructure = a.data.sourceData;
+        if (newStructure !== info.structure) return StateTransformer.UpdateResult.Recreate;
+        if (a.data.repr !== b.data.repr) return StateTransformer.UpdateResult.Recreate;
+
+        const newGeometryVersion = a.data.repr.geometryVersion;
+        // smoothing needs to be re-calculated when geometry changes
+        if (newGeometryVersion !== info.geometryVersion && hasColorSmoothingProp(a.data.repr.props)) return StateTransformer.UpdateResult.Unchanged;
+
+        const oldSubstance = b.data.state.substance!;
+        const newSubstance = Substance.ofScript(newParams.layers, newStructure);
+        if (Substance.areEqual(oldSubstance, newSubstance)) return StateTransformer.UpdateResult.Unchanged;
+
+        info.geometryVersion = newGeometryVersion;
+        b.data.state.substance = newSubstance;
+        b.data.repr = a.data.repr;
+        b.label = `Substance (${newSubstance.layers.length} Layers)`;
+        return StateTransformer.UpdateResult.Updated;
+    }
+});
+
+type SubstanceStructureRepresentation3DFromBundle = typeof SubstanceStructureRepresentation3DFromBundle
+const SubstanceStructureRepresentation3DFromBundle = PluginStateTransform.BuiltIn({
+    name: 'substance-structure-representation-3d-from-bundle',
+    display: 'Substance 3D Representation',
+    from: SO.Molecule.Structure.Representation3D,
+    to: SO.Molecule.Structure.Representation3DState,
+    params: () => ({
+        layers: PD.ObjectList({
+            bundle: PD.Value<StructureElement.Bundle>(StructureElement.Bundle.Empty),
+            material: Material.getParam(),
+            clear: PD.Boolean(false)
+        }, e => `${e.clear ? 'Clear' : Material.toString(e.material)}`, {
+            defaultValue: [{
+                bundle: StructureElement.Bundle.Empty,
+                material: Material.fromNormalized(0, 1),
+                clear: false
+            }],
+            isHidden: true
+        }),
+    })
+})({
+    canAutoUpdate() {
+        return true;
+    },
+    apply({ a, params }) {
+        const structure = a.data.sourceData;
+        const geometryVersion = a.data.repr.geometryVersion;
+        const substance = Substance.ofBundle(params.layers, structure);
+
+        return new SO.Molecule.Structure.Representation3DState({
+            state: { substance },
+            initialState: { substance: Substance.Empty },
+            info: { structure, geometryVersion },
+            repr: a.data.repr
+        }, { label: `Substance (${substance.layers.length} Layers)` });
+    },
+    update({ a, b, newParams, oldParams }) {
+        const info = b.data.info as { structure: Structure, geometryVersion: number };
+        const newStructure = a.data.sourceData;
+        if (newStructure !== info.structure) return StateTransformer.UpdateResult.Recreate;
+        if (a.data.repr !== b.data.repr) return StateTransformer.UpdateResult.Recreate;
+
+        const newGeometryVersion = a.data.repr.geometryVersion;
+        // smoothing needs to be re-calculated when geometry changes
+        if (newGeometryVersion !== info.geometryVersion && hasColorSmoothingProp(a.data.repr.props)) return StateTransformer.UpdateResult.Unchanged;
+
+        const oldSubstance = b.data.state.substance!;
+        const newSubstance = Substance.ofBundle(newParams.layers, newStructure);
+        if (Substance.areEqual(oldSubstance, newSubstance)) return StateTransformer.UpdateResult.Unchanged;
+
+        info.geometryVersion = newGeometryVersion;
+        b.data.state.substance = newSubstance;
+        b.data.repr = a.data.repr;
+        b.label = `Substance (${newSubstance.layers.length} Layers)`;
         return StateTransformer.UpdateResult.Updated;
     }
 });

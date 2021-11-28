@@ -68,7 +68,7 @@ namespace Overpaint {
         const layers: Overpaint.Layer[] = [];
         map.forEach((loci, colorOrClear) => {
             const clear = colorOrClear === -1;
-            const color = colorOrClear === -1 ? Color(0) : colorOrClear;
+            const color = clear ? Color(0) : colorOrClear;
             layers.push({ loci, color, clear });
         });
         return { layers };

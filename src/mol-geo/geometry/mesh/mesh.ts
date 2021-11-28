@@ -27,6 +27,7 @@ import { createEmptyClipping } from '../clipping-data';
 import { RenderableState } from '../../../mol-gl/renderable';
 import { arraySetAdd } from '../../../mol-util/array';
 import { degToRad } from '../../../mol-math/misc';
+import { createEmptySubstance } from '../substance-data';
 
 export interface Mesh {
     readonly kind: 'mesh',
@@ -665,6 +666,7 @@ export namespace Mesh {
         const marker = createMarkers(instanceCount * groupCount);
         const overpaint = createEmptyOverpaint();
         const transparency = createEmptyTransparency();
+        const material = createEmptySubstance();
         const clipping = createEmptyClipping();
 
         const counts = { drawCount: mesh.triangleCount * 3, vertexCount: mesh.vertexCount, groupCount, instanceCount };
@@ -684,6 +686,7 @@ export namespace Mesh {
             ...marker,
             ...overpaint,
             ...transparency,
+            ...material,
             ...clipping,
             ...transform,
 

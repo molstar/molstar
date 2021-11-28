@@ -216,6 +216,9 @@ export function ShapeRepresentation<D, G extends Geometry, P extends Geometry.Pa
                 if (state.transparency !== undefined) {
                     Visual.setTransparency(_renderObject, state.transparency, lociApply, true);
                 }
+                if (state.substance !== undefined) {
+                    Visual.setSubstance(_renderObject, state.substance, lociApply, true);
+                }
                 if (state.transform !== undefined) Visual.setTransform(_renderObject, state.transform);
             }
 

@@ -1,4 +1,7 @@
 export const color_vert_params = `
+uniform float uMetalness;
+uniform float uRoughness;
+
 #if defined(dRenderVariant_color)
     #if defined(dColorType_uniform)
         uniform vec3 uColor;
@@ -28,6 +31,20 @@ export const color_vert_params = `
             uniform vec3 uOverpaintGridDim;
             uniform vec4 uOverpaintGridTransform;
             uniform sampler2D tOverpaintGrid;
+        #endif
+    #endif
+
+    #ifdef dSubstance
+        #if defined(dSubstanceType_groupInstance) || defined(dSubstanceType_vertexInstance)
+            varying vec3 vSubstance;
+            uniform vec2 uSubstanceTexDim;
+            uniform sampler2D tSubstance;
+        #elif defined(dSubstanceType_volumeInstance)
+            varying vec3 vSubstance;
+            uniform vec2 uSubstanceTexDim;
+            uniform vec3 uSubstanceGridDim;
+            uniform vec4 uSubstanceGridTransform;
+            uniform sampler2D tSubstanceGrid;
         #endif
     #endif
 #elif defined(dRenderVariant_pick)

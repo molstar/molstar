@@ -36,6 +36,7 @@ import { Clipping } from '../../mol-theme/clipping';
 import { TextureMesh } from '../../mol-geo/geometry/texture-mesh/texture-mesh';
 import { WebGLContext } from '../../mol-gl/webgl/context';
 import { isPromiseLike } from '../../mol-util/type-helpers';
+import { Substance } from '../../mol-theme/substance';
 
 export interface ComplexVisual<P extends StructureParams> extends Visual<Structure, P> { }
 
@@ -265,6 +266,10 @@ export function ComplexVisual<G extends Geometry, P extends StructureParams & Ge
         setTransparency(transparency: Transparency, webgl?: WebGLContext) {
             const smoothing = { geometry, props: currentProps, webgl };
             Visual.setTransparency(renderObject, transparency, lociApply, true, smoothing);
+        },
+        setSubstance(substance: Substance, webgl?: WebGLContext) {
+            const smoothing = { geometry, props: currentProps, webgl };
+            Visual.setSubstance(renderObject, substance, lociApply, true, smoothing);
         },
         setClipping(clipping: Clipping) {
             Visual.setClipping(renderObject, clipping, lociApply, true);

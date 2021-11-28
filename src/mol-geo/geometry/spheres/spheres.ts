@@ -25,6 +25,7 @@ import { GroupMapping, createGroupMapping } from '../../util';
 import { createEmptyClipping } from '../clipping-data';
 import { Vec3, Vec4 } from '../../../mol-math/linear-algebra';
 import { RenderableState } from '../../../mol-gl/renderable';
+import { createEmptySubstance } from '../substance-data';
 
 export interface Spheres {
     readonly kind: 'spheres',
@@ -170,6 +171,7 @@ export namespace Spheres {
         const marker = createMarkers(instanceCount * groupCount);
         const overpaint = createEmptyOverpaint();
         const transparency = createEmptyTransparency();
+        const material = createEmptySubstance();
         const clipping = createEmptyClipping();
 
         const counts = { drawCount: spheres.sphereCount * 2 * 3, vertexCount: spheres.sphereCount * 4, groupCount, instanceCount };
@@ -191,6 +193,7 @@ export namespace Spheres {
             ...marker,
             ...overpaint,
             ...transparency,
+            ...material,
             ...clipping,
             ...transform,
 
