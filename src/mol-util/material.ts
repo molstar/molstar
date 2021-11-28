@@ -45,11 +45,11 @@ export namespace Material {
 
     export function getParam(info?: { isExpanded?: boolean, isFlat?: boolean }) {
         return PD.Converted(
-            (v: Material) => toObjectNormalized(v, 1),
+            (v: Material) => toObjectNormalized(v, 2),
             (v: { metalness: number, roughness: number }) => fromObjectNormalized(v),
             PD.Group({
-                metalness: PD.Numeric(0, { min: 0, max: 1, step: 0.1 }),
-                roughness: PD.Numeric(1, { min: 0, max: 1, step: 0.1 }),
+                metalness: PD.Numeric(0, { min: 0, max: 1, step: 0.01 }),
+                roughness: PD.Numeric(1, { min: 0, max: 1, step: 0.01 }),
             }, info)
         );
     }
