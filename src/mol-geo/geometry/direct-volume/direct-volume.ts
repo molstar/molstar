@@ -319,8 +319,7 @@ export namespace DirectVolume {
     }
 
     function updateValues(values: DirectVolumeValues, props: PD.Values<Params>) {
-        ValueCell.updateIfChanged(values.alpha, props.alpha);
-        ValueCell.updateIfChanged(values.uAlpha, props.alpha);
+        BaseGeometry.updateValues(values, props);
         ValueCell.updateIfChanged(values.dDoubleSided, props.doubleSided);
         ValueCell.updateIfChanged(values.dFlatShaded, props.flatShaded);
         ValueCell.updateIfChanged(values.dFlipSided, props.flipSided);
