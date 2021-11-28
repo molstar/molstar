@@ -6,6 +6,8 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+## [v3.0.0-dev.0] - 2021-11-28
+
 - Add multiple lights support (with color, intensity, and direction parameters)
 - [Breaking] Add per-object material rendering properties
 - Add substance theme with per-group material rendering properties
