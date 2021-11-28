@@ -68,6 +68,11 @@ If working on just the viewer, ``npm run watch-viewer`` will provide shorter com
 
 Debug/production mode in browsers can be turned on/off during runtime by calling ``setMolStarDebugMode(true/false, true/false)`` from the dev console.
 
+### Force full rebuild
+    npm run rebuild
+
+Force a full rebuild to resolve build errors that may occassionally arise. Once a force rebuild finishes successfully, incremental `npm run build` can be used again for further builds.
+
 ### Build for production:
     NODE_ENV=production npm run build
 
