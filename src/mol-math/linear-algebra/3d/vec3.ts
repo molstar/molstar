@@ -505,6 +505,19 @@ namespace Vec3 {
     }
 
     /**
+     * @param inclination in radians [0, PI]
+     * @param azimuth in radians [0, 2 * PI]
+     * @param radius [0, +Inf]
+     */
+    export function directionFromSpherical(out: Vec3, inclination: number, azimuth: number, radius: number): Vec3 {
+        return Vec3.set(out,
+            radius * Math.cos(azimuth) * Math.sin(inclination),
+            radius * Math.sin(azimuth) * Math.sin(inclination),
+            radius * Math.cos(inclination)
+        );
+    }
+
+    /**
      * Returns whether or not the vectors have exactly the same elements in the same position (when compared with ===)
      */
     export function exactEquals(a: Vec3, b: Vec3) {

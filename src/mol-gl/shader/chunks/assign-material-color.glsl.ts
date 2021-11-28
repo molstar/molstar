@@ -20,6 +20,13 @@ export const assign_material_color = `
     #if defined(dOverpaint)
         material.rgb = mix(material.rgb, vOverpaint.rgb, vOverpaint.a);
     #endif
+
+    float metalness = uMetalness;
+    float roughness = uRoughness;
+    #ifdef dSubstance
+        metalness = mix(metalness, vSubstance.r, vSubstance.b);
+        roughness = mix(roughness, vSubstance.g, vSubstance.b);
+    #endif
 #elif defined(dRenderVariant_pick)
     vec4 material = vColor;
 #elif defined(dRenderVariant_depth)

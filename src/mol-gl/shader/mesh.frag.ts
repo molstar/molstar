@@ -19,14 +19,10 @@ void main() {
     #include clip_pixel
 
     // Workaround for buggy gl_FrontFacing (e.g. on some integrated Intel GPUs)
-    #if defined(enabledStandardDerivatives)
-        vec3 fdx = dFdx(vViewPosition);
-        vec3 fdy = dFdy(vViewPosition);
-        vec3 faceNormal = normalize(cross(fdx,fdy));
-        bool frontFacing = dot(vNormal, faceNormal) > 0.0;
-    #else
-        bool frontFacing = dot(vNormal, vViewPosition) < 0.0;
-    #endif
+    vec3 fdx = dFdx(vViewPosition);
+    vec3 fdy = dFdy(vViewPosition);
+    vec3 faceNormal = normalize(cross(fdx,fdy));
+    bool frontFacing = dot(vNormal, faceNormal) > 0.0;
 
     #if defined(dFlipSided)
         interior = frontFacing;
@@ -48,7 +44,7 @@ void main() {
         #ifdef dIgnoreLight
             gl_FragColor = material;
         #else
-            #if defined(dFlatShaded) && defined(enabledStandardDerivatives)
+            #if defined(dFlatShaded)
                 vec3 normal = -faceNormal;
             #else
                 vec3 normal = -normalize(vNormal);

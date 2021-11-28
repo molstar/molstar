@@ -26,6 +26,7 @@ import { fillSerial } from '../../../mol-util/array';
 import { createEmptyClipping } from '../clipping-data';
 import { NullLocation } from '../../../mol-model/location';
 import { QuadPositions } from '../../../mol-gl/compute/util';
+import { createEmptySubstance } from '../substance-data';
 
 const QuadIndices = new Uint32Array([
     0, 1, 2,
@@ -145,6 +146,7 @@ namespace Image {
         const marker = createMarkers(instanceCount * groupCount);
         const overpaint = createEmptyOverpaint();
         const transparency = createEmptyTransparency();
+        const material = createEmptySubstance();
         const clipping = createEmptyClipping();
 
         const counts = { drawCount: QuadIndices.length, vertexCount: QuadPositions.length / 3, groupCount, instanceCount };
@@ -157,6 +159,7 @@ namespace Image {
             ...marker,
             ...overpaint,
             ...transparency,
+            ...material,
             ...clipping,
             ...transform,
             ...BaseGeometry.createValues(props, counts),

@@ -141,15 +141,9 @@ export const GlobalUniformSchema = {
     uClipObjectRotation: UniformSpec('v4[]'),
     uClipObjectScale: UniformSpec('v3[]'),
 
-    // all the following could in principle be per object
-    // as a kind of 'material' parameter set
-    // would need to test performance implications
-    uLightIntensity: UniformSpec('f'),
-    uAmbientIntensity: UniformSpec('f'),
-
-    uMetalness: UniformSpec('f'),
-    uRoughness: UniformSpec('f'),
-    uReflectivity: UniformSpec('f'),
+    uLightDirection: UniformSpec('v3[]'),
+    uLightColor: UniformSpec('v3[]'),
+    uAmbientColor: UniformSpec('v3'),
 
     uPickingAlphaThreshold: UniformSpec('f'),
 
@@ -247,6 +241,19 @@ export const TransparencySchema = {
 export type TransparencySchema = typeof TransparencySchema
 export type TransparencyValues = Values<TransparencySchema>
 
+export const SubstanceSchema = {
+    uSubstanceTexDim: UniformSpec('v2'),
+    tSubstance: TextureSpec('image-uint8', 'rgb', 'ubyte', 'nearest'),
+    dSubstance: DefineSpec('boolean'),
+
+    uSubstanceGridDim: UniformSpec('v3'),
+    uSubstanceGridTransform: UniformSpec('v4'),
+    tSubstanceGrid: TextureSpec('texture', 'rgb', 'ubyte', 'linear'),
+    dSubstanceType: DefineSpec('string', ['groupInstance', 'volumeInstance']),
+} as const;
+export type SubstanceSchema = typeof SubstanceSchema
+export type SubstanceValues = Values<SubstanceSchema>
+
 export const ClippingSchema = {
     dClipObjectCount: DefineSpec('number'),
     dClipVariant: DefineSpec('string', ['instance', 'pixel']),
@@ -263,7 +270,10 @@ export const BaseSchema = {
     ...MarkerSchema,
     ...OverpaintSchema,
     ...TransparencySchema,
+    ...SubstanceSchema,
     ...ClippingSchema,
+
+    dLightCount: DefineSpec('number'),
 
     aInstance: AttributeSpec('float32', 1, 1),
     /**
@@ -276,6 +286,9 @@ export const BaseSchema = {
      * final alpha, calculated as `values.alpha * state.alpha`
      */
     uAlpha: UniformSpec('f', 'material'),
+    uMetalness: UniformSpec('f', 'material'),
+    uRoughness: UniformSpec('f', 'material'),
+
     uVertexCount: UniformSpec('i'),
     uInstanceCount: UniformSpec('i'),
     uGroupCount: UniformSpec('i'),

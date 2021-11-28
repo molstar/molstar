@@ -64,6 +64,9 @@ uniform int uMarkerPriority;
     uniform sampler2D tMarker;
 #endif
 
+uniform float uMetalness;
+uniform float uRoughness;
+
 uniform float uFogNear;
 uniform float uFogFar;
 uniform vec3 uFogColor;
@@ -113,6 +116,13 @@ uniform mat4 uCartnToUnit;
         #if defined(dOverpaintType_groupInstance) || defined(dOverpaintType_vertexInstance)
             uniform vec2 uOverpaintTexDim;
             uniform sampler2D tOverpaint;
+        #endif
+    #endif
+
+    #ifdef dSubstance
+        #if defined(dSubstanceType_groupInstance) || defined(dSubstanceType_vertexInstance)
+            uniform vec2 uSubstanceTexDim;
+            uniform sampler2D tSubstance;
         #endif
     #endif
 #endif
@@ -194,6 +204,9 @@ vec4 raymarch(vec3 startLoc, vec3 step, vec3 rayDir) {
 
     vec3 color = vec3(0.45, 0.55, 0.8);
     vec4 overpaint = vec4(0.0);
+    vec3 substance = vec3(0.0);
+    float metalness = uMetalness;
+    float roughness = uRoughness;
 
     vec3 gradient = vec3(1.0);
     vec3 dx = vec3(gradOffset * scaleVol.x, 0.0, 0.0);
@@ -304,7 +317,7 @@ vec4 raymarch(vec3 startLoc, vec3 step, vec3 rayDir) {
                         #if defined(dOverpaintType_groupInstance)
                             overpaint = readFromTexture(tOverpaint, vInstance * float(uGroupCount) + group, uOverpaintTexDim);
                         #elif defined(dOverpaintType_vertexInstance)
-                            overpaint = texture3dFrom1dTrilinear(tOverpaint, isoPos, uGridDim, uOverpaintTexDim, vInstance * float(uVertexCount)).rgb;
+                            overpaint = texture3dFrom1dTrilinear(tOverpaint, isoPos, uGridDim, uOverpaintTexDim, vInstance * float(uVertexCount));
                         #endif
 
                         color = mix(color, overpaint.rgb, overpaint.a);
@@ -345,6 +358,15 @@ vec4 raymarch(vec3 startLoc, vec3 step, vec3 rayDir) {
                         vec3 normal = -normalize(normalMatrix * normalize(gradient));
                         normal = normal * (float(flipped) * 2.0 - 1.0);
                         normal = normal * -(float(interior) * 2.0 - 1.0);
+                        #ifdef dSubstance
+                            #if defined(dSubstanceType_groupInstance)
+                                substance = readFromTexture(tSubstance, vInstance * float(uGroupCount) + group, uSubstanceTexDim).rgb;
+                            #elif defined(dSubstanceType_vertexInstance)
+                                substance = texture3dFrom1dTrilinear(tSubstance, isoPos, uGridDim, uSubstanceTexDim, vInstance * float(uVertexCount)).rgb;
+                            #endif
+                            metalness = mix(metalness, substance.r, substance.b);
+                            roughness = mix(roughness, substance.g, substance.b);
+                        #endif
                         #include apply_light_color
                     #endif
 

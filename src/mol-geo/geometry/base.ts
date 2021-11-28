@@ -16,6 +16,7 @@ import { NullLocation } from '../../mol-model/location';
 import { UniformColorTheme } from '../../mol-theme/color/uniform';
 import { UniformSizeTheme } from '../../mol-theme/size/uniform';
 import { smoothstep } from '../../mol-math/interpolate';
+import { Material } from '../../mol-util/material';
 
 export const VisualQualityInfo = {
     'custom': {},
@@ -69,17 +70,19 @@ export function getColorSmoothingProps(smoothColors: PD.Values<ColorSmoothingPar
 //
 
 export namespace BaseGeometry {
-    export const Params = {
-        alpha: PD.Numeric(1, { min: 0, max: 1, step: 0.01 }, { label: 'Opacity', isEssential: true, description: 'How opaque/transparent the representation is rendered.' }),
-        quality: PD.Select<VisualQuality>('auto', VisualQualityOptions, { isEssential: true, description: 'Visual/rendering quality of the representation.' }),
-    };
-    export type Params = typeof Params
-
+    export const MaterialCategory: PD.Info = { category: 'Material' };
     export const ShadingCategory: PD.Info = { category: 'Shading' };
     export const CustomQualityParamInfo: PD.Info = {
         category: 'Custom Quality',
         hideIf: (params: PD.Values<Params>) => typeof params.quality !== 'undefined' && params.quality !== 'custom'
     };
+
+    export const Params = {
+        alpha: PD.Numeric(1, { min: 0, max: 1, step: 0.01 }, { label: 'Opacity', isEssential: true, description: 'How opaque/transparent the representation is rendered.' }),
+        quality: PD.Select<VisualQuality>('auto', VisualQualityOptions, { isEssential: true, description: 'Visual/rendering quality of the representation.' }),
+        material: Material.getParam(),
+    };
+    export type Params = typeof Params
 
     export type Counts = { drawCount: number, vertexCount: number, groupCount: number, instanceCount: number }
 
@@ -94,17 +97,24 @@ export namespace BaseGeometry {
     }
 
     export function createValues(props: PD.Values<Params>, counts: Counts) {
+        const { metalness, roughness } = Material.toObjectNormalized(props.material);
         return {
             alpha: ValueCell.create(props.alpha),
             uAlpha: ValueCell.create(props.alpha),
             uVertexCount: ValueCell.create(counts.vertexCount),
             uGroupCount: ValueCell.create(counts.groupCount),
             drawCount: ValueCell.create(counts.drawCount),
+            uMetalness: ValueCell.create(metalness),
+            uRoughness: ValueCell.create(roughness),
+            dLightCount: ValueCell.create(1),
         };
     }
 
     export function updateValues(values: BaseValues, props: PD.Values<Params>) {
+        const { metalness, roughness } = Material.toObjectNormalized(props.material);
         ValueCell.updateIfChanged(values.alpha, props.alpha); // `uAlpha` is set in renderable.render
+        ValueCell.updateIfChanged(values.uMetalness, metalness);
+        ValueCell.updateIfChanged(values.uRoughness, roughness);
     }
 
     export function createRenderableState(props: Partial<PD.Values<Params>> = {}): RenderableState {

@@ -41,6 +41,20 @@ export const assign_color_varying = `
             vOverpaint.rgb = mix(vColor.rgb, vOverpaint.rgb, vOverpaint.a);
         #endif
     #endif
+
+    #ifdef dSubstance
+        #if defined(dSubstanceType_groupInstance)
+            vSubstance = readFromTexture(tSubstance, aInstance * float(uGroupCount) + group, uSubstanceTexDim).rgb;
+        #elif defined(dSubstanceType_vertexInstance)
+            vSubstance = readFromTexture(tSubstance, int(aInstance) * uVertexCount + VertexID, uSubstanceTexDim).rgb;
+        #elif defined(dSubstanceType_volumeInstance)
+            vec3 sgridPos = (uSubstanceGridTransform.w * (vModelPosition - uSubstanceGridTransform.xyz)) / uSubstanceGridDim;
+            vSubstance = texture3dFrom2dLinear(tSubstanceGrid, sgridPos, uSubstanceGridDim, uSubstanceTexDim).rgb;
+        #endif
+
+        // pre-mix to avoid artifacts due to empty substance
+        vSubstance.rg = mix(vec2(uMetalness, uRoughness), vSubstance.rg, vSubstance.b);
+    #endif
 #elif defined(dRenderVariant_pick)
     #if defined(dRenderVariant_pickObject)
         vColor = vec4(encodeFloatRGB(float(uObjectId)), 1.0);

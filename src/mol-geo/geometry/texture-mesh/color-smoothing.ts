@@ -500,3 +500,39 @@ export function applyTextureMeshTransparencySmoothing(values: TextureMeshValues,
     ValueCell.update(values.uTransparencyGridDim, smoothingData.gridDim);
     ValueCell.update(values.uTransparencyGridTransform, smoothingData.gridTransform);
 }
+
+function isSupportedSubstanceType(x: string): x is 'groupInstance' {
+    return x === 'groupInstance';
+}
+
+export function applyTextureMeshSubstanceSmoothing(values: TextureMeshValues, resolution: number, stride: number, webgl: WebGLContext, colorTexture?: Texture) {
+    if (!isSupportedSubstanceType(values.dSubstanceType.ref.value)) return;
+
+    stride *= 3; // triple because TextureMesh is never indexed (no elements buffer)
+
+    if (!webgl.namedTextures[ColorSmoothingRgbName]) {
+        webgl.namedTextures[ColorSmoothingRgbName] = webgl.resources.texture('image-uint8', 'rgb', 'ubyte', 'nearest');
+    }
+    const colorData = webgl.namedTextures[ColorSmoothingRgbName];
+    colorData.load(values.tSubstance.ref.value);
+
+    const smoothingData = calcTextureMeshColorSmoothing({
+        vertexCount: values.uVertexCount.ref.value,
+        instanceCount: values.uInstanceCount.ref.value,
+        groupCount: values.uGroupCount.ref.value,
+        transformBuffer: values.aTransform.ref.value,
+        instanceBuffer: values.aInstance.ref.value,
+        positionTexture: values.tPosition.ref.value,
+        groupTexture: values.tGroup.ref.value,
+        colorData,
+        colorType: values.dSubstanceType.ref.value,
+        boundingSphere: values.boundingSphere.ref.value,
+        invariantBoundingSphere: values.invariantBoundingSphere.ref.value,
+    }, resolution, stride, webgl, colorTexture);
+
+    ValueCell.updateIfChanged(values.dSubstanceType, smoothingData.type);
+    ValueCell.update(values.tSubstanceGrid, smoothingData.texture);
+    ValueCell.update(values.uSubstanceTexDim, smoothingData.gridTexDim);
+    ValueCell.update(values.uSubstanceGridDim, smoothingData.gridDim);
+    ValueCell.update(values.uSubstanceGridTransform, smoothingData.gridTransform);
+}

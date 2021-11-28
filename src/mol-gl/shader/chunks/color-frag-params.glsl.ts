@@ -1,4 +1,7 @@
 export const color_frag_params = `
+uniform float uMetalness;
+uniform float uRoughness;
+
 #if defined(dRenderVariant_color)
     #if defined(dColorType_uniform)
         uniform vec3 uColor;
@@ -8,6 +11,10 @@ export const color_frag_params = `
 
     #ifdef dOverpaint
         varying vec4 vOverpaint;
+    #endif
+
+    #ifdef dSubstance
+        varying vec3 vSubstance;
     #endif
 #elif defined(dRenderVariant_pick)
     #if __VERSION__ == 100

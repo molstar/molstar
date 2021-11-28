@@ -10,7 +10,6 @@ import { createGraphicsRenderItem } from '../webgl/render-item';
 import { GlobalUniformSchema, BaseSchema, AttributeSpec, DefineSpec, Values, InternalSchema, SizeSchema, InternalValues, GlobalTextureSchema } from './schema';
 import { PointsShaderCode } from '../shader-code';
 import { ValueCell } from '../../mol-util';
-import { Points } from '../../mol-geo/geometry/points/points';
 
 export const PointsSchema = {
     ...BaseSchema,
@@ -18,7 +17,7 @@ export const PointsSchema = {
     aGroup: AttributeSpec('float32', 1, 0),
     aPosition: AttributeSpec('float32', 3, 0),
     dPointSizeAttenuation: DefineSpec('boolean'),
-    dPointStyle: DefineSpec('string', Points.StyleTypeNames),
+    dPointStyle: DefineSpec('string', ['square', 'circle', 'fuzzy']),
 };
 export type PointsSchema = typeof PointsSchema
 export type PointsValues = Values<PointsSchema>

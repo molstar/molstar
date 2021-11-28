@@ -18,6 +18,7 @@ import { SizeTheme } from '../../../../mol-theme/size';
 import { ParamDefinition as PD } from '../../../../mol-util/param-definition';
 import { PluginCommands } from '../../../commands';
 import { PluginContext } from '../../../context';
+import { Material } from '../../../../mol-util/material';
 
 const StructureFocusRepresentationParams = (plugin: PluginContext) => {
     const reprParams = StateTransforms.Representation.StructureRepresentation3D.definition.params!(void 0, plugin) as PD.Params;
@@ -41,7 +42,8 @@ const StructureFocusRepresentationParams = (plugin: PluginContext) => {
         }),
         components: PD.MultiSelect(FocusComponents, PD.arrayToOptions(FocusComponents)),
         excludeTargetFromSurroundings: PD.Boolean(false, { label: 'Exclude Target', description: 'Exclude the focus "target" from the surroudings component.' }),
-        ignoreHydrogens: PD.Boolean(false)
+        ignoreHydrogens: PD.Boolean(false),
+        material: Material.getParam(),
     };
 };
 
@@ -67,7 +69,7 @@ class StructureFocusRepresentationBehavior extends PluginBehavior.WithSubscriber
             ...this.params.targetParams,
             type: {
                 name: reprParams.type.name,
-                params: { ...reprParams.type.params, ignoreHydrogens: this.params.ignoreHydrogens }
+                params: { ...reprParams.type.params, ignoreHydrogens: this.params.ignoreHydrogens, material: this.params.material }
             }
         };
     }

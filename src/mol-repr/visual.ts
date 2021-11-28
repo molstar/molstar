@@ -27,8 +27,10 @@ import { getMarkersAverage } from '../mol-geo/geometry/marker-data';
 import { Texture } from '../mol-gl/webgl/texture';
 import { Geometry } from '../mol-geo/geometry/geometry';
 import { getColorSmoothingProps, hasColorSmoothingProp } from '../mol-geo/geometry/base';
-import { applyMeshOverpaintSmoothing, applyMeshTransparencySmoothing } from '../mol-geo/geometry/mesh/color-smoothing';
-import { applyTextureMeshOverpaintSmoothing, applyTextureMeshTransparencySmoothing } from '../mol-geo/geometry/texture-mesh/color-smoothing';
+import { applyMeshOverpaintSmoothing, applyMeshSubstanceSmoothing, applyMeshTransparencySmoothing } from '../mol-geo/geometry/mesh/color-smoothing';
+import { applyTextureMeshOverpaintSmoothing, applyTextureMeshSubstanceSmoothing, applyTextureMeshTransparencySmoothing } from '../mol-geo/geometry/texture-mesh/color-smoothing';
+import { Substance } from '../mol-theme/substance';
+import { applySubstanceMaterial, clearSubstance, createSubstance } from '../mol-geo/geometry/substance-data';
 
 export interface VisualContext {
     readonly runtime: RuntimeContext
@@ -51,6 +53,7 @@ interface Visual<D, P extends PD.Params> {
     setTransform: (matrix?: Mat4, instanceMatrices?: Float32Array | null) => void
     setOverpaint: (overpaint: Overpaint, webgl?: WebGLContext) => void
     setTransparency: (transparency: Transparency, webgl?: WebGLContext) => void
+    setSubstance: (substance: Substance, webgl?: WebGLContext) => void
     setClipping: (clipping: Clipping) => void
     destroy: () => void
     mustRecreate?: (data: D, props: PD.Values<P>, webgl?: WebGLContext) => boolean
@@ -143,6 +146,7 @@ namespace Visual {
         resolution?: number
         overpaintTexture?: Texture
         transparencyTexture?: Texture
+        substanceTexture?: Texture
     }
 
     type SmoothingContext = {
@@ -243,6 +247,55 @@ namespace Visual {
                 if (csp) {
                     applyTextureMeshTransparencySmoothing(renderObject.values as any, csp.resolution, csp.stride, webgl, transparencyTexture);
                     (geometry.meta as SurfaceMeta).transparencyTexture = renderObject.values.tTransparencyGrid.ref.value;
+                }
+            }
+        }
+    }
+
+    export function setSubstance(renderObject: GraphicsRenderObject | undefined, substance: Substance, lociApply: LociApply, clear: boolean, smoothing?: SmoothingContext) {
+        if (!renderObject) return;
+
+        const { tSubstance, dSubstanceType, uGroupCount, instanceCount } = renderObject.values;
+        const count = uGroupCount.ref.value * instanceCount.ref.value;
+
+        // ensure texture has right size
+        createSubstance(substance.layers.length ? count : 0, renderObject.values);
+        const { array } = tSubstance.ref.value;
+
+        // clear all if requested
+        if (clear) clearSubstance(array, 0, count);
+
+        for (let i = 0, il = substance.layers.length; i < il; ++i) {
+            const { loci, material, clear } = substance.layers[i];
+            const apply = (interval: Interval) => {
+                const start = Interval.start(interval);
+                const end = Interval.end(interval);
+                return clear
+                    ? clearSubstance(array, start, end)
+                    : applySubstanceMaterial(array, start, end, material);
+            };
+            lociApply(loci, apply, false);
+        }
+        ValueCell.update(tSubstance, tSubstance.ref.value);
+        ValueCell.updateIfChanged(dSubstanceType, 'groupInstance');
+
+        if (substance.layers.length === 0) return;
+
+        if (smoothing && hasColorSmoothingProp(smoothing.props)) {
+            const { geometry, props, webgl } = smoothing;
+            if (geometry.kind === 'mesh') {
+                const { resolution, substanceTexture } = geometry.meta as SurfaceMeta;
+                const csp = getColorSmoothingProps(props.smoothColors, true, resolution);
+                if (csp) {
+                    applyMeshSubstanceSmoothing(renderObject.values as any, csp.resolution, csp.stride, webgl, substanceTexture);
+                    (geometry.meta as SurfaceMeta).substanceTexture = renderObject.values.tSubstanceGrid.ref.value;
+                }
+            } else if (webgl && geometry.kind === 'texture-mesh') {
+                const { resolution, substanceTexture } = geometry.meta as SurfaceMeta;
+                const csp = getColorSmoothingProps(props.smoothColors, true, resolution);
+                if (csp) {
+                    applyTextureMeshSubstanceSmoothing(renderObject.values as any, csp.resolution, csp.stride, webgl, substanceTexture);
+                    (geometry.meta as SurfaceMeta).substanceTexture = renderObject.values.tSubstanceGrid.ref.value;
                 }
             }
         }
