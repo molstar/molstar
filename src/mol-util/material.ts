@@ -6,7 +6,7 @@
 
 import { NumberArray } from './type-helpers';
 import { ParamDefinition as PD } from './param-definition';
-import { toPrecision } from './number';
+import { toFixed } from './number';
 
 /** Material properties expressed as a single number */
 export type Material = { readonly '@type': 'material' } & number
@@ -22,12 +22,12 @@ export namespace Material {
         return fromNormalized(v.metalness, v.roughness);
     }
 
-    export function toObjectNormalized(material: Material, precision?: number) {
+    export function toObjectNormalized(material: Material, fractionDigits?: number) {
         const metalness = (material >> 16 & 255) / 255;
         const roughness = (material >> 8 & 255) / 255;
         return {
-            metalness: precision ? toPrecision(metalness, precision) : metalness,
-            roughness: precision ? toPrecision(roughness, precision) : roughness
+            metalness: fractionDigits ? toFixed(metalness, fractionDigits) : metalness,
+            roughness: fractionDigits ? toFixed(roughness, fractionDigits) : roughness
         };
     }
 
@@ -45,7 +45,7 @@ export namespace Material {
 
     export function getParam(info?: { isExpanded?: boolean, isFlat?: boolean }) {
         return PD.Converted(
-            (v: Material) => toObjectNormalized(v, 2),
+            (v: Material) => toObjectNormalized(v, 1),
             (v: { metalness: number, roughness: number }) => fromObjectNormalized(v),
             PD.Group({
                 metalness: PD.Numeric(0, { min: 0, max: 1, step: 0.1 }),

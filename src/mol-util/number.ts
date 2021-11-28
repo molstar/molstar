@@ -69,3 +69,7 @@ export function getPrecision(v: number) {
 export function toPrecision(v: number, precision: number) {
     return parseFloat(v.toPrecision(precision));
 }
+
+export function toFixed(v: number, fractionDigits: number) {
+    return parseFloat(v.toFixed(fractionDigits));
+}
