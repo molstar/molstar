@@ -6,6 +6,10 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Add multiple lights support (with color, intensity, and direction parameters)
+- [Breaking] Add per-object material rendering properties
+- Add substance theme with per-group material rendering properties
+
 ## [v2.4.1] - 2021-11-28
 
 - Fix: allow atoms in aromatic rings to do hydrogen bonds
