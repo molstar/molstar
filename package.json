@@ -16,6 +16,8 @@
     "test": "npm run lint && jest",
     "jest": "jest",
     "build": "npm run build-tsc && npm run build-extra && npm run build-webpack",
+    "clean": "node ./scripts/clean.js",
+    "rebuild": "npm run clean && npm run build",
     "build-viewer": "npm run build-tsc && npm run build-extra && npm run build-webpack-viewer",
     "build-tsc": "concurrently \"tsc --incremental\" \"tsc --build tsconfig.commonjs.json --incremental\"",
     "build-extra": "cpx \"src/**/*.{scss,html,ico}\" lib/",
@@ -36,7 +38,7 @@
     "volume-server-test": "node lib/commonjs/servers/volume/server.js --idMap em 'test/${id}.mdb' --defaultPort 1336",
     "plugin-state": "node lib/commonjs/servers/plugin-state/index.js --working-folder ./build/state --port 1339",
     "preversion": "npm run test",
-    "version": "npm run build",
+    "version": "npm run rebuild",
     "postversion": "git push && git push --tags"
   },
   "files": [
