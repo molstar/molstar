@@ -97,24 +97,22 @@ export namespace BaseGeometry {
     }
 
     export function createValues(props: PD.Values<Params>, counts: Counts) {
-        const { metalness, roughness } = Material.toObjectNormalized(props.material);
         return {
             alpha: ValueCell.create(props.alpha),
             uAlpha: ValueCell.create(props.alpha),
             uVertexCount: ValueCell.create(counts.vertexCount),
             uGroupCount: ValueCell.create(counts.groupCount),
             drawCount: ValueCell.create(counts.drawCount),
-            uMetalness: ValueCell.create(metalness),
-            uRoughness: ValueCell.create(roughness),
+            uMetalness: ValueCell.create(props.material.metalness),
+            uRoughness: ValueCell.create(props.material.roughness),
             dLightCount: ValueCell.create(1),
         };
     }
 
     export function updateValues(values: BaseValues, props: PD.Values<Params>) {
-        const { metalness, roughness } = Material.toObjectNormalized(props.material);
         ValueCell.updateIfChanged(values.alpha, props.alpha); // `uAlpha` is set in renderable.render
-        ValueCell.updateIfChanged(values.uMetalness, metalness);
-        ValueCell.updateIfChanged(values.uRoughness, roughness);
+        ValueCell.updateIfChanged(values.uMetalness, props.material.metalness);
+        ValueCell.updateIfChanged(values.uRoughness, props.material.roughness);
     }
 
     export function createRenderableState(props: Partial<PD.Values<Params>> = {}): RenderableState {

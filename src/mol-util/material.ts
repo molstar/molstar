@@ -6,58 +6,43 @@
 
 import { NumberArray } from './type-helpers';
 import { ParamDefinition as PD } from './param-definition';
-import { toFixed } from './number';
 
-/** Material properties expressed as a single number */
-export type Material = { readonly '@type': 'material' } & number
+export interface Material {
+    /** Normalized to [0, 1] range */
+    metalness: number,
+    /** Normalized to [0, 1] range */
+    roughness: number
+}
 
-export function Material(hex: number) { return hex as Material; }
+export function Material(values?: Partial<Material>) {
+    return { ...Material.Zero, ...values };
+}
 
 export namespace Material {
-    export function fromNormalized(metalness: number, roughness: number): Material {
-        return (((metalness * 255) << 16) | ((roughness * 255) << 8)) as Material;
-    }
-
-    export function fromObjectNormalized(v: { metalness: number, roughness: number }): Material {
-        return fromNormalized(v.metalness, v.roughness);
-    }
-
-    export function toObjectNormalized(material: Material, fractionDigits?: number) {
-        const metalness = (material >> 16 & 255) / 255;
-        const roughness = (material >> 8 & 255) / 255;
-        return {
-            metalness: fractionDigits ? toFixed(metalness, fractionDigits) : metalness,
-            roughness: fractionDigits ? toFixed(roughness, fractionDigits) : roughness
-        };
-    }
+    export const Zero: Material = { metalness: 0, roughness: 0 };
 
     export function toArray(material: Material, array: NumberArray, offset: number) {
-        array[offset] = (material >> 16 & 255);
-        array[offset + 1] = (material >> 8 & 255);
+        array[offset] = material.metalness * 255;
+        array[offset + 1] = material.roughness * 255;
         return array;
     }
 
-    export function toString(material: Material) {
-        const metalness = (material >> 16 & 255) / 255;
-        const roughness = (material >> 8 & 255) / 255;
-        return `M ${metalness} | R ${roughness}`;
+    export function toString({ metalness, roughness }: Material) {
+        return `M ${metalness.toFixed(2)} | R ${roughness.toFixed(2)}`;
     }
 
     export function getParam(info?: { isExpanded?: boolean, isFlat?: boolean }) {
-        return PD.Converted(
-            (v: Material) => toObjectNormalized(v, 2),
-            (v: { metalness: number, roughness: number }) => fromObjectNormalized(v),
-            PD.Group({
-                metalness: PD.Numeric(0, { min: 0, max: 1, step: 0.01 }),
-                roughness: PD.Numeric(1, { min: 0, max: 1, step: 0.01 }),
-            }, {
-                ...info,
-                presets: [
-                    [{ metalness: 0, roughness: 1 }, 'Matte'],
-                    [{ metalness: 0.5, roughness: 0.5 }, 'Metallic'],
-                    [{ metalness: 0, roughness: 0.25 }, 'Plastic'],
-                ]
-            })
-        );
+        return PD.Group({
+            metalness: PD.Numeric(0, { min: 0, max: 1, step: 0.01 }),
+            roughness: PD.Numeric(1, { min: 0, max: 1, step: 0.01 }),
+        }, {
+            ...info,
+            presets: [
+                [{ metalness: 0, roughness: 1 }, 'Matte'],
+                [{ metalness: 0, roughness: 0.2 }, 'Plastic'],
+                [{ metalness: 0, roughness: 0.6 }, 'Glossy'],
+                [{ metalness: 1.0, roughness: 0.6 }, 'Metallic'],
+            ]
+        });
     }
 }

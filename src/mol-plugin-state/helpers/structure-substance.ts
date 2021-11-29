@@ -18,7 +18,7 @@ import { Material } from '../../mol-util/material';
 type SubstanceEachReprCallback = (update: StateBuilder.Root, repr: StateObjectCell<PluginStateObject.Molecule.Structure.Representation3D, StateTransform<typeof StateTransforms.Representation.StructureRepresentation3D>>, substance?: StateObjectCell<any, StateTransform<typeof StateTransforms.Representation.SubstanceStructureRepresentation3DFromBundle>>) => Promise<void>
 const SubstanceManagerTag = 'substance-controls';
 
-export async function setStructureSubstance(plugin: PluginContext, components: StructureComponentRef[], material: Material | -1, lociGetter: (structure: Structure) => Promise<StructureElement.Loci | EmptyLoci>, types?: string[]) {
+export async function setStructureSubstance(plugin: PluginContext, components: StructureComponentRef[], material: Material | undefined, lociGetter: (structure: Structure) => Promise<StructureElement.Loci | EmptyLoci>, types?: string[]) {
     await eachRepr(plugin, components, async (update, repr, substanceCell) => {
         if (types && types.length > 0 && !types.includes(repr.params!.values.type.name)) return;
 
@@ -30,8 +30,8 @@ export async function setStructureSubstance(plugin: PluginContext, components: S
 
         const layer = {
             bundle: StructureElement.Bundle.fromLoci(loci),
-            material: material === -1 ? Material(0) : material,
-            clear: material === -1
+            material: material ?? Material(),
+            clear: !material
         };
 
         if (substanceCell) {

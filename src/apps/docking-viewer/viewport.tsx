@@ -76,7 +76,7 @@ const PresetParams = {
     ...StructureRepresentationPresetProvider.CommonParams,
 };
 
-const CustomMaterial = Material.fromObjectNormalized({ roughness: 0.2, metalness: 0 });
+const CustomMaterial = Material({ roughness: 0.2, metalness: 0 });
 
 export const StructurePreset = StructureRepresentationPresetProvider({
     id: 'preset-structure',

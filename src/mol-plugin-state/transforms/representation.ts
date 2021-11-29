@@ -547,7 +547,7 @@ const SubstanceStructureRepresentation3DFromScript = PluginStateTransform.BuiltI
         }, e => `${e.clear ? 'Clear' : Material.toString(e.material)}`, {
             defaultValue: [{
                 script: Script('(sel.atom.all)', 'mol-script'),
-                material: Material.fromNormalized(0, 1),
+                material: Material({ roughness: 1 }),
                 clear: false
             }]
         }),
@@ -604,7 +604,7 @@ const SubstanceStructureRepresentation3DFromBundle = PluginStateTransform.BuiltI
         }, e => `${e.clear ? 'Clear' : Material.toString(e.material)}`, {
             defaultValue: [{
                 bundle: StructureElement.Bundle.Empty,
-                material: Material.fromNormalized(0, 1),
+                material: Material({ roughness: 1 }),
                 clear: false
             }],
             isHidden: true

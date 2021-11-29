@@ -388,7 +388,7 @@ class StructureComponentManager extends StatefulPluginComponent<StructureCompone
                     const p = params.action.params;
                     await setStructureSubstance(this.plugin, s.components, p.material, getLoci, params.representations);
                 } else if (params.action.name === 'resetMaterial') {
-                    await setStructureSubstance(this.plugin, s.components, -1, getLoci, params.representations);
+                    await setStructureSubstance(this.plugin, s.components, void 0, getLoci, params.representations);
                 } else if (params.action.name === 'clipping') {
                     const p = params.action.params;
                     await setStructureClipping(this.plugin, s.components, Clipping.Groups.fromNames(p.excludeGroups), getLoci, params.representations);
