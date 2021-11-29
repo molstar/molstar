@@ -8,9 +8,9 @@ import { NumberArray } from './type-helpers';
 import { ParamDefinition as PD } from './param-definition';
 
 export interface Material {
-    // Normalized to [0, 1] range
+    /** Normalized to [0, 1] range */
     metalness: number,
-    // Normalized to [0, 1] range
+    /** Normalized to [0, 1] range */
     roughness: number
 }
 
