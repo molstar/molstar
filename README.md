@@ -77,7 +77,7 @@ Wipes the `build` and `lib` directories and `.tsbuildinfo` files.
 
 Runs the cleanup script prior to building the project, forcing a full rebuild of the project.
 
-Use these commands to resolve occassional build failures which may arise after some dependency updates. Once done, `npm run build` should work again. Note that full rebuilds take more to complete.
+Use these commands to resolve occassional build failures which may arise after some dependency updates. Once done, `npm run build` should work again. Note that full rebuilds take more time to complete.
 
 ### Build for production:
     NODE_ENV=production npm run build
