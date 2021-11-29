@@ -1097,7 +1097,6 @@ export class GroupControl extends React.PureComponent<ParamProps<PD.Group<any>> 
 
     onSelectPreset: ActionMenu.OnSelect = item => {
         this.setState({ showPresets: false });
-        console.log(item);
         this.change(item?.value);
     }
 
