@@ -225,12 +225,14 @@ export namespace ParamDefinition {
     export interface Group<T> extends Base<T> {
         type: 'group',
         params: Params,
+        presets?: Select<T>['options'],
         isExpanded?: boolean,
         isFlat?: boolean,
         pivot?: keyof T
     }
-    export function Group<T>(params: For<T>, info?: Info & { isExpanded?: boolean, isFlat?: boolean, customDefault?: any, pivot?: keyof T }): Group<Normalize<T>> {
+    export function Group<T>(params: For<T>, info?: Info & { isExpanded?: boolean, isFlat?: boolean, customDefault?: any, pivot?: keyof T, presets?: Select<T>['options'] }): Group<Normalize<T>> {
         const ret = setInfo<Group<Normalize<T>>>({ type: 'group', defaultValue: info?.customDefault || getDefaultValues(params as any as Params) as any, params: params as any as Params }, info);
+        if (info?.presets) ret.presets = info.presets;
         if (info?.isExpanded) ret.isExpanded = info.isExpanded;
         if (info?.isFlat) ret.isFlat = info.isFlat;
         if (info?.pivot) ret.pivot = info.pivot as any;

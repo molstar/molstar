@@ -19,7 +19,7 @@ import { PluginUIComponent } from '../base';
 import { ActionMenu } from './action-menu';
 import { ColorOptions, ColorValueOption, CombinedColorControl } from './color';
 import { Button, ControlGroup, ControlRow, ExpandGroup, IconButton, TextInput, ToggleButton } from './common';
-import { Icon, HelpOutlineSvg, CheckSvg, ClearSvg, BookmarksOutlinedSvg, MoreHorizSvg, ArrowDropDownSvg, ArrowRightSvg, ArrowDownwardSvg, ArrowUpwardSvg, DeleteOutlinedSvg } from './icons';
+import { Icon, HelpOutlineSvg, CheckSvg, ClearSvg, BookmarksOutlinedSvg, MoreHorizSvg, ArrowDropDownSvg, ArrowRightSvg, ArrowDownwardSvg, ArrowUpwardSvg, DeleteOutlinedSvg, TuneSvg } from './icons';
 import { legendFor } from './legend';
 import { LineGraphComponent } from './line-graph/line-graph-component';
 import { Slider, Slider2 } from './slider';
@@ -1079,8 +1079,8 @@ export class MultiSelectControl extends React.PureComponent<ParamProps<PD.MultiS
     }
 }
 
-export class GroupControl extends React.PureComponent<ParamProps<PD.Group<any>> & { inMapped?: boolean }, { isExpanded: boolean, showHelp: boolean }> {
-    state = { isExpanded: !!this.props.param.isExpanded, showHelp: false }
+export class GroupControl extends React.PureComponent<ParamProps<PD.Group<any>> & { inMapped?: boolean }, { isExpanded: boolean, showPresets: boolean, showHelp: boolean }> {
+    state = { isExpanded: !!this.props.param.isExpanded, showPresets: false, showHelp: false }
 
     change(value: any) {
         this.props.onChange({ name: this.props.name, param: this.props.param, value });
@@ -1091,6 +1091,30 @@ export class GroupControl extends React.PureComponent<ParamProps<PD.Group<any>> 
     }
 
     toggleExpanded = () => this.setState({ isExpanded: !this.state.isExpanded });
+    toggleShowPresets = () => this.setState({ showPresets: !this.state.showPresets });
+
+    presetItems = memoizeLatest((param: PD.Group<any>) => ActionMenu.createItemsFromSelectOptions(param.presets ?? []));
+
+    onSelectPreset: ActionMenu.OnSelect = item => {
+        this.setState({ showPresets: false });
+        console.log(item);
+        this.change(item?.value);
+    }
+
+    presets() {
+        if (!this.props.param.presets) return null;
+
+        const label = this.props.param.label || camelCaseToWords(this.props.name);
+        return <div className='msp-control-group-wrapper'>
+            <div className='msp-control-group-header'>
+                <button className='msp-btn msp-form-control msp-btn-block' onClick={this.toggleShowPresets}>
+                    <Icon svg={TuneSvg} />
+                    {label} Presets
+                </button>
+            </div>
+            {this.state.showPresets && <ActionMenu items={this.presetItems(this.props.param)} onSelect={this.onSelectPreset} />}
+        </div>;
+    }
 
     pivoted() {
         const key = this.props.param.pivot as string;
@@ -1116,6 +1140,7 @@ export class GroupControl extends React.PureComponent<ParamProps<PD.Group<any>> 
             {ctrl}
             <IconButton svg={MoreHorizSvg} onClick={this.toggleExpanded} toggleState={this.state.isExpanded} title={`More Options`} />
             <div className='msp-control-offset'>
+                {this.presets()}
                 <ParameterControls params={filtered} onEnter={this.props.onEnter} values={this.props.value} onChange={this.onChangeParam} isDisabled={this.props.isDisabled} />
             </div>
         </div>;
@@ -1149,6 +1174,7 @@ export class GroupControl extends React.PureComponent<ParamProps<PD.Group<any>> 
                 </button>
             </div>
             {this.state.isExpanded && <div className='msp-control-offset'>
+                {this.presets()}
                 {controls}
             </div>}
         </div>;

@@ -12,7 +12,8 @@ Note that since we don't clearly distinguish between a public and private interf
 - [Breaking] Add per-object material rendering properties
   - ``SimpleSettingsParams.lighting.renderStyle`` and ``RendererParams.style`` were removed
 - Add substance theme with per-group material rendering properties
-- StructureComponentManager.Options state saving support
+- ``StructureComponentManager.Options`` state saving support
+- ``ParamDefinition.Group.presets`` support
 
 ## [v2.4.1] - 2021-11-28
 

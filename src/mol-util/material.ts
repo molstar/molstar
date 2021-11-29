@@ -50,7 +50,14 @@ export namespace Material {
             PD.Group({
                 metalness: PD.Numeric(0, { min: 0, max: 1, step: 0.01 }),
                 roughness: PD.Numeric(1, { min: 0, max: 1, step: 0.01 }),
-            }, info)
+            }, {
+                ...info,
+                presets: [
+                    [{ metalness: 0, roughness: 1 }, 'Matte'],
+                    [{ metalness: 0.5, roughness: 0.5 }, 'Metallic'],
+                    [{ metalness: 0, roughness: 0 }, 'Plastic'],
+                ]
+            })
         );
     }
 }
