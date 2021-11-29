@@ -39,8 +39,9 @@ export namespace Material {
             ...info,
             presets: [
                 [{ metalness: 0, roughness: 1 }, 'Matte'],
-                [{ metalness: 0.5, roughness: 0.5 }, 'Metallic'],
-                [{ metalness: 0, roughness: 0.25 }, 'Plastic'],
+                [{ metalness: 0, roughness: 0.2 }, 'Plastic'],
+                [{ metalness: 0, roughness: 0.6 }, 'Glossy'],
+                [{ metalness: 1.0, roughness: 0.6 }, 'Metallic'],
             ]
         });
     }
