@@ -55,7 +55,7 @@ export namespace Material {
                 presets: [
                     [{ metalness: 0, roughness: 1 }, 'Matte'],
                     [{ metalness: 0.5, roughness: 0.5 }, 'Metallic'],
-                    [{ metalness: 0, roughness: 0 }, 'Plastic'],
+                    [{ metalness: 0, roughness: 0.25 }, 'Plastic'],
                 ]
             })
         );

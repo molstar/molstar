@@ -21,6 +21,7 @@ import { PluginContext } from '../../mol-plugin/context';
 import { MolScriptBuilder as MS } from '../../mol-script/language/builder';
 import { StateObjectRef } from '../../mol-state';
 import { Color } from '../../mol-util/color';
+import { Material } from '../../mol-util/material';
 
 function shinyStyle(plugin: PluginContext) {
     return PluginCommands.Canvas3D.SetSettings(plugin, { settings: {
@@ -75,7 +76,7 @@ const PresetParams = {
     ...StructureRepresentationPresetProvider.CommonParams,
 };
 
-
+const CustomMaterial = Material.fromObjectNormalized({ roughness: 0.2, metalness: 0 });
 
 export const StructurePreset = StructureRepresentationPresetProvider({
     id: 'preset-structure',
@@ -92,8 +93,8 @@ export const StructurePreset = StructureRepresentationPresetProvider({
 
         const { update, builder, typeParams } = StructureRepresentationPresetProvider.reprBuilder(plugin, params);
         const representations = {
-            ligand: builder.buildRepresentation(update, components.ligand, { type: 'ball-and-stick', typeParams: { ...typeParams, roughness: 0.2, sizeFactor: 0.35 }, color: 'element-symbol', colorParams: { carbonColor: { name: 'element-symbol', params: {} } } }, { tag: 'ligand' }),
-            polymer: builder.buildRepresentation(update, components.polymer, { type: 'cartoon', typeParams: { ...typeParams, roughness: 0.2 }, color: 'chain-id', colorParams: { palette: (plugin.customState as any).colorPalette } }, { tag: 'polymer' }),
+            ligand: builder.buildRepresentation(update, components.ligand, { type: 'ball-and-stick', typeParams: { ...typeParams, material: CustomMaterial, sizeFactor: 0.35 }, color: 'element-symbol', colorParams: { carbonColor: { name: 'element-symbol', params: {} } } }, { tag: 'ligand' }),
+            polymer: builder.buildRepresentation(update, components.polymer, { type: 'cartoon', typeParams: { ...typeParams, material: CustomMaterial }, color: 'chain-id', colorParams: { palette: (plugin.customState as any).colorPalette } }, { tag: 'polymer' }),
         };
 
         await update.commit({ revertOnError: true });
@@ -147,8 +148,8 @@ const SurfacePreset = StructureRepresentationPresetProvider({
 
         const { update, builder, typeParams } = StructureRepresentationPresetProvider.reprBuilder(plugin, params);
         const representations = {
-            ligand: builder.buildRepresentation(update, components.ligand, { type: 'ball-and-stick', typeParams: { ...typeParams, roughness: 0.2, sizeFactor: 0.26 }, color: 'element-symbol', colorParams: { carbonColor: { name: 'element-symbol', params: {} } } }, { tag: 'ligand' }),
-            polymer: builder.buildRepresentation(update, components.polymer, { type: 'molecular-surface', typeParams: { ...typeParams, roughness: 0.2, quality: 'custom', resolution: 0.5, doubleSided: true }, color: 'partial-charge' }, { tag: 'polymer' }),
+            ligand: builder.buildRepresentation(update, components.ligand, { type: 'ball-and-stick', typeParams: { ...typeParams, material: CustomMaterial, sizeFactor: 0.26 }, color: 'element-symbol', colorParams: { carbonColor: { name: 'element-symbol', params: {} } } }, { tag: 'ligand' }),
+            polymer: builder.buildRepresentation(update, components.polymer, { type: 'molecular-surface', typeParams: { ...typeParams, material: CustomMaterial, quality: 'custom', resolution: 0.5, doubleSided: true }, color: 'partial-charge' }, { tag: 'polymer' }),
         };
 
         await update.commit({ revertOnError: true });
@@ -175,8 +176,8 @@ const PocketPreset = StructureRepresentationPresetProvider({
 
         const { update, builder, typeParams } = StructureRepresentationPresetProvider.reprBuilder(plugin, params);
         const representations = {
-            ligand: builder.buildRepresentation(update, components.ligand, { type: 'ball-and-stick', typeParams: { ...typeParams, roughness: 0.2, sizeFactor: 0.26 }, color: 'element-symbol', colorParams: { carbonColor: { name: 'element-symbol', params: {} } } }, { tag: 'ligand' }),
-            surroundings: builder.buildRepresentation(update, components.surroundings, { type: 'molecular-surface', typeParams: { ...typeParams, roughness: 0.2, includeParent: true, quality: 'custom', resolution: 0.2, doubleSided: true }, color: 'partial-charge' }, { tag: 'surroundings' }),
+            ligand: builder.buildRepresentation(update, components.ligand, { type: 'ball-and-stick', typeParams: { ...typeParams, material: CustomMaterial, sizeFactor: 0.26 }, color: 'element-symbol', colorParams: { carbonColor: { name: 'element-symbol', params: {} } } }, { tag: 'ligand' }),
+            surroundings: builder.buildRepresentation(update, components.surroundings, { type: 'molecular-surface', typeParams: { ...typeParams, material: CustomMaterial, includeParent: true, quality: 'custom', resolution: 0.2, doubleSided: true }, color: 'partial-charge' }, { tag: 'surroundings' }),
         };
 
         await update.commit({ revertOnError: true });
@@ -204,10 +205,10 @@ const InteractionsPreset = StructureRepresentationPresetProvider({
 
         const { update, builder, typeParams } = StructureRepresentationPresetProvider.reprBuilder(plugin, params);
         const representations = {
-            ligand: builder.buildRepresentation(update, components.ligand, { type: 'ball-and-stick', typeParams: { ...typeParams, roughness: 0.2, sizeFactor: 0.3 }, color: 'element-symbol', colorParams: { carbonColor: { name: 'element-symbol', params: {} } } }, { tag: 'ligand' }),
-            ballAndStick: builder.buildRepresentation(update, components.surroundings, { type: 'ball-and-stick', typeParams: { ...typeParams, roughness: 0.2, sizeFactor: 0.1, sizeAspectRatio: 1 }, color: 'element-symbol', colorParams: { carbonColor: { name: 'element-symbol', params: {} } } }, { tag: 'ball-and-stick' }),
-            interactions: builder.buildRepresentation(update, components.interactions, { type: InteractionsRepresentationProvider, typeParams: { ...typeParams, roughness: 0.2 }, color: InteractionTypeColorThemeProvider }, { tag: 'interactions' }),
-            label: builder.buildRepresentation(update, components.surroundings, { type: 'label', typeParams: { ...typeParams, roughness: 0.2, background: false, borderWidth: 0.1 }, color: 'uniform', colorParams: { value: Color(0x000000) } }, { tag: 'label' }),
+            ligand: builder.buildRepresentation(update, components.ligand, { type: 'ball-and-stick', typeParams: { ...typeParams, material: CustomMaterial, sizeFactor: 0.3 }, color: 'element-symbol', colorParams: { carbonColor: { name: 'element-symbol', params: {} } } }, { tag: 'ligand' }),
+            ballAndStick: builder.buildRepresentation(update, components.surroundings, { type: 'ball-and-stick', typeParams: { ...typeParams, material: CustomMaterial, sizeFactor: 0.1, sizeAspectRatio: 1 }, color: 'element-symbol', colorParams: { carbonColor: { name: 'element-symbol', params: {} } } }, { tag: 'ball-and-stick' }),
+            interactions: builder.buildRepresentation(update, components.interactions, { type: InteractionsRepresentationProvider, typeParams: { ...typeParams, material: CustomMaterial }, color: InteractionTypeColorThemeProvider }, { tag: 'interactions' }),
+            label: builder.buildRepresentation(update, components.surroundings, { type: 'label', typeParams: { ...typeParams, material: CustomMaterial, background: false, borderWidth: 0.1 }, color: 'uniform', colorParams: { value: Color(0x000000) } }, { tag: 'label' }),
         };
 
         await update.commit({ revertOnError: true });
