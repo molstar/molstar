@@ -8,6 +8,7 @@ import { Loci } from '../mol-model/loci';
 import { Structure, StructureElement } from '../mol-model/structure';
 import { Script } from '../mol-script/script';
 import { Material } from '../mol-util/material';
+import { shallowEqual } from '../mol-util/object';
 
 export { Substance };
 
@@ -26,7 +27,7 @@ namespace Substance {
         if (sA.layers.length !== sB.layers.length) return false;
         for (let i = 0, il = sA.layers.length; i < il; ++i) {
             if (sA.layers[i].clear !== sB.layers[i].clear) return false;
-            if (sA.layers[i].material !== sB.layers[i].material) return false;
+            if (!shallowEqual(sA.layers[i].material, sB.layers[i].material)) return false;
             if (!Loci.areEqual(sA.layers[i].loci, sB.layers[i].loci)) return false;
         }
         return true;
@@ -51,25 +52,32 @@ namespace Substance {
     export function merge(substance: Substance): Substance {
         if (isEmpty(substance)) return substance;
         const { structure } = substance.layers[0].loci;
-        const map = new Map<Material | -1, StructureElement.Loci>();
+        let clearLoci: StructureElement.Loci | undefined = void 0;
+        const map = new Map<Material, StructureElement.Loci>();
         let shadowed = StructureElement.Loci.none(structure);
         for (let i = 0, il = substance.layers.length; i < il; ++i) {
             let { loci, material, clear } = substance.layers[il - i - 1]; // process from end
             loci = StructureElement.Loci.subtract(loci, shadowed);
             shadowed = StructureElement.Loci.union(loci, shadowed);
             if (!StructureElement.Loci.isEmpty(loci)) {
-                const materialOrClear = clear ? -1 : material;
-                if (map.has(materialOrClear)) {
-                    loci = StructureElement.Loci.union(loci, map.get(materialOrClear)!);
+                if (clear) {
+                    clearLoci = clearLoci
+                        ? StructureElement.Loci.union(loci, clearLoci)
+                        : loci;
+                } else {
+                    if (map.has(material)) {
+                        loci = StructureElement.Loci.union(loci, map.get(material)!);
+                    }
+                    map.set(material, loci);
                 }
-                map.set(materialOrClear, loci);
             }
         }
         const layers: Substance.Layer[] = [];
-        map.forEach((loci, materialOrClear) => {
-            const clear = materialOrClear === -1;
-            const material = clear ? Material(0) : materialOrClear;
-            layers.push({ loci, material, clear });
+        if (clearLoci) {
+            layers.push({ loci: clearLoci, material: Material(), clear: true });
+        }
+        map.forEach((loci, material) => {
+            layers.push({ loci, material, clear: false });
         });
         return { layers };
     }
