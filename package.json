@@ -38,7 +38,7 @@
     "volume-server-test": "node lib/commonjs/servers/volume/server.js --idMap em 'test/${id}.mdb' --defaultPort 1336",
     "plugin-state": "node lib/commonjs/servers/plugin-state/index.js --working-folder ./build/state --port 1339",
     "preversion": "npm run test",
-    "version": "npm run rebuild",
+    "version": "npm run rebuild && cpx .npmignore lib/.npmignore",
     "postversion": "git push && git push --tags"
   },
   "files": [
