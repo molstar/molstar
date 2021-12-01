@@ -6,6 +6,10 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+## [v3.0.0-dev.2] - 2021-12-1
+
+- Do not include tests and source maps in NPM package
+
 ## [v3.0.0-dev.0] - 2021-11-28
 
 - Add multiple lights support (with color, intensity, and direction parameters)
