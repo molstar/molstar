@@ -145,7 +145,7 @@ export class ObjExporter extends MeshExporter<ObjData> {
                 const color = ObjExporter.getColor(v, geoData, interpolatedColors, interpolatedOverpaint);
                 Color.toArray(color, quantizedColors, i);
             }
-            ObjExporter.quantizeColors(quantizedColors, mesh!.vertexCount);
+            ObjExporter.quantizeColors(quantizedColors, vertexCount);
 
             // face
             for (let i = 0; i < drawCount; i += 3) {
