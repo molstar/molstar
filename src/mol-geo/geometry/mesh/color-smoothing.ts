@@ -376,7 +376,7 @@ export function applyMeshSubstanceSmoothing(values: MeshValues, resolution: numb
         colorType: values.dSubstanceType.ref.value,
         boundingSphere: values.boundingSphere.ref.value,
         invariantBoundingSphere: values.invariantBoundingSphere.ref.value,
-        itemSize: 3
+        itemSize: 4
     }, resolution, stride, webgl, colorTexture);
     if (smoothingData.kind === 'volume') {
         ValueCell.updateIfChanged(values.dSubstanceType, smoothingData.type);

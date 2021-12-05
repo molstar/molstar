@@ -8,17 +8,16 @@
  */
 
 export const apply_light_color = `
-// inputs
-// - vec4 material
-// - vec3 vViewPosition
-// - vec3 normal
-// - float uMetalness
-// - float uRoughness
-// - vec3 uLightColor
-// - vec3 uAmbientColor
-
-// outputs
-// - sets gl_FragColor
+#ifdef bumpEnabled
+    if (uBumpFrequency > 0.0) {
+        vec3 bumpNormal = perturbNormal(-vViewPosition, normal, fbm(vModelPosition * uBumpFrequency), bumpiness / uBumpFrequency);
+        #ifdef enabledFragDepth
+            if (!any(isNaN(bumpNormal))) normal = bumpNormal;
+        #else
+            normal = bumpNormal;
+        #endif
+    }
+#endif
 
 vec4 color = material;
 
@@ -26,7 +25,14 @@ ReflectedLight reflectedLight = ReflectedLight(vec3(0.0), vec3(0.0), vec3(0.0), 
 
 PhysicalMaterial physicalMaterial;
 physicalMaterial.diffuseColor = color.rgb * (1.0 - metalness);
-physicalMaterial.roughness = max(roughness, 0.0525);
+physicalMaterial.roughness = min(max(roughness, 0.0525), 1.0);
+#ifdef enabledFragDepth
+    physicalMaterial.roughness = min(max(roughness, 0.0525), 1.0);
+#else
+    vec3 dxy = max(abs(dFdx(normal)), abs(dFdy(normal)));
+    float geometryRoughness = max(max(dxy.x, dxy.y), dxy.z);
+    physicalMaterial.roughness = min(max(roughness, 0.0525) + geometryRoughness, 1.0);
+#endif
 physicalMaterial.specularColor = mix(vec3(0.04), color.rgb, metalness);
 physicalMaterial.specularF90 = 1.0;
 

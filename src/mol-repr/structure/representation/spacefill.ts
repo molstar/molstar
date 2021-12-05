@@ -11,6 +11,7 @@ import { StructureRepresentation, StructureRepresentationProvider, StructureRepr
 import { RepresentationParamsGetter, RepresentationContext, Representation } from '../../../mol-repr/representation';
 import { ThemeRegistryContext } from '../../../mol-theme/theme';
 import { Structure } from '../../../mol-model/structure';
+import { BaseGeometry } from '../../../mol-geo/geometry/base';
 
 const SpacefillVisuals = {
     'element-sphere': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, ElementSphereParams>) => UnitsRepresentation('Sphere mesh', ctx, getParams, ElementSphereVisual),
@@ -18,6 +19,7 @@ const SpacefillVisuals = {
 
 export const SpacefillParams = {
     ...ElementSphereParams,
+    bumpFrequency: PD.Numeric(1, { min: 0, max: 10, step: 0.1 }, BaseGeometry.ShadingCategory),
 };
 export type SpacefillParams = typeof SpacefillParams
 export function getSpacefillParams(ctx: ThemeRegistryContext, structure: Structure) {

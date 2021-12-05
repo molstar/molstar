@@ -14,6 +14,7 @@ import { AtomSiteAnisotrop } from '../../../mol-model-formats/structure/property
 import { IntraUnitBondCylinderParams, IntraUnitBondCylinderVisual } from '../visual/bond-intra-unit-cylinder';
 import { InterUnitBondCylinderVisual, InterUnitBondCylinderParams } from '../visual/bond-inter-unit-cylinder';
 import { getUnitKindsParam } from '../params';
+import { BaseGeometry } from '../../../mol-geo/geometry/base';
 
 const EllipsoidVisuals = {
     'ellipsoid-mesh': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, EllipsoidMeshParams>) => UnitsRepresentation('Ellipsoid Mesh', ctx, getParams, EllipsoidMeshVisual),
@@ -32,6 +33,7 @@ export const EllipsoidParams = {
     sizeAspectRatio: PD.Numeric(0.1, { min: 0.01, max: 3, step: 0.01 }),
     linkCap: PD.Boolean(true),
     visuals: PD.MultiSelect(['ellipsoid-mesh', 'intra-bond', 'inter-bond'], PD.objectToOptions(EllipsoidVisuals)),
+    bumpFrequency: PD.Numeric(0, { min: 0, max: 10, step: 0.1 }, BaseGeometry.ShadingCategory),
 };
 export type EllipsoidParams = typeof EllipsoidParams
 export function getEllipsoidParams(ctx: ThemeRegistryContext, structure: Structure) {

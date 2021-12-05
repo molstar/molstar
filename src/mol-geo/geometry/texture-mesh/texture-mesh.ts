@@ -113,6 +113,7 @@ export namespace TextureMesh {
         flatShaded: PD.Boolean(false, BaseGeometry.ShadingCategory),
         ignoreLight: PD.Boolean(false, BaseGeometry.ShadingCategory),
         xrayShaded: PD.Boolean(false, BaseGeometry.ShadingCategory),
+        bumpFrequency: PD.Numeric(0, { min: 0, max: 10, step: 0.1 }, BaseGeometry.ShadingCategory),
     };
     export type Params = typeof Params
 
@@ -168,6 +169,7 @@ export namespace TextureMesh {
             dFlipSided: ValueCell.create(props.flipSided),
             dIgnoreLight: ValueCell.create(props.ignoreLight),
             dXrayShaded: ValueCell.create(props.xrayShaded),
+            uBumpFrequency: ValueCell.create(props.bumpFrequency),
             dGeoTexture: ValueCell.create(true),
 
             meta: ValueCell.create(textureMesh.meta),
@@ -187,6 +189,7 @@ export namespace TextureMesh {
         ValueCell.updateIfChanged(values.dFlipSided, props.flipSided);
         ValueCell.updateIfChanged(values.dIgnoreLight, props.ignoreLight);
         ValueCell.updateIfChanged(values.dXrayShaded, props.xrayShaded);
+        ValueCell.updateIfChanged(values.uBumpFrequency, props.bumpFrequency);
     }
 
     function updateBoundingSphere(values: TextureMeshValues, textureMesh: TextureMesh) {

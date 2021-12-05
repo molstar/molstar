@@ -12,6 +12,7 @@ import { StructureRepresentation, StructureRepresentationProvider, StructureRepr
 import { Representation, RepresentationParamsGetter, RepresentationContext } from '../../../mol-repr/representation';
 import { Structure, Unit } from '../../../mol-model/structure';
 import { ThemeRegistryContext } from '../../../mol-theme/theme';
+import { BaseGeometry } from '../../../mol-geo/geometry/base';
 
 const PuttyVisuals = {
     'polymer-tube': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, PolymerTubeParams>) => UnitsRepresentation('Polymer tube mesh', ctx, getParams, PolymerTubeVisual),
@@ -23,6 +24,7 @@ export const PuttyParams = {
     ...PolymerGapParams,
     sizeFactor: PD.Numeric(0.2, { min: 0, max: 10, step: 0.01 }),
     visuals: PD.MultiSelect(['polymer-tube', 'polymer-gap'], PD.objectToOptions(PuttyVisuals)),
+    bumpFrequency: PD.Numeric(2, { min: 0, max: 10, step: 0.1 }, BaseGeometry.ShadingCategory),
 };
 export type PuttyParams = typeof PuttyParams
 export function getPuttyParams(ctx: ThemeRegistryContext, structure: Structure) {

@@ -23,9 +23,11 @@ export const assign_material_color = `
 
     float metalness = uMetalness;
     float roughness = uRoughness;
+    float bumpiness = uBumpiness;
     #ifdef dSubstance
-        metalness = mix(metalness, vSubstance.r, vSubstance.b);
-        roughness = mix(roughness, vSubstance.g, vSubstance.b);
+        metalness = mix(metalness, vSubstance.r, vSubstance.a);
+        roughness = mix(roughness, vSubstance.g, vSubstance.a);
+        bumpiness = mix(bumpiness, vSubstance.b, vSubstance.a);
     #endif
 #elif defined(dRenderVariant_pick)
     vec4 material = vColor;

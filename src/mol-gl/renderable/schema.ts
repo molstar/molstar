@@ -243,12 +243,12 @@ export type TransparencyValues = Values<TransparencySchema>
 
 export const SubstanceSchema = {
     uSubstanceTexDim: UniformSpec('v2'),
-    tSubstance: TextureSpec('image-uint8', 'rgb', 'ubyte', 'nearest'),
+    tSubstance: TextureSpec('image-uint8', 'rgba', 'ubyte', 'nearest'),
     dSubstance: DefineSpec('boolean'),
 
     uSubstanceGridDim: UniformSpec('v3'),
     uSubstanceGridTransform: UniformSpec('v4'),
-    tSubstanceGrid: TextureSpec('texture', 'rgb', 'ubyte', 'linear'),
+    tSubstanceGrid: TextureSpec('texture', 'rgba', 'ubyte', 'linear'),
     dSubstanceType: DefineSpec('string', ['groupInstance', 'volumeInstance']),
 } as const;
 export type SubstanceSchema = typeof SubstanceSchema
@@ -288,6 +288,7 @@ export const BaseSchema = {
     uAlpha: UniformSpec('f', 'material'),
     uMetalness: UniformSpec('f', 'material'),
     uRoughness: UniformSpec('f', 'material'),
+    uBumpiness: UniformSpec('f', 'material'),
 
     uVertexCount: UniformSpec('i'),
     uInstanceCount: UniformSpec('i'),
