@@ -149,7 +149,7 @@ def Material "material${materialKey}"
                 const color = UsdzExporter.getColor(v, geoData, interpolatedColors, interpolatedOverpaint);
                 Color.toArray(color, quantizedColors, i);
             }
-            UsdzExporter.quantizeColors(quantizedColors, mesh!.vertexCount);
+            UsdzExporter.quantizeColors(quantizedColors, vertexCount);
 
             // material
             const faceIndicesByMaterial = new Map<number, number[]>();
