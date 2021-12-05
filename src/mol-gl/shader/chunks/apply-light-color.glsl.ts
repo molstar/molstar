@@ -25,7 +25,6 @@ ReflectedLight reflectedLight = ReflectedLight(vec3(0.0), vec3(0.0), vec3(0.0), 
 
 PhysicalMaterial physicalMaterial;
 physicalMaterial.diffuseColor = color.rgb * (1.0 - metalness);
-physicalMaterial.roughness = min(max(roughness, 0.0525), 1.0);
 #ifdef enabledFragDepth
     physicalMaterial.roughness = min(max(roughness, 0.0525), 1.0);
 #else
