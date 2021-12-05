@@ -14,6 +14,8 @@ precision highp int;
 #include light_frag_params
 #include common_clip
 
+uniform mat4 uInvView;
+
 varying float vRadius;
 varying float vRadiusSq;
 varying vec3 vPoint;
@@ -73,7 +75,8 @@ void main(void){
         gl_FragDepthEXT = 0.0 + (0.0000001 / vRadius);
     }
 
-    // bugfix (mac only?)
+    vec3 vModelPosition = (uInvView * vec4(vViewPosition, 1.0)).xyz;
+
     if (gl_FragDepthEXT < 0.0) discard;
     if (gl_FragDepthEXT > 1.0) discard;
 

@@ -8,6 +8,8 @@ export const mesh_frag = `
 precision highp float;
 precision highp int;
 
+#define bumpEnabled
+
 #include common
 #include common_frag_params
 #include color_frag_params

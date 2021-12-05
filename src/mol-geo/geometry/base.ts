@@ -105,6 +105,7 @@ export namespace BaseGeometry {
             drawCount: ValueCell.create(counts.drawCount),
             uMetalness: ValueCell.create(props.material.metalness),
             uRoughness: ValueCell.create(props.material.roughness),
+            uBumpiness: ValueCell.create(props.material.bumpiness),
             dLightCount: ValueCell.create(1),
         };
     }
@@ -113,6 +114,7 @@ export namespace BaseGeometry {
         ValueCell.updateIfChanged(values.alpha, props.alpha); // `uAlpha` is set in renderable.render
         ValueCell.updateIfChanged(values.uMetalness, props.material.metalness);
         ValueCell.updateIfChanged(values.uRoughness, props.material.roughness);
+        ValueCell.updateIfChanged(values.uBumpiness, props.material.bumpiness);
     }
 
     export function createRenderableState(props: Partial<PD.Values<Params>> = {}): RenderableState {

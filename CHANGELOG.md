@@ -6,6 +6,8 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Add ``bumpiness`` (per-object and per-group) and ``bumpFrequency`` (per-object) render parameters (#299)
+
 ## [v3.0.0-dev.3] - 2021-12-4
 
 - Fix OBJ and USDZ export

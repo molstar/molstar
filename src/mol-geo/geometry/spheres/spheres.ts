@@ -129,6 +129,7 @@ export namespace Spheres {
         doubleSided: PD.Boolean(false, BaseGeometry.CustomQualityParamInfo),
         ignoreLight: PD.Boolean(false, BaseGeometry.ShadingCategory),
         xrayShaded: PD.Boolean(false, BaseGeometry.ShadingCategory),
+        bumpFrequency: PD.Numeric(0, { min: 0, max: 10, step: 0.1 }, BaseGeometry.ShadingCategory),
     };
     export type Params = typeof Params
 
@@ -204,6 +205,7 @@ export namespace Spheres {
             dDoubleSided: ValueCell.create(props.doubleSided),
             dIgnoreLight: ValueCell.create(props.ignoreLight),
             dXrayShaded: ValueCell.create(props.xrayShaded),
+            uBumpFrequency: ValueCell.create(props.bumpFrequency),
         };
     }
 
@@ -219,6 +221,7 @@ export namespace Spheres {
         ValueCell.updateIfChanged(values.dDoubleSided, props.doubleSided);
         ValueCell.updateIfChanged(values.dIgnoreLight, props.ignoreLight);
         ValueCell.updateIfChanged(values.dXrayShaded, props.xrayShaded);
+        ValueCell.updateIfChanged(values.uBumpFrequency, props.bumpFrequency);
     }
 
     function updateBoundingSphere(values: SpheresValues, spheres: Spheres) {

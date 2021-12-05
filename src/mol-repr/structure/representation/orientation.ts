@@ -11,6 +11,7 @@ import { Representation, RepresentationParamsGetter, RepresentationContext } fro
 import { ThemeRegistryContext } from '../../../mol-theme/theme';
 import { Structure } from '../../../mol-model/structure';
 import { OrientationEllipsoidMeshParams, OrientationEllipsoidMeshVisual } from '../visual/orientation-ellipsoid-mesh';
+import { BaseGeometry } from '../../../mol-geo/geometry/base';
 
 const OrientationVisuals = {
     'orientation-ellipsoid-mesh': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, OrientationEllipsoidMeshParams>) => UnitsRepresentation('Orientation ellipsoid mesh', ctx, getParams, OrientationEllipsoidMeshVisual),
@@ -19,6 +20,7 @@ const OrientationVisuals = {
 export const OrientationParams = {
     ...OrientationEllipsoidMeshParams,
     visuals: PD.MultiSelect(['orientation-ellipsoid-mesh'], PD.objectToOptions(OrientationVisuals)),
+    bumpFrequency: PD.Numeric(1, { min: 0, max: 10, step: 0.1 }, BaseGeometry.ShadingCategory),
 };
 export type OrientationParams = typeof OrientationParams
 export function getOrientationParams(ctx: ThemeRegistryContext, structure: Structure) {

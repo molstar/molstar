@@ -1,6 +1,10 @@
 export const color_frag_params = `
 uniform float uMetalness;
 uniform float uRoughness;
+uniform float uBumpiness;
+#ifdef bumpEnabled
+    uniform float uBumpFrequency;
+#endif
 
 #if defined(dRenderVariant_color)
     #if defined(dColorType_uniform)
@@ -14,7 +18,7 @@ uniform float uRoughness;
     #endif
 
     #ifdef dSubstance
-        varying vec3 vSubstance;
+        varying vec4 vSubstance;
     #endif
 #elif defined(dRenderVariant_pick)
     #if __VERSION__ == 100

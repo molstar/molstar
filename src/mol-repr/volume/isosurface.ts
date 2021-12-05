@@ -28,6 +28,7 @@ import { extractIsosurface } from '../../mol-gl/compute/marching-cubes/isosurfac
 import { WebGLContext } from '../../mol-gl/webgl/context';
 import { CustomPropertyDescriptor } from '../../mol-model/custom-property';
 import { Texture } from '../../mol-gl/webgl/texture';
+import { BaseGeometry } from '../../mol-geo/geometry/base';
 
 export const VolumeIsosurfaceParams = {
     isoValue: Volume.IsoValueParam
@@ -260,6 +261,7 @@ export const IsosurfaceParams = {
     ...IsosurfaceMeshParams,
     ...IsosurfaceWireframeParams,
     visuals: PD.MultiSelect(['solid'], PD.objectToOptions(IsosurfaceVisuals)),
+    bumpFrequency: PD.Numeric(1, { min: 0, max: 10, step: 0.1 }, BaseGeometry.ShadingCategory),
 };
 export type IsosurfaceParams = typeof IsosurfaceParams
 export function getIsosurfaceParams(ctx: ThemeRegistryContext, volume: Volume) {

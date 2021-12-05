@@ -23,14 +23,14 @@ export type SubstanceData = {
 
 export function applySubstanceMaterial(array: Uint8Array, start: number, end: number, material: Material) {
     for (let i = start; i < end; ++i) {
-        Material.toArray(material, array, i * 3);
-        array[i * 3 + 2] = 255;
+        Material.toArray(material, array, i * 4);
+        array[i * 4 + 3] = 255;
     }
     return true;
 }
 
 export function clearSubstance(array: Uint8Array, start: number, end: number) {
-    array.fill(0, start * 3, end * 3);
+    array.fill(0, start * 4, end * 4);
     return true;
 }
 

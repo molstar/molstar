@@ -625,6 +625,7 @@ export namespace Mesh {
         flatShaded: PD.Boolean(false, BaseGeometry.ShadingCategory),
         ignoreLight: PD.Boolean(false, BaseGeometry.ShadingCategory),
         xrayShaded: PD.Boolean(false, BaseGeometry.ShadingCategory),
+        bumpFrequency: PD.Numeric(0, { min: 0, max: 10, step: 0.1 }, BaseGeometry.ShadingCategory),
     };
     export type Params = typeof Params
 
@@ -696,6 +697,7 @@ export namespace Mesh {
             dFlipSided: ValueCell.create(props.flipSided),
             dIgnoreLight: ValueCell.create(props.ignoreLight),
             dXrayShaded: ValueCell.create(props.xrayShaded),
+            uBumpFrequency: ValueCell.create(props.bumpFrequency),
 
             meta: ValueCell.create(mesh.meta),
         };
@@ -714,6 +716,7 @@ export namespace Mesh {
         ValueCell.updateIfChanged(values.dFlipSided, props.flipSided);
         ValueCell.updateIfChanged(values.dIgnoreLight, props.ignoreLight);
         ValueCell.updateIfChanged(values.dXrayShaded, props.xrayShaded);
+        ValueCell.updateIfChanged(values.uBumpFrequency, props.bumpFrequency);
     }
 
     function updateBoundingSphere(values: MeshValues, mesh: Mesh) {

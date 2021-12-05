@@ -1,6 +1,7 @@
 export const color_vert_params = `
 uniform float uMetalness;
 uniform float uRoughness;
+uniform float uBumpiness;
 
 #if defined(dRenderVariant_color)
     #if defined(dColorType_uniform)
@@ -36,11 +37,11 @@ uniform float uRoughness;
 
     #ifdef dSubstance
         #if defined(dSubstanceType_groupInstance) || defined(dSubstanceType_vertexInstance)
-            varying vec3 vSubstance;
+            varying vec4 vSubstance;
             uniform vec2 uSubstanceTexDim;
             uniform sampler2D tSubstance;
         #elif defined(dSubstanceType_volumeInstance)
-            varying vec3 vSubstance;
+            varying vec4 vSubstance;
             uniform vec2 uSubstanceTexDim;
             uniform vec3 uSubstanceGridDim;
             uniform vec4 uSubstanceGridTransform;

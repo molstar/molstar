@@ -44,16 +44,16 @@ export const assign_color_varying = `
 
     #ifdef dSubstance
         #if defined(dSubstanceType_groupInstance)
-            vSubstance = readFromTexture(tSubstance, aInstance * float(uGroupCount) + group, uSubstanceTexDim).rgb;
+            vSubstance = readFromTexture(tSubstance, aInstance * float(uGroupCount) + group, uSubstanceTexDim);
         #elif defined(dSubstanceType_vertexInstance)
-            vSubstance = readFromTexture(tSubstance, int(aInstance) * uVertexCount + VertexID, uSubstanceTexDim).rgb;
+            vSubstance = readFromTexture(tSubstance, int(aInstance) * uVertexCount + VertexID, uSubstanceTexDim);
         #elif defined(dSubstanceType_volumeInstance)
             vec3 sgridPos = (uSubstanceGridTransform.w * (vModelPosition - uSubstanceGridTransform.xyz)) / uSubstanceGridDim;
-            vSubstance = texture3dFrom2dLinear(tSubstanceGrid, sgridPos, uSubstanceGridDim, uSubstanceTexDim).rgb;
+            vSubstance = texture3dFrom2dLinear(tSubstanceGrid, sgridPos, uSubstanceGridDim, uSubstanceTexDim);
         #endif
 
         // pre-mix to avoid artifacts due to empty substance
-        vSubstance.rg = mix(vec2(uMetalness, uRoughness), vSubstance.rg, vSubstance.b);
+        vSubstance.rgb = mix(vec3(uMetalness, uRoughness, uBumpiness), vSubstance.rgb, vSubstance.a);
     #endif
 #elif defined(dRenderVariant_pick)
     #if defined(dRenderVariant_pickObject)
