@@ -104,9 +104,7 @@ export async function createDirectVolume(ctx: VisualContext, volume: Volume, the
 }
 
 function getLoci(volume: Volume, props: PD.Values<DirectVolumeParams>) {
-    return props.renderMode.name === 'isosurface'
-        ? Volume.Isosurface.Loci(volume, props.renderMode.params.isoValue)
-        : Volume.Loci(volume);
+    return Volume.Loci(volume);
 }
 
 export function getDirectVolumeLoci(pickingId: PickingId, volume: Volume, props: DirectVolumeProps, id: number) {
@@ -118,9 +116,7 @@ export function getDirectVolumeLoci(pickingId: PickingId, volume: Volume, props:
 }
 
 export function eachDirectVolume(loci: Loci, volume: Volume, props: DirectVolumeProps, apply: (interval: Interval) => boolean) {
-    const isoValue = props.renderMode.name === 'isosurface'
-        ? props.renderMode.params.isoValue : undefined;
-    return eachVolumeLoci(loci, volume, isoValue, apply);
+    return eachVolumeLoci(loci, volume, undefined, apply);
 }
 
 //
@@ -131,9 +127,7 @@ export const DirectVolumeParams = {
 };
 export type DirectVolumeParams = typeof DirectVolumeParams
 export function getDirectVolumeParams(ctx: ThemeRegistryContext, volume: Volume) {
-    const p = PD.clone(DirectVolumeParams);
-    p.renderMode = DirectVolume.createRenderModeParam(volume.grid.stats);
-    return p;
+    return PD.clone(DirectVolumeParams);
 }
 export type DirectVolumeProps = PD.Values<DirectVolumeParams>
 

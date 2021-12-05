@@ -17,12 +17,6 @@ export const DirectVolumeSchema = {
     aPosition: AttributeSpec('float32', 3, 0),
     elements: ElementsSpec('uint32'),
 
-    uColor: UniformSpec('v3'),
-    uColorTexDim: UniformSpec('v2'),
-    tColor: TextureSpec('image-uint8', 'rgb', 'ubyte', 'nearest'),
-    dColorType: DefineSpec('string', ['uniform', 'attribute', 'instance', 'group', 'groupInstance', 'vertex', 'vertexInstance']),
-
-    uIsoValue: UniformSpec('v2'),
     uBboxMin: UniformSpec('v3'),
     uBboxMax: UniformSpec('v3'),
     uBboxSize: UniformSpec('v3'),
@@ -31,8 +25,7 @@ export const DirectVolumeSchema = {
     uJumpLength: UniformSpec('f'),
     uTransform: UniformSpec('m4'),
     uGridDim: UniformSpec('v3'),
-    dRenderMode: DefineSpec('string', ['isosurface', 'volume']),
-    dSingleLayer: DefineSpec('boolean'),
+    dRenderMode: DefineSpec('string', ['volume']),
     tTransferTex: TextureSpec('image-uint8', 'rgba', 'ubyte', 'linear'),
     uTransferScale: UniformSpec('f'),
 
@@ -46,9 +39,6 @@ export const DirectVolumeSchema = {
     uUnitToCartn: UniformSpec('m4'),
     dPackedGroup: DefineSpec('boolean'),
 
-    dDoubleSided: DefineSpec('boolean'),
-    dFlipSided: DefineSpec('boolean'),
-    dFlatShaded: DefineSpec('boolean'),
     dIgnoreLight: DefineSpec('boolean'),
     dXrayShaded: DefineSpec('boolean'),
 };
