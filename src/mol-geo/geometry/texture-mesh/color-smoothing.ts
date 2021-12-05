@@ -510,10 +510,10 @@ export function applyTextureMeshSubstanceSmoothing(values: TextureMeshValues, re
 
     stride *= 3; // triple because TextureMesh is never indexed (no elements buffer)
 
-    if (!webgl.namedTextures[ColorSmoothingRgbName]) {
-        webgl.namedTextures[ColorSmoothingRgbName] = webgl.resources.texture('image-uint8', 'rgba', 'ubyte', 'nearest');
+    if (!webgl.namedTextures[ColorSmoothingRgbaName]) {
+        webgl.namedTextures[ColorSmoothingRgbaName] = webgl.resources.texture('image-uint8', 'rgba', 'ubyte', 'nearest');
     }
-    const colorData = webgl.namedTextures[ColorSmoothingRgbName];
+    const colorData = webgl.namedTextures[ColorSmoothingRgbaName];
     colorData.load(values.tSubstance.ref.value);
 
     const smoothingData = calcTextureMeshColorSmoothing({
