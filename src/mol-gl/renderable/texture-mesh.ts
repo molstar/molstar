@@ -25,6 +25,7 @@ export const TextureMeshSchema = {
     dXrayShaded: DefineSpec('boolean'),
     dGeoTexture: DefineSpec('boolean'),
     uBumpFrequency: UniformSpec('f', 'material'),
+    uBumpAmplitude: UniformSpec('f', 'material'),
     meta: ValueSpec('unknown')
 };
 export type TextureMeshSchema = typeof TextureMeshSchema

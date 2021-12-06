@@ -24,6 +24,7 @@ export const SpheresSchema = {
     dIgnoreLight: DefineSpec('boolean'),
     dXrayShaded: DefineSpec('boolean'),
     uBumpFrequency: UniformSpec('f', 'material'),
+    uBumpAmplitude: UniformSpec('f', 'material'),
 };
 export type SpheresSchema = typeof SpheresSchema
 export type SpheresValues = Values<SpheresSchema>

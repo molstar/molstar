@@ -4,6 +4,7 @@ uniform float uRoughness;
 uniform float uBumpiness;
 #ifdef bumpEnabled
     uniform float uBumpFrequency;
+    uniform float uBumpAmplitude;
 #endif
 
 #if defined(dRenderVariant_color)
