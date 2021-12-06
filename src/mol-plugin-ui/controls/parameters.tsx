@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -7,7 +7,9 @@
 
 import * as React from 'react';
 import { Mat4, Vec2, Vec3 } from '../../mol-math/linear-algebra';
+import { Asset } from '../../mol-util/assets';
 import { Color } from '../../mol-util/color';
+import { ColorListEntry } from '../../mol-util/color/color';
 import { ColorListName, ColorListOptions, ColorListOptionsScale, ColorListOptionsSet, getColorListFromName } from '../../mol-util/color/lists';
 import { Legend as LegendData } from '../../mol-util/legend';
 import { memoize1, memoizeLatest } from '../../mol-util/memoize';
@@ -16,16 +18,14 @@ import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { ParamMapping } from '../../mol-util/param-mapping';
 import { camelCaseToWords } from '../../mol-util/string';
 import { PluginUIComponent } from '../base';
+import { PluginUIContext } from '../context';
 import { ActionMenu } from './action-menu';
 import { ColorOptions, ColorValueOption, CombinedColorControl } from './color';
 import { Button, ControlGroup, ControlRow, ExpandGroup, IconButton, TextInput, ToggleButton } from './common';
-import { Icon, HelpOutlineSvg, CheckSvg, ClearSvg, BookmarksOutlinedSvg, MoreHorizSvg, ArrowDropDownSvg, ArrowRightSvg, ArrowDownwardSvg, ArrowUpwardSvg, DeleteOutlinedSvg, TuneSvg } from './icons';
+import { ArrowDownwardSvg, ArrowDropDownSvg, ArrowRightSvg, ArrowUpwardSvg, BookmarksOutlinedSvg, CheckSvg, ClearSvg, DeleteOutlinedSvg, HelpOutlineSvg, Icon, MoreHorizSvg } from './icons';
 import { legendFor } from './legend';
 import { LineGraphComponent } from './line-graph/line-graph-component';
 import { Slider, Slider2 } from './slider';
-import { Asset } from '../../mol-util/assets';
-import { ColorListEntry } from '../../mol-util/color/color';
-import { PluginUIContext } from '../context';
 
 export type ParameterControlsCategoryFilter = string | null | (string | null)[]
 
@@ -1100,19 +1100,35 @@ export class GroupControl extends React.PureComponent<ParamProps<PD.Group<any>> 
         this.change(item?.value);
     }
 
-    presets() {
+    pivotedPresets() {
         if (!this.props.param.presets) return null;
 
         const label = this.props.param.label || camelCaseToWords(this.props.name);
         return <div className='msp-control-group-wrapper'>
             <div className='msp-control-group-header'>
                 <button className='msp-btn msp-form-control msp-btn-block' onClick={this.toggleShowPresets}>
-                    <Icon svg={TuneSvg} />
+                    <Icon svg={BookmarksOutlinedSvg} />
                     {label} Presets
                 </button>
             </div>
             {this.state.showPresets && <ActionMenu items={this.presetItems(this.props.param)} onSelect={this.onSelectPreset} />}
         </div>;
+    }
+
+    presets() {
+        if (!this.props.param.presets) return null;
+
+        return <>
+            <div className='msp-control-group-presets-wrapper'>
+                <div className='msp-control-group-header'>
+                    <button className='msp-btn msp-form-control msp-btn-block' onClick={this.toggleShowPresets}>
+                        <Icon svg={BookmarksOutlinedSvg} />
+                        Presets
+                    </button>
+                </div>
+            </div>
+            {this.state.showPresets && <ActionMenu items={this.presetItems(this.props.param)} onSelect={this.onSelectPreset} />}
+        </>;
     }
 
     pivoted() {
@@ -1139,7 +1155,7 @@ export class GroupControl extends React.PureComponent<ParamProps<PD.Group<any>> 
             {ctrl}
             <IconButton svg={MoreHorizSvg} onClick={this.toggleExpanded} toggleState={this.state.isExpanded} title={`More Options`} />
             <div className='msp-control-offset'>
-                {this.presets()}
+                {this.pivotedPresets()}
                 <ParameterControls params={filtered} onEnter={this.props.onEnter} values={this.props.value} onChange={this.onChangeParam} isDisabled={this.props.isDisabled} />
             </div>
         </div>;
@@ -1165,15 +1181,15 @@ export class GroupControl extends React.PureComponent<ParamProps<PD.Group<any>> 
             return controls;
         }
 
-        return <div className='msp-control-group-wrapper'>
+        return <div className='msp-control-group-wrapper' style={{ position: 'relative' }}>
             <div className='msp-control-group-header'>
                 <button className='msp-btn msp-form-control msp-btn-block' onClick={this.toggleExpanded}>
                     <Icon svg={this.state.isExpanded ? ArrowDropDownSvg : ArrowRightSvg} />
                     {label}
                 </button>
             </div>
+            {this.presets()}
             {this.state.isExpanded && <div className='msp-control-offset'>
-                {this.presets()}
                 {controls}
             </div>}
         </div>;
