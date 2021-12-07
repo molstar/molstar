@@ -9,7 +9,7 @@
 
 export const apply_light_color = `
 #ifdef bumpEnabled
-    if (uBumpFrequency != 0.0 || uBumpAmplitude != 0.0) {
+    if (uBumpFrequency > 0.0 && uBumpAmplitude > 0.0) {
         vec3 bumpNormal = perturbNormal(-vViewPosition, normal, fbm(vModelPosition * uBumpFrequency), (uBumpAmplitude * bumpiness) / uBumpFrequency);
         #ifdef enabledFragDepth
             if (!any(isNaN(bumpNormal))) normal = bumpNormal;

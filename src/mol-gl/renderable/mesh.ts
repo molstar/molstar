@@ -22,8 +22,8 @@ export const MeshSchema = {
     dFlipSided: DefineSpec('boolean'),
     dIgnoreLight: DefineSpec('boolean'),
     dXrayShaded: DefineSpec('boolean'),
-    uBumpFrequency: UniformSpec('f', 'material'),
-    uBumpAmplitude: UniformSpec('f', 'material'),
+    uBumpFrequency: UniformSpec('f'),
+    uBumpAmplitude: UniformSpec('f'),
     meta: ValueSpec('unknown')
 } as const;
 export type MeshSchema = typeof MeshSchema

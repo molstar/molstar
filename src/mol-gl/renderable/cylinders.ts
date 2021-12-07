@@ -26,8 +26,8 @@ export const CylindersSchema = {
     dDoubleSided: DefineSpec('boolean'),
     dIgnoreLight: DefineSpec('boolean'),
     dXrayShaded: DefineSpec('boolean'),
-    uBumpFrequency: UniformSpec('f', 'material'),
-    uBumpAmplitude: UniformSpec('f', 'material'),
+    uBumpFrequency: UniformSpec('f'),
+    uBumpAmplitude: UniformSpec('f'),
 };
 export type CylindersSchema = typeof CylindersSchema
 export type CylindersValues = Values<CylindersSchema>
