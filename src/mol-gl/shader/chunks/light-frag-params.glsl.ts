@@ -8,8 +8,10 @@
  */
 
 export const light_frag_params = `
-uniform vec3 uLightDirection[dLightCount];
-uniform vec3 uLightColor[dLightCount];
+#if dLightCount != 0
+    uniform vec3 uLightDirection[dLightCount];
+    uniform vec3 uLightColor[dLightCount];
+#endif
 uniform vec3 uAmbientColor;
 
 struct PhysicalMaterial {
