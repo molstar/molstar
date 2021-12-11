@@ -51,7 +51,8 @@ function occlusionStyle(plugin: PluginContext) {
             } },
             outline: { name: 'on', params: {
                 scale: 1.0,
-                threshold: 0.33
+                threshold: 0.33,
+                color: Color(0x0000),
             } }
         }
     } });

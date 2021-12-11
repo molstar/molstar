@@ -11,6 +11,7 @@ import { PluginUIContext } from '../../mol-plugin-ui/context';
 import { DefaultPluginUISpec } from '../../mol-plugin-ui/spec';
 import { PluginCommands } from '../../mol-plugin/commands';
 import { Asset } from '../../mol-util/assets';
+import { Color } from '../../mol-util/color';
 import './index.html';
 require('mol-plugin-ui/skin/light.scss');
 
@@ -26,7 +27,7 @@ const Canvas3DPresets = {
         },
         postprocessing: {
             occlusion: { name: 'on', params: { samples: 32, radius: 6, bias: 1.4, blurKernelSize: 15 } },
-            outline: { name: 'on', params: { scale: 1, threshold: 0.1 } }
+            outline: { name: 'on', params: { scale: 1, threshold: 0.1, color: Color(0x000000) } }
         },
         renderer: {
             style: { name: 'flat', params: {} }

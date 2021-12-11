@@ -8,6 +8,7 @@ Note that since we don't clearly distinguish between a public and private interf
 
 - Add ``bumpiness`` (per-object and per-group), ``bumpFrequency`` & ``bumpAmplitude`` (per-object) render parameters (#299)
 - Change ``label`` representation defaults: Use text border instead of rectangle background.
+- Add outline color option to renderer
 
 ## [v3.0.0-dev.3] - 2021-12-4
 

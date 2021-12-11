@@ -21,6 +21,7 @@ uniform float uFar;
 uniform float uFogNear;
 uniform float uFogFar;
 uniform vec3 uFogColor;
+uniform vec3 uOutlineColor;
 uniform bool uTransparentBackground;
 
 uniform float uOcclusionBias;
@@ -116,7 +117,7 @@ void main(void) {
         float outline = getOutline(coords, closestTexel);
 
         if (outline == 0.0) {
-            color.rgb *= outline;
+            color.rgb = mix(uOutlineColor, color.rgb, outline);
             viewDist = abs(getViewZ(closestTexel));
             fogFactor = smoothstep(uFogNear, uFogFar, viewDist);
             if (!uTransparentBackground) {
