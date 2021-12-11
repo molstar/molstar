@@ -283,8 +283,10 @@ export namespace Model {
     export function isFromPdbArchive(model: Model): boolean {
         if (!MmcifFormat.is(model.sourceData)) return false;
         const { db } = model.sourceData.data;
+        for (let i = 0, il = db.database_2.database_id.rowCount; i < il; ++i) {
+            if (db.database_2.database_id.value(i) === 'PDB') return true;
+        }
         return (
-            db.database_2.database_id.isDefined ||
             // 4 character PDB id
             model.entryId.match(/^[1-9][a-z0-9]{3,3}$/i) !== null ||
             // long PDB id
