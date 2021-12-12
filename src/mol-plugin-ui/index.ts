@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -13,16 +13,16 @@ import { DefaultPluginUISpec, PluginUISpec } from './spec';
 
 export function createPlugin(target: HTMLElement, spec?: PluginUISpec): PluginUIContext {
     const ctx = new PluginUIContext(spec || DefaultPluginUISpec());
-    ctx.init();
-    ReactDOM.render(React.createElement(Plugin, { plugin: ctx }), target);
+    ctx.init().then(() => {
+        ReactDOM.render(React.createElement(Plugin, { plugin: ctx }), target);
+    });
     return ctx;
 }
 
 /** Returns the instance of the plugin after all behaviors have been initialized */
 export async function createPluginAsync(target: HTMLElement, spec?: PluginUISpec) {
     const ctx = new PluginUIContext(spec || DefaultPluginUISpec());
-    const init = ctx.init();
+    await ctx.init();
     ReactDOM.render(React.createElement(Plugin, { plugin: ctx }), target);
-    await init;
     return ctx;
 }
