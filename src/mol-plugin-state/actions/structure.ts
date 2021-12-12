@@ -100,7 +100,7 @@ const DownloadStructure = StateAction.build({
             format = src.params.format;
             break;
         case 'pdb':
-            downloadParams = src.params.provider.server.name === 'pdbe'
+            downloadParams = await (src.params.provider.server.name === 'pdbe'
                 ? src.params.provider.server.params.variant === 'updated'
                     ? getDownloadParams(src.params.provider.id, id => `https://www.ebi.ac.uk/pdbe/static/entry/${id.toLowerCase()}_updated.cif`, id => `PDBe: ${id} (updated cif)`, false)
                     : src.params.provider.server.params.variant === 'updated-bcif'
@@ -108,11 +108,12 @@ const DownloadStructure = StateAction.build({
                         : getDownloadParams(src.params.provider.id, id => `https://www.ebi.ac.uk/pdbe/static/entry/${id.toLowerCase()}.cif`, id => `PDBe: ${id} (cif)`, false)
                 : src.params.provider.server.params.encoding === 'cif'
                     ? getDownloadParams(src.params.provider.id, id => `https://files.rcsb.org/download/${id.toUpperCase()}.cif`, id => `RCSB: ${id} (cif)`, false)
-                    : getDownloadParams(src.params.provider.id, id => `https://models.rcsb.org/${id.toUpperCase()}.bcif`, id => `RCSB: ${id} (bcif)`, true);
+                    : getDownloadParams(src.params.provider.id, id => `https://models.rcsb.org/${id.toUpperCase()}.bcif`, id => `RCSB: ${id} (bcif)`, true)
+            );
             asTrajectory = !!src.params.options.asTrajectory;
             break;
         case 'pdb-dev':
-            downloadParams = getDownloadParams(src.params.provider.id,
+            downloadParams = await getDownloadParams(src.params.provider.id,
                 id => {
                     const nId = id.toUpperCase().startsWith('PDBDEV_') ? id : `PDBDEV_${id.padStart(8, '0')}`;
                     return src.params.provider.encoding === 'bcif'
@@ -125,17 +126,22 @@ const DownloadStructure = StateAction.build({
             asTrajectory = !!src.params.options.asTrajectory;
             break;
         case 'swissmodel':
-            downloadParams = getDownloadParams(src.params.id, id => `https://swissmodel.expasy.org/repository/uniprot/${id.toUpperCase()}.pdb`, id => `SWISS-MODEL: ${id}`, false);
+            downloadParams = await getDownloadParams(src.params.id, id => `https://swissmodel.expasy.org/repository/uniprot/${id.toUpperCase()}.pdb`, id => `SWISS-MODEL: ${id}`, false);
             asTrajectory = !!src.params.options.asTrajectory;
             format = 'pdb';
             break;
         case 'alphafolddb':
-            downloadParams = getDownloadParams(src.params.id, id => `https://alphafold.ebi.ac.uk/files/AF-${id.toUpperCase()}-F1-model_v1.cif`, id => `AlphaFold DB: ${id}`, false);
+            downloadParams = await getDownloadParams(src.params.id, async id => {
+                const url = `https://www.alphafold.ebi.ac.uk/api/prediction/${id.toUpperCase()}`;
+                const info = await plugin.runTask(plugin.fetch({ url, type: 'json' }));
+                if (Array.isArray(info) && info.length > 0) return info[0].cifUrl;
+                throw new Error(`No AlphaFold DB entry for '${id}'`);
+            }, id => `AlphaFold DB: ${id}`, false);
             asTrajectory = !!src.params.options.asTrajectory;
             format = 'mmcif';
             break;
         case 'pubchem':
-            downloadParams = getDownloadParams(src.params.id, id => `https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/CID/${id.trim()}/record/SDF/?record_type=3d`, id => `PubChem: ${id}`, false);
+            downloadParams = await getDownloadParams(src.params.id, id => `https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/CID/${id.trim()}/record/SDF/?record_type=3d`, id => `PubChem: ${id}`, false);
             asTrajectory = !!src.params.options.asTrajectory;
             format = 'mol';
             break;
@@ -181,11 +187,11 @@ const DownloadStructure = StateAction.build({
     }).runInContext(ctx);
 }));
 
-function getDownloadParams(src: string, url: (id: string) => string, label: (id: string) => string, isBinary: boolean): StateTransformer.Params<Download>[] {
+async function getDownloadParams(src: string, url: (id: string) => string | Promise<string>, label: (id: string) => string, isBinary: boolean): Promise<StateTransformer.Params<Download>[]> {
     const ids = src.split(/[,\s]/).map(id => id.trim()).filter(id => !!id && (id.length >= 4 || /^[1-9][0-9]*$/.test(id)));
     const ret: StateTransformer.Params<Download>[] = [];
     for (const id of ids) {
-        ret.push({ url: Asset.Url(url(id)), isBinary, label: label(id) });
+        ret.push({ url: Asset.Url(await url(id)), isBinary, label: label(id) });
     }
     return ret;
 }
