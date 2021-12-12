@@ -258,7 +258,7 @@ export class Viewer {
         }));
     }
 
-    loadAfdb(afdb: string) {
+    loadAlphaFoldDb(afdb: string) {
         const params = DownloadStructure.createDefaultParams(this.plugin.state.data.root.obj!, this.plugin);
         return this.plugin.runTask(this.plugin.state.data.applyAction(DownloadStructure, {
             source: {

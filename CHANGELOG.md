@@ -18,7 +18,7 @@ Note that since we don't clearly distinguish between a public and private interf
     - Automatic coloring by pLDDT
     - AlphaFold DB option in DownloadStructure action
     - ``afdb`` GET parameter for Viewer app
-    - ``Viewer.loadAfdb`` method
+    - ``Viewer.loadAlphaFoldDb`` method
 - Add QualityAssessment extension (using data from ma_qa_metric_local mmcif category)
     - pLDDT & qmean score: coloring, repr presets, molql symbol, loci labels (including avg for mutli-residue selections)
     - pLDDT: selection query
