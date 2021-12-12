@@ -1,7 +1,7 @@
 /**
  * Copyright (c) 2017-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
- * Code-generated 'mmCIF' schema file. Dictionary versions: mmCIF 5.352, IHM 1.17, CARB draft.
+ * Code-generated 'mmCIF' schema file. Dictionary versions: mmCIF 5.352, IHM 1.17, MA 1.3.3, CARB draft.
  *
  * @author molstar/ciftools package
  */
@@ -941,6 +941,48 @@ export const mmCIF_Schema = {
          * The method used in the experiment.
          */
         method: Aliased<'X-RAY DIFFRACTION' | 'NEUTRON DIFFRACTION' | 'FIBER DIFFRACTION' | 'ELECTRON CRYSTALLOGRAPHY' | 'ELECTRON MICROSCOPY' | 'SOLUTION NMR' | 'SOLID-STATE NMR' | 'SOLUTION SCATTERING' | 'POWDER DIFFRACTION' | 'INFRARED SPECTROSCOPY' | 'EPR' | 'FLUORESCENCE TRANSFER' | 'THEORETICAL MODEL'>(str),
+    },
+    /**
+     * Data items in the SOFTWARE category record details about
+     * the software used in the structure analysis, which implies
+     * any software used in the generation of any data items
+     * associated with the structure determination and
+     * structure representation.
+     *
+     * These data items allow computer programs to be referenced
+     * in more detail than data items in the COMPUTING category do.
+     */
+    software: {
+        /**
+         * The classification of the program according to its
+         * major function.
+         */
+        classification: str,
+        /**
+         * The date the software was released.
+         */
+        date: str,
+        /**
+         * Description of the software.
+         */
+        description: str,
+        /**
+         * The name of the software.
+         */
+        name: str,
+        /**
+         * The classification of the software according to the most
+         * common types.
+         */
+        type: Aliased<'program' | 'library' | 'package' | 'filter' | 'jiffy' | 'other'>(str),
+        /**
+         * The version of the software.
+         */
+        version: str,
+        /**
+         * An ordinal index for this category
+         */
+        pdbx_ordinal: int,
     },
     /**
      * Data items in the STRUCT category record details about the
@@ -4716,6 +4758,289 @@ export const mmCIF_Schema = {
          * handled in the IHM_INTERFACE_RESIDUE_FEATURE category rather than here.
          */
         dataset_list_id: int,
+    },
+    /**
+     * Data items in the MA_MODEL_LIST category record the
+     * details of the models being deposited.
+     */
+    ma_model_list: {
+        /**
+         * A unique identifier for the model / model group combination.
+         */
+        ordinal_id: int,
+        /**
+         * A unique identifier for the structural model being deposited.
+         */
+        model_id: int,
+        /**
+         * An identifier to group structural models into collections or sets.
+         * A cluster of models and its representative can either be grouped together
+         * or can be separate groups in the ma_model_list table. The choice between
+         * the two options should be decided based on how the modeling was carried out
+         * and how the representative was chosen. If the representative is a member of
+         * the ensemble (i.e., best scoring model), then it is recommended that the
+         * representative and the ensemble belong to the same model group. If the
+         * representative is calculated from the ensemble (i.e., centroid), then it is
+         * recommended that the representative be separated into a different group.
+         * If the models do not need to be grouped into collections, then the
+         * _ma_model_list.model_group_id is the same as _ma_model_list.model_id.
+         */
+        model_group_id: int,
+        /**
+         * A decsriptive name for the model.
+         */
+        model_name: str,
+        /**
+         * A decsriptive name for the model group.
+         */
+        model_group_name: str,
+        /**
+         * The type of model.
+         */
+        model_type: Aliased<'Homology model' | 'Ab initio model' | 'Other'>(str),
+        /**
+         * The data_id identifier. This data item is a pointer to
+         * _ma_data.id in the MA_DATA category.
+         */
+        data_id: int,
+    },
+    /**
+     * Data items in the MA_TARGET_ENTITY category record details about
+     * the target entities. The details are provided for each entity
+     * being modeled.
+     */
+    ma_target_entity: {
+        /**
+         * A unique identifier for the distinct molecular entity of the target.
+         * This data item is a pointer to _entity.id in the ENTITY category.
+         */
+        entity_id: str,
+        /**
+         * The data_id identifier. This data item is a pointer to
+         * _ma_data.id in the MA_DATA category.
+         */
+        data_id: int,
+        /**
+         * The origin of the target entity.
+         */
+        origin: Aliased<'reference database' | 'designed'>(str),
+    },
+    /**
+     * Data items in the MA_TARGET_ENTITY_INSTANCE category record details about
+     * the instances of target entities modeled.
+     */
+    ma_target_entity_instance: {
+        /**
+         * A unique identifier for the instance of the entity.
+         */
+        asym_id: str,
+        /**
+         * A unique identifier for the distinct molecular entity of the target.
+         * This data item is a pointer to _ma_target_entity.entity_id in the
+         * MA_TARGET_ENTITY category.
+         */
+        entity_id: str,
+        /**
+         * Additional details about the entity instance.
+         */
+        details: str,
+    },
+    /**
+     * Data items in the MA_TARGET_REF_DB_DETAILS category record details about
+     * the reference databases for the target sequences.
+     */
+    ma_target_ref_db_details: {
+        /**
+         * An identifier for the target entity.
+         */
+        target_entity_id: str,
+        /**
+         * The name of the database containing reference information about
+         * this entity or biological unit.
+         */
+        db_name: Aliased<'UNP' | 'GB' | 'OrthoDB' | 'NCBI' | 'JGI' | 'Other'>(str),
+        /**
+         * The code for this entity or biological unit or for a closely
+         * related entity or biological unit in the named database.
+         * This can include the version number.
+         */
+        db_code: str,
+        /**
+         * Accession code assigned by the reference database.
+         */
+        db_accession: str,
+        /**
+         * Database code assigned by the reference database for a sequence isoform.   An isoform sequence is an
+         * alternative protein sequence that can be generated from the same gene by a single or by a combination of
+         * biological events such as: alternative promoter usage, alternative splicing, alternative initiation
+         * and ribosomal frameshifting.
+         */
+        seq_db_isoform: str,
+        /**
+         * Beginning index in the chemical sequence from the
+         * reference database.
+         */
+        seq_db_align_begin: str,
+        /**
+         * Ending index in the chemical sequence from the
+         * reference database.
+         */
+        seq_db_align_end: str,
+        /**
+         * Taxonomy identifier provided by NCBI.
+         */
+        ncbi_taxonomy_id: str,
+        /**
+         * Scientific name of the organism.
+         */
+        organism_scientific: str,
+    },
+    /**
+     * Data items in the MA_DATA category capture the different kinds of
+     * data used in the modeling. These can be multiple sequence
+     * alignments, spatial restraints, template structures etc.
+     */
+    ma_data: {
+        /**
+         * A unique identifier for the data.
+         */
+        id: int,
+        /**
+         * The type of data held in the dataset.
+         */
+        content_type: Aliased<'target' | 'template structure' | 'polymeric template library' | 'spatial restraints' | 'target-template alignment' | 'coevolution MSA' | 'model coordinates' | 'other'>(str),
+        /**
+         * Details for other content types.
+         */
+        content_type_other_details: str,
+        /**
+         * An author-given name for the content held in the dataset.
+         */
+        name: str,
+    },
+    /**
+     * Data items in the MA_SOFTWARE_GROUP category describes the
+     * collection of software into groups so that they can be used
+     * efficiently in the MA_PROTOCOL_STEP category.
+     */
+    ma_software_group: {
+        /**
+         * A unique identifier for the category.
+         */
+        ordinal_id: int,
+        /**
+         * An identifier for the group entry.
+         * If data does not need to be grouped, then _ma_software_group.group_id
+         * is the same as _ma_software_group.software_id.
+         */
+        group_id: int,
+        /**
+         * The identifier for the software.
+         * This data item is a pointer to _software.pdbx_ordinal
+         * in the SOFTWARE category.
+         */
+        software_id: int,
+    },
+    /**
+     * Data items in the MA_QA_METRIC category record the
+     * details of the metrics use to assess model quality.
+     */
+    ma_qa_metric: {
+        /**
+         * An identifier for the QA metric.
+         */
+        id: int,
+        /**
+         * Name of the QA metric.
+         */
+        name: str,
+        /**
+         * The type of QA metric.
+         */
+        type: Aliased<'zscore' | 'energy' | 'distance' | 'normalized score' | 'pLDDT' | 'PAE' | 'contact probability' | 'other'>(str),
+        /**
+         * The mode of calculation of the QA metric.
+         */
+        mode: Aliased<'local' | 'global' | 'local-pairwise'>(str),
+        /**
+         * Identifier to the set of software used to calculate the QA metric.
+         * This data item is a pointer to the _ma_software_group.group_id in the
+         * MA_SOFTWARE_GROUP category.
+         */
+        software_group_id: int,
+    },
+    /**
+     * Data items in the MA_QA_METRIC_GLOBAL category captures the
+     * details of the global QA metrics, calculated at the model-level.
+     */
+    ma_qa_metric_global: {
+        /**
+         * A unique identifier for the category.
+         */
+        ordinal_id: int,
+        /**
+         * The identifier for the structural model, for which global QA metric is provided.
+         * This data item is a pointer to _ma_model_list.model_id
+         * in the MA_MODEL_LIST category.
+         */
+        model_id: int,
+        /**
+         * The identifier for the QA metric.
+         * This data item is a pointer to _ma_qa_metric.id in the
+         * MA_QA_METRIC category.
+         */
+        metric_id: int,
+        /**
+         * The value of the global QA metric.
+         */
+        metric_value: float,
+    },
+    /**
+     * Data items in the MA_QA_METRIC_LOCAL category captures the
+     * details of the local QA metrics, calculated at the residue-level.
+     */
+    ma_qa_metric_local: {
+        /**
+         * A unique identifier for the category.
+         */
+        ordinal_id: int,
+        /**
+         * The identifier for the structural model, for which local QA metric is provided.
+         * This data item is a pointer to _ma_model_list.model_id
+         * in the MA_MODEL_LIST category.
+         */
+        model_id: int,
+        /**
+         * The identifier for the asym id of the residue in the
+         * structural model, for which local QA metric is provided.
+         * This data item is a pointer to _atom_site.label_asym_id
+         * in the ATOM_SITE category.
+         */
+        label_asym_id: str,
+        /**
+         * The identifier for the sequence index of the residue
+         * in the structural model, for which local QA metric is provided.
+         * This data item is a pointer to _atom_site.label_seq_id
+         * in the ATOM_SITE category.
+         */
+        label_seq_id: int,
+        /**
+         * The component identifier for the residue in the
+         * structural model, for which local QA metric is provided.
+         * This data item is a pointer to _atom_site.label_comp_id
+         * in the ATOM_SITE category.
+         */
+        label_comp_id: str,
+        /**
+         * The identifier for the QA metric.
+         * This data item is a pointer to _ma_qa_metric.id in the
+         * MA_QA_METRIC category.
+         */
+        metric_id: int,
+        /**
+         * The value of the local QA metric.
+         */
+        metric_value: float,
     },
 };
 
