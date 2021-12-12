@@ -33,7 +33,7 @@ const DownloadModelRepresentationOptions = (plugin: PluginContext) => {
 
 export const PdbDownloadProvider = {
     'rcsb': PD.Group({
-        encoding: PD.Select('bcif', [['cif', 'cif'], ['bcif', 'bcif']] as ['cif' | 'bcif', string][]),
+        encoding: PD.Select('bcif', PD.arrayToOptions(['cif', 'bcif'] as const)),
     }, { label: 'RCSB PDB', isFlat: true }),
     'pdbe': PD.Group({
         variant: PD.Select('updated-bcif', [['updated-bcif', 'Updated (bcif)'], ['updated', 'Updated'], ['archival', 'Archival']] as ['updated' | 'updtaed-bcif' | 'archival', string][]),
@@ -61,7 +61,7 @@ const DownloadStructure = StateAction.build({
                 'pdb-dev': PD.Group({
                     provider: PD.Group({
                         id: PD.Text('PDBDEV_00000001', { label: 'PDBDev Id(s)', description: 'One or more comma/space separated ids.' }),
-                        encoding: PD.Select('bcif', [['cif', 'cif'], ['bcif', 'bcif']] as ['cif' | 'bcif', string][]),
+                        encoding: PD.Select('bcif', PD.arrayToOptions(['cif', 'bcif'] as const)),
                     }, { pivot: 'id' }),
                     options
                 }, { isFlat: true, label: 'PDBDEV' }),
@@ -179,7 +179,7 @@ function getDownloadParams(src: string, url: (id: string) => string, label: (id:
 export const UpdateTrajectory = StateAction.build({
     display: { name: 'Update Trajectory' },
     params: {
-        action: PD.Select<'advance' | 'reset'>('advance', [['advance', 'Advance'], ['reset', 'Reset']]),
+        action: PD.Select('advance', PD.arrayToOptions(['advance', 'reset'] as const)),
         by: PD.Optional(PD.Numeric(1, { min: -1, max: 1, step: 1 }))
     }
 })(({ params, state }) => {
