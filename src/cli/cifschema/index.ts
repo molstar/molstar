@@ -39,21 +39,12 @@ async function runGenerateSchemaMmcif(name: string, fieldNamesPath: string, type
     const maDic = await parseCifText(fs.readFileSync(MA_DIC_PATH, 'utf8')).run();
     if (maDic.isError) throw maDic;
 
-    await ensureCarbBranchDicAvailable();
-    const carbBranchDic = await parseCifText(fs.readFileSync(CARB_BRANCH_DIC_PATH, 'utf8')).run();
-    if (carbBranchDic.isError) throw carbBranchDic;
-
-    await ensureCarbCompDicAvailable();
-    const carbCompDic = await parseCifText(fs.readFileSync(CARB_COMP_DIC_PATH, 'utf8')).run();
-    if (carbCompDic.isError) throw carbCompDic;
-
     const mmcifDicVersion = getDicVersion(mmcifDic.result.blocks[0]);
     const ihmDicVersion = getDicVersion(ihmDic.result.blocks[0]);
     const maDicVersion = getDicVersion(maDic.result.blocks[0]);
-    const carbDicVersion = 'draft';
-    const version = `Dictionary versions: mmCIF ${mmcifDicVersion}, IHM ${ihmDicVersion}, MA ${maDicVersion}, CARB ${carbDicVersion}.`;
+    const version = `Dictionary versions: mmCIF ${mmcifDicVersion}, IHM ${ihmDicVersion}, MA ${maDicVersion}.`;
 
-    const frames: CifFrame[] = [...mmcifDic.result.blocks[0].saveFrames, ...ihmDic.result.blocks[0].saveFrames, ...maDic.result.blocks[0].saveFrames, ...carbBranchDic.result.blocks[0].saveFrames, ...carbCompDic.result.blocks[0].saveFrames];
+    const frames: CifFrame[] = [...mmcifDic.result.blocks[0].saveFrames, ...ihmDic.result.blocks[0].saveFrames, ...maDic.result.blocks[0].saveFrames];
     const schema = generateSchema(frames);
 
     await runGenerateSchema(name, version, schema, fieldNamesPath, typescript, out, moldbImportPath, addAliases);
@@ -145,8 +136,6 @@ async function getFieldNamesFilter(fieldNamesPath: string): Promise<Filter> {
 async function ensureMmcifDicAvailable() { await ensureDicAvailable(MMCIF_DIC_PATH, MMCIF_DIC_URL); }
 async function ensureIhmDicAvailable() { await ensureDicAvailable(IHM_DIC_PATH, IHM_DIC_URL); }
 async function ensureMaDicAvailable() { await ensureDicAvailable(MA_DIC_PATH, MA_DIC_URL); }
-async function ensureCarbBranchDicAvailable() { await ensureDicAvailable(CARB_BRANCH_DIC_PATH, CARB_BRANCH_DIC_URL); }
-async function ensureCarbCompDicAvailable() { await ensureDicAvailable(CARB_COMP_DIC_PATH, CARB_COMP_DIC_URL); }
 async function ensureCifCoreDicAvailable() {
     await ensureDicAvailable(CIF_CORE_DIC_PATH, CIF_CORE_DIC_URL);
     await ensureDicAvailable(CIF_CORE_ENUM_PATH, CIF_CORE_ENUM_URL);
@@ -173,10 +162,6 @@ const IHM_DIC_PATH = `${DIC_DIR}/ihm-extension.dic`;
 const IHM_DIC_URL = 'https://raw.githubusercontent.com/ihmwg/IHM-dictionary/master/ihm-extension.dic';
 const MA_DIC_PATH = `${DIC_DIR}/ma-extension.dic`;
 const MA_DIC_URL = 'https://raw.githubusercontent.com/ihmwg/MA-dictionary/master/mmcif_ma.dic';
-const CARB_BRANCH_DIC_PATH = `${DIC_DIR}/entity_branch-extension.dic`;
-const CARB_BRANCH_DIC_URL = 'https://raw.githubusercontent.com/pdbxmmcifwg/carbohydrate-extension/master/dict/entity_branch-extension.dic';
-const CARB_COMP_DIC_PATH = `${DIC_DIR}/chem_comp-extension.dic`;
-const CARB_COMP_DIC_URL = 'https://raw.githubusercontent.com/pdbxmmcifwg/carbohydrate-extension/master/dict/chem_comp-extension.dic';
 
 const CIF_CORE_DIC_PATH = `${DIC_DIR}/cif_core.dic`;
 const CIF_CORE_DIC_URL = 'https://raw.githubusercontent.com/COMCIFS/cif_core/master/cif_core.dic';
