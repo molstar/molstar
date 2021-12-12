@@ -14,7 +14,7 @@ import { StateBuilder, StateObjectRef, StateTransformer } from '../../../mol-sta
 import { Task } from '../../../mol-task';
 import { ColorTheme } from '../../../mol-theme/color';
 import { SizeTheme } from '../../../mol-theme/size';
-import { UUID } from '../../../mol-util';
+import { shallowEqual, UUID } from '../../../mol-util';
 import { ColorNames } from '../../../mol-util/color/names';
 import { objectForEach } from '../../../mol-util/object';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
@@ -82,7 +82,7 @@ class StructureComponentManager extends StatefulPluginComponent<StructureCompone
             if (r.cell.transform.transformer !== StructureRepresentation3D) continue;
 
             const params = r.cell.transform.params as StateTransformer.Params<StructureRepresentation3D>;
-            if (!!params.type.params.ignoreHydrogens !== ignoreHydrogens || params.type.params.quality !== quality || params.type.params.material !== material) {
+            if (!!params.type.params.ignoreHydrogens !== ignoreHydrogens || params.type.params.quality !== quality || !shallowEqual(params.type.params.material, material)) {
                 update.to(r.cell).update(old => {
                     old.type.params.ignoreHydrogens = ignoreHydrogens;
                     old.type.params.quality = quality;
