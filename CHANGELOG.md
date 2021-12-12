@@ -13,6 +13,15 @@ Note that since we don't clearly distinguish between a public and private interf
 - Add drag and drop support for loading any file, including multiple at once
     - If there are session files (.molx or .molj) among the dropped files, only the first session will be loaded
 - Add ``PluginConfig.Structure.DefaultRepresentationPreset``
+- Add ModelArchive schema extensions (e.g., AlphaFold uses it for the pLDDT score)
+- Improve support for loading AlphaFold structures
+    - Automatic coloring by pLDDT
+    - AlphaFold DB option in DownloadStructure action
+    - ``afdb`` GET parameter for Viewer app
+    - ``Viewer.loadAfdb`` method
+- Add QualityAssessment extension (using data from ma_qa_metric_local mmcif category)
+    - pLDDT & qmean score: coloring, repr presets, molql symbol, loci labels (including avg for mutli-residue selections)
+    - pLDDT: selection query
 
 ## [v3.0.0-dev.3] - 2021-12-4
 
