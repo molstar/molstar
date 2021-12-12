@@ -18,6 +18,7 @@ import { Download } from '../transforms/data';
 import { CustomModelProperties, CustomStructureProperties, TrajectoryFromModelAndCoordinates } from '../transforms/model';
 import { Asset } from '../../mol-util/assets';
 import { PluginConfig } from '../../mol-plugin/config';
+import { getFileInfo } from '../../mol-util/file-info';
 
 const DownloadModelRepresentationOptions = (plugin: PluginContext) => {
     const representationDefault = plugin.config.get(PluginConfig.Structure.DefaultRepresentationPreset) || PresetStructureRepresentations.auto.id;
@@ -69,6 +70,10 @@ const DownloadStructure = StateAction.build({
                     id: PD.Text('Q9Y2I8', { label: 'UniProtKB AC(s)', description: 'One or more comma/space separated ACs.' }),
                     options
                 }, { isFlat: true, label: 'SWISS-MODEL', description: 'Loads the best homology model or experimental structure' }),
+                'alphafolddb': PD.Group({
+                    id: PD.Text('Q8W3K0', { label: 'UniProtKB AC(s)', description: 'One or more comma/space separated ACs.' }),
+                    options
+                }, { isFlat: true, label: 'AlphaFold DB', description: 'Loads the predicted model if available' }),
                 'pubchem': PD.Group({
                     id: PD.Text('2244,2245', { label: 'PubChem ID', description: 'One or more comma/space separated IDs.' }),
                     options
@@ -87,7 +92,7 @@ const DownloadStructure = StateAction.build({
 
     const src = params.source;
     let downloadParams: StateTransformer.Params<Download>[];
-    let asTrajectory = false, format: BuiltInTrajectoryFormat = 'mmcif';
+    let asTrajectory = false, format: BuiltInTrajectoryFormat | 'auto' = 'mmcif';
 
     switch (src.name) {
         case 'url':
@@ -124,6 +129,11 @@ const DownloadStructure = StateAction.build({
             asTrajectory = !!src.params.options.asTrajectory;
             format = 'pdb';
             break;
+        case 'alphafolddb':
+            downloadParams = getDownloadParams(src.params.id, id => `https://alphafold.ebi.ac.uk/files/AF-${id.toUpperCase()}-F1-model_v1.cif`, id => `AlphaFold DB: ${id}`, false);
+            asTrajectory = !!src.params.options.asTrajectory;
+            format = 'mmcif';
+            break;
         case 'pubchem':
             downloadParams = getDownloadParams(src.params.id, id => `https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/CID/${id.trim()}/record/SDF/?record_type=3d`, id => `PubChem: ${id}`, false);
             asTrajectory = !!src.params.options.asTrajectory;
@@ -154,7 +164,11 @@ const DownloadStructure = StateAction.build({
         } else {
             for (const download of downloadParams) {
                 const data = await plugin.builders.data.download(download, { state: { isGhost: true } });
-                const trajectory = await plugin.builders.structure.parseTrajectory(data, format);
+                const provider = format === 'auto'
+                    ? plugin.dataFormats.auto(getFileInfo(Asset.getUrl(download.url)), data.cell?.obj!)
+                    : plugin.dataFormats.get(format);
+                if (!provider) throw new Error('unknown file format');
+                const trajectory = await plugin.builders.structure.parseTrajectory(data, provider);
 
                 await plugin.builders.structure.hierarchy.applyPreset(trajectory, 'default', {
                     structure,

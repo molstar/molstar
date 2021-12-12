@@ -90,6 +90,9 @@
 
             var emdb = getParam('emdb', '[^&]+').trim();
             if (emdb) viewer.loadEmdb(emdb);
+
+            var afdb = getParam('afdb', '[^&]+').trim();
+            if (afdb) viewer.loadAfdb(afdb);
         </script>
         <!-- __MOLSTAR_ANALYTICS__ -->
     </body>
