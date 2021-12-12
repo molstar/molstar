@@ -8,7 +8,7 @@
 
 import { QualityAssessment, QualityAssessmentProvider } from '../prop';
 import { Location } from '../../../../mol-model/location';
-import { StructureElement, Unit } from '../../../../mol-model/structure';
+import { Bond, StructureElement, Unit } from '../../../../mol-model/structure';
 import { ColorTheme, LocationColor } from '../../../../mol-theme/color';
 import { ThemeDataContext } from '../../../../mol-theme/theme';
 import { Color } from '../../../../mol-util/color';
@@ -36,6 +36,8 @@ export function PLDDTConfidenceColorTheme(ctx: ThemeDataContext, props: PD.Value
     let color: LocationColor = () => DefaultColor;
 
     if (ctx.structure) {
+        const l = StructureElement.Location.create(ctx.structure.root);
+
         const getColor = (location: StructureElement.Location): Color => {
             const { unit, element } = location;
             if (!Unit.isAtomic(unit)) return DefaultColor;
@@ -57,6 +59,10 @@ export function PLDDTConfidenceColorTheme(ctx: ThemeDataContext, props: PD.Value
         color = (location: Location) => {
             if (StructureElement.Location.is(location)) {
                 return getColor(location);
+            } else if (Bond.isLocation(location)) {
+                l.unit = location.aUnit;
+                l.element = location.aUnit.elements[location.aIndex];
+                return getColor(l);
             }
             return DefaultColor;
         };
