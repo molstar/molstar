@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -19,14 +19,17 @@ import { CustomModelProperties, CustomStructureProperties, TrajectoryFromModelAn
 import { Asset } from '../../mol-util/assets';
 import { PluginConfig } from '../../mol-plugin/config';
 
-const DownloadModelRepresentationOptions = (plugin: PluginContext) => PD.Group({
-    type: RootStructureDefinition.getParams(void 0, 'auto').type,
-    representation: PD.Select(PresetStructureRepresentations.auto.id,
-        plugin.builders.structure.representation.getPresets().map(p => [p.id, p.display.name, p.display.group] as any),
-        { description: 'Which representation preset to use.' }),
-    representationParams: PD.Group(StructureRepresentationPresetProvider.CommonParams, { isHidden: true }),
-    asTrajectory: PD.Optional(PD.Boolean(false, { description: 'Load all entries into a single trajectory.' }))
-}, { isExpanded: false });
+const DownloadModelRepresentationOptions = (plugin: PluginContext) => {
+    const representationDefault = plugin.config.get(PluginConfig.Structure.DefaultRepresentationPreset) || PresetStructureRepresentations.auto.id;
+    return PD.Group({
+        type: RootStructureDefinition.getParams(void 0, 'auto').type,
+        representation: PD.Select(representationDefault,
+            plugin.builders.structure.representation.getPresets().map(p => [p.id, p.display.name, p.display.group] as any),
+            { description: 'Which representation preset to use.' }),
+        representationParams: PD.Group(StructureRepresentationPresetProvider.CommonParams, { isHidden: true }),
+        asTrajectory: PD.Optional(PD.Boolean(false, { description: 'Load all entries into a single trajectory.' }))
+    }, { isExpanded: false });
+};
 
 export const PdbDownloadProvider = {
     'rcsb': PD.Group({
@@ -129,7 +132,7 @@ const DownloadStructure = StateAction.build({
         default: throw new Error(`${(src as any).name} not supported.`);
     }
 
-    const representationPreset: any = params.source.params.options.representation || PresetStructureRepresentations.auto.id;
+    const representationPreset: any = params.source.params.options.representation || plugin.config.get(PluginConfig.Structure.DefaultRepresentationPreset) || PresetStructureRepresentations.auto.id;
     const showUnitcell = representationPreset !== PresetStructureRepresentations.empty.id;
 
     const structure = src.params.options.type.name === 'auto' ? void 0 : src.params.options.type;
