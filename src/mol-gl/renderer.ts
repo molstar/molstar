@@ -15,8 +15,6 @@ import { ValueCell, deepEqual } from '../mol-util';
 import { GlobalUniformValues } from './renderable/schema';
 import { GraphicsRenderVariant } from './webgl/render-item';
 import { ParamDefinition as PD } from '../mol-util/param-definition';
-import { Clipping } from '../mol-theme/clipping';
-import { stringToWords } from '../mol-util/string';
 import { degToRad } from '../mol-math/misc';
 import { createNullTexture, Texture, Textures } from './webgl/texture';
 import { arrayMapUpsert } from '../mol-util/array';
@@ -97,20 +95,6 @@ export const RendererParams = {
     }] }),
     ambientColor: PD.Color(Color.fromNormalizedRgb(1.0, 1.0, 1.0)),
     ambientIntensity: PD.Numeric(0.4, { min: 0.0, max: 1.0, step: 0.01 }),
-
-    clip: PD.Group({
-        variant: PD.Select('instance', PD.arrayToOptions<Clipping.Variant>(['instance', 'pixel'])),
-        objects: PD.ObjectList({
-            type: PD.Select('plane', PD.objectToOptions(Clipping.Type, t => stringToWords(t))),
-            invert: PD.Boolean(false),
-            position: PD.Vec3(Vec3()),
-            rotation: PD.Group({
-                axis: PD.Vec3(Vec3.create(1, 0, 0)),
-                angle: PD.Numeric(0, { min: -180, max: 180, step: 1 }, { description: 'Angle in Degrees' }),
-            }, { isExpanded: true }),
-            scale: PD.Vec3(Vec3.create(1, 1, 1)),
-        }, o => stringToWords(o.type))
-    })
 };
 export type RendererProps = PD.Values<typeof RendererParams>
 
