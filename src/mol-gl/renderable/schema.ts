@@ -249,18 +249,9 @@ export type SubstanceSchema = typeof SubstanceSchema
 export type SubstanceValues = Values<SubstanceSchema>
 
 export const ClippingSchema = {
-    dClipObjectCount: DefineSpec('number'),
-    dClipVariant: DefineSpec('string', ['instance', 'pixel']),
-
     uClippingTexDim: UniformSpec('v2'),
     tClipping: TextureSpec('image-uint8', 'alpha', 'ubyte', 'nearest'),
     dClipping: DefineSpec('boolean'),
-
-    uClipObjectType: UniformSpec('i[]'),
-    uClipObjectInvert: UniformSpec('b[]'),
-    uClipObjectPosition: UniformSpec('v3[]'),
-    uClipObjectRotation: UniformSpec('v4[]'),
-    uClipObjectScale: UniformSpec('v3[]'),
 } as const;
 export type ClippingSchema = typeof ClippingSchema
 export type ClippingValues = Values<ClippingSchema>
@@ -274,6 +265,14 @@ export const BaseSchema = {
     ...ClippingSchema,
 
     dLightCount: DefineSpec('number'),
+
+    dClipObjectCount: DefineSpec('number'),
+    dClipVariant: DefineSpec('string', ['instance', 'pixel']),
+    uClipObjectType: UniformSpec('i[]'),
+    uClipObjectInvert: UniformSpec('b[]'),
+    uClipObjectPosition: UniformSpec('v3[]'),
+    uClipObjectRotation: UniformSpec('v4[]'),
+    uClipObjectScale: UniformSpec('v3[]'),
 
     aInstance: AttributeSpec('float32', 1, 1),
     /**

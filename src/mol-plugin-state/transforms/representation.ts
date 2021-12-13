@@ -664,7 +664,6 @@ const ClippingStructureRepresentation3DFromScript = PluginStateTransform.BuiltIn
                 groups: Clipping.Groups.Flag.None,
             }]
         }),
-        ...Clipping.Params
     })
 })({
     canAutoUpdate() {
@@ -672,7 +671,7 @@ const ClippingStructureRepresentation3DFromScript = PluginStateTransform.BuiltIn
     },
     apply({ a, params }) {
         const structure = a.data.sourceData;
-        const clipping = Clipping.ofScript(params.layers, structure, Clipping.getClip(params));
+        const clipping = Clipping.ofScript(params.layers, structure);
 
         return new SO.Molecule.Structure.Representation3DState({
             state: { clipping },
@@ -687,7 +686,7 @@ const ClippingStructureRepresentation3DFromScript = PluginStateTransform.BuiltIn
         if (a.data.repr !== b.data.repr) return StateTransformer.UpdateResult.Recreate;
 
         const oldClipping = b.data.state.clipping!;
-        const newClipping = Clipping.ofScript(newParams.layers, structure, Clipping.getClip(newParams));
+        const newClipping = Clipping.ofScript(newParams.layers, structure);
         if (Clipping.areEqual(oldClipping, newClipping)) return StateTransformer.UpdateResult.Unchanged;
 
         b.data.state.clipping = newClipping;
@@ -714,7 +713,6 @@ const ClippingStructureRepresentation3DFromBundle = PluginStateTransform.BuiltIn
             }],
             isHidden: true
         }),
-        ...Clipping.Params
     })
 })({
     canAutoUpdate() {
@@ -722,7 +720,7 @@ const ClippingStructureRepresentation3DFromBundle = PluginStateTransform.BuiltIn
     },
     apply({ a, params }) {
         const structure = a.data.sourceData;
-        const clipping = Clipping.ofBundle(params.layers, structure, Clipping.getClip(params));
+        const clipping = Clipping.ofBundle(params.layers, structure);
 
         return new SO.Molecule.Structure.Representation3DState({
             state: { clipping },
@@ -737,7 +735,7 @@ const ClippingStructureRepresentation3DFromBundle = PluginStateTransform.BuiltIn
         if (a.data.repr !== b.data.repr) return StateTransformer.UpdateResult.Recreate;
 
         const oldClipping = b.data.state.clipping!;
-        const newClipping = Clipping.ofBundle(newParams.layers, structure, Clipping.getClip(newParams));
+        const newClipping = Clipping.ofBundle(newParams.layers, structure);
         if (Clipping.areEqual(oldClipping, newClipping)) return StateTransformer.UpdateResult.Unchanged;
 
         b.data.state.clipping = newClipping;
