@@ -75,7 +75,6 @@ export class CameraHelper {
                     this.scene.clear();
                     const params = { ...props.axes.params, scale: props.axes.params.scale * this.webgl.pixelRatio };
                     this.renderObject = createAxesRenderObject(params);
-                    this.renderObject.state.noClip = true;
                     this.scene.add(this.renderObject);
                     this.scene.commit();
 

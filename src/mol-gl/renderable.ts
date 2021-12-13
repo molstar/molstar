@@ -22,7 +22,6 @@ export type RenderableState = {
     colorOnly: boolean
     opaque: boolean
     writeDepth: boolean
-    noClip: boolean
 }
 
 export interface Renderable<T extends RenderableValues> {
