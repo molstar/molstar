@@ -63,8 +63,8 @@ const IntraBondOrderTable = new Map([
 /**
  * Get order for bonds in aminoacids and nucleotides assuming standard IUPAC naming
  */
-export function getIntraBondOrderFromTable (compId: string, atomId1: string, atomId2: string) {
-    [ atomId1, atomId2 ] = atomId1 < atomId2 ? [ atomId1, atomId2 ] : [ atomId2, atomId1 ];
+export function getIntraBondOrderFromTable(compId: string, atomId1: string, atomId2: string) {
+    [atomId1, atomId2] = atomId1 < atomId2 ? [atomId1, atomId2] : [atomId2, atomId1];
     if (AminoAcidNames.has(compId) && atomId1 === 'C' && atomId2 === 'O') return 2;
     if (BaseNames.has(compId) && atomId1 === 'OP1' && atomId2 === 'P') return 2;
     return IntraBondOrderTable.get(`${compId}|${atomId1}|${atomId2}`) || 1;
@@ -81,10 +81,10 @@ const InterBondOrderTable = new Map([
 /**
  * Get order for bonds between component assuming PDBx/mmCIF naming.
  */
-export function getInterBondOrderFromTable (compId1: string, atomId1: string, compId2: string, atomId2: string) {
+export function getInterBondOrderFromTable(compId1: string, atomId1: string, compId2: string, atomId2: string) {
     if (compId1 > compId2) {
-        [ compId1, compId2 ] = [ compId2, compId1 ];
-        [ atomId1, atomId2 ] = [ atomId2, atomId1 ];
+        [compId1, compId2] = [compId2, compId1];
+        [atomId1, atomId2] = [atomId2, atomId1];
     }
     return InterBondOrderTable.get(`${compId1}|${atomId1}|${compId2}|${atomId2}`) || 1;
 }

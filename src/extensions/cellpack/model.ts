@@ -2,13 +2,14 @@
  * Copyright (c) 2019-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Ludovic Autin <ludovic.autin@gmail.com>
  */
 
 import { StateAction, StateBuilder, StateTransformer, State } from '../../mol-state';
 import { PluginContext } from '../../mol-plugin/context';
 import { PluginStateObject as PSO } from '../../mol-plugin-state/objects';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
-import { Ingredient, IngredientSource, CellPacking } from './data';
+import { Ingredient, CellPacking, CompartmentPrimitives } from './data';
 import { getFromPdb, getFromCellPackDB, IngredientFiles, parseCif, parsePDBfile, getStructureMean, getFromOPM } from './util';
 import { Model, Structure, StructureSymmetry, StructureSelection, QueryContext, Unit, Trajectory } from '../../mol-model/structure';
 import { trajectoryFromMmCIF, MmcifFormat } from '../../mol-model-formats/structure/mmcif';
@@ -17,7 +18,7 @@ import { Mat4, Vec3, Quat } from '../../mol-math/linear-algebra';
 import { SymmetryOperator } from '../../mol-math/geometry';
 import { Task, RuntimeContext } from '../../mol-task';
 import { StateTransforms } from '../../mol-plugin-state/transforms';
-import { ParseCellPack, StructureFromCellpack, DefaultCellPackBaseUrl, StructureFromAssemblies } from './state';
+import { ParseCellPack, StructureFromCellpack, DefaultCellPackBaseUrl, StructureFromAssemblies, CreateCompartmentSphere } from './state';
 import { MolScriptBuilder as MS } from '../../mol-script/language/builder';
 import { getMatFromResamplePoints } from './curve';
 import { compile } from '../../mol-script/runtime/query/compiler';
@@ -28,8 +29,9 @@ import { createModels } from '../../mol-model-formats/structure/basic/parser';
 import { CellpackPackingPreset, CellpackMembranePreset } from './preset';
 import { Asset } from '../../mol-util/assets';
 import { Color } from '../../mol-util/color';
-import { readFromFile } from '../../mol-util/data-source';
 import { objectForEach } from '../../mol-util/object';
+import { readFromFile } from '../../mol-util/data-source';
+import { ColorNames } from '../../mol-util/color/names';
 
 function getCellPackModelUrl(fileName: string, baseUrl: string) {
     return `${baseUrl}/results/${fileName}`;
@@ -41,12 +43,16 @@ class TrajectoryCache {
     get(id: string) { return this.map.get(id); }
 }
 
-async function getModel(plugin: PluginContext, id: string, ingredient: Ingredient, baseUrl: string, trajCache: TrajectoryCache, file?: Asset.File) {
+async function getModel(plugin: PluginContext, id: string, ingredient: Ingredient,
+    baseUrl: string, trajCache: TrajectoryCache, location: string,
+    file?: Asset.File
+) {
     const assetManager = plugin.managers.asset;
     const modelIndex = (ingredient.source.model) ? parseInt(ingredient.source.model) : 0;
-    const surface = (ingredient.ingtype) ? (ingredient.ingtype === 'transmembrane') : false;
+    let surface = (ingredient.ingtype) ? (ingredient.ingtype === 'transmembrane') : false;
+    if (location === 'surface') surface = true;
     let trajectory = trajCache.get(id);
-    let assets: Asset.Wrapper[] = [];
+    const assets: Asset.Wrapper[] = [];
     if (!trajectory) {
         if (file) {
             if (file.name.endsWith('.cif')) {
@@ -68,10 +74,11 @@ async function getModel(plugin: PluginContext, id: string, ingredient: Ingredien
                 throw new Error(`unsupported file type '${file.name}'`);
             }
         } else if (id.match(/^[1-9][a-zA-Z0-9]{3,3}$/i)) {
-            if (surface){
+            if (surface) {
                 try {
                     const data = await getFromOPM(plugin, id, assetManager);
                     assets.push(data.asset);
+                    data.pdb.id! = id.toUpperCase();
                     trajectory = await plugin.runTask(trajectoryFromPDB(data.pdb));
                 } catch (e) {
                     // fallback to getFromPdb
@@ -100,7 +107,7 @@ async function getModel(plugin: PluginContext, id: string, ingredient: Ingredien
     return { model, assets };
 }
 
-async function getStructure(plugin: PluginContext, model: Model, source: IngredientSource, props: { assembly?: string } = {}) {
+async function getStructure(plugin: PluginContext, model: Model, source: Ingredient, props: { assembly?: string } = {}) {
     let structure = Structure.ofModel(model);
     const { assembly } = props;
 
@@ -108,11 +115,12 @@ async function getStructure(plugin: PluginContext, model: Model, source: Ingredi
         structure = await plugin.runTask(StructureSymmetry.buildAssembly(structure, assembly));
     }
     let query;
-    if (source.selection){
-        const asymIds: string[] = source.selection.replace(' ', '').replace(':', '').split('or');
+    if (source.source.selection) {
+        const sel = source.source.selection;
+        // selection can have the model ID as well. remove it
+        const asymIds: string[] = sel.replace(/ /g, '').replace(/:/g, '').split('or').slice(1);
         query = MS.struct.modifier.union([
             MS.struct.generator.atomGroups({
-                'entity-test': MS.core.rel.eq([MS.ammp('entityType'), 'polymer']),
                 'chain-test': MS.core.set.has([MS.set(...asymIds), MS.ammp('auth_asym_id')])
             })
         ]);
@@ -123,11 +131,11 @@ async function getStructure(plugin: PluginContext, model: Model, source: Ingredi
             })
         ]);
     }
-
     const compiled = compile<StructureSelection>(query);
     const result = compiled(new QueryContext(structure));
     structure = StructureSelection.unionStructure(result);
-
+    // change here if possible the label ?
+    // structure.label =  source.name;
     return structure;
 }
 
@@ -141,9 +149,9 @@ function getTransformLegacy(trans: Vec3, rot: Quat) {
 }
 
 function getTransform(trans: Vec3, rot: Quat) {
-    const q: Quat = Quat.create(rot[0], rot[1], rot[2], rot[3]);
+    const q: Quat = Quat.create(-rot[0], rot[1], rot[2], -rot[3]);
     const m: Mat4 = Mat4.fromQuat(Mat4.zero(), q);
-    const p: Vec3 = Vec3.create(trans[0], trans[1], trans[2]);
+    const p: Vec3 = Vec3.create(-trans[0], trans[1], trans[2]);
     Mat4.setTranslation(m, p);
     return m;
 }
@@ -157,9 +165,9 @@ function getCurveTransforms(ingredient: Ingredient) {
     const n = ingredient.nbCurve || 0;
     const instances: Mat4[] = [];
     let segmentLength = 3.4;
-    if (ingredient.uLength){
+    if (ingredient.uLength) {
         segmentLength = ingredient.uLength;
-    } else if (ingredient.radii){
+    } else if (ingredient.radii) {
         segmentLength = ingredient.radii[0].radii
             ? ingredient.radii[0].radii[0] * 2.0
             : 3.4;
@@ -168,7 +176,7 @@ function getCurveTransforms(ingredient: Ingredient) {
     for (let i = 0; i < n; ++i) {
         const cname = `curve${i}`;
         if (!(cname in ingredient)) {
-            // console.warn(`Expected '${cname}' in ingredient`)
+            console.warn(`Expected '${cname}' in ingredient`);
             continue;
         }
         const _points = ingredient[cname] as Vec3[];
@@ -177,9 +185,9 @@ function getCurveTransforms(ingredient: Ingredient) {
             continue;
         }
         // test for resampling
-        let distance: number = Vec3.distance(_points[0], _points[1]);
+        const distance: number = Vec3.distance(_points[0], _points[1]);
         if (distance >= segmentLength + 2.0) {
-            console.info(distance);
+            // console.info(distance);
             resampling = true;
         }
         const points = new Float32Array(_points.length * 3);
@@ -190,13 +198,13 @@ function getCurveTransforms(ingredient: Ingredient) {
     return instances;
 }
 
-function getAssembly(transforms: Mat4[], structure: Structure) {
-    const builder = Structure.Builder();
+function getAssembly(name: string, transforms: Mat4[], structure: Structure) {
+    const builder = Structure.Builder({ label: name });
     const { units } = structure;
 
     for (let i = 0, il = transforms.length; i < il; ++i) {
         const id = `${i + 1}`;
-        const op = SymmetryOperator.create(id, transforms[i], { assembly: { id, operId: i, operList: [ id ] } });
+        const op = SymmetryOperator.create(id, transforms[i], { assembly: { id, operId: i, operList: [id] } });
         for (const unit of units) {
             builder.addWithOperator(unit, op);
         }
@@ -307,13 +315,13 @@ async function getCurve(plugin: PluginContext, name: string, ingredient: Ingredi
     });
 
     const curveModel = await plugin.runTask(curveModelTask);
-    return getStructure(plugin, curveModel, ingredient.source);
+    // ingredient.source.selection = undefined;
+    return getStructure(plugin, curveModel, ingredient);
 }
 
-async function getIngredientStructure(plugin: PluginContext, ingredient: Ingredient, baseUrl: string, ingredientFiles: IngredientFiles, trajCache: TrajectoryCache) {
+async function getIngredientStructure(plugin: PluginContext, ingredient: Ingredient, baseUrl: string, ingredientFiles: IngredientFiles, trajCache: TrajectoryCache, location: 'surface' | 'interior' | 'cytoplasme') {
     const { name, source, results, nbCurve } = ingredient;
     if (source.pdb === 'None') return;
-
     const file = ingredientFiles[source.pdb];
     if (!file) {
         // TODO can these be added to the library?
@@ -325,72 +333,79 @@ async function getIngredientStructure(plugin: PluginContext, ingredient: Ingredi
     }
 
     // model id in case structure is NMR
-    const { model, assets } = await getModel(plugin, source.pdb || name, ingredient, baseUrl, trajCache, file);
+    const { model, assets } = await getModel(plugin, source.pdb || name, ingredient, baseUrl, trajCache, location, file);
     if (!model) return;
-
     let structure: Structure;
     if (nbCurve) {
         structure = await getCurve(plugin, name, ingredient, getCurveTransforms(ingredient), model);
     } else {
+        if ((!results || results.length === 0)) return;
         let bu: string|undefined = source.bu ? source.bu : undefined;
-        if (bu){
+        if (bu) {
             if (bu === 'AU') {
                 bu = undefined;
             } else {
                 bu = bu.slice(2);
             }
         }
-        structure = await getStructure(plugin, model, source, { assembly: bu });
+        structure = await getStructure(plugin, model, ingredient, { assembly: bu });
         // transform with offset and pcp
         let legacy: boolean = true;
-        if (ingredient.offset || ingredient.principalAxis){
+        const pcp = ingredient.principalVector ? ingredient.principalVector : ingredient.principalAxis;
+        if (pcp) {
             legacy = false;
             const structureMean = getStructureMean(structure);
             Vec3.negate(structureMean, structureMean);
             const m1: Mat4 = Mat4.identity();
             Mat4.setTranslation(m1, structureMean);
             structure = Structure.transform(structure, m1);
-            if (ingredient.offset){
-                if (!Vec3.exactEquals(ingredient.offset, Vec3.zero())){
+            if (ingredient.offset) {
+                const o: Vec3 = Vec3.create(ingredient.offset[0], ingredient.offset[1], ingredient.offset[2]);
+                if (!Vec3.exactEquals(o, Vec3.zero())) { // -1, 1, 4e-16 ??
+                    if (location !== 'surface') {
+                        Vec3.negate(o, o);
+                    }
                     const m: Mat4 = Mat4.identity();
-                    Mat4.setTranslation(m, ingredient.offset);
+                    Mat4.setTranslation(m, o);
                     structure = Structure.transform(structure, m);
                 }
             }
-            if (ingredient.principalAxis){
-                if (!Vec3.exactEquals(ingredient.principalAxis, Vec3.unitZ)){
+            if (pcp) {
+                const p: Vec3 = Vec3.create(pcp[0], pcp[1], pcp[2]);
+                if (!Vec3.exactEquals(p, Vec3.unitZ)) {
                     const q: Quat = Quat.identity();
-                    Quat.rotationTo(q, ingredient.principalAxis, Vec3.unitZ);
+                    Quat.rotationTo(q, p, Vec3.unitZ);
                     const m: Mat4 = Mat4.fromQuat(Mat4.zero(), q);
                     structure = Structure.transform(structure, m);
                 }
             }
         }
-        structure = getAssembly(getResultTransforms(results, legacy), structure);
+
+        structure = getAssembly(name, getResultTransforms(results, legacy), structure);
     }
 
     return { structure, assets };
 }
 
+
 export function createStructureFromCellPack(plugin: PluginContext, packing: CellPacking, baseUrl: string, ingredientFiles: IngredientFiles) {
     return Task.create('Create Packing Structure', async ctx => {
-        const { ingredients, name } = packing;
+        const { ingredients, location, name } = packing;
         const assets: Asset.Wrapper[] = [];
         const trajCache = new TrajectoryCache();
         const structures: Structure[] = [];
         const colors: Color[] = [];
-        let skipColors: boolean = false;
         for (const iName in ingredients) {
             if (ctx.shouldUpdate) await ctx.update(iName);
-            const ingredientStructure = await getIngredientStructure(plugin, ingredients[iName], baseUrl, ingredientFiles, trajCache);
+            const ingredientStructure = await getIngredientStructure(plugin, ingredients[iName], baseUrl, ingredientFiles, trajCache, location);
             if (ingredientStructure) {
                 structures.push(ingredientStructure.structure);
                 assets.push(...ingredientStructure.assets);
                 const c = ingredients[iName].color;
-                if (c){
+                if (c) {
                     colors.push(Color.fromNormalizedRgb(c[0], c[1], c[2]));
                 } else {
-                    skipColors = true;
+                    colors.push(Color.fromNormalizedRgb(1, 0, 0));
                 }
             }
         }
@@ -402,7 +417,7 @@ export function createStructureFromCellPack(plugin: PluginContext, packing: Cell
         for (const s of structures) {
             if (ctx.shouldUpdate) await ctx.update(`${s.label}`);
             let maxInvariantId = 0;
-            let maxChainGroupId = 0;
+            const maxChainGroupId = 0;
             for (const u of s.units) {
                 const invariantId = u.invariantId + offsetInvariantId;
                 const chainGroupId = u.chainGroupId + offsetChainGroupId;
@@ -414,21 +429,20 @@ export function createStructureFromCellPack(plugin: PluginContext, packing: Cell
         }
 
         if (ctx.shouldUpdate) await ctx.update(`${name} - structure`);
-        const structure = Structure.create(units);
-        for( let i = 0, il = structure.models.length; i < il; ++i) {
+        const structure = Structure.create(units, { label: name + '.' + location });
+        for (let i = 0, il = structure.models.length; i < il; ++i) {
             Model.TrajectoryInfo.set(structure.models[i], { size: il, index: i });
         }
-        return { structure, assets, colors: skipColors ? undefined : colors };
+        return { structure, assets, colors: colors };
     });
 }
 
 async function handleHivRna(plugin: PluginContext, packings: CellPacking[], baseUrl: string) {
     for (let i = 0, il = packings.length; i < il; ++i) {
-        if (packings[i].name === 'HIV1_capsid_3j3q_PackInner_0_1_0') {
+        if (packings[i].name === 'HIV1_capsid_3j3q_PackInner_0_1_0' || packings[i].name === 'HIV_capsid') {
             const url = Asset.getUrlAsset(plugin.managers.asset, `${baseUrl}/extras/rna_allpoints.json`);
             const json = await plugin.runTask(plugin.managers.asset.resolve(url, 'json', false));
             const points = json.data.points as number[];
-
             const curve0: Vec3[] = [];
             for (let j = 0, jl = points.length; j < jl; j += 3) {
                 curve0.push(Vec3.fromArray(Vec3(), points, j));
@@ -454,7 +468,7 @@ async function loadMembrane(plugin: PluginContext, name: string, state: State, p
                 break;
             }
         }
-        if (!file){
+        if (!file) {
             // check for cif directly
             const cifileName = `${name}.cif`;
             for (const f of params.ingredients) {
@@ -465,7 +479,8 @@ async function loadMembrane(plugin: PluginContext, name: string, state: State, p
             }
         }
     }
-
+    let legacy_membrane: boolean = false; // temporary variable until all membrane are converted to the new correct cif format
+    let geometry_membrane: boolean = false; // membrane can be a mesh geometry
     let b = state.build().toRoot();
     if (file) {
         if (file.name.endsWith('.cif')) {
@@ -474,27 +489,82 @@ async function loadMembrane(plugin: PluginContext, name: string, state: State, p
             b = b.apply(StateTransforms.Data.ReadFile, { file, isBinary: true, label: file.name }, { state: { isGhost: true } });
         }
     } else {
-        const url = Asset.getUrlAsset(plugin.managers.asset, `${params.baseUrl}/membranes/${name}.bcif`);
-        b = b.apply(StateTransforms.Data.Download, { url, isBinary: true, label: name }, { state: { isGhost: true } });
+        if (name.toLowerCase().endsWith('.bcif')) {
+            const url = Asset.getUrlAsset(plugin.managers.asset, `${params.baseUrl}/membranes/${name}`);
+            b = b.apply(StateTransforms.Data.Download, { url, isBinary: true, label: name }, { state: { isGhost: true } });
+        } else if (name.toLowerCase().endsWith('.cif')) {
+            const url = Asset.getUrlAsset(plugin.managers.asset, `${params.baseUrl}/membranes/${name}`);
+            b = b.apply(StateTransforms.Data.Download, { url, isBinary: false, label: name }, { state: { isGhost: true } });
+        } else if (name.toLowerCase().endsWith('.ply')) {
+            const url = Asset.getUrlAsset(plugin.managers.asset, `${params.baseUrl}/geometries/${name}`);
+            b = b.apply(StateTransforms.Data.Download, { url, isBinary: false, label: name }, { state: { isGhost: true } });
+            geometry_membrane = true;
+        } else {
+            const url = Asset.getUrlAsset(plugin.managers.asset, `${params.baseUrl}/membranes/${name}.bcif`);
+            b = b.apply(StateTransforms.Data.Download, { url, isBinary: true, label: name }, { state: { isGhost: true } });
+            legacy_membrane = true;
+        }
     }
-
-    const membrane = await b.apply(StateTransforms.Data.ParseCif, undefined, { state: { isGhost: true } })
-        .apply(StateTransforms.Model.TrajectoryFromMmCif, undefined, { state: { isGhost: true } })
-        .apply(StateTransforms.Model.ModelFromTrajectory, undefined, { state: { isGhost: true } })
-        .apply(StructureFromAssemblies, undefined, { state: { isGhost: true } })
-        .commit({ revertOnError: true });
-
-    const membraneParams = {
-        representation: params.preset.representation,
+    const props = {
+        type: {
+            name: 'assembly' as const,
+            params: { id: '1' }
+        }
     };
+    if (legacy_membrane) {
+        // old membrane
+        const membrane = await b.apply(StateTransforms.Data.ParseCif, undefined, { state: { isGhost: true } })
+            .apply(StateTransforms.Model.TrajectoryFromMmCif, undefined, { state: { isGhost: true } })
+            .apply(StateTransforms.Model.ModelFromTrajectory, undefined, { state: { isGhost: true } })
+            .apply(StructureFromAssemblies, undefined, { state: { isGhost: true } })
+            .commit({ revertOnError: true });
+        const membraneParams = {
+            representation: params.preset.representation,
+        };
+        await CellpackMembranePreset.apply(membrane, membraneParams, plugin);
+    } else if (geometry_membrane) {
+        await b.apply(StateTransforms.Data.ParsePly, undefined, { state: { isGhost: true } })
+            .apply(StateTransforms.Model.ShapeFromPly)
+            .apply(StateTransforms.Representation.ShapeRepresentation3D, { xrayShaded: true,
+                doubleSided: true, coloring: { name: 'uniform', params: { color: ColorNames.orange } } })
+            .commit({ revertOnError: true });
+    } else {
+        const membrane = await b.apply(StateTransforms.Data.ParseCif, undefined, { state: { isGhost: true } })
+            .apply(StateTransforms.Model.TrajectoryFromMmCif, undefined, { state: { isGhost: true } })
+            .apply(StateTransforms.Model.ModelFromTrajectory, undefined, { state: { isGhost: true } })
+            .apply(StateTransforms.Model.StructureFromModel, props, { state: { isGhost: true } })
+            .commit({ revertOnError: true });
+        const membraneParams = {
+            representation: params.preset.representation,
+        };
+        await CellpackMembranePreset.apply(membrane, membraneParams, plugin);
+    }
+}
 
-    await CellpackMembranePreset.apply(membrane, membraneParams, plugin);
+async function handleMembraneSpheres(state: State, primitives: CompartmentPrimitives) {
+    const nSpheres = primitives.positions!.length / 3;
+    // console.log('ok mb ', nSpheres);
+    // TODO : take in account the type of the primitives.
+    for (let j = 0; j < nSpheres; j++) {
+        await state.build()
+            .toRoot()
+            .apply(CreateCompartmentSphere, {
+                center: Vec3.create(
+                    primitives.positions![j * 3 + 0],
+                    primitives.positions![j * 3 + 1],
+                    primitives.positions![j * 3 + 2]
+                ),
+                radius: primitives!.radii![j]
+            })
+            .commit();
+    }
 }
 
 async function loadPackings(plugin: PluginContext, runtime: RuntimeContext, state: State, params: LoadCellPackModelParams) {
     const ingredientFiles = params.ingredients || [];
 
     let cellPackJson: StateBuilder.To<PSO.Format.Json, StateTransformer<PSO.Data.String, PSO.Format.Json>>;
+    let resultsFile: Asset.File | null = params.results;
     if (params.source.name === 'id') {
         const url = Asset.getUrlAsset(plugin.managers.asset, getCellPackModelUrl(params.source.params, params.baseUrl));
         cellPackJson = state.build().toRoot()
@@ -506,29 +576,36 @@ async function loadPackings(plugin: PluginContext, runtime: RuntimeContext, stat
             return;
         }
 
-        let jsonFile: Asset.File;
+        let modelFile: Asset.File;
         if (file.name.toLowerCase().endsWith('.zip')) {
             const data = await readFromFile(file.file, 'zip').runInContext(runtime);
-            jsonFile = Asset.File(new File([data['model.json']], 'model.json'));
+            if (data['model.json']) {
+                modelFile = Asset.File(new File([data['model.json']], 'model.json'));
+            } else {
+                throw new Error('model.json missing from zip file');
+            }
+            if (data['results.bin']) {
+                resultsFile = Asset.File(new File([data['results.bin']], 'results.bin'));
+            }
             objectForEach(data, (v, k) => {
                 if (k === 'model.json') return;
+                if (k === 'results.bin') return;
                 ingredientFiles.push(Asset.File(new File([v], k)));
             });
         } else {
-            jsonFile = file;
+            modelFile = file;
         }
-
         cellPackJson = state.build().toRoot()
-            .apply(StateTransforms.Data.ReadFile, { file: jsonFile, isBinary: false, label: jsonFile.name }, { state: { isGhost: true } });
+            .apply(StateTransforms.Data.ReadFile, { file: modelFile, isBinary: false, label: modelFile.name }, { state: { isGhost: true } });
     }
 
     const cellPackBuilder = cellPackJson
         .apply(StateTransforms.Data.ParseJson, undefined, { state: { isGhost: true } })
-        .apply(ParseCellPack);
+        .apply(ParseCellPack, { resultsFile, baseUrl: params.baseUrl });
 
     const cellPackObject = await state.updateTree(cellPackBuilder).runInContext(runtime);
-    const { packings } = cellPackObject.obj!.data;
 
+    const { packings } = cellPackObject.obj!.data;
     await handleHivRna(plugin, packings, params.baseUrl);
 
     for (let i = 0, il = packings.length; i < il; ++i) {
@@ -544,8 +621,30 @@ async function loadPackings(plugin: PluginContext, runtime: RuntimeContext, stat
             representation: params.preset.representation,
         };
         await CellpackPackingPreset.apply(packing, packingParams, plugin);
-        if ( packings[i].location === 'surface' && params.membrane){
-            await loadMembrane(plugin, packings[i].name, state, params);
+        if (packings[i].compartment) {
+            if (params.membrane === 'lipids') {
+                if (packings[i].compartment!.geom_type) {
+                    if (packings[i].compartment!.geom_type === 'file') {
+                        // TODO: load mesh files or vertex,faces data
+                        await loadMembrane(plugin, packings[i].compartment!.filename!, state, params);
+                    } else if (packings[i].compartment!.compartment_primitives) {
+                        await handleMembraneSpheres(state, packings[i].compartment!.compartment_primitives!);
+                    }
+                } else {
+                    // try loading membrane from repo as a bcif file or from the given list of files.
+                    if (params.membrane === 'lipids') {
+                        await loadMembrane(plugin, packings[i].name, state, params);
+                    }
+                }
+            } else if (params.membrane === 'geometry') {
+                if (packings[i].compartment!.compartment_primitives) {
+                    await handleMembraneSpheres(state, packings[i].compartment!.compartment_primitives!);
+                } else if (packings[i].compartment!.geom_type === 'file') {
+                    if (packings[i].compartment!.filename!.toLowerCase().endsWith('.ply')) {
+                        await loadMembrane(plugin, packings[i].compartment!.filename!, state, params);
+                    }
+                }
+            }
         }
     }
 }
@@ -555,19 +654,19 @@ const LoadCellPackModelParams = {
         'id': PD.Select('InfluenzaModel2.json', [
             ['blood_hiv_immature_inside.json', 'Blood HIV immature'],
             ['HIV_immature_model.json', 'HIV immature'],
-            ['BloodHIV1.0_mixed_fixed_nc1.cpr', 'Blood HIV'],
-            ['HIV-1_0.1.6-8_mixed_radii_pdb.cpr', 'HIV'],
+            ['Blood_HIV.json', 'Blood HIV'],
+            ['HIV-1_0.1.6-8_mixed_radii_pdb.json', 'HIV'],
             ['influenza_model1.json', 'Influenza envelope'],
-            ['InfluenzaModel2.json', 'Influenza Complete'],
+            ['InfluenzaModel2.json', 'Influenza complete'],
             ['ExosomeModel.json', 'Exosome Model'],
-            ['Mycoplasma1.5_mixed_pdb_fixed.cpr', 'Mycoplasma simple'],
-            ['MycoplasmaModel.json', 'Mycoplasma WholeCell model'],
+            ['MycoplasmaGenitalium.json', 'Mycoplasma Genitalium curated model'],
         ] as const, { description: 'Download the model definition with `id` from the server at `baseUrl.`' }),
-        'file': PD.File({ accept: '.json,.cpr,.zip', description: 'Open model definition from .json/.cpr file or open .zip file containing model definition plus ingredients.' }),
+        'file': PD.File({ accept: '.json,.cpr,.zip', description: 'Open model definition from .json/.cpr file or open .zip file containing model definition plus ingredients.', label: 'Recipe file' }),
     }, { options: [['id', 'Id'], ['file', 'File']] }),
     baseUrl: PD.Text(DefaultCellPackBaseUrl),
-    membrane: PD.Boolean(true),
-    ingredients: PD.FileList({ accept: '.cif,.bcif,.pdb', label: 'Ingredients' }),
+    results: PD.File({ accept: '.bin', description: 'open results file in binary format from cellpackgpu for the specified recipe', label: 'Results file' }),
+    membrane: PD.Select('lipids', PD.arrayToOptions(['lipids', 'geometry', 'none'])),
+    ingredients: PD.FileList({ accept: '.cif,.bcif,.pdb', label: 'Ingredient files' }),
     preset: PD.Group({
         traceOnly: PD.Boolean(false),
         representation: PD.Select('gaussian-surface', PD.arrayToOptions(['spacefill', 'gaussian-surface', 'point', 'orientation']))

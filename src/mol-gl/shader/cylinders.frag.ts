@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -7,6 +7,8 @@
 export const cylinders_frag = `
 precision highp float;
 precision highp int;
+
+#define bumpEnabled
 
 uniform mat4 uView;
 
@@ -18,13 +20,13 @@ varying float vCap;
 
 uniform vec3 uCameraDir;
 uniform vec3 uCameraPosition;
+uniform mat4 uInvView;
 
 #include common
 #include common_frag_params
 #include color_frag_params
 #include light_frag_params
 #include common_clip
-#include wboit_params
 
 // adapted from https://www.shadertoy.com/view/4lcSRn
 // The MIT License, Copyright 2016 Inigo Quilez
@@ -109,7 +111,8 @@ void main() {
     vViewPosition = (uView * vec4(vViewPosition, 1.0)).xyz;
     gl_FragDepthEXT = calcDepth(vViewPosition);
 
-    // bugfix (mac only?)
+    vec3 vModelPosition = (uInvView * vec4(vViewPosition, 1.0)).xyz;
+
     if (gl_FragDepthEXT < 0.0) discard;
     if (gl_FragDepthEXT > 1.0) discard;
 
@@ -120,6 +123,8 @@ void main() {
         #include check_picking_alpha
         gl_FragColor = material;
     #elif defined(dRenderVariant_depth)
+        gl_FragColor = material;
+    #elif defined(dRenderVariant_marking)
         gl_FragColor = material;
     #elif defined(dRenderVariant_color)
         #ifdef dIgnoreLight

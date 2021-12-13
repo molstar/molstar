@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -16,7 +16,7 @@ import { ButtonsType, ModifiersKeys } from '../../../mol-util/input/input-observ
 import { Binding } from '../../../mol-util/binding';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { EmptyLoci, Loci } from '../../../mol-model/loci';
-import { Structure, StructureElement, StructureProperties } from '../../../mol-model/structure';
+import { Bond, Structure, StructureElement, StructureProperties } from '../../../mol-model/structure';
 import { arrayMax } from '../../../mol-util/array';
 import { Representation } from '../../../mol-repr/representation';
 import { LociLabel } from '../../../mol-plugin-state/manager/loci-label';
@@ -34,6 +34,7 @@ const DefaultHighlightLociBindings = {
 const HighlightLociParams = {
     bindings: PD.Value(DefaultHighlightLociBindings, { isHidden: true }),
     ignore: PD.Value<Loci['kind'][]>([], { isHidden: true }),
+    preferAtoms: PD.Boolean(false, { description: 'Always prefer atoms over bonds' }),
     mark: PD.Boolean(true)
 };
 type HighlightLociProps = PD.Values<typeof HighlightLociParams>
@@ -42,14 +43,21 @@ export const HighlightLoci = PluginBehavior.create({
     name: 'representation-highlight-loci',
     category: 'interaction',
     ctor: class extends PluginBehavior.Handler<HighlightLociProps> {
-        private lociMarkProvider = (interactionLoci: Representation.Loci, action: MarkerAction) => {
+        private lociMarkProvider = (interactionLoci: Representation.Loci, action: MarkerAction, noRender?: boolean) => {
             if (!this.ctx.canvas3d || !this.params.mark) return;
-            this.ctx.canvas3d.mark(interactionLoci, action);
+            this.ctx.canvas3d.mark(interactionLoci, action, noRender);
+        }
+        private getLoci(loci: Loci) {
+            return this.params.preferAtoms && Bond.isLoci(loci) && loci.bonds.length === 2
+                ? Bond.toFirstStructureElementLoci(loci)
+                : loci;
         }
         register() {
             this.subscribeObservable(this.ctx.behaviors.interaction.hover, ({ current, buttons, modifiers }) => {
                 if (!this.ctx.canvas3d || this.ctx.isBusy) return;
-                if (this.params.ignore?.indexOf(current.loci.kind) >= 0) {
+
+                const loci = this.getLoci(current.loci);
+                if (this.params.ignore?.indexOf(loci.kind) >= 0) {
                     this.ctx.managers.interactivity.lociHighlights.highlightOnly({ repr: current.repr, loci: EmptyLoci });
                     return;
                 }
@@ -58,13 +66,13 @@ export const HighlightLoci = PluginBehavior.create({
 
                 if (Binding.match(this.params.bindings.hoverHighlightOnly, buttons, modifiers)) {
                     // remove repr to highlight loci everywhere on hover
-                    this.ctx.managers.interactivity.lociHighlights.highlightOnly({ loci: current.loci });
+                    this.ctx.managers.interactivity.lociHighlights.highlightOnly({ loci });
                     matched = true;
                 }
 
                 if (Binding.match(this.params.bindings.hoverHighlightOnlyExtend, buttons, modifiers)) {
                     // remove repr to highlight loci everywhere on hover
-                    this.ctx.managers.interactivity.lociHighlights.highlightOnlyExtend({ loci: current.loci });
+                    this.ctx.managers.interactivity.lociHighlights.highlightOnlyExtend({ loci });
                     matched = true;
                 }
 
@@ -95,6 +103,7 @@ const DefaultSelectLociBindings = {
 const SelectLociParams = {
     bindings: PD.Value(DefaultSelectLociBindings, { isHidden: true }),
     ignore: PD.Value<Loci['kind'][]>([], { isHidden: true }),
+    preferAtoms: PD.Boolean(false, { description: 'Always prefer atoms over bonds' }),
     mark: PD.Boolean(true)
 };
 type SelectLociProps = PD.Values<typeof SelectLociParams>
@@ -104,9 +113,14 @@ export const SelectLoci = PluginBehavior.create({
     category: 'interaction',
     ctor: class extends PluginBehavior.Handler<SelectLociProps> {
         private spine: StateTreeSpine.Impl
-        private lociMarkProvider = (reprLoci: Representation.Loci, action: MarkerAction) => {
+        private lociMarkProvider = (reprLoci: Representation.Loci, action: MarkerAction, noRender?: boolean) => {
             if (!this.ctx.canvas3d || !this.params.mark) return;
-            this.ctx.canvas3d.mark({ loci: reprLoci.loci }, action);
+            this.ctx.canvas3d.mark({ loci: reprLoci.loci }, action, noRender);
+        }
+        private getLoci(loci: Loci) {
+            return this.params.preferAtoms && Bond.isLoci(loci) && loci.bonds.length === 2
+                ? Bond.toFirstStructureElementLoci(loci)
+                : loci;
         }
         private applySelectMark(ref: string, clear?: boolean) {
             const cell = this.ctx.state.data.cells.get(ref);
@@ -123,10 +137,10 @@ export const SelectLoci = PluginBehavior.create({
             }
         }
         register() {
-            const lociIsEmpty = (current: Representation.Loci) => Loci.isEmpty(current.loci);
-            const lociIsNotEmpty = (current: Representation.Loci) => !Loci.isEmpty(current.loci);
+            const lociIsEmpty = (loci: Loci) => Loci.isEmpty(loci);
+            const lociIsNotEmpty = (loci: Loci) => !Loci.isEmpty(loci);
 
-            const actions: [keyof typeof DefaultSelectLociBindings, (current: Representation.Loci) => void, ((current: Representation.Loci) => boolean) | undefined][] = [
+            const actions: [keyof typeof DefaultSelectLociBindings, (current: Representation.Loci) => void, ((current: Loci) => boolean) | undefined][] = [
                 ['clickSelect', current => this.ctx.managers.interactivity.lociSelects.select(current), lociIsNotEmpty],
                 ['clickToggle', current => this.ctx.managers.interactivity.lociSelects.toggle(current), lociIsNotEmpty],
                 ['clickToggleExtend', current => this.ctx.managers.interactivity.lociSelects.toggleExtend(current), lociIsNotEmpty],
@@ -145,12 +159,14 @@ export const SelectLoci = PluginBehavior.create({
 
             this.subscribeObservable(this.ctx.behaviors.interaction.click, ({ current, button, modifiers }) => {
                 if (!this.ctx.canvas3d || this.ctx.isBusy || !this.ctx.selectionMode) return;
-                if (this.params.ignore?.indexOf(current.loci.kind) >= 0) return;
+
+                const loci = this.getLoci(current.loci);
+                if (this.params.ignore?.indexOf(loci.kind) >= 0) return;
 
                 // only trigger the 1st action that matches
                 for (const [binding, action, condition] of actions) {
-                    if (Binding.match(this.params.bindings[binding], button, modifiers) && (!condition || condition(current))) {
-                        action(current);
+                    if (Binding.match(this.params.bindings[binding], button, modifiers) && (!condition || condition(loci))) {
+                        action({ repr: current.repr, loci });
                         break;
                     }
                 }

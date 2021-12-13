@@ -411,7 +411,7 @@ const ModelFromTrajectory = PluginStateTransform.BuiltIn({
             if (modelIndex < 0) modelIndex += a.data.frameCount;
             const model = await Task.resolveInContext(a.data.getFrameAtIndex(modelIndex), ctx);
             const label = `Model ${modelIndex + 1}`;
-            let description = a.data.frameCount === 1 ? undefined : `of ${a.data.frameCount}`;
+            const description = a.data.frameCount === 1 ? undefined : `of ${a.data.frameCount}`;
             return new SO.Molecule.Model(model, { label, description });
         });
     },
@@ -645,7 +645,8 @@ const MultiStructureSelectionFromExpression = PluginStateTransform.BuiltIn({
                     totalSize += StructureElement.Loci.size(loci.loci);
 
                     continue;
-                } if (entry.expression !== sel.expression) {
+                }
+                if (entry.expression !== sel.expression) {
                     recreate = true;
                 } else {
                     // TODO: properly support "transitive" queries. For that Structure.areUnitAndIndicesEqual needs to be fixed;

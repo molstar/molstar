@@ -23,13 +23,16 @@ import { WebGLContext } from '../../../mol-gl/webgl/context';
 import { MeshValues } from '../../../mol-gl/renderable/mesh';
 import { TextureMeshValues } from '../../../mol-gl/renderable/texture-mesh';
 import { Texture } from '../../../mol-gl/webgl/texture';
-import { applyMeshColorSmoothing, applyTextureMeshColorSmoothing, ColorSmoothingParams, getColorSmoothingProps } from './util/color';
+import { applyMeshColorSmoothing } from '../../../mol-geo/geometry/mesh/color-smoothing';
+import { applyTextureMeshColorSmoothing } from '../../../mol-geo/geometry/texture-mesh/color-smoothing';
+import { ColorSmoothingParams, getColorSmoothingProps } from '../../../mol-geo/geometry/base';
 
 const SharedParams = {
     ...GaussianDensityParams,
     ...ColorSmoothingParams,
     ignoreHydrogens: PD.Boolean(false),
     tryUseGpu: PD.Boolean(true),
+    includeParent: PD.Boolean(false, { isHidden: true }),
 };
 type SharedParams = typeof SharedParams
 
@@ -130,7 +133,7 @@ export function GaussianSurfaceMeshVisual(materialId: number): UnitsVisual<Gauss
         },
         processValues: (values: MeshValues, geometry: Mesh, props: PD.Values<GaussianSurfaceMeshParams>, theme: Theme, webgl?: WebGLContext) => {
             const { resolution, colorTexture } = geometry.meta as GaussianSurfaceMeta;
-            const csp = getColorSmoothingProps(props, theme, resolution);
+            const csp = getColorSmoothingProps(props.smoothColors, theme.color.preferSmoothing, resolution);
             if (csp) {
                 applyMeshColorSmoothing(values, csp.resolution, csp.stride, webgl, colorTexture);
                 (geometry.meta.colorTexture as GaussianSurfaceMeta['colorTexture']) = values.tColorGrid.ref.value;
@@ -190,7 +193,7 @@ export function StructureGaussianSurfaceMeshVisual(materialId: number): ComplexV
         },
         processValues: (values: MeshValues, geometry: Mesh, props: PD.Values<GaussianSurfaceMeshParams>, theme: Theme, webgl?: WebGLContext) => {
             const { resolution, colorTexture } = geometry.meta as GaussianSurfaceMeta;
-            const csp = getColorSmoothingProps(props, theme, resolution);
+            const csp = getColorSmoothingProps(props.smoothColors, theme.color.preferSmoothing, resolution);
             if (csp) {
                 applyMeshColorSmoothing(values, csp.resolution, csp.stride, webgl, colorTexture);
                 (geometry.meta.colorTexture as GaussianSurfaceMeta['colorTexture']) = values.tColorGrid.ref.value;
@@ -232,7 +235,7 @@ async function createGaussianSurfaceTextureMesh(ctx: VisualContext, unit: Unit, 
 
     const boundingSphere = Sphere3D.expand(Sphere3D(), unit.boundary.sphere, props.radiusOffset + getStructureExtraRadius(structure));
     const surface = TextureMesh.create(gv.vertexCount, 1, gv.vertexTexture, gv.groupTexture, gv.normalTexture, boundingSphere, textureMesh);
-    (surface.meta as GaussianSurfaceMeta) = { resolution: densityTextureData.resolution };
+    (surface.meta as GaussianSurfaceMeta).resolution = densityTextureData.resolution;
 
     return surface;
 }
@@ -263,7 +266,7 @@ export function GaussianSurfaceTextureMeshVisual(materialId: number): UnitsVisua
         },
         processValues: (values: TextureMeshValues, geometry: TextureMesh, props: PD.Values<GaussianSurfaceMeshParams>, theme: Theme, webgl?: WebGLContext) => {
             const { resolution, colorTexture } = geometry.meta as GaussianSurfaceMeta;
-            const csp = getColorSmoothingProps(props, theme, resolution);
+            const csp = getColorSmoothingProps(props.smoothColors, theme.color.preferSmoothing, resolution);
             if (csp && webgl) {
                 applyTextureMeshColorSmoothing(values, csp.resolution, csp.stride, webgl, colorTexture);
                 (geometry.meta as GaussianSurfaceMeta).colorTexture = values.tColorGrid.ref.value;
@@ -308,7 +311,7 @@ async function createStructureGaussianSurfaceTextureMesh(ctx: VisualContext, str
 
     const boundingSphere = Sphere3D.expand(Sphere3D(), structure.boundary.sphere, props.radiusOffset + getStructureExtraRadius(structure));
     const surface = TextureMesh.create(gv.vertexCount, 1, gv.vertexTexture, gv.groupTexture, gv.normalTexture, boundingSphere, textureMesh);
-    (surface.meta as GaussianSurfaceMeta) = { resolution: densityTextureData.resolution };
+    (surface.meta as GaussianSurfaceMeta).resolution = densityTextureData.resolution;
 
     return surface;
 }
@@ -339,7 +342,7 @@ export function StructureGaussianSurfaceTextureMeshVisual(materialId: number): C
         },
         processValues: (values: TextureMeshValues, geometry: TextureMesh, props: PD.Values<GaussianSurfaceMeshParams>, theme: Theme, webgl?: WebGLContext) => {
             const { resolution, colorTexture } = geometry.meta as GaussianSurfaceMeta;
-            const csp = getColorSmoothingProps(props, theme, resolution);
+            const csp = getColorSmoothingProps(props.smoothColors, theme.color.preferSmoothing, resolution);
             if (csp && webgl) {
                 applyTextureMeshColorSmoothing(values, csp.resolution, csp.stride, webgl, colorTexture);
                 (geometry.meta as GaussianSurfaceMeta).colorTexture = values.tColorGrid.ref.value;

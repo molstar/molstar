@@ -112,7 +112,8 @@ function getNumberTypeScientific(str: string, start: number, end: number) {
 
 /** The whole range must match, otherwise returns NaN */
 export function getNumberType(str: string): NumberType {
-    let start = 0, end = str.length;
+    let start = 0;
+    const end = str.length;
 
     if (str.charCodeAt(start) === 45) { // -
         ++start;

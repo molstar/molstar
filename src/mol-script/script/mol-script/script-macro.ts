@@ -22,7 +22,7 @@ export function tryGetArg(args: any, name: string | number, defaultValue?: any) 
 export function pickArgs(args: any, ...names: string[]) {
     const ret = Object.create(null);
     let count = 0;
-    for (let k of Object.keys(args)) {
+    for (const k of Object.keys(args)) {
         if (names.indexOf(k) >= 0) {
             ret[k] = args[k];
             count++;
@@ -34,6 +34,6 @@ export function pickArgs(args: any, ...names: string[]) {
 export function aggregate(property: any, fn: any, initial?: any) {
     return B.struct.atomSet.reduce({
         initial: initial !== void 0 ? initial : property,
-        value: fn([ B.struct.slot.elementSetReduce(), property ])
+        value: fn([B.struct.slot.elementSetReduce(), property])
     });
 }

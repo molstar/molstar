@@ -33,7 +33,7 @@ export namespace TrajectoryHierarchyPresetProvider {
 
 const CommonParams = TrajectoryHierarchyPresetProvider.CommonParams;
 
-const DefaultParams = (a: PluginStateObject.Molecule.Trajectory | undefined, plugin: PluginContext) =>  ({
+const DefaultParams = (a: PluginStateObject.Molecule.Trajectory | undefined, plugin: PluginContext) => ({
     model: PD.Optional(PD.Group(StateTransformer.getParamDefinition(StateTransforms.Model.ModelFromTrajectory, a, plugin))),
     showUnitcell: PD.Optional(PD.Boolean(false)),
     structure: PD.Optional(RootStructureDefinition.getParams(void 0, 'assembly').type),
@@ -137,7 +137,7 @@ async function applyCrystalSymmetry(props: { ijkMin: Vec3, ijkMax: Vec3, theme?:
     const structureProperties = await builder.insertStructureProperties(structure, params.structureProperties);
 
     const unitcell = await builder.tryCreateUnitcell(modelProperties, undefined, { isHidden: false });
-    const representation =  await plugin.builders.structure.representation.applyPreset(structureProperties, params.representationPreset || 'auto', { theme: { globalName: props.theme } });
+    const representation = await plugin.builders.structure.representation.applyPreset(structureProperties, params.representationPreset || 'auto', { theme: { globalName: props.theme } });
 
     return {
         model,
@@ -207,7 +207,7 @@ const crystalContacts = TrajectoryHierarchyPresetProvider({
         const structureProperties = await builder.insertStructureProperties(structure, params.structureProperties);
 
         const unitcell = await builder.tryCreateUnitcell(modelProperties, undefined, { isHidden: true });
-        const representation =  await plugin.builders.structure.representation.applyPreset(structureProperties, params.representationPreset || 'auto', { theme: { globalName: 'operator-name', carbonColor: 'operator-name', focus: { name: 'element-symbol', params: { carbonColor: { name: 'operator-name', params: OperatorNameColorThemeProvider.defaultValues } } } } });
+        const representation = await plugin.builders.structure.representation.applyPreset(structureProperties, params.representationPreset || 'auto', { theme: { globalName: 'operator-name', carbonColor: 'operator-name', focus: { name: 'element-symbol', params: { carbonColor: { name: 'operator-name', params: OperatorNameColorThemeProvider.defaultValues } } } } });
 
         return {
             model,

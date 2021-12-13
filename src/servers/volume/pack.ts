@@ -63,31 +63,31 @@ interface EmArgs extends GeneralArgs {
 type Args = XrayArgs | EmArgs
 
 const parser = new argparse.ArgumentParser({
-    addHelp: true,
+    add_help: true,
     description: `VolumeServer Packer ${VERSION}, (c) 2018-2019, Mol* contributors`
 });
 
-const subparsers = parser.addSubparsers({
+const subparsers = parser.add_subparsers({
     title: 'Packing modes',
     dest: 'mode'
 });
 
 function addGeneralArgs(parser: argparse.ArgumentParser) {
-    parser.addArgument(['output'], { help: `Output path.` });
-    parser.addArgument(['--blockSizeInMB'], { defaultValue: 96, help: `Maximum block size.`, metavar: 'SIZE' });
-    parser.addArgument(['--format'], { defaultValue: 'ccp4', help: `Input file format.` });
+    parser.add_argument('output', { help: `Output path.` });
+    parser.add_argument('--blockSizeInMB', { default: 96, help: `Maximum block size.`, metavar: 'SIZE' });
+    parser.add_argument('--format', { default: 'ccp4', help: `Input file format.` });
 }
 
-const xrayParser = subparsers.addParser('xray', { addHelp: true });
-xrayParser.addArgument(['input2fofc'], { help: `Path to 2fofc file.`, metavar: '2FOFC' });
-xrayParser.addArgument(['inputFofc'], { help: `Path to fofc file.`, metavar: 'FOFC' });
+const xrayParser = subparsers.add_parser('xray', { add_help: true });
+xrayParser.add_argument('input2fofc', { help: `Path to 2fofc file.`, metavar: '2FOFC' });
+xrayParser.add_argument('inputFofc', { help: `Path to fofc file.`, metavar: 'FOFC' });
 addGeneralArgs(xrayParser);
 
-const emParser = subparsers.addParser('em', { addHelp: true });
-emParser.addArgument(['inputEm'], { help: `Path to EM density file.`, metavar: 'EM' });
+const emParser = subparsers.add_parser('em', { add_help: true });
+emParser.add_argument('inputEm', { help: `Path to EM density file.`, metavar: 'EM' });
 addGeneralArgs(emParser);
 
-const args: Args = parser.parseArgs();
+const args: Args = parser.parse_args();
 const config = getConfig(args);
 
 pack(config.input, config.blockSizeInMB, config.isPeriodic, config.outputFilename, config.format);

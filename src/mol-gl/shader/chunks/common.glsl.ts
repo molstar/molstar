@@ -9,6 +9,10 @@ export const common = `
     #define dRenderVariant_pick
 #endif
 
+#if defined(dRenderVariant_markingDepth) || defined(dRenderVariant_markingMask)
+    #define dRenderVariant_marking
+#endif
+
 #if defined(dColorType_instance) || defined(dColorType_group) || defined(dColorType_groupInstance) || defined(dColorType_vertex) || defined(dColorType_vertexInstance)
     #define dColorType_texture
 #endif
@@ -210,6 +214,9 @@ float depthToViewZ(const in float isOrtho, const in float linearClipZ, const in 
             a31 * b01 - a30 * b03 - a32 * b00,
             a20 * b03 - a21 * b01 + a22 * b00) / det;
     }
+
+    #define isNaN(x) ( (x) != (x)    )
+    #define isInf(x) ( (x) == (x)+1. )
 #else
     #define transpose2(m) transpose(m)
     #define transpose3(m) transpose(m)
@@ -218,5 +225,8 @@ float depthToViewZ(const in float isOrtho, const in float linearClipZ, const in 
     #define inverse2(m) inverse(m)
     #define inverse3(m) inverse(m)
     #define inverse4(m) inverse(m)
+
+    #define isNaN isnan
+    #define isInf isinf
 #endif
 `;

@@ -13,16 +13,27 @@ export interface CellPack {
 
 export interface CellPacking {
     name: string,
-    location: 'surface' | 'interior' | 'cytoplasme',
+    location: 'surface' | 'interior' | 'cytoplasme'
     ingredients: Packing['ingredients']
+    compartment?: CellCompartment
 }
 
-//
+export interface CellCompartment {
+    filename?: string
+    geom_type?: 'raw' | 'file' | 'sphere' | 'mb' | 'None'
+    compartment_primitives?: CompartmentPrimitives
+}
 
 export interface Cell {
     recipe: Recipe
+    options?: RecipeOptions
     cytoplasme?: Packing
     compartments?: { [key: string]: Compartment }
+    mapping_ids?: { [key: number]: [number, string] }
+}
+
+export interface RecipeOptions {
+    resultfile?: string
 }
 
 export interface Recipe {
@@ -35,7 +46,28 @@ export interface Recipe {
 export interface Compartment {
     surface?: Packing
     interior?: Packing
+    geom?: unknown
+    geom_type?: 'raw' | 'file' | 'sphere' | 'mb' | 'None'
+    mb?: CompartmentPrimitives
 }
+
+// Primitives discribing a compartment
+export const enum CompartmentPrimitiveType {
+    MetaBall = 0,
+    Sphere = 1,
+    Cube = 2,
+    Cylinder = 3,
+    Cone = 4,
+    Plane = 5,
+    None = 6
+}
+
+export interface CompartmentPrimitives{
+    positions?: number[];
+    radii?: number[];
+    types?: CompartmentPrimitiveType[];
+}
+
 
 export interface Packing {
     ingredients: { [key: string]: Ingredient }
@@ -64,18 +96,20 @@ export interface Ingredient {
     [curveX: string]: unknown;
     /** the orientation in the membrane */
     principalAxis?: Vec3;
+    principalVector?: Vec3;
     /** offset along membrane */
     offset?: Vec3;
     ingtype?: string;
     color?: Vec3;
     confidence?: number;
+    Type?: string;
 }
 
 export interface IngredientSource {
     pdb: string;
-    bu?: string;  /** biological unit e.g AU,BU1,etc.. */
+    bu?: string; /** biological unit e.g AU,BU1,etc.. */
     selection?: string; /** NGL selection or :A or :B etc.. */
-    model?: string;     /** model number e.g 0,1,2... */
+    model?: string; /** model number e.g 0,1,2... */
     transform: {
         center: boolean;
         translate?: Vec3;

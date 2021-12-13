@@ -62,7 +62,7 @@ namespace StructureSequence {
             // Only for polymers, trying to mirror _entity_poly_seq
             if (byEntityKey[entityKey] !== void 0 || entities.data.type.value(entityKey) !== 'polymer') continue;
 
-            let start = cI;
+            const start = cI;
             cI++;
             while (cI < _cI && entityKey === hierarchy.index.getEntityFromChain(cI) && entities.data.type.value(entityKey) !== 'polymer') {
                 cI++;
@@ -112,7 +112,7 @@ namespace StructureSequence {
             const eK = elements.getEntityFromChain(cI);
             if (byEntityKey[eK] !== void 0) continue;
 
-            let start = cI;
+            const start = cI;
             cI++;
             while (cI < _cI && eK === elements.getEntityFromChain(cI)) {
                 cI++;

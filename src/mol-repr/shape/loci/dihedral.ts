@@ -309,7 +309,7 @@ function buildSectorMesh(data: DihedralData, props: DihedralProps, mesh?: Mesh):
 function getSectorShape(ctx: RuntimeContext, data: DihedralData, props: DihedralProps, shape?: Shape<Mesh>) {
     const mesh = buildSectorMesh(data, props, shape && shape.geometry);
     const name = getDihedralName(data);
-    const getLabel = (groupId: number ) => dihedralLabel(data.quads[groupId]);
+    const getLabel = (groupId: number) => dihedralLabel(data.quads[groupId]);
     return Shape.create(name, data, mesh, () => props.color, () => 1, getLabel);
 }
 
@@ -326,7 +326,7 @@ function buildText(data: DihedralData, props: DihedralProps, text?: Text): Text 
 
         let angle = radToDeg(tmpState.angle).toFixed(2);
         if (angle === '-0.00') angle = '0.00';
-        const label =  props.customText || `${angle}\u00B0`;
+        const label = props.customText || `${angle}\u00B0`;
         const radius = Math.max(2, tmpState.sphereA.radius, tmpState.sphereB.radius, tmpState.sphereC.radius, tmpState.sphereD.radius);
         const scale = radius / 2;
         builder.add(label, tmpVec[0], tmpVec[1], tmpVec[2], 0.1, scale, i);
@@ -337,7 +337,7 @@ function buildText(data: DihedralData, props: DihedralProps, text?: Text): Text 
 function getTextShape(ctx: RuntimeContext, data: DihedralData, props: DihedralProps, shape?: Shape<Text>) {
     const text = buildText(data, props, shape && shape.geometry);
     const name = getDihedralName(data);
-    const getLabel = (groupId: number ) => dihedralLabel(data.quads[groupId]);
+    const getLabel = (groupId: number) => dihedralLabel(data.quads[groupId]);
     return Shape.create(name, data, text, () => props.textColor, () => props.textSize, getLabel);
 }
 

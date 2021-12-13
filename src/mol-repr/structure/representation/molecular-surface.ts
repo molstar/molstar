@@ -12,6 +12,7 @@ import { Representation, RepresentationParamsGetter, RepresentationContext } fro
 import { ThemeRegistryContext } from '../../../mol-theme/theme';
 import { Structure } from '../../../mol-model/structure';
 import { MolecularSurfaceWireframeParams, MolecularSurfaceWireframeVisual } from '../visual/molecular-surface-wireframe';
+import { BaseGeometry } from '../../../mol-geo/geometry/base';
 
 const MolecularSurfaceVisuals = {
     'molecular-surface-mesh': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, MolecularSurfaceMeshParams>) => UnitsRepresentation('Molecular surface mesh', ctx, getParams, MolecularSurfaceMeshVisual),
@@ -22,6 +23,7 @@ export const MolecularSurfaceParams = {
     ...MolecularSurfaceMeshParams,
     ...MolecularSurfaceWireframeParams,
     visuals: PD.MultiSelect(['molecular-surface-mesh'], PD.objectToOptions(MolecularSurfaceVisuals)),
+    bumpFrequency: PD.Numeric(1, { min: 0, max: 10, step: 0.1 }, BaseGeometry.ShadingCategory),
 };
 export type MolecularSurfaceParams = typeof MolecularSurfaceParams
 export function getMolecularSurfaceParams(ctx: ThemeRegistryContext, structure: Structure) {

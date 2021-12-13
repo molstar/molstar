@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -25,6 +25,9 @@ import { StructureSelectionManager } from '../mol-plugin-state/manager/structure
 import { arrayEqual } from '../mol-util/array';
 
 const MaxDisplaySequenceLength = 5000;
+// TODO: add virtualized Select controls (at best with a search box)?
+const MaxSelectOptionsCount = 1000;
+const MaxSequenceWrappersCount = 30;
 
 function opKey(l: StructureElement.Location) {
     const ids = SP.unit.pdbx_struct_oper_list_ids(l);
@@ -94,7 +97,7 @@ function getSequenceWrapper(state: { structure: Structure, modelEntityId: string
     }
 }
 
-function getModelEntityOptions(structure: Structure, polymersOnly = false) {
+function getModelEntityOptions(structure: Structure, polymersOnly = false): [string, string][] {
     const options: [string, string][] = [];
     const l = StructureElement.Location.create(structure);
     const seen = new Set<string>();
@@ -118,13 +121,17 @@ function getModelEntityOptions(structure: Structure, polymersOnly = false) {
         const label = `${id}: ${description}`;
         options.push([key, label]);
         seen.add(key);
+
+        if (options.length > MaxSelectOptionsCount) {
+            return [['', 'Too many entities']];
+        }
     }
 
     if (options.length === 0) options.push(['', 'No entities']);
     return options;
 }
 
-function getChainOptions(structure: Structure, modelEntityId: string) {
+function getChainOptions(structure: Structure, modelEntityId: string): [number, string][] {
     const options: [number, string][] = [];
     const l = StructureElement.Location.create(structure);
     const seen = new Set<number>();
@@ -140,17 +147,21 @@ function getChainOptions(structure: Structure, modelEntityId: string) {
 
         // TODO handle special case
         // - more than one chain in a unit
-        let label = elementLabel(l, { granularity: 'chain', hidePrefix: true, htmlStyling: false });
+        const label = elementLabel(l, { granularity: 'chain', hidePrefix: true, htmlStyling: false });
 
         options.push([id, label]);
         seen.add(id);
+
+        if (options.length > MaxSelectOptionsCount) {
+            return [[-1, 'Too many chains']];
+        }
     }
 
-    if (options.length === 0) options.push([-1, 'No units']);
+    if (options.length === 0) options.push([-1, 'No chains']);
     return options;
 }
 
-function getOperatorOptions(structure: Structure, modelEntityId: string, chainGroupId: number) {
+function getOperatorOptions(structure: Structure, modelEntityId: string, chainGroupId: number): [string, string][] {
     const options: [string, string][] = [];
     const l = StructureElement.Location.create(structure);
     const seen = new Set<string>();
@@ -168,6 +179,10 @@ function getOperatorOptions(structure: Structure, modelEntityId: string, chainGr
         const label = unit.conformation.operator.name;
         options.push([id, label]);
         seen.add(id);
+
+        if (options.length > MaxSelectOptionsCount) {
+            return [['', 'Too many operators']];
+        }
     }
 
     if (options.length === 0) options.push(['', 'No operators']);
@@ -266,6 +281,7 @@ export class SequenceView extends PluginUIComponent<{ defaultMode?: SequenceView
                         }, this.plugin.managers.structure.selection),
                         label: `${cLabel} | ${eLabel}`
                     });
+                    if (wrappers.length > MaxSequenceWrappersCount) return [];
                 }
             }
         }

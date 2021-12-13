@@ -22,9 +22,9 @@ import { Renderer } from '../../mol-gl/renderer';
 import { Scene } from '../../mol-gl/scene';
 import { Helper } from '../helper/helper';
 import { StereoCamera } from '../camera/stereo';
-
 import { quad_vert } from '../../mol-gl/shader/quad.vert';
 import { compose_frag } from '../../mol-gl/shader/compose.frag';
+import { MarkingProps } from './marking';
 
 const ComposeSchema = {
     ...QuadSchema,
@@ -55,7 +55,11 @@ export const MultiSampleParams = {
 };
 export type MultiSampleProps = PD.Values<typeof MultiSampleParams>
 
-type Props = { multiSample: MultiSampleProps, postprocessing: PostprocessingProps }
+type Props = {
+    multiSample: MultiSampleProps
+    postprocessing: PostprocessingProps
+    marking: MarkingProps
+}
 
 export class MultiSamplePass {
     static isEnabled(props: MultiSampleProps) {
@@ -119,7 +123,7 @@ export class MultiSamplePass {
         //
         // This manual approach to MSAA re-renders the scene once for
         // each sample with camera jitter and accumulates the results.
-        const offsetList = JitterVectors[ Math.max(0, Math.min(props.multiSample.sampleLevel, 5)) ];
+        const offsetList = JitterVectors[Math.max(0, Math.min(props.multiSample.sampleLevel, 5))];
 
         const { x, y, width, height } = camera.viewport;
         const baseSampleWeight = 1.0 / offsetList.length;
@@ -144,7 +148,7 @@ export class MultiSamplePass {
             ValueCell.update(compose.values.uWeight, sampleWeight);
 
             // render scene
-            drawPass.render(renderer, camera, scene, helper, false, transparentBackground, props.postprocessing);
+            drawPass.render(renderer, camera, scene, helper, false, transparentBackground, props.postprocessing, props.marking);
 
             // compose rendered scene with compose target
             composeTarget.bind();
@@ -186,7 +190,7 @@ export class MultiSamplePass {
         //
         // This manual approach to MSAA re-renders the scene once for
         // each sample with camera jitter and accumulates the results.
-        const offsetList = JitterVectors[ Math.max(0, Math.min(props.multiSample.sampleLevel, 5)) ];
+        const offsetList = JitterVectors[Math.max(0, Math.min(props.multiSample.sampleLevel, 5))];
 
         if (sampleIndex === -2 || sampleIndex >= offsetList.length) return -2;
 
@@ -194,7 +198,7 @@ export class MultiSamplePass {
         const sampleWeight = 1.0 / offsetList.length;
 
         if (sampleIndex === -1) {
-            drawPass.render(renderer, camera, scene, helper, false, transparentBackground, props.postprocessing);
+            drawPass.render(renderer, camera, scene, helper, false, transparentBackground, props.postprocessing, props.marking);
             ValueCell.update(compose.values.uWeight, 1.0);
             ValueCell.update(compose.values.tColor, drawPass.getColorTarget(props.postprocessing).texture);
             compose.update();
@@ -222,7 +226,7 @@ export class MultiSamplePass {
                 camera.update();
 
                 // render scene
-                drawPass.render(renderer, camera, scene, helper, false, transparentBackground, props.postprocessing);
+                drawPass.render(renderer, camera, scene, helper, false, transparentBackground, props.postprocessing, props.marking);
 
                 // compose rendered scene with compose target
                 composeTarget.bind();
@@ -240,7 +244,7 @@ export class MultiSamplePass {
                 compose.render();
 
                 sampleIndex += 1;
-                if (sampleIndex >= offsetList.length ) break;
+                if (sampleIndex >= offsetList.length) break;
             }
         }
 
@@ -274,33 +278,33 @@ export class MultiSamplePass {
 
 const JitterVectors = [
     [
-        [ 0, 0 ]
+        [0, 0]
     ],
     [
-        [ 4, 4 ], [ -4, -4 ]
+        [4, 4], [-4, -4]
     ],
     [
-        [ -2, -6 ], [ 6, -2 ], [ -6, 2 ], [ 2, 6 ]
+        [-2, -6], [6, -2], [-6, 2], [2, 6]
     ],
     [
-        [ 1, -3 ], [ -1, 3 ], [ 5, 1 ], [ -3, -5 ],
-        [ -5, 5 ], [ -7, -1 ], [ 3, 7 ], [ 7, -7 ]
+        [1, -3], [-1, 3], [5, 1], [-3, -5],
+        [-5, 5], [-7, -1], [3, 7], [7, -7]
     ],
     [
-        [ 1, 1 ], [ -1, -3 ], [ -3, 2 ], [ 4, -1 ],
-        [ -5, -2 ], [ 2, 5 ], [ 5, 3 ], [ 3, -5 ],
-        [ -2, 6 ], [ 0, -7 ], [ -4, -6 ], [ -6, 4 ],
-        [ -8, 0 ], [ 7, -4 ], [ 6, 7 ], [ -7, -8 ]
+        [1, 1], [-1, -3], [-3, 2], [4, -1],
+        [-5, -2], [2, 5], [5, 3], [3, -5],
+        [-2, 6], [0, -7], [-4, -6], [-6, 4],
+        [-8, 0], [7, -4], [6, 7], [-7, -8]
     ],
     [
-        [ -4, -7 ], [ -7, -5 ], [ -3, -5 ], [ -5, -4 ],
-        [ -1, -4 ], [ -2, -2 ], [ -6, -1 ], [ -4, 0 ],
-        [ -7, 1 ], [ -1, 2 ], [ -6, 3 ], [ -3, 3 ],
-        [ -7, 6 ], [ -3, 6 ], [ -5, 7 ], [ -1, 7 ],
-        [ 5, -7 ], [ 1, -6 ], [ 6, -5 ], [ 4, -4 ],
-        [ 2, -3 ], [ 7, -2 ], [ 1, -1 ], [ 4, -1 ],
-        [ 2, 1 ], [ 6, 2 ], [ 0, 4 ], [ 4, 4 ],
-        [ 2, 5 ], [ 7, 5 ], [ 5, 6 ], [ 3, 7 ]
+        [-4, -7], [-7, -5], [-3, -5], [-5, -4],
+        [-1, -4], [-2, -2], [-6, -1], [-4, 0],
+        [-7, 1], [-1, 2], [-6, 3], [-3, 3],
+        [-7, 6], [-3, 6], [-5, 7], [-1, 7],
+        [5, -7], [1, -6], [6, -5], [4, -4],
+        [2, -3], [7, -2], [1, -1], [4, -1],
+        [2, 1], [6, 2], [0, 4], [4, 4],
+        [2, 5], [7, 5], [5, 6], [3, 7]
     ]
 ];
 

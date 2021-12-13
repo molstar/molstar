@@ -25,7 +25,7 @@ function setupShutdown() {
         if (ServerConfig.shutdownTimeoutVarianceMinutes > 0) {
             tVar = 2 * (Math.random() - 0.5) * ServerConfig.shutdownTimeoutVarianceMinutes;
         }
-        let tMs = (ServerConfig.shutdownTimeoutMinutes + tVar) * 60 * 1000;
+        const tMs = (ServerConfig.shutdownTimeoutMinutes + tVar) * 60 * 1000;
 
         console.log(`----------------------------------------------------------------------------`);
         console.log(`  The server will shut down in ${ConsoleLogger.formatTime(tMs)} to prevent slow performance.`);

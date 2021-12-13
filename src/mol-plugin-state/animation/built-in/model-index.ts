@@ -120,7 +120,7 @@ export const AnimateModelIndex = PluginStateAnimation.create({
 
                     return { modelIndex };
                 } else {
-                    const durationInMs =  params.duration.name === 'fixed'
+                    const durationInMs = params.duration.name === 'fixed'
                         ? params.duration.params.durationInS * 1000
                         : Math.ceil(1000 * traj.data.frameCount / params.duration.params.targetFps);
 
@@ -131,7 +131,7 @@ export const AnimateModelIndex = PluginStateAnimation.create({
                         }
                     } if (params.mode.name === 'palindrome') {
                         phase = 2 * phase;
-                        if (phase > 1) phase =  2 - phase;
+                        if (phase > 1) phase = 2 - phase;
                     }
 
                     const modelIndex = Math.min(Math.floor(traj.data.frameCount * phase), traj.data.frameCount - 1);

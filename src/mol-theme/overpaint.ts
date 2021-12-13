@@ -68,7 +68,7 @@ namespace Overpaint {
         const layers: Overpaint.Layer[] = [];
         map.forEach((loci, colorOrClear) => {
             const clear = colorOrClear === -1;
-            const color = colorOrClear === -1 ? Color(0) : colorOrClear;
+            const color = clear ? Color(0) : colorOrClear;
             layers.push({ loci, color, clear });
         });
         return { layers };
@@ -118,7 +118,7 @@ namespace Overpaint {
     export function toBundle(overpaint: Overpaint) {
         const layers: BundleLayer[] = [];
         for (let i = 0, il = overpaint.layers.length; i < il; ++i) {
-            let { loci, color, clear } = overpaint.layers[i];
+            const { loci, color, clear } = overpaint.layers[i];
             const bundle = StructureElement.Bundle.fromLoci(loci);
             layers.push({ bundle, color, clear });
         }

@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-function openUrl (url: string) {
+function openUrl(url: string) {
     const opened = window.open(url, '_blank');
     if (!opened) {
         window.location.href = url;
@@ -21,7 +21,7 @@ function click(node: HTMLAnchorElement) {
     }
 }
 
-export function download (data: Blob | string, downloadName = 'download') {
+export function download(data: Blob | string, downloadName = 'download') {
     // using ideas from https://github.com/eligrey/FileSaver.js/blob/master/FileSaver.js
 
     if (!data) return;
@@ -39,9 +39,9 @@ export function download (data: Blob | string, downloadName = 'download') {
             setTimeout(() => URL.revokeObjectURL(a.href), 4E4); // 40s
             setTimeout(() => click(a));
         }
-    } else if (typeof navigator !== 'undefined' && navigator.msSaveOrOpenBlob) {
+    } else if (typeof navigator !== 'undefined' && (navigator as any).msSaveOrOpenBlob) {
         // native saveAs in IE 10+
-        navigator.msSaveOrOpenBlob(data, downloadName);
+        (navigator as any).msSaveOrOpenBlob(data, downloadName);
     } else {
         const ua = window.navigator.userAgent;
         const isSafari = /Safari/i.test(ua);
@@ -61,7 +61,7 @@ export function download (data: Blob | string, downloadName = 'download') {
                 open(data);
             }
         } else {
-            const url = URL.createObjectURL(data);
+            const url = URL.createObjectURL(typeof data === 'string' ? new Blob([data]) : data);
             location.href = url;
             setTimeout(() => URL.revokeObjectURL(url), 4E4); // 40s
         }

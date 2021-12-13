@@ -33,21 +33,21 @@ describe('linked list', () => {
         expect(list.count).toBe(5);
     });
 
-    it ('remove', () => {
+    it('remove', () => {
         const list = create([1, 2, 3, 4]);
-        let fst = list.removeFirst();
+        const fst = list.removeFirst();
         expect(fst).toBe(1);
         expect(list.last!.value).toBe(4);
         expect(list.count).toBe(3);
         expect(toArray(list)).toEqual([2, 3, 4]);
 
-        let last = list.removeLast();
+        const last = list.removeLast();
         expect(last).toBe(4);
         expect(list.last!.value).toBe(3);
         expect(list.count).toBe(2);
         expect(toArray(list)).toEqual([2, 3]);
 
-        let n3 = list.find(3)!;
+        const n3 = list.find(3)!;
         list.remove(n3);
         expect(list.first!.value).toBe(2);
         expect(list.last!.value).toBe(2);

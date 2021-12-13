@@ -141,7 +141,7 @@ const symbols = [
     // ============= STRING ================
     C(MolScript.core.str.match, (ctx, v) => v[0](ctx).test(v[1](ctx))),
     C(MolScript.core.str.concat, (ctx, xs) => {
-        let ret: string[] = [];
+        const ret: string[] = [];
         if (typeof xs.length === 'number') {
             for (let i = 0, _i = xs.length; i < _i; i++) ret.push(xs[i](ctx).toString());
         } else {

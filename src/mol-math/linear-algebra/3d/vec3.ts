@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -505,6 +505,19 @@ namespace Vec3 {
     }
 
     /**
+     * @param inclination in radians [0, PI]
+     * @param azimuth in radians [0, 2 * PI]
+     * @param radius [0, +Inf]
+     */
+    export function directionFromSpherical(out: Vec3, inclination: number, azimuth: number, radius: number): Vec3 {
+        return Vec3.set(out,
+            radius * Math.cos(azimuth) * Math.sin(inclination),
+            radius * Math.sin(azimuth) * Math.sin(inclination),
+            radius * Math.cos(inclination)
+        );
+    }
+
+    /**
      * Returns whether or not the vectors have exactly the same elements in the same position (when compared with ===)
      */
     export function exactEquals(a: Vec3, b: Vec3) {
@@ -540,12 +553,20 @@ namespace Vec3 {
 
     /** Project `point` onto `vector` starting from `origin` */
     export function projectPointOnVector(out: Vec3, point: Vec3, vector: Vec3, origin: Vec3) {
-        sub(out, copy(out, point), origin);
+        sub(out, point, origin);
         const scalar = dot(vector, out) / squaredMagnitude(vector);
-        return add(out, scale(out, copy(out, vector), scalar), origin);
+        return add(out, scale(out, vector, scalar), origin);
     }
 
-    export function projectOnVector(out: Vec3, p: Vec3, vector: Vec3 ) {
+    const tmpProjectPlane = zero();
+    /** Project `point` onto `plane` defined by `normal` starting from `origin` */
+    export function projectPointOnPlane(out: Vec3, point: Vec3, normal: Vec3, origin: Vec3) {
+        normalize(tmpProjectPlane, normal);
+        sub(out, point, origin);
+        return sub(out, point, scale(tmpProjectPlane, tmpProjectPlane, dot(out, tmpProjectPlane)));
+    }
+
+    export function projectOnVector(out: Vec3, p: Vec3, vector: Vec3) {
         const scalar = dot(vector, p) / squaredMagnitude(vector);
         return scale(out, vector, scalar);
     }

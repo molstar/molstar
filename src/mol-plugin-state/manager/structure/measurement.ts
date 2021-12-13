@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { StructureElement } from '../../../mol-model/structure';
@@ -15,10 +16,13 @@ import { StatefulPluginComponent } from '../../component';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { MeasurementRepresentationCommonTextParams, LociLabelTextParams } from '../../../mol-repr/shape/loci/common';
 import { LineParams } from '../../../mol-repr/structure/representation/line';
+import { Expression } from '../../../mol-script/language/expression';
+import { Color } from '../../../mol-util/color';
 
 export { StructureMeasurementManager };
 
 export const MeasurementGroupTag = 'measurement-group';
+export const MeasurementOrderLabelTag = 'measurement-order-label';
 
 export type StructureMeasurementCell = StateObjectCell<PluginStateObject.Shape.Representation3D, StateTransform<StateTransformer<PluginStateObject.Molecule.Structure.Selections, PluginStateObject.Shape.Representation3D, any>>>
 
@@ -35,6 +39,7 @@ export interface StructureMeasurementManagerState {
     angles: StructureMeasurementCell[],
     dihedrals: StructureMeasurementCell[],
     orientations: StructureMeasurementCell[],
+    planes: StructureMeasurementCell[],
     options: StructureMeasurementOptions
 }
 
@@ -46,7 +51,7 @@ type StructureMeasurementManagerAddOptions = {
     labelParams?: Partial<PD.Values<LociLabelTextParams>>
 }
 
-class StructureMeasurementManager extends StatefulPluginComponent<StructureMeasurementManagerState>  {
+class StructureMeasurementManager extends StatefulPluginComponent<StructureMeasurementManagerState> {
     readonly behaviors = {
         state: this.ev.behavior(this.state)
     };
@@ -222,23 +227,93 @@ class StructureMeasurementManager extends StatefulPluginComponent<StructureMeasu
         await PluginCommands.State.Update(this.plugin, { state, tree: update, options: { doNotLogTiming: true } });
     }
 
-    async addOrientation(a: StructureElement.Loci) {
-        const cellA = this.plugin.helpers.substructureParent.get(a.structure);
+    async addOrientation(locis: StructureElement.Loci[]) {
+        const selections: { key: string, ref: string, groupId?: string, expression: Expression }[] = [];
+        const dependsOn: string[] = [];
 
-        if (!cellA) return;
+        for (let i = 0, il = locis.length; i < il; ++i) {
+            const l = locis[i];
+            const cell = this.plugin.helpers.substructureParent.get(l.structure);
+            if (!cell) continue;
 
-        const dependsOn = [cellA.transform.ref];
+            arraySetAdd(dependsOn, cell.transform.ref);
+            selections.push({ key: `l${i}`, ref: cell.transform.ref, expression: StructureElement.Loci.toExpression(l) });
+        }
+
+        if (selections.length === 0) return;
 
         const update = this.getGroup();
         update
             .apply(StateTransforms.Model.MultiStructureSelectionFromExpression, {
-                selections: [
-                    { key: 'a', ref: cellA.transform.ref, expression: StructureElement.Loci.toExpression(a) },
-                ],
+                selections,
                 isTransitive: true,
                 label: 'Orientation'
             }, { dependsOn })
             .apply(StateTransforms.Representation.StructureSelectionsOrientation3D);
+
+        const state = this.plugin.state.data;
+        await PluginCommands.State.Update(this.plugin, { state, tree: update, options: { doNotLogTiming: true } });
+    }
+
+    async addPlane(locis: StructureElement.Loci[]) {
+        const selections: { key: string, ref: string, groupId?: string, expression: Expression }[] = [];
+        const dependsOn: string[] = [];
+
+        for (let i = 0, il = locis.length; i < il; ++i) {
+            const l = locis[i];
+            const cell = this.plugin.helpers.substructureParent.get(l.structure);
+            if (!cell) continue;
+
+            arraySetAdd(dependsOn, cell.transform.ref);
+            selections.push({ key: `l${i}`, ref: cell.transform.ref, expression: StructureElement.Loci.toExpression(l) });
+        }
+
+        if (selections.length === 0) return;
+
+        const update = this.getGroup();
+        update
+            .apply(StateTransforms.Model.MultiStructureSelectionFromExpression, {
+                selections,
+                isTransitive: true,
+                label: 'Plane'
+            }, { dependsOn })
+            .apply(StateTransforms.Representation.StructureSelectionsPlane3D);
+
+        const state = this.plugin.state.data;
+        await PluginCommands.State.Update(this.plugin, { state, tree: update, options: { doNotLogTiming: true } });
+    }
+
+    async addOrderLabels(locis: StructureElement.Loci[]) {
+        const update = this.getGroup();
+
+        const current = this.plugin.state.data.select(StateSelection.Generators.ofType(PluginStateObject.Molecule.Structure.Selections).withTag(MeasurementOrderLabelTag));
+        for (const obj of current)
+            update.delete(obj);
+
+        let order = 1;
+        for (const loci of locis) {
+            const cell = this.plugin.helpers.substructureParent.get(loci.structure);
+            if (!cell) continue;
+
+            const dependsOn = [cell.transform.ref];
+
+            update
+                .apply(StateTransforms.Model.MultiStructureSelectionFromExpression, {
+                    selections: [
+                        { key: 'a', ref: cell.transform.ref, expression: StructureElement.Loci.toExpression(loci) },
+                    ],
+                    isTransitive: true,
+                    label: 'Order'
+                }, { dependsOn, tags: MeasurementOrderLabelTag })
+                .apply(StateTransforms.Representation.StructureSelectionsLabel3D, {
+                    textColor: Color.fromRgb(255, 255, 255),
+                    borderColor: Color.fromRgb(0, 0, 0),
+                    textSize: 0.33,
+                    borderWidth: 0.3,
+                    offsetZ: 0.75,
+                    customText: `${order++}`
+                }, { tags: MeasurementOrderLabelTag });
+        }
 
         const state = this.plugin.state.data;
         await PluginCommands.State.Update(this.plugin, { state, tree: update, options: { doNotLogTiming: true } });
@@ -254,18 +329,26 @@ class StructureMeasurementManager extends StatefulPluginComponent<StructureMeasu
     }
 
     private sync() {
+        const labels = [];
+        for (const cell of this.getTransforms(StateTransforms.Representation.StructureSelectionsLabel3D) as StructureMeasurementCell[]) {
+            const tags = (cell.obj as any)['tags'] as string[];
+            if (!tags || !tags.includes(MeasurementOrderLabelTag))
+                labels.push(cell);
+        }
+
         const updated = this.updateState({
-            labels: this.getTransforms(StateTransforms.Representation.StructureSelectionsLabel3D),
+            labels,
             distances: this.getTransforms(StateTransforms.Representation.StructureSelectionsDistance3D),
             angles: this.getTransforms(StateTransforms.Representation.StructureSelectionsAngle3D),
             dihedrals: this.getTransforms(StateTransforms.Representation.StructureSelectionsDihedral3D),
-            orientations: this.getTransforms(StateTransforms.Representation.StructureSelectionsOrientation3D)
+            orientations: this.getTransforms(StateTransforms.Representation.StructureSelectionsOrientation3D),
+            planes: this.getTransforms(StateTransforms.Representation.StructureSelectionsPlane3D),
         });
         if (updated) this.stateUpdated();
     }
 
     constructor(private plugin: PluginContext) {
-        super({ labels: [], distances: [], angles: [], dihedrals: [], orientations: [], options: DefaultStructureMeasurementOptions });
+        super({ labels: [], distances: [], angles: [], dihedrals: [], orientations: [], planes: [], options: DefaultStructureMeasurementOptions });
 
         plugin.state.data.events.changed.subscribe(e => {
             if (e.inTransaction || plugin.behaviors.state.isAnimating.value) return;

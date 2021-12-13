@@ -109,7 +109,7 @@ export function SecondaryStructureColorTheme(ctx: ThemeDataContext, props: PD.Va
         description: Description,
         legend: TableLegend(Object.keys(SecondaryStructureColors).map(name => {
             return [name, (SecondaryStructureColors as any)[name] as Color] as [string, Color];
-        }).concat([[ 'Other', DefaultSecondaryStructureColor ]]))
+        }).concat([['Other', DefaultSecondaryStructureColor]]))
     };
 }
 

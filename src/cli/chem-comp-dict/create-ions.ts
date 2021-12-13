@@ -19,7 +19,7 @@ import { ensureDataAvailable, readCCD } from './util';
 function extractIonNames(ccd: DatabaseCollection<CCD_Schema>) {
     const ionNames: string[] = [];
     for (const k in ccd) {
-        const {chem_comp} = ccd[k];
+        const { chem_comp } = ccd[k];
         if (chem_comp.name.value(0).toUpperCase().includes(' ION')) {
             ionNames.push(chem_comp.id.value(0));
         }
@@ -54,20 +54,20 @@ async function run(out: string, forceDownload = false) {
 }
 
 const parser = new argparse.ArgumentParser({
-    addHelp: true,
+    add_help: true,
     description: 'Extract and save IonNames from CCD.'
 });
-parser.addArgument('out', {
+parser.add_argument('out', {
     help: 'Generated file output path.'
 });
-parser.addArgument([ '--forceDownload', '-f' ], {
-    action: 'storeTrue',
+parser.add_argument('--forceDownload', '-f', {
+    action: 'store_true',
     help: 'Force download of CCD and PVCD.'
 });
 interface Args {
     out: string,
     forceDownload?: boolean,
 }
-const args: Args = parser.parseArgs();
+const args: Args = parser.parse_args();
 
 run(args.out, args.forceDownload);

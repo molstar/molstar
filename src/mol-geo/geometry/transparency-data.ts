@@ -1,18 +1,24 @@
 /**
- * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { ValueCell } from '../../mol-util/value-cell';
-import { Vec2 } from '../../mol-math/linear-algebra';
+import { Vec2, Vec3, Vec4 } from '../../mol-math/linear-algebra';
 import { TextureImage, createTextureImage } from '../../mol-gl/renderable/util';
+import { createNullTexture, Texture } from '../../mol-gl/webgl/texture';
 
 export type TransparencyData = {
     tTransparency: ValueCell<TextureImage<Uint8Array>>
     uTransparencyTexDim: ValueCell<Vec2>
     dTransparency: ValueCell<boolean>,
     transparencyAverage: ValueCell<number>,
+
+    tTransparencyGrid: ValueCell<Texture>,
+    uTransparencyGridDim: ValueCell<Vec3>,
+    uTransparencyGridTransform: ValueCell<Vec4>,
+    dTransparencyType: ValueCell<string>,
 }
 
 export function applyTransparencyValue(array: Uint8Array, start: number, end: number, value: number) {
@@ -48,6 +54,11 @@ export function createTransparency(count: number, transparencyData?: Transparenc
             uTransparencyTexDim: ValueCell.create(Vec2.create(transparency.width, transparency.height)),
             dTransparency: ValueCell.create(count > 0),
             transparencyAverage: ValueCell.create(0),
+
+            tTransparencyGrid: ValueCell.create(createNullTexture()),
+            uTransparencyGridDim: ValueCell.create(Vec3.create(1, 1, 1)),
+            uTransparencyGridTransform: ValueCell.create(Vec4.create(0, 0, 0, 1)),
+            dTransparencyType: ValueCell.create('groupInstance'),
         };
     }
 }
@@ -64,6 +75,11 @@ export function createEmptyTransparency(transparencyData?: TransparencyData): Tr
             uTransparencyTexDim: ValueCell.create(Vec2.create(1, 1)),
             dTransparency: ValueCell.create(false),
             transparencyAverage: ValueCell.create(0),
+
+            tTransparencyGrid: ValueCell.create(createNullTexture()),
+            uTransparencyGridDim: ValueCell.create(Vec3.create(1, 1, 1)),
+            uTransparencyGridTransform: ValueCell.create(Vec4.create(0, 0, 0, 1)),
+            dTransparencyType: ValueCell.create('groupInstance'),
         };
     }
 }

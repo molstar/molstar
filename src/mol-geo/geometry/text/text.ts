@@ -29,6 +29,7 @@ import { createEmptyTransparency } from '../transparency-data';
 import { hashFnv32a } from '../../../mol-data/util';
 import { GroupMapping, createGroupMapping } from '../../util';
 import { createEmptyClipping } from '../clipping-data';
+import { createEmptySubstance } from '../substance-data';
 
 type TextAttachment = (
     'bottom-left' | 'bottom-center' | 'bottom-right' |
@@ -213,6 +214,7 @@ export namespace Text {
         const marker = createMarkers(instanceCount * groupCount);
         const overpaint = createEmptyOverpaint();
         const transparency = createEmptyTransparency();
+        const substance = createEmptySubstance();
         const clipping = createEmptyClipping();
 
         const counts = { drawCount: text.charCount * 2 * 3, vertexCount: text.charCount * 4, groupCount, instanceCount };
@@ -235,6 +237,7 @@ export namespace Text {
             ...marker,
             ...overpaint,
             ...transparency,
+            ...substance,
             ...clipping,
             ...transform,
 
@@ -245,7 +248,7 @@ export namespace Text {
             ...BaseGeometry.createValues(props, counts),
             uSizeFactor: ValueCell.create(props.sizeFactor),
 
-            uBorderWidth: ValueCell.create(clamp(props.borderWidth / 2, 0, 0.5)),
+            uBorderWidth: ValueCell.create(clamp(props.borderWidth, 0, 0.5)),
             uBorderColor: ValueCell.create(Color.toArrayNormalized(props.borderColor, Vec3.zero(), 0)),
             uOffsetX: ValueCell.create(props.offsetX),
             uOffsetY: ValueCell.create(props.offsetY),

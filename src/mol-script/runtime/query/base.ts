@@ -63,7 +63,7 @@ export type QueryCompiledSymbolRuntime = { kind: 'const', value: any } | { kind:
 export type CompiledQueryFn<T = any> = { isConst: boolean, fn: QueryFn }
 
 export namespace QueryCompiledSymbol {
-    export function Const(value: any): QueryCompiledSymbolRuntime  {
+    export function Const(value: any): QueryCompiledSymbolRuntime {
         return { kind: 'const', value };
     }
 
@@ -73,7 +73,7 @@ export namespace QueryCompiledSymbol {
 }
 
 export namespace CompiledQueryFn {
-    export function Const(value: any): CompiledQueryFn  {
+    export function Const(value: any): CompiledQueryFn {
         return { isConst: true, fn: function CompiledQueryFn_Const(ctx) { return value; } };
     }
 
@@ -120,7 +120,7 @@ class SymbolRuntimeImpl<S extends MSymbol> implements QuerySymbolRuntime {
             constArgs = true;
         } else if (Expression.isArgumentsArray(inputArgs)) {
             args = [];
-            constArgs = false;
+            constArgs = true;
             for (const arg of inputArgs) {
                 const compiled = _compile(ctx, arg);
                 constArgs = constArgs && compiled.isConst;
@@ -128,7 +128,7 @@ class SymbolRuntimeImpl<S extends MSymbol> implements QuerySymbolRuntime {
             }
         } else {
             args = Object.create(null);
-            constArgs = false;
+            constArgs = true;
             for (const key of Object.keys(inputArgs)) {
                 const compiled = _compile(ctx, inputArgs[key]);
                 constArgs = constArgs && compiled.isConst;

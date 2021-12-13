@@ -311,9 +311,9 @@ function testPiStacking(structure: Structure, infoA: Features.Info, infoB: Featu
         const offset = Math.min(getOffset(infoA, infoB, tmpNormalB), getOffset(infoB, infoA, tmpNormalA));
         if (offset <= opts.offsetMax) {
             if (angle <= opts.angleDevMax || angle >= deg180InRad - opts.angleDevMax) {
-                return InteractionType.PiStacking;  // parallel
+                return InteractionType.PiStacking; // parallel
             } else if (angle <= opts.angleDevMax + deg90InRad && angle >= deg90InRad - opts.angleDevMax) {
-                return InteractionType.PiStacking;  // t-shaped
+                return InteractionType.PiStacking; // t-shaped
             }
         }
     }

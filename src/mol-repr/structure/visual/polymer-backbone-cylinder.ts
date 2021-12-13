@@ -62,7 +62,7 @@ function createPolymerBackboneCylinderImpostor(ctx: VisualContext, unit: Unit, s
     const pB = Vec3();
     const pM = Vec3();
 
-    const add = function(indexA: ElementIndex, indexB: ElementIndex, groupA: number, groupB: number, moleculeType: MoleculeType) {
+    const add = function (indexA: ElementIndex, indexB: ElementIndex, groupA: number, groupB: number, moleculeType: MoleculeType) {
         pos(indexA, pA);
         pos(indexB, pB);
 
@@ -115,7 +115,7 @@ function createPolymerBackboneCylinderMesh(ctx: VisualContext, unit: Unit, struc
     const centerA = StructureElement.Location.create(structure, unit);
     const centerB = StructureElement.Location.create(structure, unit);
 
-    const add = function(indexA: ElementIndex, indexB: ElementIndex, groupA: number, groupB: number, moleculeType: MoleculeType) {
+    const add = function (indexA: ElementIndex, indexB: ElementIndex, groupA: number, groupB: number, moleculeType: MoleculeType) {
         centerA.element = indexA;
         centerB.element = indexB;
 

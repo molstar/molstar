@@ -65,7 +65,7 @@ export function getVolumeTexture2dLayout(dim: Vec3, padding = 0) {
     let rows = 1;
     let columns = width;
     if (powerOfTwoSize < width * dim[2]) {
-        columns =  Math.floor(powerOfTwoSize / width);
+        columns = Math.floor(powerOfTwoSize / width);
         rows = Math.ceil(dim[2] / columns);
         width *= columns;
         height *= rows;
@@ -86,7 +86,7 @@ export function createVolumeTexture2d(volume: Volume, variant: 'normals' | 'grou
     const textureImage = { array, width, height };
 
     const diff = max - min;
-    const [ xn, yn, zn ] = dim;
+    const [xn, yn, zn] = dim;
     const xnp = xn + padding;
     const ynp = yn + padding;
 
@@ -138,7 +138,7 @@ export function createVolumeTexture2d(volume: Volume, variant: 'normals' | 'grou
 
 export function createVolumeTexture3d(volume: Volume) {
     const { cells: { space, data }, stats: { max, min } } = volume.grid;
-    const [ width, height, depth ] = space.dimensions as Vec3;
+    const [width, height, depth] = space.dimensions as Vec3;
     const { dataOffset: o } = space;
 
     const array = new Uint8Array(width * height * depth * 4);

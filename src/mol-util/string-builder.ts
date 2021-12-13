@@ -100,7 +100,7 @@ namespace StringBuilder {
     export function writePadLeft(builder: StringBuilder, val: string, totalWidth: number) {
         if (!val) { whitespace(builder, totalWidth); return; }
 
-        let padding = totalWidth - val.length;
+        const padding = totalWidth - val.length;
         whitespace(builder, padding);
         writeSafe(builder, val);
     }
@@ -108,7 +108,7 @@ namespace StringBuilder {
     export function writePadRight(builder: StringBuilder, val: string, totalWidth: number) {
         if (!val) { whitespace(builder, totalWidth); return; }
 
-        let padding = totalWidth - val.length;
+        const padding = totalWidth - val.length;
         writeSafe(builder, val);
         whitespace(builder, padding);
     }
@@ -123,15 +123,15 @@ namespace StringBuilder {
     }
 
     export function writeIntegerPadLeft(builder: StringBuilder, val: number, totalWidth: number) {
-        let s = '' + val;
-        let padding = totalWidth - s.length;
+        const s = '' + val;
+        const padding = totalWidth - s.length;
         whitespace(builder, padding);
         writeSafe(builder, s);
     }
 
     export function writeIntegerPadRight(builder: StringBuilder, val: number, totalWidth: number) {
-        let s = '' + val;
-        let padding = totalWidth - s.length;
+        const s = '' + val;
+        const padding = totalWidth - s.length;
         writeSafe(builder, s);
         whitespace(builder, padding);
     }
@@ -144,15 +144,15 @@ namespace StringBuilder {
     }
 
     export function writeFloatPadLeft(builder: StringBuilder, val: number, precisionMultiplier: number, totalWidth: number) {
-        let s = '' + Math.round(precisionMultiplier * val) / precisionMultiplier;
-        let padding = totalWidth - s.length;
+        const s = '' + Math.round(precisionMultiplier * val) / precisionMultiplier;
+        const padding = totalWidth - s.length;
         whitespace(builder, padding);
         writeSafe(builder, s);
     }
 
     export function writeFloatPadRight(builder: StringBuilder, val: number, precisionMultiplier: number, totalWidth: number) {
-        let s = '' + Math.round(precisionMultiplier * val) / precisionMultiplier;
-        let padding = totalWidth - s.length;
+        const s = '' + Math.round(precisionMultiplier * val) / precisionMultiplier;
+        const padding = totalWidth - s.length;
         writeSafe(builder, s);
         whitespace(builder, padding);
     }

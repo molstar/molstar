@@ -458,14 +458,14 @@ export namespace SecondaryStructureType {
         Turn = 0x10,
 
         // category variant
-        LeftHanded = 0x20,  // helix
+        LeftHanded = 0x20, // helix
         RightHanded = 0x40,
 
-        ClassicTurn = 0x80,  // turn
+        ClassicTurn = 0x80, // turn
         InverseTurn = 0x100,
 
         // sub-category
-        HelixOther = 0x200,  // protein
+        HelixOther = 0x200, // protein
         Helix27 = 0x400,
         Helix3Ten = 0x800,
         HelixAlpha = 0x1000,
@@ -474,99 +474,99 @@ export namespace SecondaryStructureType {
         HelixPi = 0x8000,
         HelixPolyproline = 0x10000,
 
-        DoubleHelixOther = 0x20000,  // nucleic
+        DoubleHelixOther = 0x20000, // nucleic
         DoubleHelixZ = 0x40000,
         DoubleHelixA = 0x80000,
         DoubleHelixB = 0x100000,
 
-        BetaOther = 0x200000,  // protein
-        BetaStrand = 0x400000,  // single strand
-        BetaSheet = 0x800000,  // multiple hydrogen bonded strands
-        BetaBarell = 0x1000000,  // closed series of sheets
+        BetaOther = 0x200000, // protein
+        BetaStrand = 0x400000, // single strand
+        BetaSheet = 0x800000, // multiple hydrogen bonded strands
+        BetaBarell = 0x1000000, // closed series of sheets
 
-        TurnOther = 0x2000000,  // protein
+        TurnOther = 0x2000000, // protein
         Turn1 = 0x4000000,
         Turn2 = 0x8000000,
         Turn3 = 0x10000000,
 
-        NA = 0x20000000,  // not applicable/available
+        NA = 0x20000000, // not applicable/available
     }
 
     export const SecondaryStructureMmcif: { [value: string]: number } = {
-        HELX_LH_27_P: Flag.Helix | Flag.LeftHanded | Flag.Helix27,  // left-handed 2-7 helix (protein)
-        HELX_LH_3T_P: Flag.Helix | Flag.LeftHanded | Flag.Helix3Ten,  // left-handed 3-10 helix (protein)
-        HELX_LH_AL_P: Flag.Helix | Flag.LeftHanded | Flag.HelixAlpha,  // left-handed alpha helix (protein)
-        HELX_LH_A_N: Flag.DoubleHelix | Flag.LeftHanded | Flag.DoubleHelixA,  // left-handed A helix (nucleic acid)
-        HELX_LH_B_N: Flag.DoubleHelix | Flag.LeftHanded | Flag.DoubleHelixB,  // left-handed B helix (nucleic acid)
-        HELX_LH_GA_P: Flag.Helix | Flag.LeftHanded | Flag.HelixGamma,  // left-handed gamma helix (protein)
-        HELX_LH_N: Flag.DoubleHelix | Flag.LeftHanded,  // left-handed helix with type not specified (nucleic acid)
-        HELX_LH_OM_P: Flag.Helix | Flag.LeftHanded | Flag.HelixOmega,  // left-handed omega helix (protein)
-        HELX_LH_OT_N: Flag.DoubleHelix | Flag.LeftHanded | Flag.DoubleHelixOther,  // left-handed helix with type that does not conform to an accepted category (nucleic acid)
-        HELX_LH_OT_P: Flag.Helix | Flag.LeftHanded | Flag.HelixOther,  // left-handed helix with type that does not conform to an accepted category (protein)
-        HELX_LH_P: Flag.Helix | Flag.LeftHanded,  // left-handed helix with type not specified (protein)
-        HELX_LH_PI_P: Flag.Helix | Flag.LeftHanded | Flag.HelixPi,  // left-handed pi helix (protein)
-        HELX_LH_PP_P: Flag.Helix | Flag.LeftHanded | Flag.HelixPolyproline,  // left-handed polyproline helix (protein)
-        HELX_LH_Z_N: Flag.DoubleHelix | Flag.LeftHanded | Flag.DoubleHelixZ,  // left-handed Z helix (nucleic acid)
-        HELX_N: Flag.DoubleHelix,  // helix with handedness and type not specified (nucleic acid)
-        HELX_OT_N: Flag.DoubleHelix,  // helix with handedness and type that do not conform to an accepted category (nucleic acid)
-        HELX_OT_P: Flag.Helix,  // helix with handedness and type that do not conform to an accepted category (protein)
-        HELX_P: Flag.Helix,  // helix with handedness and type not specified (protein)
-        HELX_RH_27_P: Flag.Helix | Flag.RightHanded | Flag.Helix27,  // right-handed 2-7 helix (protein)
-        HELX_RH_3T_P: Flag.Helix | Flag.RightHanded | Flag.Helix3Ten,  // right-handed 3-10 helix (protein)
-        HELX_RH_AL_P: Flag.Helix | Flag.RightHanded | Flag.HelixAlpha,  // right-handed alpha helix (protein)
-        HELX_RH_A_N: Flag.DoubleHelix | Flag.RightHanded | Flag.DoubleHelixA,  // right-handed A helix (nucleic acid)
-        HELX_RH_B_N: Flag.DoubleHelix | Flag.RightHanded | Flag.DoubleHelixB,  // right-handed B helix (nucleic acid)
-        HELX_RH_GA_P: Flag.Helix | Flag.RightHanded | Flag.HelixGamma,  // right-handed gamma helix (protein)
-        HELX_RH_N: Flag.DoubleHelix | Flag.RightHanded,  // right-handed helix with type not specified (nucleic acid)
-        HELX_RH_OM_P: Flag.Helix | Flag.RightHanded | Flag.HelixOmega,  // right-handed omega helix (protein)
-        HELX_RH_OT_N: Flag.DoubleHelix | Flag.RightHanded | Flag.DoubleHelixOther,  // right-handed helix with type that does not conform to an accepted category (nucleic acid)
-        HELX_RH_OT_P: Flag.Helix | Flag.RightHanded | Flag.HelixOther,  // right-handed helix with type that does not conform to an accepted category (protein)
-        HELX_RH_P: Flag.Helix | Flag.RightHanded,  // right-handed helix with type not specified (protein)
-        HELX_RH_PI_P: Flag.Helix | Flag.RightHanded | Flag.HelixPi,  // right-handed pi helix (protein)
-        HELX_RH_PP_P: Flag.Helix | Flag.RightHanded | Flag.HelixPolyproline,  // right-handed polyproline helix (protein)
-        HELX_RH_Z_N: Flag.DoubleHelix | Flag.RightHanded | Flag.DoubleHelixZ,  // right-handed Z helix (nucleic acid)
-        STRN: Flag.Beta | Flag.BetaStrand,  // beta strand (protein)
-        TURN_OT_P: Flag.Turn | Flag.TurnOther,  // turn with type that does not conform to an accepted category (protein)
-        TURN_P: Flag.Turn,  // turn with type not specified (protein)
-        TURN_TY1P_P: Flag.Turn | Flag.InverseTurn | Flag.Turn1,  // type I prime turn (protein)
-        TURN_TY1_P: Flag.Turn | Flag.ClassicTurn | Flag.Turn1,  // type I turn (protein)
-        TURN_TY2P_P: Flag.Turn | Flag.InverseTurn | Flag.Turn2,  // type II prime turn (protein)
-        TURN_TY2_P: Flag.Turn | Flag.ClassicTurn | Flag.Turn2,  // type II turn (protein)
-        TURN_TY3P_P: Flag.Turn | Flag.InverseTurn | Flag.Turn3,  // type III prime turn (protein)
-        TURN_TY3_P: Flag.Turn | Flag.ClassicTurn | Flag.Turn3,  // type III turn (protein)
+        HELX_LH_27_P: Flag.Helix | Flag.LeftHanded | Flag.Helix27, // left-handed 2-7 helix (protein)
+        HELX_LH_3T_P: Flag.Helix | Flag.LeftHanded | Flag.Helix3Ten, // left-handed 3-10 helix (protein)
+        HELX_LH_AL_P: Flag.Helix | Flag.LeftHanded | Flag.HelixAlpha, // left-handed alpha helix (protein)
+        HELX_LH_A_N: Flag.DoubleHelix | Flag.LeftHanded | Flag.DoubleHelixA, // left-handed A helix (nucleic acid)
+        HELX_LH_B_N: Flag.DoubleHelix | Flag.LeftHanded | Flag.DoubleHelixB, // left-handed B helix (nucleic acid)
+        HELX_LH_GA_P: Flag.Helix | Flag.LeftHanded | Flag.HelixGamma, // left-handed gamma helix (protein)
+        HELX_LH_N: Flag.DoubleHelix | Flag.LeftHanded, // left-handed helix with type not specified (nucleic acid)
+        HELX_LH_OM_P: Flag.Helix | Flag.LeftHanded | Flag.HelixOmega, // left-handed omega helix (protein)
+        HELX_LH_OT_N: Flag.DoubleHelix | Flag.LeftHanded | Flag.DoubleHelixOther, // left-handed helix with type that does not conform to an accepted category (nucleic acid)
+        HELX_LH_OT_P: Flag.Helix | Flag.LeftHanded | Flag.HelixOther, // left-handed helix with type that does not conform to an accepted category (protein)
+        HELX_LH_P: Flag.Helix | Flag.LeftHanded, // left-handed helix with type not specified (protein)
+        HELX_LH_PI_P: Flag.Helix | Flag.LeftHanded | Flag.HelixPi, // left-handed pi helix (protein)
+        HELX_LH_PP_P: Flag.Helix | Flag.LeftHanded | Flag.HelixPolyproline, // left-handed polyproline helix (protein)
+        HELX_LH_Z_N: Flag.DoubleHelix | Flag.LeftHanded | Flag.DoubleHelixZ, // left-handed Z helix (nucleic acid)
+        HELX_N: Flag.DoubleHelix, // helix with handedness and type not specified (nucleic acid)
+        HELX_OT_N: Flag.DoubleHelix, // helix with handedness and type that do not conform to an accepted category (nucleic acid)
+        HELX_OT_P: Flag.Helix, // helix with handedness and type that do not conform to an accepted category (protein)
+        HELX_P: Flag.Helix, // helix with handedness and type not specified (protein)
+        HELX_RH_27_P: Flag.Helix | Flag.RightHanded | Flag.Helix27, // right-handed 2-7 helix (protein)
+        HELX_RH_3T_P: Flag.Helix | Flag.RightHanded | Flag.Helix3Ten, // right-handed 3-10 helix (protein)
+        HELX_RH_AL_P: Flag.Helix | Flag.RightHanded | Flag.HelixAlpha, // right-handed alpha helix (protein)
+        HELX_RH_A_N: Flag.DoubleHelix | Flag.RightHanded | Flag.DoubleHelixA, // right-handed A helix (nucleic acid)
+        HELX_RH_B_N: Flag.DoubleHelix | Flag.RightHanded | Flag.DoubleHelixB, // right-handed B helix (nucleic acid)
+        HELX_RH_GA_P: Flag.Helix | Flag.RightHanded | Flag.HelixGamma, // right-handed gamma helix (protein)
+        HELX_RH_N: Flag.DoubleHelix | Flag.RightHanded, // right-handed helix with type not specified (nucleic acid)
+        HELX_RH_OM_P: Flag.Helix | Flag.RightHanded | Flag.HelixOmega, // right-handed omega helix (protein)
+        HELX_RH_OT_N: Flag.DoubleHelix | Flag.RightHanded | Flag.DoubleHelixOther, // right-handed helix with type that does not conform to an accepted category (nucleic acid)
+        HELX_RH_OT_P: Flag.Helix | Flag.RightHanded | Flag.HelixOther, // right-handed helix with type that does not conform to an accepted category (protein)
+        HELX_RH_P: Flag.Helix | Flag.RightHanded, // right-handed helix with type not specified (protein)
+        HELX_RH_PI_P: Flag.Helix | Flag.RightHanded | Flag.HelixPi, // right-handed pi helix (protein)
+        HELX_RH_PP_P: Flag.Helix | Flag.RightHanded | Flag.HelixPolyproline, // right-handed polyproline helix (protein)
+        HELX_RH_Z_N: Flag.DoubleHelix | Flag.RightHanded | Flag.DoubleHelixZ, // right-handed Z helix (nucleic acid)
+        STRN: Flag.Beta | Flag.BetaStrand, // beta strand (protein)
+        TURN_OT_P: Flag.Turn | Flag.TurnOther, // turn with type that does not conform to an accepted category (protein)
+        TURN_P: Flag.Turn, // turn with type not specified (protein)
+        TURN_TY1P_P: Flag.Turn | Flag.InverseTurn | Flag.Turn1, // type I prime turn (protein)
+        TURN_TY1_P: Flag.Turn | Flag.ClassicTurn | Flag.Turn1, // type I turn (protein)
+        TURN_TY2P_P: Flag.Turn | Flag.InverseTurn | Flag.Turn2, // type II prime turn (protein)
+        TURN_TY2_P: Flag.Turn | Flag.ClassicTurn | Flag.Turn2, // type II turn (protein)
+        TURN_TY3P_P: Flag.Turn | Flag.InverseTurn | Flag.Turn3, // type III prime turn (protein)
+        TURN_TY3_P: Flag.Turn | Flag.ClassicTurn | Flag.Turn3, // type III turn (protein)
     };
 
     export const SecondaryStructurePdb: { [value: string]: number } = {
-        1: Flag.Helix | Flag.RightHanded | Flag.HelixAlpha,  // Right-handed alpha (default)
-        2: Flag.Helix | Flag.RightHanded | Flag.HelixOmega,  // Right-handed omega
-        3: Flag.Helix | Flag.RightHanded | Flag.HelixPi,  // Right-handed pi
-        4: Flag.Helix | Flag.RightHanded | Flag.HelixGamma,  // Right-handed gamma
-        5: Flag.Helix | Flag.RightHanded | Flag.Helix3Ten,  // Right-handed 310
-        6: Flag.Helix | Flag.LeftHanded | Flag.HelixAlpha,  // Left-handed alpha
-        7: Flag.Helix | Flag.LeftHanded | Flag.HelixOmega,  // Left-handed omega
-        8: Flag.Helix | Flag.LeftHanded | Flag.HelixGamma,  // Left-handed gamma
-        9: Flag.Helix | Flag.Helix27,  // 27 ribbon/helix
-        10: Flag.Helix | Flag.HelixPolyproline,  // Polyproline
+        1: Flag.Helix | Flag.RightHanded | Flag.HelixAlpha, // Right-handed alpha (default)
+        2: Flag.Helix | Flag.RightHanded | Flag.HelixOmega, // Right-handed omega
+        3: Flag.Helix | Flag.RightHanded | Flag.HelixPi, // Right-handed pi
+        4: Flag.Helix | Flag.RightHanded | Flag.HelixGamma, // Right-handed gamma
+        5: Flag.Helix | Flag.RightHanded | Flag.Helix3Ten, // Right-handed 310
+        6: Flag.Helix | Flag.LeftHanded | Flag.HelixAlpha, // Left-handed alpha
+        7: Flag.Helix | Flag.LeftHanded | Flag.HelixOmega, // Left-handed omega
+        8: Flag.Helix | Flag.LeftHanded | Flag.HelixGamma, // Left-handed gamma
+        9: Flag.Helix | Flag.Helix27, // 27 ribbon/helix
+        10: Flag.Helix | Flag.HelixPolyproline, // Polyproline
     };
 
     export const SecondaryStructureStride: { [value: string]: number } = {
-        H: Flag.Helix | Flag.HelixAlpha,  // Alpha helix
-        G: Flag.Helix | Flag.Helix3Ten,  // 3-10 helix
-        I: Flag.Helix | Flag.HelixPi,  // PI-helix
-        E: Flag.Beta | Flag.BetaSheet,  // Extended conformation
-        B: Flag.Beta | Flag.BetaStrand,  // Isolated bridge
-        T: Flag.Turn,  // Turn
-        C: Flag.NA,  // Coil (none of the above)
+        H: Flag.Helix | Flag.HelixAlpha, // Alpha helix
+        G: Flag.Helix | Flag.Helix3Ten, // 3-10 helix
+        I: Flag.Helix | Flag.HelixPi, // PI-helix
+        E: Flag.Beta | Flag.BetaSheet, // Extended conformation
+        B: Flag.Beta | Flag.BetaStrand, // Isolated bridge
+        T: Flag.Turn, // Turn
+        C: Flag.NA, // Coil (none of the above)
     };
 
     export const SecondaryStructureDssp: { [value: string]: number } = {
-        H: Flag.Helix | Flag.HelixAlpha,  // alpha-helix
-        B: Flag.Beta | Flag.BetaStrand,  // residue in isolated beta-bridge
-        E: Flag.Beta | Flag.BetaSheet,  // extended strand, participates in beta ladder
-        G: Flag.Helix | Flag.Helix3Ten,  // 3-helix (310 helix)
-        I: Flag.Helix | Flag.HelixPi,  // 5 helix (pi-helix)
-        T: Flag.Turn,  // hydrogen bonded turn
-        S: Flag.Bend,  // bend
+        H: Flag.Helix | Flag.HelixAlpha, // alpha-helix
+        B: Flag.Beta | Flag.BetaStrand, // residue in isolated beta-bridge
+        E: Flag.Beta | Flag.BetaSheet, // extended strand, participates in beta ladder
+        G: Flag.Helix | Flag.Helix3Ten, // 3-helix (310 helix)
+        I: Flag.Helix | Flag.HelixPi, // 5 helix (pi-helix)
+        T: Flag.Turn, // hydrogen bonded turn
+        S: Flag.Bend, // bend
     };
 }
 

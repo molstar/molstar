@@ -53,8 +53,19 @@ uniform int uGroupCount;
 
 uniform vec3 uHighlightColor;
 uniform vec3 uSelectColor;
-uniform vec2 uMarkerTexDim;
-uniform sampler2D tMarker;
+uniform float uHighlightStrength;
+uniform float uSelectStrength;
+uniform int uMarkerPriority;
+
+#if defined(dMarkerType_uniform)
+    uniform float uMarker;
+#elif defined(dMarkerType_groupInstance)
+    uniform vec2 uMarkerTexDim;
+    uniform sampler2D tMarker;
+#endif
+
+uniform float uMetalness;
+uniform float uRoughness;
 
 uniform float uFogNear;
 uniform float uFogFar;
@@ -68,6 +79,8 @@ uniform float uInteriorDarkening;
 uniform bool uInteriorColorFlag;
 uniform vec3 uInteriorColor;
 bool interior;
+
+uniform bool uRenderWboit;
 
 uniform float uNear;
 uniform float uFar;
@@ -100,9 +113,17 @@ uniform mat4 uCartnToUnit;
     #endif
 
     #ifdef dOverpaint
-        varying vec4 vOverpaint;
-        uniform vec2 uOverpaintTexDim;
-        uniform sampler2D tOverpaint;
+        #if defined(dOverpaintType_groupInstance) || defined(dOverpaintType_vertexInstance)
+            uniform vec2 uOverpaintTexDim;
+            uniform sampler2D tOverpaint;
+        #endif
+    #endif
+
+    #ifdef dSubstance
+        #if defined(dSubstanceType_groupInstance) || defined(dSubstanceType_vertexInstance)
+            uniform vec2 uSubstanceTexDim;
+            uniform sampler2D tSubstance;
+        #endif
     #endif
 #endif
 
@@ -122,7 +143,10 @@ uniform mat4 uCartnToUnit;
     }
 #endif
 
-#include wboit_params
+float calcDepth(const in vec3 pos) {
+    vec2 clipZW = pos.z * uProjection[2].zw + uProjection[3].zw;
+    return 0.5 + 0.5 * clipZW.x / clipZW.y;
+}
 
 vec4 transferFunction(float value) {
     return texture2D(tTransferTex, vec2(value, 0.0));
@@ -179,6 +203,11 @@ vec4 raymarch(vec3 startLoc, vec3 step, vec3 rayDir) {
     float nextValue;
 
     vec3 color = vec3(0.45, 0.55, 0.8);
+    vec4 overpaint = vec4(0.0);
+    vec3 substance = vec3(0.0);
+    float metalness = uMetalness;
+    float roughness = uRoughness;
+
     vec3 gradient = vec3(1.0);
     vec3 dx = vec3(gradOffset * scaleVol.x, 0.0, 0.0);
     vec3 dy = vec3(0.0, gradOffset * scaleVol.y, 0.0);
@@ -284,6 +313,16 @@ vec4 raymarch(vec3 startLoc, vec3 step, vec3 rayDir) {
                         color = texture3dFrom1dTrilinear(tColor, isoPos, uGridDim, uColorTexDim, vInstance * float(uVertexCount)).rgb;
                     #endif
 
+                    #ifdef dOverpaint
+                        #if defined(dOverpaintType_groupInstance)
+                            overpaint = readFromTexture(tOverpaint, vInstance * float(uGroupCount) + group, uOverpaintTexDim);
+                        #elif defined(dOverpaintType_vertexInstance)
+                            overpaint = texture3dFrom1dTrilinear(tOverpaint, isoPos, uGridDim, uOverpaintTexDim, vInstance * float(uVertexCount));
+                        #endif
+
+                        color = mix(color, overpaint.rgb, overpaint.a);
+                    #endif
+
                     // handle flipping and negative isosurfaces
                     #ifdef dFlipSided
                         bool flipped = value < uIsoValue.y; // flipped
@@ -319,10 +358,24 @@ vec4 raymarch(vec3 startLoc, vec3 step, vec3 rayDir) {
                         vec3 normal = -normalize(normalMatrix * normalize(gradient));
                         normal = normal * (float(flipped) * 2.0 - 1.0);
                         normal = normal * -(float(interior) * 2.0 - 1.0);
+                        #ifdef dSubstance
+                            #if defined(dSubstanceType_groupInstance)
+                                substance = readFromTexture(tSubstance, vInstance * float(uGroupCount) + group, uSubstanceTexDim).rgb;
+                            #elif defined(dSubstanceType_vertexInstance)
+                                substance = texture3dFrom1dTrilinear(tSubstance, isoPos, uGridDim, uSubstanceTexDim, vInstance * float(uVertexCount)).rgb;
+                            #endif
+                            metalness = mix(metalness, substance.r, substance.b);
+                            roughness = mix(roughness, substance.g, substance.b);
+                        #endif
                         #include apply_light_color
                     #endif
 
-                    float vMarker = readFromTexture(tMarker, vInstance * float(uGroupCount) + group, uMarkerTexDim).a;
+                    #if defined(dMarkerType_uniform)
+                        float marker = uMarker;
+                    #elif defined(dMarkerType_groupInstance)
+                        float marker = readFromTexture(tMarker, vInstance * float(uGroupCount) + group, uMarkerTexDim).a;
+                        marker = floor(marker * 255.0 + 0.5); // rounding required to work on some cards on win
+                    #endif
                     #include apply_interior_color
                     #include apply_marker_color
 
@@ -385,14 +438,18 @@ vec4 raymarch(vec3 startLoc, vec3 step, vec3 rayDir) {
 
                 gl_FragColor.a = material.a * uAlpha * uTransferScale;
 
-                #ifdef dPackedGroup
-                    float group = decodeFloatRGB(textureGroup(floor(unitPos * uGridDim + 0.5) / uGridDim).rgb);
-                #else
-                    vec3 g = floor(unitPos * uGridDim + 0.5);
-                    float group = g.z + g.y * uGridDim.z + g.x * uGridDim.z * uGridDim.y;
+                #if defined(dMarkerType_uniform)
+                    float marker = uMarker;
+                #elif defined(dMarkerType_groupInstance)
+                    #ifdef dPackedGroup
+                        float group = decodeFloatRGB(textureGroup(floor(unitPos * uGridDim + 0.5) / uGridDim).rgb);
+                    #else
+                        vec3 g = floor(unitPos * uGridDim + 0.5);
+                        float group = g.z + g.y * uGridDim.z + g.x * uGridDim.z * uGridDim.y;
+                    #endif
+                    float marker = readFromTexture(tMarker, vInstance * float(uGroupCount) + group, uMarkerTexDim).a;
+                    marker = floor(marker * 255.0 + 0.5); // rounding required to work on some cards on win
                 #endif
-
-                float vMarker = readFromTexture(tMarker, vInstance * float(uGroupCount) + group, uMarkerTexDim).a;
                 #include apply_marker_color
 
                 preFogAlphaBlended = (1.0 - preFogAlphaBlended) * gl_FragColor.a + preFogAlphaBlended;
@@ -431,6 +488,11 @@ vec4 raymarch(vec3 startLoc, vec3 step, vec3 rayDir) {
 void main() {
     if (gl_FrontFacing)
         discard;
+
+    #ifdef dRenderVariant_marking
+        // not supported
+        discard;
+    #endif
 
     #if defined(dRenderVariant_pick) || defined(dRenderVariant_depth)
         #if defined(dRenderMode_volume)

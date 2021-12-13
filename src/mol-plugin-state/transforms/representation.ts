@@ -24,11 +24,11 @@ import { unwindStructureAssembly, explodeStructure, spinStructure, SpinStructure
 import { Color } from '../../mol-util/color';
 import { Overpaint } from '../../mol-theme/overpaint';
 import { Transparency } from '../../mol-theme/transparency';
-import { BaseGeometry } from '../../mol-geo/geometry/base';
+import { BaseGeometry, hasColorSmoothingProp } from '../../mol-geo/geometry/base';
 import { Script } from '../../mol-script/script';
 import { UnitcellParams, UnitcellRepresentation, getUnitcellData } from '../../mol-repr/shape/model/unitcell';
 import { DistanceParams, DistanceRepresentation } from '../../mol-repr/shape/loci/distance';
-import { getDistanceDataFromStructureSelections, getLabelDataFromStructureSelections, getOrientationDataFromStructureSelections, getAngleDataFromStructureSelections, getDihedralDataFromStructureSelections } from './helpers';
+import { getDistanceDataFromStructureSelections, getLabelDataFromStructureSelections, getOrientationDataFromStructureSelections, getAngleDataFromStructureSelections, getDihedralDataFromStructureSelections, getPlaneDataFromStructureSelections } from './helpers';
 import { LabelParams, LabelRepresentation } from '../../mol-repr/shape/loci/label';
 import { OrientationRepresentation, OrientationParams } from '../../mol-repr/shape/loci/orientation';
 import { AngleParams, AngleRepresentation } from '../../mol-repr/shape/loci/angle';
@@ -40,6 +40,9 @@ import { Mesh } from '../../mol-geo/geometry/mesh/mesh';
 import { getBoxMesh } from './shape';
 import { Shape } from '../../mol-model/shape';
 import { Box3D } from '../../mol-math/geometry';
+import { PlaneParams, PlaneRepresentation } from '../../mol-repr/shape/loci/plane';
+import { Substance } from '../../mol-theme/substance';
+import { Material } from '../../mol-util/material';
 
 export { StructureRepresentation3D };
 export { ExplodeStructureRepresentation3D };
@@ -49,6 +52,8 @@ export { OverpaintStructureRepresentation3DFromScript };
 export { OverpaintStructureRepresentation3DFromBundle };
 export { TransparencyStructureRepresentation3DFromScript };
 export { TransparencyStructureRepresentation3DFromBundle };
+export { SubstanceStructureRepresentation3DFromScript };
+export { SubstanceStructureRepresentation3DFromBundle };
 export { ClippingStructureRepresentation3DFromScript };
 export { ClippingStructureRepresentation3DFromBundle };
 export { VolumeRepresentation3D };
@@ -236,23 +241,23 @@ const ExplodeStructureRepresentation3D = PluginStateTransform.BuiltIn({
     },
     apply({ a, params }) {
         const structure = a.data.sourceData;
-        const unitTransforms = new StructureUnitTransforms(structure.root);
-        explodeStructure(structure, unitTransforms, params.t);
+        const unitTransforms = new StructureUnitTransforms(structure);
+        explodeStructure(structure, unitTransforms, params.t, structure.root.boundary.sphere);
         return new SO.Molecule.Structure.Representation3DState({
             state: { unitTransforms },
-            initialState: { unitTransforms: new StructureUnitTransforms(structure.root) },
-            info: structure.root,
+            initialState: { unitTransforms: new StructureUnitTransforms(structure) },
+            info: structure,
             repr: a.data.repr
         }, { label: `Explode T = ${params.t.toFixed(2)}` });
     },
     update({ a, b, newParams, oldParams }) {
         const structure = a.data.sourceData;
-        if (b.data.info !== structure.root) return StateTransformer.UpdateResult.Recreate;
+        if (b.data.info !== structure) return StateTransformer.UpdateResult.Recreate;
         if (a.data.repr !== b.data.repr) return StateTransformer.UpdateResult.Recreate;
 
         if (oldParams.t === newParams.t) return StateTransformer.UpdateResult.Unchanged;
         const unitTransforms = b.data.state.unitTransforms!;
-        explodeStructure(structure.root, unitTransforms, newParams.t);
+        explodeStructure(structure, unitTransforms, newParams.t, structure.root.boundary.sphere);
         b.label = `Explode T = ${newParams.t.toFixed(2)}`;
         b.data.repr = a.data.repr;
         return StateTransformer.UpdateResult.Updated;
@@ -275,27 +280,27 @@ const SpinStructureRepresentation3D = PluginStateTransform.BuiltIn({
     },
     apply({ a, params }) {
         const structure = a.data.sourceData;
-        const unitTransforms = new StructureUnitTransforms(structure.root);
+        const unitTransforms = new StructureUnitTransforms(structure);
 
         const { axis, origin } = getSpinStructureAxisAndOrigin(structure.root, params);
         spinStructure(structure, unitTransforms, params.t, axis, origin);
         return new SO.Molecule.Structure.Representation3DState({
             state: { unitTransforms },
-            initialState: { unitTransforms: new StructureUnitTransforms(structure.root) },
-            info: structure.root,
+            initialState: { unitTransforms: new StructureUnitTransforms(structure) },
+            info: structure,
             repr: a.data.repr
         }, { label: `Spin T = ${params.t.toFixed(2)}` });
     },
     update({ a, b, newParams, oldParams }) {
         const structure = a.data.sourceData;
-        if (b.data.info !== structure.root) return StateTransformer.UpdateResult.Recreate;
+        if (b.data.info !== structure) return StateTransformer.UpdateResult.Recreate;
         if (a.data.repr !== b.data.repr) return StateTransformer.UpdateResult.Recreate;
 
         if (oldParams.t === newParams.t && oldParams.axis === newParams.axis && oldParams.origin === newParams.origin) return StateTransformer.UpdateResult.Unchanged;
 
         const unitTransforms = b.data.state.unitTransforms!;
         const { axis, origin } = getSpinStructureAxisAndOrigin(structure.root, newParams);
-        spinStructure(structure.root, unitTransforms, newParams.t, axis, origin);
+        spinStructure(structure, unitTransforms, newParams.t, axis, origin);
         b.label = `Spin T = ${newParams.t.toFixed(2)}`;
         b.data.repr = a.data.repr;
         return StateTransformer.UpdateResult.Updated;
@@ -327,25 +332,31 @@ const OverpaintStructureRepresentation3DFromScript = PluginStateTransform.BuiltI
     },
     apply({ a, params }) {
         const structure = a.data.sourceData;
+        const geometryVersion = a.data.repr.geometryVersion;
         const overpaint = Overpaint.ofScript(params.layers, structure);
 
         return new SO.Molecule.Structure.Representation3DState({
             state: { overpaint },
             initialState: { overpaint: Overpaint.Empty },
-            info: structure,
+            info: { structure, geometryVersion },
             repr: a.data.repr
         }, { label: `Overpaint (${overpaint.layers.length} Layers)` });
     },
     update({ a, b, newParams, oldParams }) {
-        const oldStructure = b.data.info as Structure;
+        const info = b.data.info as { structure: Structure, geometryVersion: number };
         const newStructure = a.data.sourceData;
-        if (newStructure !== oldStructure) return StateTransformer.UpdateResult.Recreate;
+        if (newStructure !== info.structure) return StateTransformer.UpdateResult.Recreate;
         if (a.data.repr !== b.data.repr) return StateTransformer.UpdateResult.Recreate;
+
+        const newGeometryVersion = a.data.repr.geometryVersion;
+        // smoothing needs to be re-calculated when geometry changes
+        if (newGeometryVersion !== info.geometryVersion && hasColorSmoothingProp(a.data.repr.props)) return StateTransformer.UpdateResult.Unchanged;
 
         const oldOverpaint = b.data.state.overpaint!;
         const newOverpaint = Overpaint.ofScript(newParams.layers, newStructure);
         if (Overpaint.areEqual(oldOverpaint, newOverpaint)) return StateTransformer.UpdateResult.Unchanged;
 
+        info.geometryVersion = newGeometryVersion;
         b.data.state.overpaint = newOverpaint;
         b.data.repr = a.data.repr;
         b.label = `Overpaint (${newOverpaint.layers.length} Layers)`;
@@ -379,25 +390,31 @@ const OverpaintStructureRepresentation3DFromBundle = PluginStateTransform.BuiltI
     },
     apply({ a, params }) {
         const structure = a.data.sourceData;
+        const geometryVersion = a.data.repr.geometryVersion;
         const overpaint = Overpaint.ofBundle(params.layers, structure);
 
         return new SO.Molecule.Structure.Representation3DState({
             state: { overpaint },
             initialState: { overpaint: Overpaint.Empty },
-            info: structure,
+            info: { structure, geometryVersion },
             repr: a.data.repr
         }, { label: `Overpaint (${overpaint.layers.length} Layers)` });
     },
     update({ a, b, newParams, oldParams }) {
-        const oldStructure = b.data.info as Structure;
+        const info = b.data.info as { structure: Structure, geometryVersion: number };
         const newStructure = a.data.sourceData;
-        if (newStructure !== oldStructure) return StateTransformer.UpdateResult.Recreate;
+        if (newStructure !== info.structure) return StateTransformer.UpdateResult.Recreate;
         if (a.data.repr !== b.data.repr) return StateTransformer.UpdateResult.Recreate;
+
+        const newGeometryVersion = a.data.repr.geometryVersion;
+        // smoothing needs to be re-calculated when geometry changes
+        if (newGeometryVersion !== info.geometryVersion && hasColorSmoothingProp(a.data.repr.props)) return StateTransformer.UpdateResult.Unchanged;
 
         const oldOverpaint = b.data.state.overpaint!;
         const newOverpaint = Overpaint.ofBundle(newParams.layers, newStructure);
         if (Overpaint.areEqual(oldOverpaint, newOverpaint)) return StateTransformer.UpdateResult.Unchanged;
 
+        info.geometryVersion = newGeometryVersion;
         b.data.state.overpaint = newOverpaint;
         b.data.repr = a.data.repr;
         b.label = `Overpaint (${newOverpaint.layers.length} Layers)`;
@@ -428,24 +445,31 @@ const TransparencyStructureRepresentation3DFromScript = PluginStateTransform.Bui
     },
     apply({ a, params }) {
         const structure = a.data.sourceData;
+        const geometryVersion = a.data.repr.geometryVersion;
         const transparency = Transparency.ofScript(params.layers, structure);
 
         return new SO.Molecule.Structure.Representation3DState({
             state: { transparency },
             initialState: { transparency: Transparency.Empty },
-            info: structure,
+            info: { structure, geometryVersion },
             repr: a.data.repr
         }, { label: `Transparency (${transparency.layers.length} Layers)` });
     },
     update({ a, b, newParams, oldParams }) {
-        const structure = b.data.info as Structure;
-        if (a.data.sourceData !== structure) return StateTransformer.UpdateResult.Recreate;
+        const info = b.data.info as { structure: Structure, geometryVersion: number };
+        const newStructure = a.data.sourceData;
+        if (newStructure !== info.structure) return StateTransformer.UpdateResult.Recreate;
         if (a.data.repr !== b.data.repr) return StateTransformer.UpdateResult.Recreate;
 
+        const newGeometryVersion = a.data.repr.geometryVersion;
+        // smoothing needs to be re-calculated when geometry changes
+        if (newGeometryVersion !== info.geometryVersion && hasColorSmoothingProp(a.data.repr.props)) return StateTransformer.UpdateResult.Unchanged;
+
         const oldTransparency = b.data.state.transparency!;
-        const newTransparency = Transparency.ofScript(newParams.layers, structure);
+        const newTransparency = Transparency.ofScript(newParams.layers, newStructure);
         if (Transparency.areEqual(oldTransparency, newTransparency)) return StateTransformer.UpdateResult.Unchanged;
 
+        info.geometryVersion = newGeometryVersion;
         b.data.state.transparency = newTransparency;
         b.data.repr = a.data.repr;
         b.label = `Transparency (${newTransparency.layers.length} Layers)`;
@@ -477,27 +501,149 @@ const TransparencyStructureRepresentation3DFromBundle = PluginStateTransform.Bui
     },
     apply({ a, params }) {
         const structure = a.data.sourceData;
+        const geometryVersion = a.data.repr.geometryVersion;
         const transparency = Transparency.ofBundle(params.layers, structure);
 
         return new SO.Molecule.Structure.Representation3DState({
             state: { transparency },
             initialState: { transparency: Transparency.Empty },
-            info: structure,
+            info: { structure, geometryVersion },
             repr: a.data.repr
         }, { label: `Transparency (${transparency.layers.length} Layers)` });
     },
     update({ a, b, newParams, oldParams }) {
-        const structure = b.data.info as Structure;
-        if (a.data.sourceData !== structure) return StateTransformer.UpdateResult.Recreate;
+        const info = b.data.info as { structure: Structure, geometryVersion: number };
+        const newStructure = a.data.sourceData;
+        if (newStructure !== info.structure) return StateTransformer.UpdateResult.Recreate;
         if (a.data.repr !== b.data.repr) return StateTransformer.UpdateResult.Recreate;
 
+        const newGeometryVersion = a.data.repr.geometryVersion;
+        // smoothing needs to be re-calculated when geometry changes
+        if (newGeometryVersion !== info.geometryVersion && hasColorSmoothingProp(a.data.repr.props)) return StateTransformer.UpdateResult.Unchanged;
+
         const oldTransparency = b.data.state.transparency!;
-        const newTransparency = Transparency.ofBundle(newParams.layers, structure);
+        const newTransparency = Transparency.ofBundle(newParams.layers, newStructure);
         if (Transparency.areEqual(oldTransparency, newTransparency)) return StateTransformer.UpdateResult.Unchanged;
 
+        info.geometryVersion = newGeometryVersion;
         b.data.state.transparency = newTransparency;
         b.data.repr = a.data.repr;
         b.label = `Transparency (${newTransparency.layers.length} Layers)`;
+        return StateTransformer.UpdateResult.Updated;
+    }
+});
+
+type SubstanceStructureRepresentation3DFromScript = typeof SubstanceStructureRepresentation3DFromScript
+const SubstanceStructureRepresentation3DFromScript = PluginStateTransform.BuiltIn({
+    name: 'substance-structure-representation-3d-from-script',
+    display: 'Substance 3D Representation',
+    from: SO.Molecule.Structure.Representation3D,
+    to: SO.Molecule.Structure.Representation3DState,
+    params: () => ({
+        layers: PD.ObjectList({
+            script: PD.Script(Script('(sel.atom.all)', 'mol-script')),
+            material: Material.getParam(),
+            clear: PD.Boolean(false)
+        }, e => `${e.clear ? 'Clear' : Material.toString(e.material)}`, {
+            defaultValue: [{
+                script: Script('(sel.atom.all)', 'mol-script'),
+                material: Material({ roughness: 1 }),
+                clear: false
+            }]
+        }),
+    })
+})({
+    canAutoUpdate() {
+        return true;
+    },
+    apply({ a, params }) {
+        const structure = a.data.sourceData;
+        const geometryVersion = a.data.repr.geometryVersion;
+        const substance = Substance.ofScript(params.layers, structure);
+
+        return new SO.Molecule.Structure.Representation3DState({
+            state: { substance },
+            initialState: { substance: Substance.Empty },
+            info: { structure, geometryVersion },
+            repr: a.data.repr
+        }, { label: `Substance (${substance.layers.length} Layers)` });
+    },
+    update({ a, b, newParams, oldParams }) {
+        const info = b.data.info as { structure: Structure, geometryVersion: number };
+        const newStructure = a.data.sourceData;
+        if (newStructure !== info.structure) return StateTransformer.UpdateResult.Recreate;
+        if (a.data.repr !== b.data.repr) return StateTransformer.UpdateResult.Recreate;
+
+        const newGeometryVersion = a.data.repr.geometryVersion;
+        // smoothing needs to be re-calculated when geometry changes
+        if (newGeometryVersion !== info.geometryVersion && hasColorSmoothingProp(a.data.repr.props)) return StateTransformer.UpdateResult.Unchanged;
+
+        const oldSubstance = b.data.state.substance!;
+        const newSubstance = Substance.ofScript(newParams.layers, newStructure);
+        if (Substance.areEqual(oldSubstance, newSubstance)) return StateTransformer.UpdateResult.Unchanged;
+
+        info.geometryVersion = newGeometryVersion;
+        b.data.state.substance = newSubstance;
+        b.data.repr = a.data.repr;
+        b.label = `Substance (${newSubstance.layers.length} Layers)`;
+        return StateTransformer.UpdateResult.Updated;
+    }
+});
+
+type SubstanceStructureRepresentation3DFromBundle = typeof SubstanceStructureRepresentation3DFromBundle
+const SubstanceStructureRepresentation3DFromBundle = PluginStateTransform.BuiltIn({
+    name: 'substance-structure-representation-3d-from-bundle',
+    display: 'Substance 3D Representation',
+    from: SO.Molecule.Structure.Representation3D,
+    to: SO.Molecule.Structure.Representation3DState,
+    params: () => ({
+        layers: PD.ObjectList({
+            bundle: PD.Value<StructureElement.Bundle>(StructureElement.Bundle.Empty),
+            material: Material.getParam(),
+            clear: PD.Boolean(false)
+        }, e => `${e.clear ? 'Clear' : Material.toString(e.material)}`, {
+            defaultValue: [{
+                bundle: StructureElement.Bundle.Empty,
+                material: Material({ roughness: 1 }),
+                clear: false
+            }],
+            isHidden: true
+        }),
+    })
+})({
+    canAutoUpdate() {
+        return true;
+    },
+    apply({ a, params }) {
+        const structure = a.data.sourceData;
+        const geometryVersion = a.data.repr.geometryVersion;
+        const substance = Substance.ofBundle(params.layers, structure);
+
+        return new SO.Molecule.Structure.Representation3DState({
+            state: { substance },
+            initialState: { substance: Substance.Empty },
+            info: { structure, geometryVersion },
+            repr: a.data.repr
+        }, { label: `Substance (${substance.layers.length} Layers)` });
+    },
+    update({ a, b, newParams, oldParams }) {
+        const info = b.data.info as { structure: Structure, geometryVersion: number };
+        const newStructure = a.data.sourceData;
+        if (newStructure !== info.structure) return StateTransformer.UpdateResult.Recreate;
+        if (a.data.repr !== b.data.repr) return StateTransformer.UpdateResult.Recreate;
+
+        const newGeometryVersion = a.data.repr.geometryVersion;
+        // smoothing needs to be re-calculated when geometry changes
+        if (newGeometryVersion !== info.geometryVersion && hasColorSmoothingProp(a.data.repr.props)) return StateTransformer.UpdateResult.Unchanged;
+
+        const oldSubstance = b.data.state.substance!;
+        const newSubstance = Substance.ofBundle(newParams.layers, newStructure);
+        if (Substance.areEqual(oldSubstance, newSubstance)) return StateTransformer.UpdateResult.Unchanged;
+
+        info.geometryVersion = newGeometryVersion;
+        b.data.state.substance = newSubstance;
+        b.data.repr = a.data.repr;
+        b.label = `Substance (${newSubstance.layers.length} Layers)`;
         return StateTransformer.UpdateResult.Updated;
     }
 });
@@ -983,6 +1129,39 @@ const StructureSelectionsOrientation3D = PluginStateTransform.BuiltIn({
         return Task.create('Structure Orientation', async ctx => {
             const props = { ...b.data.repr.props, ...newParams };
             const data = getOrientationDataFromStructureSelections(a.data);
+            await b.data.repr.createOrUpdate(props, data).runInContext(ctx);
+            b.data.sourceData = data;
+            return StateTransformer.UpdateResult.Updated;
+        });
+    },
+});
+
+export { StructureSelectionsPlane3D };
+type StructureSelectionsPlane3D = typeof StructureSelectionsPlane3D
+const StructureSelectionsPlane3D = PluginStateTransform.BuiltIn({
+    name: 'structure-selections-plane-3d',
+    display: '3D Plane',
+    from: SO.Molecule.Structure.Selections,
+    to: SO.Shape.Representation3D,
+    params: () => ({
+        ...PlaneParams,
+    })
+})({
+    canAutoUpdate({ oldParams, newParams }) {
+        return true;
+    },
+    apply({ a, params }, plugin: PluginContext) {
+        return Task.create('Structure Plane', async ctx => {
+            const data = getPlaneDataFromStructureSelections(a.data);
+            const repr = PlaneRepresentation({ webgl: plugin.canvas3d?.webgl, ...plugin.representation.structure.themes }, () => PlaneParams);
+            await repr.createOrUpdate(params, data).runInContext(ctx);
+            return new SO.Shape.Representation3D({ repr, sourceData: data }, { label: `Plane` });
+        });
+    },
+    update({ a, b, oldParams, newParams }, plugin: PluginContext) {
+        return Task.create('Structure Plane', async ctx => {
+            const props = { ...b.data.repr.props, ...newParams };
+            const data = getPlaneDataFromStructureSelections(a.data);
             await b.data.repr.createOrUpdate(props, data).runInContext(ctx);
             b.data.sourceData = data;
             return StateTransformer.UpdateResult.Updated;

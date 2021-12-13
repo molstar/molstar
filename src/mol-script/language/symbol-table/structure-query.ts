@@ -87,8 +87,8 @@ const generator = {
 
     atomGroups: symbol(Arguments.Dictionary({
         'entity-test': Argument(Type.Bool, { isOptional: true, defaultValue: true, description: 'Test for the 1st atom of every entity' }),
-        'chain-test': Argument(Type.Bool, { isOptional: true, defaultValue: true, description: 'Test for the 1st atom of every chain'  }),
-        'residue-test': Argument(Type.Bool, { isOptional: true, defaultValue: true, description: 'Test for the 1st atom every residue'  }),
+        'chain-test': Argument(Type.Bool, { isOptional: true, defaultValue: true, description: 'Test for the 1st atom of every chain' }),
+        'residue-test': Argument(Type.Bool, { isOptional: true, defaultValue: true, description: 'Test for the 1st atom every residue' }),
         'atom-test': Argument(Type.Bool, { isOptional: true, defaultValue: true }),
         'group-by': Argument(Type.Any, { isOptional: true, defaultValue: `atom-key`, description: 'Group atoms to sets based on this property. Default: each atom has its own set' }),
     }), Types.ElementSelectionQuery, 'Return all atoms for which the tests are satisfied, grouped into sets.'),

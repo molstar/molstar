@@ -4,6 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+import { BaseGeometry } from '../../../mol-geo/geometry/base';
 import { Structure, Model } from '../../../mol-model/structure';
 import { Representation, RepresentationContext, RepresentationParamsGetter } from '../../../mol-repr/representation';
 import { ThemeRegistryContext } from '../../../mol-theme/theme';
@@ -25,6 +26,7 @@ export const CarbohydrateParams = {
     ...CarbohydrateLinkParams,
     ...CarbohydrateTerminalLinkParams,
     visuals: PD.MultiSelect(['carbohydrate-symbol', 'carbohydrate-link', 'carbohydrate-terminal-link'], PD.objectToOptions(CarbohydrateVisuals)),
+    bumpFrequency: PD.Numeric(0, { min: 0, max: 10, step: 0.1 }, BaseGeometry.ShadingCategory),
 };
 export type CarbohydrateParams = typeof CarbohydrateParams
 export function getCarbohydrateParams(ctx: ThemeRegistryContext, structure: Structure) {

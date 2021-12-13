@@ -20,6 +20,7 @@ import { merge } from 'rxjs';
 import { PluginContext } from './context';
 import { PluginComponent } from '../mol-plugin-state/component';
 import { PluginConfig } from './config';
+import { StructureComponentManager } from '../mol-plugin-state/manager/structure/component';
 
 export { PluginState };
 
@@ -64,6 +65,9 @@ class PluginState extends PluginComponent {
             canvas3d: p.canvas3d ? { props: this.plugin.canvas3d?.props } : void 0,
             interactivity: p.interactivity ? { props: this.plugin.managers.interactivity.props } : void 0,
             structureFocus: this.plugin.managers.structure.focus.getSnapshot(),
+            structureComponentManager: p.componentManager ? {
+                options: this.plugin.managers.structure.component.state.options
+            } : void 0,
             durationInMs: p?.durationInMs
         };
     }
@@ -71,6 +75,8 @@ class PluginState extends PluginComponent {
     async setSnapshot(snapshot: PluginState.Snapshot) {
         await this.animation.stop();
 
+        // this needs to go 1st since these changes are already baked into the behavior and data state
+        if (snapshot.structureComponentManager?.options) await this.plugin.managers.structure.component.setOptions(snapshot.structureComponentManager?.options);
         if (snapshot.behaviour) await this.plugin.runTask(this.behaviors.setSnapshot(snapshot.behaviour));
         if (snapshot.data) await this.plugin.runTask(this.data.setSnapshot(snapshot.data));
         if (snapshot.canvas3d?.props) {
@@ -139,6 +145,7 @@ namespace PluginState {
         durationInMs: PD.Numeric(1500, { min: 100, max: 15000, step: 100 }, { label: 'Duration in ms' }),
         data: PD.Boolean(true),
         behavior: PD.Boolean(false),
+        componentManager: PD.Boolean(true),
         animation: PD.Boolean(true),
         startAnimation: PD.Boolean(false),
         canvas3d: PD.Boolean(true),
@@ -172,6 +179,9 @@ namespace PluginState {
             props?: InteractivityManager.Props
         },
         structureFocus?: StructureFocusSnapshot,
+        structureComponentManager?: {
+            options?: StructureComponentManager.Options
+        },
         durationInMs?: number
     }
 

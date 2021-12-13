@@ -95,7 +95,7 @@ export namespace ConfalPyramidsUtil {
             const first = residueInfoFromLocation(locFirst);
             const second = residueInfoFromLocation(locSecond);
             const model_id = this.hasMultipleModels ? `-m${modelNum}` : '';
-            const alt_id_1 =  fakeAltId_1 !== '' ? `.${fakeAltId_1}` : (first.alt_id.length ? `.${first.alt_id}` : '');
+            const alt_id_1 = fakeAltId_1 !== '' ? `.${fakeAltId_1}` : (first.alt_id.length ? `.${first.alt_id}` : '');
             const alt_id_2 = fakeAltId_2 !== '' ? `.${fakeAltId_2}` : (second.alt_id.length ? `.${second.alt_id}` : '');
             const ins_code_1 = first.ins_code.length ? `.${first.ins_code}` : '';
             const ins_code_2 = second.ins_code.length ? `.${second.ins_code}` : '';

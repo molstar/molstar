@@ -13,19 +13,19 @@ import { now } from '../../../mol-util/now';
 import { PerformanceMonitor } from '../../../mol-util/performance-monitor';
 
 const cmdParser = new argparse.ArgumentParser({
-    addHelp: true,
+    add_help: true,
     description: 'Download JSON data from PDBe API'
 });
 
-cmdParser.addArgument(['--in'], { help: 'Input folder', required: true });
-cmdParser.addArgument(['--out'], { help: 'Output folder', required: true });
+cmdParser.add_argument('--in', { help: 'Input folder', required: true });
+cmdParser.add_argument('--out', { help: 'Output folder', required: true });
 
 interface CmdArgs {
     in: string,
     out: string
 }
 
-const cmdArgs = cmdParser.parseArgs() as CmdArgs;
+const cmdArgs = cmdParser.parse_args() as CmdArgs;
 
 function getPDBid(name: string) {
     let idx = name.indexOf('_');
@@ -70,10 +70,10 @@ async function process() {
         console.log(`${prog}/${entries.length} ${e.entries.length} entries.`);
         const data = Object.create(null);
 
-        for (let ee of e.entries) {
+        for (const ee of e.entries) {
             const query = await fetch(`https://www.ebi.ac.uk/pdbe/api/validation/residuewise_outlier_summary/entry/${ee}`);
             try {
-                if (query.status === 200) data[ee] = (await query.json())[ee] || { };
+                if (query.status === 200) data[ee] = ((await query.json()) as any)[ee] || { };
                 else console.error(ee, query.status);
             } catch (e) {
                 console.error(ee, '' + e);

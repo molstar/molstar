@@ -37,7 +37,7 @@ export function CifBlock(categoryNames: string[], categories: CifCategories, hea
     return {
         categoryNames, header, categories, saveFrames,
         getField(name: string) {
-            const [ category, field ] = name.split('.');
+            const [category, field] = name.split('.');
             return categories[category].getField(field || '');
         }
     };

@@ -27,7 +27,7 @@ class Alignment {
     readonly n: number; readonly m: number
     readonly S: number[][] = []; readonly V: number[][] = []; readonly H: number[][] = []
 
-    constructor (readonly seqA: ArrayLike<string>, readonly seqB: ArrayLike<string>, options: AlignmentOptions) {
+    constructor(readonly seqA: ArrayLike<string>, readonly seqB: ArrayLike<string>, options: AlignmentOptions) {
         this.gapPenalty = options.gapPenalty;
         this.gapExtensionPenalty = options.gapExtensionPenalty;
         this.substMatrix = options.substMatrix === 'default' ? undefined : SubstitutionMatrices[options.substMatrix];
@@ -36,7 +36,7 @@ class Alignment {
         this.m = this.seqB.length;
     }
 
-    private initMatrices () {
+    private initMatrices() {
         const { n, m, gapPenalty, S, V, H } = this;
 
         for (let i = 0; i <= n; ++i) {
@@ -60,17 +60,17 @@ class Alignment {
         S[0][0] = 0;
     }
 
-    private makeScoreFn () {
+    private makeScoreFn() {
         const { seqA, seqB, substMatrix } = this;
 
         if (substMatrix) {
-            return function score (i: number, j: number) {
+            return function score(i: number, j: number) {
                 const cA = seqA[i];
                 const cB = seqB[j];
                 return substMatrix[cA]?.[cB] ?? -4;
             };
         } else {
-            return function scoreNoSubstMat (i: number, j: number) {
+            return function scoreNoSubstMat(i: number, j: number) {
                 const cA = seqA[i];
                 const cB = seqB[j];
                 return cA === cB ? 5 : -3;
@@ -78,7 +78,7 @@ class Alignment {
         }
     }
 
-    calculate () {
+    calculate() {
         this.initMatrices();
 
         const scoreFn = this.makeScoreFn();
@@ -103,13 +103,13 @@ class Alignment {
                 Si[j] = Math.max(
                     Si1[j - 1] + scoreFn(i - 1, j - 1), // match
                     Vi[j], // del
-                    Hi[j]  // ins
+                    Hi[j] // ins
                 );
             }
         }
     }
 
-    trace (): { aliA: ArrayLike<string>, aliB: ArrayLike<string>, score: number } {
+    trace(): { aliA: ArrayLike<string>, aliB: ArrayLike<string>, score: number } {
         const scoreFn = this.makeScoreFn();
         const { V, H, S, seqA, seqB, gapExtensionPenalty, gapPenalty } = this;
 

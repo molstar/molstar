@@ -109,7 +109,10 @@ export namespace Tensor {
                 set: (t, d, x) => t[d] = x,
                 add: (t, d, x) => t[d] += x,
                 dataOffset: (d) => d,
-                getCoords: (o, c) => { c[0] = o; return c as number[]; }
+                getCoords: (o, c) => {
+                    c[0] = o;
+                    return c as number[];
+                }
             };
             case 2: {
                 // column major
@@ -120,7 +123,11 @@ export namespace Tensor {
                         set: (t, i, j, x) => t[j * rows + i] = x,
                         add: (t, i, j, x) => t[j * rows + i] += x,
                         dataOffset: (i, j) => j * rows + i,
-                        getCoords: (o, c) => { c[0] = o % rows; c[1] = Math.floor(o / rows) ; return c as number[]; }
+                        getCoords: (o, c) => {
+                            c[0] = o % rows;
+                            c[1] = Math.floor(o / rows);
+                            return c as number[];
+                        }
                     };
                 }
                 if (ao[0] === 1 && ao[1] === 0) {
@@ -130,7 +137,11 @@ export namespace Tensor {
                         set: (t, i, j, x) => t[i * cols + j] = x,
                         add: (t, i, j, x) => t[i * cols + j] += x,
                         dataOffset: (i, j) => i * cols + j,
-                        getCoords: (o, c) => { c[0] = Math.floor(o / cols); c[1] = o % cols; return c as number[]; }
+                        getCoords: (o, c) => {
+                            c[0] = Math.floor(o / cols);
+                            c[1] = o % cols;
+                            return c as number[];
+                        }
                     };
                 }
                 throw new Error('bad axis order');
@@ -140,8 +151,8 @@ export namespace Tensor {
                     const u = dimensions[0], v = dimensions[1], uv = u * v;
                     return {
                         get: (t, i, j, k) => t[i + j * u + k * uv],
-                        set: (t, i, j, k, x ) => t[i + j * u + k * uv] = x,
-                        add: (t, i, j, k, x ) => t[i + j * u + k * uv] += x,
+                        set: (t, i, j, k, x) => t[i + j * u + k * uv] = x,
+                        add: (t, i, j, k, x) => t[i + j * u + k * uv] += x,
                         dataOffset: (i, j, k) => i + j * u + k * uv,
                         getCoords: (o, c) => {
                             const p = Math.floor(o / u);
@@ -156,8 +167,8 @@ export namespace Tensor {
                     const u = dimensions[0], v = dimensions[2], uv = u * v;
                     return {
                         get: (t, i, j, k) => t[i + k * u + j * uv],
-                        set: (t, i, j, k, x ) => t[i + k * u + j * uv] = x,
-                        add: (t, i, j, k, x ) => t[i + k * u + j * uv] += x,
+                        set: (t, i, j, k, x) => t[i + k * u + j * uv] = x,
+                        add: (t, i, j, k, x) => t[i + k * u + j * uv] += x,
                         dataOffset: (i, j, k) => i + k * u + j * uv,
                         getCoords: (o, c) => {
                             const p = Math.floor(o / u);
@@ -172,8 +183,8 @@ export namespace Tensor {
                     const u = dimensions[1], v = dimensions[0], uv = u * v;
                     return {
                         get: (t, i, j, k) => t[j + i * u + k * uv],
-                        set: (t, i, j, k, x ) => t[j + i * u + k * uv] = x,
-                        add: (t, i, j, k, x ) => t[j + i * u + k * uv] += x,
+                        set: (t, i, j, k, x) => t[j + i * u + k * uv] = x,
+                        add: (t, i, j, k, x) => t[j + i * u + k * uv] += x,
                         dataOffset: (i, j, k) => j + i * u + k * uv,
                         getCoords: (o, c) => {
                             const p = Math.floor(o / u);
@@ -188,8 +199,8 @@ export namespace Tensor {
                     const u = dimensions[1], v = dimensions[2], uv = u * v;
                     return {
                         get: (t, i, j, k) => t[j + k * u + i * uv],
-                        set: (t, i, j, k, x ) => t[j + k * u + i * uv] = x,
-                        add: (t, i, j, k, x ) => t[j + k * u + i * uv] += x,
+                        set: (t, i, j, k, x) => t[j + k * u + i * uv] = x,
+                        add: (t, i, j, k, x) => t[j + k * u + i * uv] += x,
                         dataOffset: (i, j, k) => j + k * u + i * uv,
                         getCoords: (o, c) => {
                             const p = Math.floor(o / u);
@@ -204,8 +215,8 @@ export namespace Tensor {
                     const u = dimensions[2], v = dimensions[0], uv = u * v;
                     return {
                         get: (t, i, j, k) => t[k + i * u + j * uv],
-                        set: (t, i, j, k, x ) => t[k + i * u + j * uv] = x,
-                        add: (t, i, j, k, x ) => t[k + i * u + j * uv] += x,
+                        set: (t, i, j, k, x) => t[k + i * u + j * uv] = x,
+                        add: (t, i, j, k, x) => t[k + i * u + j * uv] += x,
                         dataOffset: (i, j, k) => k + i * u + j * uv,
                         getCoords: (o, c) => {
                             const p = Math.floor(o / u);
@@ -220,8 +231,8 @@ export namespace Tensor {
                     const u = dimensions[2], v = dimensions[1], uv = u * v;
                     return {
                         get: (t, i, j, k) => t[k + j * u + i * uv],
-                        set: (t, i, j, k, x ) => t[k + j * u + i * uv] = x,
-                        add: (t, i, j, k, x ) => t[k + j * u + i * uv] += x,
+                        set: (t, i, j, k, x) => t[k + j * u + i * uv] = x,
+                        add: (t, i, j, k, x) => t[k + j * u + i * uv] += x,
                         dataOffset: (i, j, k) => k + j * u + i * uv,
                         getCoords: (o, c) => {
                             const p = Math.floor(o / u);

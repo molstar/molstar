@@ -39,15 +39,21 @@ interface ANVILContext {
 };
 
 export const ANVILParams = {
-    numberOfSpherePoints: PD.Numeric(140, { min: 35, max: 700, step: 1 }, { description: 'Number of spheres/directions to test for membrane placement. Original value is 350.' }),
+    numberOfSpherePoints: PD.Numeric(175, { min: 35, max: 700, step: 1 }, { description: 'Number of spheres/directions to test for membrane placement. Original value is 350.' }),
     stepSize: PD.Numeric(1, { min: 0.25, max: 4, step: 0.25 }, { description: 'Thickness of membrane slices that will be tested' }),
-    minThickness: PD.Numeric(20, { min: 10, max: 30, step: 1}, { description: 'Minimum membrane thickness used during refinement' }),
-    maxThickness: PD.Numeric(40, { min: 30, max: 50, step: 1}, { description: 'Maximum membrane thickness used during refinement' }),
+    minThickness: PD.Numeric(20, { min: 10, max: 30, step: 1 }, { description: 'Minimum membrane thickness used during refinement' }),
+    maxThickness: PD.Numeric(40, { min: 30, max: 50, step: 1 }, { description: 'Maximum membrane thickness used during refinement' }),
     asaCutoff: PD.Numeric(40, { min: 10, max: 100, step: 1 }, { description: 'Relative ASA cutoff above which residues will be considered' }),
-    adjust: PD.Numeric(14, { min: 0, max: 30, step: 1 }, { description: 'Minimum length of membrane-spanning regions (original values: 14 for alpha-helices and 5 for beta sheets). Set to 0 to not optimize membrane thickness.' })
+    adjust: PD.Numeric(14, { min: 0, max: 30, step: 1 }, { description: 'Minimum length of membrane-spanning regions (original values: 14 for alpha-helices and 5 for beta sheets). Set to 0 to not optimize membrane thickness.' }),
+    tmdetDefinition: PD.Boolean(false, { description: `Use TMDET's classification of membrane-favoring amino acids. TMDET's classification shows better performance on porins and other beta-barrel structures.` })
 };
 export type ANVILParams = typeof ANVILParams
 export type ANVILProps = PD.Values<ANVILParams>
+
+/** ANVIL-specific (not general) definition of membrane-favoring amino acids */
+const ANVIL_DEFINITION = new Set(['ALA', 'CYS', 'GLY', 'HIS', 'ILE', 'LEU', 'MET', 'PHE', 'SER', 'TRP', 'VAL']);
+/** TMDET-specific (not general) definition of membrane-favoring amino acids */
+const TMDET_DEFINITION = new Set(['LEU', 'ILE', 'VAL', 'PHE', 'MET', 'GLY', 'TRP', 'TYR']);
 
 /**
  * Implements:
@@ -55,6 +61,12 @@ export type ANVILProps = PD.Values<ANVILParams>
  * Guillaume Postic, Yassine Ghouzam, Vincent Guiraud, and Jean-Christophe Gelly
  * Protein Engineering, Design & Selection, 2015, 1–5
  * doi: 10.1093/protein/gzv063
+ *
+ * ANVIL is derived from TMDET, the corresponding classification of hydrophobic amino acids is provided as optional parameter:
+ * Gabor E. Tusnady, Zsuzsanna Dosztanyi and Istvan Simon
+ * Transmembrane proteins in the Protein Data Bank: identification and classification
+ * Bioinformatics, 2004, 2964-2972
+ * doi: 10.1093/bioinformatics/bth340
  */
 export function computeANVIL(structure: Structure, props: ANVILProps) {
     return Task.create('Compute Membrane Orientation', async runtime => {
@@ -87,6 +99,11 @@ async function initialize(structure: Structure, props: ANVILProps, accessibleSur
     const offsets = new Array<number>();
     const exposed = new Array<number>();
     const hydrophobic = new Array<boolean>();
+    const definition = props.tmdetDefinition ? TMDET_DEFINITION : ANVIL_DEFINITION;
+
+    function isPartOfEntity(l: StructureElement.Location): boolean {
+        return !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.model.atomicHierarchy.residues.label_seq_id.valueKind(l.unit.residueIndex[l.element]) === 0;
+    }
 
     const vec = v3zero();
     for (let i = 0, il = structure.units.length; i < il; ++i) {
@@ -98,8 +115,8 @@ async function initialize(structure: Structure, props: ANVILProps, accessibleSur
             const eI = elements[j];
             l.element = eI;
 
-            // consider only amino acids
-            if (getElementMoleculeType(unit, eI) !== MoleculeType.Protein) {
+            // consider only amino acids in chains
+            if (getElementMoleculeType(unit, eI) !== MoleculeType.Protein || !isPartOfEntity(l)) {
                 continue;
             }
 
@@ -121,7 +138,7 @@ async function initialize(structure: Structure, props: ANVILProps, accessibleSur
             offsets.push(structure.serialMapping.getSerialIndex(l.unit, l.element));
             if (AccessibleSurfaceArea.getValue(l, accessibleSurfaceArea) / MaxAsa[label_comp_id(l)] > asaCutoff) {
                 exposed.push(structure.serialMapping.getSerialIndex(l.unit, l.element));
-                hydrophobic.push(isHydrophobic(label_comp_id(l)));
+                hydrophobic.push(isHydrophobic(definition, label_comp_id(l)));
             }
         }
     }
@@ -166,7 +183,7 @@ export async function calculate(runtime: RuntimeContext, structure: Structure, p
     }
 
     const normalVector = v3zero();
-    const center =  v3zero();
+    const center = v3zero();
     v3sub(normalVector, membrane.planePoint1, membrane.planePoint2);
     v3normalize(normalVector, normalVector);
 
@@ -344,7 +361,7 @@ function membraneSegments(ctx: ANVILContext, membrane: MembraneCandidate): Array
     // collect all residues in membrane layer
     for (let k = 0, kl = offsets.length; k < kl; k++) {
         const unit = units[unitIndices[offsets[k]]];
-        if (!Unit.isAtomic(unit)) throw 'Property only available for atomic models.';
+        if (!Unit.isAtomic(unit)) notAtomic();
         const elementIndex = elementIndices[offsets[k]];
 
         authAsymId = unit.model.atomicHierarchy.chains.auth_asym_id.value(unit.chainIndex[elementIndex]);
@@ -365,7 +382,7 @@ function membraneSegments(ctx: ANVILContext, membrane: MembraneCandidate): Array
 
     for (let k = 0, kl = offsets.length; k < kl; k++) {
         const unit = units[unitIndices[offsets[k]]];
-        if (!Unit.isAtomic(unit)) throw 'Property only available for atomic models.';
+        if (!Unit.isAtomic(unit)) notAtomic();
         const elementIndex = elementIndices[offsets[k]];
 
         authAsymId = unit.model.atomicHierarchy.chains.auth_asym_id.value(unit.chainIndex[elementIndex]);
@@ -387,7 +404,7 @@ function membraneSegments(ctx: ANVILContext, membrane: MembraneCandidate): Array
                 }
                 lastAuthSeqId = authSeqId;
                 endOffset = k;
-            } else  {
+            } else {
                 lastAuthSeqId++;
                 endOffset++;
             }
@@ -428,6 +445,10 @@ function membraneSegments(ctx: ANVILContext, membrane: MembraneCandidate): Array
     return refinedSegments;
 }
 
+function notAtomic(): never {
+    throw new Error('Property only available for atomic models.');
+}
+
 /** Filter for membrane residues and calculate the final extent of the membrane layer */
 function adjustExtent(ctx: ANVILContext, membrane: MembraneCandidate, centroid: Vec3): number {
     const { offsets, structure } = ctx;
@@ -455,11 +476,11 @@ function adjustExtent(ctx: ANVILContext, membrane: MembraneCandidate, centroid: 
 }
 
 function qValue(currentStats: HphobHphil, initialStats: HphobHphil): number {
-    if(initialStats.hphob < 1) {
+    if (initialStats.hphob < 1) {
         initialStats.hphob = 0.1;
     }
 
-    if(initialStats.hphil < 1) {
+    if (initialStats.hphil < 1) {
         initialStats.hphil += 1;
     }
 
@@ -484,7 +505,7 @@ function generateSpherePoints(ctx: ANVILContext, numberOfSpherePoints: number): 
     const { centroid, extent } = ctx;
     const points = [];
     let oldPhi = 0, h, theta, phi;
-    for(let k = 1, kl = numberOfSpherePoints + 1; k < kl; k++) {
+    for (let k = 1, kl = numberOfSpherePoints + 1; k < kl; k++) {
         h = -1 + 2 * (k - 1) / (2 * numberOfSpherePoints - 1);
         theta = Math.acos(h);
         phi = (k === 1 || k === numberOfSpherePoints) ? 0 : (oldPhi + 3.6 / Math.sqrt(2 * numberOfSpherePoints * (1 - h * h))) % (2 * Math.PI);
@@ -566,11 +587,9 @@ namespace HphobHphil {
     }
 }
 
-/** ANVIL-specific (not general) definition of membrane-favoring amino acids */
-const HYDROPHOBIC_AMINO_ACIDS = new Set(['ALA', 'CYS', 'GLY', 'HIS', 'ILE', 'LEU', 'MET', 'PHE', 'SER', 'TRP', 'VAL']);
-/** Returns true if ANVIL considers this as amino acid that favors being embedded in a membrane */
-export function isHydrophobic(label_comp_id: string): boolean {
-    return HYDROPHOBIC_AMINO_ACIDS.has(label_comp_id);
+/** Returns true if the definition considers this as membrane-favoring amino acid */
+export function isHydrophobic(definition: Set<string>, label_comp_id: string): boolean {
+    return definition.has(label_comp_id);
 }
 
 /** Accessible surface area used for normalization. ANVIL uses 'Total-Side REL' values from NACCESS, from: Hubbard, S. J., & Thornton, J. M. (1993). naccess. Computer Program, Department of Biochemistry and Molecular Biology, University College London, 2(1). */

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -10,11 +10,12 @@ import { LabelData } from '../../mol-repr/shape/loci/label';
 import { OrientationData } from '../../mol-repr/shape/loci/orientation';
 import { AngleData } from '../../mol-repr/shape/loci/angle';
 import { DihedralData } from '../../mol-repr/shape/loci/dihedral';
+import { PlaneData } from '../../mol-repr/shape/loci/plane';
 
 export function getDistanceDataFromStructureSelections(s: ReadonlyArray<PluginStateObject.Molecule.Structure.SelectionEntry>): DistanceData {
     const lociA = s[0].loci;
     const lociB = s[1].loci;
-    return { pairs: [ { loci: [lociA, lociB] as const }] };
+    return { pairs: [{ loci: [lociA, lociB] as const }] };
 }
 
 export function getAngleDataFromStructureSelections(s: ReadonlyArray<PluginStateObject.Molecule.Structure.SelectionEntry>): AngleData {
@@ -38,6 +39,9 @@ export function getLabelDataFromStructureSelections(s: ReadonlyArray<PluginState
 }
 
 export function getOrientationDataFromStructureSelections(s: ReadonlyArray<PluginStateObject.Molecule.Structure.SelectionEntry>): OrientationData {
-    const loci = s[0].loci;
-    return { locis: [loci] };
+    return { locis: s.map(v => v.loci) };
+}
+
+export function getPlaneDataFromStructureSelections(s: ReadonlyArray<PluginStateObject.Molecule.Structure.SelectionEntry>): PlaneData {
+    return { locis: s.map(v => v.loci) };
 }

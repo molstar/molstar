@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -116,7 +116,7 @@ namespace Loci {
         return !!loci && loci.kind === 'every-loci';
     }
 
-    export function isEmpty(loci: Loci): loci is EmptyLoci {
+    export function isEmpty(loci: Loci) {
         if (isEveryLoci(loci)) return false;
         if (isEmptyLoci(loci)) return true;
         if (isDataLoci(loci)) return isDataLociEmpty(loci);
@@ -262,9 +262,9 @@ namespace Loci {
     export type Granularity = keyof typeof Granularity
     export const GranularityOptions = ParamDefinition.objectToOptions(Granularity, k => {
         switch (k) {
-            case 'element': return'Atom/Coarse Element';
+            case 'element': return 'Atom/Coarse Element';
             case 'elementInstances': return ['Atom/Coarse Element Instances', 'With Symmetry'];
-            case 'structure': return'Structure/Shape';
+            case 'structure': return 'Structure/Shape';
             default: return k.indexOf('Instances')
                 ? [stringToWords(k), 'With Symmetry'] : stringToWords(k);
         }
@@ -283,8 +283,8 @@ namespace Loci {
      * Converts structure related loci to StructureElement.Loci and applies
      * granularity if given
      */
-    export function normalize(loci: Loci, granularity?: Granularity) {
-        if (granularity !== 'element' && Bond.isLoci(loci)) {
+    export function normalize(loci: Loci, granularity?: Granularity, alwaysConvertBonds = false) {
+        if ((granularity !== 'element' || alwaysConvertBonds) && Bond.isLoci(loci)) {
             // convert Bond.Loci to a StructureElement.Loci so granularity can be applied
             loci = Bond.toStructureElementLoci(loci);
         }

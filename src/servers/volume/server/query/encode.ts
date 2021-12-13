@@ -16,7 +16,7 @@ import { ArrayEncoding, ArrayEncoder } from '../../../../mol-io/common/binary-ci
 import { TypedArrayValueType, TypedArrayValueArray } from '../../../../mol-io/common/typed-array';
 
 export function encode(query: Data.QueryContext, output: Data.QueryOutputStream) {
-    let w = CifWriter.createEncoder({ binary: query.params.asBinary, encoderName: `VolumeServer ${VERSION}` });
+    const w = CifWriter.createEncoder({ binary: query.params.asBinary, encoderName: `VolumeServer ${VERSION}` });
     write(w, query);
     w.encode();
     w.writeTo(output);
@@ -123,7 +123,7 @@ const _volume_data_3d: CifWriter.Category<ResultContext> = {
             let min: number, max: number;
             min = data[0], max = data[0];
             for (let i = 0, n = data.length; i < n; i++) {
-                let v = data[i];
+                const v = data[i];
                 if (v < min) min = v;
                 else if (v > max) max = v;
             }

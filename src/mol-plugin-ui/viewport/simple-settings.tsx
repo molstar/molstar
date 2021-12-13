@@ -56,11 +56,10 @@ const SimpleSettingsParams = {
         transparent: PD.Boolean(false)
     }, { pivot: 'color' }),
     lighting: PD.Group({
-        renderStyle: Canvas3DParams.renderer.params.style,
         occlusion: Canvas3DParams.postprocessing.params.occlusion,
         outline: Canvas3DParams.postprocessing.params.outline,
         fog: Canvas3DParams.cameraFog,
-    }, { pivot: 'renderStyle' }),
+    }, { isFlat: true }),
     clipping: PD.Group<any>({
         ...Canvas3DParams.cameraClipping.params,
         ...(Canvas3DParams.renderer.params.clip as any).params as any
@@ -105,10 +104,9 @@ const SimpleSettingsMapping = ParamMapping({
                 transparent: canvas.transparentBackground
             },
             lighting: {
-                renderStyle: renderer.style,
                 occlusion: canvas.postprocessing.occlusion,
                 outline: canvas.postprocessing.outline,
-                fog: canvas.cameraFog
+                fog: canvas.cameraFog,
             },
             clipping: {
                 ...canvas.cameraClipping,
@@ -123,7 +121,6 @@ const SimpleSettingsMapping = ParamMapping({
         canvas.camera = s.camera;
         canvas.transparentBackground = s.background.transparent;
         canvas.renderer.backgroundColor = s.background.color;
-        canvas.renderer.style = s.lighting.renderStyle;
         canvas.postprocessing.occlusion = s.lighting.occlusion;
         canvas.postprocessing.outline = s.lighting.outline;
         canvas.cameraFog = s.lighting.fog;

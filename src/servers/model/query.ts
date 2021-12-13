@@ -12,7 +12,7 @@ import { LocalInput, runLocal } from './server/api-local';
 console.log(`Mol* ModelServer (${VERSION}), (c) 2018-2020 Mol* authors`);
 console.log(``);
 
-let exampleWorkload: LocalInput = [{
+const exampleWorkload: LocalInput = [{
     output: 'c:/test/quick/localapi/1tqn_full.cif',
     queries: [{
         input: 'c:/test/quick/1tqn.cif',
@@ -54,7 +54,7 @@ let exampleWorkload: LocalInput = [{
 
 
 if (process.argv.length !== 3) {
-    let help = [
+    const help = [
         `Usage: `,
         ``,
         `   node local jobs.json`,

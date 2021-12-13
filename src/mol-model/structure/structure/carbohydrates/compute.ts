@@ -324,7 +324,7 @@ export function computeCarbohydrates(structure: Structure): Carbohydrates {
     return { links, terminalLinks, elements, partialElements, ...buildLookups(elements, links, terminalLinks) };
 }
 
-function buildLookups (elements: CarbohydrateElement[], links: CarbohydrateLink[], terminalLinks: CarbohydrateTerminalLink[]) {
+function buildLookups(elements: CarbohydrateElement[], links: CarbohydrateLink[], terminalLinks: CarbohydrateTerminalLink[]) {
 
     function key(unit: Unit, element: ElementIndex) {
         return cantorPairing(unit.id, element);

@@ -63,7 +63,7 @@ export function printSecStructure(model: Model) {
     const count = residues._rowCount;
     let rI = 0;
     while (rI < count) {
-        let start = rI;
+        const start = rI;
         while (rI < count && key[start] === key[rI]) rI++;
         rI--;
 
@@ -230,21 +230,21 @@ async function runFile(filename: string, args: Args) {
 }
 
 const parser = new argparse.ArgumentParser({
-    addHelp: true,
+    add_help: true,
     description: 'Print info about a structure, mainly to test and showcase the mol-model module'
 });
-parser.addArgument(['--download', '-d'], { help: 'Pdb entry id' });
-parser.addArgument(['--file', '-f'], { help: 'filename' });
+parser.add_argument('--download', '-d', { help: 'Pdb entry id' });
+parser.add_argument('--file', '-f', { help: 'filename' });
 
-parser.addArgument(['--models'], { help: 'print models info', action: 'storeTrue' });
-parser.addArgument(['--seq'], { help: 'print sequence', action: 'storeTrue' });
-parser.addArgument(['--units'], { help: 'print units', action: 'storeTrue' });
-parser.addArgument(['--sym'], { help: 'print symmetry', action: 'storeTrue' });
-parser.addArgument(['--rings'], { help: 'print rings', action: 'storeTrue' });
-parser.addArgument(['--intraBonds'], { help: 'print intra unit bonds', action: 'storeTrue' });
-parser.addArgument(['--interBonds'], { help: 'print inter unit bonds', action: 'storeTrue' });
-parser.addArgument(['--mod'], { help: 'print modified residues', action: 'storeTrue' });
-parser.addArgument(['--sec'], { help: 'print secoundary structure', action: 'storeTrue' });
+parser.add_argument('--models', { help: 'print models info', action: 'store_true' });
+parser.add_argument('--seq', { help: 'print sequence', action: 'store_true' });
+parser.add_argument('--units', { help: 'print units', action: 'store_true' });
+parser.add_argument('--sym', { help: 'print symmetry', action: 'store_true' });
+parser.add_argument('--rings', { help: 'print rings', action: 'store_true' });
+parser.add_argument('--intraBonds', { help: 'print intra unit bonds', action: 'store_true' });
+parser.add_argument('--interBonds', { help: 'print inter unit bonds', action: 'store_true' });
+parser.add_argument('--mod', { help: 'print modified residues', action: 'store_true' });
+parser.add_argument('--sec', { help: 'print secoundary structure', action: 'store_true' });
 interface Args {
     download?: string,
     file?: string,
@@ -260,7 +260,7 @@ interface Args {
     mod?: boolean,
     sec?: boolean,
 }
-const args: Args = parser.parseArgs();
+const args: Args = parser.parse_args();
 
 if (args.download) runDL(args.download, args);
 else if (args.file) runFile(args.file, args);

@@ -123,8 +123,8 @@ describe('ply reader', () => {
 
         const face = plyFile.getElement('face') as PlyList;
         if (!face) return;
-        expect(face.value(0)).toEqual({ count: 3, entries: [0, 2, 1]});
-        expect(face.value(1)).toEqual({ count: 3, entries: [3, 5, 4]});
+        expect(face.value(0)).toEqual({ count: 3, entries: [0, 2, 1] });
+        expect(face.value(1)).toEqual({ count: 3, entries: [3, 5, 4] });
 
         expect.assertions(3);
     });

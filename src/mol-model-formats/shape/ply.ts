@@ -40,8 +40,8 @@ function createPlyShapeParams(plyFile?: PlyFile) {
                 type === 'ushort' || type === 'uint16' ||
                 type === 'uint' || type === 'uint32' ||
                 type === 'int'
-            ) groupOptions.push([ name, name ]);
-            if (type === 'uchar' || type === 'uint8') colorOptions.push([ name, name ]);
+            ) groupOptions.push([name, name]);
+            if (type === 'uchar' || type === 'uint8') colorOptions.push([name, name]);
         }
 
         // TODO hardcoded as convenience for data provided by MegaMol
@@ -58,7 +58,7 @@ function createPlyShapeParams(plyFile?: PlyFile) {
         for (let i = 0, il = material.propertyNames.length; i < il; ++i) {
             const name = material.propertyNames[i];
             const type = material.propertyTypes[i];
-            if (type === 'uchar' || type === 'uint8') materialOptions.push([ name, name ]);
+            if (type === 'uchar' || type === 'uint8') materialOptions.push([name, name]);
         }
 
         if (material.propertyNames.includes('red')) defaultValues.mRed = 'red';
@@ -186,7 +186,7 @@ function getGrouping(vertex: PlyTable, props: PD.Values<PlyShapeParams>): Groupi
     const maxId = column ? arrayMax(ids) : rowCount - 1; // assumes uint ids
     const map = new Uint32Array(maxId + 1);
     for (let i = 0, il = ids.length; i < il; ++i) map[ids[i]] = i;
-    return { ids, map, label  };
+    return { ids, map, label };
 }
 
 type Coloring = { kind: 'vertex' | 'material' | 'uniform', red: Column<number>, green: Column<number>, blue: Column<number> }

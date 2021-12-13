@@ -44,7 +44,8 @@ export function ShapeRepresentation<D, G extends Geometry, P extends Geometry.Pa
     const renderObjects: GraphicsRenderObject<G['kind']>[] = [];
     let _renderObject: GraphicsRenderObject<G['kind']> | undefined;
     let _shape: Shape<G>;
-    let _theme = Theme.createEmpty();
+    let geometryVersion = -1;
+    const _theme = Theme.createEmpty();
     let currentProps: PD.Values<P> = PD.getDefaultValues(geometryUtils.Params as P); // TODO avoid casting
     let currentParams: P;
     let locationIt: LocationIterator;
@@ -157,6 +158,9 @@ export function ShapeRepresentation<D, G extends Geometry, P extends Geometry.Pa
             }
 
             currentProps = newProps;
+            if (updateState.createGeometry || updateState.createNew) {
+                geometryVersion += 1;
+            }
             // increment version
             updated.next(version++);
         });
@@ -172,12 +176,13 @@ export function ShapeRepresentation<D, G extends Geometry, P extends Geometry.Pa
 
     return {
         label: 'Shape geometry',
-        get groupCount () { return locationIt ? locationIt.count : 0; },
-        get props () { return currentProps; },
-        get params () { return currentParams; },
+        get groupCount() { return locationIt ? locationIt.count : 0; },
+        get props() { return currentProps; },
+        get params() { return currentParams; },
         get state() { return _state; },
         get theme() { return _theme; },
         renderObjects,
+        get geometryVersion() { return geometryVersion; },
         updated,
         createOrUpdate,
         getLoci(pickingId?: PickingId) {
@@ -211,13 +216,16 @@ export function ShapeRepresentation<D, G extends Geometry, P extends Geometry.Pa
                 if (state.transparency !== undefined) {
                     Visual.setTransparency(_renderObject, state.transparency, lociApply, true);
                 }
+                if (state.substance !== undefined) {
+                    Visual.setSubstance(_renderObject, state.substance, lociApply, true);
+                }
                 if (state.transform !== undefined) Visual.setTransform(_renderObject, state.transform);
             }
 
             Representation.updateState(_state, state);
         },
         setTheme(theme: Theme) {
-            if(isDebugMode) {
+            if (isDebugMode) {
                 console.warn('The `ShapeRepresentation` theme is fixed to `ShapeGroupColorTheme` and `ShapeGroupSizeTheme`. Colors are taken from `Shape.getColor` and sizes from `Shape.getSize`');
             }
         },

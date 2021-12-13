@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -32,6 +32,7 @@ import { SizeValues } from '../../mol-gl/renderable/schema';
 import { Clipping } from '../../mol-theme/clipping';
 import { WebGLContext } from '../../mol-gl/webgl/context';
 import { isPromiseLike } from '../../mol-util/type-helpers';
+import { Substance } from '../../mol-theme/substance';
 
 export interface VolumeVisual<P extends VolumeParams> extends Visual<Volume, P> { }
 
@@ -74,6 +75,7 @@ export function VolumeVisual<G extends Geometry, P extends VolumeParams & Geomet
     let currentVolume: Volume;
 
     let geometry: G;
+    let geometryVersion = -1;
     let locationIt: LocationIterator;
     let positionIt: LocationIterator;
 
@@ -156,7 +158,10 @@ export function VolumeVisual<G extends Geometry, P extends VolumeParams & Geomet
         currentProps = newProps;
         currentTheme = newTheme;
         currentVolume = newVolume;
-        if (newGeometry) geometry = newGeometry;
+        if (newGeometry) {
+            geometry = newGeometry;
+            geometryVersion += 1;
+        }
     }
 
     function lociApply(loci: Loci, apply: (interval: Interval) => boolean) {
@@ -169,7 +174,8 @@ export function VolumeVisual<G extends Geometry, P extends VolumeParams & Geomet
 
     return {
         get groupCount() { return locationIt ? locationIt.count : 0; },
-        get renderObject () { return renderObject; },
+        get renderObject() { return renderObject; },
+        get geometryVersion() { return geometryVersion; },
         async createOrUpdate(ctx: VisualContext, theme: Theme, props: Partial<PD.Values<P>> = {}, volume?: Volume) {
             prepareUpdate(theme, props, volume || currentVolume);
             if (updateState.createGeometry) {
@@ -206,6 +212,9 @@ export function VolumeVisual<G extends Geometry, P extends VolumeParams & Geomet
         setTransparency(transparency: Transparency) {
             return Visual.setTransparency(renderObject, transparency, lociApply, true);
         },
+        setSubstance(substance: Substance) {
+            return Visual.setSubstance(renderObject, substance, lociApply, true);
+        },
         setClipping(clipping: Clipping) {
             return Visual.setClipping(renderObject, clipping, lociApply, true);
         },
@@ -236,6 +245,7 @@ export function VolumeRepresentation<P extends VolumeParams>(label: string, ctx:
     let version = 0;
     const { webgl } = ctx;
     const updated = new Subject<number>();
+    const geometryState = new Representation.GeometryState();
     const materialId = getNextMaterialId();
     const renderObjects: GraphicsRenderObject[] = [];
     const _state = Representation.createState();
@@ -266,7 +276,11 @@ export function VolumeRepresentation<P extends VolumeParams>(label: string, ctx:
             if (promise) await promise;
             // update list of renderObjects
             renderObjects.length = 0;
-            if (visual && visual.renderObject) renderObjects.push(visual.renderObject);
+            if (visual && visual.renderObject) {
+                renderObjects.push(visual.renderObject);
+                geometryState.add(visual.renderObject.id, visual.geometryVersion);
+            }
+            geometryState.snapshot();
             // increment version
             updated.next(version++);
         });
@@ -300,10 +314,11 @@ export function VolumeRepresentation<P extends VolumeParams>(label: string, ctx:
         get groupCount() {
             return visual ? visual.groupCount : 0;
         },
-        get props () { return _props; },
+        get props() { return _props; },
         get params() { return _params; },
         get state() { return _state; },
         get theme() { return _theme; },
+        get geometryVersion() { return geometryState.version; },
         renderObjects,
         updated,
         createOrUpdate,

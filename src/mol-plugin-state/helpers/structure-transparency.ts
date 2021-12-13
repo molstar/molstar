@@ -11,7 +11,7 @@ import { StateTransforms } from '../../mol-plugin-state/transforms';
 import { PluginContext } from '../../mol-plugin/context';
 import { StateBuilder, StateObjectCell, StateSelection, StateTransform } from '../../mol-state';
 import { StructureComponentRef } from '../manager/structure/hierarchy-state';
-import { EmptyLoci, Loci } from '../../mol-model/loci';
+import { EmptyLoci, isEmptyLoci, Loci } from '../../mol-model/loci';
 import { Transparency } from '../../mol-theme/transparency';
 
 type TransparencyEachReprCallback = (update: StateBuilder.Root, repr: StateObjectCell<PluginStateObject.Molecule.Structure.Representation3D, StateTransform<typeof StateTransforms.Representation.StructureRepresentation3D>>, transparency?: StateObjectCell<any, StateTransform<typeof StateTransforms.Representation.TransparencyStructureRepresentation3DFromBundle>>) => Promise<void>
@@ -25,7 +25,7 @@ export async function setStructureTransparency(plugin: PluginContext, components
         // always use the root structure to get the loci so the transparency
         // stays applicable as long as the root structure does not change
         const loci = await lociGetter(structure.root);
-        if (Loci.isEmpty(loci)) return;
+        if (Loci.isEmpty(loci) || isEmptyLoci(loci)) return;
 
         const layer = {
             bundle: StructureElement.Bundle.fromLoci(loci),

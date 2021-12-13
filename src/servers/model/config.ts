@@ -117,65 +117,65 @@ export let mapSourceAndIdToFilename: (source: string, id: string) => [string, Mo
 };
 
 function addServerArgs(parser: argparse.ArgumentParser) {
-    parser.addArgument([ '--apiPrefix' ], {
-        defaultValue: DefaultModelServerConfig.apiPrefix,
+    parser.add_argument('--apiPrefix', {
+        default: DefaultModelServerConfig.apiPrefix,
         metavar: 'PREFIX',
         help: `Specify the prefix of the API, i.e. <host>/<apiPrefix>/<API queries>`
     });
-    parser.addArgument([ '--defaultPort' ], {
-        defaultValue: DefaultModelServerConfig.defaultPort,
+    parser.add_argument('--defaultPort', {
+        default: DefaultModelServerConfig.defaultPort,
         metavar: 'PORT',
         type: 'int',
         help: `Specify the port the server is running on`
     });
-    parser.addArgument([ '--cacheMaxSizeInBytes' ], {
-        defaultValue: DefaultModelServerConfig.cacheMaxSizeInBytes,
+    parser.add_argument('--cacheMaxSizeInBytes', {
+        default: DefaultModelServerConfig.cacheMaxSizeInBytes,
         metavar: 'CACHE_SIZE',
         type: 'int',
         help: `0 for off.`
     });
-    parser.addArgument([ '--cacheEntryTimeoutMs' ], {
-        defaultValue: DefaultModelServerConfig.cacheEntryTimeoutMs,
+    parser.add_argument('--cacheEntryTimeoutMs', {
+        default: DefaultModelServerConfig.cacheEntryTimeoutMs,
         metavar: 'CACHE_TIMEOUT',
         type: 'int',
         help: `Specify in ms how long to keep entries in cache.`
     });
-    parser.addArgument([ '--requestTimeoutMs' ], {
-        defaultValue: DefaultModelServerConfig.requestTimeoutMs,
+    parser.add_argument('--requestTimeoutMs', {
+        default: DefaultModelServerConfig.requestTimeoutMs,
         metavar: 'REQUEST_TIMEOUT',
         type: 'int',
         help: `The maximum number of ms the server spends on a request.`
     });
-    parser.addArgument([ '--queryTimeoutMs' ], {
-        defaultValue: DefaultModelServerConfig.queryTimeoutMs,
+    parser.add_argument('--queryTimeoutMs', {
+        default: DefaultModelServerConfig.queryTimeoutMs,
         metavar: 'QUERY_TIMEOUT',
         type: 'int',
         help: `The maximum time the server dedicates to executing a query in ms.\nDoes not include the time it takes to read and export the data.`
     });
-    parser.addArgument([ '--shutdownTimeoutMinutes' ], {
-        defaultValue: DefaultModelServerConfig.shutdownTimeoutMinutes,
+    parser.add_argument('--shutdownTimeoutMinutes', {
+        default: DefaultModelServerConfig.shutdownTimeoutMinutes,
         metavar: 'TIME',
         type: 'int',
         help: `0 for off, server will shut down after this amount of minutes.`
     });
-    parser.addArgument([ '--shutdownTimeoutVarianceMinutes' ], {
-        defaultValue: DefaultModelServerConfig.shutdownTimeoutVarianceMinutes,
+    parser.add_argument('--shutdownTimeoutVarianceMinutes', {
+        default: DefaultModelServerConfig.shutdownTimeoutVarianceMinutes,
         metavar: 'VARIANCE',
         type: 'int',
         help: `modifies the shutdown timer by +/- timeoutVarianceMinutes (to avoid multiple instances shutting at the same time)`
     });
-    parser.addArgument([ '--maxQueryManyQueries' ], {
-        defaultValue: DefaultModelServerConfig.maxQueryManyQueries,
+    parser.add_argument('--maxQueryManyQueries', {
+        default: DefaultModelServerConfig.maxQueryManyQueries,
         metavar: 'QUERY_MANY_LIMIT',
         type: 'int',
         help: `maximum number of queries allowed by the query-many at a time`
     });
-    parser.addArgument([ '--defaultSource' ], {
-        defaultValue: DefaultModelServerConfig.defaultSource,
+    parser.add_argument('--defaultSource', {
+        default: DefaultModelServerConfig.defaultSource,
         metavar: 'DEFAULT_SOURCE',
         help: `modifies which 'sourceMap' source to use by default`
     });
-    parser.addArgument([ '--sourceMap' ], {
+    parser.add_argument('--sourceMap', {
         nargs: 2,
         action: 'append',
         metavar: ['SOURCE', 'PATH'] as any,
@@ -188,7 +188,7 @@ function addServerArgs(parser: argparse.ArgumentParser) {
             `Supported formats: ${ModelServerFetchFormats.join(', ')}`
         ].join('\n'),
     });
-    parser.addArgument([ '--sourceMapUrl' ], {
+    parser.add_argument('--sourceMapUrl', {
         nargs: 3,
         action: 'append',
         metavar: ['SOURCE', 'PATH', 'SOURCE_MAP_FORMAT'] as any,
@@ -224,15 +224,15 @@ interface ServerJsonConfig {
 }
 
 function addJsonConfigArgs(parser: argparse.ArgumentParser) {
-    parser.addArgument(['--cfg'], {
+    parser.add_argument('--cfg', {
         help: [
             'JSON config file path',
             'If a property is not specified, cmd line param/OS variable/default value are used.'
         ].join('\n'),
-        required: false
+        required: false,
     });
-    parser.addArgument(['--printCfg'], { help: 'Print current config for validation and exit.', required: false, nargs: 0 });
-    parser.addArgument(['--cfgTemplate'], { help: 'Prints default JSON config template to be modified and exits.', required: false, nargs: 0 });
+    parser.add_argument('--printCfg', { help: 'Print current config for validation and exit.', required: false, action: 'store_true' });
+    parser.add_argument('--cfgTemplate', { help: 'Prints default JSON config template to be modified and exits.', required: false, action: 'store_true' });
 }
 
 function setConfig(config: ModelServerConfig) {
@@ -260,19 +260,18 @@ function validateConfigAndSetupSourceMap() {
 
 function parseConfigArguments() {
     const parser = new argparse.ArgumentParser({
-        version: VERSION,
-        addHelp: true,
+        add_help: true,
         description: `ModelServer ${VERSION}, (c) 2018-2020, Mol* contributors`
     });
     addJsonConfigArgs(parser);
     addServerArgs(parser);
-    return parser.parseArgs() as ModelServerConfig & ServerJsonConfig;
+    return parser.parse_args() as ModelServerConfig & ServerJsonConfig;
 }
 
 export function configureServer() {
     const config = parseConfigArguments();
 
-    if (config.cfgTemplate !== null) {
+    if (!!config.cfgTemplate) {
         console.log(JSON.stringify(ModelServerConfigTemplate, null, 2));
         process.exit(0);
     }
@@ -285,7 +284,7 @@ export function configureServer() {
             setConfig(cfg);
         }
 
-        if (config.printCfg !== null) {
+        if (!!config.printCfg) {
             console.log(JSON.stringify(ModelServerConfig, null, 2));
             process.exit(0);
         }

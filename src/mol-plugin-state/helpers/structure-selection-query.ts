@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -18,6 +18,7 @@ import { SetUtils } from '../../mol-util/set';
 import { PluginStateObject } from '../objects';
 import { StateTransforms } from '../transforms';
 import { ElementNames } from '../../mol-model/structure/model/properties/atomic/types';
+import { SecondaryStructureProvider } from '../../mol-model-props/computed/secondary-structure';
 
 export enum StructureSelectionCategory {
     Type = 'Type',
@@ -250,7 +251,12 @@ const helix = StructureSelectionQuery('Helix', MS.struct.modifier.union([
             MS.core.type.bitflags([SecondaryStructureType.Flag.Helix])
         ])
     })
-]), { category: StructureSelectionCategory.Structure });
+]), {
+    category: StructureSelectionCategory.Structure,
+    ensureCustomProperties: (ctx: CustomProperty.Context, structure: Structure) => {
+        return SecondaryStructureProvider.attach(ctx, structure);
+    }
+});
 
 const beta = StructureSelectionQuery('Beta Strand/Sheet', MS.struct.modifier.union([
     MS.struct.generator.atomGroups({
@@ -260,7 +266,12 @@ const beta = StructureSelectionQuery('Beta Strand/Sheet', MS.struct.modifier.uni
             MS.core.type.bitflags([SecondaryStructureType.Flag.Beta])
         ])
     })
-]), { category: StructureSelectionCategory.Structure });
+]), {
+    category: StructureSelectionCategory.Structure,
+    ensureCustomProperties: (ctx: CustomProperty.Context, structure: Structure) => {
+        return SecondaryStructureProvider.attach(ctx, structure);
+    }
+});
 
 const water = StructureSelectionQuery('Water', MS.struct.modifier.union([
     MS.struct.generator.atomGroups({

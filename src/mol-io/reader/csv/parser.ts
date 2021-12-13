@@ -72,13 +72,13 @@ function eatValue(state: Tokenizer, delimiterCharCode: number) {
         const c = state.data.charCodeAt(state.position);
         ++state.position;
         switch (c) {
-            case 10:  // \n
-            case 13:  // \r
+            case 10: // \n
+            case 13: // \r
                 return true;
             case delimiterCharCode:
                 return;
-            case 9:  // \t
-            case 32:  // ' '
+            case 9: // \t
+            case 32: // ' '
                 break;
             default:
                 ++state.tokenEnd;
@@ -120,8 +120,8 @@ function eatQuoted(state: Tokenizer, quoteCharCode: number, delimiterCharCode: n
 function skipEmpty(state: Tokenizer, delimiterCharCode: number) {
     while (state.position < state.length) {
         const c = state.data.charCodeAt(state.position);
-        if (c !== 9 && c !== 32 && c !== delimiterCharCode) {  // \t or ' '
-            return c === 10 || c === 13;  // \n or \r
+        if (c !== 9 && c !== 32 && c !== delimiterCharCode) { // \t or ' '
+            return c === 10 || c === 13; // \n or \r
         }
         ++state.position;
     }
@@ -132,12 +132,12 @@ function skipWhitespace(state: Tokenizer) {
     while (state.position < state.length) {
         const c = state.data.charCodeAt(state.position);
         switch (c) {
-            case 9:  // '\t'
-            case 32:  // ' '
+            case 9: // '\t'
+            case 32: // ' '
                 prev = c;
                 ++state.position;
                 break;
-            case 10:  // \n
+            case 10: // \n
                 // handle \r\n
                 if (prev !== 13) {
                     ++state.lineNumber;
@@ -145,7 +145,7 @@ function skipWhitespace(state: Tokenizer) {
                 prev = c;
                 ++state.position;
                 break;
-            case 13:  // \r
+            case 13: // \r
                 prev = c;
                 ++state.position;
                 ++state.lineNumber;
@@ -159,7 +159,7 @@ function skipWhitespace(state: Tokenizer) {
 function skipLine(state: Tokenizer) {
     while (state.position < state.length) {
         const c = state.data.charCodeAt(state.position);
-        if (c === 10 || c === 13) return;  // \n or \r
+        if (c === 10 || c === 13) return; // \n or \r
         ++state.position;
     }
 }
@@ -227,13 +227,13 @@ function readRecordsChunk(chunkSize: number, state: State) {
 }
 
 function readRecordsChunks(state: State) {
-    let newRecord = moveNext(state);
+    const newRecord = moveNext(state);
     if (newRecord) ++state.recordCount;
     return chunkedSubtask(state.runtimeCtx, 100000, state, readRecordsChunk,
         (ctx, state) => ctx.update({ message: 'Parsing...', current: state.tokenizer.position, max: state.data.length }));
 }
 
-function addColumn (state: State) {
+function addColumn(state: State) {
     state.columnNames.push(Tokenizer.getTokenString(state.tokenizer));
     state.tokens.push(TokenBuilder.create(state.tokenizer.data, state.data.length / 80));
 }

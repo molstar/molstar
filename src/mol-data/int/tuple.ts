@@ -15,7 +15,7 @@ interface IntTuple { '@type': 'int-tuple' }
 namespace IntTuple {
     export const Zero: IntTuple = 0 as any;
 
-    const { _int32, _float64, _int32_1, _float64_1 } = (function() {
+    const { _int32, _float64, _int32_1, _float64_1 } = (function () {
         const data = new ArrayBuffer(8);
         const data_1 = new ArrayBuffer(8);
         return {
@@ -34,6 +34,12 @@ namespace IntTuple {
         _int32[0] = fst;
         _int32[1] = snd;
         return _float64[0] as any;
+    }
+
+    /** snd - fst */
+    export function diff(t: IntTuple) {
+        _float64[0] = t as any;
+        return _int32[1] - _int32[0];
     }
 
     export function fst(t: IntTuple): number {

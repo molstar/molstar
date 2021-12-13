@@ -166,7 +166,7 @@ export const ColorNames = ColorMap({
 });
 export type ColorNames = typeof ColorNames
 export type ColorName = keyof ColorNames
-export const ColorNamesValueMap = (function() {
+export const ColorNamesValueMap = (function () {
     const map = new Map<Color, ColorName>();
     Object.keys(ColorNames).forEach(name => {
         map.set(ColorNames[name as ColorName], name as ColorName);

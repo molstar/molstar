@@ -26,7 +26,7 @@ export async function readCcp4Header(file: FileHandle): Promise<{ header: Ccp4He
 
     // 54  MACHST      Machine stamp indicating machine type which wrote file
     //                 17 and 17 for big-endian or 68 and 65 for little-endian
-    const MACHST = [ buffer.readUInt8(53 * 4), buffer.readUInt8(53 * 4 + 1) ];
+    const MACHST = [buffer.readUInt8(53 * 4), buffer.readUInt8(53 * 4 + 1)];
     let littleEndian = false;
     if (MACHST[0] === 68 && MACHST[1] === 65) {
         littleEndian = true;

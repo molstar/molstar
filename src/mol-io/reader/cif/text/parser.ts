@@ -64,7 +64,7 @@ interface TokenizerState {
 function eatValue(state: TokenizerState) {
     while (state.position < state.length) {
         switch (state.data.charCodeAt(state.position)) {
-            case 9:  // \t
+            case 9: // \t
             case 10: // \n
             case 13: // \r
             case 32: // ' '
@@ -96,7 +96,7 @@ function eatEscaped(state: TokenizerState, esc: number) {
         if (c === esc) {
             next = state.data.charCodeAt(state.position + 1);
             switch (next) {
-                case 9:  // \t
+                case 9: // \t
                 case 10: // \n
                 case 13: // \r
                 case 32: // ' '
@@ -198,7 +198,7 @@ function eatImportGet(state: TokenizerState) {
     // skipWhitespace(state)
     while (state.position < state.length) {
         switch (state.data.charCodeAt(state.position)) {
-            case 93:  // ]
+            case 93: // ]
                 ++state.position;
                 state.tokenEnd = state.position;
                 state.isImportGet = false;
@@ -215,7 +215,7 @@ function eatImportGet(state: TokenizerState) {
  */
 function skipCommentLine(state: TokenizerState) {
     while (state.position < state.length) {
-        let c = state.data.charCodeAt(state.position);
+        const c = state.data.charCodeAt(state.position);
         if (c === 10 || c === 13) {
             return;
         }
@@ -230,7 +230,7 @@ function skipCommentLine(state: TokenizerState) {
 function skipWhitespace(state: TokenizerState): number {
     let prev = 10;
     while (state.position < state.length) {
-        let c = state.data.charCodeAt(state.position);
+        const c = state.data.charCodeAt(state.position);
         switch (c) {
             case 9: // '\t'
             case 32: // ' '
@@ -351,10 +351,10 @@ function isImportGet(state: TokenizerState): boolean {
  * Checks if the current token shares the namespace with string at <start,end).
  */
 function isNamespace(state: TokenizerState, start: number, end: number): boolean {
-    let i: number,
-        nsLen = end - start,
-        offset = state.tokenStart - start,
-        tokenLen = state.tokenEnd - state.tokenStart;
+    let i: number;
+    const nsLen = end - start;
+    const offset = state.tokenStart - start;
+    const tokenLen = state.tokenEnd - state.tokenStart;
 
     if (tokenLen < nsLen) return false;
 
@@ -410,7 +410,7 @@ function getTokenString(state: TokenizerState) {
  * Move to the next token.
  */
 function moveNextInternal(state: TokenizerState) {
-    let prev = skipWhitespace(state);
+    const prev = skipWhitespace(state);
 
     if (state.position >= state.length) {
         state.tokenType = CifTokenType.End;
@@ -421,7 +421,7 @@ function moveNextInternal(state: TokenizerState) {
     state.tokenEnd = state.position;
     state.isEscaped = false;
 
-    let c = state.data.charCodeAt(state.position);
+    const c = state.data.charCodeAt(state.position);
     switch (c) {
         case 35: // #, comment
             skipCommentLine(state);
@@ -712,7 +712,7 @@ async function parseInternal(data: string, runtimeCtx: RuntimeContext) {
     // the next three initial values are never used in valid files
     let saveFrames: Data.CifFrame[] = [];
     let saveCtx = FrameContext();
-    let saveFrame: Data.CifFrame = Data.CifSaveFrame(
+    const saveFrame: Data.CifFrame = Data.CifSaveFrame(
         saveCtx.categoryNames, CifCategories(saveCtx.categoryNames, saveCtx.categoryData), ''
     );
 
@@ -722,7 +722,7 @@ async function parseInternal(data: string, runtimeCtx: RuntimeContext) {
 
     moveNext(tokenizer);
     while (tokenizer.tokenType !== CifTokenType.End) {
-        let token = tokenizer.tokenType;
+        const token = tokenizer.tokenType;
 
         // Data block
         if (token === CifTokenType.Data) {

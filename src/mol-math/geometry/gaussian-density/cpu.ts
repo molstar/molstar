@@ -12,7 +12,7 @@ import { OrderedSet } from '../../../mol-data/int';
 import { GaussianDensityProps, GaussianDensityData } from '../gaussian-density';
 import { fasterExp } from '../../approx';
 
-export async function GaussianDensityCPU(ctx: RuntimeContext, position: PositionData, box: Box3D, radius: (index: number) => number,  props: GaussianDensityProps): Promise<GaussianDensityData> {
+export async function GaussianDensityCPU(ctx: RuntimeContext, position: PositionData, box: Box3D, radius: (index: number) => number, props: GaussianDensityProps): Promise<GaussianDensityData> {
     const { resolution, radiusOffset, smoothness } = props;
     const scaleFactor = 1 / resolution;
 
@@ -42,7 +42,7 @@ export async function GaussianDensityCPU(ctx: RuntimeContext, position: Position
     idData.fill(-1);
     const idField = Tensor.create(space, idData);
 
-    const [ dimX, dimY, dimZ ] = dim;
+    const [dimX, dimY, dimZ] = dim;
     const iu = dimZ, iv = dimY, iuv = iu * iv;
 
     const gridx = fillGridDim(dim[0], min[0], resolution);

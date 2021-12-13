@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Fred Ludlow <Fred.Ludlow@astx.com>
@@ -68,11 +68,8 @@ function addUnitHydrogenDonors(structure: Structure, unit: Unit.Atomic, builder:
     const { totalH } = getUnitValenceModel(structure, unit);
     const { elements } = unit;
     const { x, y, z } = unit.model.atomicConformation;
-    const { elementAromaticRingIndices } = unit.rings;
 
     for (let i = 0 as StructureElement.UnitIndex, il = elements.length; i < il; ++i) {
-        if (elementAromaticRingIndices.has(i)) continue;
-
         const element = typeSymbol(unit, i);
         if ((
             // include both nitrogen atoms in histidine due to
@@ -134,15 +131,12 @@ function addUnitHydrogenAcceptors(structure: Structure, unit: Unit.Atomic, build
     const { charge, implicitH, idealGeometry } = getUnitValenceModel(structure, unit);
     const { elements } = unit;
     const { x, y, z } = unit.model.atomicConformation;
-    const { elementAromaticRingIndices } = unit.rings;
 
     const add = (i: StructureElement.UnitIndex) => {
         builder.add(FeatureType.HydrogenAcceptor, FeatureGroup.None, x[elements[i]], y[elements[i]], z[elements[i]], i);
     };
 
     for (let i = 0 as StructureElement.UnitIndex, il = elements.length; i < il; ++i) {
-        if (elementAromaticRingIndices.has(i)) continue;
-
         const element = typeSymbol(unit, i);
         if (element === Elements.O) {
             // Basically assume all oxygen atoms are acceptors!
@@ -227,8 +221,8 @@ function getHydrogenBondsOptions(props: HydrogenBondsProps) {
     return {
         ...getGeometryOptions(props),
         includeWater: props.water,
-        maxSulfurDistSq: props.sulfurDistanceMax *  props.sulfurDistanceMax,
-        maxDistSq: props.distanceMax *  props.distanceMax
+        maxSulfurDistSq: props.sulfurDistanceMax * props.sulfurDistanceMax,
+        maxDistSq: props.distanceMax * props.distanceMax
     };
 }
 type HydrogenBondsOptions = ReturnType<typeof getHydrogenBondsOptions>

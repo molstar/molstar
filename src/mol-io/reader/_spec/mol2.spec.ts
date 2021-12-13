@@ -246,7 +246,7 @@ GASTEIGER
 
 describe('mol2 reader', () => {
     it('basic', async () => {
-        const parsed =  await parseMol2(Mol2String, '').run();
+        const parsed = await parseMol2(Mol2String, '').run();
         if (parsed.isError) {
             throw new Error(parsed.message);
         }
@@ -297,7 +297,7 @@ describe('mol2 reader', () => {
     });
 
     it('multiblocks', async () => {
-        const parsed =  await parseMol2(Mol2StringMultiBlocks, '').run();
+        const parsed = await parseMol2(Mol2StringMultiBlocks, '').run();
         if (parsed.isError) {
             throw new Error(parsed.message);
         }
@@ -348,7 +348,7 @@ describe('mol2 reader', () => {
     });
 
     it('minimal', async () => {
-        const parsed =  await parseMol2(Mol2StringMinimal, '').run();
+        const parsed = await parseMol2(Mol2StringMinimal, '').run();
         if (parsed.isError) {
             throw new Error(parsed.message);
         }

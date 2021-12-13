@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Ludovic Autin <ludovic.autin@gmail.com>
  */
 
 import { CIF } from '../../mol-io/reader/cif';
@@ -37,11 +38,11 @@ async function downloadPDB(plugin: PluginContext, url: string, id: string, asset
 }
 
 export async function getFromPdb(plugin: PluginContext, pdbId: string, assetManager: AssetManager) {
-    const { cif, asset } = await downloadCif(plugin, `https://models.rcsb.org/${pdbId.toUpperCase()}.bcif`, true, assetManager);
+    const { cif, asset } = await downloadCif(plugin, `https://models.rcsb.org/${pdbId}.bcif`, true, assetManager);
     return { mmcif: cif.blocks[0], asset };
 }
 
-export async function getFromOPM(plugin: PluginContext, pdbId: string, assetManager: AssetManager){
+export async function getFromOPM(plugin: PluginContext, pdbId: string, assetManager: AssetManager) {
     const asset = await plugin.runTask(assetManager.resolve(Asset.getUrlAsset(assetManager, `https://opm-assets.storage.googleapis.com/pdb/${pdbId.toLowerCase()}.pdb`), 'string'));
     return { pdb: await parsePDBfile(plugin, asset.data, pdbId), asset };
 }
@@ -74,4 +75,35 @@ export function getStructureMean(structure: Structure) {
     }
     const { elementCount } = structure;
     return Vec3.create(xSum / elementCount, ySum / elementCount, zSum / elementCount);
+}
+
+export function getFloatValue(value: DataView, offset: number) {
+    // if the last byte is a negative value (MSB is 1), the final
+    // float should be too
+    const negative = value.getInt8(offset + 2) >>> 31;
+
+    // this is how the bytes are arranged in the byte array/DataView
+    // buffer
+    const [b0, b1, b2, exponent] = [
+        // get first three bytes as unsigned since we only care
+        // about the last 8 bits of 32-bit js number returned by
+        // getUint8().
+        // Should be the same as: getInt8(offset) & -1 >>> 24
+        value.getUint8(offset),
+        value.getUint8(offset + 1),
+        value.getUint8(offset + 2),
+
+        // get the last byte, which is the exponent, as a signed int
+        // since it's already correct
+        value.getInt8(offset + 3)
+    ];
+
+    let mantissa = b0 | (b1 << 8) | (b2 << 16);
+    if (negative) {
+        // need to set the most significant 8 bits to 1's since a js
+        // number is 32 bits but our mantissa is only 24.
+        mantissa |= 255 << 24;
+    }
+
+    return mantissa * Math.pow(10, exponent);
 }

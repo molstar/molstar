@@ -29,18 +29,18 @@ function description() {
 }
 
 const cmdParser = new argparse.ArgumentParser({
-    addHelp: true,
+    add_help: true,
     description: description()
 });
-cmdParser.addArgument(['--input', '-i'], { help: 'Input filename', required: false });
-cmdParser.addArgument(['--outCIF', '-oc'], { help: 'Output CIF filename', required: false });
-cmdParser.addArgument(['--outBCIF', '-ob'], { help: 'Output BinaryCIF filename', required: false });
+cmdParser.add_argument('--input', '-i', { help: 'Input filename', required: false });
+cmdParser.add_argument('--outCIF', '-oc', { help: 'Output CIF filename', required: false });
+cmdParser.add_argument('--outBCIF', '-ob', { help: 'Output BinaryCIF filename', required: false });
 // TODO: add back? cmdParser.addArgument(['--bulk', '-b'], { help: 'Bulk JSON ({ numProcesses?: number, entries: { source: string, cif?: string, bcif?: string }[] })', required: false });
-cmdParser.addArgument(['--cfg', '-c'], { help: 'Config file path', required: false });
-cmdParser.addArgument(['--folderIn', '-fin'], { help: 'Convert folder', required: false });
-cmdParser.addArgument(['--folderOutCIF', '-foc'], { help: 'Convert folder text output', required: false });
-cmdParser.addArgument(['--folderOutBCIF', '-fob'], { help: 'Convert folder binary output', required: false });
-cmdParser.addArgument(['--folderNumProcesses', '-fp'], { help: 'Convert folder num processes', required: false });
+cmdParser.add_argument('--cfg', '-c', { help: 'Config file path', required: false });
+cmdParser.add_argument('--folderIn', '-fin', { help: 'Convert folder', required: false });
+cmdParser.add_argument('--folderOutCIF', '-foc', { help: 'Convert folder text output', required: false });
+cmdParser.add_argument('--folderOutBCIF', '-fob', { help: 'Convert folder binary output', required: false });
+cmdParser.add_argument('--folderNumProcesses', '-fp', { help: 'Convert folder num processes', required: false });
 
 interface CmdArgs {
     // bulk?: string,
@@ -61,14 +61,14 @@ export interface PreprocessConfig {
     customProperties?: ModelPropertyProviderConfig | string
 }
 
-const cmdArgs = cmdParser.parseArgs() as CmdArgs;
+const cmdArgs = cmdParser.parse_args() as CmdArgs;
 
 if (Object.keys(cmdArgs).filter(k => (cmdArgs as any)[k] !== null).length === 0 || typeof cmdArgs.help !== 'undefined') {
-    cmdParser.printHelp();
+    cmdParser.print_help();
     process.exit(0);
 }
 
-let entries: PreprocessEntry[] = [];
+const entries: PreprocessEntry[] = [];
 let config: PreprocessConfig = { numProcesses: cmdArgs.folderIn ? +(cmdArgs.folderNumProcesses || 1) : 1, customProperties: void 0 };
 
 if (cmdArgs.input) entries.push({ source: cmdArgs.input, cif: cmdArgs.outCIF, bcif: cmdArgs.outBCIF });

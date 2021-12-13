@@ -5,7 +5,7 @@
  */
 
 import { Polyhedron } from './polyhedron';
-import { Icosahedron } from  './icosahedron';
+import { Icosahedron } from './icosahedron';
 import { Primitive } from './primitive';
 
 const { vertices, indices } = Icosahedron();

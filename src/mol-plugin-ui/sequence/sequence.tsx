@@ -153,7 +153,11 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
     private getBackgroundColor(marker: number) {
         // TODO: make marker color configurable
         if (typeof marker === 'undefined') console.error('unexpected marker value');
-        return marker === 0 ? '' : marker % 2 === 0 ? 'rgb(51, 255, 25)' /* selected */ : 'rgb(255, 102, 153)' /* highlighted */;
+        return marker === 0
+            ? ''
+            : marker % 2 === 0
+                ? 'rgb(51, 255, 25)' // selected
+                : 'rgb(255, 102, 153)'; // highlighted
     }
 
     private getResidueClass(seqIdx: number, label: string) {

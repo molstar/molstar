@@ -25,22 +25,22 @@ export function guessElementSymbolTokens(tokens: Tokens, str: string, start: num
     if (s + 2 === e) { // two chars
         const c2 = str.charCodeAt(s + 1);
         if (
-            ((c === 78 || c === 110) && (c2 === 65 || c2 ===  97)) || // NA na Na nA
-            ((c === 67 || c ===  99) && (c2 === 76 || c2 === 108)) || // CL
+            ((c === 78 || c === 110) && (c2 === 65 || c2 === 97)) || // NA na Na nA
+            ((c === 67 || c === 99) && (c2 === 76 || c2 === 108)) || // CL
             ((c === 70 || c === 102) && (c2 === 69 || c2 === 101)) || // FE
             ((c === 83 || c === 115) && (c2 === 73 || c2 === 105)) || // SI
-            ((c === 66 || c === 98) && (c2 === 82 || c2 === 114)) ||  // BR
-            ((c === 65 || c === 97) && (c2 === 83 || c2 === 115))     // AS
+            ((c === 66 || c === 98) && (c2 === 82 || c2 === 114)) || // BR
+            ((c === 65 || c === 97) && (c2 === 83 || c2 === 115)) // AS
         ) return TokenBuilder.add(tokens, s, s + 2);
     }
 
     if (
-        c === 67 || c ===  99 || // C c
+        c === 67 || c === 99 || // C c
         c === 72 || c === 104 || // H h
         c === 78 || c === 110 || // N n
         c === 79 || c === 111 || // O o
         c === 80 || c === 112 || // P p
-        c === 83 || c === 115    // S s
+        c === 83 || c === 115 // S s
     ) return TokenBuilder.add(tokens, s, s + 1);
 
     TokenBuilder.add(tokens, s, s); // no reasonable guess, add empty token

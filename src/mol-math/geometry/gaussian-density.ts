@@ -29,7 +29,7 @@ export type GaussianDensityTextureData = {
     resolution: number
 } & DensityTextureData
 
-export function computeGaussianDensity(position: PositionData, box: Box3D, radius: (index: number) => number,  props: GaussianDensityProps) {
+export function computeGaussianDensity(position: PositionData, box: Box3D, radius: (index: number) => number, props: GaussianDensityProps) {
     return Task.create('Gaussian Density', async ctx => {
         return await GaussianDensityCPU(ctx, position, box, radius, props);
     });

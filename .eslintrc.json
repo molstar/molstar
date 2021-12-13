@@ -38,7 +38,24 @@
                 "selector": "ExportDefaultDeclaration",
                 "message": "Default exports are not allowed"
             }
-        ]
+        ],
+        "no-throw-literal": "error",
+        "key-spacing": "error",
+        "object-curly-spacing": ["error", "always"],
+        "array-bracket-spacing": "error",
+        "space-in-parens": "error",
+        "computed-property-spacing": "error",
+        "prefer-const": ["error", {
+            "destructuring": "all",
+            "ignoreReadBeforeAssign": false
+        }],
+        "space-before-function-paren": "off",
+        "func-call-spacing": "off",
+        "no-multi-spaces": "error",
+        "block-spacing": "error",
+        "keyword-spacing": "off",
+        "space-before-blocks": "error",
+        "semi-spacing": "error"
     },
     "overrides": [
         {
@@ -89,7 +106,14 @@
                     "error",
                     "1tbs", { "allowSingleLine": true }
                 ],
-                "@typescript-eslint/comma-spacing": "error"
+                "@typescript-eslint/comma-spacing": "error",
+                "@typescript-eslint/space-before-function-paren": ["error", {
+                    "anonymous": "always",
+                    "named": "never",
+                    "asyncArrow": "always"
+                }],
+                "@typescript-eslint/func-call-spacing": ["error"],
+                "@typescript-eslint/keyword-spacing": ["error"]
             }
         }
     ]

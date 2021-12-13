@@ -13,6 +13,7 @@ import { ThemeRegistryContext } from '../../../mol-theme/theme';
 import { Structure } from '../../../mol-model/structure';
 import { PolymerBackboneSphereParams, PolymerBackboneSphereVisual } from '../visual/polymer-backbone-sphere';
 import { PolymerGapParams, PolymerGapVisual } from '../visual/polymer-gap-cylinder';
+import { BaseGeometry } from '../../../mol-geo/geometry/base';
 
 const BackboneVisuals = {
     'polymer-backbone-cylinder': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, PolymerBackboneCylinderParams>) => UnitsRepresentation('Polymer backbone cylinder', ctx, getParams, PolymerBackboneCylinderVisual),
@@ -25,7 +26,8 @@ export const BackboneParams = {
     ...PolymerBackboneCylinderParams,
     ...PolymerGapParams,
     sizeAspectRatio: PD.Numeric(1, { min: 0.1, max: 3, step: 0.1 }),
-    visuals: PD.MultiSelect(['polymer-backbone-cylinder', 'polymer-backbone-sphere', 'polymer-gap'], PD.objectToOptions(BackboneVisuals))
+    visuals: PD.MultiSelect(['polymer-backbone-cylinder', 'polymer-backbone-sphere', 'polymer-gap'], PD.objectToOptions(BackboneVisuals)),
+    bumpFrequency: PD.Numeric(0, { min: 0, max: 10, step: 0.1 }, BaseGeometry.ShadingCategory),
 };
 export type BackboneParams = typeof BackboneParams
 export function getBackboneParams(ctx: ThemeRegistryContext, structure: Structure) {

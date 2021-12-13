@@ -111,7 +111,7 @@ namespace Decoder {
         // const mask = 0xff; // (1 << 8) - 1;
         // let lastBB0 = uint32view[1];
         let lastBB1 = uint32view[2];
-        let cnt = buf[0];
+        const cnt = buf[0];
 
         lastBB1 = (lastBB1 << 8) | cbuf[offset + cnt];
 
@@ -264,7 +264,7 @@ async function parseInternal(ctx: RuntimeContext, data: Uint8Array) {
 
             sizesmall[0] = sizesmall[1] = sizesmall[2] = MagicInts[smallidx];
 
-            let adz = Math.ceil(dv.getInt32(offset) / 4) * 4;
+            const adz = Math.ceil(dv.getInt32(offset) / 4) * 4;
             offset += 4;
 
             const invPrecision = 1.0 / precision;

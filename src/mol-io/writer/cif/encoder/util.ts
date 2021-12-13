@@ -26,7 +26,7 @@ export interface CategoryInstanceData<Ctx = any> {
 
 export function getCategoryInstanceData<Ctx>(category: Category<Ctx>, ctx?: Ctx): CategoryInstanceData<Ctx> {
     const instance = category.instance(ctx as any);
-    let sources = instance.source.filter(s => s.rowCount > 0);
+    const sources = instance.source.filter(s => s.rowCount > 0);
     if (!sources.length) return { instance, rowCount: 0, source: [] };
 
     const rowCount = sources.reduce((a, c) => a + c.rowCount, 0);

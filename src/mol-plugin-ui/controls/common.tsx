@@ -123,7 +123,7 @@ export class TextInput<T = string> extends React.PureComponent<TextInputProps<T>
     onChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const value = e.target.value;
 
-        let isInvalid = (this.props.isValid && !this.props.isValid(value)) || (this.props.numeric && Number.isNaN(+value));
+        const isInvalid = (this.props.isValid && !this.props.isValid(value)) || (this.props.numeric && Number.isNaN(+value));
         if (isInvalid) {
             this.clearTimeout();
             this.setState({ value });

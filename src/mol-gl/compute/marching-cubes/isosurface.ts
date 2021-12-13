@@ -116,6 +116,9 @@ function setRenderingDefaults(ctx: WebGLContext) {
 }
 
 export function createIsosurfaceBuffers(ctx: WebGLContext, activeVoxelsBase: Texture, volumeData: Texture, histogramPyramid: HistogramPyramid, gridDim: Vec3, gridTexDim: Vec3, transform: Mat4, isoValue: number, invert: boolean, packedGroup: boolean, vertexTexture?: Texture, groupTexture?: Texture, normalTexture?: Texture) {
+    const { drawBuffers } = ctx.extensions;
+    if (!drawBuffers) throw new Error('need WebGL draw buffers');
+
     const { gl, resources, extensions } = ctx;
     const { pyramidTex, height, levels, scale, count } = histogramPyramid;
     const width = pyramidTex.getWidth();
@@ -172,9 +175,6 @@ export function createIsosurfaceBuffers(ctx: WebGLContext, activeVoxelsBase: Tex
 
     const renderable = getIsosurfaceRenderable(ctx, pyramidTex, activeVoxelsBase, volumeData, gridDim, gridTexDim, transform, isoValue, levels, scale, count, invert, packedGroup);
     ctx.state.currentRenderItemId = -1;
-
-    const { drawBuffers } = ctx.extensions;
-    if (!drawBuffers) throw new Error('need WebGL draw buffers');
 
     framebuffer.bind();
     drawBuffers.drawBuffers([

@@ -85,7 +85,7 @@ const ctrl = {
     }), Type.Union([Type.Variable('a', Type.Any), Type.Variable('b', Type.Any)])),
     assoc: symbol(Arguments.Dictionary({
         0: Argument(Type.Str, { description: 'Name' }),
-        1: Argument(Type.Variable('a', Type.Any), {description: 'Value to assign' })
+        1: Argument(Type.Variable('a', Type.Any), { description: 'Value to assign' })
     }), Type.Variable('a', Type.Any))
 };
 
@@ -184,7 +184,7 @@ normalizeTable(core);
 
 export const SymbolList = symbolList(core);
 
-export const SymbolMap = (function() {
+export const SymbolMap = (function () {
     const map: { [id: string]: MSymbol | undefined } = Object.create(null);
     for (const s of SymbolList) map[s.id] = s;
     return map;

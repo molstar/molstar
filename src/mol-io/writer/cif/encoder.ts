@@ -47,7 +47,7 @@ export namespace Field {
         return { name, type: Type.Str, value, valueKind: params && params.valueKind, defaultFormat: params && params.encoder ? { encoder: params.encoder } : void 0, shouldInclude: params && params.shouldInclude };
     }
 
-    export function int<K, D = any>(name: string, value: (k: K, d: D, index: number) => number, params?:  ParamsBase<K, D> & { typedArray?: ArrayEncoding.TypedArrayCtor }): Field<K, D> {
+    export function int<K, D = any>(name: string, value: (k: K, d: D, index: number) => number, params?: ParamsBase<K, D> & { typedArray?: ArrayEncoding.TypedArrayCtor }): Field<K, D> {
         return {
             name,
             type: Type.Int,
@@ -86,7 +86,7 @@ export namespace Field {
             return this;
         }
 
-        int(name: N, value: (k: K, d: D, index: number) => number, params?:  ParamsBase<K, D> & { typedArray?: ArrayEncoding.TypedArrayCtor }) {
+        int(name: N, value: (k: K, d: D, index: number) => number, params?: ParamsBase<K, D> & { typedArray?: ArrayEncoding.TypedArrayCtor }) {
             this.fields.push(Field.int(name, value, params));
             return this;
         }
@@ -116,7 +116,7 @@ export namespace Field {
         getFields() { return this.fields; }
     }
 
-    export function build<K = number, D = any, N extends string  = string>() {
+    export function build<K = number, D = any, N extends string = string>() {
         return new Builder<K, D, N>();
     }
 }

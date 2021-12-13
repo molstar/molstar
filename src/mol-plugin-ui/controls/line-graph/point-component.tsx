@@ -6,7 +6,7 @@ import { Vec2 } from '../../../mol-math/linear-algebra';
 export class PointComponent extends React.Component<any, {show: boolean}> {
     constructor(props: any) {
         super(props);
-        this.state = {show: false};
+        this.state = { show: false };
 
         this.handleHover = this.handleHover.bind(this);
         this.handleHoverOff = this.handleHoverOff.bind(this);
@@ -14,13 +14,13 @@ export class PointComponent extends React.Component<any, {show: boolean}> {
     }
 
     private handleHover() {
-        this.setState({show: true});
+        this.setState({ show: true });
         const point = Vec2.create(this.props.nX, this.props.nY);
         this.props.onmouseover(point);
     }
 
     private handleHoverOff() {
-        this.setState({show: false});
+        this.setState({ show: false });
         this.props.onmouseover(undefined);
     }
 
@@ -29,7 +29,7 @@ export class PointComponent extends React.Component<any, {show: boolean}> {
     }
 
     public render() {
-        return([
+        return ([
             <circle
                 r="10"
                 key={`${this.props.id}circle`}

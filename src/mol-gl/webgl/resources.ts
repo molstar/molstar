@@ -104,7 +104,7 @@ export function createResources(gl: GLRenderingContext, state: WebGLState, stats
 
     const programCache = createReferenceCache(
         (props: ProgramProps) => {
-            const array = [ props.shaderCode.id ];
+            const array = [props.shaderCode.id];
             Object.keys(props.defineValues).forEach(k => array.push(hashString(k), defineValueHash(props.defineValues[k].ref.value)));
             return hashFnv32a(array).toString();
         },
@@ -114,7 +114,7 @@ export function createResources(gl: GLRenderingContext, state: WebGLState, stats
 
     return {
         attribute: (array: ArrayType, itemSize: AttributeItemSize, divisor: number, usageHint?: UsageHint) => {
-            return wrap('attribute', createAttributeBuffer(gl, extensions, array, itemSize, divisor, usageHint));
+            return wrap('attribute', createAttributeBuffer(gl, state, extensions, array, itemSize, divisor, usageHint));
         },
         elements: (array: ElementsType, usageHint?: UsageHint) => {
             return wrap('elements', createElementsBuffer(gl, array, usageHint));
@@ -133,7 +133,7 @@ export function createResources(gl: GLRenderingContext, state: WebGLState, stats
             return wrap('texture', createTexture(gl, extensions, kind, format, type, filter));
         },
         vertexArray: (program: Program, attributeBuffers: AttributeBuffers, elementsBuffer?: ElementsBuffer) => {
-            return wrap('vertexArray', createVertexArray(extensions, program, attributeBuffers, elementsBuffer));
+            return wrap('vertexArray', createVertexArray(gl, extensions, program, attributeBuffers, elementsBuffer));
         },
 
         getByteCounts: () => {

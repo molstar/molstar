@@ -46,7 +46,7 @@ namespace ModelCrossLinkRestraint {
         function _add(map: Map<ElementIndex, number[]>, element: ElementIndex, row: number) {
             const indices = map.get(element);
             if (indices) indices.push(row);
-            else map.set(element, [ row ]);
+            else map.set(element, [row]);
         }
 
         function add(row: number, ps: typeof p1) {

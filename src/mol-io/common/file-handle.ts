@@ -73,7 +73,7 @@ export namespace FileHandle {
                 console.error('.writeBuffer not implemented for FileHandle.fromBuffer');
                 return Promise.resolve(0);
             },
-            writeBufferSync: (position: number, buffer: SimpleBuffer, length?: number, ) => {
+            writeBufferSync: (position: number, buffer: SimpleBuffer, length?: number,) => {
                 length = defaults(length, buffer.length);
                 console.error('.writeSync not implemented for FileHandle.fromBuffer');
                 return 0;

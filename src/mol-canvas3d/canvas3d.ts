@@ -23,7 +23,7 @@ import { Camera } from './camera';
 import { ParamDefinition as PD } from '../mol-util/param-definition';
 import { DebugHelperParams } from './helper/bounding-sphere-helper';
 import { SetUtils } from '../mol-util/set';
-import { Canvas3dInteractionHelper } from './helper/interaction-events';
+import { Canvas3dInteractionHelper, Canvas3dInteractionHelperParams } from './helper/interaction-events';
 import { PostprocessingParams } from './passes/postprocessing';
 import { MultiSampleHelper, MultiSampleParams, MultiSamplePass } from './passes/multi-sample';
 import { PickData } from './passes/pick';
@@ -38,6 +38,7 @@ import { StereoCamera, StereoCameraParams } from './camera/stereo';
 import { Helper } from './helper/helper';
 import { Passes } from './passes/passes';
 import { shallowEqual } from '../mol-util';
+import { MarkingParams } from './passes/marking';
 
 export const Canvas3DParams = {
     camera: PD.Group({
@@ -80,8 +81,10 @@ export const Canvas3DParams = {
 
     multiSample: PD.Group(MultiSampleParams),
     postprocessing: PD.Group(PostprocessingParams),
+    marking: PD.Group(MarkingParams),
     renderer: PD.Group(RendererParams),
     trackball: PD.Group(TrackballControlsParams),
+    interaction: PD.Group(Canvas3dInteractionHelperParams),
     debug: PD.Group(DebugHelperParams),
     handle: PD.Group(HandleHelperParams),
 };
@@ -113,23 +116,27 @@ namespace Canvas3DContext {
         preserveDrawingBuffer: true,
         pixelScale: 1,
         pickScale: 0.25,
-        enableWboit: true
+        /** extra pixels to around target to check in case target is empty */
+        pickPadding: 1,
+        enableWboit: true,
+        preferWebGl1: false
     };
     export type Attribs = typeof DefaultAttribs
 
     export function fromCanvas(canvas: HTMLCanvasElement, attribs: Partial<Attribs> = {}): Canvas3DContext {
         const a = { ...DefaultAttribs, ...attribs };
-        const { antialias, preserveDrawingBuffer, pixelScale } = a;
+        const { antialias, preserveDrawingBuffer, pixelScale, preferWebGl1 } = a;
         const gl = getGLContext(canvas, {
             antialias,
             preserveDrawingBuffer,
             alpha: true, // the renderer requires an alpha channel
             depth: true, // the renderer requires a depth buffer
             premultipliedAlpha: true, // the renderer outputs PMA
+            preferWebGl1
         });
         if (gl === null) throw new Error('Could not create a WebGL rendering context');
 
-        const input = InputObserver.fromElement(canvas, { pixelScale });
+        const input = InputObserver.fromElement(canvas, { pixelScale, preventGestures: true });
         const webgl = createContext(gl, { pixelScale });
         const passes = new Passes(webgl, attribs);
 
@@ -228,7 +235,7 @@ interface Canvas3D {
     /** Sets drawPaused = false without starting the built in animation loop */
     resume(): void
     identify(x: number, y: number): PickData | undefined
-    mark(loci: Representation.Loci, action: MarkerAction): void
+    mark(loci: Representation.Loci, action: MarkerAction, noDraw?: boolean): void
     getLoci(pickingId: PickingId | undefined): Representation.Loci
 
     notifyDidDraw: boolean,
@@ -303,8 +310,8 @@ namespace Canvas3D {
         const renderer = Renderer.create(webgl, p.renderer);
         const helper = new Helper(webgl, scene, p);
 
-        const pickHelper = new PickHelper(webgl, renderer, scene, helper, passes.pick, { x, y, width, height });
-        const interactionHelper = new Canvas3dInteractionHelper(identify, getLoci, input, camera);
+        const pickHelper = new PickHelper(webgl, renderer, scene, helper, passes.pick, { x, y, width, height }, attribs.pickPadding);
+        const interactionHelper = new Canvas3dInteractionHelper(identify, getLoci, input, camera, p.interaction);
         const multiSampleHelper = new MultiSampleHelper(passes.multiSample);
 
         let cameraResetRequested = false;
@@ -337,7 +344,7 @@ namespace Canvas3D {
             return { loci, repr };
         }
 
-        function mark(reprLoci: Representation.Loci, action: MarkerAction) {
+        function mark(reprLoci: Representation.Loci, action: MarkerAction, noDraw = false) {
             const { repr, loci } = reprLoci;
             let changed = false;
             if (repr) {
@@ -347,7 +354,7 @@ namespace Canvas3D {
                 changed = helper.camera.mark(loci, action) || changed;
                 reprRenderObjects.forEach((_, _repr) => { changed = _repr.mark(loci, action) || changed; });
             }
-            if (changed) {
+            if (changed && !noDraw) {
                 scene.update(void 0, true);
                 helper.handle.scene.update(void 0, true);
                 helper.camera.scene.update(void 0, true);
@@ -390,7 +397,7 @@ namespace Canvas3D {
                 if (MultiSamplePass.isEnabled(p.multiSample)) {
                     multiSampleHelper.render(renderer, cam, scene, helper, true, p.transparentBackground, p);
                 } else {
-                    passes.draw.render(renderer, cam, scene, helper, true, p.transparentBackground, p.postprocessing);
+                    passes.draw.render(renderer, cam, scene, helper, true, p.transparentBackground, p.postprocessing, p.marking);
                 }
                 pickHelper.dirty = true;
                 didRender = true;
@@ -636,9 +643,11 @@ namespace Canvas3D {
                 viewport: p.viewport,
 
                 postprocessing: { ...p.postprocessing },
+                marking: { ...p.marking },
                 multiSample: { ...p.multiSample },
                 renderer: { ...renderer.props },
                 trackball: { ...controls.props },
+                interaction: { ...interactionHelper.props },
                 debug: { ...helper.debug.props },
                 handle: { ...helper.handle.props },
             };
@@ -729,7 +738,7 @@ namespace Canvas3D {
             resized,
             setProps: (properties, doNotRequestDraw = false) => {
                 const props: PartialCanvas3DProps = typeof properties === 'function'
-                    ? produce(getProps(), properties)
+                    ? produce(getProps(), properties as any)
                     : properties;
 
                 const cameraState: Partial<Camera.Snapshot> = Object.create(null);
@@ -771,9 +780,11 @@ namespace Canvas3D {
                 }
 
                 if (props.postprocessing) Object.assign(p.postprocessing, props.postprocessing);
+                if (props.marking) Object.assign(p.marking, props.marking);
                 if (props.multiSample) Object.assign(p.multiSample, props.multiSample);
                 if (props.renderer) renderer.setProps(props.renderer);
                 if (props.trackball) controls.setProps(props.trackball);
+                if (props.interaction) interactionHelper.setProps(props.interaction);
                 if (props.debug) helper.debug.setProps(props.debug);
                 if (props.handle) helper.handle.setProps(props.handle);
 
@@ -835,9 +846,6 @@ namespace Canvas3D {
                 height = Math.round(p.viewport.params.height * gl.drawingBufferHeight);
                 y = Math.round(gl.drawingBufferHeight - height - p.viewport.params.y * gl.drawingBufferHeight);
                 width = Math.round(p.viewport.params.width * gl.drawingBufferWidth);
-                // if (x + width >= gl.drawingBufferWidth) width = gl.drawingBufferWidth - x;
-                // if (y + height >= gl.drawingBufferHeight) height = gl.drawingBufferHeight - y - 1;
-                // console.log({ x, y, width, height });
             }
 
             if (oldX !== x || oldY !== y || oldWidth !== width || oldHeight !== height) {

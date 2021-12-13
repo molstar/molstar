@@ -43,9 +43,9 @@ export async function createImage(ctx: VisualContext, volume: Volume, theme: The
     } = getSliceInfo(volume.grid, props);
 
     const corners = new Float32Array(
-        dim === 'x' ? [x, 0, 0,  x, y, 0,  x, 0, z,  x, y, z] :
-            dim === 'y' ? [0, y, 0,  x, y, 0,  0, y, z,  x, y, z] :
-                [0, 0, z,  0, y, z,  x, 0, z,  x, y, z]
+        dim === 'x' ? [x, 0, 0, x, y, 0, x, 0, z, x, y, z] :
+            dim === 'y' ? [0, y, 0, x, y, 0, 0, y, z, x, y, z] :
+                [0, 0, z, 0, y, z, x, 0, z, x, y, z]
     );
 
     const imageArray = new Uint8Array(width * height * 4);

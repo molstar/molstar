@@ -59,7 +59,7 @@ export function parseHelix(lines: Tokens, lineStart: number, lineEnd: number): C
     const getLine = (n: number) => lines.data.substring(lines.indices[2 * n], lines.indices[2 * n + 1]);
 
     for (let i = lineStart; i < lineEnd; i++) {
-        let line = getLine(i);
+        const line = getLine(i);
         // COLUMNS        DATA  TYPE     FIELD         DEFINITION
         // -----------------------------------------------------------------------------------
         // 1 -  6        Record name    "HELIX "
@@ -102,7 +102,7 @@ export function parseHelix(lines: Tokens, lineStart: number, lineEnd: number): C
     const beg_auth_comp_id = CifField.ofStrings(helices.map(h => h.initResName));
 
     const end_auth_asym_id = CifField.ofStrings(helices.map(h => h.endChainID));
-    const end_auth_comp_id = CifField.ofStrings(helices.map(h => h.endResName));;
+    const end_auth_comp_id = CifField.ofStrings(helices.map(h => h.endResName));
 
     const struct_conf: CifCategory.Fields<mmCIF_Schema['struct_conf']> = {
         beg_label_asym_id: beg_auth_asym_id,
@@ -164,7 +164,7 @@ export function parseSheet(lines: Tokens, lineStart: number, lineEnd: number): C
     const getLine = (n: number) => lines.data.substring(lines.indices[2 * n], lines.indices[2 * n + 1]);
 
     for (let i = lineStart; i < lineEnd; i++) {
-        let line = getLine(i);
+        const line = getLine(i);
         // COLUMNS       DATA  TYPE     FIELD          DEFINITION
         // -------------------------------------------------------------------------------------
         // 1 -  6        Record name   "SHEET "

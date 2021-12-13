@@ -28,7 +28,7 @@ const plane: Primitive = {
 
 const planeCage: Cage = {
     vertices: plane.vertices,
-    edges: new Uint32Array([ 0, 1,  2, 3,  3, 1,  2, 0 ])
+    edges: new Uint32Array([0, 1, 2, 3, 3, 1, 2, 0])
 };
 
 export function Plane(): Primitive {

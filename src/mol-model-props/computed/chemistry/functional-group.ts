@@ -111,7 +111,7 @@ export function isSulfate(structure: Structure, unit: Unit.Atomic, index: Struct
 /**
  * Phosphor in a phosphate group
  */
-export function isPhosphate (structure: Structure, unit: Unit.Atomic, index: StructureElement.UnitIndex) {
+export function isPhosphate(structure: Structure, unit: Unit.Atomic, index: StructureElement.UnitIndex) {
     return (
         typeSymbol(unit, index) === Elements.P &&
         bondToElementCount(structure, unit, index, Elements.O) === bondCount(structure, unit, index)
@@ -121,7 +121,7 @@ export function isPhosphate (structure: Structure, unit: Unit.Atomic, index: Str
 /**
  * Halogen with one bond to a carbon
  */
-export function isHalocarbon (structure: Structure, unit: Unit.Atomic, index: StructureElement.UnitIndex) {
+export function isHalocarbon(structure: Structure, unit: Unit.Atomic, index: StructureElement.UnitIndex) {
     return (
         isHalogen(typeSymbol(unit, index)) &&
         bondCount(structure, unit, index) === 1 &&
@@ -151,7 +151,7 @@ export function isCarbonyl(structure: Structure, unit: Unit.Atomic, index: Struc
 /**
  * Carbon in a carboxylate group
  */
-export function isCarboxylate (structure: Structure, unit: Unit.Atomic, index: StructureElement.UnitIndex) {
+export function isCarboxylate(structure: Structure, unit: Unit.Atomic, index: StructureElement.UnitIndex) {
     let terminalOxygenCount = 0;
     if (
         typeSymbol(unit, index) === Elements.C &&
@@ -173,7 +173,7 @@ export function isCarboxylate (structure: Structure, unit: Unit.Atomic, index: S
 /**
  * Carbon in a guanidine group
  */
-export function isGuanidine (structure: Structure, unit: Unit.Atomic, index: StructureElement.UnitIndex) {
+export function isGuanidine(structure: Structure, unit: Unit.Atomic, index: StructureElement.UnitIndex) {
     let terminalNitrogenCount = 0;
     if (
         typeSymbol(unit, index) === Elements.C &&
@@ -194,7 +194,7 @@ export function isGuanidine (structure: Structure, unit: Unit.Atomic, index: Str
 /**
  * Carbon in a acetamidine group
  */
-export function isAcetamidine (structure: Structure, unit: Unit.Atomic, index: StructureElement.UnitIndex) {
+export function isAcetamidine(structure: Structure, unit: Unit.Atomic, index: StructureElement.UnitIndex) {
     let terminalNitrogenCount = 0;
     if (
         typeSymbol(unit, index) === Elements.C &&
@@ -213,10 +213,10 @@ export function isAcetamidine (structure: Structure, unit: Unit.Atomic, index: S
     return terminalNitrogenCount === 2;
 }
 
-const PolarElements = new Set<ElementSymbol>([ 'N', 'O', 'S', 'F', 'CL', 'BR', 'I' ] as ElementSymbol[]);
+const PolarElements = new Set<ElementSymbol>(['N', 'O', 'S', 'F', 'CL', 'BR', 'I'] as ElementSymbol[]);
 export function isPolar(element: ElementSymbol) { return PolarElements.has(element); }
 
-export function hasPolarNeighbour (structure: Structure, unit: Unit.Atomic, index: StructureElement.UnitIndex) {
+export function hasPolarNeighbour(structure: Structure, unit: Unit.Atomic, index: StructureElement.UnitIndex) {
     let flag = false;
     eachBondedAtom(structure, unit, index, (unit: Unit.Atomic, index: StructureElement.UnitIndex) => {
         if (isPolar(typeSymbol(unit, index))) flag = true;
@@ -224,7 +224,7 @@ export function hasPolarNeighbour (structure: Structure, unit: Unit.Atomic, inde
     return flag;
 }
 
-export function hasAromaticNeighbour (structure: Structure, unit: Unit.Atomic, index: StructureElement.UnitIndex) {
+export function hasAromaticNeighbour(structure: Structure, unit: Unit.Atomic, index: StructureElement.UnitIndex) {
     let flag = false;
     eachBondedAtom(structure, unit, index, (unit: Unit.Atomic, index: StructureElement.UnitIndex) => {
         if (isAromatic(unit, index)) flag = true;

@@ -5,18 +5,18 @@
 
 import { constants } from 'fs';
 
-let alloc = Buffer.alloc;
+const alloc = Buffer.alloc;
 
-let ZEROS = '0000000000000000000';
-let SEVENS = '7777777777777777777';
-let ZERO_OFFSET = '0'.charCodeAt(0);
-let USTAR_MAGIC = Buffer.from('ustar\x00', 'binary');
-let USTAR_VER = Buffer.from('00', 'binary');
-let MASK = parseInt('7777', 8);
-let MAGIC_OFFSET = 257;
-let VERSION_OFFSET = 263;
+const ZEROS = '0000000000000000000';
+const SEVENS = '7777777777777777777';
+const ZERO_OFFSET = '0'.charCodeAt(0);
+const USTAR_MAGIC = Buffer.from('ustar\x00', 'binary');
+const USTAR_VER = Buffer.from('00', 'binary');
+const MASK = parseInt('7777', 8);
+const MAGIC_OFFSET = 257;
+const VERSION_OFFSET = 263;
 
-let toTypeflag = function (flag: string) {
+const toTypeflag = function (flag: string) {
     switch (flag) {
         case 'file':
             return 0;
@@ -41,32 +41,32 @@ let toTypeflag = function (flag: string) {
     return 0;
 };
 
-let indexOf = function (block: any, num: any, offset: any, end: any) {
+const indexOf = function (block: any, num: any, offset: any, end: any) {
     for (; offset < end; offset++) {
         if (block[offset] === num) return offset;
     }
     return end;
 };
 
-let cksum = function (block: any) {
+const cksum = function (block: any) {
     let sum = 8 * 32;
     for (let i = 0; i < 148; i++) sum += block[i];
     for (let j = 156; j < 512; j++) sum += block[j];
     return sum;
 };
 
-let encodeOct = function (val: any, n: any) {
+const encodeOct = function (val: any, n: any) {
     val = val.toString(8);
     if (val.length > n) return SEVENS.slice(0, n) + ' ';
     else return ZEROS.slice(0, n - val.length) + val + ' ';
 };
 
-let decodeStr = function (val: any, offset: any, length: any, encoding?: any) {
+const decodeStr = function (val: any, offset: any, length: any, encoding?: any) {
     return val.slice(offset, indexOf(val, 0, offset, offset + length)).toString(encoding);
 };
 
-let addLength = function (str: any) {
-    let len = Buffer.byteLength(str);
+const addLength = function (str: any) {
+    const len = Buffer.byteLength(str);
     let digits = Math.floor(Math.log(len) / Math.log(10)) + 1;
     if (len + digits >= Math.pow(10, digits)) digits++;
 
@@ -81,9 +81,9 @@ exports.encodePax = function (opts: any) {
     let result = '';
     if (opts.name) result += addLength(' path=' + opts.name + '\n');
     if (opts.linkname) result += addLength(' linkpath=' + opts.linkname + '\n');
-    let pax = opts.pax;
+    const pax = opts.pax;
     if (pax) {
-        for (let key in pax) {
+        for (const key in pax) {
             result += addLength(' ' + key + '=' + pax[key] + '\n');
         }
     }
@@ -91,16 +91,16 @@ exports.encodePax = function (opts: any) {
 };
 
 exports.decodePax = function (buf: any) {
-    let result: any = {};
+    const result: any = {};
 
     while (buf.length) {
         let i = 0;
         while (i < buf.length && buf[i] !== 32) i++;
-        let len = parseInt(buf.slice(0, i).toString(), 10);
+        const len = parseInt(buf.slice(0, i).toString(), 10);
         if (!len) return result;
 
-        let b = buf.slice(i + 1, len - 1).toString();
-        let keyIndex = b.indexOf('=');
+        const b = buf.slice(i + 1, len - 1).toString();
+        const keyIndex = b.indexOf('=');
         if (keyIndex === -1) return result;
         result[b.slice(0, keyIndex)] = b.slice(keyIndex + 1);
 
@@ -151,8 +151,8 @@ function modeToType(mode: number) {
     return 'file';
 }
 
-let DMODE = parseInt('755', 8);
-let FMODE = parseInt('644', 8);
+const DMODE = parseInt('755', 8);
+const FMODE = parseInt('644', 8);
 
 function normalizeHeader(header: Headers) {
     if (!header.size || header.type === 'symlink') header.size = 0;
@@ -168,7 +168,7 @@ export const END_OF_TAR = alloc(1024);
 export function encodeTarHeader(opts: Headers) {
     normalizeHeader(opts);
 
-    let buf = alloc(512);
+    const buf = alloc(512);
     let name = opts.name;
     let prefix = '';
 
@@ -176,7 +176,7 @@ export function encodeTarHeader(opts: Headers) {
     if (Buffer.byteLength(name) !== name.length) return null; // utf-8
 
     while (Buffer.byteLength(name) > 100) {
-        let i = name.indexOf('/');
+        const i = name.indexOf('/');
         if (i === -1) return null;
         prefix += prefix ? '/' + name.slice(0, i) : name.slice(0, i);
         name = name.slice(i + 1);

@@ -2,10 +2,9 @@
  * Copyright (c) 2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Sukolsak Sakshuwong <sukolsak@stanford.edu>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { BaseValues } from '../../mol-gl/renderable/schema';
-import { Style } from '../../mol-gl/renderer';
 import { asciiWrite } from '../../mol-io/common/ascii';
 import { IsNativeEndianLittle, flipByteOrder } from '../../mol-io/common/binary';
 import { Box3D } from '../../mol-math/geometry';
@@ -15,7 +14,7 @@ import { RuntimeContext } from '../../mol-task';
 import { Color } from '../../mol-util/color/color';
 import { fillSerial } from '../../mol-util/array';
 import { NumberArray } from '../../mol-util/type-helpers';
-import { MeshExporter, AddMeshInput } from './mesh-exporter';
+import { MeshExporter, AddMeshInput, MeshGeoData } from './mesh-exporter';
 
 // avoiding namespace lookup improved performance in Chrome (Aug 2020)
 const v3fromArray = Vec3.fromArray;
@@ -30,6 +29,12 @@ const FLOAT = 5126;
 const ARRAY_BUFFER = 34962;
 const ELEMENT_ARRAY_BUFFER = 34963;
 
+const GLTF_MAGIC_BYTE = 0x46546C67;
+const JSON_CHUNK_TYPE = 0x4E4F534A;
+const BIN_CHUNK_TYPE = 0x004E4942;
+const JSON_PAD_CHAR = 0x20;
+const BIN_PAD_CHAR = 0x00;
+
 export type GlbData = {
     glb: Uint8Array
 }
@@ -38,6 +43,8 @@ export class GlbExporter extends MeshExporter<GlbData> {
     readonly fileExtension = 'glb';
     private nodes: Record<string, any>[] = [];
     private meshes: Record<string, any>[] = [];
+    private materials: Record<string, any>[] = [];
+    private materialMap = new Map<string, number>();
     private accessors: Record<string, any>[] = [];
     private bufferViews: Record<string, any>[] = [];
     private binaryBuffer: ArrayBuffer[] = [];
@@ -53,7 +60,7 @@ export class GlbExporter extends MeshExporter<GlbData> {
                 max[j] = Math.max(a[i + j], max[j]);
             }
         }
-        return [ min, max ];
+        return [min, max];
     }
 
     private addBuffer(buffer: ArrayBuffer, componentType: number, type: string, count: number, target: number, min?: any, max?: any, normalized?: boolean) {
@@ -108,7 +115,7 @@ export class GlbExporter extends MeshExporter<GlbData> {
             indexArray = indices!.slice(0, drawCount);
         }
 
-        const [ vertexMin, vertexMax ] = GlbExporter.vec3MinMax(vertexArray);
+        const [vertexMin, vertexMax] = GlbExporter.vec3MinMax(vertexArray);
 
         let vertexBuffer = vertexArray.buffer;
         let normalBuffer = normalArray.buffer;
@@ -126,57 +133,17 @@ export class GlbExporter extends MeshExporter<GlbData> {
         };
     }
 
-    private addColorBuffer(values: BaseValues, groups: Float32Array | Uint8Array, vertexCount: number, instanceIndex: number, isGeoTexture: boolean, interpolatedColors: Uint8Array) {
-        const groupCount = values.uGroupCount.ref.value;
-        const colorType = values.dColorType.ref.value;
-        const uColor = values.uColor.ref.value;
-        const tColor = values.tColor.ref.value.array;
+    private addColorBuffer(geoData: MeshGeoData, interpolatedColors: Uint8Array | undefined, interpolatedOverpaint: Uint8Array | undefined, interpolatedTransparency: Uint8Array | undefined) {
+        const { values, vertexCount } = geoData;
         const uAlpha = values.uAlpha.ref.value;
-        const dTransparency = values.dTransparency.ref.value;
-        const tTransparency = values.tTransparency.ref.value;
 
         const colorArray = new Uint8Array(vertexCount * 4);
 
         for (let i = 0; i < vertexCount; ++i) {
-            let color: Color;
-            switch (colorType) {
-                case 'uniform':
-                    color = Color.fromNormalizedArray(uColor, 0);
-                    break;
-                case 'instance':
-                    color = Color.fromArray(tColor, instanceIndex * 3);
-                    break;
-                case 'group': {
-                    const group = isGeoTexture ? GlbExporter.getGroup(groups, i) : groups[i];
-                    color = Color.fromArray(tColor, group * 3);
-                    break;
-                }
-                case 'groupInstance': {
-                    const group = isGeoTexture ? GlbExporter.getGroup(groups, i) : groups[i];
-                    color = Color.fromArray(tColor, (instanceIndex * groupCount + group) * 3);
-                    break;
-                }
-                case 'vertex':
-                    color = Color.fromArray(tColor, i * 3);
-                    break;
-                case 'vertexInstance':
-                    color = Color.fromArray(tColor, (instanceIndex * vertexCount + i) * 3);
-                    break;
-                case 'volume':
-                    color = Color.fromArray(interpolatedColors!, i * 3);
-                    break;
-                case 'volumeInstance':
-                    color = Color.fromArray(interpolatedColors!, (instanceIndex * vertexCount + i) * 3);
-                    break;
-                default: throw new Error('Unsupported color type.');
-            }
+            let color = GlbExporter.getColor(i, geoData, interpolatedColors, interpolatedOverpaint);
 
-            let alpha = uAlpha;
-            if (dTransparency) {
-                const group = isGeoTexture ? GlbExporter.getGroup(groups, i) : groups[i];
-                const transparency = tTransparency.array[instanceIndex * groupCount + group] / 255;
-                alpha *= 1 - transparency;
-            }
+            const transparency = GlbExporter.getTransparency(i, geoData, interpolatedTransparency);
+            const alpha = uAlpha * (1 - transparency);
 
             color = Color.sRGBToLinear(color);
             Color.toArray(color, colorArray, i * 4);
@@ -191,20 +158,53 @@ export class GlbExporter extends MeshExporter<GlbData> {
         return this.addBuffer(colorBuffer, UNSIGNED_BYTE, 'VEC4', vertexCount, ARRAY_BUFFER, undefined, undefined, true);
     }
 
+    private addMaterial(metalness: number, roughness: number) {
+        const hash = `${metalness}|${roughness}`;
+        if (!this.materialMap.has(hash)) {
+            this.materialMap.set(hash, this.materials.length);
+            this.materials.push({
+                pbrMetallicRoughness: {
+                    baseColorFactor: [1, 1, 1, 1],
+                    metallicFactor: metalness,
+                    roughnessFactor: roughness
+                }
+            });
+        }
+        return this.materialMap.get(hash)!;
+    }
+
     protected async addMeshWithColors(input: AddMeshInput) {
         const { mesh, values, isGeoTexture, webgl, ctx } = input;
 
         const t = Mat4();
 
         const colorType = values.dColorType.ref.value;
+        const overpaintType = values.dOverpaintType.ref.value;
+        const transparencyType = values.dTransparencyType.ref.value;
         const dTransparency = values.dTransparency.ref.value;
         const aTransform = values.aTransform.ref.value;
         const instanceCount = values.uInstanceCount.ref.value;
+        const metalness = values.uMetalness.ref.value;
+        const roughness = values.uRoughness.ref.value;
 
-        let interpolatedColors: Uint8Array;
+        const material = this.addMaterial(metalness, roughness);
+
+        let interpolatedColors: Uint8Array | undefined;
         if (colorType === 'volume' || colorType === 'volumeInstance') {
             const stride = isGeoTexture ? 4 : 3;
-            interpolatedColors = GlbExporter.getInterpolatedColors(mesh!.vertices, mesh!.vertexCount, values, stride, colorType, webgl!);
+            interpolatedColors = GlbExporter.getInterpolatedColors(webgl!, { vertices: mesh!.vertices, vertexCount: mesh!.vertexCount, values, stride, colorType });
+        }
+
+        let interpolatedOverpaint: Uint8Array | undefined;
+        if (overpaintType === 'volumeInstance') {
+            const stride = isGeoTexture ? 4 : 3;
+            interpolatedOverpaint = GlbExporter.getInterpolatedOverpaint(webgl!, { vertices: mesh!.vertices, vertexCount: mesh!.vertexCount, values, stride, colorType: overpaintType });
+        }
+
+        let interpolatedTransparency: Uint8Array | undefined;
+        if (transparencyType === 'volumeInstance') {
+            const stride = isGeoTexture ? 4 : 3;
+            interpolatedTransparency = GlbExporter.getInterpolatedTransparency(webgl!, { vertices: mesh!.vertices, vertexCount: mesh!.vertexCount, values, stride, colorType: transparencyType });
         }
 
         // instancing
@@ -235,7 +235,7 @@ export class GlbExporter extends MeshExporter<GlbData> {
 
                 // create a color buffer if needed
                 if (instanceIndex === 0 || !sameColorBuffer) {
-                    colorAccessorIndex = this.addColorBuffer(values, groups, vertexCount, instanceIndex, isGeoTexture, interpolatedColors!);
+                    colorAccessorIndex = this.addColorBuffer({ values, groups, vertexCount, instanceIndex, isGeoTexture }, interpolatedColors, interpolatedOverpaint, interpolatedTransparency);
                 }
 
                 // glTF mesh
@@ -248,7 +248,7 @@ export class GlbExporter extends MeshExporter<GlbData> {
                             COLOR_0: colorAccessorIndex!
                         },
                         indices: indexAccessorIndex,
-                        material: 0
+                        material
                     }]
                 });
             }
@@ -282,13 +282,7 @@ export class GlbExporter extends MeshExporter<GlbData> {
             }],
             bufferViews: this.bufferViews,
             accessors: this.accessors,
-            materials: [{
-                pbrMetallicRoughness: {
-                    baseColorFactor: [1, 1, 1, 1],
-                    metallicFactor: this.style.metalness,
-                    roughnessFactor: this.style.roughness
-                }
-            }]
+            materials: this.materials
         };
 
         const createChunk = (chunkType: number, data: ArrayBuffer[], byteLength: number, padChar: number): [ArrayBuffer[], number] => {
@@ -307,19 +301,19 @@ export class GlbExporter extends MeshExporter<GlbData> {
             if (padding) {
                 chunk.push(padding.buffer);
             }
-            return [ chunk, 8 + byteLength ];
+            return [chunk, 8 + byteLength];
         };
         const jsonString = JSON.stringify(gltf);
         const jsonBuffer = new Uint8Array(jsonString.length);
         asciiWrite(jsonBuffer, jsonString);
 
-        const [ jsonChunk, jsonChunkLength ] = createChunk(0x4E4F534A, [jsonBuffer.buffer], jsonBuffer.length, 0x20);
-        const [ binaryChunk, binaryChunkLength ] = createChunk(0x004E4942, this.binaryBuffer, binaryBufferLength, 0x00);
+        const [jsonChunk, jsonChunkLength] = createChunk(JSON_CHUNK_TYPE, [jsonBuffer.buffer], jsonBuffer.length, JSON_PAD_CHAR);
+        const [binaryChunk, binaryChunkLength] = createChunk(BIN_CHUNK_TYPE, this.binaryBuffer, binaryBufferLength, BIN_PAD_CHAR);
 
         const glbBufferLength = 12 + jsonChunkLength + binaryChunkLength;
         const header = new ArrayBuffer(12);
         const headerDataView = new DataView(header);
-        headerDataView.setUint32(0, 0x46546C67, true); // magic number "glTF"
+        headerDataView.setUint32(0, GLTF_MAGIC_BYTE, true); // magic number "glTF"
         headerDataView.setUint32(4, 2, true); // version
         headerDataView.setUint32(8, glbBufferLength, true); // length
         const glbBuffer = [header, ...jsonChunk, ...binaryChunk];
@@ -337,7 +331,7 @@ export class GlbExporter extends MeshExporter<GlbData> {
         return new Blob([(await this.getData()).glb], { type: 'model/gltf-binary' });
     }
 
-    constructor(private style: Style, boundingBox: Box3D) {
+    constructor(boundingBox: Box3D) {
         super();
         const tmpV = Vec3();
         Vec3.add(tmpV, boundingBox.min, boundingBox.max);

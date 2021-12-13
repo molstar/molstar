@@ -14,7 +14,7 @@ import { LinkStyle, createLinkLines, LinkBuilderProps } from './util/link';
 import { UnitsVisual, UnitsLinesParams, UnitsLinesVisual } from '../units-visual';
 import { VisualUpdateState } from '../../util';
 import { BondType } from '../../../mol-model/structure/model/types';
-import { BondIterator, BondLineParams, getIntraBondLoci, eachIntraBond, makeIntraBondIgnoreTest } from './util/bond';
+import { BondIterator, BondLineParams, getIntraBondLoci, eachIntraBond, makeIntraBondIgnoreTest, ignoreBondType } from './util/bond';
 import { Sphere3D } from '../../../mol-math/geometry';
 import { Lines } from '../../../mol-geo/geometry/lines/lines';
 import { IntAdjacencyGraph } from '../../../mol-math/graph';
@@ -36,10 +36,17 @@ function createIntraUnitBondLines(ctx: VisualContext, unit: Unit, structure: Str
     const elements = unit.elements;
     const bonds = unit.bonds;
     const { edgeCount, a, b, edgeProps, offset } = bonds;
-    const { order: _order, flags: _flags } = edgeProps;
-    const { sizeFactor, aromaticBonds } = props;
-
     if (!edgeCount) return Lines.createEmpty(lines);
+
+    const { order: _order, flags: _flags } = edgeProps;
+    const { sizeFactor, aromaticBonds, includeTypes, excludeTypes, multipleBonds } = props;
+
+    const mbOff = multipleBonds === 'off';
+    const mbSymmetric = multipleBonds === 'symmetric';
+
+    const include = BondType.fromNames(includeTypes);
+    const exclude = BondType.fromNames(excludeTypes);
+    const ignoreComputedAromatic = ignoreBondType(include, exclude, BondType.Flag.Computed);
 
     const vRef = Vec3();
     const pos = unit.conformation.invariantPosition;
@@ -84,17 +91,19 @@ function createIntraUnitBondLines(ctx: VisualContext, unit: Unit, structure: Str
             const o = _order[edgeIndex];
             const f = _flags[edgeIndex];
             if (isBondType(f, BondType.Flag.MetallicCoordination) || isBondType(f, BondType.Flag.HydrogenBond)) {
-                // show metall coordinations and hydrogen bonds with dashed cylinders
+                // show metallic coordinations and hydrogen bonds with dashed cylinders
                 return LinkStyle.Dashed;
             } else if (o === 3) {
-                return LinkStyle.Triple;
+                return mbOff ? LinkStyle.Solid :
+                    mbSymmetric ? LinkStyle.Triple :
+                        LinkStyle.OffsetTriple;
             } else if (aromaticBonds) {
                 const aI = a[edgeIndex], bI = b[edgeIndex];
                 const aR = elementAromaticRingIndices.get(aI);
                 const bR = elementAromaticRingIndices.get(bI);
                 const arCount = (aR && bR) ? arrayIntersectionSize(aR, bR) : 0;
 
-                if (arCount || isBondType(f, BondType.Flag.Aromatic)) {
+                if (isBondType(f, BondType.Flag.Aromatic) || (arCount && !ignoreComputedAromatic)) {
                     if (arCount === 2) {
                         return LinkStyle.MirroredAromatic;
                     } else {
@@ -103,7 +112,9 @@ function createIntraUnitBondLines(ctx: VisualContext, unit: Unit, structure: Str
                 }
             }
 
-            return o === 2 ? LinkStyle.Double : LinkStyle.Solid;
+            return (o !== 2 || mbOff) ? LinkStyle.Solid :
+                mbSymmetric ? LinkStyle.Double :
+                    LinkStyle.OffsetDouble;
         },
         radius: (edgeIndex: number) => {
             location.element = elements[a[edgeIndex]];
@@ -142,11 +153,13 @@ export function IntraUnitBondLineVisual(materialId: number): UnitsVisual<IntraUn
                 newProps.sizeFactor !== currentProps.sizeFactor ||
                 newProps.linkScale !== currentProps.linkScale ||
                 newProps.linkSpacing !== currentProps.linkSpacing ||
+                newProps.aromaticDashCount !== currentProps.aromaticDashCount ||
                 newProps.dashCount !== currentProps.dashCount ||
                 newProps.ignoreHydrogens !== currentProps.ignoreHydrogens ||
                 !arrayEqual(newProps.includeTypes, currentProps.includeTypes) ||
                 !arrayEqual(newProps.excludeTypes, currentProps.excludeTypes) ||
-                newProps.aromaticBonds !== currentProps.aromaticBonds
+                newProps.aromaticBonds !== currentProps.aromaticBonds ||
+                newProps.multipleBonds !== currentProps.multipleBonds
             );
 
             const newUnit = newStructureGroup.group.units[0];

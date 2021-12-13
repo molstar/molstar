@@ -1,1 +1,5 @@
-tsconfig.commonjs.tsbuildinfo
+tests
+perf-tests
+_spec
+*.tsbuildinfo
+*.js.map

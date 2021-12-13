@@ -6,7 +6,7 @@
 
 import { ValueCell } from '../../../mol-util';
 import { Mat4, Vec3, Vec4 } from '../../../mol-math/linear-algebra';
-import { transformPositionArray, GroupMapping, createGroupMapping} from '../../util';
+import { transformPositionArray, GroupMapping, createGroupMapping } from '../../util';
 import { GeometryUtils } from '../geometry';
 import { createColors } from '../color-data';
 import { createMarkers } from '../marker-data';
@@ -25,6 +25,7 @@ import { hashFnv32a } from '../../../mol-data/util';
 import { createEmptyClipping } from '../clipping-data';
 import { CylindersValues } from '../../../mol-gl/renderable/cylinders';
 import { RenderableState } from '../../../mol-gl/renderable';
+import { createEmptySubstance } from '../substance-data';
 
 export interface Cylinders {
     readonly kind: 'cylinders',
@@ -156,6 +157,8 @@ export namespace Cylinders {
         doubleSided: PD.Boolean(false, BaseGeometry.CustomQualityParamInfo),
         ignoreLight: PD.Boolean(false, BaseGeometry.ShadingCategory),
         xrayShaded: PD.Boolean(false, BaseGeometry.ShadingCategory),
+        bumpFrequency: PD.Numeric(0, { min: 0, max: 10, step: 0.1 }, BaseGeometry.ShadingCategory),
+        bumpAmplitude: PD.Numeric(1, { min: 0, max: 5, step: 0.1 }, BaseGeometry.ShadingCategory),
     };
     export type Params = typeof Params
 
@@ -200,6 +203,7 @@ export namespace Cylinders {
         const marker = createMarkers(instanceCount * groupCount);
         const overpaint = createEmptyOverpaint();
         const transparency = createEmptyTransparency();
+        const material = createEmptySubstance();
         const clipping = createEmptyClipping();
 
         const counts = { drawCount: cylinders.cylinderCount * 4 * 3, vertexCount: cylinders.cylinderCount * 6, groupCount, instanceCount };
@@ -224,6 +228,7 @@ export namespace Cylinders {
             ...marker,
             ...overpaint,
             ...transparency,
+            ...material,
             ...clipping,
             ...transform,
 
@@ -234,6 +239,8 @@ export namespace Cylinders {
             dDoubleSided: ValueCell.create(props.doubleSided),
             dIgnoreLight: ValueCell.create(props.ignoreLight),
             dXrayShaded: ValueCell.create(props.xrayShaded),
+            uBumpFrequency: ValueCell.create(props.bumpFrequency),
+            uBumpAmplitude: ValueCell.create(props.bumpAmplitude),
         };
     }
 
@@ -249,6 +256,8 @@ export namespace Cylinders {
         ValueCell.updateIfChanged(values.dDoubleSided, props.doubleSided);
         ValueCell.updateIfChanged(values.dIgnoreLight, props.ignoreLight);
         ValueCell.updateIfChanged(values.dXrayShaded, props.xrayShaded);
+        ValueCell.updateIfChanged(values.uBumpFrequency, props.bumpFrequency);
+        ValueCell.updateIfChanged(values.uBumpAmplitude, props.bumpAmplitude);
     }
 
     function updateBoundingSphere(values: CylindersValues, cylinders: Cylinders) {

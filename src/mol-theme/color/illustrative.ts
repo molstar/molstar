@@ -17,7 +17,8 @@ const DefaultIllustrativeColor = Color(0xEEEEEE);
 const Description = `Assigns an illustrative color that gives every chain a unique color with lighter carbons (inspired by David Goodsell's Molecule of the Month style).`;
 
 export const IllustrativeColorThemeParams = {
-    ...ChainIdColorThemeParams
+    ...ChainIdColorThemeParams,
+    carbonLightness: PD.Numeric(0.8, { min: -6, max: 6, step: 0.1 })
 };
 export type IllustrativeColorThemeParams = typeof IllustrativeColorThemeParams
 export function getIllustrativeColorThemeParams(ctx: ThemeDataContext) {
@@ -29,7 +30,7 @@ export function IllustrativeColorTheme(ctx: ThemeDataContext, props: PD.Values<I
 
     function illustrativeColor(location: Location, typeSymbol: ElementSymbol) {
         const baseColor = chainIdColor(location, false);
-        return typeSymbol === 'C' ? Color.lighten(baseColor, 0.8) : baseColor;
+        return typeSymbol === 'C' ? Color.lighten(baseColor, props.carbonLightness) : baseColor;
     }
 
     function color(location: Location): Color {

@@ -13,7 +13,7 @@
 export function getMantissaMultiplier(v: number, maxDigits: number, delta: number) {
     let m = 1, i;
     for (i = 0; i < maxDigits; i++) {
-        let mv = m * v;
+        const mv = m * v;
         if (Math.abs(Math.round(mv) - mv) <= delta) return i;
         m *= 10;
     }
@@ -68,4 +68,8 @@ export function getPrecision(v: number) {
 
 export function toPrecision(v: number, precision: number) {
     return parseFloat(v.toPrecision(precision));
+}
+
+export function toFixed(v: number, fractionDigits: number) {
+    return parseFloat(v.toFixed(fractionDigits));
 }

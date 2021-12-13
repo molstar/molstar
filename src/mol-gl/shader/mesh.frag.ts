@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -8,26 +8,23 @@ export const mesh_frag = `
 precision highp float;
 precision highp int;
 
+#define bumpEnabled
+
 #include common
 #include common_frag_params
 #include color_frag_params
 #include light_frag_params
 #include normal_frag_params
 #include common_clip
-#include wboit_params
 
 void main() {
     #include clip_pixel
 
     // Workaround for buggy gl_FrontFacing (e.g. on some integrated Intel GPUs)
-    #if defined(enabledStandardDerivatives)
-        vec3 fdx = dFdx(vViewPosition);
-        vec3 fdy = dFdy(vViewPosition);
-        vec3 faceNormal = normalize(cross(fdx,fdy));
-        bool frontFacing = dot(vNormal, faceNormal) > 0.0;
-    #else
-        bool frontFacing = dot(vNormal, vViewPosition) < 0.0;
-    #endif
+    vec3 fdx = dFdx(vViewPosition);
+    vec3 fdy = dFdy(vViewPosition);
+    vec3 faceNormal = normalize(cross(fdx,fdy));
+    bool frontFacing = dot(vNormal, faceNormal) > 0.0;
 
     #if defined(dFlipSided)
         interior = frontFacing;
@@ -43,11 +40,13 @@ void main() {
         gl_FragColor = material;
     #elif defined(dRenderVariant_depth)
         gl_FragColor = material;
+    #elif defined(dRenderVariant_marking)
+        gl_FragColor = material;
     #elif defined(dRenderVariant_color)
         #ifdef dIgnoreLight
             gl_FragColor = material;
         #else
-            #if defined(dFlatShaded) && defined(enabledStandardDerivatives)
+            #if defined(dFlatShaded)
                 vec3 normal = -faceNormal;
             #else
                 vec3 normal = -normalize(vNormal);

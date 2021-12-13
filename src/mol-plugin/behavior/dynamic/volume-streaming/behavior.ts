@@ -143,7 +143,7 @@ export namespace VolumeStreaming {
 
         channels: Channels = {}
 
-        public get info () {
+        public get info() {
             return this.infoMap.get(this.params.entry.name)!;
         }
 
@@ -305,7 +305,7 @@ export namespace VolumeStreaming {
 
         private _invTransform: Mat4 = Mat4();
         private getBoxFromLoci(loci: StructureElement.Loci | EmptyLoci): Box3D {
-            if (Loci.isEmpty(loci)) {
+            if (Loci.isEmpty(loci) || isEmptyLoci(loci)) {
                 return Box3D();
             }
 

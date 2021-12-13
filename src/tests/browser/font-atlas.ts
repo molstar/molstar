@@ -33,7 +33,7 @@ function test() {
     fontAtlas.get(String.fromCharCode(0x212B));
     console.timeEnd('Angstrom Sign');
 
-    printTextureImage(fontAtlas.texture, 0.5);
+    printTextureImage(fontAtlas.texture, { scale: 0.5 });
     console.log(`${Object.keys(fontAtlas.mapped).length} chars prepared`);
 }
 

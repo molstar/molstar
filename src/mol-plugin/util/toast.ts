@@ -64,7 +64,7 @@ export class PluginToastManager extends StatefulPluginComponent<{
             hide: () => this.hideId(id)
         };
 
-        if (this.updateState({ entries: entries.set(id, e) })) this.events.changed.next();
+        if (this.updateState({ entries: entries.set(id, e) })) this.events.changed.next(void 0);
     }
 
     private timeout(id: number, delay?: number) {
@@ -85,8 +85,8 @@ export class PluginToastManager extends StatefulPluginComponent<{
     private hide(e: PluginToastManager.Entry | undefined) {
         if (!e) return;
         if (e.timeout !== void 0) clearTimeout(e.timeout);
-        e.hide = <any>void 0;
-        if (this.updateState({ entries: this.state.entries.delete(e.id) })) this.events.changed.next();
+        e.hide = <any> void 0;
+        if (this.updateState({ entries: this.state.entries.delete(e.id) })) this.events.changed.next(void 0);
     }
 
     constructor(plugin: PluginContext) {

@@ -18,6 +18,7 @@ import { SizeTheme } from '../../../../mol-theme/size';
 import { ParamDefinition as PD } from '../../../../mol-util/param-definition';
 import { PluginCommands } from '../../../commands';
 import { PluginContext } from '../../../context';
+import { Material } from '../../../../mol-util/material';
 
 const StructureFocusRepresentationParams = (plugin: PluginContext) => {
     const reprParams = StateTransforms.Representation.StructureRepresentation3D.definition.params!(void 0, plugin) as PD.Params;
@@ -25,7 +26,7 @@ const StructureFocusRepresentationParams = (plugin: PluginContext) => {
         expandRadius: PD.Numeric(5, { min: 1, max: 10, step: 1 }),
         targetParams: PD.Group(reprParams, {
             label: 'Target',
-            customDefault: createStructureRepresentationParams(plugin, void 0, { type: 'ball-and-stick', size: 'physical', typeParams: { sizeFactor: 0.26, alpha: 0.51 } })
+            customDefault: createStructureRepresentationParams(plugin, void 0, { type: 'ball-and-stick', size: 'physical', typeParams: { sizeFactor: 0.26, alpha: 0.51, adjustCylinderLength: true } })
         }),
         surroundingsParams: PD.Group(reprParams, {
             label: 'Surroundings',
@@ -41,7 +42,8 @@ const StructureFocusRepresentationParams = (plugin: PluginContext) => {
         }),
         components: PD.MultiSelect(FocusComponents, PD.arrayToOptions(FocusComponents)),
         excludeTargetFromSurroundings: PD.Boolean(false, { label: 'Exclude Target', description: 'Exclude the focus "target" from the surroudings component.' }),
-        ignoreHydrogens: PD.Boolean(false)
+        ignoreHydrogens: PD.Boolean(false),
+        material: Material.getParam(),
     };
 };
 
@@ -67,7 +69,7 @@ class StructureFocusRepresentationBehavior extends PluginBehavior.WithSubscriber
             ...this.params.targetParams,
             type: {
                 name: reprParams.type.name,
-                params: { ...reprParams.type.params, ignoreHydrogens: this.params.ignoreHydrogens }
+                params: { ...reprParams.type.params, ignoreHydrogens: this.params.ignoreHydrogens, material: this.params.material }
             }
         };
     }
@@ -157,7 +159,7 @@ class StructureFocusRepresentationBehavior extends PluginBehavior.WithSubscriber
         });
 
         if (this.params.excludeTargetFromSurroundings) {
-            surroundings =  MS.struct.modifier.exceptBy({
+            surroundings = MS.struct.modifier.exceptBy({
                 0: surroundings,
                 by: target
             });

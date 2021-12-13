@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2017 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { Column, ColumnHelpers } from '../../../../../mol-data/db';
@@ -39,10 +40,10 @@ export function TokenColumn<T extends Column.Schema>(tokens: Tokens, schema: T):
 
 export function areValuesEqualProvider(tokens: Tokens) {
     const { data, indices } = tokens;
-    return function(rowA: number, rowB: number) {
+    return function (rowA: number, rowB: number) {
         const aS = indices[2 * rowA], bS = indices[2 * rowB];
         const len = indices[2 * rowA + 1] - aS;
-        if (len !== indices[2 *  rowB + 1] - bS) return false;
+        if (len !== indices[2 * rowB + 1] - bS) return false;
         for (let i = 0; i < len; i++) {
             if (data.charCodeAt(i + aS) !== data.charCodeAt(i + bS)) {
                 return false;
@@ -50,4 +51,12 @@ export function areValuesEqualProvider(tokens: Tokens) {
         }
         return true;
     };
+}
+
+export function areTokensEmpty(tokens: Tokens) {
+    const { count, indices } = tokens;
+    for (let i = 0; i < count; ++i) {
+        if (indices[2 * i] !== indices[2 * i + 1]) return false;
+    }
+    return true;
 }

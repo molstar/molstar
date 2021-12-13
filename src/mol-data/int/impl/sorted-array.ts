@@ -22,9 +22,10 @@ export function ofRange(min: number, max: number) {
     return ret;
 }
 export function is(xs: any): xs is Nums { return xs && (Array.isArray(xs) || !!xs.buffer); }
+export function isRange(xs: Nums) { return xs[xs.length - 1] - xs[0] + 1 === xs.length; }
 
 export function start(xs: Nums) { return xs[0]; }
-export function end(xs: Nums) { return xs[xs.length - 1] + 1;  }
+export function end(xs: Nums) { return xs[xs.length - 1] + 1; }
 export function min(xs: Nums) { return xs[0]; }
 export function max(xs: Nums) { return xs[xs.length - 1]; }
 export function size(xs: Nums) { return xs.length; }
@@ -59,9 +60,11 @@ export function getAt(xs: Nums, i: number) { return xs[i]; }
 
 export function areEqual(a: Nums, b: Nums) {
     if (a === b) return true;
-    const aSize = a.length;
+    let aSize = a.length;
     if (aSize !== b.length || a[0] !== b[0] || a[aSize - 1] !== b[aSize - 1]) return false;
-    for (let i = 0; i < aSize; i++) {
+    if (isRange(a)) return true;
+    aSize--;
+    for (let i = 1; i < aSize; i++) {
         if (a[i] !== b[i]) return false;
     }
     return true;
@@ -340,7 +343,7 @@ export function deduplicate(xs: Nums) {
 }
 
 export function indicesOf(a: Nums, b: Nums): Nums {
-    if (a === b) return ofSortedArray(createRangeArray(0, a.length - 1));
+    if (areEqual(a, b)) return ofSortedArray(createRangeArray(0, a.length - 1));
 
     const { startI: sI, startJ: sJ, endI, endJ } = getSuitableIntersectionRange(a, b);
     let i = sI, j = sJ;

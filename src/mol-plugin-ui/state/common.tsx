@@ -157,7 +157,8 @@ abstract class TransformControlBase<P, S extends TransformControlBase.ComponentS
         this.setState({ busy: true });
         try {
             await this.applyAction();
-        } catch {
+        } catch (e) {
+            console.error(e);
             // eat errors because they should be handled elsewhere
         } finally {
             this.props.onApply?.();

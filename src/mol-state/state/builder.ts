@@ -253,7 +253,7 @@ namespace StateBuilder {
         to<A extends StateObject, T extends StateTransformer>(ref: StateTransform.Ref): To<A, T>
         to<C extends StateObjectCell>(cell: C): To<StateObjectCell.Obj<C>, StateObjectCell.Transformer<C>>
         to<S extends StateObjectSelector>(selector: S): To<StateObjectSelector.Obj<S>, StateObjectSelector.Transformer<S>>
-        to(ref: StateTransform.Ref | StateObjectCell | StateObjectSelector) { return  this.root.to(ref as any); }
+        to(ref: StateTransform.Ref | StateObjectCell | StateObjectSelector) { return this.root.to(ref as any); }
         toRoot<A extends StateObject>() { return this.root.toRoot<A>(); }
         delete(ref: StateObjectRef) { return this.root.delete(ref); }
 

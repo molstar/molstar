@@ -20,7 +20,6 @@ import { now, formatTimespan } from '../mol-util/now';
 import { ParamDefinition } from '../mol-util/param-definition';
 import { StateTreeSpine } from './tree/spine';
 import { AsyncQueue } from '../mol-util/async-queue';
-import { isProductionMode } from '../mol-util/debug';
 import { arraySetAdd, arraySetRemove } from '../mol-util/array';
 import { UniqueArray } from '../mol-data/generic';
 import { assignIfUndefined } from '../mol-util/object';
@@ -207,14 +206,18 @@ class State {
                 if (!restored) {
                     restored = true;
                     await this.updateTree(snapshot).runInContext(ctx);
-                    this.events.log.next(LogEntry.error('' + e));
+                    this.events.log.next(LogEntry.error('Error during state transaction, reverting'));
                 }
                 if (isNested) {
                     this.inTransactionError = true;
                     throw e;
                 }
 
-                if (options?.rethrowErrors) throw e;
+                if (options?.rethrowErrors) {
+                    throw e;
+                } else {
+                    console.error(e);
+                }
             } finally {
                 if (!isNested) {
                     this.inTransaction = false;
@@ -298,7 +301,7 @@ class State {
     private async _revertibleTreeUpdate(taskCtx: RuntimeContext, params: UpdateParams, options: Partial<State.UpdateOptions>) {
         const old = this.tree;
         const ret = await this._updateTree(taskCtx, params);
-        let revert = ((ret.ctx.hadError || ret.ctx.wasAborted) && options.revertOnError) || (ret.ctx.wasAborted && options.revertIfAborted);
+        const revert = ((ret.ctx.hadError || ret.ctx.wasAborted) && options.revertOnError) || (ret.ctx.wasAborted && options.revertIfAborted);
         if (revert) {
             this.reverted = true;
             return await this._updateTree(taskCtx, { tree: old, options: params.options });
@@ -829,7 +832,7 @@ async function updateSubtree(ctx: UpdateContext, root: Ref) {
         ctx.changed = true;
         if (!ctx.hadError) ctx.newCurrent = root;
         doError(ctx, root, e, false);
-        if (!isProductionMode) console.error(e);
+        console.error(e);
         return;
     }
 
@@ -870,7 +873,7 @@ async function updateNode(ctx: UpdateContext, currentRef: Ref): Promise<UpdateNo
         return { action: 'none' };
     }
 
-    let parentCell = transform.transformer.definition.from.length === 0
+    const parentCell = transform.transformer.definition.from.length === 0
         ? ctx.cells.get(current.transform.parent)
         : StateSelection.findAncestorOfType(tree, ctx.cells, currentRef, transform.transformer.definition.from);
     if (!parentCell) {
@@ -966,7 +969,7 @@ function createObject(ctx: UpdateContext, cell: StateObjectCell, transformer: St
     return runTask(transformer.definition.apply({ a, params, cache: cell.cache, spine: ctx.spine, dependencies: resolveDependencies(cell) }, ctx.parent.globalContext), ctx.taskCtx);
 }
 
-async function updateObject(ctx: UpdateContext, cell: StateObjectCell,  transformer: StateTransformer, a: StateObject, b: StateObject, oldParams: any, newParams: any) {
+async function updateObject(ctx: UpdateContext, cell: StateObjectCell, transformer: StateTransformer, a: StateObject, b: StateObject, oldParams: any, newParams: any) {
     if (!transformer.definition.update) {
         return StateTransformer.UpdateResult.Recreate;
     }

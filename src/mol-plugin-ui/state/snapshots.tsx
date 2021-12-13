@@ -75,7 +75,7 @@ export class StateExportImportControls extends PluginUIComponent<{ onAction?: ()
                     <Icon svg={OpenInBrowserSvg} inline /> Open <input onChange={this.open} type='file' multiple={false} accept='.molx,.molj' />
                 </div>
             </div>
-            <div className='msp-help-text' style={{ padding: '10px'}}>
+            <div className='msp-help-text' style={{ padding: '10px' }}>
                 <Icon svg={WarningSvg} /> This is an experimental feature and stored states/sessions might not be openable in a future version.
             </div>
         </>;
@@ -246,7 +246,8 @@ export class RemoteStateSnapshots extends PluginUIComponent<
 
             if (this._mounted) this.setState({ entries: entries.asImmutable(), isBusy: false });
         } catch (e) {
-            this.plugin.log.error('Fetching Remote Snapshots: ' + e);
+            console.error(e);
+            this.plugin.log.error('Error fetching remote snapshots');
             if (this._mounted) this.setState({ entries: OrderedMap(), isBusy: false });
         }
     }
@@ -294,7 +295,9 @@ export class RemoteStateSnapshots extends PluginUIComponent<
 
         try {
             await fetch(entry.removeUrl);
-        } catch { }
+        } catch (e) {
+            console.error(e);
+        }
     }
 
     render() {
@@ -337,7 +340,8 @@ class RemoteStateSnapshotList extends PurePluginUIComponent<
         if (!entry) return;
 
         e.preventDefault();
-        let url = `${window.location}`, qi = url.indexOf('?');
+        let url = `${window.location}`;
+        const qi = url.indexOf('?');
         if (qi > 0) url = url.substr(0, qi);
 
         window.open(`${url}?snapshot-url=${encodeURIComponent(entry.url)}`, '_blank');

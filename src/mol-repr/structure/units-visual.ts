@@ -40,6 +40,7 @@ import { StructureParams, StructureMeshParams, StructureSpheresParams, Structure
 import { Clipping } from '../../mol-theme/clipping';
 import { WebGLContext } from '../../mol-gl/webgl/context';
 import { isPromiseLike } from '../../mol-util/type-helpers';
+import { Substance } from '../../mol-theme/substance';
 
 export interface UnitsVisual<P extends RepresentationProps = {}> extends Visual<StructureGroup, P> { }
 
@@ -71,6 +72,7 @@ export function UnitsVisual<G extends Geometry, P extends StructureParams & Geom
     const { defaultProps, createGeometry, createLocationIterator, getLoci, eachLocation, setUpdateState, mustRecreate, processValues, dispose } = builder;
     const { createEmpty: createEmptyGeometry, updateValues, updateBoundingSphere, updateRenderableState, createPositionIterator } = builder.geometryUtils;
     const updateState = VisualUpdateState.create();
+    const previousMark: Visual.PreviousMark = { loci: EmptyLoci, action: MarkerAction.None, status: -1 };
 
     let renderObject: GraphicsRenderObject<G['kind']> | undefined;
 
@@ -83,6 +85,7 @@ export function UnitsVisual<G extends Geometry, P extends StructureParams & Geom
     let currentStructureGroup: StructureGroup;
 
     let geometry: G;
+    let geometryVersion = -1;
     let locationIt: LocationIterator;
     let positionIt: LocationIterator;
 
@@ -234,7 +237,10 @@ export function UnitsVisual<G extends Geometry, P extends StructureParams & Geom
         currentProps = newProps;
         currentTheme = newTheme;
         currentStructureGroup = newStructureGroup;
-        if (newGeometry) geometry = newGeometry;
+        if (newGeometry) {
+            geometry = newGeometry;
+            geometryVersion += 1;
+        }
     }
 
     function _createGeometry(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: PD.Values<P>, geometry?: G) {
@@ -268,7 +274,8 @@ export function UnitsVisual<G extends Geometry, P extends StructureParams & Geom
 
     return {
         get groupCount() { return locationIt ? locationIt.count : 0; },
-        get renderObject () { return locationIt && locationIt.count ? renderObject : undefined; },
+        get renderObject() { return locationIt && locationIt.count ? renderObject : undefined; },
+        get geometryVersion() { return geometryVersion; },
         createOrUpdate(ctx: VisualContext, theme: Theme, props: PD.Values<P>, structureGroup?: StructureGroup) {
             prepareUpdate(theme, props, structureGroup || currentStructureGroup);
             if (updateState.createGeometry) {
@@ -289,7 +296,18 @@ export function UnitsVisual<G extends Geometry, P extends StructureParams & Geom
             return renderObject ? getLoci(pickingId, currentStructureGroup, renderObject.id) : EmptyLoci;
         },
         mark(loci: Loci, action: MarkerAction) {
-            return Visual.mark(renderObject, loci, action, lociApply);
+            let hasInvariantId = true;
+            if (StructureElement.Loci.is(loci)) {
+                hasInvariantId = false;
+                const { invariantId } = currentStructureGroup.group.units[0];
+                for (const e of loci.elements) {
+                    if (e.unit.invariantId === invariantId) {
+                        hasInvariantId = true;
+                        break;
+                    }
+                }
+            }
+            return hasInvariantId ? Visual.mark(renderObject, loci, action, lociApply, previousMark) : false;
         },
         setVisibility(visible: boolean) {
             Visual.setVisibility(renderObject, visible);
@@ -306,11 +324,17 @@ export function UnitsVisual<G extends Geometry, P extends StructureParams & Geom
         setTransform(matrix?: Mat4, instanceMatrices?: Float32Array | null) {
             Visual.setTransform(renderObject, matrix, instanceMatrices);
         },
-        setOverpaint(overpaint: Overpaint) {
-            Visual.setOverpaint(renderObject, overpaint, lociApply, true);
+        setOverpaint(overpaint: Overpaint, webgl?: WebGLContext) {
+            const smoothing = { geometry, props: currentProps, webgl };
+            Visual.setOverpaint(renderObject, overpaint, lociApply, true, smoothing);
         },
-        setTransparency(transparency: Transparency) {
-            Visual.setTransparency(renderObject, transparency, lociApply, true);
+        setTransparency(transparency: Transparency, webgl?: WebGLContext) {
+            const smoothing = { geometry, props: currentProps, webgl };
+            Visual.setTransparency(renderObject, transparency, lociApply, true, smoothing);
+        },
+        setSubstance(substance: Substance, webgl?: WebGLContext) {
+            const smoothing = { geometry, props: currentProps, webgl };
+            Visual.setSubstance(renderObject, substance, lociApply, true, smoothing);
         },
         setClipping(clipping: Clipping) {
             Visual.setClipping(renderObject, clipping, lociApply, true);

@@ -7,7 +7,7 @@
 import { Renderable, RenderableState, createRenderable } from '../renderable';
 import { WebGLContext } from '../webgl/context';
 import { createGraphicsRenderItem } from '../webgl/render-item';
-import { GlobalUniformSchema, BaseSchema, DefineSpec, Values, InternalSchema, InternalValues, UniformSpec, TextureSpec, GlobalTextureSchema } from './schema';
+import { GlobalUniformSchema, BaseSchema, DefineSpec, Values, InternalSchema, InternalValues, UniformSpec, TextureSpec, GlobalTextureSchema, ValueSpec } from './schema';
 import { MeshShaderCode } from '../shader-code';
 import { ValueCell } from '../../mol-util';
 
@@ -24,6 +24,9 @@ export const TextureMeshSchema = {
     dIgnoreLight: DefineSpec('boolean'),
     dXrayShaded: DefineSpec('boolean'),
     dGeoTexture: DefineSpec('boolean'),
+    uBumpFrequency: UniformSpec('f'),
+    uBumpAmplitude: UniformSpec('f'),
+    meta: ValueSpec('unknown')
 };
 export type TextureMeshSchema = typeof TextureMeshSchema
 export type TextureMeshValues = Values<TextureMeshSchema>

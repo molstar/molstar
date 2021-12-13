@@ -11,8 +11,9 @@ import { Task } from '../../../mol-task';
 import { ReaderResult as Result } from '../result';
 import { Tokenizer, TokenBuilder } from '../common/text/tokenizer';
 import { TokenColumnProvider as TokenColumn } from '../common/text/column/token';
+import { handleAtomsV3, handleBondsV3, handleCountsV3, isV3 } from './parser-v3-util';
 
-/** http://c4.cabrillo.edu/404/ctfile.pdf - page 41 */
+/** http://c4.cabrillo.edu/404/ctfile.pdf - page 41 & 79 */
 
 export interface SdfFileCompound {
     readonly molFile: MolFile,
@@ -66,14 +67,22 @@ function handleDataItems(tokenizer: Tokenizer): { dataHeader: Column<string>, da
     };
 }
 
+function handleCountsV2(countsAndVersion: string): { atomCount: number, bondCount: number } {
+    return {
+        atomCount: +countsAndVersion.substr(0, 3),
+        bondCount: +countsAndVersion.substr(3, 3)
+    };
+}
+
 function handleMolFile(tokenizer: Tokenizer) {
     const title = Tokenizer.readLine(tokenizer).trim();
     const program = Tokenizer.readLine(tokenizer).trim();
     const comment = Tokenizer.readLine(tokenizer).trim();
 
-    const counts = Tokenizer.readLine(tokenizer);
+    const countsAndVersion = Tokenizer.readLine(tokenizer);
+    const molIsV3 = isV3(countsAndVersion);
 
-    const atomCount = +counts.substr(0, 3), bondCount = +counts.substr(3, 3);
+    const { atomCount, bondCount } = molIsV3 ? handleCountsV3(tokenizer) : handleCountsV2(countsAndVersion);
 
     if (Number.isNaN(atomCount) || Number.isNaN(bondCount)) {
         // try to skip to next molecule
@@ -84,8 +93,8 @@ function handleMolFile(tokenizer: Tokenizer) {
         return;
     }
 
-    const atoms = handleAtoms(tokenizer, atomCount);
-    const bonds = handleBonds(tokenizer, bondCount);
+    const atoms = molIsV3 ? handleAtomsV3(tokenizer, atomCount) : handleAtoms(tokenizer, atomCount);
+    const bonds = molIsV3 ? handleBondsV3(tokenizer, bondCount) : handleBonds(tokenizer, bondCount);
     const dataItems = handleDataItems(tokenizer);
 
     return {

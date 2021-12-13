@@ -1,4 +1,12 @@
 export const assign_material_color = `
+#if defined(dRenderVariant_color) || defined(dRenderVariant_marking)
+    #if defined(dMarkerType_uniform)
+        float marker = uMarker;
+    #elif defined(dMarkerType_groupInstance)
+        float marker = floor(vMarker * 255.0 + 0.5); // rounding required to work on some cards on win
+    #endif
+#endif
+
 #if defined(dRenderVariant_color)
     #if defined(dUsePalette)
         vec4 material = vec4(texture2D(tPalette, vec2(vPaletteV, 0.5)).rgb, uAlpha);
@@ -12,6 +20,15 @@ export const assign_material_color = `
     #if defined(dOverpaint)
         material.rgb = mix(material.rgb, vOverpaint.rgb, vOverpaint.a);
     #endif
+
+    float metalness = uMetalness;
+    float roughness = uRoughness;
+    float bumpiness = uBumpiness;
+    #ifdef dSubstance
+        metalness = mix(metalness, vSubstance.r, vSubstance.a);
+        roughness = mix(roughness, vSubstance.g, vSubstance.a);
+        bumpiness = mix(bumpiness, vSubstance.b, vSubstance.a);
+    #endif
 #elif defined(dRenderVariant_pick)
     vec4 material = vColor;
 #elif defined(dRenderVariant_depth)
@@ -20,11 +37,35 @@ export const assign_material_color = `
     #else
         vec4 material = packDepthToRGBA(gl_FragCoord.z);
     #endif
+#elif defined(dRenderVariant_markingDepth)
+    if (marker > 0.0)
+        discard;
+    #ifdef enabledFragDepth
+        vec4 material = packDepthToRGBA(gl_FragDepthEXT);
+    #else
+        vec4 material = packDepthToRGBA(gl_FragCoord.z);
+    #endif
+#elif defined(dRenderVariant_markingMask)
+    if (marker == 0.0)
+        discard;
+    float depthTest = 1.0;
+    if (uMarkingDepthTest) {
+        depthTest = (fragmentDepth >= getDepth(gl_FragCoord.xy / uDrawingBufferSize)) ? 1.0 : 0.0;
+    }
+    bool isHighlight = intMod(marker, 2.0) > 0.1;
+    float viewZ = depthToViewZ(uIsOrtho, fragmentDepth, uNear, uFar);
+    float fogFactor = smoothstep(uFogNear, uFogFar, abs(viewZ));
+    if (fogFactor == 1.0)
+        discard;
+    vec4 material = vec4(0.0, depthTest, isHighlight ? 1.0 : 0.0, 1.0 - fogFactor);
 #endif
 
 // apply screendoor transparency
 #if defined(dTransparency)
     float ta = 1.0 - vTransparency;
+    #if defined(dRenderVariant_colorWboit)
+        if (vTransparency < 0.2) ta = 1.0; // hard cutoff looks better with wboit
+    #endif
 
     #if defined(dRenderVariant_pick)
         if (ta < uPickingAlphaThreshold)

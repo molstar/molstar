@@ -64,7 +64,8 @@ export namespace Bundle {
                     ranges.push(Interval.min(indices), Interval.max(indices));
                 }
             } else {
-                let i = 0, len = indices.length;
+                let i = 0;
+                const len = indices.length;
                 while (i < len) {
                     const start = i;
                     i++;

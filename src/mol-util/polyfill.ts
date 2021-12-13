@@ -11,12 +11,12 @@ if (typeof window !== 'undefined') {
         // Make it safe to do console.log() always.
 
         (window as any).console = window.console || {};
-        let con = window.console;
+        const con = window.console;
         let prop, method;
-        let empty = {};
-        let dummy = function () {};
-        let properties = 'memory'.split(',');
-        let methods = (
+        const empty = {};
+        const dummy = function () {};
+        const properties = 'memory'.split(',');
+        const methods = (
             'assert,clear,count,debug,dir,dirxml,error,exception,group,' +
         'groupCollapsed,groupEnd,info,log,markTimeline,profile,profiles,profileEnd,' +
         'show,table,time,timeEnd,timeline,timelineEnd,timeStamp,trace,warn'
@@ -32,11 +32,11 @@ if (typeof window.HTMLCanvasElement !== 'undefined' && !window.HTMLCanvasElement
     Object.defineProperty(window.HTMLCanvasElement.prototype, 'toBlob', {
 
         value: function (callback: any, type: any, quality: any) {
-            let bin = window.atob(this.toDataURL(type, quality).split(',')[ 1 ]);
-            let len = bin.length;
-            let len32 = len >> 2;
-            let a8 = new Uint8Array(len);
-            let a32 = new Uint32Array(a8.buffer, 0, len32);
+            const bin = window.atob(this.toDataURL(type, quality).split(',')[1]);
+            const len = bin.length;
+            const len32 = len >> 2;
+            const a8 = new Uint8Array(len);
+            const a32 = new Uint32Array(a8.buffer, 0, len32);
 
             let j = 0;
             for (let i = 0; i < len32; i++) {
@@ -51,10 +51,10 @@ if (typeof window.HTMLCanvasElement !== 'undefined' && !window.HTMLCanvasElement
             let tailLength = len & 3;
 
             while (tailLength--) {
-                a8[ j ] = bin.charCodeAt(j++);
+                a8[j] = bin.charCodeAt(j++);
             }
 
-            callback(new window.Blob([ a8 ], { 'type': type || 'image/png' }));
+            callback(new window.Blob([a8], { 'type': type || 'image/png' }));
         }
 
     });
@@ -62,7 +62,7 @@ if (typeof window.HTMLCanvasElement !== 'undefined' && !window.HTMLCanvasElement
 
 // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Math/cbrt
 Math.cbrt = Math.cbrt || function (x) {
-    let y = Math.pow(Math.abs(x), 1 / 3);
+    const y = Math.pow(Math.abs(x), 1 / 3);
     return x < 0 ? -y : y;
 };
 
@@ -84,14 +84,14 @@ if (!Math.sign) {
 
 if (!Number.isInteger) {
     // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Number/isInteger
-    Number.isInteger = function isInteger (nVal) {
+    Number.isInteger = function isInteger(nVal) {
         return typeof nVal === 'number' && isFinite(nVal) && nVal > -9007199254740992 && nVal < 9007199254740992 && Math.floor(nVal) === nVal;
     };
 }
 
 if (!Number.isNaN) {
     // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Number/isNaN
-    Number.isNaN = function isNaN (value) {
+    Number.isNaN = function isNaN(value) {
         return value !== value; // eslint-disable-line no-self-compare
     };
 }
@@ -108,20 +108,20 @@ if (!Object.assign) {
             'use strict';
             if (target === undefined || target === null) { throw new TypeError('Cannot convert first argument to object'); }
 
-            let to = Object(target);
+            const to = Object(target);
 
             let hasPendingException = false;
             let pendingException;
 
             for (let i = 1; i < arguments.length; i++) {
-                let nextSource = arguments[i];
+                const nextSource = arguments[i];
                 if (nextSource === undefined || nextSource === null) { continue; }
 
-                let keysArray = Object.keys(Object(nextSource));
+                const keysArray = Object.keys(Object(nextSource));
                 for (let nextIndex = 0, len = keysArray.length; nextIndex < len; nextIndex++) {
-                    let nextKey = keysArray[nextIndex];
+                    const nextKey = keysArray[nextIndex];
                     try {
-                        let desc = Object.getOwnPropertyDescriptor(nextSource, nextKey);
+                        const desc = Object.getOwnPropertyDescriptor(nextSource, nextKey);
                         if (desc !== undefined && desc.enumerable) { to[nextKey] = nextSource[nextKey]; }
                     } catch (e) {
                         if (!hasPendingException) {
@@ -145,35 +145,35 @@ if (!String.prototype.startsWith) {
 
     (function () {
         'use strict'; // needed to support `apply`/`call` with `undefined`/`null`
-        let defineProperty = (function () {
+        const defineProperty = (function () {
         // IE 8 only supports `Object.defineProperty` on DOM elements
             let result;
             try {
-                let object = {};
-                let $defineProperty = Object.defineProperty;
+                const object = {};
+                const $defineProperty = Object.defineProperty;
                 result = $defineProperty(object, object as any, object) && $defineProperty;
             } catch (error) {} // eslint-disable-line no-empty
             return result;
         }());
-        let toString = {}.toString;
-        let startsWith = function (this: any, search: any) {
+        const toString = {}.toString;
+        const startsWith = function (this: any, search: any) {
             if (this === null) {
                 throw TypeError();
             }
-            let string = String(this);
+            const string = String(this);
             if (search && toString.call(search) === '[object RegExp]') {
                 throw TypeError();
             }
-            let stringLength = string.length;
-            let searchString = String(search);
-            let searchLength = searchString.length;
-            let position = arguments.length > 1 ? arguments[1] : undefined;
+            const stringLength = string.length;
+            const searchString = String(search);
+            const searchLength = searchString.length;
+            const position = arguments.length > 1 ? arguments[1] : undefined;
             // `ToInteger`
             let pos = position ? Number(position) : 0;
             if (Number.isNaN(pos)) {
                 pos = 0;
             }
-            let start = Math.min(Math.max(pos, 0), stringLength);
+            const start = Math.min(Math.max(pos, 0), stringLength);
             // Avoid the `indexOf` call if no match is possible
             if (searchLength + start > stringLength) {
                 return false;
@@ -202,12 +202,12 @@ if (!String.prototype.startsWith) {
 if (!String.prototype.endsWith) {
     // eslint-disable-next-line no-extend-native
     String.prototype.endsWith = function (searchString, position) {
-        let subjectString = this.toString();
+        const subjectString = this.toString();
         if (typeof position !== 'number' || !isFinite(position) || Math.floor(position) !== position || position > subjectString.length) {
             position = subjectString.length;
         }
         position -= searchString.length;
-        let lastIndex = subjectString.indexOf(searchString, position);
+        const lastIndex = subjectString.indexOf(searchString, position);
         return lastIndex !== -1 && lastIndex === position;
     };
 }
@@ -281,12 +281,12 @@ if (!Array.prototype.includes) {
             throw new TypeError('Array.prototype.includes called on null or undefined');
         }
 
-        let O = Object(this);
-        let len = parseInt(O.length, 10) || 0;
+        const O = Object(this);
+        const len = parseInt(O.length, 10) || 0;
         if (len === 0) {
             return false;
         }
-        let n = parseInt(arguments[1], 10) || 0;
+        const n = parseInt(arguments[1], 10) || 0;
         let k;
         if (n >= 0) {
             k = n;
@@ -312,29 +312,29 @@ if (!Array.prototype.includes) {
 // Reference: https://people.mozilla.org/~jorendorff/es6-draft.html#sec-array.from
 if (!Array.from) {
     Array.from = (function () {
-        let toStr = Object.prototype.toString;
-        let isCallable = function (fn: any) {
+        const toStr = Object.prototype.toString;
+        const isCallable = function (fn: any) {
             return typeof fn === 'function' || toStr.call(fn) === '[object Function]';
         };
-        let toInteger = function (value: any) {
-            let number = Number(value);
+        const toInteger = function (value: any) {
+            const number = Number(value);
             if (isNaN(number)) { return 0; }
             if (number === 0 || !isFinite(number)) { return number; }
             return (number > 0 ? 1 : -1) * Math.floor(Math.abs(number));
         };
-        let maxSafeInteger = Math.pow(2, 53) - 1;
-        let toLength = function (value: any) {
-            let len = toInteger(value);
+        const maxSafeInteger = Math.pow(2, 53) - 1;
+        const toLength = function (value: any) {
+            const len = toInteger(value);
             return Math.min(Math.max(len, 0), maxSafeInteger);
         };
 
         // The length property of the from method is 1.
-        return function from (this: any, arrayLike: any/* , mapFn, thisArg */) {
+        return function from(this: any, arrayLike: any/* , mapFn, thisArg */) {
         // 1. Let C be the this value.
-            let C = this;
+            const C = this;
 
             // 2. Let items be ToObject(arrayLike).
-            let items = Object(arrayLike);
+            const items = Object(arrayLike);
 
             // 3. ReturnIfAbrupt(items).
             if (arrayLike == null) {
@@ -342,7 +342,7 @@ if (!Array.from) {
             }
 
             // 4. If mapfn is undefined, then let mapping be false.
-            let mapFn = arguments.length > 1 ? arguments[1] : void undefined;
+            const mapFn = arguments.length > 1 ? arguments[1] : void undefined;
             let T;
             if (typeof mapFn !== 'undefined') {
                 // 5. else
@@ -359,12 +359,12 @@ if (!Array.from) {
 
             // 10. Let lenValue be Get(items, "length").
             // 11. Let len be ToLength(lenValue).
-            let len = toLength(items.length);
+            const len = toLength(items.length);
 
             // 13. If IsConstructor(C) is true, then
             // 13. a. Let A be the result of calling the [[Construct]] internal method of C with an argument list containing the single item len.
             // 14. a. Else, Let A be ArrayCreate(len).
-            let A = isCallable(C) ? Object(new C(len)) : new Array(len);
+            const A = isCallable(C) ? Object(new C(len)) : new Array(len);
 
             // 16. Let k be 0.
             let k = 0;
@@ -397,26 +397,26 @@ if (typeof window !== 'undefined') {
         // MIT license
 
         let lastTime = 0;
-        let vendors = [ 'ms', 'moz', 'webkit', 'o' ];
+        const vendors = ['ms', 'moz', 'webkit', 'o'];
 
         for (let x = 0; x < vendors.length && !window.requestAnimationFrame; ++x) {
             window.requestAnimationFrame = (
-                (window as any)[ vendors[ x ] + 'RequestAnimationFrame' ]
+                (window as any)[vendors[x] + 'RequestAnimationFrame']
             );
 
             window.cancelAnimationFrame = (
-                (window as any)[ vendors[ x ] + 'CancelAnimationFrame' ] ||
-                (window as any)[ vendors[ x ] + 'CancelRequestAnimationFrame' ]
+                (window as any)[vendors[x] + 'CancelAnimationFrame'] ||
+                (window as any)[vendors[x] + 'CancelRequestAnimationFrame']
             );
         }
 
         if (!window.requestAnimationFrame) {
             window.requestAnimationFrame = function (callback/* , element */) {
-                let currTime = new Date().getTime();
-                let timeToCall = Math.max(0, 16 - (currTime - lastTime));
+                const currTime = new Date().getTime();
+                const timeToCall = Math.max(0, 16 - (currTime - lastTime));
 
-                let id = window.setTimeout(function () {
-                    let time = currTime + timeToCall;
+                const id = window.setTimeout(function () {
+                    const time = currTime + timeToCall;
                     callback(time);
                 }, timeToCall);
 
@@ -442,7 +442,7 @@ if (Function.prototype.name === undefined && Object.defineProperty !== undefined
     Object.defineProperty(Function.prototype, 'name', {
 
         get: function () {
-            return this.toString().match(/^\s*function\s*(\S*)\s*\(/)[ 1 ];
+            return this.toString().match(/^\s*function\s*(\S*)\s*\(/)[1];
         }
 
     });
@@ -456,7 +456,7 @@ if (typeof window !== 'undefined') {
 
     if (window.performance.now === undefined) {
         (function () {
-            let start = Date.now();
+            const start = Date.now();
 
             window.performance.now = function () {
                 return Date.now() - start;
@@ -489,10 +489,10 @@ if (Object.defineProperty !== undefined) {
 }
 
 if (!Object.entries) {
-    Object.entries = function(obj: any){
-        let ownProps = Object.keys( obj ),
-            i = ownProps.length,
-            resArray = new Array(i); // preallocate the Array
+    Object.entries = function (obj: any) {
+        const ownProps = Object.keys(obj);
+        let i = ownProps.length;
+        const resArray = new Array(i); // preallocate the Array
         while (i--)
             resArray[i] = [ownProps[i], obj[ownProps[i]]];
 
@@ -504,16 +504,16 @@ if (!Object.entries) {
 // https://tc39.github.io/ecma262/#sec-array.prototype.find
 if (!Array.prototype.find) {
     Object.defineProperty(Array.prototype, 'find', {
-        value: function(predicate: any) {
+        value: function (predicate: any) {
             // 1. Let O be ? ToObject(this value).
             if (this == null) {
                 throw TypeError('"this" is null or not defined');
             }
 
-            let o = Object(this);
+            const o = Object(this);
 
             // 2. Let len be ? ToLength(? Get(O, "length")).
-            let len = o.length >>> 0;
+            const len = o.length >>> 0;
 
             // 3. If IsCallable(predicate) is false, throw a TypeError exception.
             if (typeof predicate !== 'function') {
@@ -521,7 +521,7 @@ if (!Array.prototype.find) {
             }
 
             // 4. If thisArg was supplied, let T be thisArg; else let T be undefined.
-            let thisArg = arguments[1];
+            const thisArg = arguments[1];
 
             // 5. Let k be 0.
             let k = 0;
@@ -532,7 +532,7 @@ if (!Array.prototype.find) {
                 // b. Let kValue be ? Get(O, Pk).
                 // c. Let testResult be ToBoolean(? Call(predicate, T, « kValue, k, O »)).
                 // d. If testResult is true, return kValue.
-                let kValue = o[k];
+                const kValue = o[k];
                 if (predicate.call(thisArg, kValue, k, o)) {
                     return kValue;
                 }
@@ -551,21 +551,21 @@ if (!Array.prototype.find) {
 // from https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/fill
 if (!Array.prototype.fill) {
     Object.defineProperty(Array.prototype, 'fill', {
-        value: function(value: any) {
+        value: function (value: any) {
 
             // Steps 1-2.
             if (this == null) {
                 throw new TypeError('this is null or not defined');
             }
 
-            let O = Object(this);
+            const O = Object(this);
 
             // Steps 3-5.
-            let len = O.length >>> 0;
+            const len = O.length >>> 0;
 
             // Steps 6-7.
-            let start = arguments[1];
-            let relativeStart = start >> 0;
+            const start = arguments[1];
+            const relativeStart = start >> 0;
 
             // Step 8.
             let k = relativeStart < 0 ?
@@ -573,12 +573,12 @@ if (!Array.prototype.fill) {
                 Math.min(relativeStart, len);
 
             // Steps 9-10.
-            let end = arguments[2];
-            let relativeEnd = end === undefined ?
+            const end = arguments[2];
+            const relativeEnd = end === undefined ?
                 len : end >> 0;
 
             // Step 11.
-            let finalValue = relativeEnd < 0 ?
+            const finalValue = relativeEnd < 0 ?
                 Math.max(len + relativeEnd, 0) :
                 Math.min(relativeEnd, len);
 
@@ -596,36 +596,36 @@ if (!Array.prototype.fill) {
 
 if (!Array.prototype.copyWithin) {
     Object.defineProperty(Array.prototype, 'copyWithin', {
-        value: function(target: any, start: any/* , end*/) {
+        value: function (target: any, start: any/* , end*/) {
             // Steps 1-2.
             if (this == null) {
                 throw new TypeError('this is null or not defined');
             }
 
-            let O = Object(this);
+            const O = Object(this);
 
             // Steps 3-5.
-            let len = O.length >>> 0;
+            const len = O.length >>> 0;
 
             // Steps 6-8.
-            let relativeTarget = target >> 0;
+            const relativeTarget = target >> 0;
 
             let to = relativeTarget < 0 ?
                 Math.max(len + relativeTarget, 0) :
                 Math.min(relativeTarget, len);
 
             // Steps 9-11.
-            let relativeStart = start >> 0;
+            const relativeStart = start >> 0;
 
             let from = relativeStart < 0 ?
                 Math.max(len + relativeStart, 0) :
                 Math.min(relativeStart, len);
 
             // Steps 12-14.
-            let end = arguments[2];
-            let relativeEnd = end === undefined ? len : end >> 0;
+            const end = arguments[2];
+            const relativeEnd = end === undefined ? len : end >> 0;
 
-            let final = relativeEnd < 0 ?
+            const final = relativeEnd < 0 ?
                 Math.max(len + relativeEnd, 0) :
                 Math.min(relativeEnd, len);
 

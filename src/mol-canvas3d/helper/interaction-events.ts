@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -11,6 +11,8 @@ import { InputObserver, ModifiersKeys, ButtonsType } from '../../mol-util/input/
 import { RxEventHelper } from '../../mol-util/rx-event-helper';
 import { Vec2, Vec3 } from '../../mol-math/linear-algebra';
 import { Camera } from '../camera';
+import { ParamDefinition as PD } from '../../mol-util/param-definition';
+import { Bond } from '../../mol-model/structure';
 
 type Canvas3D = import('../canvas3d').Canvas3D
 type HoverEvent = import('../canvas3d').Canvas3D.HoverEvent
@@ -18,6 +20,17 @@ type DragEvent = import('../canvas3d').Canvas3D.DragEvent
 type ClickEvent = import('../canvas3d').Canvas3D.ClickEvent
 
 const enum InputEvent { Move, Click, Drag }
+
+const tmpPosA = Vec3();
+const tmpPos = Vec3();
+const tmpNorm = Vec3();
+
+export const Canvas3dInteractionHelperParams = {
+    maxFps: PD.Numeric(30, { min: 10, max: 60, step: 10 }),
+    preferAtomPixelPadding: PD.Numeric(3, { min: 0, max: 20, step: 1 }, { description: 'Number of extra pixels at which to prefer atoms over bonds.' }),
+};
+export type Canvas3dInteractionHelperParams = typeof Canvas3dInteractionHelperParams
+export type Canvas3dInteractionHelperProps = PD.Values<Canvas3dInteractionHelperParams>
 
 export class Canvas3dInteractionHelper {
     private ev = RxEventHelper.create();
@@ -48,6 +61,12 @@ export class Canvas3dInteractionHelper {
     private button: ButtonsType.Flag = ButtonsType.create(0);
     private modifiers: ModifiersKeys = ModifiersKeys.None;
 
+    readonly props: Canvas3dInteractionHelperProps;
+
+    setProps(props: Partial<Canvas3dInteractionHelperProps>) {
+        Object.assign(this.props, props);
+    }
+
     private identify(e: InputEvent, t: number) {
         const xyChanged = this.startX !== this.endX || this.startY !== this.endY;
 
@@ -70,7 +89,7 @@ export class Canvas3dInteractionHelper {
         }
 
         if (e === InputEvent.Click) {
-            const loci = this.getLoci(this.id);
+            const loci = this.getLoci(this.id, this.position);
             this.events.click.next({ current: loci, buttons: this.buttons, button: this.button, modifiers: this.modifiers, page: Vec2.create(this.endX, this.endY), position: this.position });
             this.prevLoci = loci;
             return;
@@ -78,13 +97,13 @@ export class Canvas3dInteractionHelper {
 
         if (!this.inside || this.currentIdentifyT !== t || !xyChanged || this.outsideViewport(this.endX, this.endY)) return;
 
-        const loci = this.getLoci(this.id);
+        const loci = this.getLoci(this.id, this.position);
         this.events.hover.next({ current: loci, buttons: this.buttons, button: this.button, modifiers: this.modifiers, page: Vec2.create(this.endX, this.endY), position: this.position });
         this.prevLoci = loci;
     }
 
     tick(t: number) {
-        if (this.inside && t - this.prevT > 1000 / this.maxFps) {
+        if (this.inside && t - this.prevT > 1000 / this.props.maxFps) {
             this.prevT = t;
             this.currentIdentifyT = t;
             this.identify(this.isInteracting ? InputEvent.Drag : InputEvent.Move, t);
@@ -144,18 +163,41 @@ export class Canvas3dInteractionHelper {
         );
     }
 
+    private getLoci(pickingId: PickingId | undefined, position: Vec3 | undefined) {
+        const { repr, loci } = this.lociGetter(pickingId);
+        if (position && repr && Bond.isLoci(loci) && loci.bonds.length === 2) {
+            const { aUnit, aIndex } = loci.bonds[0];
+            aUnit.conformation.position(aUnit.elements[aIndex], tmpPosA);
+            Vec3.sub(tmpNorm, this.camera.state.position, this.camera.state.target);
+            Vec3.projectPointOnPlane(tmpPos, position, tmpNorm, tmpPosA);
+            const pixelSize = this.camera.getPixelSize(tmpPos);
+            let radius = repr.theme.size.size(loci.bonds[0]) * (repr.props.sizeFactor ?? 1);
+            if (repr.props.lineSizeAttenuation === false) {
+                // divide by two to get radius
+                radius *= pixelSize / 2;
+            }
+            radius += this.props.preferAtomPixelPadding * pixelSize;
+            if (Vec3.distance(tmpPos, tmpPosA) < radius) {
+                return { repr, loci: Bond.toFirstStructureElementLoci(loci) };
+            }
+        }
+        return { repr, loci };
+    }
+
     dispose() {
         this.ev.dispose();
     }
 
-    constructor(private canvasIdentify: Canvas3D['identify'], private getLoci: Canvas3D['getLoci'], private input: InputObserver, private camera: Camera, private maxFps: number = 30) {
-        input.drag.subscribe(({x, y, buttons, button, modifiers }) => {
+    constructor(private canvasIdentify: Canvas3D['identify'], private lociGetter: Canvas3D['getLoci'], private input: InputObserver, private camera: Camera, props: Partial<Canvas3dInteractionHelperProps> = {}) {
+        this.props = { ...PD.getDefaultValues(Canvas3dInteractionHelperParams), ...props };
+
+        input.drag.subscribe(({ x, y, buttons, button, modifiers }) => {
             this.isInteracting = true;
             // console.log('drag');
             this.drag(x, y, buttons, button, modifiers);
         });
 
-        input.move.subscribe(({x, y, inside, buttons, button, modifiers }) => {
+        input.move.subscribe(({ x, y, inside, buttons, button, modifiers }) => {
             if (!inside || this.isInteracting) return;
             // console.log('move');
             this.move(x, y, buttons, button, modifiers);
@@ -166,7 +208,7 @@ export class Canvas3dInteractionHelper {
             this.leave();
         });
 
-        input.click.subscribe(({x, y, buttons, button, modifiers }) => {
+        input.click.subscribe(({ x, y, buttons, button, modifiers }) => {
             if (this.outsideViewport(x, y)) return;
             // console.log('click');
             this.click(x, y, buttons, button, modifiers);

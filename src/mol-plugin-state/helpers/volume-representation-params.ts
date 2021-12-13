@@ -43,7 +43,7 @@ export interface VolumeRepresentationProps<
 
 export function createVolumeRepresentationParams<R extends VolumeRepresentationRegistry.BuiltIn, C extends ColorTheme.BuiltIn, S extends SizeTheme.BuiltIn>(ctx: PluginContext, volume?: Volume, props?: VolumeRepresentationBuiltInProps<R, C, S>): StateTransformer.Params<VolumeRepresentation3D>
 export function createVolumeRepresentationParams<R extends RepresentationProvider<Volume>, C extends ColorTheme.Provider, S extends SizeTheme.Provider>(ctx: PluginContext, volume?: Volume, props?: VolumeRepresentationProps<R, C, S>): StateTransformer.Params<VolumeRepresentation3D>
-export function createVolumeRepresentationParams(ctx: PluginContext, volume?: Volume, props: any = {}): StateTransformer.Params<VolumeRepresentation3D>  {
+export function createVolumeRepresentationParams(ctx: PluginContext, volume?: Volume, props: any = {}): StateTransformer.Params<VolumeRepresentation3D> {
     const p = props as VolumeRepresentationBuiltInProps;
     if (typeof p.type === 'string' || typeof p.color === 'string' || typeof p.size === 'string') return createParamsByName(ctx, volume || Volume.One, props);
     return createParamsProvider(ctx, volume || Volume.One, props);

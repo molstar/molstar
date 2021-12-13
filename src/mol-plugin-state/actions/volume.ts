@@ -153,5 +153,5 @@ export const AssignColorVolume = StateAction.build({
         return { ref: PD.Select(cells[0].transform.ref, cells.map(c => [c.transform.ref, c.obj!.label]), { label: 'Volume' }) };
     }
 })(({ ref, params, state }, plugin: PluginContext) => {
-    return plugin.build().to(ref).apply(StateTransforms.Volume.AssignColorVolume, { ref: params.ref }, { dependsOn: [ params.ref ] }).commit();
+    return plugin.build().to(ref).apply(StateTransforms.Volume.AssignColorVolume, { ref: params.ref }, { dependsOn: [params.ref] }).commit();
 });

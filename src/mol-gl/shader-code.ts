@@ -17,7 +17,6 @@ const shaderCodeId = idFactory();
 
 type ShaderExtensionsValue = 'required' | 'optional'
 export interface ShaderExtensions {
-    readonly standardDerivatives?: ShaderExtensionsValue
     readonly fragDepth?: ShaderExtensionsValue
     readonly drawBuffers?: ShaderExtensionsValue
     readonly shaderTextureLod?: ShaderExtensionsValue
@@ -65,7 +64,6 @@ import { size_vert_params } from './shader/chunks/size-vert-params.glsl';
 import { texture3d_from_1d_trilinear } from './shader/chunks/texture3d-from-1d-trilinear.glsl';
 import { texture3d_from_2d_linear } from './shader/chunks/texture3d-from-2d-linear.glsl';
 import { texture3d_from_2d_nearest } from './shader/chunks/texture3d-from-2d-nearest.glsl';
-import { wboit_params } from './shader/chunks/wboit-params.glsl';
 import { wboit_write } from './shader/chunks/wboit-write.glsl';
 
 const ShaderChunks: { [k: string]: string } = {
@@ -99,11 +97,11 @@ const ShaderChunks: { [k: string]: string } = {
     texture3d_from_1d_trilinear,
     texture3d_from_2d_linear,
     texture3d_from_2d_nearest,
-    wboit_params,
     wboit_write
 };
 
-const reInclude = /^(?!\/\/)\s*#include\s+(\S+)/gmi;
+const reInclude = /^(?!\/\/)\s*#include\s+(\S+)/gm;
+const reUnrollLoop = /#pragma unroll_loop_start\s+for\s*\(\s*int\s+i\s*=\s*(\d+)\s*;\s*i\s*<\s*(\d+)\s*;\s*\+\+i\s*\s*\)\s*{([\s\S]+?)}\s+#pragma unroll_loop_end/g;
 const reSingleLineComment = /[ \t]*\/\/.*\n/g;
 const reMultiLineComment = /[ \t]*\/\*[\s\S]*?\*\//g;
 const reMultipleLinebreaks = /\n{2,}/g;
@@ -119,6 +117,30 @@ function addIncludes(text: string) {
         .replace(reSingleLineComment, '\n')
         .replace(reMultiLineComment, '\n')
         .replace(reMultipleLinebreaks, '\n');
+}
+
+function unrollLoops(str: string) {
+    return str.replace(reUnrollLoop, loopReplacer);
+}
+
+function loopReplacer(match: string, start: string, end: string, snippet: string) {
+    let out = '';
+    for (let i = parseInt(start); i < parseInt(end); ++i) {
+        out += snippet
+            .replace(/\[\s*i\s*\]/g, `[${i}]`)
+            .replace(/UNROLLED_LOOP_INDEX/g, `${i}`);
+    }
+    return out;
+}
+
+function replaceCounts(str: string, defines: ShaderDefines) {
+    if (defines.dLightCount) str = str.replace(/dLightCount/g, `${defines.dLightCount.ref.value}`);
+    if (defines.dClipObjectCount) str = str.replace(/dClipObjectCount/g, `${defines.dClipObjectCount.ref.value}`);
+    return str;
+}
+
+function preprocess(str: string, defines: ShaderDefines) {
+    return unrollLoops(replaceCounts(str, defines));
 }
 
 export function ShaderCode(name: string, vert: string, frag: string, extensions: ShaderExtensions = {}, outTypes: FragOutTypes = {}): ShaderCode {
@@ -139,9 +161,9 @@ import { cylinders_vert } from './shader/cylinders.vert';
 import { cylinders_frag } from './shader/cylinders.frag';
 export const CylindersShaderCode = ShaderCode('cylinders', cylinders_vert, cylinders_frag, { fragDepth: 'required', drawBuffers: 'optional' });
 
-import { text_vert }from './shader/text.vert';
+import { text_vert } from './shader/text.vert';
 import { text_frag } from './shader/text.frag';
-export const TextShaderCode = ShaderCode('text', text_vert, text_frag, { standardDerivatives: 'required', drawBuffers: 'optional' });
+export const TextShaderCode = ShaderCode('text', text_vert, text_frag, { drawBuffers: 'optional' });
 
 import { lines_vert } from './shader/lines.vert';
 import { lines_frag } from './shader/lines.frag';
@@ -149,7 +171,7 @@ export const LinesShaderCode = ShaderCode('lines', lines_vert, lines_frag, { dra
 
 import { mesh_vert } from './shader/mesh.vert';
 import { mesh_frag } from './shader/mesh.frag';
-export const MeshShaderCode = ShaderCode('mesh', mesh_vert, mesh_frag, { standardDerivatives: 'optional', drawBuffers: 'optional' });
+export const MeshShaderCode = ShaderCode('mesh', mesh_vert, mesh_frag, { drawBuffers: 'optional' });
 
 import { directVolume_vert } from './shader/direct-volume.vert';
 import { directVolume_frag } from './shader/direct-volume.frag';
@@ -187,11 +209,9 @@ function getDefinesCode(defines: ShaderDefines) {
 }
 
 function getGlsl100FragPrefix(extensions: WebGLExtensions, shaderExtensions: ShaderExtensions) {
-    const prefix: string[] = [];
-    if (shaderExtensions.standardDerivatives) {
-        prefix.push('#extension GL_OES_standard_derivatives : enable');
-        prefix.push('#define enabledStandardDerivatives');
-    }
+    const prefix: string[] = [
+        '#extension GL_OES_standard_derivatives : enable'
+    ];
     if (shaderExtensions.fragDepth) {
         if (extensions.fragDepth) {
             prefix.push('#extension GL_EXT_frag_depth : enable');
@@ -246,9 +266,6 @@ function getGlsl300FragPrefix(gl: WebGL2RenderingContext, extensions: WebGLExten
         `layout(location = 0) out highp ${outTypes[0] || 'vec4'} out_FragData0;`
     ];
 
-    if (shaderExtensions.standardDerivatives) {
-        prefix.push('#define enabledStandardDerivatives');
-    }
     if (shaderExtensions.fragDepth) {
         prefix.push('#define enabledFragDepth');
     }
@@ -280,8 +297,8 @@ export function addShaderDefines(gl: GLRenderingContext, extensions: WebGLExtens
     return {
         id: shaderCodeId(),
         name: shaders.name,
-        vert: `${vertPrefix}${header}${shaders.vert}`,
-        frag: `${fragPrefix}${header}${frag}`,
+        vert: `${vertPrefix}${header}${preprocess(shaders.vert, defines)}`,
+        frag: `${fragPrefix}${header}${preprocess(frag, defines)}`,
         extensions: shaders.extensions,
         outTypes: shaders.outTypes
     };

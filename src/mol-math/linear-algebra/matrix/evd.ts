@@ -19,9 +19,9 @@ export namespace EVD {
         return {
             size,
             matrix: Matrix.create(size, size),
-            eigenValues: <any>new Float64Array(size),
-            D: <any>new Float64Array(size),
-            E: <any>new Float64Array(size)
+            eigenValues: <any> new Float64Array(size),
+            D: <any> new Float64Array(size),
+            E: <any> new Float64Array(size)
         };
     }
 
@@ -46,7 +46,7 @@ function symmetricEigenDecomp(order: number, matrixEv: number[], vectorEv: numbe
         e[i] = 0.0;
     }
 
-    let om1 = order - 1;
+    const om1 = order - 1;
     for (let i = 0; i < order; i++) {
         d[i] = matrixEv[i * order + om1];
     }
@@ -119,7 +119,7 @@ function symmetricTridiagonalize(a: number[], d: number[], e: number[], order: n
                 f += e[j] * d[j];
             }
 
-            let hh = f / (h + h);
+            const hh = f / (h + h);
 
             for (let j = 0; j < i; j++) {
                 e[j] -= hh * d[j];
@@ -145,7 +145,7 @@ function symmetricTridiagonalize(a: number[], d: number[], e: number[], order: n
     for (let i = 0; i < order - 1; i++) {
         a[(i * order) + order - 1] = a[(i * order) + i];
         a[(i * order) + i] = 1.0;
-        let h = d[i + 1];
+        const h = d[i + 1];
         if (h !== 0.0) {
             for (let k = 0; k <= i; k++) {
                 d[k] = a[((i + 1) * order) + k] / h;
@@ -188,7 +188,7 @@ function symmetricDiagonalize(a: number[], d: number[], e: number[], order: numb
 
     let f = 0.0;
     let tst1 = 0.0;
-    let eps = Math.pow(2, -53); // DoubleWidth = 53
+    const eps = Math.pow(2, -53); // DoubleWidth = 53
     for (let l = 0; l < order; l++) {
         // Find small subdiagonal element
         tst1 = Math.max(tst1, Math.abs(d[l]) + Math.abs(e[l]));
@@ -219,7 +219,7 @@ function symmetricDiagonalize(a: number[], d: number[], e: number[], order: numb
                 d[l] = e[l] / (p + r);
                 d[l + 1] = e[l] * (p + r);
 
-                let dl1 = d[l + 1];
+                const dl1 = d[l + 1];
                 let h = g - d[l];
                 for (let i = l + 2; i < order; i++) {
                     d[i] -= h;
@@ -232,7 +232,7 @@ function symmetricDiagonalize(a: number[], d: number[], e: number[], order: numb
                 let c = 1.0;
                 let c2 = c;
                 let c3 = c;
-                let el1 = e[l + 1];
+                const el1 = e[l + 1];
                 let s = 0.0;
                 let s2 = 0.0;
                 for (let i = m - 1; i >= l; i--) {
@@ -263,7 +263,7 @@ function symmetricDiagonalize(a: number[], d: number[], e: number[], order: numb
                 // Check for convergence. If too many iterations have been performed,
                 // throw exception that Convergence Failed
                 if (iter >= maxiter) {
-                    throw 'SVD: Not converging.';
+                    throw new Error('SVD: Not converging.');
                 }
             } while (Math.abs(e[l]) > eps * tst1);
         }
@@ -297,12 +297,12 @@ function symmetricDiagonalize(a: number[], d: number[], e: number[], order: numb
 
 function hypotenuse(a: number, b: number) {
     if (Math.abs(a) > Math.abs(b)) {
-        let r = b / a;
+        const r = b / a;
         return Math.abs(a) * Math.sqrt(1 + (r * r));
     }
 
     if (b !== 0.0) {
-        let r = a / b;
+        const r = a / b;
         return Math.abs(b) * Math.sqrt(1 + (r * r));
     }
 

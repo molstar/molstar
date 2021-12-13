@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -8,12 +8,15 @@ export const spheres_frag = `
 precision highp float;
 precision highp int;
 
+#define bumpEnabled
+
 #include common
 #include common_frag_params
 #include color_frag_params
 #include light_frag_params
 #include common_clip
-#include wboit_params
+
+uniform mat4 uInvView;
 
 varying float vRadius;
 varying float vRadiusSq;
@@ -74,7 +77,8 @@ void main(void){
         gl_FragDepthEXT = 0.0 + (0.0000001 / vRadius);
     }
 
-    // bugfix (mac only?)
+    vec3 vModelPosition = (uInvView * vec4(vViewPosition, 1.0)).xyz;
+
     if (gl_FragDepthEXT < 0.0) discard;
     if (gl_FragDepthEXT > 1.0) discard;
 
@@ -85,6 +89,8 @@ void main(void){
         #include check_picking_alpha
         gl_FragColor = material;
     #elif defined(dRenderVariant_depth)
+        gl_FragColor = material;
+    #elif defined(dRenderVariant_marking)
         gl_FragColor = material;
     #elif defined(dRenderVariant_color)
         #ifdef dIgnoreLight

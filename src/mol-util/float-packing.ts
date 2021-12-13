@@ -35,7 +35,7 @@ export function decodeFloatRGB(r: number, g: number, b: number) {
 }
 
 const UnpackDownscale = 255 / 256; // 0..1 -> fraction (excluding 1)
-const PackFactors = Vec3.create(256 * 256 * 256, 256 * 256,  256);
+const PackFactors = Vec3.create(256 * 256 * 256, 256 * 256, 256);
 const UnpackFactors = Vec4.create(
     UnpackDownscale / PackFactors[0],
     UnpackDownscale / PackFactors[1],

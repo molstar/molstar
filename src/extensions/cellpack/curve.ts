@@ -1,7 +1,7 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
- * @author Ludovic Autin <autin@scripps.edu>
+ * @author Ludovic Autin <ludovic.autin@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
@@ -49,7 +49,7 @@ function ResampleControlPoints(points: NumberArray, segmentLength: number) {
     // controlPoints.Insert(0, controlPoints[0] + (controlPoints[0] - controlPoints[1]) / 2.0f);
     // controlPoints.Add(controlPoints[nP - 1] + (controlPoints[nP - 1] - controlPoints[nP - 2]) / 2.0f);
 
-    let resampledControlPoints: Vec3[] = [];
+    const resampledControlPoints: Vec3[] = [];
     // resampledControlPoints.Add(controlPoints[0]);
     // resampledControlPoints.Add(controlPoints[1]);
 
@@ -111,7 +111,7 @@ function GetSmoothNormals(points: Vec3[]) {
     let p1 = points[1];
     let p2 = points[2];
     const p21 = Vec3.sub(tmpV1, p2, p1);
-    const p01 =  Vec3.sub(tmpV2, p0, p1);
+    const p01 = Vec3.sub(tmpV2, p0, p1);
     const p0121 = Vec3.cross(tmpV3, p01, p21);
     Vec3.normalize(prevV, p0121);
     smoothNormals.push(Vec3.clone(prevV));
@@ -179,7 +179,7 @@ function GetMiniFrame(points: Vec3[], normals: Vec3[]) {
         const v1t = Vec3.scale(mfTmpV5, v1, (2.0 / c1) * Vec3.dot(v1, frames[i].t));
         const tan_L_i = Vec3.sub(mfTmpV6, frames[i].t, v1t);
         // # compute reflection vector of R_2
-        const v2 =  Vec3.sub(mfTmpV7, t2, tan_L_i);
+        const v2 = Vec3.sub(mfTmpV7, t2, tan_L_i);
         const c2 = Vec3.dot(v2, v2);
         // compute r_(i+1) = R_2 * r_i^L
         const v2l = Vec3.scale(mfTmpV8, v1, (2.0 / c2) * Vec3.dot(v2, ref_L_i));
@@ -195,7 +195,7 @@ export function getMatFromResamplePoints(points: NumberArray, segmentLength: num
     let new_points: Vec3[] = [];
     if (resample) new_points = ResampleControlPoints(points, segmentLength);
     else {
-        for (let idx = 0; idx < points.length / 3; ++idx){
+        for (let idx = 0; idx < points.length / 3; ++idx) {
             new_points.push(Vec3.fromArray(Vec3.zero(), points, idx * 3));
         }
     }
@@ -211,7 +211,7 @@ export function getMatFromResamplePoints(points: NumberArray, segmentLength: num
         if (d >= segmentLength) {
             // use twist or random?
             const quat = Quat.rotationTo(Quat.zero(), Vec3.create(0, 0, 1), frames[i].t); // Quat.rotationTo(Quat.zero(), Vec3.create(0,0,1),new_normal[i]);//Quat.rotationTo(Quat.zero(), Vec3.create(0,0,1),direction);new_normal
-            const rq = Quat.setAxisAngle(Quat.zero(), frames[i].t, Math.random() * 3.60 ); // Quat.setAxisAngle(Quat.zero(),direction, Math.random()*3.60 );//Quat.identity();//
+            const rq = Quat.setAxisAngle(Quat.zero(), frames[i].t, Math.random() * 3.60); // Quat.setAxisAngle(Quat.zero(),direction, Math.random()*3.60 );//Quat.identity();//
             const m = Mat4.fromQuat(Mat4.zero(), Quat.multiply(Quat.zero(), rq, quat)); // Mat4.fromQuat(Mat4.zero(),Quat.multiply(Quat.zero(),quat1,quat2));//Mat4.fromQuat(Mat4.zero(),quat);//Mat4.identity();//Mat4.fromQuat(Mat4.zero(),Quat.multiply(Quat.zero(),rq,quat));
             // let pos:Vec3 = Vec3.add(Vec3.zero(),pti1,pti)
             // pos = Vec3.scale(pos,pos,1.0/2.0);

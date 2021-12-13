@@ -7,7 +7,7 @@
 
 import * as argparse from 'argparse';
 import { ObjectKeys } from '../../mol-util/type-helpers';
-import { VOLUME_SERVER_HEADER, VOLUME_SERVER_VERSION } from './server/version';
+import { VOLUME_SERVER_HEADER } from './server/version';
 import * as fs from 'fs';
 
 const DefaultServerConfig = {
@@ -19,22 +19,22 @@ const DefaultServerConfig = {
 };
 
 function addLimitsArgs(parser: argparse.ArgumentParser) {
-    parser.addArgument([ '--maxRequestBlockCount' ], {
-        defaultValue: DefaultLimitsConfig.maxRequestBlockCount,
+    parser.add_argument('--maxRequestBlockCount', {
+        default: DefaultLimitsConfig.maxRequestBlockCount,
         metavar: 'COUNT',
         help: `Maximum number of blocks that could be read in 1 query.
 This is somewhat tied to the maxOutputSizeInVoxelCountByPrecisionLevel
 in that the <maximum number of voxel> = maxRequestBlockCount * <block size>^3.
 The default block size is 96 which corresponds to 28,311,552 voxels with 32 max blocks.`
     });
-    parser.addArgument([ '--maxFractionalBoxVolume' ], {
-        defaultValue: DefaultLimitsConfig.maxFractionalBoxVolume,
+    parser.add_argument('--maxFractionalBoxVolume', {
+        default: DefaultLimitsConfig.maxFractionalBoxVolume,
         metavar: 'VOLUME',
         help: `The maximum fractional volume of the query box (to prevent queries that are too big).`
     });
-    parser.addArgument([ '--maxOutputSizeInVoxelCountByPrecisionLevel' ], {
+    parser.add_argument('--maxOutputSizeInVoxelCountByPrecisionLevel', {
         nargs: '+',
-        defaultValue: DefaultLimitsConfig.maxOutputSizeInVoxelCountByPrecisionLevel,
+        default: DefaultLimitsConfig.maxOutputSizeInVoxelCountByPrecisionLevel,
         metavar: 'LEVEL',
         help: `What is the (approximate) maximum desired size in voxel count by precision level
 Rule of thumb: <response gzipped size> in [<voxel count> / 8, <voxel count> / 4].
@@ -43,31 +43,31 @@ The maximum number of voxels is tied to maxRequestBlockCount.`
 }
 
 function addServerArgs(parser: argparse.ArgumentParser) {
-    parser.addArgument([ '--apiPrefix' ], {
-        defaultValue: DefaultServerConfig.apiPrefix,
+    parser.add_argument('--apiPrefix', {
+        default: DefaultServerConfig.apiPrefix,
         metavar: 'PREFIX',
         help: `Specify the prefix of the API, i.e. <host>/<apiPrefix>/<API queries>`
     });
-    parser.addArgument([ '--defaultPort' ], {
-        defaultValue: DefaultServerConfig.defaultPort,
+    parser.add_argument('--defaultPort', {
+        default: DefaultServerConfig.defaultPort,
         metavar: 'PORT',
         type: 'int',
         help: `Specify the port the server is running on`
     });
 
-    parser.addArgument([ '--shutdownTimeoutMinutes' ], {
-        defaultValue: DefaultServerConfig.shutdownTimeoutMinutes,
+    parser.add_argument('--shutdownTimeoutMinutes', {
+        default: DefaultServerConfig.shutdownTimeoutMinutes,
         metavar: 'TIME',
         type: 'int',
         help: `0 for off, server will shut down after this amount of minutes.`
     });
-    parser.addArgument([ '--shutdownTimeoutVarianceMinutes' ], {
-        defaultValue: DefaultServerConfig.shutdownTimeoutVarianceMinutes,
+    parser.add_argument('--shutdownTimeoutVarianceMinutes', {
+        default: DefaultServerConfig.shutdownTimeoutVarianceMinutes,
         metavar: 'VARIANCE',
         type: 'int',
         help: `modifies the shutdown timer by +/- timeoutVarianceMinutes (to avoid multiple instances shutting at the same time)`
     });
-    parser.addArgument([ '--idMap' ], {
+    parser.add_argument('--idMap', {
         nargs: 2,
         action: 'append',
         metavar: ['TYPE', 'PATH'] as any,
@@ -84,15 +84,15 @@ function addServerArgs(parser: argparse.ArgumentParser) {
 }
 
 function addJsonConfigArgs(parser: argparse.ArgumentParser) {
-    parser.addArgument(['--cfg'], {
+    parser.add_argument('--cfg', {
         help: [
             'JSON config file path',
             'If a property is not specified, cmd line param/OS variable/default value are used.'
         ].join('\n'),
-        required: false
+        required: false,
     });
-    parser.addArgument(['--printCfg'], { help: 'Print current config for validation and exit.', required: false, nargs: 0 });
-    parser.addArgument(['--cfgTemplate'], { help: 'Prints default JSON config template to be modified and exits.', required: false, nargs: 0 });
+    parser.add_argument('--printCfg', { help: 'Print current config for validation and exit.', required: false, action: 'store_true' });
+    parser.add_argument('--cfgTemplate', { help: 'Prints default JSON config template to be modified and exits.', required: false, action: 'store_true' });
 }
 
 export interface ServerJsonConfig {
@@ -156,16 +156,16 @@ const ServerConfigTemplate: FullServerConfig = {
 
 export function configureServer() {
     const parser = new argparse.ArgumentParser({
-        version: VOLUME_SERVER_VERSION,
-        addHelp: true,
+        // version: VOLUME_SERVER_VERSION,
+        add_help: true,
         description: VOLUME_SERVER_HEADER
     });
     addJsonConfigArgs(parser);
     addServerArgs(parser);
     addLimitsArgs(parser);
-    const config = parser.parseArgs() as FullServerConfig & ServerJsonConfig;
+    const config = parser.parse_args() as FullServerConfig & ServerJsonConfig;
 
-    if (config.cfgTemplate !== null) {
+    if (!!config.cfgTemplate) {
         console.log(JSON.stringify(ServerConfigTemplate, null, 2));
         process.exit(0);
     }
@@ -178,7 +178,7 @@ export function configureServer() {
             setConfig(cfg);
         }
 
-        if (config.printCfg !== null) {
+        if (config.printCfg) {
             console.log(JSON.stringify({ ...ServerConfig, ...LimitsConfig }, null, 2));
             process.exit(0);
         }
@@ -192,16 +192,16 @@ export function configureServer() {
 
 export function configureLocal() {
     const parser = new argparse.ArgumentParser({
-        version: VOLUME_SERVER_VERSION,
-        addHelp: true,
+        // version: VOLUME_SERVER_VERSION,
+        add_help: true,
         description: VOLUME_SERVER_HEADER
     });
-    parser.addArgument(['--jobs'], { help: `Path to a JSON file with job specification.`, required: false });
-    parser.addArgument(['--jobsTemplate'], { help: 'Print example template for jobs.json and exit.', required: false, nargs: 0 });;
+    parser.add_argument('--jobs', { help: `Path to a JSON file with job specification.`, required: false });
+    parser.add_argument('--jobsTemplate', { help: 'Print example template for jobs.json and exit.', required: false, nargs: 0 });
     addJsonConfigArgs(parser);
     addLimitsArgs(parser);
 
-    const config = parser.parseArgs() as LimitsConfig & ServerJsonConfig;
+    const config = parser.parse_args() as LimitsConfig & ServerJsonConfig;
 
     if (config.cfgTemplate !== null) {
         console.log(JSON.stringify(DefaultLimitsConfig, null, 2));

@@ -36,7 +36,7 @@ namespace ChunkedArray {
     }
 
     function allocateNext(array: ChunkedArray<any, any>) {
-        let nextSize = array.growBy * array.elementSize;
+        const nextSize = array.growBy * array.elementSize;
         array.currentSize = nextSize;
         array.currentIndex = 0;
         array.currentChunk = new array.ctor(nextSize);

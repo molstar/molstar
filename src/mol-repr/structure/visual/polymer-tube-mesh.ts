@@ -59,9 +59,9 @@ function createPolymerTubeMesh(ctx: VisualContext, unit: Unit, structure: Struct
         const startCap = v.coarseBackboneFirst || v.first;
         const endCap = v.coarseBackboneLast || v.last;
 
-        let s0 = theme.size.size(v.centerPrev) * sizeFactor;
-        let s1 = theme.size.size(v.center) * sizeFactor;
-        let s2 = theme.size.size(v.centerNext) * sizeFactor;
+        const s0 = theme.size.size(v.centerPrev) * sizeFactor;
+        const s1 = theme.size.size(v.center) * sizeFactor;
+        const s2 = theme.size.size(v.centerNext) * sizeFactor;
 
         interpolateSizes(state, s0, s1, s2, s0, s1, s2, shift);
 
@@ -93,7 +93,7 @@ function createPolymerTubeMesh(ctx: VisualContext, unit: Unit, structure: Struct
         } else if (radialSegments === 4) {
             addSheet(builderState, curvePoints, normalVectors, binormalVectors, segmentCount, widthValues, heightValues, 0, startCap, endCap);
         } else {
-            addTube(builderState, curvePoints, normalVectors, binormalVectors, segmentCount, radialSegments, widthValues, heightValues, startCap, endCap);
+            addTube(builderState, curvePoints, normalVectors, binormalVectors, segmentCount, radialSegments, widthValues, heightValues, startCap, endCap, 'elliptical');
         }
 
         ++i;

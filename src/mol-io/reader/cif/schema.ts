@@ -131,7 +131,7 @@ class CategoryTable implements Table<any> { // tslint:disable-line:class-name
         const cache = Object.create(null);
         for (const k of fieldKeys) {
             Object.defineProperty(this, k, {
-                get: function() {
+                get: function () {
                     if (cache[k]) return cache[k];
                     const fType = schema[k];
                     if (fType.valueType === 'list') {
@@ -166,7 +166,7 @@ function flattenFrame(frame: Data.CifFrame): FlatFrame {
     const flatFrame = Object.create(null);
     for (const c of Object.keys(frame.categories)) {
         for (const f of frame.categories[c].fieldNames) {
-            const p =  FieldPath.create(c, f, true);
+            const p = FieldPath.create(c, f, true);
             flatFrame[p] = frame.categories[c].getField(f);
         }
     }

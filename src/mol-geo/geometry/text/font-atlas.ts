@@ -10,7 +10,7 @@ import { createTextureImage, TextureImage } from '../../../mol-gl/renderable/uti
 
 const TextAtlasCache: { [k: string]: FontAtlas } = {};
 
-export function getFontAtlas (props: Partial<FontAtlasProps>) {
+export function getFontAtlas(props: Partial<FontAtlasProps>) {
     const hash = JSON.stringify(props);
     if (TextAtlasCache[hash] === undefined) {
         TextAtlasCache[hash] = new FontAtlas(props);
@@ -69,7 +69,7 @@ export class FontAtlas {
     private readonly maxWidth: number
     private readonly middle: number
 
-    constructor (props: Partial<FontAtlasProps> = {}) {
+    constructor(props: Partial<FontAtlasProps> = {}) {
         const p = { ...PD.getDefaultValues(FontAtlasParams), ...props };
         this.props = p;
 
@@ -110,7 +110,7 @@ export class FontAtlas {
         this.placeholder = this.get(String.fromCharCode(0xFFFD));
     }
 
-    get (char: string) {
+    get(char: string) {
         if (this.mapped[char] === undefined) {
             this.draw(char);
 
@@ -144,7 +144,7 @@ export class FontAtlas {
         return this.mapped[char];
     }
 
-    draw (char: string) {
+    draw(char: string) {
         const h = this.lineHeight;
         const ctx = this.scratchContext;
         const data = this.scratchData;

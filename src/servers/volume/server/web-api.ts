@@ -188,7 +188,7 @@ async function queryBox(req: express.Request, res: express.Response, params: Dat
             return;
         }
 
-        let ok = await Api.queryBox(params, () => response);
+        const ok = await Api.queryBox(params, () => response);
         if (!ok) {
             response.do404();
             return;

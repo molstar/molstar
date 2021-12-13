@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -55,14 +55,11 @@ namespace Viewport {
 
 //
 
-const NEAR_RANGE = 0;
-const FAR_RANGE = 1;
-
 const tmpVec4 = Vec4();
 
 /** Transform point into 2D window coordinates. */
-export function cameraProject (out: Vec4, point: Vec3, viewport: Viewport, projectionView: Mat4) {
-    const { x: vX, y: vY, width: vWidth, height: vHeight } = viewport;
+export function cameraProject(out: Vec4, point: Vec3, viewport: Viewport, projectionView: Mat4) {
+    const { x, y, width, height } = viewport;
 
     // clip space -> NDC -> window coordinates, implicit 1.0 for w component
     Vec4.set(tmpVec4, point[0], point[1], point[2], 1.0);
@@ -78,27 +75,28 @@ export function cameraProject (out: Vec4, point: Vec3, viewport: Viewport, proje
         tmpVec4[2] /= w;
     }
 
-    // transform into window coordinates, set fourth component is (1/clip.w) as in gl_FragCoord.w
-    out[0] = vX + vWidth / 2 * tmpVec4[0] + (0 + vWidth / 2);
-    out[1] = vY + vHeight / 2 * tmpVec4[1] + (0 + vHeight / 2);
-    out[2] = (FAR_RANGE - NEAR_RANGE) / 2 * tmpVec4[2] + (FAR_RANGE + NEAR_RANGE) / 2;
+    // transform into window coordinates, set fourth component to 1 / clip.w as in gl_FragCoord.w
+    out[0] = (tmpVec4[0] + 1) * width * 0.5 + x;
+    out[1] = (1 - tmpVec4[1]) * height * 0.5 + y; // flip Y
+    out[2] = (tmpVec4[2] + 1) * 0.5;
     out[3] = w === 0 ? 0 : 1 / w;
     return out;
 }
 
 /**
  * Transform point from screen space to 3D coordinates.
- * The point must have x and y set to 2D window coordinates and z between 0 (near) and 1 (far).
+ * The point must have `x` and `y` set to 2D window coordinates
+ * and `z` between 0 (near) and 1 (far); the optional `w` is not used.
  */
-export function cameraUnproject (out: Vec3, point: Vec3, viewport: Viewport, inverseProjectionView: Mat4) {
-    const { x: vX, y: vY, width: vWidth, height: vHeight } = viewport;
+export function cameraUnproject(out: Vec3, point: Vec3 | Vec4, viewport: Viewport, inverseProjectionView: Mat4) {
+    const { x, y, width, height } = viewport;
 
-    const x = point[0] - vX;
-    const y = (vHeight - point[1] - 1) - vY;
-    const z = point[2];
+    const px = point[0] - x;
+    const py = (height - point[1] - 1) - y;
+    const pz = point[2];
 
-    out[0] = (2 * x) / vWidth - 1;
-    out[1] = (2 * y) / vHeight - 1;
-    out[2] = 2 * z - 1;
+    out[0] = (2 * px) / width - 1;
+    out[1] = (2 * py) / height - 1;
+    out[2] = 2 * pz - 1;
     return Vec3.transformMat4(out, out, inverseProjectionView);
 }

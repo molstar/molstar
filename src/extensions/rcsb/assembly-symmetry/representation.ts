@@ -310,7 +310,7 @@ function setSymbolTransform(t: Mat4, symbol: string, axes: AssemblySymmetry.Rota
     }
 }
 
-const unitCircleDirections = (function() {
+const unitCircleDirections = (function () {
     const dirs: Vec3[] = [];
     const circle = polygon(12, false, 1);
     for (let i = 0, il = circle.length; i < il; i += 3) {

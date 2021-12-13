@@ -137,7 +137,7 @@ const empty = StructureRepresentationPresetProvider({
     id: 'preset-structure-representation-empty',
     display: { name: 'Empty', description: 'Removes all existing representations.' },
     async apply(ref, params, plugin) {
-        return {  };
+        return { };
     }
 });
 
@@ -260,12 +260,12 @@ const coarseSurface = StructureRepresentationPresetProvider({
                 smoothness: 1,
                 visuals: ['structure-gaussian-surface-mesh']
             });
-        } else if(size === Structure.Size.Huge) {
+        } else if (size === Structure.Size.Huge) {
             Object.assign(gaussianProps, {
                 radiusOffset: structure.isCoarseGrained ? 2 : 0,
                 smoothness: 1,
             });
-        } else if(structure.isCoarseGrained) {
+        } else if (structure.isCoarseGrained) {
             Object.assign(gaussianProps, {
                 radiusOffset: 2,
                 smoothness: 1,
@@ -379,6 +379,8 @@ const atomicDetail = StructureRepresentationPresetProvider({
         }
 
         await update.commit({ revertOnError: true });
+        await updateFocusRepr(plugin, structure, params.theme?.focus?.name ?? color, params.theme?.focus?.params ?? colorParams);
+
         return { components, representations };
     }
 });

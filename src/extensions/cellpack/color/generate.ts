@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -33,7 +33,7 @@ export function CellPackGenerateColorTheme(ctx: ThemeDataContext, props: PD.Valu
 
     if (ctx.structure && info) {
         const colors = distinctColors(info.packingsCount);
-        let hcl = Hcl.fromColor(Hcl(), colors[info.packingIndex]);
+        const hcl = Hcl.fromColor(Hcl(), colors[info.packingIndex]);
 
         const hue = [Math.max(0, hcl[0] - 35), Math.min(360, hcl[0] + 35)] as [number, number];
 
@@ -48,7 +48,7 @@ export function CellPackGenerateColorTheme(ctx: ThemeDataContext, props: PD.Valu
                 hue, chroma: [30, 80], luminance: [15, 85],
                 clusteringStepCount: 50, minSampleCount: 800, maxCount: 75
             }
-        }}, { minLabel: 'Min', maxLabel: 'Max' });
+        } }, { minLabel: 'Min', maxLabel: 'Max' });
         legend = palette.legend;
         const modelColor = new Map<number, Color>();
         for (let i = 0, il = models.length; i < il; ++i) {

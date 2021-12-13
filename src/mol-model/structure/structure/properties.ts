@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -21,12 +21,12 @@ const constant = {
 };
 
 function notAtomic(): never {
-    throw 'Property only available for atomic models.';
+    throw new Error('Property only available for atomic models.');
 }
 
 function notCoarse(kind?: string): never {
-    if (!!kind) throw `Property only available for coarse models (${kind}).`;
-    throw `Property only available for coarse models.`;
+    if (!!kind) throw new Error(`Property only available for coarse models (${kind}).`);
+    throw new Error('Property only available for coarse models.');
 }
 
 // TODO: remove the type checks?
@@ -39,8 +39,8 @@ const atom = {
     y: p(l => l.unit.conformation.y(l.element)),
     z: p(l => l.unit.conformation.z(l.element)),
     id: p(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.model.atomicConformation.atomId.value(l.element)),
-    occupancy: p(l => !Unit.isAtomic(l.unit) ?  notAtomic() : l.unit.model.atomicConformation.occupancy.value(l.element)),
-    B_iso_or_equiv: p(l => !Unit.isAtomic(l.unit) ?  notAtomic() : l.unit.model.atomicConformation.B_iso_or_equiv.value(l.element)),
+    occupancy: p(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.model.atomicConformation.occupancy.value(l.element)),
+    B_iso_or_equiv: p(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.model.atomicConformation.B_iso_or_equiv.value(l.element)),
     sourceIndex: p(l => Unit.isAtomic(l.unit)
         ? l.unit.model.atomicHierarchy.atomSourceIndex.value(l.element)
         // TODO: when implemented, this should map to the source index.
@@ -99,12 +99,12 @@ const residue = {
     secondary_structure_type: p(l => {
         if (!Unit.isAtomic(l.unit)) notAtomic();
         const secStruc = SecondaryStructureProvider.get(l.structure).value?.get(l.unit.invariantId);
-        return secStruc?.type[l.unit.residueIndex[l.element]] ?? SecondaryStructureType.Flag.NA;
+        return secStruc ? secStruc.type[secStruc.getIndex(l.unit.residueIndex[l.element])] : SecondaryStructureType.Flag.NA;
     }),
     secondary_structure_key: p(l => {
         if (!Unit.isAtomic(l.unit)) notAtomic();
         const secStruc = SecondaryStructureProvider.get(l.structure).value?.get(l.unit.invariantId);
-        return secStruc?.key[l.unit.residueIndex[l.element]] ?? -1;
+        return secStruc ? secStruc.key[secStruc.getIndex(l.unit.residueIndex[l.element])] : -1;
     }),
     chem_comp_type: p(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.model.properties.chemicalComponentMap.get(compId(l))!.type),
 };

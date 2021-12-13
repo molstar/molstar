@@ -18,6 +18,8 @@ import { Toasts } from './toast';
 import { Viewport, ViewportControls } from './viewport';
 import { PluginCommands } from '../mol-plugin/commands';
 import { PluginUIContext } from './context';
+import { OpenFiles } from '../mol-plugin-state/actions/file';
+import { Asset } from '../mol-util/assets';
 
 export class Plugin extends React.Component<{ plugin: PluginUIContext }, {}> {
     region(kind: 'left' | 'right' | 'bottom' | 'main', element: JSX.Element) {
@@ -102,22 +104,34 @@ class Layout extends PluginUIComponent {
     onDrop = (ev: React.DragEvent<HTMLDivElement>) => {
         ev.preventDefault();
 
-        let file: File | undefined | null;
+        const files: File[] = [];
         if (ev.dataTransfer.items) {
             // Use DataTransferItemList interface to access the file(s)
             for (let i = 0; i < ev.dataTransfer.items.length; i++) {
                 if (ev.dataTransfer.items[i].kind !== 'file') continue;
-                file = ev.dataTransfer.items[i].getAsFile();
-                break;
+                const file = ev.dataTransfer.items[i].getAsFile();
+                if (file) files.push(file);
             }
         } else {
-            file = ev.dataTransfer.files[0];
+            for (let i = 0; i < ev.dataTransfer.files.length; i++) {
+                const file = ev.dataTransfer.files[0];
+                if (file) files.push(file);
+            }
         }
-        if (!file) return;
 
-        const fn = file?.name.toLowerCase() || '';
-        if (fn.endsWith('molx') || fn.endsWith('molj')) {
-            PluginCommands.State.Snapshots.OpenFile(this.plugin, { file });
+        const sessions = files.filter(f => {
+            const fn = f.name.toLowerCase();
+            return fn.endsWith('.molx') || fn.endsWith('.molj');
+        });
+
+        if (sessions.length > 0) {
+            PluginCommands.State.Snapshots.OpenFile(this.plugin, { file: sessions[0] });
+        } else {
+            this.plugin.runTask(this.plugin.state.data.applyAction(OpenFiles, {
+                files: files.map(f => Asset.File(f)),
+                format: { name: 'auto', params: {} },
+                visuals: true
+            }));
         }
     }
 

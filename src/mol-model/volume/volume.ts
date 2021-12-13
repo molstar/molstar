@@ -84,7 +84,7 @@ export namespace Volume {
         }
     }
 
-    const defaultStats: Grid['stats'] = { min: -1, max: 1, mean: 0, sigma: 0.1  };
+    const defaultStats: Grid['stats'] = { min: -1, max: 1, mean: 0, sigma: 0.1 };
     export function createIsoValueParam(defaultValue: Volume.IsoValue, stats?: Grid['stats']) {
         const sts = stats || defaultStats;
         const { min, max, mean, sigma } = sts;

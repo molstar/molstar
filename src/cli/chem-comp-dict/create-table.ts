@@ -171,7 +171,7 @@ async function createBonds(
         pdbx_aromatic_flag, pdbx_stereo_config, molstar_protonation_variant
     });
 
-    const bondDatabase =  Database.ofTables(
+    const bondDatabase = Database.ofTables(
         CCB_TABLE_NAME,
         { chem_comp_bond: mmCIF_chemCompBond_schema },
         { chem_comp_bond: bondTable }
@@ -265,21 +265,21 @@ const CCB_TABLE_NAME = 'CHEM_COMP_BONDS';
 const CCA_TABLE_NAME = 'CHEM_COMP_ATOMS';
 
 const parser = new argparse.ArgumentParser({
-    addHelp: true,
+    add_help: true,
     description: 'Create a cif file with one big table of all chem_comp_bond entries from the CCD and PVCD.'
 });
-parser.addArgument('out', {
+parser.add_argument('out', {
     help: 'Generated file output path.'
 });
-parser.addArgument([ '--forceDownload', '-f' ], {
-    action: 'storeTrue',
+parser.add_argument('--forceDownload', '-f', {
+    action: 'store_true',
     help: 'Force download of CCD and PVCD.'
 });
-parser.addArgument([ '--binary', '-b' ], {
-    action: 'storeTrue',
+parser.add_argument('--binary', '-b', {
+    action: 'store_true',
     help: 'Output as BinaryCIF.'
 });
-parser.addArgument(['--ccaOut', '-a'], {
+parser.add_argument('--ccaOut', '-a', {
     help: 'Optional generated file output path for chem_comp_atom data.',
     required: false
 });
@@ -289,6 +289,6 @@ interface Args {
     binary?: boolean,
     ccaOut?: string
 }
-const args: Args = parser.parseArgs();
+const args: Args = parser.parse_args();
 
 run(args.out, args.binary, args.forceDownload, args.ccaOut);

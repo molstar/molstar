@@ -51,13 +51,13 @@ export function ListCol(subType: 'int' | 'str' | 'float' | 'coord', separator: s
 
 export type Filter = { [ table: string ]: { [ column: string ]: true } }
 
-export function mergeFilters (...filters: Filter[]) {
+export function mergeFilters(...filters: Filter[]) {
     const n = filters.length;
     const mergedFilter: Filter = {};
     const fields: Map<string, number> = new Map();
     filters.forEach(filter => {
         Object.keys(filter).forEach(category => {
-            Object.keys(filter[ category ]).forEach(field => {
+            Object.keys(filter[category]).forEach(field => {
                 const key = `${category}.${field}`;
                 const value = fields.get(key) || 0;
                 fields.set(key, value + 1);

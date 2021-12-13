@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -21,11 +21,12 @@ import { BoundaryHelper } from '../../../mol-math/geometry/boundary-helper';
 
 export const LabelTextParams = {
     ...ComplexTextParams,
-    background: PD.Boolean(true),
+    background: PD.Boolean(false),
     backgroundMargin: PD.Numeric(0, { min: 0, max: 1, step: 0.01 }),
     backgroundColor: PD.Color(ColorNames.black),
     backgroundOpacity: PD.Numeric(0.5, { min: 0, max: 1, step: 0.01 }),
-    level: PD.Select('residue', [['chain', 'Chain'], ['residue', 'Residue'], ['element', 'Element']] as const),
+    borderWidth: PD.Numeric(0.25, { min: 0, max: 0.5, step: 0.01 }),
+    level: PD.Select('residue', [['chain', 'Chain'], ['residue', 'Residue'], ['element', 'Element']] as const, { isEssential: true }),
     chainScale: PD.Numeric(10, { min: 0, max: 20, step: 0.1 }),
     residueScale: PD.Numeric(1, { min: 0, max: 20, step: 0.1 }),
     elementScale: PD.Numeric(0.5, { min: 0, max: 20, step: 0.1 }),
@@ -112,7 +113,8 @@ function createResidueText(ctx: VisualContext, structure: Structure, theme: Them
         const residueIndex = unit.model.atomicHierarchy.residueAtomSegments.index;
         const groupOffset = cumulativeUnitElementCount[i];
 
-        let j = 0, jl = elements.length;
+        let j = 0;
+        const jl = elements.length;
         while (j < jl) {
             const start = j, rI = residueIndex[elements[j]];
             j++;

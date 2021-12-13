@@ -332,9 +332,83 @@ M  END
 $$$$
 `;
 
+const V3000SdfString = `FYI-001
+FYICenter.com
+123456789012345678901234567890123456789012345678901234567890
+ 0  0  0     0  0            999 V3000
+M  V30 BEGIN CTAB
+M  V30 COUNTS 13 14 0 0 0
+M  V30 BEGIN ATOM
+M  V30 1 N 0.84 -0.16 0 0
+M  V30 2 N 1.48 0.43 0 0
+M  V30 3 N 0.09 0.27 0 0
+M  V30 4 C 1.11 1.21 0 0
+M  V30 5 C 0.27 1.12 0 0
+M  V30 6 C 0.84 -1.03 0 0
+M  V30 7 C 1.53 1.99 0 0
+M  V30 8 Cl 1.07 2.74 0.01 0
+M  V30 9 C 1.59 -1.46 0 0
+M  V30 10 C 0.08 -1.46 0 0
+M  V30 11 C 1.59 -2.33 0 0
+M  V30 12 C 0.07 -2.32 0 0
+M  V30 13 C 0.84 -2.76 0 0
+M  V30 END ATOM
+M  V30 BEGIN BOND
+M  V30 1 1 2 1
+M  V30 2 1 3 1
+M  V30 3 1 6 1
+M  V30 4 2 4 2
+M  V30 5 2 5 3
+M  V30 6 1 7 4
+M  V30 7 1 4 5
+M  V30 8 1 9 6
+M  V30 9 2 10 6
+M  V30 10 1 8 7
+M  V30 11 2 11 9
+M  V30 12 1 12 10
+M  V30 13 1 13 11
+M  V30 14 2 13 12
+M  V30 END BOND
+M  V30 END CTAB
+M  END
+> <Comment>
+This is an SDF example.
+With a multi-line comment.
+
+> <source>
+This was retrieved from biotech.fyicenter.com
+
+$$$$
+L-Alanine
+GSMACCS-II07189510252D 1 0.00366 0.00000 0
+Figure 1, J. Chem. Inf. Comput. Sci., Vol 32, No. 3., 1992
+ 0 0 0 0 0 999 V3000
+M V30 BEGIN CTAB
+M V30 COUNTS 6 5 0 0 1
+M V30 BEGIN ATOM
+M V30 1 C -0.6622 0.5342 0 0 CFG=2
+M V30 2 C 0.6622 -0.3 0 0
+M V30 3 C -0.7207 2.0817 0 0 MASS=13
+M V30 4 N -1.8622 -0.3695 0 0 CHG=1
+M V30 5 O 0.622 -1.8037 0 0
+M V30 6 O 1.9464 0.4244 0 0 CHG=-1
+M V30 END ATOM
+M V30 BEGIN BOND
+M V30 1 1 1 2
+M V30 2 1 1 3 CFG=1
+M V30 3 1 1 4
+M V30 4 2 2 5
+M V30 5 1 2 6
+M V30 END BOND
+M V30 END CTAB
+M END
+
+$$$$
+`;
+
 describe('sdf reader', () => {
     it('basic', async () => {
-        const parsed =  await parseSdf(SdfString).run();
+        const parsed = await parseSdf(SdfString).run();
         if (parsed.isError) {
             throw new Error(parsed.message);
         }
@@ -382,5 +456,59 @@ describe('sdf reader', () => {
 
         expect(compound3.dataItems.dataHeader.value(21)).toBe('<PUBCHEM_COORDINATE_TYPE>');
         expect(compound3.dataItems.data.value(21)).toBe('2\n5\n10');
+    });
+
+    it('v3000', async () => {
+        const parsed = await parseSdf(V3000SdfString).run();
+        if (parsed.isError) {
+            throw new Error(parsed.message);
+        }
+
+        expect(parsed.result.compounds.length).toBe(2);
+
+        const compound1 = parsed.result.compounds[0];
+        expect(compound1.molFile.atoms.count).toBe(13);
+        expect(compound1.molFile.atoms.x.rowCount).toBe(13);
+        expect(compound1.molFile.atoms.y.rowCount).toBe(13);
+        expect(compound1.molFile.atoms.z.rowCount).toBe(13);
+        expect(compound1.molFile.atoms.type_symbol.rowCount).toBe(13);
+        expect(compound1.molFile.bonds.count).toBe(14);
+        expect(compound1.molFile.bonds.atomIdxA.rowCount).toBe(14);
+        expect(compound1.molFile.bonds.atomIdxB.rowCount).toBe(14);
+        expect(compound1.molFile.bonds.order.rowCount).toBe(14);
+
+        expect(compound1.molFile.atoms.x.value(7)).toBe(1.07);
+        expect(compound1.molFile.atoms.y.value(7)).toBe(2.74);
+        expect(compound1.molFile.atoms.z.value(7)).toBe(0.01);
+        expect(compound1.molFile.atoms.type_symbol.value(7)).toBe('Cl');
+
+        expect(compound1.molFile.bonds.atomIdxA.value(10)).toBe(11);
+        expect(compound1.molFile.bonds.atomIdxB.value(10)).toBe(9);
+        expect(compound1.molFile.bonds.order.value(10)).toBe(2);
+
+        expect(compound1.dataItems.dataHeader.rowCount).toBe(2);
+        expect(compound1.dataItems.data.rowCount).toBe(2);
+
+        expect(compound1.dataItems.dataHeader.value(0)).toBe('<Comment>');
+        expect(compound1.dataItems.data.value(0)).toBe(`This is an SDF example.\nWith a multi-line comment.`);
+
+        expect(compound1.dataItems.dataHeader.value(1)).toBe('<source>');
+        expect(compound1.dataItems.data.value(1)).toBe('This was retrieved from biotech.fyicenter.com');
+
+        const compound2 = parsed.result.compounds[1];
+        expect(compound2.molFile.atoms.count).toBe(6);
+        expect(compound2.molFile.bonds.count).toBe(5);
+
+        expect(compound2.molFile.atoms.x.value(4)).toBe(0.622);
+        expect(compound2.molFile.atoms.y.value(4)).toBe(-1.8037);
+        expect(compound2.molFile.atoms.z.value(4)).toBe(0);
+        expect(compound2.molFile.atoms.type_symbol.value(4)).toBe('O');
+
+        expect(compound2.molFile.bonds.atomIdxA.value(1)).toBe(1);
+        expect(compound2.molFile.bonds.atomIdxB.value(1)).toBe(3);
+        expect(compound2.molFile.bonds.order.value(1)).toBe(1);
+
+        expect(compound2.dataItems.dataHeader.rowCount).toBe(0);
+        expect(compound2.dataItems.data.rowCount).toBe(0);
     });
 });

@@ -44,7 +44,7 @@ namespace Tokenizer {
     }
 
     /** Resets the state */
-    export function reset (state: Tokenizer) {
+    export function reset(state: Tokenizer) {
         state.position = 0;
         state.lineNumber = 1;
         state.tokenStart = 0;
@@ -185,7 +185,7 @@ namespace Tokenizer {
     export function eatValue(state: Tokenizer) {
         while (state.position < state.length) {
             switch (state.data.charCodeAt(state.position)) {
-                case 9:  // \t
+                case 9: // \t
                 case 10: // \n
                 case 13: // \r
                 case 32: // ' '
@@ -206,7 +206,7 @@ namespace Tokenizer {
     export function skipWhitespace(state: Tokenizer): number {
         let prev = -1;
         while (state.position < state.length) {
-            let c = state.data.charCodeAt(state.position);
+            const c = state.data.charCodeAt(state.position);
             switch (c) {
                 case 9: // '\t'
                 case 32: // ' '

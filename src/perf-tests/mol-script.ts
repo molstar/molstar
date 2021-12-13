@@ -49,7 +49,7 @@ console.log(result);
 
 const CustomProp = CustomPropertyDescriptor({
     name: 'test_prop',
-    cifExport: { prefix: '', categories: [ ]},
+    cifExport: { prefix: '', categories: [] },
     symbols: {
         residueIndex: QuerySymbolRuntime.Dynamic(CustomPropSymbol('custom.test-prop', 'residue-index', Type.Num), ctx => {
             const e = ctx.element;
@@ -68,7 +68,7 @@ export async function testQ() {
     const { structure } = await getModelsAndStructure(frame);
     const model = structure.models[0];
 
-    const rawData = await fetch(`https://www.ebi.ac.uk/pdbe/api/validation/residuewise_outlier_summary/entry/${model.entryId.toLowerCase()}`, { timeout: 1500 });
+    const rawData = await fetch(`https://www.ebi.ac.uk/pdbe/api/validation/residuewise_outlier_summary/entry/${model.entryId.toLowerCase()}`);
     const data = StructureQualityReport.fromJson(model, await rawData.json());
 
     StructureQualityReportProvider.set(model, { serverUrl: '' }, data);

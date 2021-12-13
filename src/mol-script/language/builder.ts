@@ -40,9 +40,9 @@ export namespace MolScriptBuilder {
 
     const _aps = struct.atomSet.propertySet;
     /** atom core property set */
-    export function acpSet(p: keyof typeof _acp) { return _aps([ acp(p) ]); };
+    export function acpSet(p: keyof typeof _acp) { return _aps([acp(p)]); };
     /** atom topology property set */
-    export function atpSet(p: keyof typeof _atp) { return _aps([ atp(p) ]); };
+    export function atpSet(p: keyof typeof _atp) { return _aps([atp(p)]); };
     /** atom macromolecular property set */
-    export function ammpSet(p: keyof typeof _ammp) { return _aps([ ammp(p) ]); };
+    export function ammpSet(p: keyof typeof _ammp) { return _aps([ammp(p)]); };
 }

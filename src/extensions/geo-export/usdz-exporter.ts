@@ -2,9 +2,9 @@
  * Copyright (c) 2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Sukolsak Sakshuwong <sukolsak@stanford.edu>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Style } from '../../mol-gl/renderer';
 import { asciiWrite } from '../../mol-io/common/ascii';
 import { Box3D } from '../../mol-math/geometry';
 import { Vec3, Mat3, Mat4 } from '../../mol-math/linear-algebra';
@@ -31,18 +31,17 @@ export class UsdzExporter extends MeshExporter<UsdzData> {
     readonly fileExtension = 'usdz';
     private meshes: string[] = [];
     private materials: string[] = [];
-    private materialSet = new Set<number>();
+    private materialMap = new Map<string, number>();
     private centerTransform: Mat4;
 
-    private static getMaterialKey(color: Color, alpha: number) {
-        return color * 256 + Math.round(alpha * 255);
-    }
+    private addMaterial(color: Color, alpha: number, metalness: number, roughness: number): number {
+        const hash = `${color}|${alpha}|${metalness}|${roughness}`;
+        if (this.materialMap.has(hash)) return this.materialMap.get(hash)!;
 
-    private addMaterial(color: Color, alpha: number) {
-        const materialKey = UsdzExporter.getMaterialKey(color, alpha);
-        if (this.materialSet.has(materialKey)) return;
-        this.materialSet.add(materialKey);
-        const [r, g, b] = Color.toRgbNormalized(color);
+        const materialKey = this.materialMap.size;
+        this.materialMap.set(hash, materialKey);
+
+        const [r, g, b] = Color.toRgbNormalized(color).map(v => Math.round(v * 1000) / 1000);
         this.materials.push(`
 def Material "material${materialKey}"
 {
@@ -52,12 +51,13 @@ def Material "material${materialKey}"
         uniform token info:id = "UsdPreviewSurface"
         color3f inputs:diffuseColor = (${r},${g},${b})
         float inputs:opacity = ${alpha}
-        float inputs:metallic = ${this.style.metalness}
-        float inputs:roughness = ${this.style.roughness}
+        float inputs:metallic = ${metalness}
+        float inputs:roughness = ${roughness}
         token outputs:surface
     }
 }
 `);
+        return materialKey;
     }
 
     protected async addMeshWithColors(input: AddMeshInput) {
@@ -68,19 +68,30 @@ def Material "material${materialKey}"
         const tmpV = Vec3();
         const stride = isGeoTexture ? 4 : 3;
 
-        const groupCount = values.uGroupCount.ref.value;
         const colorType = values.dColorType.ref.value;
-        const tColor = values.tColor.ref.value.array;
+        const overpaintType = values.dOverpaintType.ref.value;
+        const transparencyType = values.dTransparencyType.ref.value;
         const uAlpha = values.uAlpha.ref.value;
-        const dTransparency = values.dTransparency.ref.value;
-        const tTransparency = values.tTransparency.ref.value;
         const aTransform = values.aTransform.ref.value;
         const instanceCount = values.uInstanceCount.ref.value;
+        const metalness = values.uMetalness.ref.value;
+        const roughness = values.uRoughness.ref.value;
 
-        let interpolatedColors: Uint8Array;
+        let interpolatedColors: Uint8Array | undefined;
         if (colorType === 'volume' || colorType === 'volumeInstance') {
-            interpolatedColors = UsdzExporter.getInterpolatedColors(mesh!.vertices, mesh!.vertexCount, values, stride, colorType, webgl!);
-            UsdzExporter.quantizeColors(interpolatedColors, mesh!.vertexCount);
+            interpolatedColors = UsdzExporter.getInterpolatedColors(webgl!, { vertices: mesh!.vertices, vertexCount: mesh!.vertexCount, values, stride, colorType });
+        }
+
+        let interpolatedOverpaint: Uint8Array | undefined;
+        if (overpaintType === 'volumeInstance') {
+            const stride = isGeoTexture ? 4 : 3;
+            interpolatedOverpaint = UsdzExporter.getInterpolatedOverpaint(webgl!, { vertices: mesh!.vertices, vertexCount: mesh!.vertexCount, values, stride, colorType: overpaintType });
+        }
+
+        let interpolatedTransparency: Uint8Array | undefined;
+        if (transparencyType === 'volumeInstance') {
+            const stride = isGeoTexture ? 4 : 3;
+            interpolatedTransparency = UsdzExporter.getInterpolatedTransparency(webgl!, { vertices: mesh!.vertices, vertexCount: mesh!.vertexCount, values, stride, colorType: transparencyType });
         }
 
         await ctx.update({ isIndeterminate: false, current: 0, max: instanceCount });
@@ -122,6 +133,8 @@ def Material "material${materialKey}"
                 StringBuilder.writeSafe(normalBuilder, ')');
             }
 
+            const geoData = { values, groups, vertexCount, instanceIndex, isGeoTexture };
+
             // face
             for (let i = 0; i < drawCount; ++i) {
                 const v = isGeoTexture ? i : indices![i];
@@ -130,51 +143,23 @@ def Material "material${materialKey}"
             }
 
             // color
+            const quantizedColors = new Uint8Array(drawCount * 3);
+            for (let i = 0; i < drawCount; i += 3) {
+                const v = isGeoTexture ? i : indices![i];
+                const color = UsdzExporter.getColor(v, geoData, interpolatedColors, interpolatedOverpaint);
+                Color.toArray(color, quantizedColors, i);
+            }
+            UsdzExporter.quantizeColors(quantizedColors, vertexCount);
+
+            // material
             const faceIndicesByMaterial = new Map<number, number[]>();
             for (let i = 0; i < drawCount; i += 3) {
-                let color: Color;
-                switch (colorType) {
-                    case 'uniform':
-                        color = Color.fromNormalizedArray(values.uColor.ref.value, 0);
-                        break;
-                    case 'instance':
-                        color = Color.fromArray(tColor, instanceIndex * 3);
-                        break;
-                    case 'group': {
-                        const group = isGeoTexture ? UsdzExporter.getGroup(groups, i) : groups[indices![i]];
-                        color = Color.fromArray(tColor, group * 3);
-                        break;
-                    }
-                    case 'groupInstance': {
-                        const group = isGeoTexture ? UsdzExporter.getGroup(groups, i) : groups[indices![i]];
-                        color = Color.fromArray(tColor, (instanceIndex * groupCount + group) * 3);
-                        break;
-                    }
-                    case 'vertex':
-                        color = Color.fromArray(tColor, indices![i] * 3);
-                        break;
-                    case 'vertexInstance':
-                        color = Color.fromArray(tColor, (instanceIndex * vertexCount + indices![i]) * 3);
-                        break;
-                    case 'volume':
-                        color = Color.fromArray(interpolatedColors!, (isGeoTexture ? i : indices![i]) * 3);
-                        break;
-                    case 'volumeInstance':
-                        color = Color.fromArray(interpolatedColors!, (instanceIndex * vertexCount + (isGeoTexture ? i : indices![i])) * 3);
-                        break;
-                    default: throw new Error('Unsupported color type.');
-                }
+                const color = Color.fromArray(quantizedColors, i);
 
-                let alpha = uAlpha;
-                if (dTransparency) {
-                    const group = isGeoTexture ? UsdzExporter.getGroup(groups, i) : groups[indices![i]];
-                    const transparency = tTransparency.array[instanceIndex * groupCount + group] / 255;
-                    alpha *= 1 - transparency;
-                }
+                const transparency = UsdzExporter.getTransparency(i, geoData, interpolatedTransparency);
+                const alpha = Math.round(uAlpha * (1 - transparency) * 10) / 10; // quantized
 
-                this.addMaterial(color, alpha);
-
-                const materialKey = UsdzExporter.getMaterialKey(color, alpha);
+                const materialKey = this.addMaterial(color, alpha, metalness, roughness);
                 let faceIndices = faceIndicesByMaterial.get(materialKey);
                 if (faceIndices === undefined) {
                     faceIndices = [];
@@ -246,7 +231,7 @@ def Mesh "mesh${this.meshes.length}"
         return new Blob([usdz], { type: 'model/vnd.usdz+zip' });
     }
 
-    constructor(private style: Style, boundingBox: Box3D, radius: number) {
+    constructor(boundingBox: Box3D, radius: number) {
         super();
         const t = Mat4();
         // scale the model so that it fits within 1 meter

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -27,6 +27,10 @@ interface ICamera {
     readonly fogNear: number,
 }
 
+const tmpPos1 = Vec3();
+const tmpPos2 = Vec3();
+const tmpClip = Vec4();
+
 class Camera implements ICamera {
     readonly view: Mat4 = Mat4.identity();
     readonly projection: Mat4 = Mat4.identity();
@@ -34,7 +38,7 @@ class Camera implements ICamera {
     readonly inverseProjectionView: Mat4 = Mat4.identity();
 
     private pixelScale: number
-    get pixelRatio () {
+    get pixelRatio() {
         const dpr = (typeof window !== 'undefined') ? window.devicePixelRatio : 1;
         return dpr * this.pixelScale;
     }
@@ -155,12 +159,30 @@ class Camera implements ICamera {
         }
     }
 
+    /** Transform point into 2D window coordinates. */
     project(out: Vec4, point: Vec3) {
         return cameraProject(out, point, this.viewport, this.projectionView);
     }
 
-    unproject(out: Vec3, point: Vec3) {
+    /**
+     * Transform point from screen space to 3D coordinates.
+     * The point must have `x` and `y` set to 2D window coordinates
+     * and `z` between 0 (near) and 1 (far); the optional `w` is not used.
+     */
+    unproject(out: Vec3, point: Vec3 | Vec4) {
         return cameraUnproject(out, point, this.viewport, this.inverseProjectionView);
+    }
+
+    /** World space pixel size at given `point` */
+    getPixelSize(point: Vec3) {
+        // project -> unproject of `point` does not exactly return the same
+        // to get a sufficiently accurate measure we unproject the original
+        // clip position in addition to the one shifted bey one pixel
+        this.project(tmpClip, point);
+        this.unproject(tmpPos1, tmpClip);
+        tmpClip[0] += 1;
+        this.unproject(tmpPos2, tmpClip);
+        return Vec3.distance(tmpPos1, tmpPos2);
     }
 
     constructor(state?: Partial<Camera.Snapshot>, viewport = Viewport.create(0, 0, 128, 128), props: Partial<{ pixelScale: number }> = {}) {
@@ -178,7 +200,7 @@ namespace Camera {
     /**
      * Sets an offseted view in a larger frustum. This is useful for
      * - multi-window or multi-monitor/multi-machine setups
-     * - jittering the camera position for
+     * - jittering the camera position for sampling
      */
     export interface ViewOffset {
         enabled: boolean,

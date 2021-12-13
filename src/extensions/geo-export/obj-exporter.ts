@@ -2,6 +2,7 @@
  * Copyright (c) 2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Sukolsak Sakshuwong <sukolsak@stanford.edu>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { asciiWrite } from '../../mol-io/common/ascii';
@@ -47,7 +48,7 @@ export class ObjExporter extends MeshExporter<ObjData> {
         StringBuilder.newline(this.obj);
         if (!this.materialSet.has(material)) {
             this.materialSet.add(material);
-            const [r, g, b] = Color.toRgbNormalized(color);
+            const [r, g, b] = Color.toRgbNormalized(color).map(v => Math.round(v * 1000) / 1000);
             const mtl = this.mtl;
             StringBuilder.writeSafe(mtl, `newmtl ${material}\n`);
             StringBuilder.writeSafe(mtl, 'illum 2\n'); // illumination model
@@ -77,19 +78,27 @@ export class ObjExporter extends MeshExporter<ObjData> {
         const tmpV = Vec3();
         const stride = isGeoTexture ? 4 : 3;
 
-        const groupCount = values.uGroupCount.ref.value;
         const colorType = values.dColorType.ref.value;
-        const tColor = values.tColor.ref.value.array;
+        const overpaintType = values.dOverpaintType.ref.value;
+        const transparencyType = values.dTransparencyType.ref.value;
         const uAlpha = values.uAlpha.ref.value;
-        const dTransparency = values.dTransparency.ref.value;
-        const tTransparency = values.tTransparency.ref.value;
         const aTransform = values.aTransform.ref.value;
         const instanceCount = values.uInstanceCount.ref.value;
 
-        let interpolatedColors: Uint8Array;
+        let interpolatedColors: Uint8Array | undefined;
         if (colorType === 'volume' || colorType === 'volumeInstance') {
-            interpolatedColors = ObjExporter.getInterpolatedColors(mesh!.vertices, mesh!.vertexCount, values, stride, colorType, webgl!);
-            ObjExporter.quantizeColors(interpolatedColors, mesh!.vertexCount);
+            interpolatedColors = ObjExporter.getInterpolatedColors(webgl!, { vertices: mesh!.vertices, vertexCount: mesh!.vertexCount, values, stride, colorType });
+        }
+
+        let interpolatedOverpaint: Uint8Array | undefined;
+        if (overpaintType === 'volumeInstance') {
+            interpolatedOverpaint = ObjExporter.getInterpolatedOverpaint(webgl!, { vertices: mesh!.vertices, vertexCount: mesh!.vertexCount, values, stride, colorType: overpaintType });
+        }
+
+        let interpolatedTransparency: Uint8Array | undefined;
+        if (transparencyType === 'volumeInstance') {
+            const stride = isGeoTexture ? 4 : 3;
+            interpolatedTransparency = ObjExporter.getInterpolatedTransparency(webgl!, { vertices: mesh!.vertices, vertexCount: mesh!.vertexCount, values, stride, colorType: transparencyType });
         }
 
         await ctx.update({ isIndeterminate: false, current: 0, max: instanceCount });
@@ -127,47 +136,23 @@ export class ObjExporter extends MeshExporter<ObjData> {
                 StringBuilder.newline(obj);
             }
 
+            const geoData = { values, groups, vertexCount, instanceIndex, isGeoTexture };
+
+            // color
+            const quantizedColors = new Uint8Array(drawCount * 3);
+            for (let i = 0; i < drawCount; i += 3) {
+                const v = isGeoTexture ? i : indices![i];
+                const color = ObjExporter.getColor(v, geoData, interpolatedColors, interpolatedOverpaint);
+                Color.toArray(color, quantizedColors, i);
+            }
+            ObjExporter.quantizeColors(quantizedColors, vertexCount);
+
             // face
             for (let i = 0; i < drawCount; i += 3) {
-                let color: Color;
-                switch (colorType) {
-                    case 'uniform':
-                        color = Color.fromNormalizedArray(values.uColor.ref.value, 0);
-                        break;
-                    case 'instance':
-                        color = Color.fromArray(tColor, instanceIndex * 3);
-                        break;
-                    case 'group': {
-                        const group = isGeoTexture ? ObjExporter.getGroup(groups, i) : groups[indices![i]];
-                        color = Color.fromArray(tColor, group * 3);
-                        break;
-                    }
-                    case 'groupInstance': {
-                        const group = isGeoTexture ? ObjExporter.getGroup(groups, i) : groups[indices![i]];
-                        color = Color.fromArray(tColor, (instanceIndex * groupCount + group) * 3);
-                        break;
-                    }
-                    case 'vertex':
-                        color = Color.fromArray(tColor, indices![i] * 3);
-                        break;
-                    case 'vertexInstance':
-                        color = Color.fromArray(tColor, (instanceIndex * vertexCount + indices![i]) * 3);
-                        break;
-                    case 'volume':
-                        color = Color.fromArray(interpolatedColors!, (isGeoTexture ? i : indices![i]) * 3);
-                        break;
-                    case 'volumeInstance':
-                        color = Color.fromArray(interpolatedColors!, (instanceIndex * vertexCount + (isGeoTexture ? i : indices![i])) * 3);
-                        break;
-                    default: throw new Error('Unsupported color type.');
-                }
+                const color = Color.fromArray(quantizedColors, i);
 
-                let alpha = uAlpha;
-                if (dTransparency) {
-                    const group = isGeoTexture ? ObjExporter.getGroup(groups, i) : groups[indices![i]];
-                    const transparency = tTransparency.array[instanceIndex * groupCount + group] / 255;
-                    alpha *= 1 - transparency;
-                }
+                const transparency = ObjExporter.getTransparency(i, geoData, interpolatedTransparency);
+                const alpha = Math.round(uAlpha * (1 - transparency) * 10) / 10; // quantized
 
                 this.updateMaterial(color, alpha);
 

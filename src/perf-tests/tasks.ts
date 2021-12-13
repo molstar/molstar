@@ -79,7 +79,7 @@ export namespace Tasks {
 
     export async function testImmediate() {
         console.time('immediate');
-        let ret = 0;
+        const ret = 0;
         const y = new CheckYielding();
         for (let i = 0; i < 1000000; i++) {
             // ret += +(i.toString() + i.toString());
@@ -158,7 +158,7 @@ export namespace Tasks {
     }
 }
 
-(async function() {
+(async function () {
     // await Tasks.testImmediate();
     // await Tasks.testImmediate();
 

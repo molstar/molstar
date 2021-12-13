@@ -64,14 +64,14 @@ export function arrayRms(array: ArrayLike<number>) {
 }
 
 /** Fill an array with serial numbers starting from 0 until n - 1 (defaults to array.length) */
-export function fillSerial<T extends NumberArray> (array: T, n?: number) {
+export function fillSerial<T extends NumberArray>(array: T, n?: number) {
     for (let i = 0, il = n ? Math.min(n, array.length) : array.length; i < il; ++i) array[i] = i;
     return array;
 }
 
 export function arrayRemoveInPlace<T>(xs: T[], x: T) {
-    let i = 0, l = xs.length, found = false;
-    for (; i < l; i++) {
+    let i = 0, found = false;
+    for (const il = xs.length; i < il; i++) {
         if (xs[i] === x) {
             found = true;
             break;

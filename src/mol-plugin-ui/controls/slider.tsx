@@ -171,21 +171,21 @@ export class Slider2 extends React.Component<{
  */
 
 function classNames(_classes: { [name: string]: boolean | number }) {
-    let classes = [];
-    let hasOwn = {}.hasOwnProperty;
+    const classes = [];
+    const hasOwn = {}.hasOwnProperty;
 
     for (let i = 0; i < arguments.length; i++) {
-        let arg = arguments[i];
+        const arg = arguments[i];
         if (!arg) continue;
 
-        let argType = typeof arg;
+        const argType = typeof arg;
 
         if (argType === 'string' || argType === 'number') {
             classes.push(arg);
         } else if (Array.isArray(arg)) {
             classes.push(classNames.apply(null, arg));
         } else if (argType === 'object') {
-            for (let key in arg) {
+            for (const key in arg) {
                 if (hasOwn.call(arg, key) && arg[key]) {
                     classes.push(key);
                 }

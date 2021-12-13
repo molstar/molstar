@@ -17,7 +17,7 @@ export { BitFlags, StringBuilder, UUID, Mask };
 export const noop = function () { };
 
 export function round(n: number, d: number) {
-    let f = Math.pow(10, d);
+    const f = Math.pow(10, d);
     return Math.round(f * n) / f;
 }
 
@@ -120,17 +120,17 @@ export function defaults<T>(value: T | undefined, defaultValue: T): T {
 export function extend<S, T, U>(object: S, source: T, guard?: U): S & T & U {
     let v: any;
 
-    let s = <any>source;
-    let o = <any>object;
-    let g = <any>guard;
-    for (let k of Object.keys(source)) {
+    const s = <any>source;
+    const o = <any>object;
+    const g = <any>guard;
+    for (const k of Object.keys(source)) {
         v = s[k];
         if (v !== void 0) o[k] = v;
         else if (guard) o[k] = g[k];
     }
 
     if (guard) {
-        for (let k of Object.keys(guard)) {
+        for (const k of Object.keys(guard)) {
             v = o[k];
             if (v === void 0) o[k] = g[k];
         }
@@ -145,8 +145,8 @@ export function shallowClone<T>(o: T): T {
 
 function _assign<T>(target: T): T {
     for (let s = 1; s < arguments.length; s++) {
-        let from = arguments[s];
-        for (let key of Object.keys(from)) {
+        const from = arguments[s];
+        for (const key of Object.keys(from)) {
             if (hasOwnProperty.call(from, key)) {
                 (target as any)[key] = from[key];
             }
@@ -160,7 +160,7 @@ export const assign: (<T>(o: T, ...from: any[]) => T) = (Object as any).assign |
 
 function _shallowMerge1<T>(source: T, update: T) {
     let changed = false;
-    for (let k of Object.keys(update)) {
+    for (const k of Object.keys(update)) {
         if (!hasOwnProperty.call(update, k)) continue;
 
         if ((update as any)[k] !== (source as any)[k]) {

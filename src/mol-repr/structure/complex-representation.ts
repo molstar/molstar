@@ -7,25 +7,27 @@
 
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { ComplexVisual, StructureRepresentation, StructureRepresentationStateBuilder, StructureRepresentationState } from './representation';
-import { RepresentationContext, RepresentationParamsGetter } from '../representation';
+import { Representation, RepresentationContext, RepresentationParamsGetter } from '../representation';
 import { Structure, StructureElement, Bond } from '../../mol-model/structure';
 import { Subject } from 'rxjs';
 import { getNextMaterialId, GraphicsRenderObject } from '../../mol-gl/render-object';
 import { Theme } from '../../mol-theme/theme';
 import { Task } from '../../mol-task';
 import { PickingId } from '../../mol-geo/geometry/picking';
-import { EmptyLoci, Loci, isEveryLoci, isDataLoci } from '../../mol-model/loci';
+import { EmptyLoci, Loci, isEveryLoci, isDataLoci, EveryLoci } from '../../mol-model/loci';
 import { MarkerAction, MarkerActions } from '../../mol-util/marker-action';
 import { Overpaint } from '../../mol-theme/overpaint';
 import { StructureParams } from './params';
 import { Clipping } from '../../mol-theme/clipping';
 import { Transparency } from '../../mol-theme/transparency';
 import { WebGLContext } from '../../mol-gl/webgl/context';
+import { Substance } from '../../mol-theme/substance';
 
 export function ComplexRepresentation<P extends StructureParams>(label: string, ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, P>, visualCtor: (materialId: number, structure: Structure, props: PD.Values<P>, webgl?: WebGLContext) => ComplexVisual<P>): StructureRepresentation<P> {
     let version = 0;
     const { webgl } = ctx;
     const updated = new Subject<number>();
+    const geometryState = new Representation.GeometryState();
     const materialId = getNextMaterialId();
     const renderObjects: GraphicsRenderObject[] = [];
     const _state = StructureRepresentationStateBuilder.create();
@@ -59,9 +61,14 @@ export function ComplexRepresentation<P extends StructureParams>(label: string, 
             if (newVisual) setState(_state); // current state for new visual
             // update list of renderObjects
             renderObjects.length = 0;
-            if (visual && visual.renderObject) renderObjects.push(visual.renderObject);
+            if (visual && visual.renderObject) {
+                renderObjects.push(visual.renderObject);
+                geometryState.add(visual.renderObject.id, visual.geometryVersion);
+            }
+            geometryState.snapshot();
             // increment version
-            updated.next(version++);
+            version += 1;
+            updated.next(version);
         });
     }
 
@@ -77,6 +84,10 @@ export function ComplexRepresentation<P extends StructureParams>(label: string, 
             if (!Structure.areRootsEquivalent(loci.structure, _structure)) return false;
             // Remap `loci` from equivalent structure to the current `_structure`
             loci = Loci.remap(loci, _structure);
+            if (StructureElement.Loci.is(loci) && StructureElement.Loci.isWholeStructure(loci)) {
+                // Change to `EveryLoci` to allow for downstream optimizations
+                loci = EveryLoci;
+            }
         } else if (!isEveryLoci(loci) && !isDataLoci(loci)) {
             return false;
         }
@@ -96,12 +107,17 @@ export function ComplexRepresentation<P extends StructureParams>(label: string, 
         if (state.overpaint !== undefined && visual) {
             // Remap loci from equivalent structure to the current structure
             const remappedOverpaint = Overpaint.remap(state.overpaint, _structure);
-            visual.setOverpaint(remappedOverpaint);
+            visual.setOverpaint(remappedOverpaint, webgl);
         }
         if (state.transparency !== undefined && visual) {
             // Remap loci from equivalent structure to the current structure
             const remappedTransparency = Transparency.remap(state.transparency, _structure);
-            visual.setTransparency(remappedTransparency);
+            visual.setTransparency(remappedTransparency, webgl);
+        }
+        if (state.substance !== undefined && visual) {
+            // Remap loci from equivalent structure to the current structure
+            const remappedSubstance = Substance.remap(state.substance, _structure);
+            visual.setSubstance(remappedSubstance, webgl);
         }
         if (state.clipping !== undefined && visual) {
             // Remap loci from equivalent structure to the current structure
@@ -134,6 +150,7 @@ export function ComplexRepresentation<P extends StructureParams>(label: string, 
         get params() { return _params; },
         get state() { return _state; },
         get theme() { return _theme; },
+        get geometryVersion() { return geometryState.version; },
         renderObjects,
         updated,
         createOrUpdate,

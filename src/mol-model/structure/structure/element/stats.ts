@@ -273,7 +273,7 @@ export namespace Stats {
 
             const { elements } = unit;
 
-            let i = 0;
+            const i = 0;
             while (i < size) {
                 const eI = elements[OrderedSet.getAt(indices, i)];
                 const cI = index[eI];

@@ -27,7 +27,7 @@ export function calculateUnitDihedralAngles(unit: Unit.Atomic, proteinInfo: Prot
 
     let cPosPrev = Vec3(), caPosPrev = Vec3(), nPosPrev = Vec3();
     let cPos = Vec3(), caPos = Vec3(), nPos = Vec3();
-    let cPosNext = Vec3(), caPosNext = Vec3(), nPosNext = Vec3();
+    const cPosNext = Vec3(), caPosNext = Vec3(), nPosNext = Vec3();
 
     if (residueCount === 0) return { phi: new Float32Array(0), psi: new Float32Array(0) };
 

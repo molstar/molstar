@@ -1,11 +1,11 @@
-import { Viewport } from '../../mol-canvas3d/camera/util';
 /**
- * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+import { Viewport } from '../../mol-canvas3d/camera/util';
 import { CameraHelperParams } from '../../mol-canvas3d/helper/camera-helper';
 import { ImagePass } from '../../mol-canvas3d/passes/image';
 import { canvasToBlob } from '../../mol-canvas3d/util';
@@ -96,7 +96,7 @@ class ViewportScreenshotHelper extends PluginComponent {
 
     private getSize() {
         const values = this.values;
-        switch (values.resolution.name ) {
+        switch (values.resolution.name) {
             case 'viewport': return this.getCanvasSize();
             case 'hd': return { width: 1280, height: 720 };
             case 'full-hd': return { width: 1920, height: 1080 };
@@ -108,8 +108,8 @@ class ViewportScreenshotHelper extends PluginComponent {
     private createPass(mutlisample: boolean) {
         const c = this.plugin.canvas3d!;
         const { colorBufferFloat, textureFloat } = c.webgl.extensions;
-        const aoProps = this.plugin.canvas3d!.props.postprocessing.occlusion;
-        return this.plugin.canvas3d!.getImagePass({
+        const aoProps = c.props.postprocessing.occlusion;
+        return c.getImagePass({
             transparentBackground: this.values.transparent,
             cameraHelper: { axes: this.values.axes },
             multiSample: {
@@ -121,7 +121,8 @@ class ViewportScreenshotHelper extends PluginComponent {
                 occlusion: aoProps.name === 'on'
                     ? { name: 'on', params: { ...aoProps.params, samples: 128 } }
                     : aoProps
-            }
+            },
+            marking: { ...c.props.marking }
         });
     }
 
@@ -133,17 +134,19 @@ class ViewportScreenshotHelper extends PluginComponent {
     private _imagePass: ImagePass;
     get imagePass() {
         if (this._imagePass) {
-            const aoProps = this.plugin.canvas3d!.props.postprocessing.occlusion;
+            const c = this.plugin.canvas3d!;
+            const aoProps = c.props.postprocessing.occlusion;
             this._imagePass.setProps({
                 cameraHelper: { axes: this.values.axes },
                 transparentBackground: this.values.transparent,
                 // TODO: optimize because this creates a copy of a large object!
                 postprocessing: {
-                    ...this.plugin.canvas3d!.props.postprocessing,
+                    ...c.props.postprocessing,
                     occlusion: aoProps.name === 'on'
                         ? { name: 'on', params: { ...aoProps.params, samples: 128 } }
                         : aoProps
-                }
+                },
+                marking: { ...c.props.marking }
             });
             return this._imagePass;
         }
@@ -266,7 +269,8 @@ class ViewportScreenshotHelper extends PluginComponent {
             cameraHelper: { axes: this.values.axes },
             transparentBackground: this.values.transparent,
             // TODO: optimize because this creates a copy of a large object!
-            postprocessing: canvasProps.postprocessing
+            postprocessing: canvasProps.postprocessing,
+            marking: canvasProps.marking
         });
         const imageData = this.previewPass.getImageData(w, h);
         const canvas = this.previewCanvas;
@@ -282,7 +286,7 @@ class ViewportScreenshotHelper extends PluginComponent {
         canvasCtx.putImageData(imageData, 0, 0);
         if (this.cropParams.auto) this.autocrop();
 
-        this.events.previewed.next();
+        this.events.previewed.next(void 0);
         return { canvas, width: w, height: h };
     }
 

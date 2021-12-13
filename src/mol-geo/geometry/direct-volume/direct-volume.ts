@@ -9,7 +9,7 @@ import { LocationIterator, PositionLocation } from '../../../mol-geo/util/locati
 import { RenderableState } from '../../../mol-gl/renderable';
 import { DirectVolumeValues } from '../../../mol-gl/renderable/direct-volume';
 import { calculateTransformBoundingSphere } from '../../../mol-gl/renderable/util';
-import { Texture } from '../../../mol-gl/webgl/texture';
+import { createNullTexture, Texture } from '../../../mol-gl/webgl/texture';
 import { Box3D, Sphere3D } from '../../../mol-math/geometry';
 import { Mat4, Vec2, Vec3, Vec4 } from '../../../mol-math/linear-algebra';
 import { Theme } from '../../../mol-theme/theme';
@@ -28,6 +28,7 @@ import { createTransferFunctionTexture, getControlPointsFromVec2Array } from './
 import { createEmptyClipping } from '../clipping-data';
 import { Grid, Volume } from '../../../mol-model/volume';
 import { ColorNames } from '../../../mol-util/color/names';
+import { createEmptySubstance } from '../substance-data';
 
 const VolumeBox = Box();
 
@@ -129,7 +130,15 @@ export namespace DirectVolume {
     }
 
     export function createEmpty(directVolume?: DirectVolume): DirectVolume {
-        return {} as DirectVolume; // TODO
+        const bbox = Box3D();
+        const gridDimension = Vec3();
+        const transform = Mat4.identity();
+        const unitToCartn = Mat4.identity();
+        const cellDim = Vec3();
+        const texture = createNullTexture();
+        const stats = Grid.One.stats;
+        const packedGroup = false;
+        return create(bbox, gridDimension, transform, unitToCartn, cellDim, texture, stats, packedGroup, directVolume);
     }
 
     export function createRenderModeParam(stats?: Grid['stats']) {
@@ -238,6 +247,7 @@ export namespace DirectVolume {
         const marker = createMarkers(instanceCount * groupCount);
         const overpaint = createEmptyOverpaint();
         const transparency = createEmptyTransparency();
+        const material = createEmptySubstance();
         const clipping = createEmptyClipping();
 
         const [x, y, z] = gridDimension.ref.value;
@@ -262,6 +272,7 @@ export namespace DirectVolume {
             ...marker,
             ...overpaint,
             ...transparency,
+            ...material,
             ...clipping,
             ...transform,
             ...BaseGeometry.createValues(props, counts),
@@ -311,8 +322,7 @@ export namespace DirectVolume {
     }
 
     function updateValues(values: DirectVolumeValues, props: PD.Values<Params>) {
-        ValueCell.updateIfChanged(values.alpha, props.alpha);
-        ValueCell.updateIfChanged(values.uAlpha, props.alpha);
+        BaseGeometry.updateValues(values, props);
         ValueCell.updateIfChanged(values.dDoubleSided, props.doubleSided);
         ValueCell.updateIfChanged(values.dFlatShaded, props.flatShaded);
         ValueCell.updateIfChanged(values.dFlipSided, props.flipSided);

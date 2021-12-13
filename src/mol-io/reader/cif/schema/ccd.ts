@@ -1,7 +1,7 @@
 /**
  * Copyright (c) 2017-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
- * Code-generated 'CCD' schema file. Dictionary versions: mmCIF 5.333, IHM 1.12, CARB draft.
+ * Code-generated 'CCD' schema file. Dictionary versions: mmCIF 5.352, IHM 1.17, CARB draft.
  *
  * @author molstar/ciftools package
  */
@@ -352,7 +352,7 @@ export const CCD_Schema = {
         /**
          * This data item contains the descriptor type.
          */
-        type: Aliased<'SMILES_CANNONICAL' | 'SMILES_CANONICAL' | 'SMILES' | 'SMILES' | 'InChI' | 'InChI_MAIN' | 'InChI_MAIN_FORMULA' | 'InChI_MAIN_CONNECT' | 'InChI_MAIN_HATOM' | 'InChI_CHARGE' | 'InChI_STEREO' | 'InChI_ISOTOPE' | 'InChI_FIXEDH' | 'InChI_RECONNECT' | 'InChIKey'>(str),
+        type: Aliased<'SMILES_CANNONICAL' | 'SMILES_CANONICAL' | 'SMILES' | 'InChI' | 'InChI_MAIN' | 'InChI_MAIN_FORMULA' | 'InChI_MAIN_CONNECT' | 'InChI_MAIN_HATOM' | 'InChI_CHARGE' | 'InChI_STEREO' | 'InChI_ISOTOPE' | 'InChI_FIXEDH' | 'InChI_RECONNECT' | 'InChIKey'>(str),
         /**
          * This data item contains the name of the program
          * or library used to compute the descriptor.

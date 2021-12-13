@@ -36,8 +36,9 @@ import { Clipping } from '../../mol-theme/clipping';
 import { TextureMesh } from '../../mol-geo/geometry/texture-mesh/texture-mesh';
 import { WebGLContext } from '../../mol-gl/webgl/context';
 import { isPromiseLike } from '../../mol-util/type-helpers';
+import { Substance } from '../../mol-theme/substance';
 
-export interface  ComplexVisual<P extends StructureParams> extends Visual<Structure, P> { }
+export interface ComplexVisual<P extends StructureParams> extends Visual<Structure, P> { }
 
 function createComplexRenderObject<G extends Geometry>(structure: Structure, geometry: G, locationIt: LocationIterator, theme: Theme, props: PD.Values<Geometry.Params<G>>, materialId: number) {
     const { createValues, createRenderableState } = Geometry.getUtils(geometry);
@@ -67,6 +68,7 @@ export function ComplexVisual<G extends Geometry, P extends StructureParams & Ge
     const { defaultProps, createGeometry, createLocationIterator, getLoci, eachLocation, setUpdateState, mustRecreate, processValues, dispose } = builder;
     const { updateValues, updateBoundingSphere, updateRenderableState, createPositionIterator } = builder.geometryUtils;
     const updateState = VisualUpdateState.create();
+    const previousMark: Visual.PreviousMark = { loci: EmptyLoci, action: MarkerAction.None, status: -1 };
 
     let renderObject: GraphicsRenderObject<G['kind']> | undefined;
 
@@ -79,6 +81,7 @@ export function ComplexVisual<G extends Geometry, P extends StructureParams & Ge
     let currentStructure: Structure;
 
     let geometry: G;
+    let geometryVersion = -1;
     let locationIt: LocationIterator;
     let positionIt: LocationIterator;
 
@@ -186,7 +189,10 @@ export function ComplexVisual<G extends Geometry, P extends StructureParams & Ge
         currentProps = newProps;
         currentTheme = newTheme;
         currentStructure = newStructure;
-        if (newGeometry) geometry = newGeometry;
+        if (newGeometry) {
+            geometry = newGeometry;
+            geometryVersion += 1;
+        }
     }
 
     function lociIsSuperset(loci: Loci) {
@@ -214,7 +220,8 @@ export function ComplexVisual<G extends Geometry, P extends StructureParams & Ge
 
     return {
         get groupCount() { return locationIt ? locationIt.count : 0; },
-        get renderObject () { return locationIt && locationIt.count ? renderObject : undefined; },
+        get renderObject() { return locationIt && locationIt.count ? renderObject : undefined; },
+        get geometryVersion() { return geometryVersion; },
         createOrUpdate(ctx: VisualContext, theme: Theme, props: Partial<PD.Values<P>> = {}, structure?: Structure) {
             prepareUpdate(theme, props, structure || currentStructure);
             if (updateState.createGeometry) {
@@ -235,7 +242,7 @@ export function ComplexVisual<G extends Geometry, P extends StructureParams & Ge
             return renderObject ? getLoci(pickingId, currentStructure, renderObject.id) : EmptyLoci;
         },
         mark(loci: Loci, action: MarkerAction) {
-            return Visual.mark(renderObject, loci, action, lociApply);
+            return Visual.mark(renderObject, loci, action, lociApply, previousMark);
         },
         setVisibility(visible: boolean) {
             Visual.setVisibility(renderObject, visible);
@@ -252,11 +259,17 @@ export function ComplexVisual<G extends Geometry, P extends StructureParams & Ge
         setTransform(matrix?: Mat4, instanceMatrices?: Float32Array | null) {
             Visual.setTransform(renderObject, matrix, instanceMatrices);
         },
-        setOverpaint(overpaint: Overpaint) {
-            Visual.setOverpaint(renderObject, overpaint, lociApply, true);
+        setOverpaint(overpaint: Overpaint, webgl?: WebGLContext) {
+            const smoothing = { geometry, props: currentProps, webgl };
+            Visual.setOverpaint(renderObject, overpaint, lociApply, true, smoothing);
         },
-        setTransparency(transparency: Transparency) {
-            Visual.setTransparency(renderObject, transparency, lociApply, true);
+        setTransparency(transparency: Transparency, webgl?: WebGLContext) {
+            const smoothing = { geometry, props: currentProps, webgl };
+            Visual.setTransparency(renderObject, transparency, lociApply, true, smoothing);
+        },
+        setSubstance(substance: Substance, webgl?: WebGLContext) {
+            const smoothing = { geometry, props: currentProps, webgl };
+            Visual.setSubstance(renderObject, substance, lociApply, true, smoothing);
         },
         setClipping(clipping: Clipping) {
             Visual.setClipping(renderObject, clipping, lociApply, true);

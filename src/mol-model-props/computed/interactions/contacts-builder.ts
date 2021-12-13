@@ -46,7 +46,7 @@ namespace IntraContactsBuilder {
                     get: () => {
                         return elementsIndex || (elementsIndex = InteractionsIntraContacts.createElementsIndex(graph, features, elementsCount));
                     }
-                });
+                }) as any;
                 return contacts;
             }
         };

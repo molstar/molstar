@@ -66,14 +66,14 @@ export class StructureFocusManager extends StatefulPluginComponent<StructureFocu
             // move to top, use new
             arrayRemoveAtInPlace(this.state.history, idx);
             this.state.history.unshift(entry);
-            this.events.historyUpdated.next();
+            this.events.historyUpdated.next(void 0);
             return;
         }
 
         this.state.history.unshift(entry);
         if (this.state.history.length > HISTORY_CAPACITY) this.state.history.pop();
 
-        this.events.historyUpdated.next();
+        this.events.historyUpdated.next(void 0);
     }
 
     set(entry: FocusEntry) {
@@ -156,7 +156,7 @@ export class StructureFocusManager extends StatefulPluginComponent<StructureFocu
             if (keep.length !== this.history.length) {
                 this.history.length = 0;
                 this.history.push(...keep);
-                this.events.historyUpdated.next();
+                this.events.historyUpdated.next(void 0);
             }
         });
 

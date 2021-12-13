@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -43,12 +43,13 @@ export function createTransform(transformArray: Float32Array, instanceCount: num
 
     if (transformData) {
         ValueCell.update(transformData.matrix, transformData.matrix.ref.value);
-        ValueCell.update(transformData.transform, transformArray);
+        const transform = transformData.transform.ref.value.length >= instanceCount * 16 ? transformData.transform.ref.value : new Float32Array(instanceCount * 16);
+        transform.set(transformArray);
+        ValueCell.update(transformData.transform, transform);
         ValueCell.updateIfChanged(transformData.uInstanceCount, instanceCount);
         ValueCell.updateIfChanged(transformData.instanceCount, instanceCount);
 
         const aTransform = transformData.aTransform.ref.value.length >= instanceCount * 16 ? transformData.aTransform.ref.value : new Float32Array(instanceCount * 16);
-        aTransform.set(transformArray);
         ValueCell.update(transformData.aTransform, aTransform);
 
         // Note that this sets `extraTransform` to identity transforms
@@ -59,14 +60,11 @@ export function createTransform(transformArray: Float32Array, instanceCount: num
         ValueCell.update(transformData.aInstance, fillSerial(aInstance, instanceCount));
 
         ValueCell.update(transformData.hasReflection, hasReflection);
-
-        updateTransformData(transformData);
-        return transformData;
     } else {
-        return {
-            aTransform: ValueCell.create(new Float32Array(transformArray)),
+        transformData = {
+            aTransform: ValueCell.create(new Float32Array(instanceCount * 16)),
             matrix: ValueCell.create(Mat4.identity()),
-            transform: ValueCell.create(transformArray),
+            transform: ValueCell.create(new Float32Array(transformArray)),
             extraTransform: ValueCell.create(fillIdentityTransform(new Float32Array(instanceCount * 16), instanceCount)),
             uInstanceCount: ValueCell.create(instanceCount),
             instanceCount: ValueCell.create(instanceCount),
@@ -74,6 +72,9 @@ export function createTransform(transformArray: Float32Array, instanceCount: num
             hasReflection: ValueCell.create(hasReflection),
         };
     }
+
+    updateTransformData(transformData);
+    return transformData;
 }
 
 const identityTransform = new Float32Array(16);

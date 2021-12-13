@@ -37,20 +37,20 @@ function run(args: Args) {
 }
 
 const parser = new argparse.ArgumentParser({
-    addHelp: true,
+    add_help: true,
     description: 'Convert any CIF file to a BCIF file'
 });
-parser.addArgument([ 'src' ], {
+parser.add_argument('src', {
     help: 'Source CIF path'
 });
-parser.addArgument([ 'out' ], {
+parser.add_argument('out', {
     help: 'Output BCIF path'
 });
-parser.addArgument([ '-c', '--config' ], {
+parser.add_argument('-c', '--config', {
     help: 'Optional encoding strategy/precision config path',
     required: false
 });
-parser.addArgument([ '-f', '--filter' ], {
+parser.add_argument('-f', '--filter', {
     help: 'Optional filter whitelist/blacklist path',
     required: false
 });
@@ -61,7 +61,7 @@ interface Args {
     config?: string
     filter?: string
 }
-const args: Args = parser.parseArgs();
+const args: Args = parser.parse_args();
 
 if (args) {
     run(args);

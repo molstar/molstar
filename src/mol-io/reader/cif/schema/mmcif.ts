@@ -1,7 +1,7 @@
 /**
  * Copyright (c) 2017-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
- * Code-generated 'mmCIF' schema file. Dictionary versions: mmCIF 5.333, IHM 1.12, CARB draft.
+ * Code-generated 'mmCIF' schema file. Dictionary versions: mmCIF 5.352, IHM 1.17, CARB draft.
  *
  * @author molstar/ciftools package
  */
@@ -29,6 +29,11 @@ export const mmCIF_Schema = {
      * The data items for describing anisotropic atomic
      * displacement factors are only used if the corresponding items
      * are not given in the ATOM_SITE_ANISOTROP category.
+     *
+     * wwPDB recommends wwPDB-assigned residue number, residue ID,
+     * and chain ID, _atom_site.auth_seq_id _atom_site.auth_comp_id, and
+     * _atom_site.auth_asym_id, respectively, to be used for publication
+     * materials.
      */
     atom_site: {
         /**
@@ -808,39 +813,65 @@ export const mmCIF_Schema = {
          */
         pdbx_strand_id: List(',', x => x),
         /**
-         * Chemical sequence expressed as string of one-letter
-         * amino acid codes. Modifications and non-standard
-         * amino acids are coded as X.
+         * Sequence of protein or nucleic acid polymer in standard one-letter
+         * codes of amino acids or nucleotides. Non-standard amino
+         * acids/nucleotides are represented by their Chemical
+         * Component Dictionary (CCD) codes in
+         * parenthesis. Deoxynucleotides are represented by the
+         * specially-assigned 2-letter CCD codes in parenthesis,
+         * with 'D' prefix added to their ribonucleotide
+         * counterparts. For hybrid polymer, each residue is
+         * represented by the code of its individual type. A
+         * cyclic polymer is represented in linear sequence from
+         * the chosen start to end.
+         *
+         * A for Alanine or Adenosine-5'-monophosphate
+         * C for Cysteine or Cytidine-5'-monophosphate
+         * D for Aspartic acid
+         * E for Glutamic acid
+         * F for Phenylalanine
+         * G for Glycine or Guanosine-5'-monophosphate
+         * H for Histidine
+         * I for Isoleucine or Inosinic Acid
+         * L for Leucine
+         * K for Lysine
+         * M for Methionine
+         * N for Asparagine  or Unknown ribonucleotide
+         * O for Pyrrolysine
+         * P for Proline
+         * Q for Glutamine
+         * R for Arginine
+         * S for Serine
+         * T for Threonine
+         * U for Selenocysteine or Uridine-5'-monophosphate
+         * V for Valine
+         * W for Tryptophan
+         * Y for Tyrosine
+         * (DA) for 2'-deoxyadenosine-5'-monophosphate
+         * (DC) for 2'-deoxycytidine-5'-monophosphate
+         * (DG) for 2'-deoxyguanosine-5'-monophosphate
+         * (DT) for Thymidine-5'-monophosphate
+         * (MSE) for Selenomethionine
+         * (SEP) for Phosphoserine
+         * (PTO) for Phosphothreonine
+         * (PTR) for Phosphotyrosine
+         * (PCA) for Pyroglutamic acid
+         * (UNK) for Unknown amino acid
+         * (ACE) for Acetylation cap
+         * (NH2) for Amidation cap
          */
         pdbx_seq_one_letter_code: str,
         /**
-         * Cannonical chemical sequence expressed as string of
-         * one-letter amino acid codes. Modifications are coded
-         * as the parent amino acid where possible.
-         *
-         * A  for alanine or adenine
-         * B  for ambiguous asparagine/aspartic-acid
-         * R  for arginine
-         * N  for asparagine
-         * D  for aspartic-acid
-         * C  for cysteine or cystine or cytosine
-         * Q  for glutamine
-         * E  for glutamic-acid
-         * Z  for ambiguous glutamine/glutamic acid
-         * G  for glycine or guanine
-         * H  for histidine
-         * I  for isoleucine
-         * L  for leucine
-         * K  for lysine
-         * M  for methionine
-         * F  for phenylalanine
-         * P  for proline
-         * S  for serine
-         * T  for threonine or thymine
-         * W  for tryptophan
-         * Y  for tyrosine
-         * V  for valine
-         * U  for uracil
+         * Canonical sequence of protein or nucleic acid polymer in standard
+         * one-letter codes of amino acids or nucleotides,
+         * corresponding to the sequence in
+         * _entity_poly.pdbx_seq_one_letter_code. Non-standard
+         * amino acids/nucleotides are represented by the codes of
+         * their parents if parent is specified in
+         * _chem_comp.mon_nstd_parent_comp_id, or by letter 'X' if
+         * parent is not specified. Deoxynucleotides are
+         * represented by their canonical one-letter codes of A,
+         * C, G, or T.
          */
         pdbx_seq_one_letter_code_can: str,
         /**
@@ -1024,7 +1055,7 @@ export const mmCIF_Schema = {
          * This data item is a pointer to _struct_conf_type.id in the
          * STRUCT_CONF_TYPE category.
          */
-        conf_type_id: Aliased<'HELX_P' | 'HELX_OT_P' | 'HELX_RH_P' | 'HELX_RH_OT_P' | 'HELX_RH_AL_P' | 'HELX_RH_GA_P' | 'HELX_RH_OM_P' | 'HELX_RH_PI_P' | 'HELX_RH_27_P' | 'HELX_RH_3T_P' | 'HELX_RH_PP_P' | 'HELX_LH_P' | 'HELX_LH_OT_P' | 'HELX_LH_AL_P' | 'HELX_LH_GA_P' | 'HELX_LH_OM_P' | 'HELX_LH_PI_P' | 'HELX_LH_27_P' | 'HELX_LH_3T_P' | 'HELX_LH_PP_P' | 'HELX_N' | 'HELX_OT_N' | 'HELX_RH_N' | 'HELX_RH_OT_N' | 'HELX_RH_A_N' | 'HELX_RH_B_N' | 'HELX_RH_Z_N' | 'HELX_LH_N' | 'HELX_LH_OT_N' | 'HELX_LH_A_N' | 'HELX_LH_B_N' | 'HELX_LH_Z_N' | 'TURN_P' | 'TURN_OT_P' | 'TURN_TY1_P' | 'TURN_TY1P_P' | 'TURN_TY2_P' | 'TURN_TY2P_P' | 'TURN_TY3_P' | 'TURN_TY3P_P' | 'STRN'>(str),
+        conf_type_id: Aliased<'BEND' | 'HELX_P' | 'HELX_OT_P' | 'HELX_RH_P' | 'HELX_RH_OT_P' | 'HELX_RH_AL_P' | 'HELX_RH_GA_P' | 'HELX_RH_OM_P' | 'HELX_RH_PI_P' | 'HELX_RH_27_P' | 'HELX_RH_3T_P' | 'HELX_RH_PP_P' | 'HELX_LH_P' | 'HELX_LH_OT_P' | 'HELX_LH_AL_P' | 'HELX_LH_GA_P' | 'HELX_LH_OM_P' | 'HELX_LH_PI_P' | 'HELX_LH_27_P' | 'HELX_LH_3T_P' | 'HELX_LH_PP_P' | 'HELX_N' | 'HELX_OT_N' | 'HELX_RH_N' | 'HELX_RH_OT_N' | 'HELX_RH_A_N' | 'HELX_RH_B_N' | 'HELX_RH_Z_N' | 'HELX_LH_N' | 'HELX_LH_OT_N' | 'HELX_LH_A_N' | 'HELX_LH_B_N' | 'HELX_LH_Z_N' | 'TURN_P' | 'TURN_OT_P' | 'TURN_TY1_P' | 'TURN_TY1P_P' | 'TURN_TY2_P' | 'TURN_TY2P_P' | 'TURN_TY3_P' | 'TURN_TY3P_P' | 'STRN' | 'OTHER'>(str),
         /**
          * A description of special aspects of the conformation assignment.
          */
@@ -1759,7 +1790,7 @@ export const mmCIF_Schema = {
         /**
          * Code for status of NMR constraints file.
          */
-        status_code_mr: Aliased<'PROC' | 'WAIT' | 'REL' | 'HOLD' | 'HPUB' | 'OBS' | 'WDRN' | 'AUTH' | 'POLC' | 'REPL' | 'RMVD'>(str),
+        status_code_mr: Aliased<'PROC' | 'WAIT' | 'REL' | 'HOLD' | 'HPUB' | 'OBS' | 'WDRN' | 'AUTH' | 'POLC' | 'REPL' | 'AUCO' | 'RMVD'>(str),
         /**
          * The value of _pdbx_database_status.entry_id identifies the data block.
          */
@@ -1785,7 +1816,7 @@ export const mmCIF_Schema = {
         /**
          * Code for status of chemical shift data file.
          */
-        status_code_cs: Aliased<'PROC' | 'WAIT' | 'AUTH' | 'POLC' | 'REPL' | 'REL' | 'HOLD' | 'HPUB' | 'OBS' | 'RMVD' | 'WDRN'>(str),
+        status_code_cs: Aliased<'PROC' | 'WAIT' | 'AUTH' | 'POLC' | 'REPL' | 'AUCO' | 'REL' | 'HOLD' | 'HPUB' | 'OBS' | 'RMVD' | 'WDRN'>(str),
         /**
          * The methods development category in which this
          * entry has been placed.
@@ -1869,6 +1900,10 @@ export const mmCIF_Schema = {
          */
         content_type: Aliased<'minimized average structure' | 'representative structure' | 'ensemble' | 'derivative structure' | 'native structure' | 'associated EM volume' | 'other EM volume' | 'associated NMR restraints' | 'associated structure factors' | 'associated SAS data' | 'protein target sequence and/or protocol data' | 'split' | 're-refinement' | 'complete structure' | 'unspecified' | 'other'>(str),
     },
+    /**
+     * The PDBX_ENTITY_NONPOLY category provides a mapping between
+     * entity and the nonpolymer component
+     */
     pdbx_entity_nonpoly: {
         /**
          * This data item is a pointer to _entity.id in the ENTITY category.
@@ -2404,7 +2439,7 @@ export const mmCIF_Schema = {
      */
     pdbx_molecule_features: {
         /**
-         * The value of _pdbx_molecule_features.prd_id is the PDB accession code for this
+         * The value of _pdbx_molecule_features.prd_id is the accession code for this
          * reference molecule.
          */
         prd_id: str,
@@ -3603,7 +3638,7 @@ export const mmCIF_Schema = {
         /**
          * The name of the database containing the dataset entry.
          */
-        db_name: Aliased<'PDB' | 'PDB-Dev' | 'BMRB' | 'EMDB' | 'EMPIAR' | 'SASBDB' | 'PRIDE' | 'MODEL ARCHIVE' | 'MASSIVE' | 'BioGRID' | 'Other'>(str),
+        db_name: Aliased<'PDB' | 'PDB-Dev' | 'BMRB' | 'EMDB' | 'EMPIAR' | 'SASBDB' | 'PRIDE' | 'MODEL ARCHIVE' | 'MASSIVE' | 'BioGRID' | 'ProXL' | 'Other'>(str),
         /**
          * The accession code for the database entry.
          */
@@ -3930,7 +3965,7 @@ export const mmCIF_Schema = {
         /**
          * The type of crosslinker used.
          */
-        linker_type: Aliased<'EDC' | 'DSS' | 'EGS' | 'BS3' | 'BS2G' | 'DST' | 'sulfo-SDA' | 'sulfo-SMCC' | 'DSSO' | 'DSG' | 'BSP' | 'BMSO' | 'DHSO' | 'CYS' | 'SDA' | 'DSA' | 'Other'>(str),
+        linker_type: Aliased<'EDC' | 'DSS' | 'EGS' | 'BS3' | 'BS2G' | 'DST' | 'sulfo-SDA' | 'sulfo-SMCC' | 'DSSO' | 'DSG' | 'BSP' | 'BMSO' | 'DHSO' | 'CYS' | 'SDA' | 'DSA' | 'BrdU' | 'LCSDA' | 'CDI' | 'ADH' | 'Other'>(str),
         /**
          * Identifier to the crosslinking dataset.
          * This data item is a pointer to the _ihm_dataset_list.id in the

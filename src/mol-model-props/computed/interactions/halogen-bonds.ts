@@ -76,7 +76,7 @@ function isHalogenBond(ti: FeatureType, tj: FeatureType) {
 }
 
 // http://www.pnas.org/content/101/48/16789.full
-const OptimalHalogenAngle = degToRad(180);  // adjusted from 165 to account for spherical statistics
+const OptimalHalogenAngle = degToRad(180); // adjusted from 165 to account for spherical statistics
 const OptimalAcceptorAngle = degToRad(120);
 
 function getOptions(props: HalogenBondsProps) {

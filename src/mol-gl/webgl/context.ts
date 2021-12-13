@@ -18,7 +18,7 @@ import { now } from '../../mol-util/now';
 import { Texture, TextureFilter } from './texture';
 import { ComputeRenderable } from '../renderable';
 
-export function getGLContext(canvas: HTMLCanvasElement, attribs?: WebGLContextAttributes): GLRenderingContext | null {
+export function getGLContext(canvas: HTMLCanvasElement, attribs?: WebGLContextAttributes & { preferWebGl1?: boolean }): GLRenderingContext | null {
     function get(id: 'webgl' | 'experimental-webgl' | 'webgl2') {
         try {
             return canvas.getContext(id, attribs) as GLRenderingContext | null;
@@ -26,7 +26,7 @@ export function getGLContext(canvas: HTMLCanvasElement, attribs?: WebGLContextAt
             return null;
         }
     }
-    const gl = get('webgl2') || get('webgl') || get('experimental-webgl');
+    const gl = (attribs?.preferWebGl1 ? null : get('webgl2')) || get('webgl') || get('experimental-webgl');
     if (isDebugMode) console.log(`isWebgl2: ${isWebGL2(gl)}`);
     return gl;
 }
@@ -51,7 +51,7 @@ export function checkError(gl: GLRenderingContext) {
     }
 }
 
-function unbindResources (gl: GLRenderingContext) {
+function unbindResources(gl: GLRenderingContext) {
     // bind null to all texture units
     const maxTextureImageUnits = gl.getParameter(gl.MAX_TEXTURE_IMAGE_UNITS);
     for (let i = 0; i < maxTextureImageUnits; ++i) {
@@ -280,7 +280,7 @@ export function createContext(gl: GLRenderingContext, props: Partial<{ pixelScal
     return {
         gl,
         isWebGL2: isWebGL2(gl),
-        get pixelRatio () {
+        get pixelRatio() {
             const dpr = (typeof window !== 'undefined') ? window.devicePixelRatio : 1;
             return dpr * (props.pixelScale || 1);
         },
@@ -290,17 +290,17 @@ export function createContext(gl: GLRenderingContext, props: Partial<{ pixelScal
         stats,
         resources,
 
-        get maxTextureSize () { return parameters.maxTextureSize; },
-        get max3dTextureSize () { return parameters.max3dTextureSize; },
-        get maxRenderbufferSize () { return parameters.maxRenderbufferSize; },
-        get maxDrawBuffers () { return parameters.maxDrawBuffers; },
-        get maxTextureImageUnits () { return parameters.maxTextureImageUnits; },
+        get maxTextureSize() { return parameters.maxTextureSize; },
+        get max3dTextureSize() { return parameters.max3dTextureSize; },
+        get maxRenderbufferSize() { return parameters.maxRenderbufferSize; },
+        get maxDrawBuffers() { return parameters.maxDrawBuffers; },
+        get maxTextureImageUnits() { return parameters.maxTextureImageUnits; },
 
         namedComputeRenderables: Object.create(null),
         namedFramebuffers: Object.create(null),
         namedTextures: Object.create(null),
 
-        get isContextLost () {
+        get isContextLost() {
             return isContextLost || gl.isContextLost();
         },
         contextRestored,
@@ -358,7 +358,10 @@ export function createContext(gl: GLRenderingContext, props: Partial<{ pixelScal
             unbindResources(gl);
 
             // to aid GC
-            if (!options?.doNotForceWebGLContextLoss) gl.getExtension('WEBGL_lose_context')?.loseContext();
+            if (!options?.doNotForceWebGLContextLoss) {
+                gl.getExtension('WEBGL_lose_context')?.loseContext();
+                gl.getExtension('STACKGL_destroy_context')?.destroy();
+            }
         }
     };
 }

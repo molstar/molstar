@@ -11,9 +11,9 @@ import { arrayMinMax } from '../../../mol-util/array';
 import { Model } from './model';
 
 export function calcModelCenter(atomicConformation: AtomicConformation, coarseConformation?: CoarseConformation) {
-    let rangesX: number[] = [];
-    let rangesY: number[] = [];
-    let rangesZ: number[] = [];
+    const rangesX: number[] = [];
+    const rangesY: number[] = [];
+    const rangesZ: number[] = [];
 
     if (atomicConformation.x.length) {
         rangesX.push(...arrayMinMax(atomicConformation.x));

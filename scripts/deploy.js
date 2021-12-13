@@ -14,6 +14,9 @@ const buildDir = path.resolve(__dirname, '../build/');
 const deployDir = path.resolve(buildDir, 'deploy/');
 const localPath = path.resolve(deployDir, 'molstar.github.io/');
 
+const analyticsTag = /<!-- __MOLSTAR_ANALYTICS__ -->/g;
+const analyticsCode = `<!-- Cloudflare Web Analytics --><script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "c414cbae2d284ea995171a81e4a3e721"}'></script><!-- End Cloudflare Web Analytics -->`;
+
 function log(command, stdout, stderr) {
     if (command) {
         console.log('\n###', command);
@@ -22,11 +25,18 @@ function log(command, stdout, stderr) {
     }
 }
 
+function addAnalytics(path) {
+    const data = fs.readFileSync(path, 'utf8');
+    const result = data.replace(analyticsTag, analyticsCode);
+    fs.writeFileSync(path, result, 'utf8');
+}
+
 function copyViewer() {
     console.log('\n###', 'copy viewer files');
     const viewerBuildPath = path.resolve(buildDir, '../build/viewer/');
     const viewerDeployPath = path.resolve(localPath, 'viewer/');
     fse.copySync(viewerBuildPath, viewerDeployPath, { overwrite: true });
+    addAnalytics(path.resolve(viewerDeployPath, 'index.html'));
 }
 
 if (!fs.existsSync(localPath)) {

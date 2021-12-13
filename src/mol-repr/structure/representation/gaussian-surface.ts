@@ -12,6 +12,7 @@ import { StructureRepresentation, StructureRepresentationProvider, StructureRepr
 import { Representation, RepresentationParamsGetter, RepresentationContext } from '../../../mol-repr/representation';
 import { ThemeRegistryContext } from '../../../mol-theme/theme';
 import { Structure } from '../../../mol-model/structure';
+import { BaseGeometry } from '../../../mol-geo/geometry/base';
 
 const GaussianSurfaceVisuals = {
     'gaussian-surface-mesh': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, GaussianSurfaceMeshParams>) => UnitsRepresentation('Gaussian surface mesh', ctx, getParams, GaussianSurfaceVisual),
@@ -23,6 +24,7 @@ export const GaussianSurfaceParams = {
     ...GaussianSurfaceMeshParams,
     ...GaussianWireframeParams,
     visuals: PD.MultiSelect(['gaussian-surface-mesh'], PD.objectToOptions(GaussianSurfaceVisuals)),
+    bumpFrequency: PD.Numeric(1, { min: 0, max: 10, step: 0.1 }, BaseGeometry.ShadingCategory),
 };
 export type GaussianSurfaceParams = typeof GaussianSurfaceParams
 export function getGaussianSurfaceParams(ctx: ThemeRegistryContext, structure: Structure) {

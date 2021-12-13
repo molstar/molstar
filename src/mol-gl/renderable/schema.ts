@@ -106,7 +106,6 @@ export type RenderableSchema = {
 }
 export type RenderableValues = { readonly [k: string]: ValueCell<any> }
 
-
 //
 
 export const GlobalUniformSchema = {
@@ -122,7 +121,6 @@ export const GlobalUniformSchema = {
 
     uIsOrtho: UniformSpec('f'),
     uPixelRatio: UniformSpec('f'),
-    uViewportHeight: UniformSpec('f'),
     uViewport: UniformSpec('v4'),
     uViewOffset: UniformSpec('v2'),
     uDrawingBufferSize: UniformSpec('v2'),
@@ -137,15 +135,9 @@ export const GlobalUniformSchema = {
 
     uTransparentBackground: UniformSpec('b'),
 
-    // all the following could in principle be per object
-    // as a kind of 'material' parameter set
-    // would need to test performance implications
-    uLightIntensity: UniformSpec('f'),
-    uAmbientIntensity: UniformSpec('f'),
-
-    uMetalness: UniformSpec('f'),
-    uRoughness: UniformSpec('f'),
-    uReflectivity: UniformSpec('f'),
+    uLightDirection: UniformSpec('v3[]'),
+    uLightColor: UniformSpec('v3[]'),
+    uAmbientColor: UniformSpec('v3'),
 
     uPickingAlphaThreshold: UniformSpec('f'),
 
@@ -155,10 +147,14 @@ export const GlobalUniformSchema = {
 
     uHighlightColor: UniformSpec('v3'),
     uSelectColor: UniformSpec('v3'),
+    uHighlightStrength: UniformSpec('f'),
+    uSelectStrength: UniformSpec('f'),
+    uMarkerPriority: UniformSpec('i'),
 
     uXrayEdgeFalloff: UniformSpec('f'),
 
     uRenderWboit: UniformSpec('b'),
+    uMarkingDepthTest: UniformSpec('b'),
 } as const;
 export type GlobalUniformSchema = typeof GlobalUniformSchema
 export type GlobalUniformValues = Values<GlobalUniformSchema>
@@ -202,8 +198,12 @@ export type SizeSchema = typeof SizeSchema
 export type SizeValues = Values<SizeSchema>
 
 export const MarkerSchema = {
+    uMarker: UniformSpec('f'),
     uMarkerTexDim: UniformSpec('v2'),
     tMarker: TextureSpec('image-uint8', 'alpha', 'ubyte', 'nearest'),
+    dMarkerType: DefineSpec('string', ['uniform', 'groupInstance']),
+    markerAverage: ValueSpec('number'),
+    markerStatus: ValueSpec('number'),
 } as const;
 export type MarkerSchema = typeof MarkerSchema
 export type MarkerValues = Values<MarkerSchema>
@@ -212,6 +212,11 @@ export const OverpaintSchema = {
     uOverpaintTexDim: UniformSpec('v2'),
     tOverpaint: TextureSpec('image-uint8', 'rgba', 'ubyte', 'nearest'),
     dOverpaint: DefineSpec('boolean'),
+
+    uOverpaintGridDim: UniformSpec('v3'),
+    uOverpaintGridTransform: UniformSpec('v4'),
+    tOverpaintGrid: TextureSpec('texture', 'rgba', 'ubyte', 'linear'),
+    dOverpaintType: DefineSpec('string', ['groupInstance', 'volumeInstance']),
 } as const;
 export type OverpaintSchema = typeof OverpaintSchema
 export type OverpaintValues = Values<OverpaintSchema>
@@ -221,9 +226,27 @@ export const TransparencySchema = {
     tTransparency: TextureSpec('image-uint8', 'alpha', 'ubyte', 'nearest'),
     dTransparency: DefineSpec('boolean'),
     transparencyAverage: ValueSpec('number'),
+
+    uTransparencyGridDim: UniformSpec('v3'),
+    uTransparencyGridTransform: UniformSpec('v4'),
+    tTransparencyGrid: TextureSpec('texture', 'alpha', 'ubyte', 'linear'),
+    dTransparencyType: DefineSpec('string', ['groupInstance', 'volumeInstance']),
 } as const;
 export type TransparencySchema = typeof TransparencySchema
 export type TransparencyValues = Values<TransparencySchema>
+
+export const SubstanceSchema = {
+    uSubstanceTexDim: UniformSpec('v2'),
+    tSubstance: TextureSpec('image-uint8', 'rgba', 'ubyte', 'nearest'),
+    dSubstance: DefineSpec('boolean'),
+
+    uSubstanceGridDim: UniformSpec('v3'),
+    uSubstanceGridTransform: UniformSpec('v4'),
+    tSubstanceGrid: TextureSpec('texture', 'rgba', 'ubyte', 'linear'),
+    dSubstanceType: DefineSpec('string', ['groupInstance', 'volumeInstance']),
+} as const;
+export type SubstanceSchema = typeof SubstanceSchema
+export type SubstanceValues = Values<SubstanceSchema>
 
 export const ClippingSchema = {
     dClipObjectCount: DefineSpec('number'),
@@ -247,7 +270,10 @@ export const BaseSchema = {
     ...MarkerSchema,
     ...OverpaintSchema,
     ...TransparencySchema,
+    ...SubstanceSchema,
     ...ClippingSchema,
+
+    dLightCount: DefineSpec('number'),
 
     aInstance: AttributeSpec('float32', 1, 1),
     /**
@@ -260,6 +286,10 @@ export const BaseSchema = {
      * final alpha, calculated as `values.alpha * state.alpha`
      */
     uAlpha: UniformSpec('f', 'material'),
+    uMetalness: UniformSpec('f', 'material'),
+    uRoughness: UniformSpec('f', 'material'),
+    uBumpiness: UniformSpec('f', 'material'),
+
     uVertexCount: UniformSpec('i'),
     uInstanceCount: UniformSpec('i'),
     uGroupCount: UniformSpec('i'),

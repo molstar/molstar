@@ -122,7 +122,7 @@ function calcGaussianDensityTexture2d(webgl: WebGLContext, position: PositionDat
     const { smoothness, resolution } = props;
 
     const { drawCount, positions, radii, groups, scale, expandedBox, dim, maxRadius } = prepareGaussianDensityData(position, box, radius, props);
-    const [ dx, dy, dz ] = dim;
+    const [dx, dy, dz] = dim;
     const { texDimX, texDimY, texCols, powerOfTwoSize } = getTexture2dSize(dim);
     // console.log({ texDimX, texDimY, texCols, powerOfTwoSize, dim });
     const gridTexDim = Vec3.create(texDimX, texDimY, 0);
@@ -207,7 +207,7 @@ function calcGaussianDensityTexture3d(webgl: WebGLContext, position: PositionDat
     const { smoothness, resolution } = props;
 
     const { drawCount, positions, radii, groups, scale, expandedBox, dim, maxRadius } = prepareGaussianDensityData(position, box, radius, props);
-    const [ dx, dy, dz ] = dim;
+    const [dx, dy, dz] = dim;
 
     const minDistTex = getTexture('min-dist-3d', webgl, 'volume-uint8', 'rgba', 'ubyte', 'nearest');
     minDistTex.define(dx, dy, dz);
@@ -361,7 +361,7 @@ function createGaussianDensityRenderable(webgl: WebGLContext, drawCount: number,
 
     const schema = { ...GaussianDensitySchema };
     const shaderCode = ShaderCode(GaussianDensityName, gaussianDensity_vert, gaussianDensity_frag);
-    const renderItem =  createComputeRenderItem(webgl, 'points', shaderCode, schema, values);
+    const renderItem = createComputeRenderItem(webgl, 'points', shaderCode, schema, values);
 
     return createComputeRenderable(renderItem, values);
 }
@@ -431,8 +431,8 @@ function getTexture2dSize(gridDim: Vec3) {
 
 function fieldFromTexture2d(ctx: WebGLContext, texture: Texture, dim: Vec3, texDim: Vec3) {
     // console.time('fieldFromTexture2d')
-    const [ dx, dy, dz ] = dim;
-    const [ width, height ] = texDim;
+    const [dx, dy, dz] = dim;
+    const [width, height] = texDim;
     const fboTexCols = Math.floor(width / dx);
 
     const space = Tensor.Space(dim, [2, 1, 0], Float32Array);
@@ -454,14 +454,14 @@ function fieldFromTexture2d(ctx: WebGLContext, texture: Texture, dim: Vec3, texD
     let tmpCol = 0;
     let tmpRow = 0;
     for (let iz = 0; iz < dz; ++iz) {
-        if (tmpCol >= fboTexCols ) {
+        if (tmpCol >= fboTexCols) {
             tmpCol = 0;
             tmpRow += dy;
         }
         for (let iy = 0; iy < dy; ++iy) {
             for (let ix = 0; ix < dx; ++ix) {
                 const idx = 4 * (tmpCol * dx + (iy + tmpRow) * width + ix);
-                data[j] = image[idx + 3]  / 255;
+                data[j] = image[idx + 3] / 255;
                 idData[j] = decodeFloatRGB(image[idx], image[idx + 1], image[idx + 2]);
                 j++;
             }

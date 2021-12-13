@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -100,7 +100,7 @@ function getConformation(atom_site: AtomSite): AtomicConformation {
     return {
         id: UUID.create22(),
         atomId: atom_site.id,
-        occupancy: atom_site.occupancy,
+        occupancy: atom_site.occupancy.isDefined ? atom_site.occupancy : Column.ofConst(1, atom_site._rowCount, Column.Schema.float),
         B_iso_or_equiv: atom_site.B_iso_or_equiv,
         xyzDefined: atom_site.Cartn_x.isDefined && atom_site.Cartn_y.isDefined && atom_site.Cartn_z.isDefined,
         x: atom_site.Cartn_x.toArray({ array: Float32Array }),

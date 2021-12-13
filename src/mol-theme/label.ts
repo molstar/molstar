@@ -92,6 +92,14 @@ export function structureElementStatsLabel(stats: StructureElement.Stats, option
     return o.htmlStyling ? label : stripTags(label);
 }
 
+export function structureElementLociLabelMany(locis: StructureElement.Loci[], options: Partial<LabelOptions> = {}): string {
+    const stats = StructureElement.Stats.create();
+    for (const l of locis) {
+        StructureElement.Stats.add(stats, stats, StructureElement.Stats.ofLoci(l));
+    }
+    return structureElementStatsLabel(stats, options);
+}
+
 function _structureElementStatsLabel(stats: StructureElement.Stats, countsOnly = false, hidePrefix = false, condensed = false, reverse = false): string {
     const { structureCount, chainCount, residueCount, conformationCount, elementCount } = stats;
 
@@ -141,7 +149,7 @@ export function bondLabel(bond: Bond.Location, options: Partial<LabelOptions> = 
     return bundleLabel({ loci: [
         StructureElement.Loci(bond.aStructure, [{ unit: bond.aUnit, indices: OrderedSet.ofSingleton(bond.aIndex) }]),
         StructureElement.Loci(bond.bStructure, [{ unit: bond.bUnit, indices: OrderedSet.ofSingleton(bond.bIndex) }])
-    ]}, options);
+    ] }, options);
 }
 
 export function bundleLabel(bundle: Loci.Bundle<any>, options: Partial<LabelOptions> = {}): string {

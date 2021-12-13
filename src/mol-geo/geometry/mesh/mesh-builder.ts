@@ -61,8 +61,8 @@ export namespace MeshBuilder {
 
         v3triangleNormal(tmpV, a, b, c);
         for (let i = 0; i < 3; ++i) {
-            caAdd3(normals, tmpV[0], tmpV[1], tmpV[2]);  // normal
-            caAdd(groups, currentGroup);  // group
+            caAdd3(normals, tmpV[0], tmpV[1], tmpV[2]); // normal
+            caAdd(groups, currentGroup); // group
         }
         caAdd3(indices, offset, offset + 1, offset + 2);
     }
@@ -152,7 +152,7 @@ export namespace MeshBuilder {
         });
     }
 
-    export function getMesh (state: State): Mesh {
+    export function getMesh(state: State): Mesh {
         const { vertices, normals, indices, groups, mesh } = state;
         const vb = ChunkedArray.compact(vertices, true) as Float32Array;
         const ib = ChunkedArray.compact(indices, true) as Uint32Array;

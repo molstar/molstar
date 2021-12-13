@@ -73,7 +73,7 @@ function createImmediateActions() {
     }
 
     function installNextTickImplementation() {
-        registerImmediate = function(handle) {
+        registerImmediate = function (handle) {
             process.nextTick(function () { runIfPresent(handle); });
         };
     }
@@ -82,7 +82,7 @@ function createImmediateActions() {
         if (global && global.postMessage && !global.importScripts) {
             let postMessageIsAsynchronous = true;
             const oldOnMessage = global.onmessage;
-            global.onmessage = function() {
+            global.onmessage = function () {
                 postMessageIsAsynchronous = false;
             };
             global.postMessage('', '*');
@@ -97,7 +97,7 @@ function createImmediateActions() {
         // * http://www.whatwg.org/specs/web-apps/current-work/multipage/comms.html#crossDocumentMessages
 
         const messagePrefix = 'setImmediate$' + Math.random() + '$';
-        const onGlobalMessage = function(event: any) {
+        const onGlobalMessage = function (event: any) {
             if (event.source === global &&
                 typeof event.data === 'string' &&
                 event.data.indexOf(messagePrefix) === 0) {
@@ -111,26 +111,26 @@ function createImmediateActions() {
             (window as any).attachEvent('onmessage', onGlobalMessage);
         }
 
-        registerImmediate = function(handle) {
+        registerImmediate = function (handle) {
             window.postMessage(messagePrefix + handle, '*');
         };
     }
 
     function installMessageChannelImplementation() {
         const channel = new MessageChannel();
-        channel.port1.onmessage = function(event) {
+        channel.port1.onmessage = function (event) {
             const handle = event.data;
             runIfPresent(handle);
         };
 
-        registerImmediate = function(handle) {
+        registerImmediate = function (handle) {
             channel.port2.postMessage(handle);
         };
     }
 
     function installReadyStateChangeImplementation() {
         const html = doc!.documentElement!;
-        registerImmediate = function(handle) {
+        registerImmediate = function (handle) {
             // Create a <script> element; its readystatechange event will be fired asynchronously once it is inserted
             // into the document. Do so, thus queuing up the task. Remember to clean up once it's been called.
             let script = doc!.createElement('script') as any;
@@ -145,7 +145,7 @@ function createImmediateActions() {
     }
 
     function installSetTimeoutImplementation() {
-        registerImmediate = function(handle) {
+        registerImmediate = function (handle) {
             setTimeout(runIfPresent, 0, handle);
         };
     }

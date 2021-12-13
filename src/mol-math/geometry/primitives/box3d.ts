@@ -107,8 +107,8 @@ namespace Box3D {
     const tmpTransformV = Vec3();
     /** Transform box with a Mat4 */
     export function transform(out: Box3D, box: Box3D, m: Mat4): Box3D {
-        const [ minX, minY, minZ ] = box.min;
-        const [ maxX, maxY, maxZ ] = box.max;
+        const [minX, minY, minZ] = box.min;
+        const [maxX, maxY, maxZ] = box.max;
         setEmpty(out);
         add(out, Vec3.transformMat4(tmpTransformV, Vec3.set(tmpTransformV, minX, minY, minZ), m));
         add(out, Vec3.transformMat4(tmpTransformV, Vec3.set(tmpTransformV, minX, minY, maxZ), m));

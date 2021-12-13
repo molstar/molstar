@@ -6,7 +6,7 @@
 
 import { ValueCell } from '../../../mol-util';
 import { Mat4, Vec3, Vec4 } from '../../../mol-math/linear-algebra';
-import { transformPositionArray, GroupMapping, createGroupMapping} from '../../util';
+import { transformPositionArray, GroupMapping, createGroupMapping } from '../../util';
 import { GeometryUtils } from '../geometry';
 import { createColors } from '../color-data';
 import { createMarkers } from '../marker-data';
@@ -26,6 +26,7 @@ import { createEmptyOverpaint } from '../overpaint-data';
 import { createEmptyTransparency } from '../transparency-data';
 import { hashFnv32a } from '../../../mol-data/util';
 import { createEmptyClipping } from '../clipping-data';
+import { createEmptySubstance } from '../substance-data';
 
 /** Wide line */
 export interface Lines {
@@ -164,7 +165,7 @@ export namespace Lines {
 
     export const Params = {
         ...BaseGeometry.Params,
-        sizeFactor: PD.Numeric(1.5, { min: 0, max: 10, step: 0.1 }),
+        sizeFactor: PD.Numeric(3, { min: 0, max: 10, step: 0.1 }),
         lineSizeAttenuation: PD.Boolean(false),
     };
     export type Params = typeof Params
@@ -210,6 +211,7 @@ export namespace Lines {
         const marker = createMarkers(instanceCount * groupCount);
         const overpaint = createEmptyOverpaint();
         const transparency = createEmptyTransparency();
+        const material = createEmptySubstance();
         const clipping = createEmptyClipping();
 
         const counts = { drawCount: lines.lineCount * 2 * 3, vertexCount: lines.lineCount * 4, groupCount, instanceCount };
@@ -231,6 +233,7 @@ export namespace Lines {
             ...marker,
             ...overpaint,
             ...transparency,
+            ...material,
             ...clipping,
             ...transform,
 

@@ -38,7 +38,8 @@ export class TrajectoryViewportControls extends PluginUIComponent<{}, { show: bo
             return;
         }
 
-        let label = '', count = 0, parents = new Set<string>();
+        let label = '', count = 0;
+        const parents = new Set<string>();
         for (const m of models) {
             if (!m.sourceRef) continue;
             const parent = state.cells.get(m.sourceRef)!.obj as PluginStateObject.Molecule.Trajectory;

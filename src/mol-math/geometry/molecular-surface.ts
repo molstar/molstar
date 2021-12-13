@@ -17,7 +17,7 @@ import { Box3D, GridLookup3D, fillGridDim } from '../../mol-math/geometry';
 import { BaseGeometry } from '../../mol-geo/geometry/base';
 import { Boundary } from './boundary';
 
-function normalToLine (out: Vec3, p: Vec3) {
+function normalToLine(out: Vec3, p: Vec3) {
     out[0] = out[1] = out[2] = 1.0;
     if (p[0] !== 0) {
         out[0] = (p[1] + p[2]) / -p[0];
@@ -30,7 +30,7 @@ function normalToLine (out: Vec3, p: Vec3) {
 }
 
 type AnglesTables = { cosTable: Float32Array, sinTable: Float32Array }
-function getAngleTables (probePositions: number): AnglesTables {
+function getAngleTables(probePositions: number): AnglesTables {
     let theta = 0.0;
     const step = 2 * Math.PI / probePositions;
 
@@ -41,7 +41,7 @@ function getAngleTables (probePositions: number): AnglesTables {
         sinTable[i] = Math.sin(theta);
         theta += step;
     }
-    return { cosTable, sinTable};
+    return { cosTable, sinTable };
 }
 
 //
@@ -112,7 +112,7 @@ export async function calcMolecularSurface(ctx: RuntimeContext, position: Requir
      *             Calculate delta distance and set grid value to minimum of
      *             itself and delta
      */
-    function projectPointsRange (begI: number, endI: number) {
+    function projectPointsRange(begI: number, endI: number) {
         for (let i = begI; i < endI; ++i) {
             const j = OrderedSet.getAt(indices, i);
             const vx = px[j], vy = py[j], vz = pz[j];
@@ -292,7 +292,7 @@ export async function calcMolecularSurface(ctx: RuntimeContext, position: Requir
         }
     }
 
-    function projectToriiRange (begI: number, endI: number) {
+    function projectToriiRange(begI: number, endI: number) {
         for (let i = begI; i < endI; ++i) {
             const k = OrderedSet.getAt(indices, i);
             lookup3d.find(px[k], py[k], pz[k], radius[k]);
@@ -330,12 +330,12 @@ export async function calcMolecularSurface(ctx: RuntimeContext, position: Requir
 
     const pad = maxRadius + resolution;
     const expandedBox = Box3D.expand(Box3D(), box, Vec3.create(pad, pad, pad));
-    const [ minX, minY, minZ ] = expandedBox.min;
+    const [minX, minY, minZ] = expandedBox.min;
     const scaledBox = Box3D.scale(Box3D(), expandedBox, scaleFactor);
     const dim = Box3D.size(Vec3(), scaledBox);
     Vec3.ceil(dim, dim);
 
-    const [ dimX, dimY, dimZ ] = dim;
+    const [dimX, dimY, dimZ] = dim;
     const iu = dimZ, iv = dimY, iuv = iu * iv;
 
     const { cosTable, sinTable } = getAngleTables(probePositions);

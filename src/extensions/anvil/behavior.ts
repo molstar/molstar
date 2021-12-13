@@ -52,7 +52,7 @@ export const ANVILMembraneOrientation = PluginBehavior.create<{ autoAttach: bool
         }
 
         update(p: { autoAttach: boolean }) {
-            let updated = this.params.autoAttach !== p.autoAttach;
+            const updated = this.params.autoAttach !== p.autoAttach;
             this.params.autoAttach = p.autoAttach;
             this.ctx.customStructureProperties.setDefaultAutoAttach(this.provider.descriptor.name, this.params.autoAttach);
             return updated;
@@ -150,7 +150,7 @@ export const MembraneOrientationPreset = StructureRepresentationPresetProvider({
     params: () => StructureRepresentationPresetProvider.CommonParams,
     async apply(ref, params, plugin) {
         const structureCell = StateObjectRef.resolveAndCheck(plugin.state.data, ref);
-        const structure  = structureCell?.obj?.data;
+        const structure = structureCell?.obj?.data;
         if (!structureCell || !structure) return {};
 
         if (!MembraneOrientationProvider.get(structure).value) {

@@ -50,7 +50,7 @@ export function geometryLabel(geometry: AtomGeometry): string {
     }
 }
 
-export function assignGeometry (totalCoordination: number): AtomGeometry {
+export function assignGeometry(totalCoordination: number): AtomGeometry {
     switch (totalCoordination) {
         case 0: return AtomGeometry.Spherical;
         case 1: return AtomGeometry.Terminal;
@@ -63,10 +63,10 @@ export function assignGeometry (totalCoordination: number): AtomGeometry {
 }
 
 export const AtomGeometryAngles = new Map<AtomGeometry, number>([
-    [ AtomGeometry.Linear, degToRad(180) ],
-    [ AtomGeometry.Trigonal, degToRad(120) ],
-    [ AtomGeometry.Tetrahedral, degToRad(109.4721) ],
-    [ AtomGeometry.Octahedral, degToRad(90) ]
+    [AtomGeometry.Linear, degToRad(180)],
+    [AtomGeometry.Trigonal, degToRad(120)],
+    [AtomGeometry.Tetrahedral, degToRad(109.4721)],
+    [AtomGeometry.Octahedral, degToRad(90)]
 ]);
 
 // tmp objects for `calcAngles` and `calcPlaneAngle`
@@ -79,7 +79,7 @@ const tmpPosX = Vec3();
 /**
  * Calculate the angles x-a1-a2 for all x where x is a heavy atom (not H) bonded to ap1.
  */
-export function calcAngles (structure: Structure, unitA: Unit.Atomic, indexA: StructureElement.UnitIndex, unitB: Unit.Atomic, indexB: StructureElement.UnitIndex): number[] {
+export function calcAngles(structure: Structure, unitA: Unit.Atomic, indexA: StructureElement.UnitIndex, unitB: Unit.Atomic, indexB: StructureElement.UnitIndex): number[] {
     const angles: number[] = [];
     unitA.conformation.position(unitA.elements[indexA], tmpPosA);
     unitB.conformation.position(unitB.elements[indexB], tmpPosB);
@@ -102,7 +102,7 @@ export function calcAngles (structure: Structure, unitA: Unit.Atomic, indexA: St
  * @param  {AtomProxy} ap2 Second atom (out-of-plane)
  * @return {number}        Angle from plane to second atom
  */
-export function calcPlaneAngle (structure: Structure, unitA: Unit.Atomic, indexA: StructureElement.UnitIndex, unitB: Unit.Atomic, indexB: StructureElement.UnitIndex): number | undefined {
+export function calcPlaneAngle(structure: Structure, unitA: Unit.Atomic, indexA: StructureElement.UnitIndex, unitB: Unit.Atomic, indexB: StructureElement.UnitIndex): number | undefined {
     unitA.conformation.position(unitA.elements[indexA], tmpPosA);
     unitB.conformation.position(unitB.elements[indexB], tmpPosB);
     Vec3.sub(tmpDir1, tmpPosB, tmpPosA);

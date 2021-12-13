@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { Subject, Observable } from 'rxjs';
@@ -15,7 +16,7 @@ export function getButtons(event: MouseEvent | Touch) {
         if ('buttons' in event) {
             return event.buttons;
         } else if ('which' in event) {
-            const b = (event as any).which;  // 'any' to support older browsers
+            const b = (event as any).which; // 'any' to support older browsers
             if (b === 2) {
                 return 4;
             } else if (b === 3) {
@@ -59,6 +60,7 @@ export const DefaultInputObserverProps = {
     noContextMenu: true,
     noPinchZoom: true,
     noTextSelect: true,
+    preventGestures: false,
     mask: (x: number, y: number) => true,
 
     pixelScale: 1
@@ -144,6 +146,8 @@ export type WheelInput = {
     dx: number,
     dy: number,
     dz: number,
+    spinX: number,
+    spinY: number
 } & BaseInput
 
 export type ClickInput = {
@@ -164,9 +168,19 @@ export type MoveInput = {
 export type PinchInput = {
     delta: number,
     fraction: number,
+    fractionDelta: number,
     distance: number,
     isStart: boolean
 } & BaseInput
+
+export type GestureInput = {
+    scale: number,
+    rotation: number,
+    deltaScale: number,
+    deltaRotation: number
+    isStart?: boolean,
+    isEnd?: boolean
+}
 
 export type KeyInput = {
     key: string,
@@ -192,6 +206,11 @@ type PointerEvent = {
     preventDefault?: () => void
 }
 
+type GestureEvent = {
+    scale: number,
+    rotation: number,
+} & MouseEvent
+
 interface InputObserver {
     noScroll: boolean
     noContextMenu: boolean
@@ -205,6 +224,7 @@ interface InputObserver {
     readonly interactionEnd: Observable<undefined>,
     readonly wheel: Observable<WheelInput>,
     readonly pinch: Observable<PinchInput>,
+    readonly gesture: Observable<GestureInput>,
     readonly click: Observable<ClickInput>,
     readonly move: Observable<MoveInput>,
     readonly leave: Observable<undefined>,
@@ -224,6 +244,7 @@ function createEvents() {
         move: new Subject<MoveInput>(),
         wheel: new Subject<WheelInput>(),
         pinch: new Subject<PinchInput>(),
+        gesture: new Subject<GestureInput>(),
         resize: new Subject<ResizeInput>(),
         leave: new Subject<undefined>(),
         enter: new Subject<undefined>(),
@@ -252,12 +273,12 @@ namespace InputObserver {
     }
 
     export function fromElement(element: Element, props: InputObserverProps = {}): InputObserver {
-        let { noScroll, noMiddleClickScroll, noContextMenu, noPinchZoom, noTextSelect, mask, pixelScale } = { ...DefaultInputObserverProps, ...props };
+        let { noScroll, noMiddleClickScroll, noContextMenu, noPinchZoom, noTextSelect, mask, pixelScale, preventGestures } = { ...DefaultInputObserverProps, ...props };
 
         let width = element.clientWidth * pixelRatio();
         let height = element.clientHeight * pixelRatio();
 
-        let lastTouchDistance = 0;
+        let lastTouchDistance = 0, lastTouchFraction = 0;
         const pointerDown = Vec2();
         const pointerStart = Vec2();
         const pointerEnd = Vec2();
@@ -285,19 +306,19 @@ namespace InputObserver {
         let isInside = false;
 
         const events = createEvents();
-        const { drag, interactionEnd, wheel, pinch, click, move, leave, enter, resize, modifiers, key } = events;
+        const { drag, interactionEnd, wheel, pinch, gesture, click, move, leave, enter, resize, modifiers, key } = events;
 
         attach();
 
         return {
-            get noScroll () { return noScroll; },
-            set noScroll (value: boolean) { noScroll = value; },
-            get noContextMenu () { return noContextMenu; },
-            set noContextMenu (value: boolean) { noContextMenu = value; },
+            get noScroll() { return noScroll; },
+            set noScroll(value: boolean) { noScroll = value; },
+            get noContextMenu() { return noContextMenu; },
+            set noContextMenu(value: boolean) { noContextMenu = value; },
 
-            get width () { return width; },
-            get height () { return height; },
-            get pixelRatio () { return pixelRatio(); },
+            get width() { return width; },
+            get height() { return height; },
+            get pixelRatio() { return pixelRatio(); },
 
             ...events,
 
@@ -305,7 +326,7 @@ namespace InputObserver {
         };
 
         function attach() {
-            element.addEventListener('contextmenu', onContextMenu as any, false );
+            element.addEventListener('contextmenu', onContextMenu as any, false);
 
             element.addEventListener('wheel', onMouseWheel as any, false);
             element.addEventListener('mousedown', onMouseDown as any, false);
@@ -322,6 +343,10 @@ namespace InputObserver {
             element.addEventListener('touchmove', onTouchMove as any, false);
             element.addEventListener('touchend', onTouchEnd as any, false);
 
+            element.addEventListener('gesturechange', onGestureChange as any, false);
+            element.addEventListener('gesturestart', onGestureStart as any, false);
+            element.addEventListener('gestureend', onGestureEnd as any, false);
+
             // reset buttons and modifier keys state when browser window looses focus
             window.addEventListener('blur', handleBlur);
             window.addEventListener('keyup', handleKeyUp as EventListener, false);
@@ -335,7 +360,7 @@ namespace InputObserver {
             if (disposed) return;
             disposed = true;
 
-            element.removeEventListener( 'contextmenu', onContextMenu as any, false );
+            element.removeEventListener('contextmenu', onContextMenu as any, false);
 
             element.removeEventListener('wheel', onMouseWheel as any, false);
             element.removeEventListener('mousedown', onMouseDown as any, false);
@@ -348,6 +373,10 @@ namespace InputObserver {
             element.removeEventListener('touchstart', onTouchStart as any, false);
             element.removeEventListener('touchmove', onTouchMove as any, false);
             element.removeEventListener('touchend', onTouchEnd as any, false);
+
+            element.removeEventListener('gesturechange', onGestureChange as any, false);
+            element.removeEventListener('gesturestart', onGestureStart as any, false);
+            element.removeEventListener('gestureend', onGestureEnd as any, false);
 
             window.removeEventListener('blur', handleBlur);
             window.removeEventListener('keyup', handleKeyUp as EventListener, false);
@@ -427,6 +456,8 @@ namespace InputObserver {
         }
 
         function onTouchStart(ev: TouchEvent) {
+            ev.preventDefault();
+
             if (ev.touches.length === 1) {
                 buttons = button = ButtonsType.Flag.Primary;
                 onPointerDown(ev.touches[0]);
@@ -440,6 +471,7 @@ namespace InputObserver {
                 pinch.next({
                     distance: touchDistance,
                     fraction: 1,
+                    fractionDelta: 0,
                     delta: 0,
                     isStart: true,
                     buttons,
@@ -480,15 +512,18 @@ namespace InputObserver {
                 } else {
                     buttons = ButtonsType.Flag.Auxilary;
                     updateModifierKeys(ev);
+                    const fraction = lastTouchDistance / touchDistance;
                     pinch.next({
                         delta: touchDelta,
-                        fraction: lastTouchDistance / touchDistance,
+                        fraction,
+                        fractionDelta: lastTouchFraction - fraction,
                         distance: touchDistance,
                         isStart: false,
                         buttons,
                         button,
                         modifiers: getModifierKeys()
                     });
+                    lastTouchFraction = fraction;
                 }
                 lastTouchDistance = touchDistance;
             } else if (ev.touches.length === 3) {
@@ -523,7 +558,7 @@ namespace InputObserver {
         }
 
         function endDrag() {
-            interactionEnd.next();
+            interactionEnd.next(void 0);
         }
 
         function onPointerDown(ev: PointerEvent) {
@@ -544,7 +579,7 @@ namespace InputObserver {
             eventOffset(pointerEnd, ev);
             if (Vec2.distance(pointerEnd, pointerDown) < 4) {
                 const { pageX, pageY } = ev;
-                const [ x, y ] = pointerEnd;
+                const [x, y] = pointerEnd;
 
                 click.next({ x, y, pageX, pageY, buttons, button, modifiers: getModifierKeys() });
             }
@@ -553,7 +588,7 @@ namespace InputObserver {
         function onPointerMove(ev: PointerEvent) {
             eventOffset(pointerEnd, ev);
             const { pageX, pageY } = ev;
-            const [ x, y ] = pointerEnd;
+            const [x, y] = pointerEnd;
             const inside = insideBounds(pointerEnd);
             move.next({ x, y, pageX, pageY, buttons, button, modifiers: getModifierKeys(), inside });
 
@@ -569,7 +604,7 @@ namespace InputObserver {
             const isStart = dragging === DraggingState.Started;
             if (isStart && !mask(ev.clientX, ev.clientY)) return;
 
-            const [ dx, dy ] = pointerDelta;
+            const [dx, dy] = pointerDelta;
             drag.next({ x, y, dx, dy, pageX, pageY, buttons, button, modifiers: getModifierKeys(), isStart });
 
             Vec2.copy(pointerStart, pointerEnd);
@@ -581,42 +616,71 @@ namespace InputObserver {
 
             eventOffset(pointerEnd, ev);
             const { pageX, pageY } = ev;
-            const [ x, y ] = pointerEnd;
+            const [x, y] = pointerEnd;
 
             if (noScroll) {
                 ev.preventDefault();
             }
 
-            let scale = 1;
-            switch (ev.deltaMode) {
-                case 0: scale = 1; break; // pixels
-                case 1: scale = 40; break; // lines
-                case 2: scale = 800; break; // pages
-            }
-
-            const dx = (ev.deltaX || 0) * scale;
-            const dy = (ev.deltaY || 0) * scale;
-            const dz = (ev.deltaZ || 0) * scale;
-
+            const normalized = normalizeWheel(ev);
             buttons = button = ButtonsType.Flag.Auxilary;
 
-            if (dx || dy || dz) {
-                wheel.next({ x, y, pageX, pageY, dx, dy, dz, buttons, button, modifiers: getModifierKeys() });
+            if (normalized.dx || normalized.dy || normalized.dz) {
+                wheel.next({ x, y, pageX, pageY, ...normalized, buttons, button, modifiers: getModifierKeys() });
             }
+        }
+
+        function tryPreventGesture(ev: GestureEvent) {
+            // console.log(ev, preventGestures);
+            if (!preventGestures) return;
+            ev.preventDefault();
+            ev.stopImmediatePropagation?.();
+            ev.stopPropagation?.();
+        }
+
+        let prevGestureScale = 0, prevGestureRotation = 0;
+
+        function onGestureStart(ev: GestureEvent) {
+            tryPreventGesture(ev);
+            prevGestureScale = ev.scale;
+            prevGestureRotation = ev.rotation;
+            gesture.next({ scale: ev.scale, rotation: ev.rotation, deltaRotation: 0, deltaScale: 0, isStart: true });
+        }
+
+        function gestureDelta(ev: GestureEvent, isEnd?: boolean) {
+            gesture.next({
+                scale: ev.scale,
+                rotation: ev.rotation,
+                deltaRotation: prevGestureRotation - ev.rotation,
+                deltaScale: prevGestureScale - ev.scale,
+                isEnd
+            });
+            prevGestureRotation = ev.rotation;
+            prevGestureScale = ev.scale;
+        }
+
+        function onGestureChange(ev: GestureEvent) {
+            tryPreventGesture(ev);
+            gestureDelta(ev);
+        }
+
+        function onGestureEnd(ev: GestureEvent) {
+            tryPreventGesture(ev);
+            gestureDelta(ev, true);
         }
 
         function onMouseEnter(ev: Event) {
             isInside = true;
-            enter.next();
+            enter.next(void 0);
         }
 
         function onMouseLeave(ev: Event) {
             isInside = false;
-            leave.next();
+            leave.next(void 0);
         }
 
         function onResize(ev: Event) {
-            resize.next();
+            resize.next({});
         }
 
         function insideBounds(pos: Vec2) {
@@ -647,5 +711,55 @@ namespace InputObserver {
         }
     }
 }
+
+
+// Adapted from https://stackoverflow.com/a/30134826
+// License: https://creativecommons.org/licenses/by-sa/3.0/
+function normalizeWheel(event: any) {
+    // Reasonable defaults
+    const PIXEL_STEP = 10;
+    const LINE_HEIGHT = 40;
+    const PAGE_HEIGHT = 800;
+    let spinX = 0, spinY = 0,
+        dx = 0, dy = 0, dz = 0; // pixelX, pixelY, pixelZ
+
+    // Legacy
+    if ('detail' in event) { spinY = event.detail; }
+    if ('wheelDelta' in event) { spinY = -event.wheelDelta / 120; }
+    if ('wheelDeltaY' in event) { spinY = -event.wheelDeltaY / 120; }
+    if ('wheelDeltaX' in event) { spinX = -event.wheelDeltaX / 120; }
+
+    // side scrolling on FF with DOMMouseScroll
+    if ('axis' in event && event.axis === event.HORIZONTAL_AXIS) {
+        spinX = spinY;
+        spinY = 0;
+    }
+
+    dx = spinX * PIXEL_STEP;
+    dy = spinY * PIXEL_STEP;
+
+    if ('deltaY' in event) { dy = event.deltaY; }
+    if ('deltaX' in event) { dx = event.deltaX; }
+    if ('deltaZ' in event) { dz = event.deltaZ; }
+
+    if ((dx || dy || dz) && event.deltaMode) {
+        if (event.deltaMode === 1) { // delta in LINE units
+            dx *= LINE_HEIGHT;
+            dy *= LINE_HEIGHT;
+            dz *= LINE_HEIGHT;
+        } else { // delta in PAGE units
+            dx *= PAGE_HEIGHT;
+            dy *= PAGE_HEIGHT;
+            dz *= PAGE_HEIGHT;
+        }
+    }
+
+    // Fall-back if spin cannot be determined
+    if (dx && !spinX) { spinX = (dx < 1) ? -1 : 1; }
+    if (dy && !spinY) { spinY = (dy < 1) ? -1 : 1; }
+
+    return { spinX, spinY, dx, dy, dz };
+}
+
 
 export { InputObserver };

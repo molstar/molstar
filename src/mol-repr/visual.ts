@@ -7,8 +7,8 @@
 import { RuntimeContext } from '../mol-task';
 import { GraphicsRenderObject } from '../mol-gl/render-object';
 import { PickingId } from '../mol-geo/geometry/picking';
-import { Loci, isEmptyLoci, isEveryLoci } from '../mol-model/loci';
-import { MarkerAction, applyMarkerAction } from '../mol-util/marker-action';
+import { Loci, isEmptyLoci, isEveryLoci, EveryLoci } from '../mol-model/loci';
+import { MarkerAction, applyMarkerAction, getMarkerInfo, setMarkerValue, getPartialMarkerAverage, MarkerActions, MarkerInfo } from '../mol-util/marker-action';
 import { ParamDefinition as PD } from '../mol-util/param-definition';
 import { WebGLContext } from '../mol-gl/webgl/context';
 import { Theme } from '../mol-theme/theme';
@@ -23,6 +23,14 @@ import { Transparency } from '../mol-theme/transparency';
 import { createTransparency, clearTransparency, applyTransparencyValue, getTransparencyAverage } from '../mol-geo/geometry/transparency-data';
 import { Clipping } from '../mol-theme/clipping';
 import { createClipping, applyClippingGroups, clearClipping } from '../mol-geo/geometry/clipping-data';
+import { getMarkersAverage } from '../mol-geo/geometry/marker-data';
+import { Texture } from '../mol-gl/webgl/texture';
+import { Geometry } from '../mol-geo/geometry/geometry';
+import { getColorSmoothingProps, hasColorSmoothingProp } from '../mol-geo/geometry/base';
+import { applyMeshOverpaintSmoothing, applyMeshSubstanceSmoothing, applyMeshTransparencySmoothing } from '../mol-geo/geometry/mesh/color-smoothing';
+import { applyTextureMeshOverpaintSmoothing, applyTextureMeshSubstanceSmoothing, applyTextureMeshTransparencySmoothing } from '../mol-geo/geometry/texture-mesh/color-smoothing';
+import { Substance } from '../mol-theme/substance';
+import { applySubstanceMaterial, clearSubstance, createSubstance } from '../mol-geo/geometry/substance-data';
 
 export interface VisualContext {
     readonly runtime: RuntimeContext
@@ -34,6 +42,7 @@ interface Visual<D, P extends PD.Params> {
     /** Number of addressable groups in all instances of the visual */
     readonly groupCount: number
     readonly renderObject: GraphicsRenderObject | undefined
+    readonly geometryVersion: number
     createOrUpdate: (ctx: VisualContext, theme: Theme, props: PD.Values<P>, data?: D) => Promise<void> | void
     getLoci: (pickingId: PickingId) => Loci
     mark: (loci: Loci, action: MarkerAction) => boolean
@@ -42,8 +51,9 @@ interface Visual<D, P extends PD.Params> {
     setPickable: (pickable: boolean) => void
     setColorOnly: (colorOnly: boolean) => void
     setTransform: (matrix?: Mat4, instanceMatrices?: Float32Array | null) => void
-    setOverpaint: (overpaint: Overpaint) => void
-    setTransparency: (transparency: Transparency) => void
+    setOverpaint: (overpaint: Overpaint, webgl?: WebGLContext) => void
+    setTransparency: (transparency: Transparency, webgl?: WebGLContext) => void
+    setSubstance: (substance: Substance, webgl?: WebGLContext) => void
     setClipping: (clipping: Clipping) => void
     destroy: () => void
     mustRecreate?: (data: D, props: PD.Values<P>, webgl?: WebGLContext) => boolean
@@ -67,27 +77,88 @@ namespace Visual {
         if (renderObject) renderObject.state.colorOnly = colorOnly;
     }
 
-    export function mark(renderObject: GraphicsRenderObject | undefined, loci: Loci, action: MarkerAction, lociApply: LociApply) {
-        if (!renderObject) return false;
+    export type PreviousMark = { loci: Loci, action: MarkerAction, status: MarkerInfo['status'] }
 
-        const { tMarker, uGroupCount, instanceCount } = renderObject.values;
+    export function mark(renderObject: GraphicsRenderObject | undefined, loci: Loci, action: MarkerAction, lociApply: LociApply, previous?: PreviousMark) {
+        if (!renderObject || isEmptyLoci(loci)) return false;
+
+        const { tMarker, dMarkerType, uMarker, markerAverage, markerStatus, uGroupCount, instanceCount } = renderObject.values;
         const count = uGroupCount.ref.value * instanceCount.ref.value;
         const { array } = tMarker.ref.value;
+        const currentStatus = markerStatus.ref.value as MarkerInfo['status'];
+
+        if (!isEveryLoci(loci)) {
+            let intervalSize = 0;
+            lociApply(loci, interval => {
+                intervalSize += Interval.size(interval);
+                return true;
+            }, true);
+            if (intervalSize === 0) return false;
+            if (intervalSize === count) loci = EveryLoci;
+        }
 
         let changed = false;
+        let average = -1;
+        let status: MarkerInfo['status'] = -1;
         if (isEveryLoci(loci)) {
-            changed = applyMarkerAction(array, Interval.ofLength(count), action);
-        } else if (!isEmptyLoci(loci)) {
+            const info = getMarkerInfo(action, currentStatus);
+            if (info.status !== -1) {
+                changed = currentStatus !== info.status;
+                if (changed) setMarkerValue(array, info.status, count);
+            } else {
+                changed = applyMarkerAction(array, Interval.ofLength(count), action);
+            }
+            average = info.average;
+            status = info.status;
+        } else {
             changed = lociApply(loci, interval => applyMarkerAction(array, interval, action), true);
+            if (changed) {
+                average = getPartialMarkerAverage(action, currentStatus);
+                if (previous && previous.status !== -1 && average === -1 &&
+                    MarkerActions.isReverse(previous.action, action) &&
+                    Loci.areEqual(loci, previous.loci)
+                ) {
+                    status = previous.status;
+                    average = status === 0 ? 0 : 0.5;
+                }
+            }
         }
-        if (changed) ValueCell.update(tMarker, tMarker.ref.value);
+        if (changed) {
+            if (average === -1) {
+                average = getMarkersAverage(array, count);
+                if (average === 0) status = 0;
+            }
+            if (previous) {
+                previous.action = action;
+                previous.loci = loci;
+                previous.status = currentStatus;
+            }
+            ValueCell.updateIfChanged(uMarker, status);
+            if (status === -1) ValueCell.update(tMarker, tMarker.ref.value);
+            ValueCell.updateIfChanged(dMarkerType, status === -1 ? 'groupInstance' : 'uniform');
+            ValueCell.updateIfChanged(markerAverage, average);
+            ValueCell.updateIfChanged(markerStatus, status);
+        }
         return changed;
     }
 
-    export function setOverpaint(renderObject: GraphicsRenderObject | undefined, overpaint: Overpaint, lociApply: LociApply, clear: boolean) {
+    type SurfaceMeta = {
+        resolution?: number
+        overpaintTexture?: Texture
+        transparencyTexture?: Texture
+        substanceTexture?: Texture
+    }
+
+    type SmoothingContext = {
+        geometry: Geometry,
+        props: PD.Values<any>,
+        webgl?: WebGLContext
+    }
+
+    export function setOverpaint(renderObject: GraphicsRenderObject | undefined, overpaint: Overpaint, lociApply: LociApply, clear: boolean, smoothing?: SmoothingContext) {
         if (!renderObject) return;
 
-        const { tOverpaint, uGroupCount, instanceCount } = renderObject.values;
+        const { tOverpaint, dOverpaintType, uGroupCount, instanceCount } = renderObject.values;
         const count = uGroupCount.ref.value * instanceCount.ref.value;
 
         // ensure texture has right size
@@ -109,12 +180,34 @@ namespace Visual {
             lociApply(loci, apply, false);
         }
         ValueCell.update(tOverpaint, tOverpaint.ref.value);
+        ValueCell.updateIfChanged(dOverpaintType, 'groupInstance');
+
+        if (overpaint.layers.length === 0) return;
+
+        if (smoothing && hasColorSmoothingProp(smoothing.props)) {
+            const { geometry, props, webgl } = smoothing;
+            if (geometry.kind === 'mesh') {
+                const { resolution, overpaintTexture } = geometry.meta as SurfaceMeta;
+                const csp = getColorSmoothingProps(props.smoothColors, true, resolution);
+                if (csp) {
+                    applyMeshOverpaintSmoothing(renderObject.values as any, csp.resolution, csp.stride, webgl, overpaintTexture);
+                    (geometry.meta as SurfaceMeta).overpaintTexture = renderObject.values.tOverpaintGrid.ref.value;
+                }
+            } else if (webgl && geometry.kind === 'texture-mesh') {
+                const { resolution, overpaintTexture } = geometry.meta as SurfaceMeta;
+                const csp = getColorSmoothingProps(props.smoothColors, true, resolution);
+                if (csp) {
+                    applyTextureMeshOverpaintSmoothing(renderObject.values as any, csp.resolution, csp.stride, webgl, overpaintTexture);
+                    (geometry.meta as SurfaceMeta).overpaintTexture = renderObject.values.tOverpaintGrid.ref.value;
+                }
+            }
+        }
     }
 
-    export function setTransparency(renderObject: GraphicsRenderObject | undefined, transparency: Transparency, lociApply: LociApply, clear: boolean) {
+    export function setTransparency(renderObject: GraphicsRenderObject | undefined, transparency: Transparency, lociApply: LociApply, clear: boolean, smoothing?: SmoothingContext) {
         if (!renderObject) return;
 
-        const { tTransparency, transparencyAverage, uGroupCount, instanceCount } = renderObject.values;
+        const { tTransparency, dTransparencyType, transparencyAverage, uGroupCount, instanceCount } = renderObject.values;
         const count = uGroupCount.ref.value * instanceCount.ref.value;
 
         // ensure texture has right size and variant
@@ -135,6 +228,77 @@ namespace Visual {
         }
         ValueCell.update(tTransparency, tTransparency.ref.value);
         ValueCell.updateIfChanged(transparencyAverage, getTransparencyAverage(array, count));
+        ValueCell.updateIfChanged(dTransparencyType, 'groupInstance');
+
+        if (transparency.layers.length === 0) return;
+
+        if (smoothing && hasColorSmoothingProp(smoothing.props)) {
+            const { geometry, props, webgl } = smoothing;
+            if (geometry.kind === 'mesh') {
+                const { resolution, transparencyTexture } = geometry.meta as SurfaceMeta;
+                const csp = getColorSmoothingProps(props.smoothColors, true, resolution);
+                if (csp) {
+                    applyMeshTransparencySmoothing(renderObject.values as any, csp.resolution, csp.stride, webgl, transparencyTexture);
+                    (geometry.meta as SurfaceMeta).transparencyTexture = renderObject.values.tTransparencyGrid.ref.value;
+                }
+            } else if (webgl && geometry.kind === 'texture-mesh') {
+                const { resolution, transparencyTexture } = geometry.meta as SurfaceMeta;
+                const csp = getColorSmoothingProps(props.smoothColors, true, resolution);
+                if (csp) {
+                    applyTextureMeshTransparencySmoothing(renderObject.values as any, csp.resolution, csp.stride, webgl, transparencyTexture);
+                    (geometry.meta as SurfaceMeta).transparencyTexture = renderObject.values.tTransparencyGrid.ref.value;
+                }
+            }
+        }
+    }
+
+    export function setSubstance(renderObject: GraphicsRenderObject | undefined, substance: Substance, lociApply: LociApply, clear: boolean, smoothing?: SmoothingContext) {
+        if (!renderObject) return;
+
+        const { tSubstance, dSubstanceType, uGroupCount, instanceCount } = renderObject.values;
+        const count = uGroupCount.ref.value * instanceCount.ref.value;
+
+        // ensure texture has right size
+        createSubstance(substance.layers.length ? count : 0, renderObject.values);
+        const { array } = tSubstance.ref.value;
+
+        // clear all if requested
+        if (clear) clearSubstance(array, 0, count);
+
+        for (let i = 0, il = substance.layers.length; i < il; ++i) {
+            const { loci, material, clear } = substance.layers[i];
+            const apply = (interval: Interval) => {
+                const start = Interval.start(interval);
+                const end = Interval.end(interval);
+                return clear
+                    ? clearSubstance(array, start, end)
+                    : applySubstanceMaterial(array, start, end, material);
+            };
+            lociApply(loci, apply, false);
+        }
+        ValueCell.update(tSubstance, tSubstance.ref.value);
+        ValueCell.updateIfChanged(dSubstanceType, 'groupInstance');
+
+        if (substance.layers.length === 0) return;
+
+        if (smoothing && hasColorSmoothingProp(smoothing.props)) {
+            const { geometry, props, webgl } = smoothing;
+            if (geometry.kind === 'mesh') {
+                const { resolution, substanceTexture } = geometry.meta as SurfaceMeta;
+                const csp = getColorSmoothingProps(props.smoothColors, true, resolution);
+                if (csp) {
+                    applyMeshSubstanceSmoothing(renderObject.values as any, csp.resolution, csp.stride, webgl, substanceTexture);
+                    (geometry.meta as SurfaceMeta).substanceTexture = renderObject.values.tSubstanceGrid.ref.value;
+                }
+            } else if (webgl && geometry.kind === 'texture-mesh') {
+                const { resolution, substanceTexture } = geometry.meta as SurfaceMeta;
+                const csp = getColorSmoothingProps(props.smoothColors, true, resolution);
+                if (csp) {
+                    applyTextureMeshSubstanceSmoothing(renderObject.values as any, csp.resolution, csp.stride, webgl, substanceTexture);
+                    (geometry.meta as SurfaceMeta).substanceTexture = renderObject.values.tSubstanceGrid.ref.value;
+                }
+            }
+        }
     }
 
     export function setClipping(renderObject: GraphicsRenderObject | undefined, clipping: Clipping, lociApply: LociApply, clear: boolean) {

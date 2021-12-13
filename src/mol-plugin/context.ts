@@ -196,8 +196,10 @@ export class PluginContext {
                 const preserveDrawingBuffer = !(this.config.get(PluginConfig.General.DisablePreserveDrawingBuffer) ?? false);
                 const pixelScale = this.config.get(PluginConfig.General.PixelScale) || 1;
                 const pickScale = this.config.get(PluginConfig.General.PickScale) || 0.25;
+                const pickPadding = this.config.get(PluginConfig.General.PickPadding) ?? 1;
                 const enableWboit = this.config.get(PluginConfig.General.EnableWboit) || false;
-                (this.canvas3dContext as Canvas3DContext) = Canvas3DContext.fromCanvas(canvas, { antialias, preserveDrawingBuffer, pixelScale, pickScale, enableWboit });
+                const preferWebGl1 = this.config.get(PluginConfig.General.PreferWebGl1) || false;
+                (this.canvas3dContext as Canvas3DContext) = Canvas3DContext.fromCanvas(canvas, { antialias, preserveDrawingBuffer, pixelScale, pickScale, pickPadding, enableWboit, preferWebGl1 });
             }
             (this.canvas3d as Canvas3D) = Canvas3D.create(this.canvas3dContext!);
             this.canvas3dInit.next(true);

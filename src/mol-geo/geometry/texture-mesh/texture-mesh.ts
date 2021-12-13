@@ -19,10 +19,11 @@ import { createEmptyOverpaint } from '../overpaint-data';
 import { createEmptyTransparency } from '../transparency-data';
 import { TextureMeshValues } from '../../../mol-gl/renderable/texture-mesh';
 import { calculateTransformBoundingSphere } from '../../../mol-gl/renderable/util';
-import { Texture } from '../../../mol-gl/webgl/texture';
+import { createNullTexture, Texture } from '../../../mol-gl/webgl/texture';
 import { Vec2, Vec4 } from '../../../mol-math/linear-algebra';
 import { createEmptyClipping } from '../clipping-data';
 import { NullLocation } from '../../../mol-model/location';
+import { createEmptySubstance } from '../substance-data';
 
 export interface TextureMesh {
     readonly kind: 'texture-mesh',
@@ -40,7 +41,7 @@ export interface TextureMesh {
 
     readonly boundingSphere: Sphere3D
 
-    meta?: unknown
+    readonly meta: { [k: string]: unknown }
 }
 
 export namespace TextureMesh {
@@ -92,12 +93,17 @@ export namespace TextureMesh {
                 normalTexture: ValueCell.create(normalTexture),
                 doubleBuffer: new DoubleBuffer(),
                 boundingSphere: Sphere3D.clone(boundingSphere),
+                meta: {}
             };
         }
     }
 
     export function createEmpty(textureMesh?: TextureMesh): TextureMesh {
-        return {} as TextureMesh; // TODO
+        const vt = textureMesh ? textureMesh.vertexTexture.ref.value : createNullTexture();
+        const gt = textureMesh ? textureMesh.groupTexture.ref.value : createNullTexture();
+        const nt = textureMesh ? textureMesh.normalTexture.ref.value : createNullTexture();
+        const bs = textureMesh ? textureMesh.boundingSphere : Sphere3D();
+        return create(0, 0, vt, gt, nt, bs, textureMesh);
     }
 
     export const Params = {
@@ -107,6 +113,8 @@ export namespace TextureMesh {
         flatShaded: PD.Boolean(false, BaseGeometry.ShadingCategory),
         ignoreLight: PD.Boolean(false, BaseGeometry.ShadingCategory),
         xrayShaded: PD.Boolean(false, BaseGeometry.ShadingCategory),
+        bumpFrequency: PD.Numeric(0, { min: 0, max: 10, step: 0.1 }, BaseGeometry.ShadingCategory),
+        bumpAmplitude: PD.Numeric(1, { min: 0, max: 5, step: 0.1 }, BaseGeometry.ShadingCategory),
     };
     export type Params = typeof Params
 
@@ -130,6 +138,7 @@ export namespace TextureMesh {
         const marker = createMarkers(instanceCount * groupCount);
         const overpaint = createEmptyOverpaint();
         const transparency = createEmptyTransparency();
+        const substance = createEmptySubstance();
         const clipping = createEmptyClipping();
 
         const counts = { drawCount: textureMesh.vertexCount, vertexCount: textureMesh.vertexCount, groupCount, instanceCount };
@@ -151,6 +160,7 @@ export namespace TextureMesh {
             ...marker,
             ...overpaint,
             ...transparency,
+            ...substance,
             ...clipping,
             ...transform,
 
@@ -160,7 +170,11 @@ export namespace TextureMesh {
             dFlipSided: ValueCell.create(props.flipSided),
             dIgnoreLight: ValueCell.create(props.ignoreLight),
             dXrayShaded: ValueCell.create(props.xrayShaded),
+            uBumpFrequency: ValueCell.create(props.bumpFrequency),
+            uBumpAmplitude: ValueCell.create(props.bumpAmplitude),
             dGeoTexture: ValueCell.create(true),
+
+            meta: ValueCell.create(textureMesh.meta),
         };
     }
 
@@ -177,6 +191,8 @@ export namespace TextureMesh {
         ValueCell.updateIfChanged(values.dFlipSided, props.flipSided);
         ValueCell.updateIfChanged(values.dIgnoreLight, props.ignoreLight);
         ValueCell.updateIfChanged(values.dXrayShaded, props.xrayShaded);
+        ValueCell.updateIfChanged(values.uBumpFrequency, props.bumpFrequency);
+        ValueCell.updateIfChanged(values.uBumpAmplitude, props.bumpAmplitude);
     }
 
     function updateBoundingSphere(values: TextureMeshValues, textureMesh: TextureMesh) {
