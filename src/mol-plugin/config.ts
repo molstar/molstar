@@ -20,12 +20,17 @@ export class PluginConfigItem<T = any> {
 function item<T>(key: string, defaultValue?: T) { return new PluginConfigItem(key, defaultValue); }
 
 
-function preferWebGl1() {
+export function preferWebGl1() {
     if (typeof navigator === 'undefined' || typeof window === 'undefined') return false;
 
-    // WebGL2 isn't working in MacOS 12.0.1 Safari 15.1 (but is working in Safari tech preview)
+    // WebGL2 isn't working in MacOS 12.0.1 Safari 15.1, 15.2. It is working in Safari 15.4 tech preview, so disabling all versions before that.
     // prefer webgl 1 based on the userAgent substring
-    if (navigator.userAgent.indexOf('Version/15.1 Safari') > 0) {
+    const unpportedSafariVersions = [
+        'Version/15.1 Safari',
+        'Version/15.2 Safari',
+        'Version/15.3 Safari'
+    ];
+    if (unpportedSafariVersions.some(v => navigator.userAgent.indexOf(v) > 0)) {
         return true;
     }
 
