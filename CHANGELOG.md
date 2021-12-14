@@ -14,6 +14,7 @@ Note that since we don't clearly distinguish between a public and private interf
     - If there are session files (.molx or .molj) among the dropped files, only the first session will be loaded
 - Add ``PluginConfig.Structure.DefaultRepresentationPreset``
 - Add ModelArchive schema extensions (e.g., AlphaFold uses it for the pLDDT score)
+- Add ModelArchive option in DownloadStructure action
 - Improve support for loading AlphaFold structures
     - Automatic coloring by pLDDT
     - AlphaFold DB option in DownloadStructure action

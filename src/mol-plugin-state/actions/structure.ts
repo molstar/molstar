@@ -74,6 +74,10 @@ const DownloadStructure = StateAction.build({
                     id: PD.Text('Q8W3K0', { label: 'UniProtKB AC(s)', description: 'One or more comma/space separated ACs.' }),
                     options
                 }, { isFlat: true, label: 'AlphaFold DB', description: 'Loads the predicted model if available' }),
+                'modelarchive': PD.Group({
+                    id: PD.Text('ma-bak-cepc-0003', { label: 'Accession Code(s)', description: 'One or more comma/space separated ACs.' }),
+                    options
+                }, { isFlat: true, label: 'Model Archive' }),
                 'pubchem': PD.Group({
                     id: PD.Text('2244,2245', { label: 'PubChem ID', description: 'One or more comma/space separated IDs.' }),
                     options
@@ -137,6 +141,11 @@ const DownloadStructure = StateAction.build({
                 if (Array.isArray(info) && info.length > 0) return info[0].cifUrl;
                 throw new Error(`No AlphaFold DB entry for '${id}'`);
             }, id => `AlphaFold DB: ${id}`, false);
+            asTrajectory = !!src.params.options.asTrajectory;
+            format = 'mmcif';
+            break;
+        case 'modelarchive':
+            downloadParams = await getDownloadParams(src.params.id, id => `https://www.modelarchive.org/doi/10.5452/${id.toLowerCase()}.cif`, id => `Model Archive: ${id}`, false);
             asTrajectory = !!src.params.options.asTrajectory;
             format = 'mmcif';
             break;
