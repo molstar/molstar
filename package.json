@@ -146,13 +146,15 @@
     "immer": "^9.0.7",
     "immutable": "^3.8.2",
     "node-fetch": "^2.6.2",
-    "react": "^17.0.2",
-    "react-dom": "^17.0.2",
     "rxjs": "^7.4.0",
     "swagger-ui-dist": "^4.1.1",
     "tslib": "^2.3.1",
     "util.promisify": "^1.1.1",
     "xhr2": "^0.2.1"
+  },
+  "peerDependencies": {
+    "react": "^17.0.2",
+    "react-dom": "^17.0.2"
   },
   "optionalDependencies": {
     "gl": "^4.9.2"

@@ -6,6 +6,8 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+## [v3.0.0-dev.4] - 2021-12-14
+
 - Add ``bumpiness`` (per-object and per-group), ``bumpFrequency`` & ``bumpAmplitude`` (per-object) render parameters (#299)
 - Change ``label`` representation defaults: Use text border instead of rectangle background
 - Add outline color option to renderer
@@ -14,6 +16,7 @@ Note that since we don't clearly distinguish between a public and private interf
     - If there are session files (.molx or .molj) among the dropped files, only the first session will be loaded
 - Add drag and drop overlay
 - Safari 15.1 - 15.3 WebGL 2 support workaround
+- [Breaking] Move ``react`` and ``react-dom`` to ``peerDependencies``. This might break some builds.
 
 ## [v3.0.0-dev.3] - 2021-12-4
 
