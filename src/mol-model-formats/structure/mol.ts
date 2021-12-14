@@ -45,6 +45,7 @@ export async function getMolModels(mol: MolFile, format: ModelFormat<any> | unde
         type_symbol,
 
         pdbx_PDB_model_num: Column.ofConst(1, atoms.count, Column.Schema.int),
+        pdbx_formal_charge: Column.range(-1, 1)
     }, atoms.count);
 
     const entityBuilder = new EntityBuilder();
