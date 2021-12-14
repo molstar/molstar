@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -20,6 +20,8 @@ import { PluginCommands } from '../mol-plugin/commands';
 import { PluginUIContext } from './context';
 import { OpenFiles } from '../mol-plugin-state/actions/file';
 import { Asset } from '../mol-util/assets';
+import { BehaviorSubject } from 'rxjs';
+import { useBehavior } from './hooks/use-behavior';
 
 export class Plugin extends React.Component<{ plugin: PluginUIContext }, {}> {
     region(kind: 'left' | 'right' | 'bottom' | 'main', element: JSX.Element) {
@@ -139,13 +141,16 @@ class Layout extends PluginUIComponent {
         ev.preventDefault();
     }
 
+    private showDragOverlay = new BehaviorSubject(false);
+    onDragEnter = () => this.showDragOverlay.next(true);
+
     render() {
         const layout = this.plugin.layout.state;
         const controls = this.plugin.spec.components?.controls || {};
         const viewport = this.plugin.spec.components?.viewport?.view || DefaultViewport;
 
-        return <div className='msp-plugin' onDrop={this.onDrop} onDragOver={this.onDragOver}>
-            <div className={this.layoutClassName}>
+        return <div className='msp-plugin'>
+            <div className={this.layoutClassName} onDragEnter={this.onDragEnter}>
                 <div className={this.layoutVisibilityClassName}>
                     {this.region('main', viewport)}
                     {layout.showControls && controls.top !== 'none' && this.region('top', controls.top || SequenceView)}
@@ -154,9 +159,67 @@ class Layout extends PluginUIComponent {
                     {layout.showControls && controls.bottom !== 'none' && this.region('bottom', controls.bottom || Log)}
                 </div>
                 {!this.plugin.spec.components?.hideTaskOverlay && <OverlayTaskProgress />}
+                <DragOverlay plugin={this.plugin} showDragOverlay={this.showDragOverlay} />
             </div>
         </div>;
     }
+}
+
+function dropFiles(ev: React.DragEvent<HTMLDivElement>, plugin: PluginUIContext, showDragOverlay: BehaviorSubject<boolean>) {
+    ev.preventDefault();
+    ev.stopPropagation();
+    showDragOverlay.next(false);
+
+    const files: File[] = [];
+    if (ev.dataTransfer.items) {
+        // Use DataTransferItemList interface to access the file(s)
+        for (let i = 0; i < ev.dataTransfer.items.length; i++) {
+            if (ev.dataTransfer.items[i].kind !== 'file') continue;
+            const file = ev.dataTransfer.items[i].getAsFile();
+            if (file) files.push(file);
+        }
+    } else {
+        for (let i = 0; i < ev.dataTransfer.files.length; i++) {
+            const file = ev.dataTransfer.files[0];
+            if (file) files.push(file);
+        }
+    }
+
+    const sessions = files.filter(f => {
+        const fn = f.name.toLowerCase();
+        return fn.endsWith('.molx') || fn.endsWith('.molj');
+    });
+
+    if (sessions.length > 0) {
+        PluginCommands.State.Snapshots.OpenFile(plugin, { file: sessions[0] });
+    } else {
+        plugin.runTask(plugin.state.data.applyAction(OpenFiles, {
+            files: files.map(f => Asset.File(f)),
+            format: { name: 'auto', params: {} },
+            visuals: true
+        }));
+    }
+}
+
+function DragOverlay({ plugin, showDragOverlay }: { plugin: PluginUIContext, showDragOverlay: BehaviorSubject<boolean> }) {
+    const show = useBehavior(showDragOverlay);
+
+    const preventDrag = (e: React.DragEvent) => {
+        e.dataTransfer.dropEffect = 'copy';
+        e.preventDefault();
+        e.stopPropagation();
+    };
+
+    return <div
+        className='msp-drag-drop-overlay'
+        style={{ display: show ? 'flex' : 'none' }}
+        onDragEnter={preventDrag}
+        onDragOver={preventDrag}
+        onDragLeave={() => showDragOverlay.next(false)}
+        onDrop={e => dropFiles(e, plugin, showDragOverlay)}
+    >
+        Upload File(s)
+    </div>;
 }
 
 export class ControlsWrapper extends PluginUIComponent {

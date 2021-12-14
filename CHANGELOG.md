@@ -12,6 +12,8 @@ Note that since we don't clearly distinguish between a public and private interf
 - Fix false positives in Model.isFromPdbArchive
 - Add drag and drop support for loading any file, including multiple at once
     - If there are session files (.molx or .molj) among the dropped files, only the first session will be loaded
+- Add drag and drop overlay
+- Safari 15.1 - 15.3 WebGL 2 support workaround
 
 ## [v3.0.0-dev.3] - 2021-12-4
 
