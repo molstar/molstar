@@ -29,12 +29,18 @@ export interface SdfFile {
 
 
 const delimiter = '$$$$';
+const formalChargePrefix = 'M  CHG';
+
 function handleDataItems(tokenizer: Tokenizer): { dataHeader: Column<string>, data: Column<string> } {
     const dataHeader = TokenBuilder.create(tokenizer.data, 32);
     const data = TokenBuilder.create(tokenizer.data, 32);
 
     while (tokenizer.position < tokenizer.length) {
         const line = Tokenizer.readLine(tokenizer);
+        if (line.startsWith(formalChargePrefix)) {
+            console.log('charge found');
+            console.log(line);
+        }
         if (line.startsWith(delimiter)) break;
         if (!line) continue;
 
