@@ -6,6 +6,10 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+## [v3.0.0-dev.5] - 2021-12-16
+
+- Fix initial camera reset not triggering for some entries.
+
 ## [v3.0.0-dev.4] - 2021-12-14
 
 - Add ``bumpiness`` (per-object and per-group), ``bumpFrequency`` & ``bumpAmplitude`` (per-object) render parameters (#299)

@@ -514,7 +514,7 @@ namespace Canvas3D {
 
             if (camera.transition.inTransition || nextCameraResetSnapshot) return false;
 
-            let cameraSphereOverlapsNone = true;
+            let cameraSphereOverlapsNone = true, isEmpty = true;
             Sphere3D.set(cameraSphere, camera.state.target, camera.state.radius);
 
             // check if any renderable has moved outside of the old bounding sphere
@@ -525,12 +525,13 @@ namespace Canvas3D {
                 const b = r.values.boundingSphere.ref.value;
                 if (!b.radius) continue;
 
+                isEmpty = false;
                 const cameraDist = Vec3.distance(cameraSphere.center, b.center);
                 if ((cameraDist > cameraSphere.radius || cameraDist > b.radius || b.radius > camera.state.radiusMax) && !Sphere3D.includes(oldBoundingSphereVisible, b)) return true;
                 if (Sphere3D.overlaps(cameraSphere, b)) cameraSphereOverlapsNone = false;
             }
-
-            return cameraSphereOverlapsNone;
+            
+            return cameraSphereOverlapsNone || (!isEmpty && cameraSphere.radius <= 0.1);
         }
 
         const sceneCommitTimeoutMs = 250;
