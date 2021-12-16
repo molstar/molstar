@@ -530,7 +530,7 @@ namespace Canvas3D {
                 if ((cameraDist > cameraSphere.radius || cameraDist > b.radius || b.radius > camera.state.radiusMax) && !Sphere3D.includes(oldBoundingSphereVisible, b)) return true;
                 if (Sphere3D.overlaps(cameraSphere, b)) cameraSphereOverlapsNone = false;
             }
-            
+
             return cameraSphereOverlapsNone || (!isEmpty && cameraSphere.radius <= 0.1);
         }
 
