@@ -218,7 +218,7 @@ function DragOverlay({ plugin, showDragOverlay }: { plugin: PluginUIContext, sho
         onDragLeave={() => showDragOverlay.next(false)}
         onDrop={e => dropFiles(e, plugin, showDragOverlay)}
     >
-        Upload File(s)
+        Load File(s)
     </div>;
 }
 
