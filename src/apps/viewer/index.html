@@ -92,7 +92,7 @@
             if (emdb) viewer.loadEmdb(emdb);
 
             var afdb = getParam('afdb', '[^&]+').trim();
-            if (afdb) viewer.loadAfdb(afdb);
+            if (afdb) viewer.loadAlphaFoldDb(afdb);
 
             var modelArchive = getParam('model-archive', '[^&]+').trim();
             if (modelArchive) viewer.loadModelArchive(modelArchive);
