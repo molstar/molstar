@@ -6,6 +6,9 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Enable temporal multi-sampling by default
+    - Fix flickering during marking with camera at rest
+
 ## [v3.0.0-dev.5] - 2021-12-16
 
 - Fix initial camera reset not triggering for some entries.

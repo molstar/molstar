@@ -395,7 +395,11 @@ namespace Canvas3D {
                 }
 
                 if (MultiSamplePass.isEnabled(p.multiSample)) {
-                    multiSampleHelper.render(renderer, cam, scene, helper, true, p.transparentBackground, p);
+                    if (!cameraChanged) {
+                        while(!multiSampleHelper.render(renderer, cam, scene, helper, true, p.transparentBackground, p));
+                    } else {
+                        multiSampleHelper.render(renderer, cam, scene, helper, true, p.transparentBackground, p);
+                    }
                 } else {
                     passes.draw.render(renderer, cam, scene, helper, true, p.transparentBackground, p.postprocessing, p.marking);
                 }
