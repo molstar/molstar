@@ -23,6 +23,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Add QualityAssessment extension (using data from ma_qa_metric_local mmcif category)
     - pLDDT & qmean score: coloring, repr presets, molql symbol, loci labels (including avg for mutli-residue selections)
     - pLDDT: selection query
+- Warn about erroneous symmetry operator matrix (instead of throwing an error)
 
 ## [v3.0.0-dev.5] - 2021-12-16
 
