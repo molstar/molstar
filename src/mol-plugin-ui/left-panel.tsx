@@ -47,7 +47,7 @@ export class LeftPanelControls extends PluginUIComponent<{}, { tab: LeftPanelTab
         if (this.plugin.layout.state.regionState.left !== 'full') {
             PluginCommands.Layout.Update(this.plugin, { state: { regionState: { ...this.plugin.layout.state.regionState, left: 'full' } } });
         }
-    }
+    };
 
     tabs: { [K in LeftPanelTabName]: JSX.Element } = {
         'none': <></>,
@@ -69,7 +69,7 @@ export class LeftPanelControls extends PluginUIComponent<{}, { tab: LeftPanelTab
             <SectionHeader icon={HelpOutlineSvg} title='Help' />
             <HelpContent />
         </>
-    }
+    };
 
     render() {
         const tab = this.state.tab;
@@ -119,7 +119,7 @@ class DataIcon extends PluginUIComponent<{ set: (tab: LeftPanelTabName) => void 
 class FullSettings extends PluginUIComponent {
     private setSettings = (p: { param: PD.Base<any>, name: string, value: any }) => {
         PluginCommands.Canvas3D.SetSettings(this.plugin, { settings: { [p.name]: p.value } });
-    }
+    };
 
     componentDidMount() {
         this.subscribe(this.plugin.events.canvas3d.settingsUpdated, () => this.forceUpdate());
@@ -158,7 +158,7 @@ class RemoveAllButton extends PluginUIComponent<{ }> {
     remove = (e: React.MouseEvent<HTMLElement>) => {
         e.preventDefault();
         PluginCommands.State.RemoveObject(this.plugin, { state: this.plugin.state.data, ref: StateTransform.RootRef });
-    }
+    };
 
     render() {
         const count = this.plugin.state.data.tree.children.get(StateTransform.RootRef).size;

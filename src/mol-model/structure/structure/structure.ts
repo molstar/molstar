@@ -938,7 +938,7 @@ namespace Structure {
 
     export class StructureBuilder {
         private units: Unit[] = [];
-        private invariantId = idFactory()
+        private invariantId = idFactory();
 
         private chainGroupId = -1;
         private inChainGroup = false;

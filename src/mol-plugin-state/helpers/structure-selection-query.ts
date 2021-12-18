@@ -742,9 +742,9 @@ export const StructureSelectionQueries = {
 };
 
 export class StructureSelectionQueryRegistry {
-    list: StructureSelectionQuery[] = []
-    options: [StructureSelectionQuery, string, string][] = []
-    version = 1
+    list: StructureSelectionQuery[] = [];
+    options: [StructureSelectionQuery, string, string][] = [];
+    version = 1;
 
     add(q: StructureSelectionQuery) {
         this.list.push(q);

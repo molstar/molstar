@@ -54,7 +54,7 @@ const DefaultViewerOptions = {
 };
 
 class Viewer {
-    plugin: PluginUIContext
+    plugin: PluginUIContext;
 
     constructor(elementOrId: string | HTMLElement, colors = [Color(0x992211), Color(0xDDDDDD)], showButtons = true) {
         const o = { ...DefaultViewerOptions, ...{

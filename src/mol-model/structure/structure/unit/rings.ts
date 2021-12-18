@@ -29,7 +29,7 @@ class UnitRings {
         readonly ringComponentIndex: ReadonlyArray<UnitRings.ComponentIndex>,
         readonly ringComponents: ReadonlyArray<ReadonlyArray<UnitRings.Index>>
     };
-    private _aromaticRings?: ReadonlyArray<UnitRings.Index>
+    private _aromaticRings?: ReadonlyArray<UnitRings.Index>;
 
     private get index() {
         if (this._index) return this._index;

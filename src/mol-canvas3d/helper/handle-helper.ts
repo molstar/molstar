@@ -47,12 +47,12 @@ export type HandleHelperParams = typeof HandleHelperParams
 export type HandleHelperProps = PD.Values<HandleHelperParams>
 
 export class HandleHelper {
-    scene: Scene
+    scene: Scene;
     props: HandleHelperProps = {
         handle: { name: 'off', params: {} }
-    }
+    };
 
-    private renderObject: GraphicsRenderObject | undefined
+    private renderObject: GraphicsRenderObject | undefined;
 
     private _transform = Mat4();
     getBoundingSphere(out: Sphere3D, instanceId: number) {
@@ -117,7 +117,7 @@ export class HandleHelper {
             if (apply(Interval.ofSingleton(idx))) changed = true;
         }
         return changed;
-    }
+    };
 
     mark(loci: Loci, action: MarkerAction) {
         if (!MarkerActions.is(MarkerActions.Highlighting, action)) return false;

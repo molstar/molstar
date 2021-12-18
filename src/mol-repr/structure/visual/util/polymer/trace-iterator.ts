@@ -87,42 +87,42 @@ const tmpVecA = Vec3();
 const tmpVecB = Vec3();
 
 export class AtomicPolymerTraceIterator implements Iterator<PolymerTraceElement> {
-    private value: PolymerTraceElement
-    private polymerIt: SortedRanges.Iterator<ElementIndex, number>
-    private residueIt: Segmentation.SegmentIterator<ResidueIndex>
-    private polymerSegment: Segmentation.Segment<number>
-    private cyclicPolymerMap: Map<ResidueIndex, ResidueIndex>
-    private residueSegmentMin: ResidueIndex
-    private residueSegmentMax: ResidueIndex
-    private prevSecStrucType: SecondaryStructureType
-    private currSecStrucType: SecondaryStructureType
-    private nextSecStrucType: SecondaryStructureType
-    private prevCoarseBackbone: boolean
-    private currCoarseBackbone: boolean
-    private nextCoarseBackbone: boolean
-    private state: AtomicPolymerTraceIteratorState = AtomicPolymerTraceIteratorState.nextPolymer
-    private polymerRanges: SortedArray<ElementIndex>
-    private residueAtomSegments: Segmentation<ElementIndex, ResidueIndex>
-    private traceElementIndex: ArrayLike<ElementIndex>
-    private directionFromElementIndex: ArrayLike<ElementIndex | -1>
-    private directionToElementIndex: ArrayLike<ElementIndex | -1>
-    private moleculeType: ArrayLike<MoleculeType>
-    private atomicConformation: AtomicConformation
-    private secondaryStructure: SecondaryStructure | undefined
-    private helixOrientationCenters: ArrayLike<number> | undefined
+    private value: PolymerTraceElement;
+    private polymerIt: SortedRanges.Iterator<ElementIndex, number>;
+    private residueIt: Segmentation.SegmentIterator<ResidueIndex>;
+    private polymerSegment: Segmentation.Segment<number>;
+    private cyclicPolymerMap: Map<ResidueIndex, ResidueIndex>;
+    private residueSegmentMin: ResidueIndex;
+    private residueSegmentMax: ResidueIndex;
+    private prevSecStrucType: SecondaryStructureType;
+    private currSecStrucType: SecondaryStructureType;
+    private nextSecStrucType: SecondaryStructureType;
+    private prevCoarseBackbone: boolean;
+    private currCoarseBackbone: boolean;
+    private nextCoarseBackbone: boolean;
+    private state: AtomicPolymerTraceIteratorState = AtomicPolymerTraceIteratorState.nextPolymer;
+    private polymerRanges: SortedArray<ElementIndex>;
+    private residueAtomSegments: Segmentation<ElementIndex, ResidueIndex>;
+    private traceElementIndex: ArrayLike<ElementIndex>;
+    private directionFromElementIndex: ArrayLike<ElementIndex | -1>;
+    private directionToElementIndex: ArrayLike<ElementIndex | -1>;
+    private moleculeType: ArrayLike<MoleculeType>;
+    private atomicConformation: AtomicConformation;
+    private secondaryStructure: SecondaryStructure | undefined;
+    private helixOrientationCenters: ArrayLike<number> | undefined;
 
-    private p0 = Vec3()
-    private p1 = Vec3()
-    private p2 = Vec3()
-    private p3 = Vec3()
-    private p4 = Vec3()
-    private p5 = Vec3()
-    private p6 = Vec3()
+    private p0 = Vec3();
+    private p1 = Vec3();
+    private p2 = Vec3();
+    private p3 = Vec3();
+    private p4 = Vec3();
+    private p5 = Vec3();
+    private p6 = Vec3();
 
-    private d01 = Vec3()
-    private d12 = Vec3()
-    private d23 = Vec3()
-    private d34 = Vec3()
+    private d01 = Vec3();
+    private d12 = Vec3();
+    private d23 = Vec3();
+    private d34 = Vec3();
 
     hasNext: boolean = false;
 
@@ -428,12 +428,12 @@ export class AtomicPolymerTraceIterator implements Iterator<PolymerTraceElement>
 const enum CoarsePolymerTraceIteratorState { nextPolymer, nextElement }
 
 export class CoarsePolymerTraceIterator implements Iterator<PolymerTraceElement> {
-    private value: PolymerTraceElement
-    private polymerIt: SortedRanges.Iterator<ElementIndex, ResidueIndex>
-    private polymerSegment: Segmentation.Segment<ResidueIndex>
-    private state: CoarsePolymerTraceIteratorState = CoarsePolymerTraceIteratorState.nextPolymer
-    private conformation: CoarseSphereConformation | CoarseGaussianConformation
-    private elementIndex: number
+    private value: PolymerTraceElement;
+    private polymerIt: SortedRanges.Iterator<ElementIndex, ResidueIndex>;
+    private polymerSegment: Segmentation.Segment<ResidueIndex>;
+    private state: CoarsePolymerTraceIteratorState = CoarsePolymerTraceIteratorState.nextPolymer;
+    private conformation: CoarseSphereConformation | CoarseGaussianConformation;
+    private elementIndex: number;
     hasNext: boolean = false;
 
     private getElementIndex(elementIndex: number) {

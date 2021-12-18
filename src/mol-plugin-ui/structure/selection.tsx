@@ -35,7 +35,7 @@ export class ToggleSelectionModeButton extends PurePluginUIComponent<{ inline?: 
 
     _toggleSelMode = () => {
         this.plugin.selectionMode = !this.plugin.selectionMode;
-    }
+    };
 
     render() {
         const style = this.props.inline
@@ -75,7 +75,7 @@ export class StructureSelectionActionsControls extends PluginUIComponent<{}, Str
         isEmpty: true,
         isBusy: false,
         canUndo: false,
-    }
+    };
 
     componentDidMount() {
         this.subscribe(this.plugin.managers.structure.hierarchy.behaviors.selection, c => {
@@ -107,7 +107,7 @@ export class StructureSelectionActionsControls extends PluginUIComponent<{}, Str
 
     set = (modifier: StructureSelectionModifier, selectionQuery: StructureSelectionQuery) => {
         this.plugin.managers.structure.selection.fromSelectionQuery(modifier, selectionQuery, false);
-    }
+    };
 
     selectQuery: ActionMenu.OnSelect = (item, e) => {
         if (!item || !this.state.action) {
@@ -122,7 +122,7 @@ export class StructureSelectionActionsControls extends PluginUIComponent<{}, Str
                 this.set(q, item.value as StructureSelectionQuery);
             });
         }
-    }
+    };
 
     selectHelper: ActionMenu.OnSelect = (item, e) => {
         console.log(item);
@@ -131,7 +131,7 @@ export class StructureSelectionActionsControls extends PluginUIComponent<{}, Str
             return;
         }
         this.setState({ helper: (item.value as { kind: SelectionHelperType }).kind });
-    }
+    };
 
     get structures() {
         const structures: Structure[] = [];
@@ -142,8 +142,8 @@ export class StructureSelectionActionsControls extends PluginUIComponent<{}, Str
         return structures;
     }
 
-    private queriesItems: ActionMenu.Items[] = []
-    private queriesVersion = -1
+    private queriesItems: ActionMenu.Items[] = [];
+    private queriesVersion = -1;
     get queries() {
         const { registry } = this.plugin.query.structure;
         if (registry.version !== this.queriesVersion) {
@@ -186,24 +186,24 @@ export class StructureSelectionActionsControls extends PluginUIComponent<{}, Str
         return () => this.setState({ action: this.state.action === q ? void 0 : q, helper: void 0 });
     }
 
-    toggleAdd = this.showAction('add')
-    toggleRemove = this.showAction('remove')
-    toggleIntersect = this.showAction('intersect')
-    toggleSet = this.showAction('set')
-    toggleTheme = this.showAction('theme')
-    toggleAddComponent = this.showAction('add-component')
-    toggleHelp = this.showAction('help')
+    toggleAdd = this.showAction('add');
+    toggleRemove = this.showAction('remove');
+    toggleIntersect = this.showAction('intersect');
+    toggleSet = this.showAction('set');
+    toggleTheme = this.showAction('theme');
+    toggleAddComponent = this.showAction('add-component');
+    toggleHelp = this.showAction('help');
 
     setGranuality: ParamOnChange = ({ value }) => {
         this.plugin.managers.interactivity.setProps({ granularity: value });
-    }
+    };
 
     turnOff = () => this.plugin.selectionMode = false;
 
     undo = () => {
         const task = this.plugin.state.data.undo();
         if (task) this.plugin.runTask(task);
-    }
+    };
 
     subtract = () => {
         const sel = this.plugin.managers.structure.hierarchy.getStructuresWithSelection();
@@ -211,7 +211,7 @@ export class StructureSelectionActionsControls extends PluginUIComponent<{}, Str
         for (const s of sel) components.push(...s.components);
         if (components.length === 0) return;
         this.plugin.managers.structure.component.modifyByCurrentSelection(components, 'subtract');
-    }
+    };
 
     render() {
         const granularity = this.plugin.managers.interactivity.props.granularity;
@@ -283,7 +283,7 @@ export class StructureSelectionStatsControls extends PluginUIComponent<{ hideOnE
     state = {
         isEmpty: true,
         isBusy: false
-    }
+    };
 
     componentDidMount() {
         this.subscribe(this.plugin.managers.structure.selection.events.changed, () => {
@@ -321,18 +321,18 @@ export class StructureSelectionStatsControls extends PluginUIComponent<{ hideOnE
         if (this.plugin.managers.structure.selection.stats.elementCount === 0) return;
         const { sphere } = this.plugin.managers.structure.selection.getBoundary();
         this.plugin.managers.camera.focusSphere(sphere);
-    }
+    };
 
     highlight = (e: React.MouseEvent<HTMLElement>) => {
         this.plugin.managers.interactivity.lociHighlights.clearHighlights();
         this.plugin.managers.structure.selection.entries.forEach(e => {
             this.plugin.managers.interactivity.lociHighlights.highlight({ loci: e.selection }, false);
         });
-    }
+    };
 
     clearHighlight = () => {
         this.plugin.managers.interactivity.lociHighlights.clearHighlights();
-    }
+    };
 
     render() {
         const stats = this.plugin.managers.structure.selection.stats;
@@ -369,9 +369,9 @@ class ApplyThemeControls extends PurePluginUIComponent<ApplyThemeControlsProps, 
     apply = () => {
         this.plugin.managers.structure.component.applyTheme(this.state.values, this.plugin.managers.structure.hierarchy.current.structures);
         this.props.onApply?.();
-    }
+    };
 
-    paramsChanged = (values: any) => this.setState({ values })
+    paramsChanged = (values: any) => this.setState({ values });
 
     render() {
         return <>

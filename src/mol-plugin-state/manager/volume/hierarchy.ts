@@ -18,14 +18,14 @@ export class VolumeHierarchyManager extends PluginComponent {
 
         hierarchy: VolumeHierarchy(),
         selection: void 0 as VolumeRef | undefined
-    }
+    };
 
     readonly behaviors = {
         selection: this.ev.behavior({
             hierarchy: this.current,
             volume: this.selection
         })
-    }
+    };
 
     private get dataState() {
         return this.plugin.state.data;

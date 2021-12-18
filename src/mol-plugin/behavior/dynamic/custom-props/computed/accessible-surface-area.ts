@@ -20,14 +20,14 @@ export const AccessibleSurfaceArea = PluginBehavior.create<{ autoAttach: boolean
     category: 'custom-props',
     display: { name: 'Accessible Surface Area' },
     ctor: class extends PluginBehavior.Handler<{ autoAttach: boolean, showTooltip: boolean }> {
-        private provider = AccessibleSurfaceAreaProvider
+        private provider = AccessibleSurfaceAreaProvider;
 
         private labelProvider = {
             label: (loci: Loci): string | undefined => {
                 if (!this.params.showTooltip) return;
                 return accessibleSurfaceAreaLabel(loci);
             }
-        }
+        };
 
         update(p: { autoAttach: boolean, showTooltip: boolean }) {
             const updated = (

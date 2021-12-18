@@ -30,7 +30,7 @@ export const ANVILMembraneOrientation = PluginBehavior.create<{ autoAttach: bool
         description: 'Data calculated with ANVIL algorithm.'
     },
     ctor: class extends PluginBehavior.Handler<{ autoAttach: boolean }> {
-        private provider = MembraneOrientationProvider
+        private provider = MembraneOrientationProvider;
 
         register(): void {
             DefaultQueryRuntimeTable.addCustomProp(this.provider.descriptor);

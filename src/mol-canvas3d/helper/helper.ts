@@ -23,9 +23,9 @@ export type HelperProps = PD.Values<typeof HelperParams>
 
 
 export class Helper {
-    readonly debug: BoundingSphereHelper
-    readonly camera: CameraHelper
-    readonly handle: HandleHelper
+    readonly debug: BoundingSphereHelper;
+    readonly camera: CameraHelper;
+    readonly handle: HandleHelper;
 
     constructor(webgl: WebGLContext, scene: Scene, props: Partial<HelperProps> = {}) {
         const p = { ...DefaultHelperProps, ...props };

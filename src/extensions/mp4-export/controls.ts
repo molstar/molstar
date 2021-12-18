@@ -31,7 +31,7 @@ export class Mp4Controls extends PluginComponent {
         canApply: this.ev.behavior<PluginStateAnimation.CanApply>({ canApply: false }),
         info: this.ev.behavior<Mp4AnimationInfo>({ width: 0, height: 0 }),
         params: this.ev.behavior<PD.Values<typeof Mp4AnimationParams>>(PD.getDefaultValues(Mp4AnimationParams))
-    }
+    };
 
     setCurrent(name?: string) {
         const anim = this.animations.find(a => a.name === name);

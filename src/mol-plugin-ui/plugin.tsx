@@ -135,11 +135,11 @@ class Layout extends PluginUIComponent {
                 visuals: true
             }));
         }
-    }
+    };
 
     onDragOver = (ev: React.DragEvent<HTMLDivElement>) => {
         ev.preventDefault();
-    }
+    };
 
     private showDragOverlay = new BehaviorSubject(false);
     onDragEnter = () => this.showDragOverlay.next(true);

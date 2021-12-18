@@ -66,11 +66,11 @@ export class MultiSamplePass {
         return props.mode !== 'off';
     }
 
-    colorTarget: RenderTarget
+    colorTarget: RenderTarget;
 
-    private composeTarget: RenderTarget
-    private holdTarget: RenderTarget
-    private compose: ComposeRenderable
+    private composeTarget: RenderTarget;
+    private holdTarget: RenderTarget;
+    private compose: ComposeRenderable;
 
     constructor(private webgl: WebGLContext, private drawPass: DrawPass) {
         const { colorBufferFloat, textureFloat, colorBufferHalfFloat, textureHalfFloat } = webgl.extensions;
@@ -317,7 +317,7 @@ JitterVectors.forEach(offsetList => {
 });
 
 export class MultiSampleHelper {
-    private sampleIndex = -2
+    private sampleIndex = -2;
 
     update(changed: boolean, props: MultiSampleProps) {
         if (changed) this.sampleIndex = -1;

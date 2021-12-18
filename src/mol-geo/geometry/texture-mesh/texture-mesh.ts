@@ -47,7 +47,7 @@ export interface TextureMesh {
 export namespace TextureMesh {
     export class DoubleBuffer {
         private index = 0;
-        private textures: ({ vertex: Texture, group: Texture, normal: Texture } | undefined)[] = []
+        private textures: ({ vertex: Texture, group: Texture, normal: Texture } | undefined)[] = [];
 
         get() {
             return this.textures[this.index];

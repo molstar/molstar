@@ -11,11 +11,11 @@ export { InterUnitGraph };
 
 class InterUnitGraph<UnitId extends number, VertexIndex extends number, EdgeProps extends InterUnitGraph.EdgePropsBase = {}> {
     /** Number of inter-unit edges */
-    readonly edgeCount: number
+    readonly edgeCount: number;
     /** Array of inter-unit edges */
-    readonly edges: ReadonlyArray<InterUnitGraph.Edge<UnitId, VertexIndex, EdgeProps>>
-    private readonly edgeKeyIndex: Map<string, number>
-    private readonly vertexKeyIndex: Map<string, number[]>
+    readonly edges: ReadonlyArray<InterUnitGraph.Edge<UnitId, VertexIndex, EdgeProps>>;
+    private readonly edgeKeyIndex: Map<string, number>;
+    private readonly vertexKeyIndex: Map<string, number[]>;
 
     /** Get an array of unit-pair-edges that are connected to the given unit */
     getConnectedUnits(unit: UnitId): ReadonlyArray<InterUnitGraph.UnitPairEdges<UnitId, VertexIndex, EdgeProps>> {
@@ -134,13 +134,13 @@ namespace InterUnitGraph {
 
 
     export class Builder<UnitId extends number, VertexIndex extends number, EdgeProps extends InterUnitGraph.EdgePropsBase = {}> {
-        private uA: UnitId
-        private uB: UnitId
-        private mapAB: Map<number, EdgeInfo<VertexIndex, EdgeProps>[]>
-        private mapBA: Map<number, EdgeInfo<VertexIndex, EdgeProps>[]>
-        private linkedA: UniqueArray<VertexIndex, VertexIndex>
-        private linkedB: UniqueArray<VertexIndex, VertexIndex>
-        private linkCount: number
+        private uA: UnitId;
+        private uB: UnitId;
+        private mapAB: Map<number, EdgeInfo<VertexIndex, EdgeProps>[]>;
+        private mapBA: Map<number, EdgeInfo<VertexIndex, EdgeProps>[]>;
+        private linkedA: UniqueArray<VertexIndex, VertexIndex>;
+        private linkedB: UniqueArray<VertexIndex, VertexIndex>;
+        private linkCount: number;
 
         private map = new Map<number, UnitPairEdges<UnitId, VertexIndex, EdgeProps>[]>();
 

@@ -67,7 +67,7 @@ export class PluginContext {
         if (!object) return void 0;
         if (Task.is(object)) return this.runTask(object);
         return object;
-    }
+    };
 
     protected subs: Subscription[] = [];
 
@@ -259,7 +259,7 @@ export class PluginContext {
      * This should be used in all transform related request so that it could be "spoofed" to allow
      * "static" access to resources.
      */
-    readonly fetch = ajaxGet
+    readonly fetch = ajaxGet;
 
     /** return true is animating or updating */
     get isBusy() {

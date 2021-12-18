@@ -21,7 +21,7 @@ export const PDBeStructureQualityReport = PluginBehavior.create<{ autoAttach: bo
     },
     ctor: class extends PluginBehavior.Handler<{ autoAttach: boolean, showTooltip: boolean }> {
 
-        private provider = StructureQualityReportProvider
+        private provider = StructureQualityReportProvider;
 
         private labelPDBeValidation = {
             label: (loci: Loci): string | undefined => {
@@ -42,7 +42,7 @@ export const PDBeStructureQualityReport = PluginBehavior.create<{ autoAttach: bo
                     default: return void 0;
                 }
             }
-        }
+        };
 
         register(): void {
             this.ctx.customModelProperties.register(this.provider, this.params.autoAttach);

@@ -34,7 +34,7 @@ export class ViewportCanvas extends PluginUIComponent<ViewportCanvasParams, View
 
     private handleLogo = () => {
         this.setState({ showLogo: !this.plugin.canvas3d?.reprCount.value });
-    }
+    };
 
     componentDidMount() {
         if (!this.canvas.current || !this.container.current || !this.plugin.initViewer(this.canvas.current!, this.container.current!)) {

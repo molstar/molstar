@@ -21,7 +21,7 @@ class StateActionManager {
     readonly events = {
         added: this.ev<undefined>(),
         removed: this.ev<undefined>(),
-    }
+    };
 
     add(actionOrTransformer: StateAction | StateTransformer) {
         const action = StateTransformer.is(actionOrTransformer) ? actionOrTransformer.toAction() : actionOrTransformer;

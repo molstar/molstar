@@ -95,7 +95,7 @@ const DefaultViewerOptions = {
 type ViewerOptions = typeof DefaultViewerOptions;
 
 export class Viewer {
-    plugin: PluginUIContext
+    plugin: PluginUIContext;
 
     constructor(elementOrId: string | HTMLElement, options: Partial<ViewerOptions> = {}) {
         const o = { ...DefaultViewerOptions, ...options };

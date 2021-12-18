@@ -25,13 +25,13 @@ const NullId = Math.pow(2, 24) - 2;
 export type PickData = { id: PickingId, position: Vec3 }
 
 export class PickPass {
-    readonly objectPickTarget: RenderTarget
-    readonly instancePickTarget: RenderTarget
-    readonly groupPickTarget: RenderTarget
-    readonly depthPickTarget: RenderTarget
+    readonly objectPickTarget: RenderTarget;
+    readonly instancePickTarget: RenderTarget;
+    readonly groupPickTarget: RenderTarget;
+    readonly depthPickTarget: RenderTarget;
 
-    private pickWidth: number
-    private pickHeight: number
+    private pickWidth: number;
+    private pickHeight: number;
 
     constructor(private webgl: WebGLContext, private drawPass: DrawPass, readonly pickBaseScale: number) {
         const pickScale = pickBaseScale / webgl.pixelRatio;
@@ -97,23 +97,23 @@ export class PickPass {
 }
 
 export class PickHelper {
-    dirty = true
+    dirty = true;
 
-    private objectBuffer: Uint8Array
-    private instanceBuffer: Uint8Array
-    private groupBuffer: Uint8Array
-    private depthBuffer: Uint8Array
+    private objectBuffer: Uint8Array;
+    private instanceBuffer: Uint8Array;
+    private groupBuffer: Uint8Array;
+    private depthBuffer: Uint8Array;
 
-    private viewport = Viewport()
+    private viewport = Viewport();
 
-    private pickScale: number
-    private pickX: number
-    private pickY: number
-    private pickWidth: number
-    private pickHeight: number
-    private halfPickWidth: number
+    private pickScale: number;
+    private pickX: number;
+    private pickY: number;
+    private pickWidth: number;
+    private pickHeight: number;
+    private halfPickWidth: number;
 
-    private spiral: [number, number][]
+    private spiral: [number, number][];
 
     private setupBuffers() {
         const bufferSize = this.pickWidth * this.pickHeight * 4;

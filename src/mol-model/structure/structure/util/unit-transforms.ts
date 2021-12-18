@@ -12,8 +12,8 @@ import { fillIdentityTransform } from '../../../../mol-geo/geometry/transform-da
 const tmpMat = Mat4();
 
 export class StructureUnitTransforms {
-    private unitTransforms: Float32Array
-    private groupUnitTransforms: Float32Array[] = []
+    private unitTransforms: Float32Array;
+    private groupUnitTransforms: Float32Array[] = [];
     /** maps unit.id to offset of transform in unitTransforms */
     private unitOffsetMap = IntMap.Mutable<number>();
     private groupIndexMap = IntMap.Mutable<number>();

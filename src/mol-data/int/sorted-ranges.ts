@@ -87,9 +87,9 @@ namespace SortedRanges {
     }
 
     export class Iterator<T extends number = number, I extends number = number> implements _Iterator<Segmentation.Segment<I>> {
-        private value: Segmentation.Segment<I> = { index: 0 as I, start: 0 as T, end: 0 as T }
+        private value: Segmentation.Segment<I> = { index: 0 as I, start: 0 as T, end: 0 as T };
 
-        private curIndex = 0
+        private curIndex = 0;
 
         hasNext: boolean = false;
 

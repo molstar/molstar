@@ -49,13 +49,13 @@ export type CameraHelperParams = typeof CameraHelperParams
 export type CameraHelperProps = PD.Values<CameraHelperParams>
 
 export class CameraHelper {
-    scene: Scene
-    camera: Camera
+    scene: Scene;
+    camera: Camera;
     props: CameraHelperProps = {
         axes: { name: 'off', params: {} }
-    }
+    };
 
-    private renderObject: GraphicsRenderObject | undefined
+    private renderObject: GraphicsRenderObject | undefined;
 
     constructor(private webgl: WebGLContext, props: Partial<CameraHelperProps> = {}) {
         this.scene = Scene.create(webgl);
@@ -109,7 +109,7 @@ export class CameraHelper {
             if (apply(Interval.ofSingleton(idx))) changed = true;
         }
         return changed;
-    }
+    };
 
     mark(loci: Loci, action: MarkerAction) {
         if (!MarkerActions.is(MarkerActions.Highlighting, action)) return false;

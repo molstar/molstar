@@ -14,13 +14,13 @@ import { ColorNames } from '../../mol-util/color/names';
 import { MarkerAction, applyMarkerAction, applyMarkerActionAtPosition } from '../../mol-util/marker-action';
 
 export class PolymerSequenceWrapper extends SequenceWrapper<StructureUnit> {
-    private readonly unitMap: Map<number, Unit>
-    private readonly sequence: Sequence
-    private readonly missing: MissingResidues
-    private readonly observed: OrderedSet // sequences indices
+    private readonly unitMap: Map<number, Unit>;
+    private readonly sequence: Sequence;
+    private readonly missing: MissingResidues;
+    private readonly observed: OrderedSet; // sequences indices
 
-    private readonly modelNum: number
-    private readonly asymId: string
+    private readonly modelNum: number;
+    private readonly asymId: string;
 
     private seqId(seqIdx: number) {
         return this.sequence.seqId.value(seqIdx);
