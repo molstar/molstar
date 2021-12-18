@@ -90,6 +90,12 @@
 
             var emdb = getParam('emdb', '[^&]+').trim();
             if (emdb) viewer.loadEmdb(emdb);
+
+            var afdb = getParam('afdb', '[^&]+').trim();
+            if (afdb) viewer.loadAlphaFoldDb(afdb);
+
+            var modelArchive = getParam('model-archive', '[^&]+').trim();
+            if (modelArchive) viewer.loadModelArchive(modelArchive);
         </script>
         <!-- __MOLSTAR_ANALYTICS__ -->
     </body>

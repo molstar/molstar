@@ -9,6 +9,20 @@ Note that since we don't clearly distinguish between a public and private interf
 - Enable temporal multi-sampling by default
     - Fix flickering during marking with camera at rest
 - Enable ``aromaticBonds`` in structure representations by default
+- Add ``PluginConfig.Structure.DefaultRepresentationPreset``
+- Add ModelArchive support
+    - schema extensions (e.g., AlphaFold uses it for the pLDDT score)
+    - ModelArchive option in DownloadStructure action
+    - ``model-archive`` GET parameter for Viewer app
+    - ``Viewer.loadModelArchive`` method
+- Improve support for loading AlphaFold structures
+    - Automatic coloring by pLDDT
+    - AlphaFold DB option in DownloadStructure action
+    - ``afdb`` GET parameter for Viewer app
+    - ``Viewer.loadAlphaFoldDb`` method
+- Add QualityAssessment extension (using data from ma_qa_metric_local mmcif category)
+    - pLDDT & qmean score: coloring, repr presets, molql symbol, loci labels (including avg for mutli-residue selections)
+    - pLDDT: selection query
 
 ## [v3.0.0-dev.5] - 2021-12-16
 
