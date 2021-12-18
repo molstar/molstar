@@ -7,6 +7,8 @@
         "*.gql.ts": "graphql"
     },
     "eslint.options": {
-        "ignorePattern": ["webpack.config.js", "scripts/*"],
+        "overrideConfig": {
+            "ignorePatterns": ["webpack.config.js", "scripts/*"],
+        },
     }
 }

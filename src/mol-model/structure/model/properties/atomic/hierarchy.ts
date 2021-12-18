@@ -210,7 +210,7 @@ export interface AtomicIndex {
      * Find element index of an atom on a given residue.
      * @returns index or -1 if the atom is not present.
      */
-     findElementOnResidue(residueIndex: ResidueIndex, type_symbol: ElementSymbol): ElementIndex
+    findElementOnResidue(residueIndex: ResidueIndex, type_symbol: ElementSymbol): ElementIndex
 
     // TODO: add indices that support comp_id?
 }
