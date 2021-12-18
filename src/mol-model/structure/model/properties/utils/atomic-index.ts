@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -12,6 +12,7 @@ import { ChainIndex, ResidueIndex, EntityIndex, ElementIndex } from '../../index
 import { AtomicIndex, AtomicHierarchy } from '../atomic/hierarchy';
 import { cantorPairing } from '../../../../../mol-data/util';
 import { Column } from '../../../../../mol-data/db';
+import { ElementSymbol } from '../../types';
 
 function getResidueId(seq_id: number, ins_code: string) {
     if (!ins_code) return seq_id;
@@ -43,6 +44,7 @@ interface Mapping {
     label_atom_id: Column<string>,
     auth_atom_id: Column<string>,
     label_alt_id: Column<string>,
+    type_symbol: Column<ElementSymbol>,
     segments: AtomicSegments,
 
     chain_index_entity_index: EntityIndex[],
@@ -64,6 +66,7 @@ function createMapping(entities: Entities, data: AtomicData, segments: AtomicSeg
         label_atom_id: data.atoms.label_atom_id,
         auth_atom_id: data.atoms.auth_atom_id,
         label_alt_id: data.atoms.label_alt_id,
+        type_symbol: data.atoms.type_symbol,
         chain_index_entity_index: new Int32Array(data.chains._rowCount) as any,
         entity_index_label_asym_id: new Map(),
         chain_index_label_seq_id: new Map(),
@@ -173,6 +176,10 @@ class Index implements AtomicIndex {
         return findAtomByNames(this.residueOffsets[rI], this.residueOffsets[rI + 1], this.map.label_atom_id, label_atom_ids);
     }
 
+    findElementOnResidue(rI: ResidueIndex, type_symbol: ElementSymbol) {
+        return findAtomByElement(this.residueOffsets[rI], this.residueOffsets[rI + 1], this.map.type_symbol, type_symbol);
+    }
+
     constructor(private map: Mapping) {
         this.entityIndex = map.entities.getEntityIndex;
         this.residueOffsets = this.map.segments.residueAtomSegments.offsets;
@@ -197,6 +204,13 @@ function findAtomByNameAndAltLoc(start: ElementIndex, end: ElementIndex, nameDat
     atomName: string, altLoc: string): ElementIndex {
     for (let i = start; i < end; i++) {
         if (nameData.value(i) === atomName && altLocData.value(i) === altLoc) return i;
+    }
+    return -1 as ElementIndex;
+}
+
+function findAtomByElement(start: ElementIndex, end: ElementIndex, data: Column<ElementSymbol>, typeSymbol: ElementSymbol): ElementIndex {
+    for (let i = start; i < end; i++) {
+        if (data.value(i) === typeSymbol) return i;
     }
     return -1 as ElementIndex;
 }
