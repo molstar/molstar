@@ -201,7 +201,7 @@ export function PolymerTraceVisual(materialId: number): UnitsVisual<PolymerTrace
 
             const secondaryStructureHash = SecondaryStructureProvider.get(newStructureGroup.structure).version;
             if ((state.info.secondaryStructureHash as number) !== secondaryStructureHash) {
-                state.createGeometry = true;
+                state.createGeometry = state.info.secondaryStructureHash !== undefined;
                 state.info.secondaryStructureHash = secondaryStructureHash;
             }
         }
