@@ -29,6 +29,11 @@
 * Long linear sugar chain (4HG6)
 * Anisotropic B-factors/Ellipsoids (1EJG)
 * NOS bridges (LYS-CSO in 7B0L, 6ZWJ, 6ZWH)
+* Non-polymer components in polymer entities
+    * PN2 in 1F80
+    * ACE (many, e.g. 5AGU, 1E1X)
+    * ACY in 7ABY
+    * NH2 (many, e.g. 6Y13)
 
 Assembly symmetries
 * 5M30 (Assembly 1, C3 local and pseudo)

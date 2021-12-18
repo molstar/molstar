@@ -7,7 +7,7 @@
 
 import { CustomProperty } from '../../mol-model-props/common/custom-property';
 import { QueryContext, Structure, StructureQuery, StructureSelection, StructureProperties, StructureElement } from '../../mol-model/structure';
-import { BondType, NucleicBackboneAtoms, ProteinBackboneAtoms, SecondaryStructureType, AminoAcidNamesL, RnaBaseNames, DnaBaseNames, WaterNames, ElementSymbol } from '../../mol-model/structure/model/types';
+import { BondType, NucleicBackboneAtoms, ProteinBackboneAtoms, SecondaryStructureType, AminoAcidNamesL, RnaBaseNames, DnaBaseNames, WaterNames, ElementSymbol, PolymerNames } from '../../mol-model/structure/model/types';
 import { PluginContext } from '../../mol-plugin/context';
 import { MolScriptBuilder as MS } from '../../mol-script/language/builder';
 import { Expression } from '../../mol-script/language/expression';
@@ -320,33 +320,46 @@ const branchedConnectedOnly = StructureSelectionQuery('Connected to Carbohydrate
 ]), { category: StructureSelectionCategory.Internal, isHidden: true });
 
 const ligand = StructureSelectionQuery('Ligand', MS.struct.modifier.union([
-    MS.struct.combinator.merge([
-        MS.struct.modifier.union([
-            MS.struct.generator.atomGroups({
-                'entity-test': MS.core.logic.and([
-                    MS.core.logic.or([
-                        MS.core.rel.eq([MS.ammp('entityType'), 'non-polymer']),
-                        MS.core.rel.neq([MS.ammp('entityPrdId'), ''])
-                    ]),
-                    MS.core.logic.not([MS.core.str.match([
-                        MS.re('(oligosaccharide|lipid|ion)', 'i'),
-                        MS.ammp('entitySubtype')
-                    ])])
+    MS.struct.modifier.exceptBy({
+        0: MS.struct.modifier.union([
+            MS.struct.combinator.merge([
+                MS.struct.modifier.union([
+                    MS.struct.generator.atomGroups({
+                        'entity-test': MS.core.logic.and([
+                            MS.core.logic.or([
+                                MS.core.rel.eq([MS.ammp('entityType'), 'non-polymer']),
+                                MS.core.rel.neq([MS.ammp('entityPrdId'), ''])
+                            ]),
+                            MS.core.logic.not([MS.core.str.match([
+                                MS.re('(oligosaccharide|lipid|ion)', 'i'),
+                                MS.ammp('entitySubtype')
+                            ])])
+                        ]),
+                        'chain-test': MS.core.rel.eq([MS.ammp('objectPrimitive'), 'atomistic']),
+                        'residue-test': MS.core.logic.not([
+                            MS.core.str.match([MS.re('saccharide', 'i'), MS.ammp('chemCompType')])
+                        ])
+                    })
                 ]),
-                'chain-test': MS.core.rel.eq([MS.ammp('objectPrimitive'), 'atomistic']),
-                'residue-test': MS.core.logic.not([
-                    MS.core.str.match([MS.re('saccharide', 'i'), MS.ammp('chemCompType')])
+                MS.struct.modifier.union([
+                    MS.struct.generator.atomGroups({
+                        'entity-test': MS.core.rel.eq([MS.ammp('entityType'), 'polymer']),
+                        'chain-test': MS.core.rel.eq([MS.ammp('objectPrimitive'), 'atomistic']),
+                        'residue-test': _nonPolymerResidueTest
+                    })
                 ])
-            })
+            ]),
         ]),
-        MS.struct.modifier.union([
+        by: MS.struct.modifier.union([
             MS.struct.generator.atomGroups({
                 'entity-test': MS.core.rel.eq([MS.ammp('entityType'), 'polymer']),
                 'chain-test': MS.core.rel.eq([MS.ammp('objectPrimitive'), 'atomistic']),
-                'residue-test': _nonPolymerResidueTest
+                'residue-test': MS.core.set.has([
+                    MS.set(...SetUtils.toArray(PolymerNames)), MS.ammp('label_comp_id')
+                ])
             })
         ])
-    ]),
+    })
 ]), { category: StructureSelectionCategory.Type });
 
 // don't include branched entities as they have their own link representation
