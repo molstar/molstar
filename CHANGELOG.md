@@ -8,6 +8,7 @@ Note that since we don't clearly distinguish between a public and private interf
 
 - Enable temporal multi-sampling by default
     - Fix flickering during marking with camera at rest
+- Enable ``aromaticBonds`` in structure representations by default
 
 ## [v3.0.0-dev.5] - 2021-12-16
 
@@ -37,7 +38,7 @@ Note that since we don't clearly distinguish between a public and private interf
 
 - Add multiple lights support (with color, intensity, and direction parameters)
 - [Breaking] Add per-object material rendering properties
-  - ``SimpleSettingsParams.lighting.renderStyle`` and ``RendererParams.style`` were removed
+    - ``SimpleSettingsParams.lighting.renderStyle`` and ``RendererParams.style`` were removed
 - Add substance theme with per-group material rendering properties
 - ``StructureComponentManager.Options`` state saving support
 - ``ParamDefinition.Group.presets`` support
