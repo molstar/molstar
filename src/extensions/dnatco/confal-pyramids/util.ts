@@ -114,7 +114,7 @@ export namespace ConfalPyramidsUtil {
             this.modelNum = unit.model.modelNum;
         }
 
-        protected readonly data: CPT.PyramidsData
+        protected readonly data: CPT.PyramidsData;
         protected readonly hasMultipleModels: boolean;
         protected readonly entryId: string;
         protected readonly modelNum: number;

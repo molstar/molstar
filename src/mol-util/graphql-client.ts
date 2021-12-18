@@ -31,8 +31,8 @@ interface GraphQLRequestContext {
 }
 
 export class ClientError extends Error {
-    response: GraphQLResponse
-    request: GraphQLRequestContext
+    response: GraphQLResponse;
+    request: GraphQLRequestContext;
 
     constructor(response: GraphQLResponse, request: GraphQLRequestContext) {
         const message = `${ClientError.extractMessage(response)}: ${JSON.stringify({ response, request })}`;

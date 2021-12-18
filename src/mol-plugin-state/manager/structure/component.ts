@@ -42,7 +42,7 @@ interface StructureComponentManagerState {
 class StructureComponentManager extends StatefulPluginComponent<StructureComponentManagerState> {
     readonly events = {
         optionsUpdated: this.ev<undefined>()
-    }
+    };
 
     get currentStructures() {
         return this.plugin.managers.structure.hierarchy.selection.structures;

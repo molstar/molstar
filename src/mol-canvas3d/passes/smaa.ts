@@ -31,12 +31,12 @@ export const SmaaParams = {
 export type SmaaProps = PD.Values<typeof SmaaParams>
 
 export class SmaaPass {
-    private readonly edgesTarget: RenderTarget
-    private readonly weightsTarget: RenderTarget
+    private readonly edgesTarget: RenderTarget;
+    private readonly weightsTarget: RenderTarget;
 
-    private readonly edgesRenderable: EdgesRenderable
-    private readonly weightsRenderable: WeightsRenderable
-    private readonly blendRenderable: BlendRenderable
+    private readonly edgesRenderable: EdgesRenderable;
+    private readonly weightsRenderable: WeightsRenderable;
+    private readonly blendRenderable: BlendRenderable;
 
     private _supported = false;
     get supported() {

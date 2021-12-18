@@ -321,6 +321,12 @@ export function getMoleculeType(compType: string, compId: string): MoleculeType 
         if (SaccharideCompIdMap.has(compId)) {
             // trust our saccharide table more than given 'non-polymer' or 'other' component type
             return MoleculeType.Saccharide;
+        } else if (AminoAcidNames.has(compId)) {
+            return MoleculeType.Protein;
+        } else if (RnaBaseNames.has(compId)) {
+            return MoleculeType.RNA;
+        } else if (DnaBaseNames.has(compId)) {
+            return MoleculeType.DNA;
         } else {
             return MoleculeType.Other;
         }

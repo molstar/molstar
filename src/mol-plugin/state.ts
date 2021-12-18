@@ -47,7 +47,7 @@ class PluginState extends PluginComponent {
 
     setSnapshotParams = (params?: PluginState.SnapshotParams) => {
         this.snapshotParams.next({ ...PluginState.DefaultSnapshotParams, ...params });
-    }
+    };
 
     getSnapshot(params?: PluginState.SnapshotParams): PluginState.Snapshot {
         const p = { ...this.snapshotParams.value, ...params };

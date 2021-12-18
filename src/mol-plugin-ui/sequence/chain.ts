@@ -12,9 +12,9 @@ import { ColorNames } from '../../mol-util/color/names';
 import { MarkerAction, applyMarkerAction } from '../../mol-util/marker-action';
 
 export class ChainSequenceWrapper extends SequenceWrapper<StructureUnit> {
-    private label: string
-    private unitIndices: Map<number, Interval<StructureElement.UnitIndex>>
-    private loci: StructureElement.Loci
+    private label: string;
+    private unitIndices: Map<number, Interval<StructureElement.UnitIndex>>;
+    private loci: StructureElement.Loci;
 
     residueLabel(seqIdx: number) {
         return this.label;

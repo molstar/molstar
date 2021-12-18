@@ -31,14 +31,14 @@ export type DebugHelperProps = PD.Values<DebugHelperParams>
 type BoundingSphereData = { boundingSphere: Sphere3D, renderObject: GraphicsRenderObject, mesh: Mesh }
 
 export class BoundingSphereHelper {
-    readonly scene: Scene
+    readonly scene: Scene;
 
-    private readonly parent: Scene
-    private _props: DebugHelperProps
-    private objectsData = new Map<GraphicsRenderObject, BoundingSphereData>()
-    private instancesData = new Map<GraphicsRenderObject, BoundingSphereData>()
-    private sceneData: BoundingSphereData | undefined
-    private visibleSceneData: BoundingSphereData | undefined
+    private readonly parent: Scene;
+    private _props: DebugHelperProps;
+    private objectsData = new Map<GraphicsRenderObject, BoundingSphereData>();
+    private instancesData = new Map<GraphicsRenderObject, BoundingSphereData>();
+    private sceneData: BoundingSphereData | undefined;
+    private visibleSceneData: BoundingSphereData | undefined;
 
     constructor(ctx: WebGLContext, parent: Scene, props: Partial<DebugHelperProps>) {
         this.scene = Scene.create(ctx);

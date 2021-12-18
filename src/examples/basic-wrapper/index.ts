@@ -95,7 +95,7 @@ class BasicWrapper {
             loop: () => { this.plugin.managers.animation.play(AnimateModelIndex, { duration: { name: 'computed', params: { targetFps: this.animateModelIndexTargetFps() } }, mode: { name: 'loop', params: { direction: 'forward' } } }); },
             stop: () => this.plugin.managers.animation.stop()
         }
-    }
+    };
 
     coloring = {
         applyStripes: async () => {
@@ -119,7 +119,7 @@ class BasicWrapper {
                 }
             });
         }
-    }
+    };
 
     interactivity = {
         highlightOn: () => {
@@ -137,7 +137,7 @@ class BasicWrapper {
         clearHighlight: () => {
             this.plugin.managers.interactivity.lociHighlights.highlightOnly({ loci: EmptyLoci });
         }
-    }
+    };
 
     tests = {
         staticSuperposition: async () => {
@@ -168,7 +168,7 @@ class BasicWrapper {
             PluginCommands.Toast.Hide(this.plugin, { key: 'toast-1' });
             PluginCommands.Toast.Hide(this.plugin, { key: 'toast-2' });
         }
-    }
+    };
 }
 
 (window as any).BasicMolStarWrapper = new BasicWrapper();

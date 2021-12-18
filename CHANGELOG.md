@@ -6,12 +6,9 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
-- Add ``bumpiness`` (per-object and per-group), ``bumpFrequency`` & ``bumpAmplitude`` (per-object) render parameters (#299)
-- Change ``label`` representation defaults: Use text border instead of rectangle background
-- Add outline color option to renderer
-- Fix false positives in Model.isFromPdbArchive
-- Add drag and drop support for loading any file, including multiple at once
-    - If there are session files (.molx or .molj) among the dropped files, only the first session will be loaded
+- Enable temporal multi-sampling by default
+    - Fix flickering during marking with camera at rest
+- Enable ``aromaticBonds`` in structure representations by default
 - Add ``PluginConfig.Structure.DefaultRepresentationPreset``
 - Add ModelArchive schema extensions (e.g., AlphaFold uses it for the pLDDT score)
 - Add ModelArchive option in DownloadStructure action
@@ -23,6 +20,22 @@ Note that since we don't clearly distinguish between a public and private interf
 - Add QualityAssessment extension (using data from ma_qa_metric_local mmcif category)
     - pLDDT & qmean score: coloring, repr presets, molql symbol, loci labels (including avg for mutli-residue selections)
     - pLDDT: selection query
+
+## [v3.0.0-dev.5] - 2021-12-16
+
+- Fix initial camera reset not triggering for some entries.
+
+## [v3.0.0-dev.4] - 2021-12-14
+
+- Add ``bumpiness`` (per-object and per-group), ``bumpFrequency`` & ``bumpAmplitude`` (per-object) render parameters (#299)
+- Change ``label`` representation defaults: Use text border instead of rectangle background
+- Add outline color option to renderer
+- Fix false positives in Model.isFromPdbArchive
+- Add drag and drop support for loading any file, including multiple at once
+    - If there are session files (.molx or .molj) among the dropped files, only the first session will be loaded
+- Add drag and drop overlay
+- Safari 15.1 - 15.3 WebGL 2 support workaround
+- [Breaking] Move ``react`` and ``react-dom`` to ``peerDependencies``. This might break some builds.
 
 ## [v3.0.0-dev.3] - 2021-12-4
 
@@ -36,7 +49,7 @@ Note that since we don't clearly distinguish between a public and private interf
 
 - Add multiple lights support (with color, intensity, and direction parameters)
 - [Breaking] Add per-object material rendering properties
-  - ``SimpleSettingsParams.lighting.renderStyle`` and ``RendererParams.style`` were removed
+    - ``SimpleSettingsParams.lighting.renderStyle`` and ``RendererParams.style`` were removed
 - Add substance theme with per-group material rendering properties
 - ``StructureComponentManager.Options`` state saving support
 - ``ParamDefinition.Group.presets`` support

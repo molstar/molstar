@@ -74,7 +74,7 @@ export class MeasurementList extends PurePluginUIComponent {
 }
 
 export class MeasurementControls extends PurePluginUIComponent<{}, { isBusy: boolean, action?: 'add' | 'options' }> {
-    state = { isBusy: false, action: void 0 as 'add' | 'options' | undefined }
+    state = { isBusy: false, action: void 0 as 'add' | 'options' | undefined };
 
     componentDidMount() {
         this.subscribe(this.selection.events.additionsHistoryUpdated, () => {
@@ -121,22 +121,22 @@ export class MeasurementControls extends PurePluginUIComponent<{}, { isBusy: boo
     measureDistance = () => {
         const loci = this.plugin.managers.structure.selection.additionsHistory;
         this.plugin.managers.structure.measurement.addDistance(loci[0].loci, loci[1].loci);
-    }
+    };
 
     measureAngle = () => {
         const loci = this.plugin.managers.structure.selection.additionsHistory;
         this.plugin.managers.structure.measurement.addAngle(loci[0].loci, loci[1].loci, loci[2].loci);
-    }
+    };
 
     measureDihedral = () => {
         const loci = this.plugin.managers.structure.selection.additionsHistory;
         this.plugin.managers.structure.measurement.addDihedral(loci[0].loci, loci[1].loci, loci[2].loci, loci[3].loci);
-    }
+    };
 
     addLabel = () => {
         const loci = this.plugin.managers.structure.selection.additionsHistory;
         this.plugin.managers.structure.measurement.addLabel(loci[0].loci);
-    }
+    };
 
     addOrientation = () => {
         const locis: StructureElement.Loci[] = [];
@@ -144,7 +144,7 @@ export class MeasurementControls extends PurePluginUIComponent<{}, { isBusy: boo
             locis.push(v.selection);
         });
         this.plugin.managers.structure.measurement.addOrientation(locis);
-    }
+    };
 
     addPlane = () => {
         const locis: StructureElement.Loci[] = [];
@@ -152,7 +152,7 @@ export class MeasurementControls extends PurePluginUIComponent<{}, { isBusy: boo
             locis.push(v.selection);
         });
         this.plugin.managers.structure.measurement.addPlane(locis);
-    }
+    };
 
     get actions(): ActionMenu.Items {
         const history = this.selection.additionsHistory;
@@ -171,7 +171,7 @@ export class MeasurementControls extends PurePluginUIComponent<{}, { isBusy: boo
         this.toggleAdd();
         if (!item) return;
         (item?.value as any)();
-    }
+    };
 
     toggleAdd = () => this.setState({ action: this.state.action === 'add' ? void 0 : 'add' });
     toggleOptions = () => this.setState({ action: this.state.action === 'options' ? void 0 : 'options' });
@@ -232,7 +232,7 @@ export class MeasurementControls extends PurePluginUIComponent<{}, { isBusy: boo
 }
 
 class MeasurementsOptions extends PurePluginUIComponent<{}, { isDisabled: boolean }> {
-    state = { isDisabled: false }
+    state = { isDisabled: false };
 
     componentDidMount() {
         this.subscribe(this.plugin.managers.structure.measurement.behaviors.state, () => {
@@ -246,7 +246,7 @@ class MeasurementsOptions extends PurePluginUIComponent<{}, { isDisabled: boolea
 
     changed = (options: StructureMeasurementOptions) => {
         this.plugin.managers.structure.measurement.setOptions(options);
-    }
+    };
 
     render() {
         const measurements = this.plugin.managers.structure.measurement.state;
@@ -258,7 +258,7 @@ class MeasurementsOptions extends PurePluginUIComponent<{}, { isDisabled: boolea
 }
 
 class MeasurementEntry extends PurePluginUIComponent<{ cell: StructureMeasurementCell }, { showUpdate: boolean }> {
-    state = { showUpdate: false }
+    state = { showUpdate: false };
 
     componentDidMount() {
         this.subscribe(this.plugin.state.events.cell.stateUpdated, e => {
@@ -278,7 +278,7 @@ class MeasurementEntry extends PurePluginUIComponent<{ cell: StructureMeasuremen
         e.preventDefault();
         PluginCommands.State.ToggleVisibility(this.plugin, { state: this.props.cell.parent!, ref: this.props.cell.transform.parent });
         e.currentTarget.blur();
-    }
+    };
 
     highlight = () => {
         const selections = this.selections;
@@ -289,11 +289,11 @@ class MeasurementEntry extends PurePluginUIComponent<{ cell: StructureMeasuremen
             this.plugin.managers.interactivity.lociHighlights.highlight({ loci }, false);
         }
         this.plugin.managers.interactivity.lociHighlights.highlight({ loci: this.props.cell.obj?.data.repr.getLoci()! }, false);
-    }
+    };
 
     clearHighlight = () => {
         this.plugin.managers.interactivity.lociHighlights.clearHighlights();
-    }
+    };
 
     toggleUpdate = () => this.setState({ showUpdate: !this.state.showUpdate });
 
@@ -305,7 +305,7 @@ class MeasurementEntry extends PurePluginUIComponent<{ cell: StructureMeasuremen
         if (sphere) {
             this.plugin.managers.camera.focusSphere(sphere);
         }
-    }
+    };
 
     private get lociArray(): FiniteArray<Loci> {
         const selections = this.selections;
@@ -339,7 +339,7 @@ class MeasurementEntry extends PurePluginUIComponent<{ cell: StructureMeasuremen
         if (!item) return;
         this.setState({ showUpdate: false });
         (item?.value as any)();
-    }
+    };
 
     render() {
         const { cell } = this.props;

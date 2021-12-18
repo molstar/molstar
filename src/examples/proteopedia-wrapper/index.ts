@@ -270,7 +270,7 @@ class MolStarProteopediaWrapper {
     camera = {
         toggleSpin: () => this.toggleSpin(),
         resetPosition: () => PluginCommands.Camera.Reset(this.plugin, { })
-    }
+    };
 
     private animateModelIndexTargetFps() {
         return Math.max(1, this.animate.modelIndex.targetFps | 0);
@@ -285,7 +285,7 @@ class MolStarProteopediaWrapper {
             loop: () => { this.plugin.managers.animation.play(AnimateModelIndex, { duration: { name: 'computed', params: { targetFps: this.animateModelIndexTargetFps() } }, mode: { name: 'loop', params: { direction: 'forward' } } }); },
             stop: () => this.plugin.managers.animation.stop()
         }
-    }
+    };
 
     coloring = {
         evolutionaryConservation: async (params?: { sequence?: boolean, het?: boolean, keepStyle?: boolean }) => {
@@ -306,7 +306,7 @@ class MolStarProteopediaWrapper {
 
             await PluginCommands.State.Update(this.plugin, { state, tree });
         }
-    }
+    };
 
     private experimentalDataElement?: Element = void 0;
     experimentalData = {
@@ -330,7 +330,7 @@ class MolStarProteopediaWrapper {
                 this.experimentalDataElement = void 0;
             }
         }
-    }
+    };
 
     hetGroups = {
         reset: () => {
@@ -397,7 +397,7 @@ class MolStarProteopediaWrapper {
             const snapshot = this.plugin.canvas3d!.camera.getFocus(sphere.center, radius);
             PluginCommands.Camera.SetSnapshot(this.plugin, { snapshot, durationMs: 250 });
         }
-    }
+    };
 
     snapshot = {
         get: (params?: PluginState.SnapshotParams) => {
@@ -420,7 +420,7 @@ class MolStarProteopediaWrapper {
             }
         }
 
-    }
+    };
 }
 
 (window as any).MolStarProteopediaWrapper = MolStarProteopediaWrapper;

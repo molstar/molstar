@@ -9,10 +9,10 @@ import { OrderedSet, Interval, Segmentation } from '../int';
 
 /** Emits a segment of length one for each element in the interval that is also in the set */
 export class IntervalIterator<I extends number = number> implements Iterator<Segmentation.Segment<I>> {
-    private value: Segmentation.Segment<I> = { index: 0 as I, start: 0, end: 0 }
+    private value: Segmentation.Segment<I> = { index: 0 as I, start: 0, end: 0 };
 
-    private curIndex = 0
-    private maxIndex = 0
+    private curIndex = 0;
+    private maxIndex = 0;
 
     hasNext: boolean = false;
 

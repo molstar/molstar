@@ -139,9 +139,9 @@ export namespace VolumeStreaming {
         public params: Params = {} as any;
         private lastLoci: StructureElement.Loci | EmptyLoci = EmptyLoci;
         private ref: string = '';
-        public infoMap: Map<string, VolumeServerInfo.EntryData>
+        public infoMap: Map<string, VolumeServerInfo.EntryData>;
 
-        channels: Channels = {}
+        channels: Channels = {};
 
         public get info() {
             return this.infoMap.get(this.params.entry.name)!;

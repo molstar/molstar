@@ -21,11 +21,11 @@ export function align(seqA: ArrayLike<string>, seqB: ArrayLike<string>, options:
 }
 
 class Alignment {
-    readonly gapPenalty: number; readonly gapExtensionPenalty: number
-    readonly substMatrix: SubstitutionMatrixData | undefined
+    readonly gapPenalty: number; readonly gapExtensionPenalty: number;
+    readonly substMatrix: SubstitutionMatrixData | undefined;
 
-    readonly n: number; readonly m: number
-    readonly S: number[][] = []; readonly V: number[][] = []; readonly H: number[][] = []
+    readonly n: number; readonly m: number;
+    readonly S: number[][] = []; readonly V: number[][] = []; readonly H: number[][] = [];
 
     constructor(readonly seqA: ArrayLike<string>, readonly seqB: ArrayLike<string>, options: AlignmentOptions) {
         this.gapPenalty = options.gapPenalty;

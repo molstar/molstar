@@ -26,12 +26,12 @@ export class DownloadScreenshotControls extends PluginUIComponent<{ close: () =>
     state: ImageControlsState = {
         showPreview: true,
         isDisabled: false
-    } as ImageControlsState
+    } as ImageControlsState;
 
     private download = () => {
         this.plugin.helpers.viewportScreenshot?.download();
         this.props.close();
-    }
+    };
 
     private copy = async () => {
         try {
@@ -44,12 +44,12 @@ export class DownloadScreenshotControls extends PluginUIComponent<{ close: () =>
         } catch {
             return this.copyImg();
         }
-    }
+    };
 
     private copyImg = async () => {
         const src = await this.plugin.helpers.viewportScreenshot?.getImageDataUri();
         this.setState({ imageData: src });
-    }
+    };
 
     componentDidMount() {
         this.subscribe(this.plugin.state.data.behaviors.isUpdating, v => {
@@ -64,7 +64,7 @@ export class DownloadScreenshotControls extends PluginUIComponent<{ close: () =>
     open = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (!e.target.files || !e.target.files![0]) return;
         PluginCommands.State.Snapshots.OpenFile(this.plugin, { file: e.target.files![0] });
-    }
+    };
 
     render() {
         const hasClipboardApi = !!(navigator.clipboard as any)?.write;

@@ -31,7 +31,7 @@ export class Mp4Controls extends PluginComponent {
         canApply: this.ev.behavior<PluginStateAnimation.CanApply>({ canApply: false }),
         info: this.ev.behavior<Mp4AnimationInfo>({ width: 0, height: 0 }),
         params: this.ev.behavior<PD.Values<typeof Mp4AnimationParams>>(PD.getDefaultValues(Mp4AnimationParams))
-    }
+    };
 
     setCurrent(name?: string) {
         const anim = this.animations.find(a => a.name === name);
@@ -125,15 +125,18 @@ export class Mp4Controls extends PluginComponent {
         this.subscribe(this.plugin.canvas3d?.resized!, () => this.syncInfo());
         this.subscribe(this.plugin.helpers.viewportScreenshot?.events.previewed!, () => this.syncInfo());
 
-        this.subscribe(this.plugin.behaviors.state.isBusy, b => {
-            const anim = this.current;
-            if (!b && anim) {
-                this.behaviors.canApply.next(anim.anim.canApply?.(this.plugin) ?? { canApply: true });
-            }
-        });
+        this.subscribe(this.plugin.behaviors.state.isBusy, b => this.updateCanApply(b));
+        this.subscribe(this.plugin.managers.snapshot.events.changed, b => this.updateCanApply(b));
 
         this.sync();
         this.syncInfo();
+    }
+
+    private updateCanApply(b?: any) {
+        const anim = this.current;
+        if (!b && anim) {
+            this.behaviors.canApply.next(anim.anim.canApply?.(this.plugin) ?? { canApply: true });
+        }
     }
 
     constructor(private plugin: PluginContext) {

@@ -84,9 +84,9 @@ function getTypes(list: { name: string, provider: ThemeProvider<any, any> }[]) {
 }
 
 export class ThemeRegistry<T extends ColorTheme<any> | SizeTheme<any>> {
-    private _list: { name: string, provider: ThemeProvider<T, any> }[] = []
-    private _map = new Map<string, ThemeProvider<T, any>>()
-    private _name = new Map<ThemeProvider<T, any>, string>()
+    private _list: { name: string, provider: ThemeProvider<T, any> }[] = [];
+    private _map = new Map<string, ThemeProvider<T, any>>();
+    private _name = new Map<ThemeProvider<T, any>, string>();
 
     get default() { return this._list[0]; }
     get list() { return this._list; }

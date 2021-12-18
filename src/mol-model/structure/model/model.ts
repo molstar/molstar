@@ -286,6 +286,11 @@ export namespace Model {
         for (let i = 0, il = db.database_2.database_id.rowCount; i < il; ++i) {
             if (db.database_2.database_id.value(i) === 'PDB') return true;
         }
+        return false;
+    }
+
+    export function hasPdbId(model: Model): boolean {
+        if (!MmcifFormat.is(model.sourceData)) return false;
         return (
             // 4 character PDB id
             model.entryId.match(/^[1-9][a-z0-9]{3,3}$/i) !== null ||
@@ -381,7 +386,7 @@ export namespace Model {
         const { db } = model.sourceData.data;
         return hasDensityMap(model) || (
             // check if from pdb archive but missing relevant meta data
-            isFromPdbArchive(model) && (
+            hasPdbId(model) && (
                 !db.exptl.method.isDefined ||
                 (isFromXray(model) && (
                     !db.pdbx_database_status.status_code_sf.isDefined ||

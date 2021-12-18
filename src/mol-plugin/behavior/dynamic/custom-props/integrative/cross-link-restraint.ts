@@ -17,7 +17,7 @@ export const CrossLinkRestraint = PluginBehavior.create<{ }>({
     category: 'custom-props',
     display: { name: 'Cross Link Restraint' },
     ctor: class extends PluginBehavior.Handler<{ }> {
-        private provider = ModelCrossLinkRestraint.Provider
+        private provider = ModelCrossLinkRestraint.Provider;
 
         register(): void {
             this.provider.formatRegistry.add('mmCIF', crossLinkRestraintFromMmcif);

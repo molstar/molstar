@@ -23,7 +23,7 @@ export class ControlGroup extends React.Component<{
     childrenClassName?: string,
     maxHeight?: string
 }, { isExpanded: boolean }> {
-    state = { isExpanded: !!this.props.initialExpanded }
+    state = { isExpanded: !!this.props.initialExpanded };
 
     headerClicked = () => {
         if (this.props.onHeaderClick) {
@@ -31,7 +31,7 @@ export class ControlGroup extends React.Component<{
         } else {
             this.setState({ isExpanded: !this.state.isExpanded });
         }
-    }
+    };
 
     render() {
         let groupClassName = this.props.hideOffset ? 'msp-control-group-children' : 'msp-control-group-children msp-control-offset';
@@ -84,12 +84,12 @@ export class TextInput<T = string> extends React.PureComponent<TextInputProps<T>
     private delayHandle: any = void 0;
     private pendingValue: T | undefined = void 0;
 
-    state = { originalValue: '', value: '' }
+    state = { originalValue: '', value: '' };
 
     onBlur = () => {
         this.setState({ value: '' + this.state.originalValue });
         if (this.props.onBlur) this.props.onBlur();
-    }
+    };
 
     get isPending() { return typeof this.delayHandle !== 'undefined'; }
 
@@ -105,7 +105,7 @@ export class TextInput<T = string> extends React.PureComponent<TextInputProps<T>
 
         this.props.onChange(this.pendingValue!);
         this.pendingValue = void 0;
-    }
+    };
 
     triggerChanged(formatted: string, converted: T) {
         this.clearTimeout();
@@ -138,7 +138,7 @@ export class TextInput<T = string> extends React.PureComponent<TextInputProps<T>
             this.setState({ value: formatted }, () => this.triggerChanged(formatted, converted));
         }
 
-    }
+    };
 
     onKeyUp = (e: React.KeyboardEvent<HTMLInputElement>) => {
         if (e.charCode === 27 || e.keyCode === 27 || e.key === 'Escape') {
@@ -146,7 +146,7 @@ export class TextInput<T = string> extends React.PureComponent<TextInputProps<T>
                 this.input.current.blur();
             }
         }
-    }
+    };
 
     onKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
         if (e.keyCode === 13 || e.charCode === 13 || e.key === 'Enter') {
@@ -160,7 +160,7 @@ export class TextInput<T = string> extends React.PureComponent<TextInputProps<T>
             if (this.props.onEnter) this.props.onEnter();
         }
         e.stopPropagation();
-    }
+    };
 
     static getDerivedStateFromProps(props: TextInputProps<any>, state: TextInputState) {
         const value = props.fromValue ? props.fromValue(props.value) : props.value;
@@ -322,7 +322,7 @@ export class ToggleButton extends React.PureComponent<ToggleButtonProps> {
     onClick = (e: React.MouseEvent<HTMLButtonElement>) => {
         e.currentTarget.blur();
         this.props.toggle();
-    }
+    };
 
     render() {
         const props = this.props;

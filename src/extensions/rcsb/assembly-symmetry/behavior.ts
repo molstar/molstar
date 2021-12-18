@@ -27,7 +27,7 @@ export const RCSBAssemblySymmetry = PluginBehavior.create<{ autoAttach: boolean 
         description: 'Assembly Symmetry data calculated with BioJava, obtained via RCSB PDB.'
     },
     ctor: class extends PluginBehavior.Handler<{ autoAttach: boolean }> {
-        private provider = AssemblySymmetryProvider
+        private provider = AssemblySymmetryProvider;
 
         register(): void {
             this.ctx.state.data.actions.add(InitAssemblySymmetry3D);

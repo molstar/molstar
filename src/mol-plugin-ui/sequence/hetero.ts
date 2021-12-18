@@ -12,11 +12,11 @@ import { ColorNames } from '../../mol-util/color/names';
 import { MarkerAction, applyMarkerAction } from '../../mol-util/marker-action';
 
 export class HeteroSequenceWrapper extends SequenceWrapper<StructureUnit> {
-    private readonly unitMap: Map<number, Unit>
-    private readonly sequence: string[]
-    private readonly sequenceIndices: Map<ResidueIndex, number>
-    private readonly residueIndices: Map<number, ResidueIndex>
-    private readonly seqToUnit: Map<number, Unit>
+    private readonly unitMap: Map<number, Unit>;
+    private readonly sequence: string[];
+    private readonly sequenceIndices: Map<ResidueIndex, number>;
+    private readonly residueIndices: Map<number, ResidueIndex>;
+    private readonly seqToUnit: Map<number, Unit>;
 
     residueLabel(seqIdx: number) {
         return this.sequence[seqIdx];

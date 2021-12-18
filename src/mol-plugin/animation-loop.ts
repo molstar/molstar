@@ -25,7 +25,7 @@ export class PluginAnimationLoop {
         if (this._isAnimating) {
             this.currentFrame = requestAnimationFrame(this.frame);
         }
-    }
+    };
 
     resetTime(t: number = now()) {
         this.plugin.canvas3d?.resetTime(t);
