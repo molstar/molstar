@@ -93,6 +93,9 @@
 
             var afdb = getParam('afdb', '[^&]+').trim();
             if (afdb) viewer.loadAfdb(afdb);
+
+            var modelArchive = getParam('model-archive', '[^&]+').trim();
+            if (modelArchive) viewer.loadModelArchive(modelArchive);
         </script>
         <!-- __MOLSTAR_ANALYTICS__ -->
     </body>

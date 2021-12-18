@@ -274,6 +274,19 @@ export class Viewer {
         }));
     }
 
+    loadModelArchive(id: string) {
+        const params = DownloadStructure.createDefaultParams(this.plugin.state.data.root.obj!, this.plugin);
+        return this.plugin.runTask(this.plugin.state.data.applyAction(DownloadStructure, {
+            source: {
+                name: 'modelarchive' as const,
+                params: {
+                    id,
+                    options: params.source.params.options,
+                }
+            }
+        }));
+    }
+
     /**
      * @example Load X-ray density from volume server
         viewer.loadVolumeFromUrl({

@@ -10,8 +10,11 @@ Note that since we don't clearly distinguish between a public and private interf
     - Fix flickering during marking with camera at rest
 - Enable ``aromaticBonds`` in structure representations by default
 - Add ``PluginConfig.Structure.DefaultRepresentationPreset``
-- Add ModelArchive schema extensions (e.g., AlphaFold uses it for the pLDDT score)
-- Add ModelArchive option in DownloadStructure action
+- Add ModelArchive support
+    - schema extensions (e.g., AlphaFold uses it for the pLDDT score)
+    - ModelArchive option in DownloadStructure action
+    - ``model-archive`` GET parameter for Viewer app
+    - ``Viewer.loadModelArchive`` method
 - Improve support for loading AlphaFold structures
     - Automatic coloring by pLDDT
     - AlphaFold DB option in DownloadStructure action
