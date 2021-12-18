@@ -38,7 +38,7 @@ namespace StructureQualityReport {
     }
 
     export function isApplicable(model?: Model): boolean {
-        return !!model && Model.isFromPdbArchive(model);
+        return !!model && Model.hasPdbId(model);
     }
 
     export const Schema = {
