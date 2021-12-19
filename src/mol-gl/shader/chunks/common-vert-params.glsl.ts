@@ -8,6 +8,8 @@ uniform int uInstanceCount;
 uniform int uGroupCount;
 uniform vec4 uInvariantBoundingSphere;
 
+uniform bool uDoubleSided;
+
 #if dClipObjectCount != 0
     uniform int uClipObjectType[dClipObjectCount];
     uniform bool uClipObjectInvert[dClipObjectCount];

@@ -18,7 +18,7 @@ export const MeshSchema = {
     aNormal: AttributeSpec('float32', 3, 0),
     elements: ElementsSpec('uint32'),
     dFlatShaded: DefineSpec('boolean'),
-    dDoubleSided: DefineSpec('boolean'),
+    uDoubleSided: UniformSpec('b'),
     dFlipSided: DefineSpec('boolean'),
     dIgnoreLight: DefineSpec('boolean'),
     dXrayShaded: DefineSpec('boolean'),

@@ -20,7 +20,7 @@ export const SpheresSchema = {
     elements: ElementsSpec('uint32'),
 
     padding: ValueSpec('number'),
-    dDoubleSided: DefineSpec('boolean'),
+    uDoubleSided: UniformSpec('b'),
     dIgnoreLight: DefineSpec('boolean'),
     dXrayShaded: DefineSpec('boolean'),
     uBumpFrequency: UniformSpec('f'),

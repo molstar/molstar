@@ -330,13 +330,13 @@ vec4 raymarch(vec3 startLoc, vec3 step, vec3 rayDir) {
                         bool flipped = value > uIsoValue.y;
                     #endif
                     interior = value < uIsoValue.x && flipped;
-                    #ifndef dDoubleSided
+                    if (uDoubleSided) {
                         if (interior) {
                             prevValue = value;
                             pos += step;
                             continue;
                         }
-                    #endif
+                    }
                     vec3 vViewPosition = mvPosition.xyz;
                     vec4 material = vec4(color, uAlpha);
 

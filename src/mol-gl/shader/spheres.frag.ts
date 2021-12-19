@@ -66,10 +66,9 @@ void main(void){
     #include clip_pixel
 
     bool flag = Impostor(cameraPos, cameraNormal);
-    #ifndef dDoubleSided
-        if (interior)
-            discard;
-    #endif
+    if (!uDoubleSided) {
+        if (interior) discard;
+    }
 
     vec3 vViewPosition = cameraPos;
     gl_FragDepthEXT = calcDepth(vViewPosition);

@@ -19,7 +19,7 @@ export const TextureMeshSchema = {
     tNormal: TextureSpec('texture', 'rgb', 'float', 'nearest'),
 
     dFlatShaded: DefineSpec('boolean'),
-    dDoubleSided: DefineSpec('boolean'),
+    uDoubleSided: UniformSpec('b'),
     dFlipSided: DefineSpec('boolean'),
     dIgnoreLight: DefineSpec('boolean'),
     dXrayShaded: DefineSpec('boolean'),

@@ -26,6 +26,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Warn about erroneous symmetry operator matrix (instead of throwing an error)
 - Reduce number of created programs/shaders
     - Support specifying variants when creating graphics render-items
+    - Change double-side shader param from define to uniform
 
 ## [v3.0.0-dev.5] - 2021-12-16
 

@@ -7,6 +7,7 @@
 import { Renderable, RenderableState, createRenderable } from '../renderable';
 import { WebGLContext } from '../webgl/context';
 import { createGraphicsRenderItem, GraphicsRenderVariant } from '../webgl/render-item';
+import { GlobalUniformSchema, BaseSchema, AttributeSpec, DefineSpec, Values, InternalSchema, SizeSchema, ElementsSpec, InternalValues, GlobalTextureSchema, UniformSpec } from './schema';
 import { ValueCell } from '../../mol-util';
 import { LinesShaderCode } from '../shader-code';
 
@@ -19,7 +20,7 @@ export const LinesSchema = {
     aEnd: AttributeSpec('float32', 3, 0),
     elements: ElementsSpec('uint32'),
     dLineSizeAttenuation: DefineSpec('boolean'),
-    dDoubleSided: DefineSpec('boolean'),
+    uDoubleSided: UniformSpec('b'),
     dFlipSided: DefineSpec('boolean'),
 };
 export type LinesSchema = typeof LinesSchema

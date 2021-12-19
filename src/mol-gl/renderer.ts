@@ -324,8 +324,8 @@ namespace Renderer {
                     }
                 }
             } else {
-                if (r.values.dDoubleSided) {
-                    if (r.values.dDoubleSided.ref.value || r.values.hasReflection.ref.value) {
+                if (r.values.uDoubleSided) {
+                    if (r.values.uDoubleSided.ref.value || r.values.hasReflection.ref.value) {
                         state.disable(gl.CULL_FACE);
                     } else {
                         state.enable(gl.CULL_FACE);
@@ -350,6 +350,7 @@ namespace Renderer {
                 }
             }
 
+            console.log('render', variant);
             r.render(variant, sharedTexturesList);
         };
 

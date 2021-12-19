@@ -46,7 +46,7 @@ export const DirectVolumeSchema = {
     uUnitToCartn: UniformSpec('m4'),
     dPackedGroup: DefineSpec('boolean'),
 
-    dDoubleSided: DefineSpec('boolean'),
+    uDoubleSided: UniformSpec('b'),
     dFlipSided: DefineSpec('boolean'),
     dFlatShaded: DefineSpec('boolean'),
     dIgnoreLight: DefineSpec('boolean'),
