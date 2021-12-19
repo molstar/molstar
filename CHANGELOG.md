@@ -28,6 +28,9 @@ Note that since we don't clearly distinguish between a public and private interf
     - Support ``onBeforeUIRender`` to make sure initial UI works with custom presets and similar features.
 - [Breaking] Removed ``createPlugin`` and ``createPluginAsync`` from ``mol-plugin-ui``
     - Please use ``createPluginUI`` instead
+- Improve aromatic bonds handling
+    - Don't detect aromatic bonds for rings < 5 atoms based on planarity
+    - Prefer atoms in aromatic rings as bond reference positions
 
 ## [v3.0.0-dev.5] - 2021-12-16
 
