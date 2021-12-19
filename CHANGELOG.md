@@ -6,6 +6,8 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+## [v3.0.0-dev.6] - 2021-12-19
+
 - Enable temporal multi-sampling by default
     - Fix flickering during marking with camera at rest
 - Enable ``aromaticBonds`` in structure representations by default
