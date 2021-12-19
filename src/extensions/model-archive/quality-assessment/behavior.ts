@@ -26,7 +26,7 @@ export const MAQualityAssessment = PluginBehavior.create<{ autoAttach: boolean, 
         description: 'Data included in Model Archive files.'
     },
     ctor: class extends PluginBehavior.Handler<{ autoAttach: boolean, showTooltip: boolean }> {
-        private provider = QualityAssessmentProvider
+        private provider = QualityAssessmentProvider;
 
         private labelProvider = {
             label: (loci: Loci): string | undefined => {
@@ -36,7 +36,7 @@ export const MAQualityAssessment = PluginBehavior.create<{ autoAttach: boolean, 
                     qmeanLabel(loci),
                 ].filter(l => !!l).join('</br>');
             }
-        }
+        };
 
         register(): void {
             DefaultQueryRuntimeTable.addCustomProp(this.provider.descriptor);
