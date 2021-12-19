@@ -39,6 +39,7 @@ import { Helper } from './helper/helper';
 import { Passes } from './passes/passes';
 import { shallowEqual } from '../mol-util';
 import { MarkingParams } from './passes/marking';
+import { GraphicsRenderVariantsBlended, GraphicsRenderVariantsWboit } from '../mol-gl/webgl/render-item';
 
 export const Canvas3DParams = {
     camera: PD.Group({
@@ -296,7 +297,7 @@ namespace Canvas3D {
         let height = 128;
         updateViewport();
 
-        const scene = Scene.create(webgl);
+        const scene = Scene.create(webgl, passes.draw.wboitEnabled ? GraphicsRenderVariantsWboit : GraphicsRenderVariantsBlended);
 
         const camera = new Camera({
             position: Vec3.create(0, 0, 100),
