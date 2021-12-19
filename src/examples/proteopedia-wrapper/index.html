@@ -103,10 +103,11 @@
 
             PluginWrapper.init('app' /** or document.getElementById('app') */, {
                 customColorList: CustomColors
+            }).then(() => {
+                PluginWrapper.setBackground(0xffffff);
+                loadAndSnapshot({ url: url, format: format, isBinary: isBinary, assemblyId: assemblyId, representationStyle: representationStyle });
+                PluginWrapper.toggleSpin();
             });
-            PluginWrapper.setBackground(0xffffff);
-            loadAndSnapshot({ url: url, format: format, isBinary: isBinary, assemblyId: assemblyId, representationStyle: representationStyle });
-            PluginWrapper.toggleSpin();
 
             PluginWrapper.events.modelInfo.subscribe(function (info) {
                 console.log('Model Info', info);
