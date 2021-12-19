@@ -23,8 +23,8 @@
                 var r = new RegExp(name + '=' + '(' + regex + ')[&]?', 'i');
                 return decodeURIComponent(((window.location.search || '').match(r) || [])[1] || '');
             }
-            var pdbqt = getParam('pdbqt', '[^&]+').trim();
-            var mol2 = getParam('mol2', '[^&]+').trim();
+            var pdbqt = getParam('pdbqt', '[^&]+').trim() || '../../examples/ace2.pdbqt';
+            var mol2 = getParam('mol2', '[^&]+').trim() || '../../examples/ace2-hit.mol2';
 
             DockingViewer.create('app', [0x33DD22, 0x1133EE], true).then(viewer => {
                 viewer.loadStructuresFromUrlsAndMerge([
