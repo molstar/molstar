@@ -350,7 +350,6 @@ namespace Renderer {
                 }
             }
 
-            console.log('render', variant);
             r.render(variant, sharedTexturesList);
         };
 
