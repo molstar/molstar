@@ -9,7 +9,7 @@ import { EmptyLoci } from '../../mol-model/loci';
 import { StructureSelection } from '../../mol-model/structure';
 import { AnimateModelIndex } from '../../mol-plugin-state/animation/built-in/model-index';
 import { BuiltInTrajectoryFormat } from '../../mol-plugin-state/formats/trajectory';
-import { createPlugin } from '../../mol-plugin-ui';
+import { createPluginUI } from '../../mol-plugin-ui';
 import { PluginUIContext } from '../../mol-plugin-ui/context';
 import { DefaultPluginUISpec } from '../../mol-plugin-ui/spec';
 import { PluginCommands } from '../../mol-plugin/commands';
@@ -28,8 +28,8 @@ type LoadParams = { url: string, format?: BuiltInTrajectoryFormat, isBinary?: bo
 class BasicWrapper {
     plugin: PluginUIContext;
 
-    init(target: string | HTMLElement) {
-        this.plugin = createPlugin(typeof target === 'string' ? document.getElementById(target)! : target, {
+    async init(target: string | HTMLElement) {
+        this.plugin = await createPluginUI(typeof target === 'string' ? document.getElementById(target)! : target, {
             ...DefaultPluginUISpec(),
             layout: {
                 initial: {
@@ -60,7 +60,7 @@ class BasicWrapper {
                 params: { id: assemblyId }
             } : {
                 name: 'model',
-                params: { }
+                params: {}
             },
             showUnitcell: false,
             representationPreset: 'auto'

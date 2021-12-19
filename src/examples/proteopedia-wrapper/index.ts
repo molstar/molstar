@@ -10,7 +10,7 @@ import { AnimateModelIndex } from '../../mol-plugin-state/animation/built-in/mod
 import { createStructureRepresentationParams } from '../../mol-plugin-state/helpers/structure-representation-params';
 import { PluginStateObject, PluginStateObject as PSO } from '../../mol-plugin-state/objects';
 import { StateTransforms } from '../../mol-plugin-state/transforms';
-import { createPlugin } from '../../mol-plugin-ui';
+import { createPluginUI } from '../../mol-plugin-ui';
 import { PluginUIContext } from '../../mol-plugin-ui/context';
 import { DefaultPluginUISpec } from '../../mol-plugin-ui/spec';
 import { CreateVolumeStreamingInfo, InitVolumeStreaming } from '../../mol-plugin/behavior/dynamic/volume-streaming/transformers';
@@ -43,10 +43,10 @@ class MolStarProteopediaWrapper {
 
     plugin: PluginUIContext;
 
-    init(target: string | HTMLElement, options?: {
+    async init(target: string | HTMLElement, options?: {
         customColorList?: number[]
     }) {
-        this.plugin = createPlugin(typeof target === 'string' ? document.getElementById(target)! : target, {
+        this.plugin = await createPluginUI(typeof target === 'string' ? document.getElementById(target)! : target, {
             ...DefaultPluginUISpec(),
             animations: [
                 AnimateModelIndex
@@ -95,7 +95,7 @@ class MolStarProteopediaWrapper {
                 params: { id: assemblyId }
             } : {
                 name: 'model' as const,
-                params: { }
+                params: {}
             }
         };
 
@@ -113,7 +113,7 @@ class MolStarProteopediaWrapper {
         const structure = this.getObj<PluginStateObject.Molecule.Structure>(StateElements.Assembly);
         if (!structure) return;
 
-        const style = _style || { };
+        const style = _style || {};
 
         const update = this.state.build();
 
@@ -229,7 +229,7 @@ class MolStarProteopediaWrapper {
                     params: { id: asmId }
                 } : {
                     name: 'model' as const,
-                    params: { }
+                    params: {}
                 }
             };
             tree.to(StateElements.Assembly).update(StateTransforms.Model.StructureFromModel, p => ({ ...p, ...props }));
@@ -269,7 +269,7 @@ class MolStarProteopediaWrapper {
 
     camera = {
         toggleSpin: () => this.toggleSpin(),
-        resetPosition: () => PluginCommands.Camera.Reset(this.plugin, { })
+        resetPosition: () => PluginCommands.Camera.Reset(this.plugin, {})
     };
 
     private animateModelIndexTargetFps() {
@@ -336,11 +336,11 @@ class MolStarProteopediaWrapper {
         reset: () => {
             const update = this.state.build().delete(StateElements.HetGroupFocusGroup);
             PluginCommands.State.Update(this.plugin, { state: this.state, tree: update });
-            PluginCommands.Camera.Reset(this.plugin, { });
+            PluginCommands.Camera.Reset(this.plugin, {});
         },
         focusFirst: async (compId: string, options?: { hideLabels: boolean, doNotLabelWaters: boolean }) => {
             if (!this.state.transforms.has(StateElements.Assembly)) return;
-            await PluginCommands.Camera.Reset(this.plugin, { });
+            await PluginCommands.Camera.Reset(this.plugin, {});
 
             const update = this.state.build();
 

@@ -11,18 +11,12 @@ import { Plugin } from './plugin';
 import { PluginUIContext } from './context';
 import { DefaultPluginUISpec, PluginUISpec } from './spec';
 
-export function createPlugin(target: HTMLElement, spec?: PluginUISpec): PluginUIContext {
-    const ctx = new PluginUIContext(spec || DefaultPluginUISpec());
-    ctx.init().then(() => {
-        ReactDOM.render(React.createElement(Plugin, { plugin: ctx }), target);
-    });
-    return ctx;
-}
-
-/** Returns the instance of the plugin after all behaviors have been initialized */
-export async function createPluginAsync(target: HTMLElement, spec?: PluginUISpec) {
+export async function createPluginUI(target: HTMLElement, spec?: PluginUISpec, options?: { onBeforeUIRender?: (ctx: PluginUIContext) => (Promise<void> | void) }) {
     const ctx = new PluginUIContext(spec || DefaultPluginUISpec());
     await ctx.init();
+    if (options?.onBeforeUIRender) {
+        await options.onBeforeUIRender(ctx);
+    }
     ReactDOM.render(React.createElement(Plugin, { plugin: ctx }), target);
     return ctx;
 }

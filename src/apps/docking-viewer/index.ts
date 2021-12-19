@@ -8,7 +8,7 @@
 import { Structure } from '../../mol-model/structure';
 import { BuiltInTrajectoryFormat } from '../../mol-plugin-state/formats/trajectory';
 import { PluginStateObject as PSO, PluginStateTransform } from '../../mol-plugin-state/objects';
-import { createPlugin } from '../../mol-plugin-ui';
+import { createPluginUI } from '../../mol-plugin-ui';
 import { PluginUIContext } from '../../mol-plugin-ui/context';
 import { PluginLayoutControlsDisplay } from '../../mol-plugin/layout';
 import { DefaultPluginUISpec, PluginUISpec } from '../../mol-plugin-ui/spec';
@@ -54,9 +54,10 @@ const DefaultViewerOptions = {
 };
 
 class Viewer {
-    plugin: PluginUIContext;
+    constructor(public plugin: PluginUIContext) {
+    }
 
-    constructor(elementOrId: string | HTMLElement, colors = [Color(0x992211), Color(0xDDDDDD)], showButtons = true) {
+    static async create(elementOrId: string | HTMLElement, colors = [Color(0x992211), Color(0xDDDDDD)], showButtons = true) {
         const o = { ...DefaultViewerOptions, ...{
             layoutIsExpanded: false,
             layoutShowControls: false,
@@ -125,29 +126,31 @@ class Viewer {
             ? document.getElementById(elementOrId)
             : elementOrId;
         if (!element) throw new Error(`Could not get element with id '${elementOrId}'`);
-        this.plugin = createPlugin(element, spec);
+        const plugin = await createPluginUI(element, spec);
 
-        (this.plugin.customState as any) = {
+        (plugin.customState as any) = {
             colorPalette: {
                 name: 'colors',
                 params: { list: { colors } }
             }
         };
 
-        this.plugin.behaviors.canvas3d.initialized.subscribe(v => {
+        plugin.behaviors.canvas3d.initialized.subscribe(v => {
             if (v) {
-                PluginCommands.Canvas3D.SetSettings(this.plugin, { settings: {
+                PluginCommands.Canvas3D.SetSettings(plugin, { settings: {
                     renderer: {
-                        ...this.plugin.canvas3d!.props.renderer,
+                        ...plugin.canvas3d!.props.renderer,
                         backgroundColor: ColorNames.white,
                     },
                     camera: {
-                        ...this.plugin.canvas3d!.props.camera,
+                        ...plugin.canvas3d!.props.camera,
                         helper: { axes: { name: 'off', params: {} } }
                     }
                 } });
             }
         });
+
+        return new Viewer(plugin);
     }
 
     async loadStructuresFromUrlsAndMerge(sources: { url: string, format: BuiltInTrajectoryFormat, isBinary?: boolean }[]) {

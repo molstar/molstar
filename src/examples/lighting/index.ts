@@ -6,7 +6,7 @@
 
 import { Canvas3DProps } from '../../mol-canvas3d/canvas3d';
 import { BuiltInTrajectoryFormat } from '../../mol-plugin-state/formats/trajectory';
-import { createPlugin } from '../../mol-plugin-ui';
+import { createPluginUI } from '../../mol-plugin-ui';
 import { PluginUIContext } from '../../mol-plugin-ui/context';
 import { DefaultPluginUISpec } from '../../mol-plugin-ui/spec';
 import { PluginCommands } from '../../mol-plugin/commands';
@@ -21,7 +21,7 @@ type _Preset = Pick<Canvas3DProps, 'multiSample' | 'postprocessing' | 'renderer'
 type Preset = { [K in keyof _Preset]: Partial<_Preset[K]> }
 
 const Canvas3DPresets = {
-    illustrative: <Preset> {
+    illustrative: <Preset>{
         multiSample: {
             mode: 'temporal' as Canvas3DProps['multiSample']['mode']
         },
@@ -33,25 +33,25 @@ const Canvas3DPresets = {
             style: { name: 'flat', params: {} }
         }
     },
-    occlusion: <Preset> {
+    occlusion: <Preset>{
         multiSample: {
             mode: 'temporal' as Canvas3DProps['multiSample']['mode']
         },
         postprocessing: {
             occlusion: { name: 'on', params: { samples: 32, radius: 6, bias: 1.4, blurKernelSize: 15 } },
-            outline: { name: 'off', params: { } }
+            outline: { name: 'off', params: {} }
         },
         renderer: {
             style: { name: 'matte', params: {} }
         }
     },
-    standard: <Preset> {
+    standard: <Preset>{
         multiSample: {
             mode: 'off' as Canvas3DProps['multiSample']['mode']
         },
         postprocessing: {
-            occlusion: { name: 'off', params: { } },
-            outline: { name: 'off', params: { } }
+            occlusion: { name: 'off', params: {} },
+            outline: { name: 'off', params: {} }
         },
         renderer: {
             style: { name: 'matte', params: {} }
@@ -69,8 +69,8 @@ class LightingDemo {
     private bias = 1.1;
     private preset: Canvas3DPreset = 'illustrative';
 
-    init(target: string | HTMLElement) {
-        this.plugin = createPlugin(typeof target === 'string' ? document.getElementById(target)! : target, {
+    async init(target: string | HTMLElement) {
+        this.plugin = await createPluginUI(typeof target === 'string' ? document.getElementById(target)! : target, {
             ...DefaultPluginUISpec(),
             layout: {
                 initial: {
@@ -92,21 +92,23 @@ class LightingDemo {
             props.postprocessing.occlusion.params.radius = this.radius;
             props.postprocessing.occlusion.params.bias = this.bias;
         }
-        PluginCommands.Canvas3D.SetSettings(this.plugin, { settings: {
-            ...props,
-            multiSample: {
-                ...this.plugin.canvas3d!.props.multiSample,
-                ...props.multiSample
-            },
-            renderer: {
-                ...this.plugin.canvas3d!.props.renderer,
-                ...props.renderer
-            },
-            postprocessing: {
-                ...this.plugin.canvas3d!.props.postprocessing,
-                ...props.postprocessing
-            },
-        } });
+        PluginCommands.Canvas3D.SetSettings(this.plugin, {
+            settings: {
+                ...props,
+                multiSample: {
+                    ...this.plugin.canvas3d!.props.multiSample,
+                    ...props.multiSample
+                },
+                renderer: {
+                    ...this.plugin.canvas3d!.props.renderer,
+                    ...props.renderer
+                },
+                postprocessing: {
+                    ...this.plugin.canvas3d!.props.postprocessing,
+                    ...props.postprocessing
+                },
+            }
+        });
     }
 
     async load({ url, format = 'mmcif', isBinary = true, assemblyId = '' }: LoadParams, radius: number, bias: number) {
@@ -115,7 +117,7 @@ class LightingDemo {
         const data = await this.plugin.builders.data.download({ url: Asset.Url(url), isBinary }, { state: { isGhost: true } });
         const trajectory = await this.plugin.builders.structure.parseTrajectory(data, format);
         const model = await this.plugin.builders.structure.createModel(trajectory);
-        const structure = await this.plugin.builders.structure.createStructure(model, assemblyId ? { name: 'assembly', params: { id: assemblyId } } : { name: 'model', params: { } });
+        const structure = await this.plugin.builders.structure.createStructure(model, assemblyId ? { name: 'assembly', params: { id: assemblyId } } : { name: 'model', params: {} });
 
         const polymer = await this.plugin.builders.structure.tryCreateComponentStatic(structure, 'polymer');
         if (polymer) await this.plugin.builders.structure.representation.addRepresentation(polymer, { type: 'spacefill', color: 'illustrative' });

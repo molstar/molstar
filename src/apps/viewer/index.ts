@@ -28,7 +28,7 @@ import { createVolumeRepresentationParams } from '../../mol-plugin-state/helpers
 import { PluginStateObject } from '../../mol-plugin-state/objects';
 import { StateTransforms } from '../../mol-plugin-state/transforms';
 import { TrajectoryFromModelAndCoordinates } from '../../mol-plugin-state/transforms/model';
-import { createPlugin } from '../../mol-plugin-ui';
+import { createPluginUI } from '../../mol-plugin-ui';
 import { PluginUIContext } from '../../mol-plugin-ui/context';
 import { DefaultPluginUISpec, PluginUISpec } from '../../mol-plugin-ui/spec';
 import { PluginCommands } from '../../mol-plugin/commands';
@@ -99,9 +99,10 @@ const DefaultViewerOptions = {
 type ViewerOptions = typeof DefaultViewerOptions;
 
 export class Viewer {
-    plugin: PluginUIContext;
+    constructor(public plugin: PluginUIContext) {
+    }
 
-    constructor(elementOrId: string | HTMLElement, options: Partial<ViewerOptions> = {}) {
+    static async create(elementOrId: string | HTMLElement, options: Partial<ViewerOptions> = {}) {
         const o = { ...DefaultViewerOptions, ...options };
         const defaultSpec = DefaultPluginUISpec();
 
@@ -162,9 +163,14 @@ export class Viewer {
             ? document.getElementById(elementOrId)
             : elementOrId;
         if (!element) throw new Error(`Could not get element with id '${elementOrId}'`);
-        this.plugin = createPlugin(element, spec);
-
-        this.plugin.builders.structure.representation.registerPreset(ViewerAutoPreset);
+        const plugin = await createPluginUI(element, spec, {
+            onBeforeUIRender: plugin => {
+                // the preset needs to be added before the UI renders otherwise
+                // "Download Structure" wont be able to pick it up
+                plugin.builders.structure.representation.registerPreset(ViewerAutoPreset);
+            }
+        });
+        return new Viewer(plugin);
     }
 
     setRemoteSnapshot(id: string) {
