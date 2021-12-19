@@ -170,12 +170,11 @@ export class AlphaOrbitalsExample {
         return {
             alpha: 0.85,
             color,
-            directVolume: this.state.value.gpuSurface,
             kind,
             relativeIsovalue: this.state.value.isoValue,
             pickable: false,
             xrayShaded: true,
-            tryUseGpu: false
+            tryUseGpu: true
         };
     }
 
