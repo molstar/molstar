@@ -15,7 +15,7 @@ export async function createPluginUI(target: HTMLElement, spec?: PluginUISpec, o
     const ctx = new PluginUIContext(spec || DefaultPluginUISpec());
     await ctx.init();
     if (options?.onBeforeUIRender) {
-        await options?.onBeforeUIRender(ctx);
+        await options.onBeforeUIRender(ctx);
     }
     ReactDOM.render(React.createElement(Plugin, { plugin: ctx }), target);
     return ctx;
