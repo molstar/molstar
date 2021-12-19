@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -17,44 +17,46 @@ require('mol-plugin-ui/skin/light.scss');
 
 type LoadParams = { url: string, format?: BuiltInTrajectoryFormat, isBinary?: boolean, assemblyId?: string }
 
-type _Preset = Pick<Canvas3DProps, 'multiSample' | 'postprocessing' | 'renderer'>
+type _Preset = Pick<Canvas3DProps, 'postprocessing' | 'renderer'>
 type Preset = { [K in keyof _Preset]: Partial<_Preset[K]> }
 
 const Canvas3DPresets = {
-    illustrative: <Preset>{
-        multiSample: {
-            mode: 'temporal' as Canvas3DProps['multiSample']['mode']
-        },
-        postprocessing: {
-            occlusion: { name: 'on', params: { samples: 32, radius: 6, bias: 1.4, blurKernelSize: 15 } },
-            outline: { name: 'on', params: { scale: 1, threshold: 0.1, color: Color(0x000000) } }
-        },
-        renderer: {
-            style: { name: 'flat', params: {} }
+    illustrative: {
+        canvas3d: <Preset>{
+            postprocessing: {
+                occlusion: { name: 'on', params: { samples: 32, radius: 6, bias: 1.4, blurKernelSize: 15 } },
+                outline: { name: 'on', params: { scale: 1, threshold: 0.33, color: Color(0x000000) } }
+            },
+            renderer: {
+                ambientIntensity: 1.0,
+                light: []
+            }
         }
     },
-    occlusion: <Preset>{
-        multiSample: {
-            mode: 'temporal' as Canvas3DProps['multiSample']['mode']
-        },
-        postprocessing: {
-            occlusion: { name: 'on', params: { samples: 32, radius: 6, bias: 1.4, blurKernelSize: 15 } },
-            outline: { name: 'off', params: {} }
-        },
-        renderer: {
-            style: { name: 'matte', params: {} }
+    occlusion: {
+        canvas3d: <Preset>{
+            postprocessing: {
+                occlusion: { name: 'on', params: { samples: 32, radius: 6, bias: 1.4, blurKernelSize: 15 } },
+                outline: { name: 'off', params: {} }
+            },
+            renderer: {
+                ambientIntensity: 0.4,
+                light: [{ inclination: 180, azimuth: 0, color: Color.fromNormalizedRgb(1.0, 1.0, 1.0),
+                    intensity: 0.6 }]
+            }
         }
     },
-    standard: <Preset>{
-        multiSample: {
-            mode: 'off' as Canvas3DProps['multiSample']['mode']
-        },
-        postprocessing: {
-            occlusion: { name: 'off', params: {} },
-            outline: { name: 'off', params: {} }
-        },
-        renderer: {
-            style: { name: 'matte', params: {} }
+    standard: {
+        canvas3d: <Preset>{
+            postprocessing: {
+                occlusion: { name: 'off', params: {} },
+                outline: { name: 'off', params: {} }
+            },
+            renderer: {
+                ambientIntensity: 0.4,
+                light: [{ inclination: 180, azimuth: 0, color: Color.fromNormalizedRgb(1.0, 1.0, 1.0),
+                    intensity: 0.6 }]
+            }
         }
     }
 };
@@ -88,24 +90,20 @@ class LightingDemo {
 
     setPreset(preset: Canvas3DPreset) {
         const props = Canvas3DPresets[preset];
-        if (props.postprocessing.occlusion?.name === 'on') {
-            props.postprocessing.occlusion.params.radius = this.radius;
-            props.postprocessing.occlusion.params.bias = this.bias;
+        if (props.canvas3d.postprocessing.occlusion?.name === 'on') {
+            props.canvas3d.postprocessing.occlusion.params.radius = this.radius;
+            props.canvas3d.postprocessing.occlusion.params.bias = this.bias;
         }
         PluginCommands.Canvas3D.SetSettings(this.plugin, {
             settings: {
                 ...props,
-                multiSample: {
-                    ...this.plugin.canvas3d!.props.multiSample,
-                    ...props.multiSample
-                },
                 renderer: {
                     ...this.plugin.canvas3d!.props.renderer,
-                    ...props.renderer
+                    ...props.canvas3d.renderer
                 },
                 postprocessing: {
                     ...this.plugin.canvas3d!.props.postprocessing,
-                    ...props.postprocessing
+                    ...props.canvas3d.postprocessing
                 },
             }
         });
