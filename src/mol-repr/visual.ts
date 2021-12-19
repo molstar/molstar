@@ -82,7 +82,7 @@ namespace Visual {
     export function mark(renderObject: GraphicsRenderObject | undefined, loci: Loci, action: MarkerAction, lociApply: LociApply, previous?: PreviousMark) {
         if (!renderObject || isEmptyLoci(loci)) return false;
 
-        const { tMarker, dMarkerType, uMarker, markerAverage, markerStatus, uGroupCount, instanceCount } = renderObject.values;
+        const { tMarker, uMarker, markerAverage, markerStatus, uGroupCount, instanceCount } = renderObject.values;
         const count = uGroupCount.ref.value * instanceCount.ref.value;
         const { array } = tMarker.ref.value;
         const currentStatus = markerStatus.ref.value as MarkerInfo['status'];
@@ -135,7 +135,6 @@ namespace Visual {
             }
             ValueCell.updateIfChanged(uMarker, status);
             if (status === -1) ValueCell.update(tMarker, tMarker.ref.value);
-            ValueCell.updateIfChanged(dMarkerType, status === -1 ? 'groupInstance' : 'uniform');
             ValueCell.updateIfChanged(markerAverage, average);
             ValueCell.updateIfChanged(markerStatus, status);
         }

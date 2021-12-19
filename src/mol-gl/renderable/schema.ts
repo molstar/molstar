@@ -207,7 +207,6 @@ export const MarkerSchema = {
     uMarker: UniformSpec('f'),
     uMarkerTexDim: UniformSpec('v2'),
     tMarker: TextureSpec('image-uint8', 'alpha', 'ubyte', 'nearest'),
-    dMarkerType: DefineSpec('string', ['uniform', 'groupInstance']),
     markerAverage: ValueSpec('number'),
     markerStatus: ValueSpec('number'),
 } as const;

@@ -25,9 +25,8 @@ uniform float uHighlightStrength;
 uniform float uSelectStrength;
 uniform int uMarkerPriority;
 
-#if defined(dMarkerType_uniform)
+#if defined(dRenderVariant_color) || defined(dRenderVariant_marking)
     uniform float uMarker;
-#elif defined(dMarkerType_groupInstance)
     #if __VERSION__ == 100
         varying float vMarker;
     #else

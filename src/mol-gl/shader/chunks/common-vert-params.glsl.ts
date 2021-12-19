@@ -28,9 +28,8 @@ uniform bool uDoubleSided;
     #endif
 #endif
 
-#if defined(dMarkerType_uniform)
+#if defined(dRenderVariant_color) || defined(dRenderVariant_marking)
     uniform float uMarker;
-#elif defined(dMarkerType_groupInstance)
     uniform vec2 uMarkerTexDim;
     uniform sampler2D tMarker;
     #if __VERSION__ == 100
