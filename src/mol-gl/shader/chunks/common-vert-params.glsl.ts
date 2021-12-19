@@ -9,6 +9,7 @@ uniform int uGroupCount;
 uniform vec4 uInvariantBoundingSphere;
 
 uniform bool uDoubleSided;
+uniform int uPickType;
 
 #if dClipObjectCount != 0
     uniform int uClipObjectType[dClipObjectCount];

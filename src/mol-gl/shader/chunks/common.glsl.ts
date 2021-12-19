@@ -5,10 +5,6 @@ export const common = `
     #define dRenderVariant_color
 #endif
 
-#if defined(dRenderVariant_pickObject) || defined(dRenderVariant_pickInstance) || defined(dRenderVariant_pickGroup)
-    #define dRenderVariant_pick
-#endif
-
 #if defined(dRenderVariant_markingDepth) || defined(dRenderVariant_markingMask)
     #define dRenderVariant_marking
 #endif

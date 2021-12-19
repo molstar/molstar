@@ -78,6 +78,8 @@ uniform vec3 uInteriorColor;
 bool interior;
 
 uniform bool uRenderWboit;
+uniform bool uDoubleSided;
+uniform int uPickType;
 
 uniform float uNear;
 uniform float uFar;
@@ -271,17 +273,19 @@ vec4 raymarch(vec3 startLoc, vec3 step, vec3 rayDir) {
                     }
                 #endif
 
-                #if defined(dRenderVariant_pickObject)
-                    return vec4(encodeFloatRGB(float(uObjectId)), 1.0);
-                #elif defined(dRenderVariant_pickInstance)
-                    return vec4(encodeFloatRGB(vInstance), 1.0);
-                #elif defined(dRenderVariant_pickGroup)
-                    #ifdef dPackedGroup
-                        return vec4(textureGroup(floor(isoPos * uGridDim + 0.5) / uGridDim).rgb, 1.0);
-                    #else
-                        vec3 g = floor(isoPos * uGridDim + 0.5);
-                        return vec4(encodeFloatRGB(g.z + g.y * uGridDim.z + g.x * uGridDim.z * uGridDim.y), 1.0);
-                    #endif
+                #if defined(dRenderVariant_pick)
+                    if (uPickType == 1) {
+                        return vec4(encodeFloatRGB(float(uObjectId)), 1.0);
+                    } else if (uPickType == 2) {
+                        return vec4(encodeFloatRGB(vInstance), 1.0);
+                    } else {
+                        #ifdef dPackedGroup
+                            return vec4(textureGroup(floor(isoPos * uGridDim + 0.5) / uGridDim).rgb, 1.0);
+                        #else
+                            vec3 g = floor(isoPos * uGridDim + 0.5);
+                            return vec4(encodeFloatRGB(g.z + g.y * uGridDim.z + g.x * uGridDim.z * uGridDim.y), 1.0);
+                        #endif
+                    }
                 #elif defined(dRenderVariant_depth)
                     #ifdef enabledFragDepth
                         return packDepthToRGBA(gl_FragDepthEXT);

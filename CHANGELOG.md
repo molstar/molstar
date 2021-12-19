@@ -29,6 +29,7 @@ Note that since we don't clearly distinguish between a public and private interf
     - Change double-side shader param from define to uniform
     - Remove dMarkerType shader define (use uMarker as needed)
     - Support to ignore defines depending on the shader variant
+    - Combine pickObject/pickInstance/pickGroup shader variants into one
 
 ## [v3.0.0-dev.5] - 2021-12-16
 

@@ -38,6 +38,13 @@ export interface RendererStats {
     instancedDrawCount: number
 }
 
+export const enum PickType {
+    None = 0,
+    Object = 1,
+    Instance = 2,
+    Group = 3,
+}
+
 interface Renderer {
     readonly stats: RendererStats
     readonly props: Readonly<RendererProps>
@@ -46,7 +53,7 @@ interface Renderer {
     clearDepth: () => void
     update: (camera: ICamera) => void
 
-    renderPick: (group: Scene.Group, camera: ICamera, variant: GraphicsRenderVariant, depthTexture: Texture | null) => void
+    renderPick: (group: Scene.Group, camera: ICamera, variant: GraphicsRenderVariant, depthTexture: Texture | null, pickType: PickType) => void
     renderDepth: (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => void
     renderMarkingDepth: (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => void
     renderMarkingMask: (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => void
@@ -232,6 +239,7 @@ namespace Renderer {
 
             uRenderWboit: ValueCell.create(false),
             uMarkingDepthTest: ValueCell.create(false),
+            uPickType: ValueCell.create(PickType.None),
 
             uTransparentBackground: ValueCell.create(false),
 
@@ -264,7 +272,7 @@ namespace Renderer {
         let globalUniformsNeedUpdate = true;
 
         const renderObject = (r: GraphicsRenderable, variant: GraphicsRenderVariant) => {
-            if (r.state.disposed || !r.state.visible || (!r.state.pickable && variant[0] === 'p')) {
+            if (r.state.disposed || !r.state.visible || (!r.state.pickable && variant === 'pick')) {
                 return;
             }
 
@@ -304,7 +312,7 @@ namespace Renderer {
             }
 
             if (r.values.dRenderMode) { // indicates direct-volume
-                if ((variant[0] === 'p' || variant === 'depth') && r.values.dRenderMode.ref.value === 'volume') {
+                if ((variant === 'pick' || variant === 'depth') && r.values.dRenderMode.ref.value === 'volume') {
                     return; // no picking/depth in volume mode
                 }
 
@@ -395,12 +403,13 @@ namespace Renderer {
             state.currentRenderItemId = -1;
         };
 
-        const renderPick = (group: Scene.Group, camera: ICamera, variant: GraphicsRenderVariant, depthTexture: Texture | null) => {
+        const renderPick = (group: Scene.Group, camera: ICamera, variant: GraphicsRenderVariant, depthTexture: Texture | null, pickType: PickType) => {
             state.disable(gl.BLEND);
             state.enable(gl.DEPTH_TEST);
             state.depthMask(true);
 
             updateInternal(group, camera, depthTexture, false, false);
+            ValueCell.updateIfChanged(globalUniforms.uPickType, pickType);
 
             const { renderables } = group;
             for (let i = 0, il = renderables.length; i < il; ++i) {

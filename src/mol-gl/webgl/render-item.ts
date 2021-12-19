@@ -49,7 +49,7 @@ export interface RenderItem<T extends string> {
 
 //
 
-const GraphicsRenderVariant = { colorBlended: '', colorWboit: '', pickObject: '', pickInstance: '', pickGroup: '', depth: '', markingDepth: '', markingMask: '' };
+const GraphicsRenderVariant = { colorBlended: '', colorWboit: '', pick: '', depth: '', markingDepth: '', markingMask: '' };
 export type GraphicsRenderVariant = keyof typeof GraphicsRenderVariant
 export const GraphicsRenderVariants = Object.keys(GraphicsRenderVariant) as GraphicsRenderVariant[];
 export const GraphicsRenderVariantsBlended = GraphicsRenderVariants.filter(v => v !== 'colorWboit');

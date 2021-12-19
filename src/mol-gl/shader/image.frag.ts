@@ -104,13 +104,13 @@ void main() {
     #if defined(dRenderVariant_pick)
         if (imageData.a < 0.3)
             discard;
-        #if defined(dRenderVariant_pickObject)
+        if (uPickType == 1) {
             gl_FragColor = vec4(encodeFloatRGB(float(uObjectId)), 1.0);
-        #elif defined(dRenderVariant_pickInstance)
+        } else if (uPickType == 2) {
             gl_FragColor = vec4(encodeFloatRGB(vInstance), 1.0);
-        #elif defined(dRenderVariant_pickGroup)
+        } else {
             gl_FragColor = vec4(texture2D(tGroupTex, vUv).rgb, 1.0);
-        #endif
+        }
     #elif defined(dRenderVariant_depth)
         if (imageData.a < 0.05)
             discard;
