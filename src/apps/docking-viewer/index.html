@@ -19,19 +19,19 @@
         <div id="app"></div>
         <script type="text/javascript" src="./molstar.js"></script>
         <script type="text/javascript">
-            var viewer = new DockingViewer('app', [0x33DD22, 0x1133EE], true);
-
             function getParam(name, regex) {
                 var r = new RegExp(name + '=' + '(' + regex + ')[&]?', 'i');
                 return decodeURIComponent(((window.location.search || '').match(r) || [])[1] || '');
             }
-            var pdbqt = getParam('pdbqt', '[^&]+').trim();
-            var mol2 = getParam('mol2', '[^&]+').trim();
+            var pdbqt = getParam('pdbqt', '[^&]+').trim() || '../../examples/ace2.pdbqt';
+            var mol2 = getParam('mol2', '[^&]+').trim() || '../../examples/ace2-hit.mol2';
 
-            viewer.loadStructuresFromUrlsAndMerge([
-                { url: pdbqt, format: 'pdbqt' },
-                { url: mol2, format: 'mol2' }
-            ]);
+            DockingViewer.create('app', [0x33DD22, 0x1133EE], true).then(viewer => {
+                viewer.loadStructuresFromUrlsAndMerge([
+                    { url: pdbqt, format: 'pdbqt' },
+                    { url: mol2, format: 'mol2' }
+                ]);
+            });
         </script>
     </body>
 </html>

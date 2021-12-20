@@ -56,7 +56,8 @@
             var pixelScale = getParam('pixel-scale', '[^&]+').trim();
             var pickScale = getParam('pick-scale', '[^&]+').trim();
             var pickPadding = getParam('pick-padding', '[^&]+').trim();
-            var viewer = new molstar.Viewer('app', {
+
+            molstar.Viewer.create('app', {
                 layoutShowControls: !hideControls,
                 viewportShowExpand: false,
                 collapseLeftPanel: collapseLeftPanel,
@@ -68,34 +69,34 @@
                 pixelScale: parseFloat(pixelScale) || 1,
                 pickScale: parseFloat(pickScale) || 0.25,
                 pickPadding: isNaN(parseFloat(pickPadding)) ? 1 : parseFloat(pickPadding),
+            }).then(viewer => {
+                var snapshotId = getParam('snapshot-id', '[^&]+').trim();
+                if (snapshotId) viewer.setRemoteSnapshot(snapshotId);
+
+                var snapshotUrl = getParam('snapshot-url', '[^&]+').trim();
+                var snapshotUrlType = getParam('snapshot-url-type', '[^&]+').toLowerCase().trim() || 'molj';
+                if (snapshotUrl && snapshotUrlType) viewer.loadSnapshotFromUrl(snapshotUrl, snapshotUrlType);
+
+                var structureUrl = getParam('structure-url', '[^&]+').trim();
+                var structureUrlFormat = getParam('structure-url-format', '[a-z]+').toLowerCase().trim();
+                var structureUrlIsBinary = getParam('structure-url-is-binary', '[^&]+').trim() === '1';
+                if (structureUrl) viewer.loadStructureFromUrl(structureUrl, structureUrlFormat, structureUrlIsBinary);
+
+                var pdb = getParam('pdb', '[^&]+').trim();
+                if (pdb) viewer.loadPdb(pdb);
+
+                var pdbDev = getParam('pdb-dev', '[^&]+').trim();
+                if (pdbDev) viewer.loadPdbDev(pdbDev);
+
+                var emdb = getParam('emdb', '[^&]+').trim();
+                if (emdb) viewer.loadEmdb(emdb);
+
+                var afdb = getParam('afdb', '[^&]+').trim();
+                if (afdb) viewer.loadAlphaFoldDb(afdb);
+
+                var modelArchive = getParam('model-archive', '[^&]+').trim();
+                if (modelArchive) viewer.loadModelArchive(modelArchive);
             });
-
-            var snapshotId = getParam('snapshot-id', '[^&]+').trim();
-            if (snapshotId) viewer.setRemoteSnapshot(snapshotId);
-
-            var snapshotUrl = getParam('snapshot-url', '[^&]+').trim();
-            var snapshotUrlType = getParam('snapshot-url-type', '[^&]+').toLowerCase().trim() || 'molj';
-            if (snapshotUrl && snapshotUrlType) viewer.loadSnapshotFromUrl(snapshotUrl, snapshotUrlType);
-
-            var structureUrl = getParam('structure-url', '[^&]+').trim();
-            var structureUrlFormat = getParam('structure-url-format', '[a-z]+').toLowerCase().trim();
-            var structureUrlIsBinary = getParam('structure-url-is-binary', '[^&]+').trim() === '1';
-            if (structureUrl) viewer.loadStructureFromUrl(structureUrl, structureUrlFormat, structureUrlIsBinary);
-
-            var pdb = getParam('pdb', '[^&]+').trim();
-            if (pdb) viewer.loadPdb(pdb);
-
-            var pdbDev = getParam('pdb-dev', '[^&]+').trim();
-            if (pdbDev) viewer.loadPdbDev(pdbDev);
-
-            var emdb = getParam('emdb', '[^&]+').trim();
-            if (emdb) viewer.loadEmdb(emdb);
-
-            var afdb = getParam('afdb', '[^&]+').trim();
-            if (afdb) viewer.loadAlphaFoldDb(afdb);
-
-            var modelArchive = getParam('model-archive', '[^&]+').trim();
-            if (modelArchive) viewer.loadModelArchive(modelArchive);
         </script>
         <!-- __MOLSTAR_ANALYTICS__ -->
     </body>

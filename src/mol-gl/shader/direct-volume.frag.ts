@@ -71,6 +71,7 @@ uniform vec3 uFogColor;
 uniform float uAlpha;
 uniform float uPickingAlphaThreshold;
 uniform bool uTransparentBackground;
+uniform float uXrayEdgeFalloff;
 
 uniform float uInteriorDarkening;
 uniform bool uInteriorColorFlag;

@@ -6,6 +6,16 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Reduce number of created programs/shaders
+    - Support specifying variants when creating graphics render-items
+    - Change double-side shader param from define to uniform
+    - Remove dMarkerType shader define (use uMarker as needed)
+    - Support to ignore defines depending on the shader variant
+    - Combine pickObject/pickInstance/pickGroup shader variants into one
+    - Correctly set shader define flags for overpaint, transparency, substance, clipping
+
+## [v3.0.0-dev.6] - 2021-12-19
+
 - Enable temporal multi-sampling by default
     - Fix flickering during marking with camera at rest
 - Enable ``aromaticBonds`` in structure representations by default
@@ -24,13 +34,13 @@ Note that since we don't clearly distinguish between a public and private interf
     - pLDDT & qmean score: coloring, repr presets, molql symbol, loci labels (including avg for mutli-residue selections)
     - pLDDT: selection query
 - Warn about erroneous symmetry operator matrix (instead of throwing an error)
-- Reduce number of created programs/shaders
-    - Support specifying variants when creating graphics render-items
-    - Change double-side shader param from define to uniform
-    - Remove dMarkerType shader define (use uMarker as needed)
-    - Support to ignore defines depending on the shader variant
-    - Combine pickObject/pickInstance/pickGroup shader variants into one
-    - Correctly set shader define flags for overpaint, transparency, substance, clipping
+- Added ``createPluginUI`` to ``mol-plugin-ui``
+    - Support ``onBeforeUIRender`` to make sure initial UI works with custom presets and similar features.
+- [Breaking] Removed ``createPlugin`` and ``createPluginAsync`` from ``mol-plugin-ui``
+    - Please use ``createPluginUI`` instead
+- Improve aromatic bonds handling
+    - Don't detect aromatic bonds for rings < 5 atoms based on planarity
+    - Prefer atoms in aromatic rings as bond reference positions
 
 ## [v3.0.0-dev.5] - 2021-12-16
 
