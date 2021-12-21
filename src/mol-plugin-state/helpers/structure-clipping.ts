@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -59,8 +59,7 @@ async function eachRepr(plugin: PluginContext, components: StructureComponentRef
 
 /** filter clipping layers for given structure */
 function getFilteredBundle(layers: Clipping.BundleLayer[], structure: Structure) {
-    // TODO
-    const clipping = Clipping.Empty; // ofBundle(layers, structure.root);
+    const clipping = Clipping.ofBundle(layers, structure.root);
     const merged = Clipping.merge(clipping);
     return Clipping.filter(merged, structure);
 }
