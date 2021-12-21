@@ -46,8 +46,10 @@ void main(){
     #endif
     mat3 normalMatrix = transpose3(inverse3(mat3(modelView)));
     vec3 transformedNormal = normalize(normalMatrix * normalize(normal));
-    #if defined(dFlipSided) && !defined(dDoubleSided) // TODO checking dDoubleSided should not be required, ASR
-        transformedNormal = -transformedNormal;
+    #if defined(dFlipSided)
+        if (!uDoubleSided) { // TODO checking uDoubleSided should not be required, ASR
+            transformedNormal = -transformedNormal;
+        }
     #endif
     vNormal = transformedNormal;
 }

@@ -82,7 +82,7 @@ namespace Visual {
     export function mark(renderObject: GraphicsRenderObject | undefined, loci: Loci, action: MarkerAction, lociApply: LociApply, previous?: PreviousMark) {
         if (!renderObject || isEmptyLoci(loci)) return false;
 
-        const { tMarker, dMarkerType, uMarker, markerAverage, markerStatus, uGroupCount, instanceCount } = renderObject.values;
+        const { tMarker, uMarker, markerAverage, markerStatus, uGroupCount, instanceCount } = renderObject.values;
         const count = uGroupCount.ref.value * instanceCount.ref.value;
         const { array } = tMarker.ref.value;
         const currentStatus = markerStatus.ref.value as MarkerInfo['status'];
@@ -135,7 +135,6 @@ namespace Visual {
             }
             ValueCell.updateIfChanged(uMarker, status);
             if (status === -1) ValueCell.update(tMarker, tMarker.ref.value);
-            ValueCell.updateIfChanged(dMarkerType, status === -1 ? 'groupInstance' : 'uniform');
             ValueCell.updateIfChanged(markerAverage, average);
             ValueCell.updateIfChanged(markerStatus, status);
         }
@@ -158,7 +157,7 @@ namespace Visual {
     export function setOverpaint(renderObject: GraphicsRenderObject | undefined, overpaint: Overpaint, lociApply: LociApply, clear: boolean, smoothing?: SmoothingContext) {
         if (!renderObject) return;
 
-        const { tOverpaint, dOverpaintType, uGroupCount, instanceCount } = renderObject.values;
+        const { tOverpaint, dOverpaintType, dOverpaint, uGroupCount, instanceCount } = renderObject.values;
         const count = uGroupCount.ref.value * instanceCount.ref.value;
 
         // ensure texture has right size
@@ -181,6 +180,7 @@ namespace Visual {
         }
         ValueCell.update(tOverpaint, tOverpaint.ref.value);
         ValueCell.updateIfChanged(dOverpaintType, 'groupInstance');
+        ValueCell.updateIfChanged(dOverpaint, overpaint.layers.length > 0);
 
         if (overpaint.layers.length === 0) return;
 
@@ -207,7 +207,7 @@ namespace Visual {
     export function setTransparency(renderObject: GraphicsRenderObject | undefined, transparency: Transparency, lociApply: LociApply, clear: boolean, smoothing?: SmoothingContext) {
         if (!renderObject) return;
 
-        const { tTransparency, dTransparencyType, transparencyAverage, uGroupCount, instanceCount } = renderObject.values;
+        const { tTransparency, dTransparencyType, transparencyAverage, dTransparency, uGroupCount, instanceCount } = renderObject.values;
         const count = uGroupCount.ref.value * instanceCount.ref.value;
 
         // ensure texture has right size and variant
@@ -229,6 +229,7 @@ namespace Visual {
         ValueCell.update(tTransparency, tTransparency.ref.value);
         ValueCell.updateIfChanged(transparencyAverage, getTransparencyAverage(array, count));
         ValueCell.updateIfChanged(dTransparencyType, 'groupInstance');
+        ValueCell.updateIfChanged(dTransparency, transparency.layers.length > 0);
 
         if (transparency.layers.length === 0) return;
 
@@ -255,7 +256,7 @@ namespace Visual {
     export function setSubstance(renderObject: GraphicsRenderObject | undefined, substance: Substance, lociApply: LociApply, clear: boolean, smoothing?: SmoothingContext) {
         if (!renderObject) return;
 
-        const { tSubstance, dSubstanceType, uGroupCount, instanceCount } = renderObject.values;
+        const { tSubstance, dSubstanceType, dSubstance, uGroupCount, instanceCount } = renderObject.values;
         const count = uGroupCount.ref.value * instanceCount.ref.value;
 
         // ensure texture has right size
@@ -278,6 +279,7 @@ namespace Visual {
         }
         ValueCell.update(tSubstance, tSubstance.ref.value);
         ValueCell.updateIfChanged(dSubstanceType, 'groupInstance');
+        ValueCell.updateIfChanged(dSubstance, substance.layers.length > 0);
 
         if (substance.layers.length === 0) return;
 
@@ -304,7 +306,7 @@ namespace Visual {
     export function setClipping(renderObject: GraphicsRenderObject | undefined, clipping: Clipping, lociApply: LociApply, clear: boolean) {
         if (!renderObject) return;
 
-        const { tClipping, uGroupCount, instanceCount } = renderObject.values;
+        const { tClipping, dClipping, uGroupCount, instanceCount } = renderObject.values;
         const count = uGroupCount.ref.value * instanceCount.ref.value;
 
         // ensure texture has right size
@@ -324,6 +326,7 @@ namespace Visual {
             lociApply(loci, apply, false);
         }
         ValueCell.update(tClipping, tClipping.ref.value);
+        ValueCell.updateIfChanged(dClipping, clipping.layers.length > 0);
     }
 
     export function setTransform(renderObject: GraphicsRenderObject | undefined, transform?: Mat4, instanceTransforms?: Float32Array | null) {

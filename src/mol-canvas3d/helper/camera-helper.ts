@@ -14,6 +14,7 @@ import { PickingId } from '../../mol-geo/geometry/picking';
 import { GraphicsRenderObject } from '../../mol-gl/render-object';
 import { Scene } from '../../mol-gl/scene';
 import { WebGLContext } from '../../mol-gl/webgl/context';
+import { GraphicsRenderVariantsBlended } from '../../mol-gl/webgl/render-item';
 import { Sphere3D } from '../../mol-math/geometry';
 import { Mat4, Vec3 } from '../../mol-math/linear-algebra';
 import { DataLoci, EmptyLoci, Loci } from '../../mol-model/loci';
@@ -58,7 +59,7 @@ export class CameraHelper {
     private renderObject: GraphicsRenderObject | undefined;
 
     constructor(private webgl: WebGLContext, props: Partial<CameraHelperProps> = {}) {
-        this.scene = Scene.create(webgl);
+        this.scene = Scene.create(webgl, GraphicsRenderVariantsBlended);
 
         this.camera = new Camera();
         Vec3.set(this.camera.up, 0, 1, 0);
@@ -201,7 +202,7 @@ function createAxesMesh(scale: number, mesh?: Mesh) {
     const x = Vec3.scale(Vec3(), Vec3.unitX, scale);
     const y = Vec3.scale(Vec3(), Vec3.unitY, scale);
     const z = Vec3.scale(Vec3(), Vec3.unitZ, scale);
-    const cylinderProps = { radiusTop: radius, radiusBottom: radius, radialSegments: 32 };
+    const cylinderProps = { radiusTop: radius, radiusBottom: radius, radialSegments: 32 };
 
     state.currentGroup = CameraHelperAxis.None;
     addSphere(state, Vec3.origin, radius, 2);

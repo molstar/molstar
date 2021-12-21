@@ -6,6 +6,15 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Reduce number of created programs/shaders
+    - Support specifying variants when creating graphics render-items
+    - Change double-side shader param from define to uniform
+    - Remove dMarkerType shader define (use uMarker as needed)
+    - Support to ignore defines depending on the shader variant
+    - Combine pickObject/pickInstance/pickGroup shader variants into one
+    - Combine markingDepth/markingMask shader variants into one
+    - Correctly set shader define flags for overpaint, transparency, substance, clipping
+
 ## [v3.0.0-dev.6] - 2021-12-19
 
 - Enable temporal multi-sampling by default

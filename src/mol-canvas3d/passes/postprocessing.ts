@@ -86,7 +86,7 @@ function getSsaoRenderable(ctx: WebGLContext, depthTexture: Texture): SsaoRender
         tDepth: ValueCell.create(depthTexture),
 
         uSamples: ValueCell.create([0.0, 0.0, 1.0]),
-        dNSamples: ValueCell.create(1),
+        dNSamples: ValueCell.create(32),
 
         uProjection: ValueCell.create(Mat4.identity()),
         uInvProjection: ValueCell.create(Mat4.identity()),
@@ -133,7 +133,7 @@ function getSsaoBlurRenderable(ctx: WebGLContext, ssaoDepthTexture: Texture, dir
         uTexSize: ValueCell.create(Vec2.create(ssaoDepthTexture.getWidth(), ssaoDepthTexture.getHeight())),
 
         uKernel: ValueCell.create([0.0]),
-        dOcclusionKernelSize: ValueCell.create(1),
+        dOcclusionKernelSize: ValueCell.create(15),
 
         uBlurDirectionX: ValueCell.create(direction === 'horizontal' ? 1 : 0),
         uBlurDirectionY: ValueCell.create(direction === 'vertical' ? 1 : 0),
@@ -226,7 +226,7 @@ function getPostprocessingRenderable(ctx: WebGLContext, colorTexture: Texture, d
 
         uMaxPossibleViewZDiff: ValueCell.create(0.5),
 
-        dOcclusionEnable: ValueCell.create(false),
+        dOcclusionEnable: ValueCell.create(true),
 
         dOutlineEnable: ValueCell.create(false),
         dOutlineScale: ValueCell.create(1),

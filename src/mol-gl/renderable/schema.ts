@@ -161,6 +161,8 @@ export const GlobalUniformSchema = {
 
     uRenderWboit: UniformSpec('b'),
     uMarkingDepthTest: UniformSpec('b'),
+    uMarkingType: UniformSpec('i'),
+    uPickType: UniformSpec('i'),
 } as const;
 export type GlobalUniformSchema = typeof GlobalUniformSchema
 export type GlobalUniformValues = Values<GlobalUniformSchema>
@@ -207,7 +209,6 @@ export const MarkerSchema = {
     uMarker: UniformSpec('f'),
     uMarkerTexDim: UniformSpec('v2'),
     tMarker: TextureSpec('image-uint8', 'alpha', 'ubyte', 'nearest'),
-    dMarkerType: DefineSpec('string', ['uniform', 'groupInstance']),
     markerAverage: ValueSpec('number'),
     markerStatus: ValueSpec('number'),
 } as const;

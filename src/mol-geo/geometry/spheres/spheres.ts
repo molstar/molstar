@@ -203,7 +203,7 @@ export namespace Spheres {
 
             ...BaseGeometry.createValues(props, counts),
             uSizeFactor: ValueCell.create(props.sizeFactor),
-            dDoubleSided: ValueCell.create(props.doubleSided),
+            uDoubleSided: ValueCell.create(props.doubleSided),
             dIgnoreLight: ValueCell.create(props.ignoreLight),
             dXrayShaded: ValueCell.create(props.xrayShaded),
             uBumpFrequency: ValueCell.create(props.bumpFrequency),
@@ -220,7 +220,7 @@ export namespace Spheres {
     function updateValues(values: SpheresValues, props: PD.Values<Params>) {
         BaseGeometry.updateValues(values, props);
         ValueCell.updateIfChanged(values.uSizeFactor, props.sizeFactor);
-        ValueCell.updateIfChanged(values.dDoubleSided, props.doubleSided);
+        ValueCell.updateIfChanged(values.uDoubleSided, props.doubleSided);
         ValueCell.updateIfChanged(values.dIgnoreLight, props.ignoreLight);
         ValueCell.updateIfChanged(values.dXrayShaded, props.xrayShaded);
         ValueCell.updateIfChanged(values.uBumpFrequency, props.bumpFrequency);

@@ -80,7 +80,7 @@ bool CylinderImpostor(
         }
     }
 
-    #ifdef dDoubleSided
+    if (uDoubleSided) {
         // body inside
         h = -h;
         t = (-k1 - h) / k2;
@@ -92,7 +92,7 @@ bool CylinderImpostor(
         }
 
         // TODO: handle inside caps???
-    #endif
+    }
 
     return false;
 }

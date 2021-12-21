@@ -201,7 +201,7 @@ function getWeightsRenderable(ctx: WebGLContext, edgesTexture: Texture): Weights
         uTexSizeInv: ValueCell.create(Vec2.create(1 / width, 1 / height)),
         uViewport: ValueCell.create(Vec4()),
 
-        dMaxSearchSteps: ValueCell.create(8),
+        dMaxSearchSteps: ValueCell.create(16),
     };
 
     // Note: loading image textures requires `HTMLImageElement` to be available
