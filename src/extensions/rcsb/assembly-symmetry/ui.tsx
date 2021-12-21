@@ -118,7 +118,7 @@ export class AssemblySymmetryControls extends CollapsableControls<{}, AssemblySy
 
     paramsOnChange = (options: AssemblySymmetryProps) => {
         this.updateAssemblySymmetry(options);
-    }
+    };
 
     get hasAssemblySymmetry3D() {
         return !this.pivot.cell.parent || !!StateSelection.findTagInSubtree(this.pivot.cell.parent.tree, this.pivot.cell.transform.ref, AssemblySymmetry.Tag.Representation);

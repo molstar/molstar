@@ -108,7 +108,7 @@ export class Mp4EncoderUI extends CollapsableControls<{}, State> {
 
     save = () => {
         download(new Blob([this.state.data!.movie]), this.state.data!.filename);
-    }
+    };
 
     generate = async () => {
         try {
@@ -119,5 +119,5 @@ export class Mp4EncoderUI extends CollapsableControls<{}, State> {
             console.error(e);
             this.setState({ busy: false });
         }
-    }
+    };
 }

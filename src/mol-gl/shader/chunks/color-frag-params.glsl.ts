@@ -4,6 +4,7 @@ uniform float uRoughness;
 uniform float uBumpiness;
 #ifdef bumpEnabled
     uniform float uBumpFrequency;
+    uniform float uBumpAmplitude;
 #endif
 
 #if defined(dRenderVariant_color)
@@ -11,6 +12,11 @@ uniform float uBumpiness;
         uniform vec3 uColor;
     #elif defined(dColorType_varying)
         varying vec4 vColor;
+    #endif
+
+    #ifdef dUsePalette
+        uniform sampler2D tPalette;
+        varying float vPaletteV;
     #endif
 
     #ifdef dOverpaint
@@ -31,10 +37,5 @@ uniform float uBumpiness;
 #ifdef dTransparency
     varying float vGroup;
     varying float vTransparency;
-#endif
-
-#ifdef dUsePalette
-    uniform sampler2D tPalette;
-    varying float vPaletteV;
 #endif
 `;

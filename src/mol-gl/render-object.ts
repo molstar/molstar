@@ -16,6 +16,7 @@ import { TextValues, TextRenderable } from './renderable/text';
 import { TextureMeshValues, TextureMeshRenderable } from './renderable/texture-mesh';
 import { ImageValues, ImageRenderable } from './renderable/image';
 import { CylindersRenderable, CylindersValues } from './renderable/cylinders';
+import { GraphicsRenderVariant } from './webgl/render-item';
 
 const getNextId = idFactory(0, 0x7FFFFFFF);
 
@@ -48,17 +49,17 @@ export function createRenderObject<T extends RenderObjectType>(type: T, values: 
     return { id: getNextId(), type, values, state, materialId } as GraphicsRenderObject<T>;
 }
 
-export function createRenderable<T extends RenderObjectType>(ctx: WebGLContext, o: GraphicsRenderObject<T>): Renderable<any> {
+export function createRenderable<T extends RenderObjectType>(ctx: WebGLContext, o: GraphicsRenderObject<T>, variants: GraphicsRenderVariant[]): Renderable<any> {
     switch (o.type) {
-        case 'mesh': return MeshRenderable(ctx, o.id, o.values as MeshValues, o.state, o.materialId);
-        case 'points': return PointsRenderable(ctx, o.id, o.values as PointsValues, o.state, o.materialId);
-        case 'spheres': return SpheresRenderable(ctx, o.id, o.values as SpheresValues, o.state, o.materialId);
-        case 'cylinders': return CylindersRenderable(ctx, o.id, o.values as CylindersValues, o.state, o.materialId);
-        case 'text': return TextRenderable(ctx, o.id, o.values as TextValues, o.state, o.materialId);
-        case 'lines': return LinesRenderable(ctx, o.id, o.values as LinesValues, o.state, o.materialId);
-        case 'direct-volume': return DirectVolumeRenderable(ctx, o.id, o.values as DirectVolumeValues, o.state, o.materialId);
-        case 'image': return ImageRenderable(ctx, o.id, o.values as ImageValues, o.state, o.materialId);
-        case 'texture-mesh': return TextureMeshRenderable(ctx, o.id, o.values as TextureMeshValues, o.state, o.materialId);
+        case 'mesh': return MeshRenderable(ctx, o.id, o.values as MeshValues, o.state, o.materialId, variants);
+        case 'points': return PointsRenderable(ctx, o.id, o.values as PointsValues, o.state, o.materialId, variants);
+        case 'spheres': return SpheresRenderable(ctx, o.id, o.values as SpheresValues, o.state, o.materialId, variants);
+        case 'cylinders': return CylindersRenderable(ctx, o.id, o.values as CylindersValues, o.state, o.materialId, variants);
+        case 'text': return TextRenderable(ctx, o.id, o.values as TextValues, o.state, o.materialId, variants);
+        case 'lines': return LinesRenderable(ctx, o.id, o.values as LinesValues, o.state, o.materialId, variants);
+        case 'direct-volume': return DirectVolumeRenderable(ctx, o.id, o.values as DirectVolumeValues, o.state, o.materialId, variants);
+        case 'image': return ImageRenderable(ctx, o.id, o.values as ImageValues, o.state, o.materialId, variants);
+        case 'texture-mesh': return TextureMeshRenderable(ctx, o.id, o.values as TextureMeshValues, o.state, o.materialId, variants);
     }
     throw new Error('unsupported type');
 }

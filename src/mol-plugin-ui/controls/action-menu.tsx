@@ -11,7 +11,7 @@ import { Button, ControlGroup } from './common';
 import { CloseSvg, ArrowDropDownSvg, ArrowRightSvg, CheckSvg } from './icons';
 
 export class ActionMenu extends React.PureComponent<ActionMenu.Props> {
-    hide = () => this.props.onSelect(void 0)
+    hide = () => this.props.onSelect(void 0);
 
     render() {
         const cmd = this.props;
@@ -193,12 +193,12 @@ class Section extends React.PureComponent<SectionProps, SectionState> {
         };
     }
 
-    state = Section.createState(this.props)
+    state = Section.createState(this.props);
 
     toggleExpanded = (e: React.MouseEvent<HTMLButtonElement>) => {
         this.setState({ isExpanded: !this.state.isExpanded });
         e.currentTarget.blur();
-    }
+    };
 
     componentDidUpdate(prevProps: SectionProps) {
         if (this.props.items !== prevProps.items || this.props.current !== prevProps.current) {
@@ -215,12 +215,12 @@ class Section extends React.PureComponent<SectionProps, SectionState> {
     selectAll = () => {
         const items = collectItems(this.props.items, []).filter(i => !i.selected);
         this.props.onSelect(items as any);
-    }
+    };
 
     selectNone = () => {
         const items = collectItems(this.props.items, []).filter(i => !!i.selected);
         this.props.onSelect(items as any);
-    }
+    };
 
     get multiselectHeader() {
         const { header, hasCurrent } = this.state;

@@ -17,14 +17,14 @@ export const BestDatabaseSequenceMapping = PluginBehavior.create<{ autoAttach: b
     category: 'custom-props',
     display: { name: 'Best Database Sequence Mapping' },
     ctor: class extends PluginBehavior.Handler<{ autoAttach: boolean, showTooltip: boolean }> {
-        private provider = BestDatabaseSequenceMappingProp.Provider
+        private provider = BestDatabaseSequenceMappingProp.Provider;
 
         private labelProvider = {
             label: (loci: Loci): string | undefined => {
                 if (!this.params.showTooltip) return;
                 return bestDatabaseSequenceMappingLabel(loci);
             }
-        }
+        };
 
         update(p: { autoAttach: boolean, showTooltip: boolean }) {
             const updated = (

@@ -16,11 +16,11 @@ export class AnimationControls extends PluginUIComponent<{ onStart?: () => void 
 
     updateParams: ParamOnChange = p => {
         this.plugin.managers.animation.updateParams({ [p.name]: p.value });
-    }
+    };
 
     updateCurrentParams: ParamOnChange = p => {
         this.plugin.managers.animation.updateCurrentParams({ [p.name]: p.value });
-    }
+    };
 
     startOrStop = () => {
         const anim = this.plugin.managers.animation;
@@ -29,7 +29,7 @@ export class AnimationControls extends PluginUIComponent<{ onStart?: () => void 
             if (this.props.onStart) this.props.onStart();
             anim.start();
         }
-    }
+    };
 
     render() {
         const anim = this.plugin.managers.animation;

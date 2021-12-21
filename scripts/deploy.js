@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -14,6 +14,9 @@ const buildDir = path.resolve(__dirname, '../build/');
 const deployDir = path.resolve(buildDir, 'deploy/');
 const localPath = path.resolve(deployDir, 'molstar.github.io/');
 
+const analyticsTag = /<!-- __MOLSTAR_ANALYTICS__ -->/g;
+const analyticsCode = `<!-- Cloudflare Web Analytics --><script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "c414cbae2d284ea995171a81e4a3e721"}'></script><!-- End Cloudflare Web Analytics -->`;
+
 function log(command, stdout, stderr) {
     if (command) {
         console.log('\n###', command);
@@ -22,11 +25,36 @@ function log(command, stdout, stderr) {
     }
 }
 
+function addAnalytics(path) {
+    const data = fs.readFileSync(path, 'utf8');
+    const result = data.replace(analyticsTag, analyticsCode);
+    fs.writeFileSync(path, result, 'utf8');
+}
+
 function copyViewer() {
     console.log('\n###', 'copy viewer files');
     const viewerBuildPath = path.resolve(buildDir, '../build/viewer/');
     const viewerDeployPath = path.resolve(localPath, 'viewer/');
     fse.copySync(viewerBuildPath, viewerDeployPath, { overwrite: true });
+    addAnalytics(path.resolve(viewerDeployPath, 'index.html'));
+}
+
+function copyDemos() {
+    console.log('\n###', 'copy demos files');
+    const lightingBuildPath = path.resolve(buildDir, '../build/examples/lighting/');
+    const lightingDeployPath = path.resolve(localPath, 'demos/lighting/');
+    fse.copySync(lightingBuildPath, lightingDeployPath, { overwrite: true });
+    addAnalytics(path.resolve(lightingDeployPath, 'index.html'));
+
+    const orbitalsBuildPath = path.resolve(buildDir, '../build/examples/alpha-orbitals/');
+    const orbitalsDeployPath = path.resolve(localPath, 'demos/alpha-orbitals/');
+    fse.copySync(orbitalsBuildPath, orbitalsDeployPath, { overwrite: true });
+    addAnalytics(path.resolve(orbitalsDeployPath, 'index.html'));
+}
+
+function copyFiles() {
+    copyViewer();
+    copyDemos();
 }
 
 if (!fs.existsSync(localPath)) {
@@ -42,9 +70,9 @@ if (!fs.existsSync(path.resolve(localPath, '.git/'))) {
         .outputHandler(log)
         .clone(remoteUrl, localPath)
         .fetch(['--all'])
-        .exec(copyViewer)
+        .exec(copyFiles)
         .add(['-A'])
-        .commit('updated viewer')
+        .commit('updated viewer & demos')
         .push();
 } else {
     console.log('\n###', 'update repository');
@@ -52,8 +80,8 @@ if (!fs.existsSync(path.resolve(localPath, '.git/'))) {
         .outputHandler(log)
         .fetch(['--all'])
         .reset(['--hard', 'origin/master'])
-        .exec(copyViewer)
+        .exec(copyFiles)
         .add(['-A'])
-        .commit('updated viewer')
+        .commit('updated viewer & demos')
         .push();
 }

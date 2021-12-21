@@ -56,12 +56,9 @@ uniform float uHighlightStrength;
 uniform float uSelectStrength;
 uniform int uMarkerPriority;
 
-#if defined(dMarkerType_uniform)
-    uniform float uMarker;
-#elif defined(dMarkerType_groupInstance)
-    uniform vec2 uMarkerTexDim;
-    uniform sampler2D tMarker;
-#endif
+uniform float uMarker;
+uniform vec2 uMarkerTexDim;
+uniform sampler2D tMarker;
 
 uniform float uMetalness;
 uniform float uRoughness;
@@ -73,12 +70,14 @@ uniform vec3 uFogColor;
 uniform float uAlpha;
 uniform float uPickingAlphaThreshold;
 uniform bool uTransparentBackground;
+uniform float uXrayEdgeFalloff;
 
 uniform float uInteriorDarkening;
 uniform bool uInteriorColorFlag;
 uniform vec3 uInteriorColor;
 
 uniform bool uRenderWboit;
+uniform bool uDoubleSided;
 
 uniform float uNear;
 uniform float uFar;
@@ -253,18 +252,17 @@ vec4 raymarch(vec3 startLoc, vec3 step, vec3 rayDir) {
 
             gl_FragColor.a = material.a * uAlpha * uTransferScale;
 
-            #if defined(dMarkerType_uniform)
-                float marker = uMarker;
-            #elif defined(dMarkerType_groupInstance)
+            float marker = uMarker;
+            if (uMarker == -1.0) {
                 #ifdef dPackedGroup
                     float group = decodeFloatRGB(textureGroup(floor(unitPos * uGridDim + 0.5) / uGridDim).rgb);
                 #else
                     vec3 g = floor(unitPos * uGridDim + 0.5);
                     float group = g.z + g.y * uGridDim.z + g.x * uGridDim.z * uGridDim.y;
                 #endif
-                float marker = readFromTexture(tMarker, vInstance * float(uGroupCount) + group, uMarkerTexDim).a;
+                marker = readFromTexture(tMarker, vInstance * float(uGroupCount) + group, uMarkerTexDim).a;
                 marker = floor(marker * 255.0 + 0.5); // rounding required to work on some cards on win
-            #endif
+            }
             #include apply_marker_color
 
             preFogAlphaBlended = (1.0 - preFogAlphaBlended) * gl_FragColor.a + preFogAlphaBlended;

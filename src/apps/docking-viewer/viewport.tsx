@@ -51,7 +51,8 @@ function occlusionStyle(plugin: PluginContext) {
             } },
             outline: { name: 'on', params: {
                 scale: 1.0,
-                threshold: 0.33
+                threshold: 0.33,
+                color: Color(0x0000),
             } }
         }
     } });
@@ -229,7 +230,7 @@ export class ViewportComponent extends PluginUIComponent {
 
     set = async (preset: StructureRepresentationPresetProvider) => {
         await this._set(this.plugin.managers.structure.hierarchy.selection.structures, preset);
-    }
+    };
 
     structurePreset = () => this.set(StructurePreset);
     illustrativePreset = () => this.set(IllustrativePreset);

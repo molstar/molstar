@@ -47,7 +47,7 @@ export interface TextureMesh {
 export namespace TextureMesh {
     export class DoubleBuffer {
         private index = 0;
-        private textures: ({ vertex: Texture, group: Texture, normal: Texture } | undefined)[] = []
+        private textures: ({ vertex: Texture, group: Texture, normal: Texture } | undefined)[] = [];
 
         get() {
             return this.textures[this.index];
@@ -114,6 +114,7 @@ export namespace TextureMesh {
         ignoreLight: PD.Boolean(false, BaseGeometry.ShadingCategory),
         xrayShaded: PD.Boolean(false, BaseGeometry.ShadingCategory),
         bumpFrequency: PD.Numeric(0, { min: 0, max: 10, step: 0.1 }, BaseGeometry.ShadingCategory),
+        bumpAmplitude: PD.Numeric(1, { min: 0, max: 5, step: 0.1 }, BaseGeometry.ShadingCategory),
     };
     export type Params = typeof Params
 
@@ -164,12 +165,13 @@ export namespace TextureMesh {
             ...transform,
 
             ...BaseGeometry.createValues(props, counts),
-            dDoubleSided: ValueCell.create(props.doubleSided),
+            uDoubleSided: ValueCell.create(props.doubleSided),
             dFlatShaded: ValueCell.create(props.flatShaded),
             dFlipSided: ValueCell.create(props.flipSided),
             dIgnoreLight: ValueCell.create(props.ignoreLight),
             dXrayShaded: ValueCell.create(props.xrayShaded),
             uBumpFrequency: ValueCell.create(props.bumpFrequency),
+            uBumpAmplitude: ValueCell.create(props.bumpAmplitude),
             dGeoTexture: ValueCell.create(true),
 
             meta: ValueCell.create(textureMesh.meta),
@@ -184,12 +186,13 @@ export namespace TextureMesh {
 
     function updateValues(values: TextureMeshValues, props: PD.Values<Params>) {
         BaseGeometry.updateValues(values, props);
-        ValueCell.updateIfChanged(values.dDoubleSided, props.doubleSided);
+        ValueCell.updateIfChanged(values.uDoubleSided, props.doubleSided);
         ValueCell.updateIfChanged(values.dFlatShaded, props.flatShaded);
         ValueCell.updateIfChanged(values.dFlipSided, props.flipSided);
         ValueCell.updateIfChanged(values.dIgnoreLight, props.ignoreLight);
         ValueCell.updateIfChanged(values.dXrayShaded, props.xrayShaded);
         ValueCell.updateIfChanged(values.uBumpFrequency, props.bumpFrequency);
+        ValueCell.updateIfChanged(values.uBumpAmplitude, props.bumpAmplitude);
     }
 
     function updateBoundingSphere(values: TextureMeshValues, textureMesh: TextureMesh) {

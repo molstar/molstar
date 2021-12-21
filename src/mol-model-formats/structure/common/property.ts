@@ -9,8 +9,8 @@ import { ModelFormat } from '../../format';
 import { CustomPropertyDescriptor } from '../../../mol-model/custom-property';
 
 class FormatRegistry<T> {
-    private map = new Map<ModelFormat['kind'], (model: Model) => T | undefined>()
-    private applicable = new Map<ModelFormat['kind'], (model: Model) => boolean>()
+    private map = new Map<ModelFormat['kind'], (model: Model) => T | undefined>();
+    private applicable = new Map<ModelFormat['kind'], (model: Model) => boolean>();
 
     add(kind: ModelFormat['kind'], obtain: (model: Model) => T | undefined, applicable?: (model: Model) => boolean) {
         this.map.set(kind, obtain);

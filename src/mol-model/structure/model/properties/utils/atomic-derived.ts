@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -7,7 +7,7 @@
 import { AtomicData, AtomNumber } from '../atomic';
 import { AtomicIndex, AtomicDerivedData, AtomicSegments } from '../atomic/hierarchy';
 import { ElementIndex, ResidueIndex } from '../../indexing';
-import { MoleculeType, getMoleculeType, getComponentType, PolymerType, getPolymerType } from '../../types';
+import { MoleculeType, getMoleculeType, getComponentType, PolymerType, getPolymerType, isPolymer, ElementSymbol } from '../../types';
 import { getAtomIdForAtomRole } from '../../../../../mol-model/structure/util';
 import { ChemicalComponentMap } from '../common';
 import { isProductionMode } from '../../../../../mol-util/debug';
@@ -63,6 +63,9 @@ export function getAtomicDerivedData(data: AtomicData, segments: AtomicSegments,
         if (traceIndex === -1) {
             const coarseAtomId = getAtomIdForAtomRole(polyType, 'coarseBackbone');
             traceIndex = index.findAtomsOnResidue(i, coarseAtomId);
+            if (traceIndex === -1 && isPolymer(molType)) {
+                traceIndex = index.findElementOnResidue(i, ElementSymbol('C'));
+            }
         }
         traceElementIndex[i] = traceIndex;
 

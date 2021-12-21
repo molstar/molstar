@@ -1,10 +1,10 @@
 /**
- * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-21 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 interface Behavior<T> {
     value: T;
@@ -16,26 +16,20 @@ export function useBehavior<T>(s: Behavior<T>): T;
 export function useBehavior<T>(s: Behavior<T> | undefined): T | undefined;
 // eslint-disable-next-line
 export function useBehavior<T>(s: Behavior<T> | undefined): T | undefined {
-    const [value, setValue] = useState(s?.value);
+    const [, next] = useState({});
+    const current = useRef<T>();
+    current.current = s?.value;
 
     useEffect(() => {
         if (!s) {
-            if (value !== void 0) setValue(void 0);
             return;
         }
-        let fst = true;
         const sub = s.subscribe((v) => {
-            if (fst) {
-                fst = false;
-                if (v !== value) setValue(v);
-            } else setValue(v);
+            if (current.current !== v) next({});
         });
 
-        return () => {
-            sub.unsubscribe();
-        };
-        // eslint-disable-next-line
+        return () => sub.unsubscribe();
     }, [s]);
 
-    return value;
+    return s?.value;
 }

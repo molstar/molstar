@@ -30,7 +30,7 @@ export const RCSBValidationReport = PluginBehavior.create<{ autoAttach: boolean,
         description: 'Data from wwPDB Validation Report, obtained via RCSB PDB.'
     },
     ctor: class extends PluginBehavior.Handler<{ autoAttach: boolean, showTooltip: boolean }> {
-        private provider = ValidationReportProvider
+        private provider = ValidationReportProvider;
 
         private labelProvider = {
             label: (loci: Loci): string | undefined => {
@@ -41,7 +41,7 @@ export const RCSBValidationReport = PluginBehavior.create<{ autoAttach: boolean,
                     randomCoilIndexLabel(loci)
                 ].filter(l => !!l).join('</br>');
             }
-        }
+        };
 
         register(): void {
             DefaultQueryRuntimeTable.addCustomProp(this.provider.descriptor);

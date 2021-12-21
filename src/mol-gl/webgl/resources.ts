@@ -105,7 +105,12 @@ export function createResources(gl: GLRenderingContext, state: WebGLState, stats
     const programCache = createReferenceCache(
         (props: ProgramProps) => {
             const array = [props.shaderCode.id];
-            Object.keys(props.defineValues).forEach(k => array.push(hashString(k), defineValueHash(props.defineValues[k].ref.value)));
+            const variant = (props.defineValues.dRenderVariant?.ref.value || '') as string;
+            Object.keys(props.defineValues).forEach(k => {
+                if (!props.shaderCode.ignoreDefine?.(k, variant, props.defineValues)) {
+                    array.push(hashString(k), defineValueHash(props.defineValues[k].ref.value));
+                }
+            });
             return hashFnv32a(array).toString();
         },
         (props: ProgramProps) => wrap('program', createProgram(gl, state, extensions, getShader, props)),

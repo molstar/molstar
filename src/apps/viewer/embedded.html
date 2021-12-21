@@ -20,7 +20,7 @@
         <div id="app"></div>
         <script type="text/javascript" src="./molstar.js"></script>
         <script type="text/javascript">
-            var viewer = new molstar.Viewer('app', {
+            molstar.Viewer.create('app', {
                 layoutIsExpanded: true,
                 layoutShowControls: false,
                 layoutShowRemoteState: false,
@@ -34,11 +34,11 @@
 
                 pdbProvider: 'rcsb',
                 emdbProvider: 'rcsb',
+            }).then(viewer => {
+                viewer.loadPdb('7bv2');
+                viewer.loadEmdb('EMD-30210', { detail: 6 });
+                // viewer.loadAllModelsOrAssemblyFromUrl('https://cs.litemol.org/5ire/full', 'mmcif', false, { representationParams: { theme: { globalName: 'operator-name' } } })
             });
-            viewer.loadPdb('7bv2');
-            viewer.loadEmdb('EMD-30210', { detail: 6 });            
-
-            // viewer.loadAllModelsOrAssemblyFromUrl('https://cs.litemol.org/5ire/full', 'mmcif', false, { representationParams: { theme: { globalName: 'operator-name' } } })
         </script>
     </body>
 </html>

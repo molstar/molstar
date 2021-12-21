@@ -50,9 +50,7 @@ void main() {
                 vec3 normal = -faceNormal;
             #else
                 vec3 normal = -normalize(vNormal);
-                #ifdef dDoubleSided
-                    normal = normal * (float(frontFacing) * 2.0 - 1.0);
-                #endif
+                if (uDoubleSided) normal *= float(frontFacing) * 2.0 - 1.0;
             #endif
             #include apply_light_color
         #endif

@@ -5,7 +5,7 @@
  */
 
 import { PickingId } from '../../mol-geo/geometry/picking';
-import { Renderer } from '../../mol-gl/renderer';
+import { PickType, Renderer } from '../../mol-gl/renderer';
 import { Scene } from '../../mol-gl/scene';
 import { WebGLContext } from '../../mol-gl/webgl/context';
 import { GraphicsRenderVariant } from '../../mol-gl/webgl/render-item';
@@ -25,13 +25,13 @@ const NullId = Math.pow(2, 24) - 2;
 export type PickData = { id: PickingId, position: Vec3 }
 
 export class PickPass {
-    readonly objectPickTarget: RenderTarget
-    readonly instancePickTarget: RenderTarget
-    readonly groupPickTarget: RenderTarget
-    readonly depthPickTarget: RenderTarget
+    readonly objectPickTarget: RenderTarget;
+    readonly instancePickTarget: RenderTarget;
+    readonly groupPickTarget: RenderTarget;
+    readonly depthPickTarget: RenderTarget;
 
-    private pickWidth: number
-    private pickHeight: number
+    private pickWidth: number;
+    private pickHeight: number;
 
     constructor(private webgl: WebGLContext, private drawPass: DrawPass, readonly pickBaseScale: number) {
         const pickScale = pickBaseScale / webgl.pixelRatio;
@@ -64,56 +64,56 @@ export class PickPass {
         }
     }
 
-    private renderVariant(renderer: Renderer, camera: ICamera, scene: Scene, helper: Helper, variant: GraphicsRenderVariant) {
+    private renderVariant(renderer: Renderer, camera: ICamera, scene: Scene, helper: Helper, variant: GraphicsRenderVariant, pickType: number) {
         const depth = this.drawPass.depthTexturePrimitives;
         renderer.clear(false);
 
         renderer.update(camera);
-        renderer.renderPick(scene.primitives, camera, variant, null);
-        renderer.renderPick(scene.volumes, camera, variant, depth);
-        renderer.renderPick(helper.handle.scene, camera, variant, null);
+        renderer.renderPick(scene.primitives, camera, variant, null, pickType);
+        renderer.renderPick(scene.volumes, camera, variant, depth, pickType);
+        renderer.renderPick(helper.handle.scene, camera, variant, null, pickType);
 
         if (helper.camera.isEnabled) {
             helper.camera.update(camera);
             renderer.update(helper.camera.camera);
-            renderer.renderPick(helper.camera.scene, helper.camera.camera, variant, null);
+            renderer.renderPick(helper.camera.scene, helper.camera.camera, variant, null, pickType);
         }
     }
 
     render(renderer: Renderer, camera: ICamera, scene: Scene, helper: Helper) {
         this.objectPickTarget.bind();
-        this.renderVariant(renderer, camera, scene, helper, 'pickObject');
+        this.renderVariant(renderer, camera, scene, helper, 'pick', PickType.Object);
 
         this.instancePickTarget.bind();
-        this.renderVariant(renderer, camera, scene, helper, 'pickInstance');
+        this.renderVariant(renderer, camera, scene, helper, 'pick', PickType.Instance);
 
         this.groupPickTarget.bind();
-        this.renderVariant(renderer, camera, scene, helper, 'pickGroup');
+        this.renderVariant(renderer, camera, scene, helper, 'pick', PickType.Group);
         // printTexture(this.webgl, this.groupPickTarget.texture, { id: 'group' })
 
         this.depthPickTarget.bind();
-        this.renderVariant(renderer, camera, scene, helper, 'depth');
+        this.renderVariant(renderer, camera, scene, helper, 'depth', PickType.None);
     }
 }
 
 export class PickHelper {
-    dirty = true
+    dirty = true;
 
-    private objectBuffer: Uint8Array
-    private instanceBuffer: Uint8Array
-    private groupBuffer: Uint8Array
-    private depthBuffer: Uint8Array
+    private objectBuffer: Uint8Array;
+    private instanceBuffer: Uint8Array;
+    private groupBuffer: Uint8Array;
+    private depthBuffer: Uint8Array;
 
-    private viewport = Viewport()
+    private viewport = Viewport();
 
-    private pickScale: number
-    private pickX: number
-    private pickY: number
-    private pickWidth: number
-    private pickHeight: number
-    private halfPickWidth: number
+    private pickScale: number;
+    private pickX: number;
+    private pickY: number;
+    private pickWidth: number;
+    private pickHeight: number;
+    private halfPickWidth: number;
 
-    private spiral: [number, number][]
+    private spiral: [number, number][];
 
     private setupBuffers() {
         const bufferSize = this.pickWidth * this.pickHeight * 4;

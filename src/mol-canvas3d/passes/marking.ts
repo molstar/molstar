@@ -36,12 +36,12 @@ export class MarkingPass {
         return props.enabled;
     }
 
-    readonly depthTarget: RenderTarget
-    readonly maskTarget: RenderTarget
-    private readonly edgesTarget: RenderTarget
+    readonly depthTarget: RenderTarget;
+    readonly maskTarget: RenderTarget;
+    private readonly edgesTarget: RenderTarget;
 
-    private readonly edge: EdgeRenderable
-    private readonly overlay: OverlayRenderable
+    private readonly edge: EdgeRenderable;
+    private readonly overlay: OverlayRenderable;
 
     constructor(private webgl: WebGLContext, width: number, height: number) {
         this.depthTarget = webgl.createRenderTarget(width, height);

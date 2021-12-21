@@ -31,12 +31,12 @@ export const SmaaParams = {
 export type SmaaProps = PD.Values<typeof SmaaParams>
 
 export class SmaaPass {
-    private readonly edgesTarget: RenderTarget
-    private readonly weightsTarget: RenderTarget
+    private readonly edgesTarget: RenderTarget;
+    private readonly weightsTarget: RenderTarget;
 
-    private readonly edgesRenderable: EdgesRenderable
-    private readonly weightsRenderable: WeightsRenderable
-    private readonly blendRenderable: BlendRenderable
+    private readonly edgesRenderable: EdgesRenderable;
+    private readonly weightsRenderable: WeightsRenderable;
+    private readonly blendRenderable: BlendRenderable;
 
     private _supported = false;
     get supported() {
@@ -201,7 +201,7 @@ function getWeightsRenderable(ctx: WebGLContext, edgesTexture: Texture): Weights
         uTexSizeInv: ValueCell.create(Vec2.create(1 / width, 1 / height)),
         uViewport: ValueCell.create(Vec4()),
 
-        dMaxSearchSteps: ValueCell.create(8),
+        dMaxSearchSteps: ValueCell.create(16),
     };
 
     // Note: loading image textures requires `HTMLImageElement` to be available

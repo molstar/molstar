@@ -98,12 +98,12 @@ const CharmmIonComponents = (function () {
 })();
 
 export class ComponentBuilder {
-    private namesMap = new Map<string, string>()
-    private comps = new Map<string, Component>()
-    private ids: string[] = []
-    private names: string[] = []
-    private types: mmCIF_chemComp_schema['type']['T'][] = []
-    private mon_nstd_flags: mmCIF_chemComp_schema['mon_nstd_flag']['T'][] = []
+    private namesMap = new Map<string, string>();
+    private comps = new Map<string, Component>();
+    private ids: string[] = [];
+    private names: string[] = [];
+    private types: mmCIF_chemComp_schema['type']['T'][] = [];
+    private mon_nstd_flags: mmCIF_chemComp_schema['mon_nstd_flag']['T'][] = [];
 
     private set(c: Component) {
         this.comps.set(c.id, c);

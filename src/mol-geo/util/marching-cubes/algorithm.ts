@@ -72,7 +72,7 @@ export function computeMarchingCubesLines(params: MarchingCubesParams, lines?: L
 class MarchingCubesComputation {
     private size: number;
     private sliceSize: number;
-    private edgeFilter: number
+    private edgeFilter: number;
 
     private minX = 0; private minY = 0; private minZ = 0;
     private maxX = 0; private maxY = 0; private maxZ = 0;

@@ -20,7 +20,7 @@ export class Slider extends React.Component<{
     onEnter?: () => void
 }, { isChanging: boolean, current: number }> {
 
-    state = { isChanging: false, current: 0 }
+    state = { isChanging: false, current: 0 };
 
     static getDerivedStateFromProps(props: { value: number }, state: { isChanging: boolean, current: number }) {
         if (state.isChanging || props.value === state.current) return null;
@@ -29,17 +29,17 @@ export class Slider extends React.Component<{
 
     begin = () => {
         this.setState({ isChanging: true });
-    }
+    };
 
     end = (v: number) => {
         this.setState({ isChanging: false });
         this.props.onChange(v);
-    }
+    };
 
     updateCurrent = (current: number) => {
         this.setState({ current });
         this.props.onChangeImmediate?.(current);
-    }
+    };
 
     updateManually = (v: number) => {
         this.setState({ isChanging: true });
@@ -50,12 +50,12 @@ export class Slider extends React.Component<{
         if (n > this.props.max) n = this.props.max;
 
         this.setState({ current: n, isChanging: true });
-    }
+    };
 
     onManualBlur = () => {
         this.setState({ isChanging: false });
         this.props.onChange(this.state.current);
-    }
+    };
 
     render() {
         let step = this.props.step;
@@ -85,7 +85,7 @@ export class Slider2 extends React.Component<{
     onEnter?: () => void
 }, { isChanging: boolean, current: [number, number] }> {
 
-    state = { isChanging: false, current: [0, 1] as [number, number] }
+    state = { isChanging: false, current: [0, 1] as [number, number] };
 
     static getDerivedStateFromProps(props: { value: [number, number] }, state: { isChanging: boolean, current: [number, number] }) {
         if (state.isChanging || (props.value[0] === state.current[0] && props.value[1] === state.current[1])) return null;
@@ -94,16 +94,16 @@ export class Slider2 extends React.Component<{
 
     begin = () => {
         this.setState({ isChanging: true });
-    }
+    };
 
     end = (v: [number, number]) => {
         this.setState({ isChanging: false });
         this.props.onChange(v);
-    }
+    };
 
     updateCurrent = (current: [number, number]) => {
         this.setState({ current });
-    }
+    };
 
     updateMax = (v: number) => {
         let n = v;
@@ -112,7 +112,7 @@ export class Slider2 extends React.Component<{
         else if (n < this.props.min) n = this.props.min;
         if (n > this.props.max) n = this.props.max;
         this.props.onChange([this.state.current[0], n]);
-    }
+    };
 
     updateMin = (v: number) => {
         let n = v;
@@ -121,7 +121,7 @@ export class Slider2 extends React.Component<{
         if (n > this.state.current[1]) n = this.state.current[1];
         else if (n > this.props.max) n = this.props.max;
         this.props.onChange([n, this.state.current[1]]);
-    }
+    };
 
     render() {
         let step = this.props.step;
@@ -371,7 +371,7 @@ export class SliderBase extends React.Component<SliderBaseProps, SliderBaseState
         this.onStart(position);
         this.addDocumentEvents('mouse');
         pauseEvent(e);
-    }
+    };
 
     onMouseMove(e: MouseEvent) {
         const position = getMousePosition(this.props.vertical!, e);
@@ -462,7 +462,7 @@ export class SliderBase extends React.Component<SliderBaseProps, SliderBaseState
 
         const position = getTouchPosition(this.props.vertical!, e);
         this.onMove(e, position - this.dragOffset);
-    }
+    };
 
     onTouchStart = (e: TouchEvent) => {
         if (isNotTouchEvent(e)) return;
@@ -478,7 +478,7 @@ export class SliderBase extends React.Component<SliderBaseProps, SliderBaseState
         this.onStart(position);
         this.addDocumentEvents('touch');
         pauseEvent(e);
-    }
+    };
 
     /**
      * Returns an array of possible slider points, taking into account both
@@ -536,7 +536,7 @@ export class SliderBase extends React.Component<SliderBaseProps, SliderBaseState
         'touchend': (e: TouchEvent) => this.end('touch'),
         'mousemove': (e: MouseEvent) => this.onMouseMove(e),
         'mouseup': (e: MouseEvent) => this.end('mouse'),
-    }
+    };
 
     addDocumentEvents(type: 'touch' | 'mouse') {
         if (type === 'touch') {
@@ -552,7 +552,7 @@ export class SliderBase extends React.Component<SliderBaseProps, SliderBaseState
         const { min, max } = this.props;
         const ratio = (value - min) / (max - min);
         return ratio * 100;
-    }
+    };
 
     calcValue(offset: number) {
         const { vertical, min, max } = this.props;

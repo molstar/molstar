@@ -14,11 +14,11 @@ import { BuiltInShapeFormats } from './shape';
 import { BuiltInStructureFormats } from './structure';
 
 export class DataFormatRegistry {
-    private _list: { name: string, provider: DataFormatProvider }[] = []
-    private _map = new Map<string, DataFormatProvider>()
-    private _extensions: Set<string> | undefined = undefined
-    private _binaryExtensions: Set<string> | undefined = undefined
-    private _options: [string, string, string][] | undefined = undefined
+    private _list: { name: string, provider: DataFormatProvider }[] = [];
+    private _map = new Map<string, DataFormatProvider>();
+    private _extensions: Set<string> | undefined = undefined;
+    private _binaryExtensions: Set<string> | undefined = undefined;
+    private _options: [string, string, string][] | undefined = undefined;
 
     get types(): [string, string][] {
         return this._list.map(e => [e.name, e.provider.label] as [string, string]);

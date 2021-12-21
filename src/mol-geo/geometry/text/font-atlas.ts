@@ -39,35 +39,35 @@ export type FontAtlasMap = {
 }
 
 export class FontAtlas {
-    readonly props: Readonly<FontAtlasProps>
-    readonly mapped: { [k: string]: FontAtlasMap } = {}
-    readonly placeholder: FontAtlasMap
-    readonly texture: TextureImage<Uint8Array>
+    readonly props: Readonly<FontAtlasProps>;
+    readonly mapped: { [k: string]: FontAtlasMap } = {};
+    readonly placeholder: FontAtlasMap;
+    readonly texture: TextureImage<Uint8Array>;
 
-    private scratchW = 0
-    private scratchH = 0
-    private currentX = 0
-    private currentY = 0
-    private readonly scratchData: Uint8Array
+    private scratchW = 0;
+    private scratchH = 0;
+    private currentX = 0;
+    private currentY = 0;
+    private readonly scratchData: Uint8Array;
 
-    private readonly cutoff = 0.5
-    readonly buffer: number
-    private readonly radius: number
+    private readonly cutoff = 0.5;
+    readonly buffer: number;
+    private readonly radius: number;
 
-    private gridOuter: Float64Array
-    private gridInner: Float64Array
-    private f: Float64Array
-    private d: Float64Array
-    private z: Float64Array
-    private v: Int16Array
+    private gridOuter: Float64Array;
+    private gridInner: Float64Array;
+    private f: Float64Array;
+    private d: Float64Array;
+    private z: Float64Array;
+    private v: Int16Array;
 
-    private scratchCanvas: HTMLCanvasElement
-    private scratchContext: CanvasRenderingContext2D
+    private scratchCanvas: HTMLCanvasElement;
+    private scratchContext: CanvasRenderingContext2D;
 
-    readonly lineHeight: number
+    readonly lineHeight: number;
 
-    private readonly maxWidth: number
-    private readonly middle: number
+    private readonly maxWidth: number;
+    private readonly middle: number;
 
     constructor(props: Partial<FontAtlasProps> = {}) {
         const p = { ...PD.getDefaultValues(FontAtlasParams), ...props };

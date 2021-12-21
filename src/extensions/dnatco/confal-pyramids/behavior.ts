@@ -66,7 +66,7 @@ export const DnatcoConfalPyramids = PluginBehavior.create<{ autoAttach: boolean,
                 /* TODO: Implement this */
                 return void 0;
             }
-        }
+        };
 
         register(): void {
             this.ctx.customModelProperties.register(this.provider, this.params.autoAttach);

@@ -28,11 +28,11 @@ function nextIndex(n: number) {
 };
 
 export class CombinationIterator<T> implements Iterator<ReadonlyArray<T>> {
-    private value: T[]
-    private index: number
-    private maxIndex: number
+    private value: T[];
+    private index: number;
+    private maxIndex: number;
 
-    size: number
+    size: number;
     hasNext: boolean = false;
 
     move() {

@@ -14,16 +14,16 @@ export type EntityCompound = { chains: string[], description: string }
 type EntityType = 'water' | 'polymer' | 'non-polymer'
 
 export class EntityBuilder {
-    private count = 0
-    private ids: string[] = []
-    private types: EntityType[] = []
-    private descriptions: string[][] = []
+    private count = 0;
+    private ids: string[] = [];
+    private types: EntityType[] = [];
+    private descriptions: string[][] = [];
 
-    private compoundsMap = new Map<string, string>()
-    private namesMap = new Map<string, string>()
-    private heteroMap = new Map<string, string>()
-    private chainMap = new Map<string, string>()
-    private waterId?: string
+    private compoundsMap = new Map<string, string>();
+    private namesMap = new Map<string, string>();
+    private heteroMap = new Map<string, string>();
+    private chainMap = new Map<string, string>();
+    private waterId?: string;
 
     private set(type: EntityType, description: string) {
         this.count += 1;

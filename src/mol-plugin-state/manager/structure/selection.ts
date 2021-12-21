@@ -45,9 +45,9 @@ export class StructureSelectionManager extends StatefulPluginComponent<Structure
             remove: this.ev<StructureElement.Loci>(),
             clear: this.ev<undefined>()
         }
-    }
+    };
 
-    private referenceLoci: StructureElement.Loci | undefined
+    private referenceLoci: StructureElement.Loci | undefined;
 
     get entries() { return this.state.entries; }
     get additionsHistory() { return this.state.additionsHistory; }

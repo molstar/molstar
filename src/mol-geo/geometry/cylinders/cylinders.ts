@@ -158,6 +158,7 @@ export namespace Cylinders {
         ignoreLight: PD.Boolean(false, BaseGeometry.ShadingCategory),
         xrayShaded: PD.Boolean(false, BaseGeometry.ShadingCategory),
         bumpFrequency: PD.Numeric(0, { min: 0, max: 10, step: 0.1 }, BaseGeometry.ShadingCategory),
+        bumpAmplitude: PD.Numeric(1, { min: 0, max: 5, step: 0.1 }, BaseGeometry.ShadingCategory),
     };
     export type Params = typeof Params
 
@@ -235,10 +236,11 @@ export namespace Cylinders {
 
             ...BaseGeometry.createValues(props, counts),
             uSizeFactor: ValueCell.create(props.sizeFactor * props.sizeAspectRatio),
-            dDoubleSided: ValueCell.create(props.doubleSided),
+            uDoubleSided: ValueCell.create(props.doubleSided),
             dIgnoreLight: ValueCell.create(props.ignoreLight),
             dXrayShaded: ValueCell.create(props.xrayShaded),
             uBumpFrequency: ValueCell.create(props.bumpFrequency),
+            uBumpAmplitude: ValueCell.create(props.bumpAmplitude),
         };
     }
 
@@ -251,10 +253,11 @@ export namespace Cylinders {
     function updateValues(values: CylindersValues, props: PD.Values<Params>) {
         BaseGeometry.updateValues(values, props);
         ValueCell.updateIfChanged(values.uSizeFactor, props.sizeFactor * props.sizeAspectRatio);
-        ValueCell.updateIfChanged(values.dDoubleSided, props.doubleSided);
+        ValueCell.updateIfChanged(values.uDoubleSided, props.doubleSided);
         ValueCell.updateIfChanged(values.dIgnoreLight, props.ignoreLight);
         ValueCell.updateIfChanged(values.dXrayShaded, props.xrayShaded);
         ValueCell.updateIfChanged(values.uBumpFrequency, props.bumpFrequency);
+        ValueCell.updateIfChanged(values.uBumpAmplitude, props.bumpAmplitude);
     }
 
     function updateBoundingSphere(values: CylindersValues, cylinders: Cylinders) {

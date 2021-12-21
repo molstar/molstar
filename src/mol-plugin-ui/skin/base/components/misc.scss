@@ -529,6 +529,18 @@
     }
 }
 
+.msp-control-group-presets-wrapper {
+    position: absolute;
+    right: 0;
+    top: 0;
+    .msp-control-group-header {
+        background: transparent;
+    }
+    button {
+        background: transparent !important;
+    }
+}
+
 .msp-parameter-matrix {
     input {
         flex: 1 1 auto;
@@ -614,4 +626,19 @@
 .msp-list-unstyled {
     padding-left: 0;
     list-style: none;
+}
+
+.msp-drag-drop-overlay {
+    border: 12px dashed $font-color;
+    background: rgba(0, 0, 0, 0.36);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    font-size: 48px;
+    font-weight: bold;
 }

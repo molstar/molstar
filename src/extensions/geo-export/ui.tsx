@@ -85,7 +85,7 @@ export class GeometryExporterUI extends CollapsableControls<{}, State> {
         } finally {
             this.setState({ busy: false });
         }
-    }
+    };
 
     viewInAR = async () => {
         try {
@@ -104,5 +104,5 @@ export class GeometryExporterUI extends CollapsableControls<{}, State> {
         } finally {
             this.setState({ busy: false });
         }
-    }
+    };
 }
