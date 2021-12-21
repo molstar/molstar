@@ -180,18 +180,18 @@ namespace Bond {
     }
 
     export class ElementBondIterator implements Iterator<ElementBondData> {
-        private current: ElementBondData = {} as any
+        private current: ElementBondData = {} as any;
 
-        private structure: Structure
-        private unit: Unit.Atomic
-        private index: StructureElement.UnitIndex
+        private structure: Structure;
+        private unit: Unit.Atomic;
+        private index: StructureElement.UnitIndex;
 
-        private interBondIndices: ReadonlyArray<number>
-        private interBondCount: number
-        private interBondIndex: number
+        private interBondIndices: ReadonlyArray<number>;
+        private interBondCount: number;
+        private interBondIndex: number;
 
-        private intraBondEnd: number
-        private intraBondIndex: number
+        private intraBondEnd: number;
+        private intraBondIndex: number;
 
         hasNext: boolean;
         move(): ElementBondData {

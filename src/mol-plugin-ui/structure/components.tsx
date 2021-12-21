@@ -109,12 +109,12 @@ class ComponentEditorControls extends PurePluginUIComponent<{}, ComponentEditorC
         const { structures } = mng.hierarchy.selection;
         if (item.value === null) mng.component.clear(structures);
         else mng.component.applyPreset(structures, item.value as any);
-    }
+    };
 
     undo = () => {
         const task = this.plugin.state.data.undo();
         if (task) this.plugin.runTask(task);
-    }
+    };
 
     render() {
         const undoTitle = this.state.canUndo
@@ -166,9 +166,9 @@ export class AddComponentControls extends PurePluginUIComponent<AddComponentCont
         const structures = this.props.forSelection ? this.currentStructures : this.selectedStructures;
         this.props.onApply();
         this.plugin.managers.structure.component.add(this.state.values, structures);
-    }
+    };
 
-    paramsChanged = (values: any) => this.setState({ values })
+    paramsChanged = (values: any) => this.setState({ values });
 
     render() {
         return <>
@@ -185,7 +185,7 @@ class ComponentOptionsControls extends PurePluginUIComponent<{ isDisabled: boole
         this.subscribe(this.plugin.managers.structure.component.events.optionsUpdated, () => this.forceUpdate());
     }
 
-    update = (options: StructureComponentManager.Options) => this.plugin.managers.structure.component.setOptions(options)
+    update = (options: StructureComponentManager.Options) => this.plugin.managers.structure.component.setOptions(options);
 
     render() {
         return <ParameterControls params={StructureComponentManager.OptionsParams} values={this.plugin.managers.structure.component.state.options} onChangeValues={this.update} isDisabled={this.props.isDisabled} />;
@@ -212,7 +212,7 @@ class ComponentListControls extends PurePluginUIComponent {
 type StructureComponentEntryActions = 'action' | 'label'
 
 class StructureComponentGroup extends PurePluginUIComponent<{ group: StructureComponentRef[] }, { action?: StructureComponentEntryActions }> {
-    state = { action: void 0 as StructureComponentEntryActions | undefined }
+    state = { action: void 0 as StructureComponentEntryActions | undefined };
 
     get pivot() {
         return this.props.group[0];
@@ -228,7 +228,7 @@ class StructureComponentGroup extends PurePluginUIComponent<{ group: StructureCo
         e.preventDefault();
         e.currentTarget.blur();
         this.plugin.managers.structure.component.toggleVisibility(this.props.group);
-    }
+    };
 
     get colorByActions() {
         const mng = this.plugin.managers.structure.component;
@@ -282,7 +282,7 @@ class StructureComponentGroup extends PurePluginUIComponent<{ group: StructureCo
         if (!item) return;
         this.setState({ action: void 0 });
         (item?.value as any)();
-    }
+    };
 
     remove = () => this.plugin.managers.structure.hierarchy.remove(this.props.group, true);
 
@@ -293,12 +293,12 @@ class StructureComponentGroup extends PurePluginUIComponent<{ group: StructureCo
         e.preventDefault();
         if (!this.props.group[0].cell.parent) return;
         PluginCommands.Interactivity.Object.Highlight(this.plugin, { state: this.props.group[0].cell.parent!, ref: this.props.group.map(c => c.cell.transform.ref) });
-    }
+    };
 
     clearHighlight = (e: React.MouseEvent<HTMLElement>) => {
         e.preventDefault();
         PluginCommands.Interactivity.ClearHighlights(this.plugin);
-    }
+    };
 
     focus = () => {
         let allHidden = true;
@@ -317,7 +317,7 @@ class StructureComponentGroup extends PurePluginUIComponent<{ group: StructureCo
             if (e.cell.state.isHidden) return;
             return e.cell.obj?.data.boundary.sphere;
         });
-    }
+    };
 
     get reprLabel() {
         // TODO: handle generic reprs.
@@ -329,7 +329,7 @@ class StructureComponentGroup extends PurePluginUIComponent<{ group: StructureCo
 
     private updateLabel = (v: string) => {
         this.plugin.managers.structure.component.updateLabel(this.pivot, v);
-    }
+    };
 
     render() {
         const component = this.pivot;
@@ -370,7 +370,7 @@ class StructureRepresentationEntry extends PurePluginUIComponent<{ group: Struct
         e.preventDefault();
         e.currentTarget.blur();
         this.plugin.managers.structure.component.toggleVisibility(this.props.group, this.props.representation);
-    }
+    };
 
     componentDidMount() {
         this.subscribe(this.plugin.state.events.cell.stateUpdated, e => {

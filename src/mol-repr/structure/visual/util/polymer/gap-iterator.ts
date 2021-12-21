@@ -32,9 +32,9 @@ function createPolymerGapPair(structure: Structure, unit: Unit) {
 }
 
 export class AtomicPolymerGapIterator implements Iterator<PolymerGapPair> {
-    private traceElementIndex: ArrayLike<ElementIndex>
-    private value: PolymerGapPair
-    private gapIt: SortedRanges.Iterator<ElementIndex, ResidueIndex>
+    private traceElementIndex: ArrayLike<ElementIndex>;
+    private value: PolymerGapPair;
+    private gapIt: SortedRanges.Iterator<ElementIndex, ResidueIndex>;
     hasNext: boolean = false;
 
     move() {
@@ -55,8 +55,8 @@ export class AtomicPolymerGapIterator implements Iterator<PolymerGapPair> {
 }
 
 export class CoarsePolymerGapIterator implements Iterator<PolymerGapPair> {
-    private value: PolymerGapPair
-    private gapIt: SortedRanges.Iterator<ElementIndex, ElementIndex>
+    private value: PolymerGapPair;
+    private gapIt: SortedRanges.Iterator<ElementIndex, ElementIndex>;
     hasNext: boolean = false;
 
     move() {

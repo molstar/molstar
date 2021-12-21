@@ -85,7 +85,7 @@ namespace InteractionsIntraContacts {
 
 export { InteractionsInterContacts };
 class InteractionsInterContacts extends InterUnitGraph<number, Features.FeatureIndex, InteractionsInterContacts.Props> {
-    private readonly elementKeyIndex: Map<string, number[]>
+    private readonly elementKeyIndex: Map<string, number[]>;
 
     getContactIndicesForElement(index: StructureElement.UnitIndex, unit: Unit): ReadonlyArray<number> {
         return this.elementKeyIndex.get(this.getElementKey(index, unit.id)) || [];

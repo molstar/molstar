@@ -29,7 +29,7 @@ export const GeometryParams = {
 export class GeometryControls extends PluginComponent {
     readonly behaviors = {
         params: this.ev.behavior<PD.Values<typeof GeometryParams>>(PD.getDefaultValues(GeometryParams))
-    }
+    };
 
     private getFilename() {
         const models = this.plugin.state.data.select(StateSelection.Generators.rootsOfType(PluginStateObject.Molecule.Model)).map(s => s.obj!.data);

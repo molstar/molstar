@@ -24,6 +24,7 @@ import { DataLoci, EmptyLoci, Loci } from '../../mol-model/loci';
 import { MarkerAction, MarkerActions } from '../../mol-util/marker-action';
 import { Visual } from '../../mol-repr/visual';
 import { Interval } from '../../mol-data/int';
+import { GraphicsRenderVariantsBlended } from '../../mol-gl/webgl/render-item';
 
 const HandleParams = {
     ...Mesh.Params,
@@ -47,12 +48,12 @@ export type HandleHelperParams = typeof HandleHelperParams
 export type HandleHelperProps = PD.Values<HandleHelperParams>
 
 export class HandleHelper {
-    scene: Scene
+    scene: Scene;
     props: HandleHelperProps = {
         handle: { name: 'off', params: {} }
-    }
+    };
 
-    private renderObject: GraphicsRenderObject | undefined
+    private renderObject: GraphicsRenderObject | undefined;
 
     private _transform = Mat4();
     getBoundingSphere(out: Sphere3D, instanceId: number) {
@@ -116,7 +117,7 @@ export class HandleHelper {
             if (apply(Interval.ofSingleton(idx))) changed = true;
         }
         return changed;
-    }
+    };
 
     mark(loci: Loci, action: MarkerAction) {
         if (!MarkerActions.is(MarkerActions.Highlighting, action)) return false;
@@ -126,7 +127,7 @@ export class HandleHelper {
     }
 
     constructor(private webgl: WebGLContext, props: Partial<HandleHelperProps> = {}) {
-        this.scene = Scene.create(webgl);
+        this.scene = Scene.create(webgl, GraphicsRenderVariantsBlended);
         this.setProps(props);
     }
 }

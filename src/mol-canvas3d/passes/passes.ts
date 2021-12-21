@@ -10,9 +10,9 @@ import { MultiSamplePass } from './multi-sample';
 import { WebGLContext } from '../../mol-gl/webgl/context';
 
 export class Passes {
-    readonly draw: DrawPass
-    readonly pick: PickPass
-    readonly multiSample: MultiSamplePass
+    readonly draw: DrawPass;
+    readonly pick: PickPass;
+    readonly multiSample: MultiSamplePass;
 
     constructor(private webgl: WebGLContext, attribs: Partial<{ pickScale: number, enableWboit: boolean }> = {}) {
         const { gl } = webgl;

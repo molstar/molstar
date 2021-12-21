@@ -30,19 +30,19 @@ export const ImageParams = {
 export type ImageProps = PD.Values<typeof ImageParams>
 
 export class ImagePass {
-    private _width = 0
-    private _height = 0
-    private _camera = new Camera()
+    private _width = 0;
+    private _height = 0;
+    private _camera = new Camera();
 
-    readonly props: ImageProps
+    readonly props: ImageProps;
 
-    private _colorTarget: RenderTarget
+    private _colorTarget: RenderTarget;
     get colorTarget() { return this._colorTarget; }
 
-    private readonly drawPass: DrawPass
-    private readonly multiSamplePass: MultiSamplePass
-    private readonly multiSampleHelper: MultiSampleHelper
-    private readonly helper: Helper
+    private readonly drawPass: DrawPass;
+    private readonly multiSamplePass: MultiSamplePass;
+    private readonly multiSampleHelper: MultiSampleHelper;
+    private readonly helper: Helper;
 
     get width() { return this._width; }
     get height() { return this._height; }

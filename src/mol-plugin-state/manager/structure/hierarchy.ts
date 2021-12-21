@@ -25,7 +25,7 @@ export class StructureHierarchyManager extends PluginComponent {
             models: [] as ReadonlyArray<ModelRef>,
             structures: [] as ReadonlyArray<StructureRef>
         }
-    }
+    };
 
     readonly behaviors = {
         selection: this.ev.behavior({
@@ -34,7 +34,7 @@ export class StructureHierarchyManager extends PluginComponent {
             models: this.selection.models,
             structures: this.selection.structures
         })
-    }
+    };
 
     private get dataState() {
         return this.plugin.state.data;

@@ -36,7 +36,7 @@ class InteractivityManager extends StatefulPluginComponent<InteractivityManagerS
     readonly lociSelects: InteractivityManager.LociSelectManager;
     readonly lociHighlights: InteractivityManager.LociHighlightManager;
 
-    private _props = PD.getDefaultValues(InteractivityManager.Params)
+    private _props = PD.getDefaultValues(InteractivityManager.Params);
 
     readonly events = {
         propsUpdated: this.ev()
@@ -84,9 +84,9 @@ namespace InteractivityManager {
 
     export abstract class LociMarkManager {
         protected providers: LociMarkProvider[] = [];
-        protected sel: StructureSelectionManager
+        protected sel: StructureSelectionManager;
 
-        readonly props: Readonly<Props> = PD.getDefaultValues(Params)
+        readonly props: Readonly<Props> = PD.getDefaultValues(Params);
 
         setProps(props: Partial<Props>) {
             Object.assign(this.props, props);
@@ -141,7 +141,7 @@ namespace InteractivityManager {
                 this.mark(p, MarkerAction.RemoveHighlight, noRender);
             }
             this.prev.length = 0;
-        }
+        };
 
         highlight(current: Representation.Loci, applyGranularity = true) {
             const normalized = this.normalizedLoci(current, applyGranularity);

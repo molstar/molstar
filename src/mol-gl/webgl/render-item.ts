@@ -49,13 +49,15 @@ export interface RenderItem<T extends string> {
 
 //
 
-const GraphicsRenderVariant = { 'colorBlended': '', 'colorWboit': '', 'pickObject': '', 'pickInstance': '', 'pickGroup': '', 'depth': '', 'markingDepth': '', 'markingMask': '' };
+const GraphicsRenderVariant = { colorBlended: '', colorWboit: '', pick: '', depth: '', marking: '' };
 export type GraphicsRenderVariant = keyof typeof GraphicsRenderVariant
-const GraphicsRenderVariants = Object.keys(GraphicsRenderVariant) as GraphicsRenderVariant[];
+export const GraphicsRenderVariants = Object.keys(GraphicsRenderVariant) as GraphicsRenderVariant[];
+export const GraphicsRenderVariantsBlended = GraphicsRenderVariants.filter(v => v !== 'colorWboit');
+export const GraphicsRenderVariantsWboit = GraphicsRenderVariants.filter(v => v !== 'colorBlended');
 
-const ComputeRenderVariant = { 'compute': '' };
+const ComputeRenderVariant = { compute: '' };
 export type ComputeRenderVariant = keyof typeof ComputeRenderVariant
-const ComputeRenderVariants = Object.keys(ComputeRenderVariant) as ComputeRenderVariant[];
+export const ComputeRenderVariants = Object.keys(ComputeRenderVariant) as ComputeRenderVariant[];
 
 function createProgramVariant(ctx: WebGLContext, variant: string, defineValues: DefineValues, shaderCode: ShaderCode, schema: RenderableSchema) {
     defineValues = { ...defineValues, dRenderVariant: ValueCell.create(variant) };
@@ -90,8 +92,8 @@ function resetValueChanges(valueChanges: ValueChanges) {
 //
 
 export type GraphicsRenderItem = RenderItem<GraphicsRenderVariant>
-export function createGraphicsRenderItem(ctx: WebGLContext, drawMode: DrawMode, shaderCode: ShaderCode, schema: RenderableSchema, values: RenderableValues, materialId: number) {
-    return createRenderItem(ctx, drawMode, shaderCode, schema, values, materialId, GraphicsRenderVariants);
+export function createGraphicsRenderItem(ctx: WebGLContext, drawMode: DrawMode, shaderCode: ShaderCode, schema: RenderableSchema, values: RenderableValues, materialId: number, variants: GraphicsRenderVariant[]) {
+    return createRenderItem(ctx, drawMode, shaderCode, schema, values, materialId, variants);
 }
 
 export type ComputeRenderItem = RenderItem<ComputeRenderVariant>

@@ -41,7 +41,7 @@ export class LociLabelManager {
         this.showLabels();
     }
 
-    private locis: Representation.Loci[] = []
+    private locis: Representation.Loci[] = [];
 
     private mark(loci: Representation.Loci, action: MarkerAction) {
         const idx = this.locis.findIndex(l => Representation.Loci.areEqual(loci, l));
@@ -54,9 +54,9 @@ export class LociLabelManager {
         }
     }
 
-    private isDirty = false
-    private labels: LociLabel[] = []
-    private groupedLabels = new Map<string, LociLabel[]>()
+    private isDirty = false;
+    private labels: LociLabel[] = [];
+    private groupedLabels = new Map<string, LociLabel[]>();
 
     private showLabels() {
         this.ctx.behaviors.labels.highlight.next({ labels: this.getLabels() });

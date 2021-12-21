@@ -230,7 +230,7 @@ export class ViewportComponent extends PluginUIComponent {
 
     set = async (preset: StructureRepresentationPresetProvider) => {
         await this._set(this.plugin.managers.structure.hierarchy.selection.structures, preset);
-    }
+    };
 
     structurePreset = () => this.set(StructurePreset);
     illustrativePreset = () => this.set(IllustrativePreset);

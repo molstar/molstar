@@ -41,7 +41,7 @@ const HISTORY_CAPACITY = 8;
 export class StructureFocusManager extends StatefulPluginComponent<StructureFocusManagerState> {
     readonly events = {
         historyUpdated: this.ev<undefined>()
-    }
+    };
 
     readonly behaviors = {
         current: this.ev.behavior<FocusEntry | undefined>(void 0)

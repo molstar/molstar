@@ -34,12 +34,12 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
     private lociHighlightProvider = (loci: Representation.Loci, action: MarkerAction) => {
         const changed = this.props.sequenceWrapper.markResidue(loci.loci, action);
         if (changed) this.updateMarker();
-    }
+    };
 
     private lociSelectionProvider = (loci: Representation.Loci, action: MarkerAction) => {
         const changed = this.props.sequenceWrapper.markResidue(loci.loci, action);
         if (changed) this.updateMarker();
-    }
+    };
 
     private get sequenceNumberPeriod() {
         if (this.props.sequenceNumberPeriod !== undefined) {
@@ -104,9 +104,9 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
 
     contextMenu = (e: React.MouseEvent) => {
         e.preventDefault();
-    }
+    };
 
-    private mouseDownLoci: StructureElement.Loci | undefined = undefined
+    private mouseDownLoci: StructureElement.Loci | undefined = undefined;
 
     mouseDown = (e: React.MouseEvent) => {
         e.stopPropagation();
@@ -119,7 +119,7 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
 
         this.click(loci, buttons, button, modifiers);
         this.mouseDownLoci = loci;
-    }
+    };
 
     mouseUp = (e: React.MouseEvent) => {
         e.stopPropagation();
@@ -148,7 +148,7 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
             this.click(StructureElement.Loci.subtract(range, this.mouseDownLoci), buttons, button, modifiers);
         }
         this.mouseDownLoci = undefined;
-    }
+    };
 
     private getBackgroundColor(marker: number) {
         // TODO: make marker color configurable
@@ -262,7 +262,7 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
                 this.highlightQueue.next({ seqIdx, buttons, button, modifiers });
             }
         }
-    }
+    };
 
     mouseLeave = (e: React.MouseEvent) => {
         e.stopPropagation();
@@ -274,7 +274,7 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
         const button = getButton(e.nativeEvent);
         const modifiers = getModifiers(e.nativeEvent);
         this.highlightQueue.next({ seqIdx: -1, buttons, button, modifiers });
-    }
+    };
 
     render() {
         const sw = this.props.sequenceWrapper;

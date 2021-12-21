@@ -45,7 +45,7 @@ export class ParameterControls<P extends PD.Params> extends React.PureComponent<
             const values = { ...this.props.values, [params.name]: params.value };
             this.props.onChangeValues(values, this.props.values);
         }
-    }
+    };
 
     renderGroup(group: ParamInfo[]) {
         if (group.length === 0) return null;
@@ -109,7 +109,7 @@ export class ParameterMappingControl<S, T> extends PluginUIComponent<{ mapping: 
         const values = { ...old, [p.name]: p.value };
         const t = this.props.mapping.update(values, this.plugin);
         this.props.mapping.apply(t, this.plugin);
-    }
+    };
 
     componentDidMount() {
         this.subscribe(this.plugin.events.canvas3d.settingsUpdated, () => this.forceUpdate());
@@ -289,7 +289,7 @@ export abstract class SimpleParam<P extends PD.Any> extends React.PureComponent<
 }
 
 export class BoolControl extends SimpleParam<PD.BooleanParam> {
-    onClick = (e: React.MouseEvent<HTMLButtonElement>) => { this.update(!this.props.value); e.currentTarget.blur(); }
+    onClick = (e: React.MouseEvent<HTMLButtonElement>) => { this.update(!this.props.value); e.currentTarget.blur(); };
     renderControl() {
         return <button onClick={this.onClick} disabled={this.props.isDisabled}>
             <Icon svg={this.props.value ? CheckSvg : ClearSvg} />
@@ -303,7 +303,7 @@ export class LineGraphControl extends React.PureComponent<ParamProps<PD.LineGrap
         isExpanded: false,
         isOverPoint: false,
         message: `${this.props.param.defaultValue.length} points`,
-    }
+    };
 
     onHover = (point?: Vec2) => {
         this.setState({ isOverPoint: !this.state.isOverPoint });
@@ -312,20 +312,20 @@ export class LineGraphControl extends React.PureComponent<ParamProps<PD.LineGrap
             return;
         }
         this.setState({ message: `${this.props.value.length} points` });
-    }
+    };
 
     onDrag = (point: Vec2) => {
         this.setState({ message: `(${point[0].toFixed(2)}, ${point[1].toFixed(2)})` });
-    }
+    };
 
     onChange = (value: PD.LineGraph['defaultValue']) => {
         this.props.onChange({ name: this.props.name, param: this.props.param, value: value });
-    }
+    };
 
     toggleExpanded = (e: React.MouseEvent<HTMLButtonElement>) => {
         this.setState({ isExpanded: !this.state.isExpanded });
         e.currentTarget.blur();
-    }
+    };
 
     render() {
         const label = this.props.param.label || camelCaseToWords(this.props.name);
@@ -349,7 +349,7 @@ export class NumberInputControl extends React.PureComponent<ParamProps<PD.Numeri
         const p = getPrecision(this.props.param.step || 0.01);
         value = parseFloat(value.toFixed(p));
         this.props.onChange({ param: this.props.param, name: this.props.name, value });
-    }
+    };
 
     render() {
         const placeholder = this.props.param.label || camelCaseToWords(this.props.name);
@@ -365,7 +365,7 @@ export class NumberInputControl extends React.PureComponent<ParamProps<PD.Numeri
 }
 
 export class NumberRangeControl extends SimpleParam<PD.Numeric> {
-    onChange = (v: number) => { this.update(v); }
+    onChange = (v: number) => { this.update(v); };
     renderControl() {
         const value = typeof this.props.value === 'undefined' ? this.props.param.defaultValue : this.props.value;
         return <Slider value={value} min={this.props.param.min!} max={this.props.param.max!}
@@ -380,14 +380,14 @@ export class TextControl extends SimpleParam<PD.Text> {
         if (value !== this.props.value) {
             this.update(value);
         }
-    }
+    };
 
     onKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
         if ((e.keyCode === 13 || e.charCode === 13 || e.key === 'Enter')) {
             if (this.props.onEnter) this.props.onEnter();
         }
         e.stopPropagation();
-    }
+    };
 
     renderControl() {
         const placeholder = this.props.param.label || camelCaseToWords(this.props.name);
@@ -412,7 +412,7 @@ export class PureSelectControl extends React.PureComponent<ParamProps<PD.Select<
         } else {
             this.update(e.target.value);
         }
-    }
+    };
 
     render() {
         const isInvalid = this.props.value !== void 0 && !this.props.param.options.some(e => e[0] === this.props.value);
@@ -434,7 +434,7 @@ export class SelectControl extends React.PureComponent<ParamProps<PD.Select<stri
                 this.props.onChange({ param: this.props.param, name: this.props.name, value: item.value });
             });
         }
-    }
+    };
 
     toggle = () => this.setState({ showOptions: !this.state.showOptions });
 
@@ -500,7 +500,7 @@ export class ValueRefControl extends React.PureComponent<ParamProps<PD.ValueRef<
                 this.props.onChange({ param: this.props.param, name: this.props.name, value: { ref: item.value } });
             });
         }
-    }
+    };
 
     toggle = () => this.setState({ showOptions: !this.state.showOptions });
 
@@ -540,12 +540,12 @@ export class ValueRefControl extends React.PureComponent<ParamProps<PD.ValueRef<
 }
 
 export class IntervalControl extends React.PureComponent<ParamProps<PD.Interval>, { isExpanded: boolean }> {
-    state = { isExpanded: false }
+    state = { isExpanded: false };
 
     components = {
         0: PD.Numeric(0, { step: this.props.param.step }, { label: 'Min' }),
         1: PD.Numeric(0, { step: this.props.param.step }, { label: 'Max' })
-    }
+    };
 
     change(value: PD.MultiSelect<any>['defaultValue']) {
         this.props.onChange({ name: this.props.name, param: this.props.param, value });
@@ -555,12 +555,12 @@ export class IntervalControl extends React.PureComponent<ParamProps<PD.Interval>
         const v = [...this.props.value];
         v[+name] = value;
         this.change(v);
-    }
+    };
 
     toggleExpanded = (e: React.MouseEvent<HTMLButtonElement>) => {
         this.setState({ isExpanded: !this.state.isExpanded });
         e.currentTarget.blur();
-    }
+    };
 
     render() {
         const v = this.props.value;
@@ -577,7 +577,7 @@ export class IntervalControl extends React.PureComponent<ParamProps<PD.Interval>
 }
 
 export class BoundedIntervalControl extends SimpleParam<PD.Interval> {
-    onChange = (v: [number, number]) => { this.update(v); }
+    onChange = (v: [number, number]) => { this.update(v); };
     renderControl() {
         return <Slider2 value={this.props.value} min={this.props.param.min!} max={this.props.param.max!}
             step={this.props.param.step} onChange={this.onChange} disabled={this.props.isDisabled} onEnter={this.props.onEnter} />;
@@ -587,7 +587,7 @@ export class BoundedIntervalControl extends SimpleParam<PD.Interval> {
 export class ColorControl extends SimpleParam<PD.Color> {
     onChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         this.update(Color(parseInt(e.target.value)));
-    }
+    };
 
     stripStyle(): React.CSSProperties {
         return {
@@ -710,18 +710,18 @@ export class ColorListControl extends React.PureComponent<ParamProps<PD.ColorLis
 
         const preset = getColorListFromName(item.value as ColorListName);
         this.update({ kind: preset.type !== 'qualitative' ? 'interpolate' : 'set', colors: preset.list });
-    }
+    };
 
     colorsChanged: ParamOnChange = ({ value }) => {
         this.update({
             kind: this.props.value.kind,
             colors: (value as (typeof _colorListHelpers)['ColorsParam']['defaultValue']).map(c => c.color)
         });
-    }
+    };
 
     isInterpolatedChanged: ParamOnChange = ({ value }) => {
         this.update({ kind: value ? 'interpolate' : 'set', colors: this.props.value.colors });
-    }
+    };
 
     renderColors() {
         if (!this.state.show) return null;
@@ -779,17 +779,17 @@ export class OffsetColorListControl extends React.PureComponent<ParamProps<PD.Co
 
         const preset = getColorListFromName(item.value as ColorListName);
         this.update({ kind: preset.type !== 'qualitative' ? 'interpolate' : 'set', colors: preset.list });
-    }
+    };
 
     colorsChanged: ParamOnChange = ({ value }) => {
         const colors = (value as (typeof _colorListHelpers)['OffsetColorsParam']['defaultValue']).map(c => [c.color, c.offset] as [Color, number]);
         colors.sort((a, b) => a[1] - b[1]);
         this.update({ kind: this.props.value.kind, colors });
-    }
+    };
 
     isInterpolatedChanged: ParamOnChange = ({ value }) => {
         this.update({ kind: value ? 'interpolate' : 'set', colors: this.props.value.colors });
-    }
+    };
 
     renderColors() {
         if (!this.state.show) return null;
@@ -824,13 +824,13 @@ export class OffsetColorListControl extends React.PureComponent<ParamProps<PD.Co
 }
 
 export class Vec3Control extends React.PureComponent<ParamProps<PD.Vec3>, { isExpanded: boolean }> {
-    state = { isExpanded: false }
+    state = { isExpanded: false };
 
     components = {
         0: PD.Numeric(0, { step: this.props.param.step }, { label: (this.props.param.fieldLabels && this.props.param.fieldLabels.x) || 'X' }),
         1: PD.Numeric(0, { step: this.props.param.step }, { label: (this.props.param.fieldLabels && this.props.param.fieldLabels.y) || 'Y' }),
         2: PD.Numeric(0, { step: this.props.param.step }, { label: (this.props.param.fieldLabels && this.props.param.fieldLabels.z) || 'Z' })
-    }
+    };
 
     change(value: PD.MultiSelect<any>['defaultValue']) {
         this.props.onChange({ name: this.props.name, param: this.props.param, value });
@@ -840,12 +840,12 @@ export class Vec3Control extends React.PureComponent<ParamProps<PD.Vec3>, { isEx
         const v = Vec3.copy(Vec3.zero(), this.props.value);
         v[+name] = value;
         this.change(v);
-    }
+    };
 
     toggleExpanded = (e: React.MouseEvent<HTMLButtonElement>) => {
         this.setState({ isExpanded: !this.state.isExpanded });
         e.currentTarget.blur();
-    }
+    };
 
     render() {
         const v = this.props.value;
@@ -862,11 +862,11 @@ export class Vec3Control extends React.PureComponent<ParamProps<PD.Vec3>, { isEx
 }
 
 export class Mat4Control extends React.PureComponent<ParamProps<PD.Mat4>, { isExpanded: boolean }> {
-    state = { isExpanded: false }
+    state = { isExpanded: false };
 
     components = {
         json: PD.Text(JSON.stringify(Mat4()), { description: 'JSON array with 4x4 matrix in a column major (j * 4 + i indexing) format' })
-    }
+    };
 
     change(value: PD.MultiSelect<any>['defaultValue']) {
         this.props.onChange({ name: this.props.name, param: this.props.param, value });
@@ -881,12 +881,12 @@ export class Mat4Control extends React.PureComponent<ParamProps<PD.Mat4>, { isEx
         }
 
         this.change(v);
-    }
+    };
 
     toggleExpanded = (e: React.MouseEvent<HTMLButtonElement>) => {
         this.setState({ isExpanded: !this.state.isExpanded });
         e.currentTarget.blur();
-    }
+    };
 
     changeValue(idx: number) {
         return (v: number) => {
@@ -930,14 +930,14 @@ export class UrlControl extends SimpleParam<PD.UrlParam> {
         if (value !== Asset.getUrl(this.props.value || '')) {
             this.update(Asset.Url(value));
         }
-    }
+    };
 
     onKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
         if ((e.keyCode === 13 || e.charCode === 13 || e.key === 'Enter')) {
             if (this.props.onEnter) this.props.onEnter();
         }
         e.stopPropagation();
-    }
+    };
 
     renderControl() {
         const placeholder = this.props.param.label || camelCaseToWords(this.props.name);
@@ -960,7 +960,7 @@ export class FileControl extends React.PureComponent<ParamProps<PD.FileParam>> {
 
     onChangeFile = (e: React.ChangeEvent<HTMLInputElement>) => {
         this.change(e.target.files![0]);
-    }
+    };
 
     toggleHelp = () => this.setState({ showHelp: !this.state.showHelp });
 
@@ -1002,7 +1002,7 @@ export class FileListControl extends React.PureComponent<ParamProps<PD.FileListP
 
     onChangeFileList = (e: React.ChangeEvent<HTMLInputElement>) => {
         this.change(e.target.files!);
-    }
+    };
 
     toggleHelp = () => this.setState({ showHelp: !this.state.showHelp });
 
@@ -1040,7 +1040,7 @@ export class FileListControl extends React.PureComponent<ParamProps<PD.FileListP
 }
 
 export class MultiSelectControl extends React.PureComponent<ParamProps<PD.MultiSelect<any>>, { isExpanded: boolean }> {
-    state = { isExpanded: false }
+    state = { isExpanded: false };
 
     change(value: PD.MultiSelect<any>['defaultValue']) {
         this.props.onChange({ name: this.props.name, param: this.props.param, value });
@@ -1057,7 +1057,7 @@ export class MultiSelectControl extends React.PureComponent<ParamProps<PD.MultiS
     toggleExpanded = (e: React.MouseEvent<HTMLButtonElement>) => {
         this.setState({ isExpanded: !this.state.isExpanded });
         e.currentTarget.blur();
-    }
+    };
 
     render() {
         const current = this.props.value;
@@ -1080,7 +1080,7 @@ export class MultiSelectControl extends React.PureComponent<ParamProps<PD.MultiS
 }
 
 export class GroupControl extends React.PureComponent<ParamProps<PD.Group<any>> & { inMapped?: boolean }, { isExpanded: boolean, showPresets: boolean, showHelp: boolean }> {
-    state = { isExpanded: !!this.props.param.isExpanded, showPresets: false, showHelp: false }
+    state = { isExpanded: !!this.props.param.isExpanded, showPresets: false, showHelp: false };
 
     change(value: any) {
         this.props.onChange({ name: this.props.name, param: this.props.param, value });
@@ -1088,7 +1088,7 @@ export class GroupControl extends React.PureComponent<ParamProps<PD.Group<any>> 
 
     onChangeParam: ParamOnChange = e => {
         this.change({ ...this.props.value, [e.name]: e.value });
-    }
+    };
 
     toggleExpanded = () => this.setState({ isExpanded: !this.state.isExpanded });
     toggleShowPresets = () => this.setState({ showPresets: !this.state.showPresets });
@@ -1098,7 +1098,7 @@ export class GroupControl extends React.PureComponent<ParamProps<PD.Group<any>> 
     onSelectPreset: ActionMenu.OnSelect = item => {
         this.setState({ showPresets: false });
         this.change(item?.value);
-    }
+    };
 
     pivotedPresets() {
         if (!this.props.param.presets) return null;
@@ -1197,11 +1197,11 @@ export class GroupControl extends React.PureComponent<ParamProps<PD.Group<any>> 
 }
 
 export class MappedControl extends React.PureComponent<ParamProps<PD.Mapped<any>>, { isExpanded: boolean }> {
-    state = { isExpanded: false }
+    state = { isExpanded: false };
 
     // TODO: this could lead to a rare bug where the component is reused with different mapped control.
     // I think there are currently no cases where this could happen in the UI, but still need to watch out..
-    private valuesCache: { [name: string]: PD.Values<any> } = {}
+    private valuesCache: { [name: string]: PD.Values<any> } = {};
     private setValues(name: string, values: PD.Values<any>) {
         this.valuesCache[name] = values;
     }
@@ -1219,12 +1219,12 @@ export class MappedControl extends React.PureComponent<ParamProps<PD.Mapped<any>
 
     onChangeName: ParamOnChange = e => {
         this.change({ name: e.value, params: this.getValues(e.value) });
-    }
+    };
 
     onChangeParam: ParamOnChange = e => {
         this.setValues(this.props.value.name, e.value);
         this.change({ name: this.props.value.name, params: e.value });
-    }
+    };
 
     toggleExpanded = () => this.setState({ isExpanded: !this.state.isExpanded });
 
@@ -1283,11 +1283,11 @@ class ObjectListEditor extends React.PureComponent<ObjectListEditorProps, { curr
 
     onChangeParam: ParamOnChange = e => {
         this.setState({ current: { ...this.state.current, [e.name]: e.value } });
-    }
+    };
 
     apply = () => {
         this.props.apply(this.state.current);
-    }
+    };
 
     componentDidUpdate(prevProps: ObjectListEditorProps) {
         if (this.props.params !== prevProps.params || this.props.value !== prevProps.value) {
@@ -1312,7 +1312,7 @@ class ObjectListItem extends React.PureComponent<ObjectListItemProps, { isExpand
     update = (v: object) => {
         // this.setState({ isExpanded: false }); // TODO auto update? mark changed state?
         this.props.actions.update(v, this.props.index);
-    }
+    };
 
     moveUp = () => {
         this.props.actions.move(this.props.index, -1);
@@ -1353,7 +1353,7 @@ class ObjectListItem extends React.PureComponent<ObjectListItemProps, { isExpand
 }
 
 export class ObjectListControl extends React.PureComponent<ParamProps<PD.ObjectList>, { isExpanded: boolean }> {
-    state = { isExpanded: false }
+    state = { isExpanded: false };
 
     change(value: any) {
         this.props.onChange({ name: this.props.name, param: this.props.param, value });
@@ -1390,7 +1390,7 @@ export class ObjectListControl extends React.PureComponent<ParamProps<PD.ObjectL
             }
             this.change(update);
         }
-    }
+    };
 
     toggleExpanded = (e: React.MouseEvent<HTMLButtonElement>) => {
         this.setState({ isExpanded: !this.state.isExpanded });
@@ -1420,11 +1420,11 @@ export class ConditionedControl extends React.PureComponent<ParamProps<PD.Condit
 
     onChangeCondition: ParamOnChange = e => {
         this.change(this.props.param.conditionedValue(this.props.value, e.value));
-    }
+    };
 
     onChangeParam: ParamOnChange = e => {
         this.change(e.value);
-    }
+    };
 
     render() {
         const value = this.props.value;
@@ -1455,7 +1455,7 @@ export class ConvertedControl extends React.PureComponent<ParamProps<PD.Converte
             param: this.props.param,
             value: this.props.param.toValue(e.value)
         });
-    }
+    };
 
     render() {
         const value = this.props.param.fromValue(this.props.value);
@@ -1472,14 +1472,14 @@ export class ScriptControl extends SimpleParam<PD.Script> {
         if (value !== this.props.value.expression) {
             this.update({ language: this.props.value.language, expression: value });
         }
-    }
+    };
 
     onKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
         if ((e.keyCode === 13 || e.charCode === 13 || e.key === 'Enter')) {
             if (this.props.onEnter) this.props.onEnter();
         }
         e.stopPropagation();
-    }
+    };
 
     renderControl() {
         // TODO: improve!

@@ -73,7 +73,7 @@ class State {
         const ret = this.cells.get(ref)?.obj?.data;
         if (!ref) throw new Error(`Cell '${ref}' data undefined.`);
         return ret as T;
-    }
+    };
 
     private historyCapacity = 5;
     private history: [StateTree, string][] = [];

@@ -117,15 +117,15 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
 
     private handleKeyDown = (event: any) => {
         // TODO: set canSelectMultiple = true
-    }
+    };
 
     private handleKeyUp = (event: any) => {
         // TODO: SET canSelectMultiple = fasle
-    }
+    };
 
     private handleClick = (id: number) => (event: any) => {
         // TODO: add point to selected array
-    }
+    };
 
     private handleMouseDown = (id: number) => (event: any) => {
         if (id === 0 || id === this.state.points.length - 1) {
@@ -147,7 +147,7 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
         this.updatedX = copyPoint[0];
         this.updatedY = copyPoint[1];
         this.selected = [id];
-    }
+    };
 
     private handleDrag(event: any) {
         if (this.selected === undefined) {
@@ -280,7 +280,7 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
         this.setState({ points });
         this.change(points);
         event.stopPropagation();
-    }
+    };
 
     private handleLeave() {
         if (this.selected === undefined) {

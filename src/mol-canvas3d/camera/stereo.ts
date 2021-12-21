@@ -33,7 +33,7 @@ class StereoCamera {
         return this.parent.viewOffset;
     }
 
-    private props: StereoCameraProps
+    private props: StereoCameraProps;
 
     constructor(private parent: Camera, props: Partial<StereoCameraProps> = {}) {
         this.props = { ...DefaultStereoCameraProps, ...props };

@@ -8,6 +8,9 @@ uniform int uInstanceCount;
 uniform int uGroupCount;
 uniform vec4 uInvariantBoundingSphere;
 
+uniform bool uDoubleSided;
+uniform int uPickType;
+
 #if dClipObjectCount != 0
     uniform int uClipObjectType[dClipObjectCount];
     uniform bool uClipObjectInvert[dClipObjectCount];
@@ -26,9 +29,8 @@ uniform vec4 uInvariantBoundingSphere;
     #endif
 #endif
 
-#if defined(dMarkerType_uniform)
+#if defined(dRenderVariant_color) || defined(dRenderVariant_marking)
     uniform float uMarker;
-#elif defined(dMarkerType_groupInstance)
     uniform vec2 uMarkerTexDim;
     uniform sampler2D tMarker;
     #if __VERSION__ == 100

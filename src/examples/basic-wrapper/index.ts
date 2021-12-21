@@ -9,7 +9,7 @@ import { EmptyLoci } from '../../mol-model/loci';
 import { StructureSelection } from '../../mol-model/structure';
 import { AnimateModelIndex } from '../../mol-plugin-state/animation/built-in/model-index';
 import { BuiltInTrajectoryFormat } from '../../mol-plugin-state/formats/trajectory';
-import { createPlugin } from '../../mol-plugin-ui';
+import { createPluginUI } from '../../mol-plugin-ui';
 import { PluginUIContext } from '../../mol-plugin-ui/context';
 import { DefaultPluginUISpec } from '../../mol-plugin-ui/spec';
 import { PluginCommands } from '../../mol-plugin/commands';
@@ -28,8 +28,8 @@ type LoadParams = { url: string, format?: BuiltInTrajectoryFormat, isBinary?: bo
 class BasicWrapper {
     plugin: PluginUIContext;
 
-    init(target: string | HTMLElement) {
-        this.plugin = createPlugin(typeof target === 'string' ? document.getElementById(target)! : target, {
+    async init(target: string | HTMLElement) {
+        this.plugin = await createPluginUI(typeof target === 'string' ? document.getElementById(target)! : target, {
             ...DefaultPluginUISpec(),
             layout: {
                 initial: {
@@ -60,7 +60,7 @@ class BasicWrapper {
                 params: { id: assemblyId }
             } : {
                 name: 'model',
-                params: { }
+                params: {}
             },
             showUnitcell: false,
             representationPreset: 'auto'
@@ -95,7 +95,7 @@ class BasicWrapper {
             loop: () => { this.plugin.managers.animation.play(AnimateModelIndex, { duration: { name: 'computed', params: { targetFps: this.animateModelIndexTargetFps() } }, mode: { name: 'loop', params: { direction: 'forward' } } }); },
             stop: () => this.plugin.managers.animation.stop()
         }
-    }
+    };
 
     coloring = {
         applyStripes: async () => {
@@ -119,7 +119,7 @@ class BasicWrapper {
                 }
             });
         }
-    }
+    };
 
     interactivity = {
         highlightOn: () => {
@@ -137,7 +137,7 @@ class BasicWrapper {
         clearHighlight: () => {
             this.plugin.managers.interactivity.lociHighlights.highlightOnly({ loci: EmptyLoci });
         }
-    }
+    };
 
     tests = {
         staticSuperposition: async () => {
@@ -168,7 +168,7 @@ class BasicWrapper {
             PluginCommands.Toast.Hide(this.plugin, { key: 'toast-1' });
             PluginCommands.Toast.Hide(this.plugin, { key: 'toast-2' });
         }
-    }
+    };
 }
 
 (window as any).BasicMolStarWrapper = new BasicWrapper();

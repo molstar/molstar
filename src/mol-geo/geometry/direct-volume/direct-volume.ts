@@ -307,7 +307,7 @@ export namespace DirectVolume {
             dPackedGroup: directVolume.packedGroup,
             dSingleLayer: ValueCell.create(singleLayer),
 
-            dDoubleSided: ValueCell.create(props.doubleSided),
+            uDoubleSided: ValueCell.create(props.doubleSided),
             dFlatShaded: ValueCell.create(props.flatShaded),
             dFlipSided: ValueCell.create(props.flipSided),
             dIgnoreLight: ValueCell.create(props.ignoreLight),
@@ -323,7 +323,7 @@ export namespace DirectVolume {
 
     function updateValues(values: DirectVolumeValues, props: PD.Values<Params>) {
         BaseGeometry.updateValues(values, props);
-        ValueCell.updateIfChanged(values.dDoubleSided, props.doubleSided);
+        ValueCell.updateIfChanged(values.uDoubleSided, props.doubleSided);
         ValueCell.updateIfChanged(values.dFlatShaded, props.flatShaded);
         ValueCell.updateIfChanged(values.dFlipSided, props.flipSided);
         ValueCell.updateIfChanged(values.dIgnoreLight, props.ignoreLight);

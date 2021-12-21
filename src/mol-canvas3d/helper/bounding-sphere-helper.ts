@@ -18,6 +18,7 @@ import { TransformData } from '../../mol-geo/geometry/transform-data';
 import { sphereVertexCount } from '../../mol-geo/primitive/sphere';
 import { ValueCell } from '../../mol-util';
 import { Geometry } from '../../mol-geo/geometry/geometry';
+import { GraphicsRenderVariantsBlended } from '../../mol-gl/webgl/render-item';
 
 export const DebugHelperParams = {
     sceneBoundingSpheres: PD.Boolean(false, { description: 'Show full scene bounding spheres.' }),
@@ -31,17 +32,17 @@ export type DebugHelperProps = PD.Values<DebugHelperParams>
 type BoundingSphereData = { boundingSphere: Sphere3D, renderObject: GraphicsRenderObject, mesh: Mesh }
 
 export class BoundingSphereHelper {
-    readonly scene: Scene
+    readonly scene: Scene;
 
-    private readonly parent: Scene
-    private _props: DebugHelperProps
-    private objectsData = new Map<GraphicsRenderObject, BoundingSphereData>()
-    private instancesData = new Map<GraphicsRenderObject, BoundingSphereData>()
-    private sceneData: BoundingSphereData | undefined
-    private visibleSceneData: BoundingSphereData | undefined
+    private readonly parent: Scene;
+    private _props: DebugHelperProps;
+    private objectsData = new Map<GraphicsRenderObject, BoundingSphereData>();
+    private instancesData = new Map<GraphicsRenderObject, BoundingSphereData>();
+    private sceneData: BoundingSphereData | undefined;
+    private visibleSceneData: BoundingSphereData | undefined;
 
     constructor(ctx: WebGLContext, parent: Scene, props: Partial<DebugHelperProps>) {
-        this.scene = Scene.create(ctx);
+        this.scene = Scene.create(ctx, GraphicsRenderVariantsBlended);
         this.parent = parent;
         this._props = { ...PD.getDefaultValues(DebugHelperParams), ...props };
     }

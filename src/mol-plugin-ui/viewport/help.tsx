@@ -49,7 +49,7 @@ export class HelpGroup extends React.PureComponent<{ header: string, initiallyEx
     state = {
         header: this.props.header,
         isExpanded: !!this.props.initiallyExpanded
-    }
+    };
 
     toggleExpanded = () => this.setState({ isExpanded: !this.state.isExpanded });
 

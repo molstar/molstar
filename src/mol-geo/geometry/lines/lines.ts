@@ -240,7 +240,7 @@ export namespace Lines {
             ...BaseGeometry.createValues(props, counts),
             uSizeFactor: ValueCell.create(props.sizeFactor),
             dLineSizeAttenuation: ValueCell.create(props.lineSizeAttenuation),
-            dDoubleSided: ValueCell.create(true),
+            uDoubleSided: ValueCell.create(true),
             dFlipSided: ValueCell.create(false),
         };
     }

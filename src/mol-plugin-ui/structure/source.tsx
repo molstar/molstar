@@ -66,12 +66,12 @@ export class StructureSourceControls extends CollapsableControls<{}, StructureSo
         }
         const item: ActionMenu.Item = { kind: 'item', label: label || ref.kind, selected: selected.has(ref.cell.transform.ref), value: [ref] };
         return item;
-    }
+    };
 
     getTrajectoryItems = (t: TrajectoryRef): ActionMenu.Items => {
         if (t.models.length === 0) return this.item(t);
         return [ActionMenu.Header(t.cell.obj?.label!), ...t.models.map(this.getModelItems)];
-    }
+    };
 
     private getModelItems = (m: ModelRef): ActionMenu.Items => {
         if (m.structures.length === 0) return this.item(m);
@@ -81,7 +81,7 @@ export class StructureSourceControls extends CollapsableControls<{}, StructureSo
             return { label: `${m.cell.obj?.label} | ${ref.cell.obj?.label}`, selected: selected.has(ref.cell.transform.ref), value: [m, ref] } as ActionMenu.Item;
         }
         return [ActionMenu.Header(m.cell.obj?.label!), ...m.structures.map(this.item)];
-    }
+    };
 
     get hierarchyItems() {
         const mng = this.plugin.managers.structure.hierarchy;
@@ -186,7 +186,7 @@ export class StructureSourceControls extends CollapsableControls<{}, StructureSo
         }
 
         this.plugin.managers.structure.hierarchy.updateCurrent(refs, items[0].selected ? 'remove' : 'add');
-    }
+    };
 
     toggleHierarchy = () => this.setState({ show: this.state.show !== 'hierarchy' ? 'hierarchy' : void 0 });
     togglePreset = () => this.setState({ show: this.state.show !== 'presets' ? 'presets' : void 0 });
@@ -226,7 +226,7 @@ export class StructureSourceControls extends CollapsableControls<{}, StructureSo
 
         const { trajectories } = mng.hierarchy.selection;
         mng.hierarchy.applyPreset(trajectories, item.value as any);
-    }
+    };
 
     private updateModelQueueParams: any = void 0;
     private isUpdatingModel = false;
@@ -269,7 +269,7 @@ export class StructureSourceControls extends CollapsableControls<{}, StructureSo
         const { selection } = this.plugin.managers.structure.hierarchy;
         const s = selection.structures[0];
         return this.plugin.managers.structure.hierarchy.updateStructure(s, params);
-    }
+    };
 
     get structureType() {
         const { selection } = this.plugin.managers.structure.hierarchy;

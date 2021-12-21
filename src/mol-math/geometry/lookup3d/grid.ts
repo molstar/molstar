@@ -27,7 +27,7 @@ class GridLookup3DImpl<T extends number = number> implements GridLookup3D<T> {
     private ctx: QueryContext;
     boundary: Lookup3D['boundary'];
     buckets: GridLookup3D['buckets'];
-    result: Result<T>
+    result: Result<T>;
 
     find(x: number, y: number, z: number, radius: number, result?: Result<T>): Result<T> {
         this.ctx.x = x;

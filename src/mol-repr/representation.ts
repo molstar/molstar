@@ -85,9 +85,9 @@ function getTypes(list: { name: string, provider: RepresentationProvider<any, an
 }
 
 export class RepresentationRegistry<D, S extends Representation.State> {
-    private _list: { name: string, provider: RepresentationProvider<D, any, any> }[] = []
-    private _map = new Map<string, RepresentationProvider<D, any, any>>()
-    private _name = new Map<RepresentationProvider<D, any, any>, string>()
+    private _list: { name: string, provider: RepresentationProvider<D, any, any> }[] = [];
+    private _map = new Map<string, RepresentationProvider<D, any, any>>();
+    private _name = new Map<RepresentationProvider<D, any, any>, string>();
 
     get default() { return this._list[0]; }
     get types(): [string, string][] { return getTypes(this._list); }

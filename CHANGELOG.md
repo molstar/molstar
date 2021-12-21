@@ -6,12 +6,58 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Reduce number of created programs/shaders
+    - Support specifying variants when creating graphics render-items
+    - Change double-side shader param from define to uniform
+    - Remove dMarkerType shader define (use uMarker as needed)
+    - Support to ignore defines depending on the shader variant
+    - Combine pickObject/pickInstance/pickGroup shader variants into one
+    - Combine markingDepth/markingMask shader variants into one
+    - Correctly set shader define flags for overpaint, transparency, substance, clipping
+
+## [v3.0.0-dev.6] - 2021-12-19
+
+- Enable temporal multi-sampling by default
+    - Fix flickering during marking with camera at rest
+- Enable ``aromaticBonds`` in structure representations by default
+- Add ``PluginConfig.Structure.DefaultRepresentationPreset``
+- Add ModelArchive support
+    - schema extensions (e.g., AlphaFold uses it for the pLDDT score)
+    - ModelArchive option in DownloadStructure action
+    - ``model-archive`` GET parameter for Viewer app
+    - ``Viewer.loadModelArchive`` method
+- Improve support for loading AlphaFold structures
+    - Automatic coloring by pLDDT
+    - AlphaFold DB option in DownloadStructure action
+    - ``afdb`` GET parameter for Viewer app
+    - ``Viewer.loadAlphaFoldDb`` method
+- Add QualityAssessment extension (using data from ma_qa_metric_local mmcif category)
+    - pLDDT & qmean score: coloring, repr presets, molql symbol, loci labels (including avg for mutli-residue selections)
+    - pLDDT: selection query
+- Warn about erroneous symmetry operator matrix (instead of throwing an error)
+- Added ``createPluginUI`` to ``mol-plugin-ui``
+    - Support ``onBeforeUIRender`` to make sure initial UI works with custom presets and similar features.
+- [Breaking] Removed ``createPlugin`` and ``createPluginAsync`` from ``mol-plugin-ui``
+    - Please use ``createPluginUI`` instead
+- Improve aromatic bonds handling
+    - Don't detect aromatic bonds for rings < 5 atoms based on planarity
+    - Prefer atoms in aromatic rings as bond reference positions
+
+## [v3.0.0-dev.5] - 2021-12-16
+
+- Fix initial camera reset not triggering for some entries.
+
+## [v3.0.0-dev.4] - 2021-12-14
+
 - Add ``bumpiness`` (per-object and per-group), ``bumpFrequency`` & ``bumpAmplitude`` (per-object) render parameters (#299)
 - Change ``label`` representation defaults: Use text border instead of rectangle background
 - Add outline color option to renderer
 - Fix false positives in Model.isFromPdbArchive
 - Add drag and drop support for loading any file, including multiple at once
     - If there are session files (.molx or .molj) among the dropped files, only the first session will be loaded
+- Add drag and drop overlay
+- Safari 15.1 - 15.3 WebGL 2 support workaround
+- [Breaking] Move ``react`` and ``react-dom`` to ``peerDependencies``. This might break some builds.
 
 ## [v3.0.0-dev.3] - 2021-12-4
 
@@ -25,7 +71,7 @@ Note that since we don't clearly distinguish between a public and private interf
 
 - Add multiple lights support (with color, intensity, and direction parameters)
 - [Breaking] Add per-object material rendering properties
-  - ``SimpleSettingsParams.lighting.renderStyle`` and ``RendererParams.style`` were removed
+    - ``SimpleSettingsParams.lighting.renderStyle`` and ``RendererParams.style`` were removed
 - Add substance theme with per-group material rendering properties
 - ``StructureComponentManager.Options`` state saving support
 - ``ParamDefinition.Group.presets`` support

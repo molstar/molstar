@@ -86,14 +86,14 @@ namespace Sequence {
     }
 
     class ResidueNamesImpl<K extends Kind, Alphabet extends string> implements Base<K, Alphabet> {
-        public length: number
-        public code: Column<Alphabet>
-        public label: Column<string>
-        public seqId: Column<number>
-        public compId: Column<string>
-        public microHet: ReadonlyMap<number, string[]> = new Map()
+        public length: number;
+        public code: Column<Alphabet>;
+        public label: Column<string>;
+        public seqId: Column<number>;
+        public compId: Column<string>;
+        public microHet: ReadonlyMap<number, string[]> = new Map();
 
-        private indexMap: Map<number, number>
+        private indexMap: Map<number, number>;
         index(seqId: number) {
             return this.indexMap.get(seqId)!;
         }
@@ -158,14 +158,14 @@ namespace Sequence {
     }
 
     class SequenceRangesImpl<K extends Kind, Alphabet extends string> implements Base<K, Alphabet> {
-        public length: number
-        public code: Column<Alphabet>
-        public label: Column<string>
-        public seqId: Column<number>
-        public compId: Column<string>
-        public microHet: ReadonlyMap<number, string[]> = new Map()
+        public length: number;
+        public code: Column<Alphabet>;
+        public label: Column<string>;
+        public seqId: Column<number>;
+        public compId: Column<string>;
+        public microHet: ReadonlyMap<number, string[]> = new Map();
 
-        private minSeqId: number
+        private minSeqId: number;
         index(seqId: number) {
             return seqId - this.minSeqId;
         }

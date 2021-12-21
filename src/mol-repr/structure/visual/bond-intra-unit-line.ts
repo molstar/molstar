@@ -61,14 +61,14 @@ function createIntraUnitBondLines(ctx: VisualContext, unit: Unit, structure: Str
             if (aI > bI) [aI, bI] = [bI, aI];
             if (offset[aI + 1] - offset[aI] === 1) [aI, bI] = [bI, aI];
 
-            const aR = elementRingIndices.get(aI);
+            const aR = elementAromaticRingIndices.get(aI) || elementRingIndices.get(aI);
             let maxSize = 0;
 
             for (let i = offset[aI], il = offset[aI + 1]; i < il; ++i) {
                 const _bI = b[i];
                 if (_bI !== bI && _bI !== aI) {
                     if (aR) {
-                        const _bR = elementRingIndices.get(_bI);
+                        const _bR = elementAromaticRingIndices.get(_bI) || elementRingIndices.get(_bI);
                         if (!_bR) continue;
 
                         const size = arrayIntersectionSize(aR, _bR);

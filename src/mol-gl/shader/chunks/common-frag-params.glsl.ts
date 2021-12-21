@@ -3,6 +3,9 @@ uniform int uObjectId;
 uniform int uInstanceCount;
 uniform int uGroupCount;
 
+uniform int uPickType;
+uniform int uMarkingType;
+
 #if dClipObjectCount != 0
     uniform int uClipObjectType[dClipObjectCount];
     uniform bool uClipObjectInvert[dClipObjectCount];
@@ -25,9 +28,8 @@ uniform float uHighlightStrength;
 uniform float uSelectStrength;
 uniform int uMarkerPriority;
 
-#if defined(dMarkerType_uniform)
+#if defined(dRenderVariant_color) || defined(dRenderVariant_marking)
     uniform float uMarker;
-#elif defined(dMarkerType_groupInstance)
     #if __VERSION__ == 100
         varying float vMarker;
     #else
@@ -52,6 +54,7 @@ uniform float uAlpha;
 uniform float uPickingAlphaThreshold;
 uniform bool uTransparentBackground;
 
+uniform bool uDoubleSided;
 uniform float uInteriorDarkening;
 uniform bool uInteriorColorFlag;
 uniform vec3 uInteriorColor;

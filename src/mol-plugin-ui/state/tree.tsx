@@ -87,7 +87,7 @@ class StateTreeNode extends PluginUIComponent<{ cell: StateObjectCell, depth: nu
         isCollapsed: !!this.props.cell.state.isCollapsed,
         isNull: StateTreeNode.isNull(this.props.cell),
         showLabel: StateTreeNode.showLabel(this.props.cell)
-    }
+    };
 
     static getDerivedStateFromProps(props: _Props<StateTreeNode>, state: _State<StateTreeNode>): _State<StateTreeNode> | null {
         const isNull = StateTreeNode.isNull(props.cell);
@@ -187,7 +187,7 @@ class StateTreeNodeLabel extends PluginUIComponent<{ cell: StateObjectCell, dept
         isCollapsed: !!this.props.cell.state.isCollapsed,
         action: void 0,
         currentAction: void 0 as StateAction | undefined
-    }
+    };
 
     static getDerivedStateFromProps(props: _Props<StateTreeNodeLabel>, state: _State<StateTreeNodeLabel>): _State<StateTreeNodeLabel> | null {
         const isCurrent = props.cell.parent!.current === props.cell.transform.ref;
@@ -201,46 +201,46 @@ class StateTreeNodeLabel extends PluginUIComponent<{ cell: StateObjectCell, dept
         e?.preventDefault();
         e?.currentTarget.blur();
         PluginCommands.State.SetCurrentObject(this.plugin, { state: this.props.cell.parent!, ref: this.ref });
-    }
+    };
 
     setCurrentRoot = (e?: React.MouseEvent<HTMLElement>) => {
         e?.preventDefault();
         e?.currentTarget.blur();
         PluginCommands.State.SetCurrentObject(this.plugin, { state: this.props.cell.parent!, ref: StateTransform.RootRef });
-    }
+    };
 
     remove = (e?: React.MouseEvent<HTMLElement>) => {
         e?.preventDefault();
         PluginCommands.State.RemoveObject(this.plugin, { state: this.props.cell.parent!, ref: this.ref, removeParentGhosts: true });
-    }
+    };
 
     toggleVisible = (e: React.MouseEvent<HTMLElement>) => {
         e.preventDefault();
         PluginCommands.State.ToggleVisibility(this.plugin, { state: this.props.cell.parent!, ref: this.ref });
         e.currentTarget.blur();
-    }
+    };
 
     toggleExpanded = (e: React.MouseEvent<HTMLElement>) => {
         e.preventDefault();
         PluginCommands.State.ToggleExpanded(this.plugin, { state: this.props.cell.parent!, ref: this.ref });
         e.currentTarget.blur();
-    }
+    };
 
     highlight = (e: React.MouseEvent<HTMLElement>) => {
         e.preventDefault();
         PluginCommands.Interactivity.Object.Highlight(this.plugin, { state: this.props.cell.parent!, ref: this.ref });
         e.currentTarget.blur();
-    }
+    };
 
     clearHighlight = (e: React.MouseEvent<HTMLElement>) => {
         e.preventDefault();
         PluginCommands.Interactivity.ClearHighlights(this.plugin);
         e.currentTarget.blur();
-    }
+    };
 
     hideApply = () => {
         this.setCurrentRoot();
-    }
+    };
 
     get actions() {
         const cell = this.props.cell;
@@ -258,7 +258,7 @@ class StateTreeNodeLabel extends PluginUIComponent<{ cell: StateObjectCell, dept
     selectAction: ActionMenu.OnSelect = item => {
         if (!item) return;
         (item?.value as any)();
-    }
+    };
 
     updates(margin: string) {
         const cell = this.props.cell;

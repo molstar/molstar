@@ -12,12 +12,12 @@ import { Box3D } from './primitives/box3d';
 // implementing http://www.ep.liu.se/ecp/034/009/ecp083409.pdf
 
 export class BoundaryHelper {
-    private dir: Vec3[]
+    private dir: Vec3[];
 
-    private minDist: number[] = []
-    private maxDist: number[] = []
-    private extrema: Vec3[] = []
-    centroidHelper = new CentroidHelper()
+    private minDist: number[] = [];
+    private maxDist: number[] = [];
+    private extrema: Vec3[] = [];
+    centroidHelper = new CentroidHelper();
 
     private computeExtrema(i: number, p: Vec3) {
         const d = Vec3.dot(this.dir[i], p);

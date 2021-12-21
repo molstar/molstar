@@ -61,7 +61,7 @@ export class GenericEntryListControls extends PurePluginUIComponent {
 }
 
 export class GenericEntry<T extends StructureHierarchyRef> extends PurePluginUIComponent<{ refs: T[], labelMultiple?: string }, { showOptions: boolean }> {
-    state = { showOptions: false }
+    state = { showOptions: false };
 
     componentDidMount() {
         this.subscribe(this.plugin.state.events.cell.stateUpdated, e => {
@@ -75,7 +75,7 @@ export class GenericEntry<T extends StructureHierarchyRef> extends PurePluginUIC
         e.preventDefault();
         this.plugin.managers.structure.hierarchy.toggleVisibility(this.props.refs);
         e.currentTarget.blur();
-    }
+    };
 
     highlight = (e: React.MouseEvent<HTMLElement>) => {
         e.preventDefault();
@@ -84,12 +84,12 @@ export class GenericEntry<T extends StructureHierarchyRef> extends PurePluginUIC
             state: this.pivot.cell.parent,
             ref: this.props.refs.map(c => c.cell.transform.ref)
         });
-    }
+    };
 
     clearHighlight = (e: React.MouseEvent<HTMLElement>) => {
         e.preventDefault();
         PluginCommands.Interactivity.ClearHighlights(this.plugin);
-    }
+    };
 
     focus = (e: React.MouseEvent<HTMLElement>) => {
         e.preventDefault();
@@ -116,9 +116,9 @@ export class GenericEntry<T extends StructureHierarchyRef> extends PurePluginUIC
             if (l) loci.push(l);
         }
         this.plugin.managers.camera.focusLoci(loci);
-    }
+    };
 
-    toggleOptions = () => this.setState({ showOptions: !this.state.showOptions })
+    toggleOptions = () => this.setState({ showOptions: !this.state.showOptions });
 
     render() {
         const { refs, labelMultiple } = this.props;
