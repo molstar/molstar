@@ -8,15 +8,13 @@ import { Viewport } from '../mol-canvas3d/camera/util';
 import { ICamera } from '../mol-canvas3d/camera';
 import { Scene } from './scene';
 import { WebGLContext } from './webgl/context';
-import { Mat4, Vec3, Vec4, Vec2, Quat } from '../mol-math/linear-algebra';
+import { Mat4, Vec3, Vec4, Vec2 } from '../mol-math/linear-algebra';
 import { GraphicsRenderable } from './renderable';
 import { Color } from '../mol-util/color';
 import { ValueCell, deepEqual } from '../mol-util';
 import { GlobalUniformValues } from './renderable/schema';
 import { GraphicsRenderVariant } from './webgl/render-item';
 import { ParamDefinition as PD } from '../mol-util/param-definition';
-import { Clipping } from '../mol-theme/clipping';
-import { stringToWords } from '../mol-util/string';
 import { degToRad } from '../mol-math/misc';
 import { createNullTexture, Texture, Textures } from './webgl/texture';
 import { arrayMapUpsert } from '../mol-util/array';
@@ -110,20 +108,6 @@ export const RendererParams = {
     }] }),
     ambientColor: PD.Color(Color.fromNormalizedRgb(1.0, 1.0, 1.0)),
     ambientIntensity: PD.Numeric(0.4, { min: 0.0, max: 1.0, step: 0.01 }),
-
-    clip: PD.Group({
-        variant: PD.Select('instance', PD.arrayToOptions<Clipping.Variant>(['instance', 'pixel'])),
-        objects: PD.ObjectList({
-            type: PD.Select('plane', PD.objectToOptions(Clipping.Type, t => stringToWords(t))),
-            invert: PD.Boolean(false),
-            position: PD.Vec3(Vec3()),
-            rotation: PD.Group({
-                axis: PD.Vec3(Vec3.create(1, 0, 0)),
-                angle: PD.Numeric(0, { min: -180, max: 180, step: 1 }, { description: 'Angle in Degrees' }),
-            }, { isExpanded: true }),
-            scale: PD.Vec3(Vec3.create(1, 1, 1)),
-        }, o => stringToWords(o.type))
-    })
 };
 export type RendererProps = PD.Values<typeof RendererParams>
 
@@ -150,47 +134,11 @@ function getLight(props: RendererProps['light'], light?: Light): Light {
     return { count: props.length, direction, color };
 }
 
-type Clip = {
-    variant: Clipping.Variant
-    objects: {
-        count: number
-        type: number[]
-        invert: boolean[]
-        position: number[]
-        rotation: number[]
-        scale: number[]
-    }
-}
-
-const tmpQuat = Quat();
-function getClip(props: RendererProps['clip'], clip?: Clip): Clip {
-    const { type, invert, position, rotation, scale } = clip?.objects || {
-        type: (new Array(5)).fill(1),
-        invert: (new Array(5)).fill(false),
-        position: (new Array(5 * 3)).fill(0),
-        rotation: (new Array(5 * 4)).fill(0),
-        scale: (new Array(5 * 3)).fill(1),
-    };
-    for (let i = 0, il = props.objects.length; i < il; ++i) {
-        const p = props.objects[i];
-        type[i] = Clipping.Type[p.type];
-        invert[i] = p.invert;
-        Vec3.toArray(p.position, position, i * 3);
-        Quat.toArray(Quat.setAxisAngle(tmpQuat, p.rotation.axis, degToRad(p.rotation.angle)), rotation, i * 4);
-        Vec3.toArray(p.scale, scale, i * 3);
-    }
-    return {
-        variant: props.variant,
-        objects: { count: props.objects.length, type, invert, position, rotation, scale }
-    };
-}
-
 namespace Renderer {
     export function create(ctx: WebGLContext, props: Partial<RendererProps> = {}): Renderer {
         const { gl, state, stats, extensions: { fragDepth } } = ctx;
         const p = PD.merge(RendererParams, PD.getDefaultValues(RendererParams), props);
         const light = getLight(p.light);
-        const clip = getClip(p.clip);
 
         const viewport = Viewport();
         const drawingBufferSize = Vec2.create(gl.drawingBufferWidth, gl.drawingBufferHeight);
@@ -250,12 +198,6 @@ namespace Renderer {
 
             uTransparentBackground: ValueCell.create(false),
 
-            uClipObjectType: ValueCell.create(clip.objects.type),
-            uClipObjectInvert: ValueCell.create(clip.objects.invert),
-            uClipObjectPosition: ValueCell.create(clip.objects.position),
-            uClipObjectRotation: ValueCell.create(clip.objects.rotation),
-            uClipObjectScale: ValueCell.create(clip.objects.scale),
-
             uLightDirection: ValueCell.create(light.direction),
             uLightColor: ValueCell.create(light.color),
             uAmbientColor: ValueCell.create(ambientColor),
@@ -284,21 +226,6 @@ namespace Renderer {
             }
 
             let definesNeedUpdate = false;
-            if (r.state.noClip) {
-                if (r.values.dClipObjectCount.ref.value !== 0) {
-                    ValueCell.update(r.values.dClipObjectCount, 0);
-                    definesNeedUpdate = true;
-                }
-            } else {
-                if (r.values.dClipObjectCount.ref.value !== clip.objects.count) {
-                    ValueCell.update(r.values.dClipObjectCount, clip.objects.count);
-                    definesNeedUpdate = true;
-                }
-                if (r.values.dClipVariant.ref.value !== clip.variant) {
-                    ValueCell.update(r.values.dClipVariant, clip.variant);
-                    definesNeedUpdate = true;
-                }
-            }
             if (r.values.dLightCount.ref.value !== light.count) {
                 ValueCell.update(r.values.dLightCount, light.count);
                 definesNeedUpdate = true;
@@ -703,15 +630,6 @@ namespace Renderer {
                     p.ambientIntensity = props.ambientIntensity;
                     Vec3.scale(ambientColor, Color.toArrayNormalized(p.ambientColor, ambientColor, 0), p.ambientIntensity);
                     ValueCell.update(globalUniforms.uAmbientColor, ambientColor);
-                }
-
-                if (props.clip !== undefined && !deepEqual(props.clip, p.clip)) {
-                    p.clip = props.clip;
-                    Object.assign(clip, getClip(props.clip, clip));
-                    ValueCell.update(globalUniforms.uClipObjectPosition, clip.objects.position);
-                    ValueCell.update(globalUniforms.uClipObjectRotation, clip.objects.rotation);
-                    ValueCell.update(globalUniforms.uClipObjectScale, clip.objects.scale);
-                    ValueCell.update(globalUniforms.uClipObjectType, clip.objects.type);
                 }
             },
             setViewport: (x: number, y: number, width: number, height: number) => {

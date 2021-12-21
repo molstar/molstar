@@ -161,5 +161,5 @@ const instanceMaterialId = getNextMaterialId();
 
 function createBoundingSphereRenderObject(mesh: Mesh, color: Color, materialId: number, transform?: TransformData) {
     const values = Mesh.Utils.createValuesSimple(mesh, { alpha: 0.1, doubleSided: false }, color, 1, transform);
-    return createRenderObject('mesh', values, { disposed: false, visible: true, alphaFactor: 1, pickable: false, colorOnly: false, opaque: false, writeDepth: false, noClip: false }, materialId);
+    return createRenderObject('mesh', values, { disposed: false, visible: true, alphaFactor: 1, pickable: false, colorOnly: false, opaque: false, writeDepth: false }, materialId);
 }

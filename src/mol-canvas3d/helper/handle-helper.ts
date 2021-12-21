@@ -73,7 +73,6 @@ export class HandleHelper {
                     this.scene.clear();
                     const params = { ...props.handle.params, scale: props.handle.params.scale * this.webgl.pixelRatio };
                     this.renderObject = createHandleRenderObject(params);
-                    this.renderObject.state.noClip = true;
                     this.scene.add(this.renderObject);
                     this.scene.commit();
 

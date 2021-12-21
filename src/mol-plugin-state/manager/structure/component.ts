@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { VisualQualityOptions } from '../../../mol-geo/geometry/base';
@@ -32,6 +33,7 @@ import { setStructureTransparency } from '../../helpers/structure-transparency';
 import { StructureFocusRepresentation } from '../../../mol-plugin/behavior/dynamic/selection/structure-focus-representation';
 import { setStructureSubstance } from '../../helpers/structure-substance';
 import { Material } from '../../../mol-util/material';
+import { Clip } from '../../../mol-util/clip';
 
 export { StructureComponentManager };
 
@@ -70,23 +72,25 @@ class StructureComponentManager extends StatefulPluginComponent<StructureCompone
             await this.plugin.state.updateBehavior(StructureFocusRepresentation, p => {
                 p.ignoreHydrogens = !options.showHydrogens;
                 p.material = options.materialStyle;
+                p.clip = options.clipObjects;
             });
             if (interactionChanged) await this.updateInterationProps();
         });
     }
 
     private updateReprParams(update: StateBuilder.Root, component: StructureComponentRef) {
-        const { showHydrogens, visualQuality: quality, materialStyle: material } = this.state.options;
+        const { showHydrogens, visualQuality: quality, materialStyle: material, clipObjects: clip } = this.state.options;
         const ignoreHydrogens = !showHydrogens;
         for (const r of component.representations) {
             if (r.cell.transform.transformer !== StructureRepresentation3D) continue;
 
             const params = r.cell.transform.params as StateTransformer.Params<StructureRepresentation3D>;
-            if (!!params.type.params.ignoreHydrogens !== ignoreHydrogens || params.type.params.quality !== quality || !shallowEqual(params.type.params.material, material)) {
+            if (!!params.type.params.ignoreHydrogens !== ignoreHydrogens || params.type.params.quality !== quality || !shallowEqual(params.type.params.material, material) || !PD.areEqual(Clip.Params, params.type.params.clip, clip)) {
                 update.to(r.cell).update(old => {
                     old.type.params.ignoreHydrogens = ignoreHydrogens;
                     old.type.params.quality = quality;
                     old.type.params.material = material;
+                    old.type.params.clip = clip;
                 });
             }
         }
@@ -305,9 +309,9 @@ class StructureComponentManager extends StatefulPluginComponent<StructureCompone
     addRepresentation(components: ReadonlyArray<StructureComponentRef>, type: string) {
         if (components.length === 0) return;
 
-        const { showHydrogens, visualQuality: quality, materialStyle: material } = this.state.options;
+        const { showHydrogens, visualQuality: quality, materialStyle: material, clipObjects: clip } = this.state.options;
         const ignoreHydrogens = !showHydrogens;
-        const typeParams = { ignoreHydrogens, quality, material };
+        const typeParams = { ignoreHydrogens, quality, material, clip };
 
         return this.plugin.dataTransaction(async () => {
             for (const component of components) {
@@ -342,9 +346,9 @@ class StructureComponentManager extends StatefulPluginComponent<StructureCompone
             const xs = structures || this.currentStructures;
             if (xs.length === 0) return;
 
-            const { showHydrogens, visualQuality: quality, materialStyle: material } = this.state.options;
+            const { showHydrogens, visualQuality: quality, materialStyle: material, clipObjects: clip } = this.state.options;
             const ignoreHydrogens = !showHydrogens;
-            const typeParams = { ignoreHydrogens, quality, material };
+            const typeParams = { ignoreHydrogens, quality, material, clip };
 
             const componentKey = UUID.create22();
             for (const s of xs) {
@@ -455,6 +459,7 @@ namespace StructureComponentManager {
         showHydrogens: PD.Boolean(true, { description: 'Toggle display of hydrogen atoms in representations' }),
         visualQuality: PD.Select('auto', VisualQualityOptions, { description: 'Control the visual/rendering quality of representations' }),
         materialStyle: Material.getParam(),
+        clipObjects: PD.Group(Clip.Params),
         interactions: PD.Group(InteractionsProvider.defaultParams, { label: 'Non-covalent Interactions' }),
     };
     export type Options = PD.Values<typeof OptionsParams>

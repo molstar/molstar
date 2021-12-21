@@ -62,7 +62,6 @@ const SimpleSettingsParams = {
     }, { isFlat: true }),
     clipping: PD.Group<any>({
         ...Canvas3DParams.cameraClipping.params,
-        ...(Canvas3DParams.renderer.params.clip as any).params as any
     }, { pivot: 'radius' }),
     layout: PD.MultiSelect([] as LayoutOptions[], PD.objectToOptions(LayoutOptions)),
 };
@@ -110,7 +109,6 @@ const SimpleSettingsMapping = ParamMapping({
             },
             clipping: {
                 ...canvas.cameraClipping,
-                ...canvas.renderer.clip
             }
         };
     },
@@ -127,10 +125,6 @@ const SimpleSettingsMapping = ParamMapping({
         canvas.cameraClipping = {
             radius: s.clipping.radius,
             far: s.clipping.far,
-        };
-        canvas.renderer.clip = {
-            variant: s.clipping.variant,
-            objects: s.clipping.objects,
         };
 
         props.layout = s.layout;

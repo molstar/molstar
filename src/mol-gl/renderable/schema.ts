@@ -135,12 +135,6 @@ export const GlobalUniformSchema = {
 
     uTransparentBackground: UniformSpec('b'),
 
-    uClipObjectType: UniformSpec('i[]'),
-    uClipObjectInvert: UniformSpec('b[]'),
-    uClipObjectPosition: UniformSpec('v3[]'),
-    uClipObjectRotation: UniformSpec('v4[]'),
-    uClipObjectScale: UniformSpec('v3[]'),
-
     uLightDirection: UniformSpec('v3[]'),
     uLightColor: UniformSpec('v3[]'),
     uAmbientColor: UniformSpec('v3'),
@@ -256,9 +250,6 @@ export type SubstanceSchema = typeof SubstanceSchema
 export type SubstanceValues = Values<SubstanceSchema>
 
 export const ClippingSchema = {
-    dClipObjectCount: DefineSpec('number'),
-    dClipVariant: DefineSpec('string', ['instance', 'pixel']),
-
     uClippingTexDim: UniformSpec('v2'),
     tClipping: TextureSpec('image-uint8', 'alpha', 'ubyte', 'nearest'),
     dClipping: DefineSpec('boolean'),
@@ -275,6 +266,14 @@ export const BaseSchema = {
     ...ClippingSchema,
 
     dLightCount: DefineSpec('number'),
+
+    dClipObjectCount: DefineSpec('number'),
+    dClipVariant: DefineSpec('string', ['instance', 'pixel']),
+    uClipObjectType: UniformSpec('i[]'),
+    uClipObjectInvert: UniformSpec('b[]'),
+    uClipObjectPosition: UniformSpec('v3[]'),
+    uClipObjectRotation: UniformSpec('v4[]'),
+    uClipObjectScale: UniformSpec('v3[]'),
 
     aInstance: AttributeSpec('float32', 1, 1),
     /**

@@ -308,9 +308,10 @@ namespace Visual {
 
         const { tClipping, dClipping, uGroupCount, instanceCount } = renderObject.values;
         const count = uGroupCount.ref.value * instanceCount.ref.value;
+        const { layers } = clipping;
 
         // ensure texture has right size
-        createClipping(clipping.layers.length ? count : 0, renderObject.values);
+        createClipping(layers.length ? count : 0, renderObject.values);
         const { array } = tClipping.ref.value;
 
         // clear if requested
