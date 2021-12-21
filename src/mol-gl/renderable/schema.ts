@@ -161,6 +161,7 @@ export const GlobalUniformSchema = {
 
     uRenderWboit: UniformSpec('b'),
     uMarkingDepthTest: UniformSpec('b'),
+    uMarkingType: UniformSpec('i'),
     uPickType: UniformSpec('i'),
 } as const;
 export type GlobalUniformSchema = typeof GlobalUniformSchema

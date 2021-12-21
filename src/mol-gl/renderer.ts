@@ -45,6 +45,12 @@ export const enum PickType {
     Group = 3,
 }
 
+export const enum MarkingType {
+    None = 0,
+    Depth = 1,
+    Mask = 2,
+}
+
 interface Renderer {
     readonly stats: RendererStats
     readonly props: Readonly<RendererProps>
@@ -240,6 +246,7 @@ namespace Renderer {
             uRenderWboit: ValueCell.create(false),
             uMarkingDepthTest: ValueCell.create(false),
             uPickType: ValueCell.create(PickType.None),
+            uMarkingType: ValueCell.create(MarkingType.None),
 
             uTransparentBackground: ValueCell.create(false),
 
@@ -438,13 +445,14 @@ namespace Renderer {
             state.depthMask(true);
 
             updateInternal(group, camera, depthTexture, false, false);
+            ValueCell.updateIfChanged(globalUniforms.uMarkingType, MarkingType.Depth);
 
             const { renderables } = group;
             for (let i = 0, il = renderables.length; i < il; ++i) {
                 const r = renderables[i];
 
                 if (r.values.markerAverage.ref.value !== 1) {
-                    renderObject(renderables[i], 'markingDepth');
+                    renderObject(renderables[i], 'marking');
                 }
             }
         };
@@ -455,13 +463,14 @@ namespace Renderer {
             state.depthMask(true);
 
             updateInternal(group, camera, depthTexture, false, !!depthTexture);
+            ValueCell.updateIfChanged(globalUniforms.uMarkingType, MarkingType.Mask);
 
             const { renderables } = group;
             for (let i = 0, il = renderables.length; i < il; ++i) {
                 const r = renderables[i];
 
                 if (r.values.markerAverage.ref.value > 0) {
-                    renderObject(renderables[i], 'markingMask');
+                    renderObject(renderables[i], 'marking');
                 }
             }
         };

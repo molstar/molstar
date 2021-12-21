@@ -12,6 +12,7 @@ Note that since we don't clearly distinguish between a public and private interf
     - Remove dMarkerType shader define (use uMarker as needed)
     - Support to ignore defines depending on the shader variant
     - Combine pickObject/pickInstance/pickGroup shader variants into one
+    - Combine markingDepth/markingMask shader variants into one
     - Correctly set shader define flags for overpaint, transparency, substance, clipping
 
 ## [v3.0.0-dev.6] - 2021-12-19

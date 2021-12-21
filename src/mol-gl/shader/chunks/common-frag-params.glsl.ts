@@ -4,6 +4,7 @@ uniform int uInstanceCount;
 uniform int uGroupCount;
 
 uniform int uPickType;
+uniform int uMarkingType;
 
 #if dClipObjectCount != 0
     uniform int uClipObjectType[dClipObjectCount];
