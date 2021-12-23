@@ -182,7 +182,7 @@ export const ColorSchema = {
     tColor: TextureSpec('image-uint8', 'rgb', 'ubyte', 'nearest'),
     tPalette: TextureSpec('image-uint8', 'rgb', 'ubyte', 'nearest'),
     tColorGrid: TextureSpec('texture', 'rgb', 'ubyte', 'linear'),
-    dColorType: DefineSpec('string', ['uniform', 'attribute', 'instance', 'group', 'groupInstance', 'vertex', 'vertexInstance', 'volume', 'volumeInstance']),
+    dColorType: DefineSpec('string', ['uniform', 'attribute', 'instance', 'group', 'groupInstance', 'vertex', 'vertexInstance', 'volume', 'volumeInstance', 'direct']),
     dUsePalette: DefineSpec('boolean'),
 } as const;
 export type ColorSchema = typeof ColorSchema

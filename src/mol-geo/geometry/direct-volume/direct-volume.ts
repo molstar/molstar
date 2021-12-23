@@ -27,7 +27,6 @@ import { createEmptyTransparency } from '../transparency-data';
 import { createTransferFunctionTexture, getControlPointsFromVec2Array } from './transfer-function';
 import { createEmptyClipping } from '../clipping-data';
 import { Grid } from '../../../mol-model/volume';
-import { ColorNames } from '../../../mol-util/color/names';
 import { createEmptySubstance } from '../substance-data';
 
 const VolumeBox = Box();
@@ -141,36 +140,15 @@ export namespace DirectVolume {
         return create(bbox, gridDimension, transform, unitToCartn, cellDim, texture, stats, packedGroup, directVolume);
     }
 
-    export function createRenderModeParam() {
-        return PD.MappedStatic('volume', {
-            volume: PD.Group({
-                controlPoints: PD.LineGraph([
-                    Vec2.create(0.19, 0.0), Vec2.create(0.2, 0.05), Vec2.create(0.25, 0.05), Vec2.create(0.26, 0.0),
-                    Vec2.create(0.79, 0.0), Vec2.create(0.8, 0.05), Vec2.create(0.85, 0.05), Vec2.create(0.86, 0.0),
-                ]),
-                list: PD.ColorList({
-                    kind: 'interpolate',
-                    colors: [
-                        [ColorNames.white, 0],
-                        [ColorNames.red, 0.25],
-                        [ColorNames.white, 0.5],
-                        [ColorNames.blue, 0.75],
-                        [ColorNames.white, 1]
-                    ]
-                }, { offsets: true }),
-            }, { isFlat: true })
-        }, { isEssential: true });
-    }
-
     export const Params = {
         ...BaseGeometry.Params,
-        doubleSided: PD.Boolean(false, BaseGeometry.CustomQualityParamInfo),
-        flipSided: PD.Boolean(false, BaseGeometry.ShadingCategory),
-        flatShaded: PD.Boolean(false, BaseGeometry.ShadingCategory),
         ignoreLight: PD.Boolean(false, BaseGeometry.ShadingCategory),
         xrayShaded: PD.Boolean(false, BaseGeometry.ShadingCategory),
-        renderMode: createRenderModeParam(),
-        stepsPerCell: PD.Numeric(5, { min: 1, max: 20, step: 1 }),
+        controlPoints: PD.LineGraph([
+            Vec2.create(0.19, 0.0), Vec2.create(0.2, 0.05), Vec2.create(0.25, 0.05), Vec2.create(0.26, 0.0),
+            Vec2.create(0.79, 0.0), Vec2.create(0.8, 0.05), Vec2.create(0.85, 0.05), Vec2.create(0.86, 0.0),
+        ], { isEssential: true }),
+        stepsPerCell: PD.Numeric(3, { min: 1, max: 10, step: 1 }),
         jumpLength: PD.Numeric(0, { min: 0, max: 20, step: 0.1 }),
     };
     export type Params = typeof Params
@@ -241,8 +219,8 @@ export namespace DirectVolume {
         const invariantBoundingSphere = Sphere3D.clone(directVolume.boundingSphere);
         const boundingSphere = calculateTransformBoundingSphere(invariantBoundingSphere, transform.aTransform.ref.value, instanceCount);
 
-        const controlPoints = getControlPointsFromVec2Array(props.renderMode.params.controlPoints);
-        const transferTex = createTransferFunctionTexture(controlPoints, props.renderMode.params.list.colors);
+        const controlPoints = getControlPointsFromVec2Array(props.controlPoints);
+        const transferTex = createTransferFunctionTexture(controlPoints);
 
         return {
             ...color,
@@ -268,7 +246,7 @@ export namespace DirectVolume {
             uJumpLength: ValueCell.create(props.jumpLength),
             uTransform: gridTransform,
             uGridDim: gridDimension,
-            dRenderMode: ValueCell.create(props.renderMode.name),
+            dRenderMode: ValueCell.create('volume'),
             tTransferTex: transferTex,
             uTransferScale: ValueCell.create(getTransferScale(props.stepsPerCell)),
 
@@ -298,8 +276,8 @@ export namespace DirectVolume {
         ValueCell.updateIfChanged(values.dIgnoreLight, props.ignoreLight);
         ValueCell.updateIfChanged(values.dXrayShaded, props.xrayShaded);
 
-        const controlPoints = getControlPointsFromVec2Array(props.renderMode.params.controlPoints);
-        createTransferFunctionTexture(controlPoints, props.renderMode.params.list.colors, values.tTransferTex);
+        const controlPoints = getControlPointsFromVec2Array(props.controlPoints);
+        createTransferFunctionTexture(controlPoints, values.tTransferTex);
 
         ValueCell.updateIfChanged(values.uMaxSteps, getMaxSteps(values.uGridDim.ref.value, props.stepsPerCell));
         ValueCell.updateIfChanged(values.uStepScale, getStepScale(values.uCellDim.ref.value, props.stepsPerCell));

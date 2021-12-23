@@ -158,7 +158,7 @@ export const DirectVolumeRepresentationProvider = VolumeRepresentationProvider({
     factory: DirectVolumeRepresentation,
     getParams: getDirectVolumeParams,
     defaultValues: PD.getDefaultValues(DirectVolumeParams),
-    defaultColorTheme: { name: 'uniform' },
+    defaultColorTheme: { name: 'volume-value' },
     defaultSizeTheme: { name: 'uniform' },
     isApplicable: (volume: Volume) => !Volume.isEmpty(volume)
 });

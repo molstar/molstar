@@ -101,6 +101,26 @@ uniform mat4 uCartnToUnit;
     uniform sampler3D tGridTex;
 #endif
 
+#if defined(dRenderVariant_color)
+    #if defined(dColorType_uniform)
+        uniform vec3 uColor;
+    #elif defined(dColorType_texture)
+        uniform vec2 uColorTexDim;
+        uniform sampler2D tColor;
+    #endif
+
+    #ifdef dOverpaint
+        #if defined(dOverpaintType_groupInstance) || defined(dOverpaintType_vertexInstance)
+            uniform vec2 uOverpaintTexDim;
+            uniform sampler2D tOverpaint;
+        #endif
+    #endif
+
+    #ifdef dUsePalette
+        uniform sampler2D tPalette;
+    #endif
+#endif
+
 #if defined(dGridTexType_2d)
     vec4 textureVal(vec3 pos) {
         return texture3dFrom2dLinear(tGridTex, pos + (vec3(0.5, 0.5, 0.0) / uGridDim), uGridDim, uGridTexDim.xy);
@@ -122,8 +142,8 @@ float calcDepth(const in vec3 pos) {
     return 0.5 + 0.5 * clipZW.x / clipZW.y;
 }
 
-vec4 transferFunction(float value) {
-    return texture2D(tTransferTex, vec2(value, 0.0));
+float transferFunction(float value) {
+    return texture2D(tTransferTex, vec2(value, 0.0)).a;
 }
 
 float getDepth(const in vec2 coords) {
@@ -174,6 +194,8 @@ vec4 raymarch(vec3 startLoc, vec3 step, vec3 rayDir) {
     vec3 nextPos;
     float nextValue;
 
+    vec4 material;
+    vec4 overpaint;
     float metalness = uMetalness;
     float roughness = uRoughness;
 
@@ -229,7 +251,40 @@ vec4 raymarch(vec3 startLoc, vec3 step, vec3 rayDir) {
 
         #if defined(dRenderVariant_color)
             vec3 vViewPosition = mvPosition.xyz;
-            vec4 material = transferFunction(value);
+            material.a = transferFunction(value);
+
+            #ifdef dPackedGroup
+                float group = decodeFloatRGB(textureGroup(floor(unitPos * uGridDim + 0.5) / uGridDim).rgb);
+            #else
+                vec3 g = floor(unitPos * uGridDim + 0.5);
+                float group = g.z + g.y * uGridDim.z + g.x * uGridDim.z * uGridDim.y;
+            #endif
+
+            #if defined(dColorType_direct) && defined(dUsePalette)
+                material.rgb = texture2D(tPalette, vec2(value, 0.0)).rgb;
+            #elif defined(dColorType_uniform)
+                material.rgb = uColor;
+            #elif defined(dColorType_instance)
+                material.rgb = readFromTexture(tColor, vInstance, uColorTexDim).rgb;
+            #elif defined(dColorType_group)
+                material.rgb = readFromTexture(tColor, group, uColorTexDim).rgb;
+            #elif defined(dColorType_groupInstance)
+                material.rgb = readFromTexture(tColor, vInstance * float(uGroupCount) + group, uColorTexDim).rgb;
+            #elif defined(dColorType_vertex)
+                material.rgb = texture3dFrom1dTrilinear(tColor, isoPos, uGridDim, uColorTexDim, 0.0).rgb;
+            #elif defined(dColorType_vertexInstance)
+                material.rgb = texture3dFrom1dTrilinear(tColor, isoPos, uGridDim, uColorTexDim, vInstance * float(uVertexCount)).rgb;
+            #endif
+
+            #ifdef dOverpaint
+                #if defined(dOverpaintType_groupInstance)
+                    overpaint = readFromTexture(tOverpaint, vInstance * float(uGroupCount) + group, uOverpaintTexDim);
+                #elif defined(dOverpaintType_vertexInstance)
+                    overpaint = texture3dFrom1dTrilinear(tOverpaint, isoPos, uGridDim, uOverpaintTexDim, vInstance * float(uVertexCount));
+                #endif
+
+                material.rgb = mix(material.rgb, overpaint.rgb, overpaint.a);
+            #endif
 
             #ifdef dIgnoreLight
                 gl_FragColor.rgb = material.rgb;
@@ -254,12 +309,6 @@ vec4 raymarch(vec3 startLoc, vec3 step, vec3 rayDir) {
 
             float marker = uMarker;
             if (uMarker == -1.0) {
-                #ifdef dPackedGroup
-                    float group = decodeFloatRGB(textureGroup(floor(unitPos * uGridDim + 0.5) / uGridDim).rgb);
-                #else
-                    vec3 g = floor(unitPos * uGridDim + 0.5);
-                    float group = g.z + g.y * uGridDim.z + g.x * uGridDim.z * uGridDim.y;
-                #endif
                 marker = readFromTexture(tMarker, vInstance * float(uGroupCount) + group, uMarkerTexDim).a;
                 marker = floor(marker * 255.0 + 0.5); // rounding required to work on some cards on win
             }
