@@ -136,7 +136,7 @@ function getLight(props: RendererProps['light'], light?: Light): Light {
 
 namespace Renderer {
     export function create(ctx: WebGLContext, props: Partial<RendererProps> = {}): Renderer {
-        const { gl, state, stats, extensions: { fragDepth } } = ctx;
+        const { gl, state, stats } = ctx;
         const p = PD.merge(RendererParams, PD.getDefaultValues(RendererParams), props);
         const light = getLight(p.light);
 
@@ -245,9 +245,9 @@ namespace Renderer {
                 globalUniformsNeedUpdate = false;
             }
 
-            if (r.values.dRenderMode) { // indicates direct-volume
-                if ((variant === 'pick' || variant === 'depth') && r.values.dRenderMode.ref.value === 'volume') {
-                    return; // no picking/depth in volume mode
+            if (r.values.dGeometryType.ref.value === 'directVolume') {
+                if (!variant.startsWith('color')) {
+                    return; // only color supported
                 }
 
                 // culling done in fragment shader
@@ -256,14 +256,8 @@ namespace Renderer {
 
                 if (variant === 'colorBlended') {
                     // depth test done manually in shader against `depthTexture`
-                    // still need to enable when fragDepth can be used to write depth
-                    if (r.values.dRenderMode.ref.value === 'volume' || !fragDepth) {
-                        state.disable(gl.DEPTH_TEST);
-                        state.depthMask(false);
-                    } else {
-                        state.enable(gl.DEPTH_TEST);
-                        state.depthMask(r.values.uAlpha.ref.value === 1.0);
-                    }
+                    state.disable(gl.DEPTH_TEST);
+                    state.depthMask(false);
                 }
             } else {
                 if (r.values.uDoubleSided) {
@@ -506,7 +500,7 @@ namespace Renderer {
                 // TODO: simplify, handle in renderable.state???
                 // uAlpha is updated in "render" so we need to recompute it here
                 const alpha = clamp(r.values.alpha.ref.value * r.state.alphaFactor, 0, 1);
-                if (alpha === 1 && r.values.transparencyAverage.ref.value !== 1 && r.values.dRenderMode?.ref.value !== 'volume' && r.values.dPointStyle?.ref.value !== 'fuzzy' && !r.values.dXrayShaded?.ref.value) {
+                if (alpha === 1 && r.values.transparencyAverage.ref.value !== 1 && r.values.dGeometryType.ref.value !== 'directVolume' && r.values.dPointStyle?.ref.value !== 'fuzzy' && !r.values.dXrayShaded?.ref.value) {
                     renderObject(r, 'colorWboit');
                 }
             }
@@ -522,7 +516,7 @@ namespace Renderer {
                 // TODO: simplify, handle in renderable.state???
                 // uAlpha is updated in "render" so we need to recompute it here
                 const alpha = clamp(r.values.alpha.ref.value * r.state.alphaFactor, 0, 1);
-                if (alpha < 1 || r.values.transparencyAverage.ref.value > 0 || r.values.dRenderMode?.ref.value === 'volume' || r.values.dPointStyle?.ref.value === 'fuzzy' || !!r.values.uBackgroundColor || r.values.dXrayShaded?.ref.value) {
+                if (alpha < 1 || r.values.transparencyAverage.ref.value > 0 || r.values.dGeometryType.ref.value === 'directVolume' || r.values.dPointStyle?.ref.value === 'fuzzy' || !!r.values.uBackgroundColor || r.values.dXrayShaded?.ref.value) {
                     renderObject(r, 'colorWboit');
                 }
             }

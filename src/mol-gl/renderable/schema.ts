@@ -258,6 +258,8 @@ export type ClippingSchema = typeof ClippingSchema
 export type ClippingValues = Values<ClippingSchema>
 
 export const BaseSchema = {
+    dGeometryType: DefineSpec('string', ['cylinders', 'directVolume', 'image', 'lines', 'mesh', 'points', 'spheres', 'text', 'textureMesh']),
+
     ...ColorSchema,
     ...MarkerSchema,
     ...OverpaintSchema,

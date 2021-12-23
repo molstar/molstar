@@ -223,6 +223,8 @@ export namespace DirectVolume {
         const transferTex = createTransferFunctionTexture(controlPoints);
 
         return {
+            dGeometryType: ValueCell.create('directVolume'),
+
             ...color,
             ...marker,
             ...overpaint,
@@ -246,7 +248,6 @@ export namespace DirectVolume {
             uJumpLength: ValueCell.create(props.jumpLength),
             uTransform: gridTransform,
             uGridDim: gridDimension,
-            dRenderMode: ValueCell.create('volume'),
             tTransferTex: transferTex,
             uTransferScale: ValueCell.create(getTransferScale(props.stepsPerCell)),
 
