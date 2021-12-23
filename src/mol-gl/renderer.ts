@@ -246,7 +246,7 @@ namespace Renderer {
             }
 
             if (r.values.dGeometryType.ref.value === 'directVolume') {
-                if (!variant.startsWith('color')) {
+                if (variant !== 'colorWboit' && variant !== 'colorBlended') {
                     return; // only color supported
                 }
 

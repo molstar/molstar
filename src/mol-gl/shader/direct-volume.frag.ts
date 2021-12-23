@@ -101,24 +101,22 @@ uniform mat4 uCartnToUnit;
     uniform sampler3D tGridTex;
 #endif
 
-#if defined(dRenderVariant_color)
-    #if defined(dColorType_uniform)
-        uniform vec3 uColor;
-    #elif defined(dColorType_texture)
-        uniform vec2 uColorTexDim;
-        uniform sampler2D tColor;
-    #endif
+#if defined(dColorType_uniform)
+    uniform vec3 uColor;
+#elif defined(dColorType_texture)
+    uniform vec2 uColorTexDim;
+    uniform sampler2D tColor;
+#endif
 
-    #ifdef dOverpaint
-        #if defined(dOverpaintType_groupInstance) || defined(dOverpaintType_vertexInstance)
-            uniform vec2 uOverpaintTexDim;
-            uniform sampler2D tOverpaint;
-        #endif
+#ifdef dOverpaint
+    #if defined(dOverpaintType_groupInstance) || defined(dOverpaintType_vertexInstance)
+        uniform vec2 uOverpaintTexDim;
+        uniform sampler2D tOverpaint;
     #endif
+#endif
 
-    #ifdef dUsePalette
-        uniform sampler2D tPalette;
-    #endif
+#ifdef dUsePalette
+    uniform sampler2D tPalette;
 #endif
 
 #if defined(dGridTexType_2d)
@@ -168,7 +166,7 @@ vec3 v3m4(vec3 p, mat4 m) {
 float preFogAlphaBlended = 0.0;
 
 vec4 raymarch(vec3 startLoc, vec3 step, vec3 rayDir) {
-    #if defined(dRenderVariant_color) && !defined(dIgnoreLight)
+    #if !defined(dIgnoreLight)
         mat3 normalMatrix = transpose3(inverse3(mat3(uModelView * vTransform)));
     #endif
     mat4 cartnToUnit = uCartnToUnit * inverse4(vTransform);
@@ -249,83 +247,81 @@ vec4 raymarch(vec3 startLoc, vec3 step, vec3 rayDir) {
             }
         #endif
 
-        #if defined(dRenderVariant_color)
-            vec3 vViewPosition = mvPosition.xyz;
-            material.a = transferFunction(value);
+        vec3 vViewPosition = mvPosition.xyz;
+        material.a = transferFunction(value);
 
-            #ifdef dPackedGroup
-                float group = decodeFloatRGB(textureGroup(floor(unitPos * uGridDim + 0.5) / uGridDim).rgb);
-            #else
-                vec3 g = floor(unitPos * uGridDim + 0.5);
-                float group = g.z + g.y * uGridDim.z + g.x * uGridDim.z * uGridDim.y;
-            #endif
-
-            #if defined(dColorType_direct) && defined(dUsePalette)
-                material.rgb = texture2D(tPalette, vec2(value, 0.0)).rgb;
-            #elif defined(dColorType_uniform)
-                material.rgb = uColor;
-            #elif defined(dColorType_instance)
-                material.rgb = readFromTexture(tColor, vInstance, uColorTexDim).rgb;
-            #elif defined(dColorType_group)
-                material.rgb = readFromTexture(tColor, group, uColorTexDim).rgb;
-            #elif defined(dColorType_groupInstance)
-                material.rgb = readFromTexture(tColor, vInstance * float(uGroupCount) + group, uColorTexDim).rgb;
-            #elif defined(dColorType_vertex)
-                material.rgb = texture3dFrom1dTrilinear(tColor, isoPos, uGridDim, uColorTexDim, 0.0).rgb;
-            #elif defined(dColorType_vertexInstance)
-                material.rgb = texture3dFrom1dTrilinear(tColor, isoPos, uGridDim, uColorTexDim, vInstance * float(uVertexCount)).rgb;
-            #endif
-
-            #ifdef dOverpaint
-                #if defined(dOverpaintType_groupInstance)
-                    overpaint = readFromTexture(tOverpaint, vInstance * float(uGroupCount) + group, uOverpaintTexDim);
-                #elif defined(dOverpaintType_vertexInstance)
-                    overpaint = texture3dFrom1dTrilinear(tOverpaint, isoPos, uGridDim, uOverpaintTexDim, vInstance * float(uVertexCount));
-                #endif
-
-                material.rgb = mix(material.rgb, overpaint.rgb, overpaint.a);
-            #endif
-
-            #ifdef dIgnoreLight
-                gl_FragColor.rgb = material.rgb;
-            #else
-                if (material.a >= 0.01) {
-                    #ifdef dPackedGroup
-                        // compute gradient by central differences
-                        gradient.x = textureVal(unitPos - dx).a - textureVal(unitPos + dx).a;
-                        gradient.y = textureVal(unitPos - dy).a - textureVal(unitPos + dy).a;
-                        gradient.z = textureVal(unitPos - dz).a - textureVal(unitPos + dz).a;
-                    #else
-                        gradient = cell.xyz * 2.0 - 1.0;
-                    #endif
-                    vec3 normal = -normalize(normalMatrix * normalize(gradient));
-                    #include apply_light_color
-                } else {
-                    gl_FragColor.rgb = material.rgb;
-                }
-            #endif
-
-            gl_FragColor.a = material.a * uAlpha * uTransferScale;
-
-            float marker = uMarker;
-            if (uMarker == -1.0) {
-                marker = readFromTexture(tMarker, vInstance * float(uGroupCount) + group, uMarkerTexDim).a;
-                marker = floor(marker * 255.0 + 0.5); // rounding required to work on some cards on win
-            }
-            #include apply_marker_color
-
-            preFogAlphaBlended = (1.0 - preFogAlphaBlended) * gl_FragColor.a + preFogAlphaBlended;
-            fragmentDepth = calcDepth(mvPosition.xyz);
-            #include apply_fog
-
-            src = gl_FragColor;
-
-            if (!uTransparentBackground) {
-                // done in 'apply_fog' otherwise
-                src.rgb *= src.a;
-            }
-            dst = (1.0 - dst.a) * src + dst; // standard blending
+        #ifdef dPackedGroup
+            float group = decodeFloatRGB(textureGroup(floor(unitPos * uGridDim + 0.5) / uGridDim).rgb);
+        #else
+            vec3 g = floor(unitPos * uGridDim + 0.5);
+            float group = g.z + g.y * uGridDim.z + g.x * uGridDim.z * uGridDim.y;
         #endif
+
+        #if defined(dColorType_direct) && defined(dUsePalette)
+            material.rgb = texture2D(tPalette, vec2(value, 0.0)).rgb;
+        #elif defined(dColorType_uniform)
+            material.rgb = uColor;
+        #elif defined(dColorType_instance)
+            material.rgb = readFromTexture(tColor, vInstance, uColorTexDim).rgb;
+        #elif defined(dColorType_group)
+            material.rgb = readFromTexture(tColor, group, uColorTexDim).rgb;
+        #elif defined(dColorType_groupInstance)
+            material.rgb = readFromTexture(tColor, vInstance * float(uGroupCount) + group, uColorTexDim).rgb;
+        #elif defined(dColorType_vertex)
+            material.rgb = texture3dFrom1dTrilinear(tColor, isoPos, uGridDim, uColorTexDim, 0.0).rgb;
+        #elif defined(dColorType_vertexInstance)
+            material.rgb = texture3dFrom1dTrilinear(tColor, isoPos, uGridDim, uColorTexDim, vInstance * float(uVertexCount)).rgb;
+        #endif
+
+        #ifdef dOverpaint
+            #if defined(dOverpaintType_groupInstance)
+                overpaint = readFromTexture(tOverpaint, vInstance * float(uGroupCount) + group, uOverpaintTexDim);
+            #elif defined(dOverpaintType_vertexInstance)
+                overpaint = texture3dFrom1dTrilinear(tOverpaint, isoPos, uGridDim, uOverpaintTexDim, vInstance * float(uVertexCount));
+            #endif
+
+            material.rgb = mix(material.rgb, overpaint.rgb, overpaint.a);
+        #endif
+
+        #ifdef dIgnoreLight
+            gl_FragColor.rgb = material.rgb;
+        #else
+            if (material.a >= 0.01) {
+                #ifdef dPackedGroup
+                    // compute gradient by central differences
+                    gradient.x = textureVal(unitPos - dx).a - textureVal(unitPos + dx).a;
+                    gradient.y = textureVal(unitPos - dy).a - textureVal(unitPos + dy).a;
+                    gradient.z = textureVal(unitPos - dz).a - textureVal(unitPos + dz).a;
+                #else
+                    gradient = cell.xyz * 2.0 - 1.0;
+                #endif
+                vec3 normal = -normalize(normalMatrix * normalize(gradient));
+                #include apply_light_color
+            } else {
+                gl_FragColor.rgb = material.rgb;
+            }
+        #endif
+
+        gl_FragColor.a = material.a * uAlpha * uTransferScale;
+
+        float marker = uMarker;
+        if (uMarker == -1.0) {
+            marker = readFromTexture(tMarker, vInstance * float(uGroupCount) + group, uMarkerTexDim).a;
+            marker = floor(marker * 255.0 + 0.5); // rounding required to work on some cards on win
+        }
+        #include apply_marker_color
+
+        preFogAlphaBlended = (1.0 - preFogAlphaBlended) * gl_FragColor.a + preFogAlphaBlended;
+        fragmentDepth = calcDepth(mvPosition.xyz);
+        #include apply_fog
+
+        src = gl_FragColor;
+
+        if (!uTransparentBackground) {
+            // done in 'apply_fog' otherwise
+            src.rgb *= src.a;
+        }
+        dst = (1.0 - dst.a) * src + dst; // standard blending
 
         // break if the color is opaque enough
         if (dst.a > 0.95)
@@ -344,16 +340,6 @@ void main() {
     if (gl_FrontFacing)
         discard;
 
-    #ifdef dRenderVariant_marking
-        // not supported
-        discard;
-    #endif
-
-    #if defined(dRenderVariant_pick) || defined(dRenderVariant_depth)
-        // always ignore pick & depth for volume
-        discard;
-    #endif
-
     vec3 rayDir = mix(normalize(vOrigPos - uCameraPosition), uCameraDir, uIsOrtho);
     vec3 step = rayDir * uStepScale;
 
@@ -362,11 +348,9 @@ void main() {
     vec3 start = mix(uCameraPosition, vOrigPos, uIsOrtho) + (d * rayDir);
     gl_FragColor = raymarch(start, step, rayDir);
 
-    #if defined(dRenderVariant_color)
-        float fragmentDepth = calcDepth((uModelView * vec4(start, 1.0)).xyz);
-        float preFogAlpha = clamp(preFogAlphaBlended, 0.0, 1.0);
-        bool interior = false;
-        #include wboit_write
-    #endif
+    float fragmentDepth = calcDepth((uModelView * vec4(start, 1.0)).xyz);
+    float preFogAlpha = clamp(preFogAlphaBlended, 0.0, 1.0);
+    bool interior = false;
+    #include wboit_write
 }
 `;
