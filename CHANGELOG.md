@@ -6,6 +6,8 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Add ``PluginFeatureDetection`` and disable WBOIT in Safari 15.
+
 ## [v3.0.0-dev.7] - 2021-12-20
 
 - Reduce number of created programs/shaders
