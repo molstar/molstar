@@ -129,7 +129,7 @@ abstract class TransformControlBase<P, S extends TransformControlBase.ComponentS
     private onEnter = () => {
         if (this.state.error) return;
         this.apply();
-    }
+    };
 
     private autoApplyHandle: number | undefined = void 0;
     private clearAutoApply() {
@@ -150,7 +150,7 @@ abstract class TransformControlBase<P, S extends TransformControlBase.ComponentS
                 }
             });
         }
-    }
+    };
 
     apply = async () => {
         this.clearAutoApply();
@@ -164,7 +164,7 @@ abstract class TransformControlBase<P, S extends TransformControlBase.ComponentS
             this.props.onApply?.();
             this.busy.next(false);
         }
-    }
+    };
 
     componentDidMount() {
         this.subscribe(this.plugin.behaviors.state.isBusy, b => {
@@ -177,17 +177,17 @@ abstract class TransformControlBase<P, S extends TransformControlBase.ComponentS
 
     refresh = () => {
         this.setState({ params: this.getInfo().initialValues, isInitial: true, error: void 0 });
-    }
+    };
 
     setDefault = () => {
         const info = this.getInfo();
         const params = PD.getDefaultValues(info.params);
         this.setState({ params, isInitial: PD.areEqual(info.params, params, info.initialValues), error: void 0 });
-    }
+    };
 
     toggleExpanded = () => {
         this.setState({ isCollapsed: !this.state.isCollapsed });
-    }
+    };
 
     renderApply() {
         const canApply = this.canApply();

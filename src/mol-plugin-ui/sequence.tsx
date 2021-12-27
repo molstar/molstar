@@ -219,7 +219,7 @@ type SequenceViewState = {
 }
 
 export class SequenceView extends PluginUIComponent<{ defaultMode?: SequenceViewMode }, SequenceViewState> {
-    state: SequenceViewState = { structureOptions: { options: [], all: [] }, structure: Structure.Empty, structureRef: '', modelEntityId: '', chainGroupId: -1, operatorKey: '', mode: 'single' }
+    state: SequenceViewState = { structureOptions: { options: [], all: [] }, structure: Structure.Empty, structureRef: '', modelEntityId: '', chainGroupId: -1, operatorKey: '', mode: 'single' };
 
     componentDidMount() {
         if (this.plugin.state.data.select(StateSelection.Generators.rootsOfType(PSO.Molecule.Structure)).length > 0) this.setState(this.getInitialState());
@@ -358,7 +358,7 @@ export class SequenceView extends PluginUIComponent<{ defaultMode?: SequenceView
                 break;
         }
         this.setState(state);
-    }
+    };
 
     render() {
         if (this.getStructure(this.state.structureRef) === Structure.Empty) {

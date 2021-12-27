@@ -37,7 +37,7 @@ class Camera implements ICamera {
     readonly projectionView: Mat4 = Mat4.identity();
     readonly inverseProjectionView: Mat4 = Mat4.identity();
 
-    private pixelScale: number
+    private pixelScale: number;
     get pixelRatio() {
         const dpr = (typeof window !== 'undefined') ? window.devicePixelRatio : 1;
         return dpr * this.pixelScale;
@@ -47,11 +47,11 @@ class Camera implements ICamera {
     readonly state: Readonly<Camera.Snapshot> = Camera.createDefaultSnapshot();
     readonly viewOffset = Camera.ViewOffset();
 
-    near = 1
-    far = 10000
-    fogNear = 5000
-    fogFar = 10000
-    zoom = 1
+    near = 1;
+    far = 10000;
+    fogNear = 5000;
+    fogFar = 10000;
+    zoom = 1;
 
     readonly transition: CameraTransitionManager = new CameraTransitionManager(this);
     readonly stateChanged = new BehaviorSubject<Partial<Camera.Snapshot>>(this.state);

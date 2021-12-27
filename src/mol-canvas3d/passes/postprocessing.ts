@@ -86,7 +86,7 @@ function getSsaoRenderable(ctx: WebGLContext, depthTexture: Texture): SsaoRender
         tDepth: ValueCell.create(depthTexture),
 
         uSamples: ValueCell.create([0.0, 0.0, 1.0]),
-        dNSamples: ValueCell.create(1),
+        dNSamples: ValueCell.create(32),
 
         uProjection: ValueCell.create(Mat4.identity()),
         uInvProjection: ValueCell.create(Mat4.identity()),
@@ -133,7 +133,7 @@ function getSsaoBlurRenderable(ctx: WebGLContext, ssaoDepthTexture: Texture, dir
         uTexSize: ValueCell.create(Vec2.create(ssaoDepthTexture.getWidth(), ssaoDepthTexture.getHeight())),
 
         uKernel: ValueCell.create([0.0]),
-        dOcclusionKernelSize: ValueCell.create(1),
+        dOcclusionKernelSize: ValueCell.create(15),
 
         uBlurDirectionX: ValueCell.create(direction === 'horizontal' ? 1 : 0),
         uBlurDirectionY: ValueCell.create(direction === 'vertical' ? 1 : 0),
@@ -226,7 +226,7 @@ function getPostprocessingRenderable(ctx: WebGLContext, colorTexture: Texture, d
 
         uMaxPossibleViewZDiff: ValueCell.create(0.5),
 
-        dOcclusionEnable: ValueCell.create(false),
+        dOcclusionEnable: ValueCell.create(true),
 
         dOutlineEnable: ValueCell.create(false),
         dOutlineScale: ValueCell.create(1),
@@ -271,29 +271,29 @@ export class PostprocessingPass {
         return props.occlusion.name === 'on' || props.outline.name === 'on';
     }
 
-    readonly target: RenderTarget
+    readonly target: RenderTarget;
 
-    private readonly outlinesTarget: RenderTarget
-    private readonly outlinesRenderable: OutlinesRenderable
+    private readonly outlinesTarget: RenderTarget;
+    private readonly outlinesRenderable: OutlinesRenderable;
 
-    private readonly randomHemisphereVector: Vec3[]
-    private readonly ssaoFramebuffer: Framebuffer
-    private readonly ssaoBlurFirstPassFramebuffer: Framebuffer
-    private readonly ssaoBlurSecondPassFramebuffer: Framebuffer
+    private readonly randomHemisphereVector: Vec3[];
+    private readonly ssaoFramebuffer: Framebuffer;
+    private readonly ssaoBlurFirstPassFramebuffer: Framebuffer;
+    private readonly ssaoBlurSecondPassFramebuffer: Framebuffer;
 
-    private readonly ssaoDepthTexture: Texture
-    private readonly ssaoDepthBlurProxyTexture: Texture
+    private readonly ssaoDepthTexture: Texture;
+    private readonly ssaoDepthBlurProxyTexture: Texture;
 
-    private readonly ssaoRenderable: SsaoRenderable
-    private readonly ssaoBlurFirstPassRenderable: SsaoBlurRenderable
-    private readonly ssaoBlurSecondPassRenderable: SsaoBlurRenderable
+    private readonly ssaoRenderable: SsaoRenderable;
+    private readonly ssaoBlurFirstPassRenderable: SsaoBlurRenderable;
+    private readonly ssaoBlurSecondPassRenderable: SsaoBlurRenderable;
 
-    private nSamples: number
-    private blurKernelSize: number
+    private nSamples: number;
+    private blurKernelSize: number;
 
-    private readonly renderable: PostprocessingRenderable
+    private readonly renderable: PostprocessingRenderable;
 
-    private ssaoScale: number
+    private ssaoScale: number;
     private calcSsaoScale() {
         // downscale ssao for high pixel-ratios
         return Math.min(1, 1 / this.webgl.pixelRatio);
@@ -543,9 +543,9 @@ export class AntialiasingPass {
         return props.antialiasing.name !== 'off';
     }
 
-    readonly target: RenderTarget
-    private readonly fxaa: FxaaPass
-    private readonly smaa: SmaaPass
+    readonly target: RenderTarget;
+    private readonly fxaa: FxaaPass;
+    private readonly smaa: SmaaPass;
 
     constructor(webgl: WebGLContext, private drawPass: DrawPass) {
         const { colorTarget } = drawPass;

@@ -62,7 +62,7 @@ interface RootState {
 export class PluginLayout extends StatefulPluginComponent<PluginLayoutStateProps> {
     readonly events = {
         updated: this.ev()
-    }
+    };
 
     private updateProps(state: Partial<PluginLayoutStateProps>) {
         const prevExpanded = !!this.state.isExpanded;

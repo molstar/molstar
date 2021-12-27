@@ -6,7 +6,7 @@
 
 import { Renderable, RenderableState, createRenderable } from '../renderable';
 import { WebGLContext } from '../webgl/context';
-import { createGraphicsRenderItem } from '../webgl/render-item';
+import { createGraphicsRenderItem, GraphicsRenderVariant } from '../webgl/render-item';
 import { GlobalUniformSchema, BaseSchema, DefineSpec, Values, InternalSchema, InternalValues, UniformSpec, TextureSpec, GlobalTextureSchema, ValueSpec } from './schema';
 import { MeshShaderCode } from '../shader-code';
 import { ValueCell } from '../../mol-util';
@@ -19,7 +19,7 @@ export const TextureMeshSchema = {
     tNormal: TextureSpec('texture', 'rgb', 'float', 'nearest'),
 
     dFlatShaded: DefineSpec('boolean'),
-    dDoubleSided: DefineSpec('boolean'),
+    uDoubleSided: UniformSpec('b'),
     dFlipSided: DefineSpec('boolean'),
     dIgnoreLight: DefineSpec('boolean'),
     dXrayShaded: DefineSpec('boolean'),
@@ -31,13 +31,13 @@ export const TextureMeshSchema = {
 export type TextureMeshSchema = typeof TextureMeshSchema
 export type TextureMeshValues = Values<TextureMeshSchema>
 
-export function TextureMeshRenderable(ctx: WebGLContext, id: number, values: TextureMeshValues, state: RenderableState, materialId: number): Renderable<TextureMeshValues> {
+export function TextureMeshRenderable(ctx: WebGLContext, id: number, values: TextureMeshValues, state: RenderableState, materialId: number, variants: GraphicsRenderVariant[]): Renderable<TextureMeshValues> {
     const schema = { ...GlobalUniformSchema, ...GlobalTextureSchema, ...InternalSchema, ...TextureMeshSchema };
     const internalValues: InternalValues = {
         uObjectId: ValueCell.create(id),
     };
     const shaderCode = MeshShaderCode;
-    const renderItem = createGraphicsRenderItem(ctx, 'triangles', shaderCode, schema, { ...values, ...internalValues }, materialId);
+    const renderItem = createGraphicsRenderItem(ctx, 'triangles', shaderCode, schema, { ...values, ...internalValues }, materialId, variants);
 
     return createRenderable(renderItem, values, state);
 }

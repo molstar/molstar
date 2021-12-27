@@ -23,7 +23,7 @@ export const Interactions = PluginBehavior.create<{ autoAttach: boolean, showToo
     category: 'custom-props',
     display: { name: 'Interactions' },
     ctor: class extends PluginBehavior.Handler<{ autoAttach: boolean, showTooltip: boolean }> {
-        private provider = InteractionsProvider
+        private provider = InteractionsProvider;
 
         private getStructures(structure: Structure) {
             const structures: Structure[] = [];
@@ -86,7 +86,7 @@ export const Interactions = PluginBehavior.create<{ autoAttach: boolean, showToo
                     default: return void 0;
                 }
             }
-        }
+        };
 
         update(p: { autoAttach: boolean, showTooltip: boolean }) {
             const updated = (

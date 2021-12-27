@@ -53,7 +53,7 @@ export namespace AssemblySymmetry {
     export function isApplicable(structure?: Structure): boolean {
         return (
             !!structure && structure.models.length === 1 &&
-            Model.isFromPdbArchive(structure.models[0]) &&
+            Model.hasPdbId(structure.models[0]) &&
             isBiologicalAssembly(structure)
         );
     }

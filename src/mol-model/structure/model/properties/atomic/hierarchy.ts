@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -205,6 +205,12 @@ export interface AtomicIndex {
      * @returns first found index or -1 if none of the given atoms are present.
      */
     findAtomsOnResidue(residueIndex: ResidueIndex, label_atom_ids: Set<string>): ElementIndex
+
+    /**
+     * Find element index of an atom on a given residue.
+     * @returns index or -1 if the atom is not present.
+     */
+    findElementOnResidue(residueIndex: ResidueIndex, type_symbol: ElementSymbol): ElementIndex
 
     // TODO: add indices that support comp_id?
 }

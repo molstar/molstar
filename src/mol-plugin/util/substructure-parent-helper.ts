@@ -18,7 +18,7 @@ class SubstructureParentHelper {
     readonly events = {
         updated: this.ev<{ ref: string, oldObj: PluginStateObject.Molecule.Structure | undefined, obj: PluginStateObject.Molecule.Structure }>(),
         removed: this.ev<{ ref: string, obj: PluginStateObject.Molecule.Structure | undefined }>(),
-    }
+    };
 
     // private decorators = new Map<string, string[]>();
     private root = new Map<Structure, { ref: string, count: number }>();

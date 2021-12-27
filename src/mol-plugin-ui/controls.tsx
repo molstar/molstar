@@ -26,7 +26,7 @@ import { PluginConfig } from '../mol-plugin/config';
 import { StructureSuperpositionControls } from './structure/superposition';
 
 export class TrajectoryViewportControls extends PluginUIComponent<{}, { show: boolean, label: string }> {
-    state = { show: false, label: '' }
+    state = { show: false, label: '' };
 
     private update = () => {
         const state = this.plugin.state.data;
@@ -63,7 +63,7 @@ export class TrajectoryViewportControls extends PluginUIComponent<{}, { show: bo
 
         if (count > 1) label = '';
         this.setState({ show: count > 0, label });
-    }
+    };
 
     componentDidMount() {
         this.subscribe(this.plugin.state.data.events.changed, this.update);
@@ -100,7 +100,7 @@ export class TrajectoryViewportControls extends PluginUIComponent<{}, { show: bo
 }
 
 export class StateSnapshotViewportControls extends PluginUIComponent<{}, { isBusy: boolean, show: boolean }> {
-    state = { isBusy: false, show: true }
+    state = { isBusy: false, show: true };
 
     componentDidMount() {
         // TODO: this needs to be diabled when the state is updating!
@@ -147,23 +147,23 @@ export class StateSnapshotViewportControls extends PluginUIComponent<{}, { isBus
     change = (e: React.ChangeEvent<HTMLSelectElement>) => {
         if (e.target.value === 'none') return;
         this.update(e.target.value);
-    }
+    };
 
     prev = () => {
         const s = this.plugin.managers.snapshot;
         const id = s.getNextId(s.state.current, -1);
         if (id) this.update(id);
-    }
+    };
 
     next = () => {
         const s = this.plugin.managers.snapshot;
         const id = s.getNextId(s.state.current, 1);
         if (id) this.update(id);
-    }
+    };
 
     togglePlay = () => {
         this.plugin.managers.snapshot.togglePlay();
-    }
+    };
 
     render() {
         const snapshots = this.plugin.managers.snapshot;
@@ -212,7 +212,7 @@ export class AnimationViewportControls extends PluginUIComponent<{}, { isEmpty: 
     stop = () => {
         this.plugin.managers.animation.stop();
         this.plugin.managers.snapshot.stop();
-    }
+    };
 
     render() {
         const isPlaying = this.plugin.managers.snapshot.state.isPlaying;
@@ -242,7 +242,7 @@ export class SelectionViewportControls extends PluginUIComponent {
     onMouseMove = (e: React.MouseEvent) => {
         // ignore mouse moves when no button is held
         if (e.buttons === 0) e.stopPropagation();
-    }
+    };
 
     render() {
         if (!this.plugin.selectionMode) return null;
@@ -253,7 +253,7 @@ export class SelectionViewportControls extends PluginUIComponent {
 }
 
 export class LociLabels extends PluginUIComponent<{}, { labels: ReadonlyArray<LociLabel> }> {
-    state = { labels: [] }
+    state = { labels: [] };
 
     componentDidMount() {
         this.subscribe(this.plugin.behaviors.labels.highlight, e => this.setState({ labels: e.labels }));

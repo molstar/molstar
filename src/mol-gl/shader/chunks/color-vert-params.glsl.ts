@@ -21,6 +21,10 @@ uniform float uBumpiness;
         uniform sampler2D tColorGrid;
     #endif
 
+    #ifdef dUsePalette
+        varying float vPaletteV;
+    #endif
+
     #ifdef dOverpaint
         #if defined(dOverpaintType_groupInstance) || defined(dOverpaintType_vertexInstance)
             varying vec4 vOverpaint;
@@ -69,9 +73,5 @@ uniform float uBumpiness;
         uniform vec4 uTransparencyGridTransform;
         uniform sampler2D tTransparencyGrid;
     #endif
-#endif
-
-#ifdef dUsePalette
-    varying float vPaletteV;
 #endif
 `;

@@ -78,7 +78,7 @@ export class SuperpositionControls extends PurePluginUIComponent<{ }, Superposit
         canUseDb: false,
         action: undefined,
         options: DefaultStructureSuperpositionOptions
-    }
+    };
 
     componentDidMount() {
         this.subscribe(this.selection.events.changed, () => {
@@ -148,7 +148,7 @@ export class SuperpositionControls extends PurePluginUIComponent<{ }, Superposit
             const labelB = stripTags(eB.label);
             this.plugin.log.info(`Superposed [${labelA}] and [${labelB}] with RMSD ${rmsd.toFixed(2)}.`);
         }
-    }
+    };
 
     superposeAtoms = async () => {
         const entries = this.atomEntries;
@@ -171,7 +171,7 @@ export class SuperpositionControls extends PurePluginUIComponent<{ }, Superposit
             const count = entries[i].atoms.length;
             this.plugin.log.info(`Superposed ${count} ${count === 1 ? 'atom' : 'atoms'} of [${labelA}] and [${labelB}] with RMSD ${rmsd.toFixed(2)}.`);
         }
-    }
+    };
 
     superposeDb = async () => {
         const input = this.plugin.managers.structure.hierarchy.behaviors.selection.value.structures;
@@ -331,7 +331,7 @@ export class SuperpositionControls extends PurePluginUIComponent<{ }, Superposit
 
     private setOptions = (values: StructureSuperpositionOptions) => {
         this.setState({ options: values });
-    }
+    };
 
     render() {
         return <>

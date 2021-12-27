@@ -92,7 +92,7 @@ namespace ValidationReport {
     }
 
     export function isApplicable(model?: Model): boolean {
-        return !!model && Model.isFromPdbArchive(model);
+        return !!model && Model.hasPdbId(model);
     }
 
     export function fromXml(xml: XMLDocument, model: Model): ValidationReport {

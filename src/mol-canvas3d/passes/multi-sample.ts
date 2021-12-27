@@ -50,8 +50,8 @@ function getComposeRenderable(ctx: WebGLContext, colorTexture: Texture): Compose
 }
 
 export const MultiSampleParams = {
-    mode: PD.Select('off', [['off', 'Off'], ['on', 'On'], ['temporal', 'Temporal']]),
-    sampleLevel: PD.Numeric(2, { min: 0, max: 5, step: 1 }),
+    mode: PD.Select('temporal', [['off', 'Off'], ['on', 'On'], ['temporal', 'Temporal']]),
+    sampleLevel: PD.Numeric(2, { min: 0, max: 5, step: 1 }, { description: 'Take level^2 samples.' }),
 };
 export type MultiSampleProps = PD.Values<typeof MultiSampleParams>
 
@@ -66,11 +66,11 @@ export class MultiSamplePass {
         return props.mode !== 'off';
     }
 
-    colorTarget: RenderTarget
+    colorTarget: RenderTarget;
 
-    private composeTarget: RenderTarget
-    private holdTarget: RenderTarget
-    private compose: ComposeRenderable
+    private composeTarget: RenderTarget;
+    private holdTarget: RenderTarget;
+    private compose: ComposeRenderable;
 
     constructor(private webgl: WebGLContext, private drawPass: DrawPass) {
         const { colorBufferFloat, textureFloat, colorBufferHalfFloat, textureHalfFloat } = webgl.extensions;
@@ -317,15 +317,17 @@ JitterVectors.forEach(offsetList => {
 });
 
 export class MultiSampleHelper {
-    private sampleIndex = -2
+    private sampleIndex = -2;
 
     update(changed: boolean, props: MultiSampleProps) {
         if (changed) this.sampleIndex = -1;
         return props.mode === 'temporal' ? this.sampleIndex !== -2 : false;
     }
 
+    /** Return `true` while more samples are needed */
     render(renderer: Renderer, camera: Camera | StereoCamera, scene: Scene, helper: Helper, toDrawingBuffer: boolean, transparentBackground: boolean, props: Props) {
         this.sampleIndex = this.multiSamplePass.render(this.sampleIndex, renderer, camera, scene, helper, toDrawingBuffer, transparentBackground, props);
+        return this.sampleIndex < 0;
     }
 
     constructor(private multiSamplePass: MultiSamplePass) {

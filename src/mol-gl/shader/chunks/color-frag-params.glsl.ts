@@ -14,6 +14,11 @@ uniform float uBumpiness;
         varying vec4 vColor;
     #endif
 
+    #ifdef dUsePalette
+        uniform sampler2D tPalette;
+        varying float vPaletteV;
+    #endif
+
     #ifdef dOverpaint
         varying vec4 vOverpaint;
     #endif
@@ -32,10 +37,5 @@ uniform float uBumpiness;
 #ifdef dTransparency
     varying float vGroup;
     varying float vTransparency;
-#endif
-
-#ifdef dUsePalette
-    uniform sampler2D tPalette;
-    varying float vPaletteV;
 #endif
 `;

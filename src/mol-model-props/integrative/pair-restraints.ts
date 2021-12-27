@@ -20,8 +20,8 @@ function getPairKey(indexA: StructureElement.UnitIndex, unitA: Unit, indexB: Str
 }
 
 export class PairRestraints<T extends PairRestraint> {
-    readonly count: number
-    private readonly pairKeyIndices: Map<string, number[]>
+    readonly count: number;
+    private readonly pairKeyIndices: Map<string, number[]>;
 
     /** Indices into this.pairs */
     getPairIndices(indexA: StructureElement.UnitIndex, unitA: Unit, indexB: StructureElement.UnitIndex, unitB: Unit): ReadonlyArray<number> {

@@ -135,11 +135,11 @@ class Layout extends PluginUIComponent {
                 visuals: true
             }));
         }
-    }
+    };
 
     onDragOver = (ev: React.DragEvent<HTMLDivElement>) => {
         ev.preventDefault();
-    }
+    };
 
     private showDragOverlay = new BehaviorSubject(false);
     onDragEnter = () => this.showDragOverlay.next(true);
@@ -218,7 +218,7 @@ function DragOverlay({ plugin, showDragOverlay }: { plugin: PluginUIContext, sho
         onDragLeave={() => showDragOverlay.next(false)}
         onDrop={e => dropFiles(e, plugin, showDragOverlay)}
     >
-        Upload File(s)
+        Load File(s)
     </div>;
 }
 

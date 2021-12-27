@@ -28,7 +28,7 @@ export const FxaaParams = {
 export type FxaaProps = PD.Values<typeof FxaaParams>
 
 export class FxaaPass {
-    private readonly renderable: FxaaRenderable
+    private readonly renderable: FxaaRenderable;
 
     constructor(private webgl: WebGLContext, input: Texture) {
         this.renderable = getFxaaRenderable(webgl, input);

@@ -18,7 +18,7 @@ export class CombinedColorControl extends React.PureComponent<ParamProps<PD.Colo
     state = {
         isExpanded: !!this.props.param.isExpanded,
         lightness: 0
-    }
+    };
 
     protected update(value: Color) {
         this.props.onChange({ param: this.props.param, name: this.props.name, value });
@@ -27,7 +27,7 @@ export class CombinedColorControl extends React.PureComponent<ParamProps<PD.Colo
     toggleExpanded = (e: React.MouseEvent<HTMLButtonElement>) => {
         this.setState({ isExpanded: !this.state.isExpanded });
         e.currentTarget.blur();
-    }
+    };
 
     onClickSwatch = (e: React.MouseEvent<HTMLButtonElement>) => {
         const value = Color(+(e.currentTarget.getAttribute('data-color') || '0'));
@@ -35,33 +35,33 @@ export class CombinedColorControl extends React.PureComponent<ParamProps<PD.Colo
             if (!this.props.param.isExpanded) this.setState({ isExpanded: false });
             this.update(value);
         }
-    }
+    };
 
     onR = (v: number) => {
         const [, g, b] = Color.toRgb(this.props.value);
         const value = Color.fromRgb(v, g, b);
         if (value !== this.props.value) this.update(value);
-    }
+    };
 
     onG = (v: number) => {
         const [r, , b] = Color.toRgb(this.props.value);
         const value = Color.fromRgb(r, v, b);
         if (value !== this.props.value) this.update(value);
-    }
+    };
 
     onB = (v: number) => {
         const [r, g] = Color.toRgb(this.props.value);
         const value = Color.fromRgb(r, g, v);
         if (value !== this.props.value) this.update(value);
-    }
+    };
 
     onLighten = () => {
         this.update(Color.lighten(this.props.value, 0.1));
-    }
+    };
 
     onDarken = () => {
         this.update(Color.darken(this.props.value, 0.1));
-    }
+    };
 
     swatch() {
         return <div className='msp-combined-color-swatch'>

@@ -42,8 +42,8 @@ namespace CustomProperty {
     }
 
     export class Registry<Data> {
-        private providers = OrderedMap<string, Provider<Data, any, any>>().asMutable()
-        private defaultAutoAttachValues = new Map<string, boolean>()
+        private providers = OrderedMap<string, Provider<Data, any, any>>().asMutable();
+        private defaultAutoAttachValues = new Map<string, boolean>();
 
         /** Get params for all applicable property providers */
         getParams(data?: Data) {

@@ -54,27 +54,27 @@ function getDepthMergeRenderable(ctx: WebGLContext, depthTexturePrimitives: Text
 }
 
 export class DrawPass {
-    private readonly drawTarget: RenderTarget
+    private readonly drawTarget: RenderTarget;
 
-    readonly colorTarget: RenderTarget
-    readonly depthTexture: Texture
-    readonly depthTexturePrimitives: Texture
+    readonly colorTarget: RenderTarget;
+    readonly depthTexture: Texture;
+    readonly depthTexturePrimitives: Texture;
 
-    readonly packedDepth: boolean
+    readonly packedDepth: boolean;
 
-    private depthTarget: RenderTarget
-    private depthTargetPrimitives: RenderTarget | null
-    private depthTargetVolumes: RenderTarget | null
-    private depthTextureVolumes: Texture
-    private depthMerge: DepthMergeRenderable
+    private depthTarget: RenderTarget;
+    private depthTargetPrimitives: RenderTarget | null;
+    private depthTargetVolumes: RenderTarget | null;
+    private depthTextureVolumes: Texture;
+    private depthMerge: DepthMergeRenderable;
 
-    private copyFboTarget: CopyRenderable
-    private copyFboPostprocessing: CopyRenderable
+    private copyFboTarget: CopyRenderable;
+    private copyFboPostprocessing: CopyRenderable;
 
-    private wboit: WboitPass | undefined
-    private readonly marking: MarkingPass
-    readonly postprocessing: PostprocessingPass
-    private readonly antialiasing: AntialiasingPass
+    private wboit: WboitPass | undefined;
+    private readonly marking: MarkingPass;
+    readonly postprocessing: PostprocessingPass;
+    private readonly antialiasing: AntialiasingPass;
 
     get wboitEnabled() {
         return !!this.wboit?.supported;

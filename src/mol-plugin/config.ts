@@ -84,6 +84,7 @@ export const PluginConfig = {
     },
     Structure: {
         SizeThresholds: item('structure.size-thresholds', Structure.DefaultSizeThresholds),
+        DefaultRepresentationPreset: item<string>('structure.default-representation-preset', 'auto'),
         DefaultRepresentationPresetParams: item<StructureRepresentationPresetProvider.CommonParams>('structure.default-representation-preset-params', { })
     }
 };

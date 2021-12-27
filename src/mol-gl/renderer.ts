@@ -8,15 +8,13 @@ import { Viewport } from '../mol-canvas3d/camera/util';
 import { ICamera } from '../mol-canvas3d/camera';
 import { Scene } from './scene';
 import { WebGLContext } from './webgl/context';
-import { Mat4, Vec3, Vec4, Vec2, Quat } from '../mol-math/linear-algebra';
+import { Mat4, Vec3, Vec4, Vec2 } from '../mol-math/linear-algebra';
 import { GraphicsRenderable } from './renderable';
 import { Color } from '../mol-util/color';
 import { ValueCell, deepEqual } from '../mol-util';
 import { GlobalUniformValues } from './renderable/schema';
 import { GraphicsRenderVariant } from './webgl/render-item';
 import { ParamDefinition as PD } from '../mol-util/param-definition';
-import { Clipping } from '../mol-theme/clipping';
-import { stringToWords } from '../mol-util/string';
 import { degToRad } from '../mol-math/misc';
 import { createNullTexture, Texture, Textures } from './webgl/texture';
 import { arrayMapUpsert } from '../mol-util/array';
@@ -38,6 +36,19 @@ export interface RendererStats {
     instancedDrawCount: number
 }
 
+export const enum PickType {
+    None = 0,
+    Object = 1,
+    Instance = 2,
+    Group = 3,
+}
+
+export const enum MarkingType {
+    None = 0,
+    Depth = 1,
+    Mask = 2,
+}
+
 interface Renderer {
     readonly stats: RendererStats
     readonly props: Readonly<RendererProps>
@@ -46,7 +57,7 @@ interface Renderer {
     clearDepth: () => void
     update: (camera: ICamera) => void
 
-    renderPick: (group: Scene.Group, camera: ICamera, variant: GraphicsRenderVariant, depthTexture: Texture | null) => void
+    renderPick: (group: Scene.Group, camera: ICamera, variant: GraphicsRenderVariant, depthTexture: Texture | null, pickType: PickType) => void
     renderDepth: (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => void
     renderMarkingDepth: (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => void
     renderMarkingMask: (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => void
@@ -97,20 +108,6 @@ export const RendererParams = {
     }] }),
     ambientColor: PD.Color(Color.fromNormalizedRgb(1.0, 1.0, 1.0)),
     ambientIntensity: PD.Numeric(0.4, { min: 0.0, max: 1.0, step: 0.01 }),
-
-    clip: PD.Group({
-        variant: PD.Select('instance', PD.arrayToOptions<Clipping.Variant>(['instance', 'pixel'])),
-        objects: PD.ObjectList({
-            type: PD.Select('plane', PD.objectToOptions(Clipping.Type, t => stringToWords(t))),
-            invert: PD.Boolean(false),
-            position: PD.Vec3(Vec3()),
-            rotation: PD.Group({
-                axis: PD.Vec3(Vec3.create(1, 0, 0)),
-                angle: PD.Numeric(0, { min: -180, max: 180, step: 1 }, { description: 'Angle in Degrees' }),
-            }, { isExpanded: true }),
-            scale: PD.Vec3(Vec3.create(1, 1, 1)),
-        }, o => stringToWords(o.type))
-    })
 };
 export type RendererProps = PD.Values<typeof RendererParams>
 
@@ -137,47 +134,11 @@ function getLight(props: RendererProps['light'], light?: Light): Light {
     return { count: props.length, direction, color };
 }
 
-type Clip = {
-    variant: Clipping.Variant
-    objects: {
-        count: number
-        type: number[]
-        invert: boolean[]
-        position: number[]
-        rotation: number[]
-        scale: number[]
-    }
-}
-
-const tmpQuat = Quat();
-function getClip(props: RendererProps['clip'], clip?: Clip): Clip {
-    const { type, invert, position, rotation, scale } = clip?.objects || {
-        type: (new Array(5)).fill(1),
-        invert: (new Array(5)).fill(false),
-        position: (new Array(5 * 3)).fill(0),
-        rotation: (new Array(5 * 4)).fill(0),
-        scale: (new Array(5 * 3)).fill(1),
-    };
-    for (let i = 0, il = props.objects.length; i < il; ++i) {
-        const p = props.objects[i];
-        type[i] = Clipping.Type[p.type];
-        invert[i] = p.invert;
-        Vec3.toArray(p.position, position, i * 3);
-        Quat.toArray(Quat.setAxisAngle(tmpQuat, p.rotation.axis, degToRad(p.rotation.angle)), rotation, i * 4);
-        Vec3.toArray(p.scale, scale, i * 3);
-    }
-    return {
-        variant: props.variant,
-        objects: { count: props.objects.length, type, invert, position, rotation, scale }
-    };
-}
-
 namespace Renderer {
     export function create(ctx: WebGLContext, props: Partial<RendererProps> = {}): Renderer {
         const { gl, state, stats, extensions: { fragDepth } } = ctx;
         const p = PD.merge(RendererParams, PD.getDefaultValues(RendererParams), props);
         const light = getLight(p.light);
-        const clip = getClip(p.clip);
 
         const viewport = Viewport();
         const drawingBufferSize = Vec2.create(gl.drawingBufferWidth, gl.drawingBufferHeight);
@@ -232,14 +193,10 @@ namespace Renderer {
 
             uRenderWboit: ValueCell.create(false),
             uMarkingDepthTest: ValueCell.create(false),
+            uPickType: ValueCell.create(PickType.None),
+            uMarkingType: ValueCell.create(MarkingType.None),
 
             uTransparentBackground: ValueCell.create(false),
-
-            uClipObjectType: ValueCell.create(clip.objects.type),
-            uClipObjectInvert: ValueCell.create(clip.objects.invert),
-            uClipObjectPosition: ValueCell.create(clip.objects.position),
-            uClipObjectRotation: ValueCell.create(clip.objects.rotation),
-            uClipObjectScale: ValueCell.create(clip.objects.scale),
 
             uLightDirection: ValueCell.create(light.direction),
             uLightColor: ValueCell.create(light.color),
@@ -264,26 +221,11 @@ namespace Renderer {
         let globalUniformsNeedUpdate = true;
 
         const renderObject = (r: GraphicsRenderable, variant: GraphicsRenderVariant) => {
-            if (r.state.disposed || !r.state.visible || (!r.state.pickable && variant[0] === 'p')) {
+            if (r.state.disposed || !r.state.visible || (!r.state.pickable && variant === 'pick')) {
                 return;
             }
 
             let definesNeedUpdate = false;
-            if (r.state.noClip) {
-                if (r.values.dClipObjectCount.ref.value !== 0) {
-                    ValueCell.update(r.values.dClipObjectCount, 0);
-                    definesNeedUpdate = true;
-                }
-            } else {
-                if (r.values.dClipObjectCount.ref.value !== clip.objects.count) {
-                    ValueCell.update(r.values.dClipObjectCount, clip.objects.count);
-                    definesNeedUpdate = true;
-                }
-                if (r.values.dClipVariant.ref.value !== clip.variant) {
-                    ValueCell.update(r.values.dClipVariant, clip.variant);
-                    definesNeedUpdate = true;
-                }
-            }
             if (r.values.dLightCount.ref.value !== light.count) {
                 ValueCell.update(r.values.dLightCount, light.count);
                 definesNeedUpdate = true;
@@ -304,7 +246,7 @@ namespace Renderer {
             }
 
             if (r.values.dRenderMode) { // indicates direct-volume
-                if ((variant[0] === 'p' || variant === 'depth') && r.values.dRenderMode.ref.value === 'volume') {
+                if ((variant === 'pick' || variant === 'depth') && r.values.dRenderMode.ref.value === 'volume') {
                     return; // no picking/depth in volume mode
                 }
 
@@ -324,8 +266,8 @@ namespace Renderer {
                     }
                 }
             } else {
-                if (r.values.dDoubleSided) {
-                    if (r.values.dDoubleSided.ref.value || r.values.hasReflection.ref.value) {
+                if (r.values.uDoubleSided) {
+                    if (r.values.uDoubleSided.ref.value || r.values.hasReflection.ref.value) {
                         state.disable(gl.CULL_FACE);
                     } else {
                         state.enable(gl.CULL_FACE);
@@ -395,12 +337,13 @@ namespace Renderer {
             state.currentRenderItemId = -1;
         };
 
-        const renderPick = (group: Scene.Group, camera: ICamera, variant: GraphicsRenderVariant, depthTexture: Texture | null) => {
+        const renderPick = (group: Scene.Group, camera: ICamera, variant: GraphicsRenderVariant, depthTexture: Texture | null, pickType: PickType) => {
             state.disable(gl.BLEND);
             state.enable(gl.DEPTH_TEST);
             state.depthMask(true);
 
             updateInternal(group, camera, depthTexture, false, false);
+            ValueCell.updateIfChanged(globalUniforms.uPickType, pickType);
 
             const { renderables } = group;
             for (let i = 0, il = renderables.length; i < il; ++i) {
@@ -429,13 +372,14 @@ namespace Renderer {
             state.depthMask(true);
 
             updateInternal(group, camera, depthTexture, false, false);
+            ValueCell.updateIfChanged(globalUniforms.uMarkingType, MarkingType.Depth);
 
             const { renderables } = group;
             for (let i = 0, il = renderables.length; i < il; ++i) {
                 const r = renderables[i];
 
                 if (r.values.markerAverage.ref.value !== 1) {
-                    renderObject(renderables[i], 'markingDepth');
+                    renderObject(renderables[i], 'marking');
                 }
             }
         };
@@ -446,13 +390,14 @@ namespace Renderer {
             state.depthMask(true);
 
             updateInternal(group, camera, depthTexture, false, !!depthTexture);
+            ValueCell.updateIfChanged(globalUniforms.uMarkingType, MarkingType.Mask);
 
             const { renderables } = group;
             for (let i = 0, il = renderables.length; i < il; ++i) {
                 const r = renderables[i];
 
                 if (r.values.markerAverage.ref.value > 0) {
-                    renderObject(renderables[i], 'markingMask');
+                    renderObject(renderables[i], 'marking');
                 }
             }
         };
@@ -685,15 +630,6 @@ namespace Renderer {
                     p.ambientIntensity = props.ambientIntensity;
                     Vec3.scale(ambientColor, Color.toArrayNormalized(p.ambientColor, ambientColor, 0), p.ambientIntensity);
                     ValueCell.update(globalUniforms.uAmbientColor, ambientColor);
-                }
-
-                if (props.clip !== undefined && !deepEqual(props.clip, p.clip)) {
-                    p.clip = props.clip;
-                    Object.assign(clip, getClip(props.clip, clip));
-                    ValueCell.update(globalUniforms.uClipObjectPosition, clip.objects.position);
-                    ValueCell.update(globalUniforms.uClipObjectRotation, clip.objects.rotation);
-                    ValueCell.update(globalUniforms.uClipObjectScale, clip.objects.scale);
-                    ValueCell.update(globalUniforms.uClipObjectType, clip.objects.type);
                 }
             },
             setViewport: (x: number, y: number, width: number, height: number) => {

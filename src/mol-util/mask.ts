@@ -26,7 +26,7 @@ interface Mask {
 
 namespace Mask {
     class EmptyMask implements Mask {
-        '@type': 'mask'
+        '@type': 'mask';
         size = 0;
         has(i: number) { return false; }
         forEach<Ctx>(f: (i: number, ctx?: Ctx) => void, ctx: Ctx) { return ctx; }
@@ -34,7 +34,7 @@ namespace Mask {
     }
 
     class SingletonMask implements Mask {
-        '@type': 'mask'
+        '@type': 'mask';
         size = 1;
         has(i: number) { return i === this.idx; }
         forEach<Ctx>(f: (i: number, ctx?: Ctx) => void, ctx?: Ctx) { f(this.idx, ctx); return ctx; }
@@ -42,7 +42,7 @@ namespace Mask {
     }
 
     class BitMask implements Mask {
-        '@type': 'mask'
+        '@type': 'mask';
         private length: number;
         has(i: number) { return i < this.length && !!this.mask[i] as any; }
 
@@ -59,7 +59,7 @@ namespace Mask {
     }
 
     class AllMask implements Mask {
-        '@type': 'mask'
+        '@type': 'mask';
         has(i: number) { return true; }
         private _forEach<Ctx>(f: (i: number, ctx?: Ctx) => void, ctx: Ctx | undefined) {
             for (let i = 0; i < this.size; i++) {
@@ -74,7 +74,7 @@ namespace Mask {
     }
 
     class SetMask implements Mask {
-        '@type': 'mask'
+        '@type': 'mask';
         private _flat: number[] | undefined = void 0;
         size: number;
         has(i: number) { return this.set.has(i); }

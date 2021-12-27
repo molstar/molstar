@@ -12,7 +12,6 @@ export type MarkerData = {
     uMarker: ValueCell<number>,
     tMarker: ValueCell<TextureImage<Uint8Array>>
     uMarkerTexDim: ValueCell<Vec2>
-    dMarkerType: ValueCell<string>,
     markerAverage: ValueCell<number>
     markerStatus: ValueCell<number>
 }
@@ -66,7 +65,6 @@ export function createMarkers(count: number, markerData?: MarkerData): MarkerDat
         ValueCell.updateIfChanged(markerData.uMarker, 0);
         ValueCell.update(markerData.tMarker, markers);
         ValueCell.update(markerData.uMarkerTexDim, Vec2.create(markers.width, markers.height));
-        ValueCell.updateIfChanged(markerData.dMarkerType, status === -1 ? 'groupInstance' : 'uniform');
         ValueCell.updateIfChanged(markerData.markerAverage, average);
         ValueCell.updateIfChanged(markerData.markerStatus, status);
         return markerData;
@@ -77,7 +75,6 @@ export function createMarkers(count: number, markerData?: MarkerData): MarkerDat
             uMarkerTexDim: ValueCell.create(Vec2.create(markers.width, markers.height)),
             markerAverage: ValueCell.create(average),
             markerStatus: ValueCell.create(status),
-            dMarkerType: ValueCell.create('uniform'),
         };
     }
 }
@@ -88,7 +85,6 @@ export function createEmptyMarkers(markerData?: MarkerData): MarkerData {
         ValueCell.updateIfChanged(markerData.uMarker, 0);
         ValueCell.update(markerData.tMarker, emptyMarkerTexture);
         ValueCell.update(markerData.uMarkerTexDim, Vec2.create(1, 1));
-        ValueCell.updateIfChanged(markerData.dMarkerType, 'uniform');
         ValueCell.updateIfChanged(markerData.markerAverage, 0);
         ValueCell.updateIfChanged(markerData.markerStatus, 0);
         return markerData;
@@ -99,7 +95,6 @@ export function createEmptyMarkers(markerData?: MarkerData): MarkerData {
             uMarkerTexDim: ValueCell.create(Vec2.create(1, 1)),
             markerAverage: ValueCell.create(0),
             markerStatus: ValueCell.create(0),
-            dMarkerType: ValueCell.create('uniform'),
         };
     }
 }

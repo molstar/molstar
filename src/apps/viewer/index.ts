@@ -10,13 +10,16 @@ import { CellPack } from '../../extensions/cellpack';
 import { DnatcoConfalPyramids } from '../../extensions/dnatco';
 import { G3DFormat, G3dProvider } from '../../extensions/g3d/format';
 import { GeometryExport } from '../../extensions/geo-export';
+import { MAQualityAssessment } from '../../extensions/model-archive/quality-assessment/behavior';
+import { QualityAssessmentPLDDTPreset, QualityAssessmentQmeanPreset } from '../../extensions/model-archive/quality-assessment/behavior';
+import { QualityAssessment } from '../../extensions/model-archive/quality-assessment/prop';
 import { Mp4Export } from '../../extensions/mp4-export';
 import { PDBeStructureQualityReport } from '../../extensions/pdbe';
 import { RCSBAssemblySymmetry, RCSBValidationReport } from '../../extensions/rcsb';
 import { DownloadStructure, PdbDownloadProvider } from '../../mol-plugin-state/actions/structure';
 import { DownloadDensity } from '../../mol-plugin-state/actions/volume';
 import { PresetTrajectoryHierarchy } from '../../mol-plugin-state/builder/structure/hierarchy-preset';
-import { StructureRepresentationPresetProvider } from '../../mol-plugin-state/builder/structure/representation-preset';
+import { PresetStructureRepresentations, StructureRepresentationPresetProvider } from '../../mol-plugin-state/builder/structure/representation-preset';
 import { DataFormatProvider } from '../../mol-plugin-state/formats/provider';
 import { BuildInStructureFormat } from '../../mol-plugin-state/formats/structure';
 import { BuiltInTrajectoryFormat } from '../../mol-plugin-state/formats/trajectory';
@@ -25,7 +28,7 @@ import { createVolumeRepresentationParams } from '../../mol-plugin-state/helpers
 import { PluginStateObject } from '../../mol-plugin-state/objects';
 import { StateTransforms } from '../../mol-plugin-state/transforms';
 import { TrajectoryFromModelAndCoordinates } from '../../mol-plugin-state/transforms/model';
-import { createPlugin } from '../../mol-plugin-ui';
+import { createPluginUI } from '../../mol-plugin-ui';
 import { PluginUIContext } from '../../mol-plugin-ui/context';
 import { DefaultPluginUISpec, PluginUISpec } from '../../mol-plugin-ui/spec';
 import { PluginCommands } from '../../mol-plugin/commands';
@@ -33,7 +36,7 @@ import { PluginConfig } from '../../mol-plugin/config';
 import { PluginLayoutControlsDisplay } from '../../mol-plugin/layout';
 import { PluginSpec } from '../../mol-plugin/spec';
 import { PluginState } from '../../mol-plugin/state';
-import { StateObjectSelector } from '../../mol-state';
+import { StateObjectRef, StateObjectSelector } from '../../mol-state';
 import { Asset } from '../../mol-util/assets';
 import { Color } from '../../mol-util/color';
 import '../../mol-util/polyfill';
@@ -60,7 +63,8 @@ const Extensions = {
     'anvil-membrane-orientation': PluginSpec.Behavior(ANVILMembraneOrientation),
     'g3d': PluginSpec.Behavior(G3DFormat),
     'mp4-export': PluginSpec.Behavior(Mp4Export),
-    'geo-export': PluginSpec.Behavior(GeometryExport)
+    'geo-export': PluginSpec.Behavior(GeometryExport),
+    'ma-quality-assessment': PluginSpec.Behavior(MAQualityAssessment),
 };
 
 const DefaultViewerOptions = {
@@ -95,9 +99,10 @@ const DefaultViewerOptions = {
 type ViewerOptions = typeof DefaultViewerOptions;
 
 export class Viewer {
-    plugin: PluginUIContext
+    constructor(public plugin: PluginUIContext) {
+    }
 
-    constructor(elementOrId: string | HTMLElement, options: Partial<ViewerOptions> = {}) {
+    static async create(elementOrId: string | HTMLElement, options: Partial<ViewerOptions> = {}) {
         const o = { ...DefaultViewerOptions, ...options };
         const defaultSpec = DefaultPluginUISpec();
 
@@ -149,7 +154,8 @@ export class Viewer {
                 [PluginConfig.VolumeStreaming.DefaultServer, o.volumeStreamingServer],
                 [PluginConfig.VolumeStreaming.Enabled, !o.volumeStreamingDisabled],
                 [PluginConfig.Download.DefaultPdbProvider, o.pdbProvider],
-                [PluginConfig.Download.DefaultEmdbProvider, o.emdbProvider]
+                [PluginConfig.Download.DefaultEmdbProvider, o.emdbProvider],
+                [PluginConfig.Structure.DefaultRepresentationPreset, ViewerAutoPreset.id],
             ]
         };
 
@@ -157,7 +163,14 @@ export class Viewer {
             ? document.getElementById(elementOrId)
             : elementOrId;
         if (!element) throw new Error(`Could not get element with id '${elementOrId}'`);
-        this.plugin = createPlugin(element, spec);
+        const plugin = await createPluginUI(element, spec, {
+            onBeforeUIRender: plugin => {
+                // the preset needs to be added before the UI renders otherwise
+                // "Download Structure" wont be able to pick it up
+                plugin.builders.structure.representation.registerPreset(ViewerAutoPreset);
+            }
+        });
+        return new Viewer(plugin);
     }
 
     setRemoteSnapshot(id: string) {
@@ -246,6 +259,35 @@ export class Viewer {
                         server: provider,
                     },
                     detail: options?.detail ?? 3,
+                }
+            }
+        }));
+    }
+
+    loadAlphaFoldDb(afdb: string) {
+        const params = DownloadStructure.createDefaultParams(this.plugin.state.data.root.obj!, this.plugin);
+        return this.plugin.runTask(this.plugin.state.data.applyAction(DownloadStructure, {
+            source: {
+                name: 'alphafolddb' as const,
+                params: {
+                    id: afdb,
+                    options: {
+                        ...params.source.params.options,
+                        representation: 'preset-structure-representation-ma-quality-assessment-plddt'
+                    },
+                }
+            }
+        }));
+    }
+
+    loadModelArchive(id: string) {
+        const params = DownloadStructure.createDefaultParams(this.plugin.state.data.root.obj!, this.plugin);
+        return this.plugin.runTask(this.plugin.state.data.applyAction(DownloadStructure, {
+            source: {
+                name: 'modelarchive' as const,
+                params: {
+                    id,
+                    options: params.source.params.options,
                 }
             }
         }));
@@ -410,3 +452,31 @@ export interface LoadTrajectoryParams {
     coordinatesLabel?: string,
     preset?: keyof PresetTrajectoryHierarchy
 }
+
+export const ViewerAutoPreset = StructureRepresentationPresetProvider({
+    id: 'preset-structure-representation-viewer-auto',
+    display: {
+        name: 'Automatic (w/ Annotation)', group: 'Annotation',
+        description: 'Show standard automatic representation but colored by quality assessment (if available in the model).'
+    },
+    isApplicable(a) {
+        return (
+            !!a.data.models.some(m => QualityAssessment.isApplicable(m, 'pLDDT')) ||
+            !!a.data.models.some(m => QualityAssessment.isApplicable(m, 'qmean'))
+        );
+    },
+    params: () => StructureRepresentationPresetProvider.CommonParams,
+    async apply(ref, params, plugin) {
+        const structureCell = StateObjectRef.resolveAndCheck(plugin.state.data, ref);
+        const structure = structureCell?.obj?.data;
+        if (!structureCell || !structure) return {};
+
+        if (!!structure.models.some(m => QualityAssessment.isApplicable(m, 'pLDDT'))) {
+            return await QualityAssessmentPLDDTPreset.apply(ref, params, plugin);
+        } else if (!!structure.models.some(m => QualityAssessment.isApplicable(m, 'qmean'))) {
+            return await QualityAssessmentQmeanPreset.apply(ref, params, plugin);
+        } else {
+            return await PresetStructureRepresentations.auto.apply(ref, params, plugin);
+        }
+    }
+});

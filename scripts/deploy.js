@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -39,6 +39,24 @@ function copyViewer() {
     addAnalytics(path.resolve(viewerDeployPath, 'index.html'));
 }
 
+function copyDemos() {
+    console.log('\n###', 'copy demos files');
+    const lightingBuildPath = path.resolve(buildDir, '../build/examples/lighting/');
+    const lightingDeployPath = path.resolve(localPath, 'demos/lighting/');
+    fse.copySync(lightingBuildPath, lightingDeployPath, { overwrite: true });
+    addAnalytics(path.resolve(lightingDeployPath, 'index.html'));
+
+    const orbitalsBuildPath = path.resolve(buildDir, '../build/examples/alpha-orbitals/');
+    const orbitalsDeployPath = path.resolve(localPath, 'demos/alpha-orbitals/');
+    fse.copySync(orbitalsBuildPath, orbitalsDeployPath, { overwrite: true });
+    addAnalytics(path.resolve(orbitalsDeployPath, 'index.html'));
+}
+
+function copyFiles() {
+    copyViewer();
+    copyDemos();
+}
+
 if (!fs.existsSync(localPath)) {
     console.log('\n###', 'create localPath');
     fs.mkdirSync(localPath, { recursive: true });
@@ -52,9 +70,9 @@ if (!fs.existsSync(path.resolve(localPath, '.git/'))) {
         .outputHandler(log)
         .clone(remoteUrl, localPath)
         .fetch(['--all'])
-        .exec(copyViewer)
+        .exec(copyFiles)
         .add(['-A'])
-        .commit('updated viewer')
+        .commit('updated viewer & demos')
         .push();
 } else {
     console.log('\n###', 'update repository');
@@ -62,8 +80,8 @@ if (!fs.existsSync(path.resolve(localPath, '.git/'))) {
         .outputHandler(log)
         .fetch(['--all'])
         .reset(['--hard', 'origin/master'])
-        .exec(copyViewer)
+        .exec(copyFiles)
         .add(['-A'])
-        .commit('updated viewer')
+        .commit('updated viewer & demos')
         .push();
 }

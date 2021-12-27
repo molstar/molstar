@@ -17,6 +17,7 @@ import { UniformColorTheme } from '../../mol-theme/color/uniform';
 import { UniformSizeTheme } from '../../mol-theme/size/uniform';
 import { smoothstep } from '../../mol-math/interpolate';
 import { Material } from '../../mol-util/material';
+import { Clip } from '../../mol-util/clip';
 
 export const VisualQualityInfo = {
     'custom': {},
@@ -81,6 +82,7 @@ export namespace BaseGeometry {
         alpha: PD.Numeric(1, { min: 0, max: 1, step: 0.01 }, { label: 'Opacity', isEssential: true, description: 'How opaque/transparent the representation is rendered.' }),
         quality: PD.Select<VisualQuality>('auto', VisualQualityOptions, { isEssential: true, description: 'Visual/rendering quality of the representation.' }),
         material: Material.getParam(),
+        clip: PD.Group(Clip.Params),
     };
     export type Params = typeof Params
 
@@ -97,6 +99,7 @@ export namespace BaseGeometry {
     }
 
     export function createValues(props: PD.Values<Params>, counts: Counts) {
+        const clip = Clip.getClip(props.clip);
         return {
             alpha: ValueCell.create(props.alpha),
             uAlpha: ValueCell.create(props.alpha),
@@ -107,6 +110,14 @@ export namespace BaseGeometry {
             uRoughness: ValueCell.create(props.material.roughness),
             uBumpiness: ValueCell.create(props.material.bumpiness),
             dLightCount: ValueCell.create(1),
+
+            dClipObjectCount: ValueCell.create(clip.objects.count),
+            dClipVariant: ValueCell.create(clip.variant),
+            uClipObjectType: ValueCell.create(clip.objects.type),
+            uClipObjectInvert: ValueCell.create(clip.objects.invert),
+            uClipObjectPosition: ValueCell.create(clip.objects.position),
+            uClipObjectRotation: ValueCell.create(clip.objects.rotation),
+            uClipObjectScale: ValueCell.create(clip.objects.scale),
         };
     }
 
@@ -115,6 +126,15 @@ export namespace BaseGeometry {
         ValueCell.updateIfChanged(values.uMetalness, props.material.metalness);
         ValueCell.updateIfChanged(values.uRoughness, props.material.roughness);
         ValueCell.updateIfChanged(values.uBumpiness, props.material.bumpiness);
+
+        const clip = Clip.getClip(props.clip);
+        ValueCell.update(values.dClipObjectCount, clip.objects.count);
+        ValueCell.update(values.dClipVariant, clip.variant);
+        ValueCell.update(values.uClipObjectType, clip.objects.type);
+        ValueCell.update(values.uClipObjectInvert, clip.objects.invert);
+        ValueCell.update(values.uClipObjectPosition, clip.objects.position);
+        ValueCell.update(values.uClipObjectRotation, clip.objects.rotation);
+        ValueCell.update(values.uClipObjectScale, clip.objects.scale);
     }
 
     export function createRenderableState(props: Partial<PD.Values<Params>> = {}): RenderableState {
@@ -127,7 +147,6 @@ export namespace BaseGeometry {
             colorOnly: false,
             opaque,
             writeDepth: opaque,
-            noClip: false,
         };
     }
 

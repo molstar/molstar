@@ -59,7 +59,9 @@ namespace SymmetryOperator {
         ncsId = ncsId || -1;
         const suffix = getSuffix(info);
         if (Mat4.isIdentity(matrix)) return { name, assembly, matrix, inverse: Mat4.identity(), isIdentity: true, hkl: _hkl, spgrOp, ncsId, suffix };
-        if (!Mat4.isRotationAndTranslation(matrix, RotationTranslationEpsilon)) throw new Error(`Symmetry operator (${name}) must be a composition of rotation and translation.`);
+        if (!Mat4.isRotationAndTranslation(matrix, RotationTranslationEpsilon)) {
+            console.warn(`Symmetry operator (${name}) should be a composition of rotation and translation.`);
+        }
         return { name, assembly, matrix, inverse: Mat4.invert(Mat4(), matrix), isIdentity: false, hkl: _hkl, spgrOp, ncsId, suffix };
     }
 

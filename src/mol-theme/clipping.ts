@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -11,9 +11,11 @@ import { BitFlags } from '../mol-util/bit-flags';
 
 export { Clipping };
 
-type Clipping = { readonly layers: ReadonlyArray<Clipping.Layer> }
+type Clipping = {
+    readonly layers: ReadonlyArray<Clipping.Layer>
+}
 
-function Clipping(layers: ReadonlyArray<Clipping.Layer>): Clipping {
+function Clipping(layers: Clipping['layers']): Clipping {
     return { layers };
 }
 
@@ -83,20 +85,7 @@ namespace Clipping {
         }
     }
 
-    /** Clip object types */
-    export const Type = {
-        none: 0, // to switch clipping off
-        plane: 1,
-        sphere: 2,
-        cube: 3,
-        cylinder: 4,
-        infiniteCone: 5,
-    };
-
-    export type Variant = 'instance' | 'pixel'
-
     export function areEqual(cA: Clipping, cB: Clipping) {
-        if (cA.layers.length === 0 && cB.layers.length === 0) return true;
         if (cA.layers.length !== cB.layers.length) return false;
         for (let i = 0, il = cA.layers.length; i < il; ++i) {
             if (cA.layers[i].groups !== cB.layers[i].groups) return false;
@@ -105,11 +94,13 @@ namespace Clipping {
         return true;
     }
 
+    /** Check if layers empty */
     export function isEmpty(clipping: Clipping) {
         return clipping.layers.length === 0;
     }
 
-    export function remap(clipping: Clipping, structure: Structure) {
+    /** Remap layers */
+    export function remap(clipping: Clipping, structure: Structure): Clipping {
         const layers: Clipping.Layer[] = [];
         for (const layer of clipping.layers) {
             let { loci, groups } = layer;
@@ -121,6 +112,7 @@ namespace Clipping {
         return { layers };
     }
 
+    /** Merge layers */
     export function merge(clipping: Clipping): Clipping {
         if (isEmpty(clipping)) return clipping;
         const { structure } = clipping.layers[0].loci;
@@ -144,6 +136,7 @@ namespace Clipping {
         return { layers };
     }
 
+    /** Filter layers */
     export function filter(clipping: Clipping, filter: Structure): Clipping {
         if (isEmpty(clipping)) return clipping;
         const { structure } = clipping.layers[0].loci;
