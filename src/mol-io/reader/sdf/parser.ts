@@ -6,7 +6,7 @@
  */
 
 import { Column } from '../../../mol-data/db';
-import { MolFile, handleAtoms, handleBonds } from '../mol/parser';
+import { MolFile, handleAtoms, handleBonds, handleFormalCharges } from '../mol/parser';
 import { Task } from '../../../mol-task';
 import { ReaderResult as Result } from '../result';
 import { Tokenizer, TokenBuilder } from '../common/text/tokenizer';
@@ -29,7 +29,6 @@ export interface SdfFile {
 
 
 const delimiter = '$$$$';
-const formalChargePrefix = 'M  CHG';
 
 function handleDataItems(tokenizer: Tokenizer): { dataHeader: Column<string>, data: Column<string> } {
     const dataHeader = TokenBuilder.create(tokenizer.data, 32);
@@ -37,10 +36,6 @@ function handleDataItems(tokenizer: Tokenizer): { dataHeader: Column<string>, da
 
     while (tokenizer.position < tokenizer.length) {
         const line = Tokenizer.readLine(tokenizer);
-        if (line.startsWith(formalChargePrefix)) {
-            console.log('charge found');
-            console.log(line);
-        }
         if (line.startsWith(delimiter)) break;
         if (!line) continue;
 
@@ -101,10 +96,11 @@ function handleMolFile(tokenizer: Tokenizer) {
 
     const atoms = molIsV3 ? handleAtomsV3(tokenizer, atomCount) : handleAtoms(tokenizer, atomCount);
     const bonds = molIsV3 ? handleBondsV3(tokenizer, bondCount) : handleBonds(tokenizer, bondCount);
+    const formalCharges = handleFormalCharges(tokenizer,1)
     const dataItems = handleDataItems(tokenizer);
 
     return {
-        molFile: { title, program, comment, atoms, bonds },
+        molFile: { title, program, comment, atoms, bonds, formalCharges },
         dataItems
     };
 }
