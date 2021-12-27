@@ -2,6 +2,7 @@
  * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Panagiotis Tourlas <panagiot_tourlov@hotmail.com>
  */
 
 import { Column } from '../../../mol-data/db';
@@ -9,6 +10,17 @@ import { Task } from '../../../mol-task';
 import { TokenColumnProvider as TokenColumn } from '../common/text/column/token';
 import { TokenBuilder, Tokenizer } from '../common/text/tokenizer';
 import { ReaderResult as Result } from '../result';
+
+const chargemap = {
+  "7": -3,
+  "6": -2,
+  "5": -1,
+  "0": 0,
+  "3": 1,
+  "2": 2,
+  "1": 3,
+  "4": 0,
+}; // will later use this when assigning charges from the atom block
 
 /** Subset of the MolFile V2000 format */
 export interface MolFile {
@@ -27,6 +39,10 @@ export interface MolFile {
         readonly atomIdxA: Column<number>,
         readonly atomIdxB: Column<number>,
         readonly order: Column<number>
+    }
+    readonly formalCharges: {
+        readonly atomIdx: Column<number>;
+        readonly charge: Column<number>;
     }
 }
 
@@ -84,6 +100,60 @@ export function handleBonds(tokenizer: Tokenizer, count: number): MolFile['bonds
     };
 }
 
+
+export function handleFormalCharges(tokenizer: Tokenizer, count: number): MolFile["formalCharges"] {
+    const atomIdx = TokenBuilder.create(tokenizer.data, count * 2);
+    const charge = TokenBuilder.create(tokenizer.data, count * 2);
+
+    let i = 0;
+    while(i<100){
+
+        /* An attempt to explain what happens.
+            Once handleFormalCharges() is called, the atom and bond sections have
+            been parsed. We are now inside the properties block of the file.
+
+            Therefore, the "pointer" of the reader is at position 0:
+            M  CHG  1   2  -1
+            ^
+            Read the property type (positions 3 to 5):
+            M  CHG  1   2  -1
+            ___^^^
+
+            If it's a charge property (CHG) we'll add it to the list of
+            formal charges.
+            We read the characters at positions 12 to 14 (2__),
+            cleanup the spaces/tabs (2) and assign it to atomIdx property of
+            the "MolFile" object.
+            Same for the next triplet at positions 15 to 17.
+            (-1_) becomes (-1) and is assigned to
+            charge property of the "MolFile" object.
+        */
+
+        Tokenizer.markLine(tokenizer);
+        const { tokenStart: s } = tokenizer;
+
+        Tokenizer.trim(tokenizer, s + 3, s + 6);
+        const propertyType = Tokenizer.getTokenString(tokenizer)
+        
+        if (propertyType === 'CHG') {
+            Tokenizer.trim(tokenizer, s + 12, s + 15);
+            TokenBuilder.addUnchecked(atomIdx, tokenizer.tokenStart, tokenizer.tokenEnd);
+            const index = Tokenizer.getTokenString(tokenizer)
+            Tokenizer.trim(tokenizer, s + 15, s + 18);
+            TokenBuilder.addUnchecked(charge, tokenizer.tokenStart, tokenizer.tokenEnd);
+            const charg = Tokenizer.getTokenString(tokenizer)
+            console.log(index, charg)
+        }
+        if (propertyType === 'END') break;
+        i++
+    }
+
+    return {
+        atomIdx: TokenColumn(atomIdx)(Column.Schema.int),
+        charge: TokenColumn(charge)(Column.Schema.int),
+    };
+}
+
 function parseInternal(data: string): Result<MolFile> {
     const tokenizer = Tokenizer(data);
 
@@ -98,12 +168,15 @@ function parseInternal(data: string): Result<MolFile> {
     const atoms = handleAtoms(tokenizer, atomCount);
     const bonds = handleBonds(tokenizer, bondCount);
 
+    const formalCharges = handleFormalCharges(tokenizer, atomCount);
+
     const result: MolFile = {
         title,
         program,
         comment,
         atoms,
-        bonds
+        bonds,
+        formalCharges,
     };
     return Result.success(result);
 }
