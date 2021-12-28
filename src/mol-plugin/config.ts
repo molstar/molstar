@@ -10,6 +10,7 @@ import { PluginContext } from './context';
 import { PdbDownloadProvider } from '../mol-plugin-state/actions/structure';
 import { EmdbDownloadProvider } from '../mol-plugin-state/actions/volume';
 import { StructureRepresentationPresetProvider } from '../mol-plugin-state/builder/structure/representation-preset';
+import { PluginFeatureDetection } from './features';
 
 export class PluginConfigItem<T = any> {
     toString() { return this.key; }
@@ -18,31 +19,6 @@ export class PluginConfigItem<T = any> {
 }
 
 function item<T>(key: string, defaultValue?: T) { return new PluginConfigItem(key, defaultValue); }
-
-
-export function preferWebGl1() {
-    if (typeof navigator === 'undefined' || typeof window === 'undefined') return false;
-
-    // WebGL2 isn't working in MacOS 12.0.1 Safari 15.1, 15.2. It is working in Safari 15.4 tech preview, so disabling all versions before that.
-    // prefer webgl 1 based on the userAgent substring
-    const unpportedSafariVersions = [
-        'Version/15.1 Safari',
-        'Version/15.2 Safari',
-        'Version/15.3 Safari'
-    ];
-    if (unpportedSafariVersions.some(v => navigator.userAgent.indexOf(v) > 0)) {
-        return true;
-    }
-
-    // Check for iOS device which enabled WebGL2 recently but it doesn't seem
-    // to be full up to speed yet.
-
-    // adapted from https://stackoverflow.com/questions/9038625/detect-if-device-is-ios
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-    const isAppleDevice = navigator.userAgent.includes('Macintosh');
-    const isTouchScreen = navigator.maxTouchPoints >= 4; // true for iOS 13 (and hopefully beyond)
-    return !(window as any).MSStream && (isIOS || (isAppleDevice && isTouchScreen));
-}
 
 export const PluginConfig = {
     item,
@@ -53,10 +29,10 @@ export const PluginConfig = {
         PixelScale: item('plugin-config.pixel-scale', 1),
         PickScale: item('plugin-config.pick-scale', 0.25),
         PickPadding: item('plugin-config.pick-padding', 3),
-        EnableWboit: item('plugin-config.enable-wboit', true),
+        EnableWboit: item('plugin-config.enable-wboit', PluginFeatureDetection.wboit),
         // as of Oct 1 2021, WebGL 2 doesn't work on iOS 15.
         // TODO: check back in a few weeks to see if it was fixed
-        PreferWebGl1: item('plugin-config.prefer-webgl1', preferWebGl1()),
+        PreferWebGl1: item('plugin-config.prefer-webgl1', PluginFeatureDetection.preferWebGl1),
     },
     State: {
         DefaultServer: item('plugin-state.server', 'https://webchem.ncbr.muni.cz/molstar-state'),
