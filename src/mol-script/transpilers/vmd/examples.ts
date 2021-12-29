@@ -1,10 +1,11 @@
-/*
- * Copyright (c) 2017 MolQL contributors, licensed under MIT, See LICENSE file for more info.
+/**
+ * Copyright (c) 2017-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Panagiotis Tourlas <panagiot_tourlov@hotmail.com>
  */
 
-export default [{
+export const vmdSelectionsExamples = [{
     name: 'All water residues',
     value: 'water'
 }, {
@@ -70,7 +71,7 @@ export default [{
 }, {
     name: 'Residues 60, 80, 90 and 142',
     value: 'resid 60 80 90 142'
-}/*, {
+}/* , {
     name: 'Residues ala, arg, asn, asp, cys, and tyr',
     value: 'resname ALA to CYS TYR'
-}*/]
+}*/];

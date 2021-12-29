@@ -1,11 +1,12 @@
-/*
- * Copyright (c) 2017 MolQL contributors, licensed under MIT, See LICENSE file for more info.
+/**
+ * Copyright (c) 2017-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Panagiotis Tourlas <panagiot_tourlov@hotmail.com>
  */
 
-export default [{
+export const pymolSelectionsExamples = [{
     name: 'ALA residues',
     value: 'resn ALA'
 }, {
@@ -50,4 +51,4 @@ export default [{
 }, {
     name: 'Atoms with alternate location A or none',
     value: 'alt A+""'
-}]
+}];

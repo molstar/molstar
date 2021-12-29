@@ -1,60 +1,61 @@
-/*
- * Copyright (c) 2017 MolQL contributors, licensed under MIT, See LICENSE file for more info.
+/**
+ * Copyright (c) 2017-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Panagiotis Tourlas <panagiot_tourlov@hotmail.com>
  */
 
-import properties from './properties'
-import operators from './operators'
-import keywords from './keywords'
+import { properties } from './properties';
+import { operators } from './operators';
+import { keywords } from './keywords';
 
-const docs: string[] = [
+const _docs: string[] = [
     'PyMol',
     '============',
     '--------------------------------',
     ''
 ];
 
-docs.push(`## Properties\n\n`);
-docs.push('--------------------------------\n');
+_docs.push(`## Properties\n\n`);
+_docs.push('--------------------------------\n');
 for (const name in properties) {
-    if (properties[name].isUnsupported) continue
+    if (properties[name].isUnsupported) continue;
 
-    const names = [name]
-    if (properties[name].abbr) names.push(...properties[name].abbr!)
-    docs.push(`\`\`\`\n${names.join(', ')}\n\`\`\`\n`);
+    const names = [name];
+    if (properties[name].abbr) names.push(...properties[name].abbr!);
+    _docs.push(`\`\`\`\n${names.join(', ')}\n\`\`\`\n`);
 
     if (properties[name]['@desc']) {
-        docs.push(`*${properties[name]['@desc']}*\n`);
+        _docs.push(`*${properties[name]['@desc']}*\n`);
     }
 }
 
-docs.push(`## Operators\n\n`);
-docs.push('--------------------------------\n');
+_docs.push(`## Operators\n\n`);
+_docs.push('--------------------------------\n');
 operators.forEach(o => {
-    if (o.isUnsupported) return
+    if (o.isUnsupported) return;
 
-    const names = [o.name]
-    if (o.abbr) names.push(...o.abbr!)
-    docs.push(`\`\`\`\n${names.join(', ')}\n\`\`\`\n`);
+    const names = [o.name];
+    if (o.abbr) names.push(...o.abbr!);
+    _docs.push(`\`\`\`\n${names.join(', ')}\n\`\`\`\n`);
 
     if (o['@desc']) {
-        docs.push(`*${o['@desc']}*\n`);
+        _docs.push(`*${o['@desc']}*\n`);
     }
-})
+});
 
-docs.push(`## Keywords\n\n`);
-docs.push('--------------------------------\n');
+_docs.push(`## Keywords\n\n`);
+_docs.push('--------------------------------\n');
 for (const name in keywords) {
-    if (!keywords[name].map) continue
+    if (!keywords[name].map) continue;
 
-    const names = [name]
-    if (keywords[name].abbr) names.push(...keywords[name].abbr!)
-    docs.push(`\`\`\`\n${names.join(', ')}\n\`\`\`\n`);
+    const names = [name];
+    if (keywords[name].abbr) names.push(...keywords[name].abbr!);
+    _docs.push(`\`\`\`\n${names.join(', ')}\n\`\`\`\n`);
 
     if (keywords[name]['@desc']) {
-        docs.push(`*${keywords[name]['@desc']}*\n`);
+        _docs.push(`*${keywords[name]['@desc']}*\n`);
     }
 }
 
-export default docs.join('\n')
+export const docs = _docs.join('\n');
