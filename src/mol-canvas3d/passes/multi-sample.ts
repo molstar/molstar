@@ -105,12 +105,12 @@ export class MultiSamplePass {
         }
     }
 
-    render(sampleIndex: number, ctx: RenderContext, props: Props, toDrawingBuffer: boolean) {
-        if (props.multiSample.mode === 'temporal') {
+    render(sampleIndex: number, ctx: RenderContext, props: Props, toDrawingBuffer: boolean, forceOn: boolean) {
+        if (props.multiSample.mode === 'temporal' && !forceOn) {
             return this.renderTemporalMultiSample(sampleIndex, ctx, props, toDrawingBuffer);
         } else {
             this.renderMultiSample(ctx, toDrawingBuffer, props);
-            return sampleIndex;
+            return -2;
         }
     }
 
@@ -335,8 +335,8 @@ export class MultiSampleHelper {
     }
 
     /** Return `true` while more samples are needed */
-    render(ctx: RenderContext, props: Props, toDrawingBuffer: boolean) {
-        this.sampleIndex = this.multiSamplePass.render(this.sampleIndex, ctx, props, toDrawingBuffer);
+    render(ctx: RenderContext, props: Props, toDrawingBuffer: boolean, forceOn?: boolean) {
+        this.sampleIndex = this.multiSamplePass.render(this.sampleIndex, ctx, props, toDrawingBuffer, !!forceOn);
         return this.sampleIndex < 0;
     }
 

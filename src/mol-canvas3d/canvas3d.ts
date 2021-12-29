@@ -404,11 +404,8 @@ namespace Canvas3D {
 
                 const ctx = { renderer, camera: cam, scene, helper };
                 if (MultiSamplePass.isEnabled(p.multiSample)) {
-                    if (!cameraChanged && allowMulti && !controls.props.spin) {
-                        while (!multiSampleHelper.render(ctx, p, true));
-                    } else {
-                        multiSampleHelper.render(ctx, p, true);
-                    }
+                    const forceOn = !cameraChanged && allowMulti && !controls.props.spin;
+                    multiSampleHelper.render(ctx, p, true, forceOn);
                 } else {
                     passes.draw.render(ctx, p, true);
                 }
