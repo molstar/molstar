@@ -89,8 +89,8 @@ export const RendererParams = {
 
     highlightColor: PD.Color(Color.fromNormalizedRgb(1.0, 0.4, 0.6)),
     selectColor: PD.Color(Color.fromNormalizedRgb(0.2, 1.0, 0.1)),
-    highlightStrength: PD.Numeric(0.7, { min: 0.0, max: 1.0, step: 0.1 }),
-    selectStrength: PD.Numeric(0.7, { min: 0.0, max: 1.0, step: 0.1 }),
+    highlightStrength: PD.Numeric(0.3, { min: 0.0, max: 1.0, step: 0.1 }),
+    selectStrength: PD.Numeric(0.3, { min: 0.0, max: 1.0, step: 0.1 }),
     markerPriority: PD.Select(1, [[1, 'Highlight'], [2, 'Select']]),
 
     xrayEdgeFalloff: PD.Numeric(1, { min: 0.0, max: 3.0, step: 0.1 }),
