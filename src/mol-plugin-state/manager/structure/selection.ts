@@ -245,7 +245,6 @@ export class StructureSelectionManager extends StatefulPluginComponent<Structure
     }
 
     private onUpdate(ref: string, oldObj: PSO.Molecule.Structure | undefined, obj: PSO.Molecule.Structure) {
-
         // no change to structure
         if (oldObj === obj || oldObj?.data === obj.data) return;
 
@@ -253,7 +252,9 @@ export class StructureSelectionManager extends StatefulPluginComponent<Structure
         const cell = this.plugin.helpers.substructureParent.get(obj.data, true);
         if (!cell) return;
 
-        ref = cell.transform.ref;
+        // only need to update the root
+        if (ref !== cell.transform.ref) return;
+
         if (!this.entries.has(ref)) return;
 
         // use structure from last decorator as reference
