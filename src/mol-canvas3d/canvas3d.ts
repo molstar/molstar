@@ -360,12 +360,12 @@ namespace Canvas3D {
                 helper.handle.scene.update(void 0, true);
                 helper.camera.scene.update(void 0, true);
                 const prevPickDirty = pickHelper.dirty;
-                draw(true);
+                draw(true, true);
                 pickHelper.dirty = prevPickDirty; // marking does not change picking buffers
             }
         }
 
-        function render(force: boolean) {
+        function render(force: boolean, allowMulti: boolean) {
             if (webgl.isContextLost) return false;
 
             let resized = false;
@@ -396,7 +396,7 @@ namespace Canvas3D {
                 }
 
                 if (MultiSamplePass.isEnabled(p.multiSample)) {
-                    if (!cameraChanged) {
+                    if (!cameraChanged && allowMulti && !controls.props.spin) {
                         while (!multiSampleHelper.render(renderer, cam, scene, helper, true, p.transparentBackground, p));
                     } else {
                         multiSampleHelper.render(renderer, cam, scene, helper, true, p.transparentBackground, p);
@@ -416,9 +416,9 @@ namespace Canvas3D {
         let currentTime = 0;
         let drawPaused = false;
 
-        function draw(force?: boolean) {
+        function draw(force?: boolean, allowMulti?: boolean) {
             if (drawPaused) return;
-            if (render(!!force) && notifyDidDraw) {
+            if (render(!!force, !!allowMulti) && notifyDidDraw) {
                 didDraw.next(now() - startTime as now.Timestamp);
             }
         }
