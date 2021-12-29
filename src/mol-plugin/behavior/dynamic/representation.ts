@@ -57,7 +57,7 @@ export const HighlightLoci = PluginBehavior.create({
                 if (!this.ctx.canvas3d || this.ctx.isBusy) return;
 
                 const loci = this.getLoci(current.loci);
-                if (this.params.ignore?.indexOf(loci.kind) >= 0) {
+                if (this.params.ignore.includes(loci.kind)) {
                     this.ctx.managers.interactivity.lociHighlights.highlightOnly({ repr: current.repr, loci: EmptyLoci });
                     return;
                 }
@@ -161,7 +161,7 @@ export const SelectLoci = PluginBehavior.create({
                 if (!this.ctx.canvas3d || this.ctx.isBusy || !this.ctx.selectionMode) return;
 
                 const loci = this.getLoci(current.loci);
-                if (this.params.ignore?.indexOf(loci.kind) >= 0) return;
+                if (this.params.ignore.includes(loci.kind)) return;
 
                 // only trigger the 1st action that matches
                 for (const [binding, action, condition] of actions) {
@@ -186,8 +186,12 @@ export const SelectLoci = PluginBehavior.create({
                         Structure.areEquivalent(structure, oldStructure) &&
                         Structure.areHierarchiesEqual(structure, oldStructure)) return;
 
-                    const reprs = this.ctx.state.data.select(StateSelection.Generators.ofType(SO.Molecule.Structure.Representation3D, ref));
-                    for (const repr of reprs) this.applySelectMark(repr.transform.ref, true);
+                    const children = this.ctx.state.data.select(StateSelection.children(ref));
+                    for (const child of children) {
+                        if (child.obj?.type === SO.Molecule.Structure.Representation3D.type) {
+                            this.applySelectMark(child.transform.ref, true);
+                        }
+                    }
                 }
             });
         }
