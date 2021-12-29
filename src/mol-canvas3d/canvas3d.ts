@@ -402,14 +402,15 @@ namespace Canvas3D {
                     cam = stereoCamera;
                 }
 
+                const ctx = { renderer, camera: cam, scene, helper };
                 if (MultiSamplePass.isEnabled(p.multiSample)) {
                     if (!cameraChanged && allowMulti && !controls.props.spin) {
-                        while (!multiSampleHelper.render(renderer, cam, scene, helper, true, p.transparentBackground, p));
+                        while (!multiSampleHelper.render(ctx, p, true));
                     } else {
-                        multiSampleHelper.render(renderer, cam, scene, helper, true, p.transparentBackground, p);
+                        multiSampleHelper.render(ctx, p, true);
                     }
                 } else {
-                    passes.draw.render(renderer, cam, scene, helper, true, p.transparentBackground, p.postprocessing, p.marking);
+                    passes.draw.render(ctx, p, true);
                 }
                 pickHelper.dirty = true;
                 didRender = true;
