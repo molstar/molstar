@@ -355,13 +355,20 @@ namespace Canvas3D {
                 changed = helper.camera.mark(loci, action) || changed;
                 reprRenderObjects.forEach((_, _repr) => { changed = _repr.mark(loci, action) || changed; });
             }
-            if (changed && !noDraw) {
-                scene.update(void 0, true);
-                helper.handle.scene.update(void 0, true);
-                helper.camera.scene.update(void 0, true);
-                const prevPickDirty = pickHelper.dirty;
-                draw(true, true);
-                pickHelper.dirty = prevPickDirty; // marking does not change picking buffers
+            if (changed) {
+                if (noDraw) {
+                    // Even with `noDraw` make sure changes will be rendered.
+                    // Note that with this calling mark (with or without `noDraw`) multiple times
+                    // during a JS event loop iteration will only result in a single render call.
+                    forceNextRender = true;
+                } else {
+                    scene.update(void 0, true);
+                    helper.handle.scene.update(void 0, true);
+                    helper.camera.scene.update(void 0, true);
+                    const prevPickDirty = pickHelper.dirty;
+                    draw(true, true);
+                    pickHelper.dirty = prevPickDirty; // marking does not change picking buffers
+                }
             }
         }
 
