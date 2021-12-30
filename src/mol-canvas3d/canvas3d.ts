@@ -444,7 +444,7 @@ namespace Canvas3D {
             }
 
             draw(false);
-            if (!camera.transition.inTransition && !webgl.isContextLost) {
+            if (!camera.transition.inTransition && !controls.props.spin && !webgl.isContextLost) {
                 interactionHelper.tick(currentTime);
             }
         }
