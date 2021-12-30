@@ -254,7 +254,20 @@ vec4 raymarch(vec3 startLoc, vec3 step, vec3 rayDir) {
             float group = decodeFloatRGB(textureGroup(floor(unitPos * uGridDim + 0.5) / uGridDim).rgb);
         #else
             vec3 g = floor(unitPos * uGridDim + 0.5);
-            float group = g.z + g.y * uGridDim.z + g.x * uGridDim.z * uGridDim.y;
+            // note that we swap x and z because the texture is flipped around y
+            #if defined(dAxisOrder_012)
+                float group = g.z + g.y * uGridDim.z + g.x * uGridDim.z * uGridDim.y; // 210
+            #elif defined(dAxisOrder_021)
+                float group = g.y + g.z * uGridDim.y + g.x * uGridDim.y * uGridDim.z; // 120
+            #elif defined(dAxisOrder_102)
+                float group = g.z + g.x * uGridDim.z + g.y * uGridDim.z * uGridDim.x; // 201
+            #elif defined(dAxisOrder_120)
+                float group = g.x + g.z * uGridDim.x + g.y * uGridDim.x * uGridDim.z; // 021
+            #elif defined(dAxisOrder_201)
+                float group = g.y + g.x * uGridDim.y + g.z * uGridDim.y * uGridDim.x; // 102
+            #elif defined(dAxisOrder_210)
+                float group = g.x + g.y * uGridDim.x + g.z * uGridDim.x * uGridDim.y; // 012
+            #endif
         #endif
 
         #if defined(dColorType_direct) && defined(dUsePalette)

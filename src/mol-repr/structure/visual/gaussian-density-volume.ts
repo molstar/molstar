@@ -31,8 +31,8 @@ async function createGaussianDensityVolume(ctx: VisualContext, structure: Struct
 
     const unitToCartn = Mat4.mul(Mat4(), transform, Mat4.fromScaling(Mat4(), gridDim));
     const cellDim = Mat4.getScaling(Vec3(), transform);
-
-    const vol = DirectVolume.create(bbox, gridDim, transform, unitToCartn, cellDim, texture, stats, true, directVolume);
+    const axisOrder = Vec3.create(0, 1, 2);
+    const vol = DirectVolume.create(bbox, gridDim, transform, unitToCartn, cellDim, texture, stats, true, axisOrder, directVolume);
 
     const sphere = Sphere3D.expand(Sphere3D(), structure.boundary.sphere, props.radiusOffset + getStructureExtraRadius(structure));
     vol.setBoundingSphere(sphere);
@@ -87,8 +87,8 @@ async function createUnitsGaussianDensityVolume(ctx: VisualContext, unit: Unit, 
 
     const unitToCartn = Mat4.mul(Mat4(), transform, Mat4.fromScaling(Mat4(), gridDim));
     const cellDim = Mat4.getScaling(Vec3(), transform);
-
-    const vol = DirectVolume.create(bbox, gridDim, transform, unitToCartn, cellDim, texture, stats, true, directVolume);
+    const axisOrder = Vec3.create(0, 1, 2);
+    const vol = DirectVolume.create(bbox, gridDim, transform, unitToCartn, cellDim, texture, stats, true, axisOrder, directVolume);
 
     const sphere = Sphere3D.expand(Sphere3D(), unit.boundary.sphere, props.radiusOffset + getUnitExtraRadius(unit));
     vol.setBoundingSphere(sphere);

@@ -48,7 +48,8 @@ export function createDirectVolume2d(ctx: RuntimeContext, webgl: WebGLContext, v
     texture.load(textureImage);
 
     const { unitToCartn, cellDim } = getUnitToCartn(volume.grid);
-    return DirectVolume.create(bbox, gridDimension, transform, unitToCartn, cellDim, texture, volume.grid.stats, false, directVolume);
+    const axisOrder = volume.grid.cells.space.axisOrderSlowToFast as Vec3;
+    return DirectVolume.create(bbox, gridDimension, transform, unitToCartn, cellDim, texture, volume.grid.stats, false, axisOrder, directVolume);
 }
 
 // 3d volume texture
@@ -89,7 +90,8 @@ export function createDirectVolume3d(ctx: RuntimeContext, webgl: WebGLContext, v
     texture.load(textureVolume);
 
     const { unitToCartn, cellDim } = getUnitToCartn(volume.grid);
-    return DirectVolume.create(bbox, gridDimension, transform, unitToCartn, cellDim, texture, volume.grid.stats, false, directVolume);
+    const axisOrder = volume.grid.cells.space.axisOrderSlowToFast as Vec3;
+    return DirectVolume.create(bbox, gridDimension, transform, unitToCartn, cellDim, texture, volume.grid.stats, false, axisOrder, directVolume);
 }
 
 //

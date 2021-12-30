@@ -37,6 +37,7 @@ export const DirectVolumeSchema = {
     uCartnToUnit: UniformSpec('m4'),
     uUnitToCartn: UniformSpec('m4'),
     dPackedGroup: DefineSpec('boolean'),
+    dAxisOrder: DefineSpec('string', ['012', '021', '102', '120', '201', '210']),
 
     dIgnoreLight: DefineSpec('boolean'),
     dXrayShaded: DefineSpec('boolean'),
