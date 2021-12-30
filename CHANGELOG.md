@@ -9,6 +9,13 @@ Note that since we don't clearly distinguish between a public and private interf
 - Add ``PluginFeatureDetection`` and disable WBOIT in Safari 15.
 - Add ``disable-wboit`` Viewer GET param
 - Add ``prefer-webgl1`` Viewer GET param
+- [Breaking] Refactor direct-volume rendering
+    - Remove isosurface render-mode (use GPU MC instead)
+    - Move coloring into theme (like for other geometries/renderables)
+        - Add ``direct`` color type
+        - Remove color from transfer-function (now only alpha)
+        - Add direct-volume color theme support
+        - Add volume-value color theme
 
 ## [v3.0.0-dev.7] - 2021-12-20
 
