@@ -56,6 +56,8 @@
             var pixelScale = getParam('pixel-scale', '[^&]+').trim();
             var pickScale = getParam('pick-scale', '[^&]+').trim();
             var pickPadding = getParam('pick-padding', '[^&]+').trim();
+            var disableWboit = getParam('disable-wboit', '[^&]+').trim() === '1';
+            var preferWebgl1 = getParam('prefer-webgl1', '[^&]+').trim() === '1';
 
             molstar.Viewer.create('app', {
                 layoutShowControls: !hideControls,
@@ -69,6 +71,8 @@
                 pixelScale: parseFloat(pixelScale) || 1,
                 pickScale: parseFloat(pickScale) || 0.25,
                 pickPadding: isNaN(parseFloat(pickPadding)) ? 1 : parseFloat(pickPadding),
+                enableWboit: !disableWboit,
+                preferWebgl1: preferWebgl1,
             }).then(viewer => {
                 var snapshotId = getParam('snapshot-id', '[^&]+').trim();
                 if (snapshotId) viewer.setRemoteSnapshot(snapshotId);
