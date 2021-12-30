@@ -6,14 +6,12 @@
  */
 
 import * as P from '../../../mol-util/monadic-parser';
+import * as h from '../helper';
 import { MolScriptBuilder } from '../../../mol-script/language/builder';
 const B = MolScriptBuilder;
 import { properties } from './properties';
-
-/* FAULTY IMPORTS */
-import * as h from '../helper';
+import { Expression } from '../../language/expression';
 import { OperatorList } from '../types';
-import Expression from '../../mini-lisp/expression';
 
 const propNames = Object.keys(properties).sort(h.strLenSortFn)
     .filter(name => !properties[name].isUnsupported).join('|');

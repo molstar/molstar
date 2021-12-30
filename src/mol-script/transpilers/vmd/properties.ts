@@ -7,8 +7,6 @@
 
 import { MolScriptBuilder } from '../../../mol-script/language/builder';
 const B = MolScriptBuilder;
-
-/* FAULTY IMPORTS */
 import { PropertyDict } from '../types';
 
 const reFloat = /[-+]?[0-9]*\.?[0-9]+/;

@@ -7,13 +7,11 @@
 
 import { MolScriptBuilder } from '../../../mol-script/language/builder';
 const B = MolScriptBuilder;
-
-/* FAULTY IMPORTS */
 import { FunctionDict } from '../types';
 
 // import * as P from 'parsimmon'
 // import * as h from '../helper'
-// import Expression from '../../mini-lisp/expression'
+// import { Expression } from '../../language/expression';
 
 export const functions: FunctionDict = {
     'sqr': {

@@ -5,11 +5,9 @@
  * @author Panagiotis Tourlas <panagiot_tourlov@hotmail.com>
  */
 
+import * as h from '../helper';
 import { MolScriptBuilder } from '../../../mol-script/language/builder';
 const B = MolScriptBuilder;
-
-/* FAULTY IMPORTS */
-import * as h from '../helper';
 import { KeywordDict } from '../types';
 
 function proteinExpr() {

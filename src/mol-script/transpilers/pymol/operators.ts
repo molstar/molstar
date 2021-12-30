@@ -6,13 +6,11 @@
  */
 
 import * as P from '../../../mol-util/monadic-parser';
+import * as h from '../helper';
 import { MolScriptBuilder } from '../../../mol-script/language/builder';
 const B = MolScriptBuilder;
-
-/* FAULTY IMPORTS */
-import * as h from '../helper';
 import { OperatorList } from '../types';
-import Expression from '../../mini-lisp/expression';
+import { Expression } from '../../language/expression';
 
 export const operators: OperatorList = [
     {
@@ -45,7 +43,7 @@ export const operators: OperatorList = [
         name: 'or',
         type: h.binaryLeft,
         rule: h.infixOp(/OR|\|/i),
-        map: (op: string, s1: Expression, s2) => B.struct.combinator.merge([s1, s2]),
+        map: (op: string, s1: Expression, s2: Expression) => B.struct.combinator.merge([s1, s2]),
     },
     {
         '@desc':

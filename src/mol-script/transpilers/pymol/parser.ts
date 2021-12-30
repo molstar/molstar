@@ -9,17 +9,14 @@
 // https://github.com/evonove/pymol/blob/master/pymol/layer3/Selector.cpp
 
 import * as P from '../../../mol-util/monadic-parser';
+import * as h from '../helper';
 import { MolScriptBuilder } from '../../../mol-script/language/builder';
 const B = MolScriptBuilder;
-
 import { properties } from './properties';
 import { operators } from './operators';
 import { keywords } from './keywords';
-
-/* FAULTY IMPORTS */
-import * as h from '../helper';
 import { AtomGroupArgs } from '../types';
-import Transpiler from '../transpiler';
+import { Transpiler } from '../transpiler';
 
 const propertiesDict = h.getPropertyRules(properties);
 

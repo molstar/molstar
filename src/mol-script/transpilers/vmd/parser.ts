@@ -6,18 +6,15 @@
  */
 
 import * as P from '../../../mol-util/monadic-parser';
+import * as h from '../helper';
 import { MolScriptBuilder } from '../../../mol-script/language/builder';
 const B = MolScriptBuilder;
-
 import { sstrucMap, sstrucDict, properties } from './properties';
 import { operators } from './operators';
 import { keywords } from './keywords';
 import { functions } from './functions';
-
-/* FAULTY IMPORTS */
-import * as h from '../helper';
 import { OperatorList } from '../types';
-import Transpiler from '../transpiler';
+import { Transpiler } from '../transpiler';
 
 // const propertiesDict = h.getPropertyRules(properties)
 
