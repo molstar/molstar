@@ -256,7 +256,20 @@ void main(void) {
             gl_FragData[1] = vec4(voxel(coord3d).rgb, 1.0);
         #else
             vec3 gridDim = uGridDim - vec3(1.0, 1.0, 0.0); // remove xy padding
-            float group = coord3d.z + coord3d.y * gridDim.z + coord3d.x * gridDim.z * gridDim.y;
+            // note that we swap x and z because the texture is flipped around y
+            #if defined(dAxisOrder_012)
+                float group = coord3d.z + coord3d.y * gridDim.z + coord3d.x * gridDim.z * gridDim.y; // 210
+            #elif defined(dAxisOrder_021)
+                float group = coord3d.y + coord3d.z * gridDim.y + coord3d.x * gridDim.y * gridDim.z; // 120
+            #elif defined(dAxisOrder_102)
+                float group = coord3d.z + coord3d.x * gridDim.z + coord3d.y * gridDim.z * gridDim.x; // 201
+            #elif defined(dAxisOrder_120)
+                float group = coord3d.x + coord3d.z * gridDim.x + coord3d.y * gridDim.x * gridDim.z; // 021
+            #elif defined(dAxisOrder_201)
+                float group = coord3d.y + coord3d.x * gridDim.y + coord3d.z * gridDim.y * gridDim.x; // 102
+            #elif defined(dAxisOrder_210)
+                float group = coord3d.x + coord3d.y * gridDim.x + coord3d.z * gridDim.x * gridDim.y; // 012
+            #endif
             gl_FragData[1] = vec4(group > 16777215.5 ? vec3(1.0) : encodeFloatRGB(group), 1.0);
         #endif
     #else
@@ -265,7 +278,20 @@ void main(void) {
         #else
             vec3 b = t < 0.5 ? b0 : b1;
             vec3 gridDim = uGridDim - vec3(1.0, 1.0, 0.0); // remove xy padding
-            float group = b.z + b.y * gridDim.z + b.x * gridDim.z * gridDim.y;
+            // note that we swap x and z because the texture is flipped around y
+            #if defined(dAxisOrder_012)
+                float group = b.z + b.y * gridDim.z + b.x * gridDim.z * gridDim.y; // 210
+            #elif defined(dAxisOrder_021)
+                float group = b.y + b.z * gridDim.y + b.x * gridDim.y * gridDim.z; // 120
+            #elif defined(dAxisOrder_102)
+                float group = b.z + b.x * gridDim.z + b.y * gridDim.z * gridDim.x; // 201
+            #elif defined(dAxisOrder_120)
+                float group = b.x + b.z * gridDim.x + b.y * gridDim.x * gridDim.z; // 021
+            #elif defined(dAxisOrder_201)
+                float group = b.y + b.x * gridDim.y + b.z * gridDim.y * gridDim.x; // 102
+            #elif defined(dAxisOrder_210)
+                float group = b.x + b.y * gridDim.x + b.z * gridDim.x * gridDim.y; // 012
+            #endif
             gl_FragData[1] = vec4(group > 16777215.5 ? vec3(1.0) : encodeFloatRGB(group), 1.0);
         #endif
     #endif

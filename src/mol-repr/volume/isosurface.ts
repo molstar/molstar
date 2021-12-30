@@ -183,8 +183,9 @@ async function createVolumeIsosurfaceTextureMesh(ctx: VisualContext, volume: Vol
 
     const { texture, gridDimension, gridTexDim, gridTexScale, transform } = VolumeIsosurfaceTexture.get(volume, ctx.webgl);
 
+    const axisOrder = volume.grid.cells.space.axisOrderSlowToFast as Vec3;
     const buffer = textureMesh?.doubleBuffer.get();
-    const gv = extractIsosurface(ctx.webgl, texture, gridDimension, gridTexDim, gridTexScale, transform, isoLevel, value < 0, false, buffer?.vertex, buffer?.group, buffer?.normal);
+    const gv = extractIsosurface(ctx.webgl, texture, gridDimension, gridTexDim, gridTexScale, transform, isoLevel, value < 0, false, axisOrder, buffer?.vertex, buffer?.group, buffer?.normal);
 
     const surface = TextureMesh.create(gv.vertexCount, 1, gv.vertexTexture, gv.groupTexture, gv.normalTexture, Volume.getBoundingSphere(volume), textureMesh);
 
