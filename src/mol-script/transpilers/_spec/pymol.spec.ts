@@ -54,7 +54,7 @@ describe('pymol general', () => {
         it(str, () => {
             const transpileStr = () => transpiler(str);
             expect(transpileStr).toThrow();
-            expect(transpileStr).not.toThrowError(RangeError, 'Maximum call stack size exceeded');
+            expect(transpileStr).not.toThrowError(RangeError);
         });
     });
 });
