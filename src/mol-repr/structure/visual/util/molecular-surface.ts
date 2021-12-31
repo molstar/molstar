@@ -11,12 +11,13 @@ import { PositionData, DensityData, Box3D } from '../../../../mol-math/geometry'
 import { MolecularSurfaceCalculationProps, calcMolecularSurface } from '../../../../mol-math/geometry/molecular-surface';
 import { OrderedSet } from '../../../../mol-data/int';
 import { Boundary } from '../../../../mol-math/geometry/boundary';
+import { SizeTheme } from '../../../../mol-theme/size';
 
 export type MolecularSurfaceProps = MolecularSurfaceCalculationProps & CommonSurfaceProps
 
-function getPositionDataAndMaxRadius(structure: Structure, unit: Unit, props: MolecularSurfaceProps) {
+function getPositionDataAndMaxRadius(structure: Structure, unit: Unit, sizeTheme: SizeTheme<any>, props: MolecularSurfaceProps) {
     const { probeRadius } = props;
-    const { position, boundary, radius } = getUnitConformationAndRadius(structure, unit, props);
+    const { position, boundary, radius } = getUnitConformationAndRadius(structure, unit, sizeTheme, props);
     const { indices } = position;
     const n = OrderedSet.size(indices);
     const radii = new Float32Array(OrderedSet.end(indices));
@@ -32,10 +33,10 @@ function getPositionDataAndMaxRadius(structure: Structure, unit: Unit, props: Mo
     return { position: { ...position, radius: radii }, boundary, maxRadius };
 }
 
-export function computeUnitMolecularSurface(structure: Structure, unit: Unit, props: MolecularSurfaceProps) {
+export function computeUnitMolecularSurface(structure: Structure, unit: Unit, sizeTheme: SizeTheme<any>, props: MolecularSurfaceProps) {
     const { box } = unit.lookup3d.boundary;
     const p = ensureReasonableResolution(box, props);
-    const { position, boundary, maxRadius } = getPositionDataAndMaxRadius(structure, unit, p);
+    const { position, boundary, maxRadius } = getPositionDataAndMaxRadius(structure, unit, sizeTheme, p);
     return Task.create('Molecular Surface', async ctx => {
         return await MolecularSurface(ctx, position, boundary, maxRadius, box, p);
     });

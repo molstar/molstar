@@ -40,7 +40,7 @@ type MolecularSurfaceMeta = {
 //
 
 async function createMolecularSurfaceMesh(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: MolecularSurfaceMeshProps, mesh?: Mesh): Promise<Mesh> {
-    const { transform, field, idField, resolution } = await computeUnitMolecularSurface(structure, unit, props).runInContext(ctx.runtime);
+    const { transform, field, idField, resolution } = await computeUnitMolecularSurface(structure, unit, theme.size, props).runInContext(ctx.runtime);
 
     const params = {
         isoLevel: props.probeRadius,
