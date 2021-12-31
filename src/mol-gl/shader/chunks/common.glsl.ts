@@ -32,11 +32,6 @@ int imod(const in int a, const in int b) { return a - b * (a / b); }
 
 float pow2(const in float x) { return x * x; }
 
-const float maxFloat = 10000.0; // NOTE constant also set in TypeScript
-const float floatLogFactor = 9.210440366976517; // log(maxFloat + 1.0);
-float encodeFloatLog(const in float value) { return log(value + 1.0) / floatLogFactor; }
-float decodeFloatLog(const in float value) { return exp(value * floatLogFactor) - 1.0; }
-
 vec3 packIntToRGB(in float value) {
     value = clamp(round(value), 0.0, 16777216.0 - 1.0) + 1.0;
     vec3 c = vec3(0.0);

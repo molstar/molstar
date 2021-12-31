@@ -1,22 +1,12 @@
 /**
- * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { clamp } from '../mol-math/interpolate';
-import { fasterExp, fasterLog } from '../mol-math/approx';
 import { Vec3, Vec4 } from '../mol-math/linear-algebra';
 import { NumberArray } from './type-helpers';
-
-const maxFloat = 10000.0; // NOTE same constant is set in shaders
-const floatLogFactor = fasterLog(maxFloat + 1);
-
-/** encode float logarithmically */
-export function encodeFloatLog(value: number) { return fasterLog(value + 1) / floatLogFactor; }
-
-/** decode logarithmically encoded float */
-export function decodeFloatLog(value: number) { return fasterExp(value * floatLogFactor) - 1; }
 
 /** encode positive integer as rgb byte triplet into array at offset */
 export function packIntToRGBArray(value: number, array: NumberArray, offset: number) {
