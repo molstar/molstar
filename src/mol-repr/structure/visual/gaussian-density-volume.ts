@@ -25,7 +25,7 @@ async function createGaussianDensityVolume(ctx: VisualContext, structure: Struct
     }
 
     const oldTexture = directVolume ? directVolume.gridTexture.ref.value : undefined;
-    const densityTextureData = await computeStructureGaussianDensityTexture(structure, props, webgl, oldTexture).runInContext(runtime);
+    const densityTextureData = await computeStructureGaussianDensityTexture(structure, theme.size, props, webgl, oldTexture).runInContext(runtime);
     const { transform, texture, bbox, gridDim } = densityTextureData;
     const stats = { min: 0, max: 1, mean: 0.04, sigma: 0.01 };
 
@@ -81,7 +81,7 @@ async function createUnitsGaussianDensityVolume(ctx: VisualContext, unit: Unit, 
     }
 
     const oldTexture = directVolume ? directVolume.gridTexture.ref.value : undefined;
-    const densityTextureData = await computeUnitGaussianDensityTexture(structure, unit, props, webgl, oldTexture).runInContext(runtime);
+    const densityTextureData = await computeUnitGaussianDensityTexture(structure, unit, theme.size, props, webgl, oldTexture).runInContext(runtime);
     const { transform, texture, bbox, gridDim } = densityTextureData;
     const stats = { min: 0, max: 1, mean: 0.04, sigma: 0.01 };
 
