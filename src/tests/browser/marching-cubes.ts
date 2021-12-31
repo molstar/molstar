@@ -73,7 +73,7 @@ async function init() {
         console.timeEnd('gpu mc pyramid2');
 
         console.time('gpu mc vert2');
-        createIsosurfaceBuffers(webgl, activeVoxelsTex2, densityTextureData2.texture, compacted2, densityTextureData2.gridDim, densityTextureData2.gridTexDim, densityTextureData2.transform, isoValue, false, true);
+        createIsosurfaceBuffers(webgl, activeVoxelsTex2, densityTextureData2.texture, compacted2, densityTextureData2.gridDim, densityTextureData2.gridTexDim, densityTextureData2.transform, isoValue, false, true, Vec3.create(0, 1, 2));
         webgl.waitForGpuCommandsCompleteSync();
         console.timeEnd('gpu mc vert2');
         console.timeEnd('gpu mc2');
@@ -96,7 +96,7 @@ async function init() {
     console.timeEnd('gpu mc pyramid');
 
     console.time('gpu mc vert');
-    const gv = createIsosurfaceBuffers(webgl, activeVoxelsTex, densityTextureData.texture, compacted, densityTextureData.gridDim, densityTextureData.gridTexDim, densityTextureData.transform, isoValue, false, true);
+    const gv = createIsosurfaceBuffers(webgl, activeVoxelsTex, densityTextureData.texture, compacted, densityTextureData.gridDim, densityTextureData.gridTexDim, densityTextureData.transform, isoValue, false, true, Vec3.create(0, 1, 2));
     webgl.waitForGpuCommandsCompleteSync();
     console.timeEnd('gpu mc vert');
     console.timeEnd('gpu mc');

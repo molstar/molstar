@@ -223,7 +223,7 @@ interface Canvas3D {
     clear(): void
     syncVisibility(): void
 
-    requestDraw(force?: boolean): void
+    requestDraw(): void
 
     /** Reset the timers, used by "animate" */
     resetTime(t: number): void
@@ -355,17 +355,24 @@ namespace Canvas3D {
                 changed = helper.camera.mark(loci, action) || changed;
                 reprRenderObjects.forEach((_, _repr) => { changed = _repr.mark(loci, action) || changed; });
             }
-            if (changed && !noDraw) {
-                scene.update(void 0, true);
-                helper.handle.scene.update(void 0, true);
-                helper.camera.scene.update(void 0, true);
-                const prevPickDirty = pickHelper.dirty;
-                draw(true);
-                pickHelper.dirty = prevPickDirty; // marking does not change picking buffers
+            if (changed) {
+                if (noDraw) {
+                    // Even with `noDraw` make sure changes will be rendered.
+                    // Note that with this calling mark (with or without `noDraw`) multiple times
+                    // during a JS event loop iteration will only result in a single render call.
+                    forceNextRender = true;
+                } else {
+                    scene.update(void 0, true);
+                    helper.handle.scene.update(void 0, true);
+                    helper.camera.scene.update(void 0, true);
+                    const prevPickDirty = pickHelper.dirty;
+                    draw({ force: true, allowMulti: true });
+                    pickHelper.dirty = prevPickDirty; // marking does not change picking buffers
+                }
             }
         }
 
-        function render(force: boolean) {
+        function render(force: boolean, allowMulti: boolean) {
             if (webgl.isContextLost) return false;
 
             let resized = false;
@@ -395,14 +402,12 @@ namespace Canvas3D {
                     cam = stereoCamera;
                 }
 
+                const ctx = { renderer, camera: cam, scene, helper };
                 if (MultiSamplePass.isEnabled(p.multiSample)) {
-                    if (!cameraChanged) {
-                        while (!multiSampleHelper.render(renderer, cam, scene, helper, true, p.transparentBackground, p));
-                    } else {
-                        multiSampleHelper.render(renderer, cam, scene, helper, true, p.transparentBackground, p);
-                    }
+                    const forceOn = !cameraChanged && allowMulti && !controls.props.spin;
+                    multiSampleHelper.render(ctx, p, true, forceOn);
                 } else {
-                    passes.draw.render(renderer, cam, scene, helper, true, p.transparentBackground, p.postprocessing, p.marking);
+                    passes.draw.render(ctx, p, true);
                 }
                 pickHelper.dirty = true;
                 didRender = true;
@@ -416,15 +421,15 @@ namespace Canvas3D {
         let currentTime = 0;
         let drawPaused = false;
 
-        function draw(force?: boolean) {
+        function draw(options?: { force?: boolean, allowMulti?: boolean }) {
             if (drawPaused) return;
-            if (render(!!force) && notifyDidDraw) {
+            if (render(!!options?.force, !!options?.allowMulti) && notifyDidDraw) {
                 didDraw.next(now() - startTime as now.Timestamp);
             }
         }
 
-        function requestDraw(force?: boolean) {
-            forceNextRender = forceNextRender || !!force;
+        function requestDraw() {
+            forceNextRender = true;
         }
 
         let animationFrameHandle = 0;
@@ -438,8 +443,8 @@ namespace Canvas3D {
                 return;
             }
 
-            draw(false);
-            if (!camera.transition.inTransition && !webgl.isContextLost) {
+            draw();
+            if (!camera.transition.inTransition && !controls.props.spin && !webgl.isContextLost) {
                 interactionHelper.tick(currentTime);
             }
         }
@@ -478,7 +483,7 @@ namespace Canvas3D {
                 resolveCameraReset();
                 if (forceDrawAfterAllCommited) {
                     if (helper.debug.isEnabled) helper.debug.update();
-                    draw(true);
+                    draw({ force: true });
                     forceDrawAfterAllCommited = false;
                 }
                 commited.next(now());
@@ -661,11 +666,11 @@ namespace Canvas3D {
 
         const contextRestoredSub = contextRestored.subscribe(() => {
             pickHelper.dirty = true;
-            draw(true);
+            draw({ force: true });
             // Unclear why, but in Chrome with wboit enabled the first `draw` only clears
             // the drawingBuffer. Note that in Firefox the drawingBuffer is preserved after
             // context loss so it is unclear if it behaves the same.
-            draw(true);
+            draw({ force: true });
         });
 
         const resized = new BehaviorSubject<any>(0);
@@ -674,7 +679,7 @@ namespace Canvas3D {
             passes.updateSize();
             updateViewport();
             syncViewport();
-            if (draw) requestDraw(true);
+            if (draw) requestDraw();
             resized.next(+new Date());
         }
 
@@ -699,7 +704,7 @@ namespace Canvas3D {
                 reprRenderObjects.clear();
                 scene.clear();
                 helper.debug.clear();
-                requestDraw(true);
+                requestDraw();
                 reprCount.next(reprRenderObjects.size);
             },
             syncVisibility: () => {
@@ -711,7 +716,7 @@ namespace Canvas3D {
                 if (scene.syncVisibility()) {
                     if (helper.debug.isEnabled) helper.debug.update();
                 }
-                requestDraw(true);
+                requestDraw();
             },
 
             requestDraw,
@@ -799,7 +804,7 @@ namespace Canvas3D {
                 }
 
                 if (!doNotRequestDraw) {
-                    requestDraw(true);
+                    requestDraw();
                 }
             },
             getImagePass: (props: Partial<ImageProps> = {}) => {

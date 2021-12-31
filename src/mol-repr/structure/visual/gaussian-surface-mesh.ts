@@ -26,6 +26,7 @@ import { Texture } from '../../../mol-gl/webgl/texture';
 import { applyMeshColorSmoothing } from '../../../mol-geo/geometry/mesh/color-smoothing';
 import { applyTextureMeshColorSmoothing } from '../../../mol-geo/geometry/texture-mesh/color-smoothing';
 import { ColorSmoothingParams, getColorSmoothingProps } from '../../../mol-geo/geometry/base';
+import { Vec3 } from '../../../mol-math/linear-algebra';
 
 const SharedParams = {
     ...GaussianDensityParams,
@@ -230,8 +231,9 @@ async function createGaussianSurfaceTextureMesh(ctx: VisualContext, unit: Unit, 
 
     const isoLevel = Math.exp(-props.smoothness) / densityTextureData.radiusFactor;
 
+    const axisOrder = Vec3.create(0, 1, 2);
     const buffer = textureMesh?.doubleBuffer.get();
-    const gv = extractIsosurface(ctx.webgl, densityTextureData.texture, densityTextureData.gridDim, densityTextureData.gridTexDim, densityTextureData.gridTexScale, densityTextureData.transform, isoLevel, false, true, buffer?.vertex, buffer?.group, buffer?.normal);
+    const gv = extractIsosurface(ctx.webgl, densityTextureData.texture, densityTextureData.gridDim, densityTextureData.gridTexDim, densityTextureData.gridTexScale, densityTextureData.transform, isoLevel, false, true, axisOrder, buffer?.vertex, buffer?.group, buffer?.normal);
 
     const boundingSphere = Sphere3D.expand(Sphere3D(), unit.boundary.sphere, props.radiusOffset + getStructureExtraRadius(structure));
     const surface = TextureMesh.create(gv.vertexCount, 1, gv.vertexTexture, gv.groupTexture, gv.normalTexture, boundingSphere, textureMesh);
@@ -306,8 +308,9 @@ async function createStructureGaussianSurfaceTextureMesh(ctx: VisualContext, str
 
     const isoLevel = Math.exp(-props.smoothness) / densityTextureData.radiusFactor;
 
+    const axisOrder = Vec3.create(0, 1, 2);
     const buffer = textureMesh?.doubleBuffer.get();
-    const gv = extractIsosurface(ctx.webgl, densityTextureData.texture, densityTextureData.gridDim, densityTextureData.gridTexDim, densityTextureData.gridTexScale, densityTextureData.transform, isoLevel, false, true, buffer?.vertex, buffer?.group, buffer?.normal);
+    const gv = extractIsosurface(ctx.webgl, densityTextureData.texture, densityTextureData.gridDim, densityTextureData.gridTexDim, densityTextureData.gridTexScale, densityTextureData.transform, isoLevel, false, true, axisOrder, buffer?.vertex, buffer?.group, buffer?.normal);
 
     const boundingSphere = Sphere3D.expand(Sphere3D(), structure.boundary.sphere, props.radiusOffset + getStructureExtraRadius(structure));
     const surface = TextureMesh.create(gv.vertexCount, 1, gv.vertexTexture, gv.groupTexture, gv.normalTexture, boundingSphere, textureMesh);
