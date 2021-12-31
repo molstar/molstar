@@ -6,6 +6,8 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+## [v3.0.0-dev.8] - 2021-12-31
+
 - Add ``PluginFeatureDetection`` and disable WBOIT in Safari 15.
 - Add ``disable-wboit`` Viewer GET param
 - Add ``prefer-webgl1`` Viewer GET param
