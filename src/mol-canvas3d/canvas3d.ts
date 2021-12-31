@@ -223,7 +223,7 @@ interface Canvas3D {
     clear(): void
     syncVisibility(): void
 
-    requestDraw(force?: boolean): void
+    requestDraw(): void
 
     /** Reset the timers, used by "animate" */
     resetTime(t: number): void
@@ -428,8 +428,8 @@ namespace Canvas3D {
             }
         }
 
-        function requestDraw(force?: boolean) {
-            forceNextRender = forceNextRender || !!force;
+        function requestDraw() {
+            forceNextRender = true;
         }
 
         let animationFrameHandle = 0;
@@ -679,7 +679,7 @@ namespace Canvas3D {
             passes.updateSize();
             updateViewport();
             syncViewport();
-            if (draw) requestDraw(true);
+            if (draw) requestDraw();
             resized.next(+new Date());
         }
 
@@ -704,7 +704,7 @@ namespace Canvas3D {
                 reprRenderObjects.clear();
                 scene.clear();
                 helper.debug.clear();
-                requestDraw(true);
+                requestDraw();
                 reprCount.next(reprRenderObjects.size);
             },
             syncVisibility: () => {
@@ -716,7 +716,7 @@ namespace Canvas3D {
                 if (scene.syncVisibility()) {
                     if (helper.debug.isEnabled) helper.debug.update();
                 }
-                requestDraw(true);
+                requestDraw();
             },
 
             requestDraw,
@@ -804,7 +804,7 @@ namespace Canvas3D {
                 }
 
                 if (!doNotRequestDraw) {
-                    requestDraw(true);
+                    requestDraw();
                 }
             },
             getImagePass: (props: Partial<ImageProps> = {}) => {
