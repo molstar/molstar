@@ -12,7 +12,7 @@ import { GraphicsRenderVariant } from '../../mol-gl/webgl/render-item';
 import { RenderTarget } from '../../mol-gl/webgl/render-target';
 import { Vec3 } from '../../mol-math/linear-algebra';
 import { spiral2d } from '../../mol-math/misc';
-import { unpackRGBToInt, unpackRGBAToDepth } from '../../mol-util/float-packing';
+import { unpackRGBToInt, unpackRGBAToDepth } from '../../mol-util/number-packing';
 import { Camera, ICamera } from '../camera';
 import { StereoCamera } from '../camera/stereo';
 import { cameraUnproject } from '../camera/util';

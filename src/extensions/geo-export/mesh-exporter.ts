@@ -25,7 +25,7 @@ import { sizeDataFactor } from '../../mol-geo/geometry/size-data';
 import { Vec3 } from '../../mol-math/linear-algebra';
 import { RuntimeContext } from '../../mol-task';
 import { Color } from '../../mol-util/color/color';
-import { unpackRGBToInt } from '../../mol-util/float-packing';
+import { unpackRGBToInt } from '../../mol-util/number-packing';
 import { RenderObjectExporter, RenderObjectExportData } from './render-object-exporter';
 import { readAlphaTexture, readTexture } from '../../mol-gl/compute/util';
 

@@ -9,7 +9,7 @@ import { Loci } from '../../mol-model/loci';
 import { Interval, OrderedSet } from '../../mol-data/int';
 import { equalEps } from '../../mol-math/linear-algebra/3d/common';
 import { Vec3 } from '../../mol-math/linear-algebra/3d/vec3';
-import { packIntToRGBArray } from '../../mol-util/float-packing';
+import { packIntToRGBArray } from '../../mol-util/number-packing';
 
 // avoiding namespace lookup improved performance in Chrome (Aug 2020)
 const v3set = Vec3.set;

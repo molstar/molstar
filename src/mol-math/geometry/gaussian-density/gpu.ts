@@ -14,7 +14,7 @@ import { ValueCell } from '../../../mol-util';
 import { createComputeRenderable, ComputeRenderable } from '../../../mol-gl/renderable';
 import { WebGLContext } from '../../../mol-gl/webgl/context';
 import { Texture, TextureFilter, TextureFormat, TextureKind, TextureType } from '../../../mol-gl/webgl/texture';
-import { unpackRGBToInt } from '../../../mol-util/float-packing';
+import { unpackRGBToInt } from '../../../mol-util/number-packing';
 import { ShaderCode } from '../../../mol-gl/shader-code';
 import { createComputeRenderItem } from '../../../mol-gl/webgl/render-item';
 import { ValueSpec, AttributeSpec, UniformSpec, TextureSpec, DefineSpec, Values } from '../../../mol-gl/renderable/schema';

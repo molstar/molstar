@@ -11,7 +11,7 @@ import { LocationIterator } from '../util/location-iterator';
 import { Location, NullLocation } from '../../mol-model/location';
 import { SizeTheme } from '../../mol-theme/size';
 import { Geometry } from './geometry';
-import { unpackRGBToInt, packIntToRGBArray } from '../../mol-util/float-packing';
+import { unpackRGBToInt, packIntToRGBArray } from '../../mol-util/number-packing';
 
 export type SizeType = 'uniform' | 'instance' | 'group' | 'groupInstance'
 

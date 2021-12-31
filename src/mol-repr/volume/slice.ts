@@ -21,7 +21,7 @@ import { transformPositionArray } from '../../mol-geo/util';
 import { RenderableState } from '../../mol-gl/renderable';
 import { Color } from '../../mol-util/color';
 import { ColorTheme } from '../../mol-theme/color';
-import { packIntToRGBArray } from '../../mol-util/float-packing';
+import { packIntToRGBArray } from '../../mol-util/number-packing';
 import { eachVolumeLoci } from './util';
 
 export async function createImage(ctx: VisualContext, volume: Volume, theme: Theme, props: PD.Values<SliceParams>, image?: Image) {
