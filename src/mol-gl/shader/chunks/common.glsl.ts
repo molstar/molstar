@@ -38,7 +38,7 @@ float encodeFloatLog(const in float value) { return log(value + 1.0) / floatLogF
 float decodeFloatLog(const in float value) { return exp(value * floatLogFactor) - 1.0; }
 
 vec3 encodeFloatRGB(in float value) {
-    value = clamp(value, 0.0, 16777216.0 - 1.0) + 1.0;
+    value = clamp(round(value), 0.0, 16777216.0 - 1.0) + 1.0;
     vec3 c = vec3(0.0);
     c.b = mod(value, 256.0);
     value = floor(value / 256.0);
@@ -48,7 +48,7 @@ vec3 encodeFloatRGB(in float value) {
     return c / 255.0;
 }
 float decodeFloatRGB(const in vec3 rgb) {
-    return (rgb.r * 256.0 * 256.0 * 255.0 + rgb.g * 256.0 * 255.0 + rgb.b * 255.0) - 1.0;
+    return (floor(rgb.r * 255.0 + 0.5) * 256.0 * 256.0 + floor(rgb.g * 255.0 + 0.5) * 256.0 + floor(rgb.b * 255.0 + 0.5)) - 1.0;
 }
 
 vec2 packUnitIntervalToRG(const in float v) {

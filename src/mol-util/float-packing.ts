@@ -20,7 +20,7 @@ export function decodeFloatLog(value: number) { return fasterExp(value * floatLo
 
 /** encode float as rgb triplet into array at offset */
 export function encodeFloatRGBtoArray(value: number, array: NumberArray, offset: number) {
-    value = clamp(value, 0, 16777216 - 1) + 1;
+    value = clamp(Math.round(value), 0, 16777216 - 1) + 1;
     array[offset + 2] = value % 256;
     value = Math.floor(value / 256);
     array[offset + 1] = value % 256;
