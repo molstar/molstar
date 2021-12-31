@@ -16,6 +16,8 @@ Note that since we don't clearly distinguish between a public and private interf
         - Remove color from transfer-function (now only alpha)
         - Add direct-volume color theme support
         - Add volume-value color theme
+- [Breaking] Use size theme in molecular/gaussian surface & label representations
+    - This is breaking because it was hardcoded to ``physical`` internally but the repr size theme default was ``uniform`` (now ``physical``)
 
 ## [v3.0.0-dev.7] - 2021-12-20
 

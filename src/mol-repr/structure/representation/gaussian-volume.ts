@@ -40,6 +40,6 @@ export const GaussianVolumeRepresentationProvider = StructureRepresentationProvi
     getParams: getGaussianVolumeParams,
     defaultValues: PD.getDefaultValues(GaussianVolumeParams),
     defaultColorTheme: { name: 'chain-id' },
-    defaultSizeTheme: { name: 'uniform' },
+    defaultSizeTheme: { name: 'physical' },
     isApplicable: (structure: Structure) => structure.elementCount > 0
 });
