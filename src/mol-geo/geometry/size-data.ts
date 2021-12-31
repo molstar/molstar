@@ -11,7 +11,7 @@ import { LocationIterator } from '../util/location-iterator';
 import { Location, NullLocation } from '../../mol-model/location';
 import { SizeTheme } from '../../mol-theme/size';
 import { Geometry } from './geometry';
-import { decodeFloatRGB, encodeFloatRGBtoArray } from '../../mol-util/float-packing';
+import { unpackRGBToInt, packIntToRGBArray } from '../../mol-util/number-packing';
 
 export type SizeType = 'uniform' | 'instance' | 'group' | 'groupInstance'
 
@@ -44,7 +44,7 @@ export function getMaxSize(sizeData: SizeData): number {
             let maxSize = 0;
             const array = sizeData.tSize.ref.value.array;
             for (let i = 0, il = array.length; i < il; i += 3) {
-                const value = decodeFloatRGB(array[i], array[i + 1], array[i + 2]);
+                const value = unpackRGBToInt(array[i], array[i + 1], array[i + 2]);
                 if (maxSize < value) maxSize = value;
             }
             return maxSize / sizeDataFactor;
@@ -103,7 +103,7 @@ export function createInstanceSize(locationIt: LocationIterator, sizeFn: Locatio
     locationIt.reset();
     while (locationIt.hasNext && !locationIt.isNextNewInstance) {
         const v = locationIt.move();
-        encodeFloatRGBtoArray(sizeFn(v.location) * sizeDataFactor, sizes.array, v.instanceIndex * 3);
+        packIntToRGBArray(sizeFn(v.location) * sizeDataFactor, sizes.array, v.instanceIndex * 3);
         locationIt.skipInstance();
     }
     return createTextureSize(sizes, 'instance', sizeData);
@@ -116,7 +116,7 @@ export function createGroupSize(locationIt: LocationIterator, sizeFn: LocationSi
     locationIt.reset();
     while (locationIt.hasNext && !locationIt.isNextNewInstance) {
         const v = locationIt.move();
-        encodeFloatRGBtoArray(sizeFn(v.location) * sizeDataFactor, sizes.array, v.groupIndex * 3);
+        packIntToRGBArray(sizeFn(v.location) * sizeDataFactor, sizes.array, v.groupIndex * 3);
     }
     return createTextureSize(sizes, 'group', sizeData);
 }
@@ -129,7 +129,7 @@ export function createGroupInstanceSize(locationIt: LocationIterator, sizeFn: Lo
     locationIt.reset();
     while (locationIt.hasNext) {
         const v = locationIt.move();
-        encodeFloatRGBtoArray(sizeFn(v.location) * sizeDataFactor, sizes.array, v.index * 3);
+        packIntToRGBArray(sizeFn(v.location) * sizeDataFactor, sizes.array, v.index * 3);
     }
     return createTextureSize(sizes, 'groupInstance', sizeData);
 }

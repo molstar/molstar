@@ -21,7 +21,7 @@ import { transformPositionArray } from '../../mol-geo/util';
 import { RenderableState } from '../../mol-gl/renderable';
 import { Color } from '../../mol-util/color';
 import { ColorTheme } from '../../mol-theme/color';
-import { encodeFloatRGBtoArray } from '../../mol-util/float-packing';
+import { packIntToRGBArray } from '../../mol-util/number-packing';
 import { eachVolumeLoci } from './util';
 
 export async function createImage(ctx: VisualContext, volume: Volume, theme: Theme, props: PD.Values<SliceParams>, image?: Image) {
@@ -116,7 +116,7 @@ function getPackedGroupArray(grid: Grid, props: PD.Values<SliceParams>) {
     for (let iy = y0; iy < ny; ++iy) {
         for (let ix = x0; ix < nx; ++ix) {
             for (let iz = z0; iz < nz; ++iz) {
-                encodeFloatRGBtoArray(space.dataOffset(ix, iy, iz), groupArray, j);
+                packIntToRGBArray(space.dataOffset(ix, iy, iz), groupArray, j);
                 j += 4;
             }
         }

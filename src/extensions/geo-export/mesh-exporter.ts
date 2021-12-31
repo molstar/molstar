@@ -25,7 +25,7 @@ import { sizeDataFactor } from '../../mol-geo/geometry/size-data';
 import { Vec3 } from '../../mol-math/linear-algebra';
 import { RuntimeContext } from '../../mol-task';
 import { Color } from '../../mol-util/color/color';
-import { decodeFloatRGB } from '../../mol-util/float-packing';
+import { unpackRGBToInt } from '../../mol-util/number-packing';
 import { RenderObjectExporter, RenderObjectExportData } from './render-object-exporter';
 import { readAlphaTexture, readTexture } from '../../mol-gl/compute/util';
 
@@ -65,7 +65,7 @@ export abstract class MeshExporter<D extends RenderObjectExportData> implements 
         const r = tSize.array[i * 3];
         const g = tSize.array[i * 3 + 1];
         const b = tSize.array[i * 3 + 2];
-        return decodeFloatRGB(r, g, b) / sizeDataFactor;
+        return unpackRGBToInt(r, g, b) / sizeDataFactor;
     }
 
     private static getSize(values: BaseValues & SizeValues, instanceIndex: number, group: number): number {
@@ -95,9 +95,9 @@ export abstract class MeshExporter<D extends RenderObjectExportData> implements 
         const g = groups[i4 + 1];
         const b = groups[i4 + 2];
         if (groups instanceof Float32Array) {
-            return decodeFloatRGB(r * 255 + 0.5, g * 255 + 0.5, b * 255 + 0.5);
+            return unpackRGBToInt(r * 255 + 0.5, g * 255 + 0.5, b * 255 + 0.5);
         }
-        return decodeFloatRGB(r, g, b);
+        return unpackRGBToInt(r, g, b);
     }
 
     protected static getInterpolatedColors(webgl: WebGLContext, input: { vertices: Float32Array, vertexCount: number, values: BaseValues, stride: 3 | 4, colorType: 'volume' | 'volumeInstance' }) {

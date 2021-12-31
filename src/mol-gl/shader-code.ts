@@ -198,7 +198,7 @@ export const MeshShaderCode = ShaderCode('mesh', mesh_vert, mesh_frag, { drawBuf
 
 import { directVolume_vert } from './shader/direct-volume.vert';
 import { directVolume_frag } from './shader/direct-volume.frag';
-export const DirectVolumeShaderCode = ShaderCode('direct-volume', directVolume_vert, directVolume_frag, { fragDepth: 'optional', drawBuffers: 'optional' });
+export const DirectVolumeShaderCode = ShaderCode('direct-volume', directVolume_vert, directVolume_frag, { fragDepth: 'optional', drawBuffers: 'optional' }, {}, ignoreDefine);
 
 import { image_vert } from './shader/image.vert';
 import { image_frag } from './shader/image.frag';

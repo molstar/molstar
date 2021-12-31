@@ -224,6 +224,8 @@ export namespace Text {
         const boundingSphere = calculateTransformBoundingSphere(invariantBoundingSphere, transform.aTransform.ref.value, instanceCount);
 
         return {
+            dGeometryType: ValueCell.create('text'),
+
             aPosition: text.centerBuffer,
             aMapping: text.mappingBuffer,
             aDepth: text.depthBuffer,

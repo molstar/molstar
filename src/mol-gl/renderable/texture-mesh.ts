@@ -23,7 +23,6 @@ export const TextureMeshSchema = {
     dFlipSided: DefineSpec('boolean'),
     dIgnoreLight: DefineSpec('boolean'),
     dXrayShaded: DefineSpec('boolean'),
-    dGeoTexture: DefineSpec('boolean'),
     uBumpFrequency: UniformSpec('f'),
     uBumpAmplitude: UniformSpec('f'),
     meta: ValueSpec('unknown')

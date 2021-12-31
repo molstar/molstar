@@ -74,7 +74,7 @@ int idot4(const in ivec4 a, const in ivec4 b) {
 
 #if __VERSION__ == 100
     int pyramidVoxel(vec2 pos) {
-        return int(decodeFloatRGB(texture2D(tActiveVoxelsPyramid, pos / (vec2(1.0, 0.5) * uSize)).rgb));
+        return int(unpackRGBToInt(texture2D(tActiveVoxelsPyramid, pos / (vec2(1.0, 0.5) * uSize)).rgb));
     }
 #else
     int pyramidVoxel(vec2 pos) {
@@ -102,7 +102,7 @@ vec4 getGroup(const in vec3 p) {
     #elif defined(dAxisOrder_210)
         float group = p.x + p.y * gridDim.x + p.z * gridDim.x * gridDim.y; // 012
     #endif
-    return vec4(group > 16777215.5 ? vec3(1.0) : encodeFloatRGB(group), 1.0);
+    return vec4(group > 16777215.5 ? vec3(1.0) : packIntToRGB(group), 1.0);
 }
 
 void main(void) {

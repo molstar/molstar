@@ -155,6 +155,8 @@ namespace Image {
         const boundingSphere = calculateTransformBoundingSphere(invariantBoundingSphere, transform.aTransform.ref.value, instanceCount);
 
         return {
+            dGeometryType: ValueCell.create('image'),
+
             ...color,
             ...marker,
             ...overpaint,

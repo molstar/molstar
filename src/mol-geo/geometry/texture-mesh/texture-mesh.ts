@@ -147,6 +147,8 @@ export namespace TextureMesh {
         const boundingSphere = calculateTransformBoundingSphere(invariantBoundingSphere, transform.aTransform.ref.value, instanceCount);
 
         return {
+            dGeometryType: ValueCell.create('textureMesh'),
+
             uGeoTexDim: textureMesh.geoTextureDim,
             tPosition: textureMesh.vertexTexture,
             tGroup: textureMesh.groupTexture,
@@ -172,7 +174,6 @@ export namespace TextureMesh {
             dXrayShaded: ValueCell.create(props.xrayShaded),
             uBumpFrequency: ValueCell.create(props.bumpFrequency),
             uBumpAmplitude: ValueCell.create(props.bumpAmplitude),
-            dGeoTexture: ValueCell.create(true),
 
             meta: ValueCell.create(textureMesh.meta),
         };
