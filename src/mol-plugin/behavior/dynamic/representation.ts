@@ -186,12 +186,8 @@ export const SelectLoci = PluginBehavior.create({
                         Structure.areEquivalent(structure, oldStructure) &&
                         Structure.areHierarchiesEqual(structure, oldStructure)) return;
 
-                    const children = this.ctx.state.data.select(StateSelection.children(ref));
-                    for (const child of children) {
-                        if (child.obj?.type === SO.Molecule.Structure.Representation3D.type) {
-                            this.applySelectMark(child.transform.ref, true);
-                        }
-                    }
+                    const reprs = this.ctx.state.data.select(StateSelection.children(ref).ofType(SO.Molecule.Structure.Representation3D));
+                    for (const repr of reprs) this.applySelectMark(repr.transform.ref, true);
                 }
             });
         }
