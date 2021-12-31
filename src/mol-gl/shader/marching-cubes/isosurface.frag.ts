@@ -74,7 +74,7 @@ int idot4(const in ivec4 a, const in ivec4 b) {
 
 #if __VERSION__ == 100
     int pyramidVoxel(vec2 pos) {
-        return int(decodeFloatRGB(texture2D(tActiveVoxelsPyramid, pos / (vec2(1.0, 0.5) * uSize)).rgb));
+        return int(unpackRGBToInt(texture2D(tActiveVoxelsPyramid, pos / (vec2(1.0, 0.5) * uSize)).rgb));
     }
 #else
     int pyramidVoxel(vec2 pos) {
@@ -257,7 +257,7 @@ void main(void) {
         #else
             vec3 gridDim = uGridDim - vec3(1.0, 1.0, 0.0); // remove xy padding
             float group = coord3d.z + coord3d.y * gridDim.z + coord3d.x * gridDim.z * gridDim.y;
-            gl_FragData[1] = vec4(group > 16777215.5 ? vec3(1.0) : encodeFloatRGB(group), 1.0);
+            gl_FragData[1] = vec4(group > 16777215.5 ? vec3(1.0) : packIntToRGB(group), 1.0);
         #endif
     #else
         #ifdef dPackedGroup
@@ -266,7 +266,7 @@ void main(void) {
             vec3 b = t < 0.5 ? b0 : b1;
             vec3 gridDim = uGridDim - vec3(1.0, 1.0, 0.0); // remove xy padding
             float group = b.z + b.y * gridDim.z + b.x * gridDim.z * gridDim.y;
-            gl_FragData[1] = vec4(group > 16777215.5 ? vec3(1.0) : encodeFloatRGB(group), 1.0);
+            gl_FragData[1] = vec4(group > 16777215.5 ? vec3(1.0) : packIntToRGB(group), 1.0);
         #endif
     #endif
 

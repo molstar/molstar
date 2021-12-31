@@ -18,8 +18,8 @@ export function encodeFloatLog(value: number) { return fasterLog(value + 1) / fl
 /** decode logarithmically encoded float */
 export function decodeFloatLog(value: number) { return fasterExp(value * floatLogFactor) - 1; }
 
-/** encode float as rgb triplet into array at offset */
-export function encodeFloatRGBtoArray(value: number, array: NumberArray, offset: number) {
+/** encode positive integer as rgb byte triplet into array at offset */
+export function packIntToRGBArray(value: number, array: NumberArray, offset: number) {
     value = clamp(Math.round(value), 0, 16777216 - 1) + 1;
     array[offset + 2] = value % 256;
     value = Math.floor(value / 256);
@@ -29,8 +29,8 @@ export function encodeFloatRGBtoArray(value: number, array: NumberArray, offset:
     return array;
 }
 
-/** decode float encoded as rgb triplet */
-export function decodeFloatRGB(r: number, g: number, b: number) {
+/** decode positive integer encoded as rgb byte triplet */
+export function unpackRGBToInt(r: number, g: number, b: number) {
     return (Math.floor(r) * 256 * 256 + Math.floor(g) * 256 + Math.floor(b)) - 1;
 }
 

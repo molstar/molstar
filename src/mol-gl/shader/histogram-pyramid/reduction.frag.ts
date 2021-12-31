@@ -33,12 +33,12 @@ void main(void) {
             c = texture2D(tInputLevel, position + vec2(0.0, k)).r * 255.0;
             d = texture2D(tInputLevel, position + vec2(k, k)).r * 255.0;
         } else {
-            a = decodeFloatRGB(texture2D(tPreviousLevel, position).rgb);
-            b = decodeFloatRGB(texture2D(tPreviousLevel, position + vec2(k, 0.0)).rgb);
-            c = decodeFloatRGB(texture2D(tPreviousLevel, position + vec2(0.0, k)).rgb);
-            d = decodeFloatRGB(texture2D(tPreviousLevel, position + vec2(k, k)).rgb);
+            a = unpackRGBToInt(texture2D(tPreviousLevel, position).rgb);
+            b = unpackRGBToInt(texture2D(tPreviousLevel, position + vec2(k, 0.0)).rgb);
+            c = unpackRGBToInt(texture2D(tPreviousLevel, position + vec2(0.0, k)).rgb);
+            d = unpackRGBToInt(texture2D(tPreviousLevel, position + vec2(k, k)).rgb);
         }
-        gl_FragColor = vec4(encodeFloatRGB(a + b + c + d), 1.0);
+        gl_FragColor = vec4(packIntToRGB(a + b + c + d), 1.0);
     #else
         int a, b, c, d;
 

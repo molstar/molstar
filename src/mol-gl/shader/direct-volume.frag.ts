@@ -251,7 +251,7 @@ vec4 raymarch(vec3 startLoc, vec3 step, vec3 rayDir) {
         material.a = transferFunction(value);
 
         #ifdef dPackedGroup
-            float group = decodeFloatRGB(textureGroup(floor(unitPos * uGridDim + 0.5) / uGridDim).rgb);
+            float group = unpackRGBToInt(textureGroup(floor(unitPos * uGridDim + 0.5) / uGridDim).rgb);
         #else
             vec3 g = floor(unitPos * uGridDim + 0.5);
             // note that we swap x and z because the texture is flipped around y

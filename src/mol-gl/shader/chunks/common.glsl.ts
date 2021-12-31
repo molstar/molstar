@@ -37,7 +37,7 @@ const float floatLogFactor = 9.210440366976517; // log(maxFloat + 1.0);
 float encodeFloatLog(const in float value) { return log(value + 1.0) / floatLogFactor; }
 float decodeFloatLog(const in float value) { return exp(value * floatLogFactor) - 1.0; }
 
-vec3 encodeFloatRGB(in float value) {
+vec3 packIntToRGB(in float value) {
     value = clamp(round(value), 0.0, 16777216.0 - 1.0) + 1.0;
     vec3 c = vec3(0.0);
     c.b = mod(value, 256.0);
@@ -47,7 +47,7 @@ vec3 encodeFloatRGB(in float value) {
     c.r = mod(value, 256.0);
     return c / 255.0;
 }
-float decodeFloatRGB(const in vec3 rgb) {
+float unpackRGBToInt(const in vec3 rgb) {
     return (floor(rgb.r * 255.0 + 0.5) * 256.0 * 256.0 + floor(rgb.g * 255.0 + 0.5) * 256.0 + floor(rgb.b * 255.0 + 0.5)) - 1.0;
 }
 

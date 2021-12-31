@@ -12,7 +12,7 @@ import { GraphicsRenderVariant } from '../../mol-gl/webgl/render-item';
 import { RenderTarget } from '../../mol-gl/webgl/render-target';
 import { Vec3 } from '../../mol-math/linear-algebra';
 import { spiral2d } from '../../mol-math/misc';
-import { decodeFloatRGB, unpackRGBAToDepth } from '../../mol-util/float-packing';
+import { unpackRGBToInt, unpackRGBAToDepth } from '../../mol-util/float-packing';
 import { Camera, ICamera } from '../camera';
 import { StereoCamera } from '../camera/stereo';
 import { cameraUnproject } from '../camera/util';
@@ -174,7 +174,7 @@ export class PickHelper {
 
     private getId(x: number, y: number, buffer: Uint8Array) {
         const idx = this.getBufferIdx(x, y);
-        return decodeFloatRGB(buffer[idx], buffer[idx + 1], buffer[idx + 2]);
+        return unpackRGBToInt(buffer[idx], buffer[idx + 1], buffer[idx + 2]);
     }
 
     private render(camera: Camera | StereoCamera) {
