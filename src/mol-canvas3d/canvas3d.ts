@@ -366,7 +366,7 @@ namespace Canvas3D {
                     helper.handle.scene.update(void 0, true);
                     helper.camera.scene.update(void 0, true);
                     const prevPickDirty = pickHelper.dirty;
-                    draw(true, true);
+                    draw({ force: true, allowMulti: true });
                     pickHelper.dirty = prevPickDirty; // marking does not change picking buffers
                 }
             }
@@ -421,9 +421,9 @@ namespace Canvas3D {
         let currentTime = 0;
         let drawPaused = false;
 
-        function draw(force?: boolean, allowMulti?: boolean) {
+        function draw(options?: { force?: boolean, allowMulti?: boolean }) {
             if (drawPaused) return;
-            if (render(!!force, !!allowMulti) && notifyDidDraw) {
+            if (render(!!options?.force, !!options?.allowMulti) && notifyDidDraw) {
                 didDraw.next(now() - startTime as now.Timestamp);
             }
         }
@@ -443,7 +443,7 @@ namespace Canvas3D {
                 return;
             }
 
-            draw(false);
+            draw();
             if (!camera.transition.inTransition && !controls.props.spin && !webgl.isContextLost) {
                 interactionHelper.tick(currentTime);
             }
@@ -483,7 +483,7 @@ namespace Canvas3D {
                 resolveCameraReset();
                 if (forceDrawAfterAllCommited) {
                     if (helper.debug.isEnabled) helper.debug.update();
-                    draw(true);
+                    draw({ force: true });
                     forceDrawAfterAllCommited = false;
                 }
                 commited.next(now());
@@ -666,11 +666,11 @@ namespace Canvas3D {
 
         const contextRestoredSub = contextRestored.subscribe(() => {
             pickHelper.dirty = true;
-            draw(true);
+            draw({ force: true });
             // Unclear why, but in Chrome with wboit enabled the first `draw` only clears
             // the drawingBuffer. Note that in Firefox the drawingBuffer is preserved after
             // context loss so it is unclear if it behaves the same.
-            draw(true);
+            draw({ force: true });
         });
 
         const resized = new BehaviorSubject<any>(0);
