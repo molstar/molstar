@@ -12,6 +12,7 @@ Note that since we don't clearly distinguish between a public and private interf
     - Do not include assembly-related categories to export if the structure was composed from an assembly
     - Special case for ``structAsymMap`` if Mol* asym id operator mapping is present
 - Support for opening ZIP files with multiple entries
+- Add Model Export extension
 
 ## [v3.0.0-dev.8] - 2021-12-31
 
