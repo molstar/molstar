@@ -250,10 +250,10 @@ function encode_mmCIF_categories_copyAll(encoder: CifWriter.Encoder, ctx: CifExp
 }
 
 
-function to_mmCIF(name: string, structure: Structure, asBinary = false) {
+function to_mmCIF(name: string, structure: Structure, asBinary = false, params?: encode_mmCIF_categories_Params) {
     const enc = CifWriter.createEncoder({ binary: asBinary });
     enc.startDataBlock(name);
-    encode_mmCIF_categories(enc, structure);
+    encode_mmCIF_categories(enc, structure, params);
     return enc.getData();
 }
 

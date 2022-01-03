@@ -14,6 +14,7 @@ import { MAQualityAssessment } from '../../extensions/model-archive/quality-asse
 import { QualityAssessmentPLDDTPreset, QualityAssessmentQmeanPreset } from '../../extensions/model-archive/quality-assessment/behavior';
 import { QualityAssessment } from '../../extensions/model-archive/quality-assessment/prop';
 import { Mp4Export } from '../../extensions/mp4-export';
+import { ModelExport } from '../../extensions/model-export';
 import { PDBeStructureQualityReport } from '../../extensions/pdbe';
 import { RCSBAssemblySymmetry, RCSBValidationReport } from '../../extensions/rcsb';
 import { DownloadStructure, PdbDownloadProvider } from '../../mol-plugin-state/actions/structure';
@@ -62,6 +63,7 @@ const Extensions = {
     'rcsb-validation-report': PluginSpec.Behavior(RCSBValidationReport),
     'anvil-membrane-orientation': PluginSpec.Behavior(ANVILMembraneOrientation),
     'g3d': PluginSpec.Behavior(G3DFormat),
+    'model-export': PluginSpec.Behavior(ModelExport),
     'mp4-export': PluginSpec.Behavior(Mp4Export),
     'geo-export': PluginSpec.Behavior(GeometryExport),
     'ma-quality-assessment': PluginSpec.Behavior(MAQualityAssessment),
