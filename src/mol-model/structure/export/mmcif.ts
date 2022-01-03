@@ -52,6 +52,10 @@ function isWithoutSymmetry(structure: Structure) {
     return structure.units.every(u => u.conformation.operator.isIdentity);
 }
 
+function isWithoutOperator(structure: Structure) {
+    return isWithoutSymmetry(structure) && structure.units.every(u => !u.conformation.operator.suffix);
+}
+
 const Categories = [
     // Basics
     copy_mmCif_category('entry'),
@@ -63,9 +67,9 @@ const Categories = [
     copy_mmCif_category('symmetry', isWithoutSymmetry),
 
     // Assemblies
-    copy_mmCif_category('pdbx_struct_assembly', isWithoutSymmetry),
-    copy_mmCif_category('pdbx_struct_assembly_gen', isWithoutSymmetry),
-    copy_mmCif_category('pdbx_struct_oper_list', isWithoutSymmetry),
+    copy_mmCif_category('pdbx_struct_assembly', isWithoutOperator),
+    copy_mmCif_category('pdbx_struct_assembly_gen', isWithoutOperator),
+    copy_mmCif_category('pdbx_struct_oper_list', isWithoutOperator),
 
     // Secondary structure
     _struct_conf,
