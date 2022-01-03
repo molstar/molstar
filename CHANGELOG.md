@@ -7,6 +7,11 @@ Note that since we don't clearly distinguish between a public and private interf
 ## [Unreleased]
 
 - Add PDBj as a pdb-provider option
+- Assembly handling tweaks:
+    - Do not include suffix for "identity assembly operators"
+    - Do not include assembly-related categories to export if the structure was composed from an assembly
+    - Special case for ``structAsymMap`` if Mol* asym id operator mapping is present
+- Support for opening ZIP files with multiple entries
 
 ## [v3.0.0-dev.8] - 2021-12-31
 
