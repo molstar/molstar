@@ -57,19 +57,20 @@ namespace SymmetryOperator {
         const _hkl = hkl ? Vec3.clone(hkl) : Vec3();
         spgrOp = defaults(spgrOp, -1);
         ncsId = ncsId || -1;
-        const suffix = getSuffix(info);
-        if (Mat4.isIdentity(matrix)) return { name, assembly, matrix, inverse: Mat4.identity(), isIdentity: true, hkl: _hkl, spgrOp, ncsId, suffix };
+        const isIdentity = Mat4.isIdentity(matrix);
+        const suffix = getSuffix(info, isIdentity);
+        if (isIdentity) return { name, assembly, matrix, inverse: Mat4.identity(), isIdentity: true, hkl: _hkl, spgrOp, ncsId, suffix };
         if (!Mat4.isRotationAndTranslation(matrix, RotationTranslationEpsilon)) {
             console.warn(`Symmetry operator (${name}) should be a composition of rotation and translation.`);
         }
         return { name, assembly, matrix, inverse: Mat4.invert(Mat4(), matrix), isIdentity: false, hkl: _hkl, spgrOp, ncsId, suffix };
     }
 
-    function getSuffix(info?: CreateInfo) {
+    function getSuffix(info?: CreateInfo, isIdentity?: boolean) {
         if (!info) return '';
 
         if (info.assembly) {
-            return `_${info.assembly.operId}`;
+            return isIdentity ? '' : `_${info.assembly.operId}`;
         }
 
         if (typeof info.spgrOp !== 'undefined' && typeof info.hkl !== 'undefined' && info.spgrOp !== -1) {
