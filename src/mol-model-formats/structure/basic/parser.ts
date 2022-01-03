@@ -24,7 +24,7 @@ import { getModelGroupName } from './util';
 import { ArrayTrajectory } from '../../../mol-model/structure/trajectory';
 
 export async function createModels(data: BasicData, format: ModelFormat, ctx: RuntimeContext) {
-    const properties = getProperties(data);
+    const properties = getProperties(data, format);
     const models = data.ihm_model_list._rowCount > 0
         ? await readIntegrative(ctx, data, properties, format)
         : await readStandard(ctx, data, properties, format);

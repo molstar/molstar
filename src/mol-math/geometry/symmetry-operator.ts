@@ -52,7 +52,7 @@ namespace SymmetryOperator {
     export const RotationTranslationEpsilon = 0.005;
 
     export type CreateInfo = { assembly?: SymmetryOperator['assembly'], ncsId?: number, hkl?: Vec3, spgrOp?: number }
-    export function create(name: string, matrix: Mat4, info?: CreateInfo): SymmetryOperator {
+    export function create(name: string, matrix: Mat4, info?: CreateInfo | SymmetryOperator): SymmetryOperator {
         let { assembly, ncsId, hkl, spgrOp } = info || { };
         const _hkl = hkl ? Vec3.clone(hkl) : Vec3();
         spgrOp = defaults(spgrOp, -1);
@@ -66,10 +66,15 @@ namespace SymmetryOperator {
         return { name, assembly, matrix, inverse: Mat4.invert(Mat4(), matrix), isIdentity: false, hkl: _hkl, spgrOp, ncsId, suffix };
     }
 
-    function getSuffix(info?: CreateInfo, isIdentity?: boolean) {
+    function isSymmetryOperator(x: any): x is SymmetryOperator {
+        return !!x && !!x.matrix && !!x.inverse && typeof x.name === 'string';
+    }
+
+    function getSuffix(info?: CreateInfo | SymmetryOperator, isIdentity?: boolean) {
         if (!info) return '';
 
         if (info.assembly) {
+            if (isSymmetryOperator(info)) return info.suffix;
             return isIdentity ? '' : `_${info.assembly.operId}`;
         }
 

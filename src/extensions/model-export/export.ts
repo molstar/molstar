@@ -28,7 +28,7 @@ async function _exportHierarchy(plugin: PluginContext, options?: { format?: 'cif
     const entryMap = new Map<string, number>();
 
     for (const _s of structures) {
-        const s = _s.cell.obj?.data;
+        const s = _s.transform?.cell.obj?.data ?? _s.cell.obj?.data;
         if (!s) continue;
         if (s.models.length > 1) {
             plugin.log.warn(`[Export] Skipping ${_s.cell.obj?.label}: Multimodel exports not supported.`);
