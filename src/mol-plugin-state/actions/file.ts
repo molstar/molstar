@@ -7,8 +7,10 @@
 import { PluginContext } from '../../mol-plugin/context';
 import { StateAction } from '../../mol-state';
 import { Task } from '../../mol-task';
+import { Asset } from '../../mol-util/assets';
 import { getFileInfo } from '../../mol-util/file-info';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
+import { unzip } from '../../mol-util/zip/zip';
 import { PluginStateObject } from '../objects';
 
 export const OpenFiles = StateAction.build({
@@ -33,24 +35,37 @@ export const OpenFiles = StateAction.build({
             plugin.log.error('No file(s) selected');
             return;
         }
+
+        const processFile = async (file: Asset.File) => {
+            const info = getFileInfo(file.file!);
+            const isBinary = plugin.dataFormats.binaryExtensions.has(info.ext);
+            const { data } = await plugin.builders.data.readFile({ file, isBinary });
+            const provider = params.format.name === 'auto'
+                ? plugin.dataFormats.auto(info, data.cell?.obj!)
+                : plugin.dataFormats.get(params.format.params);
+
+            if (!provider) {
+                plugin.log.warn(`OpenFiles: could not find data provider for '${info.name}.${info.ext}'`);
+                return;
+            }
+
+            // need to await so that the enclosing Task finishes after the update is done.
+            const parsed = await provider.parse(plugin, data);
+            if (params.visuals) {
+                await provider.visuals?.(plugin, parsed);
+            }
+        };
+
         for (const file of params.files) {
             try {
-                const info = getFileInfo(file.file!);
-                const isBinary = plugin.dataFormats.binaryExtensions.has(info.ext);
-                const { data } = await plugin.builders.data.readFile({ file, isBinary });
-                const provider = params.format.name === 'auto'
-                    ? plugin.dataFormats.auto(info, data.cell?.obj!)
-                    : plugin.dataFormats.get(params.format.params);
-
-                if (!provider) {
-                    plugin.log.warn(`OpenFiles: could not find data provider for '${info.name}.${info.ext}'`);
-                    continue;
-                }
-
-                // need to await so that the enclosing Task finishes after the update is done.
-                const parsed = await provider.parse(plugin, data);
-                if (params.visuals) {
-                    await provider.visuals?.(plugin, parsed);
+                if (file.file && file.name.toLowerCase().endsWith('.zip')) {
+                    const zippedFiles = await unzip(taskCtx, await file.file.arrayBuffer());
+                    for (const [fn, filedata] of Object.entries(zippedFiles)) {
+                        const asset = Asset.File(new File([filedata as Uint8Array], fn));
+                        await processFile(asset);
+                    }
+                } else {
+                    await processFile(file);
                 }
             } catch (e) {
                 console.error(e);
