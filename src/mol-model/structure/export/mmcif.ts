@@ -53,7 +53,7 @@ function isWithoutSymmetry(structure: Structure) {
 }
 
 function isWithoutOperator(structure: Structure) {
-    return isWithoutSymmetry(structure) && structure.units.every(u => !u.conformation.operator.suffix);
+    return isWithoutSymmetry(structure) && structure.units.every(u => !u.conformation.operator.assembly && !u.conformation.operator.suffix);
 }
 
 const Categories = [
