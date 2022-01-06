@@ -3,6 +3,7 @@
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Panagiotis Tourlas <panagiot_tourlov@hotmail.com>
  */
 
 import { Column, Table } from '../../mol-data/db';
@@ -45,7 +46,7 @@ export async function getMolModels(mol: MolFile, format: ModelFormat<any> | unde
         type_symbol,
 
         pdbx_PDB_model_num: Column.ofConst(1, atoms.count, Column.Schema.int),
-        pdbx_formal_charge: Column.range(-1, 1)
+        pdbx_formal_charge: Column.asArrayColumn(atoms.formal_charge)
     }, atoms.count);
 
     const entityBuilder = new EntityBuilder();
