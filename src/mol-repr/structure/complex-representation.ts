@@ -84,7 +84,7 @@ export function ComplexRepresentation<P extends StructureParams>(label: string, 
             if (!Structure.areRootsEquivalent(loci.structure, _structure)) return false;
             // Remap `loci` from equivalent structure to the current `_structure`
             loci = Loci.remap(loci, _structure);
-            if (StructureElement.Loci.is(loci) && StructureElement.Loci.isWholeStructure(loci)) {
+            if (Structure.isLoci(loci) || (StructureElement.Loci.is(loci) && StructureElement.Loci.isWholeStructure(loci))) {
                 // Change to `EveryLoci` to allow for downstream optimizations
                 loci = EveryLoci;
             }

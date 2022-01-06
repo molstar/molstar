@@ -6,6 +6,23 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Add PDBj as a pdb-provider option
+
+## [v3.0.0-dev.8] - 2021-12-31
+
+- Add ``PluginFeatureDetection`` and disable WBOIT in Safari 15.
+- Add ``disable-wboit`` Viewer GET param
+- Add ``prefer-webgl1`` Viewer GET param
+- [Breaking] Refactor direct-volume rendering
+    - Remove isosurface render-mode (use GPU MC instead)
+    - Move coloring into theme (like for other geometries/renderables)
+        - Add ``direct`` color type
+        - Remove color from transfer-function (now only alpha)
+        - Add direct-volume color theme support
+        - Add volume-value color theme
+- [Breaking] Use size theme in molecular/gaussian surface & label representations
+    - This is breaking because it was hardcoded to ``physical`` internally but the repr size theme default was ``uniform`` (now ``physical``)
+
 ## [v3.0.0-dev.7] - 2021-12-20
 
 - Reduce number of created programs/shaders

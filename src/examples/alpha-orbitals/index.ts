@@ -97,7 +97,7 @@ export class AlphaOrbitalsExample {
     }
 
     readonly params = new BehaviorSubject<ParamDefinition.For<Params>>({} as any);
-    readonly state = new BehaviorSubject<Params>({ show: { name: 'orbital', params: { index: 32 } }, isoValue: 1, gpuSurface: false });
+    readonly state = new BehaviorSubject<Params>({ show: { name: 'orbital', params: { index: 32 } }, isoValue: 1, gpuSurface: true });
 
     private selectors?: Selectors = void 0;
     private basis?: StateObjectSelector<BasisAndOrbitals> = void 0;

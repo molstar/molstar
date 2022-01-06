@@ -47,12 +47,19 @@ export function getMarkersAverage(array: Uint8Array, count: number): number {
     const backStart = 4 * viewEnd;
 
     let sum = 0;
-    for (let i = 0; i < viewEnd; ++i) {
-        const v = view[i];
-        sum += MarkerCountLut[v & 0xFFFF] + MarkerCountLut[v >> 16];
-    }
-    for (let i = backStart; i < count; ++i) {
-        sum += array[i] && 1;
+    if (viewEnd < 0) {
+        // avoid edge cases with small arrays
+        for (let i = 0; i < count; ++i) {
+            sum += array[i] && 1;
+        }
+    } else {
+        for (let i = 0; i < viewEnd; ++i) {
+            const v = view[i];
+            sum += MarkerCountLut[v & 0xFFFF] + MarkerCountLut[v >> 16];
+        }
+        for (let i = backStart; i < count; ++i) {
+            sum += array[i] && 1;
+        }
     }
     return sum / count;
 }

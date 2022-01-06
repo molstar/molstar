@@ -120,7 +120,7 @@ const StructureRepresentation3D = PluginStateTransform.BuiltIn({
             ),
             sizeTheme: PD.Mapped<any>(
                 type.defaultSizeTheme.name,
-                themeCtx.sizeThemeRegistry.types,
+                themeCtx.sizeThemeRegistry.getApplicableTypes(dataCtx),
                 name => PD.Group<any>(themeCtx.sizeThemeRegistry.get(name).getParams(dataCtx))
             )
         });
@@ -823,7 +823,7 @@ const VolumeRepresentation3D = PluginStateTransform.BuiltIn({
             ),
             sizeTheme: PD.Mapped<any>(
                 type.defaultSizeTheme.name,
-                themeCtx.sizeThemeRegistry.types,
+                themeCtx.sizeThemeRegistry.getApplicableTypes(dataCtx),
                 name => PD.Group<any>(themeCtx.sizeThemeRegistry.get(name).getParams(dataCtx))
             )
         });

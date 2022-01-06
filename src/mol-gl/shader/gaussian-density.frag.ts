@@ -51,7 +51,7 @@ void main() {
         #endif
         if (dist * uRadiusFactorInv > minDistance + uResolution * 0.05)
             discard;
-        gl_FragColor.rgb = encodeFloatRGB(vGroup);
+        gl_FragColor.rgb = packIntToRGB(vGroup);
     #endif
 }
 `;

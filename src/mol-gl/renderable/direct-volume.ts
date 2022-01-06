@@ -17,12 +17,6 @@ export const DirectVolumeSchema = {
     aPosition: AttributeSpec('float32', 3, 0),
     elements: ElementsSpec('uint32'),
 
-    uColor: UniformSpec('v3'),
-    uColorTexDim: UniformSpec('v2'),
-    tColor: TextureSpec('image-uint8', 'rgb', 'ubyte', 'nearest'),
-    dColorType: DefineSpec('string', ['uniform', 'attribute', 'instance', 'group', 'groupInstance', 'vertex', 'vertexInstance']),
-
-    uIsoValue: UniformSpec('v2'),
     uBboxMin: UniformSpec('v3'),
     uBboxMax: UniformSpec('v3'),
     uBboxSize: UniformSpec('v3'),
@@ -31,9 +25,7 @@ export const DirectVolumeSchema = {
     uJumpLength: UniformSpec('f'),
     uTransform: UniformSpec('m4'),
     uGridDim: UniformSpec('v3'),
-    dRenderMode: DefineSpec('string', ['isosurface', 'volume']),
-    dSingleLayer: DefineSpec('boolean'),
-    tTransferTex: TextureSpec('image-uint8', 'rgba', 'ubyte', 'linear'),
+    tTransferTex: TextureSpec('image-uint8', 'alpha', 'ubyte', 'linear'),
     uTransferScale: UniformSpec('f'),
 
     dGridTexType: DefineSpec('string', ['2d', '3d']),
@@ -45,10 +37,8 @@ export const DirectVolumeSchema = {
     uCartnToUnit: UniformSpec('m4'),
     uUnitToCartn: UniformSpec('m4'),
     dPackedGroup: DefineSpec('boolean'),
+    dAxisOrder: DefineSpec('string', ['012', '021', '102', '120', '201', '210']),
 
-    uDoubleSided: UniformSpec('b'),
-    dFlipSided: DefineSpec('boolean'),
-    dFlatShaded: DefineSpec('boolean'),
     dIgnoreLight: DefineSpec('boolean'),
     dXrayShaded: DefineSpec('boolean'),
 };

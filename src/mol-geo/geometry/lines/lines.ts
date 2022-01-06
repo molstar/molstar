@@ -220,6 +220,8 @@ export namespace Lines {
         const boundingSphere = calculateTransformBoundingSphere(invariantBoundingSphere, transform.aTransform.ref.value, instanceCount);
 
         return {
+            dGeometryType: ValueCell.create('lines'),
+
             aMapping: lines.mappingBuffer,
             aGroup: lines.groupBuffer,
             aStart: lines.startBuffer,

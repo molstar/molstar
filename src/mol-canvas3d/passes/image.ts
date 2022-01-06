@@ -83,11 +83,12 @@ export class ImagePass {
         Viewport.set(this._camera.viewport, 0, 0, this._width, this._height);
         this._camera.update();
 
+        const ctx = { renderer: this.renderer, camera: this._camera, scene: this.scene, helper: this.helper };
         if (MultiSamplePass.isEnabled(this.props.multiSample)) {
-            this.multiSampleHelper.render(this.renderer, this._camera, this.scene, this.helper, false, this.props.transparentBackground, this.props);
+            this.multiSampleHelper.render(ctx, this.props, false);
             this._colorTarget = this.multiSamplePass.colorTarget;
         } else {
-            this.drawPass.render(this.renderer, this._camera, this.scene, this.helper, false, this.props.transparentBackground, this.props.postprocessing, this.props.marking);
+            this.drawPass.render(ctx, this.props, false);
             this._colorTarget = this.drawPass.getColorTarget(this.props.postprocessing);
         }
     }

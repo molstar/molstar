@@ -15,7 +15,7 @@ import { LocationColor, ColorTheme } from '../../mol-theme/color';
 import { Geometry } from './geometry';
 import { createNullTexture, Texture } from '../../mol-gl/webgl/texture';
 
-export type ColorType = 'uniform' | 'instance' | 'group' | 'groupInstance' | 'vertex' | 'vertexInstance' | 'volume' | 'volumeInstance'
+export type ColorType = 'uniform' | 'instance' | 'group' | 'groupInstance' | 'vertex' | 'vertexInstance' | 'volume' | 'volumeInstance' | 'direct'
 
 export type ColorData = {
     uColor: ValueCell<Vec3>,
@@ -50,6 +50,7 @@ function _createColors(locationIt: LocationIterator, positionIt: LocationIterato
         case 'vertexInstance': return createVertexInstanceColor(positionIt, colorTheme.color, colorData);
         case 'volume': return createGridColor((colorTheme as any).grid, 'volume', colorData);
         case 'volumeInstance': return createGridColor((colorTheme as any).grid, 'volumeInstance', colorData);
+        case 'direct': return createDirectColor(colorData);
     }
 }
 
@@ -233,6 +234,28 @@ export function createGridColor(grid: ColorVolume, type: ColorType, colorData?: 
             uColorGridDim: ValueCell.create(Vec3.clone(dimension)),
             uColorGridTransform: ValueCell.create(Vec4.clone(transform)),
             dColorType: ValueCell.create(type),
+            dUsePalette: ValueCell.create(false),
+        };
+    }
+}
+
+//
+
+/** Creates direct color */
+function createDirectColor(colorData?: ColorData): ColorData {
+    if (colorData) {
+        ValueCell.updateIfChanged(colorData.dColorType, 'direct');
+        return colorData;
+    } else {
+        return {
+            uColor: ValueCell.create(Vec3()),
+            tColor: ValueCell.create({ array: new Uint8Array(3), width: 1, height: 1 }),
+            tColorGrid: ValueCell.create(createNullTexture()),
+            tPalette: ValueCell.create({ array: new Uint8Array(3), width: 1, height: 1 }),
+            uColorTexDim: ValueCell.create(Vec2.create(1, 1)),
+            uColorGridDim: ValueCell.create(Vec3.create(1, 1, 1)),
+            uColorGridTransform: ValueCell.create(Vec4.create(0, 0, 0, 1)),
+            dColorType: ValueCell.create('direct'),
             dUsePalette: ValueCell.create(false),
         };
     }

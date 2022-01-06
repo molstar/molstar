@@ -48,7 +48,8 @@ export function createDirectVolume2d(ctx: RuntimeContext, webgl: WebGLContext, v
     texture.load(textureImage);
 
     const { unitToCartn, cellDim } = getUnitToCartn(volume.grid);
-    return DirectVolume.create(bbox, gridDimension, transform, unitToCartn, cellDim, texture, volume.grid.stats, false, directVolume);
+    const axisOrder = volume.grid.cells.space.axisOrderSlowToFast as Vec3;
+    return DirectVolume.create(bbox, gridDimension, transform, unitToCartn, cellDim, texture, volume.grid.stats, false, axisOrder, directVolume);
 }
 
 // 3d volume texture
@@ -89,7 +90,8 @@ export function createDirectVolume3d(ctx: RuntimeContext, webgl: WebGLContext, v
     texture.load(textureVolume);
 
     const { unitToCartn, cellDim } = getUnitToCartn(volume.grid);
-    return DirectVolume.create(bbox, gridDimension, transform, unitToCartn, cellDim, texture, volume.grid.stats, false, directVolume);
+    const axisOrder = volume.grid.cells.space.axisOrderSlowToFast as Vec3;
+    return DirectVolume.create(bbox, gridDimension, transform, unitToCartn, cellDim, texture, volume.grid.stats, false, axisOrder, directVolume);
 }
 
 //
@@ -104,9 +106,7 @@ export async function createDirectVolume(ctx: VisualContext, volume: Volume, the
 }
 
 function getLoci(volume: Volume, props: PD.Values<DirectVolumeParams>) {
-    return props.renderMode.name === 'isosurface'
-        ? Volume.Isosurface.Loci(volume, props.renderMode.params.isoValue)
-        : Volume.Loci(volume);
+    return Volume.Loci(volume);
 }
 
 export function getDirectVolumeLoci(pickingId: PickingId, volume: Volume, props: DirectVolumeProps, id: number) {
@@ -118,9 +118,7 @@ export function getDirectVolumeLoci(pickingId: PickingId, volume: Volume, props:
 }
 
 export function eachDirectVolume(loci: Loci, volume: Volume, props: DirectVolumeProps, apply: (interval: Interval) => boolean) {
-    const isoValue = props.renderMode.name === 'isosurface'
-        ? props.renderMode.params.isoValue : undefined;
-    return eachVolumeLoci(loci, volume, isoValue, apply);
+    return eachVolumeLoci(loci, volume, undefined, apply);
 }
 
 //
@@ -131,9 +129,7 @@ export const DirectVolumeParams = {
 };
 export type DirectVolumeParams = typeof DirectVolumeParams
 export function getDirectVolumeParams(ctx: ThemeRegistryContext, volume: Volume) {
-    const p = PD.clone(DirectVolumeParams);
-    p.renderMode = DirectVolume.createRenderModeParam(volume.grid.stats);
-    return p;
+    return PD.clone(DirectVolumeParams);
 }
 export type DirectVolumeProps = PD.Values<DirectVolumeParams>
 
@@ -164,7 +160,7 @@ export const DirectVolumeRepresentationProvider = VolumeRepresentationProvider({
     factory: DirectVolumeRepresentation,
     getParams: getDirectVolumeParams,
     defaultValues: PD.getDefaultValues(DirectVolumeParams),
-    defaultColorTheme: { name: 'uniform' },
+    defaultColorTheme: { name: 'volume-value' },
     defaultSizeTheme: { name: 'uniform' },
     isApplicable: (volume: Volume) => !Volume.isEmpty(volume)
 });

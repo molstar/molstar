@@ -57,11 +57,11 @@ export const assign_color_varying = `
     #endif
 #elif defined(dRenderVariant_pick)
     if (uPickType == 1) {
-        vColor = vec4(encodeFloatRGB(float(uObjectId)), 1.0);
+        vColor = vec4(packIntToRGB(float(uObjectId)), 1.0);
     } else if (uPickType == 2) {
-        vColor = vec4(encodeFloatRGB(aInstance), 1.0);
+        vColor = vec4(packIntToRGB(aInstance), 1.0);
     } else {
-        vColor = vec4(encodeFloatRGB(group), 1.0);
+        vColor = vec4(packIntToRGB(group), 1.0);
     }
 #endif
 

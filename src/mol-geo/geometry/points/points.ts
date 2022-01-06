@@ -182,6 +182,8 @@ export namespace Points {
         const boundingSphere = calculateTransformBoundingSphere(invariantBoundingSphere, transform.aTransform.ref.value, instanceCount);
 
         return {
+            dGeometryType: ValueCell.create('points'),
+
             aPosition: points.centerBuffer,
             aGroup: points.groupBuffer,
             boundingSphere: ValueCell.create(boundingSphere),

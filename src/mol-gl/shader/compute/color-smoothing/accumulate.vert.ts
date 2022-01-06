@@ -35,7 +35,7 @@ uniform float uResolution;
 
 void main() {
     vec3 position = readFromTexture(tPosition, SampleID, uGeoTexDim).xyz;
-    float group = decodeFloatRGB(readFromTexture(tGroup, SampleID, uGeoTexDim).rgb);
+    float group = unpackRGBToInt(readFromTexture(tGroup, SampleID, uGeoTexDim).rgb);
 
     position = (aTransform * vec4(position, 1.0)).xyz;
     gl_PointSize = 7.0;

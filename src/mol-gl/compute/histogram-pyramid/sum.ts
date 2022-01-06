@@ -11,7 +11,7 @@ import { Values, TextureSpec } from '../../renderable/schema';
 import { Texture } from '../../../mol-gl/webgl/texture';
 import { ShaderCode } from '../../../mol-gl/shader-code';
 import { ValueCell } from '../../../mol-util';
-import { decodeFloatRGB } from '../../../mol-util/float-packing';
+import { unpackRGBToInt } from '../../../mol-util/number-packing';
 import { QuadSchema, QuadValues } from '../util';
 import { quad_vert } from '../../../mol-gl/shader/quad.vert';
 import { sum_frag } from '../../../mol-gl/shader/histogram-pyramid/sum.frag';
@@ -96,5 +96,5 @@ export function getHistopyramidSum(ctx: WebGLContext, pyramidTopTexture: Texture
 
     return isWebGL2(gl)
         ? sumInts[0]
-        : decodeFloatRGB(sumBytes[0], sumBytes[1], sumBytes[2]);
+        : unpackRGBToInt(sumBytes[0], sumBytes[1], sumBytes[2]);
 }

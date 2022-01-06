@@ -19,7 +19,7 @@ import { getUnitExtraRadius } from './util/common';
 
 async function createGaussianWireframe(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: GaussianDensityProps, lines?: Lines): Promise<Lines> {
     const { smoothness } = props;
-    const { transform, field, idField } = await computeUnitGaussianDensity(structure, unit, props).runInContext(ctx.runtime);
+    const { transform, field, idField } = await computeUnitGaussianDensity(structure, unit, theme.size, props).runInContext(ctx.runtime);
 
     const params = {
         isoLevel: Math.exp(-smoothness),
