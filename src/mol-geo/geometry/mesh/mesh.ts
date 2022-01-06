@@ -677,6 +677,8 @@ export namespace Mesh {
         const boundingSphere = calculateTransformBoundingSphere(invariantBoundingSphere, transform.aTransform.ref.value, instanceCount);
 
         return {
+            dGeometryType: ValueCell.create('mesh'),
+
             aPosition: mesh.vertexBuffer,
             aNormal: mesh.normalBuffer,
             aGroup: mesh.groupBuffer,

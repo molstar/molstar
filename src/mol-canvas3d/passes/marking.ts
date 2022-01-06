@@ -22,7 +22,7 @@ import { Color } from '../../mol-util/color';
 import { edge_frag } from '../../mol-gl/shader/marking/edge.frag';
 
 export const MarkingParams = {
-    enabled: PD.Boolean(false),
+    enabled: PD.Boolean(true),
     highlightEdgeColor: PD.Color(Color.darken(Color.fromNormalizedRgb(1.0, 0.4, 0.6), 1.0)),
     selectEdgeColor: PD.Color(Color.darken(Color.fromNormalizedRgb(0.2, 1.0, 0.1), 1.0)),
     edgeScale: PD.Numeric(1, { min: 1, max: 3, step: 1 }, { description: 'Thickness of the edge.' }),

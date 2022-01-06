@@ -9,13 +9,13 @@ import { Mat4, Vec3 } from '../../../../mol-math/linear-algebra';
 import { TransformData, createTransform } from '../../../../mol-geo/geometry/transform-data';
 import { OrderedSet, SortedArray } from '../../../../mol-data/int';
 import { EmptyLoci, Loci } from '../../../../mol-model/loci';
-import { PhysicalSizeTheme } from '../../../../mol-theme/size/physical';
 import { AtomicNumbers } from '../../../../mol-model/structure/model/properties/atomic';
 import { fillSerial } from '../../../../mol-util/array';
 import { ParamDefinition as PD } from '../../../../mol-util/param-definition';
 import { AssignableArrayLike } from '../../../../mol-util/type-helpers';
 import { getBoundary } from '../../../../mol-math/geometry/boundary';
 import { Box3D } from '../../../../mol-math/geometry';
+import { SizeTheme } from '../../../../mol-theme/size';
 
 /** Return a Loci for the elements of a whole residue the elementIndex belongs to. */
 export function getResidueLoci(structure: Structure, unit: Unit.Atomic, elementIndex: ElementIndex): Loci {
@@ -165,7 +165,7 @@ function filterId(id: AssignableArrayLike<number>, elements: SortedArray, indice
     }
 }
 
-export function getUnitConformationAndRadius(structure: Structure, unit: Unit, props: CommonSurfaceProps) {
+export function getUnitConformationAndRadius(structure: Structure, unit: Unit, sizeTheme: SizeTheme<any>, props: CommonSurfaceProps) {
     const { ignoreHydrogens, traceOnly, includeParent } = props;
     const rootUnit = includeParent ? structure.root.unitMap.get(unit.id) : unit;
 
@@ -205,7 +205,6 @@ export function getUnitConformationAndRadius(structure: Structure, unit: Unit, p
     const boundary = unit === rootUnit ? unit.boundary : getBoundary(position);
 
     const l = StructureElement.Location.create(structure, rootUnit);
-    const sizeTheme = PhysicalSizeTheme({}, { scale: 1 });
     const radius = (index: number) => {
         l.element = index as ElementIndex;
         return sizeTheme.size(l);
@@ -214,9 +213,8 @@ export function getUnitConformationAndRadius(structure: Structure, unit: Unit, p
     return { position, boundary, radius };
 }
 
-export function getStructureConformationAndRadius(structure: Structure, ignoreHydrogens: boolean, traceOnly: boolean) {
+export function getStructureConformationAndRadius(structure: Structure, sizeTheme: SizeTheme<any>, ignoreHydrogens: boolean, traceOnly: boolean) {
     const l = StructureElement.Location.create(structure);
-    const sizeTheme = PhysicalSizeTheme({}, { scale: 1 });
 
     let xs: ArrayLike<number>;
     let ys: ArrayLike<number>;

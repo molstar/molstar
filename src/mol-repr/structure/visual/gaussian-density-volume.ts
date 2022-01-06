@@ -25,14 +25,14 @@ async function createGaussianDensityVolume(ctx: VisualContext, structure: Struct
     }
 
     const oldTexture = directVolume ? directVolume.gridTexture.ref.value : undefined;
-    const densityTextureData = await computeStructureGaussianDensityTexture(structure, props, webgl, oldTexture).runInContext(runtime);
+    const densityTextureData = await computeStructureGaussianDensityTexture(structure, theme.size, props, webgl, oldTexture).runInContext(runtime);
     const { transform, texture, bbox, gridDim } = densityTextureData;
     const stats = { min: 0, max: 1, mean: 0.04, sigma: 0.01 };
 
     const unitToCartn = Mat4.mul(Mat4(), transform, Mat4.fromScaling(Mat4(), gridDim));
     const cellDim = Mat4.getScaling(Vec3(), transform);
-
-    const vol = DirectVolume.create(bbox, gridDim, transform, unitToCartn, cellDim, texture, stats, true, directVolume);
+    const axisOrder = Vec3.create(0, 1, 2);
+    const vol = DirectVolume.create(bbox, gridDim, transform, unitToCartn, cellDim, texture, stats, true, axisOrder, directVolume);
 
     const sphere = Sphere3D.expand(Sphere3D(), structure.boundary.sphere, props.radiusOffset + getStructureExtraRadius(structure));
     vol.setBoundingSphere(sphere);
@@ -81,14 +81,14 @@ async function createUnitsGaussianDensityVolume(ctx: VisualContext, unit: Unit, 
     }
 
     const oldTexture = directVolume ? directVolume.gridTexture.ref.value : undefined;
-    const densityTextureData = await computeUnitGaussianDensityTexture(structure, unit, props, webgl, oldTexture).runInContext(runtime);
+    const densityTextureData = await computeUnitGaussianDensityTexture(structure, unit, theme.size, props, webgl, oldTexture).runInContext(runtime);
     const { transform, texture, bbox, gridDim } = densityTextureData;
     const stats = { min: 0, max: 1, mean: 0.04, sigma: 0.01 };
 
     const unitToCartn = Mat4.mul(Mat4(), transform, Mat4.fromScaling(Mat4(), gridDim));
     const cellDim = Mat4.getScaling(Vec3(), transform);
-
-    const vol = DirectVolume.create(bbox, gridDim, transform, unitToCartn, cellDim, texture, stats, true, directVolume);
+    const axisOrder = Vec3.create(0, 1, 2);
+    const vol = DirectVolume.create(bbox, gridDim, transform, unitToCartn, cellDim, texture, stats, true, axisOrder, directVolume);
 
     const sphere = Sphere3D.expand(Sphere3D(), unit.boundary.sphere, props.radiusOffset + getUnitExtraRadius(unit));
     vol.setBoundingSphere(sphere);

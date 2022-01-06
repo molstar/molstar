@@ -43,6 +43,10 @@ function gpuSupport(webgl: WebGLContext) {
 const Padding = 1;
 
 function suitableForGpu(volume: Volume, webgl: WebGLContext) {
+    // small volumes are about as fast or faster on CPU vs integrated GPU
+    if (volume.grid.cells.data.length < Math.pow(10, 3)) return false;
+    // the GPU is much more memory contraint, especially true for integrated GPUs,
+    // fallback to CPU for large volumes
     const gridDim = volume.grid.cells.space.dimensions as Vec3;
     const { powerOfTwoSize } = getVolumeTexture2dLayout(gridDim, Padding);
     return powerOfTwoSize <= webgl.maxTextureSize / 2;
@@ -131,7 +135,6 @@ namespace VolumeIsosurfaceTexture {
     export function get(volume: Volume, webgl: WebGLContext) {
         const { resources } = webgl;
 
-
         const transform = Grid.getGridToCartesianTransform(volume.grid);
         const gridDimension = Vec3.clone(volume.grid.cells.space.dimensions as Vec3);
         const { width, height, powerOfTwoSize: texDim } = getVolumeTexture2dLayout(gridDimension, Padding);
@@ -169,6 +172,10 @@ namespace VolumeIsosurfaceTexture {
 async function createVolumeIsosurfaceTextureMesh(ctx: VisualContext, volume: Volume, theme: Theme, props: VolumeIsosurfaceProps, textureMesh?: TextureMesh) {
     if (!ctx.webgl) throw new Error('webgl context required to create volume isosurface texture-mesh');
 
+    if (volume.grid.cells.data.length <= 1) {
+        return TextureMesh.createEmpty(textureMesh);
+    }
+
     const { max, min } = volume.grid.stats;
     const diff = max - min;
     const value = Volume.IsoValue.toAbsolute(props.isoValue, volume.grid.stats).absoluteValue;
@@ -176,8 +183,9 @@ async function createVolumeIsosurfaceTextureMesh(ctx: VisualContext, volume: Vol
 
     const { texture, gridDimension, gridTexDim, gridTexScale, transform } = VolumeIsosurfaceTexture.get(volume, ctx.webgl);
 
+    const axisOrder = volume.grid.cells.space.axisOrderSlowToFast as Vec3;
     const buffer = textureMesh?.doubleBuffer.get();
-    const gv = extractIsosurface(ctx.webgl, texture, gridDimension, gridTexDim, gridTexScale, transform, isoLevel, value < 0, false, buffer?.vertex, buffer?.group, buffer?.normal);
+    const gv = extractIsosurface(ctx.webgl, texture, gridDimension, gridTexDim, gridTexScale, transform, isoLevel, value < 0, false, axisOrder, buffer?.vertex, buffer?.group, buffer?.normal);
 
     const surface = TextureMesh.create(gv.vertexCount, 1, gv.vertexTexture, gv.groupTexture, gv.normalTexture, Volume.getBoundingSphere(volume), textureMesh);
 

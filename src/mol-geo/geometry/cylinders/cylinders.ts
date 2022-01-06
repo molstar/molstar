@@ -213,6 +213,8 @@ export namespace Cylinders {
         const boundingSphere = calculateTransformBoundingSphere(invariantBoundingSphere, transform.aTransform.ref.value, instanceCount);
 
         return {
+            dGeometryType: ValueCell.create('cylinders'),
+
             aMapping: cylinders.mappingBuffer,
             aGroup: cylinders.groupBuffer,
             aStart: cylinders.startBuffer,

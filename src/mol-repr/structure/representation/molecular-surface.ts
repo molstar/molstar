@@ -43,6 +43,6 @@ export const MolecularSurfaceRepresentationProvider = StructureRepresentationPro
     getParams: getMolecularSurfaceParams,
     defaultValues: PD.getDefaultValues(MolecularSurfaceParams),
     defaultColorTheme: { name: 'chain-id' },
-    defaultSizeTheme: { name: 'uniform' },
+    defaultSizeTheme: { name: 'physical' },
     isApplicable: (structure: Structure) => structure.elementCount > 0
 });

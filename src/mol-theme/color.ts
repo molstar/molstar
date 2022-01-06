@@ -36,6 +36,7 @@ import { PartialChargeColorThemeProvider } from './color/partial-charge';
 import { AtomIdColorThemeProvider } from './color/atom-id';
 import { EntityIdColorThemeProvider } from './color/entity-id';
 import { TextureFilter } from '../mol-gl/webgl/texture';
+import { VolumeValueColorThemeProvider } from './color/volume-value';
 
 export type LocationColor = (location: Location, isSecondary: boolean) => Color
 
@@ -120,6 +121,7 @@ namespace ColorTheme {
         'uncertainty': UncertaintyColorThemeProvider,
         'unit-index': UnitIndexColorThemeProvider,
         'uniform': UniformColorThemeProvider,
+        'volume-value': VolumeValueColorThemeProvider,
     };
     type _BuiltIn = typeof BuiltIn
     export type BuiltIn = keyof _BuiltIn

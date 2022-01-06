@@ -105,9 +105,9 @@ void main() {
         if (imageData.a < 0.3)
             discard;
         if (uPickType == 1) {
-            gl_FragColor = vec4(encodeFloatRGB(float(uObjectId)), 1.0);
+            gl_FragColor = vec4(packIntToRGB(float(uObjectId)), 1.0);
         } else if (uPickType == 2) {
-            gl_FragColor = vec4(encodeFloatRGB(vInstance), 1.0);
+            gl_FragColor = vec4(packIntToRGB(vInstance), 1.0);
         } else {
             gl_FragColor = vec4(texture2D(tGroupTex, vUv).rgb, 1.0);
         }
@@ -118,7 +118,7 @@ void main() {
     #elif defined(dRenderVariant_marking)
         float marker = uMarker;
         if (uMarker == -1.0) {
-            float group = decodeFloatRGB(texture2D(tGroupTex, vUv).rgb);
+            float group = unpackRGBToInt(texture2D(tGroupTex, vUv).rgb);
             marker = readFromTexture(tMarker, vInstance * float(uGroupCount) + group, uMarkerTexDim).a;
             marker = floor(marker * 255.0 + 0.5); // rounding required to work on some cards on win
         }
@@ -144,7 +144,7 @@ void main() {
 
         float marker = uMarker;
         if (uMarker == -1.0) {
-            float group = decodeFloatRGB(texture2D(tGroupTex, vUv).rgb);
+            float group = unpackRGBToInt(texture2D(tGroupTex, vUv).rgb);
             marker = readFromTexture(tMarker, vInstance * float(uGroupCount) + group, uMarkerTexDim).a;
             marker = floor(marker * 255.0 + 0.5); // rounding required to work on some cards on win
         }

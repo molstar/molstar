@@ -18,7 +18,7 @@ export const wboit_write = `
             float wboitWeight = alpha * clamp(pow(1.0 - fragmentDepth, 2.0), 0.01, 1.0);
             gl_FragColor = vec4(gl_FragColor.rgb * alpha * wboitWeight, alpha);
             // extra alpha is to handle pre-multiplied alpha
-            #if !defined(dRenderMode_volume) && !defined(dRenderMode_isosurface)
+            #ifndef dGeometryType_directVolume
                 gl_FragData[1] = vec4((uTransparentBackground ? alpha : 1.0) * alpha * wboitWeight);
             #else
                 gl_FragData[1] = vec4(alpha * alpha * wboitWeight);

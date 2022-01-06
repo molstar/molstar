@@ -183,6 +183,8 @@ export namespace Spheres {
         const boundingSphere = calculateTransformBoundingSphere(invariantBoundingSphere, transform.aTransform.ref.value, instanceCount);
 
         return {
+            dGeometryType: ValueCell.create('spheres'),
+
             aPosition: spheres.centerBuffer,
             aMapping: spheres.mappingBuffer,
             aGroup: spheres.groupBuffer,

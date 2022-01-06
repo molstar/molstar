@@ -16,7 +16,6 @@ import { ComplexTextVisual, ComplexTextParams, ComplexVisual } from '../complex-
 import { ElementIterator, getSerialElementLoci, eachSerialElement } from './util/element';
 import { ColorNames } from '../../../mol-util/color/names';
 import { Vec3 } from '../../../mol-math/linear-algebra';
-import { PhysicalSizeTheme } from '../../../mol-theme/size/physical';
 import { BoundaryHelper } from '../../../mol-math/geometry/boundary-helper';
 
 export const LabelTextParams = {
@@ -151,7 +150,7 @@ function createElementText(ctx: VisualContext, structure: Structure, theme: Them
     const { label_atom_id, label_alt_id } = StructureProperties.atom;
     const { cumulativeUnitElementCount } = serialMapping;
 
-    const sizeTheme = PhysicalSizeTheme({}, { scale: 1 });
+    const sizeTheme = theme.size;
 
     const count = structure.elementCount;
     const { elementScale } = props;

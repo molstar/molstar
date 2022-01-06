@@ -19,6 +19,7 @@ import { CustomModelProperties, CustomStructureProperties, TrajectoryFromModelAn
 import { Asset } from '../../mol-util/assets';
 import { PluginConfig } from '../../mol-plugin/config';
 import { getFileInfo } from '../../mol-util/file-info';
+import { assertUnreachable } from '../../mol-util/type-helpers';
 
 const DownloadModelRepresentationOptions = (plugin: PluginContext) => {
     const representationDefault = plugin.config.get(PluginConfig.Structure.DefaultRepresentationPreset) || PresetStructureRepresentations.auto.id;
@@ -39,6 +40,7 @@ export const PdbDownloadProvider = {
     'pdbe': PD.Group({
         variant: PD.Select('updated-bcif', [['updated-bcif', 'Updated (bcif)'], ['updated', 'Updated'], ['archival', 'Archival']] as ['updated' | 'updtaed-bcif' | 'archival', string][]),
     }, { label: 'PDBe', isFlat: true }),
+    'pdbj': PD.EmptyGroup({ label: 'PDBj' }),
 };
 export type PdbDownloadProvider = keyof typeof PdbDownloadProvider;
 
@@ -104,15 +106,14 @@ const DownloadStructure = StateAction.build({
             format = src.params.format;
             break;
         case 'pdb':
-            downloadParams = await (src.params.provider.server.name === 'pdbe'
-                ? src.params.provider.server.params.variant === 'updated'
-                    ? getDownloadParams(src.params.provider.id, id => `https://www.ebi.ac.uk/pdbe/static/entry/${id.toLowerCase()}_updated.cif`, id => `PDBe: ${id} (updated cif)`, false)
-                    : src.params.provider.server.params.variant === 'updated-bcif'
-                        ? getDownloadParams(src.params.provider.id, id => `https://www.ebi.ac.uk/pdbe/entry-files/download/${id.toLowerCase()}.bcif`, id => `PDBe: ${id} (updated cif)`, true)
-                        : getDownloadParams(src.params.provider.id, id => `https://www.ebi.ac.uk/pdbe/static/entry/${id.toLowerCase()}.cif`, id => `PDBe: ${id} (cif)`, false)
-                : src.params.provider.server.params.encoding === 'cif'
-                    ? getDownloadParams(src.params.provider.id, id => `https://files.rcsb.org/download/${id.toUpperCase()}.cif`, id => `RCSB: ${id} (cif)`, false)
-                    : getDownloadParams(src.params.provider.id, id => `https://models.rcsb.org/${id.toUpperCase()}.bcif`, id => `RCSB: ${id} (bcif)`, true)
+            downloadParams = await (
+                src.params.provider.server.name === 'pdbe'
+                    ? getPdbeDownloadParams(src)
+                    : src.params.provider.server.name === 'pdbj'
+                        ? getPdbjDownloadParams(src)
+                        : src.params.provider.server.name === 'rcsb'
+                            ? getRcsbDownloadParams(src)
+                            : assertUnreachable(src as never)
             );
             asTrajectory = !!src.params.options.asTrajectory;
             break;
@@ -203,6 +204,27 @@ async function getDownloadParams(src: string, url: (id: string) => string | Prom
         ret.push({ url: Asset.Url(await url(id)), isBinary, label: label(id) });
     }
     return ret;
+}
+
+async function getPdbeDownloadParams(src: ReturnType<DownloadStructure['createDefaultParams']>['source']) {
+    if (src.name !== 'pdb' || src.params.provider.server.name !== 'pdbe') throw new Error('expected pdbe');
+    return src.params.provider.server.params.variant === 'updated'
+        ? getDownloadParams(src.params.provider.id, id => `https://www.ebi.ac.uk/pdbe/static/entry/${id.toLowerCase()}_updated.cif`, id => `PDBe: ${id} (updated cif)`, false)
+        : src.params.provider.server.params.variant === 'updated-bcif'
+            ? getDownloadParams(src.params.provider.id, id => `https://www.ebi.ac.uk/pdbe/entry-files/download/${id.toLowerCase()}.bcif`, id => `PDBe: ${id} (updated cif)`, true)
+            : getDownloadParams(src.params.provider.id, id => `https://www.ebi.ac.uk/pdbe/static/entry/${id.toLowerCase()}.cif`, id => `PDBe: ${id} (cif)`, false);
+}
+
+async function getPdbjDownloadParams(src: ReturnType<DownloadStructure['createDefaultParams']>['source']) {
+    if (src.name !== 'pdb' || src.params.provider.server.name !== 'pdbj') throw new Error('expected pdbj');
+    return getDownloadParams(src.params.provider.id, id => `https://data.pdbjbk1.pdbj.org/pub/pdb/data/structures/divided/mmCIF/${id.toLowerCase().substring(1, 3)}/${id.toLowerCase()}.cif`, id => `PDBj: ${id} (cif)`, false);
+}
+
+async function getRcsbDownloadParams(src: ReturnType<DownloadStructure['createDefaultParams']>['source']) {
+    if (src.name !== 'pdb' || src.params.provider.server.name !== 'rcsb') throw new Error('expected rcsb');
+    return src.params.provider.server.params.encoding === 'cif'
+        ? getDownloadParams(src.params.provider.id, id => `https://files.rcsb.org/download/${id.toUpperCase()}.cif`, id => `RCSB PDB: ${id} (cif)`, false)
+        : getDownloadParams(src.params.provider.id, id => `https://models.rcsb.org/${id.toUpperCase()}.bcif`, id => `RCSB PDB: ${id} (bcif)`, true);
 }
 
 export const UpdateTrajectory = StateAction.build({
