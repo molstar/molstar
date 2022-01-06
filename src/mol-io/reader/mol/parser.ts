@@ -11,16 +11,6 @@ import { TokenColumnProvider as TokenColumn } from '../common/text/column/token'
 import { TokenBuilder, Tokenizer } from '../common/text/tokenizer';
 import { ReaderResult as Result } from '../result';
 
-const chargemap = {
-  "7": -3,
-  "6": -2,
-  "5": -1,
-  "0": 0,
-  "3": 1,
-  "2": 2,
-  "1": 3,
-  "4": 0,
-}; // will later use this when assigning charges from the atom block
 
 /** Subset of the MolFile V2000 format */
 export interface MolFile {
@@ -32,7 +22,8 @@ export interface MolFile {
         readonly x: Column<number>,
         readonly y: Column<number>,
         readonly z: Column<number>,
-        readonly type_symbol: Column<string>
+        readonly type_symbol: Column<string>,
+        readonly formal_charge: Column<number>
     },
     readonly bonds: {
         readonly count: number
@@ -46,11 +37,38 @@ export interface MolFile {
     }
 }
 
+/*
+    The atom lines in a .mol file have the following structure:
+
+    xxxxx.xxxxyyyyy.yyyyzzzzz.zzzz aaaddcccssshhhbbbvvvHHHrrriiimmmnnneee
+    ---------------------------------------------------------------------
+
+    Below is a breakdown of each component and its start/end indices:
+
+    xxxxx.xxxx  (X COORDINATE, 1-10)
+    yyyyy.yyyy  (Y COORDINATE, 10-20)
+    zzzzz.zzzz  (Z COORDINATE, 20-30)
+    _           (30 IS EMPTY)
+    aaa         (ATOM SYMBOL, 31-34)
+    dd          (MASS DIFF, 34-36)
+    ccc         (FORMAL CHARGE, 36-39)
+    sss         (ATOM STEREO PARITY, 39-42)
+    hhh         (HYDROGEN COUNT+1, 42-45)
+    bbb         (STEREO CARE BOX, 45-48)
+    vvv         (VALENCE, 48-51)
+    HHH         (H0 DESIGNATOR, 51-54)
+    rrr         (UNUSED, 54-57)
+    iii         (UNUSED, 57-60)
+    mmm         (ATOM-ATOM MAPPING NUMBER, 60-63)
+    nnn         (INVERSION/RETENTION FLAG, 63-66)
+    eee         (EXACT CHANGE FLAG, 66-69)
+*/
 export function handleAtoms(tokenizer: Tokenizer, count: number): MolFile['atoms'] {
     const x = TokenBuilder.create(tokenizer.data, count * 2);
     const y = TokenBuilder.create(tokenizer.data, count * 2);
     const z = TokenBuilder.create(tokenizer.data, count * 2);
     const type_symbol = TokenBuilder.create(tokenizer.data, count * 2);
+    const formal_charge = TokenBuilder.create(tokenizer.data, count * 2);
 
     for (let i = 0; i < count; ++i) {
         Tokenizer.markLine(tokenizer);
@@ -63,6 +81,8 @@ export function handleAtoms(tokenizer: Tokenizer, count: number): MolFile['atoms
         TokenBuilder.addUnchecked(z, tokenizer.tokenStart, tokenizer.tokenEnd);
         Tokenizer.trim(tokenizer, s + 31, s + 34);
         TokenBuilder.addUnchecked(type_symbol, tokenizer.tokenStart, tokenizer.tokenEnd);
+        Tokenizer.trim(tokenizer, s + 36, s + 39);
+        TokenBuilder.addUnchecked(formal_charge, tokenizer.tokenStart, tokenizer.tokenEnd);
         tokenizer.position = position;
     }
 
@@ -71,7 +91,8 @@ export function handleAtoms(tokenizer: Tokenizer, count: number): MolFile['atoms
         x: TokenColumn(x)(Column.Schema.float),
         y: TokenColumn(y)(Column.Schema.float),
         z: TokenColumn(z)(Column.Schema.float),
-        type_symbol: TokenColumn(type_symbol)(Column.Schema.str)
+        type_symbol: TokenColumn(type_symbol)(Column.Schema.str),
+        formal_charge: TokenColumn(formal_charge)(Column.Schema.int)
     };
 }
 
@@ -101,12 +122,12 @@ export function handleBonds(tokenizer: Tokenizer, count: number): MolFile['bonds
 }
 
 
-export function handleFormalCharges(tokenizer: Tokenizer, count: number): MolFile["formalCharges"] {
+export function handleFormalCharges(tokenizer: Tokenizer, count: number): MolFile['formalCharges'] {
     const atomIdx = TokenBuilder.create(tokenizer.data, count * 2);
     const charge = TokenBuilder.create(tokenizer.data, count * 2);
 
     let i = 0;
-    while(i<100){
+    while (i < 100) {
 
         /* An attempt to explain what happens.
             Once handleFormalCharges() is called, the atom and bond sections have
@@ -133,19 +154,16 @@ export function handleFormalCharges(tokenizer: Tokenizer, count: number): MolFil
         const { tokenStart: s } = tokenizer;
 
         Tokenizer.trim(tokenizer, s + 3, s + 6);
-        const propertyType = Tokenizer.getTokenString(tokenizer)
-        
+        const propertyType = Tokenizer.getTokenString(tokenizer);
+
         if (propertyType === 'CHG') {
             Tokenizer.trim(tokenizer, s + 12, s + 15);
             TokenBuilder.addUnchecked(atomIdx, tokenizer.tokenStart, tokenizer.tokenEnd);
-            const index = Tokenizer.getTokenString(tokenizer)
             Tokenizer.trim(tokenizer, s + 15, s + 18);
             TokenBuilder.addUnchecked(charge, tokenizer.tokenStart, tokenizer.tokenEnd);
-            const charg = Tokenizer.getTokenString(tokenizer)
-            console.log(index, charg)
         }
         if (propertyType === 'END') break;
-        i++
+        i++;
     }
 
     return {
