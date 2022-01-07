@@ -143,17 +143,23 @@ export function handleFormalCharges(tokenizer: Tokenizer, lineStart: number): Mo
                 |
                 |___numOfCharges
         */
-        const offset = 11 + (i * 8);
+        const offset = 9 + (i * 8);
 
         Tokenizer.trim(tokenizer, lineStart + offset, lineStart + offset + 4);
         TokenBuilder.addUnchecked(atomIdx, tokenizer.tokenStart, tokenizer.tokenEnd);
         console.log('id', Tokenizer.getTokenString(tokenizer));
 
-        Tokenizer.trim(tokenizer, lineStart + offset + 4, lineStart + offset + 7);
+        Tokenizer.trim(tokenizer, lineStart + offset + 4, lineStart + offset + 8);
         TokenBuilder.addUnchecked(charge, tokenizer.tokenStart, tokenizer.tokenEnd);
         console.log('chg', Tokenizer.getTokenString(tokenizer));
 
     }
+
+    /*
+        Once the line is read, move to the next one.
+        Otherwise the cursor will be one position behind on the next line.
+    */
+    Tokenizer.eatLine(tokenizer);
 
     return {
         atomIdx: TokenColumn(atomIdx)(Column.Schema.int),
@@ -170,11 +176,13 @@ export function handlePropertiesBlock(tokenizer: Tokenizer): MolFile['formalChar
     let formalCharges = null;
 
     let i = 0;
-    while (i < 3) {
+    while (i < 50) { // Added a "big" value to avoid any infinite loops by accident.
         const { position: s } = tokenizer;
 
         Tokenizer.trim(tokenizer, s + 3, s + 6);
         const propertyType = Tokenizer.getTokenString(tokenizer);
+
+        if (propertyType === 'END') break;
         Tokenizer.eatLine(tokenizer);
 
         switch (propertyType) {
@@ -184,7 +192,6 @@ export function handlePropertiesBlock(tokenizer: Tokenizer): MolFile['formalChar
             default:
                 break;
         }
-        if (propertyType === 'END') break;
         i++;
     }
 
