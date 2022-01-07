@@ -34,7 +34,7 @@ export interface MolFile {
     readonly formalCharges: {
         readonly atomIdx: Column<number>;
         readonly charge: Column<number>;
-    }
+    } | null
 }
 
 /*
@@ -122,54 +122,73 @@ export function handleBonds(tokenizer: Tokenizer, count: number): MolFile['bonds
 }
 
 
-export function handleFormalCharges(tokenizer: Tokenizer, count: number): MolFile['formalCharges'] {
-    const atomIdx = TokenBuilder.create(tokenizer.data, count * 2);
-    const charge = TokenBuilder.create(tokenizer.data, count * 2);
+export function handleFormalCharges(tokenizer: Tokenizer, lineStart: number): MolFile['formalCharges'] {
 
-    let i = 0;
-    while (i < 100) {
+    Tokenizer.trim(tokenizer, lineStart + 6, lineStart + 9);
+    const numOfCharges = parseInt(Tokenizer.getTokenString(tokenizer));
+    const atomIdx = TokenBuilder.create(tokenizer.data, numOfCharges * 2);
+    const charge = TokenBuilder.create(tokenizer.data, numOfCharges * 2);
 
-        /* An attempt to explain what happens.
-            Once handleFormalCharges() is called, the atom and bond sections have
-            been parsed. We are now inside the properties block of the file.
-
-            Therefore, the "pointer" of the reader is at position 0:
-            M  CHG  1   2  -1
-            ^
-            Read the property type (positions 3 to 5):
-            M  CHG  1   2  -1
-            ___^^^
-
-            If it's a charge property (CHG) we'll add it to the list of
-            formal charges.
-            We read the characters at positions 12 to 14 (2__),
-            cleanup the spaces/tabs (2) and assign it to atomIdx property of
-            the "MolFile" object.
-            Same for the next triplet at positions 15 to 17.
-            (-1_) becomes (-1) and is assigned to
-            charge property of the "MolFile" object.
+    for (let i = 0; i < numOfCharges; ++i) {
+        /*
+        M  CHG  3   1  -1   2   0   2  -1
+                |   |   |   |   |
+                |   |   |   |   |__charge2 (etc.)
+                |   |   |   |
+                |   |   |   |__atomIdx2
+                |   |   |
+                |   |   |__charge1
+                |   |
+                |   |__atomIdx1 (cursor at position 12)
+                |
+                |___numOfCharges
         */
+        const offset = 11 + (i * 8);
 
-        Tokenizer.markLine(tokenizer);
-        const { tokenStart: s } = tokenizer;
+        Tokenizer.trim(tokenizer, lineStart + offset, lineStart + offset + 4);
+        TokenBuilder.addUnchecked(atomIdx, tokenizer.tokenStart, tokenizer.tokenEnd);
+        console.log('id', Tokenizer.getTokenString(tokenizer));
 
-        Tokenizer.trim(tokenizer, s + 3, s + 6);
-        const propertyType = Tokenizer.getTokenString(tokenizer);
+        Tokenizer.trim(tokenizer, lineStart + offset + 4, lineStart + offset + 7);
+        TokenBuilder.addUnchecked(charge, tokenizer.tokenStart, tokenizer.tokenEnd);
+        console.log('chg', Tokenizer.getTokenString(tokenizer));
 
-        if (propertyType === 'CHG') {
-            Tokenizer.trim(tokenizer, s + 12, s + 15);
-            TokenBuilder.addUnchecked(atomIdx, tokenizer.tokenStart, tokenizer.tokenEnd);
-            Tokenizer.trim(tokenizer, s + 15, s + 18);
-            TokenBuilder.addUnchecked(charge, tokenizer.tokenStart, tokenizer.tokenEnd);
-        }
-        if (propertyType === 'END') break;
-        i++;
     }
 
     return {
         atomIdx: TokenColumn(atomIdx)(Column.Schema.int),
         charge: TokenColumn(charge)(Column.Schema.int),
     };
+}
+
+/** Call an appropriate handler based on the property type.
+ * (For now it only calls the formal charge handler, additional handlers can
+ * be added for other properties.)
+ */
+export function handlePropertiesBlock(tokenizer: Tokenizer): MolFile['formalCharges'] {
+
+    let formalCharges = null;
+
+    let i = 0;
+    while (i < 3) {
+        const { position: s } = tokenizer;
+
+        Tokenizer.trim(tokenizer, s + 3, s + 6);
+        const propertyType = Tokenizer.getTokenString(tokenizer);
+        Tokenizer.eatLine(tokenizer);
+
+        switch (propertyType) {
+            case 'CHG':
+                formalCharges = handleFormalCharges(tokenizer, s);
+                break;
+            default:
+                break;
+        }
+        if (propertyType === 'END') break;
+        i++;
+    }
+
+    return formalCharges;
 }
 
 function parseInternal(data: string): Result<MolFile> {
@@ -186,7 +205,7 @@ function parseInternal(data: string): Result<MolFile> {
     const atoms = handleAtoms(tokenizer, atomCount);
     const bonds = handleBonds(tokenizer, bondCount);
 
-    const formalCharges = handleFormalCharges(tokenizer, atomCount);
+    const formalCharges = handlePropertiesBlock(tokenizer);
 
     const result: MolFile = {
         title,
