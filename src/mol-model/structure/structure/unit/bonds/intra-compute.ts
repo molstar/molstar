@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2021 Mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2022 Mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -9,7 +9,7 @@ import { BondType } from '../../../model/types';
 import { IntraUnitBonds } from './data';
 import { Unit } from '../../unit';
 import { IntAdjacencyGraph } from '../../../../../mol-math/graph';
-import { BondComputationProps, getElementIdx, MetalsSet, getElementThreshold, isHydrogen, getElementPairThreshold, DefaultBondComputationProps } from './common';
+import { BondComputationProps, getElementIdx, MetalsSet, getElementThreshold, isHydrogen, DefaultBondComputationProps, getPairingThreshold } from './common';
 import { SortedArray } from '../../../../../mol-data/int';
 import { getIntraBondOrderFromTable } from '../../../model/properties/atomic/bonds';
 import { StructureElement } from '../../element';
@@ -62,7 +62,8 @@ function findIndexPairBonds(unit: Unit.Atomic) {
 
     for (let _aI = 0 as StructureElement.UnitIndex; _aI < atomCount; _aI++) {
         const aI = atoms[_aI];
-        const isHa = type_symbol.value(aI) === 'H';
+        const aeI = getElementIdx(type_symbol.value(aI));
+        const isHa = isHydrogen(aeI);
 
         const srcA = sourceIndex.value(aI);
 
@@ -72,11 +73,21 @@ function findIndexPairBonds(unit: Unit.Atomic) {
 
             const _bI = SortedArray.indexOf(unit.elements, bI) as StructureElement.UnitIndex;
             if (_bI < 0) continue;
-            if (isHa && type_symbol.value(bI) === 'H') continue;
+
+            const beI = getElementIdx(type_symbol.value(bI));
+            // only element-based test when maxDistance !== -1
+            if (maxDistance !== -1 && isHa && isHydrogen(beI)) continue;
 
             const d = distance[i];
             const dist = getDistance(unit, aI, bI);
-            if ((d !== -1 && equalEps(dist, d, 0.5)) || dist < maxDistance) {
+            const pairingThreshold = getPairingThreshold(
+                aeI, beI, getElementThreshold(aeI), getElementThreshold(beI)
+            );
+
+            if ((d !== -1 && equalEps(dist, d, 0.5)) ||
+                (maxDistance !== -1 && dist < maxDistance) ||
+                dist < pairingThreshold
+            ) {
                 atomA[atomA.length] = _aI;
                 atomB[atomB.length] = _bI;
                 orders[orders.length] = order[i];
@@ -214,13 +225,7 @@ function findBonds(unit: Unit.Atomic, props: BondComputationProps): IntraUnitBon
             const dist = Math.sqrt(squaredDistances[ni]);
             if (dist === 0) continue;
 
-            const thresholdAB = getElementPairThreshold(aeI, beI);
-            const pairingThreshold = thresholdAB > 0
-                ? thresholdAB
-                : beI < 0
-                    ? thresholdA
-                    : (thresholdA + getElementThreshold(beI)) / 1.95; // not sure if avg or min but max is too big
-
+            const pairingThreshold = getPairingThreshold(aeI, beI, thresholdA, getElementThreshold(beI));
             if (dist <= pairingThreshold) {
                 atomA[atomA.length] = _aI;
                 atomB[atomB.length] = _bI;
