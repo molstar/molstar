@@ -114,8 +114,10 @@ async function getModels(mol2: Mol2File, ctx: RuntimeContext) {
                 type: molecule.charge_type
             });
 
-            const symmetry = getSymmetry(crysin);
-            if (symmetry) ModelSymmetry.Provider.set(first, symmetry);
+            if (crysin) {
+                const symmetry = getSymmetry(crysin);
+                if (symmetry) ModelSymmetry.Provider.set(first, symmetry);
+            }
 
             models.push(first);
         }

@@ -12,6 +12,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Improve bond assignment from ``IndexPairBonds``
     - Add ``id`` for mapping to source data
     - Fix assignment of bonds with unphysical length
+- Fix label/stats of single atom selection in multi-chain units
 
 ## [v3.0.0-dev.8] - 2021-12-31
 

@@ -72,7 +72,7 @@ export interface Mol2Structure {
     molecule: Readonly<Mol2Molecule>,
     atoms: Readonly<Mol2Atoms>,
     bonds: Readonly<Mol2Bonds>
-    crysin: Readonly<Mol2Crysin>
+    crysin?: Readonly<Mol2Crysin>
 }
 
 export interface Mol2File {

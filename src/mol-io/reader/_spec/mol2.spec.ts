@@ -244,6 +244,84 @@ GASTEIGER
     25    13    23    1
     26    13    24    1`;
 
+const Mol2StringCrysin = `@<TRIPOS>MOLECULE
+1144204
+    12    11     2     0     0
+SMALL
+USER_CHARGES
+****
+Generated from the CSD
+
+@<TRIPOS>ATOM
+     1 Cl1      0.0925   3.6184   1.9845   Cl        1 RES1  -1.0000
+     2 C1      -4.7391   0.3350   0.4215   C.ar      2 RES2   0.0000
+     3 C2      -3.4121   0.2604   0.9351   C.ar      2 RES2   0.0000
+     4 C3      -2.9169   1.2555   1.7726   C.ar      2 RES2   0.0000
+     5 C4      -3.7118   2.3440   2.1099   C.ar      2 RES2   0.0000
+     6 C5      -5.0314   2.4052   1.6209   C.ar      2 RES2   0.0000
+     7 C6      -5.5372   1.4057   0.7962   C.ar      2 RES2   0.0000
+     8 C7      -6.9925   1.4547   0.3334   C.3       2 RES2   0.0000
+     9 C8      -7.8537   0.5554   1.1859   C.3       2 RES2   0.0000
+    10 N1      -9.3089   0.7134   0.8192   N.3       2 RES2   1.0000
+    11 O1      -2.6613  -0.8147   0.5707   O.3       2 RES2   0.0000
+    12 O2      -1.6204   1.0919   2.2584   O.3       2 RES2   0.0000
+@<TRIPOS>BOND
+     1     2     3   ar
+     2     3     4   ar
+     3     4     5   ar
+     4     5     6   ar
+     5     6     7   ar
+     6     7     2   ar
+     7     8     7    1
+     8     9     8    1
+     9    10     9    1
+    10    11     3    1
+    11    12     4    1
+@<TRIPOS>SUBSTRUCTURE
+     1 RES1        1 GROUP             0 ****  ****    0
+     2 RES2        2 GROUP             0 ****  ****    0
+@<TRIPOS>CRYSIN
+   10.5150   11.1300    7.9380   90.0000   90.0000   90.0000    29     5
+@<TRIPOS>MOLECULE
+   1144204
+    12    11     2     0     0
+SMALL
+USER_CHARGES
+****
+Generated from the CSD
+
+@<TRIPOS>ATOM
+     1 Cl1      0.0925   3.6184   1.9845   Cl        1 RES1  -1.0000
+     2 C1      -4.7391   0.3350   0.4215   C.ar      2 RES2   0.0000
+     3 C2      -3.4121   0.2604   0.9351   C.ar      2 RES2   0.0000
+     4 C3      -2.9169   1.2555   1.7726   C.ar      2 RES2   0.0000
+     5 C4      -3.7118   2.3440   2.1099   C.ar      2 RES2   0.0000
+     6 C5      -5.0314   2.4052   1.6209   C.ar      2 RES2   0.0000
+     7 C6      -5.5372   1.4057   0.7962   C.ar      2 RES2   0.0000
+     8 C7      -6.9925   1.4547   0.3334   C.3       2 RES2   0.0000
+     9 C8      -7.8537   0.5554   1.1859   C.3       2 RES2   0.0000
+    10 N1      -9.3089   0.7134   0.8192   N.3       2 RES2   1.0000
+    11 O1      -2.6613  -0.8147   0.5707   O.3       2 RES2   0.0000
+    12 O2      -1.6204   1.0919   2.2584   O.3       2 RES2   0.0000
+@<TRIPOS>BOND
+     1     2     3   ar
+     2     3     4   ar
+     3     4     5   ar
+     4     5     6   ar
+     5     6     7   ar
+     6     7     2   ar
+     7     8     7    1
+     8     9     8    1
+     9    10     9    1
+    10    11     3    1
+    11    12     4    1
+@<TRIPOS>SUBSTRUCTURE
+     1 RES1        1 GROUP             0 ****  ****    0
+     2 RES2        2 GROUP             0 ****  ****    0
+@<TRIPOS>CRYSIN
+   10.5150   11.1300    7.9380   90.0000   90.0000   90.0000    29     5
+`;
+
 describe('mol2 reader', () => {
     it('basic', async () => {
         const parsed = await parseMol2(Mol2String, '').run();
@@ -396,5 +474,30 @@ describe('mol2 reader', () => {
 
         // optional bond fields
         expect(bonds.status_bits.value(0)).toBe('');
+    });
+
+    it('crysin', async () => {
+        const parsed = await parseMol2(Mol2StringCrysin, '').run();
+        if (parsed.isError) {
+            throw new Error(parsed.message);
+        }
+        const mol2File = parsed.result;
+
+        // number of structures
+        expect(mol2File.structures.length).toBe(2);
+
+        // crysin fields
+        for (const data of mol2File.structures) {
+            expect(data.crysin).toEqual({
+                a: 10.5150,
+                b: 11.1300,
+                c: 7.9380,
+                alpha: 90.0,
+                beta: 90.0,
+                gamma: 90.0,
+                spaceGroup: 29,
+                setting: 5
+            });
+        }
     });
 });
