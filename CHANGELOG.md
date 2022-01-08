@@ -6,8 +6,9 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
-- Add PDBj as a pdb-provider option
+- Add PDBj as a ``pdb-provider`` option
 - Move Viewer APP to a separate file to allow use without importing light theme & index.html
+- Add symmetry support for mol2 files (only spacegroup setting 1)
 
 ## [v3.0.0-dev.8] - 2021-12-31
 

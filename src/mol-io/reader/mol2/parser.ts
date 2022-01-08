@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Zepei Xu <xuzepei19950617@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -259,6 +259,27 @@ async function handleBonds(state: State): Promise<Schema.Mol2Bonds> {
     return ret;
 }
 
+function handleCrysin(state: State) {
+    const { tokenizer } = state;
+
+    while (getTokenString(tokenizer) !== '@<TRIPOS>CRYSIN' && tokenizer.position < tokenizer.data.length) {
+        markLine(tokenizer);
+    }
+
+    markLine(tokenizer);
+    const l = getTokenString(tokenizer);
+    return {
+        a: parseFloat(l.substring(0, 10)),
+        b: parseFloat(l.substring(10, 20)),
+        c: parseFloat(l.substring(20, 30)),
+        alpha: parseFloat(l.substring(30, 40)),
+        beta: parseFloat(l.substring(40, 50)),
+        gamma: parseFloat(l.substring(50, 60)),
+        spaceGroup: parseInt(l.substring(60, 70), 10),
+        setting: parseInt(l.substring(70, 80), 10),
+    };
+}
+
 async function parseInternal(ctx: RuntimeContext, data: string, name: string): Promise<Result<Schema.Mol2File>> {
     const tokenizer = Tokenizer(data);
 
@@ -269,7 +290,8 @@ async function parseInternal(ctx: RuntimeContext, data: string, name: string): P
         handleMolecule(state);
         const atoms = await handleAtoms(state);
         const bonds = await handleBonds(state);
-        structures.push({ molecule: state.molecule, atoms, bonds });
+        const crysin = handleCrysin(state);
+        structures.push({ molecule: state.molecule, atoms, bonds, crysin });
         skipWhitespace(tokenizer);
         while (getTokenString(tokenizer) !== '@<TRIPOS>MOLECULE' && tokenizer.position < tokenizer.data.length) {
             markLine(tokenizer);
