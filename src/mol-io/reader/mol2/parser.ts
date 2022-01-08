@@ -262,21 +262,30 @@ async function handleBonds(state: State): Promise<Schema.Mol2Bonds> {
 function handleCrysin(state: State) {
     const { tokenizer } = state;
 
-    while (getTokenString(tokenizer) !== '@<TRIPOS>CRYSIN' && tokenizer.position < tokenizer.data.length) {
-        markLine(tokenizer);
+    while (tokenizer.position < tokenizer.data.length) {
+        const l = getTokenString(tokenizer);
+        if (l === '@<TRIPOS>MOLECULE') {
+            return;
+        } else if (l === '@<TRIPOS>CRYSIN') {
+            break;
+        } else {
+            markLine(tokenizer);
+        }
     }
 
+    if (tokenizer.position >= tokenizer.data.length) return;
+
     markLine(tokenizer);
-    const l = getTokenString(tokenizer);
+    const values = getTokenString(tokenizer).trim().split(reWhitespace);
     return {
-        a: parseFloat(l.substring(0, 10)),
-        b: parseFloat(l.substring(10, 20)),
-        c: parseFloat(l.substring(20, 30)),
-        alpha: parseFloat(l.substring(30, 40)),
-        beta: parseFloat(l.substring(40, 50)),
-        gamma: parseFloat(l.substring(50, 60)),
-        spaceGroup: parseInt(l.substring(60, 70), 10),
-        setting: parseInt(l.substring(70, 80), 10),
+        a: parseFloat(values[0]),
+        b: parseFloat(values[1]),
+        c: parseFloat(values[2]),
+        alpha: parseFloat(values[3]),
+        beta: parseFloat(values[4]),
+        gamma: parseFloat(values[5]),
+        spaceGroup: parseInt(values[6], 10),
+        setting: parseInt(values[7], 10),
     };
 }
 
