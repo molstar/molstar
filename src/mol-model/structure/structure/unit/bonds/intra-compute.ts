@@ -75,19 +75,28 @@ function findIndexPairBonds(unit: Unit.Atomic) {
             if (_bI < 0) continue;
 
             const beI = getElementIdx(type_symbol.value(bI));
-            // only element-based test when maxDistance !== -1
-            if (maxDistance !== -1 && isHa && isHydrogen(beI)) continue;
 
             const d = distance[i];
             const dist = getDistance(unit, aI, bI);
-            const pairingThreshold = getPairingThreshold(
-                aeI, beI, getElementThreshold(aeI), getElementThreshold(beI)
-            );
 
-            if ((d !== -1 && equalEps(dist, d, 0.5)) ||
-                (maxDistance !== -1 && dist < maxDistance) ||
-                dist < pairingThreshold
-            ) {
+            let add = false;
+            if (d >= 0) {
+                add = equalEps(dist, d, 0.3);
+            } else if (maxDistance >= 0) {
+                add = dist < maxDistance;
+            } else {
+                const pairingThreshold = getPairingThreshold(
+                    aeI, beI, getElementThreshold(aeI), getElementThreshold(beI)
+                );
+                add = dist < pairingThreshold;
+
+                if (isHa && isHydrogen(beI)) {
+                    // TODO handle molecular hydrogen
+                    add = false;
+                }
+            }
+
+            if (add) {
                 atomA[atomA.length] = _aI;
                 atomB[atomB.length] = _bI;
                 orders[orders.length] = order[i];

@@ -85,19 +85,28 @@ function findPairBonds(unitA: Unit.Atomic, unitB: Unit.Atomic, props: BondComput
 
                 const aeI = getElementIdx(type_symbolA.value(aI));
                 const beI = getElementIdx(type_symbolA.value(bI));
-                // only element-based test when maxDistance !== -1
-                if (maxDistance !== -1 && isHydrogen(aeI) && isHydrogen(beI)) continue;
 
                 const d = distance[i];
                 const dist = getDistance(unitA, aI, unitB, bI);
-                const pairingThreshold = getPairingThreshold(
-                    aeI, beI, getElementThreshold(aeI), getElementThreshold(beI)
-                );
 
-                if ((d !== -1 && equalEps(dist, d, 0.5)) ||
-                    (maxDistance !== -1 && dist < maxDistance) ||
-                    dist < pairingThreshold
-                ) {
+                let add = false;
+                if (d >= 0) {
+                    add = equalEps(dist, d, 0.3);
+                } else if (maxDistance >= 0) {
+                    add = dist < maxDistance;
+                } else {
+                    const pairingThreshold = getPairingThreshold(
+                        aeI, beI, getElementThreshold(aeI), getElementThreshold(beI)
+                    );
+                    add = dist < pairingThreshold;
+
+                    if (isHydrogen(aeI) && isHydrogen(beI)) {
+                        // TODO handle molecular hydrogen
+                        add = false;
+                    }
+                }
+
+                if (add) {
                     builder.add(_aI, _bI, { order: order[i], flag: flag[i] });
                 }
             }

@@ -53,7 +53,8 @@ export namespace IndexPairBonds {
             /**
              * Useful for bonds in periodic cells. That is, only bonds within the given
              * distance are added. This allows for bond between periodic image but
-             * avoids unwanted bonds with wrong distances.
+             * avoids unwanted bonds with wrong distances. If negative, test using the
+             * `maxDistance` option from `Props`.
              */
             distance?: Column<number>,
             flag?: Column<BondType.Flag>,
@@ -63,10 +64,13 @@ export namespace IndexPairBonds {
 
     export const DefaultProps = {
         /**
-         * If -1, test using element-based threshold, otherwise distance in Angstrom.
+         * If negative, test using element-based threshold, otherwise distance in Angstrom.
          *
          * This option exists to handle bonds in periodic cells. For systems that are
-         * made from beads (as opposed to atomic elements), set to a spicific distance.
+         * made from beads (as opposed to atomic elements), set to a specific distance.
+         *
+         * Note that `Data` has a `distance` field which allows specifying a distance
+         * for each bond individually which takes precedence over this option.
          */
         maxDistance: -1
     };
