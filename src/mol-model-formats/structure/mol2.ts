@@ -77,6 +77,7 @@ async function getModels(mol2: Mol2File, ctx: RuntimeContext) {
         if (_models.frameCount > 0) {
             const indexA = Column.ofIntArray(Column.mapToArray(bonds.origin_atom_id, x => x - 1, Int32Array));
             const indexB = Column.ofIntArray(Column.mapToArray(bonds.target_atom_id, x => x - 1, Int32Array));
+            const key = bonds.bond_id;
             const order = Column.ofIntArray(Column.mapToArray(bonds.bond_type, x => {
                 switch (x) {
                     case 'ar': // aromatic
@@ -103,7 +104,7 @@ async function getModels(mol2: Mol2File, ctx: RuntimeContext) {
                         return BondType.Flag.Covalent;
                 }
             }, Int8Array));
-            const pairBonds = IndexPairBonds.fromData({ pairs: { indexA, indexB, order, flag }, count: atoms.count });
+            const pairBonds = IndexPairBonds.fromData({ pairs: { key, indexA, indexB, order, flag }, count: atoms.count });
 
             const first = _models.representative;
             IndexPairBonds.Provider.set(first, pairBonds);
