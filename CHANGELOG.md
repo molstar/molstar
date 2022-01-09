@@ -9,6 +9,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Add PDBj as a ``pdb-provider`` option
 - Move Viewer APP to a separate file to allow use without importing light theme & index.html
 - Add symmetry support for mol2 files (only spacegroup setting 1)
+- Fix mol2 files element symbol assignment
 - Improve bond assignment from ``IndexPairBonds``
     - Add ``key`` field for mapping to source data
     - Fix assignment of bonds with unphysical length

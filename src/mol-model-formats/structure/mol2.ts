@@ -31,8 +31,17 @@ async function getModels(mol2: Mol2File, ctx: RuntimeContext) {
         const A = Column.ofConst('A', atoms.count, Column.Schema.str);
 
         const type_symbol = new Array<string>(atoms.count);
+        let hasAtomType = false;
         for (let i = 0; i < atoms.count; ++i) {
-            type_symbol[i] = guessElementSymbolString(atoms.atom_name.value(i));
+            if (atoms.atom_type.value(i).includes('.')) {
+                hasAtomType = true;
+                break;
+            }
+        }
+        for (let i = 0; i < atoms.count; ++i) {
+            type_symbol[i] = hasAtomType
+                ? atoms.atom_type.value(i).split('.')[0].toUpperCase()
+                : guessElementSymbolString(atoms.atom_name.value(i));
         }
 
         const atom_site = Table.ofPartialColumns(BasicSchema.atom_site, {
