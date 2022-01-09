@@ -7,7 +7,7 @@
  */
 
 import { Column, Table } from '../../mol-data/db';
-import { MolFile } from '../../mol-io/reader/mol/parser';
+import { MolFile, formalChargeMapper } from '../../mol-io/reader/mol/parser';
 import { MoleculeType } from '../../mol-model/structure/model/types';
 import { RuntimeContext, Task } from '../../mol-task';
 import { createModels } from './basic/parser';
@@ -19,12 +19,39 @@ import { IndexPairBonds } from './property/bonds/index-pair';
 import { Trajectory } from '../../mol-model/structure';
 
 export async function getMolModels(mol: MolFile, format: ModelFormat<any> | undefined, ctx: RuntimeContext) {
-    const { atoms, bonds } = mol;
+    const { atoms, bonds, formalCharges } = mol;
 
     const MOL = Column.ofConst('MOL', mol.atoms.count, Column.Schema.str);
     const A = Column.ofConst('A', mol.atoms.count, Column.Schema.str);
     const type_symbol = Column.asArrayColumn(atoms.type_symbol);
     const seq_id = Column.ofConst(1, atoms.count, Column.Schema.int);
+
+    const computedFormalCharges: Column<number> = Column.ofLambda({
+        value: (row: number) => {
+            if (formalCharges) {
+                const numOfCharges = formalCharges.atomIdx.rowCount;
+                /*
+                    Scan the list of formal charges from the properties
+                    block. If one of them has an atom index that matches the
+                    current row return the corresponding charge.
+                */
+                for (let i = 0; i < numOfCharges; i++) {
+                    if ((formalCharges.atomIdx.value(i) - 1) === row) {
+                        return formalCharges.charge.value(i);
+                    }
+                }
+                /*
+                    If the M CHG property is present, every charge in the atom
+                    block is treated as zero.
+                */
+                return 0;
+            }
+            const idx = atoms.formal_charge.value(row).toString();
+            return formalChargeMapper(idx);
+        },
+        rowCount: atoms.formal_charge.rowCount,
+        schema: atoms.formal_charge.schema,
+    });
 
     const atom_site = Table.ofPartialColumns(BasicSchema.atom_site, {
         auth_asym_id: A,
@@ -46,7 +73,7 @@ export async function getMolModels(mol: MolFile, format: ModelFormat<any> | unde
         type_symbol,
 
         pdbx_PDB_model_num: Column.ofConst(1, atoms.count, Column.Schema.int),
-        pdbx_formal_charge: Column.asArrayColumn(atoms.formal_charge)
+        pdbx_formal_charge: computedFormalCharges
     }, atoms.count);
 
     const entityBuilder = new EntityBuilder();

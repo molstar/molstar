@@ -63,6 +63,45 @@ export interface MolFile {
     nnn         (INVERSION/RETENTION FLAG, 63-66)
     eee         (EXACT CHANGE FLAG, 66-69)
 */
+
+/**
+ * @param key - The value found at the atom block.
+ * @returns The actual formal charge based on the mapping.
+ */
+export function formalChargeMapper(key: string) {
+    let chg = 0;
+    switch (key) {
+        case '7':
+            chg = -3;
+            break;
+        case '6':
+            chg = -2;
+            break;
+        case '5':
+            chg = -1;
+            break;
+        case '0':
+            chg = 0;
+            break;
+        case '3':
+            chg = 1;
+            break;
+        case '2':
+            chg = 2;
+            break;
+        case '1':
+            chg = 3;
+            break;
+        case '4':
+            chg = 0;
+            break;
+        default:
+            console.error(`Value to be mapped is outside the 0-7 range!`);
+            break;
+    }
+    return chg;
+}
+
 export function handleAtoms(tokenizer: Tokenizer, count: number): MolFile['atoms'] {
     const x = TokenBuilder.create(tokenizer.data, count * 2);
     const y = TokenBuilder.create(tokenizer.data, count * 2);
@@ -147,12 +186,8 @@ export function handleFormalCharges(tokenizer: Tokenizer, lineStart: number): Mo
 
         Tokenizer.trim(tokenizer, lineStart + offset, lineStart + offset + 4);
         TokenBuilder.addUnchecked(atomIdx, tokenizer.tokenStart, tokenizer.tokenEnd);
-        console.log('id', Tokenizer.getTokenString(tokenizer));
-
         Tokenizer.trim(tokenizer, lineStart + offset + 4, lineStart + offset + 8);
         TokenBuilder.addUnchecked(charge, tokenizer.tokenStart, tokenizer.tokenEnd);
-        console.log('chg', Tokenizer.getTokenString(tokenizer));
-
     }
 
     /*
