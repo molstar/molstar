@@ -404,7 +404,7 @@ namespace Canvas3D {
 
                 const ctx = { renderer, camera: cam, scene, helper };
                 if (MultiSamplePass.isEnabled(p.multiSample)) {
-                    const forceOn = !cameraChanged && allowMulti && !controls.props.spin;
+                    const forceOn = !cameraChanged && allowMulti && !controls.isAnimating;
                     multiSampleHelper.render(ctx, p, true, forceOn);
                 } else {
                     passes.draw.render(ctx, p, true);
@@ -444,7 +444,7 @@ namespace Canvas3D {
             }
 
             draw();
-            if (!camera.transition.inTransition && !controls.props.spin && !webgl.isContextLost) {
+            if (!camera.transition.inTransition && !controls.isAnimating && !webgl.isContextLost) {
                 interactionHelper.tick(currentTime);
             }
         }

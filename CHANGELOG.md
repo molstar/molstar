@@ -10,6 +10,9 @@ Note that since we don't clearly distinguish between a public and private interf
 - Move Viewer APP to a separate file to allow use without importing light theme & index.html
 - Add symmetry support for mol2 files (only spacegroup setting 1)
 - Fix label/stats of single atom selection in multi-chain units
+- [Breaking] Add rock animation to trackball controls
+    - Add ``animate`` to ``TrackballControlsParams``, remove ``spin`` and ``spinSpeed``
+    - Add ``animate`` to ``SimpleSettingsParams``, remove ``spin``
 
 ## [v3.0.0-dev.8] - 2021-12-31
 

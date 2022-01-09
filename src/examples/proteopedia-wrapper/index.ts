@@ -256,7 +256,16 @@ class MolStarProteopediaWrapper {
     toggleSpin() {
         if (!this.plugin.canvas3d) return;
         const trackball = this.plugin.canvas3d.props.trackball;
-        PluginCommands.Canvas3D.SetSettings(this.plugin, { settings: { trackball: { ...trackball, spin: !trackball.spin } } });
+        PluginCommands.Canvas3D.SetSettings(this.plugin, {
+            settings: {
+                trackball: {
+                    ...trackball,
+                    animate: trackball.animate.name === 'spin'
+                        ? { name: 'off', params: {} }
+                        : { name: 'spin', params: { speed: 1 } }
+                }
+            }
+        });
     }
 
     viewport = {
