@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2021 Mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2022 Mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -8,7 +8,7 @@
 import { BondType, MoleculeType } from '../../../model/types';
 import { Structure } from '../../structure';
 import { Unit } from '../../unit';
-import { getElementIdx, getElementPairThreshold, getElementThreshold, isHydrogen, BondComputationProps, MetalsSet, DefaultBondComputationProps } from './common';
+import { getElementIdx, getElementThreshold, isHydrogen, BondComputationProps, MetalsSet, DefaultBondComputationProps, getPairingThreshold } from './common';
 import { InterUnitBonds, InterUnitEdgeProps } from './data';
 import { SortedArray } from '../../../../../mol-data/int';
 import { Vec3, Mat4 } from '../../../../../mol-math/linear-algebra';
@@ -82,11 +82,31 @@ function findPairBonds(unitA: Unit.Atomic, unitB: Unit.Atomic, props: BondComput
 
                 const _bI = SortedArray.indexOf(unitB.elements, bI) as StructureElement.UnitIndex;
                 if (_bI < 0) continue;
-                if (type_symbolA.value(aI) === 'H' && type_symbolB.value(bI) === 'H') continue;
+
+                const aeI = getElementIdx(type_symbolA.value(aI));
+                const beI = getElementIdx(type_symbolA.value(bI));
 
                 const d = distance[i];
                 const dist = getDistance(unitA, aI, unitB, bI);
-                if ((d !== -1 && equalEps(dist, d, 0.5)) || dist < maxDistance) {
+
+                let add = false;
+                if (d >= 0) {
+                    add = equalEps(dist, d, 0.3);
+                } else if (maxDistance >= 0) {
+                    add = dist < maxDistance;
+                } else {
+                    const pairingThreshold = getPairingThreshold(
+                        aeI, beI, getElementThreshold(aeI), getElementThreshold(beI)
+                    );
+                    add = dist < pairingThreshold;
+
+                    if (isHydrogen(aeI) && isHydrogen(beI)) {
+                        // TODO handle molecular hydrogen
+                        add = false;
+                    }
+                }
+
+                if (add) {
                     builder.add(_aI, _bI, { order: order[i], flag: flag[i] });
                 }
             }
@@ -155,13 +175,7 @@ function findPairBonds(unitA: Unit.Atomic, unitB: Unit.Atomic, props: BondComput
             const dist = Math.sqrt(squaredDistances[ni]);
             if (dist === 0) continue;
 
-            const thresholdAB = getElementPairThreshold(aeI, beI);
-            const pairingThreshold = thresholdAB > 0
-                ? thresholdAB
-                : beI < 0
-                    ? thresholdA
-                    : (thresholdA + getElementThreshold(beI)) / 1.95; // not sure if avg or min but max is too big
-
+            const pairingThreshold = getPairingThreshold(aeI, beI, thresholdA, getElementThreshold(beI));
             if (dist <= pairingThreshold) {
                 const atomIdB = label_atom_idB.value(bI);
                 const compIdB = label_comp_idB.value(residueIndexB[bI]);
