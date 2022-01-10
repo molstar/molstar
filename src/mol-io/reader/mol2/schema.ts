@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -11,6 +11,7 @@ import { Column } from '../../../mol-data/db';
 // @<TRIPOS>MOLECULE
 // @<TRIPOS>ATOM
 // @<TRIPOS>BOND
+// @<TRIPOS>CRYSIN
 //
 // note that the format is not a fixed column format but white space separated
 
@@ -56,10 +57,22 @@ export interface Mol2Bonds {
     status_bits: Column<string>
 }
 
+export interface Mol2Crysin {
+    a: number
+    b: number
+    c: number
+    alpha: number
+    beta: number
+    gamma: number
+    spaceGroup: number
+    setting: number
+}
+
 export interface Mol2Structure {
     molecule: Readonly<Mol2Molecule>,
     atoms: Readonly<Mol2Atoms>,
     bonds: Readonly<Mol2Bonds>
+    crysin?: Readonly<Mol2Crysin>
 }
 
 export interface Mol2File {
