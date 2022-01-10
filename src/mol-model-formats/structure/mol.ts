@@ -46,7 +46,7 @@ export async function getMolModels(mol: MolFile, format: ModelFormat<any> | unde
                 */
                 return 0;
             }
-            const idx = atoms.formal_charge.value(row).toString();
+            const idx = atoms.formal_charge.value(row);
             return formalChargeMapper(idx);
         },
         rowCount: atoms.formal_charge.rowCount,

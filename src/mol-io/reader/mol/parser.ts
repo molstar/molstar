@@ -68,38 +68,20 @@ export interface MolFile {
  * @param key - The value found at the atom block.
  * @returns The actual formal charge based on the mapping.
  */
-export function formalChargeMapper(key: string) {
-    let chg = 0;
+export function formalChargeMapper(key: number) {
     switch (key) {
-        case '7':
-            chg = -3;
-            break;
-        case '6':
-            chg = -2;
-            break;
-        case '5':
-            chg = -1;
-            break;
-        case '0':
-            chg = 0;
-            break;
-        case '3':
-            chg = 1;
-            break;
-        case '2':
-            chg = 2;
-            break;
-        case '1':
-            chg = 3;
-            break;
-        case '4':
-            chg = 0;
-            break;
+        case 7: return -3;
+        case 6: return -2;
+        case 5: return -1;
+        case 0: return 0;
+        case 3: return 1;
+        case 2: return 2;
+        case 1: return 3;
+        case 4: return 0;
         default:
-            console.error(`Value to be mapped is outside the 0-7 range!`);
+            console.error(`Value ${key} is outside the 0-7 range!`);
             break;
     }
-    return chg;
 }
 
 export function handleAtoms(tokenizer: Tokenizer, count: number): MolFile['atoms'] {
