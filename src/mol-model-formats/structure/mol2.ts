@@ -1,11 +1,11 @@
 /**
- * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { Column, Table } from '../../mol-data/db';
-import { Model } from '../../mol-model/structure/model';
+import { Model, Symmetry } from '../../mol-model/structure/model';
 import { BondType, MoleculeType } from '../../mol-model/structure/model/types';
 import { RuntimeContext, Task } from '../../mol-task';
 import { createModels } from './basic/parser';
@@ -14,22 +14,34 @@ import { ComponentBuilder } from './common/component';
 import { EntityBuilder } from './common/entity';
 import { ModelFormat } from '../format';
 import { IndexPairBonds } from './property/bonds/index-pair';
-import { Mol2File } from '../../mol-io/reader/mol2/schema';
+import { Mol2Crysin, Mol2File } from '../../mol-io/reader/mol2/schema';
 import { AtomPartialCharge } from './property/partial-charge';
 import { Trajectory, ArrayTrajectory } from '../../mol-model/structure';
 import { guessElementSymbolString } from './util';
+import { ModelSymmetry } from './property/symmetry';
+import { Spacegroup, SpacegroupCell } from '../../mol-math/geometry';
+import { Vec3 } from '../../mol-math/linear-algebra';
 
 async function getModels(mol2: Mol2File, ctx: RuntimeContext) {
     const models: Model[] = [];
 
     for (let i = 0, il = mol2.structures.length; i < il; ++i) {
-        const { atoms, bonds, molecule } = mol2.structures[i];
+        const { molecule, atoms, bonds, crysin } = mol2.structures[i];
 
         const A = Column.ofConst('A', atoms.count, Column.Schema.str);
 
         const type_symbol = new Array<string>(atoms.count);
+        let hasAtomType = false;
         for (let i = 0; i < atoms.count; ++i) {
-            type_symbol[i] = guessElementSymbolString(atoms.atom_name.value(i));
+            if (atoms.atom_type.value(i).includes('.')) {
+                hasAtomType = true;
+                break;
+            }
+        }
+        for (let i = 0; i < atoms.count; ++i) {
+            type_symbol[i] = hasAtomType
+                ? atoms.atom_type.value(i).split('.')[0].toUpperCase()
+                : guessElementSymbolString(atoms.atom_name.value(i));
         }
 
         const atom_site = Table.ofPartialColumns(BasicSchema.atom_site, {
@@ -74,6 +86,7 @@ async function getModels(mol2: Mol2File, ctx: RuntimeContext) {
         if (_models.frameCount > 0) {
             const indexA = Column.ofIntArray(Column.mapToArray(bonds.origin_atom_id, x => x - 1, Int32Array));
             const indexB = Column.ofIntArray(Column.mapToArray(bonds.target_atom_id, x => x - 1, Int32Array));
+            const key = bonds.bond_id;
             const order = Column.ofIntArray(Column.mapToArray(bonds.bond_type, x => {
                 switch (x) {
                     case 'ar': // aromatic
@@ -100,7 +113,7 @@ async function getModels(mol2: Mol2File, ctx: RuntimeContext) {
                         return BondType.Flag.Covalent;
                 }
             }, Int8Array));
-            const pairBonds = IndexPairBonds.fromData({ pairs: { indexA, indexB, order, flag }, count: atoms.count });
+            const pairBonds = IndexPairBonds.fromData({ pairs: { key, indexA, indexB, order, flag }, count: atoms.count });
 
             const first = _models.representative;
             IndexPairBonds.Provider.set(first, pairBonds);
@@ -110,11 +123,34 @@ async function getModels(mol2: Mol2File, ctx: RuntimeContext) {
                 type: molecule.charge_type
             });
 
+            if (crysin) {
+                const symmetry = getSymmetry(crysin);
+                if (symmetry) ModelSymmetry.Provider.set(first, symmetry);
+            }
+
             models.push(first);
         }
     }
 
     return new ArrayTrajectory(models);
+}
+
+function getSymmetry(crysin: Mol2Crysin): Symmetry | undefined {
+    // TODO handle `crysin.setting`
+    if (crysin.setting !== 1) return;
+
+    const spaceCell = SpacegroupCell.create(
+        crysin.spaceGroup,
+        Vec3.create(crysin.a, crysin.b, crysin.c),
+        Vec3.scale(Vec3(), Vec3.create(crysin.alpha, crysin.beta, crysin.gamma), Math.PI / 180)
+    );
+
+    return {
+        spacegroup: Spacegroup.create(spaceCell),
+        assemblies: [],
+        isNonStandardCrystalFrame: false,
+        ncsOperators: []
+    };
 }
 
 //

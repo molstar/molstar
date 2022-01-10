@@ -72,6 +72,7 @@ export namespace Stats {
             }
         } else if (size === 1) {
             if (Unit.Traits.is(unit.traits, Unit.Trait.MultiChain)) {
+                // handled in `handleUnitChainsSimple`
                 return;
             } else {
                 stats.elementCount += 1;
@@ -192,6 +193,12 @@ export namespace Stats {
                 stats.chainCount += 1;
                 if (stats.chainCount === 1) {
                     Location.set(stats.firstChainLoc, structure, unit, offsets[cI]);
+                }
+            } else if (size === 1) {
+                // need to handle here, skipped in `handleElement`
+                stats.elementCount += 1;
+                if (stats.elementCount === 1) {
+                    Location.set(stats.firstElementLoc, structure, unit, eI);
                 }
             }
         }
