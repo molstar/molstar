@@ -22,9 +22,9 @@ export const operators: OperatorList = [
         ],
         name: 'not',
         type: h.prefix,
-        rule: P.alt(
-            P.regex(/NOT/i).skip(P.whitespace),
-            P.string('!').skip(P.optWhitespace)
+        rule: P.MonadicParser.alt(
+            P.MonadicParser.regexp(/NOT/i).skip(P.MonadicParser.whitespace),
+            P.MonadicParser.string('!').skip(P.MonadicParser.optWhitespace)
         ),
         map: (op, selection) => h.invertExpr(selection),
     },

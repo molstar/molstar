@@ -26,7 +26,7 @@ const valueOperators: OperatorList = [
         '@examples': [],
         name: 'mul-div',
         type: h.binaryLeft,
-        rule: P.regex(/\s*(\*|\/)\s*/, 1),
+        rule: P.MonadicParser.regexp(/\s*(\*|\/)\s*/, 1),
         map: (op, e1, e2) => {
             switch (op) {
                 case '*': return B.core.math.mult([e1, e2]);
@@ -40,7 +40,7 @@ const valueOperators: OperatorList = [
         '@examples': [],
         name: 'add-sub',
         type: h.binaryLeft,
-        rule: P.regex(/\s*(-|\+)\s*/, 1),
+        rule: P.MonadicParser.regexp(/\s*(-|\+)\s*/, 1),
         map: (op, e1, e2) => {
             switch (op) {
                 case '-': return B.core.math.sub([e1, e2]);
@@ -54,7 +54,7 @@ const valueOperators: OperatorList = [
         '@examples': [],
         name: 'comparison',
         type: h.binaryLeft,
-        rule: P.alt(P.regex(/\s*(=~|==|>=|<=|=|!=|>|<)\s*/, 1), P.whitespace.result('=')),
+        rule: P.MonadicParser.alt(P.MonadicParser.regexp(/\s*(=~|==|>=|<=|=|!=|>|<)\s*/, 1), P.MonadicParser.whitespace.result('=')),
         map: (op, e1, e2) => {
             // console.log(op, e1, e2)
             let expr;
@@ -112,39 +112,39 @@ const valueOperators: OperatorList = [
 
 const lang = P.createLanguage({
     Parens: function (r) {
-        return P.alt(
+        return P.MonadicParser.alt(
             r.Parens,
             r.Operator,
             r.Expression
-        ).wrap(P.string('('), P.string(')'));
+        ).wrap(P.MonadicParser.string('('), P.MonadicParser.string(')'));
     },
 
     Expression: function (r) {
-        return P.alt(
+        return P.MonadicParser.alt(
             r.RangeListProperty,
             r.ValueQuery,
             r.Keywords,
         );
     },
 
-    Keywords: () => P.alt(...h.getKeywordRules(keywords)),
+    Keywords: () => P.MonadicParser.alt(...h.getKeywordRules(keywords)),
 
     ValueRange: function (r) {
         return P.seq(
             r.Value
-                .skip(P.regex(/\s+TO\s+/i)),
+                .skip(P.MonadicParser.regexp(/\s+TO\s+/i)),
             r.Value
         ).map(x => ({ range: x }));
     },
 
     RangeListProperty: function (r) {
         return P.seq(
-            P.alt(...h.getPropertyNameRules(properties, /\s/))
-                .skip(P.whitespace),
-            P.alt(
+            P.MonadicParser.alt(...h.getPropertyNameRules(properties, /\s/))
+                .skip(P.MonadicParser.whitespace),
+            P.MonadicParser.alt(
                 r.ValueRange,
                 r.Value
-            ).sepBy1(P.whitespace)
+            ).sepBy1(P.MonadicParser.whitespace)
         ).map(x => {
             const [property, values] = x;
             const listValues: (string | number)[] = [];
@@ -175,19 +175,19 @@ const lang = P.createLanguage({
     },
 
     Operator: function (r) {
-        return h.combineOperators(operators, P.alt(r.Parens, r.Expression, r.ValueQuery));
+        return h.combineOperators(operators, P.MonadicParser.alt(r.Parens, r.Expression, r.ValueQuery));
     },
 
     Query: function (r) {
-        return P.alt(
+        return P.MonadicParser.alt(
             r.Operator,
             r.Parens,
             r.Expression
-        ).trim(P.optWhitespace);
+        ).trim(P.MonadicParser.optWhitespace);
     },
 
     Number: function () {
-        return P.regexp(/-?(0|[1-9][0-9]*)([.][0-9]+)?([eE][+-]?[0-9]+)?/)
+        return P.MonadicParser.regexp(/-?(0|[1-9][0-9]*)([.][0-9]+)?([eE][+-]?[0-9]+)?/)
             .map(Number)
             .desc('number');
     },
@@ -195,35 +195,35 @@ const lang = P.createLanguage({
     String: function () {
         const w = h.getReservedWords(properties, keywords, operators)
             .sort(h.strLenSortFn).map(h.escapeRegExp).join('|');
-        return P.alt(
-            P.regex(new RegExp(`(?!(${w}))[A-Z0-9_]+`, 'i')),
-            P.regex(/'((?:[^"\\]|\\.)*)'/, 1),
-            P.regex(/"((?:[^"\\]|\\.)*)"/, 1).map(x => B.core.type.regex([`^${x}$`, 'i']))
+        return P.MonadicParser.alt(
+            P.MonadicParser.regexp(new RegExp(`(?!(${w}))[A-Z0-9_]+`, 'i')),
+            P.MonadicParser.regexp(/'((?:[^"\\]|\\.)*)'/, 1),
+            P.MonadicParser.regexp(/"((?:[^"\\]|\\.)*)"/, 1).map(x => B.core.type.regex([`^${x}$`, 'i']))
         ).desc('string');
     },
 
     Value: function (r) {
-        return P.alt(r.Number, r.String);
+        return P.MonadicParser.alt(r.Number, r.String);
     },
 
     ValueParens: function (r) {
-        return P.alt(
+        return P.MonadicParser.alt(
             r.ValueParens,
             r.ValueOperator,
             r.ValueExpressions
-        ).wrap(P.string('('), P.string(')'));
+        ).wrap(P.MonadicParser.string('('), P.MonadicParser.string(')'));
     },
 
     ValuePropertyNames: function () {
-        return P.alt(...h.getPropertyNameRules(properties, /=~|==|>=|<=|=|!=|>|<|\)|\s|\+|-|\*|\//i));
+        return P.MonadicParser.alt(...h.getPropertyNameRules(properties, /=~|==|>=|<=|=|!=|>|<|\)|\s|\+|-|\*|\//i));
     },
 
     ValueOperator: function (r) {
-        return h.combineOperators(valueOperators, P.alt(r.ValueParens, r.ValueExpressions));
+        return h.combineOperators(valueOperators, P.MonadicParser.alt(r.ValueParens, r.ValueExpressions));
     },
 
     ValueExpressions: function (r) {
-        return P.alt(
+        return P.MonadicParser.alt(
             r.ValueFunctions,
             r.Value,
             r.ValuePropertyNames
@@ -231,11 +231,11 @@ const lang = P.createLanguage({
     },
 
     ValueFunctions: function (r) {
-        return P.alt(...h.getFunctionRules(functions, r.ValueOperator));
+        return P.MonadicParser.alt(...h.getFunctionRules(functions, r.ValueOperator));
     },
 
     ValueQuery: function (r) {
-        return P.alt(
+        return P.MonadicParser.alt(
             r.ValueOperator.map(x => {
                 // if (!x.head || x.head.startsWith('core.math') || x.head.startsWith('structure.atom-property')) {
                 if (!x.head || !x.head.startsWith('structure.generator')) {

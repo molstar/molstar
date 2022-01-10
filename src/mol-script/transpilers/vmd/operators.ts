@@ -22,7 +22,7 @@ export const operators: OperatorList = [
         '@examples': ['not protein'],
         name: 'not',
         type: h.prefix,
-        rule: P.regex(/NOT/i).skip(P.whitespace),
+        rule: P.MonadicParser.regexp(/NOT/i).skip(P.MonadicParser.whitespace),
         map: (op, selection) => h.invertExpr(selection),
     },
     {
@@ -69,7 +69,7 @@ export const operators: OperatorList = [
         '@examples': ['backbone and protein'],
         name: 'and',
         type: h.binaryLeft,
-        rule: P.alt(h.infixOp(/AND/i), P.whitespace),
+        rule: P.MonadicParser.alt(h.infixOp(/AND/i), P.MonadicParser.whitespace),
         map: (op, selection, by) => B.struct.modifier.intersectBy({ 0: selection, by })
     },
     {

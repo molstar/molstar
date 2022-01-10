@@ -20,7 +20,7 @@ import { Transpiler } from '../transpiler';
 
 const propertiesDict = h.getPropertyRules(properties);
 
-const slash = P.string('/');
+const slash = P.MonadicParser.string('/');
 
 /* is Parser -> MonadicParser substitution correct? */
 function orNull(rule: P.MonadicParser<any>) {
@@ -50,15 +50,15 @@ function atomSelectionQuery(x: any) {
 
 const lang = P.createLanguage({
     Parens: function (r) {
-        return P.alt(
+        return P.MonadicParser.alt(
             r.Parens,
             r.Operator,
             r.Expression
-        ).wrap(P.string('('), P.string(')'));
+        ).wrap(P.MonadicParser.string('('), P.MonadicParser.string(')'));
     },
 
     Expression: function (r) {
-        return P.alt(
+        return P.MonadicParser.alt(
             r.AtomSelectionMacro.map(atomSelectionQuery),
             r.NamedAtomProperties,
             r.Pepseq,
@@ -69,54 +69,54 @@ const lang = P.createLanguage({
     },
 
     AtomSelectionMacro: function (r) {
-        return P.alt(
-            slash.then(P.alt(
-                P.seq(
+        return P.MonadicParser.alt(
+            slash.then(P.MonadicParser.alt(
+                P.MonadicParser.seq(
                     orNull(r.ObjectProperty).skip(slash),
                     orNull(propertiesDict.segi).skip(slash),
                     orNull(propertiesDict.chain).skip(slash),
                     orNull(propertiesDict.resi).skip(slash),
                     orNull(propertiesDict.name)
                 ).map(x => { return { object: x[0], segi: x[1], chain: x[2], resi: x[3], name: x[4] }; }),
-                P.seq(
+                P.MonadicParser.seq(
                     orNull(r.ObjectProperty).skip(slash),
                     orNull(propertiesDict.segi).skip(slash),
                     orNull(propertiesDict.chain).skip(slash),
                     orNull(propertiesDict.resi)
                 ).map(x => { return { object: x[0], segi: x[1], chain: x[2], resi: x[3] }; }),
-                P.seq(
+                P.MonadicParser.seq(
                     orNull(r.ObjectProperty).skip(slash),
                     orNull(propertiesDict.segi).skip(slash),
                     orNull(propertiesDict.chain)
                 ).map(x => { return { object: x[0], segi: x[1], chain: x[2] }; }),
-                P.seq(
+                P.MonadicParser.seq(
                     orNull(r.ObjectProperty).skip(slash),
                     orNull(propertiesDict.segi)
                 ).map(x => { return { object: x[0], segi: x[1] }; }),
-                P.seq(
+                P.MonadicParser.seq(
                     orNull(r.ObjectProperty)
                 ).map(x => { return { object: x[0] }; }),
             )),
-            P.alt(
-                P.seq(
+            P.MonadicParser.alt(
+                P.MonadicParser.seq(
                     orNull(r.ObjectProperty).skip(slash),
                     orNull(propertiesDict.segi).skip(slash),
                     orNull(propertiesDict.chain).skip(slash),
                     orNull(propertiesDict.resi).skip(slash),
                     orNull(propertiesDict.name)
                 ).map(x => { return { object: x[0], segi: x[1], chain: x[2], resi: x[3], name: x[4] }; }),
-                P.seq(
+                P.MonadicParser.seq(
                     orNull(propertiesDict.segi).skip(slash),
                     orNull(propertiesDict.chain).skip(slash),
                     orNull(propertiesDict.resi).skip(slash),
                     orNull(propertiesDict.name)
                 ).map(x => { return { segi: x[0], chain: x[1], resi: x[2], name: x[3] }; }),
-                P.seq(
+                P.MonadicParser.seq(
                     orNull(propertiesDict.chain).skip(slash),
                     orNull(propertiesDict.resi).skip(slash),
                     orNull(propertiesDict.name)
                 ).map(x => { return { chain: x[0], resi: x[1], name: x[2] }; }),
-                P.seq(
+                P.MonadicParser.seq(
                     orNull(propertiesDict.resi).skip(slash),
                     orNull(propertiesDict.name)
                 ).map(x => { return { resi: x[0], name: x[1] }; }),
@@ -125,15 +125,15 @@ const lang = P.createLanguage({
     },
 
     NamedAtomProperties: function () {
-        return P.alt(...h.getNamedPropertyRules(properties));
+        return P.MonadicParser.alt(...h.getNamedPropertyRules(properties));
     },
 
-    Keywords: () => P.alt(...h.getKeywordRules(keywords)),
+    Keywords: () => P.MonadicParser.alt(...h.getKeywordRules(keywords)),
 
     ObjectProperty: () => {
         const w = h.getReservedWords(properties, keywords, operators)
             .sort(h.strLenSortFn).map(h.escapeRegExp).join('|');
-        return P.regex(new RegExp(`(?!(${w}))[A-Z0-9_]+`, 'i'));
+        return P.MonadicParser.regexp(new RegExp(`(?!(${w}))[A-Z0-9_]+`, 'i'));
     },
 
     Object: (r) => {
@@ -145,27 +145,27 @@ const lang = P.createLanguage({
     // sequence SEQ (see also FindSeq).
     // PEPSEQ seq
     Pepseq: () => {
-        return P.regex(/(PEPSEQ|ps\.)\s+([a-z]+)/i, 2)
+        return P.MonadicParser.regexp(/(PEPSEQ|ps\.)\s+([a-z]+)/i, 2)
             .map(h.makeError(`operator 'pepseq' not supported`));
     },
 
     // Selects atoms which show representation rep.
     // REP rep
     Rep: () => {
-        return P.regex(/REP\s+(lines|spheres|mesh|ribbon|cartoon|sticks|dots|surface|labels|extent|nonbonded|nb_spheres|slice|extent|slice|dashes|angles|dihedrals|cgo|cell|callback|everything)/i, 1)
+        return P.MonadicParser.regexp(/REP\s+(lines|spheres|mesh|ribbon|cartoon|sticks|dots|surface|labels|extent|nonbonded|nb_spheres|slice|extent|slice|dashes|angles|dihedrals|cgo|cell|callback|everything)/i, 1)
             .map(h.makeError(`operator 'rep' not supported`));
     },
 
     Operator: function (r) {
-        return h.combineOperators(operators, P.alt(r.Parens, r.Expression, r.Operator));
+        return h.combineOperators(operators, P.MonadicParser.alt(r.Parens, r.Expression, r.Operator));
     },
 
     Query: function (r) {
-        return P.alt(
+        return P.MonadicParser.alt(
             r.Operator,
             r.Parens,
             r.Expression
-        ).trim(P.optWhitespace);
+        ).trim(P.MonadicParser.optWhitespace);
     }
 });
 
