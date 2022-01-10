@@ -47,7 +47,7 @@ export function postfix(opParser: P.MonadicParser<any>, nextParser: P.MonadicPar
     // INPUT  :: "4!!!"
     // PARSE  :: [4, "factorial", "factorial", "factorial"]
     // REDUCE :: ["factorial", ["factorial", ["factorial", 4]]]
-    return P.seqMap(
+    return P.seqMap( /* no seqMap() in monadic-parser.ts, any suitable replacement? */
         nextParser,
         opParser.many(),
         (x, suffixes) =>
