@@ -146,7 +146,7 @@ interface FormalChargesRawData {
     atomIdx: Array<number>;
     charge: Array<number>;
 }
-export function handleFormalCharges(tokenizer: Tokenizer, lineStart: number, formalCharges: FormalChargesRawData): any {
+export function handleFormalCharges(tokenizer: Tokenizer, lineStart: number, formalCharges: FormalChargesRawData) {
 
     Tokenizer.trim(tokenizer, lineStart + 6, lineStart + 9);
     const numOfCharges = parseInt(Tokenizer.getTokenString(tokenizer));
@@ -175,7 +175,6 @@ export function handleFormalCharges(tokenizer: Tokenizer, lineStart: number, for
     }
     /* Once the line is read, move to the next one. */
     Tokenizer.eatLine(tokenizer);
-    return formalCharges;
 }
 
 /** Call an appropriate handler based on the property type.
