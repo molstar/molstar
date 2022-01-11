@@ -142,14 +142,14 @@ export function handleBonds(tokenizer: Tokenizer, count: number): MolFile['bonds
     };
 }
 
-
-export function handleFormalCharges(tokenizer: Tokenizer, lineStart: number): MolFile['formalCharges'] {
+interface FormalChargesRawData {
+    atomIdx: Array<number>;
+    charge: Array<number>;
+}
+export function handleFormalCharges(tokenizer: Tokenizer, lineStart: number, formalCharges: FormalChargesRawData): any {
 
     Tokenizer.trim(tokenizer, lineStart + 6, lineStart + 9);
     const numOfCharges = parseInt(Tokenizer.getTokenString(tokenizer));
-    const atomIdx = TokenBuilder.create(tokenizer.data, numOfCharges * 2);
-    const charge = TokenBuilder.create(tokenizer.data, numOfCharges * 2);
-
     for (let i = 0; i < numOfCharges; ++i) {
         /*
         M  CHG  3   1  -1   2   0   2  -1
@@ -167,21 +167,15 @@ export function handleFormalCharges(tokenizer: Tokenizer, lineStart: number): Mo
         const offset = 9 + (i * 8);
 
         Tokenizer.trim(tokenizer, lineStart + offset, lineStart + offset + 4);
-        TokenBuilder.addUnchecked(atomIdx, tokenizer.tokenStart, tokenizer.tokenEnd);
+        const _atomIdx = Tokenizer.getTokenString(tokenizer);
+        formalCharges.atomIdx.push(+_atomIdx);
         Tokenizer.trim(tokenizer, lineStart + offset + 4, lineStart + offset + 8);
-        TokenBuilder.addUnchecked(charge, tokenizer.tokenStart, tokenizer.tokenEnd);
+        const _charge = Tokenizer.getTokenString(tokenizer);
+        formalCharges.charge.push(+_charge);
     }
-
-    /*
-        Once the line is read, move to the next one.
-        Otherwise the cursor will be one position behind on the next line.
-    */
+    /* Once the line is read, move to the next one. */
     Tokenizer.eatLine(tokenizer);
-
-    return {
-        atomIdx: TokenColumn(atomIdx)(Column.Schema.int),
-        charge: TokenColumn(charge)(Column.Schema.int),
-    };
+    return formalCharges;
 }
 
 /** Call an appropriate handler based on the property type.
@@ -190,7 +184,9 @@ export function handleFormalCharges(tokenizer: Tokenizer, lineStart: number): Mo
  */
 export function handlePropertiesBlock(tokenizer: Tokenizer): MolFile['formalCharges'] {
 
-    let formalCharges = null;
+    const _atomIdx: Array<number> = [];
+    const _charge: Array<number> = [];
+    const _formalCharges: FormalChargesRawData = { atomIdx: _atomIdx, charge: _charge };
 
     let i = 0;
     while (i < 50) { // Added a "big" value to avoid any infinite loops by accident.
@@ -204,7 +200,7 @@ export function handlePropertiesBlock(tokenizer: Tokenizer): MolFile['formalChar
 
         switch (propertyType) {
             case 'CHG':
-                formalCharges = handleFormalCharges(tokenizer, s);
+                handleFormalCharges(tokenizer, s, _formalCharges);
                 break;
             default:
                 break;
@@ -212,6 +208,10 @@ export function handlePropertiesBlock(tokenizer: Tokenizer): MolFile['formalChar
         i++;
     }
 
+    const formalCharges: MolFile['formalCharges'] = {
+        atomIdx: Column.ofIntArray(_formalCharges.atomIdx),
+        charge: Column.ofIntArray(_formalCharges.charge)
+    };
     return formalCharges;
 }
 
