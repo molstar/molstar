@@ -26,32 +26,16 @@ export async function getMolModels(mol: MolFile, format: ModelFormat<any> | unde
     const type_symbol = Column.asArrayColumn(atoms.type_symbol);
     const seq_id = Column.ofConst(1, atoms.count, Column.Schema.int);
 
-    const computedFormalCharges: Column<number> = Column.ofLambda({
-        value: (row: number) => {
-            if (formalCharges) {
-                const numOfCharges = formalCharges.atomIdx.rowCount;
-                /*
-                    Scan the list of formal charges from the properties
-                    block. If one of them has an atom index that matches the
-                    current row return the corresponding charge.
-                */
-                for (let i = 0; i < numOfCharges; i++) {
-                    if ((formalCharges.atomIdx.value(i) - 1) === row) {
-                        return formalCharges.charge.value(i);
-                    }
-                }
-                /*
-                    If the M CHG property is present, every charge in the atom
-                    block is treated as zero.
-                */
-                return 0;
-            }
-            const idx = atoms.formal_charge.value(row);
-            return formalChargeMapper(idx);
-        },
-        rowCount: atoms.formal_charge.rowCount,
-        schema: atoms.formal_charge.schema,
-    });
+    const computedFormalCharges = new Int32Array(mol.atoms.count);
+    if (formalCharges.atomIdx.rowCount > 0) {
+        for (let i = 0; i < formalCharges.atomIdx.rowCount; i++) {
+            computedFormalCharges[formalCharges.atomIdx.value(i) - 1] = formalCharges.charge.value(i);
+        }
+    } else {
+        for (let i = 0; i < mol.atoms.count; i++) {
+            computedFormalCharges[i] = formalChargeMapper(atoms.formal_charge.value(i));
+        }
+    }
 
     const atom_site = Table.ofPartialColumns(BasicSchema.atom_site, {
         auth_asym_id: A,
@@ -73,7 +57,7 @@ export async function getMolModels(mol: MolFile, format: ModelFormat<any> | unde
         type_symbol,
 
         pdbx_PDB_model_num: Column.ofConst(1, atoms.count, Column.Schema.int),
-        pdbx_formal_charge: computedFormalCharges
+        pdbx_formal_charge: Column.ofIntArray(computedFormalCharges)
     }, atoms.count);
 
     const entityBuilder = new EntityBuilder();

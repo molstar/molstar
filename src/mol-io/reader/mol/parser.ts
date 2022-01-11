@@ -34,7 +34,7 @@ export interface MolFile {
     readonly formalCharges: {
         readonly atomIdx: Column<number>;
         readonly charge: Column<number>;
-    } | null
+    }
 }
 
 /*
@@ -79,8 +79,8 @@ export function formalChargeMapper(key: number) {
         case 1: return 3;
         case 4: return 0;
         default:
-            console.error(`Value ${key} is outside the 0-7 range!`);
-            break;
+            console.error(`Value ${key} is outside the 0-7 range, defaulting to 0.`);
+            return 0;
     }
 }
 
