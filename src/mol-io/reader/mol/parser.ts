@@ -188,8 +188,7 @@ export function handlePropertiesBlock(tokenizer: Tokenizer): MolFile['formalChar
     const _charge: Array<number> = [];
     const _formalCharges: FormalChargesRawData = { atomIdx: _atomIdx, charge: _charge };
 
-    let i = 0;
-    while (i < 50) { // Added a "big" value to avoid any infinite loops by accident.
+    while (tokenizer.position < tokenizer.length) {
         const { position: s } = tokenizer;
 
         Tokenizer.trim(tokenizer, s + 3, s + 6);
@@ -205,7 +204,6 @@ export function handlePropertiesBlock(tokenizer: Tokenizer): MolFile['formalChar
             default:
                 break;
         }
-        i++;
     }
 
     const formalCharges: MolFile['formalCharges'] = {
