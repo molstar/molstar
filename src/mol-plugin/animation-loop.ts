@@ -6,6 +6,7 @@
 
 import { PluginContext } from './context';
 import { now } from '../mol-util/now';
+import { PluginAnimationManager } from '../mol-plugin-state/manager/animation';
 
 export class PluginAnimationLoop {
     private currentFrame: any = void 0;
@@ -15,8 +16,8 @@ export class PluginAnimationLoop {
         return this._isAnimating;
     }
 
-    async tick(t: number, options?: { isSynchronous?: boolean, manualDraw?: boolean }) {
-        await this.plugin.managers.animation.tick(t, options?.isSynchronous);
+    async tick(t: number, options?: { isSynchronous?: boolean, manualDraw?: boolean, animation?: PluginAnimationManager.AnimationInfo }) {
+        await this.plugin.managers.animation.tick(t, options?.isSynchronous, options?.animation);
         this.plugin.canvas3d?.tick(t as now.Timestamp, options);
     }
 

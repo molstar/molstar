@@ -99,12 +99,12 @@ class PluginAnimationManager extends StatefulPluginComponent<PluginAnimationMana
         await this.start();
     }
 
-    async tick(t: number, isSynchronous?: boolean) {
+    async tick(t: number, isSynchronous?: boolean, animation?: PluginAnimationManager.AnimationInfo) {
         this.currentTime = t;
         if (this.isStopped) return;
 
-        if (isSynchronous) {
-            await this.applyFrame();
+        if (isSynchronous || animation) {
+            await this.applyFrame(animation);
         } else {
             this.applyAsync();
         }
@@ -165,12 +165,12 @@ class PluginAnimationManager extends StatefulPluginComponent<PluginAnimationMana
         }
     }
 
-    private async applyFrame() {
+    private async applyFrame(animation?: PluginAnimationManager.AnimationInfo) {
         const t = this.currentTime;
         if (this._current.startedTime < 0) this._current.startedTime = t;
         const newState = await this._current.anim.apply(
             this._current.state,
-            { lastApplied: this._current.lastTime, current: t - this._current.startedTime },
+            { lastApplied: this._current.lastTime, current: t - this._current.startedTime, animation },
             { params: this._current.paramValues, plugin: this.context });
 
         if (newState.kind === 'finished') {
@@ -228,6 +228,11 @@ class PluginAnimationManager extends StatefulPluginComponent<PluginAnimationMana
 }
 
 namespace PluginAnimationManager {
+    export interface AnimationInfo {
+        currentFrame: number,
+        frameCount: number
+    }
+
     export interface Current {
         anim: PluginStateAnimation
         params: PD.Params,

@@ -7,6 +7,8 @@ Note that since we don't clearly distinguish between a public and private interf
 ## [Unreleased]
 
 - Fix ``getOperatorsForIndex``
+- Pass animation info (current frame & count) to state animations
+    - Fix camera stutter for "camera spin" animation
 
 ## [v3.0.0-dev.9] - 2022-01-09
 
