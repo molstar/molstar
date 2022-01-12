@@ -1,3 +1,10 @@
+/**
+ * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Panagiotis Tourlas <panagiot_tourlov@hotmail.com>
+ */
 
 import { parseMol, formalChargeMapper } from '../mol/parser';
 
@@ -76,6 +83,21 @@ const MolStringWithPropertyBlockCharge = `
 M  CHG  3   2  -1   3   1   4   1
 M  END`;
 
+const MolStringWithMultipleChargeLines = `
+  Ketcher  1 72215442D 1   1.00000     0.00000     0
+
+  4  3  0  0  0  0            999 V2000
+    0.0000    0.0000    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0
+    0.8660    0.5000    0.0000 N   0  0  0  0  0  0  0  0  0  0  0  0
+   -0.8660    0.5000    0.0000 S   0  0  0  0  0  0  0  0  0  0  0  0
+    0.0000   -1.0000    0.0000 P   0  0  0  0  0  0  0  0  0  0  0  0
+  1  4  2  0  0  0  0
+  3  1  1  0  0  0  0
+  2  1  1  0  0  0  0
+M  CHG  1   2  -1
+M  CHG  2   3   1   4   1
+M  END`;
+
 describe('mol reader', () => {
     it('basic', async () => {
         const parsed = await parseMol(MolString).run();
@@ -113,6 +135,23 @@ describe('mol reader', () => {
         expect(formalCharges.charge.value(0)).toBe(-1);
         expect(formalCharges.charge.value(1)).toBe(1);
     });
+    it('multiple charge lines', async () => {
+        const parsed = await parseMol(MolStringWithMultipleChargeLines).run();
+        if (parsed.isError) {
+            throw new Error(parsed.message);
+        }
+        const { formalCharges } = parsed.result;
+
+        expect(formalCharges.atomIdx.rowCount).toBe(3);
+        expect(formalCharges.charge.rowCount).toBe(3);
+
+        expect(formalCharges.atomIdx.value(0)).toBe(2);
+        expect(formalCharges.atomIdx.value(1)).toBe(3);
+
+        expect(formalCharges.charge.value(0)).toBe(-1);
+        expect(formalCharges.charge.value(1)).toBe(1);
+    });
+
     it('atom block charge mapping', async () => {
         expect(formalChargeMapper(7)).toBe(-3);
         expect(formalChargeMapper(6)).toBe(-2);
