@@ -1,3 +1,10 @@
+/**
+ * Copyright (c) 2021-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author Jason Pattle <jpattle@exscientia.co.uk>
+ * @author Panagiotis Tourlas <panagiot_tourlov@hotmail.com>
+ */
+
 import { Column } from '../../../mol-data/db';
 import { MolFile } from '../mol/parser';
 import { Tokenizer, TokenBuilder, Tokens } from '../common/text/tokenizer';
