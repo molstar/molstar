@@ -7,7 +7,7 @@
  */
 
 import { Column } from '../../../mol-data/db';
-import { MolFile, handleAtoms, handleBonds, handleFormalCharges } from '../mol/parser';
+import { MolFile, handleAtoms, handleBonds, handlePropertiesBlock } from '../mol/parser';
 import { Task } from '../../../mol-task';
 import { ReaderResult as Result } from '../result';
 import { Tokenizer, TokenBuilder } from '../common/text/tokenizer';
@@ -95,9 +95,16 @@ function handleMolFile(tokenizer: Tokenizer) {
         return;
     }
 
+    /* No support for formal charge parsing in V3000 molfiles at the moment,
+    so all charges default to 0.*/
+    const nullFormalCharges: MolFile['formalCharges'] = {
+        atomIdx: Column.ofConst(0, atomCount, Column.Schema.int),
+        charge: Column.ofConst(0, atomCount, Column.Schema.int)
+    };
+
     const atoms = molIsV3 ? handleAtomsV3(tokenizer, atomCount) : handleAtoms(tokenizer, atomCount);
     const bonds = molIsV3 ? handleBondsV3(tokenizer, bondCount) : handleBonds(tokenizer, bondCount);
-    const formalCharges = handleFormalCharges(tokenizer,1)
+    const formalCharges = molIsV3 ? nullFormalCharges : handlePropertiesBlock(tokenizer);
     const dataItems = handleDataItems(tokenizer);
 
     return {
