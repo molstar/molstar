@@ -86,7 +86,8 @@
     "Áron Samuel Kovács <aron.kovacs@mail.muni.cz>",
     "Ludovic Autin <autin@scripps.edu>",
     "Michal Malý <michal.maly@ibt.cas.cz>",
-    "Jiří Černý <jiri.cerny@ibt.cas.cz>"
+    "Jiří Černý <jiri.cerny@ibt.cas.cz>",
+    "Panagiotis Tourlas <panagiot_tourlov@hotmail.com>"
   ],
   "license": "MIT",
   "devDependencies": {
