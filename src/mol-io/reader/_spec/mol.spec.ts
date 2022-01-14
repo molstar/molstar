@@ -1,5 +1,12 @@
+/**
+ * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Panagiotis Tourlas <panagiot_tourlov@hotmail.com>
+ */
 
-import { parseMol } from '../mol/parser';
+import { parseMol, formalChargeMapper } from '../mol/parser';
 
 const MolString = `2244
   -OEChem-04072009073D
@@ -49,6 +56,48 @@ const MolString = `2244
  13 20  1  0  0  0  0
 M  END`;
 
+const MolStringWithAtomBlockCharge = `
+  Ketcher  1 72215442D 1   1.00000     0.00000     0
+
+  4  3  0  0  0  0            999 V2000
+    0.0000    0.0000    0.0000 C   0  1  0  0  0  0  0  0  0  0  0  0
+    0.8660    0.5000    0.0000 N   0  0  0  0  0  0  0  0  0  0  0  0
+   -0.8660    0.5000    0.0000 S   0  0  0  0  0  0  0  0  0  0  0  0
+    0.0000   -1.0000    0.0000 P   0  0  0  0  0  0  0  0  0  0  0  0
+  1  4  2  0  0  0  0
+  3  1  1  0  0  0  0
+  2  1  1  0  0  0  0
+M  END`;
+
+const MolStringWithPropertyBlockCharge = `
+  Ketcher  1 72215442D 1   1.00000     0.00000     0
+
+  4  3  0  0  0  0            999 V2000
+    0.0000    0.0000    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0
+    0.8660    0.5000    0.0000 N   0  0  0  0  0  0  0  0  0  0  0  0
+   -0.8660    0.5000    0.0000 S   0  0  0  0  0  0  0  0  0  0  0  0
+    0.0000   -1.0000    0.0000 P   0  0  0  0  0  0  0  0  0  0  0  0
+  1  4  2  0  0  0  0
+  3  1  1  0  0  0  0
+  2  1  1  0  0  0  0
+M  CHG  3   2  -1   3   1   4   1
+M  END`;
+
+const MolStringWithMultipleChargeLines = `
+  Ketcher  1 72215442D 1   1.00000     0.00000     0
+
+  4  3  0  0  0  0            999 V2000
+    0.0000    0.0000    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0
+    0.8660    0.5000    0.0000 N   0  0  0  0  0  0  0  0  0  0  0  0
+   -0.8660    0.5000    0.0000 S   0  0  0  0  0  0  0  0  0  0  0  0
+    0.0000   -1.0000    0.0000 P   0  0  0  0  0  0  0  0  0  0  0  0
+  1  4  2  0  0  0  0
+  3  1  1  0  0  0  0
+  2  1  1  0  0  0  0
+M  CHG  1   2  -1
+M  CHG  2   3   1   4   1
+M  END`;
+
 describe('mol reader', () => {
     it('basic', async () => {
         const parsed = await parseMol(MolString).run();
@@ -69,5 +118,64 @@ describe('mol reader', () => {
         expect(bonds.atomIdxA.value(20)).toBe(13);
         expect(bonds.atomIdxB.value(20)).toBe(20);
         expect(bonds.order.value(20)).toBe(1);
+    });
+    it('property block charges', async () => {
+        const parsed = await parseMol(MolStringWithPropertyBlockCharge).run();
+        if (parsed.isError) {
+            throw new Error(parsed.message);
+        }
+        const { formalCharges } = parsed.result;
+
+        expect(formalCharges.atomIdx.rowCount).toBe(3);
+        expect(formalCharges.charge.rowCount).toBe(3);
+
+        expect(formalCharges.atomIdx.value(0)).toBe(2);
+        expect(formalCharges.atomIdx.value(1)).toBe(3);
+
+        expect(formalCharges.charge.value(0)).toBe(-1);
+        expect(formalCharges.charge.value(1)).toBe(1);
+    });
+    it('multiple charge lines', async () => {
+        const parsed = await parseMol(MolStringWithMultipleChargeLines).run();
+        if (parsed.isError) {
+            throw new Error(parsed.message);
+        }
+        const { formalCharges } = parsed.result;
+
+        expect(formalCharges.atomIdx.rowCount).toBe(3);
+        expect(formalCharges.charge.rowCount).toBe(3);
+
+        expect(formalCharges.atomIdx.value(0)).toBe(2);
+        expect(formalCharges.atomIdx.value(1)).toBe(3);
+
+        expect(formalCharges.charge.value(0)).toBe(-1);
+        expect(formalCharges.charge.value(1)).toBe(1);
+    });
+
+    it('atom block charge mapping', async () => {
+        expect(formalChargeMapper(7)).toBe(-3);
+        expect(formalChargeMapper(6)).toBe(-2);
+        expect(formalChargeMapper(5)).toBe(-1);
+        expect(formalChargeMapper(0)).toBe(0);
+        expect(formalChargeMapper(3)).toBe(1);
+        expect(formalChargeMapper(2)).toBe(2);
+        expect(formalChargeMapper(1)).toBe(3);
+        expect(formalChargeMapper(4)).toBe(0);
+    });
+    it('atom block charges', async () => {
+        const parsed = await parseMol(MolStringWithAtomBlockCharge).run();
+        if (parsed.isError) {
+            throw new Error(parsed.message);
+        }
+        const { atoms, formalCharges } = parsed.result;
+
+        /* No property block charges */
+        expect(formalCharges.atomIdx.rowCount).toBe(0);
+        expect(formalCharges.charge.rowCount).toBe(0);
+
+        expect(atoms.formal_charge.value(0)).toBe(1);
+        expect(atoms.formal_charge.value(1)).toBe(0);
+        expect(atoms.formal_charge.value(2)).toBe(0);
+        expect(atoms.formal_charge.value(3)).toBe(0);
     });
 });
