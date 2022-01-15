@@ -184,16 +184,13 @@ function getOperatorsForRange(symmetry: Symmetry, ijkMin: Vec3, ijkMax: Vec3, mo
         operators[0] = Spacegroup.getSymmetryOperator(spacegroup, 0, 0, 0, 0);
     }
 
-    const { toFractional } = spacegroup.cell;
-    const ref = Vec3.transformMat4(Vec3(), modelCenter, toFractional);
-
     for (let op = 0; op < spacegroup.operators.length; op++) {
         for (let i = ijkMin[0]; i <= ijkMax[0]; i++) {
             for (let j = ijkMin[1]; j <= ijkMax[1]; j++) {
                 for (let k = ijkMin[2]; k <= ijkMax[2]; k++) {
                     // check if we have added identity as the 1st operator.
                     if (!ncsCount && op === 0 && i === 0 && j === 0 && k === 0) continue;
-                    operators.push(...getOperatorsForIndex(symmetry, op, i, j, k, ref));
+                    operators.push(...getOperatorsForIndex(symmetry, op, i, j, k, modelCenter));
                 }
             }
         }

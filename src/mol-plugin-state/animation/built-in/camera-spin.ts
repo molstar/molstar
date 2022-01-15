@@ -39,13 +39,9 @@ export const AnimateCameraSpin = PluginStateAnimation.create({
             return { kind: 'finished' };
         }
 
-        const phase = clamp(t.current / ctx.params.durationInMs, 0, 1);
-
-        if (phase >= 0.99999) {
-            ctx.plugin.canvas3d?.requestCameraReset({ snapshot, durationMs: 0 });
-            return { kind: 'finished' };
-        }
-
+        const phase = t.animation
+            ? t.animation?.currentFrame / (t.animation.frameCount + 1)
+            : clamp(t.current / ctx.params.durationInMs, 0, 1);
         const angle = 2 * Math.PI * phase * ctx.params.speed * (ctx.params.direction === 'ccw' ? -1 : 1);
 
         Vec3.sub(_dir, snapshot.position, snapshot.target);
@@ -54,6 +50,10 @@ export const AnimateCameraSpin = PluginStateAnimation.create({
         Vec3.transformQuat(_dir, _dir, _rot);
         const position = Vec3.add(Vec3(), snapshot.target, _dir);
         ctx.plugin.canvas3d?.requestCameraReset({ snapshot: { ...snapshot, position }, durationMs: 0 });
+
+        if (phase >= 0.99999) {
+            return { kind: 'finished' };
+        }
 
         return { kind: 'next', state: animState };
     }

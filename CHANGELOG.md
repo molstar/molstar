@@ -6,6 +6,14 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Fix ``getOperatorsForIndex``
+- Pass animation info (current frame & count) to state animations
+    - Fix camera stutter for "camera spin" animation
+- Add partial charge parsing support for MOL/SDF files (thanks @ptourlas)
+- [Breaking] Cleaner looking ``MembraneOrientationVisuals`` defaults
+
+## [v3.0.0-dev.9] - 2022-01-09
+
 - Add PDBj as a ``pdb-provider`` option
 - Move Viewer APP to a separate file to allow use without importing light theme & index.html
 - Add symmetry support for mol2 files (only spacegroup setting 1)

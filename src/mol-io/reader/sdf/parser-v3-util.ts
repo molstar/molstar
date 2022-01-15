@@ -1,3 +1,10 @@
+/**
+ * Copyright (c) 2021-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author Jason Pattle <jpattle@exscientia.co.uk>
+ * @author Panagiotis Tourlas <panagiot_tourlov@hotmail.com>
+ */
+
 import { Column } from '../../../mol-data/db';
 import { MolFile } from '../mol/parser';
 import { Tokenizer, TokenBuilder, Tokens } from '../common/text/tokenizer';
@@ -61,6 +68,9 @@ export function handleAtomsV3(
         y: TokenColumn(y)(Column.Schema.float),
         z: TokenColumn(z)(Column.Schema.float),
         type_symbol: TokenColumn(type_symbol)(Column.Schema.str),
+        /* No support for formal charge parsing in V3000 molfiles at the moment,
+        so all charges default to 0.*/
+        formal_charge: Column.ofConst(0, atomCount, Column.Schema.int)
     };
 }
 
