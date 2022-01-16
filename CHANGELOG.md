@@ -15,6 +15,10 @@ Note that since we don't clearly distinguish between a public and private interf
     - Add ``animate`` to ``TrackballControlsParams``, remove ``spin`` and ``spinSpeed``
     - Add ``animate`` to ``SimpleSettingsParams``, remove ``spin``
 - Add "camera rock" state animation
+- Add support for custom colors to "molecule-type" theme
+- [Breaking] Add style parameter to "illustrative" color theme
+    - Defaults to "entity-id" style instad of "chain-id"
+- Add "illustrative" representation preset
 
 ## [v3.0.0-dev.9] - 2022-01-09
 
