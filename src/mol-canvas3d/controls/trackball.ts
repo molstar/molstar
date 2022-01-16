@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -465,14 +465,14 @@ namespace TrackballControls {
         function rock(deltaT: number) {
             if (p.animate.name !== 'rock' || p.animate.params.speed === 0 || _isInteracting) return;
 
-            // TODO get rid of the 3.3 factor
+            // TODO get rid of the 3.3 factor (compensates for using `smoothstep`)
             const maxAngle = degToRad(p.animate.params.angle * 3.3) / getRotateFactor();
             const alpha = smoothstep(0, 1, Math.abs(_rockAngleSum) / maxAngle);
 
             const frameSpeed = p.animate.params.speed / 1000;
             _rockSpeed[0] = 60 * Math.min(Math.abs(deltaT), 1000 / 8) / 1000 * frameSpeed;
             _rockAngleSum += Math.abs(_rockSpeed[0]);
-            _rockSpeed[0] = _rockSpeed[0] * _rockDirection * (1.1 - alpha);
+            _rockSpeed[0] *= _rockDirection * (1.1 - alpha);
             Vec2.add(_rotCurr, _rotPrev, _rockSpeed);
 
             if (_rockAngleSum >= maxAngle) {
