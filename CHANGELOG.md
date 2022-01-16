@@ -12,6 +12,9 @@ Note that since we don't clearly distinguish between a public and private interf
 - Add partial charge parsing support for MOL/SDF files (thanks @ptourlas)
 - [Breaking] Cleaner looking ``MembraneOrientationVisuals`` defaults
 - Add support for custom colors to "molecule-type" theme
+- [Breaking] Add style parameter to "illustrative" color theme
+    - Defaults to "entity-id" style instad of "chain-id"
+- Add "illustrative" representation preset
 
 ## [v3.0.0-dev.9] - 2022-01-09
 
