@@ -15,7 +15,6 @@ import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { Camera } from '../camera';
 import { absMax, degToRad } from '../../mol-math/misc';
 import { Binding } from '../../mol-util/binding';
-import { smoothstep } from '../../mol-math/interpolate';
 
 const B = ButtonsType;
 const M = ModifiersKeys;
@@ -47,7 +46,7 @@ export const TrackballControlsParams = {
             speed: PD.Numeric(1, { min: -20, max: 20, step: 1 }),
         }, { description: 'Spin the 3D scene around the x-axis in view space' }),
         rock: PD.Group({
-            speed: PD.Numeric(2, { min: -20, max: 20, step: 1 }),
+            speed: PD.Numeric(1, { min: -20, max: 20, step: 1 }),
             angle: PD.Numeric(10, { min: 0, max: 90, step: 1 }, { description: 'How many degrees to rotate in each direction.' }),
         }, { description: 'Rock the 3D scene around the x-axis in view space' })
     }),
@@ -459,31 +458,29 @@ namespace TrackballControls {
             Vec2.add(_rotCurr, _rotPrev, _spinSpeed);
         }
 
-        let _rockAngleSum = 0;
-        let _rockDirection = 1;
+        let _rockPhase = 0;
         const _rockSpeed = Vec2.create(0.005, 0);
         function rock(deltaT: number) {
             if (p.animate.name !== 'rock' || p.animate.params.speed === 0 || _isInteracting) return;
 
-            // TODO get rid of the 3.3 factor (compensates for using `smoothstep`)
-            const maxAngle = degToRad(p.animate.params.angle * 3.3) / getRotateFactor();
-            const alpha = smoothstep(0, 1, Math.abs(_rockAngleSum) / maxAngle);
+            const dt = deltaT / 4000; // normalize to 4s duration
+            const maxAngle = degToRad(p.animate.params.angle) / getRotateFactor();
 
-            const frameSpeed = p.animate.params.speed / 1000;
-            _rockSpeed[0] = 60 * Math.min(Math.abs(deltaT), 1000 / 8) / 1000 * frameSpeed;
-            _rockAngleSum += Math.abs(_rockSpeed[0]);
-            _rockSpeed[0] *= _rockDirection * (1.1 - alpha);
+            const f = p.animate.params.speed * Math.PI * 2;
+            const angleA = Math.sin(_rockPhase * f) * maxAngle;
+            const angleB = Math.sin((_rockPhase + dt) * f) * maxAngle;
+
+            _rockSpeed[0] = angleB - angleA;
             Vec2.add(_rotCurr, _rotPrev, _rockSpeed);
 
-            if (_rockAngleSum >= maxAngle) {
-                _rockDirection *= -1;
-                _rockAngleSum = -maxAngle;
+            _rockPhase += dt;
+            if (_rockPhase >= 1) {
+                _rockPhase = 0;
             }
         }
 
         function resetRock() {
-            _rockAngleSum = 0;
-            _rockDirection = 1;
+            _rockPhase = 0;
         }
 
         function start(t: number) {

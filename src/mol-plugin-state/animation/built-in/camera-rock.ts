@@ -5,7 +5,7 @@
  */
 
 import { Camera } from '../../../mol-canvas3d/camera';
-import { clamp, smoothstep } from '../../../mol-math/interpolate';
+import { clamp } from '../../../mol-math/interpolate';
 import { Quat } from '../../../mol-math/linear-algebra/3d/quat';
 import { Vec3 } from '../../../mol-math/linear-algebra/3d/vec3';
 import { degToRad } from '../../../mol-math/misc';
@@ -14,10 +14,7 @@ import { PluginStateAnimation } from '../model';
 
 const _dir = Vec3(), _axis = Vec3(), _rot = Quat();
 
-type State = {
-    snapshot: Camera.Snapshot,
-    angles: number[]
-};
+type State = { snapshot: Camera.Snapshot };
 
 export const AnimateCameraRock = PluginStateAnimation.create({
     name: 'built-in.animate-camera-rock',
@@ -25,42 +22,10 @@ export const AnimateCameraRock = PluginStateAnimation.create({
     isExportable: true,
     params: () => ({
         durationInMs: PD.Numeric(4000, { min: 100, max: 20000, step: 100 }),
-        angle: PD.Numeric(10, { min: 0, max: 90, step: 1 }, { description: 'How many degrees to rotate in each direction.' }),
+        speed: PD.Numeric(1, { min: 1, max: 10, step: 1 }, { description: 'How many times to rock from side to side.' }),
+        angle: PD.Numeric(10, { min: 0, max: 180, step: 1 }, { description: 'How many degrees to rotate in each direction.' }),
     }),
-    initialState: (p, ctx) => {
-        const angles: number[] = [];
-        const frameSpeed = 1 / 1000;
-        const deltaT = 1000 / 30;
-
-        // TODO get rid of the 3.3 factor (compensates for using `smoothstep`)
-        const maxAngle = degToRad(p.angle * 3.3);
-
-        let angleSum = 0;
-        let direction = 1;
-        let zeroAngleCount = 0;
-        let prevAngle = 0;
-        while (true) {
-            const alpha = smoothstep(0, 1, Math.abs(angleSum) / maxAngle);
-            const rockSpeed = 60 * Math.min(Math.abs(deltaT), 1000 / 8) / 1000 * frameSpeed;
-            angleSum += Math.abs(rockSpeed);
-            const angle = prevAngle + rockSpeed * direction * (1.1 - alpha);
-            angles.push(angle);
-            if (Math.sign(prevAngle) !== Math.sign(angle)) {
-                zeroAngleCount += 1;
-                if (zeroAngleCount === 3) break;
-            }
-            prevAngle = angle;
-            if (angleSum >= maxAngle) {
-                direction *= -1;
-                angleSum = -maxAngle;
-            }
-        }
-
-        return {
-            snapshot: ctx.canvas3d!.camera.getSnapshot(),
-            angles
-        } as State;
-    },
+    initialState: (p, ctx) => ({ snapshot: ctx.canvas3d!.camera.getSnapshot() }) as State,
     getDuration: p => ({ kind: 'fixed', durationMs: p.durationInMs }),
     teardown: (_, state: State, ctx) => {
         ctx.canvas3d?.requestCameraReset({ snapshot: state.snapshot, durationMs: 0 });
@@ -79,7 +44,7 @@ export const AnimateCameraRock = PluginStateAnimation.create({
         const phase = t.animation
             ? t.animation?.currentFrame / (t.animation.frameCount + 1)
             : clamp(t.current / ctx.params.durationInMs, 0, 1);
-        const angle = animState.angles[Math.round(phase * (animState.angles.length - 1))];
+        const angle = Math.sin(phase * ctx.params.speed * Math.PI * 2) * degToRad(ctx.params.angle);
 
         Vec3.sub(_dir, snapshot.position, snapshot.target);
         Vec3.normalize(_axis, snapshot.up);
