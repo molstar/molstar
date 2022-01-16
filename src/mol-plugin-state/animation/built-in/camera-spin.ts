@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  */
@@ -17,11 +17,11 @@ type State = { snapshot: Camera.Snapshot };
 
 export const AnimateCameraSpin = PluginStateAnimation.create({
     name: 'built-in.animate-camera-spin',
-    display: { name: 'Camera Spin' },
+    display: { name: 'Camera Spin', description: 'Spin the 3D scene around the x-axis in view space' },
     isExportable: true,
     params: () => ({
         durationInMs: PD.Numeric(4000, { min: 100, max: 20000, step: 100 }),
-        speed: PD.Numeric(1, { min: 1, max: 10, step: 1 }, { description: 'How many times to spin in the specified dutation.' }),
+        speed: PD.Numeric(1, { min: 1, max: 10, step: 1 }, { description: 'How many times to spin in the specified duration.' }),
         direction: PD.Select<'cw' | 'ccw'>('cw', [['cw', 'Clockwise'], ['ccw', 'Counter Clockwise']], { cycle: true })
     }),
     initialState: (_, ctx) => ({ snapshot: ctx.canvas3d?.camera.getSnapshot()! }) as State,
