@@ -1,12 +1,14 @@
 /**
- * Copyright (c) 2020-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Sebastian Bittrich <sebastian.bittrich@rcsb.org>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Jason Pattle <jpattle@exscientia.co.uk>
+ * @author Panagiotis Tourlas <panagiot_tourlov@hotmail.com>
  */
 
 import { Column } from '../../../mol-data/db';
-import { MolFile, handleAtoms, handleBonds } from '../mol/parser';
+import { MolFile, handleAtoms, handleBonds, handlePropertiesBlock } from '../mol/parser';
 import { Task } from '../../../mol-task';
 import { ReaderResult as Result } from '../result';
 import { Tokenizer, TokenBuilder } from '../common/text/tokenizer';
@@ -29,6 +31,7 @@ export interface SdfFile {
 
 
 const delimiter = '$$$$';
+
 function handleDataItems(tokenizer: Tokenizer): { dataHeader: Column<string>, data: Column<string> } {
     const dataHeader = TokenBuilder.create(tokenizer.data, 32);
     const data = TokenBuilder.create(tokenizer.data, 32);
@@ -93,12 +96,20 @@ function handleMolFile(tokenizer: Tokenizer) {
         return;
     }
 
+    /* No support for formal charge parsing in V3000 molfiles at the moment,
+    so all charges default to 0.*/
+    const nullFormalCharges: MolFile['formalCharges'] = {
+        atomIdx: Column.ofConst(0, atomCount, Column.Schema.int),
+        charge: Column.ofConst(0, atomCount, Column.Schema.int)
+    };
+
     const atoms = molIsV3 ? handleAtomsV3(tokenizer, atomCount) : handleAtoms(tokenizer, atomCount);
     const bonds = molIsV3 ? handleBondsV3(tokenizer, bondCount) : handleBonds(tokenizer, bondCount);
+    const formalCharges = molIsV3 ? nullFormalCharges : handlePropertiesBlock(tokenizer);
     const dataItems = handleDataItems(tokenizer);
 
     return {
-        molFile: { title, program, comment, atoms, bonds },
+        molFile: { title, program, comment, atoms, bonds, formalCharges },
         dataItems
     };
 }

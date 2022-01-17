@@ -51,7 +51,8 @@ namespace PluginStateAnimation {
 
     export interface Time {
         lastApplied: number,
-        current: number
+        current: number,
+        animation?: { currentFrame: number, frameCount: number }
     }
 
     export type ApplyResult<S> = { kind: 'finished' } | { kind: 'skip' } | { kind: 'next', state: S }

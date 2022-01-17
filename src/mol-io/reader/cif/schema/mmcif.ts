@@ -1,7 +1,7 @@
 /**
  * Copyright (c) 2017-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
- * Code-generated 'mmCIF' schema file. Dictionary versions: mmCIF 5.353, IHM 1.17, MA 1.3.3.
+ * Code-generated 'mmCIF' schema file. Dictionary versions: mmCIF 5.354, IHM 1.17, MA 1.3.3.
  *
  * @author molstar/ciftools package
  */
@@ -682,7 +682,7 @@ export const mmCIF_Schema = {
         /**
          * An abbreviation that identifies the database.
          */
-        database_id: Aliased<'CAS' | 'CSD' | 'EMDB' | 'ICSD' | 'MDF' | 'NDB' | 'NBS' | 'PDB' | 'PDF' | 'RCSB' | 'EBI' | 'PDBE' | 'BMRB' | 'WWPDB' | 'PDB_ACC'>(str),
+        database_id: Aliased<'AFDB' | 'CAS' | 'CSD' | 'EMDB' | 'ICSD' | 'MA' | 'MDF' | 'MODBASE' | 'NDB' | 'NBS' | 'PDB' | 'PDF' | 'RCSB' | 'SMR' | 'EBI' | 'PDBE' | 'BMRB' | 'WWPDB' | 'PDB_ACC'>(str),
         /**
          * The code assigned by the database identified in
          * _database_2.database_id.

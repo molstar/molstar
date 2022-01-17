@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Zepei Xu <xuzepei19950617@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -259,6 +259,36 @@ async function handleBonds(state: State): Promise<Schema.Mol2Bonds> {
     return ret;
 }
 
+function handleCrysin(state: State) {
+    const { tokenizer } = state;
+
+    while (tokenizer.position < tokenizer.data.length) {
+        const l = getTokenString(tokenizer);
+        if (l === '@<TRIPOS>MOLECULE') {
+            return;
+        } else if (l === '@<TRIPOS>CRYSIN') {
+            break;
+        } else {
+            markLine(tokenizer);
+        }
+    }
+
+    if (tokenizer.position >= tokenizer.data.length) return;
+
+    markLine(tokenizer);
+    const values = getTokenString(tokenizer).trim().split(reWhitespace);
+    return {
+        a: parseFloat(values[0]),
+        b: parseFloat(values[1]),
+        c: parseFloat(values[2]),
+        alpha: parseFloat(values[3]),
+        beta: parseFloat(values[4]),
+        gamma: parseFloat(values[5]),
+        spaceGroup: parseInt(values[6], 10),
+        setting: parseInt(values[7], 10),
+    };
+}
+
 async function parseInternal(ctx: RuntimeContext, data: string, name: string): Promise<Result<Schema.Mol2File>> {
     const tokenizer = Tokenizer(data);
 
@@ -269,7 +299,8 @@ async function parseInternal(ctx: RuntimeContext, data: string, name: string): P
         handleMolecule(state);
         const atoms = await handleAtoms(state);
         const bonds = await handleBonds(state);
-        structures.push({ molecule: state.molecule, atoms, bonds });
+        const crysin = handleCrysin(state);
+        structures.push({ molecule: state.molecule, atoms, bonds, crysin });
         skipWhitespace(tokenizer);
         while (getTokenString(tokenizer) !== '@<TRIPOS>MOLECULE' && tokenizer.position < tokenizer.data.length) {
             markLine(tokenizer);

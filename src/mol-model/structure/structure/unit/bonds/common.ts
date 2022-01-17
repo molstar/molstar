@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2021 Mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2022 Mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -108,6 +108,15 @@ export function getElementThreshold(i: number) {
     const r = __ElementBondThresholds[i];
     if (r === void 0) return __DefaultBondingRadius;
     return r;
+}
+
+export function getPairingThreshold(elementIndexA: number, elementIndexB: number, thresholdA: number, thresholdB: number) {
+    const thresholdAB = getElementPairThreshold(elementIndexA, elementIndexB);
+    return thresholdAB > 0
+        ? thresholdAB
+        : elementIndexB < 0
+            ? thresholdA
+            : (thresholdA + thresholdB) / 1.95; // not sure if avg or min but max is too big
 }
 
 const H_ID = __ElementIndex['H']!;

@@ -6,13 +6,32 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
-- Add PDBj as a pdb-provider option
 - Assembly handling tweaks:
     - Do not include suffix for "identity assembly operators"
     - Do not include assembly-related categories to export if the structure was composed from an assembly
     - Special case for ``structAsymMap`` if Mol* asym id operator mapping is present
 - Support for opening ZIP files with multiple entries
 - Add Model Export extension
+- Fix ``getOperatorsForIndex``
+- Pass animation info (current frame & count) to state animations
+    - Fix camera stutter for "camera spin" animation
+- Add partial charge parsing support for MOL/SDF files (thanks @ptourlas)
+- [Breaking] Cleaner looking ``MembraneOrientationVisuals`` defaults
+- Add support for custom colors to "molecule-type" theme
+- [Breaking] Add style parameter to "illustrative" color theme
+    - Defaults to "entity-id" style instead of "chain-id"
+- Add "illustrative" representation preset
+
+## [v3.0.0-dev.9] - 2022-01-09
+
+- Add PDBj as a ``pdb-provider`` option
+- Move Viewer APP to a separate file to allow use without importing light theme & index.html
+- Add symmetry support for mol2 files (only spacegroup setting 1)
+- Fix mol2 files element symbol assignment
+- Improve bond assignment from ``IndexPairBonds``
+    - Add ``key`` field for mapping to source data
+    - Fix assignment of bonds with unphysical length
+- Fix label/stats of single atom selection in multi-chain units
 
 ## [v3.0.0-dev.8] - 2021-12-31
 

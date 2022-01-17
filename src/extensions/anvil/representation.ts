@@ -43,9 +43,9 @@ export type BilayerPlanesProps = PD.Values<BilayerPlanesParams>
 const BilayerRimsParams = {
     ...Lines.Params,
     ...SharedParams,
-    lineSizeAttenuation: PD.Boolean(true),
-    linesSize: PD.Numeric(0.3, { min: 0.01, max: 50, step: 0.01 }),
-    dashedLines: PD.Boolean(true),
+    lineSizeAttenuation: PD.Boolean(false),
+    linesSize: PD.Numeric(0.5, { min: 0.01, max: 50, step: 0.01 }),
+    dashedLines: PD.Boolean(false),
 };
 export type BilayerRimsParams = typeof BilayerRimsParams
 export type BilayerRimsProps = PD.Values<BilayerRimsParams>

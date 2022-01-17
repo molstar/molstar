@@ -1,3 +1,10 @@
+/**
+ * Copyright (c) 2020-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author Sebastian Bittrich <sebastian.bittrich@rcsb.org>
+ * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Panagiotis Tourlas <panagiot_tourlov@hotmail.com>
+ */
 
 import { parseSdf } from '../sdf/parser';
 
@@ -458,6 +465,38 @@ describe('sdf reader', () => {
         expect(compound3.dataItems.data.value(21)).toBe('2\n5\n10');
     });
 
+    it('charge parsing in V2000', async () => {
+        const parsed = await parseSdf(SdfString).run();
+        if (parsed.isError) {
+            throw new Error(parsed.message);
+        }
+        const compound1 = parsed.result.compounds[0];
+        const compound2 = parsed.result.compounds[1];
+        const compound3 = parsed.result.compounds[2];
+
+        const formalCharges1 = {
+            atomIdx: compound1.molFile.formalCharges.atomIdx,
+            charge: compound1.molFile.formalCharges.charge
+        };
+        const formalCharges2 = {
+            atomIdx: compound2.molFile.formalCharges.atomIdx,
+            charge: compound2.molFile.formalCharges.charge
+        };
+        const formalCharges3 = {
+            atomIdx: compound3.molFile.formalCharges.atomIdx,
+            charge: compound3.molFile.formalCharges.charge
+        };
+
+        expect(formalCharges1.atomIdx.rowCount).toBe(3);
+        expect(formalCharges2.atomIdx.rowCount).toBe(3);
+        expect(formalCharges3.atomIdx.rowCount).toBe(0);
+
+        expect(formalCharges1.charge.rowCount === formalCharges1.atomIdx.rowCount).toBe(true);
+        expect(formalCharges2.charge.rowCount === formalCharges2.atomIdx.rowCount).toBe(true);
+        expect(formalCharges3.charge.rowCount === formalCharges3.atomIdx.rowCount).toBe(true);
+    });
+
+
     it('v3000', async () => {
         const parsed = await parseSdf(V3000SdfString).run();
         if (parsed.isError) {
@@ -485,6 +524,11 @@ describe('sdf reader', () => {
         expect(compound1.molFile.bonds.atomIdxA.value(10)).toBe(11);
         expect(compound1.molFile.bonds.atomIdxB.value(10)).toBe(9);
         expect(compound1.molFile.bonds.order.value(10)).toBe(2);
+
+        expect(compound1.molFile.formalCharges.atomIdx.rowCount).toBe(13);
+        for (let i = 0; i < compound1.molFile.atoms.count; i++) {
+            expect(compound1.molFile.formalCharges.charge.value(i)).toBe(0);
+        }
 
         expect(compound1.dataItems.dataHeader.rowCount).toBe(2);
         expect(compound1.dataItems.data.rowCount).toBe(2);
