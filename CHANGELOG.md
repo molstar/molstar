@@ -21,6 +21,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - [Breaking] Add style parameter to "illustrative" color theme
     - Defaults to "entity-id" style instead of "chain-id"
 - Add "illustrative" representation preset
+- Bugfix: Automatically treat empty string as "non-present" value in BinaryCIF writer.
 
 ## [v3.0.0-dev.9] - 2022-01-09
 

@@ -191,8 +191,14 @@ function getFieldData(field: Field<any, any>, arrayCtor: ArrayCtor<string | numb
                     array[offset] = '';
                 allPresent = false;
             } else {
-                mask[offset] = Column.ValueKind.Present;
-                array[offset] = getter(key, d, offset);
+                const value = getter(key, d, offset);
+                if (typeof value === 'string' && !value) {
+                    mask[offset] = Column.ValueKind.NotPresent;
+                    allPresent = false;
+                } else {
+                    mask[offset] = Column.ValueKind.Present;
+                }
+                array[offset] = value;
             }
             offset++;
         }
