@@ -30,7 +30,6 @@ export class ModelExportUI extends CollapsableControls<{}, {}> {
 const Params = {
     format: PD.Select<'cif' | 'bcif'>('cif', [['cif', 'mmCIF'], ['bcif', 'Binary mmCIF']])
 };
-// type ParamValue = PD.Values<typeof Params>;
 const DefaultParams = PD.getDefaultValues(Params);
 
 function ExportControls({ plugin }: { plugin: PluginContext }) {

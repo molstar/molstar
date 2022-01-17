@@ -16,7 +16,8 @@ export async function exportHierarchy(plugin: PluginContext, options?: { format?
     try {
         await _exportHierarchy(plugin, options);
     } catch (e) {
-        plugin.log.error(`Export failed: ${e}`);
+        console.error(e);
+        plugin.log.error(`Model export failed. See console for details.`);
     }
 }
 
@@ -32,6 +33,7 @@ async function _exportHierarchy(plugin: PluginContext, options?: { format?: 'cif
         if (!s) continue;
         if (s.models.length > 1) {
             plugin.log.warn(`[Export] Skipping ${_s.cell.obj?.label}: Multimodel exports not supported.`);
+            continue;
         }
 
         const name = entryMap.has(s.model.entryId)
@@ -44,7 +46,7 @@ async function _exportHierarchy(plugin: PluginContext, options?: { format?: 'cif
     if (files.length === 1) {
         download(new Blob([files[0][1]]), files[0][0]);
     } else if (files.length > 1) {
-        const zipData: { [key: string]: Uint8Array } = {};
+        const zipData: Record<string, Uint8Array> = {};
         for (const [fn, data] of files) {
             if (data instanceof Uint8Array) {
                 zipData[fn] = data;
