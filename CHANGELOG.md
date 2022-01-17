@@ -6,10 +6,12 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+## [v3.0.0-dev.10] - 2022-01-17
+
 - Fix ``getOperatorsForIndex``
 - Pass animation info (current frame & count) to state animations
     - Fix camera stutter for "camera spin" animation
-- Add partial charge parsing support for MOL/SDF files (thanks @ptourlas)
+- Add formal charge parsing support for MOL/SDF files (thanks @ptourlas)
 - [Breaking] Cleaner looking ``MembraneOrientationVisuals`` defaults
 - [Breaking] Add rock animation to trackball controls
     - Add ``animate`` to ``TrackballControlsParams``, remove ``spin`` and ``spinSpeed``
