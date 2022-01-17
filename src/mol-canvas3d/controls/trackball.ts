@@ -46,7 +46,7 @@ export const TrackballControlsParams = {
             speed: PD.Numeric(1, { min: -20, max: 20, step: 1 }),
         }, { description: 'Spin the 3D scene around the x-axis in view space' }),
         rock: PD.Group({
-            speed: PD.Numeric(1, { min: -20, max: 20, step: 1 }),
+            speed: PD.Numeric(0.3, { min: -5, max: 5, step: 0.1 }),
             angle: PD.Numeric(10, { min: 0, max: 90, step: 1 }, { description: 'How many degrees to rotate in each direction.' }),
         }, { description: 'Rock the 3D scene around the x-axis in view space' })
     }),
@@ -463,12 +463,10 @@ namespace TrackballControls {
         function rock(deltaT: number) {
             if (p.animate.name !== 'rock' || p.animate.params.speed === 0 || _isInteracting) return;
 
-            const dt = deltaT / 4000; // normalize to 4s duration
+            const dt = deltaT / 1000 * p.animate.params.speed;
             const maxAngle = degToRad(p.animate.params.angle) / getRotateFactor();
-
-            const f = p.animate.params.speed * Math.PI * 2;
-            const angleA = Math.sin(_rockPhase * f) * maxAngle;
-            const angleB = Math.sin((_rockPhase + dt) * f) * maxAngle;
+            const angleA = Math.sin(_rockPhase * Math.PI * 2) * maxAngle;
+            const angleB = Math.sin((_rockPhase + dt) * Math.PI * 2) * maxAngle;
 
             _rockSpeed[0] = angleB - angleA;
             Vec2.add(_rotCurr, _rotPrev, _rockSpeed);
