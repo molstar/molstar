@@ -72,7 +72,7 @@ export class PluginToastManager extends StatefulPluginComponent<{
 
         if (delay < 0) delay = 500;
         return <number><any>setTimeout(() => {
-            const e = this.state.entries.get(id);
+            const e = this.state.entries.get(id)!;
             e.timeout = void 0;
             this.hide(e);
         }, delay);
