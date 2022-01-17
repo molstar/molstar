@@ -918,7 +918,7 @@ async function attachModelProps(model: Model, ctx: PluginContext, taskCtx: Runti
     const propertyCtx = { runtime: taskCtx, assetManager: ctx.managers.asset };
     const { autoAttach, properties } = params;
     for (const name of Object.keys(properties)) {
-        const property = ctx.customModelProperties.get(name);
+        const property = ctx.customModelProperties.get(name)!;
         const props = properties[name];
         if (autoAttach.includes(name) || property.isHidden) {
             try {
@@ -973,7 +973,7 @@ async function attachStructureProps(structure: Structure, ctx: PluginContext, ta
     const propertyCtx = { runtime: taskCtx, assetManager: ctx.managers.asset };
     const { autoAttach, properties } = params;
     for (const name of Object.keys(properties)) {
-        const property = ctx.customStructureProperties.get(name);
+        const property = ctx.customStructureProperties.get(name)!;
         const props = properties[name];
         if (autoAttach.includes(name) || property.isHidden) {
             try {

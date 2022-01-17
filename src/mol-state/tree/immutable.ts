@@ -34,18 +34,37 @@ namespace StateTree {
         readonly forEach: OrderedSet<Ref>['forEach'],
         readonly map: OrderedSet<Ref>['map'],
         toArray(): Ref[],
-        first(): Ref
+        first(): Ref,
+        asMutable(): MutableChildSet
     }
+
+    export interface MutableChildSet extends ChildSet {
+        add(ref: Ref): MutableChildSet,
+        remove(ref: Ref): MutableChildSet,
+        asImmutable(): ChildSet
+    }
+
 
     interface _Map<T> {
         readonly size: number,
         has(ref: Ref): boolean,
-        get(ref: Ref): T
+        get(ref: Ref): T,
+        asImmutable(): _Map<T>,
+        asMutable(): MutableMap<T>
+    }
+
+    export interface MutableMap<T> extends _Map<T> {
+        set(ref: Ref, value: T): MutableMap<T>,
+        delete(ref: Ref): MutableMap<T>
     }
 
     export interface Transforms extends _Map<StateTransform> {}
     export interface Children extends _Map<ChildSet> { }
     export interface Dependencies extends _Map<ChildSet> { }
+
+    export interface MutableTransforms extends MutableMap<StateTransform> {}
+    export interface MutableChildren extends MutableMap<MutableChildSet> { }
+    export interface MutableDependencies extends MutableMap<MutableChildSet> { }
 
     class Impl implements StateTree {
         get root() { return this.transforms.get(StateTransform.RootRef)!; }
@@ -63,7 +82,10 @@ namespace StateTree {
      */
     export function createEmpty(customRoot?: StateTransform): StateTree {
         const root = customRoot || StateTransform.createRoot();
-        return create(ImmutableMap([[root.ref, root]]), ImmutableMap([[root.ref, OrderedSet()]]), ImmutableMap());
+        return create(
+            ImmutableMap([[root.ref, root] as [Ref, StateTransform]]) as Transforms,
+            ImmutableMap([[root.ref, OrderedSet()] as [Ref, ChildSet]]) as Children,
+            ImmutableMap() as Dependencies);
     }
 
     export function create(nodes: Transforms, children: Children, dependencies: Dependencies): StateTree {
@@ -148,13 +170,13 @@ namespace StateTree {
                 children.set(transform.ref, OrderedSet<Ref>().asMutable());
             }
 
-            if (transform.ref !== transform.parent) children.get(transform.parent).add(transform.ref);
+            if (transform.ref !== transform.parent) children.get(transform.parent)!.add(transform.ref);
         }
 
         const dependent = new Set<Ref>();
         for (const t of data.transforms) {
             const ref = t.ref;
-            children.set(ref, children.get(ref).asImmutable());
+            children.set(ref, children.get(ref)!.asImmutable());
 
             if (!t.dependsOn) continue;
 
@@ -163,16 +185,16 @@ namespace StateTree {
                 if (!dependencies.has(d)) {
                     dependencies.set(d, OrderedSet<Ref>([ref]).asMutable());
                 } else {
-                    dependencies.get(d).add(ref);
+                    dependencies.get(d)!.add(ref);
                 }
             }
         }
 
         dependent.forEach(d => {
-            dependencies.set(d, dependencies.get(d).asImmutable());
+            dependencies.set(d, dependencies.get(d)!.asImmutable());
         });
 
-        return create(nodes.asImmutable(), children.asImmutable(), dependencies.asImmutable());
+        return create(nodes.asImmutable() as Transforms, children.asImmutable() as Children, dependencies.asImmutable() as Dependencies);
     }
 
     export function dump(tree: StateTree) {

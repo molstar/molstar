@@ -84,7 +84,7 @@ class PluginStateSnapshotManager extends StatefulPluginComponent<{
         const from = this.getIndex(e);
         let to = (from + dir) % len;
         if (to < 0) to += len;
-        const f = this.state.entries.get(to);
+        const f = this.state.entries.get(to)!;
 
         const entries = this.state.entries.asMutable();
         entries.set(to, e);
@@ -115,7 +115,7 @@ class PluginStateSnapshotManager extends StatefulPluginComponent<{
         if (!id) {
             if (len === 0) return void 0;
             const idx = dir === -1 ? len - 1 : 0;
-            return this.state.entries.get(idx).snapshot.id;
+            return this.state.entries.get(idx)!.snapshot.id;
         }
 
         const e = this.getEntry(id);
@@ -126,7 +126,7 @@ class PluginStateSnapshotManager extends StatefulPluginComponent<{
         idx = (idx + dir) % len;
         if (idx < 0) idx += len;
 
-        return this.state.entries.get(idx).snapshot.id;
+        return this.state.entries.get(idx)!.snapshot.id;
     }
 
     async setStateSnapshot(snapshot: PluginStateSnapshotManager.StateSnapshot): Promise<PluginState.Snapshot | undefined> {

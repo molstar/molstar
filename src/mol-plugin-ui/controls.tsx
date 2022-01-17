@@ -125,7 +125,7 @@ export class StateSnapshotViewportControls extends PluginUIComponent<{}, { isBus
         } else if (e.keyCode === 38 || e.key === 'ArrowUp') {
             if (snapshots.state.isPlaying) snapshots.stop();
             if (snapshots.state.entries.size === 0) return;
-            const e = snapshots.state.entries.get(0);
+            const e = snapshots.state.entries.get(0)!;
             this.update(e.snapshot.id);
         } else if (e.keyCode === 39 || e.key === 'ArrowRight') {
             if (snapshots.state.isPlaying) snapshots.stop();
@@ -133,7 +133,7 @@ export class StateSnapshotViewportControls extends PluginUIComponent<{}, { isBus
         } else if (e.keyCode === 40 || e.key === 'ArrowDown') {
             if (snapshots.state.isPlaying) snapshots.stop();
             if (snapshots.state.entries.size === 0) return;
-            const e = snapshots.state.entries.get(snapshots.state.entries.size - 1);
+            const e = snapshots.state.entries.get(snapshots.state.entries.size - 1)!;
             this.update(e.snapshot.id);
         }
     };
