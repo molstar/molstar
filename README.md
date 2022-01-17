@@ -11,6 +11,13 @@ When using Mol*, please cite:
 
 David Sehnal, Sebastian Bittrich, Mandar Deshpande, Radka Svobodová, Karel Berka, Václav Bazgier, Sameer Velankar, Stephen K Burley, Jaroslav Koča, Alexander S Rose: [Mol* Viewer: modern web app for 3D visualization and analysis of large biomolecular structures](https://doi.org/10.1093/nar/gkab314), *Nucleic Acids Research*, 2021; https://doi.org/10.1093/nar/gkab314.
 
+### Protein Data Bank Integrations
+
+- The [pdbe-molstar](https://github.com/molstar/pdbe-molstar) library is the Mol* implementation used by EMBL-EBI data resources such as [PDBe](https://pdbe.org/), [PDBe-KB](https://pdbe-kb.org/) and [AlphaFold DB](https://alphafold.ebi.ac.uk/). This implementation can be used as a JS plugin and a Web component and supports property/attribute-based easy customisation. It provides helper methods to facilitate programmatic interactions between the web application and the 3D viewer. It also provides a superposition view for overlaying all the observed ligand molecules on representative protein conformations.
+
+- [rcsb-molstar](https://github.com/molstar/rcsb-molstar) is the Mol* plugin used by [RCSB PDB](https://www.rcsb.org). The project provides additional presets for the visualization of structure alignments and structure motifs such as ligand binding sites. Furthermore, [rcsb-molstar](https://github.com/molstar/rcsb-molstar) allows to interactively add or hide of (parts of) chains, as seen in the [3D Protein Feature View](https://www.rcsb.org/3d-sequence/4hhb).
+
+
 ## Project Structure Overview
 
 The core of Mol* consists of these modules (see under `src/`):
