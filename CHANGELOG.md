@@ -11,6 +11,10 @@ Note that since we don't clearly distinguish between a public and private interf
     - Fix camera stutter for "camera spin" animation
 - Add partial charge parsing support for MOL/SDF files (thanks @ptourlas)
 - [Breaking] Cleaner looking ``MembraneOrientationVisuals`` defaults
+- [Breaking] Add rock animation to trackball controls
+    - Add ``animate`` to ``TrackballControlsParams``, remove ``spin`` and ``spinSpeed``
+    - Add ``animate`` to ``SimpleSettingsParams``, remove ``spin``
+- Add "camera rock" state animation
 - Add support for custom colors to "molecule-type" theme
 - [Breaking] Add style parameter to "illustrative" color theme
     - Defaults to "entity-id" style instad of "chain-id"

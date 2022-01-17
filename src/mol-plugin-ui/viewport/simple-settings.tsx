@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -46,10 +46,7 @@ const LayoutOptions = {
 type LayoutOptions = keyof typeof LayoutOptions
 
 const SimpleSettingsParams = {
-    spin: PD.Group({
-        spin: Canvas3DParams.trackball.params.spin,
-        speed: Canvas3DParams.trackball.params.spinSpeed
-    }, { pivot: 'spin' }),
+    animate: Canvas3DParams.trackball.params.animate,
     camera: Canvas3DParams.camera,
     background: PD.Group({
         color: PD.Color(Color(0xFCFBF9), { label: 'Background', description: 'Custom background color' }),
@@ -96,7 +93,7 @@ const SimpleSettingsMapping = ParamMapping({
 
         return {
             layout: props.layout,
-            spin: { spin: !!canvas.trackball.spin, speed: canvas.trackball.spinSpeed },
+            animate: canvas.trackball.animate,
             camera: canvas.camera,
             background: {
                 color: renderer.backgroundColor,
@@ -114,8 +111,7 @@ const SimpleSettingsMapping = ParamMapping({
     },
     update(s, props) {
         const canvas = props.canvas as Mutable<Canvas3DProps>;
-        canvas.trackball.spin = s.spin.spin;
-        canvas.trackball.spinSpeed = s.spin.speed;
+        canvas.trackball.animate = s.animate;
         canvas.camera = s.camera;
         canvas.transparentBackground = s.background.transparent;
         canvas.renderer.backgroundColor = s.background.color;
