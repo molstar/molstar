@@ -16,6 +16,7 @@ import { UniformColorTheme, UniformColorThemeParams } from './uniform';
 import { assertUnreachable } from '../../mol-util/type-helpers';
 import { EntityIdColorTheme, EntityIdColorThemeParams } from './entity-id';
 import { MoleculeTypeColorTheme, MoleculeTypeColorThemeParams } from './molecule-type';
+import { EntitySourceColorTheme, EntitySourceColorThemeParams } from './entity-source';
 
 const DefaultIllustrativeColor = Color(0xEEEEEE);
 const Description = `Assigns an illustrative color that gives every chain a color based on the choosen style but with lighter carbons (inspired by David Goodsell's Molecule of the Month style).`;
@@ -25,6 +26,7 @@ export const IllustrativeColorThemeParams = {
         uniform: PD.Group(UniformColorThemeParams),
         'chain-id': PD.Group(ChainIdColorThemeParams),
         'entity-id': PD.Group(EntityIdColorThemeParams),
+        'entity-source': PD.Group(EntitySourceColorThemeParams),
         'molecule-type': PD.Group(MoleculeTypeColorThemeParams),
     }),
     carbonLightness: PD.Numeric(0.8, { min: -6, max: 6, step: 0.1 })
@@ -40,8 +42,9 @@ export function IllustrativeColorTheme(ctx: ThemeDataContext, props: PD.Values<I
         props.style.name === 'uniform' ? UniformColorTheme(ctx, props.style.params) :
             props.style.name === 'chain-id' ? ChainIdColorTheme(ctx, props.style.params) :
                 props.style.name === 'entity-id' ? EntityIdColorTheme(ctx, props.style.params) :
-                    props.style.name === 'molecule-type' ? MoleculeTypeColorTheme(ctx, props.style.params) :
-                        assertUnreachable(props.style);
+                    props.style.name === 'entity-source' ? EntitySourceColorTheme(ctx, props.style.params) :
+                        props.style.name === 'molecule-type' ? MoleculeTypeColorTheme(ctx, props.style.params) :
+                            assertUnreachable(props.style);
 
     function illustrativeColor(location: Location, typeSymbol: ElementSymbol) {
         const baseColor = styleColor(location, false);
