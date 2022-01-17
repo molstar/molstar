@@ -22,7 +22,7 @@ export const EntitySubtype = Column.Schema.Aliased<EntitySubtype>(Column.Schema.
 export interface Entities {
     data: mmCIF_Database['entity'],
     subtype: Column<EntitySubtype>,
-    prd_id: Column<string>,
+    prd_id?: Column<string>,
     getEntityIndex(id: string): EntityIndex
 }
 

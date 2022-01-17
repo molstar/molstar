@@ -62,7 +62,7 @@ function getAsymIdSerialMap(structure: Structure, type: AsymIdType) {
         const offset = (type === 'auth' ? asymIdOffset?.auth : asymIdOffset?.label) || 0;
         let count = 0;
         m.properties.structAsymMap.forEach(({ auth_id }, label_id) => {
-            const asymId = type === 'auth' && auth_id ? auth_id : label_id;
+            const asymId = type === 'auth' ? auth_id : label_id;
             const k = structure.models.length > 1
                 ? getKey(m, asymId)
                 : asymId;

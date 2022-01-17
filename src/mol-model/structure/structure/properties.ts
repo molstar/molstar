@@ -162,7 +162,7 @@ const entity = {
     pdbx_ec: p(l => l.unit.model.entities.data.pdbx_ec.value(eK(l))),
 
     subtype: p(l => l.unit.model.entities.subtype.value(eK(l))),
-    prd_id: p(l => l.unit.model.entities.prd_id.value(eK(l))),
+    prd_id: p(l => l.unit.model.entities.prd_id?.value(eK(l)) ?? ''),
 };
 
 const _emptyList: any[] = [];

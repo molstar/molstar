@@ -5,18 +5,16 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+import { Table } from '../../../mol-data/db';
 import { Model } from '../../../mol-model/structure/model/model';
+import { AtomicHierarchy } from '../../../mol-model/structure/model/properties/atomic';
 import { ChemicalComponent, MissingResidue, StructAsym } from '../../../mol-model/structure/model/properties/common';
-import { getMoleculeType, MoleculeType, getDefaultChemicalComponent } from '../../../mol-model/structure/model/types';
-import { SaccharideComponentMap, SaccharideComponent, SaccharidesSnfgMap, SaccharideCompIdMap, UnknownSaccharideComponent } from '../../../mol-model/structure/structure/carbohydrates/constants';
+import { getDefaultChemicalComponent, getMoleculeType, MoleculeType } from '../../../mol-model/structure/model/types';
+import { SaccharideCompIdMap, SaccharideComponent, SaccharideComponentMap, SaccharidesSnfgMap, UnknownSaccharideComponent } from '../../../mol-model/structure/structure/carbohydrates/constants';
 import { memoize1 } from '../../../mol-util/memoize';
 import { BasicData } from './schema';
-import { Table } from '../../../mol-data/db';
-import { ModelFormat } from '../../format';
-import { MmcifFormat } from '../mmcif';
-import { AtomSiteOperatorMappingCategoryName } from '../../../mol-model/structure/export/categories/atom_site_operator_mapping';
 
-function getMissingResidues(data: BasicData): Model['properties']['missingResidues'] {
+export function getMissingResidues(data: BasicData): Model['properties']['missingResidues'] {
     const map = new Map<string, MissingResidue>();
     const getKey = (model_num: number, asym_id: string, seq_id: number) => {
         return `${model_num}|${asym_id}|${seq_id}`;
@@ -39,7 +37,7 @@ function getMissingResidues(data: BasicData): Model['properties']['missingResidu
     };
 }
 
-function getChemicalComponentMap(data: BasicData): Model['properties']['chemicalComponentMap'] {
+export function getChemicalComponentMap(data: BasicData): Model['properties']['chemicalComponentMap'] {
     const map = new Map<string, ChemicalComponent>();
 
     if (data.chem_comp._rowCount > 0) {
@@ -56,7 +54,7 @@ function getChemicalComponentMap(data: BasicData): Model['properties']['chemical
     return map;
 }
 
-function getSaccharideComponentMap(data: BasicData): SaccharideComponentMap {
+export function getSaccharideComponentMap(data: BasicData): SaccharideComponentMap {
     const map = new Map<string, SaccharideComponent>();
 
     if (data.pdbx_chem_comp_identifier._rowCount > 0) {
@@ -111,49 +109,15 @@ const getUniqueComponentNames = memoize1((data: BasicData) => {
 });
 
 
-function getStructAsymMap(data: BasicData, format: ModelFormat): Model['properties']['structAsymMap'] {
+export function getStructAsymMap(atomic: AtomicHierarchy): Model['properties']['structAsymMap'] {
     const map = new Map<string, StructAsym>();
 
-    // do not determine values from atom sites if mol_star atom site operator mapping is preset
-    const skipAtomSite = MmcifFormat.is(format)
-        && format.data.frame.categoryNames.indexOf(AtomSiteOperatorMappingCategoryName) >= 0
-        && data.struct_asym._rowCount > 0;
+    const { auth_asym_id, label_asym_id, label_entity_id } = atomic.chains;
 
-    if (!skipAtomSite) {
-        const { label_asym_id, auth_asym_id, label_entity_id } = data.atom_site;
-        for (let i = 0, il = label_asym_id.rowCount; i < il; ++i) {
-            const id = label_asym_id.value(i);
-            if (!map.has(id)) {
-                map.set(id, {
-                    id,
-                    auth_id: auth_asym_id.value(i),
-                    entity_id: label_entity_id.value(i)
-                });
-            }
-        }
+    for (let i = 0, _i = atomic.chains._rowCount; i < _i; i ++) {
+        const id = label_asym_id.value(i);
+        map.set(id, { id, auth_id: auth_asym_id.value(i), entity_id: label_entity_id.value(i) });
     }
 
-    if (data.struct_asym._rowCount > 0) {
-        const { id, entity_id } = data.struct_asym;
-        for (let i = 0, il = id.rowCount; i < il; ++i) {
-            const _id = id.value(i);
-            if (!map.has(_id)) {
-                map.set(_id, {
-                    id: _id,
-                    auth_id: '',
-                    entity_id: entity_id.value(i)
-                });
-            }
-        }
-    }
     return map;
-}
-
-export function getProperties(data: BasicData, format: ModelFormat): Model['properties'] {
-    return {
-        missingResidues: getMissingResidues(data),
-        chemicalComponentMap: getChemicalComponentMap(data),
-        saccharideComponentMap: getSaccharideComponentMap(data),
-        structAsymMap: getStructAsymMap(data, format)
-    };
 }

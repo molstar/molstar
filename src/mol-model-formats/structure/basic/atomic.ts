@@ -7,21 +7,21 @@
 
 import { Column, Table } from '../../../mol-data/db';
 import { Interval, Segmentation } from '../../../mol-data/int';
-import { UUID } from '../../../mol-util/uuid';
-import { ElementIndex, ChainIndex } from '../../../mol-model/structure';
+import { toDatabase } from '../../../mol-io/reader/cif/schema';
+import { SymmetryOperator } from '../../../mol-math/geometry';
+import { Mat4, Vec3 } from '../../../mol-math/linear-algebra';
+import { ChainIndex, ElementIndex } from '../../../mol-model/structure';
+import { AtomSiteOperatorMappingSchema } from '../../../mol-model/structure/export/categories/atom_site_operator_mapping';
 import { Model } from '../../../mol-model/structure/model/model';
 import { AtomicConformation, AtomicData, AtomicHierarchy, AtomicSegments, AtomsSchema, ChainsSchema, ResiduesSchema } from '../../../mol-model/structure/model/properties/atomic';
-import { getAtomicIndex } from '../../../mol-model/structure/model/properties/utils/atomic-index';
-import { ElementSymbol } from '../../../mol-model/structure/model/types';
 import { Entities } from '../../../mol-model/structure/model/properties/common';
 import { getAtomicDerivedData } from '../../../mol-model/structure/model/properties/utils/atomic-derived';
-import { AtomSite } from './schema';
+import { getAtomicIndex } from '../../../mol-model/structure/model/properties/utils/atomic-index';
+import { ElementSymbol } from '../../../mol-model/structure/model/types';
+import { UUID } from '../../../mol-util/uuid';
 import { ModelFormat } from '../../format';
-import { SymmetryOperator } from '../../../mol-math/geometry';
 import { MmcifFormat } from '../mmcif';
-import { AtomSiteOperatorMappingSchema } from '../../../mol-model/structure/export/categories/atom_site_operator_mapping';
-import { toDatabase } from '../../../mol-io/reader/cif/schema';
-import { Mat4, Vec3 } from '../../../mol-math/linear-algebra';
+import { AtomSite } from './schema';
 
 function findHierarchyOffsets(atom_site: AtomSite) {
     if (atom_site._rowCount === 0) return { residues: [], chains: [] };

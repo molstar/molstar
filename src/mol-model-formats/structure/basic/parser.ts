@@ -18,13 +18,13 @@ import { sortAtomSite } from './sort';
 import { ModelFormat } from '../../format';
 import { getAtomicRanges } from '../../../mol-model/structure/model/properties/utils/atomic-ranges';
 import { AtomSite, BasicData } from './schema';
-import { getProperties } from './properties';
-import { getEntities } from './entities';
+import { getChemicalComponentMap, getMissingResidues, getSaccharideComponentMap, getStructAsymMap } from './properties';
+import { getEntitiesWithPRD, getEntityData } from './entities';
 import { getModelGroupName } from './util';
 import { ArrayTrajectory } from '../../../mol-model/structure/trajectory';
 
 export async function createModels(data: BasicData, format: ModelFormat, ctx: RuntimeContext) {
-    const properties = getProperties(data, format);
+    const properties = getCommonProperties(data, format);
     const models = data.ihm_model_list._rowCount > 0
         ? await readIntegrative(ctx, data, properties, format)
         : await readStandard(ctx, data, properties, format);
@@ -36,9 +36,18 @@ export async function createModels(data: BasicData, format: ModelFormat, ctx: Ru
     return new ArrayTrajectory(models);
 }
 
-/** Standard atomic model */
-function createStandardModel(data: BasicData, atom_site: AtomSite, sourceIndex: Column<number>, entities: Entities, properties: Model['properties'], format: ModelFormat, previous?: Model): Model {
+type CommonProperties = Omit<Model['properties'], 'structAsymMap'>
 
+function getCommonProperties(data: BasicData, format: ModelFormat): CommonProperties {
+    return {
+        missingResidues: getMissingResidues(data),
+        chemicalComponentMap: getChemicalComponentMap(data),
+        saccharideComponentMap: getSaccharideComponentMap(data)
+    };
+}
+
+/** Standard atomic model */
+function createStandardModel(data: BasicData, atom_site: AtomSite, sourceIndex: Column<number>, entities: Entities, properties: CommonProperties, format: ModelFormat, previous?: Model): Model {
     const atomic = getAtomicHierarchyAndConformation(atom_site, sourceIndex, entities, properties.chemicalComponentMap, format, previous);
     const modelNum = atom_site.pdbx_PDB_model_num.value(0);
     if (previous && atomic.sameAsPrevious) {
@@ -54,6 +63,7 @@ function createStandardModel(data: BasicData, atom_site: AtomSite, sourceIndex: 
     const coarse = EmptyCoarse;
     const sequence = getSequence(data, entities, atomic.hierarchy, coarse.hierarchy);
     const atomicRanges = getAtomicRanges(atomic.hierarchy, entities, atomic.conformation, sequence);
+    const structAsymMap = getStructAsymMap(atomic.hierarchy);
 
     const entry = data.entry.id.valueKind(0) === Column.ValueKind.Present
         ? data.entry.id.value(0) : format.name;
@@ -70,7 +80,7 @@ function createStandardModel(data: BasicData, atom_site: AtomSite, sourceIndex: 
         sourceData: format,
         modelNum,
         parent: undefined,
-        entities,
+        entities: getEntitiesWithPRD(data, entities, structAsymMap),
         sequence,
         atomicHierarchy: atomic.hierarchy,
         atomicConformation: atomic.conformation,
@@ -78,7 +88,10 @@ function createStandardModel(data: BasicData, atom_site: AtomSite, sourceIndex: 
         atomicChainOperatorMappinng: atomic.chainOperatorMapping,
         coarseHierarchy: coarse.hierarchy,
         coarseConformation: coarse.conformation,
-        properties,
+        properties: {
+            ...properties,
+            structAsymMap
+        },
         customProperties: new CustomProperties(),
         _staticPropertyData: Object.create(null),
         _dynamicPropertyData: Object.create(null)
@@ -86,9 +99,9 @@ function createStandardModel(data: BasicData, atom_site: AtomSite, sourceIndex: 
 }
 
 /** Integrative model with atomic/coarse parts */
-function createIntegrativeModel(data: BasicData, ihm: CoarseData, properties: Model['properties'], format: ModelFormat): Model {
+function createIntegrativeModel(data: BasicData, ihm: CoarseData, properties: CommonProperties, format: ModelFormat): Model {
     const atomic = getAtomicHierarchyAndConformation(ihm.atom_site, ihm.atom_site_sourceIndex, ihm.entities, properties.chemicalComponentMap, format);
-    const coarse = getCoarse(ihm, properties);
+    const coarse = getCoarse(ihm, properties.chemicalComponentMap);
     const sequence = getSequence(data, ihm.entities, atomic.hierarchy, coarse.hierarchy);
     const atomicRanges = getAtomicRanges(atomic.hierarchy, ihm.entities, atomic.conformation, sequence);
 
@@ -101,6 +114,9 @@ function createIntegrativeModel(data: BasicData, ihm: CoarseData, properties: Mo
     if (ihm.model_name) label.push(ihm.model_name);
     if (ihm.model_group_name) label.push(ihm.model_group_name);
 
+    // TODO: should this contain anything from coarse hierarchy?
+    const structAsymMap = getStructAsymMap(atomic.hierarchy);
+
     return {
         id: UUID.create22(),
         entryId: entry,
@@ -109,7 +125,7 @@ function createIntegrativeModel(data: BasicData, ihm: CoarseData, properties: Mo
         sourceData: format,
         modelNum: ihm.model_id,
         parent: undefined,
-        entities: ihm.entities,
+        entities: getEntitiesWithPRD(data, ihm.entities, structAsymMap),
         sequence,
         atomicHierarchy: atomic.hierarchy,
         atomicConformation: atomic.conformation,
@@ -117,7 +133,10 @@ function createIntegrativeModel(data: BasicData, ihm: CoarseData, properties: Mo
         atomicChainOperatorMappinng: atomic.chainOperatorMapping,
         coarseHierarchy: coarse.hierarchy,
         coarseConformation: coarse.conformation,
-        properties,
+        properties: {
+            ...properties,
+            structAsymMap
+        },
         customProperties: new CustomProperties(),
         _staticPropertyData: Object.create(null),
         _dynamicPropertyData: Object.create(null)
@@ -132,12 +151,12 @@ function findModelEnd(num: Column<number>, startIndex: number) {
     return endIndex;
 }
 
-async function readStandard(ctx: RuntimeContext, data: BasicData, properties: Model['properties'], format: ModelFormat) {
+async function readStandard(ctx: RuntimeContext, data: BasicData, properties: CommonProperties, format: ModelFormat) {
     const models: Model[] = [];
 
     if (data.atom_site) {
         const atomCount = data.atom_site.id.rowCount;
-        const entities = getEntities(data, properties);
+        const entities = getEntityData(data);
 
         let modelStart = 0;
         while (modelStart < atomCount) {
@@ -170,8 +189,8 @@ function splitTable<T extends Table<any>>(table: T, col: Column<number>) {
 
 
 
-async function readIntegrative(ctx: RuntimeContext, data: BasicData, properties: Model['properties'], format: ModelFormat) {
-    const entities = getEntities(data, properties);
+async function readIntegrative(ctx: RuntimeContext, data: BasicData, properties: CommonProperties, format: ModelFormat) {
+    const entities = getEntityData(data);
     // when `atom_site.ihm_model_id` is undefined fall back to `atom_site.pdbx_PDB_model_num`
     const atom_sites_modelColumn = data.atom_site.ihm_model_id.isDefined
         ? data.atom_site.ihm_model_id : data.atom_site.pdbx_PDB_model_num;
@@ -206,7 +225,7 @@ async function readIntegrative(ctx: RuntimeContext, data: BasicData, properties:
                 model_id: id,
                 model_name: model_name.value(i),
                 model_group_name: getModelGroupName(id, data),
-                entities: entities,
+                entities,
                 atom_site,
                 atom_site_sourceIndex,
                 ihm_sphere_obj_site: sphere_sites.has(id) ? sphere_sites.get(id)!.table : Table.window(data.ihm_sphere_obj_site, data.ihm_sphere_obj_site._schema, 0, 0),
