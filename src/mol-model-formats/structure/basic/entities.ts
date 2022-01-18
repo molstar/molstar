@@ -11,7 +11,7 @@ import { getEntityType, getEntitySubtype } from '../../../mol-model/structure/mo
 import { ElementIndex, EntityIndex, Model } from '../../../mol-model/structure/model';
 import { BasicData, BasicSchema, Entity } from './schema';
 
-export function getEntities(data: BasicData, properties: Model['properties']): Entities {
+export function getEntityData(data: BasicData): Entities {
     let entityData: Entity;
 
     if (!data.entity.id.isDefined) {
@@ -121,28 +121,32 @@ export function getEntities(data: BasicData, properties: Model['properties']): E
 
     const subtypeColumn = Column.ofArray({ array: subtypes, schema: EntitySubtype });
 
-    //
-
-    const prdIds: string[] = new Array(entityData._rowCount);
-    prdIds.fill('');
-
-    if (data.pdbx_molecule && data.pdbx_molecule.prd_id.isDefined) {
-        const { asym_id, prd_id, _rowCount } = data.pdbx_molecule;
-        for (let i = 0; i < _rowCount; ++i) {
-            const asymId = asym_id.value(i);
-            const entityId = properties.structAsymMap.get(asymId)?.entity_id;
-            if (entityId !== undefined) {
-                prdIds[getEntityIndex(entityId)] = prd_id.value(i);
-            }
-        }
-    }
-
-    const prdIdColumn = Column.ofArray({ array: prdIds, schema: Column.Schema.str });
-
     return {
         data: entityData,
         subtype: subtypeColumn,
-        prd_id: prdIdColumn,
         getEntityIndex
+    };
+}
+
+export function getEntitiesWithPRD(data: BasicData, entities: Entities, structAsymMap: Model['properties']['structAsymMap']): Entities {
+    if (!data.pdbx_molecule || !data.pdbx_molecule.prd_id.isDefined) {
+        return entities;
+    }
+
+    const prdIds: string[] = new Array(entities.data._rowCount);
+    prdIds.fill('');
+    const { asym_id, prd_id, _rowCount } = data.pdbx_molecule;
+    for (let i = 0; i < _rowCount; ++i) {
+        const asymId = asym_id.value(i);
+        const entityId = structAsymMap.get(asymId)?.entity_id;
+        if (entityId !== undefined) {
+            prdIds[entities.getEntityIndex(entityId)] = prd_id.value(i);
+        }
+    }
+    const prdIdColumn = Column.ofArray({ array: prdIds, schema: Column.Schema.str });
+
+    return {
+        ...entities,
+        prd_id: prdIdColumn
     };
 }

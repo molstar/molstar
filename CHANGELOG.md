@@ -6,6 +6,14 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Assembly handling tweaks:
+    - Do not include suffix for "identity assembly operators"
+    - Do not include assembly-related categories to export if the structure was composed from an assembly
+    - Special case for ``structAsymMap`` if Mol* asym id operator mapping is present
+- Support for opening ZIP files with multiple entries
+- Add Model Export extension
+- Bugfix: Automatically treat empty string as "non-present" value in BinaryCIF writer.
+
 ## [v3.0.0-dev.10] - 2022-01-17
 
 - Fix ``getOperatorsForIndex``
@@ -19,7 +27,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Add "camera rock" state animation
 - Add support for custom colors to "molecule-type" theme
 - [Breaking] Add style parameter to "illustrative" color theme
-    - Defaults to "entity-id" style instad of "chain-id"
+    - Defaults to "entity-id" style instead of "chain-id"
 - Add "illustrative" representation preset
 
 ## [v3.0.0-dev.9] - 2022-01-09

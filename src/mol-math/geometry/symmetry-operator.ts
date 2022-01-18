@@ -52,24 +52,30 @@ namespace SymmetryOperator {
     export const RotationTranslationEpsilon = 0.005;
 
     export type CreateInfo = { assembly?: SymmetryOperator['assembly'], ncsId?: number, hkl?: Vec3, spgrOp?: number }
-    export function create(name: string, matrix: Mat4, info?: CreateInfo): SymmetryOperator {
+    export function create(name: string, matrix: Mat4, info?: CreateInfo | SymmetryOperator): SymmetryOperator {
         let { assembly, ncsId, hkl, spgrOp } = info || { };
         const _hkl = hkl ? Vec3.clone(hkl) : Vec3();
         spgrOp = defaults(spgrOp, -1);
         ncsId = ncsId || -1;
-        const suffix = getSuffix(info);
-        if (Mat4.isIdentity(matrix)) return { name, assembly, matrix, inverse: Mat4.identity(), isIdentity: true, hkl: _hkl, spgrOp, ncsId, suffix };
+        const isIdentity = Mat4.isIdentity(matrix);
+        const suffix = getSuffix(info, isIdentity);
+        if (isIdentity) return { name, assembly, matrix, inverse: Mat4.identity(), isIdentity: true, hkl: _hkl, spgrOp, ncsId, suffix };
         if (!Mat4.isRotationAndTranslation(matrix, RotationTranslationEpsilon)) {
             console.warn(`Symmetry operator (${name}) should be a composition of rotation and translation.`);
         }
         return { name, assembly, matrix, inverse: Mat4.invert(Mat4(), matrix), isIdentity: false, hkl: _hkl, spgrOp, ncsId, suffix };
     }
 
-    function getSuffix(info?: CreateInfo) {
+    function isSymmetryOperator(x: any): x is SymmetryOperator {
+        return !!x && !!x.matrix && !!x.inverse && typeof x.name === 'string';
+    }
+
+    function getSuffix(info?: CreateInfo | SymmetryOperator, isIdentity?: boolean) {
         if (!info) return '';
 
         if (info.assembly) {
-            return `_${info.assembly.operId}`;
+            if (isSymmetryOperator(info)) return info.suffix;
+            return isIdentity ? '' : `_${info.assembly.operId}`;
         }
 
         if (typeof info.spgrOp !== 'undefined' && typeof info.hkl !== 'undefined' && info.spgrOp !== -1) {

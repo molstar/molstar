@@ -30,7 +30,7 @@ export interface CoarseData {
 
 export const EmptyCoarse = { hierarchy: CoarseHierarchy.Empty, conformation: void 0 as any };
 
-export function getCoarse(data: CoarseData, properties: Model['properties']): { hierarchy: CoarseHierarchy, conformation: CoarseConformation } {
+export function getCoarse(data: CoarseData, chemicalComponentMap: Model['properties']['chemicalComponentMap']): { hierarchy: CoarseHierarchy, conformation: CoarseConformation } {
     const { ihm_sphere_obj_site, ihm_gaussian_obj_site } = data;
 
     if (ihm_sphere_obj_site._rowCount === 0 && ihm_gaussian_obj_site._rowCount === 0) return EmptyCoarse;
@@ -38,12 +38,12 @@ export function getCoarse(data: CoarseData, properties: Model['properties']): { 
     const sphereData = getData(ihm_sphere_obj_site);
     const sphereConformation = getSphereConformation(ihm_sphere_obj_site);
     const sphereKeys = getCoarseKeys(sphereData, data.entities);
-    const sphereRanges = getCoarseRanges(sphereData, properties.chemicalComponentMap);
+    const sphereRanges = getCoarseRanges(sphereData, chemicalComponentMap);
 
     const gaussianData = getData(ihm_gaussian_obj_site);
     const gaussianConformation = getGaussianConformation(ihm_gaussian_obj_site);
     const gaussianKeys = getCoarseKeys(gaussianData, data.entities);
-    const gaussianRanges = getCoarseRanges(gaussianData, properties.chemicalComponentMap);
+    const gaussianRanges = getCoarseRanges(gaussianData, chemicalComponentMap);
 
     return {
         hierarchy: {
