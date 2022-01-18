@@ -50,7 +50,14 @@ function _exportHierarchy(plugin: PluginContext, options?: { format?: 'cif' | 'b
                 await new Promise(res => setTimeout(res, 50));
             }
 
-            files.push([name, to_mmCIF(s.model.entryId, s, format === 'bcif', { copyAllCategories: true })]);
+            try {
+                files.push([name, to_mmCIF(s.model.entryId, s, format === 'bcif', { copyAllCategories: true })]);
+            } catch (e) {
+                if (format === 'cif' && s.elementCount > 2000000) {
+                    plugin.log.warn(`[Export] The structure might be too big to be exported as Text CIF, consider using the BinaryCIF format instead.`);
+                }
+                throw e;
+            }
         }
 
         if (files.length === 1) {
