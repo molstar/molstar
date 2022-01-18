@@ -13,16 +13,16 @@ import { arrayEqual } from '../../mol-util/array';
 export { TransientTree };
 
 class TransientTree implements StateTree {
-    transforms = this.tree.transforms as ImmutableMap<StateTransform.Ref, StateTransform>;
-    children = this.tree.children as ImmutableMap<StateTransform.Ref, OrderedSet<StateTransform.Ref>>;
-    dependencies = this.tree.dependencies as ImmutableMap<StateTransform.Ref, OrderedSet<StateTransform.Ref>>;
+    transforms = this.tree.transforms as StateTree.MutableTransforms;
+    children = this.tree.children as StateTree.MutableChildren;
+    dependencies = this.tree.dependencies as StateTree.MutableDependencies;
 
     private changedNodes = false;
     private changedChildren = false;
     private changedDependencies = false;
 
     private _childMutations: Map<StateTransform.Ref, OrderedSet<StateTransform.Ref>> | undefined = void 0;
-    private _dependencyMutations: Map<StateTransform.Ref, OrderedSet<StateTransform.Ref>> | undefined = void 0;
+    private _dependencyMutations: Map<StateTransform.Ref, StateTree.MutableChildSet> | undefined = void 0;
     private _stateUpdates: Set<StateTransform.Ref> | undefined = void 0;
 
     private get childMutations() {
@@ -99,12 +99,11 @@ class TransientTree implements StateTree {
     }
 
     private mutateDependency(parent: StateTransform.Ref, child: StateTransform.Ref, action: 'add' | 'remove') {
-        let set = this.dependencyMutations.get(parent);
+        let set: StateTree.MutableChildSet | undefined = this.dependencyMutations.get(parent);
 
         if (!set) {
             const src = this.dependencies.get(parent);
             if (!src && action === 'remove') return;
-
             this.changeDependencies();
             set = src ? src.asMutable() : OrderedSet<string>().asMutable();
             this.dependencyMutations.set(parent, set);
@@ -275,7 +274,7 @@ class TransientTree implements StateTree {
     asImmutable() {
         if (!this.changedNodes && !this.changedChildren && !this._childMutations) return this.tree;
         if (this._childMutations) this._childMutations.forEach(fixChildMutations, this.children);
-        if (this._dependencyMutations) this._dependencyMutations.forEach(fixDependencyMutations, this.dependencies);
+        if (this._dependencyMutations) this._dependencyMutations.forEach(fixDependencyMutations as any, this.dependencies);
         return StateTree.create(
             this.changedNodes ? this.transforms.asImmutable() : this.transforms,
             this.changedChildren ? this.children.asImmutable() : this.children,

@@ -74,12 +74,20 @@ class BasicWrapper {
     toggleSpin() {
         if (!this.plugin.canvas3d) return;
 
+        const trackball = this.plugin.canvas3d.props.trackball;
         PluginCommands.Canvas3D.SetSettings(this.plugin, {
-            settings: props => {
-                props.trackball.spin = !props.trackball.spin;
+            settings: {
+                trackball: {
+                    ...trackball,
+                    animate: trackball.animate.name === 'spin'
+                        ? { name: 'off', params: {} }
+                        : { name: 'spin', params: { speed: 1 } }
+                }
             }
         });
-        if (!this.plugin.canvas3d.props.trackball.spin) PluginCommands.Camera.Reset(this.plugin, {});
+        if (this.plugin.canvas3d.props.trackball.animate.name !== 'spin') {
+            PluginCommands.Camera.Reset(this.plugin, {});
+        }
     }
 
     private animateModelIndexTargetFps() {

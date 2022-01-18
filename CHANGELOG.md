@@ -12,16 +12,23 @@ Note that since we don't clearly distinguish between a public and private interf
     - Special case for ``structAsymMap`` if Mol* asym id operator mapping is present
 - Support for opening ZIP files with multiple entries
 - Add Model Export extension
+- Bugfix: Automatically treat empty string as "non-present" value in BinaryCIF writer.
+
+## [v3.0.0-dev.10] - 2022-01-17
+
 - Fix ``getOperatorsForIndex``
 - Pass animation info (current frame & count) to state animations
     - Fix camera stutter for "camera spin" animation
-- Add partial charge parsing support for MOL/SDF files (thanks @ptourlas)
+- Add formal charge parsing support for MOL/SDF files (thanks @ptourlas)
 - [Breaking] Cleaner looking ``MembraneOrientationVisuals`` defaults
+- [Breaking] Add rock animation to trackball controls
+    - Add ``animate`` to ``TrackballControlsParams``, remove ``spin`` and ``spinSpeed``
+    - Add ``animate`` to ``SimpleSettingsParams``, remove ``spin``
+- Add "camera rock" state animation
 - Add support for custom colors to "molecule-type" theme
 - [Breaking] Add style parameter to "illustrative" color theme
     - Defaults to "entity-id" style instead of "chain-id"
 - Add "illustrative" representation preset
-- Bugfix: Automatically treat empty string as "non-present" value in BinaryCIF writer.
 
 ## [v3.0.0-dev.9] - 2022-01-09
 

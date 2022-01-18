@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -13,7 +13,7 @@ import { Viewport } from '../camera/util';
 import { InputObserver, DragInput, WheelInput, PinchInput, ButtonsType, ModifiersKeys, GestureInput } from '../../mol-util/input/input-observer';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { Camera } from '../camera';
-import { absMax } from '../../mol-math/misc';
+import { absMax, degToRad } from '../../mol-math/misc';
 import { Binding } from '../../mol-util/binding';
 
 const B = ButtonsType;
@@ -40,8 +40,16 @@ export const TrackballControlsParams = {
     zoomSpeed: PD.Numeric(7.0, { min: 1, max: 15, step: 1 }),
     panSpeed: PD.Numeric(1.0, { min: 0.1, max: 5, step: 0.1 }),
 
-    spin: PD.Boolean(false, { description: 'Spin the 3D scene around the x-axis in view space' }),
-    spinSpeed: PD.Numeric(1, { min: -20, max: 20, step: 1 }),
+    animate: PD.MappedStatic('off', {
+        off: PD.EmptyGroup(),
+        spin: PD.Group({
+            speed: PD.Numeric(1, { min: -20, max: 20, step: 1 }),
+        }, { description: 'Spin the 3D scene around the x-axis in view space' }),
+        rock: PD.Group({
+            speed: PD.Numeric(0.3, { min: -5, max: 5, step: 0.1 }),
+            angle: PD.Numeric(10, { min: 0, max: 90, step: 1 }, { description: 'How many degrees to rotate in each direction.' }),
+        }, { description: 'Rock the 3D scene around the x-axis in view space' })
+    }),
 
     staticMoving: PD.Boolean(true, { isHidden: true }),
     dynamicDampingFactor: PD.Numeric(0.2, {}, { isHidden: true }),
@@ -72,7 +80,8 @@ export type TrackballControlsProps = PD.Values<typeof TrackballControlsParams>
 
 export { TrackballControls };
 interface TrackballControls {
-    viewport: Viewport
+    readonly viewport: Viewport
+    readonly isAnimating: boolean
 
     readonly props: Readonly<TrackballControlsProps>
     setProps: (props: Partial<TrackballControlsProps>) => void
@@ -144,6 +153,11 @@ namespace TrackballControls {
             );
         }
 
+        function getRotateFactor() {
+            const aspectRatio = input.width / input.height;
+            return p.rotateSpeed * input.pixelRatio * aspectRatio;
+        }
+
         const rotAxis = Vec3();
         const rotQuat = Quat();
         const rotEyeDir = Vec3();
@@ -156,8 +170,7 @@ namespace TrackballControls {
             const dy = _rotCurr[1] - _rotPrev[1];
             Vec3.set(rotMoveDir, dx, dy, 0);
 
-            const aspectRatio = input.width / input.height;
-            const angle = Vec3.magnitude(rotMoveDir) * p.rotateSpeed * input.pixelRatio * aspectRatio;
+            const angle = Vec3.magnitude(rotMoveDir) * getRotateFactor();
 
             if (angle) {
                 Vec3.sub(_eye, camera.position, camera.target);
@@ -306,7 +319,10 @@ namespace TrackballControls {
         /** Update the object's position, direction and up vectors */
         function update(t: number) {
             if (lastUpdated === t) return;
-            if (p.spin && lastUpdated > 0) spin(t - lastUpdated);
+            if (lastUpdated > 0) {
+                if (p.animate.name === 'spin') spin(t - lastUpdated);
+                else if (p.animate.name === 'rock') rock(t - lastUpdated);
+            }
 
             Vec3.sub(_eye, camera.position, camera.target);
 
@@ -345,6 +361,7 @@ namespace TrackballControls {
             if (!isStart && !_isInteracting) return;
 
             _isInteracting = true;
+            resetRock(); // start rocking from the center after interactions
 
             const dragRotate = Binding.match(p.bindings.dragRotate, buttons, modifiers);
             const dragRotateZ = Binding.match(p.bindings.dragRotateZ, buttons, modifiers);
@@ -434,11 +451,34 @@ namespace TrackballControls {
 
         const _spinSpeed = Vec2.create(0.005, 0);
         function spin(deltaT: number) {
-            if (p.spinSpeed === 0) return;
+            if (p.animate.name !== 'spin' || p.animate.params.speed === 0 || _isInteracting) return;
 
-            const frameSpeed = (p.spinSpeed || 0) / 1000;
+            const frameSpeed = p.animate.params.speed / 1000;
             _spinSpeed[0] = 60 * Math.min(Math.abs(deltaT), 1000 / 8) / 1000 * frameSpeed;
-            if (!_isInteracting) Vec2.add(_rotCurr, _rotPrev, _spinSpeed);
+            Vec2.add(_rotCurr, _rotPrev, _spinSpeed);
+        }
+
+        let _rockPhase = 0;
+        const _rockSpeed = Vec2.create(0.005, 0);
+        function rock(deltaT: number) {
+            if (p.animate.name !== 'rock' || p.animate.params.speed === 0 || _isInteracting) return;
+
+            const dt = deltaT / 1000 * p.animate.params.speed;
+            const maxAngle = degToRad(p.animate.params.angle) / getRotateFactor();
+            const angleA = Math.sin(_rockPhase * Math.PI * 2) * maxAngle;
+            const angleB = Math.sin((_rockPhase + dt) * Math.PI * 2) * maxAngle;
+
+            _rockSpeed[0] = angleB - angleA;
+            Vec2.add(_rotCurr, _rotPrev, _rockSpeed);
+
+            _rockPhase += dt;
+            if (_rockPhase >= 1) {
+                _rockPhase = 0;
+            }
+        }
+
+        function resetRock() {
+            _rockPhase = 0;
         }
 
         function start(t: number) {
@@ -448,9 +488,13 @@ namespace TrackballControls {
 
         return {
             viewport,
+            get isAnimating() { return p.animate.name !== 'off'; },
 
             get props() { return p as Readonly<TrackballControlsProps>; },
             setProps: (props: Partial<TrackballControlsProps>) => {
+                if (props.animate?.name === 'rock' && p.animate.name !== 'rock') {
+                    resetRock(); // start rocking from the center
+                }
                 Object.assign(p, props);
             },
 
