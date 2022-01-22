@@ -114,8 +114,7 @@ function createIntegrativeModel(data: BasicData, ihm: CoarseData, properties: Co
     if (ihm.model_name) label.push(ihm.model_name);
     if (ihm.model_group_name) label.push(ihm.model_group_name);
 
-    // TODO: should this contain anything from coarse hierarchy?
-    const structAsymMap = getStructAsymMap(atomic.hierarchy);
+    const structAsymMap = getStructAsymMap(atomic.hierarchy, data);
 
     return {
         id: UUID.create22(),

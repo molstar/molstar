@@ -109,7 +109,7 @@ const getUniqueComponentNames = memoize1((data: BasicData) => {
 });
 
 
-export function getStructAsymMap(atomic: AtomicHierarchy): Model['properties']['structAsymMap'] {
+export function getStructAsymMap(atomic: AtomicHierarchy, data?: BasicData): Model['properties']['structAsymMap'] {
     const map = new Map<string, StructAsym>();
 
     const { auth_asym_id, label_asym_id, label_entity_id } = atomic.chains;
@@ -117,6 +117,21 @@ export function getStructAsymMap(atomic: AtomicHierarchy): Model['properties']['
     for (let i = 0, _i = atomic.chains._rowCount; i < _i; i ++) {
         const id = label_asym_id.value(i);
         map.set(id, { id, auth_id: auth_asym_id.value(i), entity_id: label_entity_id.value(i) });
+    }
+
+    // to get asym mapping for coarse/ihm data
+    if (data?.struct_asym._rowCount) {
+        const { id, entity_id } = data.struct_asym;
+        for (let i = 0, il = id.rowCount; i < il; ++i) {
+            const _id = id.value(i);
+            if (!map.has(_id)) {
+                map.set(_id, {
+                    id: _id,
+                    auth_id: '',
+                    entity_id: entity_id.value(i)
+                });
+            }
+        }
     }
 
     return map;
