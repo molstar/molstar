@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -88,6 +88,7 @@ namespace Visual {
         const currentStatus = markerStatus.ref.value as MarkerInfo['status'];
 
         if (!isEveryLoci(loci)) {
+            // assume that all interval are non-overlapping
             let intervalSize = 0;
             lociApply(loci, interval => {
                 intervalSize += Interval.size(interval);

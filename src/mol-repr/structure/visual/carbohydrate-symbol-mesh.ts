@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -29,8 +29,8 @@ import { getAltResidueLociFromId } from './util/common';
 import { BaseGeometry } from '../../../mol-geo/geometry/base';
 
 const t = Mat4.identity();
-const sVec = Vec3.zero();
-const pd = Vec3.zero();
+const sVec = Vec3();
+const pd = Vec3();
 
 const SideFactor = 2 * 0.806; // 0.806 == Math.cos(Math.PI / 4)
 
@@ -212,6 +212,8 @@ function getCarbohydrateLoci(pickingId: PickingId, structure: Structure, id: num
     return EmptyLoci;
 }
 
+const __elementIndicesSet = new Set<number>();
+
 /** For each carbohydrate (usually a monosaccharide) when all its residue's elements are in a loci. */
 function eachCarbohydrate(loci: Loci, structure: Structure, apply: (interval: Interval) => boolean) {
     const { getElementIndices } = structure.carbohydrates;
@@ -222,11 +224,14 @@ function eachCarbohydrate(loci: Loci, structure: Structure, apply: (interval: In
     for (const { unit, indices } of loci.elements) {
         if (!Unit.isAtomic(unit)) continue;
 
+        __elementIndicesSet.clear();
         OrderedSet.forEach(indices, v => {
-            // TODO avoid duplicate calls to apply
             const elementIndices = getElementIndices(unit, unit.elements[v]);
             for (let i = 0, il = elementIndices.length; i < il; ++i) {
-                if (apply(Interval.ofSingleton(elementIndices[i] * 2))) changed = true;
+                if (!__elementIndicesSet.has(elementIndices[i])) {
+                    __elementIndicesSet.add(elementIndices[i]);
+                    if (apply(Interval.ofSingleton(elementIndices[i] * 2))) changed = true;
+                }
             }
         });
     }
