@@ -1,10 +1,10 @@
 /**
- * Copyright (c) 2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2021-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { StructureProperties, StructureElement, Bond, Structure } from '../../mol-model/structure';
+import { StructureProperties, StructureElement, Bond, Structure, Unit } from '../../mol-model/structure';
 import { Color } from '../../mol-util/color';
 import { Location } from '../../mol-model/location';
 import { ColorTheme, LocationColor } from '../color';
@@ -38,8 +38,28 @@ function getEntityIdSerialMap(structure: Structure) {
             const k = key(label_entity_id.value(j), i);
             if (!map.has(k)) map.set(k, map.size);
         }
+        const { entity_id: spheres_entity_id } = structure.models[i].coarseHierarchy.spheres;
+        for (let j = 0, jl = spheres_entity_id.rowCount; j < jl; ++j) {
+            const k = key(spheres_entity_id.value(j), i);
+            if (!map.has(k)) map.set(k, map.size);
+        }
+        const { entity_id: gaussians_entity_id } = structure.models[i].coarseHierarchy.gaussians;
+        for (let j = 0, jl = gaussians_entity_id.rowCount; j < jl; ++j) {
+            const k = key(gaussians_entity_id.value(j), i);
+            if (!map.has(k)) map.set(k, map.size);
+        }
     }
     return map;
+}
+
+function getEntityId(location: StructureElement.Location): string {
+    switch (location.unit.kind) {
+        case Unit.Kind.Atomic:
+            return StructureProperties.chain.label_entity_id(location);
+        case Unit.Kind.Spheres:
+        case Unit.Kind.Gaussians:
+            return StructureProperties.coarse.entity_id(location);
+    }
 }
 
 export function EntityIdColorTheme(ctx: ThemeDataContext, props: PD.Values<EntityIdColorThemeParams>): ColorTheme<EntityIdColorThemeParams> {
@@ -59,16 +79,16 @@ export function EntityIdColorTheme(ctx: ThemeDataContext, props: PD.Values<Entit
         color = (location: Location): Color => {
             let serial: number | undefined = undefined;
             if (StructureElement.Location.is(location)) {
-                const atomId = StructureProperties.chain.label_entity_id(location);
+                const entityId = getEntityId(location);
                 const modelIndex = location.structure.models.indexOf(location.unit.model);
-                const k = key(atomId, modelIndex);
+                const k = key(entityId, modelIndex);
                 serial = entityIdSerialMap.get(k);
             } else if (Bond.isLocation(location)) {
                 l.unit = location.aUnit;
                 l.element = location.aUnit.elements[location.aIndex];
-                const atomId = StructureProperties.chain.label_entity_id(l);
+                const entityId = getEntityId(l);
                 const modelIndex = l.structure.models.indexOf(l.unit.model);
-                const k = key(atomId, modelIndex);
+                const k = key(entityId, modelIndex);
                 serial = entityIdSerialMap.get(k);
             }
             return serial === undefined ? DefaultColor : palette.color(serial);

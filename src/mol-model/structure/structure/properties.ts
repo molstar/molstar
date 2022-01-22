@@ -126,6 +126,7 @@ const coarse = {
     z: atom.z,
 
     asym_id: p(l => !Unit.isCoarse(l.unit) ? notCoarse() : l.unit.coarseElements.asym_id.value(l.element)),
+    entity_id: p(l => !Unit.isCoarse(l.unit) ? notCoarse() : l.unit.coarseElements.entity_id.value(l.element)),
     seq_id_begin: p(l => !Unit.isCoarse(l.unit) ? notCoarse() : l.unit.coarseElements.seq_id_begin.value(l.element)),
     seq_id_end: p(l => !Unit.isCoarse(l.unit) ? notCoarse() : l.unit.coarseElements.seq_id_end.value(l.element)),
 

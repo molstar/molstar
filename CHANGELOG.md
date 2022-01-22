@@ -13,6 +13,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Support for opening ZIP files with multiple entries
 - Add Model Export extension
 - Bugfix: Automatically treat empty string as "non-present" value in BinaryCIF writer.
+- Fix coarse model support in entity-id color theme
 
 ## [v3.0.0-dev.10] - 2022-01-17
 
