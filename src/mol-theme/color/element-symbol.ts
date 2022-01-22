@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -12,7 +12,8 @@ import { ColorTheme } from '../color';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { ThemeDataContext } from '../theme';
 import { TableLegend } from '../../mol-util/legend';
-import { getAdjustedColorMap, getColorMapParams } from '../../mol-util/color/color';
+import { getAdjustedColorMap } from '../../mol-util/color/color';
+import { getColorMapParams } from '../../mol-util/color/params';
 import { ChainIdColorTheme, ChainIdColorThemeParams } from './chain-id';
 import { OperatorNameColorThemeParams, OperatorNameColorTheme } from './operator-name';
 

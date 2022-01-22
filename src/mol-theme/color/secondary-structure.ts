@@ -14,7 +14,8 @@ import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { ThemeDataContext } from '../theme';
 import { TableLegend } from '../../mol-util/legend';
 import { SecondaryStructureProvider, SecondaryStructureValue } from '../../mol-model-props/computed/secondary-structure';
-import { getAdjustedColorMap, getColorMapParams } from '../../mol-util/color/color';
+import { getAdjustedColorMap } from '../../mol-util/color/color';
+import { getColorMapParams } from '../../mol-util/color/params';
 import { CustomProperty } from '../../mol-model-props/common/custom-property';
 import { hash2 } from '../../mol-data/util';
 

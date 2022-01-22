@@ -13,7 +13,8 @@ import { getElementMoleculeType } from '../../mol-model/structure/util';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { ThemeDataContext } from '../theme';
 import { TableLegend } from '../../mol-util/legend';
-import { getAdjustedColorMap, getColorMapParams } from '../../mol-util/color/color';
+import { getAdjustedColorMap } from '../../mol-util/color/color';
+import { getColorMapParams } from '../../mol-util/color/params';
 
 export const MoleculeTypeColors = ColorMap({
     water: 0x386cb0,
