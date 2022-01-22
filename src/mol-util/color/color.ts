@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -8,6 +8,8 @@ import { NumberArray } from '../../mol-util/type-helpers';
 import { Vec3 } from '../../mol-math/linear-algebra';
 import { Hcl } from './spaces/hcl';
 import { Lab } from './spaces/lab';
+import { ParamDefinition as PD } from '../../mol-util/param-definition';
+import { objectForEach } from '../object';
 
 /** RGB color triplet expressed as a single number */
 export type Color = { readonly '@type': 'color' } & number
@@ -172,6 +174,14 @@ export function getAdjustedColorMap<T extends { [k: string]: number }>(map: Colo
         adjustedMap[e] = c;
     }
     return adjustedMap as ColorMap<T>;
+}
+
+export function getColorMapParams<T extends { [k: string]: number }>(map: ColorMap<T>) {
+    const colors: Record<string, PD.Color> = {};
+    objectForEach(map, (_, k) => {
+        colors[k] = PD.Color(map[k]);
+    });
+    return colors as { [k in keyof T]: PD.Color };
 }
 
 export type ColorSwatch = [string, Color][]
