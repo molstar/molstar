@@ -15,6 +15,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Bugfix: Automatically treat empty string as "non-present" value in BinaryCIF writer.
 - Fix coarse model support in entity-id color theme
 - Fix marking of carbohydrate visuals (whole chain could get marked instead of single residue)
+- Support/bugfixes for ``atom_site.pdbx_sifts_xref`` categories
 
 ## [v3.0.0-dev.10] - 2022-01-17
 

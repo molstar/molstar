@@ -29,7 +29,7 @@ namespace BestDatabaseSequenceMapping {
         type: 'static',
         defaultParams: {},
         getParams: () => ({}),
-        isApplicable: (data: Model) => MmcifFormat.is(data.sourceData) && data.sourceData.data.frame.categories?.atom_site?.fieldNames.indexOf('db_name') >= 0,
+        isApplicable: (data: Model) => MmcifFormat.is(data.sourceData) && data.sourceData.data.frame.categories?.atom_site?.fieldNames.indexOf('pdbx_sifts_xref_db_name') >= 0,
         obtain: async (ctx, data) => {
             return { value: fromCif(data) };
         }
@@ -40,7 +40,7 @@ namespace BestDatabaseSequenceMapping {
         const data = Provider.get(model).value;
         if (!data) return '';
         const eI = loc.unit.elements[loc.element];
-        const rI = model.atomicHierarchy.residueAtomSegments.offsets[eI];
+        const rI = model.atomicHierarchy.residueAtomSegments.index[eI];
         return data.accession[rI];
     }
 
@@ -49,7 +49,7 @@ namespace BestDatabaseSequenceMapping {
         const data = Provider.get(model).value;
         if (!data) return;
         const eI = loc.unit.elements[loc.element];
-        const rI = model.atomicHierarchy.residueAtomSegments.offsets[eI];
+        const rI = model.atomicHierarchy.residueAtomSegments.index[eI];
         const dbName = data.dbName[rI];
         if (!dbName) return;
         return `${dbName} ${data.accession[rI]} ${data.num[rI]} ${data.residue[rI]}`;
@@ -59,10 +59,10 @@ namespace BestDatabaseSequenceMapping {
         if (!MmcifFormat.is(model.sourceData)) return;
 
         const { atom_site } = model.sourceData.data.frame.categories;
-        const db_name = atom_site.getField('db_name');
-        const db_acc = atom_site.getField('db_acc');
-        const db_num = atom_site.getField('db_num');
-        const db_res = atom_site.getField('db_res');
+        const db_name = atom_site.getField('pdbx_sifts_xref_db_name');
+        const db_acc = atom_site.getField('pdbx_sifts_xref_db_acc');
+        const db_num = atom_site.getField('pdbx_sifts_xref_db_num');
+        const db_res = atom_site.getField('pdbx_sifts_xref_db_res');
 
         if (!db_name || !db_acc || !db_num || !db_res) return;
 
@@ -77,17 +77,17 @@ namespace BestDatabaseSequenceMapping {
             const row = atomSourceIndex.value(residueOffsets[i]);
 
             if (db_name.valueKind(row) !== Column.ValueKind.Present) {
-                dbName[row] = '';
-                accession[row] = '';
-                num[row] = 0;
-                residue[row] = '';
+                dbName[i] = '';
+                accession[i] = '';
+                num[i] = 0;
+                residue[i] = '';
                 continue;
             }
 
-            dbName[row] = db_name.str(row);
-            accession[row] = db_acc.str(row);
-            num[row] = db_num.int(row);
-            residue[row] = db_res.str(row);
+            dbName[i] = db_name.str(row);
+            accession[i] = db_acc.str(row);
+            num[i] = db_num.int(row);
+            residue[i] = db_res.str(row);
         }
 
         return { dbName, accession, num, residue };

@@ -185,9 +185,9 @@ export class SuperpositionControls extends PurePluginUIComponent<{ }, Superposit
             rmsd += xform.transform.rmsd;
         }
 
-        rmsd /= transforms.length - 1;
+        rmsd /= Math.max(transforms.length - 1, 1);
 
-        this.plugin.log.info(`Superposed ${input.length} structures with avg. RMSD ${rmsd.toFixed(2)}.`);
+        this.plugin.log.info(`Superposed ${input.length} structures with avg. RMSD ${rmsd.toFixed(2)} Å.`);
         await new Promise(res => requestAnimationFrame(res));
         PluginCommands.Camera.Reset(this.plugin);
     };
