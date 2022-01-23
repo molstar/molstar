@@ -5,7 +5,7 @@
  */
 
 import { utf8ByteCount, utf8Write } from '../../mol-io/common/utf8';
-import { to_mmCIF } from '../../mol-model/structure';
+import { to_mmCIF, Unit } from '../../mol-model/structure';
 import { PluginContext } from '../../mol-plugin/context';
 import { Task } from '../../mol-task';
 import { getFormattedTime } from '../../mol-util/date';
@@ -36,6 +36,10 @@ function _exportHierarchy(plugin: PluginContext, options?: { format?: 'cif' | 'b
             if (!s) continue;
             if (s.models.length > 1) {
                 plugin.log.warn(`[Export] Skipping ${_s.cell.obj?.label}: Multimodel exports not supported.`);
+                continue;
+            }
+            if (s.units.some(u => !Unit.isAtomic(u))) {
+                plugin.log.warn(`[Export] Skipping ${_s.cell.obj?.label}: Non-atomic model exports not supported.`);
                 continue;
             }
 
