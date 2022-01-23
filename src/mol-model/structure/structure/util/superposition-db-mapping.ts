@@ -5,6 +5,7 @@
  */
 
 import { Segmentation } from '../../../../mol-data/int';
+import { Mat4 } from '../../../../mol-math/linear-algebra';
 import { MinimizeRmsd } from '../../../../mol-math/linear-algebra/3d/minimize-rmsd';
 import { BestDatabaseSequenceMapping } from '../../../../mol-model-props/sequence/best-database-mapping';
 import { ElementIndex } from '../../model/indexing';
@@ -33,6 +34,7 @@ export function alignAndSuperposeWithBestDatabaseMapping(structures: Structure[]
     for (const p of pairs) {
         const [a, b] = getPositionTables(index, p.i, p.j, p.count);
         const transform = MinimizeRmsd.compute({ a, b });
+        console.log(Mat4.makeTable(transform.bTransform), transform.rmsd);
         ret.push({ transform, pivot: p.i, other: p.j });
     }
 
@@ -51,6 +53,8 @@ function getPositionTables(index: IndexEntry[], pivot: number, other: number, N:
 
         const l = Math.min(a[2] - a[1], b[2] - b[1]);
 
+        // TODO: allow to use just backbone atoms?
+        // TODO: check if residue types match?
         for (let i = 0; i < l; i++) {
             let eI = (a[1] + i) as ElementIndex;
             xs.x[o] = a[0].conformation.x(eI);
@@ -122,7 +126,6 @@ function buildIndex(structure: Structure, index: Map<string, IndexEntry>, sI: nu
         if (unit.kind !== Unit.Kind.Atomic) continue;
 
         const { elements, model } = unit;
-        const { offsets: residueOffset } = model.atomicHierarchy.residueAtomSegments;
 
         const map = BestDatabaseSequenceMapping.Provider.get(model).value;
         if (!map) return;
@@ -137,23 +140,27 @@ function buildIndex(structure: Structure, index: Map<string, IndexEntry>, sI: nu
             residuesIt.setSegment(chainSegment);
             while (residuesIt.hasNext) {
                 const residueSegment = residuesIt.move();
-                const eI = elements[residueSegment.start];
-                const rI = residueOffset[eI];
+                const rI = residueSegment.index;
 
                 if (!dbName[rI]) continue;
+
+                const start = elements[residueSegment.start];
+                const end = elements[residueSegment.end - 1] + 1 as ElementIndex;
 
                 const key = `${dbName[rI]}-${accession[rI]}-${num[rI]}`;
 
                 if (!index.has(key)) {
-                    index.set(key, { key, pivots: { [sI]: [unit, eI, elements[residueSegment.end]] } });
+                    index.set(key, { key, pivots: { [sI]: [unit, start, end] } });
                 } else {
                     const entry = index.get(key)!;
 
                     if (!entry.pivots[sI]) {
-                        entry.pivots[sI] = [unit, eI, elements[residueSegment.end]];
+                        entry.pivots[sI] = [unit, start, end];
                     }
                 }
             }
         }
     }
+
+    console.log(index);
 }

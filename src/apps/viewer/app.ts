@@ -101,7 +101,14 @@ export class Viewer {
     }
 
     static async create(elementOrId: string | HTMLElement, options: Partial<ViewerOptions> = {}) {
-        const o = { ...DefaultViewerOptions, ...options };
+        const definedOptions = {} as any;
+        // filter for defined properies only so the default values
+        // are property applied
+        for (const p of Object.keys(options) as (keyof ViewerOptions)[]) {
+            if (options[p] !== void 0) definedOptions[p] = options[p];
+        }
+
+        const o: ViewerOptions = { ...DefaultViewerOptions, ...definedOptions };
         const defaultSpec = DefaultPluginUISpec();
 
         const spec: PluginUISpec = {

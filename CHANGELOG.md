@@ -16,6 +16,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Fix coarse model support in entity-id color theme
 - Fix marking of carbohydrate visuals (whole chain could get marked instead of single residue)
 - Add custom colors to "element-symbol", "molecule-type", "residue-name", and "secondary-structure" themes
+- Support/bugfixes for ``atom_site.pdbx_sifts_xref`` categories
 
 ## [v3.0.0-dev.10] - 2022-01-17
 
