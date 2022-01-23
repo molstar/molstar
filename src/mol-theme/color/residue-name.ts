@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -12,6 +12,7 @@ import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { ThemeDataContext } from '../theme';
 import { TableLegend } from '../../mol-util/legend';
 import { getAdjustedColorMap } from '../../mol-util/color/color';
+import { getColorMapParams } from '../../mol-util/color/params';
 
 // protein colors from Jmol http://jmol.sourceforge.net/jscolors/
 export const ResidueNameColors = ColorMap({
@@ -66,7 +67,11 @@ const Description = 'Assigns a color to every residue according to its name.';
 
 export const ResidueNameColorThemeParams = {
     saturation: PD.Numeric(0, { min: -6, max: 6, step: 0.1 }),
-    lightness: PD.Numeric(1, { min: -6, max: 6, step: 0.1 })
+    lightness: PD.Numeric(1, { min: -6, max: 6, step: 0.1 }),
+    colors: PD.MappedStatic('default', {
+        'default': PD.EmptyGroup(),
+        'custom': PD.Group(getColorMapParams(ResidueNameColors))
+    })
 };
 export type ResidueNameColorThemeParams = typeof ResidueNameColorThemeParams
 export function getResidueNameColorThemeParams(ctx: ThemeDataContext) {
@@ -93,7 +98,7 @@ export function residueNameColor(colorMap: ResidueNameColors, residueName: strin
 }
 
 export function ResidueNameColorTheme(ctx: ThemeDataContext, props: PD.Values<ResidueNameColorThemeParams>): ColorTheme<ResidueNameColorThemeParams> {
-    const colorMap = getAdjustedColorMap(ResidueNameColors, props.saturation, props.lightness);
+    const colorMap = getAdjustedColorMap(props.colors.name === 'default' ? ResidueNameColors : props.colors.params, props.saturation, props.lightness);
 
     function color(location: Location): Color {
         if (StructureElement.Location.is(location)) {
@@ -123,8 +128,8 @@ export function ResidueNameColorTheme(ctx: ThemeDataContext, props: PD.Values<Re
         color,
         props,
         description: Description,
-        legend: TableLegend(Object.keys(ResidueNameColors).map(name => {
-            return [name, (ResidueNameColors as any)[name] as Color] as [string, Color];
+        legend: TableLegend(Object.keys(colorMap).map(name => {
+            return [name, (colorMap as any)[name] as Color] as [string, Color];
         }).concat([['Unknown', DefaultResidueNameColor]]))
     };
 }

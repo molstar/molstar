@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -15,6 +15,7 @@ import { ThemeDataContext } from '../theme';
 import { TableLegend } from '../../mol-util/legend';
 import { SecondaryStructureProvider, SecondaryStructureValue } from '../../mol-model-props/computed/secondary-structure';
 import { getAdjustedColorMap } from '../../mol-util/color/color';
+import { getColorMapParams } from '../../mol-util/color/params';
 import { CustomProperty } from '../../mol-model-props/common/custom-property';
 import { hash2 } from '../../mol-data/util';
 
@@ -41,7 +42,11 @@ const Description = 'Assigns a color based on the type of secondary structure an
 
 export const SecondaryStructureColorThemeParams = {
     saturation: PD.Numeric(-1, { min: -6, max: 6, step: 0.1 }),
-    lightness: PD.Numeric(0, { min: -6, max: 6, step: 0.1 })
+    lightness: PD.Numeric(0, { min: -6, max: 6, step: 0.1 }),
+    colors: PD.MappedStatic('default', {
+        'default': PD.EmptyGroup(),
+        'custom': PD.Group(getColorMapParams(SecondaryStructureColors))
+    })
 };
 export type SecondaryStructureColorThemeParams = typeof SecondaryStructureColorThemeParams
 export function getSecondaryStructureColorThemeParams(ctx: ThemeDataContext) {
@@ -88,7 +93,7 @@ export function SecondaryStructureColorTheme(ctx: ThemeDataContext, props: PD.Va
     const computedSecondaryStructure = ctx.structure && SecondaryStructureProvider.get(ctx.structure);
     const contextHash = computedSecondaryStructure ? hash2(computedSecondaryStructure.id, computedSecondaryStructure.version) : -1;
 
-    const colorMap = getAdjustedColorMap(SecondaryStructureColors, props.saturation, props.lightness);
+    const colorMap = getAdjustedColorMap(props.colors.name === 'default' ? SecondaryStructureColors : props.colors.params, props.saturation, props.lightness);
 
     function color(location: Location): Color {
         if (StructureElement.Location.is(location)) {
@@ -107,8 +112,8 @@ export function SecondaryStructureColorTheme(ctx: ThemeDataContext, props: PD.Va
         props,
         contextHash,
         description: Description,
-        legend: TableLegend(Object.keys(SecondaryStructureColors).map(name => {
-            return [name, (SecondaryStructureColors as any)[name] as Color] as [string, Color];
+        legend: TableLegend(Object.keys(colorMap).map(name => {
+            return [name, (colorMap as any)[name] as Color] as [string, Color];
         }).concat([['Other', DefaultSecondaryStructureColor]]))
     };
 }
