@@ -6,6 +6,8 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+## [v3.0.0] - 2022-01-23
+
 - Assembly handling tweaks:
     - Do not include suffix for "identity assembly operators"
     - Do not include assembly-related categories to export if the structure was composed from an assembly
