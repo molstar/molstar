@@ -17,6 +17,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Fix marking of carbohydrate visuals (whole chain could get marked instead of single residue)
 - Add custom colors to "element-symbol", "molecule-type", "residue-name", and "secondary-structure" themes
 - Support/bugfixes for ``atom_site.pdbx_sifts_xref`` categories
+- Improve/fix marking of ``InteractionsIntraUnitVisual`` (mark when all contact-feature members are given)
 
 ## [v3.0.0-dev.10] - 2022-01-17
 
