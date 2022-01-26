@@ -17,6 +17,7 @@ import { ModelExport } from '../../extensions/model-export';
 import { Mp4Export } from '../../extensions/mp4-export';
 import { PDBeStructureQualityReport } from '../../extensions/pdbe';
 import { RCSBAssemblySymmetry, RCSBValidationReport } from '../../extensions/rcsb';
+import { Volume } from '../../mol-model/volume';
 import { DownloadStructure, PdbDownloadProvider } from '../../mol-plugin-state/actions/structure';
 import { DownloadDensity } from '../../mol-plugin-state/actions/volume';
 import { PresetTrajectoryHierarchy } from '../../mol-plugin-state/builder/structure/hierarchy-preset';
@@ -366,11 +367,13 @@ export class Viewer {
 
             const repr = plugin.build();
             for (const iso of isovalues) {
+                const volume: StateObjectSelector<PluginStateObject.Volume.Data> = parsed.volumes?.[iso.volumeIndex ?? 0] ?? parsed.volume;
+                const volumeData = volume.cell!.obj!.data;
                 repr
-                    .to(parsed.volumes?.[iso.volumeIndex ?? 0] ?? parsed.volume)
+                    .to(volume)
                     .apply(StateTransforms.Representation.VolumeRepresentation3D, createVolumeRepresentationParams(this.plugin, firstVolume.data!, {
                         type: 'isosurface',
-                        typeParams: { alpha: iso.alpha ?? 1, isoValue: iso.type === 'absolute' ? { kind: 'absolute', absoluteValue: iso.value } : { kind: 'relative', relativeValue: iso.value } },
+                        typeParams: { alpha: iso.alpha ?? 1, isoValue: Volume.adjustedIsoValue(volumeData, iso.value, iso.type) },
                         color: 'uniform',
                         colorParams: { value: iso.color }
                     }));
