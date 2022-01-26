@@ -197,13 +197,13 @@ export function configureLocal() {
         description: VOLUME_SERVER_HEADER
     });
     parser.add_argument('--jobs', { help: `Path to a JSON file with job specification.`, required: false });
-    parser.add_argument('--jobsTemplate', { help: 'Print example template for jobs.json and exit.', required: false, nargs: 0 });
+    parser.add_argument('--jobsTemplate', { help: 'Print example template for jobs.json and exit.', required: false, action: 'store_true' });
     addJsonConfigArgs(parser);
     addLimitsArgs(parser);
 
     const config = parser.parse_args() as LimitsConfig & ServerJsonConfig;
 
-    if (config.cfgTemplate !== null) {
+    if (config.cfgTemplate) {
         console.log(JSON.stringify(DefaultLimitsConfig, null, 2));
         process.exit(0);
     }
@@ -216,7 +216,7 @@ export function configureLocal() {
             setLimitsConfig(cfg);
         }
 
-        if (config.printCfg !== null) {
+        if (config.printCfg) {
             console.log(JSON.stringify(LimitsConfig, null, 2));
             process.exit(0);
         }

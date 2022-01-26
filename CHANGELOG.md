@@ -6,6 +6,8 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Fix VolumeServer/query CLI
+
 ## [v3.0.0] - 2022-01-23
 
 - Assembly handling tweaks:
