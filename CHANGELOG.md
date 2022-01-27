@@ -6,6 +6,8 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+## [v3.0.1] - 2022-01-27
+
 - Fix marking pass not working with ``transparentBackground``
 - Fix pdbe xray maps url not https
 - Fix entity-id color theme broken for non-IHM models
