@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -63,6 +63,28 @@ export interface CoarseHierarchy {
     gaussians: CoarseElements
 }
 
+const EmptyCoarseElements: CoarseElements = {
+    chainKey: [],
+    entityKey: [],
+    findSequenceKey: () => -1 as ElementIndex,
+    findChainKey: () => -1 as ChainIndex,
+    getEntityFromChain: () => -1 as EntityIndex,
+
+    count: 0,
+    entity_id: Column.Undefined(0, Column.Schema.str),
+    asym_id: Column.Undefined(0, Column.Schema.str),
+    seq_id_begin: Column.Undefined(0, Column.Schema.int),
+    seq_id_end: Column.Undefined(0, Column.Schema.int),
+    chainElementSegments: Segmentation.create([]),
+
+    polymerRanges: SortedRanges.ofSortedRanges([]),
+    gapRanges: SortedRanges.ofSortedRanges([]),
+};
+
 export namespace CoarseHierarchy {
-    export const Empty: CoarseHierarchy = { isDefined: false } as any;
+    export const Empty: CoarseHierarchy = {
+        isDefined: false,
+        spheres: EmptyCoarseElements,
+        gaussians: EmptyCoarseElements
+    };
 }

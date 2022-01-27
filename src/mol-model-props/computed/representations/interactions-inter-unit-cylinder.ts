@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -74,10 +74,11 @@ function createInterUnitInteractionCylinderMesh(ctx: VisualContext, structure: S
                 if (!childUnitA) return true;
 
                 const unitA = structure.unitMap.get(b.unitA);
-                const fA = unitsFeatures.get(b.unitA);
-                // TODO: check all members
-                const eA = unitA.elements[fA.members[fA.offsets[b.indexA]]];
-                if (!SortedArray.has(childUnitA.elements, eA)) return true;
+                const { offsets, members } = unitsFeatures.get(b.unitA);
+                for (let i = offsets[b.indexA], il = offsets[b.indexA + 1]; i < il; ++i) {
+                    const eA = unitA.elements[members[i]];
+                    if (!SortedArray.has(childUnitA.elements, eA)) return true;
+                }
             }
 
             return false;
@@ -144,6 +145,9 @@ function getInteractionLoci(pickingId: PickingId, structure: Structure, id: numb
     return EmptyLoci;
 }
 
+const __unitMap = new Map<number, OrderedSet<StructureElement.UnitIndex>>();
+const __contactIndicesSet = new Set<number>();
+
 function eachInteraction(loci: Loci, structure: Structure, apply: (interval: Interval) => boolean, isMarking: boolean) {
     let changed = false;
     if (Interactions.isLoci(loci)) {
@@ -162,21 +166,48 @@ function eachInteraction(loci: Loci, structure: Structure, apply: (interval: Int
         if (!Structure.areEquivalent(loci.structure, structure)) return false;
         if (isMarking && loci.elements.length === 1) return false; // only a single unit
 
-        const contacts = InteractionsProvider.get(structure).value?.contacts;
-        if (!contacts) return false;
+        const interactions = InteractionsProvider.get(structure).value;
+        if (!interactions) return false;
 
-        // TODO when isMarking, all elements of contact features need to be in the loci
+        const { contacts, unitsFeatures } = interactions;
+
+        for (const e of loci.elements) __unitMap.set(e.unit.id, e.indices);
+
         for (const e of loci.elements) {
             const { unit } = e;
             if (!Unit.isAtomic(unit)) continue;
-            if (isMarking && OrderedSet.size(e.indices) === 1) continue;
 
             OrderedSet.forEach(e.indices, v => {
                 for (const idx of contacts.getContactIndicesForElement(v, unit)) {
-                    if (apply(Interval.ofSingleton(idx))) changed = true;
+                    __contactIndicesSet.add(idx);
                 }
             });
         }
+
+        __contactIndicesSet.forEach(i => {
+            if (isMarking) {
+                const { indexA, unitA, indexB, unitB } = contacts.edges[i];
+
+                const indicesA = __unitMap.get(unitA);
+                const indicesB = __unitMap.get(unitB);
+                if (!indicesA || !indicesB) return;
+
+                const { offsets: offsetsA, members: membersA } = unitsFeatures.get(unitA);
+                for (let j = offsetsA[indexA], jl = offsetsA[indexA + 1]; j < jl; ++j) {
+                    if (!OrderedSet.has(indicesA, membersA[j])) return;
+                }
+
+                const { offsets: offsetsB, members: membersB } = unitsFeatures.get(unitB);
+                for (let j = offsetsB[indexB], jl = offsetsB[indexB + 1]; j < jl; ++j) {
+                    if (!OrderedSet.has(indicesB, membersB[j])) return;
+                }
+            }
+
+            if (apply(Interval.ofSingleton(i))) changed = true;
+        });
+
+        __unitMap.clear();
+        __contactIndicesSet.clear();
     }
     return changed;
 }

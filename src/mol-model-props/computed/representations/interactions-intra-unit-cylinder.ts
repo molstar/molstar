@@ -56,11 +56,19 @@ async function createIntraUnitInteractionsCylinderMesh(ctx: VisualContext, unit:
             const sizeB = theme.size.size(location);
             return Math.min(sizeA, sizeB) * sizeFactor;
         },
-        ignore: (edgeIndex: number) => (
-            flag[edgeIndex] === InteractionFlag.Filtered ||
-            // TODO: check all members
-            (!!childUnit && !SortedArray.has(childUnit.elements, unit.elements[members[offsets[a[edgeIndex]]]]))
-        )
+        ignore: (edgeIndex: number) => {
+            if (flag[edgeIndex] === InteractionFlag.Filtered) return true;
+
+            if (childUnit) {
+                const f = a[edgeIndex];
+                for (let i = offsets[f], jl = offsets[f + 1]; i < jl; ++i) {
+                    const e = unit.elements[members[offsets[i]]];
+                    if (!SortedArray.has(childUnit.elements, e)) return true;
+                }
+            }
+
+            return false;
+        }
     };
 
     const m = createLinkCylinderMesh(ctx, builderProps, props, mesh);
@@ -164,7 +172,6 @@ function eachInteraction(loci: Loci, structureGroup: StructureGroup, apply: (int
             const unitIdx = group.unitIndexMap.get(e.unit.id);
             if (unitIdx === undefined) continue;
 
-            __contactIndicesSet.clear();
             OrderedSet.forEach(e.indices, v => {
                 for (let i = fOffsets[v], il = fOffsets[v + 1]; i < il; ++i) {
                     const fI = fIndices[i];
@@ -188,6 +195,8 @@ function eachInteraction(loci: Loci, structureGroup: StructureGroup, apply: (int
 
                 if (apply(Interval.ofSingleton(unitIdx * groupCount + i))) changed = true;
             });
+
+            __contactIndicesSet.clear();
         }
     }
     return changed;
