@@ -7,6 +7,7 @@ Note that since we don't clearly distinguish between a public and private interf
 ## [Unreleased]
 
 - Fix marking pass not working with ``transparentBackground``
+- Fix pdbe xray maps url not https
 
 ## [v3.0.0] - 2022-01-23
 
