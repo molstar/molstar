@@ -7,6 +7,7 @@ Note that since we don't clearly distinguish between a public and private interf
 ## [Unreleased]
 
 - Fix VolumeServer/query CLI
+- Emit drag event whenever started within viewport (not only for non-empty loci)
 
 ## [v3.0.0] - 2022-01-23
 
