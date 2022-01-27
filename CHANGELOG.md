@@ -7,6 +7,7 @@ Note that since we don't clearly distinguish between a public and private interf
 ## [Unreleased]
 
 - Fix VolumeServer/query CLI
+- Support automatic iso-value adjustment for VolumeServer data in ``Viewer.loadVolumeFromUrl``
 
 ## [v3.0.0] - 2022-01-23
 
