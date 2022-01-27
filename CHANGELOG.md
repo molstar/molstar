@@ -13,6 +13,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Add missing "entity-id" and "enity-source" options for carbon coloring to "element-symbol" color theme
 - Fix VolumeServer/query CLI
 - Support automatic iso-value adjustment for VolumeServer data in ``Viewer.loadVolumeFromUrl``
+- Emit drag event whenever started within viewport (not only for non-empty loci)
 
 ## [v3.0.0] - 2022-01-23
 
