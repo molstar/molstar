@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -224,6 +224,8 @@ export function getInterBondLoci(pickingId: PickingId, structure: Structure, id:
     return EmptyLoci;
 }
 
+const __unitMap = new Map<number, OrderedSet<StructureElement.UnitIndex>>();
+
 export function eachInterBond(loci: Loci, structure: Structure, apply: (interval: Interval) => boolean, isMarking: boolean) {
     let changed = false;
     if (Bond.isLoci(loci)) {
@@ -238,14 +240,13 @@ export function eachInterBond(loci: Loci, structure: Structure, apply: (interval
         if (!Structure.areEquivalent(loci.structure, structure)) return false;
         if (isMarking && loci.elements.length === 1) return false; // only a single unit
 
-        const map = new Map<number, OrderedSet<StructureElement.UnitIndex>>();
-        for (const e of loci.elements) map.set(e.unit.id, e.indices);
+        for (const e of loci.elements) __unitMap.set(e.unit.id, e.indices);
 
         for (const e of loci.elements) {
             const { unit } = e;
             if (!Unit.isAtomic(unit)) continue;
             structure.interUnitBonds.getConnectedUnits(unit.id).forEach(b => {
-                const otherLociIndices = map.get(b.unitB);
+                const otherLociIndices = __unitMap.get(b.unitB);
                 if (!isMarking || otherLociIndices) {
                     OrderedSet.forEach(e.indices, v => {
                         if (!b.connectedIndices.includes(v)) return;
@@ -259,6 +260,8 @@ export function eachInterBond(loci: Loci, structure: Structure, apply: (interval
                 }
             });
         }
+
+        __unitMap.clear();
     }
     return changed;
 }

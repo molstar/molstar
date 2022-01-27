@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -98,29 +98,20 @@ class InteractionsInterContacts extends InterUnitGraph<number, Features.FeatureI
     constructor(map: Map<number, InterUnitGraph.UnitPairEdges<number, Features.FeatureIndex, InteractionsInterContacts.Props>[]>, unitsFeatures: IntMap<Features>) {
         super(map);
 
-        let count = 0;
-        const elementKeyIndex = new Map<string, number[]>();
-
-        const add = (index: StructureElement.UnitIndex, unitId: number) => {
-            const vertexKey = this.getElementKey(index, unitId);
-            const e = elementKeyIndex.get(vertexKey);
-            if (e === undefined) elementKeyIndex.set(vertexKey, [count]);
-            else e.push(count);
-        };
-
-        this.map.forEach(pairEdgesArray => {
-            pairEdgesArray.forEach(({ unitA, connectedIndices }) => {
-                connectedIndices.forEach(indexA => {
-                    const { offsets: offsetsA, members: membersA } = unitsFeatures.get(unitA);
-                    for (let j = offsetsA[indexA], jl = offsetsA[indexA + 1]; j < jl; ++j) {
-                        add(membersA[j], unitA);
-                    }
-                    count += 1;
-                });
-            });
-        });
-
-        this.elementKeyIndex = elementKeyIndex;
+        this.elementKeyIndex = new Map<string, number[]>();
+        for (let i = 0, il = this.edges.length; i < il; ++i) {
+            const { unitA, indexA } = this.edges[i];
+            const { offsets, members } = unitsFeatures.get(unitA);
+            for (let j = offsets[indexA], jl = offsets[indexA + 1]; j < jl; ++j) {
+                const vertexKey = this.getElementKey(members[j], unitA);
+                const e = this.elementKeyIndex.get(vertexKey);
+                if (e === undefined) {
+                    this.elementKeyIndex.set(vertexKey, [i]);
+                } else {
+                    e.push(i);
+                }
+            }
+        }
     }
 }
 namespace InteractionsInterContacts {
