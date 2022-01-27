@@ -13,7 +13,7 @@
   "scripts": {
     "lint": "eslint .",
     "lint-fix": "eslint . --fix",
-    "test": "npm run lint && jest",
+    "test": "npm install --no-save \"gl@^5.0.0\" && npm run lint && jest",
     "jest": "jest",
     "build": "npm run build-tsc && npm run build-extra && npm run build-webpack",
     "clean": "node ./scripts/clean.js",
@@ -156,8 +156,5 @@
   "peerDependencies": {
     "react": "^17.0.2",
     "react-dom": "^17.0.2"
-  },
-  "optionalDependencies": {
-    "gl": "^5.0.0"
   }
 }

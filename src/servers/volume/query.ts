@@ -14,7 +14,7 @@ import * as LocalApi from './server/local-api';
 
 const config = configureLocal();
 
-if (config.jobsTemplate !== null) {
+if (config.jobsTemplate) {
     const exampleJobs: LocalApi.JobEntry[] = [{
         source: {
             filename: `g:/test/mdb/xray-1tqn.mdb`,

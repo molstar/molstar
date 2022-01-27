@@ -11,6 +11,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Fix entity-id color theme broken for non-IHM models
 - Improve/fix marking of ``InteractionsInterUnitVisual`` (mark when all contact-feature members are given)
 - Add missing "entity-id" and "enity-source" options for carbon coloring to "element-symbol" color theme
+- Fix VolumeServer/query CLI
 
 ## [v3.0.0] - 2022-01-23
 
