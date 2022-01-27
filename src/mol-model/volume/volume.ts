@@ -15,6 +15,7 @@ import { ModelFormat } from '../../mol-model-formats/format';
 import { CustomProperties } from '../custom-property';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { toPrecision } from '../../mol-util/number';
+import { DscifFormat } from '../../mol-model-formats/volume/density-server';
 
 export interface Volume {
     readonly label?: string
@@ -82,6 +83,23 @@ export namespace Volume {
                 ? `${value.relativeValue.toFixed(2)} σ`
                 : `${value.absoluteValue.toPrecision(4)}`;
         }
+    }
+
+    // Converts iso value to relative if using downsample VolumeServer data
+    export function adjustedIsoValue(volume: Volume, value: number, kind: 'absolute' | 'relative') {
+        if (kind === 'relative') return IsoValue.relative(value);
+
+        const absolute = IsoValue.absolute(value);
+        if (DscifFormat.is(volume.sourceData)) {
+            const stats = {
+                min: volume.sourceData.data.volume_data_3d_info.min_source.value(0),
+                max: volume.sourceData.data.volume_data_3d_info.max_source.value(0),
+                mean: volume.sourceData.data.volume_data_3d_info.mean_source.value(0),
+                sigma: volume.sourceData.data.volume_data_3d_info.sigma_source.value(0),
+            };
+            return Volume.IsoValue.toRelative(absolute, stats);
+        }
+        return absolute;
     }
 
     const defaultStats: Grid['stats'] = { min: -1, max: 1, mean: 0, sigma: 0.1 };

@@ -18,7 +18,6 @@ import { objectForEach } from '../../mol-util/object';
 import { RecommendedIsoValue } from '../../mol-model-formats/volume/property';
 import { getContourLevelEmdb } from '../../mol-plugin/behavior/dynamic/volume-streaming/util';
 import { Task } from '../../mol-task';
-import { DscifFormat } from '../../mol-model-formats/volume/density-server';
 
 export const VolumeFormatCategory = 'Volume';
 type Params = { entryId?: string };
@@ -42,19 +41,9 @@ async function tryObtainRecommendedIsoValue(plugin: PluginContext, volume?: Volu
 function tryGetRecomendedIsoValue(volume: Volume) {
     const recommendedIsoValue = RecommendedIsoValue.Provider.get(volume);
     if (!recommendedIsoValue) return;
-
     if (recommendedIsoValue.kind === 'relative') return recommendedIsoValue;
 
-    let stats = volume.grid.stats;
-    if (DscifFormat.is(volume.sourceData)) {
-        stats = {
-            min: volume.sourceData.data.volume_data_3d_info.min_source.value(0),
-            max: volume.sourceData.data.volume_data_3d_info.max_source.value(0),
-            mean: volume.sourceData.data.volume_data_3d_info.mean_source.value(0),
-            sigma: volume.sourceData.data.volume_data_3d_info.sigma_source.value(0),
-        };
-    }
-    return Volume.IsoValue.toRelative(recommendedIsoValue, stats);
+    return Volume.adjustedIsoValue(volume, recommendedIsoValue.absoluteValue, 'absolute');
 }
 
 async function defaultVisuals(plugin: PluginContext, data: { volume: StateObjectSelector<PluginStateObject.Volume.Data> }) {

@@ -38,15 +38,18 @@ function getEntityIdSerialMap(structure: Structure) {
             const k = key(label_entity_id.value(j), i);
             if (!map.has(k)) map.set(k, map.size);
         }
-        const { entity_id: spheres_entity_id } = structure.models[i].coarseHierarchy.spheres;
-        for (let j = 0, jl = spheres_entity_id.rowCount; j < jl; ++j) {
-            const k = key(spheres_entity_id.value(j), i);
-            if (!map.has(k)) map.set(k, map.size);
-        }
-        const { entity_id: gaussians_entity_id } = structure.models[i].coarseHierarchy.gaussians;
-        for (let j = 0, jl = gaussians_entity_id.rowCount; j < jl; ++j) {
-            const k = key(gaussians_entity_id.value(j), i);
-            if (!map.has(k)) map.set(k, map.size);
+        const { coarseHierarchy } = structure.models[i];
+        if (coarseHierarchy.isDefined) {
+            const { entity_id: spheres_entity_id } = coarseHierarchy.spheres;
+            for (let j = 0, jl = spheres_entity_id.rowCount; j < jl; ++j) {
+                const k = key(spheres_entity_id.value(j), i);
+                if (!map.has(k)) map.set(k, map.size);
+            }
+            const { entity_id: gaussians_entity_id } = coarseHierarchy.gaussians;
+            for (let j = 0, jl = gaussians_entity_id.rowCount; j < jl; ++j) {
+                const k = key(gaussians_entity_id.value(j), i);
+                if (!map.has(k)) map.set(k, map.size);
+            }
         }
     }
     return map;

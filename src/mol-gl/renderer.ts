@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -53,7 +53,7 @@ interface Renderer {
     readonly stats: RendererStats
     readonly props: Readonly<RendererProps>
 
-    clear: (toBackgroundColor: boolean) => void
+    clear: (toBackgroundColor: boolean, ignoreTransparentBackground?: boolean) => void
     clearDepth: () => void
     update: (camera: ICamera) => void
 
@@ -523,13 +523,13 @@ namespace Renderer {
         };
 
         return {
-            clear: (toBackgroundColor: boolean) => {
+            clear: (toBackgroundColor: boolean, ignoreTransparentBackground?: boolean) => {
                 state.enable(gl.SCISSOR_TEST);
                 state.enable(gl.DEPTH_TEST);
                 state.colorMask(true, true, true, true);
                 state.depthMask(true);
 
-                if (transparentBackground) {
+                if (transparentBackground && !ignoreTransparentBackground) {
                     state.clearColor(0, 0, 0, 0);
                 } else if (toBackgroundColor) {
                     state.clearColor(bgColor[0], bgColor[1], bgColor[2], 1);

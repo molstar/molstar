@@ -6,7 +6,13 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Fix marking pass not working with ``transparentBackground``
+- Fix pdbe xray maps url not https
+- Fix entity-id color theme broken for non-IHM models
+- Improve/fix marking of ``InteractionsInterUnitVisual`` (mark when all contact-feature members are given)
+- Add missing "entity-id" and "enity-source" options for carbon coloring to "element-symbol" color theme
 - Fix VolumeServer/query CLI
+- Support automatic iso-value adjustment for VolumeServer data in ``Viewer.loadVolumeFromUrl``
 - Emit drag event whenever started within viewport (not only for non-empty loci)
 
 ## [v3.0.0] - 2022-01-23

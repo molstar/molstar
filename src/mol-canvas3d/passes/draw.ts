@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Áron Samuel Kovács <aron.kovacs@mail.muni.cz>
@@ -310,12 +310,12 @@ export class DrawPass {
             const markingDepthTest = props.marking.ghostEdgeStrength < 1;
             if (markingDepthTest) {
                 this.marking.depthTarget.bind();
-                renderer.clear(false);
+                renderer.clear(false, true);
                 renderer.renderMarkingDepth(scene.primitives, camera, null);
             }
 
             this.marking.maskTarget.bind();
-            renderer.clear(false);
+            renderer.clear(false, true);
             renderer.renderMarkingMask(scene.primitives, camera, markingDepthTest ? this.marking.depthTarget.texture : null);
 
             this.marking.update(props.marking);
