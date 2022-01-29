@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -11,6 +11,7 @@ import { OrderedSet } from '../../../mol-data/int';
 import { NumberArray, PickRequired } from '../../../mol-util/type-helpers';
 import { Box3D } from './box3d';
 import { Axes3D } from './axes3d';
+import { PrincipalAxes } from '../../linear-algebra/matrix/principal-axes';
 
 interface Sphere3D {
     center: Vec3,
@@ -202,11 +203,28 @@ namespace Sphere3D {
             return out;
         }
         if (hasExtrema(sphere)) {
+            const positions = new Float32Array(sphere.extrema.length * 3);
+            for (let i = 0; i < sphere.extrema.length; i++) {
+                Vec3.toArray(sphere.extrema[i], positions, i * 3);
+            }
+
+            const axes = PrincipalAxes.calculateMomentsAxes(positions);
+            Axes3D.scale(axes, Axes3D.normalize(axes, axes), delta);
+
             setExtrema(out, sphere.extrema.map(e => {
                 Vec3.sub(tmpDir, e, sphere.center);
-                const dist = Vec3.distance(sphere.center, e);
-                Vec3.normalize(tmpDir, tmpDir);
-                return Vec3.scaleAndAdd(Vec3(), sphere.center, tmpDir, dist + delta);
+                const out = Vec3.clone(e);
+
+                const sA = Vec3.dot(tmpDir, axes.dirA) < 0 ? -1 : 1;
+                Vec3.scaleAndAdd(out, out, axes.dirA, sA);
+
+                const sB = Vec3.dot(tmpDir, axes.dirB) < 0 ? -1 : 1;
+                Vec3.scaleAndAdd(out, out, axes.dirB, sB);
+
+                const sC = Vec3.dot(tmpDir, axes.dirC) < 0 ? -1 : 1;
+                Vec3.scaleAndAdd(out, out, axes.dirC, sC);
+
+                return out;
             }));
         }
         return out;
