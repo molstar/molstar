@@ -1,0 +1,66 @@
+cff-version: 1.2.0
+title: >-
+  Mol* library
+message: >-
+  Please cite this software using the metadata from
+  'preferred-citation'.
+authors:
+  - given-names: Alexander S
+    family-names: Rose
+    orcid: 'https://orcid.org/0000-0002-0893-5551'
+  - given-names: David
+    family-names: Sehnal
+    orcid: 'https://orcid.org/0000-0002-0682-3089'
+  - given-names: Sebastian
+    family-names: Bittrich
+    orcid: 'https://orcid.org/0000-0003-3576-0387'
+  - given-names: Áron Samuel
+    family-names: Kovács
+  - given-names: Ludovic
+    family-names: Autin
+    orcid: 'https://orcid.org/0000-0002-2197-191X'
+  - given-names: Michal
+    family-names: Malý
+  - given-names: Jiří
+    family-names: Černý
+  - given-names: Panagiotis
+    family-names: Tourlas
+type: software
+doi: 10.5281/zenodo.3947306
+preferred-citation:
+  authors:
+    - given-names: David
+      family-names: Sehnal
+      orcid: 'https://orcid.org/0000-0002-0682-3089'
+    - given-names: Sebastian
+      family-names: Bittrich
+      orcid: 'https://orcid.org/0000-0003-3576-0387'
+    - given-names: Mandar
+      family-names: Deshpande
+      orcid: 'https://orcid.org/0000-0002-9043-7665'
+    - given-names: Radka
+      family-names: Svobodová
+      orcid: 'https://orcid.org/0000-0002-3840-8760'
+    - given-names: Karel
+      family-names: Berka
+      orcid: 'https://orcid.org/0000-0001-9472-2589'
+    - given-names: Václav
+      family-names: Bazgier
+      orcid: 'https://orcid.org/0000-0003-3393-3010'
+    - given-names: Sameer
+      family-names: Velankar
+      orcid: 'https://orcid.org/0000-0002-8439-5964'
+    - given-names: Stephen K
+      family-names: Burley
+      orcid: 'https://orcid.org/0000-0002-2487-9713'
+    - given-names: Jaroslav
+      family-names: Koča
+      orcid: 'https://orcid.org/0000-0002-2780-4901'
+    - given-names: Alexander S
+      family-names: Rose
+      orcid: 'https://orcid.org/0000-0002-0893-5551'
+  title: >-
+    Mol* Viewer: modern web app for 3D visualization
+    and analysis of large biomolecular structures
+  type: article
+  doi: 10.1093/nar/gkab314
