@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -497,7 +497,9 @@ export namespace Loci {
             if (!elementIndices) continue;
 
             const indices = getUnitIndices(unit.elements, elementIndices);
-            elements[elements.length] = { unit, indices };
+            if (OrderedSet.size(indices)) {
+                elements[elements.length] = { unit, indices };
+            }
         }
 
         return Loci(loci.structure, elements);

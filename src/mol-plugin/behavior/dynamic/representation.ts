@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -212,11 +212,14 @@ export const DefaultLociLabelProvider = PluginBehavior.create({
         private f = {
             label: (loci: Loci) => {
                 const label: string[] = [];
-                if (StructureElement.Loci.is(loci) && loci.elements.length === 1) {
-                    const { unit: u } = loci.elements[0];
-                    const l = StructureElement.Location.create(loci.structure, u, u.elements[0]);
-                    const name = StructureProperties.entity.pdbx_description(l).join(', ');
-                    label.push(name);
+                if (StructureElement.Loci.is(loci)) {
+                    const entityNames = new Set<string>();
+                    for (const { unit: u } of loci.elements) {
+                        const l = StructureElement.Location.create(loci.structure, u, u.elements[0]);
+                        const name = StructureProperties.entity.pdbx_description(l).join(', ');
+                        entityNames.add(name);
+                    }
+                    if (entityNames.size === 1) entityNames.forEach(name => label.push(name));
                 }
                 label.push(lociLabel(loci));
                 return label.filter(l => !!l).join('</br>');

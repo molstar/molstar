@@ -7,6 +7,8 @@ Note that since we don't clearly distinguish between a public and private interf
 ## [Unreleased]
 
 - Fix color smoothing of elongated structures (by fixing ``Sphere.expand`` for spheres with highly directional extrema)
+- Fix entity label not displayed when multiple instances of the same entity are highlighted
+- Fix empty elements created in ``StructureElement.Loci.extendToAllInstances``
 
 ## [v3.0.1] - 2022-01-27
 
