@@ -76,14 +76,23 @@ namespace Transform {
             const s = (b as any)[k], t = (a as any)[k];
             if (!!s === !!t) continue;
             changed = true;
-            (a as any)[k] = s;
+            if (s !== void 0) {
+                (a as any)[k] = s;
+            } else {
+                delete (a as any)[k];
+            }
         }
         for (const k of Object.keys(a)) {
             const s = (b as any)[k], t = (a as any)[k];
             if (!!s === !!t) continue;
             changed = true;
-            (a as any)[k] = s;
+            if (s !== void 0) {
+                (a as any)[k] = s;
+            } else {
+                delete (a as any)[k];
+            }
         }
+
         return changed;
     }
 

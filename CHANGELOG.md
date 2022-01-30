@@ -10,6 +10,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Fix entity label not displayed when multiple instances of the same entity are highlighted
 - Fix empty elements created in ``StructureElement.Loci.extendToAllInstances``
 - Measurement options tweaks (allow larger ``textSize``; make ``customText`` essential)
+- Fix visual visibility sync edge case when changing state snapshots
 
 ## [v3.0.1] - 2022-01-27
 
