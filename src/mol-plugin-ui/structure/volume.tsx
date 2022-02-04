@@ -77,7 +77,7 @@ export class VolumeStreamingControls extends CollapsableControls<{}, VolumeStrea
         const rootCell = root && pivot.cell.parent.cells.get(root);
 
         const simpleApply = rootCell && rootCell.status === 'error'
-            ? { header: rootCell.errorText?.indexOf('404') === -1 ? 'Error Enabling' : 'No Density Data Available', icon: ErrorSvg, title: rootCell.errorText }
+            ? { header: !!rootCell.errorText && rootCell.errorText?.includes('404') ? 'No Density Data Available' : 'Error Enabling', icon: ErrorSvg, title: rootCell.errorText }
             : rootCell && rootCell.obj?.data.entries.length === 0
                 ? { header: 'Error Enabling', icon: ErrorSvg, title: 'No Entry for Streaming Found' }
                 : { header: 'Enable', icon: CheckSvg, title: 'Enable' };
