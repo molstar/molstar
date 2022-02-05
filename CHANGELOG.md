@@ -6,7 +6,8 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
-- Fix xrayShader & ignoreLight not working at the same time
+- Fix ``xrayShader`` & ``ignoreLight`` params not working at the same time
+- Add ``ignoreLight`` to component params
 
 ## [v3.0.2] - 2022-01-30
 

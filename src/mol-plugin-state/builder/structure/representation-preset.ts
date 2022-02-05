@@ -39,6 +39,7 @@ export namespace StructureRepresentationPresetProvider {
 
     export const CommonParams = {
         ignoreHydrogens: PD.Optional(PD.Boolean(false)),
+        ignoreLight: PD.Optional(PD.Boolean(false)),
         quality: PD.Optional(PD.Select<VisualQuality>('auto', VisualQualityOptions)),
         theme: PD.Optional(PD.Group({
             globalName: PD.Optional(PD.Text<ColorTheme.BuiltIn>('')),
@@ -70,9 +71,11 @@ export namespace StructureRepresentationPresetProvider {
         const typeParams = {
             quality: plugin.managers.structure.component.state.options.visualQuality,
             ignoreHydrogens: !plugin.managers.structure.component.state.options.showHydrogens,
+            ignoreLight: plugin.managers.structure.component.state.options.ignoreLight,
         };
         if (params.quality && params.quality !== 'auto') typeParams.quality = params.quality;
         if (params.ignoreHydrogens !== void 0) typeParams.ignoreHydrogens = !!params.ignoreHydrogens;
+        if (params.ignoreLight !== void 0) typeParams.ignoreLight = !!params.ignoreLight;
         const color: ColorTheme.BuiltIn | undefined = params.theme?.globalName ? params.theme?.globalName : void 0;
         const ballAndStickColor: ColorTheme.BuiltInParams<'element-symbol'> = params.theme?.carbonColor !== undefined
             ? { carbonColor: getCarbonColorParams(params.theme?.carbonColor) }
