@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -127,13 +127,9 @@ void main() {
     #elif defined(dRenderVariant_marking)
         gl_FragColor = material;
     #elif defined(dRenderVariant_color)
-        #ifdef dIgnoreLight
-            gl_FragColor = material;
-        #else
-            mat3 normalMatrix = transpose3(inverse3(mat3(uView)));
-            vec3 normal = normalize(normalMatrix * -normalize(intersection.yzw));
-            #include apply_light_color
-        #endif
+        mat3 normalMatrix = transpose3(inverse3(mat3(uView)));
+        vec3 normal = normalize(normalMatrix * -normalize(intersection.yzw));
+        #include apply_light_color
 
         #include apply_interior_color
         #include apply_marker_color

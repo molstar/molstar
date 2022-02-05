@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Michael Krone <michael.krone@uni-tuebingen.de>
@@ -166,9 +166,7 @@ vec3 v3m4(vec3 p, mat4 m) {
 float preFogAlphaBlended = 0.0;
 
 vec4 raymarch(vec3 startLoc, vec3 step, vec3 rayDir) {
-    #if !defined(dIgnoreLight)
-        mat3 normalMatrix = transpose3(inverse3(mat3(uModelView * vTransform)));
-    #endif
+    mat3 normalMatrix = transpose3(inverse3(mat3(uModelView * vTransform)));
     mat4 cartnToUnit = uCartnToUnit * inverse4(vTransform);
     #if defined(dClipVariant_pixel) && dClipObjectCount != 0
         mat4 modelTransform = uModel * vTransform * uTransform;
@@ -296,24 +294,20 @@ vec4 raymarch(vec3 startLoc, vec3 step, vec3 rayDir) {
             material.rgb = mix(material.rgb, overpaint.rgb, overpaint.a);
         #endif
 
-        #ifdef dIgnoreLight
+        if (material.a >= 0.01) {
+            #ifdef dPackedGroup
+                // compute gradient by central differences
+                gradient.x = textureVal(unitPos - dx).a - textureVal(unitPos + dx).a;
+                gradient.y = textureVal(unitPos - dy).a - textureVal(unitPos + dy).a;
+                gradient.z = textureVal(unitPos - dz).a - textureVal(unitPos + dz).a;
+            #else
+                gradient = cell.xyz * 2.0 - 1.0;
+            #endif
+            vec3 normal = -normalize(normalMatrix * normalize(gradient));
+            #include apply_light_color
+        } else {
             gl_FragColor.rgb = material.rgb;
-        #else
-            if (material.a >= 0.01) {
-                #ifdef dPackedGroup
-                    // compute gradient by central differences
-                    gradient.x = textureVal(unitPos - dx).a - textureVal(unitPos + dx).a;
-                    gradient.y = textureVal(unitPos - dy).a - textureVal(unitPos + dy).a;
-                    gradient.z = textureVal(unitPos - dz).a - textureVal(unitPos + dz).a;
-                #else
-                    gradient = cell.xyz * 2.0 - 1.0;
-                #endif
-                vec3 normal = -normalize(normalMatrix * normalize(gradient));
-                #include apply_light_color
-            } else {
-                gl_FragColor.rgb = material.rgb;
-            }
-        #endif
+        }
 
         gl_FragColor.a = material.a * uAlpha * uTransferScale;
 

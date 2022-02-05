@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -43,17 +43,13 @@ void main() {
     #elif defined(dRenderVariant_marking)
         gl_FragColor = material;
     #elif defined(dRenderVariant_color)
-        #ifdef dIgnoreLight
-            gl_FragColor = material;
+        #if defined(dFlatShaded)
+            vec3 normal = -faceNormal;
         #else
-            #if defined(dFlatShaded)
-                vec3 normal = -faceNormal;
-            #else
-                vec3 normal = -normalize(vNormal);
-                if (uDoubleSided) normal *= float(frontFacing) * 2.0 - 1.0;
-            #endif
-            #include apply_light_color
+            vec3 normal = -normalize(vNormal);
+            if (uDoubleSided) normal *= float(frontFacing) * 2.0 - 1.0;
         #endif
+        #include apply_light_color
 
         #include apply_interior_color
         #include apply_marker_color
