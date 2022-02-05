@@ -6,8 +6,11 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
-- Fix ``xrayShader`` & ``ignoreLight`` params not working at the same time
+- Fix ``xrayShaded`` & ``ignoreLight`` params not working at the same time
 - Add ``ignoreLight`` to component params
+- Tweaks for cleaner default representation style
+    - Cartoon: use ``nucleotide-ring`` instead of ``nucleotide-block``
+    - Focus: use ``xrayShaded`` instead of opacity; adjust target size; don't show non-covalent interactions twice
 
 ## [v3.0.2] - 2022-01-30
 
