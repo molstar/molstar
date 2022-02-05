@@ -8,6 +8,7 @@ Note that since we don't clearly distinguish between a public and private interf
 
 - Fix ``xrayShader`` & ``ignoreLight`` params not working at the same time
 - Add ``ignoreLight`` to component params
+- Fix representation preset side effects (changing post-processing parameters, see #363)
 
 ## [v3.0.2] - 2022-01-30
 
