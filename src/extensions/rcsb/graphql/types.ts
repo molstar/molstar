@@ -4,7 +4,7 @@ export type InputMaybe<T> = Maybe<T>;
 export type Exact<T extends { [key: string]: unknown }> = { [K in keyof T]: T[K] };
 export type MakeOptional<T, K extends keyof T> = Omit<T, K> & { [SubKey in K]?: Maybe<T[SubKey]> };
 export type MakeMaybe<T, K extends keyof T> = Omit<T, K> & { [SubKey in K]: Maybe<T[SubKey]> };
-// Generated on 2022-01-15T19:52:34-08:00
+// Generated on 2022-02-06T15:40:15-08:00
 
 /** All built-in and custom scalars, mapped to their actual values */
 export type Scalars = {
@@ -13145,4 +13145,4 @@ export type AssemblySymmetryQueryVariables = Exact<{
 }>;
 
 
-export type AssemblySymmetryQuery = { readonly assembly?: { readonly rcsb_struct_symmetry?: ReadonlyArray<{ readonly kind: string, readonly oligomeric_state: string, readonly stoichiometry: ReadonlyArray<string | null | undefined>, readonly symbol: string, readonly type: string, readonly clusters: ReadonlyArray<{ readonly avg_rmsd?: number | null | undefined, readonly members: ReadonlyArray<{ readonly asym_id: string, readonly pdbx_struct_oper_list_ids?: ReadonlyArray<string | null | undefined> | null | undefined } | null | undefined> } | null | undefined>, readonly rotation_axes?: ReadonlyArray<{ readonly order?: number | null | undefined, readonly start: ReadonlyArray<number | null | undefined>, readonly end: ReadonlyArray<number | null | undefined> } | null | undefined> | null | undefined } | null | undefined> | null | undefined } | null | undefined };
+export type AssemblySymmetryQuery = { readonly assembly?: { readonly rcsb_struct_symmetry?: ReadonlyArray<{ readonly kind: string, readonly oligomeric_state: string, readonly stoichiometry: ReadonlyArray<string | null>, readonly symbol: string, readonly type: string, readonly clusters: ReadonlyArray<{ readonly avg_rmsd?: number | null, readonly members: ReadonlyArray<{ readonly asym_id: string, readonly pdbx_struct_oper_list_ids?: ReadonlyArray<string | null> | null } | null> } | null>, readonly rotation_axes?: ReadonlyArray<{ readonly order?: number | null, readonly start: ReadonlyArray<number | null>, readonly end: ReadonlyArray<number | null> } | null> | null } | null> | null } | null };
