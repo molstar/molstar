@@ -31,7 +31,7 @@ export class StructureQuickStylesControls extends CollapsableControls {
 }
 
 export class QuickStyles extends PurePluginUIComponent {
-    async reset() {
+    async default() {
         const { structures } = this.plugin.managers.structure.hierarchy.selection;
         const preset = this.plugin.config.get(PluginConfig.Structure.DefaultRepresentationPreset) || PresetStructureRepresentations.auto.id;
         const provider = this.plugin.builders.structure.representation.resolveProvider(preset);
@@ -93,8 +93,8 @@ export class QuickStyles extends PurePluginUIComponent {
 
     render() {
         return <div className='msp-flex-row'>
-            <Button noOverflow title='Applies default representation preset. Set outline and occlusion effects to defaults.' onClick={() => this.reset()} style={{ width: 'auto' }}>
-                Reset
+            <Button noOverflow title='Applies default representation preset. Set outline and occlusion effects to defaults.' onClick={() => this.default()} style={{ width: 'auto' }}>
+                Default
             </Button>
             <Button noOverflow title='Applies illustrative representation preset. Enables outline and occlusion effects. Enables ignore-light parameter.' onClick={() => this.illustrative()} style={{ width: 'auto' }}>
                 Illustrative
