@@ -78,8 +78,8 @@ function findElements<T extends SecondaryStructure.Element>(ctx: CifExportContex
     const ssElements: SSElement<any>[] = [];
 
     const structure = ctx.structures[0];
-    for (const unit of structure.unitSymmetryGroups) {
-        const u = unit.units[0];
+    for (const { units } of structure.unitSymmetryGroups) {
+        const u = units[0];
         if (!Unit.isAtomic(u)) continue;
 
         const segs = u.model.atomicHierarchy.residueAtomSegments;
