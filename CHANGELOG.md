@@ -8,6 +8,9 @@ Note that since we don't clearly distinguish between a public and private interf
 
 - Fix ``xrayShaded`` & ``ignoreLight`` params not working at the same time
 - Add ``ignoreLight`` to component params
+- Tweaks for cleaner default representation style
+    - Cartoon: use ``nucleotide-ring`` instead of ``nucleotide-block``
+    - Focus: use ``xrayShaded`` instead of opacity; adjust target size; don't show non-covalent interactions twice
 - Fix representation preset side effects (changing post-processing parameters, see #363)
 - Add Quick Styles panel (default, illustrative, stylized)
 - Fix exported structure missing secondary-structure categories (#364)

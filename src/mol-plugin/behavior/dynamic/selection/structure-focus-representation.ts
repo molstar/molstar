@@ -27,11 +27,19 @@ const StructureFocusRepresentationParams = (plugin: PluginContext) => {
         expandRadius: PD.Numeric(5, { min: 1, max: 10, step: 1 }),
         targetParams: PD.Group(reprParams, {
             label: 'Target',
-            customDefault: createStructureRepresentationParams(plugin, void 0, { type: 'ball-and-stick', size: 'physical', typeParams: { sizeFactor: 0.26, alpha: 0.51, adjustCylinderLength: true } })
+            customDefault: createStructureRepresentationParams(plugin, void 0, {
+                type: 'ball-and-stick',
+                size: 'physical',
+                typeParams: { sizeFactor: 0.22, sizeAspectRatio: 0.73, adjustCylinderLength: true, xrayShaded: true, aromaticBonds: false, multipleBonds: 'off', excludeTypes: ['hydrogen-bond', 'metal-coordination'] },
+            })
         }),
         surroundingsParams: PD.Group(reprParams, {
             label: 'Surroundings',
-            customDefault: createStructureRepresentationParams(plugin, void 0, { type: 'ball-and-stick', size: 'physical', typeParams: { sizeFactor: 0.16 } })
+            customDefault: createStructureRepresentationParams(plugin, void 0, {
+                type: 'ball-and-stick',
+                size: 'physical',
+                typeParams: { sizeFactor: 0.16, excludeTypes: ['hydrogen-bond', 'metal-coordination'] }
+            })
         }),
         nciParams: PD.Group(reprParams, {
             label: 'Non-covalent Int.',
