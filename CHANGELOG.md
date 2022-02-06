@@ -6,10 +6,12 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
-- Fix ``xrayShader`` & ``ignoreLight`` params not working at the same time
+- Fix ``xrayShaded`` & ``ignoreLight`` params not working at the same time
 - Add ``ignoreLight`` to component params
 - Fix representation preset side effects (changing post-processing parameters, see #363)
-- Add Quick Styles panel (reset, illustrative, stylized)
+- Add Quick Styles panel (default, illustrative, stylized)
+- Fix exported structure missing secondary-structure categories (#364)
+- Fix volume streaming error message: distinguish between missing data and server error (#364)
 
 ## [v3.0.2] - 2022-01-30
 
