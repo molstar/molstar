@@ -24,8 +24,6 @@ import { IndexPairBonds } from '../../../mol-model-formats/structure/property/bo
 import { StructConn } from '../../../mol-model-formats/structure/property/bonds/struct_conn';
 import { StructureRepresentationRegistry } from '../../../mol-repr/structure/registry';
 import { assertUnreachable } from '../../../mol-util/type-helpers';
-import { Color } from '../../../mol-util/color';
-import { PostprocessingParams } from '../../../mol-canvas3d/passes/postprocessing';
 
 export interface StructureRepresentationPresetProvider<P = any, S extends _Result = _Result> extends PresetProvider<PluginStateObject.Molecule.Structure, P, S> { }
 export function StructureRepresentationPresetProvider<P, S extends _Result>(repr: StructureRepresentationPresetProvider<P, S>) { return repr; }
@@ -103,15 +101,6 @@ type CommonParams = StructureRepresentationPresetProvider.CommonParams
 const reprBuilder = StructureRepresentationPresetProvider.reprBuilder;
 const updateFocusRepr = StructureRepresentationPresetProvider.updateFocusRepr;
 
-function resetPostprocessingProps(plugin: PluginContext) {
-    if (plugin.canvas3d) {
-        const p = PD.getDefaultValues(PostprocessingParams);
-        plugin.canvas3d.setProps({
-            postprocessing: { outline: p.outline, occlusion: p.occlusion }
-        });
-    }
-}
-
 const auto = StructureRepresentationPresetProvider({
     id: 'preset-structure-representation-auto',
     display: {
@@ -151,7 +140,6 @@ const empty = StructureRepresentationPresetProvider({
     id: 'preset-structure-representation-empty',
     display: { name: 'Empty', description: 'Removes all existing representations.' },
     async apply(ref, params, plugin) {
-        resetPostprocessingProps(plugin);
         return { };
     }
 });
@@ -206,8 +194,6 @@ const polymerAndLigand = StructureRepresentationPresetProvider({
         await update.commit({ revertOnError: false });
         await updateFocusRepr(plugin, structure, params.theme?.focus?.name, params.theme?.focus?.params);
 
-        resetPostprocessingProps(plugin);
-
         return { components, representations };
     }
 });
@@ -246,8 +232,6 @@ const proteinAndNucleic = StructureRepresentationPresetProvider({
 
         await update.commit({ revertOnError: true });
         await updateFocusRepr(plugin, structure, params.theme?.focus?.name, params.theme?.focus?.params);
-
-        resetPostprocessingProps(plugin);
 
         return { components, representations };
     }
@@ -301,8 +285,6 @@ const coarseSurface = StructureRepresentationPresetProvider({
         await update.commit({ revertOnError: true });
         await updateFocusRepr(plugin, structure, params.theme?.focus?.name, params.theme?.focus?.params);
 
-        resetPostprocessingProps(plugin);
-
         return { components, representations };
     }
 });
@@ -335,8 +317,6 @@ const polymerCartoon = StructureRepresentationPresetProvider({
 
         await update.commit({ revertOnError: true });
         await updateFocusRepr(plugin, structure, params.theme?.focus?.name, params.theme?.focus?.params);
-
-        resetPostprocessingProps(plugin);
 
         return { components, representations };
     }
@@ -404,8 +384,6 @@ const atomicDetail = StructureRepresentationPresetProvider({
         await update.commit({ revertOnError: true });
         await updateFocusRepr(plugin, structure, params.theme?.focus?.name ?? color, params.theme?.focus?.params ?? colorParams);
 
-        resetPostprocessingProps(plugin);
-
         return { components, representations };
     }
 });
@@ -439,21 +417,6 @@ const illustrative = StructureRepresentationPresetProvider({
         await update.commit({ revertOnError: true });
         await updateFocusRepr(plugin, structure, params.theme?.focus?.name ?? color, params.theme?.focus?.params);
 
-        if (plugin.canvas3d) {
-            plugin.canvas3d.setProps({
-                postprocessing: {
-                    outline: {
-                        name: 'on',
-                        params: { scale: 1, color: Color(0x000000), threshold: 0.25 }
-                    },
-                    occlusion: {
-                        name: 'on',
-                        params: { bias: 0.9, blurKernelSize: 15, radius: 5, samples: 32 }
-                    },
-                }
-            });
-        }
-
         return { components, representations };
     }
 });
@@ -474,6 +437,6 @@ export const PresetStructureRepresentations = {
     'polymer-and-ligand': polymerAndLigand,
     'protein-and-nucleic': proteinAndNucleic,
     'coarse-surface': coarseSurface,
-    'illustrative': illustrative,
+    illustrative,
 };
 export type PresetStructureRepresentations = typeof PresetStructureRepresentations;

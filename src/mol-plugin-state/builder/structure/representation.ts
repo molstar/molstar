@@ -29,7 +29,7 @@ export class StructureRepresentationBuilder {
 
     readonly defaultProvider = PresetStructureRepresentations.auto;
 
-    private resolveProvider(ref: StructureRepresentationPresetProviderRef) {
+    resolveProvider(ref: StructureRepresentationPresetProviderRef) {
         return typeof ref === 'string'
             ? PresetStructureRepresentations[ref as keyof PresetStructureRepresentations] ?? arrayFind(this._providers, p => p.id === ref)
             : ref;

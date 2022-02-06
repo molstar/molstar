@@ -11,6 +11,10 @@ Note that since we don't clearly distinguish between a public and private interf
 - Tweaks for cleaner default representation style
     - Cartoon: use ``nucleotide-ring`` instead of ``nucleotide-block``
     - Focus: use ``xrayShaded`` instead of opacity; adjust target size; don't show non-covalent interactions twice
+- Fix representation preset side effects (changing post-processing parameters, see #363)
+- Add Quick Styles panel (default, illustrative, stylized)
+- Fix exported structure missing secondary-structure categories (#364)
+- Fix volume streaming error message: distinguish between missing data and server error (#364)
 
 ## [v3.0.2] - 2022-01-30
 

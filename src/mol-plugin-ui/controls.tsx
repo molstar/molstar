@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -24,6 +24,7 @@ import { StructureSourceControls } from './structure/source';
 import { VolumeStreamingControls, VolumeSourceControls } from './structure/volume';
 import { PluginConfig } from '../mol-plugin/config';
 import { StructureSuperpositionControls } from './structure/superposition';
+import { StructureQuickStylesControls } from './structure/quick-styles';
 
 export class TrajectoryViewportControls extends PluginUIComponent<{}, { show: boolean, label: string }> {
     state = { show: false, label: '' };
@@ -292,6 +293,7 @@ export class DefaultStructureTools extends PluginUIComponent {
             <StructureSourceControls />
             <StructureMeasurementsControls />
             <StructureSuperpositionControls />
+            <StructureQuickStylesControls />
             <StructureComponentControls />
             {this.plugin.config.get(PluginConfig.VolumeStreaming.Enabled) && <VolumeStreamingControls />}
             <VolumeSourceControls />
