@@ -96,11 +96,11 @@ export class QuickStyles extends PurePluginUIComponent {
             <Button noOverflow title='Applies default representation preset. Set outline and occlusion effects to defaults.' onClick={() => this.default()} style={{ width: 'auto' }}>
                 Default
             </Button>
-            <Button noOverflow title='Applies illustrative representation preset. Enables outline and occlusion effects. Enables ignore-light parameter.' onClick={() => this.illustrative()} style={{ width: 'auto' }}>
-                Illustrative
-            </Button>
             <Button noOverflow title='Applies no representation preset. Enables outline and occlusion effects. Enables ignore-light representation parameter.' onClick={() => this.stylized()} style={{ width: 'auto' }}>
                 Stylized
+            </Button>
+            <Button noOverflow title='Applies illustrative representation preset. Enables outline and occlusion effects. Enables ignore-light parameter.' onClick={() => this.illustrative()} style={{ width: 'auto' }}>
+                Illustrative
             </Button>
         </div>;
     }
