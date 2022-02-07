@@ -22,7 +22,7 @@ import { StructureSelectionHistoryEntry } from '../../mol-plugin-state/manager/s
 import { ToggleSelectionModeButton } from './selection';
 import { alignAndSuperposeWithBestDatabaseMapping } from '../../mol-model/structure/structure/util/superposition-db-mapping';
 import { PluginCommands } from '../../mol-plugin/commands';
-import { BestDatabaseSequenceMapping } from '../../mol-model-props/sequence/best-database-mapping';
+import { SIFTSMapping } from '../../mol-model-props/sequence/sifts-mapping';
 
 export class StructureSuperpositionControls extends CollapsableControls {
     defaultState() {
@@ -94,7 +94,7 @@ export class SuperpositionControls extends PurePluginUIComponent<{ }, Superposit
         });
 
         this.subscribe(this.plugin.managers.structure.hierarchy.behaviors.selection, sel => {
-            this.setState({ canUseDb: sel.structures.every(s => !!s.cell.obj?.data && s.cell.obj.data.models.some(m => BestDatabaseSequenceMapping.Provider.isApplicable(m))) });
+            this.setState({ canUseDb: sel.structures.every(s => !!s.cell.obj?.data && s.cell.obj.data.models.some(m => SIFTSMapping.Provider.isApplicable(m))) });
         });
     }
 
@@ -323,8 +323,8 @@ export class SuperpositionControls extends PurePluginUIComponent<{ }, Superposit
 
     superposeByDbMapping() {
         return <>
-            <Button icon={SuperposeChainsSvg} title='Superpose structures using database mapping.' className='msp-btn msp-btn-block' onClick={this.superposeDb} style={{ marginTop: '1px' }} disabled={this.state.isBusy}>
-                DB
+            <Button icon={SuperposeChainsSvg} title='Superpose structures using UNIPROT mapping.' className='msp-btn msp-btn-block' onClick={this.superposeDb} style={{ marginTop: '1px' }} disabled={this.state.isBusy}>
+                Uniprot
             </Button>
         </>;
     }

@@ -24,6 +24,10 @@ atom_site.auth_asym_id
 atom_site.auth_seq_id
 atom_site.pdbx_PDB_model_num
 atom_site.ihm_model_id
+atom_site.pdbx_sifts_xref_db_name
+atom_site.pdbx_sifts_xref_db_acc
+atom_site.pdbx_sifts_xref_db_num
+atom_site.pdbx_sifts_xref_db_res
 
 atom_site_anisotrop.id
 atom_site_anisotrop.U

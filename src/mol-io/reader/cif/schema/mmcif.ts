@@ -216,6 +216,23 @@ export const mmCIF_Schema = {
          */
         pdbx_formal_charge: int,
         /**
+         * The name of additional external databases with residue level mapping.
+         */
+        pdbx_sifts_xref_db_name: str,
+        /**
+         * The accession code related to the additional external database entry.
+         */
+        pdbx_sifts_xref_db_acc: str,
+        /**
+         * The sequence position of the external database entry that corresponds
+         * to the residue mapping defined by the SIFTS process.
+         */
+        pdbx_sifts_xref_db_num: str,
+        /**
+         * Describes the residue type of the given UniProt match
+         */
+        pdbx_sifts_xref_db_res: str,
+        /**
          * The model id corresponding to the atom site.
          * This data item is a pointer to _ihm_model_list.model_id
          * in the IHM_MODEL_LIST category.

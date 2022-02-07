@@ -7,7 +7,7 @@
 import { Segmentation } from '../../../../mol-data/int';
 import { Mat4 } from '../../../../mol-math/linear-algebra';
 import { MinimizeRmsd } from '../../../../mol-math/linear-algebra/3d/minimize-rmsd';
-import { BestDatabaseSequenceMapping } from '../../../../mol-model-props/sequence/best-database-mapping';
+import { SIFTSMapping } from '../../../../mol-model-props/sequence/sifts-mapping';
 import { ElementIndex } from '../../model/indexing';
 import { Structure } from '../structure';
 import { Unit } from '../unit';
@@ -34,7 +34,6 @@ export function alignAndSuperposeWithBestDatabaseMapping(structures: Structure[]
     for (const p of pairs) {
         const [a, b] = getPositionTables(index, p.i, p.j, p.count);
         const transform = MinimizeRmsd.compute({ a, b });
-        console.log(Mat4.makeTable(transform.bTransform), transform.rmsd);
         ret.push({ transform, pivot: p.i, other: p.j });
     }
 
@@ -127,7 +126,7 @@ function buildIndex(structure: Structure, index: Map<string, IndexEntry>, sI: nu
 
         const { elements, model } = unit;
 
-        const map = BestDatabaseSequenceMapping.Provider.get(model).value;
+        const map = SIFTSMapping.Provider.get(model).value;
         if (!map) return;
 
         const { dbName, accession, num } = map;

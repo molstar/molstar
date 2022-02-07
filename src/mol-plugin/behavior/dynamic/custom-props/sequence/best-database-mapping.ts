@@ -5,7 +5,7 @@
  */
 
 import { OrderedSet } from '../../../../../mol-data/int';
-import { BestDatabaseSequenceMapping as BestDatabaseSequenceMappingProp } from '../../../../../mol-model-props/sequence/best-database-mapping';
+import { SIFTSMapping as BestDatabaseSequenceMappingProp } from '../../../../../mol-model-props/sequence/sifts-mapping';
 import { BestDatabaseSequenceMappingColorThemeProvider } from '../../../../../mol-model-props/sequence/themes/best-database-mapping';
 import { Loci } from '../../../../../mol-model/loci';
 import { StructureElement } from '../../../../../mol-model/structure';
