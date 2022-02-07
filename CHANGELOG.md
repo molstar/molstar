@@ -6,6 +6,10 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Rename "best database mapping" to "SIFTS Mapping"
+- Add schema and export support for ``atom_site.pdbx_sifts_xref_*`` fields
+- Add schema export support for ``atom_site.pdbx_label_index`` field
+
 ## [v3.1.0] - 2022-02-06
 
 - Fix ``xrayShaded`` & ``ignoreLight`` params not working at the same time
