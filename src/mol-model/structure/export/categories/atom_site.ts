@@ -30,6 +30,17 @@ function atom_site_auth_asym_id(e: StructureElement.Location) {
     return l + suffix;
 }
 
+
+const atom_site_pdbx_label_index = {
+    shouldInclude(s: AtomSiteData) {
+        return !!s.atom_site?.pdbx_label_index.isDefined;
+    },
+    value(e: StructureElement.Location, d: AtomSiteData) {
+        const srcIndex = d.sourceIndex.value(e.element);
+        return d.atom_site!.pdbx_label_index.value(srcIndex);
+    },
+};
+
 const SIFTS = {
     shouldInclude(s: AtomSiteData) {
         return SIFTSMapping.isAvailable(s.structure.models[0]);
@@ -112,6 +123,8 @@ const atom_site_fields = () => CifWriter.fields<StructureElement.Location, AtomS
     .str('auth_asym_id', atom_site_auth_asym_id)
 
     .int('pdbx_PDB_model_num', P.unit.model_num, { encoder: E.deltaRLE })
+
+    .int('pdbx_label_index', atom_site_pdbx_label_index.value, { shouldInclude: atom_site_pdbx_label_index.shouldInclude })
 
     // SIFTS
     .str('pdbx_sifts_xref_db_name', SIFTS.pdbx_sifts_xref_db_name.value, { shouldInclude: SIFTS.shouldInclude, valueKind: SIFTS.pdbx_sifts_xref_db_name.valueKind })

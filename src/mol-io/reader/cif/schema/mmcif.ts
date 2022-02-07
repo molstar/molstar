@@ -216,6 +216,11 @@ export const mmCIF_Schema = {
          */
         pdbx_formal_charge: int,
         /**
+         * This data item is an ordinal which identifies distinct chemical components in the atom_site category, both
+         * polymeric and non-polymeric.
+         */
+        pdbx_label_index: int,
+        /**
          * The name of additional external databases with residue level mapping.
          */
         pdbx_sifts_xref_db_name: str,

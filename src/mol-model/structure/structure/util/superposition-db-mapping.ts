@@ -5,7 +5,6 @@
  */
 
 import { Segmentation } from '../../../../mol-data/int';
-import { Mat4 } from '../../../../mol-math/linear-algebra';
 import { MinimizeRmsd } from '../../../../mol-math/linear-algebra/3d/minimize-rmsd';
 import { SIFTSMapping } from '../../../../mol-model-props/sequence/sifts-mapping';
 import { ElementIndex } from '../../model/indexing';
