@@ -20,9 +20,9 @@ import { ParameterControls } from '../controls/parameters';
 import { stripTags } from '../../mol-util/string';
 import { StructureSelectionHistoryEntry } from '../../mol-plugin-state/manager/structure/selection';
 import { ToggleSelectionModeButton } from './selection';
-import { alignAndSuperposeWithBestDatabaseMapping } from '../../mol-model/structure/structure/util/superposition-db-mapping';
+import { alignAndSuperposeWithSIFTSMapping } from '../../mol-model/structure/structure/util/superposition-sifts-mapping';
 import { PluginCommands } from '../../mol-plugin/commands';
-import { BestDatabaseSequenceMapping } from '../../mol-model-props/sequence/best-database-mapping';
+import { SIFTSMapping } from '../../mol-model-props/sequence/sifts-mapping';
 
 export class StructureSuperpositionControls extends CollapsableControls {
     defaultState() {
@@ -48,7 +48,7 @@ export class StructureSuperpositionControls extends CollapsableControls {
 }
 
 export const StructureSuperpositionParams = {
-    alignSequences: PD.Boolean(true, { isEssential: true, description: 'Perform a sequence alignment and use the aligned residue pairs to guide the 3D superposition.' }),
+    alignSequences: PD.Boolean(true, { isEssential: true, description: 'For Chain-based 3D superposition, perform a sequence alignment and use the aligned residue pairs to guide the 3D superposition.' }),
 };
 const DefaultStructureSuperpositionOptions = PD.getDefaultValues(StructureSuperpositionParams);
 export type StructureSuperpositionOptions = PD.ValuesFor<typeof StructureSuperpositionParams>
@@ -94,7 +94,7 @@ export class SuperpositionControls extends PurePluginUIComponent<{ }, Superposit
         });
 
         this.subscribe(this.plugin.managers.structure.hierarchy.behaviors.selection, sel => {
-            this.setState({ canUseDb: sel.structures.every(s => !!s.cell.obj?.data && s.cell.obj.data.models.some(m => BestDatabaseSequenceMapping.Provider.isApplicable(m))) });
+            this.setState({ canUseDb: sel.structures.every(s => !!s.cell.obj?.data && s.cell.obj.data.models.some(m => SIFTSMapping.Provider.isApplicable(m))) });
         });
     }
 
@@ -176,20 +176,35 @@ export class SuperpositionControls extends PurePluginUIComponent<{ }, Superposit
     superposeDb = async () => {
         const input = this.plugin.managers.structure.hierarchy.behaviors.selection.value.structures;
 
-        const transforms = alignAndSuperposeWithBestDatabaseMapping(input.map(s => s.cell.obj?.data!));
+        const structures = input.map(s => s.cell.obj?.data!);
+        const { entries, failedPairs, zeroOverlapPairs } = alignAndSuperposeWithSIFTSMapping(structures);
 
         let rmsd = 0;
 
-        for (const xform of transforms) {
+        for (const xform of entries) {
             await this.transform(input[xform.other].cell, xform.transform.bTransform);
             rmsd += xform.transform.rmsd;
         }
 
-        rmsd /= Math.max(transforms.length - 1, 1);
+        rmsd /= Math.max(entries.length - 1, 1);
 
-        this.plugin.log.info(`Superposed ${input.length} structures with avg. RMSD ${rmsd.toFixed(2)} Å.`);
-        await new Promise(res => requestAnimationFrame(res));
-        PluginCommands.Camera.Reset(this.plugin);
+        const formatPairs = (pairs: [number, number][]) => {
+            return `[${pairs.map(([i, j]) => `(${structures[i].models[0].entryId}, ${structures[j].models[0].entryId})`).join(', ')}]`;
+        };
+
+        if (zeroOverlapPairs.length) {
+            this.plugin.log.warn(`Superposition: No UNIPROT mapping overlap between structures ${formatPairs(zeroOverlapPairs)}.`);
+        }
+
+        if (failedPairs.length) {
+            this.plugin.log.error(`Superposition: Failed to superpose structures ${formatPairs(failedPairs)}.`);
+        }
+
+        if (entries.length) {
+            this.plugin.log.info(`Superposed ${entries.length + 1} structures with avg. RMSD ${rmsd.toFixed(2)} Å.`);
+            await new Promise(res => requestAnimationFrame(res));
+            PluginCommands.Camera.Reset(this.plugin);
+        }
     };
 
     toggleByChains = () => this.setState({ action: this.state.action === 'byChains' ? void 0 : 'byChains' });
@@ -323,8 +338,8 @@ export class SuperpositionControls extends PurePluginUIComponent<{ }, Superposit
 
     superposeByDbMapping() {
         return <>
-            <Button icon={SuperposeChainsSvg} title='Superpose structures using database mapping.' className='msp-btn msp-btn-block' onClick={this.superposeDb} style={{ marginTop: '1px' }} disabled={this.state.isBusy}>
-                DB
+            <Button icon={SuperposeChainsSvg} title='Superpose structures using intersection of residues from SIFTS UNIPROT mapping.' className='msp-btn msp-btn-block' onClick={this.superposeDb} style={{ marginTop: '1px' }} disabled={this.state.isBusy}>
+                Uniprot
             </Button>
         </>;
     }

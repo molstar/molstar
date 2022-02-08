@@ -5,7 +5,11 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+import { Column } from '../../../../mol-data/db';
+import { mmCIF_Database } from '../../../../mol-io/reader/cif/schema/mmcif';
 import { CifWriter } from '../../../../mol-io/writer/cif';
+import { MmcifFormat } from '../../../../mol-model-formats/structure/mmcif';
+import { SIFTSMapping } from '../../../../mol-model-props/sequence/sifts-mapping';
 import { StructureElement, Structure, StructureProperties as P } from '../../structure';
 import { CifExportContext } from '../mmcif';
 import CifField = CifWriter.Field
@@ -26,7 +30,64 @@ function atom_site_auth_asym_id(e: StructureElement.Location) {
     return l + suffix;
 }
 
-const atom_site_fields = () => CifWriter.fields<StructureElement.Location, Structure>()
+
+const atom_site_pdbx_label_index = {
+    shouldInclude(s: AtomSiteData) {
+        return !!s.atom_site?.pdbx_label_index.isDefined;
+    },
+    value(e: StructureElement.Location, d: AtomSiteData) {
+        const srcIndex = d.sourceIndex.value(e.element);
+        return d.atom_site!.pdbx_label_index.value(srcIndex);
+    },
+};
+
+const SIFTS = {
+    shouldInclude(s: AtomSiteData) {
+        return SIFTSMapping.isAvailable(s.structure.models[0]);
+    },
+    pdbx_sifts_xref_db_name: {
+        value(e: StructureElement.Location, d: AtomSiteData) {
+            const srcIndex = d.sourceIndex.value(e.element);
+            return d.atom_site!.pdbx_sifts_xref_db_name.value(srcIndex);
+        },
+        valueKind(e: StructureElement.Location, d: any) {
+            const srcIndex = d.sourceIndex.value(e.element);
+            return d.atom_site!.pdbx_sifts_xref_db_name.valueKind(srcIndex);
+        },
+    },
+    pdbx_sifts_xref_db_acc: {
+        value(e: StructureElement.Location, d: AtomSiteData) {
+            const srcIndex = d.sourceIndex.value(e.element);
+            return d.atom_site!.pdbx_sifts_xref_db_acc.value(srcIndex);
+        },
+        valueKind(e: StructureElement.Location, d: any) {
+            const srcIndex = d.sourceIndex.value(e.element);
+            return d.atom_site!.pdbx_sifts_xref_db_acc.valueKind(srcIndex);
+        },
+    },
+    pdbx_sifts_xref_db_num: {
+        value(e: StructureElement.Location, d: AtomSiteData) {
+            const srcIndex = d.sourceIndex.value(e.element);
+            return d.atom_site!.pdbx_sifts_xref_db_num.value(srcIndex);
+        },
+        valueKind(e: StructureElement.Location, d: any) {
+            const srcIndex = d.sourceIndex.value(e.element);
+            return d.atom_site!.pdbx_sifts_xref_db_num.valueKind(srcIndex);
+        },
+    },
+    pdbx_sifts_xref_db_res: {
+        value(e: StructureElement.Location, d: AtomSiteData) {
+            const srcIndex = d.sourceIndex.value(e.element);
+            return d.atom_site!.pdbx_sifts_xref_db_res.value(srcIndex);
+        },
+        valueKind(e: StructureElement.Location, d: any) {
+            const srcIndex = d.sourceIndex.value(e.element);
+            return d.atom_site!.pdbx_sifts_xref_db_res.valueKind(srcIndex);
+        },
+    }
+};
+
+const atom_site_fields = () => CifWriter.fields<StructureElement.Location, AtomSiteData>()
     .str('group_PDB', P.residue.group_PDB)
     .index('id')
     .str('type_symbol', P.atom.type_symbol as any)
@@ -62,10 +123,25 @@ const atom_site_fields = () => CifWriter.fields<StructureElement.Location, Struc
     .str('auth_asym_id', atom_site_auth_asym_id)
 
     .int('pdbx_PDB_model_num', P.unit.model_num, { encoder: E.deltaRLE })
+
+    .int('pdbx_label_index', atom_site_pdbx_label_index.value, { shouldInclude: atom_site_pdbx_label_index.shouldInclude })
+
+    // SIFTS
+    .str('pdbx_sifts_xref_db_name', SIFTS.pdbx_sifts_xref_db_name.value, { shouldInclude: SIFTS.shouldInclude, valueKind: SIFTS.pdbx_sifts_xref_db_name.valueKind })
+    .str('pdbx_sifts_xref_db_acc', SIFTS.pdbx_sifts_xref_db_acc.value, { shouldInclude: SIFTS.shouldInclude, valueKind: SIFTS.pdbx_sifts_xref_db_acc.valueKind })
+    .str('pdbx_sifts_xref_db_num', SIFTS.pdbx_sifts_xref_db_num.value, { shouldInclude: SIFTS.shouldInclude, valueKind: SIFTS.pdbx_sifts_xref_db_num.valueKind })
+    .str('pdbx_sifts_xref_db_res', SIFTS.pdbx_sifts_xref_db_res.value, { shouldInclude: SIFTS.shouldInclude, valueKind: SIFTS.pdbx_sifts_xref_db_res.valueKind })
+
     // .str('operator_name', P.unit.operator_name, {
     //     shouldInclude: structure => structure.units.some(u => !u.conformation.operator.isIdentity)
     // })
     .getFields();
+
+interface AtomSiteData {
+    structure: Structure,
+    sourceIndex: Column<number>,
+    atom_site?: mmCIF_Database['atom_site']
+}
 
 export const _atom_site: CifCategory<CifExportContext> = {
     name: 'atom_site',
@@ -73,7 +149,11 @@ export const _atom_site: CifCategory<CifExportContext> = {
         return {
             fields: atom_site_fields(),
             source: structures.map(s => ({
-                data: s,
+                data: {
+                    structure: s,
+                    sourceIndex: s.model.atomicHierarchy.atomSourceIndex,
+                    atom_site: MmcifFormat.is(s.model.sourceData) ? s.model.sourceData.data.db.atom_site : void 0
+                } as AtomSiteData,
                 rowCount: s.elementCount,
                 keys: () => s.elementLocations()
             }))

@@ -5,17 +5,17 @@
  */
 
 import { OrderedSet } from '../../../../../mol-data/int';
-import { BestDatabaseSequenceMapping as BestDatabaseSequenceMappingProp } from '../../../../../mol-model-props/sequence/best-database-mapping';
-import { BestDatabaseSequenceMappingColorThemeProvider } from '../../../../../mol-model-props/sequence/themes/best-database-mapping';
+import { SIFTSMapping as BestDatabaseSequenceMappingProp } from '../../../../../mol-model-props/sequence/sifts-mapping';
+import { SIFTSMappingColorThemeProvider } from '../../../../../mol-model-props/sequence/themes/sifts-mapping';
 import { Loci } from '../../../../../mol-model/loci';
 import { StructureElement } from '../../../../../mol-model/structure';
 import { ParamDefinition as PD } from '../../../../../mol-util/param-definition';
 import { PluginBehavior } from '../../../behavior';
 
-export const BestDatabaseSequenceMapping = PluginBehavior.create<{ autoAttach: boolean, showTooltip: boolean }>({
-    name: 'best-sequence-database-mapping-prop',
+export const SIFTSMapping = PluginBehavior.create<{ autoAttach: boolean, showTooltip: boolean }>({
+    name: 'sifts-mapping-prop',
     category: 'custom-props',
-    display: { name: 'Best Database Sequence Mapping' },
+    display: { name: 'SIFTS Mapping' },
     ctor: class extends PluginBehavior.Handler<{ autoAttach: boolean, showTooltip: boolean }> {
         private provider = BestDatabaseSequenceMappingProp.Provider;
 
@@ -39,13 +39,13 @@ export const BestDatabaseSequenceMapping = PluginBehavior.create<{ autoAttach: b
 
         register(): void {
             this.ctx.customModelProperties.register(this.provider, this.params.autoAttach);
-            this.ctx.representation.structure.themes.colorThemeRegistry.add(BestDatabaseSequenceMappingColorThemeProvider);
+            this.ctx.representation.structure.themes.colorThemeRegistry.add(SIFTSMappingColorThemeProvider);
             this.ctx.managers.lociLabels.addProvider(this.labelProvider);
         }
 
         unregister() {
             this.ctx.customModelProperties.unregister(this.provider.descriptor.name);
-            this.ctx.representation.structure.themes.colorThemeRegistry.remove(BestDatabaseSequenceMappingColorThemeProvider);
+            this.ctx.representation.structure.themes.colorThemeRegistry.remove(SIFTSMappingColorThemeProvider);
             this.ctx.managers.lociLabels.removeProvider(this.labelProvider);
         }
     },

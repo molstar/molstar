@@ -11,29 +11,42 @@ import { Model } from '../../mol-model/structure';
 import { StructureElement } from '../../mol-model/structure/structure';
 import { CustomModelProperty } from '../common/custom-model-property';
 
-export { BestDatabaseSequenceMapping };
+export { SIFTSMapping as SIFTSMapping };
 
-interface BestDatabaseSequenceMapping {
+interface SIFTSMappingMapping {
     readonly dbName: string[],
     readonly accession: string[],
-    readonly num: number[],
+    readonly num: string[],
     readonly residue: string[]
 }
 
-namespace BestDatabaseSequenceMapping {
-    export const Provider: CustomModelProperty.Provider<{}, BestDatabaseSequenceMapping> = CustomModelProperty.createProvider({
-        label: 'Best Database Sequence Mapping',
+namespace SIFTSMapping {
+    export const Provider: CustomModelProperty.Provider<{}, SIFTSMappingMapping> = CustomModelProperty.createProvider({
+        label: 'SIFTS Mapping',
         descriptor: CustomPropertyDescriptor({
-            name: 'molstar_best_database_sequence_mapping'
+            name: 'sifts_sequence_mapping'
         }),
         type: 'static',
         defaultParams: {},
         getParams: () => ({}),
-        isApplicable: (data: Model) => MmcifFormat.is(data.sourceData) && data.sourceData.data.frame.categories?.atom_site?.fieldNames.indexOf('pdbx_sifts_xref_db_name') >= 0,
+        isApplicable: (data: Model) => isAvailable(data),
         obtain: async (ctx, data) => {
             return { value: fromCif(data) };
         }
     });
+
+    export function isAvailable(model: Model) {
+        if (!MmcifFormat.is(model.sourceData)) return false;
+
+        const {
+            pdbx_sifts_xref_db_name: db_name,
+            pdbx_sifts_xref_db_acc: db_acc,
+            pdbx_sifts_xref_db_num: db_num,
+            pdbx_sifts_xref_db_res: db_res
+        } = model.sourceData.data.db.atom_site;
+
+        return db_name.isDefined && db_acc.isDefined && db_num.isDefined && db_res.isDefined;
+    }
 
     export function getKey(loc: StructureElement.Location) {
         const model = loc.unit.model;
@@ -55,22 +68,23 @@ namespace BestDatabaseSequenceMapping {
         return `${dbName} ${data.accession[rI]} ${data.num[rI]} ${data.residue[rI]}`;
     }
 
-    function fromCif(model: Model): BestDatabaseSequenceMapping | undefined {
+    function fromCif(model: Model): SIFTSMappingMapping | undefined {
         if (!MmcifFormat.is(model.sourceData)) return;
 
-        const { atom_site } = model.sourceData.data.frame.categories;
-        const db_name = atom_site.getField('pdbx_sifts_xref_db_name');
-        const db_acc = atom_site.getField('pdbx_sifts_xref_db_acc');
-        const db_num = atom_site.getField('pdbx_sifts_xref_db_num');
-        const db_res = atom_site.getField('pdbx_sifts_xref_db_res');
+        const {
+            pdbx_sifts_xref_db_name: db_name,
+            pdbx_sifts_xref_db_acc: db_acc,
+            pdbx_sifts_xref_db_num: db_num,
+            pdbx_sifts_xref_db_res: db_res
+        } = model.sourceData.data.db.atom_site;
 
-        if (!db_name || !db_acc || !db_num || !db_res) return;
+        if (!db_name.isDefined || !db_acc.isDefined || !db_num.isDefined || !db_res.isDefined) return;
 
         const { atomSourceIndex } = model.atomicHierarchy;
         const { count, offsets: residueOffsets } = model.atomicHierarchy.residueAtomSegments;
         const dbName = new Array<string>(count);
         const accession = new Array<string>(count);
-        const num = new Array<number>(count);
+        const num = new Array<string>(count);
         const residue = new Array<string>(count);
 
         for (let i = 0; i < count; i++) {
@@ -79,15 +93,15 @@ namespace BestDatabaseSequenceMapping {
             if (db_name.valueKind(row) !== Column.ValueKind.Present) {
                 dbName[i] = '';
                 accession[i] = '';
-                num[i] = 0;
+                num[i] = '';
                 residue[i] = '';
                 continue;
             }
 
-            dbName[i] = db_name.str(row);
-            accession[i] = db_acc.str(row);
-            num[i] = db_num.int(row);
-            residue[i] = db_res.str(row);
+            dbName[i] = db_name.value(row);
+            accession[i] = db_acc.value(row);
+            num[i] = db_num.value(row);
+            residue[i] = db_res.value(row);
         }
 
         return { dbName, accession, num, residue };

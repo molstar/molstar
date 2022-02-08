@@ -12,27 +12,27 @@ import { Color } from '../../../mol-util/color';
 import { getPalette, getPaletteParams } from '../../../mol-util/color/palette';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { CustomProperty } from '../../common/custom-property';
-import { BestDatabaseSequenceMapping } from '../best-database-mapping';
+import { SIFTSMapping } from '../sifts-mapping';
 
 const DefaultColor = Color(0xFAFAFA);
-const Description = 'Assigns a color based on best dababase sequence mapping.';
+const Description = 'Assigns a color based on SIFTS mapping.';
 
 // same colors for same accessions
 const globalAccessionMap = new Map<string, number>();
 
-export const BestDatabaseSequenceMappingColorThemeParams = {
+export const SIFTSMappingColorThemeParams = {
     ...getPaletteParams({ type: 'colors', colorList: 'set-1' }),
 };
-export type BestDatabaseSequenceMappingColorThemeParams = typeof BestDatabaseSequenceMappingColorThemeParams
-export function getBestDatabaseSequenceMappingColorThemeParams(ctx: ThemeDataContext) {
-    return BestDatabaseSequenceMappingColorThemeParams; // TODO return copy
+export type SIFTSMappingColorThemeParams = typeof SIFTSMappingColorThemeParams
+export function getSIFTSMappingColorThemeParams(ctx: ThemeDataContext) {
+    return SIFTSMappingColorThemeParams; // TODO return copy
 }
-export function BestDatabaseSequenceMappingColorTheme(ctx: ThemeDataContext, props: PD.Values<BestDatabaseSequenceMappingColorThemeParams>): ColorTheme<BestDatabaseSequenceMappingColorThemeParams> {
+export function SIFTSMappingColorTheme(ctx: ThemeDataContext, props: PD.Values<SIFTSMappingColorThemeParams>): ColorTheme<SIFTSMappingColorThemeParams> {
     let color: LocationColor;
 
     if (ctx.structure) {
         for (const m of ctx.structure.models) {
-            const mapping = BestDatabaseSequenceMapping.Provider.get(m).value;
+            const mapping = SIFTSMapping.Provider.get(m).value;
             if (!mapping) continue;
             for (const acc of mapping.accession) {
                 if (!acc || globalAccessionMap.has(acc)) continue;
@@ -45,7 +45,7 @@ export function BestDatabaseSequenceMappingColorTheme(ctx: ThemeDataContext, pro
         const colorMap = new Map<string, Color>();
 
         const getColor = (location: StructureElement.Location) => {
-            const key = BestDatabaseSequenceMapping.getKey(location);
+            const key = SIFTSMapping.getKey(location);
             if (!key) return DefaultColor;
 
             if (colorMap.has(key)) return colorMap.get(key)!;
@@ -70,7 +70,7 @@ export function BestDatabaseSequenceMappingColorTheme(ctx: ThemeDataContext, pro
     }
 
     return {
-        factory: BestDatabaseSequenceMappingColorTheme,
+        factory: SIFTSMappingColorTheme,
         granularity: 'group',
         preferSmoothing: true,
         color,
@@ -79,26 +79,26 @@ export function BestDatabaseSequenceMappingColorTheme(ctx: ThemeDataContext, pro
     };
 }
 
-export const BestDatabaseSequenceMappingColorThemeProvider: ColorTheme.Provider<BestDatabaseSequenceMappingColorThemeParams, 'best-sequence-database-mapping'> = {
-    name: 'best-sequence-database-mapping',
-    label: 'Best Database Sequence Mapping',
+export const SIFTSMappingColorThemeProvider: ColorTheme.Provider<SIFTSMappingColorThemeParams, 'sifts-mapping'> = {
+    name: 'sifts-mapping',
+    label: 'SIFTS Mapping',
     category: ColorTheme.Category.Residue,
-    factory: BestDatabaseSequenceMappingColorTheme,
-    getParams: getBestDatabaseSequenceMappingColorThemeParams,
-    defaultValues: PD.getDefaultValues(BestDatabaseSequenceMappingColorThemeParams),
-    isApplicable: (ctx: ThemeDataContext) => !!ctx.structure?.models.some(m => BestDatabaseSequenceMapping.Provider.isApplicable(m)),
+    factory: SIFTSMappingColorTheme,
+    getParams: getSIFTSMappingColorThemeParams,
+    defaultValues: PD.getDefaultValues(SIFTSMappingColorThemeParams),
+    isApplicable: (ctx: ThemeDataContext) => !!ctx.structure?.models.some(m => SIFTSMapping.Provider.isApplicable(m)),
     ensureCustomProperties: {
         attach: async (ctx: CustomProperty.Context, data: ThemeDataContext) => {
             if (!data.structure) return;
 
             for (const m of data.structure.models) {
-                await BestDatabaseSequenceMapping.Provider.attach(ctx, m, void 0, true);
+                await SIFTSMapping.Provider.attach(ctx, m, void 0, true);
             }
         },
         detach: (data) => {
             if (!data.structure) return;
             for (const m of data.structure.models) {
-                BestDatabaseSequenceMapping.Provider.ref(m, false);
+                SIFTSMapping.Provider.ref(m, false);
             }
         }
     }
