@@ -193,16 +193,18 @@ export class SuperpositionControls extends PurePluginUIComponent<{ }, Superposit
         };
 
         if (zeroOverlapPairs.length) {
-            this.plugin.log.warn(`No UNIPROT mapping overlap between structures ${formatPairs(zeroOverlapPairs)}.`);
+            this.plugin.log.warn(`Superposition: No UNIPROT mapping overlap between structures ${formatPairs(zeroOverlapPairs)}.`);
         }
 
         if (failedPairs.length) {
-            this.plugin.log.error(`Failed to superpose structures ${formatPairs(failedPairs)}.`);
+            this.plugin.log.error(`Superposition: Failed to superpose structures ${formatPairs(failedPairs)}.`);
         }
 
-        this.plugin.log.info(`Superposed ${entries.length + 1} structures with avg. RMSD ${rmsd.toFixed(2)} Å.`);
-        await new Promise(res => requestAnimationFrame(res));
-        PluginCommands.Camera.Reset(this.plugin);
+        if (entries.length) {
+            this.plugin.log.info(`Superposed ${entries.length + 1} structures with avg. RMSD ${rmsd.toFixed(2)} Å.`);
+            await new Promise(res => requestAnimationFrame(res));
+            PluginCommands.Camera.Reset(this.plugin);
+        }
     };
 
     toggleByChains = () => this.setState({ action: this.state.action === 'byChains' ? void 0 : 'byChains' });
