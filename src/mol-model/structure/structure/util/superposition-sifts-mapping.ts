@@ -11,13 +11,19 @@ import { ElementIndex } from '../../model/indexing';
 import { Structure } from '../structure';
 import { Unit } from '../unit';
 
-export interface AlignmentResult {
+export interface AlignmentResultEntry {
     transform: MinimizeRmsd.Result,
     pivot: number,
     other: number
 }
 
-export function alignAndSuperposeWithBestDatabaseMapping(structures: Structure[]): AlignmentResult[] {
+export interface AlignmentResult {
+    entries: AlignmentResultEntry[],
+    zeroOverlapPairs: [number, number][],
+    failedPairs: [number, number][]
+}
+
+export function alignAndSuperposeWithSIFTSMapping(structures: Structure[]): AlignmentResult {
     const indexMap = new Map<string, IndexEntry>();
 
     for (let i = 0; i < structures.length; i++) {
@@ -29,14 +35,26 @@ export function alignAndSuperposeWithBestDatabaseMapping(structures: Structure[]
     // TODO: support non-first structure pivots
     const pairs = findPairs(structures.length, index);
 
-    const ret: AlignmentResult[] = [];
+    const zeroOverlapPairs: AlignmentResult['zeroOverlapPairs'] = [];
+    const failedPairs: AlignmentResult['failedPairs'] = [];
+
+
+    const entries: AlignmentResultEntry[] = [];
     for (const p of pairs) {
-        const [a, b] = getPositionTables(index, p.i, p.j, p.count);
-        const transform = MinimizeRmsd.compute({ a, b });
-        ret.push({ transform, pivot: p.i, other: p.j });
+        if (p.count === 0) {
+            zeroOverlapPairs.push([p.i, p.j]);
+        } else {
+            const [a, b] = getPositionTables(index, p.i, p.j, p.count);
+            const transform = MinimizeRmsd.compute({ a, b });
+            if (Number.isNaN(transform.rmsd)) {
+                failedPairs.push([p.i, p.j]);
+            } else {
+                entries.push({ transform, pivot: p.i, other: p.j });
+            }
+        }
     }
 
-    return ret;
+    return { entries, zeroOverlapPairs, failedPairs };
 }
 
 function getPositionTables(index: IndexEntry[], pivot: number, other: number, N: number) {
@@ -159,6 +177,4 @@ function buildIndex(structure: Structure, index: Map<string, IndexEntry>, sI: nu
             }
         }
     }
-
-    console.log(index);
 }
