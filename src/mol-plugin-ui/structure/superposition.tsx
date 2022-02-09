@@ -49,6 +49,7 @@ export class StructureSuperpositionControls extends CollapsableControls {
 
 export const StructureSuperpositionParams = {
     alignSequences: PD.Boolean(true, { isEssential: true, description: 'For Chain-based 3D superposition, perform a sequence alignment and use the aligned residue pairs to guide the 3D superposition.' }),
+    traceOnly: PD.Boolean(true, { description: 'For Chain- and Uniprot-based 3D superposition, base superposition only on CA (and equivalent) atoms.' })
 };
 const DefaultStructureSuperpositionOptions = PD.getDefaultValues(StructureSuperpositionParams);
 export type StructureSuperpositionOptions = PD.ValuesFor<typeof StructureSuperpositionParams>
