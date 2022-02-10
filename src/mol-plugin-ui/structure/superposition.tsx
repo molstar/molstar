@@ -150,6 +150,7 @@ export class SuperpositionControls extends PurePluginUIComponent<{ }, Superposit
             const labelB = stripTags(eB.label);
             this.plugin.log.info(`Superposed [${labelA}] and [${labelB}] with RMSD ${rmsd.toFixed(2)}.`);
         }
+        await this.cameraReset();
     };
 
     superposeAtoms = async () => {
@@ -173,6 +174,7 @@ export class SuperpositionControls extends PurePluginUIComponent<{ }, Superposit
             const count = entries[i].atoms.length;
             this.plugin.log.info(`Superposed ${count} ${count === 1 ? 'atom' : 'atoms'} of [${labelA}] and [${labelB}] with RMSD ${rmsd.toFixed(2)}.`);
         }
+        await this.cameraReset();
     };
 
     superposeDb = async () => {
@@ -205,10 +207,14 @@ export class SuperpositionControls extends PurePluginUIComponent<{ }, Superposit
 
         if (entries.length) {
             this.plugin.log.info(`Superposed ${entries.length + 1} structures with avg. RMSD ${rmsd.toFixed(2)} Å.`);
-            await new Promise(res => requestAnimationFrame(res));
-            PluginCommands.Camera.Reset(this.plugin);
+            await this.cameraReset();
         }
     };
+
+    async cameraReset() {
+        await new Promise(res => requestAnimationFrame(res));
+        PluginCommands.Camera.Reset(this.plugin);
+    }
 
     toggleByChains = () => this.setState({ action: this.state.action === 'byChains' ? void 0 : 'byChains' });
     toggleByAtoms = () => this.setState({ action: this.state.action === 'byAtoms' ? void 0 : 'byAtoms' });
