@@ -64,25 +64,29 @@ function getPositionTables(index: IndexEntry[], pivot: number, other: number, N:
 
     let o = 0;
     for (const { pivots } of index) {
-        const a = pivots[pivot];
-        const b = pivots[other];
+        let a = pivots[pivot];
+        let b = pivots[other];
         if (!a || !b) continue;
+
+        if (traceOnly) {
+            a = findTraceAtom(...a);
+            b = findTraceAtom(...b);
+            if (!a || !b) continue;
+        }
 
         const l = Math.min(a[2] - a[1], b[2] - b[1]);
 
         // TODO: check if residue types match?
         for (let i = 0; i < l; i++) {
-            const eI = (a[1] + i) as ElementIndex;
-            const eJ = (b[1] + i) as ElementIndex;
-            if (traceOnly && (!traceAtom(a[0], eI) || !traceAtom(b[0], eJ))) continue;
-
+            let eI = (a[1] + i) as ElementIndex;
             xs.x[o] = a[0].conformation.x(eI);
             xs.y[o] = a[0].conformation.y(eI);
             xs.z[o] = a[0].conformation.z(eI);
 
-            ys.x[o] = b[0].conformation.x(eJ);
-            ys.y[o] = b[0].conformation.y(eJ);
-            ys.z[o] = b[0].conformation.z(eJ);
+            eI = (b[1] + i) as ElementIndex;
+            ys.x[o] = b[0].conformation.x(eI);
+            ys.y[o] = b[0].conformation.y(eI);
+            ys.z[o] = b[0].conformation.z(eI);
             o++;
         }
     }
@@ -98,9 +102,13 @@ function getPositionTables(index: IndexEntry[], pivot: number, other: number, N:
     return [xs, ys];
 }
 
-function traceAtom(unit: Unit.Atomic, eI: ElementIndex): boolean {
-    const l = unit.model.atomicHierarchy.atoms.label_atom_id.value(eI);
-    return l === 'CA' || l === 'BB' || l === `C4'`;
+function findTraceAtom(unit: Unit.Atomic, start: ElementIndex, end: ElementIndex): [Unit.Atomic, ElementIndex, ElementIndex] | undefined {
+    for (let i = start; i < end; i++) {
+        const l = unit.model.atomicHierarchy.atoms.label_atom_id.value(i);
+        if (l === 'CA' || l === 'BB') {
+            return [unit, i, i + 1 as ElementIndex];
+        }
+    }
 }
 
 function findPairs(N: number, index: IndexEntry[]) {
