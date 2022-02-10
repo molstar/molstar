@@ -124,7 +124,7 @@ export class SuperpositionControls extends PurePluginUIComponent<{ }, Superposit
     }
 
     superposeChains = async () => {
-        const { query } = this.state.options.traceOnly ? StructureSelectionQueries.trace : StructureSelectionQueries.all;
+        const { query } = this.state.options.traceOnly ? StructureSelectionQueries.trace : StructureSelectionQueries.polymer;
         const entries = this.chainEntries;
 
         const locis = entries.map((e, i) => {
