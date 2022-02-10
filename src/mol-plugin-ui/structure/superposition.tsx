@@ -124,10 +124,10 @@ export class SuperpositionControls extends PurePluginUIComponent<{ }, Superposit
     }
 
     superposeChains = async () => {
-        const { query } = StructureSelectionQueries.trace;
+        const { query } = this.state.options.traceOnly ? StructureSelectionQueries.trace : StructureSelectionQueries.all;
         const entries = this.chainEntries;
 
-        const traceLocis = entries.map((e, i) => {
+        const locis = entries.map((e, i) => {
             const s = StructureElement.Loci.toStructure(e.loci);
             const loci = StructureSelection.toLociWithSourceUnits(query(new QueryContext(s)));
             return StructureElement.Loci.remap(loci, i === 0
@@ -137,11 +137,11 @@ export class SuperpositionControls extends PurePluginUIComponent<{ }, Superposit
         });
 
         const transforms = this.state.options.alignSequences
-            ? alignAndSuperpose(traceLocis)
-            : superpose(traceLocis);
+            ? alignAndSuperpose(locis)
+            : superpose(locis);
 
         const eA = entries[0];
-        for (let i = 1, il = traceLocis.length; i < il; ++i) {
+        for (let i = 1, il = locis.length; i < il; ++i) {
             const eB = entries[i];
             const { bTransform, rmsd } = transforms[i - 1];
             await this.transform(eB.cell, bTransform);
@@ -178,7 +178,7 @@ export class SuperpositionControls extends PurePluginUIComponent<{ }, Superposit
         const input = this.plugin.managers.structure.hierarchy.behaviors.selection.value.structures;
 
         const structures = input.map(s => s.cell.obj?.data!);
-        const { entries, failedPairs, zeroOverlapPairs } = alignAndSuperposeWithSIFTSMapping(structures);
+        const { entries, failedPairs, zeroOverlapPairs } = alignAndSuperposeWithSIFTSMapping(structures, this.state.options.traceOnly);
 
         let rmsd = 0;
 

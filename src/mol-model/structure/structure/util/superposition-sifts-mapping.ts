@@ -23,7 +23,7 @@ export interface AlignmentResult {
     failedPairs: [number, number][]
 }
 
-export function alignAndSuperposeWithSIFTSMapping(structures: Structure[]): AlignmentResult {
+export function alignAndSuperposeWithSIFTSMapping(structures: Structure[], traceOnly: boolean = true): AlignmentResult {
     const indexMap = new Map<string, IndexEntry>();
 
     for (let i = 0; i < structures.length; i++) {
@@ -44,7 +44,7 @@ export function alignAndSuperposeWithSIFTSMapping(structures: Structure[]): Alig
         if (p.count === 0) {
             zeroOverlapPairs.push([p.i, p.j]);
         } else {
-            const [a, b] = getPositionTables(index, p.i, p.j, p.count);
+            const [a, b] = getPositionTables(index, p.i, p.j, p.count, traceOnly);
             const transform = MinimizeRmsd.compute({ a, b });
             if (Number.isNaN(transform.rmsd)) {
                 failedPairs.push([p.i, p.j]);
@@ -57,7 +57,7 @@ export function alignAndSuperposeWithSIFTSMapping(structures: Structure[]): Alig
     return { entries, zeroOverlapPairs, failedPairs };
 }
 
-function getPositionTables(index: IndexEntry[], pivot: number, other: number, N: number) {
+function getPositionTables(index: IndexEntry[], pivot: number, other: number, N: number, traceOnly: boolean) {
     const xs = MinimizeRmsd.Positions.empty(N);
     const ys = MinimizeRmsd.Positions.empty(N);
 
@@ -69,23 +69,38 @@ function getPositionTables(index: IndexEntry[], pivot: number, other: number, N:
 
         const l = Math.min(a[2] - a[1], b[2] - b[1]);
 
-        // TODO: allow to use just backbone atoms?
         // TODO: check if residue types match?
         for (let i = 0; i < l; i++) {
-            let eI = (a[1] + i) as ElementIndex;
+            const eI = (a[1] + i) as ElementIndex;
+            const eJ = (b[1] + i) as ElementIndex;
+            if (traceOnly && (!traceAtom(a[0], eI) || !traceAtom(b[0], eJ))) continue;
+
             xs.x[o] = a[0].conformation.x(eI);
             xs.y[o] = a[0].conformation.y(eI);
             xs.z[o] = a[0].conformation.z(eI);
 
-            eI = (b[1] + i) as ElementIndex;
-            ys.x[o] = b[0].conformation.x(eI);
-            ys.y[o] = b[0].conformation.y(eI);
-            ys.z[o] = b[0].conformation.z(eI);
+            ys.x[o] = b[0].conformation.x(eJ);
+            ys.y[o] = b[0].conformation.y(eJ);
+            ys.z[o] = b[0].conformation.z(eJ);
             o++;
         }
     }
 
+    if (traceOnly) {
+        xs.x = xs.x.slice(0, o);
+        xs.y = xs.y.slice(0, o);
+        xs.z = xs.z.slice(0, o);
+        ys.x = ys.x.slice(0, o);
+        ys.y = ys.y.slice(0, o);
+        ys.z = ys.z.slice(0, o);
+    }
     return [xs, ys];
+}
+
+function traceAtom(unit: Unit.Atomic, eI: ElementIndex): boolean {
+    // TODO could check based on traceElementIndex too
+    const l = unit.model.atomicHierarchy.atoms.label_atom_id.value(eI);
+    return l === 'CA' || l === 'BB' || l === `C4'`;
 }
 
 function findPairs(N: number, index: IndexEntry[]) {
