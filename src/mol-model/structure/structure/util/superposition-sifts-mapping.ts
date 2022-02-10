@@ -24,7 +24,7 @@ export interface AlignmentResult {
     failedPairs: [number, number][]
 }
 
-export function alignAndSuperposeWithSIFTSMapping(structures: Structure[], traceOnly: boolean = true): AlignmentResult {
+export function alignAndSuperposeWithSIFTSMapping(structures: Structure[], options?: { traceOnly?: boolean }): AlignmentResult {
     const indexMap = new Map<string, IndexEntry>();
 
     for (let i = 0; i < structures.length; i++) {
@@ -45,7 +45,7 @@ export function alignAndSuperposeWithSIFTSMapping(structures: Structure[], trace
         if (p.count === 0) {
             zeroOverlapPairs.push([p.i, p.j]);
         } else {
-            const [a, b] = getPositionTables(index, p.i, p.j, p.count, traceOnly);
+            const [a, b] = getPositionTables(index, p.i, p.j, p.count, options?.traceOnly ?? true);
             const transform = MinimizeRmsd.compute({ a, b });
             if (Number.isNaN(transform.rmsd)) {
                 failedPairs.push([p.i, p.j]);

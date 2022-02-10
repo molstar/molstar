@@ -177,9 +177,10 @@ export class SuperpositionControls extends PurePluginUIComponent<{ }, Superposit
 
     superposeDb = async () => {
         const input = this.plugin.managers.structure.hierarchy.behaviors.selection.value.structures;
+        const traceOnly = this.state.options.traceOnly;
 
         const structures = input.map(s => s.cell.obj?.data!);
-        const { entries, failedPairs, zeroOverlapPairs } = alignAndSuperposeWithSIFTSMapping(structures, this.state.options.traceOnly);
+        const { entries, failedPairs, zeroOverlapPairs } = alignAndSuperposeWithSIFTSMapping(structures, { traceOnly });
 
         let rmsd = 0;
 
