@@ -98,7 +98,6 @@ function getPositionTables(index: IndexEntry[], pivot: number, other: number, N:
 }
 
 function traceAtom(unit: Unit.Atomic, eI: ElementIndex): boolean {
-    // TODO could check based on traceElementIndex too
     const l = unit.model.atomicHierarchy.atoms.label_atom_id.value(eI);
     return l === 'CA' || l === 'BB' || l === `C4'`;
 }
