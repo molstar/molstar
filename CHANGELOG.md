@@ -9,6 +9,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Rename "best database mapping" to "SIFTS Mapping"
 - Add schema and export support for ``atom_site.pdbx_sifts_xref_*`` fields
 - Add schema export support for ``atom_site.pdbx_label_index`` field
+- Add `traceOnly` parameter to chain/UniProt-based structure alignment
 
 ## [v3.1.0] - 2022-02-06
 

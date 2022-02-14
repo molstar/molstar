@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2021-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Sebastian Bittrich <sebastian.bittrich@rcsb.org>
  */
 
 import { Segmentation } from '../../../../mol-data/int';
@@ -23,11 +24,11 @@ export interface AlignmentResult {
     failedPairs: [number, number][]
 }
 
-export function alignAndSuperposeWithSIFTSMapping(structures: Structure[]): AlignmentResult {
+export function alignAndSuperposeWithSIFTSMapping(structures: Structure[], options?: { traceOnly?: boolean }): AlignmentResult {
     const indexMap = new Map<string, IndexEntry>();
 
     for (let i = 0; i < structures.length; i++) {
-        buildIndex(structures[i], indexMap, i);
+        buildIndex(structures[i], indexMap, i, options?.traceOnly ?? true);
     }
 
     const index = Array.from(indexMap.values());
@@ -69,7 +70,6 @@ function getPositionTables(index: IndexEntry[], pivot: number, other: number, N:
 
         const l = Math.min(a[2] - a[1], b[2] - b[1]);
 
-        // TODO: allow to use just backbone atoms?
         // TODO: check if residue types match?
         for (let i = 0; i < l; i++) {
             let eI = (a[1] + i) as ElementIndex;
@@ -137,7 +137,7 @@ interface IndexEntry {
     pivots: { [i: number]: [unit: Unit.Atomic, start: ElementIndex, end: ElementIndex] | undefined }
 }
 
-function buildIndex(structure: Structure, index: Map<string, IndexEntry>, sI: number) {
+function buildIndex(structure: Structure, index: Map<string, IndexEntry>, sI: number, traceOnly: boolean) {
     for (const unit of structure.units) {
         if (unit.kind !== Unit.Kind.Atomic) continue;
 
@@ -150,6 +150,7 @@ function buildIndex(structure: Structure, index: Map<string, IndexEntry>, sI: nu
 
         const chainsIt = Segmentation.transientSegments(unit.model.atomicHierarchy.chainAtomSegments, elements);
         const residuesIt = Segmentation.transientSegments(unit.model.atomicHierarchy.residueAtomSegments, elements);
+        const traceElementIndex = unit.model.atomicHierarchy.derived.residue.traceElementIndex;
 
         while (chainsIt.hasNext) {
             const chainSegment = chainsIt.move();
@@ -160,8 +161,15 @@ function buildIndex(structure: Structure, index: Map<string, IndexEntry>, sI: nu
 
                 if (!dbName[rI]) continue;
 
-                const start = elements[residueSegment.start];
-                const end = elements[residueSegment.end - 1] + 1 as ElementIndex;
+                let start, end;
+                if (traceOnly) {
+                    start = traceElementIndex[rI];
+                    if (start === -1) continue;
+                    end = start + 1 as ElementIndex;
+                } else {
+                    start = elements[residueSegment.start];
+                    end = elements[residueSegment.end - 1] + 1 as ElementIndex;
+                }
 
                 const key = `${dbName[rI]}-${accession[rI]}-${num[rI]}`;
 

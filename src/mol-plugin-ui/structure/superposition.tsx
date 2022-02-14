@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Sebastian Bittrich <sebastian.bittrich@rcsb.org>
  */
 
 import { CollapsableControls, PurePluginUIComponent } from '../base';
@@ -49,6 +50,7 @@ export class StructureSuperpositionControls extends CollapsableControls {
 
 export const StructureSuperpositionParams = {
     alignSequences: PD.Boolean(true, { isEssential: true, description: 'For Chain-based 3D superposition, perform a sequence alignment and use the aligned residue pairs to guide the 3D superposition.' }),
+    traceOnly: PD.Boolean(true, { description: 'For Chain- and Uniprot-based 3D superposition, base superposition only on CA (and equivalent) atoms.' })
 };
 const DefaultStructureSuperpositionOptions = PD.getDefaultValues(StructureSuperpositionParams);
 export type StructureSuperpositionOptions = PD.ValuesFor<typeof StructureSuperpositionParams>
@@ -123,10 +125,10 @@ export class SuperpositionControls extends PurePluginUIComponent<{ }, Superposit
     }
 
     superposeChains = async () => {
-        const { query } = StructureSelectionQueries.trace;
+        const { query } = this.state.options.traceOnly ? StructureSelectionQueries.trace : StructureSelectionQueries.polymer;
         const entries = this.chainEntries;
 
-        const traceLocis = entries.map((e, i) => {
+        const locis = entries.map((e, i) => {
             const s = StructureElement.Loci.toStructure(e.loci);
             const loci = StructureSelection.toLociWithSourceUnits(query(new QueryContext(s)));
             return StructureElement.Loci.remap(loci, i === 0
@@ -136,11 +138,11 @@ export class SuperpositionControls extends PurePluginUIComponent<{ }, Superposit
         });
 
         const transforms = this.state.options.alignSequences
-            ? alignAndSuperpose(traceLocis)
-            : superpose(traceLocis);
+            ? alignAndSuperpose(locis)
+            : superpose(locis);
 
         const eA = entries[0];
-        for (let i = 1, il = traceLocis.length; i < il; ++i) {
+        for (let i = 1, il = locis.length; i < il; ++i) {
             const eB = entries[i];
             const { bTransform, rmsd } = transforms[i - 1];
             await this.transform(eB.cell, bTransform);
@@ -148,6 +150,7 @@ export class SuperpositionControls extends PurePluginUIComponent<{ }, Superposit
             const labelB = stripTags(eB.label);
             this.plugin.log.info(`Superposed [${labelA}] and [${labelB}] with RMSD ${rmsd.toFixed(2)}.`);
         }
+        await this.cameraReset();
     };
 
     superposeAtoms = async () => {
@@ -171,13 +174,15 @@ export class SuperpositionControls extends PurePluginUIComponent<{ }, Superposit
             const count = entries[i].atoms.length;
             this.plugin.log.info(`Superposed ${count} ${count === 1 ? 'atom' : 'atoms'} of [${labelA}] and [${labelB}] with RMSD ${rmsd.toFixed(2)}.`);
         }
+        await this.cameraReset();
     };
 
     superposeDb = async () => {
         const input = this.plugin.managers.structure.hierarchy.behaviors.selection.value.structures;
+        const traceOnly = this.state.options.traceOnly;
 
         const structures = input.map(s => s.cell.obj?.data!);
-        const { entries, failedPairs, zeroOverlapPairs } = alignAndSuperposeWithSIFTSMapping(structures);
+        const { entries, failedPairs, zeroOverlapPairs } = alignAndSuperposeWithSIFTSMapping(structures, { traceOnly });
 
         let rmsd = 0;
 
@@ -202,10 +207,14 @@ export class SuperpositionControls extends PurePluginUIComponent<{ }, Superposit
 
         if (entries.length) {
             this.plugin.log.info(`Superposed ${entries.length + 1} structures with avg. RMSD ${rmsd.toFixed(2)} Å.`);
-            await new Promise(res => requestAnimationFrame(res));
-            PluginCommands.Camera.Reset(this.plugin);
+            await this.cameraReset();
         }
     };
+
+    async cameraReset() {
+        await new Promise(res => requestAnimationFrame(res));
+        PluginCommands.Camera.Reset(this.plugin);
+    }
 
     toggleByChains = () => this.setState({ action: this.state.action === 'byChains' ? void 0 : 'byChains' });
     toggleByAtoms = () => this.setState({ action: this.state.action === 'byAtoms' ? void 0 : 'byAtoms' });
