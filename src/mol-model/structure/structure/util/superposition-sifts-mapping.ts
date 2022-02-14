@@ -28,7 +28,7 @@ export function alignAndSuperposeWithSIFTSMapping(structures: Structure[], optio
     const indexMap = new Map<string, IndexEntry>();
 
     for (let i = 0; i < structures.length; i++) {
-        buildIndex(structures[i], indexMap, i);
+        buildIndex(structures[i], indexMap, i, options?.traceOnly ?? true);
     }
 
     const index = Array.from(indexMap.values());
@@ -45,7 +45,7 @@ export function alignAndSuperposeWithSIFTSMapping(structures: Structure[], optio
         if (p.count === 0) {
             zeroOverlapPairs.push([p.i, p.j]);
         } else {
-            const [a, b] = getPositionTables(index, p.i, p.j, p.count, options?.traceOnly ?? true);
+            const [a, b] = getPositionTables(index, p.i, p.j, p.count);
             const transform = MinimizeRmsd.compute({ a, b });
             if (Number.isNaN(transform.rmsd)) {
                 failedPairs.push([p.i, p.j]);
@@ -58,21 +58,15 @@ export function alignAndSuperposeWithSIFTSMapping(structures: Structure[], optio
     return { entries, zeroOverlapPairs, failedPairs };
 }
 
-function getPositionTables(index: IndexEntry[], pivot: number, other: number, N: number, traceOnly: boolean) {
+function getPositionTables(index: IndexEntry[], pivot: number, other: number, N: number) {
     const xs = MinimizeRmsd.Positions.empty(N);
     const ys = MinimizeRmsd.Positions.empty(N);
 
     let o = 0;
     for (const { pivots } of index) {
-        let a = pivots[pivot];
-        let b = pivots[other];
+        const a = pivots[pivot];
+        const b = pivots[other];
         if (!a || !b) continue;
-
-        if (traceOnly) {
-            a = findTraceAtom(...a);
-            b = findTraceAtom(...b);
-            if (!a || !b) continue;
-        }
 
         const l = Math.min(a[2] - a[1], b[2] - b[1]);
 
@@ -91,24 +85,7 @@ function getPositionTables(index: IndexEntry[], pivot: number, other: number, N:
         }
     }
 
-    if (traceOnly) {
-        xs.x = xs.x.slice(0, o);
-        xs.y = xs.y.slice(0, o);
-        xs.z = xs.z.slice(0, o);
-        ys.x = ys.x.slice(0, o);
-        ys.y = ys.y.slice(0, o);
-        ys.z = ys.z.slice(0, o);
-    }
     return [xs, ys];
-}
-
-function findTraceAtom(unit: Unit.Atomic, start: ElementIndex, end: ElementIndex): [Unit.Atomic, ElementIndex, ElementIndex] | undefined {
-    for (let i = start; i < end; i++) {
-        const l = unit.model.atomicHierarchy.atoms.label_atom_id.value(i);
-        if (l === 'CA' || l === 'BB') {
-            return [unit, i, i + 1 as ElementIndex];
-        }
-    }
 }
 
 function findPairs(N: number, index: IndexEntry[]) {
@@ -160,7 +137,7 @@ interface IndexEntry {
     pivots: { [i: number]: [unit: Unit.Atomic, start: ElementIndex, end: ElementIndex] | undefined }
 }
 
-function buildIndex(structure: Structure, index: Map<string, IndexEntry>, sI: number) {
+function buildIndex(structure: Structure, index: Map<string, IndexEntry>, sI: number, traceOnly: boolean) {
     for (const unit of structure.units) {
         if (unit.kind !== Unit.Kind.Atomic) continue;
 
@@ -173,6 +150,7 @@ function buildIndex(structure: Structure, index: Map<string, IndexEntry>, sI: nu
 
         const chainsIt = Segmentation.transientSegments(unit.model.atomicHierarchy.chainAtomSegments, elements);
         const residuesIt = Segmentation.transientSegments(unit.model.atomicHierarchy.residueAtomSegments, elements);
+        const traceElementIndex = unit.model.atomicHierarchy.derived.residue.traceElementIndex;
 
         while (chainsIt.hasNext) {
             const chainSegment = chainsIt.move();
@@ -183,8 +161,15 @@ function buildIndex(structure: Structure, index: Map<string, IndexEntry>, sI: nu
 
                 if (!dbName[rI]) continue;
 
-                const start = elements[residueSegment.start];
-                const end = elements[residueSegment.end - 1] + 1 as ElementIndex;
+                let start, end;
+                if (traceOnly) {
+                    start = traceElementIndex[rI] as ElementIndex;
+                    if (start === -1) continue;
+                    end = start + 1 as ElementIndex;
+                } else {
+                    start = elements[residueSegment.start];
+                    end = elements[residueSegment.end - 1] + 1 as ElementIndex;
+                }
 
                 const key = `${dbName[rI]}-${accession[rI]}-${num[rI]}`;
 
