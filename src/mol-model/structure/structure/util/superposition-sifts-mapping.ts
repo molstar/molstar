@@ -163,7 +163,7 @@ function buildIndex(structure: Structure, index: Map<string, IndexEntry>, sI: nu
 
                 let start, end;
                 if (traceOnly) {
-                    start = traceElementIndex[rI] as ElementIndex;
+                    start = traceElementIndex[rI];
                     if (start === -1) continue;
                     end = start + 1 as ElementIndex;
                 } else {
