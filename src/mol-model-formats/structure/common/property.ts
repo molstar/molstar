@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { Model } from '../../../mol-model/structure';
@@ -44,7 +45,7 @@ interface FormatPropertyProvider<T> {
 }
 
 namespace FormatPropertyProvider {
-    export function create<T>(descriptor: CustomPropertyDescriptor): FormatPropertyProvider<T> {
+    export function create<T>(descriptor: CustomPropertyDescriptor, options?: { asDynamic?: boolean }): FormatPropertyProvider<T> {
         const { name } = descriptor;
         const formatRegistry = new FormatRegistry<T>();
 
@@ -55,21 +56,31 @@ namespace FormatPropertyProvider {
                 return formatRegistry.isApplicable(model);
             },
             get(model: Model): T | undefined {
-                if (model._staticPropertyData[name]) return model._staticPropertyData[name];
+                const store = options?.asDynamic ? model._dynamicPropertyData : model._staticPropertyData;
+
+                if (store[name]) return store[name];
                 if (model.customProperties.has(descriptor)) return;
 
                 const obtain = formatRegistry.get(model.sourceData.kind);
                 if (!obtain) return;
 
-                model._staticPropertyData[name] = obtain(model);
+                store[name] = obtain(model);
                 model.customProperties.add(descriptor);
-                return model._staticPropertyData[name];
+                return store[name];
             },
             set(model: Model, value: T) {
-                model._staticPropertyData[name] = value;
+                if (options?.asDynamic) {
+                    model._dynamicPropertyData[name] = value;
+                } else {
+                    model._staticPropertyData[name] = value;
+                }
             },
             delete(model: Model) {
-                delete model._staticPropertyData[name];
+                if (options?.asDynamic) {
+                    delete model._dynamicPropertyData[name];
+                } else {
+                    delete model._staticPropertyData[name];
+                }
             }
         };
     }
