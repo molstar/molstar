@@ -490,7 +490,7 @@
     }
 }
 
-.msp-action-menu-options {   
+.msp-action-menu-options {
     &-no-header, .msp-control-group-children {
         max-height: 300px;
         overflow: hidden;
@@ -602,10 +602,10 @@
     }
 
     .msp-slider {
-        > div:first-child() {
+        > div:first-child {
             right: 42px;
         }
-        > div:last-child() {
+        > div:last-child {
             width: 30px;
         }
     }

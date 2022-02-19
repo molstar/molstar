@@ -24,6 +24,7 @@
     right: 0;
     bottom: 0;
     -webkit-user-select: none;
+    user-select: none;
     -webkit-tap-highlight-color: rgba(0,0,0,0);
     -webkit-touch-callout: none;
     touch-action: manipulation;
@@ -71,7 +72,7 @@
     }
 }
 
-.msp-semi-transparent-background {    
+.msp-semi-transparent-background {
     background: $default-background;
     opacity: 0.5;
     position: absolute;
@@ -94,7 +95,7 @@
 
     .msp-viewport-controls-panel-controls {
         overflow-y: auto;
-        max-height: 400px;    
+        max-height: 400px;
     }
 }
 
