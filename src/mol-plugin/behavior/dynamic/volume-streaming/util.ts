@@ -69,8 +69,16 @@ export async function getContourLevel(provider: 'emdb' | 'pdbe', plugin: PluginC
 export async function getContourLevelEmdb(plugin: PluginContext, taskCtx: RuntimeContext, emdbId: string) {
     const emdbHeaderServer = plugin.config.get(PluginConfig.VolumeStreaming.EmdbHeaderServer);
     const header = await plugin.fetch({ url: `${emdbHeaderServer}/${emdbId.toUpperCase()}/header/${emdbId.toLowerCase()}.xml`, type: 'xml' }).runInContext(taskCtx);
-    const map = header.getElementsByTagName('map')[0];
-    const contourLevel = parseFloat(map.getElementsByTagName('contourLevel')[0].textContent!);
+    const contours = header.getElementsByTagName('contour');
+
+    let primaryContour = contours[0];
+    for (let i = 1; i < contours.length; i++) {
+        if (contours[i].getAttribute('primary') === 'true') {
+            primaryContour = contours[i];
+            break;
+        }
+    }
+    const contourLevel = parseFloat(primaryContour.getElementsByTagName('level')[0].textContent!);
 
     return contourLevel;
 }
