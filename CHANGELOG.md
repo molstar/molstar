@@ -6,6 +6,9 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Fix parsing contour-level from emdb v3 header files
+- Fix invalid CSS (#376)
+
 ## [v3.2.0] - 2022-02-17
 
 - Rename "best database mapping" to "SIFTS Mapping"
