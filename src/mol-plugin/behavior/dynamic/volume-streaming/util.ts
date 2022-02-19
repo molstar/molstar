@@ -75,6 +75,7 @@ export async function getContourLevelEmdb(plugin: PluginContext, taskCtx: Runtim
     for (let i = 1; i < contours.length; i++) {
         if (contours[i].getAttribute('primary') === 'true') {
             primaryContour = contours[i];
+            break;
         }
     }
     const contourLevel = parseFloat(primaryContour.getElementsByTagName('level')[0].textContent!);
