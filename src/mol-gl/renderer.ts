@@ -16,7 +16,7 @@ import { GlobalUniformValues } from './renderable/schema';
 import { GraphicsRenderVariant } from './webgl/render-item';
 import { ParamDefinition as PD } from '../mol-util/param-definition';
 import { degToRad } from '../mol-math/misc';
-import { createNullTexture, Texture, Textures } from './webgl/texture';
+import { Texture, Textures } from './webgl/texture';
 import { arrayMapUpsert } from '../mol-util/array';
 import { clamp } from '../mol-math/interpolate';
 
@@ -146,9 +146,9 @@ namespace Renderer {
 
         let transparentBackground = false;
 
-        const nullDepthTexture = createNullTexture(gl);
+        const emptyDepthTexture = ctx.resources.texture('image-depth', 'depth', 'ushort', 'nearest');
         const sharedTexturesList: Textures = [
-            ['tDepth', nullDepthTexture]
+            ['tDepth', emptyDepthTexture]
         ];
 
         const view = Mat4();
@@ -309,7 +309,7 @@ namespace Renderer {
         };
 
         const updateInternal = (group: Scene.Group, camera: ICamera, depthTexture: Texture | null, renderWboit: boolean, markingDepthTest: boolean) => {
-            arrayMapUpsert(sharedTexturesList, 'tDepth', depthTexture || nullDepthTexture);
+            arrayMapUpsert(sharedTexturesList, 'tDepth', depthTexture || emptyDepthTexture);
 
             ValueCell.update(globalUniforms.uModel, group.view);
             ValueCell.update(globalUniforms.uModelView, Mat4.mul(modelView, group.view, camera.view));

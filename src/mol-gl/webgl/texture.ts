@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -176,7 +176,7 @@ function isTexture2d(x: TextureImage<any> | TextureVolume<any>, target: number, 
     return target === gl.TEXTURE_2D;
 }
 
-function isTexture3d(x: TextureImage<any> | TextureVolume<any>, target: number, gl: WebGL2RenderingContext): x is TextureImage<any> {
+function isTexture3d(x: TextureImage<any> | TextureVolume<any>, target: number, gl: WebGL2RenderingContext): x is TextureVolume<any> {
     return target === gl.TEXTURE_3D;
 }
 
@@ -260,6 +260,10 @@ export function createTexture(gl: GLRenderingContext, extensions: WebGLExtension
     let destroyed = false;
 
     function define(_width: number, _height: number, _depth?: number) {
+        if (_width === 0 || _height === 0 || (isWebGL2(gl) && target === gl.TEXTURE_3D && _depth === 0)) {
+            throw new Error('empty textures are not allowed');
+        }
+
         if (width === _width && height === _height && depth === (_depth || 0)) return;
 
         width = _width, height = _height, depth = _depth || 0;
@@ -272,14 +276,20 @@ export function createTexture(gl: GLRenderingContext, extensions: WebGLExtension
             throw new Error('unknown texture target');
         }
     }
+    define(1, 1, isWebGL2(gl) && target === gl.TEXTURE_3D ? 1 : 0);
 
     function load(data: TextureImage<any> | TextureVolume<any> | HTMLImageElement, sub = false) {
+        if (data.width === 0 || data.height === 0 || (!isImage(data) && isWebGL2(gl) && isTexture3d(data, target, gl) && data.depth === 0)) {
+            throw new Error('empty textures are not allowed');
+        }
+
         gl.bindTexture(target, texture);
         // unpack alignment of 1 since we use textures only for data
         gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
         gl.pixelStorei(gl.UNPACK_COLORSPACE_CONVERSION_WEBGL, gl.NONE);
         gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, 0);
         if (isImage(data)) {
+            width = data.width, height = data.height;
             gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
             gl.bindTexture(gl.TEXTURE_2D, texture);
             gl.texImage2D(gl.TEXTURE_2D, 0, internalFormat, format, type, data);
