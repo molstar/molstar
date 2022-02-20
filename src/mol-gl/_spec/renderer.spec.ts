@@ -31,7 +31,7 @@ describe('renderer', () => {
         expect(ctx.gl.drawingBufferHeight).toBe(32);
 
         expect(ctx.stats.resourceCounts.attribute).toBe(0);
-        expect(ctx.stats.resourceCounts.texture).toBe(0);
+        expect(ctx.stats.resourceCounts.texture).toBe(1);
         expect(ctx.stats.resourceCounts.vertexArray).toBe(0);
         expect(ctx.stats.resourceCounts.program).toBe(0);
         expect(ctx.stats.resourceCounts.shader).toBe(0);
@@ -52,7 +52,7 @@ describe('renderer', () => {
         scene.add(points);
         scene.commit();
         expect(ctx.stats.resourceCounts.attribute).toBe(ctx.isWebGL2 ? 4 : 5);
-        expect(ctx.stats.resourceCounts.texture).toBe(8);
+        expect(ctx.stats.resourceCounts.texture).toBe(9);
         expect(ctx.stats.resourceCounts.vertexArray).toBe(ctx.extensions.vertexArrayObject ? 5 : 0);
         expect(ctx.stats.resourceCounts.program).toBe(5);
         expect(ctx.stats.resourceCounts.shader).toBe(10);
@@ -60,7 +60,7 @@ describe('renderer', () => {
         scene.remove(points);
         scene.commit();
         expect(ctx.stats.resourceCounts.attribute).toBe(0);
-        expect(ctx.stats.resourceCounts.texture).toBe(0);
+        expect(ctx.stats.resourceCounts.texture).toBe(1);
         expect(ctx.stats.resourceCounts.vertexArray).toBe(0);
         expect(ctx.stats.resourceCounts.program).toBe(5);
         expect(ctx.stats.resourceCounts.shader).toBe(10);
