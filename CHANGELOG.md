@@ -9,6 +9,8 @@ Note that since we don't clearly distinguish between a public and private interf
 - Fix parsing contour-level from emdb v3 header files
 - Fix invalid CSS (#376)
 - Fix "texture not renderable" & "texture not bound" warnings (#319)
+- Fix visual for bonds between two aromatic rings
+- Fix visual for delocalized bonds (parsed from mmcif and mol2)
 
 ## [v3.2.0] - 2022-02-17
 
