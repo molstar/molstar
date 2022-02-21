@@ -16,7 +16,7 @@ import { createLinkCylinderImpostors, createLinkCylinderMesh, LinkBuilderProps, 
 import { UnitsMeshParams, UnitsVisual, UnitsMeshVisual, UnitsCylindersParams, UnitsCylindersVisual } from '../units-visual';
 import { VisualUpdateState } from '../../util';
 import { BondType } from '../../../mol-model/structure/model/types';
-import { BondCylinderParams, BondIterator, eachIntraBond, getDelocalizedTriplets, getIntraBondLoci, ignoreBondType, makeIntraBondIgnoreTest } from './util/bond';
+import { BondCylinderParams, BondIterator, eachIntraBond, getIntraBondLoci, ignoreBondType, makeIntraBondIgnoreTest } from './util/bond';
 import { Sphere3D } from '../../../mol-math/geometry';
 import { IntAdjacencyGraph } from '../../../mol-math/graph';
 import { WebGLContext } from '../../../mol-gl/webgl/context';
@@ -79,19 +79,15 @@ function getIntraUnitBondCylinderBuilderProps(unit: Unit.Atomic, structure: Stru
     };
 
     const { elementRingIndices, elementAromaticRingIndices } = unit.rings;
-    const deloTriplets = aromaticBonds ? getDelocalizedTriplets(unit) : undefined;
+    const deloTriplets = aromaticBonds ? unit.resonance.delocalizedTriplets : undefined;
 
     return {
         linkCount: edgeCount * 2,
         referencePosition: (edgeIndex: number) => {
             let aI = a[edgeIndex], bI = b[edgeIndex];
 
-            if (deloTriplets) {
-                const rI = deloTriplets.get(aI, bI);
-                if (rI !== undefined) {
-                    return pos(elements[rI], vRef);
-                }
-            }
+            const rI = deloTriplets?.getThirdElement(aI, bI);
+            if (rI !== undefined) return pos(elements[rI], vRef);
 
             if (aI > bI) [aI, bI] = [bI, aI];
             if (offset[aI + 1] - offset[aI] === 1) [aI, bI] = [bI, aI];
@@ -153,7 +149,7 @@ function getIntraUnitBondCylinderBuilderProps(unit: Unit.Atomic, structure: Stru
                 if (isBondType(f, BondType.Flag.Aromatic) || (arCount && !ignoreComputedAromatic)) {
                     if (arCount === 2) {
                         return LinkStyle.MirroredAromatic;
-                    } else if (arCount === 1 || deloTriplets?.get(aI, bI)) {
+                    } else if (arCount === 1 || deloTriplets?.getThirdElement(aI, bI)) {
                         return LinkStyle.Aromatic;
                     } else {
                         // case for bonds between two aromatic rings
