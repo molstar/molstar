@@ -230,12 +230,14 @@ function addRing(state: State, a: number, b: number, isRingAtom: Int32Array) {
 
     sortArray(ring);
 
-    // Check if the ring is unique and not fused from other rings
+    // Check if the ring is unique and another one is not it's subset
     for (let rI = 0, _rI = state.currentRings.length; rI < _rI; rI++) {
         const r = state.currentRings[rI];
-        const intersectionSize = SortedArray.intersectionSize(ring as any, r);
-        if (intersectionSize === Math.min(ring.length, r.length) || intersectionSize >= Constants.MaxDepth) {
-            return false;
+
+        if (ring.length === r.length) {
+            if (SortedArray.areEqual(ring as any, r)) return false;
+        } else if (ring.length > r.length) {
+            if (SortedArray.isSubset(ring as any, r)) return false;
         }
     }
 
