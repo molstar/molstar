@@ -28,14 +28,14 @@ export function computeRings(unit: Unit.Atomic) {
 }
 
 const enum Constants {
-    MaxDepth = 4
+    MaxDepth = 5
 }
 
 interface State {
     startVertex: number,
     endVertex: number,
     count: number,
-    visited: Int32Array,
+    isRingAtom: Int32Array,
     marked: Int32Array,
     queue: Int32Array,
     color: Int32Array,
@@ -61,7 +61,7 @@ function State(unit: Unit.Atomic, capacity: number): State {
         startVertex: 0,
         endVertex: 0,
         count: 0,
-        visited: new Int32Array(capacity),
+        isRingAtom: new Int32Array(capacity),
         marked: new Int32Array(capacity),
         queue: new Int32Array(capacity),
         pred: new Int32Array(capacity),
@@ -82,14 +82,9 @@ function State(unit: Unit.Atomic, capacity: number): State {
 
 function resetState(state: State) {
     state.count = state.endVertex - state.startVertex;
-    const { visited, pred, color, depth, marked } = state;
-    const { offset: bondOffset } = state.bonds;
+    const { isRingAtom, pred, color, depth, marked } = state;
     for (let i = 0; i < state.count; i++) {
-        const a = state.startVertex + i;
-        const bStart = bondOffset[a], bEnd = bondOffset[a + 1];
-        // Terminal/standalone atoms (< 2 bonds) can't be part of rings so
-        // mark them as visited
-        visited[i] = bEnd - bStart < 2 ? 1 : -1;
+        isRingAtom[i] = 0;
         pred[i] = -1;
         marked[i] = -1;
         color[i] = 0;
@@ -117,8 +112,16 @@ function largestResidue(unit: Unit.Atomic) {
     return size;
 }
 
+function isStartIndex(state: State, i: number) {
+    const bondOffset = state.bonds.offset;
+    const a = state.startVertex + i;
+    const bStart = bondOffset[a], bEnd = bondOffset[a + 1];
+    const bondCount = bEnd - bStart;
+    if (bondCount <= 1 || (state.isRingAtom[i] && bondCount === 2)) return false;
+    return true;
+}
+
 function processResidue(state: State, start: number, end: number) {
-    const { visited } = state;
     state.startVertex = start;
     state.endVertex = end;
 
@@ -139,7 +142,7 @@ function processResidue(state: State, start: number, end: number) {
     if (altLocs.length === 0) {
         resetState(state);
         for (let i = 0; i < state.count; i++) {
-            if (visited[i] >= 0) continue;
+            if (!isStartIndex(state, i)) continue;
             resetDepth(state);
             mark = findRings(state, i, mark);
         }
@@ -149,7 +152,7 @@ function processResidue(state: State, start: number, end: number) {
             state.hasAltLoc = true;
             state.currentAltLoc = altLocs[aI];
             for (let i = 0; i < state.count; i++) {
-                if (visited[i] >= 0) continue;
+                if (!isStartIndex(state, i)) continue;
                 const altLoc = state.altLoc.value(elements[state.startVertex + i]);
                 if (altLoc && altLoc !== state.currentAltLoc) {
                     continue;
@@ -165,7 +168,7 @@ function processResidue(state: State, start: number, end: number) {
     }
 }
 
-function addRing(state: State, a: number, b: number) {
+function addRing(state: State, a: number, b: number, isRingAtom: Int32Array) {
     // only "monotonous" rings
     if (b < a) {
         return false;
@@ -216,26 +219,23 @@ function addRing(state: State, a: number, b: number) {
 
     const ring = new Int32Array(len);
     let ringOffset = 0;
-    for (let t = 0; t < leftOffset; t++) ring[ringOffset++] = state.startVertex + left[t];
-    for (let t = rightOffset - 1; t >= 0; t--) ring[ringOffset++] = state.startVertex + right[t];
+    for (let t = 0; t < leftOffset; t++) {
+        ring[ringOffset++] = state.startVertex + left[t];
+        isRingAtom[left[t]] = 1;
+    }
+    for (let t = rightOffset - 1; t >= 0; t--) {
+        ring[ringOffset++] = state.startVertex + right[t];
+        isRingAtom[right[t]] = 1;
+    }
 
     sortArray(ring);
 
-    // Check if the ring is unique
+    // Check if the ring is unique and not fused from other rings
     for (let rI = 0, _rI = state.currentRings.length; rI < _rI; rI++) {
         const r = state.currentRings[rI];
-        if (ring[0] !== r[0]) continue;
-        if (ring.length !== r.length) continue;
-
-        let areSame = true;
-        for (let aI = 0, _aI = ring.length; aI < _aI; aI++) {
-            if (ring[aI] !== r[aI]) {
-                areSame = false;
-                break;
-            }
-        }
-        if (areSame) {
-            return true;
+        const intersectionSize = SortedArray.intersectionSize(ring as any, r);
+        if (intersectionSize === Math.min(ring.length, r.length) || intersectionSize >= Constants.MaxDepth) {
+            return false;
         }
     }
 
@@ -245,7 +245,7 @@ function addRing(state: State, a: number, b: number) {
 }
 
 function findRings(state: State, from: number, mark: number) {
-    const { bonds, startVertex, endVertex, visited, marked, queue, pred, depth } = state;
+    const { bonds, startVertex, endVertex, isRingAtom, marked, queue, pred, depth } = state;
     const { elements } = state.unit;
     const { b: neighbor, edgeProps: { flags: bondFlags }, offset } = bonds;
     marked[from] = mark;
@@ -258,8 +258,6 @@ function findRings(state: State, from: number, mark: number) {
         const d = depth[top];
         const a = startVertex + top;
         const start = offset[a], end = offset[a + 1];
-
-        visited[top] = 1;
 
         for (let i = start; i < end; i++) {
             const b = neighbor[i];
@@ -276,8 +274,7 @@ function findRings(state: State, from: number, mark: number) {
 
             if (marked[other] === mark) {
                 if (pred[other] !== top && pred[top] !== other) {
-                    if (addRing(state, top, other)) {
-                        visited[other] = 1;
+                    if (addRing(state, top, other, isRingAtom)) {
                         return mark + 1;
                     }
                 }
