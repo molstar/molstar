@@ -843,6 +843,8 @@ namespace Canvas3D {
             dispose: () => {
                 contextRestoredSub.unsubscribe();
 
+                markBuffer = [];
+
                 scene.clear();
                 helper.debug.clear();
                 controls.dispose();
