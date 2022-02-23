@@ -236,7 +236,7 @@ interface Canvas3D {
     /** Sets drawPaused = false without starting the built in animation loop */
     resume(): void
     identify(x: number, y: number): PickData | undefined
-    mark(loci: Representation.Loci, action: MarkerAction, noDraw?: boolean): void
+    mark(loci: Representation.Loci, action: MarkerAction): void
     getLoci(pickingId: PickingId | undefined): Representation.Loci
 
     notifyDidDraw: boolean,
@@ -345,7 +345,30 @@ namespace Canvas3D {
             return { loci, repr };
         }
 
-        function mark(reprLoci: Representation.Loci, action: MarkerAction, noDraw = false) {
+        let markBuffer: [reprLoci: Representation.Loci, action: MarkerAction][] = [];
+
+        function mark(reprLoci: Representation.Loci, action: MarkerAction) {
+            // NOTE: might try to optimize a case with opposite actions for the
+            //       same loci. Tho this might end up being more expensive (and error prone)
+            //       then just applying everything "naively".
+            markBuffer.push([reprLoci, action]);
+        }
+
+        function resolveMarking() {
+            let changed = false;
+            for (const [r, l] of markBuffer) {
+                changed = applyMark(r, l) || changed;
+            }
+            markBuffer = [];
+            if (changed) {
+                scene.update(void 0, true);
+                helper.handle.scene.update(void 0, true);
+                helper.camera.scene.update(void 0, true);
+            }
+            return changed;
+        }
+
+        function applyMark(reprLoci: Representation.Loci, action: MarkerAction) {
             const { repr, loci } = reprLoci;
             let changed = false;
             if (repr) {
@@ -355,21 +378,7 @@ namespace Canvas3D {
                 changed = helper.camera.mark(loci, action) || changed;
                 reprRenderObjects.forEach((_, _repr) => { changed = _repr.mark(loci, action) || changed; });
             }
-            if (changed) {
-                if (noDraw) {
-                    // Even with `noDraw` make sure changes will be rendered.
-                    // Note that with this calling mark (with or without `noDraw`) multiple times
-                    // during a JS event loop iteration will only result in a single render call.
-                    forceNextRender = true;
-                } else {
-                    scene.update(void 0, true);
-                    helper.handle.scene.update(void 0, true);
-                    helper.camera.scene.update(void 0, true);
-                    const prevPickDirty = pickHelper.dirty;
-                    draw({ force: true, allowMulti: true });
-                    pickHelper.dirty = prevPickDirty; // marking does not change picking buffers
-                }
-            }
+            return changed;
         }
 
         function render(force: boolean, allowMulti: boolean) {
@@ -386,6 +395,8 @@ namespace Canvas3D {
                 y > gl.drawingBufferHeight || y + height < 0
             ) return false;
 
+            const markingUpdated = resolveMarking();
+
             let didRender = false;
             controls.update(currentTime);
             const cameraChanged = camera.update();
@@ -393,9 +404,9 @@ namespace Canvas3D {
             const shouldRender = force || cameraChanged || resized || forceNextRender;
             forceNextRender = false;
 
-            const multiSampleChanged = multiSampleHelper.update(shouldRender, p.multiSample);
+            const multiSampleChanged = multiSampleHelper.update(markingUpdated || shouldRender, p.multiSample);
 
-            if (shouldRender || multiSampleChanged) {
+            if (shouldRender || multiSampleChanged || markingUpdated) {
                 let cam: Camera | StereoCamera = camera;
                 if (p.camera.stereo.name === 'on') {
                     stereoCamera.update();
@@ -409,7 +420,8 @@ namespace Canvas3D {
                 } else {
                     passes.draw.render(ctx, p, true);
                 }
-                pickHelper.dirty = true;
+                // if only marking has updated, do not set the flag to dirty
+                pickHelper.dirty = pickHelper.dirty || shouldRender;
                 didRender = true;
             }
 
