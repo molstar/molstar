@@ -381,7 +381,7 @@ namespace Canvas3D {
             return changed;
         }
 
-        function render(force: boolean, allowMulti: boolean) {
+        function render(force: boolean) {
             if (webgl.isContextLost) return false;
 
             let resized = false;
@@ -415,7 +415,7 @@ namespace Canvas3D {
 
                 const ctx = { renderer, camera: cam, scene, helper };
                 if (MultiSamplePass.isEnabled(p.multiSample)) {
-                    const forceOn = !cameraChanged && allowMulti && !controls.isAnimating;
+                    const forceOn = !cameraChanged && markingUpdated && !controls.isAnimating;
                     multiSampleHelper.render(ctx, p, true, forceOn);
                 } else {
                     passes.draw.render(ctx, p, true);
@@ -433,9 +433,9 @@ namespace Canvas3D {
         let currentTime = 0;
         let drawPaused = false;
 
-        function draw(options?: { force?: boolean, allowMulti?: boolean }) {
+        function draw(options?: { force?: boolean }) {
             if (drawPaused) return;
-            if (render(!!options?.force, !!options?.allowMulti) && notifyDidDraw) {
+            if (render(!!options?.force) && notifyDidDraw) {
                 didDraw.next(now() - startTime as now.Timestamp);
             }
         }
