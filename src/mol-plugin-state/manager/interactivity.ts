@@ -76,9 +76,11 @@ namespace InteractivityManager {
 
     /**
      * The `noRender` argument indicates that the action should only update the internal
-     * data structure but not render anything user visible. For example 1) no drawing of
-     * the canvas3d scene or 2) no ui update of loci labels. This is useful because some
-     * actions require clearing any markings before they can be applied.
+     * data structure but not render anything user visible. For example, no ui update of
+     * loci labels.
+     *
+     * This is useful because some actions require clearing any markings before
+     * they can be applied.
      */
     export type LociMarkProvider = (loci: Representation.Loci, action: MarkerAction, /* test */ noRender?: boolean) => void
 
