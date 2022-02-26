@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -25,6 +25,9 @@ import { Mat4, Vec3 } from '../../../mol-math/linear-algebra';
 import { IndexPairBonds } from '../../../mol-model-formats/structure/property/bonds/index-pair';
 import { ElementSetIntraBondCache } from './unit/bonds/element-set-intra-bond-cache';
 import { ModelSymmetry } from '../../../mol-model-formats/structure/property/symmetry';
+
+// avoiding namespace lookup improved performance in Chrome (Aug 2020)
+const v3add = Vec3.add;
 
 /**
  * A building block of a structure that corresponds to an atomic or
@@ -222,7 +225,25 @@ namespace Unit {
             if (!props) {
                 props = { ...this.props, bonds: dynamicBonds ? undefined : tryRemapBonds(this, this.props.bonds, model) };
                 if (!Unit.isSameConformation(this, model)) {
-                    props.boundary = undefined;
+                    const b = props.boundary;
+                    if (b) {
+                        const { elements } = this;
+                        const pos = this.conformation.invariantPosition;
+                        const v = Vec3();
+                        const center = Vec3();
+
+                        for (let i = 0, il = elements.length; i < il; i++) {
+                            pos(elements[i], v);
+                            v3add(center, center, v);
+                        }
+                        Vec3.scale(center, center, 1 / elements.length);
+
+                        // only invalidate boundary if sphere has changed too much
+                        if (Vec3.distance(center, b.sphere.center) / b.sphere.radius >= 1.0) {
+                            props.boundary = undefined;
+                        }
+                    }
+
                     props.lookup3d = undefined;
                     props.principalAxes = undefined;
                 }

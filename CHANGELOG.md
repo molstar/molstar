@@ -14,6 +14,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Change line geometry default ``scaleFactor`` to 2 (3 is too big after fixing line rendering)
 - Trajectory animation performance improvements
     - Reuse ``Model.CoarseGrained`` for coordinate trajectories
+    - Reuse unit boundary if sphere has not changed too much
     - Don't show 'inter-bond' and 'element-cross' visuals in line representations of polymerAndLigand preset
 - Fix additional mononucleotides detected as polymer components
 
