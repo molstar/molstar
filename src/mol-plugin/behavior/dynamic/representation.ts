@@ -43,9 +43,9 @@ export const HighlightLoci = PluginBehavior.create({
     name: 'representation-highlight-loci',
     category: 'interaction',
     ctor: class extends PluginBehavior.Handler<HighlightLociProps> {
-        private lociMarkProvider = (interactionLoci: Representation.Loci, action: MarkerAction, noRender?: boolean) => {
+        private lociMarkProvider = (interactionLoci: Representation.Loci, action: MarkerAction) => {
             if (!this.ctx.canvas3d || !this.params.mark) return;
-            this.ctx.canvas3d.mark(interactionLoci, action, noRender);
+            this.ctx.canvas3d.mark(interactionLoci, action);
         };
         private getLoci(loci: Loci) {
             return this.params.preferAtoms && Bond.isLoci(loci) && loci.bonds.length === 2
@@ -113,9 +113,9 @@ export const SelectLoci = PluginBehavior.create({
     category: 'interaction',
     ctor: class extends PluginBehavior.Handler<SelectLociProps> {
         private spine: StateTreeSpine.Impl;
-        private lociMarkProvider = (reprLoci: Representation.Loci, action: MarkerAction, noRender?: boolean) => {
+        private lociMarkProvider = (reprLoci: Representation.Loci, action: MarkerAction) => {
             if (!this.ctx.canvas3d || !this.params.mark) return;
-            this.ctx.canvas3d.mark({ loci: reprLoci.loci }, action, noRender);
+            this.ctx.canvas3d.mark({ loci: reprLoci.loci }, action);
         };
         private getLoci(loci: Loci) {
             return this.params.preferAtoms && Bond.isLoci(loci) && loci.bonds.length === 2

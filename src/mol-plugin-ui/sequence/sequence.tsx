@@ -6,15 +6,15 @@
  */
 
 import * as React from 'react';
-import { PluginUIComponent } from '../base';
-import { MarkerAction } from '../../mol-util/marker-action';
-import { ButtonsType, ModifiersKeys, getButtons, getModifiers, getButton } from '../../mol-util/input/input-observer';
-import { SequenceWrapper } from './wrapper';
-import { StructureElement, StructureProperties, Unit } from '../../mol-model/structure';
 import { Subject } from 'rxjs';
-import { debounceTime } from 'rxjs/operators';
+import { throttleTime } from 'rxjs/operators';
 import { OrderedSet } from '../../mol-data/int';
+import { StructureElement, StructureProperties, Unit } from '../../mol-model/structure';
 import { Representation } from '../../mol-repr/representation';
+import { ButtonsType, getButton, getButtons, getModifiers, ModifiersKeys } from '../../mol-util/input/input-observer';
+import { MarkerAction } from '../../mol-util/marker-action';
+import { PluginUIComponent } from '../base';
+import { SequenceWrapper } from './wrapper';
 
 type SequenceProps = {
     sequenceWrapper: SequenceWrapper.Any,
@@ -55,12 +55,10 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
         this.plugin.managers.interactivity.lociHighlights.addProvider(this.lociHighlightProvider);
         this.plugin.managers.interactivity.lociSelects.addProvider(this.lociSelectionProvider);
 
-        this.subscribe(debounceTime<{ seqIdx: number, buttons: number, button: number, modifiers: ModifiersKeys }>(15)(this.highlightQueue), (e) => {
+        this.subscribe(this.highlightQueue.pipe(throttleTime(3 * 16.666, void 0, { leading: true, trailing: true })), (e) => {
             const loci = this.getLoci(e.seqIdx < 0 ? void 0 : e.seqIdx);
             this.hover(loci, e.buttons, e.button, e.modifiers);
         });
-
-        // this.updateMarker()
     }
 
     componentWillUnmount() {
