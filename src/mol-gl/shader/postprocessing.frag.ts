@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Áron Samuel Kovács <aron.kovacs@mail.muni.cz>
@@ -24,8 +24,7 @@ uniform vec3 uFogColor;
 uniform vec3 uOutlineColor;
 uniform bool uTransparentBackground;
 
-uniform float uOcclusionBias;
-uniform float uOcclusionRadius;
+uniform vec2 uOcclusionOffset;
 
 uniform float uMaxPossibleViewZDiff;
 
@@ -102,7 +101,7 @@ void main(void) {
         if (!isBackground(depth)) {
             viewDist = abs(getViewZ(depth));
             fogFactor = smoothstep(uFogNear, uFogFar, viewDist);
-            float occlusionFactor = getSsao(coords);
+            float occlusionFactor = getSsao(coords + uOcclusionOffset);
             if (!uTransparentBackground) {
                 color.rgb = mix(mix(occlusionColor, uFogColor, fogFactor), color.rgb, occlusionFactor);
             } else {

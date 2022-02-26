@@ -15,6 +15,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Add ``UnitResonance`` property with info about delocalized triplets
 - Resolve marking in main renderer loop to improve overall performance
 - Use ``throttleTime`` instead of ``debounceTime`` in sequence viewer for better responsiveness
+- Reuse occlusion for secondary passes during multi-sampling
 
 ## [v3.2.0] - 2022-02-17
 

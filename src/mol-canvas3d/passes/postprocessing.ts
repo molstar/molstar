@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Áron Samuel Kovács <aron.kovacs@mail.muni.cz>
@@ -199,6 +199,7 @@ const PostprocessingSchema = {
     uMaxPossibleViewZDiff: UniformSpec('f'),
 
     dOcclusionEnable: DefineSpec('boolean'),
+    uOcclusionOffset: UniformSpec('v2'),
 
     dOutlineEnable: DefineSpec('boolean'),
     dOutlineScale: DefineSpec('number'),
@@ -227,6 +228,7 @@ function getPostprocessingRenderable(ctx: WebGLContext, colorTexture: Texture, d
         uMaxPossibleViewZDiff: ValueCell.create(0.5),
 
         dOcclusionEnable: ValueCell.create(true),
+        uOcclusionOffset: ValueCell.create(Vec2.create(0, 0)),
 
         dOutlineEnable: ValueCell.create(false),
         dOutlineScale: ValueCell.create(1),
@@ -494,6 +496,13 @@ export class PostprocessingPass {
         gl.scissor(x, y, width, height);
     }
 
+    occlusionOffset: [x: number, y: number] = [0, 0];
+    setOcclusionOffset(x: number, y: number) {
+        this.occlusionOffset[0] = x;
+        this.occlusionOffset[1] = y;
+        ValueCell.update(this.renderable.values.uOcclusionOffset, Vec2.set(this.renderable.values.uOcclusionOffset.ref.value, x, y));
+    }
+
     render(camera: ICamera, toDrawingBuffer: boolean, transparentBackground: boolean, backgroundColor: Color, props: PostprocessingProps) {
         this.updateState(camera, transparentBackground, backgroundColor, props);
 
@@ -502,15 +511,9 @@ export class PostprocessingPass {
             this.outlinesRenderable.render();
         }
 
-        if (props.occlusion.name === 'on') {
-            const { x, y, width, height } = camera.viewport;
-            const sx = Math.floor(x * this.ssaoScale);
-            const sy = Math.floor(y * this.ssaoScale);
-            const sw = Math.ceil(width * this.ssaoScale);
-            const sh = Math.ceil(height * this.ssaoScale);
-            this.webgl.gl.viewport(sx, sy, sw, sh);
-            this.webgl.gl.scissor(sx, sy, sw, sh);
-
+        // don't render occlusion if offset is given,
+        // which will reuse the existing occlusion
+        if (props.occlusion.name === 'on' && this.occlusionOffset[0] === 0 && this.occlusionOffset[1] === 0) {
             this.ssaoFramebuffer.bind();
             this.ssaoRenderable.render();
 
@@ -519,9 +522,6 @@ export class PostprocessingPass {
 
             this.ssaoBlurSecondPassFramebuffer.bind();
             this.ssaoBlurSecondPassRenderable.render();
-
-            this.webgl.gl.viewport(x, y, width, height);
-            this.webgl.gl.scissor(x, y, width, height);
         }
 
         if (toDrawingBuffer) {
