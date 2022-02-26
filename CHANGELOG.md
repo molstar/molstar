@@ -11,6 +11,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Fix "texture not renderable" & "texture not bound" warnings (#319)
 - Resolve marking in main renderer loop to improve overall performance
 - Use ``throttleTime`` instead of ``debounceTime`` in sequence viewer for better responsiveness
+- Change line geometry default ``scaleFactor`` to 2 (3 is too big after fixing line rendering)
 
 ## [v3.2.0] - 2022-02-17
 

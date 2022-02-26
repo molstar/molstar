@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -31,7 +31,7 @@ export const LineParams = {
     ...ElementCrossParams,
     multipleBonds: PD.Select('offset', PD.arrayToOptions(['off', 'symmetric', 'offset'] as const)),
     includeParent: PD.Boolean(false),
-    sizeFactor: PD.Numeric(3, { min: 0.01, max: 10, step: 0.01 }),
+    sizeFactor: PD.Numeric(2, { min: 0.01, max: 10, step: 0.01 }),
     unitKinds: getUnitKindsParam(['atomic']),
     visuals: PD.MultiSelect(['intra-bond', 'inter-bond', 'element-point', 'element-cross'], PD.objectToOptions(LineVisuals))
 };
