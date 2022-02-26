@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -98,6 +98,7 @@ export namespace Model {
         const srcIndex = model.atomicHierarchy.atomSourceIndex;
         const isIdentity = Column.isIdentity(srcIndex);
         const srcIndexArray = isIdentity ? void 0 : srcIndex.toArray({ array: Int32Array });
+        const coarseGrained = isCoarseGrained(model);
 
         for (let i = 0, il = frames.length; i < il; ++i) {
             const f = frames[i];
@@ -119,6 +120,7 @@ export namespace Model {
             }
 
             TrajectoryInfo.set(m, { index: i, size: frames.length });
+            CoarseGrained.set(m, coarseGrained);
 
             trajectory.push(m);
         }
@@ -138,11 +140,13 @@ export namespace Model {
 
             const bondData = { pairs: topology.bonds, count: model.atomicHierarchy.atoms._rowCount };
             const indexPairBonds = IndexPairBonds.fromData(bondData);
+            const coarseGrained = isCoarseGrained(model);
 
             let index = 0;
             for (const m of trajectory) {
                 IndexPairBonds.Provider.set(m, indexPairBonds);
                 TrajectoryInfo.set(m, { index: index++, size: trajectory.length });
+                CoarseGrained.set(m, coarseGrained);
             }
             return new ArrayTrajectory(trajectory);
         });
@@ -225,35 +229,44 @@ export namespace Model {
     };
 
     const CoarseGrainedProp = '__CoarseGrained__';
+    export const CoarseGrained = {
+        get(model: Model): boolean | undefined {
+            return model._staticPropertyData[CoarseGrainedProp];
+        },
+        set(model: Model, coarseGrained: boolean) {
+            return model._staticPropertyData[CoarseGrainedProp] = coarseGrained;
+        }
+    };
     /**
      * Has typical coarse grained atom names (BB, SC1) or less than three times as many
      * atoms as polymer residues (C-alpha only models).
      */
     export function isCoarseGrained(model: Model): boolean {
-        if (model._staticPropertyData[CoarseGrainedProp] !== undefined) return model._staticPropertyData[CoarseGrainedProp];
+        let coarseGrained = CoarseGrained.get(model);
+        if (coarseGrained === undefined) {
+            let polymerResidueCount = 0;
+            const { polymerType } = model.atomicHierarchy.derived.residue;
+            for (let i = 0; i < polymerType.length; ++i) {
+                if (polymerType[i] !== PolymerType.NA) polymerResidueCount += 1;
+            }
 
-        let polymerResidueCount = 0;
-        const { polymerType } = model.atomicHierarchy.derived.residue;
-        for (let i = 0; i < polymerType.length; ++i) {
-            if (polymerType[i] !== PolymerType.NA) polymerResidueCount += 1;
+            // check for coarse grained atom names
+            let hasBB = false, hasSC1 = false;
+            const { label_atom_id, _rowCount: atomCount } = model.atomicHierarchy.atoms;
+            for (let i = 0; i < atomCount; ++i) {
+                const atomName = label_atom_id.value(i);
+                if (!hasBB && atomName === 'BB') hasBB = true;
+                if (!hasSC1 && atomName === 'SC1') hasSC1 = true;
+                if (hasBB && hasSC1) break;
+            }
+
+            coarseGrained = (hasBB && hasSC1) || (
+                polymerResidueCount && atomCount
+                    ? atomCount / polymerResidueCount < 3
+                    : false
+            );
+            CoarseGrained.set(model, coarseGrained);
         }
-
-        // check for coarse grained atom names
-        let hasBB = false, hasSC1 = false;
-        const { label_atom_id, _rowCount: atomCount } = model.atomicHierarchy.atoms;
-        for (let i = 0; i < atomCount; ++i) {
-            const atomName = label_atom_id.value(i);
-            if (!hasBB && atomName === 'BB') hasBB = true;
-            if (!hasSC1 && atomName === 'SC1') hasSC1 = true;
-            if (hasBB && hasSC1) break;
-        }
-
-        const coarseGrained = (hasBB && hasSC1) || (
-            polymerResidueCount && atomCount
-                ? atomCount / polymerResidueCount < 3
-                : false
-        );
-        model._staticPropertyData[CoarseGrainedProp] = coarseGrained;
         return coarseGrained;
     }
 
