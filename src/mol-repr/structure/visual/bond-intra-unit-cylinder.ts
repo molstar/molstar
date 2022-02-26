@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -79,11 +79,15 @@ function getIntraUnitBondCylinderBuilderProps(unit: Unit.Atomic, structure: Stru
     };
 
     const { elementRingIndices, elementAromaticRingIndices } = unit.rings;
+    const deloTriplets = aromaticBonds ? unit.resonance.delocalizedTriplets : undefined;
 
     return {
         linkCount: edgeCount * 2,
         referencePosition: (edgeIndex: number) => {
             let aI = a[edgeIndex], bI = b[edgeIndex];
+
+            const rI = deloTriplets?.getThirdElement(aI, bI);
+            if (rI !== undefined) return pos(elements[rI], vRef);
 
             if (aI > bI) [aI, bI] = [bI, aI];
             if (offset[aI + 1] - offset[aI] === 1) [aI, bI] = [bI, aI];
@@ -145,8 +149,10 @@ function getIntraUnitBondCylinderBuilderProps(unit: Unit.Atomic, structure: Stru
                 if (isBondType(f, BondType.Flag.Aromatic) || (arCount && !ignoreComputedAromatic)) {
                     if (arCount === 2) {
                         return LinkStyle.MirroredAromatic;
-                    } else {
+                    } else if (arCount === 1 || deloTriplets?.getThirdElement(aI, bI)) {
                         return LinkStyle.Aromatic;
+                    } else {
+                        // case for bonds between two aromatic rings
                     }
                 }
             }

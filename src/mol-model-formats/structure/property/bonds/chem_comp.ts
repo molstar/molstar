@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2020 Mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2022 Mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -56,10 +56,10 @@ export namespace ComponentBond {
         const entries: Map<string, Entry> = new Map();
 
         function addEntry(id: string) {
-            // weird behavior when 'PRO' is requested - will report a single bond between N and H because a later operation would override real content
-            if (entries.has(id)) {
-                return entries.get(id)!;
-            }
+            // weird behavior when 'PRO' is requested - will report a single bond
+            // between N and H because a later operation would override real content
+            if (entries.has(id)) return entries.get(id)!;
+
             const e = new Entry(id);
             entries.set(id, e);
             return e;
@@ -83,10 +83,8 @@ export namespace ComponentBond {
             let ord = 1;
             if (aromatic) flags |= BondType.Flag.Aromatic;
             switch (order.toLowerCase()) {
-                case 'doub':
-                case 'delo':
-                    ord = 2;
-                    break;
+                case 'delo': flags |= BondType.Flag.Aromatic; break;
+                case 'doub': ord = 2; break;
                 case 'trip': ord = 3; break;
                 case 'quad': ord = 4; break;
             }
