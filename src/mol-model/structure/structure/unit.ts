@@ -223,7 +223,12 @@ namespace Unit {
 
         remapModel(model: Model, dynamicBonds: boolean, props?: AtomicProperties) {
             if (!props) {
-                props = { ...this.props, bonds: dynamicBonds ? undefined : tryRemapBonds(this, this.props.bonds, model) };
+                props = {
+                    ...this.props,
+                    bonds: dynamicBonds && !this.props.bonds?.props?.canRemap
+                        ? undefined
+                        : tryRemapBonds(this, this.props.bonds, model, dynamicBonds)
+                };
                 if (!Unit.isSameConformation(this, model)) {
                     const b = props.boundary;
                     if (b) {
@@ -502,7 +507,7 @@ namespace Unit {
         return isSameConformation(a, b.model);
     }
 
-    function tryRemapBonds(a: Atomic, old: IntraUnitBonds | undefined, model: Model) {
+    function tryRemapBonds(a: Atomic, old: IntraUnitBonds | undefined, model: Model, dynamicBonds: boolean) {
         // TODO: should include additional checks?
 
         if (!old) return void 0;
@@ -516,7 +521,7 @@ namespace Unit {
             return void 0;
         }
 
-        if (old.props?.canRemap) {
+        if (old.props?.canRemap || !dynamicBonds) {
             return old;
         }
         return isSameConformation(a, model) ? old : void 0;

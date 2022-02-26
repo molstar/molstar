@@ -18,6 +18,7 @@ Note that since we don't clearly distinguish between a public and private interf
     - Reuse unit boundary if sphere has not changed too much
     - Don't show 'inter-bond' and 'element-cross' visuals in line representations of polymerAndLigand preset
 - Fix additional mononucleotides detected as polymer components
+- Fix and improve ``canRemap`` handling in ``IntraUnitBonds``
 
 ## [v3.2.0] - 2022-02-17
 
