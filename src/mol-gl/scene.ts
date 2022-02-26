@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -79,6 +79,7 @@ interface Scene extends Object3D {
     has: (o: GraphicsRenderObject) => boolean
     clear: () => void
     forEach: (callbackFn: (value: GraphicsRenderable, key: GraphicsRenderObject) => void) => void
+    getMarkerAverage: () => number
 }
 
 namespace Scene {
@@ -243,7 +244,18 @@ namespace Scene {
                     visibleHash = computeVisibleHash();
                 }
                 return boundingSphereVisible;
-            }
+            },
+            getMarkerAverage() {
+                if (primitives.length === 0 && volumes.length === 0) return 0;
+                let markerAverage = 0;
+                for (let i = 0, il = primitives.length; i < il; ++i) {
+                    markerAverage += primitives[i].values.markerAverage.ref.value;
+                }
+                for (let i = 0, il = volumes.length; i < il; ++i) {
+                    markerAverage += volumes[i].values.markerAverage.ref.value;
+                }
+                return markerAverage / (primitives.length + volumes.length);
+            },
         };
     }
 }

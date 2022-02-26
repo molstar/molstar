@@ -16,6 +16,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Resolve marking in main renderer loop to improve overall performance
 - Use ``throttleTime`` instead of ``debounceTime`` in sequence viewer for better responsiveness
 - Reuse occlusion for secondary passes during multi-sampling
+- Check if marking passes are needed before doing them
 
 ## [v3.2.0] - 2022-02-17
 
