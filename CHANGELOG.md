@@ -6,6 +6,8 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+## [v3.3.0] - 2022-02-27
+
 - Fix parsing contour-level from emdb v3 header files
 - Fix invalid CSS (#376)
 - Fix "texture not renderable" & "texture not bound" warnings (#319)
