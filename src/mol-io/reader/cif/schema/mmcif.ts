@@ -1,7 +1,7 @@
 /**
  * Copyright (c) 2017-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
- * Code-generated 'mmCIF' schema file. Dictionary versions: mmCIF 5.355, IHM 1.17, MA 1.3.4.
+ * Code-generated 'mmCIF' schema file. Dictionary versions: mmCIF 5.356, IHM 1.17, MA 1.3.5.
  *
  * @author molstar/ciftools package
  */
@@ -2233,6 +2233,10 @@ export const mmCIF_Schema = {
         oligomeric_count: int,
         /**
          * A description of special aspects of the macromolecular assembly.
+         *
+         * In the PDB, 'representative helical assembly', 'complete point assembly',
+         * 'complete icosahedral assembly', 'software_defined_assembly', 'author_defined_assembly',
+         * and 'author_and_software_defined_assembly' are considered "biologically relevant assemblies.
          */
         details: str,
         /**

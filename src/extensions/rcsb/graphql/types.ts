@@ -4,7 +4,7 @@ export type InputMaybe<T> = Maybe<T>;
 export type Exact<T extends { [key: string]: unknown }> = { [K in keyof T]: T[K] };
 export type MakeOptional<T, K extends keyof T> = Omit<T, K> & { [SubKey in K]?: Maybe<T[SubKey]> };
 export type MakeMaybe<T, K extends keyof T> = Omit<T, K> & { [SubKey in K]: Maybe<T[SubKey]> };
-// Generated on 2022-02-06T15:40:15-08:00
+// Generated on 2022-02-27T12:49:36-08:00
 
 /** All built-in and custom scalars, mapped to their actual values */
 export type Scalars = {
@@ -477,6 +477,8 @@ export type ClustersMembers = {
 export type CoreAssembly = {
   /** Get PDB entry that includes this assembly. */
   readonly entry?: Maybe<CoreEntry>;
+  /** Get all pairwise polymer interfaces for this PDB assembly. */
+  readonly interfaces?: Maybe<ReadonlyArray<Maybe<CoreInterface>>>;
   readonly pdbx_struct_assembly?: Maybe<PdbxStructAssembly>;
   readonly pdbx_struct_assembly_auth_evidence?: Maybe<ReadonlyArray<Maybe<PdbxStructAssemblyAuthEvidence>>>;
   readonly pdbx_struct_assembly_gen?: Maybe<ReadonlyArray<Maybe<PdbxStructAssemblyGen>>>;
@@ -722,6 +724,16 @@ export type CoreEntry = {
   readonly struct?: Maybe<Struct>;
   readonly struct_keywords?: Maybe<StructKeywords>;
   readonly symmetry?: Maybe<Symmetry>;
+};
+
+export type CoreInterface = {
+  readonly rcsb_id: Scalars['String'];
+  readonly rcsb_interface_container_identifiers: RcsbInterfaceContainerIdentifiers;
+  readonly rcsb_interface_info?: Maybe<RcsbInterfaceInfo>;
+  /** List of operations for each interface partner. */
+  readonly rcsb_interface_operator: ReadonlyArray<Maybe<ReadonlyArray<Maybe<ReadonlyArray<Maybe<Scalars['String']>>>>>>;
+  readonly rcsb_interface_partner: ReadonlyArray<Maybe<RcsbInterfacePartner>>;
+  readonly rcsb_latest_revision?: Maybe<RcsbLatestRevision>;
 };
 
 export type CoreNonpolymerEntity = {
@@ -3184,6 +3196,28 @@ export type GeneName = {
   /** Allowable values: PRIMARY, SYNONYM, ORDERED_LOCUS, ORF. */
   readonly type?: Maybe<Scalars['String']>;
   readonly value?: Maybe<Scalars['String']>;
+};
+
+export type InterfacePartnerFeatureAdditionalProperties = {
+  /**
+   * The additional property name.
+   *
+   * Allowable values:
+   * TO_BE_DEFINED
+   *
+   */
+  readonly name?: Maybe<Scalars['String']>;
+  /** The value(s) of the additional property. */
+  readonly values?: Maybe<ReadonlyArray<Maybe<Scalars['ObjectScalar']>>>;
+};
+
+export type InterfacePartnerFeatureFeaturePositions = {
+  /** An identifier for the monomer at which this segment of the feature begins. */
+  readonly beg_seq_id: Scalars['Int'];
+  /** An identifier for the monomer at which this segment of the feature ends. */
+  readonly end_seq_id?: Maybe<Scalars['Int']>;
+  /** The value(s) of the feature over the monomer segment. */
+  readonly values?: Maybe<ReadonlyArray<Maybe<Scalars['Float']>>>;
 };
 
 export type PdbxAuditRevisionCategory = {
@@ -6745,6 +6779,10 @@ export type Query = {
   readonly entries?: Maybe<ReadonlyArray<Maybe<CoreEntry>>>;
   /** Get PDB entry given the PDB id. */
   readonly entry?: Maybe<CoreEntry>;
+  /** Get a pairwise polymeric interface given the PDB ID, ASSEMBLY ID and INTERFACE ID. */
+  readonly interface?: Maybe<CoreInterface>;
+  /** Get a list of pairwise polymeric interfaces given a list of INTERFACE IDs. Here INTERFACE ID is a compound identifier that includes entry_id, assembly_id and interface_id e.g. 1XXX-1.1. */
+  readonly interfaces?: Maybe<ReadonlyArray<Maybe<CoreInterface>>>;
   /** Get a list of PDB non-polymer entities given a list of ENTITY IDs. Here ENTITY ID is a compound identifier that includes entry_id and entity_id separated by '_', e.g. 1XXX_1. */
   readonly nonpolymer_entities?: Maybe<ReadonlyArray<Maybe<CoreNonpolymerEntity>>>;
   /** Get a PDB non-polymer entity, given the PDB ID and ENTITY ID. Here ENTITY ID is a '1', '2', '3', etc. */
@@ -6828,6 +6866,20 @@ export type QueryEntriesArgs = {
 /** Query root */
 export type QueryEntryArgs = {
   entry_id: Scalars['String'];
+};
+
+
+/** Query root */
+export type QueryInterfaceArgs = {
+  assembly_id: Scalars['String'];
+  entry_id: Scalars['String'];
+  interface_id: Scalars['String'];
+};
+
+
+/** Query root */
+export type QueryInterfacesArgs = {
+  interface_ids: ReadonlyArray<Scalars['String']>;
 };
 
 
@@ -6952,6 +7004,8 @@ export type RcsbAssemblyContainerIdentifiers = {
   readonly assembly_id: Scalars['String'];
   /** Entry identifier for the container. */
   readonly entry_id: Scalars['String'];
+  /** List of binary interface Ids within the assembly (it points to interface id collection). */
+  readonly interface_ids?: Maybe<ReadonlyArray<Maybe<Scalars['String']>>>;
   /**
    * A unique identifier for each object in this assembly container formed by
    *  a dash separated concatenation of entry and assembly identifiers.
@@ -7010,6 +7064,24 @@ export type RcsbAssemblyInfo = {
    *  This is the total count of non-polymer entity instances generated in the assembly coordinate data.
    */
   readonly nonpolymer_entity_instance_count?: Maybe<Scalars['Int']>;
+  /** Number of heterologous (both binding sites are different) interface entities */
+  readonly num_heterologous_interface_entities?: Maybe<Scalars['Int']>;
+  /** Number of heteromeric (both partners are different polymeric entities) interface entities */
+  readonly num_heteromeric_interface_entities?: Maybe<Scalars['Int']>;
+  /** Number of homomeric (both partners are the same polymeric entity) interface entities */
+  readonly num_homomeric_interface_entities?: Maybe<Scalars['Int']>;
+  /** Number of polymer-polymer interface entities, grouping equivalent interfaces at the entity level (i.e. same entity_ids on either side, with similar but not identical binding sites) */
+  readonly num_interface_entities?: Maybe<Scalars['Int']>;
+  /** Number of geometrically equivalent (i.e. same asym_ids on either side) polymer-polymer interfaces in the assembly */
+  readonly num_interfaces?: Maybe<Scalars['Int']>;
+  /** Number of isologous (both binding sites are same, i.e. interface is symmetric) interface entities */
+  readonly num_isologous_interface_entities?: Maybe<Scalars['Int']>;
+  /** Number of nucleic acid-nucleic acid interface entities */
+  readonly num_na_interface_entities?: Maybe<Scalars['Int']>;
+  /** Number of protein-nucleic acid interface entities */
+  readonly num_prot_na_interface_entities?: Maybe<Scalars['Int']>;
+  /** Number of protein-protein interface entities */
+  readonly num_protein_interface_entities?: Maybe<Scalars['Int']>;
   /** The assembly non-hydrogen polymer entity atomic coordinate count. */
   readonly polymer_atom_count?: Maybe<Scalars['Int']>;
   /**
@@ -7085,6 +7157,10 @@ export type RcsbAssemblyInfo = {
    *  This is the total count of solvent entity instances generated in the assembly coordinate data.
    */
   readonly solvent_entity_instance_count?: Maybe<Scalars['Int']>;
+  /** Total buried surface area calculated as the sum of buried surface areas over all interfaces */
+  readonly total_assembly_buried_surface_area?: Maybe<Scalars['Float']>;
+  /** Total number of interfacing residues in the assembly, calculated as the sum of interfacing residues over all interfaces */
+  readonly total_number_interface_residues?: Maybe<Scalars['Int']>;
   /**
    * The number of unmodeled polymer monomers in the assembly coordinate data. This is
    *  the total count of monomers with unreported coordinate data for all polymer
@@ -8817,6 +8893,99 @@ export type RcsbGenomicLineage = {
   readonly name?: Maybe<Scalars['String']>;
 };
 
+export type RcsbInterfaceContainerIdentifiers = {
+  /** This item references an assembly in pdbx_struct_assembly */
+  readonly assembly_id: Scalars['String'];
+  /** Entry identifier for the container. */
+  readonly entry_id: Scalars['String'];
+  /**
+   * Identifier for NCS-equivalent interfaces within the assembly (same entity_ids on both sides)
+   *
+   * Examples:
+   * 1, 2
+   *
+   */
+  readonly interface_entity_id?: Maybe<Scalars['String']>;
+  /**
+   * Identifier for the geometrically equivalent (same asym_ids on either side) interfaces within the assembly
+   *
+   * Examples:
+   * 1, 2
+   *
+   */
+  readonly interface_id: Scalars['String'];
+  /**
+   * Unique identifier for the document
+   *
+   * Examples:
+   * 2UZI-1.A.B?1
+   *
+   */
+  readonly rcsb_id: Scalars['String'];
+};
+
+export type RcsbInterfaceInfo = {
+  /** Total interface buried surface area */
+  readonly interface_area?: Maybe<Scalars['Float']>;
+  /** Allowable values: homo, hetero. */
+  readonly interface_character?: Maybe<Scalars['String']>;
+  /** Number of core interface residues, defined as those that bury >90% accessible surface area with respect to the unbound state */
+  readonly num_core_interface_residues?: Maybe<Scalars['Int']>;
+  /** Number of interface residues, defined as those with burial fraction > 0 */
+  readonly num_interface_residues?: Maybe<Scalars['Int']>;
+  /** Allowable values: Nucleic acid (only), Protein (only), Protein/NA. */
+  readonly polymer_composition?: Maybe<Scalars['String']>;
+  /** The Jaccard score (intersection over union) of interface contacts in homomeric interfaces, comparing contact sets left-right vs right-left. High values indicate isologous (symmetric) interfaces, with value=1 if perfectly symmetric (e.g. crystallographic symmetry) */
+  readonly self_jaccard_contact_score?: Maybe<Scalars['Float']>;
+};
+
+export type RcsbInterfacePartner = {
+  readonly interface_partner_feature?: Maybe<ReadonlyArray<Maybe<RcsbInterfacePartnerInterfacePartnerFeature>>>;
+  readonly interface_partner_identifier?: Maybe<RcsbInterfacePartnerInterfacePartnerIdentifier>;
+};
+
+export type RcsbInterfacePartnerInterfacePartnerFeature = {
+  readonly additional_properties?: Maybe<ReadonlyArray<Maybe<InterfacePartnerFeatureAdditionalProperties>>>;
+  /**
+   * Identifies the version of the feature assignment.
+   *
+   * Examples:
+   * V4_0_2
+   *
+   */
+  readonly assignment_version?: Maybe<Scalars['String']>;
+  /** A description for the feature. */
+  readonly description?: Maybe<Scalars['String']>;
+  /** An identifier for the feature. */
+  readonly feature_id?: Maybe<Scalars['String']>;
+  readonly feature_positions?: Maybe<ReadonlyArray<Maybe<InterfacePartnerFeatureFeaturePositions>>>;
+  /** A name for the feature. */
+  readonly name?: Maybe<Scalars['String']>;
+  /**
+   * Code identifying the individual, organization or program that assigned the feature.
+   *
+   * Examples:
+   * NACCESS
+   *
+   */
+  readonly provenance_source?: Maybe<Scalars['String']>;
+  /**
+   * A type or category of the feature.
+   *
+   * Allowable values:
+   * ASA_UNBOUND, ASA_BOUND
+   *
+   */
+  readonly type?: Maybe<Scalars['String']>;
+};
+
+export type RcsbInterfacePartnerInterfacePartnerIdentifier = {
+  /** Instance identifier for this container. */
+  readonly asym_id: Scalars['String'];
+  /** Polymer entity identifier for the container. */
+  readonly entity_id: Scalars['String'];
+};
+
 export type RcsbLatestRevision = {
   /** The major version number of the latest revision. */
   readonly major_revision?: Maybe<Scalars['Int']>;
@@ -10263,7 +10432,7 @@ export type RcsbPolymerInstanceFeature = {
    * A type or category of the feature.
    *
    * Allowable values:
-   * ANGLE_OUTLIER, BINDING_SITE, BOND_OUTLIER, C-MANNOSYLATION_SITE, CATH, CIS-PEPTIDE, ECOD, HELIX_P, MEMBRANE_SEGMENT, MOGUL_ANGLE_OUTLIER, MOGUL_BOND_OUTLIER, N-GLYCOSYLATION_SITE, O-GLYCOSYLATION_SITE, RAMACHANDRAN_OUTLIER, ROTAMER_OUTLIER, RSCC_OUTLIER, RSRZ_OUTLIER, S-GLYCOSYLATION_SITE, SABDAB_ANTIBODY_HEAVY_CHAIN_SUBCLASS, SABDAB_ANTIBODY_LIGHT_CHAIN_SUBCLASS, SABDAB_ANTIBODY_LIGHT_CHAIN_TYPE, SCOP, SCOP2B_SUPERFAMILY, SCOP2_FAMILY, SCOP2_SUPERFAMILY, SHEET, STEREO_OUTLIER, UNASSIGNED_SEC_STRUCT, UNOBSERVED_ATOM_XYZ, UNOBSERVED_RESIDUE_XYZ, ZERO_OCCUPANCY_ATOM_XYZ, ZERO_OCCUPANCY_RESIDUE_XYZ
+   * ANGLE_OUTLIER, BINDING_SITE, BOND_OUTLIER, C-MANNOSYLATION_SITE, CATH, CIS-PEPTIDE, ECOD, HELIX_P, MEMBRANE_SEGMENT, MOGUL_ANGLE_OUTLIER, MOGUL_BOND_OUTLIER, N-GLYCOSYLATION_SITE, O-GLYCOSYLATION_SITE, RAMACHANDRAN_OUTLIER, ROTAMER_OUTLIER, RSCC_OUTLIER, RSRZ_OUTLIER, S-GLYCOSYLATION_SITE, SABDAB_ANTIBODY_HEAVY_CHAIN_SUBCLASS, SABDAB_ANTIBODY_LIGHT_CHAIN_SUBCLASS, SABDAB_ANTIBODY_LIGHT_CHAIN_TYPE, SCOP, SCOP2B_SUPERFAMILY, SCOP2_FAMILY, SCOP2_SUPERFAMILY, SHEET, STEREO_OUTLIER, UNASSIGNED_SEC_STRUCT, UNOBSERVED_ATOM_XYZ, UNOBSERVED_RESIDUE_XYZ, ZERO_OCCUPANCY_ATOM_XYZ, ZERO_OCCUPANCY_RESIDUE_XYZ, ASA
    *
    */
   readonly type?: Maybe<Scalars['String']>;
