@@ -24,7 +24,7 @@ const Canvas3DPresets = {
     illustrative: {
         canvas3d: <Preset>{
             postprocessing: {
-                occlusion: { name: 'on', params: { samples: 32, radius: 6, bias: 1.4, blurKernelSize: 15 } },
+                occlusion: { name: 'on', params: { samples: 32, radius: 6, bias: 1.4, blurKernelSize: 15, scaleFactor: 1 } },
                 outline: { name: 'on', params: { scale: 1, threshold: 0.33, color: Color(0x000000) } }
             },
             renderer: {
@@ -36,7 +36,7 @@ const Canvas3DPresets = {
     occlusion: {
         canvas3d: <Preset>{
             postprocessing: {
-                occlusion: { name: 'on', params: { samples: 32, radius: 6, bias: 1.4, blurKernelSize: 15 } },
+                occlusion: { name: 'on', params: { samples: 32, radius: 6, bias: 1.4, blurKernelSize: 15, scaleFactor: 1 } },
                 outline: { name: 'off', params: {} }
             },
             renderer: {
