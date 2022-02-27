@@ -15,6 +15,14 @@ Note that since we don't clearly distinguish between a public and private interf
 - Add ``UnitResonance`` property with info about delocalized triplets
 - Resolve marking in main renderer loop to improve overall performance
 - Use ``throttleTime`` instead of ``debounceTime`` in sequence viewer for better responsiveness
+- Change line geometry default ``scaleFactor`` to 2 (3 is too big after fixing line rendering)
+- Trajectory animation performance improvements
+    - Reuse ``Model.CoarseGrained`` for coordinate trajectories
+    - Avoid calculating ``InterUnitBonds`` when ``Structure.parent`` ones are empty
+    - Reuse unit boundary if sphere has not changed too much
+    - Don't show 'inter-bond' and 'element-cross' visuals in line representations of polymerAndLigand preset
+- Fix additional mononucleotides detected as polymer components
+- Fix and improve ``canRemap`` handling in ``IntraUnitBonds``
 - Reuse occlusion for secondary passes during multi-sampling
 - Check if marking passes are needed before doing them
 - Add ``scaleFactor`` parameter to adjust resolution of occlusion calculation

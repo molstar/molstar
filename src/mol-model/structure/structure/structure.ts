@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -232,7 +232,14 @@ class Structure {
 
     get interUnitBonds() {
         if (this.state.interUnitBonds) return this.state.interUnitBonds;
-        this.state.interUnitBonds = computeInterUnitBonds(this, { ignoreWater: !this.dynamicBonds });
+        if (this.parent && this.state.dynamicBonds === this.parent.state.dynamicBonds &&
+            this.parent.state.interUnitBonds && this.parent.state.interUnitBonds.edgeCount === 0
+        ) {
+            // no need to compute InterUnitBonds if parent's ones are empty
+            this.state.interUnitBonds = new InterUnitBonds(new Map());
+        } else {
+            this.state.interUnitBonds = computeInterUnitBonds(this, { ignoreWater: !this.dynamicBonds });
+        }
         return this.state.interUnitBonds;
     }
 

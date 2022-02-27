@@ -141,7 +141,7 @@ function findBonds(unit: Unit.Atomic, props: BondComputationProps): IntraUnitBon
         const aI = atoms[_aI];
 
         const elemA = type_symbol.value(aI);
-        if (isWatery && (elemA !== 'H' || elemA !== 'O')) isWatery = false;
+        if (isWatery && (elemA !== 'H' && elemA !== 'O')) isWatery = false;
 
         const structConnEntries = props.forceCompute ? void 0 : structConn && structConn.byAtomIndex.get(aI);
         let hasStructConn = false;

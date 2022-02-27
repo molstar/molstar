@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -26,6 +26,9 @@ import { IndexPairBonds } from '../../../mol-model-formats/structure/property/bo
 import { ElementSetIntraBondCache } from './unit/bonds/element-set-intra-bond-cache';
 import { ModelSymmetry } from '../../../mol-model-formats/structure/property/symmetry';
 import { getResonance, UnitResonance } from './unit/resonance';
+
+// avoiding namespace lookup improved performance in Chrome (Aug 2020)
+const v3add = Vec3.add;
 
 /**
  * A building block of a structure that corresponds to an atomic or
@@ -221,9 +224,32 @@ namespace Unit {
 
         remapModel(model: Model, dynamicBonds: boolean, props?: AtomicProperties) {
             if (!props) {
-                props = { ...this.props, bonds: dynamicBonds ? undefined : tryRemapBonds(this, this.props.bonds, model) };
+                props = {
+                    ...this.props,
+                    bonds: dynamicBonds && !this.props.bonds?.props?.canRemap
+                        ? undefined
+                        : tryRemapBonds(this, this.props.bonds, model, dynamicBonds)
+                };
                 if (!Unit.isSameConformation(this, model)) {
-                    props.boundary = undefined;
+                    const b = props.boundary;
+                    if (b) {
+                        const { elements } = this;
+                        const pos = this.conformation.invariantPosition;
+                        const v = Vec3();
+                        const center = Vec3();
+
+                        for (let i = 0, il = elements.length; i < il; i++) {
+                            pos(elements[i], v);
+                            v3add(center, center, v);
+                        }
+                        Vec3.scale(center, center, 1 / elements.length);
+
+                        // only invalidate boundary if sphere has changed too much
+                        if (Vec3.distance(center, b.sphere.center) / b.sphere.radius >= 1.0) {
+                            props.boundary = undefined;
+                        }
+                    }
+
                     props.lookup3d = undefined;
                     props.principalAxes = undefined;
                 }
@@ -489,7 +515,7 @@ namespace Unit {
         return isSameConformation(a, b.model);
     }
 
-    function tryRemapBonds(a: Atomic, old: IntraUnitBonds | undefined, model: Model) {
+    function tryRemapBonds(a: Atomic, old: IntraUnitBonds | undefined, model: Model, dynamicBonds: boolean) {
         // TODO: should include additional checks?
 
         if (!old) return void 0;
@@ -503,7 +529,7 @@ namespace Unit {
             return void 0;
         }
 
-        if (old.props?.canRemap) {
+        if (old.props?.canRemap || !dynamicBonds) {
             return old;
         }
         return isSameConformation(a, model) ? old : void 0;
