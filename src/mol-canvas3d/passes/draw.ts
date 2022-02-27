@@ -307,19 +307,22 @@ export class DrawPass {
         }
 
         if (markingEnabled) {
-            const markingDepthTest = props.marking.ghostEdgeStrength < 1;
-            if (markingDepthTest) {
-                this.marking.depthTarget.bind();
+            const markerAverage = scene.getMarkerAverage();
+            if (markerAverage > 0) {
+                const markingDepthTest = props.marking.ghostEdgeStrength < 1;
+                if (markingDepthTest && markerAverage !== 1) {
+                    this.marking.depthTarget.bind();
+                    renderer.clear(false, true);
+                    renderer.renderMarkingDepth(scene.primitives, camera, null);
+                }
+
+                this.marking.maskTarget.bind();
                 renderer.clear(false, true);
-                renderer.renderMarkingDepth(scene.primitives, camera, null);
+                renderer.renderMarkingMask(scene.primitives, camera, markingDepthTest ? this.marking.depthTarget.texture : null);
+
+                this.marking.update(props.marking);
+                this.marking.render(camera.viewport, postprocessingEnabled ? this.postprocessing.target : this.colorTarget);
             }
-
-            this.marking.maskTarget.bind();
-            renderer.clear(false, true);
-            renderer.renderMarkingMask(scene.primitives, camera, markingDepthTest ? this.marking.depthTarget.texture : null);
-
-            this.marking.update(props.marking);
-            this.marking.render(camera.viewport, postprocessingEnabled ? this.postprocessing.target : this.colorTarget);
         }
 
         if (helper.debug.isEnabled) {

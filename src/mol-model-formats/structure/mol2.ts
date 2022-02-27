@@ -103,11 +103,11 @@ async function getModels(mol2: Mol2File, ctx: RuntimeContext) {
             const flag = Column.ofIntArray(Column.mapToArray(bonds.bond_type, x => {
                 switch (x) {
                     case 'ar': // aromatic
+                    case 'am': // amide
                         return BondType.Flag.Aromatic | BondType.Flag.Covalent;
                     case 'du': // dummy
                     case 'nc': // not connected
                         return BondType.Flag.None;
-                    case 'am': // amide
                     case 'un': // unknown
                     default:
                         return BondType.Flag.Covalent;

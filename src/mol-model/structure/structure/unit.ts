@@ -25,6 +25,7 @@ import { Mat4, Vec3 } from '../../../mol-math/linear-algebra';
 import { IndexPairBonds } from '../../../mol-model-formats/structure/property/bonds/index-pair';
 import { ElementSetIntraBondCache } from './unit/bonds/element-set-intra-bond-cache';
 import { ModelSymmetry } from '../../../mol-model-formats/structure/property/symmetry';
+import { getResonance, UnitResonance } from './unit/resonance';
 
 // avoiding namespace lookup improved performance in Chrome (Aug 2020)
 const v3add = Vec3.add;
@@ -308,6 +309,12 @@ namespace Unit {
             return this.props.rings;
         }
 
+        get resonance() {
+            if (this.props.resonance) return this.props.resonance;
+            this.props.resonance = getResonance(this);
+            return this.props.resonance;
+        }
+
         get polymerElements() {
             if (this.props.polymerElements) return this.props.polymerElements;
             this.props.polymerElements = getAtomicPolymerElements(this);
@@ -368,6 +375,7 @@ namespace Unit {
     interface AtomicProperties extends BaseProperties {
         bonds?: IntraUnitBonds
         rings?: UnitRings
+        resonance?: UnitResonance
         nucleotideElements?: SortedArray<ElementIndex>
         proteinElements?: SortedArray<ElementIndex>
         residueCount?: number

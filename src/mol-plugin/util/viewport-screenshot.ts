@@ -119,7 +119,7 @@ class ViewportScreenshotHelper extends PluginComponent {
             postprocessing: {
                 ...c.props.postprocessing,
                 occlusion: aoProps.name === 'on'
-                    ? { name: 'on', params: { ...aoProps.params, samples: 128 } }
+                    ? { name: 'on', params: { ...aoProps.params, samples: 128, scaleFactor: 1 } }
                     : aoProps
             },
             marking: { ...c.props.marking }
@@ -143,7 +143,7 @@ class ViewportScreenshotHelper extends PluginComponent {
                 postprocessing: {
                     ...c.props.postprocessing,
                     occlusion: aoProps.name === 'on'
-                        ? { name: 'on', params: { ...aoProps.params, samples: 128 } }
+                        ? { name: 'on', params: { ...aoProps.params, samples: 128, scaleFactor: 1 } }
                         : aoProps
                 },
                 marking: { ...c.props.marking }

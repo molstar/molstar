@@ -9,6 +9,10 @@ Note that since we don't clearly distinguish between a public and private interf
 - Fix parsing contour-level from emdb v3 header files
 - Fix invalid CSS (#376)
 - Fix "texture not renderable" & "texture not bound" warnings (#319)
+- Fix visual for bonds between two aromatic rings
+- Fix visual for delocalized bonds (parsed from mmcif and mol2)
+- Fix ring computation algorithm
+- Add ``UnitResonance`` property with info about delocalized triplets
 - Resolve marking in main renderer loop to improve overall performance
 - Use ``throttleTime`` instead of ``debounceTime`` in sequence viewer for better responsiveness
 - Change line geometry default ``scaleFactor`` to 2 (3 is too big after fixing line rendering)
@@ -19,6 +23,9 @@ Note that since we don't clearly distinguish between a public and private interf
     - Don't show 'inter-bond' and 'element-cross' visuals in line representations of polymerAndLigand preset
 - Fix additional mononucleotides detected as polymer components
 - Fix and improve ``canRemap`` handling in ``IntraUnitBonds``
+- Reuse occlusion for secondary passes during multi-sampling
+- Check if marking passes are needed before doing them
+- Add ``scaleFactor`` parameter to adjust resolution of occlusion calculation
 
 ## [v3.2.0] - 2022-02-17
 

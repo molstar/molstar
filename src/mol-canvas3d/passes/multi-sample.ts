@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -157,6 +157,14 @@ export class MultiSamplePass {
             ValueCell.update(compose.values.uWeight, sampleWeight);
 
             // render scene
+            if (i === 0) {
+                drawPass.postprocessing.setOcclusionOffset(0, 0);
+            } else {
+                drawPass.postprocessing.setOcclusionOffset(
+                    offset[0] / width,
+                    offset[1] / height
+                );
+            }
             drawPass.render(ctx, props, false);
 
             // compose rendered scene with compose target
@@ -174,6 +182,8 @@ export class MultiSamplePass {
             }
             compose.render();
         }
+
+        drawPass.postprocessing.setOcclusionOffset(0, 0);
 
         ValueCell.update(compose.values.uWeight, 1.0);
         ValueCell.update(compose.values.tColor, composeTarget.texture);
@@ -236,6 +246,14 @@ export class MultiSamplePass {
                 camera.update();
 
                 // render scene
+                if (sampleIndex === 0) {
+                    drawPass.postprocessing.setOcclusionOffset(0, 0);
+                } else {
+                    drawPass.postprocessing.setOcclusionOffset(
+                        offset[0] / width,
+                        offset[1] / height
+                    );
+                }
                 drawPass.render(ctx, props, false);
 
                 // compose rendered scene with compose target
@@ -257,6 +275,8 @@ export class MultiSamplePass {
                 if (sampleIndex >= offsetList.length) break;
             }
         }
+
+        drawPass.postprocessing.setOcclusionOffset(0, 0);
 
         this.bindOutputTarget(toDrawingBuffer);
         gl.viewport(x, y, width, height);
@@ -291,23 +311,23 @@ const JitterVectors = [
         [0, 0]
     ],
     [
-        [4, 4], [-4, -4]
+        [0, 0], [-4, -4]
     ],
     [
-        [-2, -6], [6, -2], [-6, 2], [2, 6]
+        [0, 0], [6, -2], [-6, 2], [2, 6]
     ],
     [
-        [1, -3], [-1, 3], [5, 1], [-3, -5],
+        [0, 0], [-1, 3], [5, 1], [-3, -5],
         [-5, 5], [-7, -1], [3, 7], [7, -7]
     ],
     [
-        [1, 1], [-1, -3], [-3, 2], [4, -1],
+        [0, 0], [-1, -3], [-3, 2], [4, -1],
         [-5, -2], [2, 5], [5, 3], [3, -5],
         [-2, 6], [0, -7], [-4, -6], [-6, 4],
         [-8, 0], [7, -4], [6, 7], [-7, -8]
     ],
     [
-        [-4, -7], [-7, -5], [-3, -5], [-5, -4],
+        [0, 0], [-7, -5], [-3, -5], [-5, -4],
         [-1, -4], [-2, -2], [-6, -1], [-4, 0],
         [-7, 1], [-1, 2], [-6, 3], [-3, 3],
         [-7, 6], [-3, 6], [-5, 7], [-1, 7],
