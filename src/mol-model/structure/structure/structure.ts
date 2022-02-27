@@ -232,7 +232,9 @@ class Structure {
 
     get interUnitBonds() {
         if (this.state.interUnitBonds) return this.state.interUnitBonds;
-        if (this.parent && this.state.dynamicBonds === this.parent.state.dynamicBonds && this.parent.state.interUnitBonds?.edgeCount === 0) {
+        if (this.parent && this.state.dynamicBonds === this.parent.state.dynamicBonds &&
+            this.parent.state.interUnitBonds && this.parent.state.interUnitBonds.edgeCount === 0
+        ) {
             // no need to compute InterUnitBonds if parent's ones are empty
             this.state.interUnitBonds = new InterUnitBonds(new Map());
         } else {
