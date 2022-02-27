@@ -25,7 +25,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Fix and improve ``canRemap`` handling in ``IntraUnitBonds``
 - Reuse occlusion for secondary passes during multi-sampling
 - Check if marking passes are needed before doing them
-- Add ``scaleFactor`` parameter to adjust resolution of occlusion calculation
+- Add ``resolutionScale`` parameter to allow trading quality of occlusion for performance
 
 ## [v3.2.0] - 2022-02-17
 

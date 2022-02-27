@@ -249,7 +249,7 @@ export const PostprocessingParams = {
             radius: PD.Numeric(5, { min: 0, max: 10, step: 0.1 }, { description: 'Final occlusion radius is 2^x' }),
             bias: PD.Numeric(0.8, { min: 0, max: 3, step: 0.1 }),
             blurKernelSize: PD.Numeric(15, { min: 1, max: 25, step: 2 }),
-            scaleFactor: PD.Numeric(1, { min: 0.1, max: 1, step: 0.05 }, { description: 'Adjust resolution of occlusion calculation' }),
+            resolutionScale: PD.Numeric(1, { min: 0.1, max: 1, step: 0.05 }, { description: 'Adjust resolution of occlusion calculation' }),
         }),
         off: PD.Group({})
     }, { cycle: true, description: 'Darken occluded crevices with the ambient occlusion effect' }),
@@ -446,10 +446,10 @@ export class PostprocessingPass {
                 ValueCell.updateIfChanged(this.ssaoBlurSecondPassRenderable.values.dOcclusionKernelSize, this.blurKernelSize);
             }
 
-            if (this.downsampleFactor !== props.occlusion.params.scaleFactor) {
+            if (this.downsampleFactor !== props.occlusion.params.resolutionScale) {
                 needsUpdateSsao = true;
 
-                this.downsampleFactor = props.occlusion.params.scaleFactor;
+                this.downsampleFactor = props.occlusion.params.resolutionScale;
                 this.ssaoScale = this.calcSsaoScale();
 
                 const sw = Math.floor(w * this.ssaoScale);
