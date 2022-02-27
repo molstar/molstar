@@ -48,7 +48,7 @@ function occlusionStyle(plugin: PluginContext) {
                 blurKernelSize: 15,
                 radius: 5,
                 samples: 32,
-                scaleFactor: 0.5
+                scaleFactor: 1
             } },
             outline: { name: 'on', params: {
                 scale: 1.0,

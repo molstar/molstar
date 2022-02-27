@@ -249,7 +249,7 @@ export const PostprocessingParams = {
             radius: PD.Numeric(5, { min: 0, max: 10, step: 0.1 }, { description: 'Final occlusion radius is 2^x' }),
             bias: PD.Numeric(0.8, { min: 0, max: 3, step: 0.1 }),
             blurKernelSize: PD.Numeric(15, { min: 1, max: 25, step: 2 }),
-            scaleFactor: PD.Numeric(0.5, { min: 0.1, max: 1, step: 0.05 }, { description: 'Adjust resolution of occlusion calculation' }),
+            scaleFactor: PD.Numeric(1, { min: 0.1, max: 1, step: 0.05 }, { description: 'Adjust resolution of occlusion calculation' }),
         }),
         off: PD.Group({})
     }, { cycle: true, description: 'Darken occluded crevices with the ambient occlusion effect' }),
@@ -313,7 +313,7 @@ export class PostprocessingPass {
 
         this.nSamples = 1;
         this.blurKernelSize = 1;
-        this.downsampleFactor = 0.5;
+        this.downsampleFactor = 1;
         this.ssaoScale = this.calcSsaoScale();
 
         // needs to be linear for anti-aliasing pass
@@ -352,7 +352,7 @@ export class PostprocessingPass {
 
         this.ssaoDepthTexture.attachFramebuffer(this.ssaoBlurSecondPassFramebuffer, 'color0');
 
-        this.ssaoRenderable = getSsaoRenderable(webgl, this.downsampledDepthTarget.texture);
+        this.ssaoRenderable = getSsaoRenderable(webgl, this.downsampleFactor === 1 ? depthTexture : this.downsampledDepthTarget.texture);
         this.ssaoBlurFirstPassRenderable = getSsaoBlurRenderable(webgl, this.ssaoDepthTexture, 'horizontal');
         this.ssaoBlurSecondPassRenderable = getSsaoBlurRenderable(webgl, this.ssaoDepthBlurProxyTexture, 'vertical');
         this.renderable = getPostprocessingRenderable(webgl, colorTarget.texture, depthTexture, this.outlinesTarget.texture, this.ssaoDepthTexture);
@@ -530,7 +530,7 @@ export class PostprocessingPass {
         gl.scissor(x, y, width, height);
     }
 
-    occlusionOffset: [x: number, y: number] = [0, 0];
+    private occlusionOffset: [x: number, y: number] = [0, 0];
     setOcclusionOffset(x: number, y: number) {
         this.occlusionOffset[0] = x;
         this.occlusionOffset[1] = y;
