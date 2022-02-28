@@ -27,9 +27,6 @@ import { ElementSetIntraBondCache } from './unit/bonds/element-set-intra-bond-ca
 import { ModelSymmetry } from '../../../mol-model-formats/structure/property/symmetry';
 import { getResonance, UnitResonance } from './unit/resonance';
 
-// avoiding namespace lookup improved performance in Chrome (Aug 2020)
-const v3add = Vec3.add;
-
 /**
  * A building block of a structure that corresponds to an atomic or
  * a coarse grained representation 'conveniently grouped together'.
@@ -231,25 +228,7 @@ namespace Unit {
                         : tryRemapBonds(this, this.props.bonds, model, dynamicBonds)
                 };
                 if (!Unit.isSameConformation(this, model)) {
-                    const b = props.boundary;
-                    if (b) {
-                        const { elements } = this;
-                        const pos = this.conformation.invariantPosition;
-                        const v = Vec3();
-                        const center = Vec3();
-
-                        for (let i = 0, il = elements.length; i < il; i++) {
-                            pos(elements[i], v);
-                            v3add(center, center, v);
-                        }
-                        Vec3.scale(center, center, 1 / elements.length);
-
-                        // only invalidate boundary if sphere has changed too much
-                        if (Vec3.distance(center, b.sphere.center) / b.sphere.radius >= 1.0) {
-                            props.boundary = undefined;
-                        }
-                    }
-
+                    props.boundary = undefined;
                     props.lookup3d = undefined;
                     props.principalAxes = undefined;
                 }

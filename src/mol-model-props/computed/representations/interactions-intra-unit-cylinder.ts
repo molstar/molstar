@@ -71,10 +71,14 @@ async function createIntraUnitInteractionsCylinderMesh(ctx: VisualContext, unit:
         }
     };
 
-    const m = createLinkCylinderMesh(ctx, builderProps, props, mesh);
+    const { mesh: m, boundingSphere } = createLinkCylinderMesh(ctx, builderProps, props, mesh);
 
-    const sphere = Sphere3D.expand(Sphere3D(), (childUnit ?? unit).boundary.sphere, 1 * sizeFactor);
-    m.setBoundingSphere(sphere);
+    if (boundingSphere) {
+        m.setBoundingSphere(boundingSphere);
+    } else if (m.triangleCount > 0) {
+        const sphere = Sphere3D.expand(Sphere3D(), (childUnit ?? unit).boundary.sphere, 1 * sizeFactor);
+        m.setBoundingSphere(sphere);
+    }
 
     return m;
 }

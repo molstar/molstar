@@ -178,10 +178,14 @@ function createIntraUnitBondCylinderImpostors(ctx: VisualContext, unit: Unit, st
     if (child && !childUnit) return Cylinders.createEmpty(cylinders);
 
     const builderProps = getIntraUnitBondCylinderBuilderProps(unit, structure, theme, props);
-    const c = createLinkCylinderImpostors(ctx, builderProps, props, cylinders);
+    const { cylinders: c, boundingSphere } = createLinkCylinderImpostors(ctx, builderProps, props, cylinders);
 
-    const sphere = Sphere3D.expand(Sphere3D(), (childUnit ?? unit).boundary.sphere, 1 * props.sizeFactor);
-    c.setBoundingSphere(sphere);
+    if (boundingSphere) {
+        c.setBoundingSphere(boundingSphere);
+    } else if (c.cylinderCount > 0) {
+        const sphere = Sphere3D.expand(Sphere3D(), (childUnit ?? unit).boundary.sphere, 1 * props.sizeFactor);
+        c.setBoundingSphere(sphere);
+    }
 
     return c;
 }
@@ -195,10 +199,14 @@ function createIntraUnitBondCylinderMesh(ctx: VisualContext, unit: Unit, structu
     if (child && !childUnit) return Mesh.createEmpty(mesh);
 
     const builderProps = getIntraUnitBondCylinderBuilderProps(unit, structure, theme, props);
-    const m = createLinkCylinderMesh(ctx, builderProps, props, mesh);
+    const { mesh: m, boundingSphere } = createLinkCylinderMesh(ctx, builderProps, props, mesh);
 
-    const sphere = Sphere3D.expand(Sphere3D(), (childUnit ?? unit).boundary.sphere, 1 * props.sizeFactor);
-    m.setBoundingSphere(sphere);
+    if (boundingSphere) {
+        m.setBoundingSphere(boundingSphere);
+    } else if (m.triangleCount > 0) {
+        const sphere = Sphere3D.expand(Sphere3D(), (childUnit ?? unit).boundary.sphere, 1 * props.sizeFactor);
+        m.setBoundingSphere(sphere);
+    }
 
     return m;
 }

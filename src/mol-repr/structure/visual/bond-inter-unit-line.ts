@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -103,11 +103,15 @@ function createInterUnitBondLines(ctx: VisualContext, structure: Structure, them
         ignore: makeInterBondIgnoreTest(structure, props)
     };
 
-    const l = createLinkLines(ctx, builderProps, props, lines);
+    const { lines: l, boundingSphere } = createLinkLines(ctx, builderProps, props, lines);
 
-    const { child } = structure;
-    const sphere = Sphere3D.expand(Sphere3D(), (child ?? structure).boundary.sphere, 1 * props.sizeFactor);
-    l.setBoundingSphere(sphere);
+    if (boundingSphere) {
+        l.setBoundingSphere(boundingSphere);
+    } else if (l.lineCount > 0) {
+        const { child } = structure;
+        const sphere = Sphere3D.expand(Sphere3D(), (child ?? structure).boundary.sphere, 1 * sizeFactor);
+        l.setBoundingSphere(sphere);
+    }
 
     return l;
 }

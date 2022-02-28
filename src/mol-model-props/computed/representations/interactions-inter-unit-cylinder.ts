@@ -85,10 +85,15 @@ function createInterUnitInteractionCylinderMesh(ctx: VisualContext, structure: S
         }
     };
 
-    const m = createLinkCylinderMesh(ctx, builderProps, props, mesh);
+    const { mesh: m, boundingSphere } = createLinkCylinderMesh(ctx, builderProps, props, mesh);
 
-    const sphere = Sphere3D.expand(Sphere3D(), (child ?? structure).boundary.sphere, 1 * sizeFactor);
-    m.setBoundingSphere(sphere);
+    if (boundingSphere) {
+        m.setBoundingSphere(boundingSphere);
+    } else if (m.triangleCount > 0) {
+        const { child } = structure;
+        const sphere = Sphere3D.expand(Sphere3D(), (child ?? structure).boundary.sphere, 1 * sizeFactor);
+        m.setBoundingSphere(sphere);
+    }
 
     return m;
 }

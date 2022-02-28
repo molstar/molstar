@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -162,24 +162,32 @@ function createInterUnitBondCylinderImpostors(ctx: VisualContext, structure: Str
     if (!structure.interUnitBonds.edgeCount) return Cylinders.createEmpty(cylinders);
 
     const builderProps = getInterUnitBondCylinderBuilderProps(structure, theme, props);
-    const m = createLinkCylinderImpostors(ctx, builderProps, props, cylinders);
+    const { cylinders: c, boundingSphere } = createLinkCylinderImpostors(ctx, builderProps, props, cylinders);
 
-    const { child } = structure;
-    const sphere = Sphere3D.expand(Sphere3D(), (child ?? structure).boundary.sphere, 1 * props.sizeFactor);
-    m.setBoundingSphere(sphere);
+    if (boundingSphere) {
+        c.setBoundingSphere(boundingSphere);
+    } else if (c.cylinderCount > 0) {
+        const { child } = structure;
+        const sphere = Sphere3D.expand(Sphere3D(), (child ?? structure).boundary.sphere, 1 * props.sizeFactor);
+        c.setBoundingSphere(sphere);
+    }
 
-    return m;
+    return c;
 }
 
 function createInterUnitBondCylinderMesh(ctx: VisualContext, structure: Structure, theme: Theme, props: PD.Values<InterUnitBondCylinderParams>, mesh?: Mesh) {
     if (!structure.interUnitBonds.edgeCount) return Mesh.createEmpty(mesh);
 
     const builderProps = getInterUnitBondCylinderBuilderProps(structure, theme, props);
-    const m = createLinkCylinderMesh(ctx, builderProps, props, mesh);
+    const { mesh: m, boundingSphere } = createLinkCylinderMesh(ctx, builderProps, props, mesh);
 
-    const { child } = structure;
-    const sphere = Sphere3D.expand(Sphere3D(), (child ?? structure).boundary.sphere, 1 * props.sizeFactor);
-    m.setBoundingSphere(sphere);
+    if (boundingSphere) {
+        m.setBoundingSphere(boundingSphere);
+    } else if (m.triangleCount > 0) {
+        const { child } = structure;
+        const sphere = Sphere3D.expand(Sphere3D(), (child ?? structure).boundary.sphere, 1 * props.sizeFactor);
+        m.setBoundingSphere(sphere);
+    }
 
     return m;
 }

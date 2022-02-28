@@ -22,6 +22,9 @@ import { SpheresBuilder } from '../../../../mol-geo/geometry/spheres/spheres-bui
 import { isTrace, isH, StructureGroup } from './common';
 import { Sphere3D } from '../../../../mol-math/geometry';
 
+// avoiding namespace lookup improved performance in Chrome (Aug 2020)
+const v3add = Vec3.add;
+
 type ElementProps = {
     ignoreHydrogens: boolean,
     traceOnly: boolean,
@@ -70,13 +73,17 @@ export function createElementSphereMesh(ctx: VisualContext, unit: Unit, structur
     const ignore = makeElementIgnoreTest(structure, unit, props);
     const l = StructureElement.Location.create(structure, unit);
     const themeSize = theme.size.size;
+    const center = Vec3();
     let maxSize = 0;
+    let count = 0;
 
     for (let i = 0; i < elementCount; i++) {
         if (ignore && ignore(elements[i])) continue;
 
         l.element = elements[i];
         pos(elements[i], v);
+        v3add(center, center, v);
+        count += 1;
 
         builderState.currentGroup = i;
         const size = themeSize(l);
@@ -85,8 +92,19 @@ export function createElementSphereMesh(ctx: VisualContext, unit: Unit, structur
         addSphere(builderState, v, size * sizeFactor, detail);
     }
 
+    const oldBoundingSphere = mesh ? Sphere3D.clone(mesh.boundingSphere) : undefined;
     const m = MeshBuilder.getMesh(builderState);
-    m.setBoundingSphere(Sphere3D.expand(Sphere3D(), (childUnit ?? unit).boundary.sphere, maxSize * sizeFactor + 0.05));
+    if (count === 0) return m;
+
+    // re-use boundingSphere if it has not changed much
+    let boundingSphere: Sphere3D;
+    Vec3.scale(center, center, 1 / count);
+    if (oldBoundingSphere && Vec3.distance(center, oldBoundingSphere.center) / oldBoundingSphere.radius < 1.0) {
+        boundingSphere = oldBoundingSphere;
+    } else {
+        boundingSphere = Sphere3D.expand(Sphere3D(), (childUnit ?? unit).boundary.sphere, maxSize * sizeFactor + 0.05);
+    }
+    m.setBoundingSphere(boundingSphere);
 
     return m;
 }
@@ -110,21 +128,36 @@ export function createElementSphereImpostor(ctx: VisualContext, unit: Unit, stru
 
     const l = StructureElement.Location.create(structure, unit);
     const themeSize = theme.size.size;
+    const center = Vec3();
     let maxSize = 0;
+    let count = 0;
 
     for (let i = 0; i < elementCount; i++) {
         if (ignore?.(elements[i])) continue;
 
         pos(elements[i], v);
         builder.add(v[0], v[1], v[2], i);
+        v3add(center, center, v);
+        count += 1;
 
         l.element = elements[i];
         const size = themeSize(l);
         if (size > maxSize) maxSize = size;
     }
 
+    const oldBoundingSphere = spheres ? Sphere3D.clone(spheres.boundingSphere) : undefined;
     const s = builder.getSpheres();
-    s.setBoundingSphere(Sphere3D.expand(Sphere3D(), (childUnit ?? unit).boundary.sphere, maxSize * props.sizeFactor + 0.05));
+    if (count === 0) return s;
+
+    // re-use boundingSphere if it has not changed much
+    let boundingSphere: Sphere3D;
+    Vec3.scale(center, center, 1 / count);
+    if (oldBoundingSphere && Vec3.distance(center, oldBoundingSphere.center) / oldBoundingSphere.radius < 1.0) {
+        boundingSphere = oldBoundingSphere;
+    } else {
+        boundingSphere = Sphere3D.expand(Sphere3D(), (childUnit ?? unit).boundary.sphere, maxSize * props.sizeFactor + 0.05);
+    }
+    s.setBoundingSphere(boundingSphere);
 
     return s;
 }

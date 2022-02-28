@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -15,6 +15,9 @@ import { Vec3 } from '../../../mol-math/linear-algebra';
 import { ElementIterator, getElementLoci, eachElement, makeElementIgnoreTest } from './util/element';
 import { VisualUpdateState } from '../../util';
 import { Sphere3D } from '../../../mol-math/geometry';
+
+// avoiding namespace lookup improved performance in Chrome (Aug 2020)
+const v3add = Vec3.add;
 
 export const ElementPointParams = {
     ...UnitsPointsParams,
@@ -39,24 +42,39 @@ export function createElementPoint(ctx: VisualContext, unit: Unit, structure: St
     const p = Vec3();
     const pos = unit.conformation.invariantPosition;
     const ignore = makeElementIgnoreTest(structure, unit, props);
+    const center = Vec3();
+    let count = 0;
 
     if (ignore) {
         for (let i = 0; i < n; ++i) {
             if (ignore(elements[i])) continue;
             pos(elements[i], p);
+            v3add(center, center, p);
+            count += 1;
             builder.add(p[0], p[1], p[2], i);
         }
     } else {
         for (let i = 0; i < n; ++i) {
             pos(elements[i], p);
+            v3add(center, center, p);
+            count += 1;
             builder.add(p[0], p[1], p[2], i);
         }
     }
 
+    const oldBoundingSphere = points ? Sphere3D.clone(points.boundingSphere) : undefined;
     const pt = builder.getPoints();
+    if (count === 0) return pt;
 
-    const sphere = Sphere3D.expand(Sphere3D(), unit.boundary.sphere, 1 * props.sizeFactor);
-    pt.setBoundingSphere(sphere);
+    // re-use boundingSphere if it has not changed much
+    let boundingSphere: Sphere3D;
+    Vec3.scale(center, center, 1 / count);
+    if (oldBoundingSphere && Vec3.distance(center, oldBoundingSphere.center) / oldBoundingSphere.radius < 1.0) {
+        boundingSphere = oldBoundingSphere;
+    } else {
+        boundingSphere = Sphere3D.expand(Sphere3D(), unit.boundary.sphere, 1 * props.sizeFactor);
+    }
+    pt.setBoundingSphere(boundingSphere);
 
     return pt;
 }

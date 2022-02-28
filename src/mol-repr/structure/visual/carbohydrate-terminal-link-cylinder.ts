@@ -20,6 +20,7 @@ import { PickingId } from '../../../mol-geo/geometry/picking';
 import { EmptyLoci, Loci } from '../../../mol-model/loci';
 import { getElementIdx, MetalsSet } from '../../../mol-model/structure/structure/unit/bonds/common';
 import { getAltResidueLociFromId, getAltResidueLoci } from './util/common';
+import { Sphere3D } from '../../../mol-math/geometry';
 
 function createCarbohydrateTerminalLinkCylinderMesh(ctx: VisualContext, structure: Structure, theme: Theme, props: PD.Values<CarbohydrateTerminalLinkParams>, mesh?: Mesh) {
     const { terminalLinks, elements } = structure.carbohydrates;
@@ -60,7 +61,16 @@ function createCarbohydrateTerminalLinkCylinderMesh(ctx: VisualContext, structur
         }
     };
 
-    return createLinkCylinderMesh(ctx, builderProps, props, mesh);
+    const { mesh: m, boundingSphere } = createLinkCylinderMesh(ctx, builderProps, props, mesh);
+
+    if (boundingSphere) {
+        m.setBoundingSphere(boundingSphere);
+    } else if (m.triangleCount > 0) {
+        const sphere = Sphere3D.expand(Sphere3D(), structure.boundary.sphere, 1 * terminalLinkSizeFactor);
+        m.setBoundingSphere(sphere);
+    }
+
+    return m;
 }
 
 export const CarbohydrateTerminalLinkParams = {

@@ -132,10 +132,14 @@ function createIntraUnitBondLines(ctx: VisualContext, unit: Unit, structure: Str
         ignore: makeIntraBondIgnoreTest(structure, unit, props)
     };
 
-    const l = createLinkLines(ctx, builderProps, props, lines);
+    const { lines: l, boundingSphere } = createLinkLines(ctx, builderProps, props, lines);
 
-    const sphere = Sphere3D.expand(Sphere3D(), (childUnit ?? unit).boundary.sphere, 1 * sizeFactor);
-    l.setBoundingSphere(sphere);
+    if (boundingSphere) {
+        l.setBoundingSphere(boundingSphere);
+    } else if (l.lineCount > 0) {
+        const sphere = Sphere3D.expand(Sphere3D(), (childUnit ?? unit).boundary.sphere, 1 * sizeFactor);
+        l.setBoundingSphere(sphere);
+    }
 
     return l;
 }

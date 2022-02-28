@@ -6,6 +6,8 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Fix issue with unit boundary reuse (do at visual level instead)
+
 ## [v3.3.0] - 2022-02-27
 
 - Fix parsing contour-level from emdb v3 header files

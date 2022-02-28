@@ -55,7 +55,16 @@ function createIntraUnitClashCylinderMesh(ctx: VisualContext, unit: Unit, struct
         radius: (edgeIndex: number) => magnitude[edgeIndex] * sizeFactor,
     };
 
-    return createLinkCylinderMesh(ctx, builderProps, props, mesh);
+    const { mesh: m, boundingSphere } = createLinkCylinderMesh(ctx, builderProps, props, mesh);
+
+    if (boundingSphere) {
+        m.setBoundingSphere(boundingSphere);
+    } else if (m.triangleCount > 0) {
+        const sphere = Sphere3D.expand(Sphere3D(), structure.boundary.sphere, 1 * sizeFactor);
+        m.setBoundingSphere(sphere);
+    }
+
+    return m;
 }
 
 export const IntraUnitClashParams = {
@@ -169,7 +178,16 @@ function createInterUnitClashCylinderMesh(ctx: VisualContext, structure: Structu
         radius: (edgeIndex: number) => edges[edgeIndex].props.magnitude * sizeFactor
     };
 
-    return createLinkCylinderMesh(ctx, builderProps, props, mesh);
+    const { mesh: m, boundingSphere } = createLinkCylinderMesh(ctx, builderProps, props, mesh);
+
+    if (boundingSphere) {
+        m.setBoundingSphere(boundingSphere);
+    } else {
+        const sphere = Sphere3D.expand(Sphere3D(), structure.boundary.sphere, 1 * sizeFactor);
+        m.setBoundingSphere(sphere);
+    }
+
+    return m;
 }
 
 export const InterUnitClashParams = {

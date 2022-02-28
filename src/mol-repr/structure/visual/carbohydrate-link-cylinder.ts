@@ -19,6 +19,7 @@ import { VisualUpdateState } from '../../util';
 import { VisualContext } from '../../../mol-repr/visual';
 import { Theme } from '../../../mol-theme/theme';
 import { getAltResidueLociFromId } from './util/common';
+import { Sphere3D } from '../../../mol-math/geometry';
 
 function createCarbohydrateLinkCylinderMesh(ctx: VisualContext, structure: Structure, theme: Theme, props: PD.Values<CarbohydrateLinkParams>, mesh?: Mesh) {
     const { links, elements } = structure.carbohydrates;
@@ -43,7 +44,16 @@ function createCarbohydrateLinkCylinderMesh(ctx: VisualContext, structure: Struc
         },
     };
 
-    return createLinkCylinderMesh(ctx, builderProps, props, mesh);
+    const { mesh: m, boundingSphere } = createLinkCylinderMesh(ctx, builderProps, props, mesh);
+
+    if (boundingSphere) {
+        m.setBoundingSphere(boundingSphere);
+    } else if (m.triangleCount > 0) {
+        const sphere = Sphere3D.expand(Sphere3D(), structure.boundary.sphere, 1 * linkSizeFactor);
+        m.setBoundingSphere(sphere);
+    }
+
+    return m;
 }
 
 export const CarbohydrateLinkParams = {

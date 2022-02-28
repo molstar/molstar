@@ -16,6 +16,7 @@ import { Lines } from '../../../../mol-geo/geometry/lines/lines';
 import { LinesBuilder } from '../../../../mol-geo/geometry/lines/lines-builder';
 import { Cylinders } from '../../../../mol-geo/geometry/cylinders/cylinders';
 import { CylindersBuilder } from '../../../../mol-geo/geometry/cylinders/cylinders-builder';
+import { Sphere3D } from '../../../../mol-math/geometry/primitives/sphere3d';
 
 export const LinkCylinderParams = {
     linkScale: PD.Numeric(0.45, { min: 0, max: 1, step: 0.01 }),
@@ -106,10 +107,10 @@ const v3dot = Vec3.dot;
  * Each edge is included twice to allow for coloring/picking
  * the half closer to the first vertex, i.e. vertex a.
  */
-export function createLinkCylinderMesh(ctx: VisualContext, linkBuilder: LinkBuilderProps, props: LinkCylinderProps, mesh?: Mesh) {
+export function createLinkCylinderMesh(ctx: VisualContext, linkBuilder: LinkBuilderProps, props: LinkCylinderProps, mesh?: Mesh): { mesh: Mesh, boundingSphere?: Sphere3D } {
     const { linkCount, referencePosition, position, style, radius, ignore, stub } = linkBuilder;
 
-    if (!linkCount) return Mesh.createEmpty(mesh);
+    if (!linkCount) return { mesh: Mesh.createEmpty(mesh) };
 
     const { linkScale, linkSpacing, radialSegments, linkCap, aromaticScale, aromaticSpacing, aromaticDashCount, dashCount, dashScale, dashCap, stubCap } = props;
 
@@ -119,6 +120,10 @@ export function createLinkCylinderMesh(ctx: VisualContext, linkBuilder: LinkBuil
     const va = Vec3();
     const vb = Vec3();
     const vShift = Vec3();
+
+    const center = Vec3();
+    let count = 0;
+
     const cylinderProps: CylinderProps = {
         radiusTop: 1,
         radiusBottom: 1,
@@ -133,6 +138,11 @@ export function createLinkCylinderMesh(ctx: VisualContext, linkBuilder: LinkBuil
         if (ignore && ignore(edgeIndex)) continue;
 
         position(va, vb, edgeIndex);
+
+        v3add(center, center, va);
+        v3add(center, center, vb);
+        count += 2;
+
         v3sub(tmpV12, vb, va);
         const dirFlag = v3dot(tmpV12, up) > 0;
 
@@ -234,17 +244,27 @@ export function createLinkCylinderMesh(ctx: VisualContext, linkBuilder: LinkBuil
         }
     }
 
-    return MeshBuilder.getMesh(builderState);
+    const oldBoundingSphere = mesh ? Sphere3D.clone(mesh.boundingSphere) : undefined;
+    const m = MeshBuilder.getMesh(builderState);
+    if (count === 0) return { mesh: m };
+
+    // re-use boundingSphere if it has not changed much
+    Vec3.scale(center, center, 1 / count);
+    if (oldBoundingSphere && Vec3.distance(center, oldBoundingSphere.center) / oldBoundingSphere.radius < 1.0) {
+        return { mesh: m, boundingSphere: oldBoundingSphere };
+    } else {
+        return { mesh: m };
+    }
 }
 
 /**
  * Each edge is included twice to allow for coloring/picking
  * the half closer to the first vertex, i.e. vertex a.
  */
-export function createLinkCylinderImpostors(ctx: VisualContext, linkBuilder: LinkBuilderProps, props: LinkCylinderProps, cylinders?: Cylinders) {
+export function createLinkCylinderImpostors(ctx: VisualContext, linkBuilder: LinkBuilderProps, props: LinkCylinderProps, cylinders?: Cylinders): { cylinders: Cylinders, boundingSphere?: Sphere3D } {
     const { linkCount, referencePosition, position, style, radius, ignore, stub } = linkBuilder;
 
-    if (!linkCount) return Cylinders.createEmpty(cylinders);
+    if (!linkCount) return { cylinders: Cylinders.createEmpty(cylinders) };
 
     const { linkScale, linkSpacing, linkCap, aromaticScale, aromaticSpacing, aromaticDashCount, dashCount, dashScale, dashCap, stubCap } = props;
 
@@ -255,6 +275,9 @@ export function createLinkCylinderImpostors(ctx: VisualContext, linkBuilder: Lin
     const vb = Vec3();
     const vm = Vec3();
     const vShift = Vec3();
+
+    const center = Vec3();
+    let count = 0;
 
     // automatically adjust length for evenly spaced dashed cylinders
     const segmentCount = dashCount % 2 === 1 ? dashCount : dashCount + 1;
@@ -267,6 +290,10 @@ export function createLinkCylinderImpostors(ctx: VisualContext, linkBuilder: Lin
         if (ignore && ignore(edgeIndex)) continue;
 
         position(va, vb, edgeIndex);
+
+        v3add(center, center, va);
+        v3add(center, center, vb);
+        count += 2;
 
         const linkRadius = radius(edgeIndex);
         const linkStyle = style ? style(edgeIndex) : LinkStyle.Solid;
@@ -337,17 +364,27 @@ export function createLinkCylinderImpostors(ctx: VisualContext, linkBuilder: Lin
         }
     }
 
-    return builder.getCylinders();
+    const oldBoundingSphere = cylinders ? Sphere3D.clone(cylinders.boundingSphere) : undefined;
+    const c = builder.getCylinders();
+    if (count === 0) return { cylinders: c };
+
+    // re-use boundingSphere if it has not changed much
+    Vec3.scale(center, center, 1 / count);
+    if (oldBoundingSphere && Vec3.distance(center, oldBoundingSphere.center) / oldBoundingSphere.radius < 1.0) {
+        return { cylinders: c, boundingSphere: oldBoundingSphere };
+    } else {
+        return { cylinders: c };
+    }
 }
 
 /**
  * Each edge is included twice to allow for coloring/picking
  * the half closer to the first vertex, i.e. vertex a.
  */
-export function createLinkLines(ctx: VisualContext, linkBuilder: LinkBuilderProps, props: LinkLineProps, lines?: Lines) {
+export function createLinkLines(ctx: VisualContext, linkBuilder: LinkBuilderProps, props: LinkLineProps, lines?: Lines): { lines: Lines, boundingSphere?: Sphere3D } {
     const { linkCount, referencePosition, position, style, ignore } = linkBuilder;
 
-    if (!linkCount) return Lines.createEmpty(lines);
+    if (!linkCount) return { lines: Lines.createEmpty(lines) };
 
     const { linkScale, linkSpacing, aromaticDashCount, dashCount } = props;
 
@@ -358,6 +395,9 @@ export function createLinkLines(ctx: VisualContext, linkBuilder: LinkBuilderProp
     const vb = Vec3();
     const vm = Vec3();
     const vShift = Vec3();
+
+    const center = Vec3();
+    let count = 0;
 
     // automatically adjust length for evenly spaced dashed lines
     const segmentCount = dashCount % 2 === 1 ? dashCount : dashCount + 1;
@@ -372,6 +412,10 @@ export function createLinkLines(ctx: VisualContext, linkBuilder: LinkBuilderProp
         if (ignore && ignore(edgeIndex)) continue;
 
         position(va, vb, edgeIndex);
+
+        v3add(center, center, va);
+        v3add(center, center, vb);
+        count += 2;
 
         const linkStyle = style ? style(edgeIndex) : LinkStyle.Solid;
 
@@ -435,5 +479,15 @@ export function createLinkLines(ctx: VisualContext, linkBuilder: LinkBuilderProp
         }
     }
 
-    return builder.getLines();
+    const oldBoundingSphere = lines ? Sphere3D.clone(lines.boundingSphere) : undefined;
+    const l = builder.getLines();
+    if (count === 0) return { lines: l };
+
+    // re-use boundingSphere if it has not changed much
+    Vec3.scale(center, center, 1 / count);
+    if (oldBoundingSphere && Vec3.distance(center, oldBoundingSphere.center) / oldBoundingSphere.radius < 1.0) {
+        return { lines: l, boundingSphere: oldBoundingSphere };
+    } else {
+        return { lines: l };
+    }
 }

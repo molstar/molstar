@@ -22,6 +22,7 @@ import { VisualUpdateState } from '../../../mol-repr/util';
 import { ComplexRepresentation, StructureRepresentation, StructureRepresentationStateBuilder, StructureRepresentationProvider } from '../../../mol-repr/structure/representation';
 import { CustomProperty } from '../../common/custom-property';
 import { CrossLinkRestraintProvider, CrossLinkRestraint } from './property';
+import { Sphere3D } from '../../../mol-math/geometry';
 
 function createCrossLinkRestraintCylinderMesh(ctx: VisualContext, structure: Structure, theme: Theme, props: PD.Values<CrossLinkRestraintCylinderParams>, mesh?: Mesh) {
 
@@ -47,7 +48,16 @@ function createCrossLinkRestraintCylinderMesh(ctx: VisualContext, structure: Str
         },
     };
 
-    return createLinkCylinderMesh(ctx, builderProps, props, mesh);
+    const { mesh: m, boundingSphere } = createLinkCylinderMesh(ctx, builderProps, props, mesh);
+
+    if (boundingSphere) {
+        m.setBoundingSphere(boundingSphere);
+    } else if (m.triangleCount > 0) {
+        const sphere = Sphere3D.expand(Sphere3D(), structure.boundary.sphere, 1 * sizeFactor);
+        m.setBoundingSphere(sphere);
+    }
+
+    return m;
 }
 
 export const CrossLinkRestraintCylinderParams = {
