@@ -17,7 +17,7 @@ import { PluginStateObject as SO } from '../objects';
 import { ModelSymmetry } from '../../mol-model-formats/structure/property/symmetry';
 
 const CommonStructureParams = {
-    dynamicBonds: PD.Optional(PD.Boolean(false, { description: 'Ensure bonds are recalculated upon model changes. Also enables calculation of inter-unit bonds in water molecules.' })),
+    dynamicBonds: PD.Optional(PD.Boolean(false, { description: 'Ensure bonds are recalculated upon model changes. Also enables calculation of inter-unit bonds in water molecules and ions.' })),
 };
 type CommonStructureProps = PD.ValuesFor<typeof CommonStructureParams>
 

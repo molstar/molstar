@@ -238,7 +238,10 @@ class Structure {
             // no need to compute InterUnitBonds if parent's ones are empty
             this.state.interUnitBonds = new InterUnitBonds(new Map());
         } else {
-            this.state.interUnitBonds = computeInterUnitBonds(this, { ignoreWater: !this.dynamicBonds });
+            this.state.interUnitBonds = computeInterUnitBonds(this, {
+                ignoreWater: !this.dynamicBonds,
+                ignoreIon: !this.dynamicBonds,
+            });
         }
         return this.state.interUnitBonds;
     }

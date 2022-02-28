@@ -193,11 +193,13 @@ function findPairBonds(unitA: Unit.Atomic, unitB: Unit.Atomic, props: BondComput
 export interface InterBondComputationProps extends BondComputationProps {
     validUnitPair: (structure: Structure, unitA: Unit, unitB: Unit) => boolean
     ignoreWater: boolean
+    ignoreIon: boolean
 }
 
 const DefaultInterBondComputationProps = {
     ...DefaultBondComputationProps,
-    ignoreWater: true
+    ignoreWater: true,
+    ignoreIon: true,
 };
 
 function findBonds(structure: Structure, props: InterBondComputationProps) {
@@ -233,7 +235,11 @@ function computeInterUnitBonds(structure: Structure, props?: Partial<InterBondCo
                 (!Unit.isAtomic(a) || mtA[a.residueIndex[a.elements[0]]] !== MoleculeType.Water) &&
                 (!Unit.isAtomic(b) || mtB[b.residueIndex[b.elements[0]]] !== MoleculeType.Water)
             );
-            return Structure.validUnitPair(s, a, b) && (notWater || !p.ignoreWater);
+            const notIon = (
+                (!Unit.isAtomic(a) || mtA[a.residueIndex[a.elements[0]]] !== MoleculeType.Ion) &&
+                (!Unit.isAtomic(b) || mtB[b.residueIndex[b.elements[0]]] !== MoleculeType.Ion)
+            );
+            return Structure.validUnitPair(s, a, b) && (notWater || !p.ignoreWater) && (notIon || !p.ignoreIon);
         }),
     });
 }

@@ -7,6 +7,7 @@ Note that since we don't clearly distinguish between a public and private interf
 ## [Unreleased]
 
 - Fix issue with unit boundary reuse (do at visual level instead)
+- Add option to ignore ions for inter-unit bond computation
 
 ## [v3.3.0] - 2022-02-27
 
