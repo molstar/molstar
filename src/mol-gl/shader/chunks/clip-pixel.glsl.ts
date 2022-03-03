@@ -6,7 +6,8 @@ export const clip_pixel = `
         int clippingFlag = 0;
     #endif
 
-    if (clipTest(vec4(vModelPosition, 0.0), clippingFlag))
-        discard;
+    // TODO: disabled for testing
+    // if (clipTest(vec4(vModelPosition, 0.0), clippingFlag))
+    //     discard;
 #endif
 `;

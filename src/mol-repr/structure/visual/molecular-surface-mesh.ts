@@ -22,6 +22,7 @@ import { Texture } from '../../../mol-gl/webgl/texture';
 import { WebGLContext } from '../../../mol-gl/webgl/context';
 import { applyMeshColorSmoothing } from '../../../mol-geo/geometry/mesh/color-smoothing';
 import { ColorSmoothingParams, getColorSmoothingProps } from '../../../mol-geo/geometry/base';
+import { applyMeshObjectClipping } from '../../../mol-geo/geometry/mesh/object-clipping';
 
 export const MolecularSurfaceMeshParams = {
     ...UnitsMeshParams,
@@ -93,6 +94,10 @@ export function MolecularSurfaceMeshVisual(materialId: number): UnitsVisual<Mole
                 applyMeshColorSmoothing(values, csp.resolution, csp.stride, webgl, colorTexture);
                 (geometry.meta as MolecularSurfaceMeta).colorTexture = values.tColorGrid.ref.value;
             }
+            // TODO: only for testing
+            console.time('applyMeshObjectClipping');
+            applyMeshObjectClipping(values);
+            console.timeEnd('applyMeshObjectClipping');
         },
         dispose: (geometry: Mesh) => {
             (geometry.meta as MolecularSurfaceMeta).colorTexture?.destroy();

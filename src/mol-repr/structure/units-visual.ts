@@ -338,6 +338,10 @@ export function UnitsVisual<G extends Geometry, P extends StructureParams & Geom
         },
         setClipping(clipping: Clipping) {
             Visual.setClipping(renderObject, clipping, lociApply, true);
+            // TODO: only for testing
+            if (renderObject) {
+                processValues?.(renderObject.values, geometry, currentProps, currentTheme);
+            }
         },
         destroy() {
             dispose?.(geometry);
