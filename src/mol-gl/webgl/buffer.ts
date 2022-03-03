@@ -67,7 +67,7 @@ function dataTypeFromArray(gl: GLRenderingContext, array: ArrayType) {
     } else if (array instanceof Float32Array) {
         return gl.FLOAT;
     } else {
-        throw new Error('Should nevver happen');
+        throw new Error('Should never happen');
     }
 }
 
