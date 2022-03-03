@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -29,10 +29,11 @@ function findHierarchyOffsets(atom_site: AtomSite) {
     const start = 0, end = atom_site._rowCount;
     const residues = [start as ElementIndex], chains = [start as ElementIndex];
 
-    const { label_entity_id, label_asym_id, label_seq_id, auth_seq_id, pdbx_PDB_ins_code } = atom_site;
+    const { label_entity_id, label_asym_id, auth_asym_id, label_seq_id, auth_seq_id, pdbx_PDB_ins_code } = atom_site;
+    const asym_id = label_asym_id.isDefined ? label_asym_id : auth_asym_id;
 
     for (let i = start + 1 as ElementIndex; i < end; i++) {
-        const newChain = !label_entity_id.areValuesEqual(i - 1, i) || !label_asym_id.areValuesEqual(i - 1, i);
+        const newChain = !label_entity_id.areValuesEqual(i - 1, i) || !asym_id.areValuesEqual(i - 1, i);
         const newResidue = newChain
             || !label_seq_id.areValuesEqual(i - 1, i)
             || !auth_seq_id.areValuesEqual(i - 1, i)
@@ -46,12 +47,8 @@ function findHierarchyOffsets(atom_site: AtomSite) {
 }
 
 function substUndefinedColumn<T extends Table<any>>(table: T, a: keyof T, b: keyof T) {
-    if (!(table as any)[a].isDefined) {
-        (table as any)[a] = (table as any)[b];
-    }
-    if (!(table as any)[b].isDefined) {
-        (table as any)[b] = (table as any)[a];
-    }
+    if (!table[a].isDefined) table[a] = table[b];
+    if (!table[b].isDefined) table[b] = table[a];
 }
 
 function createHierarchyData(atom_site: AtomSite, sourceIndex: Column<number>, offsets: { residues: ArrayLike<number>, chains: ArrayLike<number> }): AtomicData {

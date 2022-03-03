@@ -6,6 +6,8 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Fix handling of mmcif with empty label_asym_id field
+
 ## [v3.3.1] - 2022-02-27
 
 - Fix issue with unit boundary reuse (do at visual level instead)
