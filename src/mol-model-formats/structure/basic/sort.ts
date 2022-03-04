@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  */
@@ -18,12 +18,11 @@ export type SortedAtomSite = {
 export async function sortAtomSite(ctx: RuntimeContext, atom_site: AtomSite, start: number, end: number): Promise<SortedAtomSite> {
     const indices = createRangeArray(start, end - 1);
 
-    const { label_entity_id, label_asym_id, auth_asym_id, label_seq_id } = atom_site;
-    const asym_id = label_asym_id.isDefined ? label_asym_id : auth_asym_id;
+    const { label_entity_id, label_asym_id, label_seq_id } = atom_site;
     const entityBuckets = makeBuckets(indices, label_entity_id.value);
     if (ctx.shouldUpdate) await ctx.update();
     for (let ei = 0, _eI = entityBuckets.length - 1; ei < _eI; ei++) {
-        const chainBuckets = makeBuckets(indices, asym_id.value, { start: entityBuckets[ei], end: entityBuckets[ei + 1] });
+        const chainBuckets = makeBuckets(indices, label_asym_id.value, { start: entityBuckets[ei], end: entityBuckets[ei + 1] });
         for (let cI = 0, _cI = chainBuckets.length - 1; cI < _cI; cI++) {
             const aI = chainBuckets[cI];
             // are we in HETATM territory?

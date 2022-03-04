@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -150,17 +150,40 @@ function findModelEnd(num: Column<number>, startIndex: number) {
     return endIndex;
 }
 
+function hasPresentValues(column: Column<any>) {
+    for (let i = 0, il = column.rowCount; i < il; i++) {
+        if (column.valueKind(i) === Column.ValueKind.Present) return true;
+    }
+    return false;
+}
+
+function substUndefinedColumn<T extends Table<any>>(table: T, a: keyof T, b: keyof T) {
+    if (!table[a].isDefined || !hasPresentValues(table[a])) table[a] = table[b];
+    if (!table[b].isDefined || !hasPresentValues(table[b])) table[b] = table[a];
+}
+
+/** Fix possibly missing auth_/label_ columns */
+function getNormalizeAtomSite(atom_site: AtomSite) {
+    const normalized = Table.ofColumns(atom_site._schema, atom_site);
+    substUndefinedColumn(normalized, 'label_atom_id', 'auth_atom_id');
+    substUndefinedColumn(normalized, 'label_comp_id', 'auth_comp_id');
+    substUndefinedColumn(normalized, 'label_seq_id', 'auth_seq_id');
+    substUndefinedColumn(normalized, 'label_asym_id', 'auth_asym_id');
+    return normalized;
+}
+
 async function readStandard(ctx: RuntimeContext, data: BasicData, properties: CommonProperties, format: ModelFormat) {
     const models: Model[] = [];
 
     if (data.atom_site) {
-        const atomCount = data.atom_site.id.rowCount;
+        const normalizedAtomSite = getNormalizeAtomSite(data.atom_site);
+        const atomCount = normalizedAtomSite.id.rowCount;
         const entities = getEntityData(data);
 
         let modelStart = 0;
         while (modelStart < atomCount) {
-            const modelEnd = findModelEnd(data.atom_site.pdbx_PDB_model_num, modelStart);
-            const { atom_site, sourceIndex } = await sortAtomSite(ctx, data.atom_site, modelStart, modelEnd);
+            const modelEnd = findModelEnd(normalizedAtomSite.pdbx_PDB_model_num, modelStart);
+            const { atom_site, sourceIndex } = await sortAtomSite(ctx, normalizedAtomSite, modelStart, modelEnd);
             const model = createStandardModel(data, atom_site, sourceIndex, entities, properties, format, models.length > 0 ? models[models.length - 1] : void 0);
             models.push(model);
             modelStart = modelEnd;
@@ -186,8 +209,6 @@ function splitTable<T extends Table<any>>(table: T, col: Column<number>) {
     return ret;
 }
 
-
-
 async function readIntegrative(ctx: RuntimeContext, data: BasicData, properties: CommonProperties, format: ModelFormat) {
     const entities = getEntityData(data);
     // when `atom_site.ihm_model_id` is undefined fall back to `atom_site.pdbx_PDB_model_num`
@@ -208,15 +229,16 @@ async function readIntegrative(ctx: RuntimeContext, data: BasicData, properties:
         for (let i = 0; i < data.ihm_model_list._rowCount; i++) {
             const id = model_id.value(i);
 
+            const normalizedAtomSite = getNormalizeAtomSite(data.atom_site);
             let atom_site, atom_site_sourceIndex;
             if (atom_sites.has(id)) {
                 const e = atom_sites.get(id)!;
                 // need to sort `data.atom_site` as `e.start` and `e.end` are indices into that
-                const { atom_site: sorted, sourceIndex } = await sortAtomSite(ctx, data.atom_site, e.start, e.end);
+                const { atom_site: sorted, sourceIndex } = await sortAtomSite(ctx, normalizedAtomSite, e.start, e.end);
                 atom_site = sorted;
                 atom_site_sourceIndex = sourceIndex;
             } else {
-                atom_site = Table.window(data.atom_site, data.atom_site._schema, 0, 0);
+                atom_site = Table.window(normalizedAtomSite, normalizedAtomSite._schema, 0, 0);
                 atom_site_sourceIndex = Column.ofIntArray([]);
             }
 

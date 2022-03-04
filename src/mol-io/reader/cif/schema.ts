@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -53,18 +53,11 @@ function getColumnCtor(t: Column.Schema): ColumnCtor {
     }
 }
 
-function hasPresentValues(rowCount: number, valueKind: (row: number) => Column.ValueKind) {
-    for (let i = 0, il = rowCount; i < il; i++) {
-        if (valueKind(i) === Column.ValueKind.Present) return true;
-    }
-    return false;
-}
-
 function createColumn<T>(schema: Column.Schema, field: Data.CifField, value: (row: number) => T, toArray: Column<T>['toArray']): Column<T> {
     return {
         schema,
         __array: field.__array,
-        isDefined: field.isDefined && hasPresentValues(field.rowCount, field.valueKind),
+        isDefined: field.isDefined,
         rowCount: field.rowCount,
         value,
         valueKind: field.valueKind,

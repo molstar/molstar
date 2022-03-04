@@ -29,11 +29,10 @@ function findHierarchyOffsets(atom_site: AtomSite) {
     const start = 0, end = atom_site._rowCount;
     const residues = [start as ElementIndex], chains = [start as ElementIndex];
 
-    const { label_entity_id, label_asym_id, auth_asym_id, label_seq_id, auth_seq_id, pdbx_PDB_ins_code } = atom_site;
-    const asym_id = label_asym_id.isDefined ? label_asym_id : auth_asym_id;
+    const { label_entity_id, label_asym_id, label_seq_id, auth_seq_id, pdbx_PDB_ins_code } = atom_site;
 
     for (let i = start + 1 as ElementIndex; i < end; i++) {
-        const newChain = !label_entity_id.areValuesEqual(i - 1, i) || !asym_id.areValuesEqual(i - 1, i);
+        const newChain = !label_entity_id.areValuesEqual(i - 1, i) || !label_asym_id.areValuesEqual(i - 1, i);
         const newResidue = newChain
             || !label_seq_id.areValuesEqual(i - 1, i)
             || !auth_seq_id.areValuesEqual(i - 1, i)
@@ -44,11 +43,6 @@ function findHierarchyOffsets(atom_site: AtomSite) {
         if (newChain) chains[chains.length] = i as ElementIndex;
     }
     return { residues, chains };
-}
-
-function substUndefinedColumn<T extends Table<any>>(table: T, a: keyof T, b: keyof T) {
-    if (!table[a].isDefined) table[a] = table[b];
-    if (!table[b].isDefined) table[b] = table[a];
 }
 
 function createHierarchyData(atom_site: AtomSite, sourceIndex: Column<number>, offsets: { residues: ArrayLike<number>, chains: ArrayLike<number> }): AtomicData {
@@ -83,12 +77,6 @@ function createHierarchyData(atom_site: AtomSite, sourceIndex: Column<number>, o
     // Optimize the numeric columns
     Table.columnToArray(residues, 'label_seq_id', Int32Array);
     Table.columnToArray(residues, 'auth_seq_id', Int32Array);
-
-    // Fix possibly missing auth_/label_ columns
-    substUndefinedColumn(atoms, 'label_atom_id', 'auth_atom_id');
-    substUndefinedColumn(atoms, 'label_comp_id', 'auth_comp_id');
-    substUndefinedColumn(residues, 'label_seq_id', 'auth_seq_id');
-    substUndefinedColumn(chains, 'label_asym_id', 'auth_asym_id');
 
     return { atoms, residues, chains, atomSourceIndex: sourceIndex };
 }
