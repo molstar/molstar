@@ -78,13 +78,13 @@ function getModels(mol: XyzFile, ctx: RuntimeContext) {
     componentBuilder.setNames([['MOL', 'Unknown Molecule']]);
     componentBuilder.add('MOL', 0);
 
-    const basics = createBasic({
+    const basic = createBasic({
         entity: entityBuilder.getEntityTable(),
         chem_comp: componentBuilder.getChemCompTable(),
         atom_site
     });
 
-    return createModels(basics, XyzFormat.create(mol), ctx);
+    return createModels(basic, XyzFormat.create(mol), ctx);
 }
 
 //

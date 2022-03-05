@@ -75,13 +75,13 @@ async function getModels(mol2: Mol2File, ctx: RuntimeContext) {
             componentBuilder.add(atoms.subst_name.value(i), i);
         }
 
-        const basics = createBasic({
+        const basic = createBasic({
             entity: entityBuilder.getEntityTable(),
             chem_comp: componentBuilder.getChemCompTable(),
             atom_site
         });
 
-        const _models = await createModels(basics, Mol2Format.create(mol2), ctx);
+        const _models = await createModels(basic, Mol2Format.create(mol2), ctx);
 
         if (_models.frameCount > 0) {
             const indexA = Column.ofIntArray(Column.mapToArray(bonds.origin_atom_id, x => x - 1, Int32Array));
