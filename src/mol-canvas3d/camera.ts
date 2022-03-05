@@ -10,6 +10,7 @@ import { Viewport, cameraProject, cameraUnproject } from './camera/util';
 import { CameraTransitionManager } from './camera/transition';
 import { BehaviorSubject } from 'rxjs';
 import { Scene } from '../mol-gl/scene';
+import { assertUnreachable } from '../mol-util/type-helpers';
 
 export { ICamera, Camera };
 
@@ -84,7 +85,7 @@ class Camera implements ICamera {
         switch (this.state.mode) {
             case 'orthographic': updateOrtho(this); break;
             case 'perspective': updatePers(this); break;
-            default: throw new Error('unknown camera mode');
+            default: assertUnreachable(this.state.mode);
         }
 
         const changed = !Mat4.areEqual(this.projection, this.prevProjection, EPSILON) || !Mat4.areEqual(this.view, this.prevView, EPSILON);

@@ -8,6 +8,7 @@ import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { ChunkedArray } from '../../../mol-data/util';
 import { Text } from './text';
 import { getFontAtlas } from './font-atlas';
+import { assertUnreachable } from '../../../mol-util/type-helpers';
 
 const quadIndices = new Uint16Array([
     0, 1, 2,
@@ -237,7 +238,7 @@ export namespace TextBuilder {
                             yBaseCenter = yTop;
                             break;
                         default:
-                            throw new Error('unsupported attachment');
+                            assertUnreachable(attachment);
                     }
                     caAdd2(mappings, xTip, yTip); // tip
                     caAdd2(mappings, xBaseA, yBaseA); // base A

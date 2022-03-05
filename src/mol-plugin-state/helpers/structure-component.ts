@@ -13,6 +13,7 @@ import { PluginStateObject as SO } from '../objects';
 import { StructureSelectionQueries } from './structure-selection-query';
 import { StateTransformer, StateObject } from '../../mol-state';
 import { Script } from '../../mol-script/script';
+import { assertUnreachable } from '../../mol-util/type-helpers';
 
 export const StaticStructureComponentTypes = [
     'all',
@@ -72,7 +73,7 @@ export function createStructureComponent(a: Structure, params: StructureComponen
 
                 case 'coarse': query = StructureSelectionQueries.coarse.query; label = 'Coarse'; break;
 
-                default: throw new Error(`${params.type} is a not valid complex element.`);
+                default: assertUnreachable(params.type);
             }
             const result = query(new QueryContext(a));
             component = Sel.unionStructure(result);

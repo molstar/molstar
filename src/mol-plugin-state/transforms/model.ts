@@ -41,6 +41,7 @@ import { parseXyz } from '../../mol-io/reader/xyz/parser';
 import { trajectoryFromXyz } from '../../mol-model-formats/structure/xyz';
 import { parseSdf } from '../../mol-io/reader/sdf/parser';
 import { trajectoryFromSdf } from '../../mol-model-formats/structure/sdf';
+import { assertUnreachable } from '../../mol-util/type-helpers';
 
 export { CoordinatesFromDcd };
 export { CoordinatesFromXtc };
@@ -846,7 +847,7 @@ const StructureComplexElement = PluginStateTransform.BuiltIn({
             case 'atomic-het': query = Queries.internal.atomicHet(); label = 'HET Groups/Ligands'; break;
             case 'spheres': query = Queries.internal.spheres(); label = 'Coarse Spheres'; break;
 
-            default: throw new Error(`${params.type} is a not valid complex element.`);
+            default: assertUnreachable(params.type);
         }
 
         const result = query(new QueryContext(a.data));

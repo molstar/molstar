@@ -7,6 +7,7 @@
 
 import { ArrayEncoder, ArrayEncoding as E } from './array-encoder';
 import { getArrayDigitCount } from '../../../mol-util/number';
+import { assertUnreachable } from '../../../mol-util/type-helpers';
 
 export function classifyIntArray(xs: ArrayLike<number>) {
     return IntClassifier.classify(xs as number[]);
@@ -62,7 +63,7 @@ namespace IntClassifier {
         for (let i = 0, n = data.length; i < n; i++) {
             incSize(info, size, data[i]);
         }
-        return { ...byteSize(size), kind: 'pack' };
+        return { ...byteSize(size), kind: 'pack' as const };
     }
 
     function deltaSize(data: number[], info: IntColumnInfo) {
@@ -72,7 +73,7 @@ namespace IntClassifier {
             incSizeSigned(size, data[i] - prev);
             prev = data[i];
         }
-        return { ...byteSize(size), kind: 'delta' };
+        return { ...byteSize(size), kind: 'delta' as const };
     }
 
     function rleSize(data: number[], info: IntColumnInfo) {
@@ -90,7 +91,7 @@ namespace IntClassifier {
         incSize(info, size, data[data.length - 1]);
         incSize(info, size, run);
 
-        return { ...byteSize(size), kind: 'rle' };
+        return { ...byteSize(size), kind: 'rle' as const };
     }
 
     function deltaRleSize(data: number[], info: IntColumnInfo) {
@@ -111,7 +112,7 @@ namespace IntClassifier {
         incSizeSigned(size, prevValue);
         incSizeSigned(size, run);
 
-        return { ...byteSize(size), kind: 'delta-rle' };
+        return { ...byteSize(size), kind: 'delta-rle' as const };
     }
 
     export function getSize(data: number[]) {
@@ -132,9 +133,8 @@ namespace IntClassifier {
             case 'rle': return E.by(E.runLength).and(E.integerPacking);
             case 'delta': return E.by(E.delta).and(E.integerPacking);
             case 'delta-rle': return E.by(E.delta).and(E.runLength).and(E.integerPacking);
+            default: assertUnreachable(size);
         }
-
-        throw new Error('should not happen :)');
     }
 }
 
@@ -169,9 +169,8 @@ namespace FloatClassifier {
             case 'rle': return fp.and(E.runLength).and(E.integerPacking);
             case 'delta': return fp.and(E.delta).and(E.integerPacking);
             case 'delta-rle': return fp.and(E.delta).and(E.runLength).and(E.integerPacking);
+            default: assertUnreachable(size);
         }
-
-        throw new Error('should not happen :)');
     }
 
     function getMultiplier(mantissaDigits: number) {

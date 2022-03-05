@@ -202,6 +202,7 @@ export const DirectVolumeShaderCode = ShaderCode('direct-volume', directVolume_v
 
 import { image_vert } from './shader/image.vert';
 import { image_frag } from './shader/image.frag';
+import { assertUnreachable } from '../mol-util/type-helpers';
 export const ImageShaderCode = ShaderCode('image', image_vert, image_frag, { drawBuffers: 'optional' }, {}, ignoreDefineUnlit);
 
 //
@@ -228,7 +229,7 @@ function getDefinesCode(defines: ShaderDefines, ignore?: IgnoreDefine) {
             } else if (typeof v === 'boolean') {
                 if (v) lines.push(`#define ${name}`);
             } else {
-                throw new Error('unknown define type');
+                assertUnreachable(v);
             }
         }
     }

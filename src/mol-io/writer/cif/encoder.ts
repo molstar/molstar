@@ -11,6 +11,7 @@ import { Tensor } from '../../../mol-math/linear-algebra';
 import { Encoder as EncoderBase } from '../encoder';
 import { ArrayEncoder, ArrayEncoding } from '../../common/binary-cif';
 import { BinaryEncodingProvider } from './encoder/binary';
+import { assertUnreachable } from '../../../mol-util/type-helpers';
 
 // TODO: support for "coordinate fields", make "coordinate precision" a parameter of the encoder
 // TODO: automatically detect "precision" of floating point arrays.
@@ -324,7 +325,7 @@ function cifFieldsFromTableSchema(schema: Table.Schema) {
         } else if (t.valueType === 'tensor') {
             fields.push(...getTensorDefinitions(k, t.space));
         } else {
-            throw new Error(`Unknown valueType ${t.valueType}`);
+            assertUnreachable(t.valueType);
         }
     }
     return fields;
