@@ -32,6 +32,7 @@ import { Color } from '../../mol-util/color';
 import { objectForEach } from '../../mol-util/object';
 import { readFromFile } from '../../mol-util/data-source';
 import { ColorNames } from '../../mol-util/color/names';
+import { createBasic } from '../../mol-model-formats/structure/basic/schema';
 
 function getCellPackModelUrl(fileName: string, baseUrl: string) {
     return `${baseUrl}/results/${fileName}`;
@@ -310,7 +311,8 @@ async function getCurve(plugin: PluginContext, name: string, ingredient: Ingredi
     const cif = getCifCurve(name, transforms, model);
     const curveModelTask = Task.create('Curve Model', async ctx => {
         const format = MmcifFormat.fromFrame(cif);
-        const models = await createModels(format.data.db, format, ctx);
+        const basic = createBasic(format.data.db, true);
+        const models = await createModels(basic, format, ctx);
         return models.representative;
     });
 

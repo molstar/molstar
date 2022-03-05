@@ -146,13 +146,13 @@ async function getModels(db: CifCore_Database, format: CifCoreFormat, ctx: Runti
     componentBuilder.setNames([['MOL', name || 'Unknown Molecule']]);
     componentBuilder.add('MOL', 0);
 
-    const basics = createBasic({
+    const basic = createBasic({
         entity: entityBuilder.getEntityTable(),
         chem_comp: componentBuilder.getChemCompTable(),
         atom_site
     });
 
-    const models = await createModels(basics, format, ctx);
+    const models = await createModels(basic, format, ctx);
 
     if (models.frameCount > 0) {
         const first = models.representative;

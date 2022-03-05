@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -7,6 +7,7 @@
 import { mmCIF_Schema } from '../../../mol-io/reader/cif/schema/mmcif';
 import { Table } from '../../../mol-data/db';
 import { mmCIF_chemComp_schema } from '../../../mol-io/reader/cif/schema/mmcif-extras';
+import { getNormalizedAtomSite } from './util';
 
 // TODO split into conformation and hierarchy parts
 
@@ -68,7 +69,7 @@ export interface BasicData {
     pdbx_molecule: Molecule
 }
 
-export function createBasic(data: Partial<BasicData>): BasicData {
+export function createBasic(data: Partial<BasicData>, normalize = false): BasicData {
     const basic = Object.create(null);
     for (const name of Object.keys(BasicSchema)) {
         if (name in data) {
@@ -76,6 +77,9 @@ export function createBasic(data: Partial<BasicData>): BasicData {
         } else {
             basic[name] = Table.ofUndefinedColumns(BasicSchema[name as keyof typeof BasicSchema], 0);
         }
+    }
+    if (normalize) {
+        basic.atom_site = getNormalizedAtomSite(basic.atom_site);
     }
     return basic;
 }

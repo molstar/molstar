@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -185,8 +185,6 @@ function splitTable<T extends Table<any>>(table: T, col: Column<number>) {
     }
     return ret;
 }
-
-
 
 async function readIntegrative(ctx: RuntimeContext, data: BasicData, properties: CommonProperties, format: ModelFormat) {
     const entities = getEntityData(data);

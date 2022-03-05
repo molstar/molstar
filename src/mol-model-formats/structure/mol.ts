@@ -68,13 +68,13 @@ export async function getMolModels(mol: MolFile, format: ModelFormat<any> | unde
     componentBuilder.setNames([['MOL', 'Unknown Molecule']]);
     componentBuilder.add('MOL', 0);
 
-    const basics = createBasic({
+    const basic = createBasic({
         entity: entityBuilder.getEntityTable(),
         chem_comp: componentBuilder.getChemCompTable(),
         atom_site
     });
 
-    const models = await createModels(basics, format ?? MolFormat.create(mol), ctx);
+    const models = await createModels(basic, format ?? MolFormat.create(mol), ctx);
 
     if (models.frameCount > 0) {
         const indexA = Column.ofIntArray(Column.mapToArray(bonds.atomIdxA, x => x - 1, Int32Array));

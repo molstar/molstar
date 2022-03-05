@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -19,6 +19,7 @@ import { ComponentBond } from './property/bonds/chem_comp';
 import { StructConn } from './property/bonds/struct_conn';
 import { Trajectory } from '../../mol-model/structure';
 import { GlobalModelTransformInfo } from '../../mol-model/structure/model/properties/global-transform';
+import { createBasic } from './basic/schema';
 
 function modelSymmetryFromMmcif(model: Model) {
     if (!MmcifFormat.is(model.sourceData)) return;
@@ -100,5 +101,6 @@ namespace MmcifFormat {
 
 export function trajectoryFromMmCIF(frame: CifFrame): Task<Trajectory> {
     const format = MmcifFormat.fromFrame(frame);
-    return Task.create('Create mmCIF Model', ctx => createModels(format.data.db, format, ctx));
+    const basic = createBasic(format.data.db, true);
+    return Task.create('Create mmCIF Model', ctx => createModels(basic, format, ctx));
 }

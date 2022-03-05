@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -45,15 +45,6 @@ function findHierarchyOffsets(atom_site: AtomSite) {
     return { residues, chains };
 }
 
-function substUndefinedColumn<T extends Table<any>>(table: T, a: keyof T, b: keyof T) {
-    if (!(table as any)[a].isDefined) {
-        (table as any)[a] = (table as any)[b];
-    }
-    if (!(table as any)[b].isDefined) {
-        (table as any)[b] = (table as any)[a];
-    }
-}
-
 function createHierarchyData(atom_site: AtomSite, sourceIndex: Column<number>, offsets: { residues: ArrayLike<number>, chains: ArrayLike<number> }): AtomicData {
     const atoms = Table.ofColumns(AtomsSchema, {
         type_symbol: Column.ofArray({ array: Column.mapToArray(atom_site.type_symbol, ElementSymbol), schema: Column.Schema.Aliased<ElementSymbol>(Column.Schema.str) }),
@@ -86,12 +77,6 @@ function createHierarchyData(atom_site: AtomSite, sourceIndex: Column<number>, o
     // Optimize the numeric columns
     Table.columnToArray(residues, 'label_seq_id', Int32Array);
     Table.columnToArray(residues, 'auth_seq_id', Int32Array);
-
-    // Fix possibly missing auth_/label_ columns
-    substUndefinedColumn(atoms, 'label_atom_id', 'auth_atom_id');
-    substUndefinedColumn(atoms, 'label_comp_id', 'auth_comp_id');
-    substUndefinedColumn(residues, 'label_seq_id', 'auth_seq_id');
-    substUndefinedColumn(chains, 'label_asym_id', 'auth_asym_id');
 
     return { atoms, residues, chains, atomSourceIndex: sourceIndex };
 }

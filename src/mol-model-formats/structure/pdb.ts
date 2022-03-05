@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -14,6 +14,7 @@ import { Column } from '../../mol-data/db';
 import { AtomPartialCharge } from './property/partial-charge';
 import { Trajectory } from '../../mol-model/structure';
 import { ModelFormat } from '../format';
+import { createBasic } from './basic/schema';
 
 export { PdbFormat };
 
@@ -34,7 +35,8 @@ export function trajectoryFromPDB(pdb: PdbFile): Task<Trajectory> {
         await ctx.update('Converting to mmCIF');
         const cif = await pdbToMmCif(pdb);
         const format = MmcifFormat.fromFrame(cif, undefined, PdbFormat.create(pdb));
-        const models = await createModels(format.data.db, format, ctx);
+        const basic = createBasic(format.data.db, true);
+        const models = await createModels(basic, format, ctx);
         const partial_charge = cif.categories['atom_site']?.getField('partial_charge');
         if (partial_charge) {
             // TODO works only for single, unsorted model, to work generally
