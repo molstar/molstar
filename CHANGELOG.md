@@ -6,7 +6,7 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
-- Fix handling of mmcif with empty label_asym_id field
+- Fix handling of mmcif with empty ``label_*`` fields
 
 ## [v3.3.1] - 2022-02-27
 
