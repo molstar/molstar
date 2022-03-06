@@ -118,7 +118,7 @@ namespace Language {
                 while (i < _i && nodes[i].kind === 'comment') { i++; }
                 if (i >= _i) throw new Error(`There must be a value foolowed a named arg ':${name}'.`);
                 if (nodes[i].kind === 'comment') throw new Error('Invalid expression');
-                args[name] = visitExpr(nodes[i]);
+                args[name] = visitExpr(nodes[i] as ASTNode.ExpressionWithoutComment);
                 if (isNaN(+name)) allNumeric = false;
             } else {
                 args[pos++] = visitExpr(n);
