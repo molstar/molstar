@@ -110,7 +110,7 @@ namespace Language {
         let allNumeric = true;
         let pos = 0;
         for (let i = 1, _i = nodes.length; i < _i; i++) {
-            let n = nodes[i];
+            const n = nodes[i];
             if (n.kind === 'comment') continue;
             if (n.kind === 'symbol' && n.value.length > 1 && n.value.charAt(0) === ':') {
                 const name = n.value.substr(1);
