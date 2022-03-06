@@ -117,9 +117,8 @@ namespace Language {
                 ++i;
                 while (i < _i && nodes[i].kind === 'comment') { i++; }
                 if (i >= _i) throw new Error(`There must be a value foolowed a named arg ':${name}'.`);
-                n = nodes[i];
-                if (n.kind === 'comment') throw new Error('Invalid expression');
-                args[name] = visitExpr(n);
+                if (nodes[i].kind === 'comment') throw new Error('Invalid expression');
+                args[name] = visitExpr(nodes[i);
                 if (isNaN(+name)) allNumeric = false;
             } else {
                 args[pos++] = visitExpr(n);
