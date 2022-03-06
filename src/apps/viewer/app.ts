@@ -17,6 +17,7 @@ import { ModelExport } from '../../extensions/model-export';
 import { Mp4Export } from '../../extensions/mp4-export';
 import { PDBeStructureQualityReport } from '../../extensions/pdbe';
 import { RCSBAssemblySymmetry, RCSBValidationReport } from '../../extensions/rcsb';
+import { ZenodoImport } from '../../extensions/zenodo';
 import { Volume } from '../../mol-model/volume';
 import { DownloadStructure, PdbDownloadProvider } from '../../mol-plugin-state/actions/structure';
 import { DownloadDensity } from '../../mol-plugin-state/actions/volume';
@@ -63,6 +64,7 @@ const Extensions = {
     'mp4-export': PluginSpec.Behavior(Mp4Export),
     'geo-export': PluginSpec.Behavior(GeometryExport),
     'ma-quality-assessment': PluginSpec.Behavior(MAQualityAssessment),
+    'zenodo-import': PluginSpec.Behavior(ZenodoImport),
 };
 
 const DefaultViewerOptions = {
