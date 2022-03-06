@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -10,7 +10,10 @@ import { DataFormatProvider } from './provider';
 
 export const StructureFormatCategory = 'Structure';
 
-export const PsfProvider = DataFormatProvider({
+//
+
+export { PsfProvider };
+const PsfProvider = DataFormatProvider({
     label: 'PSF',
     description: 'PSF',
     category: StructureFormatCategory,
@@ -26,8 +29,14 @@ export const PsfProvider = DataFormatProvider({
         return { format: format.selector, topology: topology.selector };
     }
 });
+type PsfProvider = typeof PsfProvider;
 
-export const DcdProvider = DataFormatProvider({
+export type TopologyProvider = PsfProvider;
+
+//
+
+export { DcdProvider };
+const DcdProvider = DataFormatProvider({
     label: 'DCD',
     description: 'DCD',
     category: StructureFormatCategory,
@@ -40,8 +49,10 @@ export const DcdProvider = DataFormatProvider({
         return coordinates.commit();
     }
 });
+type DcdProvider = typeof DcdProvider;
 
-export const XtcProvider = DataFormatProvider({
+export { XtcProvider };
+const XtcProvider = DataFormatProvider({
     label: 'XTC',
     description: 'XTC',
     category: StructureFormatCategory,
@@ -54,6 +65,11 @@ export const XtcProvider = DataFormatProvider({
         return coordinates.commit();
     }
 });
+type XtcProvider = typeof XtcProvider;
+
+export type CoordinatesProvider = DcdProvider | XtcProvider;
+
+//
 
 export const BuiltInStructureFormats = [
     ['psf', PsfProvider] as const,
