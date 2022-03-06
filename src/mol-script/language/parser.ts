@@ -7,6 +7,7 @@
 import { MonadicParser as P } from '../../mol-util/monadic-parser';
 import { Expression } from './expression';
 import { MolScriptBuilder as B } from './builder';
+import { assertUnreachable } from '../../mol-util/type-helpers';
 
 export function parseMolScript(input: string) {
     return Language.parse(input);
@@ -17,6 +18,7 @@ namespace Language {
 
     namespace ASTNode {
         export type Expression = Str | Symb | List | Comment
+        export type ExpressionWithoutComment = Str | Symb | List
 
         export interface Str {
             kind: 'string',
@@ -60,7 +62,7 @@ namespace Language {
 
     function getAST(input: string) { return Expressions.tryParse(input); }
 
-    function visitExpr(expr: ASTNode.Expression): Expression {
+    function visitExpr(expr: ASTNode.ExpressionWithoutComment): Expression {
         switch (expr.kind) {
             case 'string': return expr.value;
             case 'symbol': {
@@ -82,15 +84,14 @@ namespace Language {
                     case '[': return B.core.type.list(withoutComments(expr.nodes).map(visitExpr));
                     case '{': return B.core.type.set(withoutComments(expr.nodes).map(visitExpr));
                     case '(': {
+                        if (expr.nodes[0].kind === 'comment') throw new Error('Invalid expression');
                         const head = visitExpr(expr.nodes[0]);
                         return Expression.Apply(head, getArgs(expr.nodes));
                     }
+                    default: assertUnreachable(expr.bracket);
                 }
-                return 0 as any;
             }
-            default: {
-                throw new Error('should not happen');
-            }
+            default: assertUnreachable(expr);
         }
     }
 
@@ -116,6 +117,7 @@ namespace Language {
                 ++i;
                 while (i < _i && nodes[i].kind === 'comment') { i++; }
                 if (i >= _i) throw new Error(`There must be a value foolowed a named arg ':${name}'.`);
+                if (nodes[i].kind === 'comment') throw new Error('Invalid expression');
                 args[name] = visitExpr(nodes[i]);
                 if (isNaN(+name)) allNumeric = false;
             } else {
@@ -158,8 +160,8 @@ namespace Language {
                 break;
             }
         }
-        if (!hasComment) return nodes;
-        return nodes.filter(n => n.kind !== 'comment');
+        if (!hasComment) return nodes as ASTNode.ExpressionWithoutComment[];
+        return nodes.filter(n => n.kind !== 'comment') as ASTNode.ExpressionWithoutComment[];
     }
 
     function isNumber(value: string) {

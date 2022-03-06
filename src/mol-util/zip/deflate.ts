@@ -8,7 +8,7 @@
  */
 
 import { RuntimeContext } from '../../mol-task';
-import { NumberArray } from '../type-helpers';
+import { assertUnreachable, NumberArray } from '../type-helpers';
 import { _hufTree } from './huffman';
 import { U, revCodes, makeCodes } from './util';
 
@@ -250,7 +250,7 @@ function _writeBlock(BFINAL: number, lits: Uint32Array, li: number, ebits: numbe
             pos = _codeTiny(lset, U.itree, out, pos);
             pos = _codeTiny(dset, U.itree, out, pos);
         } else {
-            throw new Error(`unknown BTYPE ${BTYPE}`);
+            assertUnreachable(BTYPE);
         }
 
         let off = o0;

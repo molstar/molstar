@@ -8,7 +8,7 @@ import { WebGLContext } from './context';
 import { ValueCell } from '../../mol-util';
 import { RenderableSchema } from '../renderable/schema';
 import { idFactory } from '../../mol-util/id-factory';
-import { ValueOf } from '../../mol-util/type-helpers';
+import { assertUnreachable, ValueOf } from '../../mol-util/type-helpers';
 import { GLRenderingContext } from './compat';
 import { WebGLExtensions } from './extensions';
 import { WebGLState } from './state';
@@ -66,9 +66,8 @@ function dataTypeFromArray(gl: GLRenderingContext, array: ArrayType) {
         return gl.INT;
     } else if (array instanceof Float32Array) {
         return gl.FLOAT;
-    } else {
-        throw new Error('Should never happen');
     }
+    assertUnreachable(array);
 }
 
 export function getBufferType(gl: GLRenderingContext, bufferType: BufferType) {

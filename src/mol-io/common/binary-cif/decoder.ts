@@ -7,6 +7,7 @@
 
 import { Encoding, EncodedData } from './encoding';
 import { IsNativeEndianLittle, flipByteOrder } from '../binary';
+import { assertUnreachable } from '../../../mol-util/type-helpers';
 
 /**
  * Fixed point, delta, RLE, integer packing adopted from https://github.com/rcsb/mmtf-javascript/
@@ -33,7 +34,7 @@ function decodeStep(data: any, encoding: Encoding): any {
                 case Encoding.IntDataType.Uint32: return uint32(data);
                 case Encoding.FloatDataType.Float32: return float32(data);
                 case Encoding.FloatDataType.Float64: return float64(data);
-                default: throw new Error('Unsupported ByteArray type.');
+                default: assertUnreachable(encoding.type);
             }
         }
         case 'FixedPoint': return fixedPoint(data, encoding);
@@ -53,7 +54,7 @@ function getIntArray(type: Encoding.IntDataType, size: number) {
         case Encoding.IntDataType.Uint8: return new Uint8Array(size);
         case Encoding.IntDataType.Uint16: return new Uint16Array(size);
         case Encoding.IntDataType.Uint32: return new Uint32Array(size);
-        default: throw new Error('Unsupported integer data type.');
+        default: assertUnreachable(type);
     }
 }
 
@@ -61,7 +62,7 @@ function getFloatArray(type: Encoding.FloatDataType, size: number) {
     switch (type) {
         case Encoding.FloatDataType.Float32: return new Float32Array(size);
         case Encoding.FloatDataType.Float64: return new Float64Array(size);
-        default: throw new Error('Unsupported floating data type.');
+        default: assertUnreachable(type);
     }
 }
 

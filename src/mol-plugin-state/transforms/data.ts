@@ -20,6 +20,7 @@ import { Asset } from '../../mol-util/assets';
 import { parseCube } from '../../mol-io/reader/cube/parser';
 import { parseDx } from '../../mol-io/reader/dx/parser';
 import { ColorNames } from '../../mol-util/color/names';
+import { assertUnreachable } from '../../mol-util/type-helpers';
 
 export { Download };
 export { DownloadBlob };
@@ -151,7 +152,7 @@ const RawData = PluginStateTransform.BuiltIn({
             } else if (p.data instanceof Uint8Array) {
                 return new SO.Data.Binary(p.data, { label: p.label ? p.label : 'Binary' });
             } else {
-                throw new Error('Supplied binary data must be a plain array, ArrayBuffer, or Uint8Array.');
+                assertUnreachable(p.data);
             }
         });
     },

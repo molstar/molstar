@@ -15,6 +15,7 @@ import { Download } from '../transforms/data';
 import { DataFormatProvider } from '../formats/provider';
 import { Asset } from '../../mol-util/assets';
 import { StateTransforms } from '../transforms';
+import { assertUnreachable } from '../../mol-util/type-helpers';
 
 export type EmdbDownloadProvider = 'pdbe' | 'rcsb'
 
@@ -109,7 +110,7 @@ const DownloadDensity = StateAction.build({
                 label: `RCSB PDB X-ray Density Server: ${src.params.provider.id}`
             };
             break;
-        default: throw new Error(`${(src as any).name} not supported.`);
+        default: assertUnreachable(src);
     }
 
     const data = await plugin.builders.data.download(downloadParams);
@@ -131,7 +132,7 @@ const DownloadDensity = StateAction.build({
             entryId = src.params.provider.id;
             provider = plugin.dataFormats.get('dscif');
             break;
-        default: throw new Error(`${(src as any).name} not supported.`);
+        default: assertUnreachable(src);
     }
 
     if (!provider) {

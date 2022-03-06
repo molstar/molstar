@@ -7,6 +7,7 @@
 
 import { AminoAlphabet, NuclecicAlphabet, getProteinOneLetterCode, getRnaOneLetterCode, getDnaOneLetterCode } from './constants';
 import { Column } from '../../mol-data/db';
+import { assertUnreachable } from '../../mol-util/type-helpers';
 
 // TODO add mapping support to other sequence spaces, e.g. uniprot
 
@@ -66,7 +67,7 @@ namespace Sequence {
             case Kind.DNA: code = getDnaOneLetterCode; break;
             case Kind.RNA: code = getRnaOneLetterCode; break;
             case Kind.Generic: code = () => 'X'; break;
-            default: throw new Error(`unknown kind '${kind}'`);
+            default: assertUnreachable(kind);
         }
         if (map && map.size > 0) {
             return (name: string) => {

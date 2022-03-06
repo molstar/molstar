@@ -155,7 +155,7 @@ const DownloadStructure = StateAction.build({
             asTrajectory = !!src.params.options.asTrajectory;
             format = 'mol';
             break;
-        default: throw new Error(`${(src as any).name} not supported.`);
+        default: assertUnreachable(src);
     }
 
     const representationPreset: any = params.source.params.options.representation || plugin.config.get(PluginConfig.Structure.DefaultRepresentationPreset) || PresetStructureRepresentations.auto.id;
