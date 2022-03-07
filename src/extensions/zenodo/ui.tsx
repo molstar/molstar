@@ -99,7 +99,7 @@ function createImportParams(files: ZenodoFile[], plugin: PluginContext) {
         params.structure = PD.Select(modelOpts[0][0], modelOpts);
     }
 
-    if (modelOpts.length && topologyOpts.length) {
+    if (topologyOpts.length && coordinatesOpts.length) {
         if (!defaultType) defaultType = 'trajectory';
         params.trajectory = PD.Group({
             topology: PD.Select(topologyOpts[0][0], topologyOpts),
@@ -249,7 +249,7 @@ export class ZenodoImportUI extends CollapsableControls<{}, State> {
     private renderLoadRecord() {
         return <div style={{ marginBottom: 10 }}>
             <ParameterControls params={ZenodoImportParams} values={this.state.recordValues} onChangeValues={this.recordParamsOnChange} isDisabled={this.state.busy} />
-            <Button onClick={this.loadRecord} style={{ marginTop: 1 }} disabled={this.state.busy}>
+            <Button onClick={this.loadRecord} style={{ marginTop: 1 }} disabled={this.state.busy || !this.state.recordValues.record}>
                 Load Record
             </Button>
         </div>;
