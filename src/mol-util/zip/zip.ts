@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  *
@@ -14,6 +14,10 @@ import { crc, adler } from './checksum';
 import { _inflate } from './inflate';
 import { _deflateRaw } from './deflate';
 import { RuntimeContext, Task } from '../../mol-task';
+
+export function Unzip(buf: ArrayBuffer, onlyNames = false) {
+    return Task.create('Unzip', ctx => unzip(ctx, buf, onlyNames));
+}
 
 export async function unzip(runtime: RuntimeContext, buf: ArrayBuffer, onlyNames = false) {
     const out: { [k: string]: Uint8Array | { size: number, csize: number } } = Object.create(null);

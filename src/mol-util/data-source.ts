@@ -130,13 +130,15 @@ function getCompression(name: string) {
             DataCompressionMethod.None;
 }
 
+const reFilterPath = /^(__MACOSX|.DS_Store)/;
+
 async function decompress(ctx: RuntimeContext, data: Uint8Array, compression: DataCompressionMethod): Promise<Uint8Array> {
     switch (compression) {
         case DataCompressionMethod.None: return data;
         case DataCompressionMethod.Gzip: return ungzip(ctx, data);
         case DataCompressionMethod.Zip:
             const parsed = await unzip(ctx, data.buffer);
-            const names = Object.keys(parsed);
+            const names = Object.keys(parsed).filter(n => !reFilterPath.test(n));
             if (names.length !== 1) throw new Error('can only decompress zip files with a single entry');
             return parsed[names[0]] as Uint8Array;
     }
