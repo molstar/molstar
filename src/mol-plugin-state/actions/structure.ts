@@ -385,6 +385,7 @@ export const LoadTrajectory = StateAction.build({
 
             if (!provider) {
                 ctx.log.warn(`LoadTrajectory: could not find data provider for '${info.name}.${info.ext}'`);
+                await ctx.state.data.build().delete(data).commit();
                 return;
             }
 

@@ -4,6 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+import { DownloadFile } from '../../mol-plugin-state/actions/file';
 import { DownloadStructure, LoadTrajectory } from '../../mol-plugin-state/actions/structure';
 import { DownloadDensity } from '../../mol-plugin-state/actions/volume';
 import { TrajectoryFormatCategory } from '../../mol-plugin-state/formats/trajectory';
@@ -51,7 +52,7 @@ interface State {
 }
 
 const ZenodoImportParams = {
-    record: PD.Text('847637', { description: 'Zenodo ID.' })
+    record: PD.Text('438727', { description: 'Zenodo ID.' })
 };
 
 function createImportParams(files: ZenodoFile[], plugin: PluginContext) {
@@ -59,6 +60,7 @@ function createImportParams(files: ZenodoFile[], plugin: PluginContext) {
     const topologyOpts: [string, string][] = [];
     const coordinatesOpts: [string, string][] = [];
     const volumeOpts: [string, string][] = [];
+    const compressedOpts: [string, string][] = [];
 
     const structureExts = new Map<string, { format: string, isBinary: boolean }>();
     const volumeExts = new Map<string, { format: string, isBinary: boolean }>();
@@ -84,6 +86,8 @@ function createImportParams(files: ZenodoFile[], plugin: PluginContext) {
             topologyOpts.push([`${file.links.self}|${file.type}|false`, file.key]);
         } else if (file.type === 'xtc' || file.type === 'dcd') {
             coordinatesOpts.push([`${file.links.self}|${file.type}|true`, file.key]);
+        } else if (file.type === 'zip') {
+            compressedOpts.push([`${file.links.self}|${file.type}|true`, file.key]);
         }
     }
 
@@ -106,6 +110,11 @@ function createImportParams(files: ZenodoFile[], plugin: PluginContext) {
     if (volumeOpts.length) {
         if (!defaultType) defaultType = 'volume';
         params.volume = PD.Select(volumeOpts[0][0], volumeOpts);
+    }
+
+    if (compressedOpts.length) {
+        if (!defaultType) defaultType = 'compressed';
+        params.compressed = PD.Select(compressedOpts[0][0], compressedOpts);
     }
 
     return {
@@ -210,6 +219,15 @@ export class ZenodoImportUI extends CollapsableControls<{}, State> {
                         }
                     }
                 }));
+            } else if (t.name === 'compressed') {
+                const [url, format, isBinary] = t.params.split('|');
+
+                await this.plugin.runTask(this.plugin.state.data.applyAction(DownloadFile, {
+                    url,
+                    format: format as any,
+                    isBinary: isBinary === 'true',
+                    visuals: true
+                }));
             }
         } catch (e) {
             console.error(e);
@@ -240,7 +258,7 @@ export class ZenodoImportUI extends CollapsableControls<{}, State> {
     private renderRecordInfo(record: ZenodoRecord) {
         return <div style={{ marginBottom: 10 }}>
             <div className='msp-help-text'>
-                <div>{`${record.metadata.title} (${record.id})`}</div>
+                <div>Record {`${record.id}`}: <i>{`${record.metadata.title}`}</i></div>
             </div>
             <Button onClick={this.clearRecord} style={{ marginTop: 1 }} disabled={this.state.busy}>
                 Clear
