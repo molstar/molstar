@@ -52,7 +52,7 @@ interface State {
 }
 
 const ZenodoImportParams = {
-    record: PD.Text('438727', { description: 'Zenodo ID.' })
+    record: PD.Text('', { description: 'Zenodo ID.' })
 };
 
 function createImportParams(files: ZenodoFile[], plugin: PluginContext) {
