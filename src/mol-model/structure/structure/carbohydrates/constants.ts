@@ -1,11 +1,12 @@
 /**
- * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { Color, ColorMap } from '../../../../mol-util/color';
+import { SaccharideNames } from '../../model/types/saccharides';
 
 // follows community standard from https://www.ncbi.nlm.nih.gov/glycans/snfg.html
 
@@ -302,13 +303,6 @@ const CommonSaccharideNames: { [k: string]: string[] } = {
     Psi: ['PSV', 'SF6', 'SF9', 'TTV'],
 };
 
-const UnknownSaccharideNames = [
-    'NGZ', // via CCD
-    'LAT', // BETA-LACTOSE, Gal-Glc di-saccharide via GlyFinder
-
-    'PUF', 'GDA', '9WJ', // via updated CCD
-];
-
 /**
  * From http://glycam.org/docs/othertoolsservice/2016/06/09/3d-snfg-list-of-residue-names/#CHARMM
  */
@@ -354,9 +348,9 @@ export const SaccharideCompIdMap = (function () {
             }
         }
     }
-    for (let i = 0, il = UnknownSaccharideNames.length; i < il; ++i) {
-        map.set(UnknownSaccharideNames[i], UnknownSaccharideComponent);
-    }
+    SaccharideNames.forEach(name => {
+        if (!map.has(name)) map.set(name, UnknownSaccharideComponent);
+    });
     return map;
 })();
 
