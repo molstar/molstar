@@ -203,3 +203,9 @@ export function formatProgress(p: Progress) {
     const x = (100 * tp.current / tp.max).toFixed(2);
     return `${tp.message} ${x}%`;
 }
+
+export function formatBytes(count: number) {
+    const units = ['B', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
+    const i = Math.floor(Math.log(count) / Math.log(1024));
+    return `${(count / Math.pow(1024, i)).toFixed(2)} ${units[i]}`;
+}

@@ -14,6 +14,7 @@ import { Button } from '../../mol-plugin-ui/controls/common';
 import { OpenInBrowserSvg } from '../../mol-plugin-ui/controls/icons';
 import { ParameterControls } from '../../mol-plugin-ui/controls/parameters';
 import { PluginContext } from '../../mol-plugin/context';
+import { formatBytes } from '../../mol-util';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 
 type ZenodoFile = {
@@ -75,19 +76,20 @@ function createImportParams(files: ZenodoFile[], plugin: PluginContext) {
     }
 
     for (const file of files) {
+        const label = `${file.key} (${formatBytes(file.size)})`;
         if (structureExts.has(file.type)) {
             const { format, isBinary } = structureExts.get(file.type)!;
-            modelOpts.push([`${file.links.self}|${format}|${isBinary}`, file.key]);
-            topologyOpts.push([`${file.links.self}|${format}|${isBinary}`, file.key]);
+            modelOpts.push([`${file.links.self}|${format}|${isBinary}`, label]);
+            topologyOpts.push([`${file.links.self}|${format}|${isBinary}`, label]);
         } else if (volumeExts.has(file.type)) {
             const { format, isBinary } = volumeExts.get(file.type)!;
-            volumeOpts.push([`${file.links.self}|${format}|${isBinary}`, file.key]);
+            volumeOpts.push([`${file.links.self}|${format}|${isBinary}`, label]);
         } else if (file.type === 'psf') {
-            topologyOpts.push([`${file.links.self}|${file.type}|false`, file.key]);
+            topologyOpts.push([`${file.links.self}|${file.type}|false`, label]);
         } else if (file.type === 'xtc' || file.type === 'dcd') {
-            coordinatesOpts.push([`${file.links.self}|${file.type}|true`, file.key]);
+            coordinatesOpts.push([`${file.links.self}|${file.type}|true`, label]);
         } else if (file.type === 'zip') {
-            compressedOpts.push([`${file.links.self}|${file.type}|true`, file.key]);
+            compressedOpts.push([`${file.links.self}|${file.type}|true`, label]);
         }
     }
 
