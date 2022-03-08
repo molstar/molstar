@@ -8,6 +8,7 @@ Note that since we don't clearly distinguish between a public and private interf
 
 - Fix handling of mmcif with empty ``label_*`` fields
 - Improve saccharide detection (compare against list from CCD)
+- Fix legend label of hydrophobicity color theme
 
 ## [v3.3.1] - 2022-02-27
 
