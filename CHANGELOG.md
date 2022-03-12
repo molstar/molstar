@@ -13,6 +13,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Fix loading of some compressed files within sessions
 - Fix wrong element assignment for atoms with Charmm ion names
 - Fix handling of empty symmetry cell data
+- Add support for ``trr`` coordinates files
 
 ## [v3.3.1] - 2022-02-27
 

@@ -42,11 +42,28 @@ const XtcProvider = DataFormatProvider({
 });
 type XtcProvider = typeof XtcProvider;
 
-export type CoordinatesProvider = DcdProvider | XtcProvider;
+export { TrrProvider };
+const TrrProvider = DataFormatProvider({
+    label: 'TRR',
+    description: 'TRR',
+    category: CoordinatesFormatCategory,
+    binaryExtensions: ['trr'],
+    parse: (plugin, data) => {
+        const coordinates = plugin.state.data.build()
+            .to(data)
+            .apply(StateTransforms.Model.CoordinatesFromTrr);
+
+        return coordinates.commit();
+    }
+});
+type TrrProvider = typeof TrrProvider;
+
+export type CoordinatesProvider = DcdProvider | XtcProvider | TrrProvider;
 
 export const BuiltInCoordinatesFormats = [
     ['dcd', DcdProvider] as const,
     ['xtc', XtcProvider] as const,
+    ['trr', TrrProvider] as const,
 ] as const;
 
 export type BuiltInCoordinatesFormat = (typeof BuiltInCoordinatesFormats)[number][0]
