@@ -29,10 +29,30 @@ const PsfProvider = DataFormatProvider({
 });
 type PsfProvider = typeof PsfProvider;
 
+export { PrmtopProvider };
+const PrmtopProvider = DataFormatProvider({
+    label: 'PRMTOP',
+    description: 'PRMTOP',
+    category: TopologyFormatCategory,
+    stringExtensions: ['prmtop', 'parm7'],
+    parse: async (plugin, data) => {
+        const format = plugin.state.data.build()
+            .to(data)
+            .apply(StateTransforms.Data.ParsePrmtop, {}, { state: { isGhost: true } });
+        const topology = format.apply(StateTransforms.Model.TopologyFromPrmtop);
+
+        await format.commit();
+
+        return { format: format.selector, topology: topology.selector };
+    }
+});
+type PrmtopProvider = typeof PrmtopProvider;
+
 export type TopologyProvider = PsfProvider;
 
 export const BuiltInTopologyFormats = [
     ['psf', PsfProvider] as const,
+    ['prmtop', PrmtopProvider] as const,
 ] as const;
 
 export type BuiltInTopologyFormat = (typeof BuiltInTopologyFormats)[number][0]
