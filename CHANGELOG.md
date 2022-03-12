@@ -7,7 +7,8 @@ Note that since we don't clearly distinguish between a public and private interf
 ## [Unreleased]
 
 - Fix handling of mmcif with empty ``label_*`` fields
-- Add LoadTrajectory action
+- Add ``LoadTrajectory`` action
+- Add ``CustomImportControls`` to left panel
 - Add Zenodo import extension (load structures, trajectories, volumes, and zip files)
 - Fix loading of some compressed files within sessions
 

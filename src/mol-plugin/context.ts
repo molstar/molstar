@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -176,6 +176,7 @@ export class PluginContext {
     readonly customStructureProperties = new CustomProperty.Registry<Structure>();
 
     readonly customStructureControls = new Map<string, { new(): any /* constructible react components with <action.customControl /> */ }>();
+    readonly customImportControls = new Map<string, { new(): any /* constructible react components with <action.customControl /> */ }>();
     readonly genericRepresentationControls = new Map<string, (selection: StructureHierarchyManager['selection']) => [StructureHierarchyRef[], string]>();
 
     /**

@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import * as React from 'react';
@@ -18,6 +19,20 @@ import { RemoteStateSnapshots, StateSnapshots } from './state/snapshots';
 import { StateTree } from './state/tree';
 import { HelpContent } from './viewport/help';
 import { HomeOutlinedSvg, AccountTreeOutlinedSvg, TuneSvg, HelpOutlineSvg, SaveOutlinedSvg, DeleteOutlinedSvg } from './controls/icons';
+
+export class CustomImportControls extends PluginUIComponent<{ initiallyCollapsed?: boolean }> {
+    componentDidMount() {
+        this.subscribe(this.plugin.state.behaviors.events.changed, () => this.forceUpdate());
+    }
+
+    render() {
+        const controls: JSX.Element[] = [];
+        this.plugin.customImportControls.forEach((Controls, key) => {
+            controls.push(<Controls initiallyCollapsed={this.props.initiallyCollapsed} key={key} />);
+        });
+        return controls.length > 0 ? <>{controls}</> : null;
+    }
+}
 
 export class LeftPanelControls extends PluginUIComponent<{}, { tab: LeftPanelTabName }> {
     state = { tab: this.plugin.behaviors.layout.leftPanelTabName.value };
@@ -54,6 +69,7 @@ export class LeftPanelControls extends PluginUIComponent<{}, { tab: LeftPanelTab
         'root': <>
             <SectionHeader icon={HomeOutlinedSvg} title='Home' />
             <StateObjectActions state={this.plugin.state.data} nodeRef={StateTransform.RootRef} hideHeader={true} initiallyCollapsed={true} alwaysExpandFirst={true} />
+            <CustomImportControls />
             {this.plugin.spec.components?.remoteState !== 'none' && <RemoteStateSnapshots listOnly /> }
         </>,
         'data': <>

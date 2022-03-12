@@ -15,7 +15,7 @@ export const ZenodoImport = PluginBehavior.create<{ }>({
     },
     ctor: class extends PluginBehavior.Handler<{ }> {
         register(): void {
-            this.ctx.customStructureControls.set('zenodo-import', ZenodoImportUI as any);
+            this.ctx.customImportControls.set('zenodo-import', ZenodoImportUI as any);
         }
 
         update() {
@@ -23,7 +23,7 @@ export const ZenodoImport = PluginBehavior.create<{ }>({
         }
 
         unregister() {
-            this.ctx.customStructureControls.delete('zenodo-import');
+            this.ctx.customImportControls.delete('zenodo-import');
         }
     },
     params: () => ({ })
