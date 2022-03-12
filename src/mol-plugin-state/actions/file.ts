@@ -22,7 +22,7 @@ async function processFile(file: Asset.File, plugin: PluginContext, format: stri
         : plugin.dataFormats.get(format);
 
     if (!provider) {
-        plugin.log.warn(`OpenFiles: could not find data provider for '${info.name}.${info.ext}'`);
+        plugin.log.warn(`OpenFiles: could not find data provider for '${info.ext}'`);
         await plugin.state.data.build().delete(data).commit();
         return;
     }

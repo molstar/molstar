@@ -7,6 +7,8 @@
 import { DownloadFile } from '../../mol-plugin-state/actions/file';
 import { DownloadStructure, LoadTrajectory } from '../../mol-plugin-state/actions/structure';
 import { DownloadDensity } from '../../mol-plugin-state/actions/volume';
+import { CoordinatesFormatCategory } from '../../mol-plugin-state/formats/coordinates';
+import { TopologyFormatCategory } from '../../mol-plugin-state/formats/topology';
 import { TrajectoryFormatCategory } from '../../mol-plugin-state/formats/trajectory';
 import { VolumeFormatCategory } from '../../mol-plugin-state/formats/volume';
 import { CollapsableControls, CollapsableState } from '../../mol-plugin-ui/base';
@@ -64,7 +66,10 @@ function createImportParams(files: ZenodoFile[], plugin: PluginContext) {
     const compressedOpts: [string, string][] = [];
 
     const structureExts = new Map<string, { format: string, isBinary: boolean }>();
+    const coordinatesExts = new Map<string, { format: string, isBinary: boolean }>();
+    const topologyExts = new Map<string, { format: string, isBinary: boolean }>();
     const volumeExts = new Map<string, { format: string, isBinary: boolean }>();
+
     for (const { provider: { category, binaryExtensions, stringExtensions }, name } of plugin.dataFormats.list) {
         if (category === TrajectoryFormatCategory) {
             if (binaryExtensions) for (const e of binaryExtensions) structureExts.set(e, { format: name, isBinary: true });
@@ -72,6 +77,12 @@ function createImportParams(files: ZenodoFile[], plugin: PluginContext) {
         } else if (category === VolumeFormatCategory) {
             if (binaryExtensions) for (const e of binaryExtensions) volumeExts.set(e, { format: name, isBinary: true });
             if (stringExtensions) for (const e of stringExtensions) volumeExts.set(e, { format: name, isBinary: false });
+        } else if (category === CoordinatesFormatCategory) {
+            if (binaryExtensions) for (const e of binaryExtensions) coordinatesExts.set(e, { format: name, isBinary: true });
+            if (stringExtensions) for (const e of stringExtensions) coordinatesExts.set(e, { format: name, isBinary: false });
+        } else if (category === TopologyFormatCategory) {
+            if (binaryExtensions) for (const e of binaryExtensions) topologyExts.set(e, { format: name, isBinary: true });
+            if (stringExtensions) for (const e of stringExtensions) topologyExts.set(e, { format: name, isBinary: false });
         }
     }
 
@@ -84,10 +95,12 @@ function createImportParams(files: ZenodoFile[], plugin: PluginContext) {
         } else if (volumeExts.has(file.type)) {
             const { format, isBinary } = volumeExts.get(file.type)!;
             volumeOpts.push([`${file.links.self}|${format}|${isBinary}`, label]);
-        } else if (file.type === 'psf') {
-            topologyOpts.push([`${file.links.self}|${file.type}|false`, label]);
-        } else if (file.type === 'xtc' || file.type === 'dcd') {
-            coordinatesOpts.push([`${file.links.self}|${file.type}|true`, label]);
+        } else if (topologyExts.has(file.type)) {
+            const { format, isBinary } = topologyExts.get(file.type)!;
+            topologyOpts.push([`${file.links.self}|${format}|${isBinary}`, label]);
+        } else if (coordinatesExts.has(file.type)) {
+            const { format, isBinary } = coordinatesExts.get(file.type)!;
+            coordinatesOpts.push([`${file.links.self}|${format}|${isBinary}`, label]);
         } else if (file.type === 'zip') {
             compressedOpts.push([`${file.links.self}|${file.type}|true`, label]);
         }

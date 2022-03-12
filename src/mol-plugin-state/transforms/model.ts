@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -42,10 +42,18 @@ import { trajectoryFromXyz } from '../../mol-model-formats/structure/xyz';
 import { parseSdf } from '../../mol-io/reader/sdf/parser';
 import { trajectoryFromSdf } from '../../mol-model-formats/structure/sdf';
 import { assertUnreachable } from '../../mol-util/type-helpers';
+import { parseTrr } from '../../mol-io/reader/trr/parser';
+import { coordinatesFromTrr } from '../../mol-model-formats/structure/trr';
+import { parseNctraj } from '../../mol-io/reader/nctraj/parser';
+import { coordinatesFromNctraj } from '../../mol-model-formats/structure/nctraj';
+import { topologyFromPrmtop } from '../../mol-model-formats/structure/prmtop';
 
 export { CoordinatesFromDcd };
 export { CoordinatesFromXtc };
+export { CoordinatesFromTrr };
+export { CoordinatesFromNctraj };
 export { TopologyFromPsf };
+export { TopologyFromPrmtop };
 export { TrajectoryFromModelAndCoordinates };
 export { TrajectoryFromBlob };
 export { TrajectoryFromMmCif };
@@ -88,7 +96,7 @@ const CoordinatesFromDcd = PluginStateTransform.BuiltIn({
     }
 });
 
-type CoordinatesFromXtc = typeof CoordinatesFromDcd
+type CoordinatesFromXtc = typeof CoordinatesFromXtc
 const CoordinatesFromXtc = PluginStateTransform.BuiltIn({
     name: 'coordinates-from-xtc',
     display: { name: 'Parse XTC', description: 'Parse XTC binary data.' },
@@ -105,16 +113,65 @@ const CoordinatesFromXtc = PluginStateTransform.BuiltIn({
     }
 });
 
+type CoordinatesFromTrr = typeof CoordinatesFromTrr
+const CoordinatesFromTrr = PluginStateTransform.BuiltIn({
+    name: 'coordinates-from-trr',
+    display: { name: 'Parse TRR', description: 'Parse TRR binary data.' },
+    from: [SO.Data.Binary],
+    to: SO.Molecule.Coordinates
+})({
+    apply({ a }) {
+        return Task.create('Parse TRR', async ctx => {
+            const parsed = await parseTrr(a.data).runInContext(ctx);
+            if (parsed.isError) throw new Error(parsed.message);
+            const coordinates = await coordinatesFromTrr(parsed.result).runInContext(ctx);
+            return new SO.Molecule.Coordinates(coordinates, { label: a.label, description: 'Coordinates' });
+        });
+    }
+});
+
+type CoordinatesFromNctraj = typeof CoordinatesFromNctraj
+const CoordinatesFromNctraj = PluginStateTransform.BuiltIn({
+    name: 'coordinates-from-nctraj',
+    display: { name: 'Parse NCTRAJ', description: 'Parse NCTRAJ binary data.' },
+    from: [SO.Data.Binary],
+    to: SO.Molecule.Coordinates
+})({
+    apply({ a }) {
+        return Task.create('Parse NCTRAJ', async ctx => {
+            const parsed = await parseNctraj(a.data).runInContext(ctx);
+            if (parsed.isError) throw new Error(parsed.message);
+            const coordinates = await coordinatesFromNctraj(parsed.result).runInContext(ctx);
+            return new SO.Molecule.Coordinates(coordinates, { label: a.label, description: 'Coordinates' });
+        });
+    }
+});
+
 type TopologyFromPsf = typeof TopologyFromPsf
 const TopologyFromPsf = PluginStateTransform.BuiltIn({
     name: 'topology-from-psf',
-    display: { name: 'PSF Topology', description: 'Parse PSF string data.' },
+    display: { name: 'PSF Topology', description: 'Create topology from PSF.' },
     from: [SO.Format.Psf],
     to: SO.Molecule.Topology
 })({
     apply({ a }) {
         return Task.create('Create Topology', async ctx => {
             const topology = await topologyFromPsf(a.data).runInContext(ctx);
+            return new SO.Molecule.Topology(topology, { label: topology.label || a.label, description: 'Topology' });
+        });
+    }
+});
+
+type TopologyFromPrmtop = typeof TopologyFromPrmtop
+const TopologyFromPrmtop = PluginStateTransform.BuiltIn({
+    name: 'topology-from-prmtop',
+    display: { name: 'PRMTOP Topology', description: 'Create topology from PRMTOP.' },
+    from: [SO.Format.Prmtop],
+    to: SO.Molecule.Topology
+})({
+    apply({ a }) {
+        return Task.create('Create Topology', async ctx => {
+            const topology = await topologyFromPrmtop(a.data).runInContext(ctx);
             return new SO.Molecule.Topology(topology, { label: topology.label || a.label, description: 'Topology' });
         });
     }

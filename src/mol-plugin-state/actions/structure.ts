@@ -20,6 +20,8 @@ import { Asset } from '../../mol-util/assets';
 import { PluginConfig } from '../../mol-plugin/config';
 import { getFileInfo } from '../../mol-util/file-info';
 import { assertUnreachable } from '../../mol-util/type-helpers';
+import { TopologyFormatCategory } from '../formats/topology';
+import { CoordinatesFormatCategory } from '../formats/coordinates';
 
 const DownloadModelRepresentationOptions = (plugin: PluginContext) => {
     const representationDefault = plugin.config.get(PluginConfig.Structure.DefaultRepresentationPreset) || PresetStructureRepresentations.auto.id;
@@ -318,14 +320,18 @@ export const LoadTrajectory = StateAction.build({
     from: PluginStateObject.Root,
     params(a, ctx: PluginContext) {
         const { options } = ctx.dataFormats;
-        const modelOptions = options.filter(o => o[2] === TrajectoryFormatCategory || o[0] === 'psf');
-        const coordinatesOptions = options.filter(o => o[0] === 'dcd' || o[0] === 'xtc');
+        const modelOptions = options.filter(o => o[2] === TrajectoryFormatCategory || o[2] === TopologyFormatCategory);
+        const coordinatesOptions = options.filter(o => o[2] === CoordinatesFormatCategory);
 
-        const modelExtensions: string[] = [];
-        for (const { name, provider } of ctx.dataFormats.list) {
-            if (provider.category === TrajectoryFormatCategory || name === 'psf') {
-                if (provider.binaryExtensions) modelExtensions.push(...provider.binaryExtensions);
-                if (provider.stringExtensions) modelExtensions.push(...provider.stringExtensions);
+        const modelExts: string[] = [];
+        const coordinatesExts: string[] = [];
+        for (const { provider } of ctx.dataFormats.list) {
+            if (provider.category === TrajectoryFormatCategory || provider.category === TopologyFormatCategory) {
+                if (provider.binaryExtensions) modelExts.push(...provider.binaryExtensions);
+                if (provider.stringExtensions) modelExts.push(...provider.stringExtensions);
+            } else if (provider.category === CoordinatesFormatCategory) {
+                if (provider.binaryExtensions) coordinatesExts.push(...provider.binaryExtensions);
+                if (provider.stringExtensions) coordinatesExts.push(...provider.stringExtensions);
             }
         }
 
@@ -343,8 +349,8 @@ export const LoadTrajectory = StateAction.build({
                     }, { isExpanded: true })
                 }, { isFlat: true }),
                 file: PD.Group({
-                    model: PD.File({ accept: modelExtensions.map(e => `.${e}`).join(','), label: 'Model' }),
-                    coordinates: PD.File({ accept: '.dcd,.xtc', label: 'Coordinates' }),
+                    model: PD.File({ accept: modelExts.map(e => `.${e}`).join(','), label: 'Model' }),
+                    coordinates: PD.File({ accept: coordinatesExts.map(e => `.${e}`).join(','), label: 'Coordinates' }),
                 }, { isFlat: true }),
             }, { options: [['url', 'URL'], ['file', 'File']] })
         };
@@ -384,7 +390,7 @@ export const LoadTrajectory = StateAction.build({
             const provider = ctx.dataFormats.auto(info, data.cell?.obj!);
 
             if (!provider) {
-                ctx.log.warn(`LoadTrajectory: could not find data provider for '${info.name}.${info.ext}'`);
+                ctx.log.warn(`LoadTrajectory: could not find data provider for '${info.ext}'`);
                 await ctx.state.data.build().delete(data).commit();
                 return;
             }

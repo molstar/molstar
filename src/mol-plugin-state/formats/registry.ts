@@ -11,7 +11,8 @@ import { DataFormatProvider } from './provider';
 import { BuiltInTrajectoryFormats } from './trajectory';
 import { BuiltInVolumeFormats } from './volume';
 import { BuiltInShapeFormats } from './shape';
-import { BuiltInStructureFormats } from './structure';
+import { BuiltInTopologyFormats } from './topology';
+import { BuiltInCoordinatesFormats } from './coordinates';
 
 export class DataFormatRegistry {
     private _list: { name: string, provider: DataFormatProvider }[] = [];
@@ -53,7 +54,8 @@ export class DataFormatRegistry {
 
     constructor() {
         for (const [id, p] of BuiltInVolumeFormats) this.add(id, p);
-        for (const [id, p] of BuiltInStructureFormats) this.add(id, p);
+        for (const [id, p] of BuiltInTopologyFormats) this.add(id, p);
+        for (const [id, p] of BuiltInCoordinatesFormats) this.add(id, p);
         for (const [id, p] of BuiltInShapeFormats) this.add(id, p);
         for (const [id, p] of BuiltInTrajectoryFormats) this.add(id, p);
     };
