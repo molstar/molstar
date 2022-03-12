@@ -21,6 +21,7 @@ function getBasic(atoms: PsfFile['atoms']) {
     const asymIds = new Array<string>(atoms.count);
     const seqIds = new Uint32Array(atoms.count);
     const ids = new Uint32Array(atoms.count);
+    const typeSymbol = new Array<string>(atoms.count);
 
     const entityBuilder = new EntityBuilder();
     const componentBuilder = new ComponentBuilder(atoms.residueId, atoms.atomName);
@@ -68,6 +69,8 @@ function getBasic(atoms: PsfFile['atoms']) {
         asymIds[i] = currentAsymId;
         seqIds[i] = currentSeqId;
         ids[i] = i;
+
+        typeSymbol[i] = guessElementSymbolString(atoms.atomName.value(i), atoms.residueName.value(i));
     }
 
     const atom_site = Table.ofPartialColumns(BasicSchema.atom_site, {
@@ -84,7 +87,7 @@ function getBasic(atoms: PsfFile['atoms']) {
         label_entity_id: Column.ofStringArray(entityIds),
 
         occupancy: Column.ofConst(1, atoms.count, Column.Schema.float),
-        type_symbol: Column.ofStringArray(Column.mapToArray(atoms.atomName, s => guessElementSymbolString(s))),
+        type_symbol: Column.ofStringArray(typeSymbol),
 
         pdbx_PDB_model_num: Column.ofConst(1, atoms.count, Column.Schema.int),
     }, atoms.count);

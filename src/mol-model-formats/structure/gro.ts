@@ -27,6 +27,7 @@ function getBasic(atoms: GroAtoms, modelNum: number): BasicData {
     const asymIds = new Array<string>(atoms.count);
     const seqIds = new Uint32Array(atoms.count);
     const ids = new Uint32Array(atoms.count);
+    const typeSymbol = new Array<string>(atoms.count);
 
     const entityBuilder = new EntityBuilder();
     const componentBuilder = new ComponentBuilder(atoms.residueNumber, atoms.atomName);
@@ -66,6 +67,8 @@ function getBasic(atoms: GroAtoms, modelNum: number): BasicData {
         asymIds[i] = currentAsymId;
         seqIds[i] = currentSeqId;
         ids[i] = i;
+
+        typeSymbol[i] = guessElementSymbolString(atoms.atomName.value(i), atoms.residueName.value(i));
     }
 
     const auth_asym_id = Column.ofStringArray(asymIds);
@@ -87,7 +90,7 @@ function getBasic(atoms: GroAtoms, modelNum: number): BasicData {
         label_entity_id: Column.ofStringArray(entityIds),
 
         occupancy: Column.ofConst(1, atoms.count, Column.Schema.float),
-        type_symbol: Column.ofStringArray(Column.mapToArray(atoms.atomName, s => guessElementSymbolString(s))),
+        type_symbol: Column.ofStringArray(typeSymbol),
 
         pdbx_PDB_model_num: Column.ofConst(modelNum, atoms.count, Column.Schema.int),
     }, atoms.count);

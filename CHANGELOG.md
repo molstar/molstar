@@ -11,6 +11,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Add ``CustomImportControls`` to left panel
 - Add Zenodo import extension (load structures, trajectories, volumes, and zip files)
 - Fix loading of some compressed files within sessions
+- Fix wrong element assignment for atoms with Charmm ion names
 
 ## [v3.3.1] - 2022-02-27
 
