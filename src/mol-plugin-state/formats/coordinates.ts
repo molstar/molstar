@@ -58,12 +58,29 @@ const TrrProvider = DataFormatProvider({
 });
 type TrrProvider = typeof TrrProvider;
 
+export { NctrajProvider };
+const NctrajProvider = DataFormatProvider({
+    label: 'NCTRAJ',
+    description: 'NCTRAJ',
+    category: CoordinatesFormatCategory,
+    binaryExtensions: ['nc', 'nctraj'],
+    parse: (plugin, data) => {
+        const coordinates = plugin.state.data.build()
+            .to(data)
+            .apply(StateTransforms.Model.CoordinatesFromNctraj);
+
+        return coordinates.commit();
+    }
+});
+type NctrajProvider = typeof NctrajProvider;
+
 export type CoordinatesProvider = DcdProvider | XtcProvider | TrrProvider;
 
 export const BuiltInCoordinatesFormats = [
     ['dcd', DcdProvider] as const,
     ['xtc', XtcProvider] as const,
     ['trr', TrrProvider] as const,
+    ['nctraj', NctrajProvider] as const,
 ] as const;
 
 export type BuiltInCoordinatesFormat = (typeof BuiltInCoordinatesFormats)[number][0]
