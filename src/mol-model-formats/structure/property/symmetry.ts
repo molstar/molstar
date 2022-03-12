@@ -63,10 +63,21 @@ function getSpacegroupNameOrNumber(symmetry: Table<mmCIF_Schema['symmetry']>) {
 
 function getSpacegroup(symmetry: Table<mmCIF_Schema['symmetry']>, cell: Table<mmCIF_Schema['cell']>): Spacegroup {
     if (symmetry._rowCount === 0 || cell._rowCount === 0) return Spacegroup.ZeroP1;
+
+    const a = cell.length_a.value(0);
+    const b = cell.length_b.value(0);
+    const c = cell.length_c.value(0);
+    if (a === 0 || b === 0 || c === 0) return Spacegroup.ZeroP1;
+
+    const alpha = cell.angle_alpha.value(0);
+    const beta = cell.angle_beta.value(0);
+    const gamma = cell.angle_gamma.value(0);
+    if (alpha === 0 || beta === 0 || gamma === 0) return Spacegroup.ZeroP1;
+
     const nameOrNumber = getSpacegroupNameOrNumber(symmetry);
     const spaceCell = SpacegroupCell.create(nameOrNumber,
-        Vec3.create(cell.length_a.value(0), cell.length_b.value(0), cell.length_c.value(0)),
-        Vec3.scale(Vec3.zero(), Vec3.create(cell.angle_alpha.value(0), cell.angle_beta.value(0), cell.angle_gamma.value(0)), Math.PI / 180));
+        Vec3.create(a, b, c),
+        Vec3.scale(Vec3(), Vec3.create(alpha, beta, gamma), Math.PI / 180));
 
     return Spacegroup.create(spaceCell);
 }
