@@ -7,6 +7,8 @@ Note that since we don't clearly distinguish between a public and private interf
 ## [Unreleased]
 
 - Fix handling of mmcif with empty ``label_*`` fields
+- Improve saccharide detection (compare against list from CCD)
+- Fix legend label of hydrophobicity color theme
 - Add ``LoadTrajectory`` action
 - Add ``CustomImportControls`` to left panel
 - Add Zenodo import extension (load structures, trajectories, volumes, and zip files)

@@ -120,6 +120,9 @@ and navigate to `build/viewer`
 
     node --max-old-space-size=4096 lib/commonjs/cli/chem-comp-dict/create-ions.js src/mol-model/structure/model/types/ions.ts
 
+**Saccharide names**
+
+    node --max-old-space-size=4096 lib/commonjs/cli/chem-comp-dict/create-saccharides.js src/mol-model/structure/model/types/saccharides.ts
 
 **GraphQL schemas**
 
