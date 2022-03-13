@@ -12,7 +12,7 @@
 
 declare const WorkerGlobalScope: any;
 function createImmediateActions() {
-    const global: any = (function () {
+    const thisGlobal: any = (function () {
         const _window = typeof window !== 'undefined' && window;
         const _self = typeof self !== 'undefined' && typeof WorkerGlobalScope !== 'undefined' && self instanceof WorkerGlobalScope && self;
         const _global = typeof global !== 'undefined' && global;
@@ -79,14 +79,14 @@ function createImmediateActions() {
     }
 
     function canUsePostMessage() {
-        if (global && global.postMessage && !global.importScripts) {
+        if (thisGlobal && thisGlobal.postMessage && !thisGlobal.importScripts) {
             let postMessageIsAsynchronous = true;
-            const oldOnMessage = global.onmessage;
-            global.onmessage = function () {
+            const oldOnMessage = thisGlobal.onmessage;
+            thisGlobal.onmessage = function () {
                 postMessageIsAsynchronous = false;
             };
-            global.postMessage('', '*');
-            global.onmessage = oldOnMessage;
+            thisGlobal.postMessage('', '*');
+            thisGlobal.onmessage = oldOnMessage;
             return postMessageIsAsynchronous;
         }
     }
@@ -98,7 +98,7 @@ function createImmediateActions() {
 
         const messagePrefix = 'setImmediate$' + Math.random() + '$';
         const onGlobalMessage = function (event: any) {
-            if (event.source === global &&
+            if (event.source === thisGlobal &&
                 typeof event.data === 'string' &&
                 event.data.indexOf(messagePrefix) === 0) {
                 runIfPresent(+event.data.slice(messagePrefix.length));
