@@ -48,11 +48,31 @@ const PrmtopProvider = DataFormatProvider({
 });
 type PrmtopProvider = typeof PrmtopProvider;
 
+export { TopProvider };
+const TopProvider = DataFormatProvider({
+    label: 'TOP',
+    description: 'TOP',
+    category: TopologyFormatCategory,
+    stringExtensions: ['top'],
+    parse: async (plugin, data) => {
+        const format = plugin.state.data.build()
+            .to(data)
+            .apply(StateTransforms.Data.ParseTop, {}, { state: { isGhost: true } });
+        const topology = format.apply(StateTransforms.Model.TopologyFromTop);
+
+        await format.commit();
+
+        return { format: format.selector, topology: topology.selector };
+    }
+});
+type TopProvider = typeof TopProvider;
+
 export type TopologyProvider = PsfProvider;
 
 export const BuiltInTopologyFormats = [
     ['psf', PsfProvider] as const,
     ['prmtop', PrmtopProvider] as const,
+    ['top', TopProvider] as const,
 ] as const;
 
 export type BuiltInTopologyFormat = (typeof BuiltInTopologyFormats)[number][0]

@@ -14,7 +14,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Fix wrong element assignment for atoms with Charmm ion names
 - Fix handling of empty symmetry cell data
 - Add support for ``trr`` and ``nctraj`` coordinates files
-- Add support for ``prmtop`` topology files
+- Add support for ``prmtop`` and ``top`` topology files
 
 ## [v3.3.1] - 2022-02-27
 

@@ -47,6 +47,7 @@ import { coordinatesFromTrr } from '../../mol-model-formats/structure/trr';
 import { parseNctraj } from '../../mol-io/reader/nctraj/parser';
 import { coordinatesFromNctraj } from '../../mol-model-formats/structure/nctraj';
 import { topologyFromPrmtop } from '../../mol-model-formats/structure/prmtop';
+import { topologyFromTop } from '../../mol-model-formats/structure/top';
 
 export { CoordinatesFromDcd };
 export { CoordinatesFromXtc };
@@ -54,6 +55,7 @@ export { CoordinatesFromTrr };
 export { CoordinatesFromNctraj };
 export { TopologyFromPsf };
 export { TopologyFromPrmtop };
+export { TopologyFromTop };
 export { TrajectoryFromModelAndCoordinates };
 export { TrajectoryFromBlob };
 export { TrajectoryFromMmCif };
@@ -172,6 +174,21 @@ const TopologyFromPrmtop = PluginStateTransform.BuiltIn({
     apply({ a }) {
         return Task.create('Create Topology', async ctx => {
             const topology = await topologyFromPrmtop(a.data).runInContext(ctx);
+            return new SO.Molecule.Topology(topology, { label: topology.label || a.label, description: 'Topology' });
+        });
+    }
+});
+
+type TopologyFromTop = typeof TopologyFromTop
+const TopologyFromTop = PluginStateTransform.BuiltIn({
+    name: 'topology-from-top',
+    display: { name: 'TOP Topology', description: 'Create topology from TOP.' },
+    from: [SO.Format.Top],
+    to: SO.Molecule.Topology
+})({
+    apply({ a }) {
+        return Task.create('Create Topology', async ctx => {
+            const topology = await topologyFromTop(a.data).runInContext(ctx);
             return new SO.Molecule.Topology(topology, { label: topology.label || a.label, description: 'Topology' });
         });
     }

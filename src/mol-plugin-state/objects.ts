@@ -25,6 +25,7 @@ import { DxFile } from '../mol-io/reader/dx/parser';
 import { Color } from '../mol-util/color/color';
 import { Asset } from '../mol-util/assets';
 import { PrmtopFile } from '../mol-io/reader/prmtop/parser';
+import { TopFile } from '../mol-io/reader/top/parser';
 
 export type TypeClass = 'root' | 'data' | 'prop'
 
@@ -74,6 +75,7 @@ export namespace PluginStateObject {
         export class Cube extends Create<CubeFile>({ name: 'Cube File', typeClass: 'Data' }) { }
         export class Psf extends Create<PsfFile>({ name: 'PSF File', typeClass: 'Data' }) { }
         export class Prmtop extends Create<PrmtopFile>({ name: 'PRMTOP File', typeClass: 'Data' }) { }
+        export class Top extends Create<TopFile>({ name: 'TOP File', typeClass: 'Data' }) { }
         export class Ply extends Create<PlyFile>({ name: 'PLY File', typeClass: 'Data' }) { }
         export class Ccp4 extends Create<Ccp4File>({ name: 'CCP4/MRC/MAP File', typeClass: 'Data' }) { }
         export class Dsn6 extends Create<Dsn6File>({ name: 'DSN6/BRIX File', typeClass: 'Data' }) { }
