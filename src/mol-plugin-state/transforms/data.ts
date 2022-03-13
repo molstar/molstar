@@ -21,6 +21,8 @@ import { parseCube } from '../../mol-io/reader/cube/parser';
 import { parseDx } from '../../mol-io/reader/dx/parser';
 import { ColorNames } from '../../mol-util/color/names';
 import { assertUnreachable } from '../../mol-util/type-helpers';
+import { parsePrmtop } from '../../mol-io/reader/prmtop/parser';
+import { parseTop } from '../../mol-io/reader/top/parser';
 
 export { Download };
 export { DownloadBlob };
@@ -30,6 +32,8 @@ export { ParseBlob };
 export { ParseCif };
 export { ParseCube };
 export { ParsePsf };
+export { ParsePrmtop };
+export { ParseTop };
 export { ParsePly };
 export { ParseCcp4 };
 export { ParseDsn6 };
@@ -313,6 +317,38 @@ const ParsePsf = PluginStateTransform.BuiltIn({
             const parsed = await parsePsf(a.data).runInContext(ctx);
             if (parsed.isError) throw new Error(parsed.message);
             return new SO.Format.Psf(parsed.result);
+        });
+    }
+});
+
+type ParsePrmtop = typeof ParsePrmtop
+const ParsePrmtop = PluginStateTransform.BuiltIn({
+    name: 'parse-prmtop',
+    display: { name: 'Parse PRMTOP', description: 'Parse PRMTOP from String data' },
+    from: [SO.Data.String],
+    to: SO.Format.Prmtop
+})({
+    apply({ a }) {
+        return Task.create('Parse PRMTOP', async ctx => {
+            const parsed = await parsePrmtop(a.data).runInContext(ctx);
+            if (parsed.isError) throw new Error(parsed.message);
+            return new SO.Format.Prmtop(parsed.result);
+        });
+    }
+});
+
+type ParseTop = typeof ParseTop
+const ParseTop = PluginStateTransform.BuiltIn({
+    name: 'parse-top',
+    display: { name: 'Parse TOP', description: 'Parse TOP from String data' },
+    from: [SO.Data.String],
+    to: SO.Format.Top
+})({
+    apply({ a }) {
+        return Task.create('Parse TOP', async ctx => {
+            const parsed = await parseTop(a.data).runInContext(ctx);
+            if (parsed.isError) throw new Error(parsed.message);
+            return new SO.Format.Top(parsed.result);
         });
     }
 });

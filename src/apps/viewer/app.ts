@@ -17,13 +17,15 @@ import { ModelExport } from '../../extensions/model-export';
 import { Mp4Export } from '../../extensions/mp4-export';
 import { PDBeStructureQualityReport } from '../../extensions/pdbe';
 import { RCSBAssemblySymmetry, RCSBValidationReport } from '../../extensions/rcsb';
+import { ZenodoImport } from '../../extensions/zenodo';
 import { Volume } from '../../mol-model/volume';
 import { DownloadStructure, PdbDownloadProvider } from '../../mol-plugin-state/actions/structure';
 import { DownloadDensity } from '../../mol-plugin-state/actions/volume';
 import { PresetTrajectoryHierarchy } from '../../mol-plugin-state/builder/structure/hierarchy-preset';
 import { PresetStructureRepresentations, StructureRepresentationPresetProvider } from '../../mol-plugin-state/builder/structure/representation-preset';
 import { DataFormatProvider } from '../../mol-plugin-state/formats/provider';
-import { BuildInStructureFormat } from '../../mol-plugin-state/formats/structure';
+import { BuiltInTopologyFormat } from '../../mol-plugin-state/formats/topology';
+import { BuiltInCoordinatesFormat } from '../../mol-plugin-state/formats/coordinates';
 import { BuiltInTrajectoryFormat } from '../../mol-plugin-state/formats/trajectory';
 import { BuildInVolumeFormat } from '../../mol-plugin-state/formats/volume';
 import { createVolumeRepresentationParams } from '../../mol-plugin-state/helpers/volume-representation-params';
@@ -63,6 +65,7 @@ const Extensions = {
     'mp4-export': PluginSpec.Behavior(Mp4Export),
     'geo-export': PluginSpec.Behavior(GeometryExport),
     'ma-quality-assessment': PluginSpec.Behavior(MAQualityAssessment),
+    'zenodo-import': PluginSpec.Behavior(ZenodoImport),
 };
 
 const DefaultViewerOptions = {
@@ -453,11 +456,11 @@ export interface VolumeIsovalueInfo {
 export interface LoadTrajectoryParams {
     model: { kind: 'model-url', url: string, format?: BuiltInTrajectoryFormat /* mmcif */, isBinary?: boolean }
     | { kind: 'model-data', data: string | number[] | ArrayBuffer | Uint8Array, format?: BuiltInTrajectoryFormat /* mmcif */ }
-    | { kind: 'topology-url', url: string, format: BuildInStructureFormat, isBinary?: boolean }
-    | { kind: 'topology-data', data: string | number[] | ArrayBuffer | Uint8Array, format: BuildInStructureFormat },
+    | { kind: 'topology-url', url: string, format: BuiltInTopologyFormat, isBinary?: boolean }
+    | { kind: 'topology-data', data: string | number[] | ArrayBuffer | Uint8Array, format: BuiltInTopologyFormat },
     modelLabel?: string,
-    coordinates: { kind: 'coordinates-url', url: string, format: BuildInStructureFormat, isBinary?: boolean }
-    | { kind: 'coordinates-data', data: string | number[] | ArrayBuffer | Uint8Array, format: BuildInStructureFormat },
+    coordinates: { kind: 'coordinates-url', url: string, format: BuiltInCoordinatesFormat, isBinary?: boolean }
+    | { kind: 'coordinates-data', data: string | number[] | ArrayBuffer | Uint8Array, format: BuiltInCoordinatesFormat },
     coordinatesLabel?: string,
     preset?: keyof PresetTrajectoryHierarchy
 }

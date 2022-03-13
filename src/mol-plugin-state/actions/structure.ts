@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -10,16 +10,18 @@ import { StateAction, StateSelection, StateTransformer } from '../../mol-state';
 import { Task } from '../../mol-task';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { PresetStructureRepresentations, StructureRepresentationPresetProvider } from '../builder/structure/representation-preset';
-import { BuiltInTrajectoryFormat, BuiltInTrajectoryFormats } from '../formats/trajectory';
+import { BuiltInTrajectoryFormat, BuiltInTrajectoryFormats, TrajectoryFormatCategory } from '../formats/trajectory';
 import { RootStructureDefinition } from '../helpers/root-structure';
 import { PluginStateObject } from '../objects';
 import { StateTransforms } from '../transforms';
 import { Download } from '../transforms/data';
-import { CustomModelProperties, CustomStructureProperties, TrajectoryFromModelAndCoordinates } from '../transforms/model';
+import { CustomModelProperties, CustomStructureProperties, ModelFromTrajectory, TrajectoryFromModelAndCoordinates } from '../transforms/model';
 import { Asset } from '../../mol-util/assets';
 import { PluginConfig } from '../../mol-plugin/config';
 import { getFileInfo } from '../../mol-util/file-info';
 import { assertUnreachable } from '../../mol-util/type-helpers';
+import { TopologyFormatCategory } from '../formats/topology';
+import { CoordinatesFormatCategory } from '../formats/coordinates';
 
 const DownloadModelRepresentationOptions = (plugin: PluginContext) => {
     const representationDefault = plugin.config.get(PluginConfig.Structure.DefaultRepresentationPreset) || PresetStructureRepresentations.auto.id;
@@ -310,5 +312,128 @@ export const AddTrajectory = StateAction.build({
         await state.updateTree(model).runInContext(taskCtx);
         const structure = await ctx.builders.structure.createStructure(model.selector);
         await ctx.builders.structure.representation.applyPreset(structure, 'auto');
+    }).runInContext(taskCtx);
+}));
+
+export const LoadTrajectory = StateAction.build({
+    display: { name: 'Load Trajectory', description: 'Load trajectory of model/topology and coordinates from URL or file.' },
+    from: PluginStateObject.Root,
+    params(a, ctx: PluginContext) {
+        const { options } = ctx.dataFormats;
+        const modelOptions = options.filter(o => o[2] === TrajectoryFormatCategory || o[2] === TopologyFormatCategory);
+        const coordinatesOptions = options.filter(o => o[2] === CoordinatesFormatCategory);
+
+        const modelExts: string[] = [];
+        const coordinatesExts: string[] = [];
+        for (const { provider } of ctx.dataFormats.list) {
+            if (provider.category === TrajectoryFormatCategory || provider.category === TopologyFormatCategory) {
+                if (provider.binaryExtensions) modelExts.push(...provider.binaryExtensions);
+                if (provider.stringExtensions) modelExts.push(...provider.stringExtensions);
+            } else if (provider.category === CoordinatesFormatCategory) {
+                if (provider.binaryExtensions) coordinatesExts.push(...provider.binaryExtensions);
+                if (provider.stringExtensions) coordinatesExts.push(...provider.stringExtensions);
+            }
+        }
+
+        return {
+            source: PD.MappedStatic('file', {
+                url: PD.Group({
+                    model: PD.Group({
+                        url: PD.Url(''),
+                        format: PD.Select(modelOptions[0][0], modelOptions),
+                        isBinary: PD.Boolean(false),
+                    }, { isExpanded: true }),
+                    coordinates: PD.Group({
+                        url: PD.Url(''),
+                        format: PD.Select(coordinatesOptions[0][0], coordinatesOptions),
+                    }, { isExpanded: true })
+                }, { isFlat: true }),
+                file: PD.Group({
+                    model: PD.File({ accept: modelExts.map(e => `.${e}`).join(','), label: 'Model' }),
+                    coordinates: PD.File({ accept: coordinatesExts.map(e => `.${e}`).join(','), label: 'Coordinates' }),
+                }, { isFlat: true }),
+            }, { options: [['url', 'URL'], ['file', 'File']] })
+        };
+    }
+})(({ params, state }, ctx: PluginContext) => Task.create('Load Trajectory', taskCtx => {
+    return state.transaction(async () => {
+        const s = params.source;
+
+        if (s.name === 'file' && (s.params.model === null || s.params.coordinates === null)) {
+            ctx.log.error('No file(s) selected');
+            return;
+        }
+
+        if (s.name === 'url' && (!s.params.model || !s.params.coordinates)) {
+            ctx.log.error('No URL(s) given');
+            return;
+        }
+
+        const processUrl = async (url: string | Asset.Url, format: string, isBinary: boolean) => {
+            const data = await ctx.builders.data.download({ url, isBinary });
+            const provider = ctx.dataFormats.get(format);
+
+            if (!provider) {
+                ctx.log.warn(`LoadTrajectory: could not find data provider for '${format}'`);
+                return;
+            }
+
+            return provider.parse(ctx, data);
+        };
+
+        const processFile = async (file: Asset.File | null) => {
+            if (!file) throw new Error('No file selected');
+
+            const info = getFileInfo(file.file!);
+            const isBinary = ctx.dataFormats.binaryExtensions.has(info.ext);
+            const { data } = await ctx.builders.data.readFile({ file, isBinary });
+            const provider = ctx.dataFormats.auto(info, data.cell?.obj!);
+
+            if (!provider) {
+                ctx.log.warn(`LoadTrajectory: could not find data provider for '${info.ext}'`);
+                await ctx.state.data.build().delete(data).commit();
+                return;
+            }
+
+            return provider.parse(ctx, data);
+        };
+
+        try {
+            const modelParsed = s.name === 'url'
+                ? await processUrl(s.params.model.url, s.params.model.format, s.params.model.isBinary)
+                : await processFile(s.params.model);
+
+            let model;
+            if ('trajectory' in modelParsed) {
+                model = await state.build().to(modelParsed.trajectory)
+                    .apply(ModelFromTrajectory, { modelIndex: 0 })
+                    .commit();
+            } else {
+                model = modelParsed.topology;
+            }
+
+            //
+
+            const coordinates = s.name === 'url'
+                ? await processUrl(s.params.coordinates.url, s.params.coordinates.format, true)
+                : await processFile(s.params.coordinates);
+
+            //
+
+            const dependsOn = [model.ref, coordinates.ref];
+            const traj = state.build().toRoot()
+                .apply(TrajectoryFromModelAndCoordinates, {
+                    modelRef: model.ref,
+                    coordinatesRef: coordinates.ref
+                }, { dependsOn })
+                .apply(StateTransforms.Model.ModelFromTrajectory, { modelIndex: 0 });
+
+            await state.updateTree(traj).runInContext(taskCtx);
+            const structure = await ctx.builders.structure.createStructure(traj.selector);
+            await ctx.builders.structure.representation.applyPreset(structure, 'auto');
+        } catch (e) {
+            console.error(e);
+            ctx.log.error(`Error loading trajectory`);
+        }
     }).runInContext(taskCtx);
 }));

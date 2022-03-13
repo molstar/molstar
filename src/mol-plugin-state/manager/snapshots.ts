@@ -238,12 +238,12 @@ class PluginStateSnapshotManager extends StatefulPluginComponent<{
                 }
             } else {
                 const data = await this.plugin.runTask(readFromFile(file, 'zip'));
-                const assets = Object.create(null);
+                const assetData = Object.create(null);
 
                 objectForEach(data, (v, k) => {
                     if (k === 'state.json' || k === 'assets.json') return;
                     const name = k.substring(k.indexOf('/') + 1);
-                    assets[name] = new File([v], name);
+                    assetData[name] = v;
                 });
                 const stateFile = new File([data['state.json']], 'state.json');
                 const stateData = await this.plugin.runTask(readFromFile(stateFile, 'string'));
@@ -253,7 +253,7 @@ class PluginStateSnapshotManager extends StatefulPluginComponent<{
                     const json = JSON.parse(await this.plugin.runTask(readFromFile(file, 'string')));
 
                     for (const [id, asset] of json) {
-                        this.plugin.managers.asset.set(asset, assets[id]);
+                        this.plugin.managers.asset.set(asset, new File([assetData[id]], asset.name));
                     }
                 }
 

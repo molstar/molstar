@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -11,17 +11,18 @@ import { DataFormatProvider } from './provider';
 import { BuiltInTrajectoryFormats } from './trajectory';
 import { BuiltInVolumeFormats } from './volume';
 import { BuiltInShapeFormats } from './shape';
-import { BuiltInStructureFormats } from './structure';
+import { BuiltInTopologyFormats } from './topology';
+import { BuiltInCoordinatesFormats } from './coordinates';
 
 export class DataFormatRegistry {
     private _list: { name: string, provider: DataFormatProvider }[] = [];
     private _map = new Map<string, DataFormatProvider>();
     private _extensions: Set<string> | undefined = undefined;
     private _binaryExtensions: Set<string> | undefined = undefined;
-    private _options: [string, string, string][] | undefined = undefined;
+    private _options: [name: string, label: string, category: string][] | undefined = undefined;
 
-    get types(): [string, string][] {
-        return this._list.map(e => [e.name, e.provider.label] as [string, string]);
+    get types(): [name: string, label: string][] {
+        return this._list.map(e => [e.name, e.provider.label] as [name: string, label: string]);
     }
 
     get extensions() {
@@ -45,7 +46,7 @@ export class DataFormatRegistry {
 
     get options() {
         if (this._options) return this._options;
-        const options: [string, string, string][] = [];
+        const options: [name: string, label: string, category: string][] = [];
         this._list.forEach(({ name, provider }) => options.push([name, provider.label, provider.category || '']));
         this._options = options;
         return options;
@@ -53,7 +54,8 @@ export class DataFormatRegistry {
 
     constructor() {
         for (const [id, p] of BuiltInVolumeFormats) this.add(id, p);
-        for (const [id, p] of BuiltInStructureFormats) this.add(id, p);
+        for (const [id, p] of BuiltInTopologyFormats) this.add(id, p);
+        for (const [id, p] of BuiltInCoordinatesFormats) this.add(id, p);
         for (const [id, p] of BuiltInShapeFormats) this.add(id, p);
         for (const [id, p] of BuiltInTrajectoryFormats) this.add(id, p);
     };

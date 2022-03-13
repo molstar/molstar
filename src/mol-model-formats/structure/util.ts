@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -46,31 +46,30 @@ export function guessElementSymbolTokens(tokens: Tokens, str: string, start: num
     TokenBuilder.add(tokens, s, s); // no reasonable guess, add empty token
 }
 
+const TwoCharElementNames = new Set(['NA', 'CL', 'FE', 'SI', 'BR', 'AS']);
+const OneCharElementNames = new Set(['C', 'H', 'N', 'O', 'P', 'S']);
+
 const reTrimSpacesAndNumbers = /^[\s\d]+|[\s\d]+$/g;
-export function guessElementSymbolString(str: string) {
+export function guessElementSymbolString(atomId: string, compId: string) {
     // trim spaces and numbers, convert to upper case
-    str = str.replace(reTrimSpacesAndNumbers, '').toUpperCase();
-    const l = str.length;
+    atomId = atomId.replace(reTrimSpacesAndNumbers, '').toUpperCase();
+    const l = atomId.length;
 
-    if (l === 0) return str; // empty
-    if (l === 1) return str; // one char
+    if (l === 0) return atomId; // empty
+    if (l === 1) return atomId; // one char
+    if (TwoCharElementNames.has(atomId)) return atomId; // two chars
 
-    if (l === 2) { // two chars
-        if (str === 'NA' || str === 'CL' || str === 'FE' || str === 'SI' ||
-            str === 'BR' || str === 'AS'
-        ) return str;
+    // check for Charmm ion names where component and atom id are the same
+    if (l === 3 && compId === atomId) {
+        if (atomId === 'SOD') return 'NA';
+        if (atomId === 'POT') return 'K';
+        if (atomId === 'CES') return 'CS';
+        if (atomId === 'CAL') return 'CA';
+        if (atomId === 'CLA') return 'CL';
     }
 
-    if (l === 3) { // three chars
-        if (str === 'SOD') return 'NA';
-        if (str === 'POT') return 'K';
-        if (str === 'CES') return 'CS';
-        if (str === 'CAL') return 'CA';
-        if (str === 'CLA') return 'CL';
-    }
-
-    const c = str[0];
-    if (c === 'C' || c === 'H' || c === 'N' || c === 'O' || c === 'P' || c === 'S') return c;
+    if (OneCharElementNames.has(atomId[0])) return atomId[0];
 
     return ''; // no reasonable guess, return empty string
 }
+
