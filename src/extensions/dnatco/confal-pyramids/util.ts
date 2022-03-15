@@ -7,7 +7,7 @@
 
 import { ConfalPyramidsProvider } from './property';
 import { ConfalPyramidsTypes as CPT } from './types';
-import { OrderedSet, Segmentation } from '../../../mol-data/int';
+import { Segmentation } from '../../../mol-data/int';
 import { Vec3 } from '../../../mol-math/linear-algebra';
 import { ChainIndex, ElementIndex, ResidueIndex, Structure, StructureElement, StructureProperties, Unit } from '../../../mol-model/structure';
 
@@ -63,24 +63,17 @@ export namespace ConfalPyramidsUtil {
         return prop.data.hasMultipleModels;
     }
 
-    function getPossibleAltIdsIndices(eIFirst: ElementIndex, eILast: ElementIndex, structure: Structure, unit: Unit.Atomic): string[] {
-        const loc = StructureElement.Location.create(structure, unit, -1 as ElementIndex);
-
-        const uIFirst = OrderedSet.indexOf(unit.elements, eIFirst);
-        const uILast = OrderedSet.indexOf(unit.elements, eILast);
-
+    function getPossibleAltIds(residue: Residue, structure: Structure, unit: Unit.Atomic): string[] {
         const possibleAltIds: string[] = [];
-        for (let uI = uIFirst; uI <= uILast; uI++) {
-            loc.element = unit.elements[uI];
+
+        const loc = StructureElement.Location.create(structure, unit, -1 as ElementIndex);
+        for (let rI = residue.start; rI <= residue.end - 1; rI++) {
+            loc.element = unit.elements[rI];
             const altId = StructureProperties.atom.label_alt_id(loc);
             if (altId !== '' && !possibleAltIds.includes(altId)) possibleAltIds.push(altId);
         }
 
         return possibleAltIds;
-    }
-
-    function getPossibleAltIdsResidue(residue: Residue, structure: Structure, unit: Unit.Atomic): string[] {
-        return getPossibleAltIdsIndices(unit.elements[residue.start], unit.elements[residue.end - 1], structure, unit);
     }
 
     class Utility {
@@ -122,19 +115,22 @@ export namespace ConfalPyramidsUtil {
 
     export class UnitWalker extends Utility {
         private getAtomIndices(names: string[], residue: Residue): ElementIndex[] {
-            let rI = residue.start;
-            const rILast = residue.end - 1;
             const indices: ElementIndex[] = [];
 
-            for (; rI !== rILast; rI++) {
-                const eI = this.unit.elements[rI];
-                const loc = StructureElement.Location.create(this.structure, this.unit, eI);
+            const loc = StructureElement.Location.create(this.structure, this.unit, -1 as ElementIndex);
+            for (let rI = residue.start; rI <= residue.end - 1; rI++) {
+                loc.element = this.unit.elements[rI];
                 const thisName = StructureProperties.atom.label_atom_id(loc);
-                if (names.includes(thisName)) indices.push(eI);
+                if (names.includes(thisName)) indices.push(loc.element);
             }
 
-            if (indices.length === 0)
-                throw new Error(`Element ${name} not found on residue ${residue.index}`);
+            if (indices.length === 0) {
+                let namesStr = '';
+                for (const n of names)
+                    namesStr += `${n} `;
+
+                throw new Error(`Element [${namesStr}] not found on residue ${residue.index}`);
+            }
 
             return indices;
         }
@@ -257,12 +253,12 @@ export namespace ConfalPyramidsUtil {
         }
 
         private step(residue: Residue): { firstAtoms: FirstResidueAtoms[], secondAtoms: SecondResidueAtoms[] } {
-            const firstPossibleAltIds = getPossibleAltIdsResidue(residue, this.structure, this.unit);
+            const firstPossibleAltIds = getPossibleAltIds(residue, this.structure, this.unit);
             const firstAtoms = this.processFirstResidue(residue, firstPossibleAltIds);
 
             residue = this.residueIt.move();
 
-            const secondPossibleAltIds = getPossibleAltIdsResidue(residue, this.structure, this.unit);
+            const secondPossibleAltIds = getPossibleAltIds(residue, this.structure, this.unit);
             const secondAtoms = this.processSecondResidue(residue, secondPossibleAltIds);
 
             return { firstAtoms, secondAtoms };
