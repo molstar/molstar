@@ -123,10 +123,8 @@ function createPyramidsFromCif(model: Model,
 
     for (let i = 0; i < _rowCount; i++) {
         const model_num = PDB_model_number.value(i);
-        if (model_num !== model.modelNum) {
+        if (model_num !== model.modelNum)
             hasMultipleModels = true;
-            continue; // We are only interested in data for the current model
-        }
 
         const { _NtC, _confal_score } = getNtCAndConfalScore(id.value(i), i, stepsSummary);
 
