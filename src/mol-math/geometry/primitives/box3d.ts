@@ -32,7 +32,9 @@ namespace Box3D {
 
     /** Get box from sphere, uses extrema if available */
     export function fromSphere3D(out: Box3D, sphere: Sphere3D): Box3D {
-        if (Sphere3D.hasExtrema(sphere)) return fromVec3Array(out, sphere.extrema);
+        if (Sphere3D.hasExtrema(sphere) && sphere.extrema.length >= 14) { // 14 extrema with coarse boundary helper
+            return fromVec3Array(out, sphere.extrema);
+        }
         const r = Vec3.create(sphere.radius, sphere.radius, sphere.radius);
         Vec3.sub(out.min, sphere.center, r);
         Vec3.add(out.max, sphere.center, r);

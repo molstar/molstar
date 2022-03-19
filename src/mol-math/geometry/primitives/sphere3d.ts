@@ -212,19 +212,26 @@ namespace Sphere3D {
             Axes3D.scale(axes, Axes3D.normalize(axes, axes), delta);
 
             setExtrema(out, sphere.extrema.map(e => {
-                Vec3.sub(tmpDir, e, sphere.center);
-                const out = Vec3.clone(e);
+                Vec3.normalize(tmpDir, Vec3.sub(tmpDir, e, sphere.center));
+                const o = Vec3.clone(e);
 
                 const sA = Vec3.dot(tmpDir, axes.dirA) < 0 ? -1 : 1;
-                Vec3.scaleAndAdd(out, out, axes.dirA, sA);
+                Vec3.scaleAndAdd(o, o, axes.dirA, sA);
 
                 const sB = Vec3.dot(tmpDir, axes.dirB) < 0 ? -1 : 1;
-                Vec3.scaleAndAdd(out, out, axes.dirB, sB);
+                Vec3.scaleAndAdd(o, o, axes.dirB, sB);
 
                 const sC = Vec3.dot(tmpDir, axes.dirC) < 0 ? -1 : 1;
-                Vec3.scaleAndAdd(out, out, axes.dirC, sC);
+                Vec3.scaleAndAdd(o, o, axes.dirC, sC);
 
-                return out;
+                if (Vec3.distance(out.center, o) > out.radius) {
+                    if (sphere.extrema.length >= 14) { // 14 extrema with coarse boundary helper
+                        Vec3.normalize(tmpDir, Vec3.sub(tmpDir, o, sphere.center));
+                    }
+                    Vec3.scaleAndAdd(o, out.center, tmpDir, out.radius);
+                }
+
+                return o;
             }));
         }
         return out;
