@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -281,7 +281,7 @@ export function createContext(gl: GLRenderingContext, props: Partial<{ pixelScal
         gl,
         isWebGL2: isWebGL2(gl),
         get pixelRatio() {
-            const dpr = (typeof window !== 'undefined') ? window.devicePixelRatio : 1;
+            const dpr = (typeof window !== 'undefined') ? (window.devicePixelRatio || 1) : 1;
             return dpr * (props.pixelScale || 1);
         },
 
