@@ -6,6 +6,8 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Fix issues with bounding-sphere & color-smoothing (mostly for small geometries)
+
 ## [v3.4.0] - 2022-03-13
 
 - Fix handling of mmcif with empty ``label_*`` fields

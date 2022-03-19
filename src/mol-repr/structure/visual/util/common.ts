@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -297,26 +297,4 @@ export function isTrace(unit: Unit, element: ElementIndex) {
     const atomId = unit.model.atomicHierarchy.atoms.label_atom_id.value(element);
     if (atomId === 'CA' || atomId === 'BB' || atomId === 'P') return true;
     return false;
-}
-
-export function getUnitExtraRadius(unit: Unit) {
-    if (Unit.isAtomic(unit)) return 4;
-
-    let max = 0;
-    const { elements } = unit;
-    const { r } = unit.conformation;
-    for (let i = 0, _i = elements.length; i < _i; i++) {
-        const _r = r(elements[i]);
-        if (_r > max) max = _r;
-    }
-    return max + 1;
-}
-
-export function getStructureExtraRadius(structure: Structure) {
-    let max = 0;
-    for (const ug of structure.unitSymmetryGroups) {
-        const r = getUnitExtraRadius(ug.units[0]);
-        if (r > max) max = r;
-    }
-    return max;
 }

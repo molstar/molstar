@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -21,12 +21,12 @@ export type GaussianDensityProps = typeof DefaultGaussianDensityProps
 
 export type GaussianDensityData = {
     radiusFactor: number
-    resolution: number
 } & DensityData
 
 export type GaussianDensityTextureData = {
     radiusFactor: number
     resolution: number
+    maxRadius: number
 } & DensityTextureData
 
 export function computeGaussianDensity(position: PositionData, box: Box3D, radius: (index: number) => number, props: GaussianDensityProps) {

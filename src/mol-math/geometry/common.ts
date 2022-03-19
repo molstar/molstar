@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -26,7 +26,8 @@ export type DensityData = {
     transform: Mat4,
     field: Tensor,
     idField: Tensor,
-    resolution: number
+    resolution: number,
+    maxRadius: number,
 }
 
 export type DensityTextureData = {

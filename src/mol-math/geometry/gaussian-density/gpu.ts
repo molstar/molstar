@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Michael Krone <michael.krone@uni-tuebingen.de>
@@ -70,12 +70,12 @@ export function GaussianDensityGPU(position: PositionData, box: Box3D, radius: (
     // it's faster than texture3d
     // console.time('GaussianDensityTexture2d')
     const tmpTexture = getTexture('tmp', webgl, 'image-uint8', 'rgba', 'ubyte', 'linear');
-    const { scale, bbox, texture, gridDim, gridTexDim, radiusFactor, resolution } = calcGaussianDensityTexture2d(webgl, position, box, radius, false, props, tmpTexture);
+    const { scale, bbox, texture, gridDim, gridTexDim, radiusFactor, resolution, maxRadius } = calcGaussianDensityTexture2d(webgl, position, box, radius, false, props, tmpTexture);
     // webgl.waitForGpuCommandsCompleteSync()
     // console.timeEnd('GaussianDensityTexture2d')
     const { field, idField } = fieldFromTexture2d(webgl, texture, gridDim, gridTexDim);
 
-    return { field, idField, transform: getTransform(scale, bbox), radiusFactor, resolution };
+    return { field, idField, transform: getTransform(scale, bbox), radiusFactor, resolution, maxRadius };
 }
 
 export function GaussianDensityTexture(webgl: WebGLContext, position: PositionData, box: Box3D, radius: (index: number) => number, props: GaussianDensityProps, oldTexture?: Texture): GaussianDensityTextureData {
@@ -92,8 +92,8 @@ export function GaussianDensityTexture3d(webgl: WebGLContext, position: Position
     return finalizeGaussianDensityTexture(calcGaussianDensityTexture3d(webgl, position, box, radius, props, oldTexture));
 }
 
-function finalizeGaussianDensityTexture({ texture, scale, bbox, gridDim, gridTexDim, gridTexScale, radiusFactor, resolution }: _GaussianDensityTextureData): GaussianDensityTextureData {
-    return { transform: getTransform(scale, bbox), texture, bbox, gridDim, gridTexDim, gridTexScale, radiusFactor, resolution };
+function finalizeGaussianDensityTexture({ texture, scale, bbox, gridDim, gridTexDim, gridTexScale, radiusFactor, resolution, maxRadius }: _GaussianDensityTextureData): GaussianDensityTextureData {
+    return { transform: getTransform(scale, bbox), texture, bbox, gridDim, gridTexDim, gridTexScale, radiusFactor, resolution, maxRadius };
 }
 
 function getTransform(scale: Vec3, bbox: Box3D) {
@@ -114,6 +114,7 @@ type _GaussianDensityTextureData = {
     gridTexScale: Vec2
     radiusFactor: number
     resolution: number
+    maxRadius: number
 }
 
 function calcGaussianDensityTexture2d(webgl: WebGLContext, position: PositionData, box: Box3D, radius: (index: number) => number, powerOfTwo: boolean, props: GaussianDensityProps, texture?: Texture): _GaussianDensityTextureData {
@@ -198,7 +199,7 @@ function calcGaussianDensityTexture2d(webgl: WebGLContext, position: PositionDat
 
     // printTexture(webgl, minDistTex, 0.75);
 
-    return { texture, scale, bbox: expandedBox, gridDim: dim, gridTexDim, gridTexScale, radiusFactor, resolution };
+    return { texture, scale, bbox: expandedBox, gridDim: dim, gridTexDim, gridTexScale, radiusFactor, resolution, maxRadius };
 }
 
 function calcGaussianDensityTexture3d(webgl: WebGLContext, position: PositionData, box: Box3D, radius: (index: number) => number, props: GaussianDensityProps, texture?: Texture): _GaussianDensityTextureData {
@@ -254,7 +255,7 @@ function calcGaussianDensityTexture3d(webgl: WebGLContext, position: PositionDat
     setupGroupIdRendering(webgl, renderable);
     render(texture, false);
 
-    return { texture, scale, bbox: expandedBox, gridDim: dim, gridTexDim: dim, gridTexScale, radiusFactor, resolution };
+    return { texture, scale, bbox: expandedBox, gridDim: dim, gridTexDim: dim, gridTexScale, radiusFactor, resolution, maxRadius };
 }
 
 //

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -129,5 +129,5 @@ export async function GaussianDensityCPU(ctx: RuntimeContext, position: Position
     Mat4.fromScaling(transform, Vec3.create(resolution, resolution, resolution));
     Mat4.setTranslation(transform, expandedBox.min);
 
-    return { field, idField, transform, radiusFactor: 1, resolution };
+    return { field, idField, transform, radiusFactor: 1, resolution, maxRadius };
 }

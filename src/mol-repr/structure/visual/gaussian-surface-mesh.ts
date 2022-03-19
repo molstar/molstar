@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -18,7 +18,7 @@ import { TextureMesh } from '../../../mol-geo/geometry/texture-mesh/texture-mesh
 import { extractIsosurface } from '../../../mol-gl/compute/marching-cubes/isosurface';
 import { Sphere3D } from '../../../mol-math/geometry';
 import { ComplexVisual, ComplexMeshParams, ComplexMeshVisual, ComplexTextureMeshVisual, ComplexTextureMeshParams } from '../complex-visual';
-import { getUnitExtraRadius, getStructureExtraRadius, getVolumeSliceInfo, StructureGroup } from './util/common';
+import { getVolumeSliceInfo, StructureGroup } from './util/common';
 import { WebGLContext } from '../../../mol-gl/webgl/context';
 import { MeshValues } from '../../../mol-gl/renderable/mesh';
 import { TextureMeshValues } from '../../../mol-gl/renderable/texture-mesh';
@@ -89,7 +89,7 @@ type GaussianSurfaceMeta = {
 
 async function createGaussianSurfaceMesh(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: GaussianDensityProps, mesh?: Mesh): Promise<Mesh> {
     const { smoothness } = props;
-    const { transform, field, idField, radiusFactor, resolution } = await computeUnitGaussianDensity(structure, unit, theme.size, props).runInContext(ctx.runtime);
+    const { transform, field, idField, radiusFactor, resolution, maxRadius } = await computeUnitGaussianDensity(structure, unit, theme.size, props).runInContext(ctx.runtime);
 
     const params = {
         isoLevel: Math.exp(-smoothness) / radiusFactor,
@@ -102,7 +102,7 @@ async function createGaussianSurfaceMesh(ctx: VisualContext, unit: Unit, structu
     Mesh.transform(surface, transform);
     if (ctx.webgl && !ctx.webgl.isWebGL2) Mesh.uniformTriangleGroup(surface);
 
-    const sphere = Sphere3D.expand(Sphere3D(), unit.boundary.sphere, props.radiusOffset + getUnitExtraRadius(unit));
+    const sphere = Sphere3D.expand(Sphere3D(), unit.boundary.sphere, maxRadius);
     surface.setBoundingSphere(sphere);
 
     return surface;
@@ -150,7 +150,7 @@ export function GaussianSurfaceMeshVisual(materialId: number): UnitsVisual<Gauss
 
 async function createStructureGaussianSurfaceMesh(ctx: VisualContext, structure: Structure, theme: Theme, props: GaussianDensityProps, mesh?: Mesh): Promise<Mesh> {
     const { smoothness } = props;
-    const { transform, field, idField, radiusFactor, resolution } = await computeStructureGaussianDensity(structure, theme.size, props).runInContext(ctx.runtime);
+    const { transform, field, idField, radiusFactor, resolution, maxRadius } = await computeStructureGaussianDensity(structure, theme.size, props).runInContext(ctx.runtime);
 
     const params = {
         isoLevel: Math.exp(-smoothness) / radiusFactor,
@@ -163,7 +163,7 @@ async function createStructureGaussianSurfaceMesh(ctx: VisualContext, structure:
     Mesh.transform(surface, transform);
     if (ctx.webgl && !ctx.webgl.isWebGL2) Mesh.uniformTriangleGroup(surface);
 
-    const sphere = Sphere3D.expand(Sphere3D(), structure.boundary.sphere, props.radiusOffset + getStructureExtraRadius(structure));
+    const sphere = Sphere3D.expand(Sphere3D(), structure.boundary.sphere, maxRadius);
     surface.setBoundingSphere(sphere);
 
     return surface;
@@ -235,7 +235,7 @@ async function createGaussianSurfaceTextureMesh(ctx: VisualContext, unit: Unit, 
     const buffer = textureMesh?.doubleBuffer.get();
     const gv = extractIsosurface(ctx.webgl, densityTextureData.texture, densityTextureData.gridDim, densityTextureData.gridTexDim, densityTextureData.gridTexScale, densityTextureData.transform, isoLevel, false, true, axisOrder, buffer?.vertex, buffer?.group, buffer?.normal);
 
-    const boundingSphere = Sphere3D.expand(Sphere3D(), unit.boundary.sphere, props.radiusOffset + getStructureExtraRadius(structure));
+    const boundingSphere = Sphere3D.expand(Sphere3D(), unit.boundary.sphere, densityTextureData.maxRadius);
     const surface = TextureMesh.create(gv.vertexCount, 1, gv.vertexTexture, gv.groupTexture, gv.normalTexture, boundingSphere, textureMesh);
     (surface.meta as GaussianSurfaceMeta).resolution = densityTextureData.resolution;
 
@@ -312,7 +312,7 @@ async function createStructureGaussianSurfaceTextureMesh(ctx: VisualContext, str
     const buffer = textureMesh?.doubleBuffer.get();
     const gv = extractIsosurface(ctx.webgl, densityTextureData.texture, densityTextureData.gridDim, densityTextureData.gridTexDim, densityTextureData.gridTexScale, densityTextureData.transform, isoLevel, false, true, axisOrder, buffer?.vertex, buffer?.group, buffer?.normal);
 
-    const boundingSphere = Sphere3D.expand(Sphere3D(), structure.boundary.sphere, props.radiusOffset + getStructureExtraRadius(structure));
+    const boundingSphere = Sphere3D.expand(Sphere3D(), structure.boundary.sphere, densityTextureData.maxRadius);
     const surface = TextureMesh.create(gv.vertexCount, 1, gv.vertexTexture, gv.groupTexture, gv.normalTexture, boundingSphere, textureMesh);
     (surface.meta as GaussianSurfaceMeta).resolution = densityTextureData.resolution;
 

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -15,11 +15,10 @@ import { UnitsLinesParams, UnitsVisual, UnitsLinesVisual } from '../units-visual
 import { ElementIterator, getElementLoci, eachElement } from './util/element';
 import { VisualUpdateState } from '../../util';
 import { Sphere3D } from '../../../mol-math/geometry';
-import { getUnitExtraRadius } from './util/common';
 
 async function createGaussianWireframe(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: GaussianDensityProps, lines?: Lines): Promise<Lines> {
     const { smoothness } = props;
-    const { transform, field, idField } = await computeUnitGaussianDensity(structure, unit, theme.size, props).runInContext(ctx.runtime);
+    const { transform, field, idField, maxRadius } = await computeUnitGaussianDensity(structure, unit, theme.size, props).runInContext(ctx.runtime);
 
     const params = {
         isoLevel: Math.exp(-smoothness),
@@ -30,7 +29,7 @@ async function createGaussianWireframe(ctx: VisualContext, unit: Unit, structure
 
     Lines.transform(wireframe, transform);
 
-    const sphere = Sphere3D.expand(Sphere3D(), unit.boundary.sphere, props.radiusOffset + getUnitExtraRadius(unit));
+    const sphere = Sphere3D.expand(Sphere3D(), unit.boundary.sphere, maxRadius);
     wireframe.setBoundingSphere(sphere);
 
     return wireframe;

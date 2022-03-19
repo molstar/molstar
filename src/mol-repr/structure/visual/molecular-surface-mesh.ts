@@ -15,7 +15,7 @@ import { computeUnitMolecularSurface } from './util/molecular-surface';
 import { computeMarchingCubesMesh } from '../../../mol-geo/util/marching-cubes/algorithm';
 import { ElementIterator, getElementLoci, eachElement } from './util/element';
 import { VisualUpdateState } from '../../util';
-import { CommonSurfaceParams, getUnitExtraRadius } from './util/common';
+import { CommonSurfaceParams } from './util/common';
 import { Sphere3D } from '../../../mol-math/geometry';
 import { MeshValues } from '../../../mol-gl/renderable/mesh';
 import { Texture } from '../../../mol-gl/webgl/texture';
@@ -40,7 +40,7 @@ type MolecularSurfaceMeta = {
 //
 
 async function createMolecularSurfaceMesh(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: MolecularSurfaceMeshProps, mesh?: Mesh): Promise<Mesh> {
-    const { transform, field, idField, resolution } = await computeUnitMolecularSurface(structure, unit, theme.size, props).runInContext(ctx.runtime);
+    const { transform, field, idField, resolution, maxRadius } = await computeUnitMolecularSurface(structure, unit, theme.size, props).runInContext(ctx.runtime);
 
     const params = {
         isoLevel: props.probeRadius,
@@ -57,7 +57,7 @@ async function createMolecularSurfaceMesh(ctx: VisualContext, unit: Unit, struct
     Mesh.transform(surface, transform);
     if (ctx.webgl && !ctx.webgl.isWebGL2) Mesh.uniformTriangleGroup(surface);
 
-    const sphere = Sphere3D.expand(Sphere3D(), unit.boundary.sphere, getUnitExtraRadius(unit));
+    const sphere = Sphere3D.expand(Sphere3D(), unit.boundary.sphere, maxRadius);
     surface.setBoundingSphere(sphere);
     (surface.meta as MolecularSurfaceMeta).resolution = resolution;
 

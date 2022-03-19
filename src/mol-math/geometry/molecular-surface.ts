@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Fred Ludlow <fred.ludlow@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -370,5 +370,5 @@ export async function calcMolecularSurface(ctx: RuntimeContext, position: Requir
     Mat4.fromScaling(transform, Vec3.create(resolution, resolution, resolution));
     Mat4.setTranslation(transform, expandedBox.min);
     // console.log({ field, idField, transform, updateChunk })
-    return { field, idField, transform, resolution };
+    return { field, idField, transform, resolution, maxRadius };
 }
