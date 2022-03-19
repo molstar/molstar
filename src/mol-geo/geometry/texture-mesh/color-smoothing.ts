@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2021-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -259,13 +259,15 @@ export function calcTextureMeshColorSmoothing(input: ColorSmoothingInput, resolu
 
     const isInstanceType = input.colorType.endsWith('Instance');
     const box = Box3D.fromSphere3D(Box3D(), isInstanceType ? input.boundingSphere : input.invariantBoundingSphere);
+    const pad = 1 + resolution;
+    const expandedBox = Box3D.expand(Box3D(), box, Vec3.create(pad, pad, pad));
 
     const scaleFactor = 1 / resolution;
-    const scaledBox = Box3D.scale(Box3D(), box, scaleFactor);
+    const scaledBox = Box3D.scale(Box3D(), expandedBox, scaleFactor);
     const gridDim = Box3D.size(Vec3(), scaledBox);
     Vec3.ceil(gridDim, gridDim);
     Vec3.add(gridDim, gridDim, Vec3.create(2, 2, 2));
-    const { min } = box;
+    const { min } = expandedBox;
 
     const [dx, dy, dz] = gridDim;
     const { texDimX: width, texDimY: height, texCols } = getTexture2dSize(gridDim);
@@ -308,7 +310,7 @@ export function calcTextureMeshColorSmoothing(input: ColorSmoothingInput, resolu
     accumulateTexture.attachFramebuffer(framebuffer, 0);
     countTexture.attachFramebuffer(framebuffer, 1);
 
-    const accumulateRenderable = getAccumulateRenderable(webgl, input, box, resolution, stride);
+    const accumulateRenderable = getAccumulateRenderable(webgl, input, expandedBox, resolution, stride);
     state.currentRenderItemId = -1;
 
     framebuffer.bind();

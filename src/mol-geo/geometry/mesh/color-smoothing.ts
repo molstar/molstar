@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2021-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -34,13 +34,15 @@ export function calcMeshColorSmoothing(input: ColorSmoothingInput, resolution: n
 
     const isInstanceType = colorType.endsWith('Instance');
     const box = Box3D.fromSphere3D(Box3D(), isInstanceType ? input.boundingSphere : input.invariantBoundingSphere);
+    const pad = 1 + resolution;
+    const expandedBox = Box3D.expand(Box3D(), box, Vec3.create(pad, pad, pad));
 
     const scaleFactor = 1 / resolution;
-    const scaledBox = Box3D.scale(Box3D(), box, scaleFactor);
+    const scaledBox = Box3D.scale(Box3D(), expandedBox, scaleFactor);
     const gridDim = Box3D.size(Vec3(), scaledBox);
     Vec3.ceil(gridDim, gridDim);
     Vec3.add(gridDim, gridDim, Vec3.create(2, 2, 2));
-    const { min } = box;
+    const { min } = expandedBox;
 
     const [xn, yn] = gridDim;
     const { width, height } = getVolumeTexture2dLayout(gridDim);
