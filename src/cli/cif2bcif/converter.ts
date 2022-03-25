@@ -71,7 +71,7 @@ function classify(name: string, field: CifField): CifWriter.Field {
 }
 
 export function convert(path: string, asText = false, hints?: EncodingStrategyHint[], filter?: string) {
-    return Task.create<Uint8Array>('BinaryCIF', async ctx => {
+    return Task.create<Uint8Array>('Convert CIF', async ctx => {
         const encodingProvider: BinaryEncodingProvider = hints
             ? CifWriter.createEncodingProviderFromJsonConfig(hints)
             : { get: (c, f) => void 0 };

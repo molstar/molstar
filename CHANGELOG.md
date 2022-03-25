@@ -6,7 +6,11 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+
+## [v3.5.0] - 2022-03-25
+
 - Fix issues with bounding-sphere & color-smoothing (mostly for small geometries)
+- Support BCIF => CIF conversion in ``cif2bcif`` CLI tool
 
 ## [v3.4.0] - 2022-03-13
 

@@ -18,7 +18,7 @@ async function process(srcPath: string, outPath: string, configPath?: string, fi
     const config = configPath ? JSON.parse(fs.readFileSync(configPath, 'utf8')) : void 0;
     const filter = filterPath ? fs.readFileSync(filterPath, 'utf8') : void 0;
 
-    const res = await convert(srcPath, false, config, filter);
+    const res = await convert(srcPath, srcPath.toLowerCase().indexOf('.bcif') > 0, config, filter);
     await write(outPath, res);
 }
 
@@ -38,13 +38,13 @@ function run(args: Args) {
 
 const parser = new argparse.ArgumentParser({
     add_help: true,
-    description: 'Convert any CIF file to a BCIF file'
+    description: 'Convert any BCIF file to a CIF file or vice versa'
 });
 parser.add_argument('src', {
-    help: 'Source CIF path'
+    help: 'Source file path'
 });
 parser.add_argument('out', {
-    help: 'Output BCIF path'
+    help: 'Output file path'
 });
 parser.add_argument('-c', '--config', {
     help: 'Optional encoding strategy/precision config path',

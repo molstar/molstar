@@ -141,7 +141,7 @@ and navigate to `build/viewer`
 
     export NODE_PATH="lib"; node build/state-docs
 
-**Convert any CIF to BinaryCIF**
+**Convert any CIF to BinaryCIF (or vice versa)**
 
     node lib/commonjs/servers/model/preprocess -i file.cif -ob file.bcif
 
@@ -150,6 +150,11 @@ To see all available commands, use ``node lib/commonjs/servers/model/preprocess 
 Or
 
     node lib/commonjs/cli/cif2bcif
+
+E.g.
+ 
+    node lib/commonjs/cli/cif2bcif src.cif out.bcif.gz
+    node lib/commonjs/cli/cif2bcif src.bcif.gz out.cif
 
 ## Development
 
