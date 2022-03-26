@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -61,7 +61,7 @@ function getFocusEntries(structure: Structure) {
         l.unit = ug.units[0];
         l.element = ug.elements[0];
         const isMultiChain = Unit.Traits.is(l.unit.traits, Unit.Trait.MultiChain);
-        const entityType = StructureProperties.entity.type(l);
+        const entityType = StructureProperties.entity.type(l).toLowerCase();
         const isNonPolymer = entityType === 'non-polymer';
         const isBranched = entityType === 'branched';
         const isBirdMolecule = !!StructureProperties.entity.prd_id(l);

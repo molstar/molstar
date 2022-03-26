@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  */
@@ -30,7 +30,7 @@ export function atomicSequence(): StructureQuery {
             l.unit = unit;
             const elements = unit.elements;
             l.element = elements[0];
-            if (P.entity.type(l) !== 'polymer') continue;
+            if (P.entity.type(l).toLowerCase() !== 'polymer') continue;
 
             const residuesIt = Segmentation.transientSegments(unit.model.atomicHierarchy.residueAtomSegments, elements);
             let residueCount = 0;
@@ -59,7 +59,7 @@ export function water(): StructureQuery {
             l.unit = unit;
             const elements = unit.elements;
             l.element = elements[0];
-            if (P.entity.type(l) !== 'water') continue;
+            if (P.entity.type(l).toLowerCase() !== 'water') continue;
             units.push(unit);
         }
         return StructureSelection.Singletons(inputStructure, Structure.create(units, { parent: inputStructure }));
@@ -78,8 +78,9 @@ export function atomicHet(): StructureQuery {
             l.unit = unit;
             const elements = unit.elements;
             l.element = elements[0];
-            if (P.entity.type(l) === 'water') continue;
-            if (P.entity.type(l) === 'polymer') {
+            const entityType = P.entity.type(l).toLowerCase();
+            if (entityType === 'water') continue;
+            if (entityType === 'polymer') {
                 const residuesIt = Segmentation.transientSegments(unit.model.atomicHierarchy.residueAtomSegments, elements);
                 let residueCount = 0;
                 while (residuesIt.hasNext) {

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -91,7 +91,10 @@ const current = StructureSelectionQuery('Current Selection', MS.internal.generat
 const polymer = StructureSelectionQuery('Polymer', MS.struct.modifier.union([
     MS.struct.generator.atomGroups({
         'entity-test': MS.core.logic.and([
-            MS.core.rel.eq([MS.ammp('entityType'), 'polymer']),
+            MS.core.str.match([
+                MS.re('^polymer', 'i'),
+                MS.ammp('entityType')
+            ]),
             MS.core.str.match([
                 MS.re('(polypeptide|cyclic-pseudo-peptide|peptide-like|nucleotide|peptide nucleic acid)', 'i'),
                 MS.ammp('entitySubtype')
@@ -104,7 +107,10 @@ const trace = StructureSelectionQuery('Trace', MS.struct.modifier.union([
     MS.struct.combinator.merge([
         MS.struct.modifier.union([
             MS.struct.generator.atomGroups({
-                'entity-test': MS.core.rel.eq([MS.ammp('entityType'), 'polymer']),
+                'entity-test': MS.core.str.match([
+                    MS.re('^polymer', 'i'),
+                    MS.ammp('entityType')
+                ]),
                 'chain-test': MS.core.set.has([
                     MS.set('sphere', 'gaussian'), MS.ammp('objectPrimitive')
                 ])
@@ -112,7 +118,10 @@ const trace = StructureSelectionQuery('Trace', MS.struct.modifier.union([
         ]),
         MS.struct.modifier.union([
             MS.struct.generator.atomGroups({
-                'entity-test': MS.core.rel.eq([MS.ammp('entityType'), 'polymer']),
+                'entity-test': MS.core.str.match([
+                    MS.re('^polymer', 'i'),
+                    MS.ammp('entityType')
+                ]),
                 'chain-test': MS.core.rel.eq([MS.ammp('objectPrimitive'), 'atomistic']),
                 'atom-test': MS.core.set.has([MS.set('CA', 'P'), MS.ammp('label_atom_id')])
             })
@@ -121,7 +130,10 @@ const trace = StructureSelectionQuery('Trace', MS.struct.modifier.union([
 ]), { category: StructureSelectionCategory.Structure });
 
 const _proteinEntityTest = MS.core.logic.and([
-    MS.core.rel.eq([MS.ammp('entityType'), 'polymer']),
+    MS.core.str.match([
+        MS.re('^polymer', 'i'),
+        MS.ammp('entityType')
+    ]),
     MS.core.str.match([
         MS.re('(polypeptide|cyclic-pseudo-peptide|peptide-like)', 'i'),
         MS.ammp('entitySubtype')
@@ -129,7 +141,10 @@ const _proteinEntityTest = MS.core.logic.and([
 ]);
 
 const _nucleiEntityTest = MS.core.logic.and([
-    MS.core.rel.eq([MS.ammp('entityType'), 'polymer']),
+    MS.core.str.match([
+        MS.re('^polymer', 'i'),
+        MS.ammp('entityType')
+    ]),
     MS.core.str.match([
         MS.re('(nucleotide|peptide nucleic acid)', 'i'),
         MS.ammp('entitySubtype')
@@ -275,7 +290,10 @@ const beta = StructureSelectionQuery('Beta Strand/Sheet', MS.struct.modifier.uni
 
 const water = StructureSelectionQuery('Water', MS.struct.modifier.union([
     MS.struct.generator.atomGroups({
-        'entity-test': MS.core.rel.eq([MS.ammp('entityType'), 'water'])
+        'entity-test': MS.core.str.match([
+            MS.re('water', 'i'),
+            MS.ammp('entityType')
+        ])
     })
 ]), { category: StructureSelectionCategory.Type });
 
@@ -294,9 +312,15 @@ const lipid = StructureSelectionQuery('Lipid', MS.struct.modifier.union([
 const branched = StructureSelectionQuery('Carbohydrate', MS.struct.modifier.union([
     MS.struct.generator.atomGroups({
         'entity-test': MS.core.logic.or([
-            MS.core.rel.eq([MS.ammp('entityType'), 'branched']),
+            MS.core.str.match([
+                MS.re('branched', 'i'),
+                MS.ammp('entityType')
+            ]),
             MS.core.logic.and([
-                MS.core.rel.eq([MS.ammp('entityType'), 'non-polymer']),
+                MS.core.str.match([
+                    MS.re('non-polymer', 'i'),
+                    MS.ammp('entityType')
+                ]),
                 MS.core.str.match([
                     MS.re('oligosaccharide', 'i'),
                     MS.ammp('entitySubtype')
@@ -327,7 +351,10 @@ const ligand = StructureSelectionQuery('Ligand', MS.struct.modifier.union([
                     MS.struct.generator.atomGroups({
                         'entity-test': MS.core.logic.and([
                             MS.core.logic.or([
-                                MS.core.rel.eq([MS.ammp('entityType'), 'non-polymer']),
+                                MS.core.str.match([
+                                    MS.re('non-polymer', 'i'),
+                                    MS.ammp('entityType')
+                                ]),
                                 MS.core.rel.neq([MS.ammp('entityPrdId'), ''])
                             ]),
                             MS.core.logic.not([MS.core.str.match([
@@ -343,7 +370,10 @@ const ligand = StructureSelectionQuery('Ligand', MS.struct.modifier.union([
                 ]),
                 MS.struct.modifier.union([
                     MS.struct.generator.atomGroups({
-                        'entity-test': MS.core.rel.eq([MS.ammp('entityType'), 'polymer']),
+                        'entity-test': MS.core.str.match([
+                            MS.re('^polymer', 'i'),
+                            MS.ammp('entityType')
+                        ]),
                         'chain-test': MS.core.rel.eq([MS.ammp('objectPrimitive'), 'atomistic']),
                         'residue-test': _nonPolymerResidueTest
                     })
@@ -352,7 +382,10 @@ const ligand = StructureSelectionQuery('Ligand', MS.struct.modifier.union([
         ]),
         by: MS.struct.modifier.union([
             MS.struct.generator.atomGroups({
-                'entity-test': MS.core.rel.eq([MS.ammp('entityType'), 'polymer']),
+                'entity-test': MS.core.str.match([
+                    MS.re('^polymer', 'i'),
+                    MS.ammp('entityType')
+                ]),
                 'chain-test': MS.core.rel.eq([MS.ammp('objectPrimitive'), 'atomistic']),
                 'residue-test': MS.core.set.has([
                     MS.set(...SetUtils.toArray(PolymerNames)), MS.ammp('label_comp_id')
@@ -447,7 +480,10 @@ const nosBridges = StructureSelectionQuery('NOS Bridges', MS.struct.modifier.uni
 
 const nonStandardPolymer = StructureSelectionQuery('Non-standard Residues in Polymers', MS.struct.modifier.union([
     MS.struct.generator.atomGroups({
-        'entity-test': MS.core.rel.eq([MS.ammp('entityType'), 'polymer']),
+        'entity-test': MS.core.str.match([
+            MS.re('^polymer', 'i'),
+            MS.ammp('entityType')
+        ]),
         'chain-test': MS.core.rel.eq([MS.ammp('objectPrimitive'), 'atomistic']),
         'residue-test': MS.ammp('isNonStandard')
     })
@@ -682,7 +718,7 @@ export function getPolymerAndBranchedEntityQueries(structures: Structure[]) {
         for (const ug of structure.unitSymmetryGroups) {
             l.unit = ug.units[0];
             l.element = ug.elements[0];
-            const entityType = StructureProperties.entity.type(l);
+            const entityType = StructureProperties.entity.type(l).toLowerCase();
             if (entityType === 'polymer' || entityType === 'branched') {
                 const description = StructureProperties.entity.pdbx_description(l);
                 uniqueEntities.set(description.join(', '), description);

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  */
@@ -43,7 +43,6 @@ export namespace ModelInfo {
         const { _rowCount: residueCount } = model.atomicHierarchy.residues;
         const { offsets: residueOffsets } = model.atomicHierarchy.residueAtomSegments;
         const chainIndex = model.atomicHierarchy.chainAtomSegments.index;
-        // const resn = SP.residue.label_comp_id, entType = SP.entity.type;
 
         const pref = checkPreferred
             ? getPreferredAssembly(ctx, model)
@@ -55,7 +54,7 @@ export namespace ModelInfo {
         for (let rI = 0 as ResidueIndex; rI < residueCount; rI++) {
             const cI = chainIndex[residueOffsets[rI]];
             const eI = model.atomicHierarchy.index.getEntityFromChain(cI);
-            const entityType = model.entities.data.type.value(eI);
+            const entityType = model.entities.data.type.value(eI).toLowerCase();
             if (entityType !== 'non-polymer' && entityType !== 'branched') continue;
 
             const comp_id = model.atomicHierarchy.atoms.label_comp_id.value(residueOffsets[rI]);

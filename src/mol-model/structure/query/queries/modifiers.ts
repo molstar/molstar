@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  */
@@ -489,7 +489,7 @@ export function surroundingLigands({ query, radius, includeWater }: SurroundingL
                     continue;
                 }
 
-                const entityType = StructureProperties.entity.type(l);
+                const entityType = StructureProperties.entity.type(l).toLowerCase();
 
                 // test entity and chain
                 if (entityType === 'water' || entityType === 'polymer') continue;
@@ -575,7 +575,7 @@ export function surroundingLigands({ query, radius, includeWater }: SurroundingL
 
 const _entity_type = StructureProperties.entity.type;
 function testIsWater(l: StructureElement.Location) {
-    return _entity_type(l) === 'water';
+    return _entity_type(l).toLowerCase() === 'water';
 }
 
 function getPrdAsymIdx(structure: Structure) {

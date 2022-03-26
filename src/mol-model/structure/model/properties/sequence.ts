@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -60,11 +60,11 @@ namespace StructureSequence {
         for (let cI = 0 as ChainIndex, _cI = hierarchy.chains._rowCount; cI < _cI; cI++) {
             const entityKey = hierarchy.index.getEntityFromChain(cI);
             // Only for polymers, trying to mirror _entity_poly_seq
-            if (byEntityKey[entityKey] !== void 0 || entities.data.type.value(entityKey) !== 'polymer') continue;
+            if (byEntityKey[entityKey] !== void 0 || entities.data.type.value(entityKey).toLowerCase() !== 'polymer') continue;
 
             const start = cI;
             cI++;
-            while (cI < _cI && entityKey === hierarchy.index.getEntityFromChain(cI) && entities.data.type.value(entityKey) !== 'polymer') {
+            while (cI < _cI && entityKey === hierarchy.index.getEntityFromChain(cI) && entities.data.type.value(entityKey).toLowerCase() !== 'polymer') {
                 cI++;
             }
             cI--;

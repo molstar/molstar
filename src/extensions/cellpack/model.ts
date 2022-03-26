@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Ludovic Autin <ludovic.autin@gmail.com>
@@ -128,7 +128,10 @@ async function getStructure(plugin: PluginContext, model: Model, source: Ingredi
     } else {
         query = MS.struct.modifier.union([
             MS.struct.generator.atomGroups({
-                'entity-test': MS.core.rel.eq([MS.ammp('entityType'), 'polymer'])
+                'entity-test': MS.core.str.match([
+                    MS.re('^polymer', 'i'),
+                    MS.ammp('entityType')
+                ])
             })
         ]);
     }

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -108,7 +108,7 @@ function getModelEntityOptions(structure: Structure, polymersOnly = false): [str
         const modelIdx = structure.getModelIndex(unit.model);
         const key = `${modelIdx}|${id}`;
         if (seen.has(key)) continue;
-        if (polymersOnly && SP.entity.type(l) !== 'polymer') continue;
+        if (polymersOnly && SP.entity.type(l).toLowerCase() !== 'polymer') continue;
 
         let description = SP.entity.pdbx_description(l).join(', ');
         if (structure.models.length) {

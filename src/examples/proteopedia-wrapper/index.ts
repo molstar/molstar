@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  */
@@ -386,7 +386,10 @@ class MolStarProteopediaWrapper {
             if (!options?.hideLabels) {
                 // Labels
                 const waters = MS.struct.generator.atomGroups({
-                    'entity-test': MS.core.rel.eq([MS.struct.atomProperty.macromolecular.entityType(), 'water']),
+                    'entity-test': MS.core.str.match([
+                        MS.re('water', 'i'),
+                        MS.ammp('entityType')
+                    ])
                 });
                 const exclude = options?.doNotLabelWaters ? MS.struct.combinator.merge([core, waters]) : core;
                 const onlySurroundings = MS.struct.modifier.exceptBy({ 0: surroundings, by: exclude });

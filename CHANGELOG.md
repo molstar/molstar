@@ -6,6 +6,7 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Fix entity type handling, make case insensitive (as supported in mmCIF)
 
 ## [v3.5.0] - 2022-03-25
 

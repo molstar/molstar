@@ -272,7 +272,7 @@ export class SuperpositionControls extends PurePluginUIComponent<{ }, Superposit
 
             // only single polymer chain selections
             const l = StructureElement.Loci.getFirstLocation(selection, location)!;
-            if (selection.elements.length > 1 || StructureProperties.entity.type(l) !== 'polymer') return;
+            if (selection.elements.length > 1 || StructureProperties.entity.type(l).toLowerCase() !== 'polymer') return;
 
             const stats = StructureElement.Stats.ofLoci(selection);
             const counts = structureElementStatsLabel(stats, { countsOnly: true });
