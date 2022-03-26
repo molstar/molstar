@@ -6,6 +6,7 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Check that model and coordinates have same element count when creating a trajectory
 
 ## [v3.5.0] - 2022-03-25
 
