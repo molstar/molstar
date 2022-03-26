@@ -99,9 +99,14 @@ export namespace Model {
         const isIdentity = Column.isIdentity(srcIndex);
         const srcIndexArray = isIdentity ? void 0 : srcIndex.toArray({ array: Int32Array });
         const coarseGrained = isCoarseGrained(model);
+        const elementCount = model.atomicHierarchy.atoms._rowCount;
 
         for (let i = 0, il = frames.length; i < il; ++i) {
             const f = frames[i];
+            if (f.elementCount !== elementCount) {
+                throw new Error(`Frame element count mismatch, got ${f.elementCount} but expected ${elementCount}.`);
+            }
+
             const m = {
                 ...model,
                 id: UUID.create22(),

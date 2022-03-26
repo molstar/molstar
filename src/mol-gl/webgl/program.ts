@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -13,7 +13,7 @@ import { TextureId, Textures } from './texture';
 import { idFactory } from '../../mol-util/id-factory';
 import { RenderableSchema } from '../renderable/schema';
 import { isDebugMode } from '../../mol-util/debug';
-import { GLRenderingContext } from './compat';
+import { GLRenderingContext, isWebGL2 } from './compat';
 import { ShaderType, Shader } from './shader';
 
 const getNextProgramId = idFactory();
@@ -72,7 +72,7 @@ function checkActiveAttributes(gl: GLRenderingContext, program: WebGLProgram, sc
             }
             const attribType = getAttribType(gl, spec.kind, spec.itemSize);
             if (attribType !== type) {
-                throw new Error(`unexpected attribute type for ${name}`);
+                throw new Error(`unexpected attribute type '${attribType}' for ${name}, expected '${type}'`);
             }
         }
     }
@@ -104,8 +104,12 @@ function checkActiveUniforms(gl: GLRenderingContext, program: WebGLProgram, sche
                         throw new Error(`unexpected sampler type for '${name}'`);
                     }
                 } else if (spec.kind === 'volume-float32' || spec.kind === 'volume-uint8') {
-                    if (type !== (gl as WebGL2RenderingContext).SAMPLER_3D) {
-                        throw new Error(`unexpected sampler type for '${name}'`);
+                    if (isWebGL2(gl)) {
+                        if (type !== gl.SAMPLER_3D) {
+                            throw new Error(`unexpected sampler type for '${name}'`);
+                        }
+                    } else {
+                        throw new Error(`WebGL2 is required to use SAMPLER_3D`);
                     }
                 } else {
                     // TODO

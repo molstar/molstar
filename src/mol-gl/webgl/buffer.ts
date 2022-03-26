@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -9,7 +9,7 @@ import { ValueCell } from '../../mol-util';
 import { RenderableSchema } from '../renderable/schema';
 import { idFactory } from '../../mol-util/id-factory';
 import { assertUnreachable, ValueOf } from '../../mol-util/type-helpers';
-import { GLRenderingContext } from './compat';
+import { GLRenderingContext, isWebGL2 } from './compat';
 import { WebGLExtensions } from './extensions';
 import { WebGLState } from './state';
 
@@ -48,6 +48,7 @@ export function getDataType(gl: GLRenderingContext, dataType: DataType) {
         case 'uint32': return gl.UNSIGNED_INT;
         case 'int32': return gl.INT;
         case 'float32': return gl.FLOAT;
+        default: assertUnreachable(dataType);
     }
 }
 
@@ -74,7 +75,12 @@ export function getBufferType(gl: GLRenderingContext, bufferType: BufferType) {
     switch (bufferType) {
         case 'attribute': return gl.ARRAY_BUFFER;
         case 'elements': return gl.ELEMENT_ARRAY_BUFFER;
-        case 'uniform': return (gl as WebGL2RenderingContext).UNIFORM_BUFFER;
+        case 'uniform':
+            if (isWebGL2(gl)) {
+                return gl.UNIFORM_BUFFER;
+            } else {
+                throw new Error('WebGL2 is required for uniform buffers');
+            }
     }
 }
 
@@ -157,18 +163,10 @@ function createBuffer(gl: GLRenderingContext, array: ArrayType, usageHint: Usage
 //
 
 export type AttributeItemSize = 1 | 2 | 3 | 4 | 16
-export type AttributeKind = 'float32' | 'int32'
+export type AttributeKind = 'float32'
 
 export function getAttribType(gl: GLRenderingContext, kind: AttributeKind, itemSize: AttributeItemSize) {
     switch (kind) {
-        case 'int32':
-            switch (itemSize) {
-                case 1: return gl.INT;
-                case 2: return gl.INT_VEC2;
-                case 3: return gl.INT_VEC3;
-                case 4: return gl.INT_VEC4;
-            }
-            break;
         case 'float32':
             switch (itemSize) {
                 case 1: return gl.FLOAT;
@@ -177,9 +175,9 @@ export function getAttribType(gl: GLRenderingContext, kind: AttributeKind, itemS
                 case 4: return gl.FLOAT_VEC4;
                 case 16: return gl.FLOAT_MAT4;
             }
-            break;
+        default:
+            assertUnreachable(kind);
     }
-    throw new Error(`unknown attribute type for kind '${kind}' and itemSize '${itemSize}'`);
 }
 
 export type AttributeDefs = {

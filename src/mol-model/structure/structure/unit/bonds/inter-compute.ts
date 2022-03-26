@@ -205,11 +205,9 @@ const DefaultInterBondComputationProps = {
 function findBonds(structure: Structure, props: InterBondComputationProps) {
     const builder = new InterUnitGraph.Builder<number, StructureElement.UnitIndex, InterUnitEdgeProps>();
     const hasIndexPairBonds = structure.models.some(m => IndexPairBonds.Provider.get(m));
+    const hasExhaustiveStructConn = structure.models.some(m => StructConn.isExhaustive(m));
 
-    if (props.noCompute || (structure.isCoarseGrained && !hasIndexPairBonds)) {
-        // TODO add function that only adds bonds defined in structConn and avoids using
-        //      structure.lookup and unit.lookup (expensive for large structure and not
-        //      needed for archival files or files with an MD topology)
+    if (props.noCompute || (structure.isCoarseGrained && !hasIndexPairBonds && !hasExhaustiveStructConn)) {
         return new InterUnitBonds(builder.getMap());
     }
 

@@ -118,7 +118,7 @@ export class StructureFocusControls extends PluginUIComponent<{}, StructureFocus
     }
 
     get isDisabled() {
-        return this.state.isBusy || this.actionItems.length === 0;
+        return this.state.isBusy || this.plugin.managers.structure.hierarchy.selection.structures.length === 0;
     }
 
     getSelectionItems = memoizeLatest((structures: ReadonlyArray<StructureRef>) => {

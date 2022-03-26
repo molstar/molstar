@@ -255,9 +255,7 @@ function findBonds(unit: Unit.Atomic, props: BondComputationProps): IntraUnitBon
 
 function computeIntraUnitBonds(unit: Unit.Atomic, props?: Partial<BondComputationProps>) {
     const p = { ...DefaultBondComputationProps, ...props };
-    if (p.noCompute || Model.isCoarseGrained(unit.model)) {
-        // TODO add function that only adds bonds defined in structConn of chemCompBond
-        //      and avoid using unit.lookup
+    if (p.noCompute || (Model.isCoarseGrained(unit.model) && !IndexPairBonds.Provider.get(unit.model) && !StructConn.isExhaustive(unit.model))) {
         return IntraUnitBonds.Empty;
     }
 

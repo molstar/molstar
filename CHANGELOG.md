@@ -7,6 +7,9 @@ Note that since we don't clearly distinguish between a public and private interf
 ## [Unreleased]
 
 - Fix entity type handling, make case insensitive (as supported in mmCIF)
+- Check that model and coordinates have same element count when creating a trajectory
+- Fix aromatic rings assignment: do not mix flags and planarity test
+- Improve bonds assignment of coarse grained models: check for IndexPairBonds and exhaustive StructConn
 
 ## [v3.5.0] - 2022-03-25
 
