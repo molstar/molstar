@@ -39,7 +39,7 @@ export function getAtomSiteTemplate(data: string, count: number) {
     };
 }
 
-export function getAtomSite(sites: AtomSiteTemplate): { [K in keyof mmCIF_Schema['atom_site'] | 'partial_charge']?: CifField } {
+export function getAtomSite(sites: AtomSiteTemplate, hasTer: boolean): { [K in keyof mmCIF_Schema['atom_site'] | 'partial_charge']?: CifField } {
     const pdbx_PDB_model_num = CifField.ofStrings(sites.pdbx_PDB_model_num);
     const auth_asym_id = CifField.ofTokens(sites.auth_asym_id);
     const auth_seq_id = CifField.ofTokens(sites.auth_seq_id);
@@ -89,7 +89,9 @@ export function getAtomSite(sites: AtomSiteTemplate): { [K in keyof mmCIF_Schema
         }
 
         if (asymIdCounts.has(asymId)) {
-            if (asymIdChanged) {
+            // only change the chains name if there are TER records
+            // otherwise assume repeated chain name use is from interleaved chains
+            if (hasTer && asymIdChanged) {
                 const asymIdCount = asymIdCounts.get(asymId)! + 1;
                 asymIdCounts.set(asymId, asymIdCount);
                 currLabelAsymId = `${asymId}_${asymIdCount}`;
