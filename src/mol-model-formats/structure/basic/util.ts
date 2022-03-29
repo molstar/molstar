@@ -5,7 +5,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { AtomSite, BasicData } from './schema';
+import { AtomSite, BasicData, Entity } from './schema';
 import { Column, Table } from '../../../mol-data/db';
 
 export function getModelGroupName(model_id: number, data: BasicData) {
@@ -40,5 +40,12 @@ export function getNormalizedAtomSite(atom_site: AtomSite) {
     substUndefinedColumn(normalized, 'label_comp_id', 'auth_comp_id');
     substUndefinedColumn(normalized, 'label_seq_id', 'auth_seq_id');
     substUndefinedColumn(normalized, 'label_asym_id', 'auth_asym_id');
+    return normalized;
+}
+
+export function getNormalizedEntity(entity: Entity) {
+    const normalized = Table.ofColumns(entity._schema, entity);
+    const type = Column.mapToArray(entity.type, v => v.toLowerCase());
+    normalized.type = Column.ofStringArray(type) as Column<Entity['_schema']['type']['T']>;
     return normalized;
 }
