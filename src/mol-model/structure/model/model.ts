@@ -30,6 +30,7 @@ import { Trajectory, ArrayTrajectory } from '../trajectory';
 import { Unit } from '../structure';
 import { SortedArray } from '../../../mol-data/int/sorted-array';
 import { PolymerType } from './types';
+import { ModelSecondaryStructure } from '../../../mol-model-formats/structure/property/secondary-structure';
 
 /**
  * Interface to the "source data" of the molecule.
@@ -318,12 +319,15 @@ export namespace Model {
     }
 
     export function hasSecondaryStructure(model: Model): boolean {
-        if (!MmcifFormat.is(model.sourceData)) return false;
-        const { db } = model.sourceData.data;
-        return (
-            db.struct_conf.id.isDefined ||
-            db.struct_sheet_range.id.isDefined
-        );
+        if (MmcifFormat.is(model.sourceData)) {
+            const { db } = model.sourceData.data;
+            return (
+                db.struct_conf.id.isDefined ||
+                db.struct_sheet_range.id.isDefined
+            );
+        } else {
+            return ModelSecondaryStructure.Provider.isApplicable(model);
+        }
     }
 
     const tmpAngles90 = Vec3.create(1.5707963, 1.5707963, 1.5707963); // in radians
