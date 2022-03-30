@@ -353,7 +353,7 @@ export function bondedAtomicPairs(bondTest?: QueryPredicate): StructureQuery {
             atomicBond.a.unit = structure.unitMap.get(bond.unitA) as Unit.Atomic;
             atomicBond.a.element = atomicBond.a.unit.elements[bond.indexA];
             atomicBond.aIndex = bond.indexA;
-            atomicBond.b.unit = structure.unitMap.get(bond.unitA) as Unit.Atomic;
+            atomicBond.b.unit = structure.unitMap.get(bond.unitB) as Unit.Atomic;
             atomicBond.b.element = atomicBond.b.unit.elements[bond.indexB];
             atomicBond.bIndex = bond.indexB;
             atomicBond.order = bond.props.order;
