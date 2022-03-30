@@ -10,6 +10,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Fix aromatic rings assignment: do not mix flags and planarity test
 - Improve bonds assignment of coarse grained models: check for IndexPairBonds and exhaustive StructConn
 - Fix unit mapping in bondedAtomicPairs MolScript query
+- Improve pdb parsing: handle non unique atom and chain names (fixes #156)
 
 ## [v3.5.0] - 2022-03-25
 

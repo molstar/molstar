@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -39,27 +39,99 @@ export function getAtomSiteTemplate(data: string, count: number) {
     };
 }
 
-export function getAtomSite(sites: AtomSiteTemplate): { [K in keyof mmCIF_Schema['atom_site'] | 'partial_charge']?: CifField } {
+export function getAtomSite(sites: AtomSiteTemplate, hasTer: boolean): { [K in keyof mmCIF_Schema['atom_site'] | 'partial_charge']?: CifField } {
+    const pdbx_PDB_model_num = CifField.ofStrings(sites.pdbx_PDB_model_num);
     const auth_asym_id = CifField.ofTokens(sites.auth_asym_id);
+    const auth_seq_id = CifField.ofTokens(sites.auth_seq_id);
     const auth_atom_id = CifField.ofTokens(sites.auth_atom_id);
     const auth_comp_id = CifField.ofTokens(sites.auth_comp_id);
+    const id = CifField.ofStrings(sites.id);
+
+    //
+
+    let currModelNum = pdbx_PDB_model_num.str(0);
+    let currAsymId = auth_asym_id.str(0);
+    let currSeqId = auth_seq_id.int(0);
+    let currLabelAsymId = currAsymId;
+
+    const asymIdCounts = new Map<string, number>();
+    const atomIdCounts = new Map<string, number>();
+
+    const labelAsymIds: string[] = [];
+    const labelAtomIds: string[] = [];
+
+    // ensure unique asym ids per model and unique atom ids per seq id
+    for (let i = 0, il = id.rowCount; i < il; ++i) {
+        const modelNum = pdbx_PDB_model_num.str(i);
+        const asymId = auth_asym_id.str(i);
+        const seqId = auth_seq_id.int(i);
+        let atomId = auth_atom_id.str(i);
+
+        let asymIdChanged = false;
+
+        if (modelNum !== currModelNum) {
+            asymIdCounts.clear();
+            atomIdCounts.clear();
+            currModelNum = modelNum;
+            currAsymId = asymId;
+            currSeqId = seqId;
+            asymIdChanged = true;
+            currLabelAsymId = asymId;
+        } else if (currAsymId !== asymId) {
+            atomIdCounts.clear();
+            currAsymId = asymId;
+            currSeqId = seqId;
+            asymIdChanged = true;
+            currLabelAsymId = asymId;
+        } else if (currSeqId !== seqId) {
+            atomIdCounts.clear();
+            currSeqId = seqId;
+        }
+
+        if (asymIdCounts.has(asymId)) {
+            // only change the chains name if there are TER records
+            // otherwise assume repeated chain name use is from interleaved chains
+            if (hasTer && asymIdChanged) {
+                const asymIdCount = asymIdCounts.get(asymId)! + 1;
+                asymIdCounts.set(asymId, asymIdCount);
+                currLabelAsymId = `${asymId}_${asymIdCount}`;
+            }
+        } else {
+            asymIdCounts.set(asymId, 0);
+        }
+        labelAsymIds[i] = currLabelAsymId;
+
+        if (atomIdCounts.has(atomId)) {
+            const atomIdCount = atomIdCounts.get(atomId)! + 1;
+            atomIdCounts.set(atomId, atomIdCount);
+            atomId = `${atomId}_${atomIdCount}`;
+        } else {
+            atomIdCounts.set(atomId, 0);
+        }
+        labelAtomIds[i] = atomId;
+    }
+
+    const labelAsymId = Column.ofStringArray(labelAsymIds);
+    const labelAtomId = Column.ofStringArray(labelAtomIds);
+
+    //
 
     return {
         auth_asym_id,
         auth_atom_id,
         auth_comp_id,
-        auth_seq_id: CifField.ofTokens(sites.auth_seq_id),
+        auth_seq_id,
         B_iso_or_equiv: CifField.ofTokens(sites.B_iso_or_equiv),
         Cartn_x: CifField.ofTokens(sites.Cartn_x),
         Cartn_y: CifField.ofTokens(sites.Cartn_y),
         Cartn_z: CifField.ofTokens(sites.Cartn_z),
         group_PDB: CifField.ofTokens(sites.group_PDB),
-        id: CifField.ofStrings(sites.id),
+        id,
 
         label_alt_id: CifField.ofTokens(sites.label_alt_id),
 
-        label_asym_id: auth_asym_id,
-        label_atom_id: auth_atom_id,
+        label_asym_id: CifField.ofColumn(labelAsymId),
+        label_atom_id: CifField.ofColumn(labelAtomId),
         label_comp_id: auth_comp_id,
         label_seq_id: CifField.ofUndefined(sites.index, Column.Schema.int),
         label_entity_id: CifField.ofStrings(sites.label_entity_id),
@@ -68,7 +140,7 @@ export function getAtomSite(sites: AtomSiteTemplate): { [K in keyof mmCIF_Schema
         type_symbol: CifField.ofTokens(sites.type_symbol),
 
         pdbx_PDB_ins_code: CifField.ofTokens(sites.pdbx_PDB_ins_code),
-        pdbx_PDB_model_num: CifField.ofStrings(sites.pdbx_PDB_model_num),
+        pdbx_PDB_model_num,
 
         partial_charge: CifField.ofTokens(sites.partial_charge)
     };
