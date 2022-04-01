@@ -109,11 +109,12 @@ export abstract class LigandEncoder implements Encoder<string> {
                 const key = it.move();
 
                 const lai = label_atom_id.value(key, data, index) as string;
+                // ignore all alternate locations after the first
+                if (atoms.has(lai)) continue;
+
                 const ts = type_symbol.value(key, data, index) as string;
-                if (this.skipHydrogen(ts)) {
-                    index++;
-                    continue;
-                }
+                if (this.skipHydrogen(ts)) continue;
+
                 const a: { [k: string]: (string | number) } = {};
 
                 for (let _f = 0, _fl = fields.length; _f < _fl; _f++) {
