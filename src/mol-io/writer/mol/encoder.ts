@@ -26,8 +26,8 @@ export class MolEncoder extends LigandEncoder {
 
         const atomMap = this.componentAtomData.entries.get(name)!;
         const bondMap = this.componentBondData.entries.get(name)!;
-        // happens for unknown ligands like UNL
-        if (!atomMap) throw Error(`Component ${name} is not registered in the Chemical Component Dictionary`);
+        // happens for the unknown ligands (UNL)
+        if (!atomMap) throw Error(`The Chemical Component Dictionary doesn't hold any atom data for ${name}`);
 
         let bondCount = 0;
         let chiral = false;
