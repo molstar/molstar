@@ -60,7 +60,7 @@ function getPolymerAsymIdSerialMap(structure: Structure) {
                 const { index: chainIndex } = chainIt.move();
                 const entityId = chains.label_entity_id.value(chainIndex);
                 const eI = model.entities.getEntityIndex(entityId);
-                if (model.entities.data.type.value(eI) === 'polymer') {
+                if (model.entities.data.type.value(eI) === 'POLYMER') {
                     const asymId = chains.label_asym_id.value(chainIndex);
                     if (!map.has(asymId)) map.set(asymId, map.size);
                 }
@@ -75,7 +75,7 @@ function getPolymerAsymIdSerialMap(structure: Structure) {
                 const elementIndex = chainElementSegments.offsets[chainIndex];
                 const entityId = entity_id.value(elementIndex);
                 const eI = model.entities.getEntityIndex(entityId);
-                if (model.entities.data.type.value(eI) === 'polymer') {
+                if (model.entities.data.type.value(eI) === 'POLYMER') {
                     const asymId = asym_id.value(elementIndex);
                     if (!map.has(asymId)) map.set(asymId, map.size);
                 }

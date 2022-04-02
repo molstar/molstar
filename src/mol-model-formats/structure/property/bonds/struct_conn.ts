@@ -138,15 +138,15 @@ export namespace StructConn {
             if (partnerA === undefined || partnerB === undefined) continue;
 
             const type = conn_type_id.value(i);
-            const orderType = (pdbx_value_order.value(i) || '').toLowerCase();
+            const orderType = (pdbx_value_order.value(i) || '');
             let flags = BondType.Flag.None;
             let order = 1;
 
             switch (orderType) {
-                case 'sing': order = 1; break;
-                case 'doub': order = 2; break;
-                case 'trip': order = 3; break;
-                case 'quad': order = 4; break;
+                case 'SING': order = 1; break;
+                case 'DOUB': order = 2; break;
+                case 'TRIP': order = 3; break;
+                case 'QUAD': order = 4; break;
                 default:
                     order = getInterBondOrderFromTable(
                         struct_conn.ptnr1_label_comp_id.value(i),
@@ -157,14 +157,14 @@ export namespace StructConn {
             }
 
             switch (type) {
-                case 'covale':
+                case 'COVALE':
                     flags = BondType.Flag.Covalent;
                     break;
-                case 'disulf': flags = BondType.Flag.Covalent | BondType.Flag.Disulfide; break;
-                case 'hydrog':
+                case 'DISULF': flags = BondType.Flag.Covalent | BondType.Flag.Disulfide; break;
+                case 'HYDROG':
                     flags = BondType.Flag.HydrogenBond;
                     break;
-                case 'metalc': flags = BondType.Flag.MetallicCoordination; break;
+                case 'METALC': flags = BondType.Flag.MetallicCoordination; break;
             }
 
             entries.push({

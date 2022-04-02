@@ -30,7 +30,7 @@ export function atomicSequence(): StructureQuery {
             l.unit = unit;
             const elements = unit.elements;
             l.element = elements[0];
-            if (P.entity.type(l) !== 'polymer') continue;
+            if (P.entity.type(l) !== 'POLYMER') continue;
 
             const residuesIt = Segmentation.transientSegments(unit.model.atomicHierarchy.residueAtomSegments, elements);
             let residueCount = 0;
@@ -59,7 +59,7 @@ export function water(): StructureQuery {
             l.unit = unit;
             const elements = unit.elements;
             l.element = elements[0];
-            if (P.entity.type(l) !== 'water') continue;
+            if (P.entity.type(l) !== 'WATER') continue;
             units.push(unit);
         }
         return StructureSelection.Singletons(inputStructure, Structure.create(units, { parent: inputStructure }));
@@ -78,8 +78,8 @@ export function atomicHet(): StructureQuery {
             l.unit = unit;
             const elements = unit.elements;
             l.element = elements[0];
-            if (P.entity.type(l) === 'water') continue;
-            if (P.entity.type(l) === 'polymer') {
+            if (P.entity.type(l) === 'WATER') continue;
+            if (P.entity.type(l) === 'POLYMER') {
                 const residuesIt = Segmentation.transientSegments(unit.model.atomicHierarchy.residueAtomSegments, elements);
                 let residueCount = 0;
                 while (residuesIt.hasNext) {

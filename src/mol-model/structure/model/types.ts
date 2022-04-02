@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -162,38 +162,40 @@ export const NucleicBackboneAtoms = new Set([
     'O2*', 'O3*', 'O4*', 'O5*', 'C1*', 'C2*', 'C3*', 'C4*', 'C5*'
 ]);
 
+type ChemCompType = mmCIF_chemComp_schema['type']['T'];
+
 /** Chemical component type names for D-linked protein */
-export const DProteinComponentTypeNames = new Set([
+export const DProteinComponentTypeNames = new Set<ChemCompType>([
     'D-PEPTIDE LINKING', 'D-PEPTIDE NH3 AMINO TERMINUS',
     'D-PEPTIDE COOH CARBOXY TERMINUS', 'D-GAMMA-PEPTIDE, C-DELTA LINKING',
     'D-BETA-PEPTIDE, C-GAMMA LINKING'
 ]);
 
 /** Chemical component type names for L-linked protein */
-export const LProteinComponentTypeNames = new Set([
+export const LProteinComponentTypeNames = new Set<ChemCompType>([
     'L-PEPTIDE LINKING', 'L-PEPTIDE NH3 AMINO TERMINUS',
     'L-PEPTIDE COOH CARBOXY TERMINUS', 'L-GAMMA-PEPTIDE, C-DELTA LINKING',
     'L-BETA-PEPTIDE, C-GAMMA LINKING'
 ]);
 
 /** Chemical component type names for gamma protein, overlaps with D/L-linked */
-export const GammaProteinComponentTypeNames = new Set([
+export const GammaProteinComponentTypeNames = new Set<ChemCompType>([
     'D-GAMMA-PEPTIDE, C-DELTA LINKING', 'L-GAMMA-PEPTIDE, C-DELTA LINKING'
 ]);
 
 /** Chemical component type names for beta protein, overlaps with D/L-linked */
-export const BetaProteinComponentTypeNames = new Set([
+export const BetaProteinComponentTypeNames = new Set<ChemCompType>([
     'D-BETA-PEPTIDE, C-GAMMA LINKING', 'L-BETA-PEPTIDE, C-GAMMA LINKING'
 ]);
 
 /** Chemical component type names for protein termini, overlaps with D/L-linked */
-export const ProteinTerminusComponentTypeNames = new Set([
+export const ProteinTerminusComponentTypeNames = new Set<ChemCompType>([
     'D-PEPTIDE NH3 AMINO TERMINUS', 'D-PEPTIDE COOH CARBOXY TERMINUS',
     'L-PEPTIDE NH3 AMINO TERMINUS', 'L-PEPTIDE COOH CARBOXY TERMINUS'
 ]);
 
 /** Chemical component type names for peptide-like protein */
-export const OtherProteinComponentTypeNames = new Set([
+export const OtherProteinComponentTypeNames = new Set<ChemCompType>([
     'PEPTIDE LINKING', 'PEPTIDE-LIKE',
 ]);
 
@@ -203,37 +205,41 @@ export const ProteinComponentTypeNames = SetUtils.unionMany(
 );
 
 /** Chemical component type names for DNA */
-export const DNAComponentTypeNames = new Set([
+export const DNAComponentTypeNames = new Set<ChemCompType>([
     'DNA LINKING', 'L-DNA LINKING', 'DNA OH 5 PRIME TERMINUS', 'DNA OH 3 PRIME TERMINUS',
 ]);
 
 /** Chemical component type names for RNA */
-export const RNAComponentTypeNames = new Set([
+export const RNAComponentTypeNames = new Set<ChemCompType>([
     'RNA LINKING', 'L-RNA LINKING', 'RNA OH 5 PRIME TERMINUS', 'RNA OH 3 PRIME TERMINUS',
 ]);
 
 /** Chemical component type names for saccharide */
-export const SaccharideComponentTypeNames = new Set([
-    'D-SACCHARIDE, BETA LINKING', 'L-SACCHARIDE, BETA LINKING',
-    'D-SACCHARIDE, ALPHA LINKING', 'L-SACCHARIDE, ALPHA LINKING',
-    'L-SACCHARIDE', 'D-SACCHARIDE', 'SACCHARIDE',
-    // the following four are marked to be deprecated in the mmCIF dictionary
-    'D-SACCHARIDE 1,4 AND 1,4 LINKING', 'L-SACCHARIDE 1,4 AND 1,4 LINKING',
-    'D-SACCHARIDE 1,4 AND 1,6 LINKING', 'L-SACCHARIDE 1,4 AND 1,6 LINKING',
-]);
+export const SaccharideComponentTypeNames = SetUtils.unionMany(
+    new Set<ChemCompType>([
+        'D-SACCHARIDE, BETA LINKING', 'L-SACCHARIDE, BETA LINKING',
+        'D-SACCHARIDE, ALPHA LINKING', 'L-SACCHARIDE, ALPHA LINKING',
+        'L-SACCHARIDE', 'D-SACCHARIDE', 'SACCHARIDE',
+    ]),
+    // deprecated in the mmCIF dictionary, kept for backward compatibility
+    new Set([
+        'D-SACCHARIDE 1,4 AND 1,4 LINKING', 'L-SACCHARIDE 1,4 AND 1,4 LINKING',
+        'D-SACCHARIDE 1,4 AND 1,6 LINKING', 'L-SACCHARIDE 1,4 AND 1,6 LINKING'
+    ]),
+);
 
 /** Chemical component type names for other */
-export const OtherComponentTypeNames = new Set([
+export const OtherComponentTypeNames = new Set<ChemCompType>([
     'NON-POLYMER', 'OTHER'
 ]);
 
 /** Chemical component type names for ion (extension to mmcif) */
-export const IonComponentTypeNames = new Set([
+export const IonComponentTypeNames = new Set<ChemCompType>([
     'ION'
 ]);
 
 /** Chemical component type names for lipid (extension to mmcif) */
-export const LipidComponentTypeNames = new Set([
+export const LipidComponentTypeNames = new Set<ChemCompType>([
     'LIPID'
 ]);
 
@@ -298,8 +304,7 @@ export const isPyrimidineBase = (compId: string) => PyrimidineBaseNames.has(comp
 export const PolymerNames = SetUtils.unionMany(AminoAcidNames, BaseNames);
 
 /** get the molecule type from component type and id */
-export function getMoleculeType(compType: string, compId: string): MoleculeType {
-    compType = compType.toUpperCase();
+export function getMoleculeType(compType: ChemCompType, compId: string): MoleculeType {
     compId = compId.toUpperCase();
     if (PeptideBaseNames.has(compId)) {
         return MoleculeType.PNA;
@@ -319,7 +324,7 @@ export function getMoleculeType(compType: string, compId: string): MoleculeType 
         return MoleculeType.Lipid;
     } else if (OtherComponentTypeNames.has(compType)) {
         if (SaccharideCompIdMap.has(compId)) {
-            // trust our saccharide table more than given 'non-polymer' or 'other' component type
+            // trust our saccharide table more than given 'NON-POLYMER' or 'OTHER' component type
             return MoleculeType.Saccharide;
         } else if (AminoAcidNames.has(compId)) {
             return MoleculeType.Protein;
@@ -335,8 +340,7 @@ export function getMoleculeType(compType: string, compId: string): MoleculeType 
     }
 }
 
-export function getPolymerType(compType: string, molType: MoleculeType): PolymerType {
-    compType = compType.toUpperCase();
+export function getPolymerType(compType: ChemCompType, molType: MoleculeType): PolymerType {
     if (molType === MoleculeType.Protein) {
         if (GammaProteinComponentTypeNames.has(compType)) {
             return PolymerType.GammaProtein;
@@ -358,18 +362,18 @@ export function getPolymerType(compType: string, molType: MoleculeType): Polymer
     }
 }
 
-export function getComponentType(compId: string): mmCIF_chemComp_schema['type']['T'] {
+export function getComponentType(compId: string): ChemCompType {
     compId = compId.toUpperCase();
     if (AminoAcidNames.has(compId)) {
-        return 'peptide linking';
+        return 'PEPTIDE LINKING';
     } else if (RnaBaseNames.has(compId)) {
-        return 'RNA linking';
+        return 'RNA LINKING';
     } else if (DnaBaseNames.has(compId)) {
-        return 'DNA linking';
+        return 'DNA LINKING';
     } else if (SaccharideCompIdMap.has(compId)) {
-        return 'saccharide';
+        return 'SACCHARIDE';
     } else {
-        return 'other';
+        return 'OTHER';
     }
 }
 
@@ -381,7 +385,7 @@ export function getDefaultChemicalComponent(compId: string): ChemicalComponent {
         formula_weight: 0,
         id: compId,
         name: compId,
-        mon_nstd_flag: PolymerNames.has(compId) ? 'y' : 'n',
+        mon_nstd_flag: PolymerNames.has(compId) ? 'Y' : 'N',
         pdbx_synonyms: [],
         type: getComponentType(compId)
     };
@@ -390,19 +394,18 @@ export function getDefaultChemicalComponent(compId: string): ChemicalComponent {
 export function getEntityType(compId: string): mmCIF_Schema['entity']['type']['T'] {
     compId = compId.toUpperCase();
     if (WaterNames.has(compId)) {
-        return 'water';
+        return 'WATER';
     } else if (PolymerNames.has(compId)) {
-        return 'polymer';
+        return 'POLYMER';
     } else if (SaccharideCompIdMap.has(compId)) {
-        return 'branched';
+        return 'BRANCHED';
     } else {
-        return 'non-polymer';
+        return 'NON-POLYMER';
     }
 }
 
-export function getEntitySubtype(compId: string, compType: string): EntitySubtype {
+export function getEntitySubtype(compId: string, compType: ChemCompType): EntitySubtype {
     compId = compId.toUpperCase();
-    compType = compType.toUpperCase();
     if (LProteinComponentTypeNames.has(compType)) {
         return 'polypeptide(L)';
     } else if (DProteinComponentTypeNames.has(compType)) {

@@ -10,6 +10,9 @@ import { Entities, EntitySubtype } from '../../../mol-model/structure/model/prop
 import { getEntityType, getEntitySubtype } from '../../../mol-model/structure/model/types';
 import { ElementIndex, EntityIndex, Model } from '../../../mol-model/structure/model';
 import { BasicData, BasicSchema, Entity } from './schema';
+import { mmCIF_chemComp_schema } from '../../../mol-io/reader/cif/schema/mmcif-extras';
+
+type ChemCompType = mmCIF_chemComp_schema['type']['T'];
 
 export function getEntityData(data: BasicData): Entities {
     let entityData: Entity;
@@ -35,7 +38,7 @@ export function getEntityData(data: BasicData): Entities {
             const entityId = sphere_entity_id.value(i);
             if (!entityIds.has(entityId)) {
                 ids.push(entityId);
-                types.push('polymer');
+                types.push('POLYMER');
                 entityIds.add(entityId);
             }
         }
@@ -45,7 +48,7 @@ export function getEntityData(data: BasicData): Entities {
             const entityId = gaussian_entity_id.value(i);
             if (!entityIds.has(entityId)) {
                 ids.push(entityId);
-                types.push('polymer');
+                types.push('POLYMER');
                 entityIds.add(entityId);
             }
         }
@@ -96,7 +99,7 @@ export function getEntityData(data: BasicData): Entities {
     }
 
     if (assignSubtype) {
-        const chemCompType = new Map<string, string>();
+        const chemCompType = new Map<string, ChemCompType>();
         if (data.chem_comp) {
             const { id, type } = data.chem_comp;
             for (let i = 0, il = data.chem_comp._rowCount; i < il; i++) {
@@ -110,7 +113,7 @@ export function getEntityData(data: BasicData): Entities {
                 const entityId = label_entity_id.value(i);
                 if (!entityIds.has(entityId)) {
                     const compId = label_comp_id.value(i);
-                    const compType = chemCompType.get(compId) || '';
+                    const compType = chemCompType.get(compId) || 'OTHER';
                     subtypes[getEntityIndex(entityId)] = getEntitySubtype(compId, compType);
                     entityIds.add(entityId);
                 }

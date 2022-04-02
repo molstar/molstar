@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -45,12 +45,33 @@ type ColumnCtor = (field: Data.CifField, category: Data.CifCategory, key: string
 
 function getColumnCtor(t: Column.Schema): ColumnCtor {
     switch (t.valueType) {
-        case 'str': return (f, c, k) => createColumn(t, f, f.str, f.toStringArray);
+        case 'str': return (f, c, k) => createStringColumn(t, f, f.str, f.toStringArray);
         case 'int': return (f, c, k) => createColumn(t, f, f.int, f.toIntArray);
         case 'float': return (f, c, k) => createColumn(t, f, f.float, f.toFloatArray);
         case 'list': throw new Error('Use createListColumn instead.');
         case 'tensor': throw new Error('Use createTensorColumn instead.');
     }
+}
+
+function createStringColumn<T extends string>(schema: Column.Schema.Str | Column.Schema.Aliased<T>, field: Data.CifField, value: (row: number) => T, toArray: Column<T>['toArray']): Column<T> {
+    return {
+        schema,
+        __array: field.__array,
+        isDefined: field.isDefined,
+        rowCount: field.rowCount,
+        value: schema.transform === 'lowercase'
+            ? row => value(row).toLowerCase() as T
+            : schema.transform === 'uppercase'
+                ? row => value(row).toUpperCase() as T
+                : value,
+        valueKind: field.valueKind,
+        areValuesEqual: field.areValuesEqual,
+        toArray: schema.transform === 'lowercase'
+            ? p => Array.from(toArray(p)).map(x => x.toLowerCase() as T)
+            : schema.transform === 'uppercase'
+                ? p => Array.from(toArray(p)).map(x => x.toUpperCase() as T)
+                : toArray,
+    };
 }
 
 function createColumn<T>(schema: Column.Schema, field: Data.CifField, value: (row: number) => T, toArray: Column<T>['toArray']): Column<T> {

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -66,8 +66,8 @@ describe('string column', () => {
     const xsArr = xs.map(x => x ?? '');
     const xsLC = xs.map(x => (x ?? '').toLowerCase());
     const arr = Column.ofArray({ array: xs as any, schema: Column.Schema.str });
-    const arrLC = Column.ofArray({ array: xs as any, schema: Column.Schema.Str({ lowerCase: true }) });
-    const aliasedLC = Column.ofArray({ array: xs as any, schema: Column.Schema.Aliased<'a' | 'b'>(Column.Schema.lowerCaseStr) });
+    const arrLC = Column.ofArray({ array: xs as any, schema: Column.Schema.Str({ transform: 'lowercase' }) });
+    const aliasedLC = Column.ofArray({ array: xs as any, schema: Column.Schema.Aliased<'a' | 'b'>(Column.Schema.lstr) });
 
     it('value', () => {
         for (let i = 0; i < xs.length; i++) {

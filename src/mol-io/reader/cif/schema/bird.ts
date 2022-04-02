@@ -1,7 +1,7 @@
 /**
- * Copyright (c) 2017-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
- * Code-generated 'BIRD' schema file. Dictionary versions: mmCIF 5.356, IHM 1.17, MA 1.3.5.
+ * Code-generated 'BIRD' schema file. Dictionary versions: mmCIF 5.357, IHM 1.17, MA 1.3.6.
  *
  * @author molstar/ciftools package
  */
@@ -12,6 +12,7 @@ import Schema = Column.Schema;
 
 const str = Schema.str;
 const float = Schema.float;
+const ustr = Schema.ustr;
 const Aliased = Schema.Aliased;
 const int = Schema.int;
 
@@ -58,7 +59,7 @@ export const BIRD_Schema = {
         /**
          * Defines the structural classification of the entity.
          */
-        type: Aliased<'Amino acid' | 'Aminoglycoside' | 'Anthracycline' | 'Anthraquinone' | 'Ansamycin' | 'Chalkophore' | 'Chromophore' | 'Glycopeptide' | 'Cyclic depsipeptide' | 'Cyclic lipopeptide' | 'Cyclic peptide' | 'Heterocyclic' | 'Imino sugar' | 'Keto acid' | 'Lipoglycopeptide' | 'Lipopeptide' | 'Macrolide' | 'Non-polymer' | 'Nucleoside' | 'Oligopeptide' | 'Oligosaccharide' | 'Peptaibol' | 'Peptide-like' | 'Polycyclic' | 'Polypeptide' | 'Polysaccharide' | 'Quinolone' | 'Thiolactone' | 'Thiopeptide' | 'Siderophore' | 'Unknown' | 'Chalkophore, Polypeptide'>(str),
+        type: Aliased<'AMINO ACID' | 'AMINOGLYCOSIDE' | 'ANTHRACYCLINE' | 'ANTHRAQUINONE' | 'ANSAMYCIN' | 'CHALKOPHORE' | 'CHROMOPHORE' | 'GLYCOPEPTIDE' | 'CYCLIC DEPSIPEPTIDE' | 'CYCLIC LIPOPEPTIDE' | 'CYCLIC PEPTIDE' | 'HETEROCYCLIC' | 'IMINO SUGAR' | 'KETO ACID' | 'LIPOGLYCOPEPTIDE' | 'LIPOPEPTIDE' | 'MACROLIDE' | 'NON-POLYMER' | 'NUCLEOSIDE' | 'OLIGOPEPTIDE' | 'OLIGOSACCHARIDE' | 'PEPTAIBOL' | 'PEPTIDE-LIKE' | 'POLYCYCLIC' | 'POLYPEPTIDE' | 'POLYSACCHARIDE' | 'QUINOLONE' | 'THIOLACTONE' | 'THIOPEPTIDE' | 'SIDEROPHORE' | 'UNKNOWN' | 'CHALKOPHORE, POLYPEPTIDE'>(ustr),
         /**
          * Evidence for the assignment of _pdbx_reference_molecule.type
          */
@@ -66,7 +67,7 @@ export const BIRD_Schema = {
         /**
          * Broadly defines the function of the entity.
          */
-        class: Aliased<'Antagonist' | 'Antibiotic' | 'Anticancer' | 'Anticoagulant' | 'Antifungal' | 'Antigen' | 'Antiinflammatory' | 'Antimicrobial' | 'Antineoplastic' | 'Antiparasitic' | 'Antiretroviral' | 'Anthelmintic' | 'Antithrombotic' | 'Antitumor' | 'Antiviral' | 'CASPASE inhibitor' | 'Chaperone binding' | 'Enzyme inhibitor' | 'Drug delivery' | 'Glycan component' | 'Growth factor' | 'Immunosuppressant' | 'Inducer' | 'Inhibitor' | 'Lantibiotic' | 'Metabolism' | 'Metal transport' | 'Nutrient' | 'Oxidation-reduction' | 'Protein binding' | 'Receptor' | 'Substrate analog' | 'Synthetic opioid' | 'Thrombin inhibitor' | 'Transition state mimetic' | 'Transport activator' | 'Trypsin inhibitor' | 'Toxin' | 'Unknown' | 'Water retention' | 'Anticoagulant, Antithrombotic' | 'Antibiotic, Antimicrobial' | 'Antibiotic, Anthelmintic' | 'Antibiotic, Antineoplastic' | 'Antimicrobial, Antiretroviral' | 'Antimicrobial, Antitumor' | 'Antimicrobial, Antiparasitic, Antibiotic' | 'Thrombin inhibitor, Trypsin inhibitor'>(str),
+        class: Aliased<'ANTAGONIST' | 'ANTIBIOTIC' | 'ANTICANCER' | 'ANTICOAGULANT' | 'ANTIFUNGAL' | 'ANTIGEN' | 'ANTIINFLAMMATORY' | 'ANTIMICROBIAL' | 'ANTINEOPLASTIC' | 'ANTIPARASITIC' | 'ANTIRETROVIRAL' | 'ANTHELMINTIC' | 'ANTITHROMBOTIC' | 'ANTITUMOR' | 'ANTIVIRAL' | 'CASPASE INHIBITOR' | 'CHAPERONE BINDING' | 'ENZYME INHIBITOR' | 'DRUG DELIVERY' | 'GLYCAN COMPONENT' | 'GROWTH FACTOR' | 'IMMUNOSUPPRESSANT' | 'INDUCER' | 'INHIBITOR' | 'LANTIBIOTIC' | 'METABOLISM' | 'METAL TRANSPORT' | 'NUTRIENT' | 'OXIDATION-REDUCTION' | 'PROTEIN BINDING' | 'RECEPTOR' | 'SUBSTRATE ANALOG' | 'SYNTHETIC OPIOID' | 'THROMBIN INHIBITOR' | 'TRANSITION STATE MIMETIC' | 'TRANSPORT ACTIVATOR' | 'TRYPSIN INHIBITOR' | 'TOXIN' | 'UNKNOWN' | 'WATER RETENTION' | 'ANTICOAGULANT, ANTITHROMBOTIC' | 'ANTIBIOTIC, ANTIMICROBIAL' | 'ANTIBIOTIC, ANTHELMINTIC' | 'ANTIBIOTIC, ANTINEOPLASTIC' | 'ANTIMICROBIAL, ANTIRETROVIRAL' | 'ANTIMICROBIAL, ANTITUMOR' | 'ANTIMICROBIAL, ANTIPARASITIC, ANTIBIOTIC' | 'THROMBIN INHIBITOR, TRYPSIN INHIBITOR'>(ustr),
         /**
          * Evidence for the assignment of _pdbx_reference_molecule.class
          */
@@ -78,7 +79,7 @@ export const BIRD_Schema = {
         /**
          * Defines how this entity is represented in PDB data files.
          */
-        represent_as: Aliased<'polymer' | 'single molecule' | 'branched'>(str),
+        represent_as: Aliased<'POLYMER' | 'SINGLE MOLECULE' | 'BRANCHED'>(ustr),
         /**
          * For entities represented as single molecules, the identifier
          * corresponding to the chemical definition for the molecule.
@@ -99,7 +100,7 @@ export const BIRD_Schema = {
         /**
          * Defines the current PDB release status for this molecule definition.
          */
-        release_status: Aliased<'REL' | 'HOLD' | 'OBS' | 'WAIT'>(str),
+        release_status: Aliased<'REL' | 'HOLD' | 'OBS' | 'WAIT'>(ustr),
         /**
          * Assigns the identifier for the reference molecule which have been replaced
          * by this reference molecule.
@@ -129,7 +130,7 @@ export const BIRD_Schema = {
         /**
          * Defines the polymer characteristic of the entity.
          */
-        type: Aliased<'polymer' | 'polymer-like' | 'non-polymer' | 'branched'>(str),
+        type: Aliased<'POLYMER' | 'POLYMER-LIKE' | 'NON-POLYMER' | 'BRANCHED'>(ustr),
         /**
          * Additional details about this entity.
          */
@@ -249,7 +250,7 @@ export const BIRD_Schema = {
         /**
          * The bond order target for the chemical linkage.
          */
-        value_order: Aliased<'sing' | 'doub' | 'trip' | 'quad' | 'arom' | 'poly' | 'delo' | 'pi'>(str),
+        value_order: Aliased<'SING' | 'DOUB' | 'TRIP' | 'QUAD' | 'AROM' | 'POLY' | 'DELO' | 'PI'>(ustr),
         /**
          * The entity component identifier for the first of two entities containing the linkage.
          */
@@ -335,7 +336,7 @@ export const BIRD_Schema = {
         /**
          * The bond order target for the non-standard linkage.
          */
-        value_order: Aliased<'sing' | 'doub' | 'trip' | 'quad' | 'arom' | 'poly' | 'delo' | 'pi'>(str),
+        value_order: Aliased<'SING' | 'DOUB' | 'TRIP' | 'QUAD' | 'AROM' | 'POLY' | 'DELO' | 'PI'>(ustr),
     },
     /**
      * Data items in the PDBX_REFERENCE_ENTITY_POLY category record details about
@@ -400,11 +401,11 @@ export const BIRD_Schema = {
         /**
          * A flag to indicate that this monomer is observed in the instance example.
          */
-        observed: Aliased<'Y' | 'N'>(str),
+        observed: Aliased<'Y' | 'N'>(ustr),
         /**
          * A flag to indicate that sequence heterogeneity at this monomer position.
          */
-        hetero: Aliased<'Y' | 'N'>(str),
+        hetero: Aliased<'Y' | 'N'>(ustr),
     },
     /**
      * Additional features associated with the reference entity.

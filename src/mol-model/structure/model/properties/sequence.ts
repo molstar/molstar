@@ -60,11 +60,11 @@ namespace StructureSequence {
         for (let cI = 0 as ChainIndex, _cI = hierarchy.chains._rowCount; cI < _cI; cI++) {
             const entityKey = hierarchy.index.getEntityFromChain(cI);
             // Only for polymers, trying to mirror _entity_poly_seq
-            if (byEntityKey[entityKey] !== void 0 || entities.data.type.value(entityKey) !== 'polymer') continue;
+            if (byEntityKey[entityKey] !== void 0 || entities.data.type.value(entityKey) !== 'POLYMER') continue;
 
             const start = cI;
             cI++;
-            while (cI < _cI && entityKey === hierarchy.index.getEntityFromChain(cI) && entities.data.type.value(entityKey) !== 'polymer') {
+            while (cI < _cI && entityKey === hierarchy.index.getEntityFromChain(cI) && entities.data.type.value(entityKey) !== 'POLYMER') {
                 cI++;
             }
             cI--;

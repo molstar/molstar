@@ -56,7 +56,7 @@ export namespace ModelInfo {
             const cI = chainIndex[residueOffsets[rI]];
             const eI = model.atomicHierarchy.index.getEntityFromChain(cI);
             const entityType = model.entities.data.type.value(eI);
-            if (entityType !== 'non-polymer' && entityType !== 'branched') continue;
+            if (entityType !== 'NON-POLYMER' && entityType !== 'BRANCHED') continue;
 
             const comp_id = model.atomicHierarchy.atoms.label_comp_id.value(residueOffsets[rI]);
 

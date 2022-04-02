@@ -108,7 +108,7 @@ function getModelEntityOptions(structure: Structure, polymersOnly = false): [str
         const modelIdx = structure.getModelIndex(unit.model);
         const key = `${modelIdx}|${id}`;
         if (seen.has(key)) continue;
-        if (polymersOnly && SP.entity.type(l) !== 'polymer') continue;
+        if (polymersOnly && SP.entity.type(l) !== 'POLYMER') continue;
 
         let description = SP.entity.pdbx_description(l).join(', ');
         if (structure.models.length) {
