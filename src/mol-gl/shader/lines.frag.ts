@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -16,7 +16,6 @@ precision highp int;
 void main(){
     #include clip_pixel
 
-    bool interior = false;
     float fragmentDepth = gl_FragCoord.z;
     #include assign_material_color
 
