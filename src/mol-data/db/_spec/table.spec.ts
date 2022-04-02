@@ -61,6 +61,19 @@ describe('column', () => {
     });
 });
 
+describe('string column', () => {
+    const arr = Column.ofArray({ array: ['A', 'b'], schema: Column.Schema.Str({ lowerCase: true }) });
+
+    it('value', () => {
+        expect(arr.value(0)).toBe('a');
+        expect(arr.value(1)).toBe('b');
+    });
+
+    it('array', () => {
+        expect(arr.toArray()).toEqual(['a', 'b']);
+    });
+});
+
 describe('table', () => {
     const schema = {
         x: Column.Schema.int,
