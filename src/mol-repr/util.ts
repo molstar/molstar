@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -57,6 +57,7 @@ export interface QualityProps {
     doubleSided: boolean
     xrayShaded: boolean
     alpha: number
+    allowTransparentBackfaces: boolean
 }
 
 export const DefaultQualityThresholds = {
@@ -192,7 +193,7 @@ export function getQualityProps(props: Partial<QualityProps>, data?: any) {
     resolution = Math.max(resolution, volume / 500_000_000);
     resolution = Math.min(resolution, 20);
 
-    if ((props.alpha !== undefined && props.alpha < 1) || !!props.xrayShaded) {
+    if (!props.allowTransparentBackfaces && ((props.alpha !== undefined && props.alpha < 1) || !!props.xrayShaded)) {
         doubleSided = false;
     }
 
