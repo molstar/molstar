@@ -12,6 +12,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Fix unit mapping in bondedAtomicPairs MolScript query
 - Improve pdb parsing: handle non unique atom and chain names (fixes #156)
 - Fix volume streaming for entries with multiple contour lists
+- Add ``allowTransparentBackfaces`` parameter to support double-sided rendering of transparent geometries
 
 ## [v3.5.0] - 2022-03-25
 
