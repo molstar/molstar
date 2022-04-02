@@ -41,6 +41,7 @@ namespace Column {
         export type List<T extends number | string> = { '@type': 'list', T: T[], separator: string, itemParse: (x: string) => T } & Base<'list'>
 
         export const str: Str = { '@type': 'str', T: '', valueType: 'str', lowerCase: false };
+        export const lowerCaseStr: Str = { '@type': 'str', T: '', valueType: 'str', lowerCase: true };
         export const int: Int = { '@type': 'int', T: 0, valueType: 'int' };
         export const coord: Coordinate = { '@type': 'coord', T: 0, valueType: 'float' };
         export const float: Float = { '@type': 'float', T: 0, valueType: 'float' };
@@ -52,14 +53,7 @@ namespace Column {
         export function Vector(dim: number, baseType: Int | Float = float): Tensor { return Tensor(Tensors.Vector(dim, baseType['@type'] === 'int' ? Int32Array : Float64Array), baseType); }
         export function Matrix(rows: number, cols: number, baseType: Int | Float = float): Tensor { return Tensor(Tensors.ColumnMajorMatrix(rows, cols, baseType['@type'] === 'int' ? Int32Array : Float64Array), baseType); }
 
-        export function Aliased<T>(t: Str | Int, options?: { defaultValue?: T, lowerCase?: boolean }): Aliased<T> {
-            if (options) {
-                if (t.valueType === 'str') {
-                    return Str(options as any) as any as Aliased<T>;
-                } else if (typeof options?.defaultValue === 'number') {
-                    return Int(options.defaultValue as any) as any as Aliased<T>;
-                }
-            }
+        export function Aliased<T>(t: Str | Int): Aliased<T> {
             return t as any as Aliased<T>;
         }
         export function List<T extends number | string>(separator: string, itemParse: (x: string) => T, defaultValue: T[] = []): List<T> {
@@ -293,10 +287,11 @@ function lambdaColumn<T extends Column.Schema>({ value, valueKind, areValuesEqua
 
 function arrayColumn<T extends Column.Schema>({ array, schema, valueKind }: Column.ArraySpec<T>): Column<T['T']> {
     const rowCount = array.length;
+    const defaultValue = schema.T;
     const value: Column<T['T']>['value'] = schema.valueType === 'str'
         ? (schema as Column.Schema.Str).lowerCase
-            ? row => { const v = array[row]; return typeof v === 'string' ? v.toLowerCase() : `${v}`.toLowerCase(); }
-            : row => { const v = array[row]; return typeof v === 'string' ? v : '' + v; }
+            ? row => { const v = array[row]; return typeof v === 'string' ? v.toLowerCase() : `${v ?? defaultValue}`.toLowerCase(); }
+            : row => { const v = array[row]; return typeof v === 'string' ? v : `${v ?? defaultValue}`; }
         : row => array[row];
 
     const isTyped = ColumnHelpers.isTypedArray(array);
@@ -314,7 +309,7 @@ function arrayColumn<T extends Column.Schema>({ array, schema, valueKind }: Colu
                     const ret = new (params && typeof params.array !== 'undefined' ? params.array : (array as any).constructor)(end - start) as any;
                     for (let i = 0, _i = end - start; i < _i; i++) {
                         const v = array[start + i];
-                        ret[i] = typeof v === 'string' ? v.toLowerCase() : `${v}`.toLowerCase();
+                        ret[i] = typeof v === 'string' ? v.toLowerCase() : `${v ?? defaultValue}`.toLowerCase();
                     }
                     return ret;
                 }
@@ -323,7 +318,7 @@ function arrayColumn<T extends Column.Schema>({ array, schema, valueKind }: Colu
                     const ret = new (params && typeof params.array !== 'undefined' ? params.array : (array as any).constructor)(end - start) as any;
                     for (let i = 0, _i = end - start; i < _i; i++) {
                         const v = array[start + i];
-                        ret[i] = typeof v === 'string' ? v : '' + v;
+                        ret[i] = typeof v === 'string' ? v : `${v ?? defaultValue}`;
                     }
                     return ret;
                 }
