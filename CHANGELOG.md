@@ -14,6 +14,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Fix volume streaming for entries with multiple contour lists
 - Add ``allowTransparentBackfaces`` parameter to support double-sided rendering of transparent geometries
 - Fix handling of case insensitive mmCIF enumeration fields (including entity.type)
+- Fix ``disable-wboit`` Viewer GET param
 
 ## [v3.5.0] - 2022-03-25
 

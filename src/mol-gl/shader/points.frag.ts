@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -20,7 +20,6 @@ void main(){
     #include clip_pixel
 
     float fragmentDepth = gl_FragCoord.z;
-    bool interior = false;
     #include assign_material_color
 
     #if defined(dPointStyle_circle)

@@ -71,7 +71,7 @@
                 pixelScale: parseFloat(pixelScale) || 1,
                 pickScale: parseFloat(pickScale) || 0.25,
                 pickPadding: isNaN(parseFloat(pickPadding)) ? 1 : parseFloat(pickPadding),
-                enableWboit: disableWboit ? true : void 0, // use default value if disable-wboit is not set
+                enableWboit: disableWboit ? false : void 0, // use default value if disable-wboit is not set
                 preferWebgl1: preferWebgl1,
             }).then(viewer => {
                 var snapshotId = getParam('snapshot-id', '[^&]+').trim();

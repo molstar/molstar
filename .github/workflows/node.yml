@@ -9,12 +9,12 @@ jobs:
     - uses: actions/checkout@v2
     - uses: actions/setup-node@v2
       with:
-        node-version: 17
+        node-version: 16
     - run: npm ci
     - run: sudo apt-get install xvfb
     - name: Lint
       run: npm run lint
     - name: Test
-      run: xvfb-run --auto-servernum npm run jest
+      run: npm install --no-save "gl@^5.0.0" && xvfb-run --auto-servernum npm run jest
     - name: Build
       run: npm run build
