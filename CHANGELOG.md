@@ -15,6 +15,9 @@ Note that since we don't clearly distinguish between a public and private interf
 - Add ``allowTransparentBackfaces`` parameter to support double-sided rendering of transparent geometries
 - Fix handling of case insensitive mmCIF enumeration fields (including entity.type)
 - Fix ``disable-wboit`` Viewer GET param
+- Add support for React 18.
+  - Used by importing ``createPluginUI`` from ``mol-plugin-ui/react18``;
+  - In Mol* 4.0, React 18 will become the default option.
 
 ## [v3.5.0] - 2022-03-25
 

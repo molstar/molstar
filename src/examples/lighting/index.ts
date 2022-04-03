@@ -6,7 +6,7 @@
 
 import { Canvas3DProps } from '../../mol-canvas3d/canvas3d';
 import { BuiltInTrajectoryFormat } from '../../mol-plugin-state/formats/trajectory';
-import { createPluginUI } from '../../mol-plugin-ui';
+import { createPluginUI } from '../../mol-plugin-ui/react18';
 import { PluginUIContext } from '../../mol-plugin-ui/context';
 import { DefaultPluginUISpec } from '../../mol-plugin-ui/spec';
 import { PluginCommands } from '../../mol-plugin/commands';

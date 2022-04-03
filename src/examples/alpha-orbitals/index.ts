@@ -11,7 +11,7 @@ import { SphericalBasisOrder } from '../../extensions/alpha-orbitals/spherical-f
 import { BasisAndOrbitals, CreateOrbitalDensityVolume, CreateOrbitalRepresentation3D, CreateOrbitalVolume, StaticBasisAndOrbitals } from '../../extensions/alpha-orbitals/transforms';
 import { canComputeGrid3dOnGPU } from '../../mol-gl/compute/grid3d';
 import { PluginStateObject } from '../../mol-plugin-state/objects';
-import { createPluginUI } from '../../mol-plugin-ui';
+import { createPluginUI } from '../../mol-plugin-ui/react18';
 import { PluginUIContext } from '../../mol-plugin-ui/context';
 import { DefaultPluginUISpec } from '../../mol-plugin-ui/spec';
 import { PluginCommands } from '../../mol-plugin/commands';

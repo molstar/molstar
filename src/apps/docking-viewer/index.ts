@@ -8,7 +8,7 @@
 import { Structure } from '../../mol-model/structure';
 import { BuiltInTrajectoryFormat } from '../../mol-plugin-state/formats/trajectory';
 import { PluginStateObject as PSO, PluginStateTransform } from '../../mol-plugin-state/objects';
-import { createPluginUI } from '../../mol-plugin-ui';
+import { createPluginUI } from '../../mol-plugin-ui/react18';
 import { PluginUIContext } from '../../mol-plugin-ui/context';
 import { PluginLayoutControlsDisplay } from '../../mol-plugin/layout';
 import { DefaultPluginUISpec, PluginUISpec } from '../../mol-plugin-ui/spec';
