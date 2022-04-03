@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -13,15 +13,17 @@ export function getFieldType(type: string, description: string, values?: string[
     switch (type) {
         // mmCIF
         case 'code':
-        case 'ucode':
         case 'line':
-        case 'uline':
         case 'text':
         case 'char':
-        case 'uchar3':
-        case 'uchar1':
         case 'boolean':
             return values && values.length ? EnumCol(values, 'str', description) : StrCol(description);
+        case 'ucode':
+        case 'uline':
+        case 'uchar3':
+        case 'uchar1':
+            // only force lower-case for enums
+            return values && values.length ? EnumCol(values.map(x => x.toLowerCase()), 'lstr', description) : StrCol(description);
         case 'aliasname':
         case 'name':
         case 'idname':

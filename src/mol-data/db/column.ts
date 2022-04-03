@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -25,38 +25,39 @@ interface Column<T> {
 namespace Column {
     export type ArrayCtor<T> = { new(size: number): ArrayLike<T> }
 
-    export type Schema<T = any> = Schema.Str | Schema.Int | Schema.Float | Schema.Coordinate | Schema.Aliased<T> | Schema.Tensor | Schema.List<number|string>
+    export type Schema<T = any> = Schema.Str | Schema.Int | Schema.Float | Schema.Coordinate | Schema.Aliased<T> | Schema.Tensor | Schema.List<number | string>
 
     export namespace Schema {
         // T also serves as a default value for undefined columns
 
         type Base<T extends string> = { valueType: T }
-        export type Str = { '@type': 'str', T: string } & Base<'str'>
+        export type Str = { '@type': 'str', T: string, transform?: 'uppercase' | 'lowercase' } & Base<'str'>
         export type Int = { '@type': 'int', T: number } & Base<'int'>
         export type Float = { '@type': 'float', T: number } & Base<'float'>
         export type Coordinate = { '@type': 'coord', T: number } & Base<'float'>
 
         export type Tensor = { '@type': 'tensor', T: Tensors.Data, space: Tensors.Space, baseType: Int | Float } & Base<'tensor'>
-        export type Aliased<T> = { '@type': 'aliased', T: T } & Base<T extends string ? 'str' : 'int'>
-        export type List<T extends number|string> = { '@type': 'list', T: T[], separator: string, itemParse: (x: string) => T } & Base<'list'>
+        export type Aliased<T> = { '@type': 'aliased', T: T, transform?: T extends string ? 'uppercase' | 'lowercase' : never } & Base<T extends string ? 'str' : 'int'>
+        export type List<T extends number | string> = { '@type': 'list', T: T[], separator: string, itemParse: (x: string) => T } & Base<'list'>
 
         export const str: Str = { '@type': 'str', T: '', valueType: 'str' };
+        export const ustr: Str = { '@type': 'str', T: '', valueType: 'str', transform: 'uppercase' };
+        export const lstr: Str = { '@type': 'str', T: '', valueType: 'str', transform: 'lowercase' };
         export const int: Int = { '@type': 'int', T: 0, valueType: 'int' };
         export const coord: Coordinate = { '@type': 'coord', T: 0, valueType: 'float' };
         export const float: Float = { '@type': 'float', T: 0, valueType: 'float' };
 
-        export function Str(defaultValue = ''): Str { return { '@type': 'str', T: defaultValue, valueType: 'str' }; };
+        export function Str(options?: { defaultValue?: string, transform?: 'uppercase' | 'lowercase' }): Str { return { '@type': 'str', T: options?.defaultValue ?? '', transform: options?.transform, valueType: 'str' }; };
         export function Int(defaultValue = 0): Int { return { '@type': 'int', T: defaultValue, valueType: 'int' }; };
         export function Float(defaultValue = 0): Float { return { '@type': 'float', T: defaultValue, valueType: 'float' }; };
         export function Tensor(space: Tensors.Space, baseType: Int | Float = float): Tensor { return { '@type': 'tensor', T: space.create(), space, valueType: 'tensor', baseType }; }
         export function Vector(dim: number, baseType: Int | Float = float): Tensor { return Tensor(Tensors.Vector(dim, baseType['@type'] === 'int' ? Int32Array : Float64Array), baseType); }
         export function Matrix(rows: number, cols: number, baseType: Int | Float = float): Tensor { return Tensor(Tensors.ColumnMajorMatrix(rows, cols, baseType['@type'] === 'int' ? Int32Array : Float64Array), baseType); }
 
-        export function Aliased<T>(t: Str | Int, defaultValue?: T): Aliased<T> {
-            if (typeof defaultValue !== 'undefined') return { ...t, T: defaultValue } as any as Aliased<T>;
+        export function Aliased<T>(t: Str | Int): Aliased<T> {
             return t as any as Aliased<T>;
         }
-        export function List<T extends number|string>(separator: string, itemParse: (x: string) => T, defaultValue: T[] = []): List<T> {
+        export function List<T extends number | string>(separator: string, itemParse: (x: string) => T, defaultValue: T[] = []): List<T> {
             return { '@type': 'list', T: defaultValue, separator, itemParse, valueType: 'list' };
         }
     }
@@ -287,8 +288,13 @@ function lambdaColumn<T extends Column.Schema>({ value, valueKind, areValuesEqua
 
 function arrayColumn<T extends Column.Schema>({ array, schema, valueKind }: Column.ArraySpec<T>): Column<T['T']> {
     const rowCount = array.length;
+    const defaultValue = schema.T;
     const value: Column<T['T']>['value'] = schema.valueType === 'str'
-        ? row => { const v = array[row]; return typeof v === 'string' ? v : '' + v; }
+        ? (schema as Column.Schema.Str).transform === 'lowercase'
+            ? row => { const v = array[row]; return typeof v === 'string' ? v.toLowerCase() : `${v ?? defaultValue}`.toLowerCase(); }
+            : (schema as Column.Schema.Str).transform === 'uppercase'
+                ? row => { const v = array[row]; return typeof v === 'string' ? v.toUpperCase() : `${v ?? defaultValue}`.toUpperCase(); }
+                : row => { const v = array[row]; return typeof v === 'string' ? v : `${v ?? defaultValue}`; }
         : row => array[row];
 
     const isTyped = ColumnHelpers.isTypedArray(array);
@@ -300,15 +306,35 @@ function arrayColumn<T extends Column.Schema>({ array, schema, valueKind }: Colu
         value,
         valueKind: valueKind ? valueKind : row => Column.ValueKind.Present,
         toArray: schema.valueType === 'str'
-            ? params => {
-                const { start, end } = ColumnHelpers.getArrayBounds(rowCount, params);
-                const ret = new (params && typeof params.array !== 'undefined' ? params.array : (array as any).constructor)(end - start) as any;
-                for (let i = 0, _i = end - start; i < _i; i++) {
-                    const v = array[start + i];
-                    ret[i] = typeof v === 'string' ? v : '' + v;
+            ? (schema as Column.Schema.Str).transform === 'lowercase'
+                ? params => {
+                    const { start, end } = ColumnHelpers.getArrayBounds(rowCount, params);
+                    const ret = new (params && typeof params.array !== 'undefined' ? params.array : (array as any).constructor)(end - start) as any;
+                    for (let i = 0, _i = end - start; i < _i; i++) {
+                        const v = array[start + i];
+                        ret[i] = typeof v === 'string' ? v.toLowerCase() : `${v ?? defaultValue}`.toLowerCase();
+                    }
+                    return ret;
                 }
-                return ret;
-            }
+                : (schema as Column.Schema.Str).transform === 'uppercase'
+                    ? params => {
+                        const { start, end } = ColumnHelpers.getArrayBounds(rowCount, params);
+                        const ret = new (params && typeof params.array !== 'undefined' ? params.array : (array as any).constructor)(end - start) as any;
+                        for (let i = 0, _i = end - start; i < _i; i++) {
+                            const v = array[start + i];
+                            ret[i] = typeof v === 'string' ? v.toUpperCase() : `${v ?? defaultValue}`.toUpperCase();
+                        }
+                        return ret;
+                    }
+                    : params => {
+                        const { start, end } = ColumnHelpers.getArrayBounds(rowCount, params);
+                        const ret = new (params && typeof params.array !== 'undefined' ? params.array : (array as any).constructor)(end - start) as any;
+                        for (let i = 0, _i = end - start; i < _i; i++) {
+                            const v = array[start + i];
+                            ret[i] = typeof v === 'string' ? v : `${v ?? defaultValue}`;
+                        }
+                        return ret;
+                    }
             : isTyped
                 ? params => ColumnHelpers.typedArrayWindow(array, params) as any as ReadonlyArray<T>
                 : params => {

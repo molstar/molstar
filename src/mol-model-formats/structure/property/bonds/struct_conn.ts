@@ -138,7 +138,7 @@ export namespace StructConn {
             if (partnerA === undefined || partnerB === undefined) continue;
 
             const type = conn_type_id.value(i);
-            const orderType = (pdbx_value_order.value(i) || '').toLowerCase();
+            const orderType = (pdbx_value_order.value(i) || '');
             let flags = BondType.Flag.None;
             let order = 1;
 

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -29,8 +29,8 @@ export function FloatCol(description: string): FloatCol { return { type: 'float'
 export type CoordCol = { type: 'coord' } & BaseCol
 export function CoordCol(description: string): CoordCol { return { type: 'coord', description }; }
 
-export type EnumCol = { type: 'enum', subType: 'int' | 'str', values: string[] } & BaseCol
-export function EnumCol(values: string[], subType: 'int' | 'str', description: string): EnumCol {
+export type EnumCol = { type: 'enum', subType: 'int' | 'str' | 'ustr' | 'lstr', values: string[] } & BaseCol
+export function EnumCol(values: string[], subType: 'int' | 'str' | 'ustr' | 'lstr', description: string): EnumCol {
     return { type: 'enum', description, values, subType };
 }
 

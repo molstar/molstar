@@ -11,6 +11,9 @@ import { MoleculeType, getMoleculeType, getComponentType, PolymerType, getPolyme
 import { getAtomIdForAtomRole } from '../../../../../mol-model/structure/util';
 import { ChemicalComponentMap } from '../common';
 import { isProductionMode } from '../../../../../mol-util/debug';
+import { mmCIF_chemComp_schema } from '../../../../../mol-io/reader/cif/schema/mmcif-extras';
+
+type ChemCompType = mmCIF_chemComp_schema['type']['T'];
 
 export function getAtomicDerivedData(data: AtomicData, segments: AtomicSegments, index: AtomicIndex, chemicalComponentMap: ChemicalComponentMap): AtomicDerivedData {
     const { label_comp_id, type_symbol, _rowCount: atomCount } = data.atoms;
@@ -42,7 +45,7 @@ export function getAtomicDerivedData(data: AtomicData, segments: AtomicSegments,
             molType = moleculeTypeMap.get(compId)!;
             polyType = polymerTypeMap.get(compId)!;
         } else {
-            let type: string;
+            let type: ChemCompType;
             if (chemCompMap.has(compId)) {
                 type = chemCompMap.get(compId)!.type;
             } else {

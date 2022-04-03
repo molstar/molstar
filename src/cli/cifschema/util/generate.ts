@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -10,7 +10,7 @@ import { FieldPath } from '../../../mol-io/reader/cif/schema';
 
 function header(name: string, info: string, moldataImportPath: string) {
     return `/**
- * Copyright (c) 2017-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * Code-generated '${name}' schema file. ${info}
  *
@@ -35,13 +35,17 @@ function getTypeShorthands(schema: Database, fields?: Filter) {
         const { columns } = schema.tables[table];
         Object.keys(columns).forEach(columnName => {
             if (fields && !fields[table][columnName]) return;
-            types.add(schema.tables[table].columns[columnName].type);
+            const col = schema.tables[table].columns[columnName];
+            if (col.type === 'enum') types.add(col.subType);
+            types.add(col.type);
         });
     });
     const shorthands: string[] = [];
     types.forEach(type => {
         switch (type) {
             case 'str': shorthands.push('const str = Schema.str;'); break;
+            case 'ustr': shorthands.push('const ustr = Schema.ustr;'); break;
+            case 'lstr': shorthands.push('const lstr = Schema.lstr;'); break;
             case 'int': shorthands.push('const int = Schema.int;'); break;
             case 'float': shorthands.push('const float = Schema.float;'); break;
             case 'coord': shorthands.push('const coord = Schema.coord;'); break;

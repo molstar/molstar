@@ -42,7 +42,7 @@ export class MolEncoder extends LigandEncoder {
             StringBuilder.writeSafe(ctab, '  0');
             StringBuilder.writeIntegerPadLeft(ctab, this.mapCharge(charge), 3);
             StringBuilder.writeSafe(ctab, '  0  0  0  0  0  0  0  0  0  0\n');
-            if (stereo_config !== 'N') chiral = true;
+            if (stereo_config !== 'n') chiral = true;
 
             // no data for metal ions
             if (!bondMap?.map) return;
