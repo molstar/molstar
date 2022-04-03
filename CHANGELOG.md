@@ -7,6 +7,10 @@ Note that since we don't clearly distinguish between a public and private interf
 ## [Unreleased]
 
 
+## [v3.6.1] - 2022-04-03
+
+- Fix React18 related UI regressions.
+
 ## [v3.6.0] - 2022-04-03
 
 - Check that model and coordinates have same element count when creating a trajectory
