@@ -29,8 +29,8 @@ export function FloatCol(description: string): FloatCol { return { type: 'float'
 export type CoordCol = { type: 'coord' } & BaseCol
 export function CoordCol(description: string): CoordCol { return { type: 'coord', description }; }
 
-export type EnumCol = { type: 'enum', subType: 'int' | 'str' | 'ustr', values: string[] } & BaseCol
-export function EnumCol(values: string[], subType: 'int' | 'str' | 'ustr', description: string): EnumCol {
+export type EnumCol = { type: 'enum', subType: 'int' | 'str' | 'ustr' | 'lstr', values: string[] } & BaseCol
+export function EnumCol(values: string[], subType: 'int' | 'str' | 'ustr' | 'lstr', description: string): EnumCol {
     return { type: 'enum', description, values, subType };
 }
 

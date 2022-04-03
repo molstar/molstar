@@ -13,7 +13,7 @@ import Schema = Column.Schema;
 const str = Schema.str;
 const float = Schema.float;
 const List = Schema.List;
-const ustr = Schema.ustr;
+const lstr = Schema.lstr;
 const Aliased = Schema.Aliased;
 const int = Schema.int;
 const coord = Schema.coord;
@@ -104,7 +104,7 @@ export const CCD_Schema = {
          * linking monomers, monomers with some type of N-terminal (or 5')
          * cap and monomers with some type of C-terminal (or 3') cap.
          */
-        type: Aliased<'D-PEPTIDE LINKING' | 'L-PEPTIDE LINKING' | 'D-PEPTIDE NH3 AMINO TERMINUS' | 'L-PEPTIDE NH3 AMINO TERMINUS' | 'D-PEPTIDE COOH CARBOXY TERMINUS' | 'L-PEPTIDE COOH CARBOXY TERMINUS' | 'DNA LINKING' | 'RNA LINKING' | 'L-RNA LINKING' | 'L-DNA LINKING' | 'DNA OH 5 PRIME TERMINUS' | 'RNA OH 5 PRIME TERMINUS' | 'DNA OH 3 PRIME TERMINUS' | 'RNA OH 3 PRIME TERMINUS' | 'D-SACCHARIDE, BETA LINKING' | 'D-SACCHARIDE, ALPHA LINKING' | 'L-SACCHARIDE, BETA LINKING' | 'L-SACCHARIDE, ALPHA LINKING' | 'L-SACCHARIDE' | 'D-SACCHARIDE' | 'SACCHARIDE' | 'NON-POLYMER' | 'PEPTIDE LINKING' | 'PEPTIDE-LIKE' | 'L-GAMMA-PEPTIDE, C-DELTA LINKING' | 'D-GAMMA-PEPTIDE, C-DELTA LINKING' | 'L-BETA-PEPTIDE, C-GAMMA LINKING' | 'D-BETA-PEPTIDE, C-GAMMA LINKING' | 'OTHER'>(ustr),
+        type: Aliased<'d-peptide linking' | 'l-peptide linking' | 'd-peptide nh3 amino terminus' | 'l-peptide nh3 amino terminus' | 'd-peptide cooh carboxy terminus' | 'l-peptide cooh carboxy terminus' | 'dna linking' | 'rna linking' | 'l-rna linking' | 'l-dna linking' | 'dna oh 5 prime terminus' | 'rna oh 5 prime terminus' | 'dna oh 3 prime terminus' | 'rna oh 3 prime terminus' | 'd-saccharide, beta linking' | 'd-saccharide, alpha linking' | 'l-saccharide, beta linking' | 'l-saccharide, alpha linking' | 'l-saccharide' | 'd-saccharide' | 'saccharide' | 'non-polymer' | 'peptide linking' | 'peptide-like' | 'l-gamma-peptide, c-delta linking' | 'd-gamma-peptide, c-delta linking' | 'l-beta-peptide, c-gamma linking' | 'd-beta-peptide, c-gamma linking' | 'other'>(lstr),
         /**
          * Synonym list for the component.
          */
@@ -155,11 +155,11 @@ export const CCD_Schema = {
         /**
          * This data item identifies if ideal coordinates are missing in this definition.
          */
-        pdbx_ideal_coordinates_missing_flag: Aliased<'Y' | 'N'>(ustr),
+        pdbx_ideal_coordinates_missing_flag: Aliased<'y' | 'n'>(lstr),
         /**
          * This data item identifies if model coordinates are missing in this definition.
          */
-        pdbx_model_coordinates_missing_flag: Aliased<'Y' | 'N'>(ustr),
+        pdbx_model_coordinates_missing_flag: Aliased<'y' | 'n'>(lstr),
         /**
          * Date component was added to database.
          */
@@ -280,15 +280,15 @@ export const CCD_Schema = {
         /**
          * The chiral configuration of the atom that is a chiral center.
          */
-        pdbx_stereo_config: Aliased<'R' | 'S' | 'N'>(ustr),
+        pdbx_stereo_config: Aliased<'r' | 's' | 'n'>(lstr),
         /**
          * A flag indicating an aromatic atom.
          */
-        pdbx_aromatic_flag: Aliased<'Y' | 'N'>(ustr),
+        pdbx_aromatic_flag: Aliased<'y' | 'n'>(lstr),
         /**
          * A flag indicating a leaving atom.
          */
-        pdbx_leaving_atom_flag: Aliased<'Y' | 'N'>(ustr),
+        pdbx_leaving_atom_flag: Aliased<'y' | 'n'>(lstr),
     },
     /**
      * Data items in the CHEM_COMP_BOND category record details about
@@ -321,7 +321,7 @@ export const CCD_Schema = {
          * bond associated with the specified atoms, expressed as a bond
          * order.
          */
-        value_order: Aliased<'SING' | 'DOUB' | 'TRIP' | 'QUAD' | 'AROM' | 'POLY' | 'DELO' | 'PI'>(ustr),
+        value_order: Aliased<'sing' | 'doub' | 'trip' | 'quad' | 'arom' | 'poly' | 'delo' | 'pi'>(lstr),
         /**
          * Ordinal index for the component bond list.
          */
@@ -329,11 +329,11 @@ export const CCD_Schema = {
         /**
          * Stereochemical configuration across a double bond.
          */
-        pdbx_stereo_config: Aliased<'E' | 'Z' | 'N'>(ustr),
+        pdbx_stereo_config: Aliased<'e' | 'z' | 'n'>(lstr),
         /**
          * A flag indicating an aromatic bond.
          */
-        pdbx_aromatic_flag: Aliased<'Y' | 'N'>(ustr),
+        pdbx_aromatic_flag: Aliased<'y' | 'n'>(lstr),
     },
     /**
      * Data items in the CHEM_COMP_DESCRIPTOR category provide
@@ -353,7 +353,7 @@ export const CCD_Schema = {
         /**
          * This data item contains the descriptor type.
          */
-        type: Aliased<'SMILES_CANNONICAL' | 'SMILES_CANONICAL' | 'SMILES' | 'INCHI' | 'INCHI_MAIN' | 'INCHI_MAIN_FORMULA' | 'INCHI_MAIN_CONNECT' | 'INCHI_MAIN_HATOM' | 'INCHI_CHARGE' | 'INCHI_STEREO' | 'INCHI_ISOTOPE' | 'INCHI_FIXEDH' | 'INCHI_RECONNECT' | 'INCHIKEY'>(ustr),
+        type: Aliased<'smiles_cannonical' | 'smiles_canonical' | 'smiles' | 'inchi' | 'inchi_main' | 'inchi_main_formula' | 'inchi_main_connect' | 'inchi_main_hatom' | 'inchi_charge' | 'inchi_stereo' | 'inchi_isotope' | 'inchi_fixedh' | 'inchi_reconnect' | 'inchikey'>(lstr),
         /**
          * This data item contains the name of the program
          * or library used to compute the descriptor.

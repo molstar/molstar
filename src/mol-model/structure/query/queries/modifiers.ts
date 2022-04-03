@@ -492,7 +492,7 @@ export function surroundingLigands({ query, radius, includeWater }: SurroundingL
                 const entityType = StructureProperties.entity.type(l);
 
                 // test entity and chain
-                if (entityType === 'WATER' || entityType === 'POLYMER') continue;
+                if (entityType === 'water' || entityType === 'polymer') continue;
 
                 residuesIt.setSegment(chainSegment);
                 while (residuesIt.hasNext) {
@@ -575,7 +575,7 @@ export function surroundingLigands({ query, radius, includeWater }: SurroundingL
 
 const _entity_type = StructureProperties.entity.type;
 function testIsWater(l: StructureElement.Location) {
-    return _entity_type(l) === 'WATER';
+    return _entity_type(l) === 'water';
 }
 
 function getPrdAsymIdx(structure: Structure) {
@@ -602,7 +602,7 @@ function getStructConnInfo(structure: Structure) {
 
     for (let i = 0; i < struct_conn._rowCount; i++) {
         const bondType = conn_type_id.value(i);
-        if (bondType !== 'COVALE' && bondType !== 'METALC') continue;
+        if (bondType !== 'covale' && bondType !== 'metalc') continue;
 
         const a: ResidueSetEntry = {
             label_asym_id: ptnr1_label_asym_id.value(i),

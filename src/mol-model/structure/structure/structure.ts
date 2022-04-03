@@ -855,12 +855,12 @@ namespace Structure {
 
     function isWaterChain(model: Model, chainIndex: ChainIndex) {
         const e = model.atomicHierarchy.index.getEntityFromChain(chainIndex);
-        return model.entities.data.type.value(e) === 'WATER';
+        return model.entities.data.type.value(e) === 'water';
     }
 
     function isPolymerChain(model: Model, chainIndex: ChainIndex) {
         const e = model.atomicHierarchy.index.getEntityFromChain(chainIndex);
-        return model.entities.data.type.value(e) === 'POLYMER';
+        return model.entities.data.type.value(e) === 'polymer';
     }
 
     function partitionAtomicUnitByAtom(model: Model, indices: SortedArray, builder: StructureBuilder, multiChain: boolean, operator: SymmetryOperator) {

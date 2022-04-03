@@ -62,8 +62,8 @@ function getFocusEntries(structure: Structure) {
         l.element = ug.elements[0];
         const isMultiChain = Unit.Traits.is(l.unit.traits, Unit.Trait.MultiChain);
         const entityType = StructureProperties.entity.type(l);
-        const isNonPolymer = entityType === 'NON-POLYMER';
-        const isBranched = entityType === 'BRANCHED';
+        const isNonPolymer = entityType === 'non-polymer';
+        const isBranched = entityType === 'branched';
         const isBirdMolecule = !!StructureProperties.entity.prd_id(l);
 
         if (isBirdMolecule) {

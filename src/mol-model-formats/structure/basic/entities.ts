@@ -38,7 +38,7 @@ export function getEntityData(data: BasicData): Entities {
             const entityId = sphere_entity_id.value(i);
             if (!entityIds.has(entityId)) {
                 ids.push(entityId);
-                types.push('POLYMER');
+                types.push('polymer');
                 entityIds.add(entityId);
             }
         }
@@ -48,7 +48,7 @@ export function getEntityData(data: BasicData): Entities {
             const entityId = gaussian_entity_id.value(i);
             if (!entityIds.has(entityId)) {
                 ids.push(entityId);
-                types.push('POLYMER');
+                types.push('polymer');
                 entityIds.add(entityId);
             }
         }
@@ -113,7 +113,7 @@ export function getEntityData(data: BasicData): Entities {
                 const entityId = label_entity_id.value(i);
                 if (!entityIds.has(entityId)) {
                     const compId = label_comp_id.value(i);
-                    const compType = chemCompType.get(compId) || 'OTHER';
+                    const compType = chemCompType.get(compId) || 'other';
                     subtypes[getEntityIndex(entityId)] = getEntitySubtype(compId, compType);
                     entityIds.add(entityId);
                 }

@@ -143,10 +143,10 @@ export namespace StructConn {
             let order = 1;
 
             switch (orderType) {
-                case 'SING': order = 1; break;
-                case 'DOUB': order = 2; break;
-                case 'TRIP': order = 3; break;
-                case 'QUAD': order = 4; break;
+                case 'sing': order = 1; break;
+                case 'doub': order = 2; break;
+                case 'trip': order = 3; break;
+                case 'quad': order = 4; break;
                 default:
                     order = getInterBondOrderFromTable(
                         struct_conn.ptnr1_label_comp_id.value(i),
@@ -157,14 +157,14 @@ export namespace StructConn {
             }
 
             switch (type) {
-                case 'COVALE':
+                case 'covale':
                     flags = BondType.Flag.Covalent;
                     break;
-                case 'DISULF': flags = BondType.Flag.Covalent | BondType.Flag.Disulfide; break;
-                case 'HYDROG':
+                case 'disulf': flags = BondType.Flag.Covalent | BondType.Flag.Disulfide; break;
+                case 'hydrog':
                     flags = BondType.Flag.HydrogenBond;
                     break;
-                case 'METALC': flags = BondType.Flag.MetallicCoordination; break;
+                case 'metalc': flags = BondType.Flag.MetallicCoordination; break;
             }
 
             entries.push({

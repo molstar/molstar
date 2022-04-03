@@ -45,6 +45,7 @@ function getTypeShorthands(schema: Database, fields?: Filter) {
         switch (type) {
             case 'str': shorthands.push('const str = Schema.str;'); break;
             case 'ustr': shorthands.push('const ustr = Schema.ustr;'); break;
+            case 'lstr': shorthands.push('const lstr = Schema.lstr;'); break;
             case 'int': shorthands.push('const int = Schema.int;'); break;
             case 'float': shorthands.push('const float = Schema.float;'); break;
             case 'coord': shorthands.push('const coord = Schema.coord;'); break;

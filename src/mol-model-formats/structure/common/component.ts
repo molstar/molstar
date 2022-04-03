@@ -37,48 +37,48 @@ const NonPolymerNames = new Set([
 const StandardComponents = (function () {
     const map = new Map<string, Component>();
     const components: Component[] = [
-        { id: 'HIS', name: 'HISTIDINE', type: 'L-PEPTIDE LINKING' },
-        { id: 'ARG', name: 'ARGININE', type: 'L-PEPTIDE LINKING' },
-        { id: 'LYS', name: 'LYSINE', type: 'L-PEPTIDE LINKING' },
-        { id: 'ILE', name: 'ISOLEUCINE', type: 'L-PEPTIDE LINKING' },
-        { id: 'PHE', name: 'PHENYLALANINE', type: 'L-PEPTIDE LINKING' },
-        { id: 'LEU', name: 'LEUCINE', type: 'L-PEPTIDE LINKING' },
-        { id: 'TRP', name: 'TRYPTOPHAN', type: 'L-PEPTIDE LINKING' },
-        { id: 'ALA', name: 'ALANINE', type: 'L-PEPTIDE LINKING' },
-        { id: 'MET', name: 'METHIONINE', type: 'L-PEPTIDE LINKING' },
-        { id: 'CYS', name: 'CYSTEINE', type: 'L-PEPTIDE LINKING' },
-        { id: 'ASN', name: 'ASPARAGINE', type: 'L-PEPTIDE LINKING' },
-        { id: 'VAL', name: 'VALINE', type: 'L-PEPTIDE LINKING' },
-        { id: 'GLY', name: 'GLYCINE', type: 'PEPTIDE LINKING' },
-        { id: 'SER', name: 'SERINE', type: 'L-PEPTIDE LINKING' },
-        { id: 'GLN', name: 'GLUTAMINE', type: 'L-PEPTIDE LINKING' },
-        { id: 'TYR', name: 'TYROSINE', type: 'L-PEPTIDE LINKING' },
-        { id: 'ASP', name: 'ASPARTIC ACID', type: 'L-PEPTIDE LINKING' },
-        { id: 'GLU', name: 'GLUTAMIC ACID', type: 'L-PEPTIDE LINKING' },
-        { id: 'THR', name: 'THREONINE', type: 'L-PEPTIDE LINKING' },
-        { id: 'PRO', name: 'PROLINE', type: 'L-PEPTIDE LINKING' },
-        { id: 'SEC', name: 'SELENOCYSTEINE', type: 'L-PEPTIDE LINKING' },
-        { id: 'PYL', name: 'PYRROLYSINE', type: 'L-PEPTIDE LINKING' },
+        { id: 'HIS', name: 'HISTIDINE', type: 'l-peptide linking' },
+        { id: 'ARG', name: 'ARGININE', type: 'l-peptide linking' },
+        { id: 'LYS', name: 'LYSINE', type: 'l-peptide linking' },
+        { id: 'ILE', name: 'ISOLEUCINE', type: 'l-peptide linking' },
+        { id: 'PHE', name: 'PHENYLALANINE', type: 'l-peptide linking' },
+        { id: 'LEU', name: 'LEUCINE', type: 'l-peptide linking' },
+        { id: 'TRP', name: 'TRYPTOPHAN', type: 'l-peptide linking' },
+        { id: 'ALA', name: 'ALANINE', type: 'l-peptide linking' },
+        { id: 'MET', name: 'METHIONINE', type: 'l-peptide linking' },
+        { id: 'CYS', name: 'CYSTEINE', type: 'l-peptide linking' },
+        { id: 'ASN', name: 'ASPARAGINE', type: 'l-peptide linking' },
+        { id: 'VAL', name: 'VALINE', type: 'l-peptide linking' },
+        { id: 'GLY', name: 'GLYCINE', type: 'peptide linking' },
+        { id: 'SER', name: 'SERINE', type: 'l-peptide linking' },
+        { id: 'GLN', name: 'GLUTAMINE', type: 'l-peptide linking' },
+        { id: 'TYR', name: 'TYROSINE', type: 'l-peptide linking' },
+        { id: 'ASP', name: 'ASPARTIC ACID', type: 'l-peptide linking' },
+        { id: 'GLU', name: 'GLUTAMIC ACID', type: 'l-peptide linking' },
+        { id: 'THR', name: 'THREONINE', type: 'l-peptide linking' },
+        { id: 'PRO', name: 'PROLINE', type: 'l-peptide linking' },
+        { id: 'SEC', name: 'SELENOCYSTEINE', type: 'l-peptide linking' },
+        { id: 'PYL', name: 'PYRROLYSINE', type: 'l-peptide linking' },
 
-        { id: 'MSE', name: 'SELENOMETHIONINE', type: 'L-PEPTIDE LINKING' },
-        { id: 'SEP', name: 'PHOSPHOSERINE', type: 'L-PEPTIDE LINKING' },
-        { id: 'TPO', name: 'PHOSPHOTHREONINE', type: 'L-PEPTIDE LINKING' },
-        { id: 'PTR', name: 'O-PHOSPHOTYROSINE', type: 'L-PEPTIDE LINKING' },
-        { id: 'PCA', name: 'PYROGLUTAMIC ACID', type: 'L-PEPTIDE LINKING' },
+        { id: 'MSE', name: 'SELENOMETHIONINE', type: 'l-peptide linking' },
+        { id: 'SEP', name: 'PHOSPHOSERINE', type: 'l-peptide linking' },
+        { id: 'TPO', name: 'PHOSPHOTHREONINE', type: 'l-peptide linking' },
+        { id: 'PTR', name: 'O-PHOSPHOTYROSINE', type: 'l-peptide linking' },
+        { id: 'PCA', name: 'PYROGLUTAMIC ACID', type: 'l-peptide linking' },
 
-        { id: 'A', name: 'ADENOSINE-5\'-MONOPHOSPHATE', type: 'RNA LINKING' },
-        { id: 'C', name: 'CYTIDINE-5\'-MONOPHOSPHATE', type: 'RNA LINKING' },
-        { id: 'T', name: 'THYMIDINE-5\'-MONOPHOSPHATE', type: 'RNA LINKING' },
-        { id: 'G', name: 'GUANOSINE-5\'-MONOPHOSPHATE', type: 'RNA LINKING' },
-        { id: 'I', name: 'INOSINIC ACID', type: 'RNA LINKING' },
-        { id: 'U', name: 'URIDINE-5\'-MONOPHOSPHATE', type: 'RNA LINKING' },
+        { id: 'A', name: 'ADENOSINE-5\'-MONOPHOSPHATE', type: 'rna linking' },
+        { id: 'C', name: 'CYTIDINE-5\'-MONOPHOSPHATE', type: 'rna linking' },
+        { id: 'T', name: 'THYMIDINE-5\'-MONOPHOSPHATE', type: 'rna linking' },
+        { id: 'G', name: 'GUANOSINE-5\'-MONOPHOSPHATE', type: 'rna linking' },
+        { id: 'I', name: 'INOSINIC ACID', type: 'rna linking' },
+        { id: 'U', name: 'URIDINE-5\'-MONOPHOSPHATE', type: 'rna linking' },
 
-        { id: 'DA', name: '2\'-DEOXYADENOSINE-5\'-MONOPHOSPHATE', type: 'DNA LINKING' },
-        { id: 'DC', name: '2\'-DEOXYCYTIDINE-5\'-MONOPHOSPHATE', type: 'DNA LINKING' },
-        { id: 'DT', name: 'THYMIDINE-5\'-MONOPHOSPHATE', type: 'DNA LINKING' },
-        { id: 'DG', name: '2\'-DEOXYGUANOSINE-5\'-MONOPHOSPHATE', type: 'DNA LINKING' },
-        { id: 'DI', name: '2\'-DEOXYINOSINE-5\'-MONOPHOSPHATE', type: 'DNA LINKING' },
-        { id: 'DU', name: '2\'-DEOXYURIDINE-5\'-MONOPHOSPHATE', type: 'DNA LINKING' },
+        { id: 'DA', name: '2\'-DEOXYADENOSINE-5\'-MONOPHOSPHATE', type: 'dna linking' },
+        { id: 'DC', name: '2\'-DEOXYCYTIDINE-5\'-MONOPHOSPHATE', type: 'dna linking' },
+        { id: 'DT', name: 'THYMIDINE-5\'-MONOPHOSPHATE', type: 'dna linking' },
+        { id: 'DG', name: '2\'-DEOXYGUANOSINE-5\'-MONOPHOSPHATE', type: 'dna linking' },
+        { id: 'DI', name: '2\'-DEOXYINOSINE-5\'-MONOPHOSPHATE', type: 'dna linking' },
+        { id: 'DU', name: '2\'-DEOXYURIDINE-5\'-MONOPHOSPHATE', type: 'dna linking' },
     ];
     components.forEach(c => map.set(c.id, c));
     return map;
@@ -87,12 +87,12 @@ const StandardComponents = (function () {
 const CharmmIonComponents = (function () {
     const map = new Map<string, Component>();
     const components: Component[] = [
-        { id: 'ZN2', name: 'ZINC ION', type: 'ION' },
-        { id: 'SOD', name: 'SODIUM ION', type: 'ION' },
-        { id: 'CES', name: 'CESIUM ION', type: 'ION' },
-        { id: 'CLA', name: 'CHLORIDE ION', type: 'ION' },
-        { id: 'CAL', name: 'CALCIUM ION', type: 'ION' },
-        { id: 'POT', name: 'POTASSIUM ION', type: 'ION' },
+        { id: 'ZN2', name: 'ZINC ION', type: 'ion' },
+        { id: 'SOD', name: 'SODIUM ION', type: 'ion' },
+        { id: 'CES', name: 'CESIUM ION', type: 'ion' },
+        { id: 'CLA', name: 'CHLORIDE ION', type: 'ion' },
+        { id: 'CAL', name: 'CALCIUM ION', type: 'ion' },
+        { id: 'POT', name: 'POTASSIUM ION', type: 'ion' },
     ];
     components.forEach(c => map.set(c.id, c));
     return map;
@@ -111,7 +111,7 @@ export class ComponentBuilder {
         this.ids.push(c.id);
         this.names.push(c.name);
         this.types.push(c.type);
-        this.mon_nstd_flags.push(PolymerNames.has(c.id) ? 'Y' : 'N');
+        this.mon_nstd_flags.push(PolymerNames.has(c.id) ? 'y' : 'n');
     }
 
     private getAtomIds(index: number) {
@@ -138,13 +138,13 @@ export class ComponentBuilder {
 
     private getType(atomIds: Set<string>): Component['type'] {
         if (this.hasAtomIds(atomIds, ProteinAtomIdsList)) {
-            return 'PEPTIDE LINKING';
+            return 'peptide linking';
         } else if (this.hasAtomIds(atomIds, RnaAtomIdsList)) {
-            return 'RNA LINKING';
+            return 'rna linking';
         } else if (this.hasAtomIds(atomIds, DnaAtomIdsList)) {
-            return 'DNA LINKING';
+            return 'dna linking';
         } else {
-            return 'OTHER';
+            return 'other';
         }
     }
 
@@ -156,11 +156,11 @@ export class ComponentBuilder {
             if (StandardComponents.has(compId)) {
                 this.set(StandardComponents.get(compId)!);
             } else if (WaterNames.has(compId)) {
-                this.set({ id: compId, name: 'WATER', type: 'NON-POLYMER' });
+                this.set({ id: compId, name: 'WATER', type: 'non-polymer' });
             } else if (NonPolymerNames.has(compId.toUpperCase())) {
-                this.set({ id: compId, name: this.namesMap.get(compId) || compId, type: 'NON-POLYMER' });
+                this.set({ id: compId, name: this.namesMap.get(compId) || compId, type: 'non-polymer' });
             } else if (SaccharideCompIdMap.has(compId.toUpperCase())) {
-                this.set({ id: compId, name: this.namesMap.get(compId) || compId, type: 'SACCHARIDE' });
+                this.set({ id: compId, name: this.namesMap.get(compId) || compId, type: 'saccharide' });
             } else {
                 const atomIds = this.getAtomIds(index);
                 if (atomIds.size === 1 && CharmmIonComponents.has(compId)) {

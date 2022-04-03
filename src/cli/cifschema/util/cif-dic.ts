@@ -22,8 +22,8 @@ export function getFieldType(type: string, description: string, values?: string[
         case 'uline':
         case 'uchar3':
         case 'uchar1':
-            // only force upper-case for enums
-            return values && values.length ? EnumCol(values.map(x => x.toUpperCase()), 'ustr', description) : StrCol(description);
+            // only force lower-case for enums
+            return values && values.length ? EnumCol(values.map(x => x.toLowerCase()), 'lstr', description) : StrCol(description);
         case 'aliasname':
         case 'name':
         case 'idname':

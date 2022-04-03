@@ -28,6 +28,6 @@ export const mmCIF_chemCompBond_schema = {
 /** Has `type` extended with 'ION' and 'LIPID' */
 export const mmCIF_chemComp_schema = {
     ...mmCIF_Schema.chem_comp,
-    type: Column.Schema.Aliased<mmCIF_Schema['chem_comp']['type']['T'] | 'ION' | 'LIPID'>(Column.Schema.str)
+    type: Column.Schema.Aliased<mmCIF_Schema['chem_comp']['type']['T'] | 'ion' | 'lipid'>(Column.Schema.str)
 };
 export type mmCIF_chemComp_schema = typeof mmCIF_chemComp_schema;

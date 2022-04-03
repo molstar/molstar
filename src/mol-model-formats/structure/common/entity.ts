@@ -11,7 +11,7 @@ import { BasicSchema } from '../basic/schema';
 export type EntityCompound = { chains: string[], description: string }
 
 // TODO add support for `branched`
-type EntityType = 'WATER' | 'POLYMER' | 'NON-POLYMER'
+type EntityType = 'water' | 'polymer' | 'non-polymer'
 
 export class EntityBuilder {
     private count = 0;
@@ -35,7 +35,7 @@ export class EntityBuilder {
     getEntityId(compId: string, moleculeType: MoleculeType, chainId: string, options?: { customName?: string }): string {
         if (moleculeType === MoleculeType.Water) {
             if (this.waterId === undefined) {
-                this.set('WATER', options?.customName || 'Water');
+                this.set('water', options?.customName || 'Water');
                 this.waterId = `${this.count}`;
             }
             return this.waterId;
@@ -44,14 +44,14 @@ export class EntityBuilder {
                 return this.compoundsMap.get(chainId)!;
             } else {
                 if (!this.chainMap.has(chainId)) {
-                    this.set('POLYMER', options?.customName || `Polymer ${this.chainMap.size + 1}`);
+                    this.set('polymer', options?.customName || `Polymer ${this.chainMap.size + 1}`);
                     this.chainMap.set(chainId, `${this.count}`);
                 }
                 return this.chainMap.get(chainId)!;
             }
         } else {
             if (!this.heteroMap.has(compId)) {
-                this.set('NON-POLYMER', options?.customName || this.namesMap.get(compId) || compId);
+                this.set('non-polymer', options?.customName || this.namesMap.get(compId) || compId);
                 this.heteroMap.set(compId, `${this.count}`);
             }
             return this.heteroMap.get(compId)!;
@@ -69,7 +69,7 @@ export class EntityBuilder {
     setCompounds(compounds: EntityCompound[]) {
         for (let i = 0, il = compounds.length; i < il; ++i) {
             const { chains, description } = compounds[i];
-            this.set('POLYMER', description);
+            this.set('polymer', description);
             for (let j = 0, jl = chains.length; j < jl; ++j) {
                 this.compoundsMap.set(chains[j], `${this.count}`);
             }

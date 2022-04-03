@@ -303,7 +303,7 @@ export namespace Model {
         if (!MmcifFormat.is(model.sourceData)) return false;
         const { db } = model.sourceData.data;
         for (let i = 0, il = db.database_2.database_id.rowCount; i < il; ++i) {
-            if (db.database_2.database_id.value(i) === 'PDB') return true;
+            if (db.database_2.database_id.value(i) === 'pdb') return true;
         }
         return false;
     }
