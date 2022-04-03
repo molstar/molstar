@@ -10,7 +10,7 @@ import { PurePluginUIComponent } from '../base';
 import { ParameterControls, ParamOnChange } from '../controls/parameters';
 import { PluginContext } from '../../mol-plugin/context';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
-import { Subject } from 'rxjs';
+import { BehaviorSubject, skip } from 'rxjs';
 import { Icon, RefreshSvg, CheckSvg, ArrowRightSvg, ArrowDropDownSvg, TuneSvg } from '../controls/icons';
 import { ExpandGroup, ToggleButton, Button, IconButton } from '../controls/common';
 
@@ -124,7 +124,7 @@ abstract class TransformControlBase<P, S extends TransformControlBase.ComponentS
     abstract getSourceAndTarget(): { a?: StateObject, b?: StateObject, bCell?: StateObjectCell };
     abstract state: S;
 
-    private busy: Subject<boolean> = new Subject();
+    private busy = new BehaviorSubject(false);
 
     private onEnter = () => {
         if (this.state.error) return;
@@ -167,11 +167,11 @@ abstract class TransformControlBase<P, S extends TransformControlBase.ComponentS
     };
 
     componentDidMount() {
-        this.subscribe(this.plugin.behaviors.state.isBusy, b => {
-            if (this.state.busy !== b) this.busy.next(b);
+        this.subscribe(this.plugin.behaviors.state.isBusy, busy => {
+            if (this.busy.value !== busy) this.busy.next(busy);
         });
-        this.subscribe(this.busy, busy => {
-            if (this.state.busy !== busy) this.setState({ busy });
+        this.subscribe(this.busy.pipe(skip(1)), busy => {
+            this.setState({ busy });
         });
     }
 
