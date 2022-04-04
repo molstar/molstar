@@ -53,8 +53,8 @@ export class MolEncoder extends LigandEncoder {
                 const atom2 = atoms.get(label_atom_id2);
                 if (!atom2) return;
 
-                const { index: i2, type_symbol: type_symbol2 } = atom2;
-                if (i1 < i2 && !this.skipHydrogen(type_symbol2)) {
+                const { index: i2 } = atom2;
+                if (i1 < i2) {
                     const { order } = bond;
                     StringBuilder.writeIntegerPadLeft(bonds, i1 + 1, 3);
                     StringBuilder.writeIntegerPadLeft(bonds, i2 + 1, 3);

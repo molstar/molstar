@@ -42,8 +42,8 @@ export class Mol2Encoder extends LigandEncoder {
                     const atom2 = atoms.get(label_atom_id2);
                     if (!atom2) return;
 
-                    const { index: i2, type_symbol: type_symbol2 } = atom2;
-                    if (i1 < i2 && !this.skipHydrogen(type_symbol2)) {
+                    const { index: i2 } = atom2;
+                    if (i1 < i2) {
                         const { order, flags } = bond;
                         const ar = BondType.is(BondType.Flag.Aromatic, flags);
                         StringBuilder.writeSafe(b, `${++bondCount} ${i1 + 1} ${i2 + 1} ${ar ? 'ar' : order}`);
