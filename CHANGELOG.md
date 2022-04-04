@@ -6,6 +6,7 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- ModelServer ligand queries: fixes for alternate locations, additional atoms & UNL ligand
 
 ## [v3.6.1] - 2022-04-03
 
