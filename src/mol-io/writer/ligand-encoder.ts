@@ -137,6 +137,10 @@ export abstract class LigandEncoder implements Encoder<string> {
         if (this.hydrogens) {
             return false;
         }
+        return this.isHydrogen(type_symbol);
+    }
+
+    protected isHydrogen(type_symbol: string & { '@type': 'element-symbol' }) {
         return isHydrogen(getElementIdx(type_symbol));
     }
 

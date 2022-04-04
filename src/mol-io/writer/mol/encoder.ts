@@ -35,8 +35,18 @@ export class MolEncoder extends LigandEncoder {
         // traverse once to determine all actually present atoms
         const atoms = this.getAtoms(instance, source);
         atoms.forEach((atom1, label_atom_id1) => {
-            const { index: i1 } = atom1;
-            const { charge, stereo_config } = atomMap.map.get(label_atom_id1)!;
+            const { index: i1, type_symbol: type_symbol1 } = atom1;
+            const atomMapData1 = atomMap.map.get(label_atom_id1);
+
+            if (!atomMapData1) {
+                if (this.isHydrogen(type_symbol1)) {
+                    return;
+                } else {
+                    throw Error(`Unknown atom ${label_atom_id1} for component ${name}`);
+                }
+            }
+
+            const { charge, stereo_config } = atomMapData1;
             StringBuilder.writePadLeft(ctab, atom1.Cartn_x.toFixed(4), 10);
             StringBuilder.writePadLeft(ctab, atom1.Cartn_y.toFixed(4), 10);
             StringBuilder.writePadLeft(ctab, atom1.Cartn_z.toFixed(4), 10);
