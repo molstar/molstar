@@ -136,7 +136,7 @@ export abstract class LigandEncoder implements Encoder<string> {
         if (this.hydrogens) {
             return false;
         }
-        return type_symbol === 'H';
+        return type_symbol === 'H' || type_symbol === 'D';
     }
 
     private getSortedFields<Ctx>(instance: Category.Instance<Ctx>, names: string[]) {
