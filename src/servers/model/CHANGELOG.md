@@ -1,3 +1,9 @@
+# 0.9.9
+* /ligand queries: fix behavior for alternate locations
+* /ligand queries: handle additional atoms more gracefully
+* /ligand queries: better error message for UNL
+* /ligand queries: treat deuterium/tritium as hydrogen
+
 # 0.9.8
 * fix support for chem_comp_bond and struct_conn categories
 
