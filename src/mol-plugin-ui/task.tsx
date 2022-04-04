@@ -4,32 +4,39 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { PluginUIComponent } from './base';
+import { PluginReactContext, PluginUIComponent } from './base';
 import { OrderedMap } from 'immutable';
 import { TaskManager } from '../mol-plugin/util/task-manager';
-import { filter } from 'rxjs/operators';
 import { Progress } from '../mol-task';
 import { IconButton } from './controls/common';
 import { CancelSvg } from './controls/icons';
+import { useContext, useEffect, useState } from 'react';
 
-export class BackgroundTaskProgress extends PluginUIComponent<{ }, { tracked: OrderedMap<number, TaskManager.ProgressEvent> }> {
-    componentDidMount() {
-        const hideOverlay = !!this.plugin.spec.components?.hideTaskOverlay;
-        this.subscribe(this.plugin.events.task.progress.pipe(filter(e => e.level === 'background' && (hideOverlay || !e.useOverlay))), e => {
-            this.setState({ tracked: this.state.tracked.set(e.id, e) });
+export function BackgroundTaskProgress() {
+    const plugin = useContext(PluginReactContext);
+    const [tracked, setTracked] = useState<OrderedMap<number, TaskManager.ProgressEvent>>(OrderedMap());
+
+    useEffect(() => {
+        const started = plugin.events.task.progress.subscribe(e => {
+            const hideOverlay = !!plugin.spec.components?.hideTaskOverlay;
+            if (e.level === 'background' && (hideOverlay || !e.useOverlay)) {
+                setTracked(tracked => tracked.set(e.id, e));
+            }
         });
-        this.subscribe(this.plugin.events.task.finished, ({ id }) => {
-            this.setState({ tracked: this.state.tracked.delete(id) });
+
+        const finished = plugin.events.task.finished.subscribe(({ id }) => {
+            setTracked(tracked => tracked.delete(id));
         });
-    }
 
-    state = { tracked: OrderedMap<number, TaskManager.ProgressEvent>() };
+        return () => {
+            started.unsubscribe();
+            finished.unsubscribe();
+        };
+    }, [plugin]);
 
-    render() {
-        return <div className='msp-background-tasks'>
-            {this.state.tracked.valueSeq().map(e => <ProgressEntry key={e!.id} event={e!} />)}
-        </div>;
-    }
+    return <div className='msp-background-tasks'>
+        {tracked.valueSeq().map(e => <ProgressEntry key={e!.id} event={e!} />)}
+    </div>;
 }
 
 class ProgressEntry extends PluginUIComponent<{ event: TaskManager.ProgressEvent }> {
@@ -65,23 +72,30 @@ function countSubtasks(progress: Progress.Node) {
     return sum;
 }
 
-export class OverlayTaskProgress extends PluginUIComponent<{ }, { tracked: OrderedMap<number, TaskManager.ProgressEvent> }> {
-    componentDidMount() {
-        this.subscribe(this.plugin.events.task.progress.pipe(filter(e => !!e.useOverlay)), e => {
-            this.setState({ tracked: this.state.tracked.set(e.id, e) });
+export function OverlayTaskProgress() {
+    const plugin = useContext(PluginReactContext);
+    const [tracked, setTracked] = useState<OrderedMap<number, TaskManager.ProgressEvent>>(OrderedMap());
+
+    useEffect(() => {
+        const started = plugin.events.task.progress.subscribe(e => {
+            if (!!e.useOverlay) {
+                setTracked(tracked => tracked.set(e.id, e));
+            }
         });
-        this.subscribe(this.plugin.events.task.finished, ({ id }) => {
-            this.setState({ tracked: this.state.tracked.delete(id) });
+
+        const finished = plugin.events.task.finished.subscribe(({ id }) => {
+            setTracked(tracked => tracked.delete(id));
         });
-    }
 
-    state = { tracked: OrderedMap<number, TaskManager.ProgressEvent>() };
+        return () => {
+            started.unsubscribe();
+            finished.unsubscribe();
+        };
+    }, [plugin]);
 
-    render() {
-        if (this.state.tracked.size === 0) return null;
+    if (tracked.size === 0) return null;
 
-        return <div className='msp-overlay-tasks'>
-            {this.state.tracked.valueSeq().map(e => <ProgressEntry key={e!.id} event={e!} />)}
-        </div>;
-    }
+    return <div className='msp-overlay-tasks'>
+        {tracked.valueSeq().map(e => <ProgressEntry key={e!.id} event={e!} />)}
+    </div>;
 }

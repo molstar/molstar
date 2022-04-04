@@ -23,19 +23,19 @@ const HelixTypes: {[k: string]: mmCIF_Schema['struct_conf']['conf_type_id']['T']
     // Left-handed gamma                           8
     // 2 - 7 ribbon/helix                          9
     // Polyproline                                10
-    1: 'HELX_RH_AL_P',
-    2: 'HELX_RH_OM_P',
-    3: 'HELX_RH_PI_P',
-    4: 'HELX_RH_GA_P',
-    5: 'HELX_RH_3T_P',
-    6: 'HELX_LH_AL_P',
-    7: 'HELX_LH_OM_P',
-    8: 'HELX_LH_GA_P',
-    9: 'HELX_RH_27_P', // TODO or left-handed???
-    10: 'HELX_RH_PP_P', // TODO or left-handed???
+    1: 'helx_rh_al_p',
+    2: 'helx_rh_om_p',
+    3: 'helx_rh_pi_p',
+    4: 'helx_rh_ga_p',
+    5: 'helx_rh_3t_p',
+    6: 'helx_lh_al_p',
+    7: 'helx_lh_om_p',
+    8: 'helx_lh_ga_p',
+    9: 'helx_rh_27_p', // TODO or left-handed???
+    10: 'helx_rh_pp_p', // TODO or left-handed???
 };
 function getStructConfTypeId(type: string): mmCIF_Schema['struct_conf']['conf_type_id']['T'] {
-    return HelixTypes[type] || 'HELX_P';
+    return HelixTypes[type] || 'helx_p';
 }
 
 interface PdbHelix {

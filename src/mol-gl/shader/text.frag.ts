@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -33,7 +33,6 @@ void main(){
     #include clip_pixel
 
     float fragmentDepth = gl_FragCoord.z;
-    bool interior = false;
     #include assign_material_color
 
     if (vTexCoord.x > 1.0) {

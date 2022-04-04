@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Áron Samuel Kovács <aron.kovacs@mail.muni.cz>
@@ -13,7 +13,7 @@ export const wboit_write = `
         }
     } else if (uRenderWboit) {
         // the 'fragmentDepth > 0.99' check is to handle precision issues with packed depth
-        if (preFogAlpha != 1.0 && !interior && (fragmentDepth < getDepth(gl_FragCoord.xy / uDrawingBufferSize) || fragmentDepth > 0.99)) {
+        if (preFogAlpha != 1.0 && (fragmentDepth < getDepth(gl_FragCoord.xy / uDrawingBufferSize) || fragmentDepth > 0.99)) {
             float alpha = gl_FragColor.a;
             float wboitWeight = alpha * clamp(pow(1.0 - fragmentDepth, 2.0), 0.01, 1.0);
             gl_FragColor = vec4(gl_FragColor.rgb * alpha * wboitWeight, alpha);

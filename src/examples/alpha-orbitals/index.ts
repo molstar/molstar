@@ -11,7 +11,7 @@ import { SphericalBasisOrder } from '../../extensions/alpha-orbitals/spherical-f
 import { BasisAndOrbitals, CreateOrbitalDensityVolume, CreateOrbitalRepresentation3D, CreateOrbitalVolume, StaticBasisAndOrbitals } from '../../extensions/alpha-orbitals/transforms';
 import { canComputeGrid3dOnGPU } from '../../mol-gl/compute/grid3d';
 import { PluginStateObject } from '../../mol-plugin-state/objects';
-import { createPluginUI } from '../../mol-plugin-ui';
+import { createPluginUI } from '../../mol-plugin-ui/react18';
 import { PluginUIContext } from '../../mol-plugin-ui/context';
 import { DefaultPluginUISpec } from '../../mol-plugin-ui/spec';
 import { PluginCommands } from '../../mol-plugin/commands';
@@ -80,20 +80,24 @@ export class AlphaOrbitalsExample {
 
         this.plugin.managers.interactivity.setProps({ granularity: 'element' });
 
-        if (!canComputeGrid3dOnGPU(this.plugin.canvas3d?.webgl)) {
-            PluginCommands.Toast.Show(this.plugin, {
-                title: 'Error',
-                message: `Browser/device does not support required WebGL extension (OES_texture_float).`
+        this.plugin.behaviors.canvas3d.initialized.subscribe(init => {
+            if (!init) return;
+
+            if (!canComputeGrid3dOnGPU(this.plugin.canvas3d?.webgl)) {
+                PluginCommands.Toast.Show(this.plugin, {
+                    title: 'Error',
+                    message: `Browser/device does not support required WebGL extension (OES_texture_float).`
+                });
+                return;
+            }
+
+            this.load({
+                moleculeSdf: DemoMoleculeSDF,
+                ...DemoOrbitals
             });
-            return;
-        }
 
-        this.load({
-            moleculeSdf: DemoMoleculeSDF,
-            ...DemoOrbitals
+            mountControls(this, document.getElementById('controls')!);
         });
-
-        mountControls(this, document.getElementById('controls')!);
     }
 
     readonly params = new BehaviorSubject<ParamDefinition.For<Params>>({} as any);

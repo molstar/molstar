@@ -80,7 +80,6 @@ export async function getContourLevelEmdb(plugin: PluginContext, taskCtx: Runtim
         }
     }
     const contourLevel = parseFloat(primaryContour.getElementsByTagName('level')[0].textContent!);
-
     return contourLevel;
 }
 

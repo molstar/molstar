@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -99,7 +99,6 @@ void main() {
     if (imageData.a > 0.9) imageData.a = 1.0;
 
     float fragmentDepth = gl_FragCoord.z;
-    bool interior = false;
 
     #if defined(dRenderVariant_pick)
         if (imageData.a < 0.3)

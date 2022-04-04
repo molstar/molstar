@@ -72,12 +72,7 @@ uniform float uPickingAlphaThreshold;
 uniform bool uTransparentBackground;
 uniform float uXrayEdgeFalloff;
 
-uniform float uInteriorDarkening;
-uniform bool uInteriorColorFlag;
-uniform vec3 uInteriorColor;
-
 uniform bool uRenderWboit;
-uniform bool uDoubleSided;
 
 uniform float uNear;
 uniform float uFar;
@@ -357,7 +352,6 @@ void main() {
 
     float fragmentDepth = calcDepth((uModelView * vec4(start, 1.0)).xyz);
     float preFogAlpha = clamp(preFogAlphaBlended, 0.0, 1.0);
-    bool interior = false;
     #include wboit_write
 }
 `;

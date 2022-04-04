@@ -73,7 +73,7 @@ export namespace ComponentBond {
             const nameA = atom_id_1.value(i)!;
             const nameB = atom_id_2.value(i)!;
             const order = value_order.value(i)!;
-            const aromatic = pdbx_aromatic_flag.value(i) === 'Y';
+            const aromatic = pdbx_aromatic_flag.value(i) === 'y';
 
             if (entry.id !== id) {
                 entry = addEntry(id);
