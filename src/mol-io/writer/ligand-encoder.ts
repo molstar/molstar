@@ -9,12 +9,14 @@ import { Writer } from './writer';
 import { Encoder, Category, Field } from './cif/encoder';
 import { ComponentAtom } from '../../mol-model-formats/structure/property/atoms/chem_comp';
 import { ComponentBond } from '../../mol-model-formats/structure/property/bonds/chem_comp';
+import { getElementIdx, isHydrogen } from '../../mol-model/structure/structure/unit/bonds/common';
+import { ElementSymbol } from '../../mol-model/structure/model/types';
 
 interface Atom {
     Cartn_x: number,
     Cartn_y: number,
     Cartn_z: number,
-    type_symbol: string,
+    type_symbol: ElementSymbol,
     index: number
 }
 
@@ -109,11 +111,12 @@ export abstract class LigandEncoder implements Encoder<string> {
                 const key = it.move();
 
                 const lai = label_atom_id.value(key, data, index) as string;
-                const ts = type_symbol.value(key, data, index) as string;
-                if (this.skipHydrogen(ts)) {
-                    index++;
-                    continue;
-                }
+                // ignore all alternate locations after the first
+                if (atoms.has(lai)) continue;
+
+                const ts = type_symbol.value(key, data, index) as ElementSymbol;
+                if (this.skipHydrogen(ts)) continue;
+
                 const a: { [k: string]: (string | number) } = {};
 
                 for (let _f = 0, _fl = fields.length; _f < _fl; _f++) {
@@ -131,11 +134,15 @@ export abstract class LigandEncoder implements Encoder<string> {
         return atoms;
     }
 
-    protected skipHydrogen(type_symbol: string) {
+    protected skipHydrogen(type_symbol: ElementSymbol) {
         if (this.hydrogens) {
             return false;
         }
-        return type_symbol === 'H';
+        return this.isHydrogen(type_symbol);
+    }
+
+    protected isHydrogen(type_symbol: ElementSymbol) {
+        return isHydrogen(getElementIdx(type_symbol));
     }
 
     private getSortedFields<Ctx>(instance: Category.Instance<Ctx>, names: string[]) {

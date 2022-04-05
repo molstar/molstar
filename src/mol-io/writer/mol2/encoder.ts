@@ -29,21 +29,34 @@ export class Mol2Encoder extends LigandEncoder {
         const name = this.getName(instance, source);
         StringBuilder.writeSafe(this.builder, `# Name: ${name}\n# Created by ${this.encoder}\n\n`);
 
+        const atomMap = this.componentAtomData.entries.get(name)!;
         const bondMap = this.componentBondData.entries.get(name)!;
+        // happens for the unknown ligands (UNL)
+        if (!atomMap) throw Error(`The Chemical Component Dictionary doesn't hold any atom data for ${name}`);
         let bondCount = 0;
 
         const atoms = this.getAtoms(instance, source);
         StringBuilder.writeSafe(a, '@<TRIPOS>ATOM\n');
         StringBuilder.writeSafe(b, '@<TRIPOS>BOND\n');
         atoms.forEach((atom1, label_atom_id1) => {
-            const { index: i1 } = atom1;
+            const { index: i1, type_symbol: type_symbol1 } = atom1;
+            const atomMapData1 = atomMap.map.get(label_atom_id1);
+
+            if (!atomMapData1) {
+                if (this.isHydrogen(type_symbol1)) {
+                    return;
+                } else {
+                    throw Error(`Unknown atom ${label_atom_id1} for component ${name}`);
+                }
+            }
+
             if (bondMap?.map) {
                 bondMap.map.get(label_atom_id1)!.forEach((bond, label_atom_id2) => {
                     const atom2 = atoms.get(label_atom_id2);
                     if (!atom2) return;
 
-                    const { index: i2, type_symbol: type_symbol2 } = atom2;
-                    if (i1 < i2 && !this.skipHydrogen(type_symbol2)) {
+                    const { index: i2 } = atom2;
+                    if (i1 < i2) {
                         const { order, flags } = bond;
                         const ar = BondType.is(BondType.Flag.Aromatic, flags);
                         StringBuilder.writeSafe(b, `${++bondCount} ${i1 + 1} ${i2 + 1} ${ar ? 'ar' : order}`);
@@ -52,7 +65,7 @@ export class Mol2Encoder extends LigandEncoder {
                 });
             }
 
-            const sybyl = bondMap?.map ? this.mapToSybyl(label_atom_id1, atom1.type_symbol, bondMap) : atom1.type_symbol;
+            const sybyl = bondMap?.map ? this.mapToSybyl(label_atom_id1, type_symbol1, bondMap) : type_symbol1;
             StringBuilder.writeSafe(a, `${i1 + 1} ${label_atom_id1} ${atom1.Cartn_x.toFixed(3)} ${atom1.Cartn_y.toFixed(3)} ${atom1.Cartn_z.toFixed(3)} ${sybyl} 1 ${name} 0.000\n`);
         });
 
