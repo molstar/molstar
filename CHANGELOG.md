@@ -6,6 +6,8 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+## [v3.6.2] - 2022-04-05
+
 - ModelServer ligand queries: fixes for alternate locations, additional atoms & UNL ligand
 - React 18 friendly ``useBehavior`` hook.
 
