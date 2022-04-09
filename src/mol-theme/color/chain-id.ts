@@ -12,6 +12,7 @@ import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { ThemeDataContext } from '../../mol-theme/theme';
 import { getPaletteParams, getPalette } from '../../mol-util/color/palette';
 import { TableLegend, ScaleLegend } from '../../mol-util/legend';
+import { ColorTypeLocation } from '../../mol-geo/geometry/color-data';
 
 const DefaultList = 'many-distinct';
 const DefaultColor = Color(0xFAFAFA);
@@ -75,7 +76,7 @@ function getAsymIdSerialMap(structure: Structure, type: AsymIdType) {
     return map;
 }
 
-export function ChainIdColorTheme(ctx: ThemeDataContext, props: PD.Values<ChainIdColorThemeParams>): ColorTheme<ChainIdColorThemeParams> {
+export function ChainIdColorTheme(ctx: ThemeDataContext, props: PD.Values<ChainIdColorThemeParams>): ColorTheme<ChainIdColorThemeParams, ColorTypeLocation> {
     let color: LocationColor;
     let legend: ScaleLegend | TableLegend | undefined;
 

@@ -10,6 +10,7 @@ import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { ThemeDataContext } from '../theme';
 import { TableLegend } from '../../mol-util/legend';
 import { defaults } from '../../mol-util';
+import { ColorTypeLocation } from '../../mol-geo/geometry/color-data';
 
 const DefaultColor = Color(0xCCCCCC);
 const Description = 'Gives everything the same, uniform color.';
@@ -22,7 +23,7 @@ export function getUniformColorThemeParams(ctx: ThemeDataContext) {
     return UniformColorThemeParams; // TODO return copy
 }
 
-export function UniformColorTheme(ctx: ThemeDataContext, props: PD.Values<UniformColorThemeParams>): ColorTheme<UniformColorThemeParams> {
+export function UniformColorTheme(ctx: ThemeDataContext, props: PD.Values<UniformColorThemeParams>): ColorTheme<UniformColorThemeParams, ColorTypeLocation> {
     const color = defaults(props.value, DefaultColor);
 
     return {

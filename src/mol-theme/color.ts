@@ -6,7 +6,7 @@
 
 import { Color } from '../mol-util/color';
 import { Location } from '../mol-model/location';
-import { ColorType } from '../mol-geo/geometry/color-data';
+import { ColorType, ColorTypeDirect, ColorTypeGrid, ColorTypeLocation } from '../mol-geo/geometry/color-data';
 import { CarbohydrateSymbolColorThemeProvider } from './color/carbohydrate-symbol';
 import { UniformColorThemeProvider } from './color/uniform';
 import { deepEqual } from '../mol-util';
@@ -48,12 +48,10 @@ export interface ColorVolume {
 }
 
 export { ColorTheme };
-interface ColorTheme<P extends PD.Params> {
+
+type ColorThemeShared<P extends PD.Params> = {
     readonly factory: ColorTheme.Factory<P>
-    readonly granularity: ColorType
-    readonly color: LocationColor
     readonly props: Readonly<PD.Values<P>>
-    readonly grid?: ColorVolume
     /**
      * if palette is defined, 24bit RGB color value normalized to interval [0, 1]
      * is used as index to the colors
@@ -64,6 +62,26 @@ interface ColorTheme<P extends PD.Params> {
     readonly description?: string
     readonly legend?: Readonly<ScaleLegend | TableLegend>
 }
+
+type ColorThemeLocation<P extends PD.Params> = {
+    readonly granularity: ColorTypeLocation
+    readonly color: LocationColor
+} & ColorThemeShared<P>
+
+type ColorThemeGrid<P extends PD.Params> = {
+    readonly granularity: ColorTypeGrid
+    readonly grid: ColorVolume
+} & ColorThemeShared<P>
+
+type ColorThemeDirect<P extends PD.Params> = {
+    readonly granularity: ColorTypeDirect
+} & ColorThemeShared<P>
+
+type ColorTheme<P extends PD.Params, G extends ColorType = any> =
+    G extends ColorTypeLocation ? ColorThemeLocation<P> :
+        G extends ColorTypeGrid ? ColorThemeGrid<P> :
+            G extends ColorTypeDirect ? ColorThemeDirect<P> : never
+
 namespace ColorTheme {
     export const enum Category {
         Atom = 'Atom Property',

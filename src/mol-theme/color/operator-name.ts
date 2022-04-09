@@ -12,6 +12,7 @@ import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { ThemeDataContext } from '../theme';
 import { getPaletteParams, getPalette } from '../../mol-util/color/palette';
 import { ScaleLegend, TableLegend } from '../../mol-util/legend';
+import { ColorTypeLocation } from '../../mol-geo/geometry/color-data';
 
 const DefaultList = 'many-distinct';
 const DefaultColor = Color(0xCCCCCC);
@@ -35,7 +36,7 @@ function getOperatorNameSerialMap(structure: Structure) {
     return map;
 }
 
-export function OperatorNameColorTheme(ctx: ThemeDataContext, props: PD.Values<OperatorNameColorThemeParams>): ColorTheme<OperatorNameColorThemeParams> {
+export function OperatorNameColorTheme(ctx: ThemeDataContext, props: PD.Values<OperatorNameColorThemeParams>): ColorTheme<OperatorNameColorThemeParams, ColorTypeLocation> {
     let color: LocationColor;
     let legend: ScaleLegend | TableLegend | undefined;
 
