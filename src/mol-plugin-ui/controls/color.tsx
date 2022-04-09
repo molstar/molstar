@@ -92,7 +92,7 @@ export class CombinedColorControl extends React.PureComponent<ParamProps<PD.Colo
     }
 }
 
-let _colors: React.ReactFragment | undefined = void 0;
+let _colors: any = void 0;
 export function ColorOptions() {
     if (_colors) return _colors;
     _colors = <>{DefaultColorSwatch.map(v =>

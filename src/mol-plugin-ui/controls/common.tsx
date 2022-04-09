@@ -21,7 +21,8 @@ export class ControlGroup extends React.Component<{
     onHeaderClick?: () => void,
     noTopMargin?: boolean,
     childrenClassName?: string,
-    maxHeight?: string
+    maxHeight?: string,
+    children?: any
 }, { isExpanded: boolean }> {
     state = { isExpanded: !!this.props.initialExpanded };
 
@@ -335,7 +336,7 @@ export class ToggleButton extends React.PureComponent<ToggleButtonProps> {
     }
 }
 
-export class ExpandGroup extends React.PureComponent<{ header: string, headerStyle?: React.CSSProperties, initiallyExpanded?: boolean, accent?: boolean, noOffset?: boolean, marginTop?: 0 | string, headerLeftMargin?: string }, { isExpanded: boolean }> {
+export class ExpandGroup extends React.PureComponent<{ children?: any, header: string, headerStyle?: React.CSSProperties, initiallyExpanded?: boolean, accent?: boolean, noOffset?: boolean, marginTop?: 0 | string, headerLeftMargin?: string }, { isExpanded: boolean }> {
     state = { isExpanded: !!this.props.initiallyExpanded };
 
     toggleExpanded = () => this.setState({ isExpanded: !this.state.isExpanded });
