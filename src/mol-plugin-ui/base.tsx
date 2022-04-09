@@ -13,7 +13,7 @@ import { Icon, ArrowRightSvg, ArrowDropDownSvg } from './controls/icons';
 
 export const PluginReactContext = React.createContext(void 0 as any as PluginUIContext);
 
-export abstract class PluginUIComponent<P = {}, S = {}, SS = {}> extends React.Component<P, S, SS> {
+export abstract class PluginUIComponent<P = {}, S = {}, SS = {}> extends React.Component<P & { children?: any }, S, SS> {
     static contextType = PluginReactContext;
     readonly plugin: PluginUIContext;
 
