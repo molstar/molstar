@@ -19,6 +19,8 @@ uniform float uBumpiness;
         uniform vec3 uColorGridDim;
         uniform vec4 uColorGridTransform;
         uniform sampler2D tColorGrid;
+    #elif defined(dColorType_direct)
+        varying vec4 vColor;
     #endif
 
     #ifdef dUsePalette

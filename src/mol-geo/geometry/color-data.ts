@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -11,7 +11,7 @@ import { Color } from '../../mol-util/color';
 import { Vec2, Vec3, Vec4 } from '../../mol-math/linear-algebra';
 import { LocationIterator } from '../util/location-iterator';
 import { NullLocation } from '../../mol-model/location';
-import { LocationColor, ColorTheme } from '../../mol-theme/color';
+import { LocationColor, ColorTheme, ColorVolume } from '../../mol-theme/color';
 import { Geometry } from './geometry';
 import { createNullTexture, Texture } from '../../mol-gl/webgl/texture';
 
@@ -48,8 +48,18 @@ function _createColors(locationIt: LocationIterator, positionIt: LocationIterato
         case 'groupInstance': return createGroupInstanceColor(locationIt, colorTheme.color, colorData);
         case 'vertex': return createVertexColor(positionIt, colorTheme.color, colorData);
         case 'vertexInstance': return createVertexInstanceColor(positionIt, colorTheme.color, colorData);
-        case 'volume': return createGridColor((colorTheme as any).grid, 'volume', colorData);
-        case 'volumeInstance': return createGridColor((colorTheme as any).grid, 'volumeInstance', colorData);
+        case 'volume':
+            if (colorTheme.grid) {
+                return createGridColor(colorTheme.grid, 'volume', colorData);
+            } else {
+                throw new Error('Grid missing for "volume" color theme');
+            }
+        case 'volumeInstance':
+            if (colorTheme.grid) {
+                return createGridColor(colorTheme.grid, 'volumeInstance', colorData);
+            } else {
+                throw new Error('Grid missing for "volume" color theme');
+            }
         case 'direct': return createDirectColor(colorData);
     }
 }
@@ -206,12 +216,6 @@ function createVertexInstanceColor(locationIt: LocationIterator, color: Location
 }
 
 //
-
-interface ColorVolume {
-    colors: Texture
-    dimension: Vec3
-    transform: Vec4
-}
 
 export function createGridColor(grid: ColorVolume, type: ColorType, colorData?: ColorData): ColorData {
     const { colors, dimension, transform } = grid;

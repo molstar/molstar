@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -35,10 +35,17 @@ import { OperatorHklColorThemeProvider } from './color/operator-hkl';
 import { PartialChargeColorThemeProvider } from './color/partial-charge';
 import { AtomIdColorThemeProvider } from './color/atom-id';
 import { EntityIdColorThemeProvider } from './color/entity-id';
-import { TextureFilter } from '../mol-gl/webgl/texture';
+import { Texture, TextureFilter } from '../mol-gl/webgl/texture';
 import { VolumeValueColorThemeProvider } from './color/volume-value';
+import { Vec3, Vec4 } from '../mol-math/linear-algebra';
 
 export type LocationColor = (location: Location, isSecondary: boolean) => Color
+
+export interface ColorVolume {
+    colors: Texture
+    dimension: Vec3
+    transform: Vec4
+}
 
 export { ColorTheme };
 interface ColorTheme<P extends PD.Params> {
@@ -46,6 +53,7 @@ interface ColorTheme<P extends PD.Params> {
     readonly granularity: ColorType
     readonly color: LocationColor
     readonly props: Readonly<PD.Values<P>>
+    readonly grid?: ColorVolume
     /**
      * if palette is defined, 24bit RGB color value normalized to interval [0, 1]
      * is used as index to the colors
