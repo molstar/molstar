@@ -24,6 +24,7 @@ import { Vec2, Vec4 } from '../../../mol-math/linear-algebra';
 import { createEmptyClipping } from '../clipping-data';
 import { NullLocation } from '../../../mol-model/location';
 import { createEmptySubstance } from '../substance-data';
+import { RenderableState } from '../../../mol-gl/renderable';
 
 export interface TextureMesh {
     readonly kind: 'texture-mesh',
@@ -126,8 +127,8 @@ export namespace TextureMesh {
         createValuesSimple,
         updateValues,
         updateBoundingSphere,
-        createRenderableState: BaseGeometry.createRenderableState,
-        updateRenderableState: BaseGeometry.updateRenderableState,
+        createRenderableState,
+        updateRenderableState,
         createPositionIterator: () => LocationIterator(1, 1, 1, () => NullLocation)
     };
 
@@ -208,5 +209,17 @@ export namespace TextureMesh {
             ValueCell.update(values.invariantBoundingSphere, invariantBoundingSphere);
             ValueCell.update(values.uInvariantBoundingSphere, Vec4.fromSphere(values.uInvariantBoundingSphere.ref.value, invariantBoundingSphere));
         }
+    }
+
+    function createRenderableState(props: PD.Values<Params>): RenderableState {
+        const state = BaseGeometry.createRenderableState(props);
+        updateRenderableState(state, props);
+        return state;
+    }
+
+    function updateRenderableState(state: RenderableState, props: PD.Values<Params>) {
+        BaseGeometry.updateRenderableState(state, props);
+        state.opaque = state.opaque && !props.xrayShaded;
+        state.writeDepth = state.opaque;
     }
 }
