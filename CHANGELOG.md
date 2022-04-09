@@ -7,6 +7,10 @@ Note that since we don't clearly distinguish between a public and private interf
 ## [Unreleased]
 
 - Fix ``xrayShaded`` for texture-mesh geometries
+- [Breaking] Change ``allowTransparentBackfaces`` to ``transparentBackfaces`` with options ``off``, ``on``, ``opaque``. This was only added in 3.6.0, so allowing a breaking change here.
+    - ``off``: don't show (default)
+    - ``on``: show with transparency
+    - ``opaque``: show fully opaque
 
 ## [v3.6.2] - 2022-04-05
 

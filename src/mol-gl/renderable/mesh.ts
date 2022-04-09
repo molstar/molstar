@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -22,6 +22,7 @@ export const MeshSchema = {
     dFlipSided: DefineSpec('boolean'),
     dIgnoreLight: DefineSpec('boolean'),
     dXrayShaded: DefineSpec('boolean'),
+    dOpaqueBackfaces: DefineSpec('boolean'),
     uBumpFrequency: UniformSpec('f'),
     uBumpAmplitude: UniformSpec('f'),
     meta: ValueSpec('unknown')

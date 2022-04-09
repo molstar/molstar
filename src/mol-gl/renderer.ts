@@ -135,6 +135,12 @@ function getLight(props: RendererProps['light'], light?: Light): Light {
 }
 
 namespace Renderer {
+    const enum Flag {
+        None = 0,
+        BlendedFront = 1,
+        BlendedBack = 2
+    }
+
     export function create(ctx: WebGLContext, props: Partial<RendererProps> = {}): Renderer {
         const { gl, state, stats } = ctx;
         const p = PD.merge(RendererParams, PD.getDefaultValues(RendererParams), props);
@@ -220,7 +226,7 @@ namespace Renderer {
 
         let globalUniformsNeedUpdate = true;
 
-        const renderObject = (r: GraphicsRenderable, variant: GraphicsRenderVariant) => {
+        const renderObject = (r: GraphicsRenderable, variant: GraphicsRenderVariant, flag: Flag) => {
             if (r.state.disposed || !r.state.visible || (!r.state.pickable && variant === 'pick')) {
                 return;
             }
@@ -259,6 +265,24 @@ namespace Renderer {
                     state.disable(gl.DEPTH_TEST);
                     state.depthMask(false);
                 }
+            } else if (flag === Flag.BlendedFront) {
+                state.enable(gl.CULL_FACE);
+                if (r.values.dFlipSided?.ref.value) {
+                    state.frontFace(gl.CW);
+                    state.cullFace(gl.FRONT);
+                } else {
+                    state.frontFace(gl.CCW);
+                    state.cullFace(gl.BACK);
+                }
+            } else if (flag === Flag.BlendedBack) {
+                state.enable(gl.CULL_FACE);
+                if (r.values.dFlipSided?.ref.value) {
+                    state.frontFace(gl.CW);
+                    state.cullFace(gl.BACK);
+                } else {
+                    state.frontFace(gl.CCW);
+                    state.cullFace(gl.FRONT);
+                }
             } else {
                 if (r.values.uDoubleSided) {
                     if (r.values.uDoubleSided.ref.value || r.values.hasReflection.ref.value) {
@@ -271,14 +295,9 @@ namespace Renderer {
                     state.disable(gl.CULL_FACE);
                 }
 
-                if (r.values.dFlipSided) {
-                    if (r.values.dFlipSided.ref.value) {
-                        state.frontFace(gl.CW);
-                        state.cullFace(gl.FRONT);
-                    } else {
-                        state.frontFace(gl.CCW);
-                        state.cullFace(gl.BACK);
-                    }
+                if (r.values.dFlipSided?.ref.value) {
+                    state.frontFace(gl.CW);
+                    state.cullFace(gl.FRONT);
                 } else {
                     // webgl default
                     state.frontFace(gl.CCW);
@@ -342,7 +361,7 @@ namespace Renderer {
             const { renderables } = group;
             for (let i = 0, il = renderables.length; i < il; ++i) {
                 if (!renderables[i].state.colorOnly) {
-                    renderObject(renderables[i], variant);
+                    renderObject(renderables[i], variant, Flag.None);
                 }
             }
         };
@@ -356,7 +375,7 @@ namespace Renderer {
 
             const { renderables } = group;
             for (let i = 0, il = renderables.length; i < il; ++i) {
-                renderObject(renderables[i], 'depth');
+                renderObject(renderables[i], 'depth', Flag.None);
             }
         };
 
@@ -373,7 +392,7 @@ namespace Renderer {
                 const r = renderables[i];
 
                 if (r.values.markerAverage.ref.value !== 1) {
-                    renderObject(renderables[i], 'marking');
+                    renderObject(renderables[i], 'marking', Flag.None);
                 }
             }
         };
@@ -391,7 +410,7 @@ namespace Renderer {
                 const r = renderables[i];
 
                 if (r.values.markerAverage.ref.value > 0) {
-                    renderObject(renderables[i], 'marking');
+                    renderObject(renderables[i], 'marking', Flag.None);
                 }
             }
         };
@@ -412,7 +431,9 @@ namespace Renderer {
             for (let i = 0, il = renderables.length; i < il; ++i) {
                 const r = renderables[i];
                 if (r.state.opaque) {
-                    renderObject(r, 'colorBlended');
+                    renderObject(r, 'colorBlended', Flag.None);
+                } else if (r.values.uDoubleSided?.ref.value && r.values.dOpaqueBackfaces?.ref.value) {
+                    renderObject(r, 'colorBlended', Flag.BlendedBack);
                 }
             }
         };
@@ -435,7 +456,7 @@ namespace Renderer {
             for (let i = 0, il = renderables.length; i < il; ++i) {
                 const r = renderables[i];
                 if (!r.state.opaque && r.state.writeDepth) {
-                    renderObject(r, 'colorBlended');
+                    renderObject(r, 'colorBlended', Flag.None);
                 }
             }
 
@@ -443,7 +464,15 @@ namespace Renderer {
             for (let i = 0, il = renderables.length; i < il; ++i) {
                 const r = renderables[i];
                 if (!r.state.opaque && !r.state.writeDepth) {
-                    renderObject(r, 'colorBlended');
+                    if (r.values.uDoubleSided?.ref.value) {
+                        // render frontfaces and backfaces separately to avoid artefacts
+                        if (!r.values.dOpaqueBackfaces?.ref.value) {
+                            renderObject(r, 'colorBlended', Flag.BlendedBack);
+                        }
+                        renderObject(r, 'colorBlended', Flag.BlendedFront);
+                    } else {
+                        renderObject(r, 'colorBlended', Flag.None);
+                    }
                 }
             }
         };
@@ -462,7 +491,7 @@ namespace Renderer {
                 // uAlpha is updated in "render" so we need to recompute it here
                 const alpha = clamp(r.values.alpha.ref.value * r.state.alphaFactor, 0, 1);
                 if (alpha === 1 && r.values.transparencyAverage.ref.value !== 1 && !r.values.dXrayShaded?.ref.value) {
-                    renderObject(r, 'colorBlended');
+                    renderObject(r, 'colorBlended', Flag.None);
                 }
             }
         };
@@ -481,7 +510,7 @@ namespace Renderer {
                 // uAlpha is updated in "render" so we need to recompute it here
                 const alpha = clamp(r.values.alpha.ref.value * r.state.alphaFactor, 0, 1);
                 if (alpha < 1 || r.values.transparencyAverage.ref.value > 0 || r.values.dXrayShaded?.ref.value) {
-                    renderObject(r, 'colorBlended');
+                    renderObject(r, 'colorBlended', Flag.None);
                 }
             }
         };
@@ -500,8 +529,8 @@ namespace Renderer {
                 // TODO: simplify, handle in renderable.state???
                 // uAlpha is updated in "render" so we need to recompute it here
                 const alpha = clamp(r.values.alpha.ref.value * r.state.alphaFactor, 0, 1);
-                if (alpha === 1 && r.values.transparencyAverage.ref.value !== 1 && r.values.dGeometryType.ref.value !== 'directVolume' && r.values.dPointStyle?.ref.value !== 'fuzzy' && !r.values.dXrayShaded?.ref.value) {
-                    renderObject(r, 'colorWboit');
+                if ((alpha === 1 && r.values.transparencyAverage.ref.value !== 1 && r.values.dGeometryType.ref.value !== 'directVolume' && r.values.dPointStyle?.ref.value !== 'fuzzy' && !r.values.dXrayShaded?.ref.value) || r.values.dOpaqueBackfaces?.ref.value) {
+                    renderObject(r, 'colorWboit', Flag.None);
                 }
             }
         };
@@ -517,7 +546,7 @@ namespace Renderer {
                 // uAlpha is updated in "render" so we need to recompute it here
                 const alpha = clamp(r.values.alpha.ref.value * r.state.alphaFactor, 0, 1);
                 if (alpha < 1 || r.values.transparencyAverage.ref.value > 0 || r.values.dGeometryType.ref.value === 'directVolume' || r.values.dPointStyle?.ref.value === 'fuzzy' || !!r.values.uBackgroundColor || r.values.dXrayShaded?.ref.value) {
-                    renderObject(r, 'colorWboit');
+                    renderObject(r, 'colorWboit', Flag.None);
                 }
             }
         };
