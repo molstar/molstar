@@ -37,7 +37,7 @@ export class BindingsHelp extends React.PureComponent<{ bindings: { [k: string]:
     }
 }
 
-export class HelpText extends React.PureComponent {
+export class HelpText extends React.PureComponent<{ children?: any }> {
     render() {
         return <div className='msp-help-text'>
             <div>{this.props.children}</div>
@@ -45,7 +45,7 @@ export class HelpText extends React.PureComponent {
     }
 }
 
-export class HelpGroup extends React.PureComponent<{ header: string, initiallyExpanded?: boolean }, { isExpanded: boolean }> {
+export class HelpGroup extends React.PureComponent<{ children?: any, header: string, initiallyExpanded?: boolean }, { isExpanded: boolean }> {
     state = {
         header: this.props.header,
         isExpanded: !!this.props.initiallyExpanded

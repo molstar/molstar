@@ -23,7 +23,7 @@ import { Asset } from '../mol-util/assets';
 import { BehaviorSubject } from 'rxjs';
 import { useBehavior } from './hooks/use-behavior';
 
-export class Plugin extends React.Component<{ plugin: PluginUIContext }, {}> {
+export class Plugin extends React.Component<{ plugin: PluginUIContext, children?: any }, {}> {
     region(kind: 'left' | 'right' | 'bottom' | 'main', element: JSX.Element) {
         return <div className={`msp-layout-region msp-layout-${kind}`}>
             <div className='msp-layout-static'>
@@ -39,7 +39,7 @@ export class Plugin extends React.Component<{ plugin: PluginUIContext }, {}> {
     }
 }
 
-export class PluginContextContainer extends React.Component<{ plugin: PluginUIContext }> {
+export class PluginContextContainer extends React.Component<{ plugin: PluginUIContext, children?: any }> {
     render() {
         return <PluginReactContext.Provider value={this.props.plugin}>
             <div className='msp-plugin'>
