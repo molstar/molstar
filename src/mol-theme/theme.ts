@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -12,6 +12,7 @@ import { ParamDefinition as PD } from '../mol-util/param-definition';
 import { Shape } from '../mol-model/shape';
 import { CustomProperty } from '../mol-model-props/common/custom-property';
 import { objectForEach } from '../mol-util/object';
+import { ColorType } from '../mol-geo/geometry/color-data';
 
 export interface ThemeRegistryContext {
     colorThemeRegistry: ColorTheme.Registry
@@ -28,7 +29,7 @@ export interface ThemeDataContext {
 export { Theme };
 
 interface Theme {
-    color: ColorTheme<any>
+    color: ColorTheme<any, any>
     size: SizeTheme<any>
     // label: LabelTheme // TODO
 }
@@ -65,7 +66,7 @@ namespace Theme {
 
 //
 
-export interface ThemeProvider<T extends ColorTheme<P> | SizeTheme<P>, P extends PD.Params, Id extends string = string> {
+export interface ThemeProvider<T extends ColorTheme<P, G> | SizeTheme<P>, P extends PD.Params, Id extends string = string, G extends ColorType = ColorType> {
     readonly name: Id
     readonly label: string
     readonly category: string
@@ -83,7 +84,7 @@ function getTypes(list: { name: string, provider: ThemeProvider<any, any> }[]) {
     return list.map(e => [e.name, e.provider.label, e.provider.category] as [string, string, string]);
 }
 
-export class ThemeRegistry<T extends ColorTheme<any> | SizeTheme<any>> {
+export class ThemeRegistry<T extends ColorTheme<any, any> | SizeTheme<any>> {
     private _list: { name: string, provider: ThemeProvider<T, any> }[] = [];
     private _map = new Map<string, ThemeProvider<T, any>>();
     private _name = new Map<ThemeProvider<T, any>, string>();

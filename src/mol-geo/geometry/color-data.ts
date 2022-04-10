@@ -31,7 +31,7 @@ export type ColorData = {
     dUsePalette: ValueCell<boolean>,
 }
 
-export function createColors(locationIt: LocationIterator, positionIt: LocationIterator, colorTheme: ColorTheme<any>, colorData?: ColorData): ColorData {
+export function createColors(locationIt: LocationIterator, positionIt: LocationIterator, colorTheme: ColorTheme<any, any>, colorData?: ColorData): ColorData {
     const data = _createColors(locationIt, positionIt, colorTheme, colorData);
     if (colorTheme.palette) {
         ValueCell.updateIfChanged(data.dUsePalette, true);
@@ -42,7 +42,7 @@ export function createColors(locationIt: LocationIterator, positionIt: LocationI
     return data;
 }
 
-function _createColors(locationIt: LocationIterator, positionIt: LocationIterator, colorTheme: ColorTheme<any>, colorData?: ColorData): ColorData {
+function _createColors(locationIt: LocationIterator, positionIt: LocationIterator, colorTheme: ColorTheme<any, any>, colorData?: ColorData): ColorData {
     switch (colorTheme.granularity) {
         case 'uniform': return createUniformColor(locationIt, colorTheme.color, colorData);
         case 'instance':

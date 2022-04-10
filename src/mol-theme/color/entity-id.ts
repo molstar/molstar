@@ -12,7 +12,6 @@ import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { ThemeDataContext } from '../../mol-theme/theme';
 import { getPaletteParams, getPalette } from '../../mol-util/color/palette';
 import { TableLegend, ScaleLegend } from '../../mol-util/legend';
-import { ColorTypeLocation } from '../../mol-geo/geometry/color-data';
 
 const DefaultList = 'many-distinct';
 const DefaultColor = Color(0xFAFAFA);
@@ -66,7 +65,7 @@ function getEntityId(location: StructureElement.Location): string {
     }
 }
 
-export function EntityIdColorTheme(ctx: ThemeDataContext, props: PD.Values<EntityIdColorThemeParams>): ColorTheme<EntityIdColorThemeParams, ColorTypeLocation> {
+export function EntityIdColorTheme(ctx: ThemeDataContext, props: PD.Values<EntityIdColorThemeParams>): ColorTheme<EntityIdColorThemeParams> {
     let color: LocationColor;
     let legend: ScaleLegend | TableLegend | undefined;
 

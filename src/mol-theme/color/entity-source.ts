@@ -17,7 +17,6 @@ import { TableLegend, ScaleLegend } from '../../mol-util/legend';
 import { isInteger } from '../../mol-util/number';
 import { ColorLists, getColorListFromName } from '../../mol-util/color/lists';
 import { MmcifFormat } from '../../mol-model-formats/structure/mmcif';
-import { ColorTypeLocation } from '../../mol-geo/geometry/color-data';
 
 const DefaultList = 'dark-2';
 const DefaultColor = Color(0xFAFAFA);
@@ -122,7 +121,7 @@ function getLabelTable(srcKeySerialMap: Map<string, number>) {
     });
 }
 
-export function EntitySourceColorTheme(ctx: ThemeDataContext, props: PD.Values<EntitySourceColorThemeParams>): ColorTheme<EntitySourceColorThemeParams, ColorTypeLocation> {
+export function EntitySourceColorTheme(ctx: ThemeDataContext, props: PD.Values<EntitySourceColorThemeParams>): ColorTheme<EntitySourceColorThemeParams> {
     let color: LocationColor;
     let legend: ScaleLegend | TableLegend | undefined;
 

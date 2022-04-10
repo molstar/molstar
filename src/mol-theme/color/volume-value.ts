@@ -9,6 +9,7 @@ import { Color, ColorScale } from '../../mol-util/color';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { ThemeDataContext } from '../theme';
 import { ColorNames } from '../../mol-util/color/names';
+import { ColorTypeDirect } from '../../mol-geo/geometry/color-data';
 
 const Description = 'Assign color based on the given value of a volume cell.';
 
@@ -29,7 +30,7 @@ export function getVolumeValueColorThemeParams(ctx: ThemeDataContext) {
     return VolumeValueColorThemeParams; // TODO return copy
 }
 
-export function VolumeValueColorTheme(ctx: ThemeDataContext, props: PD.Values<VolumeValueColorThemeParams>): ColorTheme<VolumeValueColorThemeParams> {
+export function VolumeValueColorTheme(ctx: ThemeDataContext, props: PD.Values<VolumeValueColorThemeParams>): ColorTheme<VolumeValueColorThemeParams, ColorTypeDirect> {
     const scale = ColorScale.create({ domain: [0, 1], listOrName: props.colorList.colors });
 
     const colors: Color[] = [];

@@ -15,7 +15,6 @@ import { ThemeDataContext } from '../theme';
 import { TableLegend } from '../../mol-util/legend';
 import { getAdjustedColorMap } from '../../mol-util/color/color';
 import { getColorMapParams } from '../../mol-util/color/params';
-import { ColorTypeLocation } from '../../mol-geo/geometry/color-data';
 
 export const MoleculeTypeColors = ColorMap({
     water: 0x386cb0,
@@ -58,7 +57,7 @@ export function moleculeTypeColor(colorMap: MoleculeTypeColors, unit: Unit, elem
     return DefaultMoleculeTypeColor;
 }
 
-export function MoleculeTypeColorTheme(ctx: ThemeDataContext, props: PD.Values<MoleculeTypeColorThemeParams>): ColorTheme<MoleculeTypeColorThemeParams, ColorTypeLocation> {
+export function MoleculeTypeColorTheme(ctx: ThemeDataContext, props: PD.Values<MoleculeTypeColorThemeParams>): ColorTheme<MoleculeTypeColorThemeParams> {
     const colorMap = getAdjustedColorMap(props.colors.name === 'default' ? MoleculeTypeColors : props.colors.params, props.saturation, props.lightness);
 
     function color(location: Location): Color {
