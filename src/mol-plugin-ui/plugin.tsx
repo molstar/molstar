@@ -159,7 +159,7 @@ class Layout extends PluginUIComponent {
                     {layout.showControls && controls.bottom !== 'none' && this.region('bottom', controls.bottom || Log)}
                 </div>
                 {!this.plugin.spec.components?.hideTaskOverlay && <OverlayTaskProgress />}
-                <DragOverlay plugin={this.plugin} showDragOverlay={this.showDragOverlay} />
+                {!this.plugin.spec.components?.disableDragOverlay && <DragOverlay plugin={this.plugin} showDragOverlay={this.showDragOverlay} />}
             </div>
         </div>;
     }
