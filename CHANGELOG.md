@@ -6,11 +6,14 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+## [v3.7.0] - 2022-04-13
+
 - Fix ``xrayShaded`` for texture-mesh geometries
 - [Breaking] Change ``allowTransparentBackfaces`` to ``transparentBackfaces`` with options ``off``, ``on``, ``opaque``. This was only added in 3.6.0, so allowing a breaking change here.
     - ``off``: don't show (default)
     - ``on``: show with transparency
     - ``opaque``: show fully opaque
+- Add option to disable file drop overlay.
 
 ## [v3.6.2] - 2022-04-05
 
@@ -33,8 +36,8 @@ Note that since we don't clearly distinguish between a public and private interf
 - Fix handling of case insensitive mmCIF enumeration fields (including entity.type)
 - Fix ``disable-wboit`` Viewer GET param
 - Add support for React 18.
-  - Used by importing ``createPluginUI`` from ``mol-plugin-ui/react18``;
-  - In Mol* 4.0, React 18 will become the default option.
+    - Used by importing ``createPluginUI`` from ``mol-plugin-ui/react18``;
+    - In Mol* 4.0, React 18 will become the default option.
 
 ## [v3.5.0] - 2022-03-25
 
