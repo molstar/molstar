@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -23,6 +23,7 @@ export const SpheresSchema = {
     uDoubleSided: UniformSpec('b'),
     dIgnoreLight: DefineSpec('boolean'),
     dXrayShaded: DefineSpec('boolean'),
+    dOpaqueBackfaces: DefineSpec('boolean'),
     uBumpFrequency: UniformSpec('f'),
     uBumpAmplitude: UniformSpec('f'),
 };

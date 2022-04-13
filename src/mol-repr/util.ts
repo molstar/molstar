@@ -57,7 +57,7 @@ export interface QualityProps {
     doubleSided: boolean
     xrayShaded: boolean
     alpha: number
-    allowTransparentBackfaces: boolean
+    transparentBackfaces: 'off' | 'on' | 'opaque'
 }
 
 export const DefaultQualityThresholds = {
@@ -193,7 +193,7 @@ export function getQualityProps(props: Partial<QualityProps>, data?: any) {
     resolution = Math.max(resolution, volume / 500_000_000);
     resolution = Math.min(resolution, 20);
 
-    if (!props.allowTransparentBackfaces && ((props.alpha !== undefined && props.alpha < 1) || !!props.xrayShaded)) {
+    if (props.transparentBackfaces === 'off' && ((props.alpha !== undefined && props.alpha < 1) || !!props.xrayShaded)) {
         doubleSided = false;
     }
 
