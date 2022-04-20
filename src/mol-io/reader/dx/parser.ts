@@ -122,7 +122,7 @@ async function parseBinary(taskCtx: RuntimeContext, data: Uint8Array, name: stri
 }
 
 export function parseDx(data: string | Uint8Array, name: string) {
-    return Task.create<Result<DxFile>>('Parse Cube', taskCtx => {
+    return Task.create<Result<DxFile>>('Parse DX', taskCtx => {
         if (typeof data === 'string') return parseText(taskCtx, data, name);
         return parseBinary(taskCtx, data, name);
     });
