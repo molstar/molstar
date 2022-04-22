@@ -1,6 +1,6 @@
 
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -92,7 +92,7 @@ function addHelices(cat: StructConf, coordinates: CoordinateType, map: Secondary
         const element: SecondaryStructure.Helix = {
             kind: 'helix',
             flags: type,
-            type_id: conf_type_id.valueKind(i) === Column.ValueKind.Present ? conf_type_id.value(i) : 'HELIX_P',
+            type_id: conf_type_id.valueKind(i) === Column.ValueKind.Present ? conf_type_id.value(i) : 'helx_p',
             helix_class: pdbx_PDB_helix_class.value(i),
             details: details.valueKind(i) === Column.ValueKind.Present ? details.value(i) : void 0
         };

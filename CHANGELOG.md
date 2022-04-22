@@ -6,6 +6,8 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Fix case handling of ``struct_conf`` mmCIF enumeration field (#425)
+
 ## [v3.7.0] - 2022-04-13
 
 - Fix ``xrayShaded`` for texture-mesh geometries

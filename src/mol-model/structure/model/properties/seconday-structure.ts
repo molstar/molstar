@@ -1,11 +1,13 @@
 /**
- * Copyright (c) 2017-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { SecondaryStructureType } from '../types';
 import { ResidueIndex } from '../indexing';
+import { mmCIF_Schema } from '../../../../mol-io/reader/cif/schema/mmcif';
 
 /** Secondary structure "indexed" by residues. */
 interface SecondaryStructure {
@@ -37,7 +39,7 @@ namespace SecondaryStructure {
     export interface Helix {
         kind: 'helix',
         flags: SecondaryStructureType,
-        type_id: string, // TODO: use aliased type?
+        type_id: mmCIF_Schema['struct_conf']['conf_type_id']['T'],
         helix_class: string,
         details?: string
     }
