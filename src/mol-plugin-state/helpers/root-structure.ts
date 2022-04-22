@@ -15,6 +15,7 @@ import { PluginContext } from '../../mol-plugin/context';
 import { Assembly, Symmetry } from '../../mol-model/structure/model/properties/symmetry';
 import { PluginStateObject as SO } from '../objects';
 import { ModelSymmetry } from '../../mol-model-formats/structure/property/symmetry';
+import { assertUnreachable } from '../../mol-util/type-helpers';
 
 const CommonStructureParams = {
     dynamicBonds: PD.Optional(PD.Boolean(false, { description: 'Ensure bonds are recalculated upon model changes. Also enables calculation of inter-unit bonds in water molecules and ions.' })),
@@ -188,6 +189,6 @@ export namespace RootStructureDefinition {
             return buildSymmetryAssembly(ctx, model, params.params.generators, symmetry, props);
         }
 
-        throw new Error(`Unknown represetation type: ${(params as any).name}`);
+        assertUnreachable(params);
     }
 }
