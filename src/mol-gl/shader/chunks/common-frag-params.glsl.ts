@@ -70,9 +70,16 @@ uniform bool uMarkingDepthTest;
 uniform sampler2D tDepth;
 uniform vec2 uDrawingBufferSize;
 
-float getDepth(const in vec2 coords) {
-    // always packed due to merged depth from primitives and volumes
+float getDepthPacked(const in vec2 coords) {
     return unpackRGBAToDepth(texture2D(tDepth, coords));
+}
+
+float getDepth(const in vec2 coords) {
+    #ifdef depthTextureSupport
+        return texture2D(tDepth, coords).r;
+    #else
+        return unpackRGBAToDepth(texture2D(tDepth, coords));
+    #endif
 }
 
 float calcDepth(const in vec3 pos) {

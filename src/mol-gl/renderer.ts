@@ -59,13 +59,14 @@ interface Renderer {
 
     renderPick: (group: Scene.Group, camera: ICamera, variant: 'pick' | 'depth', depthTexture: Texture | null, pickType: PickType) => void
     renderDepth: (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => void
+    renderDepthOpaque: (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => void
+    renderDepthTransparent: (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => void
     renderMarkingDepth: (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => void
     renderMarkingMask: (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => void
     renderBlended: (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => void
     renderBlendedOpaque: (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => void
     renderBlendedTransparent: (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => void
-    renderBlendedVolumeOpaque: (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => void
-    renderBlendedVolumeTransparent: (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => void
+    renderBlendedVolume: (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => void
     renderWboitOpaque: (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => void
     renderWboitTransparent: (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => void
 
@@ -379,6 +380,34 @@ namespace Renderer {
             }
         };
 
+        const renderDepthOpaque = (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => {
+            state.disable(gl.BLEND);
+            state.enable(gl.DEPTH_TEST);
+            state.depthMask(true);
+
+            updateInternal(group, camera, depthTexture, false, false);
+
+            const { renderables } = group;
+            for (let i = 0, il = renderables.length; i < il; ++i) {
+                const r = renderables[i];
+                if (r.state.opaque) renderObject(r, 'depth', Flag.None);
+            }
+        };
+
+        const renderDepthTransparent = (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => {
+            state.disable(gl.BLEND);
+            state.enable(gl.DEPTH_TEST);
+            state.depthMask(true);
+
+            updateInternal(group, camera, depthTexture, false, false);
+
+            const { renderables } = group;
+            for (let i = 0, il = renderables.length; i < il; ++i) {
+                const r = renderables[i];
+                if (!r.state.opaque) renderObject(r, 'depth', Flag.None);
+            }
+        };
+
         const renderMarkingDepth = (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => {
             state.disable(gl.BLEND);
             state.enable(gl.DEPTH_TEST);
@@ -477,7 +506,7 @@ namespace Renderer {
             }
         };
 
-        const renderBlendedVolumeOpaque = (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => {
+        const renderBlendedVolume = (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => {
             state.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
             state.enable(gl.BLEND);
 
@@ -486,30 +515,7 @@ namespace Renderer {
             const { renderables } = group;
             for (let i = 0, il = renderables.length; i < il; ++i) {
                 const r = renderables[i];
-
-                // TODO: simplify, handle in renderable.state???
-                // uAlpha is updated in "render" so we need to recompute it here
-                const alpha = clamp(r.values.alpha.ref.value * r.state.alphaFactor, 0, 1);
-                if (alpha === 1 && r.values.transparencyAverage.ref.value !== 1 && !r.values.dXrayShaded?.ref.value) {
-                    renderObject(r, 'colorBlended', Flag.None);
-                }
-            }
-        };
-
-        const renderBlendedVolumeTransparent = (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => {
-            state.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
-            state.enable(gl.BLEND);
-
-            updateInternal(group, camera, depthTexture, false, false);
-
-            const { renderables } = group;
-            for (let i = 0, il = renderables.length; i < il; ++i) {
-                const r = renderables[i];
-
-                // TODO: simplify, handle in renderable.state???
-                // uAlpha is updated in "render" so we need to recompute it here
-                const alpha = clamp(r.values.alpha.ref.value * r.state.alphaFactor, 0, 1);
-                if (alpha < 1 || r.values.transparencyAverage.ref.value > 0 || r.values.dXrayShaded?.ref.value) {
+                if (r.values.dGeometryType.ref.value === 'directVolume') {
                     renderObject(r, 'colorBlended', Flag.None);
                 }
             }
@@ -577,13 +583,14 @@ namespace Renderer {
 
             renderPick,
             renderDepth,
+            renderDepthOpaque,
+            renderDepthTransparent,
             renderMarkingDepth,
             renderMarkingMask,
             renderBlended,
             renderBlendedOpaque,
             renderBlendedTransparent,
-            renderBlendedVolumeOpaque,
-            renderBlendedVolumeTransparent,
+            renderBlendedVolume,
             renderWboitOpaque,
             renderWboitTransparent,
 

@@ -12,7 +12,8 @@ precision highp sampler2D;
 
 uniform sampler2D tSsaoDepth;
 uniform sampler2D tColor;
-uniform sampler2D tDepth;
+uniform sampler2D tDepthOpaque;
+uniform sampler2D tDepthTransparent;
 uniform sampler2D tOutlines;
 uniform vec2 uTexSize;
 
@@ -40,8 +41,16 @@ float getViewZ(const in float depth) {
     #endif
 }
 
-float getDepth(const in vec2 coords) {
-    return unpackRGBAToDepth(texture2D(tDepth, coords));
+float getDepthOpaque(const in vec2 coords) {
+    #ifdef depthTextureSupport
+        return texture2D(tDepthOpaque, coords).r;
+    #else
+        return unpackRGBAToDepth(texture2D(tDepthOpaque, coords));
+    #endif
+}
+
+float getDepthTransparent(const in vec2 coords) {
+    return unpackRGBAToDepth(texture2D(tDepthTransparent, coords));
 }
 
 bool isBackground(const in float depth) {
@@ -52,7 +61,7 @@ float getOutline(const in vec2 coords, out float closestTexel) {
     float backgroundViewZ = uFar + 3.0 * uMaxPossibleViewZDiff;
     vec2 invTexSize = 1.0 / uTexSize;
 
-    float selfDepth = getDepth(coords);
+    float selfDepth = min(getDepthOpaque(coords), getDepthTransparent(coords));
     float selfViewZ = isBackground(selfDepth) ? backgroundViewZ : getViewZ(selfDepth);
 
     float outline = 1.0;
@@ -97,7 +106,7 @@ void main(void) {
     float fogFactor;
 
     #ifdef dOcclusionEnable
-        float depth = getDepth(coords);
+        float depth = getDepthOpaque(coords);
         if (!isBackground(depth)) {
             viewDist = abs(getViewZ(depth));
             fogFactor = smoothstep(uFogNear, uFogFar, viewDist);
