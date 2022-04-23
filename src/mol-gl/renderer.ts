@@ -57,7 +57,7 @@ interface Renderer {
     clearDepth: () => void
     update: (camera: ICamera) => void
 
-    renderPick: (group: Scene.Group, camera: ICamera, variant: GraphicsRenderVariant, depthTexture: Texture | null, pickType: PickType) => void
+    renderPick: (group: Scene.Group, camera: ICamera, variant: 'pick' | 'depth', depthTexture: Texture | null, pickType: PickType) => void
     renderDepth: (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => void
     renderMarkingDepth: (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => void
     renderMarkingMask: (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => void

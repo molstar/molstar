@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -8,7 +8,6 @@ import { PickingId } from '../../mol-geo/geometry/picking';
 import { PickType, Renderer } from '../../mol-gl/renderer';
 import { Scene } from '../../mol-gl/scene';
 import { WebGLContext } from '../../mol-gl/webgl/context';
-import { GraphicsRenderVariant } from '../../mol-gl/webgl/render-item';
 import { RenderTarget } from '../../mol-gl/webgl/render-target';
 import { Vec3 } from '../../mol-math/linear-algebra';
 import { spiral2d } from '../../mol-math/misc';
@@ -64,7 +63,7 @@ export class PickPass {
         }
     }
 
-    private renderVariant(renderer: Renderer, camera: ICamera, scene: Scene, helper: Helper, variant: GraphicsRenderVariant, pickType: number) {
+    private renderVariant(renderer: Renderer, camera: ICamera, scene: Scene, helper: Helper, variant: 'pick' | 'depth', pickType: number) {
         const depth = this.drawPass.depthTexturePrimitives;
         renderer.clear(false);
 
