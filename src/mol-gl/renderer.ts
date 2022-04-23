@@ -152,7 +152,7 @@ namespace Renderer {
 
         let transparentBackground = false;
 
-        const emptyDepthTexture = ctx.resources.texture('image-depth', 'depth', 'ushort', 'nearest');
+        const emptyDepthTexture = ctx.resources.texture('image-uint8', 'rgba', 'ubyte', 'nearest');
         const sharedTexturesList: Textures = [
             ['tDepth', emptyDepthTexture]
         ];
