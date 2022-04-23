@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -29,6 +29,7 @@ export function applyTransparencyValue(array: Uint8Array, start: number, end: nu
 }
 
 export function getTransparencyAverage(array: Uint8Array, count: number): number {
+    if (count === 0 || array.length < count) return 0;
     let sum = 0;
     for (let i = 0; i < count; ++i) {
         sum += array[i];

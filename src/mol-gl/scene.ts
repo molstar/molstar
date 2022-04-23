@@ -16,6 +16,7 @@ import { BoundaryHelper } from '../mol-math/geometry/boundary-helper';
 import { hash1 } from '../mol-data/util';
 import { GraphicsRenderable } from './renderable';
 import { GraphicsRenderVariants } from './webgl/render-item';
+import { clamp } from '../mol-math/interpolate';
 
 const boundaryHelper = new BoundaryHelper('98');
 
@@ -80,6 +81,7 @@ interface Scene extends Object3D {
     clear: () => void
     forEach: (callbackFn: (value: GraphicsRenderable, key: GraphicsRenderObject) => void) => void
     getMarkerAverage: () => number
+    getOpacityAverage: () => number
 }
 
 namespace Scene {
@@ -247,14 +249,35 @@ namespace Scene {
             },
             getMarkerAverage() {
                 if (primitives.length === 0 && volumes.length === 0) return 0;
+                let count = 0;
                 let markerAverage = 0;
                 for (let i = 0, il = primitives.length; i < il; ++i) {
+                    if (!primitives[i].state.visible) continue;
                     markerAverage += primitives[i].values.markerAverage.ref.value;
+                    count += 1;
                 }
                 for (let i = 0, il = volumes.length; i < il; ++i) {
+                    if (!volumes[i].state.visible) continue;
                     markerAverage += volumes[i].values.markerAverage.ref.value;
+                    count += 1;
                 }
-                return markerAverage / (primitives.length + volumes.length);
+                return count > 0 ? markerAverage / count : 0;
+            },
+            getOpacityAverage() {
+                if (primitives.length === 0) return 0;
+                let count = 0;
+                let opacityAverage = 0;
+                for (let i = 0, il = primitives.length; i < il; ++i) {
+                    const p = primitives[i];
+                    if (!p.state.visible) continue;
+
+                    // TODO: simplify, handle in renderable.state???
+                    // uAlpha is updated in "render" so we need to recompute it here
+                    const alpha = clamp(p.values.alpha.ref.value * p.state.alphaFactor, 0, 1);
+                    opacityAverage += (1 - p.values.transparencyAverage.ref.value) * alpha;
+                    count += 1;
+                }
+                return count > 0 ? opacityAverage / count : 0;
             },
         };
     }
