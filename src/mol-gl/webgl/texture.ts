@@ -238,6 +238,10 @@ export function createTexture(gl: GLRenderingContext, extensions: WebGLExtension
         throw new Error(`texture kind '${kind}' and type '${_type}' are incompatible`);
     }
 
+    if (!extensions.depthTexture && _format === 'depth') {
+        throw new Error(`extension 'WEBGL_depth_texture' needed for 'depth' texture format`);
+    }
+
     const target = getTarget(gl, kind);
     const filter = getFilter(gl, _filter);
     const format = getFormat(gl, _format, _type);
