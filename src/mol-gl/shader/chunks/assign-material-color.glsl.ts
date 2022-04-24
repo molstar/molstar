@@ -31,6 +31,9 @@ export const assign_material_color = `
 #elif defined(dRenderVariant_pick)
     vec4 material = vColor;
 #elif defined(dRenderVariant_depth)
+    if (uRenderWboit && gl_FragColor.a == 1.0) {
+        discard;
+    }
     #ifdef enabledFragDepth
         vec4 material = packDepthToRGBA(gl_FragDepthEXT);
     #else
@@ -74,6 +77,10 @@ export const assign_material_color = `
             discard; // ignore so the element below can be picked
     #else
         #if defined(dRenderVariant_colorBlended)
+            #if defined(dTransparentBackfaces_off)
+                if (interior && ta < 1.0) discard;
+            #endif
+
             float at = 0.0;
 
             // shift by view-offset during multi-sample rendering to allow for blending
@@ -99,7 +106,11 @@ export const assign_material_color = `
             #endif
 
             if (ta < 0.99 && (ta < 0.01 || ta < at)) {
-                discard;
+                #if defined(dTransparentBackfaces_opaque)
+                    if (!interior) discard;
+                #else
+                    discard;
+                #endif
             }
         #elif defined(dRenderVariant_colorWboit)
             material.a *= ta;

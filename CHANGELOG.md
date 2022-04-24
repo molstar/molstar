@@ -7,7 +7,8 @@ Note that since we don't clearly distinguish between a public and private interf
 ## [Unreleased]
 
 - Fix case handling of ``struct_conf`` mmCIF enumeration field (#425)
-- Add support for outlines around transparent objects (only per-object)
+- Add support for outlines around transparent objects
+- Fix ``allowTransparentBackfaces`` for per-group transparency
 
 ## [v3.7.0] - 2022-04-13
 

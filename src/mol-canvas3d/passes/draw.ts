@@ -144,7 +144,7 @@ export class DrawPass {
                 this.depthTarget.bind();
                 renderer.clear(false);
                 if (scene.getOpacityAverage() < 1) {
-                    renderer.renderDepthTransparent(scene.primitives, camera, null);
+                    renderer.renderDepthWboit(scene.primitives, camera, null);
                 }
             }
 

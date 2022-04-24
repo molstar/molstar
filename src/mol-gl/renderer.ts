@@ -61,6 +61,7 @@ interface Renderer {
     renderDepth: (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => void
     renderDepthOpaque: (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => void
     renderDepthTransparent: (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => void
+    renderDepthWboit: (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => void
     renderMarkingDepth: (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => void
     renderMarkingMask: (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => void
     renderBlended: (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => void
@@ -408,6 +409,23 @@ namespace Renderer {
             }
         };
 
+        const renderDepthWboit = (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => {
+            state.disable(gl.BLEND);
+            state.enable(gl.DEPTH_TEST);
+            state.depthMask(true);
+
+            updateInternal(group, camera, depthTexture, true, false);
+
+            const { renderables } = group;
+            for (let i = 0, il = renderables.length; i < il; ++i) {
+                const r = renderables[i];
+
+                if (!r.state.opaque || r.values.transparencyAverage.ref.value > 0) {
+                    renderObject(r, 'depth', Flag.None);
+                }
+            }
+        };
+
         const renderMarkingDepth = (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => {
             state.disable(gl.BLEND);
             state.enable(gl.DEPTH_TEST);
@@ -461,7 +479,7 @@ namespace Renderer {
                 const r = renderables[i];
                 if (r.state.opaque) {
                     renderObject(r, 'colorBlended', Flag.None);
-                } else if (r.values.uDoubleSided?.ref.value && r.values.dOpaqueBackfaces?.ref.value) {
+                } else if (r.values.uDoubleSided?.ref.value && r.values.dTransparentBackfaces?.ref.value === 'opaque') {
                     renderObject(r, 'colorBlended', Flag.BlendedBack);
                 }
             }
@@ -495,7 +513,7 @@ namespace Renderer {
                 if (!r.state.opaque && !r.state.writeDepth) {
                     if (r.values.uDoubleSided?.ref.value) {
                         // render frontfaces and backfaces separately to avoid artefacts
-                        if (!r.values.dOpaqueBackfaces?.ref.value) {
+                        if (r.values.dTransparentBackfaces?.ref.value !== 'opaque') {
                             renderObject(r, 'colorBlended', Flag.BlendedBack);
                         }
                         renderObject(r, 'colorBlended', Flag.BlendedFront);
@@ -535,7 +553,7 @@ namespace Renderer {
                 // TODO: simplify, handle in renderable.state???
                 // uAlpha is updated in "render" so we need to recompute it here
                 const alpha = clamp(r.values.alpha.ref.value * r.state.alphaFactor, 0, 1);
-                if ((alpha === 1 && r.values.transparencyAverage.ref.value !== 1 && r.values.dGeometryType.ref.value !== 'directVolume' && r.values.dPointStyle?.ref.value !== 'fuzzy' && !r.values.dXrayShaded?.ref.value) || r.values.dOpaqueBackfaces?.ref.value) {
+                if ((alpha === 1 && r.values.transparencyAverage.ref.value !== 1 && r.values.dGeometryType.ref.value !== 'directVolume' && r.values.dPointStyle?.ref.value !== 'fuzzy' && !r.values.dXrayShaded?.ref.value) || r.values.dTransparentBackfaces?.ref.value === 'opaque') {
                     renderObject(r, 'colorWboit', Flag.None);
                 }
             }
@@ -585,6 +603,7 @@ namespace Renderer {
             renderDepth,
             renderDepthOpaque,
             renderDepthTransparent,
+            renderDepthWboit,
             renderMarkingDepth,
             renderMarkingMask,
             renderBlended,
