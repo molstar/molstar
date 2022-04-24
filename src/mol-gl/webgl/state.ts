@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -44,6 +44,8 @@ export type WebGLState = {
     cullFace: (mode: number) => void
     /** sets whether writing into the depth buffer is enabled or disabled */
     depthMask: (flag: boolean) => void
+    /** sets the depth comparison function */
+    depthFunc: (func: number) => void
     /** sets which color components to enable or to disable */
     colorMask: (red: boolean, green: boolean, blue: boolean, alpha: boolean) => void
     /** specifies the color values used when clearing color buffers, used when calling `gl.clear`, clamped to [0, 1] */
@@ -72,6 +74,7 @@ export function createState(gl: GLRenderingContext): WebGLState {
     let currentFrontFace = gl.getParameter(gl.FRONT_FACE);
     let currentCullFace = gl.getParameter(gl.CULL_FACE_MODE);
     let currentDepthMask = gl.getParameter(gl.DEPTH_WRITEMASK);
+    let currentDepthFunc = gl.getParameter(gl.DEPTH_FUNC);
     let currentColorMask = gl.getParameter(gl.COLOR_WRITEMASK);
     let currentClearColor = gl.getParameter(gl.COLOR_CLEAR_VALUE);
 
@@ -127,6 +130,12 @@ export function createState(gl: GLRenderingContext): WebGLState {
             if (flag !== currentDepthMask) {
                 gl.depthMask(flag);
                 currentDepthMask = flag;
+            }
+        },
+        depthFunc: (func: number) => {
+            if (func !== currentDepthFunc) {
+                gl.depthFunc(func);
+                currentDepthFunc = func;
             }
         },
         colorMask: (red: boolean, green: boolean, blue: boolean, alpha: boolean) => {
