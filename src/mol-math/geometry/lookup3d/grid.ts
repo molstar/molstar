@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -172,7 +172,7 @@ function build(data: PositionData, boundary: Boundary, cellSizeOrCount?: Vec3 | 
     const expandedBox = Box3D.expand(Box3D(), boundary.box, Vec3.create(0.5, 0.5, 0.5));
     const { indices } = data;
 
-    const S = Box3D.size(Vec3.zero(), expandedBox);
+    const S = Box3D.size(Vec3(), expandedBox);
     let delta, size;
 
     const elementCount = OrderedSet.size(indices);
@@ -180,7 +180,7 @@ function build(data: PositionData, boundary: Boundary, cellSizeOrCount?: Vec3 | 
     const cellCount = typeof cellSizeOrCount === 'number' ? cellSizeOrCount : 32;
     const cellSize = Array.isArray(cellSizeOrCount) && cellSizeOrCount;
 
-    if (cellSize) {
+    if (cellSize && !Vec3.isZero(cellSize)) {
         size = [Math.ceil(S[0] / cellSize[0]), Math.ceil(S[1] / cellSize[1]), Math.ceil(S[2] / cellSize[2])];
         delta = cellSize;
     } else if (elementCount > 0) {

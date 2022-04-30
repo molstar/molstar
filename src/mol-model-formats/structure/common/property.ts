@@ -28,6 +28,7 @@ class FormatRegistry<T> {
     }
 
     isApplicable(model: Model) {
+        if (!this.map.has(model.sourceData.kind)) return false;
         const isApplicable = this.applicable.get(model.sourceData.kind);
         return isApplicable ? isApplicable(model) : true;
     }
