@@ -11,6 +11,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Fix ``allowTransparentBackfaces`` for per-group transparency
 - Fix ``FormatRegistry.isApplicable`` returning true for unregistered formats
 - Fix: handle building of ``GridLookup3D`` with zero cell size
+- Fix ``ignoreLight`` for direct-volume rendering with webgl1
 
 ## [v3.7.0] - 2022-04-13
 

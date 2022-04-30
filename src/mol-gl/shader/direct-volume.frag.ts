@@ -289,20 +289,24 @@ vec4 raymarch(vec3 startLoc, vec3 step, vec3 rayDir) {
             material.rgb = mix(material.rgb, overpaint.rgb, overpaint.a);
         #endif
 
-        if (material.a >= 0.01) {
-            #ifdef dPackedGroup
-                // compute gradient by central differences
-                gradient.x = textureVal(unitPos - dx).a - textureVal(unitPos + dx).a;
-                gradient.y = textureVal(unitPos - dy).a - textureVal(unitPos + dy).a;
-                gradient.z = textureVal(unitPos - dz).a - textureVal(unitPos + dz).a;
-            #else
-                gradient = cell.xyz * 2.0 - 1.0;
-            #endif
-            vec3 normal = -normalize(normalMatrix * normalize(gradient));
-            #include apply_light_color
-        } else {
+        #ifdef dIgnoreLight
             gl_FragColor.rgb = material.rgb;
-        }
+        #else
+            if (material.a >= 0.01) {
+                #ifdef dPackedGroup
+                    // compute gradient by central differences
+                    gradient.x = textureVal(unitPos - dx).a - textureVal(unitPos + dx).a;
+                    gradient.y = textureVal(unitPos - dy).a - textureVal(unitPos + dy).a;
+                    gradient.z = textureVal(unitPos - dz).a - textureVal(unitPos + dz).a;
+                #else
+                    gradient = cell.xyz * 2.0 - 1.0;
+                #endif
+                vec3 normal = -normalize(normalMatrix * normalize(gradient));
+                #include apply_light_color
+            } else {
+                gl_FragColor.rgb = material.rgb;
+            }
+        #endif
 
         gl_FragColor.a = material.a * uAlpha * uTransferScale;
 
