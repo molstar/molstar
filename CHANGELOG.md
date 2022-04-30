@@ -8,6 +8,7 @@ Note that since we don't clearly distinguish between a public and private interf
 
 - Fix case handling of ``struct_conf`` mmCIF enumeration field (#425)
 - Fix ``FormatRegistry.isApplicable`` returning true for unregistered formats
+- Fix: handle building of ``GridLookup3D`` with zero cell size
 
 ## [v3.7.0] - 2022-04-13
 
