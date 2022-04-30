@@ -1,7 +1,7 @@
 /**
  * Copyright (c) 2017-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
- * Code-generated 'mmCIF' schema file. Dictionary versions: mmCIF 5.357, IHM 1.17, MA 1.3.6.
+ * Code-generated 'mmCIF' schema file. Dictionary versions: mmCIF 5.358, IHM 1.17, MA 1.4.0.
  *
  * @author molstar/ciftools package
  */
@@ -916,8 +916,7 @@ export const mmCIF_Schema = {
      */
     entity_poly_seq: {
         /**
-         * This data item is a pointer to _entity_poly.entity_id in the
-         * ENTITY_POLY category.
+         * This data item is a pointer to _entity.id in the ENTITY category.
          */
         entity_id: str,
         /**
@@ -4939,7 +4938,7 @@ export const mmCIF_Schema = {
         /**
          * The type of data held in the dataset.
          */
-        content_type: Aliased<'target' | 'template structure' | 'polymeric template library' | 'spatial restraints' | 'target-template alignment' | 'coevolution MSA' | 'model coordinates' | 'other'>(str),
+        content_type: Aliased<'target' | 'template structure' | 'polymeric template library' | 'spatial restraints' | 'target-template alignment' | 'coevolution MSA' | 'model coordinates' | 'input structure' | 'reference database' | 'other'>(str),
         /**
          * Details for other content types.
          */

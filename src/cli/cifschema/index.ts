@@ -161,7 +161,7 @@ const MMCIF_DIC_URL = 'http://mmcif.wwpdb.org/dictionaries/ascii/mmcif_pdbx_v50.
 const IHM_DIC_PATH = `${DIC_DIR}/ihm-extension.dic`;
 const IHM_DIC_URL = 'https://raw.githubusercontent.com/ihmwg/IHM-dictionary/master/ihm-extension.dic';
 const MA_DIC_PATH = `${DIC_DIR}/ma-extension.dic`;
-const MA_DIC_URL = 'https://raw.githubusercontent.com/ihmwg/MA-dictionary/master/mmcif_ma.dic';
+const MA_DIC_URL = 'https://raw.githubusercontent.com/ihmwg/ModelCIF/master/dist/mmcif_ma.dic';
 
 const CIF_CORE_DIC_PATH = `${DIC_DIR}/cif_core.dic`;
 const CIF_CORE_DIC_URL = 'https://raw.githubusercontent.com/COMCIFS/cif_core/master/cif_core.dic';

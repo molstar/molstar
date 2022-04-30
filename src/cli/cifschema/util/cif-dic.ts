@@ -51,6 +51,7 @@ export function getFieldType(type: string, description: string, values?: string[
         case 'operation_expression':
         case 'point_symmetry':
         case '4x3_matrix':
+        case '3x4_matrix':
         case '3x4_matrices':
         case 'point_group':
         case 'point_group_helical':

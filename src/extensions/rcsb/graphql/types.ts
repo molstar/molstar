@@ -4,7 +4,7 @@ export type InputMaybe<T> = Maybe<T>;
 export type Exact<T extends { [key: string]: unknown }> = { [K in keyof T]: T[K] };
 export type MakeOptional<T, K extends keyof T> = Omit<T, K> & { [SubKey in K]?: Maybe<T[SubKey]> };
 export type MakeMaybe<T, K extends keyof T> = Omit<T, K> & { [SubKey in K]: Maybe<T[SubKey]> };
-// Generated on 2022-02-27T12:49:36-08:00
+// Generated on 2022-04-30T15:35:08-07:00
 
 /** All built-in and custom scalars, mapped to their actual values */
 export type Scalars = {
@@ -659,6 +659,8 @@ export type CoreEntry = {
   readonly em_staining?: Maybe<ReadonlyArray<Maybe<EmStaining>>>;
   readonly em_vitrification?: Maybe<ReadonlyArray<Maybe<EmVitrification>>>;
   readonly entry?: Maybe<Entry>;
+  /** Get all groups for this PDB entry. */
+  readonly entry_groups?: Maybe<ReadonlyArray<Maybe<GroupEntry>>>;
   readonly exptl?: Maybe<ReadonlyArray<Maybe<Exptl>>>;
   readonly exptl_crystal?: Maybe<ReadonlyArray<Maybe<ExptlCrystal>>>;
   readonly exptl_crystal_grow?: Maybe<ReadonlyArray<Maybe<ExptlCrystalGrow>>>;
@@ -703,6 +705,7 @@ export type CoreEntry = {
   readonly rcsb_associated_holdings?: Maybe<CurrentEntry>;
   readonly rcsb_binding_affinity?: Maybe<ReadonlyArray<Maybe<RcsbBindingAffinity>>>;
   readonly rcsb_entry_container_identifiers: RcsbEntryContainerIdentifiers;
+  readonly rcsb_entry_group_membership?: Maybe<ReadonlyArray<Maybe<RcsbEntryGroupMembership>>>;
   readonly rcsb_entry_info: RcsbEntryInfo;
   readonly rcsb_external_references?: Maybe<ReadonlyArray<Maybe<RcsbExternalReferences>>>;
   /**
@@ -851,6 +854,8 @@ export type CorePolymerEntity = {
   readonly pdbx_entity_src_syn?: Maybe<ReadonlyArray<Maybe<PdbxEntitySrcSyn>>>;
   /** Get all unique Pfam annotations associated with this molecular entity. */
   readonly pfams?: Maybe<ReadonlyArray<Maybe<CorePfam>>>;
+  /** Get all groups for this PDB entity. */
+  readonly polymer_entity_groups?: Maybe<ReadonlyArray<Maybe<GroupPolymerEntity>>>;
   /** Get all unique polymer instances (chains) for this molecular entity. */
   readonly polymer_entity_instances?: Maybe<ReadonlyArray<Maybe<CorePolymerEntityInstance>>>;
   /** Get a BIRD chemical components described in this molecular entity. */
@@ -887,6 +892,7 @@ export type CorePolymerEntity = {
   readonly rcsb_polymer_entity_container_identifiers: RcsbPolymerEntityContainerIdentifiers;
   readonly rcsb_polymer_entity_feature?: Maybe<ReadonlyArray<Maybe<RcsbPolymerEntityFeature>>>;
   readonly rcsb_polymer_entity_feature_summary?: Maybe<ReadonlyArray<Maybe<RcsbPolymerEntityFeatureSummary>>>;
+  readonly rcsb_polymer_entity_group_membership?: Maybe<ReadonlyArray<Maybe<RcsbPolymerEntityGroupMembership>>>;
   readonly rcsb_polymer_entity_keywords?: Maybe<RcsbPolymerEntityKeywords>;
   readonly rcsb_polymer_entity_name_com?: Maybe<ReadonlyArray<Maybe<RcsbPolymerEntityNameCom>>>;
   readonly rcsb_polymer_entity_name_sys?: Maybe<ReadonlyArray<Maybe<RcsbPolymerEntityNameSys>>>;
@@ -3198,6 +3204,55 @@ export type GeneName = {
   readonly value?: Maybe<Scalars['String']>;
 };
 
+export type GroupEntry = {
+  /** Get provenance associated with this group. */
+  readonly group_provenance?: Maybe<GroupProvenance>;
+  readonly rcsb_group_accession_info?: Maybe<RcsbGroupAccessionInfo>;
+  readonly rcsb_group_container_identifiers: RcsbGroupContainerIdentifiers;
+  readonly rcsb_group_info: RcsbGroupInfo;
+  readonly rcsb_group_related?: Maybe<ReadonlyArray<Maybe<RcsbGroupRelated>>>;
+  readonly rcsb_group_statistics?: Maybe<RcsbGroupStatistics>;
+  /** A unique textual identifier for a group */
+  readonly rcsb_id: Scalars['String'];
+};
+
+export type GroupMembersAlignmentAlignedRegions = {
+  /** Aligned region length */
+  readonly length: Scalars['Int'];
+  /** Entity seqeunce start position */
+  readonly query_begin: Scalars['Int'];
+  /** NCBI sequence start position */
+  readonly target_begin: Scalars['Int'];
+};
+
+export type GroupMembersAlignmentScores = {
+  readonly query_coverage: Scalars['Int'];
+  readonly query_length: Scalars['Int'];
+  readonly target_coverage: Scalars['Int'];
+  readonly target_length: Scalars['Int'];
+};
+
+export type GroupPolymerEntity = {
+  /** Get provenance associated with this group. */
+  readonly group_provenance?: Maybe<GroupProvenance>;
+  readonly rcsb_group_accession_info?: Maybe<RcsbGroupAccessionInfo>;
+  readonly rcsb_group_container_identifiers: RcsbGroupContainerIdentifiers;
+  readonly rcsb_group_info: RcsbGroupInfo;
+  readonly rcsb_group_related?: Maybe<ReadonlyArray<Maybe<RcsbGroupRelated>>>;
+  readonly rcsb_group_statistics?: Maybe<RcsbGroupStatistics>;
+  /** A unique textual identifier for a group */
+  readonly rcsb_id: Scalars['String'];
+  readonly rcsb_polymer_entity_group_members_rankings?: Maybe<ReadonlyArray<Maybe<RcsbPolymerEntityGroupMembersRankings>>>;
+  readonly rcsb_polymer_entity_group_sequence_alignment?: Maybe<RcsbPolymerEntityGroupSequenceAlignment>;
+};
+
+export type GroupProvenance = {
+  readonly rcsb_group_aggregation_method?: Maybe<RcsbGroupAggregationMethod>;
+  readonly rcsb_group_provenance_container_identifiers?: Maybe<RcsbGroupProvenanceContainerIdentifiers>;
+  /** A unique textual identifier for a group provenance */
+  readonly rcsb_id?: Maybe<Scalars['String']>;
+};
+
 export type InterfacePartnerFeatureAdditionalProperties = {
   /**
    * The additional property name.
@@ -3218,6 +3273,17 @@ export type InterfacePartnerFeatureFeaturePositions = {
   readonly end_seq_id?: Maybe<Scalars['Int']>;
   /** The value(s) of the feature over the monomer segment. */
   readonly values?: Maybe<ReadonlyArray<Maybe<Scalars['Float']>>>;
+};
+
+export type MethodDetails = {
+  /** A description of special aspects of the clustering process */
+  readonly description?: Maybe<Scalars['String']>;
+  /** Defines the name of the description associated with the clustering process */
+  readonly name?: Maybe<Scalars['String']>;
+  /** Defines the type of the description associated with the clustering process */
+  readonly type?: Maybe<Scalars['String']>;
+  /** Defines the value associated with the clustering process */
+  readonly value?: Maybe<Scalars['Float']>;
 };
 
 export type PdbxAuditRevisionCategory = {
@@ -6779,6 +6845,12 @@ export type Query = {
   readonly entries?: Maybe<ReadonlyArray<Maybe<CoreEntry>>>;
   /** Get PDB entry given the PDB id. */
   readonly entry?: Maybe<CoreEntry>;
+  /** Given a group ID get a group object formed by aggregating individual structures that share a degree of similarity */
+  readonly entry_group?: Maybe<GroupEntry>;
+  /** Given a list of group IDs get a list of group objects formed by aggregating structures that share a degree of similarity */
+  readonly entry_groups?: Maybe<ReadonlyArray<Maybe<GroupEntry>>>;
+  /** Given a group provenance ID get an object that describes aggregation method used to create groups */
+  readonly group_provenance?: Maybe<GroupProvenance>;
   /** Get a pairwise polymeric interface given the PDB ID, ASSEMBLY ID and INTERFACE ID. */
   readonly interface?: Maybe<CoreInterface>;
   /** Get a list of pairwise polymeric interfaces given a list of INTERFACE IDs. Here INTERFACE ID is a compound identifier that includes entry_id, assembly_id and interface_id e.g. 1XXX-1.1. */
@@ -6795,6 +6867,10 @@ export type Query = {
   readonly polymer_entities?: Maybe<ReadonlyArray<Maybe<CorePolymerEntity>>>;
   /** Get a PDB polymer entity, given the PDB ID and ENTITY ID. Here ENTITY ID is a '1', '2', '3', etc. */
   readonly polymer_entity?: Maybe<CorePolymerEntity>;
+  /** Given a group ID get a group object formed by aggregating polymer entities that share a degree of similarity */
+  readonly polymer_entity_group?: Maybe<GroupPolymerEntity>;
+  /** Given a list of group IDs get a list of group objects formed by aggregating polymer entities that share a degree of similarity */
+  readonly polymer_entity_groups?: Maybe<ReadonlyArray<Maybe<GroupPolymerEntity>>>;
   /** Get a PDB polymer entity instance (chain), given the PDB ID and ENTITY INSTANCE ID. Here ENTITY INSTANCE ID identifies structural element in the asymmetric unit, e.g. 'A', 'B', etc. */
   readonly polymer_entity_instance?: Maybe<CorePolymerEntityInstance>;
   /** Get a list of PDB polymer entity instances (chains), given the list of ENTITY INSTANCE IDs. Here ENTITY INSTANCE ID identifies structural element in the asymmetric unit, e.g. 'A', 'B', etc. */
@@ -6870,6 +6946,24 @@ export type QueryEntryArgs = {
 
 
 /** Query root */
+export type QueryEntry_GroupArgs = {
+  group_id: Scalars['String'];
+};
+
+
+/** Query root */
+export type QueryEntry_GroupsArgs = {
+  group_ids: ReadonlyArray<InputMaybe<Scalars['String']>>;
+};
+
+
+/** Query root */
+export type QueryGroup_ProvenanceArgs = {
+  group_provenance_id: Scalars['String'];
+};
+
+
+/** Query root */
 export type QueryInterfaceArgs = {
   assembly_id: Scalars['String'];
   entry_id: Scalars['String'];
@@ -6919,6 +7013,18 @@ export type QueryPolymer_EntitiesArgs = {
 export type QueryPolymer_EntityArgs = {
   entity_id: Scalars['String'];
   entry_id: Scalars['String'];
+};
+
+
+/** Query root */
+export type QueryPolymer_Entity_GroupArgs = {
+  group_id: Scalars['String'];
+};
+
+
+/** Query root */
+export type QueryPolymer_Entity_GroupsArgs = {
+  group_ids: ReadonlyArray<InputMaybe<Scalars['String']>>;
 };
 
 
@@ -8666,6 +8772,25 @@ export type RcsbEntryContainerIdentifiers = {
   readonly water_entity_ids?: Maybe<ReadonlyArray<Maybe<Scalars['String']>>>;
 };
 
+export type RcsbEntryGroupMembership = {
+  /**
+   * Method used to establish group membership
+   *
+   * Allowable values:
+   * matching_deposit_group_id
+   *
+   */
+  readonly aggregation_method: Scalars['String'];
+  /**
+   * A unique identifier for a group of entries
+   *
+   * Examples:
+   * G_1001001
+   *
+   */
+  readonly group_id: Scalars['String'];
+};
+
 export type RcsbEntryInfo = {
   /** The number of assemblies defined for this entry including the deposited assembly. */
   readonly assembly_count?: Maybe<Scalars['Int']>;
@@ -8891,6 +9016,127 @@ export type RcsbGenomicLineage = {
    *
    */
   readonly name?: Maybe<Scalars['String']>;
+};
+
+export type RcsbGroupAccessionInfo = {
+  /** Identifies the version of the groups solution */
+  readonly version: Scalars['Int'];
+};
+
+export type RcsbGroupAggregationMethod = {
+  /** The details on a method used to calculate cluster solutions */
+  readonly method: RcsbGroupAggregationMethodMethod;
+  readonly similarity_criteria?: Maybe<RcsbGroupAggregationMethodSimilarityCriteria>;
+  /**
+   * Specifies the type of similarity criteria used to aggregate members into higher levels in the hierarchy
+   *
+   * Allowable values:
+   * sequence_identity, matching_uniprot_accession, matching_deposit_group_id
+   *
+   */
+  readonly type: Scalars['String'];
+};
+
+export type RcsbGroupAggregationMethodMethod = {
+  /** Additional details describing the clustering process */
+  readonly details?: Maybe<ReadonlyArray<Maybe<MethodDetails>>>;
+  /**
+   * The name of the software or the method used to calculate cluster solutions
+   *
+   * Allowable values:
+   * mmseqs2, matching_reference_identity
+   *
+   */
+  readonly name: Scalars['String'];
+  /**
+   * The version of the software.
+   *
+   * Examples:
+   * v1.0, 3.1-2, unknown
+   *
+   */
+  readonly version?: Maybe<Scalars['String']>;
+};
+
+export type RcsbGroupAggregationMethodSimilarityCriteria = {
+  /**
+   * A function or similarity measure that quantifies the similarity between two members
+   *
+   * Allowable values:
+   * rmsd, sequence_identity
+   *
+   */
+  readonly similarity_function?: Maybe<Scalars['String']>;
+};
+
+export type RcsbGroupContainerIdentifiers = {
+  /** A unique textual identifier for a group */
+  readonly group_id: Scalars['String'];
+  /** Member identifiers representing a group */
+  readonly group_member_ids: ReadonlyArray<Maybe<Scalars['String']>>;
+  /**
+   * A unique group provenance identifier
+   *
+   * Allowable values:
+   * provenance_sequence_identity, provenance_matching_uniprot_accession, provenance_matching_deposit_group_id
+   *
+   */
+  readonly group_provenance_id: Scalars['String'];
+  /** Member identifiers representing a higher level in the groping hierarchy that has parent-child relationship */
+  readonly parent_member_ids?: Maybe<ReadonlyArray<Maybe<Scalars['String']>>>;
+};
+
+export type RcsbGroupInfo = {
+  readonly group_description?: Maybe<Scalars['String']>;
+  readonly group_members_count: Scalars['Int'];
+  /**
+   * Granularity of group members identifiers
+   *
+   * Allowable values:
+   * assembly, entry, polymer_entity, polymer_entity_instance
+   *
+   */
+  readonly group_members_granularity: Scalars['String'];
+  readonly group_name?: Maybe<Scalars['String']>;
+};
+
+export type RcsbGroupProvenanceContainerIdentifiers = {
+  /**
+   * A unique group provenance identifier
+   *
+   * Allowable values:
+   * provenance_sequence_identity, provenance_matching_uniprot_accession, provenance_matching_deposit_group_id
+   *
+   */
+  readonly group_provenance_id: Scalars['String'];
+};
+
+export type RcsbGroupRelated = {
+  /**
+   * A unique code assigned to a reference related the group
+   *
+   * Examples:
+   * P69905
+   *
+   */
+  readonly resource_accession_code?: Maybe<Scalars['String']>;
+  /**
+   * Defines the type of the resource describing related references
+   *
+   * Examples:
+   * UniProt
+   *
+   */
+  readonly resource_name?: Maybe<Scalars['String']>;
+};
+
+export type RcsbGroupStatistics = {
+  /** The desired lower limit for the similarity between two members that belong to the same group */
+  readonly similarity_cutoff?: Maybe<Scalars['Float']>;
+  /** Similarity score between two most similar group members */
+  readonly similarity_score_max?: Maybe<Scalars['Float']>;
+  /** Similarity score between two least similar group members */
+  readonly similarity_score_min?: Maybe<Scalars['Float']>;
 };
 
 export type RcsbInterfaceContainerIdentifiers = {
@@ -9902,6 +10148,7 @@ export type RcsbPolymerEntity = {
    *
    */
   readonly rcsb_multiple_source_flag?: Maybe<Scalars['String']>;
+  readonly rcsb_polymer_name_combined?: Maybe<RcsbPolymerEntityRcsbPolymerNameCombined>;
   /**
    * The number of biological sources for the polymer entity. Multiple source contributions
    *  may come from the same organism (taxonomy).
@@ -10228,6 +10475,69 @@ export type RcsbPolymerEntityFeatureSummary = {
   readonly type?: Maybe<Scalars['String']>;
 };
 
+export type RcsbPolymerEntityGroupMembersRankings = {
+  readonly group_members: ReadonlyArray<Maybe<RcsbPolymerEntityGroupMembersRankingsGroupMembers>>;
+  /**
+   * Defines ranking option applicable to group members
+   *
+   * Allowable values:
+   * coverage
+   *
+   */
+  readonly ranking_criteria_type: Scalars['String'];
+};
+
+export type RcsbPolymerEntityGroupMembersRankingsGroupMembers = {
+  readonly member_id: Scalars['String'];
+  /** Quantifies the criteria used for ranking */
+  readonly original_score?: Maybe<Scalars['Float']>;
+  /** Reflects a relationship between group members such that, for any two members the first is ranked higher (smaller rank value) than the second */
+  readonly rank: Scalars['Int'];
+};
+
+export type RcsbPolymerEntityGroupMembership = {
+  /**
+   * Method used to establish group membership
+   *
+   * Allowable values:
+   * sequence_identity, matching_uniprot_accession
+   *
+   */
+  readonly aggregation_method: Scalars['String'];
+  /**
+   * A unique identifier for a group of entities
+   *
+   * Examples:
+   * 1_100, P00003
+   *
+   */
+  readonly group_id: Scalars['String'];
+  /** Degree of similarity expressed as a floating-point number */
+  readonly similarity_cutoff?: Maybe<Scalars['Float']>;
+};
+
+export type RcsbPolymerEntityGroupSequenceAlignment = {
+  /** Abstract reference where group members can be aligned to generate a MSA */
+  readonly abstract_reference: RcsbPolymerEntityGroupSequenceAlignmentAbstractReference;
+  /** List of alignments with core_entity canonical sequences */
+  readonly group_members_alignment: ReadonlyArray<Maybe<RcsbPolymerEntityGroupSequenceAlignmentGroupMembersAlignment>>;
+};
+
+export type RcsbPolymerEntityGroupSequenceAlignmentAbstractReference = {
+  /** Abstract reference length */
+  readonly length: Scalars['Int'];
+  /** Sequence that represents the abstract reference */
+  readonly sequence?: Maybe<Scalars['String']>;
+};
+
+export type RcsbPolymerEntityGroupSequenceAlignmentGroupMembersAlignment = {
+  /** Aligned region */
+  readonly aligned_regions: ReadonlyArray<Maybe<GroupMembersAlignmentAlignedRegions>>;
+  readonly member_id?: Maybe<Scalars['String']>;
+  /** Alignment scores */
+  readonly scores: GroupMembersAlignmentScores;
+};
+
 export type RcsbPolymerEntityInstanceContainerIdentifiers = {
   /** Instance identifier for this container. */
   readonly asym_id: Scalars['String'];
@@ -10343,6 +10653,13 @@ export type RcsbPolymerEntityRcsbMacromolecularNamesCombined = {
    * PDB Preferred Name, PDB Synonym
    *
    */
+  readonly provenance_source?: Maybe<Scalars['String']>;
+};
+
+export type RcsbPolymerEntityRcsbPolymerNameCombined = {
+  /** Protein name annotated by the UniProtKB or macromolecular name assigned by the PDB */
+  readonly names?: Maybe<ReadonlyArray<Maybe<Scalars['String']>>>;
+  /** Allowable values: PDB Preferred Name, PDB Description, UniProt Name. */
   readonly provenance_source?: Maybe<Scalars['String']>;
 };
 
