@@ -32,7 +32,7 @@ export async function createImage(ctx: VisualContext, volume: Volume, theme: The
     const isoVal = Volume.IsoValue.toAbsolute(isoValue, volume.grid.stats).absoluteValue;
 
     // TODO more color themes
-    const color = theme.color.color(NullLocation, false);
+    const color = 'color' in theme.color ? theme.color.color(NullLocation, false) : Color(0xffffff);
     const [r, g, b] = Color.toRgbNormalized(color);
 
     const {

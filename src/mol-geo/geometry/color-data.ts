@@ -12,10 +12,12 @@ import { Vec2, Vec3, Vec4 } from '../../mol-math/linear-algebra';
 import { LocationIterator } from '../util/location-iterator';
 import { NullLocation } from '../../mol-model/location';
 import { LocationColor, ColorTheme, ColorVolume } from '../../mol-theme/color';
-import { Geometry } from './geometry';
 import { createNullTexture, Texture } from '../../mol-gl/webgl/texture';
 
-export type ColorType = 'uniform' | 'instance' | 'group' | 'groupInstance' | 'vertex' | 'vertexInstance' | 'volume' | 'volumeInstance' | 'direct'
+export type ColorTypeLocation = 'uniform' | 'instance' | 'group' | 'groupInstance' | 'vertex' | 'vertexInstance';
+export type ColorTypeGrid = 'volume' | 'volumeInstance';
+export type ColorTypeDirect = 'direct';
+export type ColorType = ColorTypeLocation | ColorTypeGrid | ColorTypeDirect;
 
 export type ColorData = {
     uColor: ValueCell<Vec3>,
@@ -29,7 +31,7 @@ export type ColorData = {
     dUsePalette: ValueCell<boolean>,
 }
 
-export function createColors(locationIt: LocationIterator, positionIt: LocationIterator, colorTheme: ColorTheme<any>, colorData?: ColorData): ColorData {
+export function createColors(locationIt: LocationIterator, positionIt: LocationIterator, colorTheme: ColorTheme<any, any>, colorData?: ColorData): ColorData {
     const data = _createColors(locationIt, positionIt, colorTheme, colorData);
     if (colorTheme.palette) {
         ValueCell.updateIfChanged(data.dUsePalette, true);
@@ -40,26 +42,19 @@ export function createColors(locationIt: LocationIterator, positionIt: LocationI
     return data;
 }
 
-function _createColors(locationIt: LocationIterator, positionIt: LocationIterator, colorTheme: ColorTheme<any>, colorData?: ColorData): ColorData {
-    switch (Geometry.getGranularity(locationIt, colorTheme.granularity)) {
+function _createColors(locationIt: LocationIterator, positionIt: LocationIterator, colorTheme: ColorTheme<any, any>, colorData?: ColorData): ColorData {
+    switch (colorTheme.granularity) {
         case 'uniform': return createUniformColor(locationIt, colorTheme.color, colorData);
-        case 'instance': return createInstanceColor(locationIt, colorTheme.color, colorData);
+        case 'instance':
+            return locationIt.nonInstanceable
+                ? createInstanceColor(locationIt, colorTheme.color, colorData)
+                : createGroupColor(locationIt, colorTheme.color, colorData);
         case 'group': return createGroupColor(locationIt, colorTheme.color, colorData);
         case 'groupInstance': return createGroupInstanceColor(locationIt, colorTheme.color, colorData);
         case 'vertex': return createVertexColor(positionIt, colorTheme.color, colorData);
         case 'vertexInstance': return createVertexInstanceColor(positionIt, colorTheme.color, colorData);
-        case 'volume':
-            if (colorTheme.grid) {
-                return createGridColor(colorTheme.grid, 'volume', colorData);
-            } else {
-                throw new Error('Grid missing for "volume" color theme');
-            }
-        case 'volumeInstance':
-            if (colorTheme.grid) {
-                return createGridColor(colorTheme.grid, 'volumeInstance', colorData);
-            } else {
-                throw new Error('Grid missing for "volume" color theme');
-            }
+        case 'volume': return createGridColor(colorTheme.grid, 'volume', colorData);
+        case 'volumeInstance': return createGridColor(colorTheme.grid, 'volumeInstance', colorData);
         case 'direct': return createDirectColor(colorData);
     }
 }

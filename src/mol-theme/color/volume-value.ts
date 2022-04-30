@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2021-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -9,8 +9,8 @@ import { Color, ColorScale } from '../../mol-util/color';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { ThemeDataContext } from '../theme';
 import { ColorNames } from '../../mol-util/color/names';
+import { ColorTypeDirect } from '../../mol-geo/geometry/color-data';
 
-const DefaultColor = Color(0xCCCCCC);
 const Description = 'Assign color based on the given value of a volume cell.';
 
 export const VolumeValueColorThemeParams = {
@@ -30,7 +30,7 @@ export function getVolumeValueColorThemeParams(ctx: ThemeDataContext) {
     return VolumeValueColorThemeParams; // TODO return copy
 }
 
-export function VolumeValueColorTheme(ctx: ThemeDataContext, props: PD.Values<VolumeValueColorThemeParams>): ColorTheme<VolumeValueColorThemeParams> {
+export function VolumeValueColorTheme(ctx: ThemeDataContext, props: PD.Values<VolumeValueColorThemeParams>): ColorTheme<VolumeValueColorThemeParams, ColorTypeDirect> {
     const scale = ColorScale.create({ domain: [0, 1], listOrName: props.colorList.colors });
 
     const colors: Color[] = [];
@@ -43,7 +43,6 @@ export function VolumeValueColorTheme(ctx: ThemeDataContext, props: PD.Values<Vo
     return {
         factory: VolumeValueColorTheme,
         granularity: 'direct',
-        color: () => DefaultColor,
         props: props,
         description: Description,
         legend: scale.legend,

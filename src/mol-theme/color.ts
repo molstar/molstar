@@ -6,7 +6,7 @@
 
 import { Color } from '../mol-util/color';
 import { Location } from '../mol-model/location';
-import { ColorType } from '../mol-geo/geometry/color-data';
+import { ColorType, ColorTypeDirect, ColorTypeGrid, ColorTypeLocation } from '../mol-geo/geometry/color-data';
 import { CarbohydrateSymbolColorThemeProvider } from './color/carbohydrate-symbol';
 import { UniformColorThemeProvider } from './color/uniform';
 import { deepEqual } from '../mol-util';
@@ -48,12 +48,10 @@ export interface ColorVolume {
 }
 
 export { ColorTheme };
-interface ColorTheme<P extends PD.Params> {
-    readonly factory: ColorTheme.Factory<P>
-    readonly granularity: ColorType
-    readonly color: LocationColor
+
+type ColorThemeShared<P extends PD.Params, G extends ColorType> = {
+    readonly factory: ColorTheme.Factory<P, G>
     readonly props: Readonly<PD.Values<P>>
-    readonly grid?: ColorVolume
     /**
      * if palette is defined, 24bit RGB color value normalized to interval [0, 1]
      * is used as index to the colors
@@ -64,6 +62,26 @@ interface ColorTheme<P extends PD.Params> {
     readonly description?: string
     readonly legend?: Readonly<ScaleLegend | TableLegend>
 }
+
+type ColorThemeLocation<P extends PD.Params> = {
+    readonly granularity: ColorTypeLocation
+    readonly color: LocationColor
+} & ColorThemeShared<P, ColorTypeLocation>
+
+type ColorThemeGrid<P extends PD.Params> = {
+    readonly granularity: ColorTypeGrid
+    readonly grid: ColorVolume
+} & ColorThemeShared<P, ColorTypeGrid>
+
+type ColorThemeDirect<P extends PD.Params> = {
+    readonly granularity: ColorTypeDirect
+} & ColorThemeShared<P, ColorTypeDirect>
+
+type ColorTheme<P extends PD.Params, G extends ColorType = ColorTypeLocation> =
+    G extends ColorTypeLocation ? ColorThemeLocation<P> :
+        G extends ColorTypeGrid ? ColorThemeGrid<P> :
+            G extends ColorTypeDirect ? ColorThemeDirect<P> : never
+
 namespace ColorTheme {
     export const enum Category {
         Atom = 'Atom Property',
@@ -82,7 +100,7 @@ namespace ColorTheme {
     export const PaletteScale = (1 << 24) - 1;
 
     export type Props = { [k: string]: any }
-    export type Factory<P extends PD.Params> = (ctx: ThemeDataContext, props: PD.Values<P>) => ColorTheme<P>
+    export type Factory<P extends PD.Params, G extends ColorType> = (ctx: ThemeDataContext, props: PD.Values<P>) => ColorTheme<P, G>
     export const EmptyFactory = () => Empty;
     const EmptyColor = Color(0xCCCCCC);
     export const Empty: ColorTheme<{}> = {
@@ -92,16 +110,16 @@ namespace ColorTheme {
         props: {}
     };
 
-    export function areEqual(themeA: ColorTheme<any>, themeB: ColorTheme<any>) {
+    export function areEqual(themeA: ColorTheme<any, any>, themeB: ColorTheme<any, any>) {
         return themeA.contextHash === themeB.contextHash && themeA.factory === themeB.factory && deepEqual(themeA.props, themeB.props);
     }
 
-    export interface Provider<P extends PD.Params = any, Id extends string = string> extends ThemeProvider<ColorTheme<P>, P, Id> { }
+    export interface Provider<P extends PD.Params = any, Id extends string = string, G extends ColorType = ColorType> extends ThemeProvider<ColorTheme<P, G>, P, Id, G> { }
     export const EmptyProvider: Provider<{}> = { name: '', label: '', category: '', factory: EmptyFactory, getParams: () => ({}), defaultValues: {}, isApplicable: () => true };
 
-    export type Registry = ThemeRegistry<ColorTheme<any>>
+    export type Registry = ThemeRegistry<ColorTheme<any, any>>
     export function createRegistry() {
-        return new ThemeRegistry(BuiltIn as { [k: string]: Provider<any> }, EmptyProvider);
+        return new ThemeRegistry(BuiltIn as { [k: string]: Provider<any, any, any> }, EmptyProvider);
     }
 
     export const BuiltIn = {
