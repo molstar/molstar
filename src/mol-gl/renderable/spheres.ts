@@ -23,7 +23,7 @@ export const SpheresSchema = {
     uDoubleSided: UniformSpec('b'),
     dIgnoreLight: DefineSpec('boolean'),
     dXrayShaded: DefineSpec('boolean'),
-    dOpaqueBackfaces: DefineSpec('boolean'),
+    dTransparentBackfaces: DefineSpec('string', ['off', 'on', 'opaque']),
     uBumpFrequency: UniformSpec('f'),
     uBumpAmplitude: UniformSpec('f'),
 };

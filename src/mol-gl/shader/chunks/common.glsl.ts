@@ -17,6 +17,10 @@ export const common = `
     #define dColorType_varying
 #endif
 
+#define MaskAll 0
+#define MaskOpaque 1
+#define MaskTransparent 2
+
 //
 
 #define PI 3.14159265

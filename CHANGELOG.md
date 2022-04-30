@@ -7,8 +7,13 @@ Note that since we don't clearly distinguish between a public and private interf
 ## [Unreleased]
 
 - Fix case handling of ``struct_conf`` mmCIF enumeration field (#425)
+- Add support for outlines around transparent objects
+- Improve per-group transparency when wboit is switched off
+- Fix ``allowTransparentBackfaces`` for per-group transparency
 - Fix ``FormatRegistry.isApplicable`` returning true for unregistered formats
 - Fix: handle building of ``GridLookup3D`` with zero cell size
+- Fix ``ignoreLight`` for direct-volume rendering with webgl1
+- Fix (non-black) outlines when using transparent background
 
 ## [v3.7.0] - 2022-04-13
 

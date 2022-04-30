@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -9,6 +9,7 @@ import { createNullTexture, Texture, TextureFilter } from './texture';
 import { createNullFramebuffer, Framebuffer } from './framebuffer';
 import { WebGLResources } from './resources';
 import { GLRenderingContext, isWebGL2 } from './compat';
+import { Renderbuffer } from './renderbuffer';
 
 const getNextRenderTargetId = idFactory();
 
@@ -16,6 +17,7 @@ export interface RenderTarget {
     readonly id: number
     readonly texture: Texture
     readonly framebuffer: Framebuffer
+    readonly depthRenderbuffer: Renderbuffer | null
 
     getWidth: () => number
     getHeight: () => number
@@ -54,6 +56,7 @@ export function createRenderTarget(gl: GLRenderingContext, resources: WebGLResou
         id: getNextRenderTargetId(),
         texture: targetTexture,
         framebuffer,
+        depthRenderbuffer,
 
         getWidth: () => _width,
         getHeight: () => _height,
@@ -90,6 +93,7 @@ export function createNullRenderTarget(gl: GLRenderingContext): RenderTarget {
         id: getNextRenderTargetId(),
         texture: createNullTexture(gl),
         framebuffer: createNullFramebuffer(),
+        depthRenderbuffer: null,
 
         getWidth: () => 0,
         getHeight: () => 0,

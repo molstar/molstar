@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -153,7 +153,7 @@ export const GlobalUniformSchema = {
 
     uXrayEdgeFalloff: UniformSpec('f'),
 
-    uRenderWboit: UniformSpec('b'),
+    uRenderMask: UniformSpec('i'),
     uMarkingDepthTest: UniformSpec('b'),
     uMarkingType: UniformSpec('i'),
     uPickType: UniformSpec('i'),

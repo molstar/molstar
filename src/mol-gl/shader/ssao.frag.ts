@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Áron Samuel Kovács <aron.kovacs@mail.muni.cz>
@@ -51,7 +51,15 @@ bool outsideBounds(const in vec2 p) {
 }
 
 float getDepth(const in vec2 coords) {
-    return outsideBounds(coords) ? 1.0 : unpackRGBAToDepth(texture2D(tDepth, coords));
+    if (outsideBounds(coords)) {
+        return 1.0;
+    } else {
+        #ifdef depthTextureSupport
+            return texture2D(tDepth, coords).r;
+        #else
+            return unpackRGBAToDepth(texture2D(tDepth, coords));
+        #endif
+    }
 }
 
 vec3 normalFromDepth(const in float depth, const in float depth1, const in float depth2, vec2 offset1, vec2 offset2) {

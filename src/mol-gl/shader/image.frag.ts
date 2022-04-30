@@ -130,7 +130,7 @@ void main() {
                 discard;
             float depthTest = 1.0;
             if (uMarkingDepthTest) {
-                depthTest = (fragmentDepth >= getDepth(gl_FragCoord.xy / uDrawingBufferSize)) ? 1.0 : 0.0;
+                depthTest = (fragmentDepth >= getDepthPacked(gl_FragCoord.xy / uDrawingBufferSize)) ? 1.0 : 0.0;
             }
             bool isHighlight = intMod(marker, 2.0) > 0.1;
             gl_FragColor = vec4(0.0, depthTest, isHighlight ? 1.0 : 0.0, 1.0);

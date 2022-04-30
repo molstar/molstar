@@ -30,7 +30,8 @@ import { SmaaParams, SmaaPass } from './smaa';
 
 const OutlinesSchema = {
     ...QuadSchema,
-    tDepth: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
+    tDepthOpaque: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
+    tDepthTransparent: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
     uTexSize: UniformSpec('v2'),
 
     dOrthographic: DefineSpec('number'),
@@ -41,11 +42,15 @@ const OutlinesSchema = {
 };
 type OutlinesRenderable = ComputeRenderable<Values<typeof OutlinesSchema>>
 
-function getOutlinesRenderable(ctx: WebGLContext, depthTexture: Texture): OutlinesRenderable {
+function getOutlinesRenderable(ctx: WebGLContext, depthTextureOpaque: Texture, depthTextureTransparent: Texture): OutlinesRenderable {
+    const width = depthTextureOpaque.getWidth();
+    const height = depthTextureOpaque.getHeight();
+
     const values: Values<typeof OutlinesSchema> = {
         ...QuadValues,
-        tDepth: ValueCell.create(depthTexture),
-        uTexSize: ValueCell.create(Vec2.create(depthTexture.getWidth(), depthTexture.getHeight())),
+        tDepthOpaque: ValueCell.create(depthTextureOpaque),
+        tDepthTransparent: ValueCell.create(depthTextureTransparent),
+        uTexSize: ValueCell.create(Vec2.create(width, height)),
 
         dOrthographic: ValueCell.create(0),
         uNear: ValueCell.create(1),
@@ -183,7 +188,8 @@ const PostprocessingSchema = {
     ...QuadSchema,
     tSsaoDepth: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
     tColor: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
-    tDepth: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
+    tDepthOpaque: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
+    tDepthTransparent: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
     tOutlines: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
     uTexSize: UniformSpec('v2'),
 
@@ -207,12 +213,13 @@ const PostprocessingSchema = {
 };
 type PostprocessingRenderable = ComputeRenderable<Values<typeof PostprocessingSchema>>
 
-function getPostprocessingRenderable(ctx: WebGLContext, colorTexture: Texture, depthTexture: Texture, outlinesTexture: Texture, ssaoDepthTexture: Texture): PostprocessingRenderable {
+function getPostprocessingRenderable(ctx: WebGLContext, colorTexture: Texture, depthTextureOpaque: Texture, depthTextureTransparent: Texture, outlinesTexture: Texture, ssaoDepthTexture: Texture): PostprocessingRenderable {
     const values: Values<typeof PostprocessingSchema> = {
         ...QuadValues,
         tSsaoDepth: ValueCell.create(ssaoDepthTexture),
         tColor: ValueCell.create(colorTexture),
-        tDepth: ValueCell.create(depthTexture),
+        tDepthOpaque: ValueCell.create(depthTextureOpaque),
+        tDepthTransparent: ValueCell.create(depthTextureTransparent),
         tOutlines: ValueCell.create(outlinesTexture),
         uTexSize: ValueCell.create(Vec2.create(colorTexture.getWidth(), colorTexture.getHeight())),
 
@@ -274,6 +281,10 @@ export class PostprocessingPass {
         return props.occlusion.name === 'on' || props.outline.name === 'on';
     }
 
+    static isOutlineEnabled(props: PostprocessingProps) {
+        return props.outline.name === 'on';
+    }
+
     readonly target: RenderTarget;
 
     private readonly outlinesTarget: RenderTarget;
@@ -307,7 +318,7 @@ export class PostprocessingPass {
     }
 
     constructor(private webgl: WebGLContext, private drawPass: DrawPass) {
-        const { colorTarget, depthTexture } = drawPass;
+        const { colorTarget, depthTexture: depthTextureTransparent, depthTexturePrimitives: depthTextureOpaque } = drawPass;
         const width = colorTarget.getWidth();
         const height = colorTarget.getHeight();
 
@@ -320,7 +331,7 @@ export class PostprocessingPass {
         this.target = webgl.createRenderTarget(width, height, false, 'uint8', 'linear');
 
         this.outlinesTarget = webgl.createRenderTarget(width, height, false);
-        this.outlinesRenderable = getOutlinesRenderable(webgl, depthTexture);
+        this.outlinesRenderable = getOutlinesRenderable(webgl, depthTextureOpaque, depthTextureTransparent);
 
         this.randomHemisphereVector = [];
         for (let i = 0; i < 256; i++) {
@@ -340,7 +351,7 @@ export class PostprocessingPass {
         const sh = Math.floor(height * this.ssaoScale);
 
         this.downsampledDepthTarget = webgl.createRenderTarget(sw, sh, false, 'uint8', 'linear');
-        this.downsampleDepthRenderable = createCopyRenderable(webgl, depthTexture);
+        this.downsampleDepthRenderable = createCopyRenderable(webgl, depthTextureOpaque);
 
         this.ssaoDepthTexture = webgl.resources.texture('image-uint8', 'rgba', 'ubyte', 'linear');
         this.ssaoDepthTexture.define(sw, sh);
@@ -352,10 +363,10 @@ export class PostprocessingPass {
 
         this.ssaoDepthTexture.attachFramebuffer(this.ssaoBlurSecondPassFramebuffer, 'color0');
 
-        this.ssaoRenderable = getSsaoRenderable(webgl, this.downsampleFactor === 1 ? depthTexture : this.downsampledDepthTarget.texture);
+        this.ssaoRenderable = getSsaoRenderable(webgl, this.downsampleFactor === 1 ? depthTextureOpaque : this.downsampledDepthTarget.texture);
         this.ssaoBlurFirstPassRenderable = getSsaoBlurRenderable(webgl, this.ssaoDepthTexture, 'horizontal');
         this.ssaoBlurSecondPassRenderable = getSsaoBlurRenderable(webgl, this.ssaoDepthBlurProxyTexture, 'vertical');
-        this.renderable = getPostprocessingRenderable(webgl, colorTarget.texture, depthTexture, this.outlinesTarget.texture, this.ssaoDepthTexture);
+        this.renderable = getPostprocessingRenderable(webgl, colorTarget.texture, depthTextureOpaque, depthTextureTransparent, this.outlinesTarget.texture, this.ssaoDepthTexture);
     }
 
     setSize(width: number, height: number) {
