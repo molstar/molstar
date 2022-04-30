@@ -6,9 +6,14 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
-- Fix case handling of ``struct_conf`` mmCIF enumeration field (#425)
+## [v3.8.0] - 2022-04-30
+
 - Add support for outlines around transparent objects
 - Improve per-group transparency when wboit is switched off
+- Improve ``ColorTheme`` typing with ``ColorType`` generic.
+    - Defaults to ``ColorTypeLocation``
+    - Set when using ``ColorTypeDirect`` or ``ColorTypeGrid``
+- Fix case handling of ``struct_conf`` mmCIF enumeration field (#425)
 - Fix ``allowTransparentBackfaces`` for per-group transparency
 - Fix ``FormatRegistry.isApplicable`` returning true for unregistered formats
 - Fix: handle building of ``GridLookup3D`` with zero cell size
