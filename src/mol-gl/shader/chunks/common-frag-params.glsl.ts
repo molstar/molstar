@@ -64,7 +64,7 @@ uniform float uXrayEdgeFalloff;
 
 uniform mat4 uProjection;
 
-uniform bool uRenderWboit;
+uniform int uRenderMask;
 uniform bool uMarkingDepthTest;
 
 uniform sampler2D tDepth;

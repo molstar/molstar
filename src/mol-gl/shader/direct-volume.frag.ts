@@ -72,7 +72,7 @@ uniform float uPickingAlphaThreshold;
 uniform bool uTransparentBackground;
 uniform float uXrayEdgeFalloff;
 
-uniform bool uRenderWboit;
+uniform int uRenderMask;
 
 uniform float uNear;
 uniform float uFar;
@@ -141,12 +141,7 @@ float transferFunction(float value) {
 
 float getDepth(const in vec2 coords) {
     #ifdef depthTextureSupport
-        if (!uRenderWboit) {
-            // in case of opaque volumes (and depth texture support)
-            return texture2D(tDepth, coords).r;
-        } else {
-            return unpackRGBAToDepth(texture2D(tDepth, coords));
-        }
+        return texture2D(tDepth, coords).r;
     #else
         return unpackRGBAToDepth(texture2D(tDepth, coords));
     #endif

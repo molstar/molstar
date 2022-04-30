@@ -7,11 +7,11 @@
 
 export const wboit_write = `
 #if defined(dRenderVariant_colorWboit)
-    if (!uRenderWboit) {
+    if (uRenderMask == MaskOpaque) {
         if (preFogAlpha < 1.0) {
             discard;
         }
-    } else if (uRenderWboit) {
+    } else if (uRenderMask == MaskTransparent) {
         // the 'fragmentDepth > 0.99' check is to handle precision issues with packed depth
         if (preFogAlpha != 1.0 && (fragmentDepth < getDepth(gl_FragCoord.xy / uDrawingBufferSize) || fragmentDepth > 0.99)) {
             #ifdef dTransparentBackfaces_off
