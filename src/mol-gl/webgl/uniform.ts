@@ -42,6 +42,14 @@ export function getUniformType(gl: GLRenderingContext, kind: UniformKind) {
     }
 }
 
+export function isArrayUniform(kind: UniformKind) {
+    switch (kind) {
+        case 'b[]': case 'f[]': case 'i[]': case 'v2[]': case 'v3[]': case 'v4[]': case 'm3[]': case 'm4[]': return true;
+        case 'b': case 'f': case 'i': case 'v2': case 'v3': case 'v4': case 'm3': case 'm4': return false;
+        default: console.error(`unknown uniform kind '${kind}'`);
+    }
+}
+
 export type UniformSetter = (gl: GLRenderingContext, location: number, value: any) => void
 export type UniformSetters = { [k: string]: UniformSetter }
 
