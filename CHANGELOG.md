@@ -6,6 +6,8 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Fix issues with marking camera/handle helper (#433)
+
 ## [v3.8.0] - 2022-04-30
 
 - Add support for outlines around transparent objects

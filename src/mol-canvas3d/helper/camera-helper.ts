@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -17,7 +17,7 @@ import { WebGLContext } from '../../mol-gl/webgl/context';
 import { GraphicsRenderVariantsBlended } from '../../mol-gl/webgl/render-item';
 import { Sphere3D } from '../../mol-math/geometry';
 import { Mat4, Vec3 } from '../../mol-math/linear-algebra';
-import { DataLoci, EmptyLoci, Loci } from '../../mol-model/loci';
+import { DataLoci, EmptyLoci, isEveryLoci, Loci } from '../../mol-model/loci';
 import { Shape } from '../../mol-model/shape';
 import { Visual } from '../../mol-repr/visual';
 import { ColorNames } from '../../mol-util/color/names';
@@ -113,8 +113,10 @@ export class CameraHelper {
 
     mark(loci: Loci, action: MarkerAction) {
         if (!MarkerActions.is(MarkerActions.Highlighting, action)) return false;
-        if (!isCameraAxesLoci(loci)) return false;
-        if (loci.data !== this) return false;
+        if (!isEveryLoci(loci)) {
+            if (!isCameraAxesLoci(loci)) return false;
+            if (loci.data !== this) return false;
+        }
         return Visual.mark(this.renderObject, loci, action, this.eachGroup);
     }
 
