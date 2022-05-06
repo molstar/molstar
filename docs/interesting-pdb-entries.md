@@ -13,6 +13,7 @@
     * DZ has C1 instead of N1 (e.g. 6I4N)
     * DP has N5 instead of C5 and C7 instead of N7 (e.g. 6I4N)
 * Beta & Gamma peptides (e.g. 1GAC, 6PQF)
+* Helices of D-amino acids (e.g. 7QDI)
 * Mixed (heterogeneous) all-atom/trace-only RNA model (1JGQ)
 * Polymers with residues with missing trace atoms (e.g. 2QFJ)
 * Modified RNA bases (1y26, 5L4O)
