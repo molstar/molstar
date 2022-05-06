@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -372,12 +372,12 @@ namespace Canvas3D {
             const { repr, loci } = reprLoci;
             let changed = false;
             if (repr) {
-                changed = repr.mark(loci, action);
+                changed = repr.mark(loci, action) || changed;
             } else {
-                changed = helper.handle.mark(loci, action);
-                changed = helper.camera.mark(loci, action) || changed;
                 reprRenderObjects.forEach((_, _repr) => { changed = _repr.mark(loci, action) || changed; });
             }
+            changed = helper.handle.mark(loci, action) || changed;
+            changed = helper.camera.mark(loci, action) || changed;
             return changed;
         }
 
