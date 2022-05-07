@@ -7,7 +7,7 @@
 import { ShaderCode, DefineValues, addShaderDefines } from '../shader-code';
 import { WebGLState } from './state';
 import { WebGLExtensions } from './extensions';
-import { getUniformSetters, UniformsList, getUniformType, UniformSetters } from './uniform';
+import { getUniformSetters, UniformsList, getUniformType, UniformSetters, isArrayUniform } from './uniform';
 import { AttributeBuffers, getAttribType } from './buffer';
 import { TextureId, Textures } from './texture';
 import { idFactory } from '../../mol-util/id-factory';
@@ -41,7 +41,14 @@ function getLocations(gl: GLRenderingContext, program: WebGLProgram, schema: Ren
             // unused attributes will result in a `-1` location which is usually fine
             // if (loc === -1) console.info(`Could not get attribute location for '${k}'`);
             locations[k] = loc;
-        } else if (spec.type === 'uniform' || spec.type === 'texture') {
+        } else if (spec.type === 'uniform') {
+            let loc = gl.getUniformLocation(program, k);
+            // headless-gl requires a '[0]' suffix for array uniforms (https://github.com/stackgl/headless-gl/issues/170)
+            if (loc === null && isArrayUniform(spec.kind)) loc = gl.getUniformLocation(program, k + '[0]');
+            // unused uniforms will result in a `null` location which is usually fine
+            // if (loc === null) console.info(`Could not get uniform location for '${k}'`);
+            locations[k] = loc as number;
+        } else if (spec.type === 'texture') {
             const loc = gl.getUniformLocation(program, k);
             // unused uniforms will result in a `null` location which is usually fine
             // if (loc === null) console.info(`Could not get uniform location for '${k}'`);

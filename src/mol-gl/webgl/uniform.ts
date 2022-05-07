@@ -42,6 +42,10 @@ export function getUniformType(gl: GLRenderingContext, kind: UniformKind) {
     }
 }
 
+export function isArrayUniform(kind: UniformKind) {
+    return kind.endsWith('[]');
+}
+
 export type UniformSetter = (gl: GLRenderingContext, location: number, value: any) => void
 export type UniformSetters = { [k: string]: UniformSetter }
 
