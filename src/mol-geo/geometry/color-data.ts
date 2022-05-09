@@ -47,8 +47,8 @@ function _createColors(locationIt: LocationIterator, positionIt: LocationIterato
         case 'uniform': return createUniformColor(locationIt, colorTheme.color, colorData);
         case 'instance':
             return locationIt.nonInstanceable
-                ? createInstanceColor(locationIt, colorTheme.color, colorData)
-                : createGroupColor(locationIt, colorTheme.color, colorData);
+                ? createGroupColor(locationIt, colorTheme.color, colorData)
+                : createInstanceColor(locationIt, colorTheme.color, colorData);
         case 'group': return createGroupColor(locationIt, colorTheme.color, colorData);
         case 'groupInstance': return createGroupInstanceColor(locationIt, colorTheme.color, colorData);
         case 'vertex': return createVertexColor(positionIt, colorTheme.color, colorData);
