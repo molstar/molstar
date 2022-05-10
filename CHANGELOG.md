@@ -8,6 +8,7 @@ Note that since we don't clearly distinguish between a public and private interf
 
 - Fix issues with marking camera/handle helper (#433)
 - Fix issues with array uniforms when running with headless-gl
+- Fix Polymer Chain Instance coloring
 
 ## [v3.8.0] - 2022-04-30
 
