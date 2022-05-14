@@ -64,12 +64,10 @@ export class PickPass {
     }
 
     private renderVariant(renderer: Renderer, camera: ICamera, scene: Scene, helper: Helper, variant: 'pick' | 'depth', pickType: number) {
-        const depth = this.drawPass.depthTexturePrimitives;
         renderer.clear(false);
 
         renderer.update(camera);
         renderer.renderPick(scene.primitives, camera, variant, null, pickType);
-        renderer.renderPick(scene.volumes, camera, variant, depth, pickType);
         renderer.renderPick(helper.handle.scene, camera, variant, null, pickType);
 
         if (helper.camera.isEnabled) {

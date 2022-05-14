@@ -318,7 +318,7 @@ export class PostprocessingPass {
     }
 
     constructor(private webgl: WebGLContext, private drawPass: DrawPass) {
-        const { colorTarget, depthTexture: depthTextureTransparent, depthTexturePrimitives: depthTextureOpaque } = drawPass;
+        const { colorTarget, depthTextureTransparent, depthTextureOpaque } = drawPass;
         const width = colorTarget.getWidth();
         const height = colorTarget.getHeight();
 
@@ -471,7 +471,7 @@ export class PostprocessingPass {
                 this.ssaoDepthBlurProxyTexture.define(sw, sh);
 
                 if (this.ssaoScale === 1) {
-                    ValueCell.update(this.ssaoRenderable.values.tDepth, this.drawPass.depthTexture);
+                    ValueCell.update(this.ssaoRenderable.values.tDepth, this.drawPass.depthTextureTransparent);
                 } else {
                     ValueCell.update(this.ssaoRenderable.values.tDepth, this.downsampledDepthTarget.texture);
                 }
