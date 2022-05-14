@@ -6,6 +6,8 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+## [v3.8.1] - 2022-05-14
+
 - Fix issues with marking camera/handle helper (#433)
 - Fix issues with array uniforms when running with headless-gl
 - Fix Polymer Chain Instance coloring
