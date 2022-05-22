@@ -6,6 +6,8 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Fix ``Scene.opacityAverage`` not taking xray shaded into account
+
 ## [v3.8.1] - 2022-05-14
 
 - Fix issues with marking camera/handle helper (#433)

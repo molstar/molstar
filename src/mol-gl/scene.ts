@@ -211,7 +211,8 @@ namespace Scene {
                 // TODO: simplify, handle in renderable.state???
                 // uAlpha is updated in "render" so we need to recompute it here
                 const alpha = clamp(p.values.alpha.ref.value * p.state.alphaFactor, 0, 1);
-                opacityAverage += (1 - p.values.transparencyAverage.ref.value) * alpha;
+                const xray = p.values.dXrayShaded?.ref.value ? 0.5 : 1;
+                opacityAverage += (1 - p.values.transparencyAverage.ref.value) * alpha * xray;
                 count += 1;
             }
             return count > 0 ? opacityAverage / count : 0;
