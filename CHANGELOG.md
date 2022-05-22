@@ -6,6 +6,8 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+## [v3.8.2] - 2022-05-22
+
 - Fix ``Scene.opacityAverage`` not taking xray shaded into account
 
 ## [v3.8.1] - 2022-05-14
