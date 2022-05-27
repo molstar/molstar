@@ -3,6 +3,7 @@
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Aliaksei Chareshneu <chareshneu.tech@gmail.com>
  */
 
 import { StateTransforms } from '../transforms';
