@@ -6,7 +6,6 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
-## [v3.8.3] - 2022-05-27
 - Add check that a data block contains volume data before parsing
 
 ## [v3.8.2] - 2022-05-22
