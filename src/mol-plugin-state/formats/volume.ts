@@ -198,9 +198,9 @@ export const DscifProvider = DataFormatProvider({
     parse: async (plugin, data, params?: DsCifParams) => {
         const cifCell = await plugin.build().to(data).apply(StateTransforms.Data.ParseCif).commit();
         const b = plugin.build().to(cifCell);
-        const blocks = cifCell.obj!.data.blocks.slice(1); // zero block contains query meta-data
+        const blocks = cifCell.obj!.data.blocks.slice(0); // iterate over all blocks as even 0th can contain data
 
-        if (blocks.length !== 1 && blocks.length !== 2) throw new Error('unknown number of blocks');
+        if (blocks.length !== 1 && blocks.length !== 2 && blocks.length !== 3) throw new Error('unknown number of blocks');
 
         const volumes: StateObjectSelector<PluginStateObject.Volume.Data>[] = [];
         let i = 0;
