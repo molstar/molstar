@@ -205,6 +205,9 @@ export const DscifProvider = DataFormatProvider({
         const volumes: StateObjectSelector<PluginStateObject.Volume.Data>[] = [];
         let i = 0;
         for (const block of blocks) {
+            // Skip "server" data block.
+            if (block.header.toUpperCase() === 'SERVER') continue;
+            
             const entryId = Array.isArray(params?.entryId) ? params?.entryId[i] : params?.entryId;
             if (block.categories['volume_data_3d_info']?.rowCount > 0) {
                 volumes.push(b.apply(StateTransforms.Volume.VolumeFromDensityServerCif, { blockHeader: block.header, entryId }).selector);
