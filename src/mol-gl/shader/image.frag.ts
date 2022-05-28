@@ -103,13 +103,21 @@ void main() {
     #if defined(dRenderVariant_pick)
         if (imageData.a < 0.3)
             discard;
-        if (uPickType == 1) {
+        #ifdef requiredDrawBuffers
             gl_FragColor = vec4(packIntToRGB(float(uObjectId)), 1.0);
-        } else if (uPickType == 2) {
-            gl_FragColor = vec4(packIntToRGB(vInstance), 1.0);
-        } else {
-            gl_FragColor = vec4(texture2D(tGroupTex, vUv).rgb, 1.0);
-        }
+            gl_FragData[1] = vec4(packIntToRGB(vInstance), 1.0);
+            gl_FragData[2] = vec4(texture2D(tGroupTex, vUv).rgb, 1.0);
+            gl_FragData[3] = packDepthToRGBA(gl_FragCoord.z);
+        #else
+            gl_FragColor = vColor;
+            if (uPickType == 1) {
+                gl_FragColor = vec4(packIntToRGB(float(uObjectId)), 1.0);
+            } else if (uPickType == 2) {
+                gl_FragColor = vec4(packIntToRGB(vInstance), 1.0);
+            } else {
+                gl_FragColor = vec4(texture2D(tGroupTex, vUv).rgb, 1.0);
+            }
+        #endif
     #elif defined(dRenderVariant_depth)
         if (imageData.a < 0.05)
             discard;

@@ -86,7 +86,14 @@ void main(void){
 
     #if defined(dRenderVariant_pick)
         #include check_picking_alpha
-        gl_FragColor = material;
+        #ifdef requiredDrawBuffers
+            gl_FragColor = vObject;
+            gl_FragData[1] = vInstance;
+            gl_FragData[2] = vGroup;
+            gl_FragData[3] = packDepthToRGBA(fragmentDepth);
+        #else
+            gl_FragColor = vColor;
+        #endif
     #elif defined(dRenderVariant_depth)
         gl_FragColor = material;
     #elif defined(dRenderVariant_marking)

@@ -56,9 +56,21 @@ uniform float uBumpiness;
     #endif
 #elif defined(dRenderVariant_pick)
     #if __VERSION__ == 100
-        varying vec4 vColor;
+        #ifdef requiredDrawBuffers
+            varying vec4 vObject;
+            varying vec4 vInstance;
+            varying vec4 vGroup;
+        #else
+            varying vec4 vColor;
+        #endif
     #else
-        flat out vec4 vColor;
+        #ifdef requiredDrawBuffers
+            flat out vec4 vObject;
+            flat out vec4 vInstance;
+            flat out vec4 vGroup;
+        #else
+            flat out vec4 vColor;
+        #endif
     #endif
 #endif
 

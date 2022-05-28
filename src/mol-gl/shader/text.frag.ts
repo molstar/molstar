@@ -36,7 +36,9 @@ void main(){
     #include assign_material_color
 
     if (vTexCoord.x > 1.0) {
-        gl_FragColor = vec4(uBackgroundColor, uBackgroundOpacity * material.a);
+        #if defined(dRenderVariant_color)
+            material = vec4(uBackgroundColor, uBackgroundOpacity * material.a);
+        #endif
     } else {
         // retrieve signed distance
         float sdf = texture2D(tFont, vTexCoord).a + uBorderWidth;
@@ -49,24 +51,35 @@ void main(){
         a = pow(a, 1.0 / gamma);
 
         if (a < 0.5) discard;
-        material.a *= a;
 
-        // add border
-        float t = 0.5 + uBorderWidth;
-        if (uBorderWidth > 0.0 && sdf < t) {
-            material.xyz = mix(uBorderColor, material.xyz, smoothstep(t - w, t, sdf));
-        }
+        #if defined(dRenderVariant_color)
+            material.a *= a;
 
-        gl_FragColor = material;
+            // add border
+            float t = 0.5 + uBorderWidth;
+            if (uBorderWidth > 0.0 && sdf < t) {
+                material.xyz = mix(uBorderColor, material.xyz, smoothstep(t - w, t, sdf));
+            }
+        #endif
     }
 
     #if defined(dRenderVariant_pick)
         #include check_picking_alpha
+        #ifdef requiredDrawBuffers
+            gl_FragColor = vObject;
+            gl_FragData[1] = vInstance;
+            gl_FragData[2] = vGroup;
+            gl_FragData[3] = packDepthToRGBA(fragmentDepth);
+        #else
+            gl_FragColor = vColor;
+        #endif
     #elif defined(dRenderVariant_depth)
         gl_FragColor = material;
     #elif defined(dRenderVariant_marking)
         gl_FragColor = material;
     #elif defined(dRenderVariant_color)
+        gl_FragColor = material;
+
         #include apply_marker_color
         #include apply_fog
         #include wboit_write
