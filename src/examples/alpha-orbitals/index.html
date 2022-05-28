@@ -55,6 +55,17 @@
             </a>
         </div>
         <script>
+            function getParam(name, regex) {
+                var r = new RegExp(name + '=' + '(' + regex + ')[&]?', 'i');
+                return decodeURIComponent(((window.location.search || '').match(r) || [])[1] || '');
+            }
+
+            var debugMode = getParam('debug-mode', '[^&]+').trim() === '1';
+            if (debugMode) AlphaOrbitalsExample.setDebugMode(debugMode);
+
+            var timingMode = getParam('timing-mode', '[^&]+').trim() === '1';
+            if (timingMode) AlphaOrbitalsExample.setTimingMode(timingMode);
+
             AlphaOrbitalsExample.init('app')
         </script>
         <!-- __MOLSTAR_ANALYTICS__ -->

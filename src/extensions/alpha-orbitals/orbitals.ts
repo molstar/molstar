@@ -15,9 +15,6 @@ import { sphericalCollocation } from './collocation';
 import { AlphaOrbital, createGrid, CubeGrid, CubeGridComputationParams, initCubeGrid } from './data-model';
 import { gpuComputeAlphaOrbitalsGridValues } from './gpu/compute';
 
-// setDebugMode(true);
-// setTimingMode(true);
-
 export function createSphericalCollocationGrid(
     params: CubeGridComputationParams, orbital: AlphaOrbital, webgl?: WebGLContext
 ): Task<CubeGrid> {

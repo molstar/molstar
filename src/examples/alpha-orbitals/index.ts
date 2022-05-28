@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  */
@@ -24,6 +24,8 @@ import { mountControls } from './controls';
 import { DemoMoleculeSDF, DemoOrbitals } from './example-data';
 import './index.html';
 require('mol-plugin-ui/skin/light.scss');
+
+import { setDebugMode, setTimingMode } from '../../mol-util/debug';
 
 interface DemoInput {
     moleculeSdf: string,
@@ -223,3 +225,5 @@ export class AlphaOrbitalsExample {
 }
 
 (window as any).AlphaOrbitalsExample = new AlphaOrbitalsExample();
+(window as any).AlphaOrbitalsExample.setDebugMode = setDebugMode;
+(window as any).AlphaOrbitalsExample.setTimingMode = setTimingMode;
