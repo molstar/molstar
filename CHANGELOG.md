@@ -6,6 +6,10 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- GPU timing support
+    - Add ``timing-mode`` Viewer GET param
+    - Add support for webgl timer queries
+    - Add timer marks around GPU render & compute operations
 - Fix ``Scene.clear`` not clearing primitives & volumes arrays (@JonStargaryen)
 
 ## [v3.8.2] - 2022-05-22

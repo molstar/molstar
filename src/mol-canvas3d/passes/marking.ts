@@ -20,6 +20,7 @@ import { Viewport } from '../camera/util';
 import { RenderTarget } from '../../mol-gl/webgl/render-target';
 import { Color } from '../../mol-util/color';
 import { edge_frag } from '../../mol-gl/shader/marking/edge.frag';
+import { isTimingMode } from '../../mol-util/debug';
 
 export const MarkingParams = {
     enabled: PD.Boolean(true),
@@ -117,6 +118,7 @@ export class MarkingPass {
     }
 
     render(viewport: Viewport, target: RenderTarget | undefined) {
+        if (isTimingMode) this.webgl.timer.mark('MarkingPass.render');
         this.edgesTarget.bind();
         this.setEdgeState(viewport);
         this.edge.render();
@@ -128,6 +130,7 @@ export class MarkingPass {
         }
         this.setOverlayState(viewport);
         this.overlay.render();
+        if (isTimingMode) this.webgl.timer.markEnd('MarkingPass.render');
     }
 }
 

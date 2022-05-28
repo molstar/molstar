@@ -19,6 +19,7 @@ import { degToRad } from '../mol-math/misc';
 import { Texture, Textures } from './webgl/texture';
 import { arrayMapUpsert } from '../mol-util/array';
 import { clamp } from '../mol-math/interpolate';
+import { isTimingMode } from '../mol-util/debug';
 
 export interface RendererStats {
     programCount: number
@@ -360,6 +361,7 @@ namespace Renderer {
         };
 
         const renderPick = (group: Scene.Group, camera: ICamera, variant: GraphicsRenderVariant, depthTexture: Texture | null, pickType: PickType) => {
+            if (isTimingMode) ctx.timer.mark('Renderer.renderPick');
             state.disable(gl.BLEND);
             state.enable(gl.DEPTH_TEST);
             state.depthMask(true);
@@ -373,9 +375,11 @@ namespace Renderer {
                     renderObject(renderables[i], variant, Flag.None);
                 }
             }
+            if (isTimingMode) ctx.timer.markEnd('Renderer.renderPick');
         };
 
         const renderDepth = (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => {
+            if (isTimingMode) ctx.timer.mark('Renderer.renderDepth');
             state.disable(gl.BLEND);
             state.enable(gl.DEPTH_TEST);
             state.depthMask(true);
@@ -386,9 +390,11 @@ namespace Renderer {
             for (let i = 0, il = renderables.length; i < il; ++i) {
                 renderObject(renderables[i], 'depth', Flag.None);
             }
+            if (isTimingMode) ctx.timer.markEnd('Renderer.renderDepth');
         };
 
         const renderDepthOpaque = (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => {
+            if (isTimingMode) ctx.timer.mark('Renderer.renderDepthOpaque');
             state.disable(gl.BLEND);
             state.enable(gl.DEPTH_TEST);
             state.depthMask(true);
@@ -402,9 +408,11 @@ namespace Renderer {
                     renderObject(r, 'depth', Flag.None);
                 }
             }
+            if (isTimingMode) ctx.timer.markEnd('Renderer.renderDepthOpaque');
         };
 
         const renderDepthTransparent = (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => {
+            if (isTimingMode) ctx.timer.mark('Renderer.renderDepthTransparent');
             state.disable(gl.BLEND);
             state.enable(gl.DEPTH_TEST);
             state.depthMask(true);
@@ -418,9 +426,11 @@ namespace Renderer {
                     renderObject(r, 'depth', Flag.None);
                 }
             }
+            if (isTimingMode) ctx.timer.markEnd('Renderer.renderDepthTransparent');
         };
 
         const renderMarkingDepth = (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => {
+            if (isTimingMode) ctx.timer.mark('Renderer.renderMarkingDepth');
             state.disable(gl.BLEND);
             state.enable(gl.DEPTH_TEST);
             state.depthMask(true);
@@ -436,9 +446,11 @@ namespace Renderer {
                     renderObject(renderables[i], 'marking', Flag.None);
                 }
             }
+            if (isTimingMode) ctx.timer.markEnd('Renderer.renderMarkingDepth');
         };
 
         const renderMarkingMask = (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => {
+            if (isTimingMode) ctx.timer.mark('Renderer.renderMarkingMask');
             state.disable(gl.BLEND);
             state.enable(gl.DEPTH_TEST);
             state.depthMask(true);
@@ -454,6 +466,7 @@ namespace Renderer {
                     renderObject(renderables[i], 'marking', Flag.None);
                 }
             }
+            if (isTimingMode) ctx.timer.markEnd('Renderer.renderMarkingMask');
         };
 
         const renderBlended = (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => {
@@ -462,6 +475,7 @@ namespace Renderer {
         };
 
         const renderBlendedOpaque = (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => {
+            if (isTimingMode) ctx.timer.mark('Renderer.renderBlendedOpaque');
             state.disable(gl.BLEND);
             state.enable(gl.DEPTH_TEST);
             state.depthMask(true);
@@ -477,9 +491,11 @@ namespace Renderer {
                     renderObject(r, 'colorBlended', Flag.BlendedBack);
                 }
             }
+            if (isTimingMode) ctx.timer.markEnd('Renderer.renderBlendedOpaque');
         };
 
         const renderBlendedTransparent = (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => {
+            if (isTimingMode) ctx.timer.mark('Renderer.renderBlendedTransparent');
             state.enable(gl.DEPTH_TEST);
 
             updateInternal(group, camera, depthTexture, Mask.Transparent, false);
@@ -516,9 +532,11 @@ namespace Renderer {
                     }
                 }
             }
+            if (isTimingMode) ctx.timer.markEnd('Renderer.renderBlendedTransparent');
         };
 
         const renderBlendedVolume = (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => {
+            if (isTimingMode) ctx.timer.mark('Renderer.renderBlendedVolume');
             state.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
             state.enable(gl.BLEND);
 
@@ -531,9 +549,11 @@ namespace Renderer {
                     renderObject(r, 'colorBlended', Flag.None);
                 }
             }
+            if (isTimingMode) ctx.timer.markEnd('Renderer.renderBlendedVolume');
         };
 
         const renderWboitOpaque = (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => {
+            if (isTimingMode) ctx.timer.mark('Renderer.renderWboitOpaque');
             state.disable(gl.BLEND);
             state.enable(gl.DEPTH_TEST);
             state.depthMask(true);
@@ -551,9 +571,11 @@ namespace Renderer {
                     renderObject(r, 'colorWboit', Flag.None);
                 }
             }
+            if (isTimingMode) ctx.timer.markEnd('Renderer.renderWboitOpaque');
         };
 
         const renderWboitTransparent = (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => {
+            if (isTimingMode) ctx.timer.mark('Renderer.renderWboitTransparent');
             updateInternal(group, camera, depthTexture, Mask.Transparent, false);
 
             const { renderables } = group;
@@ -567,6 +589,7 @@ namespace Renderer {
                     renderObject(r, 'colorWboit', Flag.None);
                 }
             }
+            if (isTimingMode) ctx.timer.markEnd('Renderer.renderWboitTransparent');
         };
 
         return {

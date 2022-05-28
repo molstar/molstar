@@ -30,7 +30,7 @@ import { PickData } from './passes/pick';
 import { PickHelper } from './passes/pick';
 import { ImagePass, ImageProps } from './passes/image';
 import { Sphere3D } from '../mol-math/geometry';
-import { isDebugMode } from '../mol-util/debug';
+import { isDebugMode, isTimingMode } from '../mol-util/debug';
 import { CameraHelperParams } from './helper/camera-helper';
 import { produce } from 'immer';
 import { HandleHelperParams } from './helper/handle-helper';
@@ -413,6 +413,7 @@ namespace Canvas3D {
                     cam = stereoCamera;
                 }
 
+                if (isTimingMode) webgl.timer.mark('Canvas3D.render');
                 const ctx = { renderer, camera: cam, scene, helper };
                 if (MultiSamplePass.isEnabled(p.multiSample)) {
                     const forceOn = !cameraChanged && markingUpdated && !controls.isAnimating;
@@ -420,6 +421,8 @@ namespace Canvas3D {
                 } else {
                     passes.draw.render(ctx, p, true);
                 }
+                if (isTimingMode) webgl.timer.markEnd('Canvas3D.render');
+
                 // if only marking has updated, do not set the flag to dirty
                 pickHelper.dirty = pickHelper.dirty || shouldRender;
                 didRender = true;

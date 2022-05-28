@@ -11,6 +11,7 @@ import { WebGLContext } from '../../mol-gl/webgl/context';
 import { RenderTarget } from '../../mol-gl/webgl/render-target';
 import { Vec3 } from '../../mol-math/linear-algebra';
 import { spiral2d } from '../../mol-math/misc';
+import { isTimingMode } from '../../mol-util/debug';
 import { unpackRGBToInt, unpackRGBAToDepth } from '../../mol-util/number-packing';
 import { Camera, ICamera } from '../camera';
 import { StereoCamera } from '../camera/stereo';
@@ -144,6 +145,7 @@ export class PickHelper {
     }
 
     private syncBuffers() {
+        if (isTimingMode) this.webgl.timer.mark('PickHelper.syncBuffers');
         const { pickX, pickY, pickWidth, pickHeight } = this;
 
         this.pickPass.objectPickTarget.bind();
@@ -157,6 +159,7 @@ export class PickHelper {
 
         this.pickPass.depthPickTarget.bind();
         this.webgl.readPixels(pickX, pickY, pickWidth, pickHeight, this.depthBuffer);
+        if (isTimingMode) this.webgl.timer.markEnd('PickHelper.syncBuffers');
     }
 
     private getBufferIdx(x: number, y: number): number {
@@ -175,6 +178,7 @@ export class PickHelper {
     }
 
     private render(camera: Camera | StereoCamera) {
+        if (isTimingMode) this.webgl.timer.mark('PickHelper.render');
         const { pickX, pickY, pickWidth, pickHeight, halfPickWidth } = this;
         const { renderer, scene, helper } = this;
 
@@ -194,6 +198,7 @@ export class PickHelper {
         }
 
         this.dirty = false;
+        if (isTimingMode) this.webgl.timer.markEnd('PickHelper.render');
     }
 
     private identifyInternal(x: number, y: number, camera: Camera | StereoCamera): PickData | undefined {
@@ -214,8 +219,10 @@ export class PickHelper {
         ) return;
 
         if (this.dirty) {
+            if (isTimingMode) this.webgl.timer.mark('PickHelper.identify');
             this.render(camera);
             this.syncBuffers();
+            if (isTimingMode) this.webgl.timer.markEnd('PickHelper.identify');
         }
 
         const xv = x - viewport.x;

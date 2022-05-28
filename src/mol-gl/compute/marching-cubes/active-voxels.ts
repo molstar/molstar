@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -16,6 +16,7 @@ import { QuadSchema, QuadValues } from '../util';
 import { getTriCount } from './tables';
 import { quad_vert } from '../../../mol-gl/shader/quad.vert';
 import { activeVoxels_frag } from '../../../mol-gl/shader/marching-cubes/active-voxels.frag';
+import { isTimingMode } from '../../../mol-util/debug';
 
 const ActiveVoxelsSchema = {
     ...QuadSchema,
@@ -83,6 +84,7 @@ function setRenderingDefaults(ctx: WebGLContext) {
 }
 
 export function calcActiveVoxels(ctx: WebGLContext, volumeData: Texture, gridDim: Vec3, gridTexDim: Vec3, isoValue: number, gridScale: Vec2) {
+    if (isTimingMode) ctx.timer.mark('calcActiveVoxels');
     const { gl, resources } = ctx;
     const width = volumeData.getWidth();
     const height = volumeData.getHeight();
@@ -115,6 +117,7 @@ export function calcActiveVoxels(ctx: WebGLContext, volumeData: Texture, gridDim
     // console.log('at', readTexture(ctx, activeVoxelsTex));
 
     gl.finish();
+    if (isTimingMode) ctx.timer.markEnd('calcActiveVoxels');
 
     return activeVoxelsTex;
 }

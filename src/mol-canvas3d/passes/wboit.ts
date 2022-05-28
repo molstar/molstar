@@ -17,7 +17,7 @@ import { quad_vert } from '../../mol-gl/shader/quad.vert';
 import { evaluateWboit_frag } from '../../mol-gl/shader/evaluate-wboit.frag';
 import { Framebuffer } from '../../mol-gl/webgl/framebuffer';
 import { Vec2 } from '../../mol-math/linear-algebra';
-import { isDebugMode } from '../../mol-util/debug';
+import { isDebugMode, isTimingMode } from '../../mol-util/debug';
 
 const EvaluateWboitSchema = {
     ...QuadSchema,
@@ -71,6 +71,7 @@ export class WboitPass {
     }
 
     render() {
+        if (isTimingMode) this.webgl.timer.mark('WboitPass.render');
         const { state, gl } = this.webgl;
 
         state.blendFuncSeparate(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA, gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
@@ -78,6 +79,7 @@ export class WboitPass {
 
         this.renderable.update();
         this.renderable.render();
+        if (isTimingMode) this.webgl.timer.markEnd('WboitPass.render');
     }
 
     setSize(width: number, height: number) {
