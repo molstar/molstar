@@ -258,6 +258,8 @@ namespace Scene {
                     renderables[i].dispose();
                 }
                 renderables.length = 0;
+                primitives.length = 0;
+                volumes.length = 0;
                 renderableMap.clear();
                 boundingSphereDirty = true;
                 boundingSphereVisibleDirty = true;
