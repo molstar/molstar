@@ -6,6 +6,7 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Volume Server CIF: Add check that a data block contains volume data before parsing
 - Fix ``Scene.clear`` not clearing primitives & volumes arrays (@JonStargaryen)
 - Fix rendering volumes when wboit is switched off and postprocessing is enabled
 

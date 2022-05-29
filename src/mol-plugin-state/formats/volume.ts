@@ -3,6 +3,7 @@
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Aliaksei Chareshneu <chareshneu.tech@gmail.com>
  */
 
 import { StateTransforms } from '../transforms';
@@ -197,16 +198,21 @@ export const DscifProvider = DataFormatProvider({
     parse: async (plugin, data, params?: DsCifParams) => {
         const cifCell = await plugin.build().to(data).apply(StateTransforms.Data.ParseCif).commit();
         const b = plugin.build().to(cifCell);
-        const blocks = cifCell.obj!.data.blocks.slice(1); // zero block contains query meta-data
+        const blocks = cifCell.obj!.data.blocks;
 
-        if (blocks.length !== 1 && blocks.length !== 2) throw new Error('unknown number of blocks');
+        if (blocks.length === 0) throw new Error('no data blocks');
 
         const volumes: StateObjectSelector<PluginStateObject.Volume.Data>[] = [];
         let i = 0;
         for (const block of blocks) {
+            // Skip "server" data block.
+            if (block.header.toUpperCase() === 'SERVER') continue;
+            
             const entryId = Array.isArray(params?.entryId) ? params?.entryId[i] : params?.entryId;
-            volumes.push(b.apply(StateTransforms.Volume.VolumeFromDensityServerCif, { blockHeader: block.header, entryId }).selector);
-            i++;
+            if (block.categories['volume_data_3d_info']?.rowCount > 0) {
+                volumes.push(b.apply(StateTransforms.Volume.VolumeFromDensityServerCif, { blockHeader: block.header, entryId }).selector);
+                i++;
+            }
         }
 
         await b.commit();
