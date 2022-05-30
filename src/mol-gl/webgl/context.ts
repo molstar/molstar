@@ -17,6 +17,7 @@ import { BehaviorSubject } from 'rxjs';
 import { now } from '../../mol-util/now';
 import { Texture, TextureFilter } from './texture';
 import { ComputeRenderable } from '../renderable';
+import { createTimer, WebGLTimer } from './timer';
 
 export function getGLContext(canvas: HTMLCanvasElement, attribs?: WebGLContextAttributes & { preferWebGl1?: boolean }): GLRenderingContext | null {
     function get(id: 'webgl' | 'experimental-webgl' | 'webgl2') {
@@ -186,6 +187,7 @@ export interface WebGLContext {
     readonly state: WebGLState
     readonly stats: WebGLStats
     readonly resources: WebGLResources
+    readonly timer: WebGLTimer
 
     readonly maxTextureSize: number
     readonly max3dTextureSize: number
@@ -221,6 +223,7 @@ export function createContext(gl: GLRenderingContext, props: Partial<{ pixelScal
     const state = createState(gl);
     const stats = createStats();
     const resources = createResources(gl, state, stats, extensions);
+    const timer = createTimer(gl, extensions);
 
     const parameters = {
         maxTextureSize: gl.getParameter(gl.MAX_TEXTURE_SIZE) as number,
@@ -289,6 +292,7 @@ export function createContext(gl: GLRenderingContext, props: Partial<{ pixelScal
         state,
         stats,
         resources,
+        timer,
 
         get maxTextureSize() { return parameters.maxTextureSize; },
         get max3dTextureSize() { return parameters.max3dTextureSize; },

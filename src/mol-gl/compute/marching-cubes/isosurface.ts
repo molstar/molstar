@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -19,6 +19,7 @@ import { quad_vert } from '../../../mol-gl/shader/quad.vert';
 import { isosurface_frag } from '../../../mol-gl/shader/marching-cubes/isosurface.frag';
 import { calcActiveVoxels } from './active-voxels';
 import { isWebGL2 } from '../../webgl/compat';
+import { isTimingMode } from '../../../mol-util/debug';
 
 const IsosurfaceSchema = {
     ...QuadSchema,
@@ -122,6 +123,7 @@ export function createIsosurfaceBuffers(ctx: WebGLContext, activeVoxelsBase: Tex
     const { drawBuffers } = ctx.extensions;
     if (!drawBuffers) throw new Error('need WebGL draw buffers');
 
+    if (isTimingMode) ctx.timer.mark('createIsosurfaceBuffers');
     const { gl, resources, extensions } = ctx;
     const { pyramidTex, height, levels, scale, count } = histogramPyramid;
     const width = pyramidTex.getWidth();
@@ -192,6 +194,7 @@ export function createIsosurfaceBuffers(ctx: WebGLContext, activeVoxelsBase: Tex
     renderable.render();
 
     gl.finish();
+    if (isTimingMode) ctx.timer.markEnd('createIsosurfaceBuffers');
 
     return { vertexTexture, groupTexture, normalTexture, vertexCount: count };
 }
@@ -208,20 +211,11 @@ export function createIsosurfaceBuffers(ctx: WebGLContext, activeVoxelsBase: Tex
  * Implementation based on http://www.miaumiau.cat/2016/10/stream-compaction-in-webgl/
  */
 export function extractIsosurface(ctx: WebGLContext, volumeData: Texture, gridDim: Vec3, gridTexDim: Vec3, gridTexScale: Vec2, transform: Mat4, isoValue: number, invert: boolean, packedGroup: boolean, axisOrder: Vec3, vertexTexture?: Texture, groupTexture?: Texture, normalTexture?: Texture) {
-    // console.time('calcActiveVoxels');
+    if (isTimingMode) ctx.timer.mark('extractIsosurface');
     const activeVoxelsTex = calcActiveVoxels(ctx, volumeData, gridDim, gridTexDim, isoValue, gridTexScale);
-    // ctx.waitForGpuCommandsCompleteSync();
-    // console.timeEnd('calcActiveVoxels');
-
-    // console.time('createHistogramPyramid');
     const compacted = createHistogramPyramid(ctx, activeVoxelsTex, gridTexScale, gridTexDim);
-    // ctx.waitForGpuCommandsCompleteSync();
-    // console.timeEnd('createHistogramPyramid');
-
-    // console.time('createIsosurfaceBuffers');
     const gv = createIsosurfaceBuffers(ctx, activeVoxelsTex, volumeData, compacted, gridDim, gridTexDim, transform, isoValue, invert, packedGroup, axisOrder, vertexTexture, groupTexture, normalTexture);
-    // ctx.waitForGpuCommandsCompleteSync();
-    // console.timeEnd('createIsosurfaceBuffers');
+    if (isTimingMode) ctx.timer.markEnd('extractIsosurface');
 
     return gv;
 }

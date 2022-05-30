@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  */
@@ -8,6 +8,7 @@ import { sortArray } from '../../mol-data/util';
 import { canComputeGrid3dOnGPU } from '../../mol-gl/compute/grid3d';
 import { WebGLContext } from '../../mol-gl/webgl/context';
 import { Task } from '../../mol-task';
+import { isTimingMode } from '../../mol-util/debug';
 import { AlphaOrbital, createGrid, CubeGrid, CubeGridComputationParams, initCubeGrid } from './data-model';
 import { gpuComputeAlphaOrbitalsDensityGridValues } from './gpu/compute';
 
@@ -19,9 +20,9 @@ export function createSphericalCollocationDensityGrid(
 
         let matrix: Float32Array;
         if (canComputeGrid3dOnGPU(webgl)) {
-            // console.time('gpu');
-            matrix = await gpuComputeAlphaOrbitalsDensityGridValues(ctx, webgl!, cubeGrid, orbitals);
-            // console.timeEnd('gpu');
+            if (isTimingMode) webgl.timer.mark('createSphericalCollocationDensityGrid');
+            matrix = await gpuComputeAlphaOrbitalsDensityGridValues(ctx, webgl, cubeGrid, orbitals);
+            if (isTimingMode) webgl.timer.markEnd('createSphericalCollocationDensityGrid');
         } else {
             throw new Error('Missing OES_texture_float WebGL extension.');
         }

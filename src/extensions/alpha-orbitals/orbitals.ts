@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * Inspired by https://github.com/dgasmith/gau2grid.
  *
@@ -10,11 +10,10 @@ import { sortArray } from '../../mol-data/util';
 import { canComputeGrid3dOnGPU } from '../../mol-gl/compute/grid3d';
 import { WebGLContext } from '../../mol-gl/webgl/context';
 import { Task } from '../../mol-task';
+import { isTimingMode } from '../../mol-util/debug';
 import { sphericalCollocation } from './collocation';
 import { AlphaOrbital, createGrid, CubeGrid, CubeGridComputationParams, initCubeGrid } from './data-model';
 import { gpuComputeAlphaOrbitalsGridValues } from './gpu/compute';
-
-// setDebugMode(true);
 
 export function createSphericalCollocationGrid(
     params: CubeGridComputationParams, orbital: AlphaOrbital, webgl?: WebGLContext
@@ -24,9 +23,9 @@ export function createSphericalCollocationGrid(
 
         let matrix: Float32Array;
         if (canComputeGrid3dOnGPU(webgl)) {
-            // console.time('gpu');
-            matrix = await gpuComputeAlphaOrbitalsGridValues(ctx, webgl!, cubeGrid, orbital);
-            // console.timeEnd('gpu');
+            if (isTimingMode) webgl.timer.mark('createSphericalCollocationGrid');
+            matrix = await gpuComputeAlphaOrbitalsGridValues(ctx, webgl, cubeGrid, orbital);
+            if (isTimingMode) webgl.timer.markEnd('createSphericalCollocationGrid');
         } else {
             // console.time('cpu');
             matrix = await sphericalCollocation(cubeGrid, orbital, ctx);

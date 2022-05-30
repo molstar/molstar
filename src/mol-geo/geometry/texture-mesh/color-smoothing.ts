@@ -20,6 +20,7 @@ import { accumulate_frag } from '../../../mol-gl/shader/compute/color-smoothing/
 import { accumulate_vert } from '../../../mol-gl/shader/compute/color-smoothing/accumulate.vert';
 import { isWebGL2 } from '../../../mol-gl/webgl/compat';
 import { TextureMeshValues } from '../../../mol-gl/renderable/texture-mesh';
+import { isTimingMode } from '../../../mol-util/debug';
 
 export const ColorAccumulateSchema = {
     drawCount: ValueSpec('number'),
@@ -255,6 +256,7 @@ export function calcTextureMeshColorSmoothing(input: ColorSmoothingInput, resolu
     const { drawBuffers } = webgl.extensions;
     if (!drawBuffers) throw new Error('need WebGL draw buffers');
 
+    if (isTimingMode) webgl.timer.mark('calcTextureMeshColorSmoothing');
     const { gl, resources, state, extensions: { colorBufferHalfFloat, textureHalfFloat } } = webgl;
 
     const isInstanceType = input.colorType.endsWith('Instance');
@@ -321,6 +323,7 @@ export function calcTextureMeshColorSmoothing(input: ColorSmoothingInput, resolu
 
     const { uCurrentSlice, uCurrentX, uCurrentY } = accumulateRenderable.values;
 
+    if (isTimingMode) webgl.timer.mark('ColorAccumulate.render');
     setAccumulateDefaults(webgl);
     gl.viewport(0, 0, width, height);
     gl.scissor(0, 0, width, height);
@@ -349,6 +352,7 @@ export function calcTextureMeshColorSmoothing(input: ColorSmoothingInput, resolu
     accumulateTexture.detachFramebuffer(framebuffer, 0);
     countTexture.detachFramebuffer(framebuffer, 1);
     drawBuffers.drawBuffers([gl.COLOR_ATTACHMENT0, gl.NONE]);
+    if (isTimingMode) webgl.timer.markEnd('ColorAccumulate.render');
 
     // const accImage = new Float32Array(width * height * 4);
     // accumulateTexture.attachFramebuffer(framebuffer, 0);
@@ -364,6 +368,7 @@ export function calcTextureMeshColorSmoothing(input: ColorSmoothingInput, resolu
 
     // normalize
 
+    if (isTimingMode) webgl.timer.mark('ColorNormalize.render');
     if (!texture) texture = resources.texture('image-uint8', 'rgba', 'ubyte', 'linear');
     texture.define(width, height);
 
@@ -376,6 +381,7 @@ export function calcTextureMeshColorSmoothing(input: ColorSmoothingInput, resolu
     gl.scissor(0, 0, width, height);
     gl.clear(gl.COLOR_BUFFER_BIT);
     normalizeRenderable.render();
+    if (isTimingMode) webgl.timer.markEnd('ColorNormalize.render');
 
     // const normImage = new Uint8Array(width * height * 4);
     // texture.attachFramebuffer(framebuffer, 0);
@@ -385,6 +391,7 @@ export function calcTextureMeshColorSmoothing(input: ColorSmoothingInput, resolu
 
     const gridTransform = Vec4.create(min[0], min[1], min[2], scaleFactor);
     const type = isInstanceType ? 'volumeInstance' : 'volume';
+    if (isTimingMode) webgl.timer.markEnd('calcTextureMeshColorSmoothing');
 
     return { texture, gridDim, gridTexDim: Vec2.create(width, height), gridTransform, type };
 }

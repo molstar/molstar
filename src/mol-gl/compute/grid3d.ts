@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  */
@@ -18,8 +18,9 @@ import { createComputeRenderItem } from '../webgl/render-item';
 import { createComputeRenderable } from '../renderable';
 import { isLittleEndian } from '../../mol-util/is-little-endian';
 import { RuntimeContext } from '../../mol-task';
+import { isTimingMode } from '../../mol-util/debug';
 
-export function canComputeGrid3dOnGPU(webgl?: WebGLContext) {
+export function canComputeGrid3dOnGPU(webgl?: WebGLContext): webgl is WebGLContext {
     return !!webgl?.extensions.textureFloat;
 }
 
@@ -159,7 +160,8 @@ export function createGrid3dComputeRenderable<S extends RenderableSchema, P, CS>
 
         const array = new Uint8Array(uWidth * uWidth * 4);
         if (spec.cumulative) {
-            const { gl } = webgl;
+            const { gl, state } = webgl;
+            if (isTimingMode) webgl.timer.mark('Grid3dCompute.renderCumulative');
 
             const states = spec.cumulative.states(params);
 
@@ -167,7 +169,7 @@ export function createGrid3dComputeRenderable<S extends RenderableSchema, P, CS>
             tex[1].define(uWidth, uWidth);
 
             resetGl(webgl, uWidth);
-            gl.clearColor(0, 0, 0, 0);
+            state.clearColor(0, 0, 0, 0);
 
             tex[0].attachFramebuffer(framebuffer, 'color0');
             gl.clear(gl.COLOR_BUFFER_BIT);
@@ -175,12 +177,13 @@ export function createGrid3dComputeRenderable<S extends RenderableSchema, P, CS>
             tex[1].attachFramebuffer(framebuffer, 'color0');
             gl.clear(gl.COLOR_BUFFER_BIT);
 
-            if (spec.cumulative.yieldPeriod) {
+            if (spec.cumulative.yieldPeriod && !isTimingMode) {
                 await ctx.update({ message: 'Computing...', isIndeterminate: false, current: 0, max: states.length });
             }
 
             const yieldPeriod = Math.max(1, spec.cumulative.yieldPeriod ?? 1 | 0);
 
+            if (isTimingMode) webgl.timer.mark('Grid3dCompute.renderBatch');
             for (let i = 0; i < states.length; i++) {
                 ValueCell.update(cells.tCumulativeSum, tex[(i + 1) % 2]);
                 tex[i % 2].attachFramebuffer(framebuffer, 'color0');
@@ -191,23 +194,31 @@ export function createGrid3dComputeRenderable<S extends RenderableSchema, P, CS>
 
                 if (spec.cumulative.yieldPeriod && i !== states.length - 1) {
                     if (i % yieldPeriod === yieldPeriod - 1) {
-                        webgl.readPixels(0, 0, 1, 1, array);
+                        webgl.waitForGpuCommandsCompleteSync();
+                        if (isTimingMode) webgl.timer.markEnd('Grid3dCompute.renderBatch');
+                        if (isTimingMode) webgl.timer.mark('Grid3dCompute.renderBatch');
                     }
-                    if (ctx.shouldUpdate) {
+                    if (ctx.shouldUpdate && !isTimingMode) {
                         await ctx.update({ current: i + 1 });
                     }
                 }
             }
+            if (isTimingMode) webgl.timer.markEnd('Grid3dCompute.renderBatch');
+            if (isTimingMode) webgl.timer.markEnd('Grid3dCompute.renderCumulative');
         } else {
+            if (isTimingMode) webgl.timer.mark('Grid3dCompute.render');
             tex[0].define(uWidth, uWidth);
             tex[0].attachFramebuffer(framebuffer, 'color0');
             framebuffer.bind();
             resetGl(webgl, uWidth);
             renderable.update();
             renderable.render();
+            if (isTimingMode) webgl.timer.markEnd('Grid3dCompute.render');
         }
 
+        if (isTimingMode) webgl.timer.mark('Grid3dCompute.readPixels');
         webgl.readPixels(0, 0, uWidth, uWidth, array);
+        if (isTimingMode) webgl.timer.markEnd('Grid3dCompute.readPixels');
         return new Float32Array(array.buffer, array.byteOffset, nx * ny * nz);
     };
 }
