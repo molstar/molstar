@@ -68,7 +68,6 @@ uniform float uFogFar;
 uniform vec3 uFogColor;
 
 uniform float uAlpha;
-uniform float uPickingAlphaThreshold;
 uniform bool uTransparentBackground;
 uniform float uXrayEdgeFalloff;
 

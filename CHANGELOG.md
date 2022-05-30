@@ -6,6 +6,7 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Improve picking by using drawbuffers (when available) to reduce number of drawcalls
 - GPU timing support
     - Add ``timing-mode`` Viewer GET param
     - Add support for webgl timer queries
