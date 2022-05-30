@@ -144,8 +144,12 @@ export class DrawPass {
         // render transparent primitives and volumes
         if (scene.opacityAverage < 1 || scene.volumes.renderables.length > 0) {
             this.wboit.bind();
-            renderer.renderWboitTransparent(scene.primitives, camera, this.depthTextureOpaque);
-            renderer.renderWboitTransparent(scene.volumes, camera, this.depthTextureOpaque);
+            if (scene.opacityAverage < 1) {
+                renderer.renderWboitTransparent(scene.primitives, camera, this.depthTextureOpaque);
+            }
+            if (scene.volumes.renderables.length > 0) {
+                renderer.renderWboitTransparent(scene.volumes, camera, this.depthTextureOpaque);
+            }
 
             // evaluate wboit
             if (PostprocessingPass.isEnabled(postprocessingProps)) {
@@ -204,7 +208,26 @@ export class DrawPass {
                 }
             }
 
-            renderer.renderBlendedVolume(scene.volumes, camera, this.depthTextureOpaque);
+            if (scene.volumes.renderables.length > 0) {
+                const target = PostprocessingPass.isEnabled(postprocessingProps)
+                    ? this.postprocessing.target : this.colorTarget;
+
+                if (!this.packedDepth) {
+                    this.depthTextureOpaque.detachFramebuffer(target.framebuffer, 'depth');
+                } else {
+                    this.colorTarget.depthRenderbuffer?.detachFramebuffer(target.framebuffer);
+                }
+                target.bind();
+
+                renderer.renderBlendedVolume(scene.volumes, camera, this.depthTextureOpaque);
+
+                if (!this.packedDepth) {
+                    this.depthTextureOpaque.attachFramebuffer(target.framebuffer, 'depth');
+                } else {
+                    this.colorTarget.depthRenderbuffer?.attachFramebuffer(target.framebuffer);
+                }
+                target.bind();
+            }
         }
 
         renderer.renderBlendedTransparent(scene.primitives, camera, null);
