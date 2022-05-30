@@ -230,7 +230,9 @@ export class DrawPass {
             }
         }
 
-        renderer.renderBlendedTransparent(scene.primitives, camera, null);
+        if (scene.opacityAverage < 1) {
+            renderer.renderBlendedTransparent(scene.primitives, camera, null);
+        }
     }
 
     private _render(renderer: Renderer, camera: ICamera, scene: Scene, helper: Helper, toDrawingBuffer: boolean, props: Props) {
