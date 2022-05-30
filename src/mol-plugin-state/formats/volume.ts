@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -183,7 +183,6 @@ export const CubeProvider = DataFormatProvider({
     }
 });
 
-
 type DsCifParams = { entryId?: string | string[] };
 
 export const DscifProvider = DataFormatProvider({
@@ -207,7 +206,7 @@ export const DscifProvider = DataFormatProvider({
         for (const block of blocks) {
             // Skip "server" data block.
             if (block.header.toUpperCase() === 'SERVER') continue;
-            
+
             const entryId = Array.isArray(params?.entryId) ? params?.entryId[i] : params?.entryId;
             if (block.categories['volume_data_3d_info']?.rowCount > 0) {
                 volumes.push(b.apply(StateTransforms.Volume.VolumeFromDensityServerCif, { blockHeader: block.header, entryId }).selector);
