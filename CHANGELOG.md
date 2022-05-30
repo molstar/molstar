@@ -6,6 +6,8 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+## [v3.9.0] - 2022-05-30
+
 - Improve picking by using drawbuffers (when available) to reduce number of drawcalls
 - GPU timing support
     - Add ``timing-mode`` Viewer GET param
