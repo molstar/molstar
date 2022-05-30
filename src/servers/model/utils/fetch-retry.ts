@@ -19,7 +19,8 @@ function isRetriableNetworkError(error: any) {
 export async function fetchRetry(url: string, timeout: number, retryCount: number, onRetry?: () => void): Promise<Response> {
     const controller = new AbortController();
     const id = setTimeout(() => controller.abort(), timeout);
-    const result = await retryIf(() => fetch(url, { signal: controller.signal }), {
+    const signal = controller.signal as any; // TODO: fix type
+    const result = await retryIf(() => fetch(url, { signal }), {
         retryThenIf: r => r.status === 408 /** timeout */ || r.status === 429 /** too many requests */ || (r.status >= 500 && r.status < 600),
         // TODO test retryCatchIf
         retryCatchIf: e => isRetriableNetworkError(e),
