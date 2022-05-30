@@ -1,10 +1,10 @@
 /**
- * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { GLRenderingContext, COMPAT_instanced_arrays, COMPAT_standard_derivatives, COMPAT_vertex_array_object, getInstancedArrays, getStandardDerivatives, COMPAT_element_index_uint, getElementIndexUint, COMPAT_texture_float, getTextureFloat, COMPAT_texture_float_linear, getTextureFloatLinear, COMPAT_blend_minmax, getBlendMinMax, getFragDepth, COMPAT_frag_depth, COMPAT_color_buffer_float, getColorBufferFloat, COMPAT_draw_buffers, getDrawBuffers, getShaderTextureLod, COMPAT_shader_texture_lod, getDepthTexture, COMPAT_depth_texture, COMPAT_sRGB, getSRGB, getTextureHalfFloat, getTextureHalfFloatLinear, COMPAT_texture_half_float, COMPAT_texture_half_float_linear, COMPAT_color_buffer_half_float, getColorBufferHalfFloat, getVertexArrayObject } from './compat';
+import { GLRenderingContext, COMPAT_instanced_arrays, COMPAT_standard_derivatives, COMPAT_vertex_array_object, getInstancedArrays, getStandardDerivatives, COMPAT_element_index_uint, getElementIndexUint, COMPAT_texture_float, getTextureFloat, COMPAT_texture_float_linear, getTextureFloatLinear, COMPAT_blend_minmax, getBlendMinMax, getFragDepth, COMPAT_frag_depth, COMPAT_color_buffer_float, getColorBufferFloat, COMPAT_draw_buffers, getDrawBuffers, getShaderTextureLod, COMPAT_shader_texture_lod, getDepthTexture, COMPAT_depth_texture, COMPAT_sRGB, getSRGB, getTextureHalfFloat, getTextureHalfFloatLinear, COMPAT_texture_half_float, COMPAT_texture_half_float_linear, COMPAT_color_buffer_half_float, getColorBufferHalfFloat, getVertexArrayObject, getDisjointTimerQuery, COMPAT_disjoint_timer_query } from './compat';
 import { isDebugMode } from '../../mol-util/debug';
 
 export type WebGLExtensions = {
@@ -25,6 +25,7 @@ export type WebGLExtensions = {
     drawBuffers: COMPAT_draw_buffers | null
     shaderTextureLod: COMPAT_shader_texture_lod | null
     sRGB: COMPAT_sRGB | null
+    disjointTimerQuery: COMPAT_disjoint_timer_query | null
 }
 
 export function createExtensions(gl: GLRenderingContext): WebGLExtensions {
@@ -99,6 +100,10 @@ export function createExtensions(gl: GLRenderingContext): WebGLExtensions {
     if (isDebugMode && sRGB === null) {
         console.log('Could not find support for "sRGB"');
     }
+    const disjointTimerQuery = getDisjointTimerQuery(gl);
+    if (isDebugMode && disjointTimerQuery === null) {
+        console.log('Could not find support for "disjoint_timer_query"');
+    }
 
     return {
         instancedArrays,
@@ -118,5 +123,6 @@ export function createExtensions(gl: GLRenderingContext): WebGLExtensions {
         drawBuffers,
         shaderTextureLod,
         sRGB,
+        disjointTimerQuery,
     };
 }

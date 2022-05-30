@@ -27,6 +27,7 @@ import { Framebuffer } from '../../mol-gl/webgl/framebuffer';
 import { Color } from '../../mol-util/color';
 import { FxaaParams, FxaaPass } from './fxaa';
 import { SmaaParams, SmaaPass } from './smaa';
+import { isTimingMode } from '../../mol-util/debug';
 
 const OutlinesSchema = {
     ...QuadSchema,
@@ -549,6 +550,7 @@ export class PostprocessingPass {
     }
 
     render(camera: ICamera, toDrawingBuffer: boolean, transparentBackground: boolean, backgroundColor: Color, props: PostprocessingProps) {
+        if (isTimingMode) this.webgl.timer.mark('PostprocessingPass.render');
         this.updateState(camera, transparentBackground, backgroundColor, props);
 
         if (props.outline.name === 'on') {
@@ -585,6 +587,7 @@ export class PostprocessingPass {
         gl.clear(gl.COLOR_BUFFER_BIT);
 
         this.renderable.render();
+        if (isTimingMode) this.webgl.timer.markEnd('PostprocessingPass.render');
     }
 }
 

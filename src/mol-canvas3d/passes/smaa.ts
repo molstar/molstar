@@ -22,7 +22,7 @@ import { weights_frag } from '../../mol-gl/shader/smaa/weights.frag';
 import { edges_vert } from '../../mol-gl/shader/smaa/edges.vert';
 import { edges_frag } from '../../mol-gl/shader/smaa/edges.frag';
 import { Viewport } from '../camera/util';
-import { isDebugMode } from '../../mol-util/debug';
+import { isDebugMode, isTimingMode } from '../../mol-util/debug';
 
 export const SmaaParams = {
     edgeThreshold: PD.Numeric(0.1, { min: 0.05, max: 0.15, step: 0.01 }),
@@ -120,6 +120,7 @@ export class SmaaPass {
     }
 
     render(viewport: Viewport, target: RenderTarget | undefined) {
+        if (isTimingMode) this.webgl.timer.mark('SmaaPass.render');
         this.edgesTarget.bind();
         this.updateState(viewport);
         this.edgesRenderable.render();
@@ -135,8 +136,8 @@ export class SmaaPass {
         }
         this.updateState(viewport);
         this.blendRenderable.render();
+        if (isTimingMode) this.webgl.timer.markEnd('SmaaPass.render');
     }
-
 }
 
 //

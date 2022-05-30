@@ -21,6 +21,7 @@ import { ValueSpec, AttributeSpec, UniformSpec, TextureSpec, DefineSpec, Values 
 import { gaussianDensity_vert } from '../../../mol-gl/shader/gaussian-density.vert';
 import { gaussianDensity_frag } from '../../../mol-gl/shader/gaussian-density.frag';
 import { Framebuffer } from '../../../mol-gl/webgl/framebuffer';
+import { isTimingMode } from '../../../mol-util/debug';
 
 const GaussianDensitySchema = {
     drawCount: ValueSpec('number'),
@@ -85,11 +86,17 @@ export function GaussianDensityTexture(webgl: WebGLContext, position: PositionDa
 }
 
 export function GaussianDensityTexture2d(webgl: WebGLContext, position: PositionData, box: Box3D, radius: (index: number) => number, powerOfTwo: boolean, props: GaussianDensityProps, oldTexture?: Texture): GaussianDensityTextureData {
-    return finalizeGaussianDensityTexture(calcGaussianDensityTexture2d(webgl, position, box, radius, powerOfTwo, props, oldTexture));
+    if (isTimingMode) webgl.timer.mark('GaussianDensityTexture2d');
+    const data = calcGaussianDensityTexture2d(webgl, position, box, radius, powerOfTwo, props, oldTexture);
+    if (isTimingMode) webgl.timer.markEnd('GaussianDensityTexture2d');
+    return finalizeGaussianDensityTexture(data);
 }
 
 export function GaussianDensityTexture3d(webgl: WebGLContext, position: PositionData, box: Box3D, radius: (index: number) => number, props: GaussianDensityProps, oldTexture?: Texture): GaussianDensityTextureData {
-    return finalizeGaussianDensityTexture(calcGaussianDensityTexture3d(webgl, position, box, radius, props, oldTexture));
+    if (isTimingMode) webgl.timer.mark('GaussianDensityTexture3d');
+    const data = calcGaussianDensityTexture3d(webgl, position, box, radius, props, oldTexture);
+    if (isTimingMode) webgl.timer.markEnd('GaussianDensityTexture3d');
+    return finalizeGaussianDensityTexture(data);
 }
 
 function finalizeGaussianDensityTexture({ texture, scale, bbox, gridDim, gridTexDim, gridTexScale, radiusFactor, resolution, maxRadius }: _GaussianDensityTextureData): GaussianDensityTextureData {
