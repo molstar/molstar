@@ -6,6 +6,9 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- CellPack extension tweaks
+    - Use instancing to create DNA/RNA curves to save memory
+
 ## [v3.9.0] - 2022-05-30
 
 - Improve picking by using drawbuffers (when available) to reduce number of drawcalls
