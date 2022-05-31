@@ -20,6 +20,7 @@ import { WboitPass } from './wboit';
 import { AntialiasingPass, PostprocessingPass, PostprocessingProps } from './postprocessing';
 import { MarkingPass, MarkingProps } from './marking';
 import { CopyRenderable, createCopyRenderable } from '../../mol-gl/compute/util';
+import { isTimingMode } from '../../mol-util/debug';
 
 type Props = {
     postprocessing: PostprocessingProps
@@ -229,7 +230,9 @@ export class DrawPass {
             }
         }
 
-        renderer.renderBlendedTransparent(scene.primitives, camera, null);
+        if (scene.opacityAverage < 1) {
+            renderer.renderBlendedTransparent(scene.primitives, camera, null);
+        }
     }
 
     private _render(renderer: Renderer, camera: ICamera, scene: Scene, helper: Helper, toDrawingBuffer: boolean, props: Props) {
@@ -309,6 +312,7 @@ export class DrawPass {
     }
 
     render(ctx: RenderContext, props: Props, toDrawingBuffer: boolean) {
+        if (isTimingMode) this.webgl.timer.mark('DrawPass.render');
         const { renderer, camera, scene, helper } = ctx;
         renderer.setTransparentBackground(props.transparentBackground);
         renderer.setDrawingBufferSize(this.colorTarget.getWidth(), this.colorTarget.getHeight());
@@ -320,6 +324,7 @@ export class DrawPass {
         } else {
             this._render(renderer, camera, scene, helper, toDrawingBuffer, props);
         }
+        if (isTimingMode) this.webgl.timer.markEnd('DrawPass.render');
     }
 
     getColorTarget(postprocessingProps: PostprocessingProps): RenderTarget {

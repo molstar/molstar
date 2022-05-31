@@ -28,8 +28,6 @@ export const assign_material_color = `
         roughness = mix(roughness, vSubstance.g, vSubstance.a);
         bumpiness = mix(bumpiness, vSubstance.b, vSubstance.a);
     #endif
-#elif defined(dRenderVariant_pick)
-    vec4 material = vColor;
 #elif defined(dRenderVariant_depth)
     if (fragmentDepth > getDepth(gl_FragCoord.xy / uDrawingBufferSize)) {
         discard;

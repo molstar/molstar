@@ -25,6 +25,7 @@ import { StereoCamera } from '../camera/stereo';
 import { quad_vert } from '../../mol-gl/shader/quad.vert';
 import { compose_frag } from '../../mol-gl/shader/compose.frag';
 import { MarkingProps } from './marking';
+import { isTimingMode } from '../../mol-util/debug';
 
 const ComposeSchema = {
     ...QuadSchema,
@@ -126,6 +127,7 @@ export class MultiSamplePass {
         const { camera } = ctx;
         const { compose, composeTarget, drawPass, webgl } = this;
         const { gl, state } = webgl;
+        if (isTimingMode) webgl.timer.mark('MultiSamplePass.renderMultiSample');
 
         // based on the Multisample Anti-Aliasing Render Pass
         // contributed to three.js by bhouston / http://clara.io/
@@ -198,12 +200,14 @@ export class MultiSamplePass {
 
         camera.viewOffset.enabled = false;
         camera.update();
+        if (isTimingMode) webgl.timer.markEnd('MultiSamplePass.renderMultiSample');
     }
 
     private renderTemporalMultiSample(sampleIndex: number, ctx: RenderContext, props: Props, toDrawingBuffer: boolean) {
         const { camera } = ctx;
         const { compose, composeTarget, holdTarget, drawPass, webgl } = this;
         const { gl, state } = webgl;
+        if (isTimingMode) webgl.timer.mark('MultiSamplePass.renderTemporalMultiSample');
 
         // based on the Multisample Anti-Aliasing Render Pass
         // contributed to three.js by bhouston / http://clara.io/
@@ -301,6 +305,7 @@ export class MultiSamplePass {
 
         camera.viewOffset.enabled = false;
         camera.update();
+        if (isTimingMode) webgl.timer.markEnd('MultiSamplePass.renderTemporalMultiSample');
 
         return sampleIndex >= offsetList.length ? -2 : sampleIndex;
     }

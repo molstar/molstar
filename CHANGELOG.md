@@ -6,6 +6,14 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+## [v3.9.0] - 2022-05-30
+
+- Improve picking by using drawbuffers (when available) to reduce number of drawcalls
+- GPU timing support
+    - Add ``timing-mode`` Viewer GET param
+    - Add support for webgl timer queries
+    - Add timer marks around GPU render & compute operations
+- Volume Server CIF: Add check that a data block contains volume data before parsing
 - Fix ``Scene.clear`` not clearing primitives & volumes arrays (@JonStargaryen)
 - Fix rendering volumes when wboit is switched off and postprocessing is enabled
 

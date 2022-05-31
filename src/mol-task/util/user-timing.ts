@@ -7,7 +7,7 @@
 import { Task } from '../task';
 import { isProductionMode } from '../../mol-util/debug';
 
-const hasPerformance = (typeof performance !== 'undefined') && performance.mark && performance.measure;
+const hasPerformance = (typeof performance !== 'undefined') && !!performance.mark && performance.measure;
 const timingEnabled = hasPerformance && !isProductionMode;
 
 export namespace UserTiming {

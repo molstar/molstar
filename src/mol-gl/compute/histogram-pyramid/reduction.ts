@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -19,6 +19,7 @@ import { isPowerOfTwo } from '../../../mol-math/misc';
 import { quad_vert } from '../../../mol-gl/shader/quad.vert';
 import { reduction_frag } from '../../../mol-gl/shader/histogram-pyramid/reduction.frag';
 import { isWebGL2 } from '../../webgl/compat';
+import { isTimingMode } from '../../../mol-util/debug';
 
 const HistopyramidReductionSchema = {
     ...QuadSchema,
@@ -120,6 +121,7 @@ export interface HistogramPyramid {
 }
 
 export function createHistogramPyramid(ctx: WebGLContext, inputTexture: Texture, scale: Vec2, gridTexDim: Vec3): HistogramPyramid {
+    if (isTimingMode) ctx.timer.mark('createHistogramPyramid');
     const { gl } = ctx;
     const w = inputTexture.getWidth();
     const h = inputTexture.getHeight();
@@ -193,6 +195,7 @@ export function createHistogramPyramid(ctx: WebGLContext, inputTexture: Texture,
     }
 
     gl.finish();
+    if (isTimingMode) ctx.timer.markEnd('createHistogramPyramid');
 
     // printTexture(ctx, pyramidTex, 2)
 

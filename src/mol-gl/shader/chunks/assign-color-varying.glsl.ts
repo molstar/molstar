@@ -56,13 +56,19 @@ export const assign_color_varying = `
         vSubstance.rgb = mix(vec3(uMetalness, uRoughness, uBumpiness), vSubstance.rgb, vSubstance.a);
     #endif
 #elif defined(dRenderVariant_pick)
-    if (uPickType == 1) {
-        vColor = vec4(packIntToRGB(float(uObjectId)), 1.0);
-    } else if (uPickType == 2) {
-        vColor = vec4(packIntToRGB(aInstance), 1.0);
-    } else {
-        vColor = vec4(packIntToRGB(group), 1.0);
-    }
+    #ifdef requiredDrawBuffers
+        vObject = vec4(packIntToRGB(float(uObjectId)), 1.0);
+        vInstance = vec4(packIntToRGB(aInstance), 1.0);
+        vGroup = vec4(packIntToRGB(group), 1.0);
+    #else
+        if (uPickType == 1) {
+            vColor = vec4(packIntToRGB(float(uObjectId)), 1.0);
+        } else if (uPickType == 2) {
+            vColor = vec4(packIntToRGB(aInstance), 1.0);
+        } else {
+            vColor = vec4(packIntToRGB(group), 1.0);
+        }
+    #endif
 #endif
 
 #ifdef dTransparency

@@ -46,7 +46,10 @@
             }
 
             var debugMode = getParam('debug-mode', '[^&]+').trim() === '1';
-            if (debugMode) molstar.setDebugMode(debugMode, debugMode);
+            if (debugMode) molstar.setDebugMode(debugMode);
+
+            var timingMode = getParam('timing-mode', '[^&]+').trim() === '1';
+            if (timingMode) molstar.setTimingMode(timingMode);
 
             var hideControls = getParam('hide-controls', '[^&]+').trim() === '1';
             var collapseLeftPanel = getParam('collapse-left-panel', '[^&]+').trim() === '1';

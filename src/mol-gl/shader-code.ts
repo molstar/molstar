@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -236,6 +236,18 @@ function getDefinesCode(defines: ShaderDefines, ignore?: IgnoreDefine) {
     return lines.join('\n') + '\n';
 }
 
+function getGlsl100VertPrefix(extensions: WebGLExtensions, shaderExtensions: ShaderExtensions) {
+    const prefix: string[] = [];
+    if (shaderExtensions.drawBuffers) {
+        if (extensions.drawBuffers) {
+            prefix.push('#define requiredDrawBuffers');
+        } else if (shaderExtensions.drawBuffers === 'required') {
+            throw new Error(`required 'GL_EXT_draw_buffers' extension not available`);
+        }
+    }
+    return prefix.join('\n') + '\n';
+}
+
 function getGlsl100FragPrefix(extensions: WebGLExtensions, shaderExtensions: ShaderExtensions) {
     const prefix: string[] = [
         '#extension GL_OES_standard_derivatives : enable'
@@ -271,7 +283,7 @@ function getGlsl100FragPrefix(extensions: WebGLExtensions, shaderExtensions: Sha
     return prefix.join('\n') + '\n';
 }
 
-const glsl300VertPrefix = `#version 300 es
+const glsl300VertPrefixCommon = `
 #define attribute in
 #define varying out
 #define texture2D texture
@@ -288,24 +300,42 @@ const glsl300FragPrefixCommon = `
 #define depthTextureSupport
 `;
 
+function getGlsl300VertPrefix(extensions: WebGLExtensions, shaderExtensions: ShaderExtensions) {
+    const prefix = [
+        '#version 300 es',
+    ];
+    if (shaderExtensions.drawBuffers) {
+        if (extensions.drawBuffers) {
+            prefix.push('#define requiredDrawBuffers');
+        }
+    }
+    prefix.push(glsl300VertPrefixCommon);
+    return prefix.join('\n') + '\n';
+}
+
 function getGlsl300FragPrefix(gl: WebGL2RenderingContext, extensions: WebGLExtensions, shaderExtensions: ShaderExtensions, outTypes: FragOutTypes) {
     const prefix = [
         '#version 300 es',
         `layout(location = 0) out highp ${outTypes[0] || 'vec4'} out_FragData0;`
     ];
-
     if (shaderExtensions.fragDepth) {
-        prefix.push('#define enabledFragDepth');
+        if (extensions.fragDepth) {
+            prefix.push('#define enabledFragDepth');
+        }
     }
     if (shaderExtensions.drawBuffers) {
-        prefix.push('#define requiredDrawBuffers');
-        const maxDrawBuffers = gl.getParameter(gl.MAX_DRAW_BUFFERS) as number;
-        for (let i = 1, il = maxDrawBuffers; i < il; ++i) {
-            prefix.push(`layout(location = ${i}) out highp ${outTypes[i] || 'vec4'} out_FragData${i};`);
+        if (extensions.drawBuffers) {
+            prefix.push('#define requiredDrawBuffers');
+            const maxDrawBuffers = gl.getParameter(gl.MAX_DRAW_BUFFERS) as number;
+            for (let i = 1, il = maxDrawBuffers; i < il; ++i) {
+                prefix.push(`layout(location = ${i}) out highp ${outTypes[i] || 'vec4'} out_FragData${i};`);
+            }
         }
     }
     if (shaderExtensions.shaderTextureLod) {
-        prefix.push('#define enabledShaderTextureLod');
+        if (extensions.shaderTextureLod) {
+            prefix.push('#define enabledShaderTextureLod');
+        }
     }
     prefix.push(glsl300FragPrefixCommon);
     return prefix.join('\n') + '\n';
@@ -318,7 +348,9 @@ function transformGlsl300Frag(frag: string) {
 export function addShaderDefines(gl: GLRenderingContext, extensions: WebGLExtensions, defines: ShaderDefines, shaders: ShaderCode): ShaderCode {
     const vertHeader = getDefinesCode(defines, shaders.ignoreDefine);
     const fragHeader = getDefinesCode(defines, shaders.ignoreDefine);
-    const vertPrefix = isWebGL2(gl) ? glsl300VertPrefix : '';
+    const vertPrefix = isWebGL2(gl)
+        ? getGlsl300VertPrefix(extensions, shaders.extensions)
+        : getGlsl100VertPrefix(extensions, shaders.extensions);
     const fragPrefix = isWebGL2(gl)
         ? getGlsl300FragPrefix(gl, extensions, shaders.extensions, shaders.outTypes)
         : getGlsl100FragPrefix(extensions, shaders.extensions);

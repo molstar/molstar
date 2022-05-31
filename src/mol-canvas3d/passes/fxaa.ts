@@ -18,6 +18,7 @@ import { quad_vert } from '../../mol-gl/shader/quad.vert';
 import { fxaa_frag } from '../../mol-gl/shader/fxaa.frag';
 import { Viewport } from '../camera/util';
 import { RenderTarget } from '../../mol-gl/webgl/render-target';
+import { isTimingMode } from '../../mol-util/debug';
 
 export const FxaaParams = {
     edgeThresholdMin: PD.Numeric(0.0312, { min: 0.0312, max: 0.0833, step: 0.0001 }, { description: 'Trims the algorithm from processing darks.' }),
@@ -83,6 +84,7 @@ export class FxaaPass {
     }
 
     render(viewport: Viewport, target: RenderTarget | undefined) {
+        if (isTimingMode) this.webgl.timer.mark('FxaaPass.render');
         if (target) {
             target.bind();
         } else {
@@ -90,6 +92,7 @@ export class FxaaPass {
         }
         this.updateState(viewport);
         this.renderable.render();
+        if (isTimingMode) this.webgl.timer.markEnd('FxaaPass.render');
     }
 }
 

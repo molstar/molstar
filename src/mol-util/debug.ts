@@ -30,7 +30,12 @@ let isDebugMode = function getIsDebug() {
     }
 }();
 
-export { isProductionMode, isDebugMode };
+/**
+ * set to true to gather timings, mostly used in `mol-gl`
+ */
+let isTimingMode = false;
+
+export { isProductionMode, isDebugMode, isTimingMode };
 
 export function setProductionMode(value?: boolean) {
     if (typeof value !== 'undefined') isProductionMode = value;
@@ -38,4 +43,8 @@ export function setProductionMode(value?: boolean) {
 
 export function setDebugMode(value?: boolean) {
     if (typeof value !== 'undefined') isDebugMode = value;
+}
+
+export function setTimingMode(value?: boolean) {
+    if (typeof value !== 'undefined') isTimingMode = value;
 }

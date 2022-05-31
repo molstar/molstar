@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -316,6 +316,87 @@ export function getSRGB(gl: GLRenderingContext): COMPAT_sRGB | null {
             SRGB8_ALPHA8: ext.SRGB8_ALPHA8_EXT,
             SRGB8: ext.SRGB_ALPHA_EXT,
             SRGB: ext.SRGB_EXT
+        };
+    }
+}
+
+export interface COMPAT_disjoint_timer_query {
+    /** A GLint indicating the number of bits used to hold the query result for the given target. */
+    QUERY_COUNTER_BITS: number
+    /** A WebGLQuery object, which is the currently active query for the given target. */
+    CURRENT_QUERY: number
+    /** A GLuint64EXT containing the query result. */
+    QUERY_RESULT: number
+    /** A GLboolean indicating whether or not a query result is available. */
+    QUERY_RESULT_AVAILABLE: number
+    /** Elapsed time (in nanoseconds). */
+    TIME_ELAPSED: number
+    /** The current time. */
+    TIMESTAMP: number
+    /** A GLboolean indicating whether or not the GPU performed any disjoint operation. */
+    GPU_DISJOINT: number
+
+    /** Creates a new WebGLTimerQueryEXT. */
+    createQuery: () => WebGLQuery
+    /** Deletes a given WebGLTimerQueryEXT. */
+    deleteQuery: (query: WebGLQuery) => void
+    /** Returns true if a given object is a valid WebGLTimerQueryEXT. */
+    isQuery: (query: WebGLQuery) => boolean
+    /** The timer starts when all commands prior to beginQueryEXT have been fully executed. */
+    beginQuery: (target: number, query: WebGLQuery) => void
+    /** The timer stops when all commands prior to endQueryEXT have been fully executed. */
+    endQuery: (target: number) => void
+    /** Records the current time into the corresponding query object. */
+    queryCounter: (query: WebGLQuery, target: number) => void
+    /** Returns information about a query target. */
+    getQuery: (target: number, pname: number) => WebGLQuery | number
+    /** Return the state of a query object. */
+    getQueryParameter: (query: WebGLQuery, pname: number) => number | boolean
+}
+
+export function getDisjointTimerQuery(gl: GLRenderingContext): COMPAT_disjoint_timer_query | null {
+    if (isWebGL2(gl)) {
+        // Firefox has EXT_disjoint_timer_query in webgl2
+        const ext = gl.getExtension('EXT_disjoint_timer_query_webgl2') || gl.getExtension('EXT_disjoint_timer_query');
+        if (ext === null) return null;
+        return {
+            QUERY_COUNTER_BITS: ext.QUERY_COUNTER_BITS_EXT,
+            CURRENT_QUERY: gl.CURRENT_QUERY,
+            QUERY_RESULT: gl.QUERY_RESULT,
+            QUERY_RESULT_AVAILABLE: gl.QUERY_RESULT_AVAILABLE,
+            TIME_ELAPSED: ext.TIME_ELAPSED_EXT,
+            TIMESTAMP: ext.TIMESTAMP_EXT,
+            GPU_DISJOINT: ext.GPU_DISJOINT_EXT,
+
+            createQuery: gl.createQuery.bind(gl),
+            deleteQuery: gl.deleteQuery.bind(gl),
+            isQuery: gl.isQuery.bind(gl),
+            beginQuery: gl.beginQuery.bind(gl),
+            endQuery: gl.endQuery.bind(gl),
+            queryCounter: ext.queryCounterEXT.bind(ext),
+            getQuery: gl.getQuery.bind(gl),
+            getQueryParameter: gl.getQueryParameter.bind(gl),
+        };
+    } else {
+        const ext = gl.getExtension('EXT_disjoint_timer_query');
+        if (ext === null) return null;
+        return {
+            QUERY_COUNTER_BITS: ext.QUERY_COUNTER_BITS_EXT,
+            CURRENT_QUERY: ext.CURRENT_QUERY_EXT,
+            QUERY_RESULT: ext.QUERY_RESULT_EXT,
+            QUERY_RESULT_AVAILABLE: ext.QUERY_RESULT_AVAILABLE_EXT,
+            TIME_ELAPSED: ext.TIME_ELAPSED_EXT,
+            TIMESTAMP: ext.TIMESTAMP_EXT,
+            GPU_DISJOINT: ext.GPU_DISJOINT_EXT,
+
+            createQuery: ext.createQueryEXT.bind(ext),
+            deleteQuery: ext.deleteQueryEXT.bind(ext),
+            isQuery: ext.isQueryEXT.bind(ext),
+            beginQuery: ext.beginQueryEXT.bind(ext),
+            endQuery: ext.endQueryEXT.bind(ext),
+            queryCounter: ext.queryCounterEXT.bind(ext),
+            getQuery: ext.getQueryEXT.bind(ext),
+            getQueryParameter: ext.getQueryObjectEXT.bind(ext),
         };
     }
 }

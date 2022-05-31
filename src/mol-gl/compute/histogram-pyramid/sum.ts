@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -16,6 +16,7 @@ import { QuadSchema, QuadValues } from '../util';
 import { quad_vert } from '../../../mol-gl/shader/quad.vert';
 import { sum_frag } from '../../../mol-gl/shader/histogram-pyramid/sum.frag';
 import { isWebGL2 } from '../../webgl/compat';
+import { isTimingMode } from '../../../mol-util/debug';
 
 const HistopyramidSumSchema = {
     ...QuadSchema,
@@ -66,6 +67,7 @@ const sumBytes = new Uint8Array(4);
 const sumInts = new Int32Array(4);
 
 export function getHistopyramidSum(ctx: WebGLContext, pyramidTopTexture: Texture) {
+    if (isTimingMode) ctx.timer.mark('getHistopyramidSum');
     const { gl, resources } = ctx;
 
     const renderable = getHistopyramidSumRenderable(ctx, pyramidTopTexture);
@@ -93,6 +95,7 @@ export function getHistopyramidSum(ctx: WebGLContext, pyramidTopTexture: Texture
 
     ctx.readPixels(0, 0, 1, 1, isWebGL2(gl) ? sumInts : sumBytes);
     ctx.unbindFramebuffer();
+    if (isTimingMode) ctx.timer.markEnd('getHistopyramidSum');
 
     return isWebGL2(gl)
         ? sumInts[0]
