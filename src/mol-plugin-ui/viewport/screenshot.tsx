@@ -58,6 +58,7 @@ export class DownloadScreenshotControls extends PluginUIComponent<{ close: () =>
     }
 
     componentWillUnmount() {
+        super.componentWillUnmount();
         this.setState({ imageData: void 0 });
     }
 
