@@ -215,6 +215,7 @@ export class RemoteStateSnapshots extends PluginUIComponent<
     }
 
     componentWillUnmount() {
+        super.componentWillUnmount();
         this._mounted = false;
     }
 

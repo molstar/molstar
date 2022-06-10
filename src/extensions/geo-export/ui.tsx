@@ -71,6 +71,7 @@ export class GeometryExporterUI extends CollapsableControls<{}, State> {
     }
 
     componentWillUnmount() {
+        super.componentWillUnmount();
         this._controls?.dispose();
         this._controls = void 0;
     }

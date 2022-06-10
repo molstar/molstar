@@ -6,6 +6,8 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Fix missing ``super.componentWillUnmount()`` calls (@simeonborko)
+
 ## [v3.9.0] - 2022-05-30
 
 - Improve picking by using drawbuffers (when available) to reduce number of drawcalls
