@@ -60,6 +60,7 @@ import { TaskManager } from './util/task-manager';
 import { PluginToastManager } from './util/toast';
 import { ViewportScreenshotHelper } from './util/viewport-screenshot';
 import { PLUGIN_VERSION, PLUGIN_VERSION_DATE } from './version';
+import { setSaccharideCompIdMapType } from '../mol-model/structure/structure/carbohydrates/constants';
 
 export class PluginContext {
     runTask = <T>(task: Task<T>, params?: { useOverlay?: boolean }) => this.managers.task.run(task, params);
@@ -428,5 +429,7 @@ export class PluginContext {
         // and freezing the params object causes "read-only exception"
         // TODO: is this the best place to do it?
         setAutoFreeze(false);
+
+        setSaccharideCompIdMapType(this.config.get(PluginConfig.Structure.SaccharideCompIdMapType) ?? 'default');
     }
 }

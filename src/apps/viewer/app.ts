@@ -45,6 +45,7 @@ import { Asset } from '../../mol-util/assets';
 import { Color } from '../../mol-util/color';
 import '../../mol-util/polyfill';
 import { ObjectKeys } from '../../mol-util/type-helpers';
+import { SaccharideCompIdMapType } from '../../mol-model/structure/structure/carbohydrates/constants';
 
 export { PLUGIN_VERSION as version } from '../../mol-plugin/version';
 export { setDebugMode, setProductionMode, setTimingMode } from '../../mol-util/debug';
@@ -97,6 +98,7 @@ const DefaultViewerOptions = {
     volumeStreamingDisabled: !PluginConfig.VolumeStreaming.Enabled.defaultValue,
     pdbProvider: PluginConfig.Download.DefaultPdbProvider.defaultValue,
     emdbProvider: PluginConfig.Download.DefaultEmdbProvider.defaultValue,
+    saccharideCompIdMapType: 'default' as SaccharideCompIdMapType,
 };
 type ViewerOptions = typeof DefaultViewerOptions;
 
@@ -166,6 +168,7 @@ export class Viewer {
                 [PluginConfig.Download.DefaultPdbProvider, o.pdbProvider],
                 [PluginConfig.Download.DefaultEmdbProvider, o.emdbProvider],
                 [PluginConfig.Structure.DefaultRepresentationPreset, ViewerAutoPreset.id],
+                [PluginConfig.Structure.SaccharideCompIdMapType, o.saccharideCompIdMapType],
             ]
         };
 
