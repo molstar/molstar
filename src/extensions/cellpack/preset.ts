@@ -27,7 +27,8 @@ export const CellpackPackingPreset = StructureRepresentationPresetProvider({
 
         const reprProps = {
             ignoreHydrogens: true,
-            traceOnly: params.traceOnly
+            traceOnly: params.traceOnly,
+            forceInstanceTheme: true,
         };
         const components = {
             polymer: await presetStaticComponent(plugin, structureCell, 'polymer')
@@ -71,6 +72,7 @@ export const CellpackMembranePreset = StructureRepresentationPresetProvider({
 
         const reprProps = {
             ignoreHydrogens: true,
+            forceInstanceTheme: true,
         };
         const components = {
             membrane: await presetStaticComponent(plugin, structureCell, 'all', { label: 'Membrane' })

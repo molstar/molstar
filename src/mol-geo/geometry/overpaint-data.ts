@@ -10,6 +10,8 @@ import { TextureImage, createTextureImage } from '../../mol-gl/renderable/util';
 import { Color } from '../../mol-util/color';
 import { createNullTexture, Texture } from '../../mol-gl/webgl/texture';
 
+export type OverpaintType = 'instance' | 'groupInstance' | 'volumeInstance';
+
 export type OverpaintData = {
     tOverpaint: ValueCell<TextureImage<Uint8Array>>
     uOverpaintTexDim: ValueCell<Vec2>
@@ -34,12 +36,13 @@ export function clearOverpaint(array: Uint8Array, start: number, end: number) {
     return true;
 }
 
-export function createOverpaint(count: number, overpaintData?: OverpaintData): OverpaintData {
+export function createOverpaint(count: number, type: OverpaintType, overpaintData?: OverpaintData): OverpaintData {
     const overpaint = createTextureImage(Math.max(1, count), 4, Uint8Array, overpaintData && overpaintData.tOverpaint.ref.value.array);
     if (overpaintData) {
         ValueCell.update(overpaintData.tOverpaint, overpaint);
         ValueCell.update(overpaintData.uOverpaintTexDim, Vec2.create(overpaint.width, overpaint.height));
         ValueCell.updateIfChanged(overpaintData.dOverpaint, count > 0);
+        ValueCell.updateIfChanged(overpaintData.dOverpaintType, type);
         return overpaintData;
     } else {
         return {
@@ -50,7 +53,7 @@ export function createOverpaint(count: number, overpaintData?: OverpaintData): O
             tOverpaintGrid: ValueCell.create(createNullTexture()),
             uOverpaintGridDim: ValueCell.create(Vec3.create(1, 1, 1)),
             uOverpaintGridTransform: ValueCell.create(Vec4.create(0, 0, 0, 1)),
-            dOverpaintType: ValueCell.create('groupInstance'),
+            dOverpaintType: ValueCell.create(type),
         };
     }
 }

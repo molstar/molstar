@@ -154,7 +154,11 @@ export function ComplexVisual<G extends Geometry, P extends StructureParams & Ge
                 // console.log('update transform')
                 locationIt = createLocationIterator(newStructure);
                 const { instanceCount, groupCount } = locationIt;
-                createMarkers(instanceCount * groupCount, renderObject.values);
+                if (newProps.useInstanceGranularity) {
+                    createMarkers(instanceCount * groupCount, 'groupInstance', renderObject.values);
+                } else {
+                    createMarkers(instanceCount, 'instance', renderObject.values);
+                }
             }
 
             if (updateState.createGeometry) {

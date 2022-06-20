@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -83,6 +83,7 @@ export namespace BaseGeometry {
         quality: PD.Select<VisualQuality>('auto', VisualQualityOptions, { isEssential: true, description: 'Visual/rendering quality of the representation.' }),
         material: Material.getParam(),
         clip: PD.Group(Clip.Params),
+        useInstanceGranularity: PD.Boolean(false, { description: 'Use instance granularity for marker, transparency, clipping, overpaint, substance data to save memory.' }),
     };
     export type Params = typeof Params
 
@@ -118,6 +119,8 @@ export namespace BaseGeometry {
             uClipObjectPosition: ValueCell.create(clip.objects.position),
             uClipObjectRotation: ValueCell.create(clip.objects.rotation),
             uClipObjectScale: ValueCell.create(clip.objects.scale),
+
+            useInstanceGranularity: ValueCell.create(props.useInstanceGranularity),
         };
     }
 
@@ -135,6 +138,8 @@ export namespace BaseGeometry {
         ValueCell.update(values.uClipObjectPosition, clip.objects.position);
         ValueCell.update(values.uClipObjectRotation, clip.objects.rotation);
         ValueCell.update(values.uClipObjectScale, clip.objects.scale);
+
+        ValueCell.updateIfChanged(values.useInstanceGranularity, props.useInstanceGranularity);
     }
 
     export function createRenderableState(props: Partial<PD.Values<Params>> = {}): RenderableState {

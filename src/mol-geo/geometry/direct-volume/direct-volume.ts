@@ -211,7 +211,9 @@ export namespace DirectVolume {
         const positionIt = Utils.createPositionIterator(directVolume, transform);
 
         const color = createColors(locationIt, positionIt, theme.color);
-        const marker = createMarkers(instanceCount * groupCount);
+        const marker = props.useInstanceGranularity
+            ? createMarkers(instanceCount, 'instance')
+            : createMarkers(instanceCount * groupCount, 'groupInstance');
         const overpaint = createEmptyOverpaint();
         const transparency = createEmptyTransparency();
         const material = createEmptySubstance();

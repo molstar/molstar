@@ -82,8 +82,10 @@ namespace Visual {
     export function mark(renderObject: GraphicsRenderObject | undefined, loci: Loci, action: MarkerAction, lociApply: LociApply, previous?: PreviousMark) {
         if (!renderObject || isEmptyLoci(loci)) return false;
 
-        const { tMarker, uMarker, markerAverage, markerStatus, uGroupCount, instanceCount } = renderObject.values;
-        const count = uGroupCount.ref.value * instanceCount.ref.value;
+        const { tMarker, uMarker, markerAverage, markerStatus, uGroupCount, instanceCount, useInstanceGranularity: instanceGranularity } = renderObject.values;
+        const count = instanceGranularity.ref.value
+            ? instanceCount.ref.value
+            : uGroupCount.ref.value * instanceCount.ref.value;
         const { array } = tMarker.ref.value;
         const currentStatus = markerStatus.ref.value as MarkerInfo['status'];
 
@@ -158,11 +160,14 @@ namespace Visual {
     export function setOverpaint(renderObject: GraphicsRenderObject | undefined, overpaint: Overpaint, lociApply: LociApply, clear: boolean, smoothing?: SmoothingContext) {
         if (!renderObject) return;
 
-        const { tOverpaint, dOverpaintType, dOverpaint, uGroupCount, instanceCount } = renderObject.values;
-        const count = uGroupCount.ref.value * instanceCount.ref.value;
+        const { tOverpaint, dOverpaintType, dOverpaint, uGroupCount, instanceCount, useInstanceGranularity: instanceGranularity } = renderObject.values;
+        const count = instanceGranularity.ref.value
+            ? instanceCount.ref.value
+            : uGroupCount.ref.value * instanceCount.ref.value;
 
-        // ensure texture has right size
-        createOverpaint(overpaint.layers.length ? count : 0, renderObject.values);
+        // ensure texture has right size and type
+        const type = instanceGranularity.ref.value ? 'instance' : 'groupInstance';
+        createOverpaint(overpaint.layers.length ? count : 0, type, renderObject.values);
         const { array } = tOverpaint.ref.value;
 
         // clear all if requested
@@ -180,10 +185,11 @@ namespace Visual {
             lociApply(loci, apply, false);
         }
         ValueCell.update(tOverpaint, tOverpaint.ref.value);
-        ValueCell.updateIfChanged(dOverpaintType, 'groupInstance');
+        ValueCell.updateIfChanged(dOverpaintType, type);
         ValueCell.updateIfChanged(dOverpaint, overpaint.layers.length > 0);
 
         if (overpaint.layers.length === 0) return;
+        if (type === 'instance') return;
 
         if (smoothing && hasColorSmoothingProp(smoothing.props)) {
             const { geometry, props, webgl } = smoothing;
@@ -208,11 +214,14 @@ namespace Visual {
     export function setTransparency(renderObject: GraphicsRenderObject | undefined, transparency: Transparency, lociApply: LociApply, clear: boolean, smoothing?: SmoothingContext) {
         if (!renderObject) return;
 
-        const { tTransparency, dTransparencyType, transparencyAverage, dTransparency, uGroupCount, instanceCount } = renderObject.values;
-        const count = uGroupCount.ref.value * instanceCount.ref.value;
+        const { tTransparency, dTransparencyType, transparencyAverage, dTransparency, uGroupCount, instanceCount, useInstanceGranularity: instanceGranularity } = renderObject.values;
+        const count = instanceGranularity.ref.value
+            ? instanceCount.ref.value
+            : uGroupCount.ref.value * instanceCount.ref.value;
 
-        // ensure texture has right size and variant
-        createTransparency(transparency.layers.length ? count : 0, renderObject.values);
+        // ensure texture has right size and type
+        const type = instanceGranularity.ref.value ? 'instance' : 'groupInstance';
+        createTransparency(transparency.layers.length ? count : 0, type, renderObject.values);
         const { array } = tTransparency.ref.value;
 
         // clear if requested
@@ -229,10 +238,11 @@ namespace Visual {
         }
         ValueCell.update(tTransparency, tTransparency.ref.value);
         ValueCell.updateIfChanged(transparencyAverage, getTransparencyAverage(array, count));
-        ValueCell.updateIfChanged(dTransparencyType, 'groupInstance');
+        ValueCell.updateIfChanged(dTransparencyType, type);
         ValueCell.updateIfChanged(dTransparency, transparency.layers.length > 0);
 
         if (transparency.layers.length === 0) return;
+        if (type === 'instance') return;
 
         if (smoothing && hasColorSmoothingProp(smoothing.props)) {
             const { geometry, props, webgl } = smoothing;
@@ -257,11 +267,14 @@ namespace Visual {
     export function setSubstance(renderObject: GraphicsRenderObject | undefined, substance: Substance, lociApply: LociApply, clear: boolean, smoothing?: SmoothingContext) {
         if (!renderObject) return;
 
-        const { tSubstance, dSubstanceType, dSubstance, uGroupCount, instanceCount } = renderObject.values;
-        const count = uGroupCount.ref.value * instanceCount.ref.value;
+        const { tSubstance, dSubstanceType, dSubstance, uGroupCount, instanceCount, useInstanceGranularity: instanceGranularity } = renderObject.values;
+        const count = instanceGranularity.ref.value
+            ? instanceCount.ref.value
+            : uGroupCount.ref.value * instanceCount.ref.value;
 
-        // ensure texture has right size
-        createSubstance(substance.layers.length ? count : 0, renderObject.values);
+        // ensure texture has right size and type
+        const type = instanceGranularity.ref.value ? 'instance' : 'groupInstance';
+        createSubstance(substance.layers.length ? count : 0, type, renderObject.values);
         const { array } = tSubstance.ref.value;
 
         // clear all if requested
@@ -279,10 +292,11 @@ namespace Visual {
             lociApply(loci, apply, false);
         }
         ValueCell.update(tSubstance, tSubstance.ref.value);
-        ValueCell.updateIfChanged(dSubstanceType, 'groupInstance');
+        ValueCell.updateIfChanged(dSubstanceType, type);
         ValueCell.updateIfChanged(dSubstance, substance.layers.length > 0);
 
         if (substance.layers.length === 0) return;
+        if (type === 'instance') return;
 
         if (smoothing && hasColorSmoothingProp(smoothing.props)) {
             const { geometry, props, webgl } = smoothing;
@@ -307,12 +321,15 @@ namespace Visual {
     export function setClipping(renderObject: GraphicsRenderObject | undefined, clipping: Clipping, lociApply: LociApply, clear: boolean) {
         if (!renderObject) return;
 
-        const { tClipping, dClipping, uGroupCount, instanceCount } = renderObject.values;
-        const count = uGroupCount.ref.value * instanceCount.ref.value;
+        const { tClipping, dClippingType, dClipping, uGroupCount, instanceCount, useInstanceGranularity: instanceGranularity } = renderObject.values;
+        const count = instanceGranularity.ref.value
+            ? instanceCount.ref.value
+            : uGroupCount.ref.value * instanceCount.ref.value;
         const { layers } = clipping;
 
-        // ensure texture has right size
-        createClipping(layers.length ? count : 0, renderObject.values);
+        // ensure texture has right size and type
+        const type = instanceGranularity.ref.value ? 'instance' : 'groupInstance';
+        createClipping(layers.length ? count : 0, type, renderObject.values);
         const { array } = tClipping.ref.value;
 
         // clear if requested
@@ -328,6 +345,7 @@ namespace Visual {
             lociApply(loci, apply, false);
         }
         ValueCell.update(tClipping, tClipping.ref.value);
+        ValueCell.updateIfChanged(dClippingType, type);
         ValueCell.updateIfChanged(dClipping, clipping.layers.length > 0);
     }
 
