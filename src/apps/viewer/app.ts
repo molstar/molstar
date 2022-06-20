@@ -397,7 +397,7 @@ export class Viewer {
     async loadTrajectory(params: LoadTrajectoryParams) {
         const plugin = this.plugin;
 
-        let model: StateObjectSelector, coords: StateObjectSelector;
+        let model: StateObjectSelector;
 
         if (params.model.kind === 'model-data' || params.model.kind === 'model-url') {
             const data = params.model.kind === 'model-data'
@@ -415,14 +415,12 @@ export class Viewer {
             model = await provider!.parse(plugin, data);
         }
 
-        {
-            const data = params.coordinates.kind === 'coordinates-data'
-                ? await plugin.builders.data.rawData({ data: params.coordinates.data, label: params.coordinatesLabel })
-                : await plugin.builders.data.download({ url: params.coordinates.url, isBinary: params.coordinates.isBinary, label: params.coordinatesLabel });
+        const data = params.coordinates.kind === 'coordinates-data'
+            ? await plugin.builders.data.rawData({ data: params.coordinates.data, label: params.coordinatesLabel })
+            : await plugin.builders.data.download({ url: params.coordinates.url, isBinary: params.coordinates.isBinary, label: params.coordinatesLabel });
 
-            const provider = plugin.dataFormats.get(params.coordinates.format);
-            coords = await provider!.parse(plugin, data);
-        }
+        const provider = plugin.dataFormats.get(params.coordinates.format);
+        const coords = await provider!.parse(plugin, data);
 
         const trajectory = await plugin.build().toRoot()
             .apply(TrajectoryFromModelAndCoordinates, {
