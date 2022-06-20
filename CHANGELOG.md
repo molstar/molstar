@@ -6,8 +6,13 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
-- Fix missing ``super.componentWillUnmount()`` calls (@simeonborko)
 - Add support for Glycam saccharide names
+
+## [v3.9.1] - 2022-06-19
+
+- Fix missing ``super.componentWillUnmount()`` calls (@simeonborko)
+- Fix missing ``uGroupCount`` update for visuals
+- Fix missing aromatic bond display
 
 ## [v3.9.0] - 2022-05-30
 

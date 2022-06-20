@@ -110,10 +110,8 @@ function createIntraUnitBondLines(ctx: VisualContext, unit: Unit, structure: Str
                 if (isBondType(f, BondType.Flag.Aromatic) || (arCount && !ignoreComputedAromatic)) {
                     if (arCount === 2) {
                         return LinkStyle.MirroredAromatic;
-                    } else if (arCount === 1 || deloTriplets?.getThirdElement(aI, bI)) {
-                        return LinkStyle.Aromatic;
                     } else {
-                        // case for bonds between two aromatic rings
+                        return LinkStyle.Aromatic;
                     }
                 }
             }
