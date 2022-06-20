@@ -6,6 +6,8 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+## [v3.9.1] - 2022-06-19
+
 - Fix missing ``super.componentWillUnmount()`` calls (@simeonborko)
 - Fix missing ``uGroupCount`` update for visuals
 - Fix missing aromatic bond display
