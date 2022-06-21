@@ -45,6 +45,7 @@ import { Asset } from '../../mol-util/assets';
 import { Color } from '../../mol-util/color';
 import '../../mol-util/polyfill';
 import { ObjectKeys } from '../../mol-util/type-helpers';
+import { SaccharideCompIdMapType } from '../../mol-model/structure/structure/carbohydrates/constants';
 
 export { PLUGIN_VERSION as version } from '../../mol-plugin/version';
 export { setDebugMode, setProductionMode, setTimingMode } from '../../mol-util/debug';
@@ -97,6 +98,7 @@ const DefaultViewerOptions = {
     volumeStreamingDisabled: !PluginConfig.VolumeStreaming.Enabled.defaultValue,
     pdbProvider: PluginConfig.Download.DefaultPdbProvider.defaultValue,
     emdbProvider: PluginConfig.Download.DefaultEmdbProvider.defaultValue,
+    saccharideCompIdMapType: 'default' as SaccharideCompIdMapType,
 };
 type ViewerOptions = typeof DefaultViewerOptions;
 
@@ -166,6 +168,7 @@ export class Viewer {
                 [PluginConfig.Download.DefaultPdbProvider, o.pdbProvider],
                 [PluginConfig.Download.DefaultEmdbProvider, o.emdbProvider],
                 [PluginConfig.Structure.DefaultRepresentationPreset, ViewerAutoPreset.id],
+                [PluginConfig.Structure.SaccharideCompIdMapType, o.saccharideCompIdMapType],
             ]
         };
 
@@ -397,7 +400,7 @@ export class Viewer {
     async loadTrajectory(params: LoadTrajectoryParams) {
         const plugin = this.plugin;
 
-        let model: StateObjectSelector, coords: StateObjectSelector;
+        let model: StateObjectSelector;
 
         if (params.model.kind === 'model-data' || params.model.kind === 'model-url') {
             const data = params.model.kind === 'model-data'
@@ -415,14 +418,12 @@ export class Viewer {
             model = await provider!.parse(plugin, data);
         }
 
-        {
-            const data = params.coordinates.kind === 'coordinates-data'
-                ? await plugin.builders.data.rawData({ data: params.coordinates.data, label: params.coordinatesLabel })
-                : await plugin.builders.data.download({ url: params.coordinates.url, isBinary: params.coordinates.isBinary, label: params.coordinatesLabel });
+        const data = params.coordinates.kind === 'coordinates-data'
+            ? await plugin.builders.data.rawData({ data: params.coordinates.data, label: params.coordinatesLabel })
+            : await plugin.builders.data.download({ url: params.coordinates.url, isBinary: params.coordinates.isBinary, label: params.coordinatesLabel });
 
-            const provider = plugin.dataFormats.get(params.coordinates.format);
-            coords = await provider!.parse(plugin, data);
-        }
+        const provider = plugin.dataFormats.get(params.coordinates.format);
+        const coords = await provider!.parse(plugin, data);
 
         const trajectory = await plugin.build().toRoot()
             .apply(TrajectoryFromModelAndCoordinates, {

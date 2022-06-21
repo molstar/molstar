@@ -6,10 +6,17 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Add support for Glycam saccharide names
 - Add ``useInstanceGranularity`` option for marker, transparency, clipping, overpaint, substance data to save memory
 - CellPack extension tweaks
     - Use instancing to create DNA/RNA curves to save memory
     - Enable ``useInstanceGranularity`` by default
+
+## [v3.9.1] - 2022-06-19
+
+- Fix missing ``super.componentWillUnmount()`` calls (@simeonborko)
+- Fix missing ``uGroupCount`` update for visuals
+- Fix missing aromatic bond display
 
 ## [v3.9.0] - 2022-05-30
 

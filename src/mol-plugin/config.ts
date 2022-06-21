@@ -11,6 +11,7 @@ import { PdbDownloadProvider } from '../mol-plugin-state/actions/structure';
 import { EmdbDownloadProvider } from '../mol-plugin-state/actions/volume';
 import { StructureRepresentationPresetProvider } from '../mol-plugin-state/builder/structure/representation-preset';
 import { PluginFeatureDetection } from './features';
+import { SaccharideCompIdMapType } from '../mol-model/structure/structure/carbohydrates/constants';
 
 export class PluginConfigItem<T = any> {
     toString() { return this.key; }
@@ -61,7 +62,8 @@ export const PluginConfig = {
     Structure: {
         SizeThresholds: item('structure.size-thresholds', Structure.DefaultSizeThresholds),
         DefaultRepresentationPreset: item<string>('structure.default-representation-preset', 'auto'),
-        DefaultRepresentationPresetParams: item<StructureRepresentationPresetProvider.CommonParams>('structure.default-representation-preset-params', { })
+        DefaultRepresentationPresetParams: item<StructureRepresentationPresetProvider.CommonParams>('structure.default-representation-preset-params', { }),
+        SaccharideCompIdMapType: item<SaccharideCompIdMapType>('structure.saccharide-comp-id-map-type', 'default'),
     }
 };
 
