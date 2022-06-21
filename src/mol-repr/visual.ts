@@ -82,7 +82,7 @@ namespace Visual {
     export function mark(renderObject: GraphicsRenderObject | undefined, loci: Loci, action: MarkerAction, lociApply: LociApply, previous?: PreviousMark) {
         if (!renderObject || isEmptyLoci(loci)) return false;
 
-        const { tMarker, uMarker, markerAverage, markerStatus, uGroupCount, instanceCount, useInstanceGranularity: instanceGranularity } = renderObject.values;
+        const { tMarker, uMarker, markerAverage, markerStatus, uGroupCount, instanceCount, instanceGranularity: instanceGranularity } = renderObject.values;
         const count = instanceGranularity.ref.value
             ? instanceCount.ref.value
             : uGroupCount.ref.value * instanceCount.ref.value;
@@ -160,7 +160,7 @@ namespace Visual {
     export function setOverpaint(renderObject: GraphicsRenderObject | undefined, overpaint: Overpaint, lociApply: LociApply, clear: boolean, smoothing?: SmoothingContext) {
         if (!renderObject) return;
 
-        const { tOverpaint, dOverpaintType, dOverpaint, uGroupCount, instanceCount, useInstanceGranularity: instanceGranularity } = renderObject.values;
+        const { tOverpaint, dOverpaintType, dOverpaint, uGroupCount, instanceCount, instanceGranularity: instanceGranularity } = renderObject.values;
         const count = instanceGranularity.ref.value
             ? instanceCount.ref.value
             : uGroupCount.ref.value * instanceCount.ref.value;
@@ -214,7 +214,7 @@ namespace Visual {
     export function setTransparency(renderObject: GraphicsRenderObject | undefined, transparency: Transparency, lociApply: LociApply, clear: boolean, smoothing?: SmoothingContext) {
         if (!renderObject) return;
 
-        const { tTransparency, dTransparencyType, transparencyAverage, dTransparency, uGroupCount, instanceCount, useInstanceGranularity: instanceGranularity } = renderObject.values;
+        const { tTransparency, dTransparencyType, transparencyAverage, dTransparency, uGroupCount, instanceCount, instanceGranularity: instanceGranularity } = renderObject.values;
         const count = instanceGranularity.ref.value
             ? instanceCount.ref.value
             : uGroupCount.ref.value * instanceCount.ref.value;
@@ -267,7 +267,7 @@ namespace Visual {
     export function setSubstance(renderObject: GraphicsRenderObject | undefined, substance: Substance, lociApply: LociApply, clear: boolean, smoothing?: SmoothingContext) {
         if (!renderObject) return;
 
-        const { tSubstance, dSubstanceType, dSubstance, uGroupCount, instanceCount, useInstanceGranularity: instanceGranularity } = renderObject.values;
+        const { tSubstance, dSubstanceType, dSubstance, uGroupCount, instanceCount, instanceGranularity: instanceGranularity } = renderObject.values;
         const count = instanceGranularity.ref.value
             ? instanceCount.ref.value
             : uGroupCount.ref.value * instanceCount.ref.value;
@@ -321,7 +321,7 @@ namespace Visual {
     export function setClipping(renderObject: GraphicsRenderObject | undefined, clipping: Clipping, lociApply: LociApply, clear: boolean) {
         if (!renderObject) return;
 
-        const { tClipping, dClippingType, dClipping, uGroupCount, instanceCount, useInstanceGranularity: instanceGranularity } = renderObject.values;
+        const { tClipping, dClippingType, dClipping, uGroupCount, instanceCount, instanceGranularity: instanceGranularity } = renderObject.values;
         const count = instanceGranularity.ref.value
             ? instanceCount.ref.value
             : uGroupCount.ref.value * instanceCount.ref.value;

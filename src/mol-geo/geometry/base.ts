@@ -83,7 +83,7 @@ export namespace BaseGeometry {
         quality: PD.Select<VisualQuality>('auto', VisualQualityOptions, { isEssential: true, description: 'Visual/rendering quality of the representation.' }),
         material: Material.getParam(),
         clip: PD.Group(Clip.Params),
-        useInstanceGranularity: PD.Boolean(false, { description: 'Use instance granularity for marker, transparency, clipping, overpaint, substance data to save memory.' }),
+        instanceGranularity: PD.Boolean(false, { description: 'Use instance granularity for marker, transparency, clipping, overpaint, substance data to save memory.' }),
     };
     export type Params = typeof Params
 
@@ -120,7 +120,7 @@ export namespace BaseGeometry {
             uClipObjectRotation: ValueCell.create(clip.objects.rotation),
             uClipObjectScale: ValueCell.create(clip.objects.scale),
 
-            useInstanceGranularity: ValueCell.create(props.useInstanceGranularity),
+            instanceGranularity: ValueCell.create(props.instanceGranularity),
         };
     }
 
@@ -139,7 +139,7 @@ export namespace BaseGeometry {
         ValueCell.update(values.uClipObjectRotation, clip.objects.rotation);
         ValueCell.update(values.uClipObjectScale, clip.objects.scale);
 
-        ValueCell.updateIfChanged(values.useInstanceGranularity, props.useInstanceGranularity);
+        ValueCell.updateIfChanged(values.instanceGranularity, props.instanceGranularity);
     }
 
     export function createRenderableState(props: Partial<PD.Values<Params>> = {}): RenderableState {

@@ -125,7 +125,7 @@ export function ShapeRepresentation<D, G extends Geometry, P extends Geometry.Pa
                     Shape.createTransform(_shape.transforms, _renderObject.values);
                     locationIt = Shape.groupIterator(_shape);
                     const { instanceCount, groupCount } = locationIt;
-                    if (props.useInstanceGranularity) {
+                    if (props.instanceGranularity) {
                         createMarkers(instanceCount * groupCount, 'groupInstance', _renderObject.values);
                     } else {
                         createMarkers(instanceCount, 'instance', _renderObject.values);

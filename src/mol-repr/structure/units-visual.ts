@@ -126,7 +126,7 @@ export function UnitsVisual<G extends Geometry, P extends StructureParams & Geom
             updateState.createGeometry = true;
         }
 
-        if (newProps.useInstanceGranularity !== currentProps.useInstanceGranularity) {
+        if (newProps.instanceGranularity !== currentProps.instanceGranularity) {
             updateState.updateTransform = true;
         }
 
@@ -198,7 +198,7 @@ export function UnitsVisual<G extends Geometry, P extends StructureParams & Geom
                 // console.log('update transform');
                 locationIt = createLocationIterator(newStructureGroup);
                 const { instanceCount, groupCount } = locationIt;
-                if (newProps.useInstanceGranularity) {
+                if (newProps.instanceGranularity) {
                     createMarkers(instanceCount, 'instance', renderObject.values);
                 } else {
                     createMarkers(instanceCount * groupCount, 'groupInstance', renderObject.values);
@@ -325,7 +325,7 @@ export function UnitsVisual<G extends Geometry, P extends StructureParams & Geom
     }
 
     function lociApply(loci: Loci, apply: (interval: Interval) => boolean, isMarking: boolean) {
-        if (currentProps.useInstanceGranularity) {
+        if (currentProps.instanceGranularity) {
             // TODO: change loci to include only the first element of each instance
             loci = lociFirstElementOfInstances(loci);
             return eachInstance(loci, currentStructureGroup, apply);

@@ -314,7 +314,7 @@ export const BaseSchema = {
     /** denotes reflection in transform */
     hasReflection: ValueSpec('boolean'),
     /** use instance granularity for marker, transparency, clipping, overpaint, substance */
-    useInstanceGranularity: ValueSpec('boolean'),
+    instanceGranularity: ValueSpec('boolean'),
 
     /** bounding sphere taking aTransform into account and encompases all instances */
     boundingSphere: ValueSpec('sphere'),
