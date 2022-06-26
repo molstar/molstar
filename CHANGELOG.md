@@ -6,6 +6,8 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+## [v3.10.1] - 2022-06-26
+
 - Fix groupCount when updating TextureMesh-based visuals
 
 ## [v3.10.0] - 2022-06-24
