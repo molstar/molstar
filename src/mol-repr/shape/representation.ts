@@ -78,6 +78,10 @@ export function ShapeRepresentation<D, G extends Geometry, P extends Geometry.Pa
             console.warn('unexpected state');
         }
 
+        if (props.instanceGranularity !== currentProps.instanceGranularity) {
+            updateState.updateTransform = true;
+        }
+
         if (updateState.updateTransform) {
             updateState.updateColor = true;
             updateState.updateSize = true;
@@ -126,9 +130,9 @@ export function ShapeRepresentation<D, G extends Geometry, P extends Geometry.Pa
                     locationIt = Shape.groupIterator(_shape);
                     const { instanceCount, groupCount } = locationIt;
                     if (props.instanceGranularity) {
-                        createMarkers(instanceCount * groupCount, 'groupInstance', _renderObject.values);
-                    } else {
                         createMarkers(instanceCount, 'instance', _renderObject.values);
+                    } else {
+                        createMarkers(instanceCount * groupCount, 'groupInstance', _renderObject.values);
                     }
                 }
 
@@ -171,11 +175,30 @@ export function ShapeRepresentation<D, G extends Geometry, P extends Geometry.Pa
         });
     }
 
+    function eachInstance(loci: Loci, shape: Shape, apply: (interval: Interval) => boolean) {
+        let changed = false;
+        if (!ShapeGroup.isLoci(loci)) return false;
+        if (ShapeGroup.isLociEmpty(loci)) return false;
+        if (loci.shape !== shape) return false;
+        for (const g of loci.groups) {
+            if (apply(Interval.ofSingleton(g.instance))) changed = true;
+        }
+        return changed;
+    }
+
     function lociApply(loci: Loci, apply: (interval: Interval) => boolean) {
         if (isEveryLoci(loci) || (Shape.isLoci(loci) && loci.shape === _shape)) {
-            return apply(Interval.ofBounds(0, _shape.groupCount * _shape.transforms.length));
+            if (currentProps.instanceGranularity) {
+                return apply(Interval.ofBounds(0, _shape.transforms.length));
+            } else {
+                return apply(Interval.ofBounds(0, _shape.groupCount * _shape.transforms.length));
+            }
         } else {
-            return eachShapeGroup(loci, _shape, apply);
+            if (currentProps.instanceGranularity) {
+                return eachInstance(loci, _shape, apply);
+            } else {
+                return eachShapeGroup(loci, _shape, apply);
+            }
         }
     }
 

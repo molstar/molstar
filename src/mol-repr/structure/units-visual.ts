@@ -5,7 +5,7 @@
  */
 
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
-import { Structure, Unit, StructureElement } from '../../mol-model/structure';
+import { Structure, Unit, StructureElement, Bond } from '../../mol-model/structure';
 import { RepresentationProps } from '../representation';
 import { Visual, VisualContext } from '../visual';
 import { Geometry, GeometryUtils } from '../../mol-geo/geometry/geometry';
@@ -269,14 +269,24 @@ export function UnitsVisual<G extends Geometry, P extends StructureParams & Geom
 
     function eachInstance(loci: Loci, structureGroup: StructureGroup, apply: (interval: Interval) => boolean) {
         let changed = false;
-        if (!StructureElement.Loci.is(loci)) return false;
-        const { structure, group } = structureGroup;
-        if (!Structure.areEquivalent(loci.structure, structure)) return false;
-        const { unitIndexMap } = group;
-        for (const e of loci.elements) {
-            const unitIdx = unitIndexMap.get(e.unit.id);
-            if (unitIdx !== undefined) {
-                if (apply(Interval.ofSingleton(unitIdx))) changed = true;
+        if (Bond.isLoci(loci)) {
+            const { structure, group } = structureGroup;
+            if (!Structure.areEquivalent(loci.structure, structure)) return false;
+            for (const b of loci.bonds) {
+                if (b.aUnit !== b.bUnit) continue;
+                const unitIdx = group.unitIndexMap.get(b.aUnit.id);
+                if (unitIdx !== undefined) {
+                    if (apply(Interval.ofSingleton(unitIdx))) changed = true;
+                }
+            }
+        } else if (StructureElement.Loci.is(loci)) {
+            const { structure, group } = structureGroup;
+            if (!Structure.areEquivalent(loci.structure, structure)) return false;
+            for (const e of loci.elements) {
+                const unitIdx = group.unitIndexMap.get(e.unit.id);
+                if (unitIdx !== undefined) {
+                    if (apply(Interval.ofSingleton(unitIdx))) changed = true;
+                }
             }
         }
         return changed;
