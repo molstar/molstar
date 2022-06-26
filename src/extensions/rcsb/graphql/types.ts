@@ -4,7 +4,7 @@ export type InputMaybe<T> = Maybe<T>;
 export type Exact<T extends { [key: string]: unknown }> = { [K in keyof T]: T[K] };
 export type MakeOptional<T, K extends keyof T> = Omit<T, K> & { [SubKey in K]?: Maybe<T[SubKey]> };
 export type MakeMaybe<T, K extends keyof T> = Omit<T, K> & { [SubKey in K]: Maybe<T[SubKey]> };
-// Generated on 2022-04-30T15:35:08-07:00
+// Generated on 2022-06-26T14:02:35-07:00
 
 /** All built-in and custom scalars, mapped to their actual values */
 export type Scalars = {
@@ -3214,15 +3214,6 @@ export type GroupEntry = {
   readonly rcsb_group_statistics?: Maybe<RcsbGroupStatistics>;
   /** A unique textual identifier for a group */
   readonly rcsb_id: Scalars['String'];
-};
-
-export type GroupMembersAlignmentAlignedRegions = {
-  /** Aligned region length */
-  readonly length: Scalars['Int'];
-  /** Entity seqeunce start position */
-  readonly query_begin: Scalars['Int'];
-  /** NCBI sequence start position */
-  readonly target_begin: Scalars['Int'];
 };
 
 export type GroupMembersAlignmentScores = {
@@ -10519,7 +10510,7 @@ export type RcsbPolymerEntityGroupMembership = {
 export type RcsbPolymerEntityGroupSequenceAlignment = {
   /** Abstract reference where group members can be aligned to generate a MSA */
   readonly abstract_reference: RcsbPolymerEntityGroupSequenceAlignmentAbstractReference;
-  /** List of alignments with core_entity canonical sequences */
+  /** Alignment with a core_entity canonical sequence */
   readonly group_members_alignment: ReadonlyArray<Maybe<RcsbPolymerEntityGroupSequenceAlignmentGroupMembersAlignment>>;
 };
 
@@ -10531,9 +10522,9 @@ export type RcsbPolymerEntityGroupSequenceAlignmentAbstractReference = {
 };
 
 export type RcsbPolymerEntityGroupSequenceAlignmentGroupMembersAlignment = {
-  /** Aligned region */
-  readonly aligned_regions: ReadonlyArray<Maybe<GroupMembersAlignmentAlignedRegions>>;
-  readonly member_id?: Maybe<Scalars['String']>;
+  /** Alignment region encoded as a triplet [query_begin, target_begin, length] */
+  readonly aligned_regions: ReadonlyArray<Maybe<ReadonlyArray<Maybe<Scalars['Int']>>>>;
+  readonly member_id: Scalars['String'];
   /** Alignment scores */
   readonly scores: GroupMembersAlignmentScores;
 };

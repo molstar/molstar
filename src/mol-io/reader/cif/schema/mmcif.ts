@@ -1,7 +1,7 @@
 /**
  * Copyright (c) 2017-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
- * Code-generated 'mmCIF' schema file. Dictionary versions: mmCIF 5.358, IHM 1.17, MA 1.4.0.
+ * Code-generated 'mmCIF' schema file. Dictionary versions: mmCIF 5.359, IHM 1.17, MA 1.4.1.
  *
  * @author molstar/ciftools package
  */
@@ -4888,7 +4888,7 @@ export const mmCIF_Schema = {
          * The name of the database containing reference information about
          * this entity or biological unit.
          */
-        db_name: Aliased<'UNP' | 'GB' | 'OrthoDB' | 'NCBI' | 'JGI' | 'Other'>(str),
+        db_name: Aliased<'UNP' | 'GB' | 'OrthoDB' | 'NCBI' | 'JGI' | 'Phytozyme' | 'Other'>(str),
         /**
          * The code for this entity or biological unit or for a closely
          * related entity or biological unit in the named database.
