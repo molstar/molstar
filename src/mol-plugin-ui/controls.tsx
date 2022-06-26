@@ -89,7 +89,7 @@ export class TrajectoryViewportControls extends PluginUIComponent<{}, { show: bo
     render() {
         const isAnimating = this.plugin.behaviors.state.isAnimating.value;
 
-        if (!this.state.show || (isAnimating && !this.state.label)) return null;
+        if (!this.state.show || (isAnimating && !this.state.label) || !this.plugin.config.get(PluginConfig.Viewport.ShowTrajectoryControls)) return null;
 
         return <div className='msp-traj-controls'>
             {!isAnimating && <IconButton svg={SkipPreviousSvg} title='First Model' onClick={this.reset} disabled={isAnimating} />}

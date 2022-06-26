@@ -6,11 +6,19 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
-- Add support for Glycam saccharide names
 - Add ``instanceGranularity`` option for marker, transparency, clipping, overpaint, substance data to save memory
 - CellPack extension tweaks
     - Use instancing to create DNA/RNA curves to save memory
     - Enable ``instanceGranularity`` by default
+
+## [v3.10.1] - 2022-06-26
+
+- Fix groupCount when updating TextureMesh-based visuals
+
+## [v3.10.0] - 2022-06-24
+
+- Add support for Glycam saccharide names
+- Add ``PluginConfig.Viewport.ShowTrajectoryControls`` config option
 
 ## [v3.9.1] - 2022-06-19
 
