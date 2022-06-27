@@ -112,12 +112,7 @@ export function createRenderItem<T extends string>(ctx: WebGLContext, drawMode: 
     const { instancedArrays, vertexArrayObject } = ctx.extensions;
 
     // emulate gl_VertexID when needed
-    // if (!ctx.isWebGL2 && values.uVertexCount) {
-    // not using gl_VertexID in WebGL2 but aVertex to ensure there is an active attribute with divisor 0
-    // since FF 85 this is not needed anymore but lets keep it for backwards compatibility
-    // https://bugzilla.mozilla.org/show_bug.cgi?id=1679693
-    // see also note in src/mol-gl/shader/chunks/common-vert-params.glsl.ts
-    if (values.uVertexCount) {
+    if (values.uVertexCount && !ctx.extensions.noNonInstancedActiveAttribs) {
         const vertexCount = values.uVertexCount.ref.value;
         (values as any).aVertex = ValueCell.create(fillSerial(new Float32Array(vertexCount)));
         (schema as any).aVertex = AttributeSpec('float32', 1, 0);
