@@ -309,6 +309,9 @@ function getGlsl300VertPrefix(extensions: WebGLExtensions, shaderExtensions: Sha
             prefix.push('#define requiredDrawBuffers');
         }
     }
+    if (extensions.noNonInstancedActiveAttribs) {
+        prefix.push('#define noNonInstancedActiveAttribs');
+    }
     prefix.push(glsl300VertPrefixCommon);
     return prefix.join('\n') + '\n';
 }

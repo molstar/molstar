@@ -7,6 +7,7 @@ Note that since we don't clearly distinguish between a public and private interf
 ## [Unreleased]
 
 - Fix superfluous shader varying
+- Improve use of gl_VertexID when possible
 
 ## [v3.10.1] - 2022-06-26
 

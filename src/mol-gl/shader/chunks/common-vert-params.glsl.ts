@@ -43,16 +43,10 @@ uniform int uPickType;
 varying vec3 vModelPosition;
 varying vec3 vViewPosition;
 
-#if __VERSION__ == 100
-    attribute float aVertex;
-    #define VertexID int(aVertex)
+#if defined(noNonInstancedActiveAttribs)
+    #define VertexID gl_VertexID
 #else
-    // not using gl_VertexID but aVertex to ensure there is an active attribute with divisor 0
-    // since FF 85 this is not needed anymore but lets keep it for backwards compatibility
-    // https://bugzilla.mozilla.org/show_bug.cgi?id=1679693
-    // see also note in src/mol-gl/webgl/render-item.ts
     attribute float aVertex;
     #define VertexID int(aVertex)
-    // #define VertexID gl_VertexID
 #endif
 `;

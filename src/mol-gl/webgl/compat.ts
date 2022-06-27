@@ -401,6 +401,20 @@ export function getDisjointTimerQuery(gl: GLRenderingContext): COMPAT_disjoint_t
     }
 }
 
+export function getNoNonInstancedActiveAttribs(gl: GLRenderingContext): boolean {
+    if (!isWebGL2(gl)) return false;
+
+    if (typeof navigator !== 'undefined') {
+        const ffMatch = window.navigator.userAgent.match(/Firefox\/([0-9]+)\./);
+        if (!ffMatch) return true;
+
+        const ffVersion = parseInt(ffMatch[1]);
+        // supported since FF 85 (https://bugzilla.mozilla.org/show_bug.cgi?id=1679693)
+        return ffVersion >= 85;
+    }
+    return false;
+}
+
 //
 
 const TextureTestVertShader = `
