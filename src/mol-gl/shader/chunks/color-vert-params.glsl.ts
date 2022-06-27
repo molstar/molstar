@@ -75,7 +75,6 @@ uniform float uBumpiness;
 #endif
 
 #ifdef dTransparency
-    varying float vGroup;
     #if defined(dTransparencyType_groupInstance) || defined(dTransparencyType_vertexInstance)
         varying float vTransparency;
         uniform vec2 uTransparencyTexDim;

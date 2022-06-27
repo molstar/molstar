@@ -6,6 +6,8 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Fix superfluous shader varying
+
 ## [v3.10.1] - 2022-06-26
 
 - Fix groupCount when updating TextureMesh-based visuals

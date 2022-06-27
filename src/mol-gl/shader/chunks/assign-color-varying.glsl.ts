@@ -72,8 +72,6 @@ export const assign_color_varying = `
 #endif
 
 #ifdef dTransparency
-    vGroup = group;
-
     #if defined(dTransparencyType_groupInstance)
         vTransparency = readFromTexture(tTransparency, aInstance * float(uGroupCount) + group, uTransparencyTexDim).a;
     #elif defined(dTransparencyType_vertexInstance)
