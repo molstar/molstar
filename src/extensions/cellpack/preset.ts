@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Ludovic Autin <ludovic.autin@gmail.com>
@@ -13,7 +13,7 @@ import { CellPackGenerateColorThemeProvider } from './color/generate';
 
 export const CellpackPackingPresetParams = {
     traceOnly: PD.Boolean(true),
-    representation: PD.Select('gaussian-surface', PD.arrayToOptions(['gaussian-surface', 'spacefill', 'point', 'orientation'])),
+    representation: PD.Select('gaussian-surface', PD.arrayToOptions(['gaussian-surface', 'spacefill', 'point', 'orientation'] as const)),
 };
 export type CellpackPackingPresetParams = PD.ValuesFor<typeof CellpackPackingPresetParams>
 
@@ -37,8 +37,8 @@ export const CellpackPackingPreset = StructureRepresentationPresetProvider({
             Object.assign(reprProps, {
                 quality: 'custom', resolution: 10, radiusOffset: 2, doubleSided: false
             });
-        } else if (params.representation === 'spacefill' && params.traceOnly) {
-            Object.assign(reprProps, { sizeFactor: 2 });
+        } else if (params.representation === 'spacefill') {
+            Object.assign(reprProps, { sizeFactor: params.traceOnly ? 2 : 1 });
         }
 
         // default is generated
@@ -57,7 +57,7 @@ export const CellpackPackingPreset = StructureRepresentationPresetProvider({
 //
 
 export const CellpackMembranePresetParams = {
-    representation: PD.Select('gaussian-surface', PD.arrayToOptions(['gaussian-surface', 'spacefill', 'point', 'orientation'])),
+    representation: PD.Select('gaussian-surface', PD.arrayToOptions(['gaussian-surface', 'spacefill', 'point', 'orientation'] as const)),
 };
 export type CellpackMembranePresetParams = PD.ValuesFor<typeof CellpackMembranePresetParams>
 
@@ -84,7 +84,7 @@ export const CellpackMembranePreset = StructureRepresentationPresetProvider({
 
         const { update, builder, typeParams } = StructureRepresentationPresetProvider.reprBuilder(plugin, {});
         const representations = {
-            membrane: builder.buildRepresentation(update, components.membrane, { type: 'gaussian-surface', typeParams: { ...typeParams, ...reprProps }, color: 'uniform', colorParams: { value: ColorNames.lightgrey } }, { tag: 'all' })
+            membrane: builder.buildRepresentation(update, components.membrane, { type: params.representation, typeParams: { ...typeParams, ...reprProps }, color: 'uniform', colorParams: { value: ColorNames.lightgrey } }, { tag: 'all' })
         };
 
         await update.commit({ revertOnError: true });

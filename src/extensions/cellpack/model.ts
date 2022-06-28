@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Ludovic Autin <ludovic.autin@gmail.com>
@@ -12,7 +12,7 @@ import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { Ingredient, CellPacking, CompartmentPrimitives } from './data';
 import { getFromPdb, getFromCellPackDB, IngredientFiles, parseCif, parsePDBfile, getStructureMean, getFromOPM } from './util';
 import { Model, Structure, StructureSymmetry, StructureSelection, QueryContext, Unit, Trajectory } from '../../mol-model/structure';
-import { trajectoryFromMmCIF, MmcifFormat } from '../../mol-model-formats/structure/mmcif';
+import { trajectoryFromMmCIF } from '../../mol-model-formats/structure/mmcif';
 import { trajectoryFromPDB } from '../../mol-model-formats/structure/pdb';
 import { Mat4, Vec3, Quat } from '../../mol-math/linear-algebra';
 import { SymmetryOperator } from '../../mol-math/geometry';
@@ -22,17 +22,12 @@ import { ParseCellPack, StructureFromCellpack, DefaultCellPackBaseUrl, Structure
 import { MolScriptBuilder as MS } from '../../mol-script/language/builder';
 import { getMatFromResamplePoints } from './curve';
 import { compile } from '../../mol-script/runtime/query/compiler';
-import { CifCategory, CifField } from '../../mol-io/reader/cif';
-import { mmCIF_Schema } from '../../mol-io/reader/cif/schema/mmcif';
-import { Column } from '../../mol-data/db';
-import { createModels } from '../../mol-model-formats/structure/basic/parser';
 import { CellpackPackingPreset, CellpackMembranePreset } from './preset';
 import { Asset } from '../../mol-util/assets';
 import { Color } from '../../mol-util/color';
 import { objectForEach } from '../../mol-util/object';
 import { readFromFile } from '../../mol-util/data-source';
 import { ColorNames } from '../../mol-util/color/names';
-import { createBasic } from '../../mol-model-formats/structure/basic/schema';
 
 function getCellPackModelUrl(fileName: string, baseUrl: string) {
     return `${baseUrl}/results/${fileName}`;
@@ -142,7 +137,7 @@ async function getStructure(plugin: PluginContext, model: Model, source: Ingredi
 
 function getTransformLegacy(trans: Vec3, rot: Quat) {
     const q: Quat = Quat.create(-rot[3], rot[0], rot[1], rot[2]);
-    const m: Mat4 = Mat4.fromQuat(Mat4.zero(), q);
+    const m: Mat4 = Mat4.fromQuat(Mat4(), q);
     Mat4.transpose(m, m);
     Mat4.scale(m, m, Vec3.create(-1.0, 1.0, -1.0));
     Mat4.setTranslation(m, trans);
@@ -151,7 +146,7 @@ function getTransformLegacy(trans: Vec3, rot: Quat) {
 
 function getTransform(trans: Vec3, rot: Quat) {
     const q: Quat = Quat.create(-rot[0], rot[1], rot[2], -rot[3]);
-    const m: Mat4 = Mat4.fromQuat(Mat4.zero(), q);
+    const m: Mat4 = Mat4.fromQuat(Mat4(), q);
     const p: Vec3 = Vec3.create(-trans[0], trans[1], trans[2]);
     Mat4.setTranslation(m, p);
     return m;
@@ -214,111 +209,10 @@ function getAssembly(name: string, transforms: Mat4[], structure: Structure) {
     return builder.getStructure();
 }
 
-function getCifCurve(name: string, transforms: Mat4[], model: Model) {
-    if (!MmcifFormat.is(model.sourceData)) throw new Error('mmcif source data needed');
-
-    const { db } = model.sourceData.data;
-    const d = db.atom_site;
-    const n = d._rowCount;
-    const rowCount = n * transforms.length;
-
-    const { offsets, count } = model.atomicHierarchy.chainAtomSegments;
-
-    const x = d.Cartn_x.toArray();
-    const y = d.Cartn_y.toArray();
-    const z = d.Cartn_z.toArray();
-
-    const Cartn_x = new Float32Array(rowCount);
-    const Cartn_y = new Float32Array(rowCount);
-    const Cartn_z = new Float32Array(rowCount);
-    const map = new Uint32Array(rowCount);
-    const seq = new Int32Array(rowCount);
-    let offset = 0;
-    for (let c = 0; c < count; ++c) {
-        const cStart = offsets[c];
-        const cEnd = offsets[c + 1];
-        const cLength = cEnd - cStart;
-        for (let t = 0, tl = transforms.length; t < tl; ++t) {
-            const m = transforms[t];
-            for (let j = cStart; j < cEnd; ++j) {
-                const i = offset + j - cStart;
-                const xj = x[j], yj = y[j], zj = z[j];
-                Cartn_x[i] = m[0] * xj + m[4] * yj + m[8] * zj + m[12];
-                Cartn_y[i] = m[1] * xj + m[5] * yj + m[9] * zj + m[13];
-                Cartn_z[i] = m[2] * xj + m[6] * yj + m[10] * zj + m[14];
-                map[i] = j;
-                seq[i] = t + 1;
-            }
-            offset += cLength;
-        }
-    }
-
-    function multColumn<T>(column: Column<T>) {
-        const array = column.toArray();
-        return Column.ofLambda({
-            value: row => array[map[row]],
-            areValuesEqual: (rowA, rowB) => map[rowA] === map[rowB] || array[map[rowA]] === array[map[rowB]],
-            rowCount, schema: column.schema
-        });
-    }
-
-    const _atom_site: CifCategory.SomeFields<mmCIF_Schema['atom_site']> = {
-        auth_asym_id: CifField.ofColumn(multColumn(d.auth_asym_id)),
-        auth_atom_id: CifField.ofColumn(multColumn(d.auth_atom_id)),
-        auth_comp_id: CifField.ofColumn(multColumn(d.auth_comp_id)),
-        auth_seq_id: CifField.ofNumbers(seq),
-
-        B_iso_or_equiv: CifField.ofColumn(Column.ofConst(0, rowCount, Column.Schema.float)),
-        Cartn_x: CifField.ofNumbers(Cartn_x),
-        Cartn_y: CifField.ofNumbers(Cartn_y),
-        Cartn_z: CifField.ofNumbers(Cartn_z),
-        group_PDB: CifField.ofColumn(Column.ofConst('ATOM', rowCount, Column.Schema.str)),
-        id: CifField.ofColumn(Column.ofLambda({
-            value: row => row,
-            areValuesEqual: (rowA, rowB) => rowA === rowB,
-            rowCount, schema: d.id.schema,
-        })),
-
-        label_alt_id: CifField.ofColumn(multColumn(d.label_alt_id)),
-
-        label_asym_id: CifField.ofColumn(multColumn(d.label_asym_id)),
-        label_atom_id: CifField.ofColumn(multColumn(d.label_atom_id)),
-        label_comp_id: CifField.ofColumn(multColumn(d.label_comp_id)),
-        label_seq_id: CifField.ofNumbers(seq),
-        label_entity_id: CifField.ofColumn(Column.ofConst('1', rowCount, Column.Schema.str)),
-
-        occupancy: CifField.ofColumn(Column.ofConst(1, rowCount, Column.Schema.float)),
-        type_symbol: CifField.ofColumn(multColumn(d.type_symbol)),
-
-        pdbx_PDB_ins_code: CifField.ofColumn(Column.ofConst('', rowCount, Column.Schema.str)),
-        pdbx_PDB_model_num: CifField.ofColumn(Column.ofConst(1, rowCount, Column.Schema.int)),
-    };
-
-    const categories = {
-        entity: CifCategory.ofTable('entity', db.entity),
-        chem_comp: CifCategory.ofTable('chem_comp', db.chem_comp),
-        atom_site: CifCategory.ofFields('atom_site', _atom_site)
-    };
-
-    return {
-        header: name,
-        categoryNames: Object.keys(categories),
-        categories
-    };
-}
-
-async function getCurve(plugin: PluginContext, name: string, ingredient: Ingredient, transforms: Mat4[], model: Model) {
-    const cif = getCifCurve(name, transforms, model);
-    const curveModelTask = Task.create('Curve Model', async ctx => {
-        const format = MmcifFormat.fromFrame(cif);
-        const basic = createBasic(format.data.db, true);
-        const models = await createModels(basic, format, ctx);
-        return models.representative;
-    });
-
-    const curveModel = await plugin.runTask(curveModelTask);
-    // ingredient.source.selection = undefined;
-    return getStructure(plugin, curveModel, ingredient);
+async function getCurve(name: string, transforms: Mat4[], model: Model) {
+    const structure = Structure.ofModel(model);
+    const assembly = getAssembly(name, transforms, structure);
+    return assembly;
 }
 
 async function getIngredientStructure(plugin: PluginContext, ingredient: Ingredient, baseUrl: string, ingredientFiles: IngredientFiles, trajCache: TrajectoryCache, location: 'surface' | 'interior' | 'cytoplasme') {
@@ -339,7 +233,7 @@ async function getIngredientStructure(plugin: PluginContext, ingredient: Ingredi
     if (!model) return;
     let structure: Structure;
     if (nbCurve) {
-        structure = await getCurve(plugin, name, ingredient, getCurveTransforms(ingredient), model);
+        structure = await getCurve(name, getCurveTransforms(ingredient), model);
     } else {
         if ((!results || results.length === 0)) return;
         let bu: string|undefined = source.bu ? source.bu : undefined;
@@ -363,7 +257,7 @@ async function getIngredientStructure(plugin: PluginContext, ingredient: Ingredi
             structure = Structure.transform(structure, m1);
             if (ingredient.offset) {
                 const o: Vec3 = Vec3.create(ingredient.offset[0], ingredient.offset[1], ingredient.offset[2]);
-                if (!Vec3.exactEquals(o, Vec3.zero())) { // -1, 1, 4e-16 ??
+                if (!Vec3.exactEquals(o, Vec3())) { // -1, 1, 4e-16 ??
                     if (location !== 'surface') {
                         Vec3.negate(o, o);
                     }
@@ -377,7 +271,7 @@ async function getIngredientStructure(plugin: PluginContext, ingredient: Ingredi
                 if (!Vec3.exactEquals(p, Vec3.unitZ)) {
                     const q: Quat = Quat.identity();
                     Quat.rotationTo(q, p, Vec3.unitZ);
-                    const m: Mat4 = Mat4.fromQuat(Mat4.zero(), q);
+                    const m: Mat4 = Mat4.fromQuat(Mat4(), q);
                     structure = Structure.transform(structure, m);
                 }
             }
@@ -671,7 +565,7 @@ const LoadCellPackModelParams = {
     ingredients: PD.FileList({ accept: '.cif,.bcif,.pdb', label: 'Ingredient files' }),
     preset: PD.Group({
         traceOnly: PD.Boolean(false),
-        representation: PD.Select('gaussian-surface', PD.arrayToOptions(['spacefill', 'gaussian-surface', 'point', 'orientation']))
+        representation: PD.Select('gaussian-surface', PD.arrayToOptions(['spacefill', 'gaussian-surface', 'point', 'orientation'] as const))
     }, { isExpanded: true })
 };
 type LoadCellPackModelParams = PD.Values<typeof LoadCellPackModelParams>
