@@ -10,6 +10,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - CellPack extension tweaks
     - Use instancing to create DNA/RNA curves to save memory
     - Enable ``instanceGranularity`` by default
+    - Add ``adjustStyle`` option to LoadCellPackModel action (stylized, no multi-sample, no far clipping, chain picking)
 
 ## [v3.10.2] - 2022-06-26
 
