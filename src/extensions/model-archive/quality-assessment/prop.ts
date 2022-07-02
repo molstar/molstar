@@ -15,22 +15,20 @@ import { Type } from '../../../mol-script/language/type';
 import { CustomPropertyDescriptor } from '../../../mol-model/custom-property';
 import { MmcifFormat } from '../../../mol-model-formats/structure/mmcif';
 
-export { QualityAssessment };
-
 interface QualityAssessment {
     localMetrics: Map<string, Map<ResidueIndex, number>>
     pLDDT?: Map<ResidueIndex, number>
     qmean?: Map<ResidueIndex, number>
 }
 
-namespace QualityAssessment {
-    const Empty = {
+export const QualityAssessment = {
+    Empty: {
         value: {
             localMetrics: new Map()
         }
-    };
+    },
 
-    export function isApplicable(model?: Model, localMetricName?: 'pLDDT' | 'qmean'): boolean {
+    isApplicable(model?: Model, localMetricName?: 'pLDDT' | 'qmean'): boolean {
         if (!model || !MmcifFormat.is(model.sourceData)) return false;
         const { db } = model.sourceData.data;
         const hasLocalMetric = (
@@ -46,10 +44,10 @@ namespace QualityAssessment {
         } else {
             return hasLocalMetric;
         }
-    }
+    },
 
-    export async function obtain(ctx: CustomProperty.Context, model: Model, props: QualityAssessmentProps): Promise<CustomProperty.Data<QualityAssessment>> {
-        if (!model || !MmcifFormat.is(model.sourceData)) return Empty;
+    async obtain(ctx: CustomProperty.Context, model: Model, props: QualityAssessmentProps): Promise<CustomProperty.Data<QualityAssessment>> {
+        if (!model || !MmcifFormat.is(model.sourceData)) return this.Empty;
         const { ma_qa_metric, ma_qa_metric_local } = model.sourceData.data.db;
         const { model_id, label_asym_id, label_seq_id, metric_id, metric_value } = ma_qa_metric_local;
         const { index } = model.atomicHierarchy;
@@ -88,9 +86,9 @@ namespace QualityAssessment {
                 qmean: localMetrics.get('qmean'),
             }
         };
-    }
+    },
 
-    export const symbols = {
+    symbols: {
         pLDDT: QuerySymbolRuntime.Dynamic(CustomPropSymbol('ma', 'quality-assessment.pLDDT', Type.Num),
             ctx => {
                 const { unit, element } = ctx.element;
@@ -107,8 +105,8 @@ namespace QualityAssessment {
                 return qualityAssessment?.qmean?.get(unit.model.atomicHierarchy.residueAtomSegments.index[element]) ?? -1;
             }
         ),
-    };
-}
+    }
+};
 
 export const QualityAssessmentParams = { };
 export type QualityAssessmentParams = typeof QualityAssessmentParams

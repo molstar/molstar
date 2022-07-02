@@ -22,9 +22,7 @@ export const MembraneOrientationParams = {
 export type MembraneOrientationParams = typeof MembraneOrientationParams
 export type MembraneOrientationProps = PD.Values<MembraneOrientationParams>
 
-export { MembraneOrientation };
-
-interface MembraneOrientation {
+export interface MembraneOrientation {
     // point in membrane boundary
     readonly planePoint1: Vec3,
     // point in opposite side of membrane boundary
@@ -36,13 +34,11 @@ interface MembraneOrientation {
     readonly centroid: Vec3
 }
 
-namespace MembraneOrientation {
-    export enum Tag {
-        Representation = 'membrane-orientation-3d'
-    }
-
-    const pos = Vec3();
-    export const symbols = {
+export const MembraneOrientation = {
+    Tag: {
+        Representation: 'membrane-orientation-3d'
+    },
+    symbols: {
         isTransmembrane: QuerySymbolRuntime.Dynamic(CustomPropSymbol('computed', 'membrane-orientation.is-transmembrane', Type.Bool),
             ctx => {
                 const { unit, structure } = ctx.element;
@@ -50,12 +46,12 @@ namespace MembraneOrientation {
                 if (!Unit.isAtomic(unit)) return 0;
                 const membraneOrientation = MembraneOrientationProvider.get(structure).value;
                 if (!membraneOrientation) return 0;
-                Vec3.set(pos, x(ctx.element), y(ctx.element), z(ctx.element));
+                Vec3.set(Vec3(), x(ctx.element), y(ctx.element), z(ctx.element));
                 const { normalVector, planePoint1, planePoint2 } = membraneOrientation!;
-                return isInMembranePlane(pos, normalVector, planePoint1, planePoint2);
+                return isInMembranePlane(Vec3(), normalVector, planePoint1, planePoint2);
             })
-    };
-}
+    }
+};
 
 export const MembraneOrientationProvider: CustomStructureProperty.Provider<MembraneOrientationParams, MembraneOrientation> = CustomStructureProperty.createProvider({
     label: 'Membrane Orientation',

@@ -209,16 +209,15 @@ interface MembraneCandidate {
     qmax?: number
 }
 
-namespace MembraneCandidate {
-    export function initial(c1: Vec3, c2: Vec3, stats: HphobHphil): MembraneCandidate {
+const MembraneCandidate = {
+    initial(c1: Vec3, c2: Vec3, stats: HphobHphil): MembraneCandidate {
         return {
             planePoint1: c1,
             planePoint2: c2,
             stats
         };
-    }
-
-    export function scored(spherePoint: Vec3, planePoint1: Vec3, planePoint2: Vec3, stats: HphobHphil, qmax: number, centroid: Vec3): MembraneCandidate {
+    },
+    scored(spherePoint: Vec3, planePoint1: Vec3, planePoint2: Vec3, stats: HphobHphil, qmax: number, centroid: Vec3): MembraneCandidate {
         const normalVector = v3zero();
         v3sub(normalVector, centroid, spherePoint);
         return {
@@ -230,7 +229,7 @@ namespace MembraneCandidate {
             qmax
         };
     }
-}
+};
 
 async function findMembrane(runtime: RuntimeContext, message: string | undefined, ctx: ANVILContext, spherePoints: Vec3[], initialStats: HphobHphil): Promise<MembraneCandidate | undefined> {
     const { centroid, stepSize, minThickness, maxThickness, large } = ctx;
@@ -547,8 +546,8 @@ interface HphobHphil {
     hphil: number
 }
 
-namespace HphobHphil {
-    export function initial(ctx: ANVILContext): HphobHphil {
+const HphobHphil = {
+    initial(ctx: ANVILContext): HphobHphil {
         const { exposed, hydrophobic } = ctx;
         let hphob = 0;
         let hphil = 0;
@@ -560,10 +559,9 @@ namespace HphobHphil {
             }
         }
         return { hphob, hphil };
-    }
-
-    const testPoint = v3zero();
-    export function sliced(ctx: ANVILContext, stepSize: number, spherePoint: Vec3, diam: Vec3, diamNorm: number): HphobHphil[] {
+    },
+    testPoint: v3zero(),
+    sliced(ctx: ANVILContext, stepSize: number, spherePoint: Vec3, diam: Vec3, diamNorm: number): HphobHphil[] {
         const { exposed, hydrophobic, structure } = ctx;
         const { units, serialMapping } = structure;
         const { unitIndices, elementIndices } = serialMapping;
@@ -575,17 +573,17 @@ namespace HphobHphil {
         for (let i = 0, il = exposed.length; i < il; i++) {
             const unit = units[unitIndices[exposed[i]]];
             const elementIndex = elementIndices[exposed[i]];
-            v3set(testPoint, unit.conformation.x(elementIndex), unit.conformation.y(elementIndex), unit.conformation.z(elementIndex));
-            v3sub(testPoint, testPoint, spherePoint);
+            v3set(this.testPoint, unit.conformation.x(elementIndex), unit.conformation.y(elementIndex), unit.conformation.z(elementIndex));
+            v3sub(this.testPoint, this.testPoint, spherePoint);
             if (hydrophobic[i]) {
-                sliceStats[Math.floor(v3dot(testPoint, diam) / diamNorm / stepSize)].hphob++;
+                sliceStats[Math.floor(v3dot(this.testPoint, diam) / diamNorm / stepSize)].hphob++;
             } else {
-                sliceStats[Math.floor(v3dot(testPoint, diam) / diamNorm / stepSize)].hphil++;
+                sliceStats[Math.floor(v3dot(this.testPoint, diam) / diamNorm / stepSize)].hphil++;
             }
         }
         return sliceStats;
     }
-}
+};
 
 /** Returns true if the definition considers this as membrane-favoring amino acid */
 export function isHydrophobic(definition: Set<string>, label_comp_id: string): boolean {

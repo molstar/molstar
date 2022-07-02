@@ -34,23 +34,23 @@ export const PDBe_structRefDomain: AttachModelProperty = ({ model, params, cache
     return PDBeStructRefDomain.attachFromCifOrApi(model, { PDBe_apiSourceJson });
 };
 
-namespace residuewise_outlier_summary {
-    const json = new Map<string, any>();
-    export function getDataFromAggregateFile(pathPrefix: string) {
+const residuewise_outlier_summary = {
+    json: new Map<string, any>(),
+    getDataFromAggregateFile(pathPrefix: string) {
         // This is for "testing" purposes and should probably only read
         // a single file with the appropriate prop in the "production" version.
         return async (model: Model) => {
             const key = `${model.entryId[1]}${model.entryId[2]}`;
-            if (!json.has(key)) {
+            if (!this.json.has(key)) {
                 const fn = path.join(pathPrefix, `${key}.json`);
-                if (!fs.existsSync(fn)) json.set(key, { });
+                if (!fs.existsSync(fn)) this.json.set(key, { });
                 // TODO: use async readFile?
-                else json.set(key, JSON.parse(fs.readFileSync(fn, 'utf8')));
+                else this.json.set(key, JSON.parse(fs.readFileSync(fn, 'utf8')));
             }
-            return json.get(key)![model.entryId.toLowerCase()] || { };
+            return this.json.get(key)![model.entryId.toLowerCase()] || { };
         };
     }
-}
+};
 
 function getApiUrl(params: any, name: string, fallback: string) {
     const url = getParam<string>(params, 'PDBe', 'API', name);

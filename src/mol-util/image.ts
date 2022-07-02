@@ -4,45 +4,47 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-export { PixelData };
-
-interface PixelData {
+export interface PixelData {
     readonly array: Uint8Array | Float32Array
     readonly width: number
     readonly height: number
 }
 
-namespace PixelData {
-    export function create(array: Uint8Array | Float32Array, width: number, height: number): PixelData {
-        return { array, width, height };
-    }
-
-    /** horizontally flips the pixel data in-place */
-    export function flipY(pixelData: PixelData): PixelData {
-        const { array, width, height } = pixelData;
-        const width4 = width * 4;
-        for (let i = 0, maxI = height / 2; i < maxI; ++i) {
-            for (let j = 0, maxJ = width4; j < maxJ; ++j) {
-                const index1 = i * width4 + j;
-                const index2 = (height - i - 1) * width4 + j;
-                const tmp = array[index1];
-                array[index1] = array[index2];
-                array[index2] = tmp;
-            }
-        }
-        return pixelData;
-    }
-
-    /** to undo pre-multiplied alpha */
-    export function divideByAlpha(pixelData: PixelData): PixelData {
-        const { array } = pixelData;
-        const factor = (array instanceof Uint8Array) ? 255 : 1;
-        for (let i = 0, il = array.length; i < il; i += 4) {
-            const a = array[i + 3] / factor;
-            array[i] /= a;
-            array[i + 1] /= a;
-            array[i + 2] /= a;
-        }
-        return pixelData;
-    }
+function create(array: Uint8Array | Float32Array, width: number, height: number): PixelData {
+    return { array, width, height };
 }
+
+/** horizontally flips the pixel data in-place */
+function flipY(pixelData: PixelData): PixelData {
+    const { array, width, height } = pixelData;
+    const width4 = width * 4;
+    for (let i = 0, maxI = height / 2; i < maxI; ++i) {
+        for (let j = 0, maxJ = width4; j < maxJ; ++j) {
+            const index1 = i * width4 + j;
+            const index2 = (height - i - 1) * width4 + j;
+            const tmp = array[index1];
+            array[index1] = array[index2];
+            array[index2] = tmp;
+        }
+    }
+    return pixelData;
+}
+
+/** to undo pre-multiplied alpha */
+function divideByAlpha(pixelData: PixelData): PixelData {
+    const { array } = pixelData;
+    const factor = (array instanceof Uint8Array) ? 255 : 1;
+    for (let i = 0, il = array.length; i < il; i += 4) {
+        const a = array[i + 3] / factor;
+        array[i] /= a;
+        array[i + 1] /= a;
+        array[i + 2] /= a;
+    }
+    return pixelData;
+}
+
+export const PixelData = {
+    create,
+    flipY,
+    divideByAlpha
+};

@@ -16,8 +16,8 @@ export interface ModelInfo {
     preferredAssemblyId: string | undefined
 }
 
-export namespace ModelInfo {
-    async function getPreferredAssembly(ctx: PluginContext, model: Model) {
+export const ModelInfo = {
+    async getPreferredAssembly(ctx: PluginContext, model: Model) {
         if (model.entryId.length <= 3) return void 0;
         try {
             const id = model.entryId.toLowerCase();
@@ -37,16 +37,15 @@ export namespace ModelInfo {
         } catch (e) {
             console.warn('getPreferredAssembly', e);
         }
-    }
-
-    export async function get(ctx: PluginContext, model: Model, checkPreferred: boolean): Promise<ModelInfo> {
+    },
+    async get(ctx: PluginContext, model: Model, checkPreferred: boolean): Promise<ModelInfo> {
         const { _rowCount: residueCount } = model.atomicHierarchy.residues;
         const { offsets: residueOffsets } = model.atomicHierarchy.residueAtomSegments;
         const chainIndex = model.atomicHierarchy.chainAtomSegments.index;
         // const resn = SP.residue.label_comp_id, entType = SP.entity.type;
 
         const pref = checkPreferred
-            ? getPreferredAssembly(ctx, model)
+            ? this.getPreferredAssembly(ctx, model)
             : void 0;
 
         const hetResidues: ModelInfo['hetResidues'] = [];
@@ -78,7 +77,7 @@ export namespace ModelInfo {
             preferredAssemblyId
         };
     }
-}
+};
 
 export type SupportedFormats = 'cif' | 'pdb'
 export interface LoadParams {
@@ -89,15 +88,17 @@ export interface LoadParams {
     representationStyle?: RepresentationStyle
 }
 
-export interface RepresentationStyle {
-    sequence?: RepresentationStyle.Entry,
-    hetGroups?: RepresentationStyle.Entry,
-    snfg3d?: { hide?: boolean },
-    water?: RepresentationStyle.Entry
-}
+type RepresentationStyleEntry = {
+    hide?: boolean,
+    kind?: StructureRepresentationRegistry.BuiltIn,
+    coloring?: ColorTheme.BuiltIn
+};
 
-export namespace RepresentationStyle {
-    export type Entry = { hide?: boolean, kind?: StructureRepresentationRegistry.BuiltIn, coloring?: ColorTheme.BuiltIn }
+export interface RepresentationStyle {
+    sequence?: RepresentationStyleEntry,
+    hetGroups?: RepresentationStyleEntry,
+    snfg3d?: { hide?: boolean },
+    water?: RepresentationStyleEntry
 }
 
 export enum StateElements {
