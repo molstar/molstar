@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -8,12 +8,15 @@ import { ValueCell } from '../../mol-util/value-cell';
 import { Vec2 } from '../../mol-math/linear-algebra';
 import { TextureImage, createTextureImage } from '../../mol-gl/renderable/util';
 
+export type MarkerType = 'instance' | 'groupInstance';
+
 export type MarkerData = {
-    uMarker: ValueCell<number>,
+    uMarker: ValueCell<number>
     tMarker: ValueCell<TextureImage<Uint8Array>>
     uMarkerTexDim: ValueCell<Vec2>
     markerAverage: ValueCell<number>
     markerStatus: ValueCell<number>
+    dMarkerType: ValueCell<string>
 }
 
 const MarkerCountLut = new Uint8Array(0x0303 + 1);
@@ -64,7 +67,7 @@ export function getMarkersAverage(array: Uint8Array, count: number): number {
     return sum / count;
 }
 
-export function createMarkers(count: number, markerData?: MarkerData): MarkerData {
+export function createMarkers(count: number, type: MarkerType, markerData?: MarkerData): MarkerData {
     const markers = createTextureImage(Math.max(1, count), 1, Uint8Array, markerData && markerData.tMarker.ref.value.array);
     const average = getMarkersAverage(markers.array, count);
     const status = average === 0 ? 0 : -1;
@@ -74,6 +77,7 @@ export function createMarkers(count: number, markerData?: MarkerData): MarkerDat
         ValueCell.update(markerData.uMarkerTexDim, Vec2.create(markers.width, markers.height));
         ValueCell.updateIfChanged(markerData.markerAverage, average);
         ValueCell.updateIfChanged(markerData.markerStatus, status);
+        ValueCell.updateIfChanged(markerData.dMarkerType, type);
         return markerData;
     } else {
         return {
@@ -82,6 +86,7 @@ export function createMarkers(count: number, markerData?: MarkerData): MarkerDat
             uMarkerTexDim: ValueCell.create(Vec2.create(markers.width, markers.height)),
             markerAverage: ValueCell.create(average),
             markerStatus: ValueCell.create(status),
+            dMarkerType: ValueCell.create(type),
         };
     }
 }
@@ -102,6 +107,7 @@ export function createEmptyMarkers(markerData?: MarkerData): MarkerData {
             uMarkerTexDim: ValueCell.create(Vec2.create(1, 1)),
             markerAverage: ValueCell.create(0),
             markerStatus: ValueCell.create(0),
+            dMarkerType: ValueCell.create('groupInstance'),
         };
     }
 }

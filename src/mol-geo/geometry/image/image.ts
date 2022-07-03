@@ -143,7 +143,9 @@ namespace Image {
         const positionIt = Utils.createPositionIterator(image, transform);
 
         const color = createColors(locationIt, positionIt, theme.color);
-        const marker = createMarkers(instanceCount * groupCount);
+        const marker = props.instanceGranularity
+            ? createMarkers(instanceCount, 'instance')
+            : createMarkers(instanceCount * groupCount, 'groupInstance');
         const overpaint = createEmptyOverpaint();
         const transparency = createEmptyTransparency();
         const material = createEmptySubstance();

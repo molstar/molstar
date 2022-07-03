@@ -171,7 +171,9 @@ export namespace Spheres {
 
         const color = createColors(locationIt, positionIt, theme.color);
         const size = createSizes(locationIt, theme.size);
-        const marker = createMarkers(instanceCount * groupCount);
+        const marker = props.instanceGranularity
+            ? createMarkers(instanceCount, 'instance')
+            : createMarkers(instanceCount * groupCount, 'groupInstance');
         const overpaint = createEmptyOverpaint();
         const transparency = createEmptyTransparency();
         const material = createEmptySubstance();

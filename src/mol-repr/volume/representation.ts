@@ -33,6 +33,7 @@ import { Clipping } from '../../mol-theme/clipping';
 import { WebGLContext } from '../../mol-gl/webgl/context';
 import { isPromiseLike } from '../../mol-util/type-helpers';
 import { Substance } from '../../mol-theme/substance';
+import { createMarkers } from '../../mol-geo/geometry/marker-data';
 
 export interface VolumeVisual<P extends VolumeParams> extends Visual<Volume, P> { }
 
@@ -108,6 +109,10 @@ export function VolumeVisual<G extends Geometry, P extends VolumeParams & Geomet
         if (updateState.createGeometry) {
             updateState.updateColor = true;
         }
+
+        if (newProps.instanceGranularity !== currentProps.instanceGranularity) {
+            updateState.updateTransform = true;
+        }
     }
 
     function update(newGeometry?: G) {
@@ -124,7 +129,18 @@ export function VolumeVisual<G extends Geometry, P extends VolumeParams & Geomet
                 throw new Error('expected renderObject to be available');
             }
 
-            locationIt.reset();
+            if (updateState.updateTransform) {
+                // console.log('update transform');
+                locationIt = createLocationIterator(newVolume);
+                const { instanceCount, groupCount } = locationIt;
+                if (newProps.instanceGranularity) {
+                    createMarkers(instanceCount, 'instance', renderObject.values);
+                } else {
+                    createMarkers(instanceCount * groupCount, 'groupInstance', renderObject.values);
+                }
+            } else {
+                locationIt.reset();
+            }
 
             if (updateState.createGeometry) {
                 if (newGeometry) {
@@ -165,11 +181,28 @@ export function VolumeVisual<G extends Geometry, P extends VolumeParams & Geomet
         }
     }
 
+    function eachInstance(loci: Loci, volume: Volume, apply: (interval: Interval) => boolean) {
+        let changed = false;
+        if (!Volume.Cell.isLoci(loci)) return false;
+        if (Volume.Cell.isLociEmpty(loci)) return false;
+        if (!Volume.areEquivalent(loci.volume, volume)) return false;
+        if (apply(Interval.ofSingleton(0))) changed = true;
+        return changed;
+    }
+
     function lociApply(loci: Loci, apply: (interval: Interval) => boolean) {
         if (isEveryLoci(loci)) {
-            return apply(Interval.ofBounds(0, locationIt.groupCount * locationIt.instanceCount));
+            if (currentProps.instanceGranularity) {
+                return apply(Interval.ofBounds(0, locationIt.instanceCount));
+            } else {
+                return apply(Interval.ofBounds(0, locationIt.groupCount * locationIt.instanceCount));
+            }
         } else {
-            return eachLocation(loci, currentVolume, currentProps, apply);
+            if (currentProps.instanceGranularity) {
+                return eachInstance(loci, currentVolume, apply);
+            } else {
+                return eachLocation(loci, currentVolume, currentProps, apply);
+            }
         }
     }
 

@@ -28,7 +28,7 @@ uniform float uBumpiness;
     #endif
 
     #ifdef dOverpaint
-        #if defined(dOverpaintType_groupInstance) || defined(dOverpaintType_vertexInstance)
+        #if defined(dOverpaintType_instance) || defined(dOverpaintType_groupInstance) || defined(dOverpaintType_vertexInstance)
             varying vec4 vOverpaint;
             uniform vec2 uOverpaintTexDim;
             uniform sampler2D tOverpaint;
@@ -42,7 +42,7 @@ uniform float uBumpiness;
     #endif
 
     #ifdef dSubstance
-        #if defined(dSubstanceType_groupInstance) || defined(dSubstanceType_vertexInstance)
+        #if defined(dSubstanceType_instance) || defined(dSubstanceType_groupInstance) || defined(dSubstanceType_vertexInstance)
             varying vec4 vSubstance;
             uniform vec2 uSubstanceTexDim;
             uniform sampler2D tSubstance;
@@ -75,7 +75,7 @@ uniform float uBumpiness;
 #endif
 
 #ifdef dTransparency
-    #if defined(dTransparencyType_groupInstance) || defined(dTransparencyType_vertexInstance)
+    #if defined(dTransparencyType_instance) || defined(dTransparencyType_groupInstance) || defined(dTransparencyType_vertexInstance)
         varying float vTransparency;
         uniform vec2 uTransparencyTexDim;
         uniform sampler2D tTransparency;
