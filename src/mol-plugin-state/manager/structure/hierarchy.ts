@@ -5,6 +5,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+import { Structure } from '../../../mol-model/structure';
 import { setSubtreeVisibility } from '../../../mol-plugin/behavior/static/state';
 import { PluginCommands } from '../../../mol-plugin/commands';
 import { PluginContext } from '../../../mol-plugin/context';
@@ -12,6 +13,7 @@ import { StateTransform, StateTree } from '../../../mol-state';
 import { SetUtils } from '../../../mol-util/set';
 import { TrajectoryHierarchyPresetProvider } from '../../builder/structure/hierarchy-preset';
 import { PluginComponent } from '../../component';
+import { PluginStateObject } from '../../objects';
 import { buildStructureHierarchy, StructureHierarchyRef, ModelRef, StructureComponentRef, StructureHierarchy, StructureRef, TrajectoryRef } from './hierarchy-state';
 
 export class StructureHierarchyManager extends PluginComponent {
@@ -77,6 +79,18 @@ export class StructureHierarchyManager extends PluginComponent {
             }
         }
         return ret;
+    }
+
+    findStructure(structure: Structure | undefined): StructureRef | undefined {
+        if (!structure) return undefined;
+
+        const parent = this.plugin.helpers.substructureParent.get(structure);
+        if (!parent) return undefined;
+
+        const root = this.plugin.state.data.selectQ(q => q.byValue(parent).rootOfType(PluginStateObject.Molecule.Structure))[0];
+        if (!root) return undefined;
+
+        return this.behaviors.selection.value.structures.find(s => s.cell === root);
     }
 
     private syncCurrent<T extends StructureHierarchyRef>(all: ReadonlyArray<T>, added: Set<StateTransform.Ref>): T[] {
