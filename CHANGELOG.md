@@ -6,6 +6,9 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+
+## [v3.11.0] - 2022-07-04
+
 - Add ``instanceGranularity`` option for marker, transparency, clipping, overpaint, substance data to save memory
 - CellPack extension tweaks
     - Use instancing to create DNA/RNA curves to save memory
