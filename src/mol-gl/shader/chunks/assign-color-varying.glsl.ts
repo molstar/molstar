@@ -25,7 +25,9 @@ export const assign_color_varying = `
     #endif
 
     #ifdef dOverpaint
-        #if defined(dOverpaintType_groupInstance)
+        #if defined(dOverpaintType_instance)
+            vOverpaint = readFromTexture(tOverpaint, aInstance, uOverpaintTexDim);
+        #elif defined(dOverpaintType_groupInstance)
             vOverpaint = readFromTexture(tOverpaint, aInstance * float(uGroupCount) + group, uOverpaintTexDim);
         #elif defined(dOverpaintType_vertexInstance)
             vOverpaint = readFromTexture(tOverpaint, int(aInstance) * uVertexCount + VertexID, uOverpaintTexDim);
@@ -43,7 +45,9 @@ export const assign_color_varying = `
     #endif
 
     #ifdef dSubstance
-        #if defined(dSubstanceType_groupInstance)
+        #if defined(dSubstanceType_instance)
+            vSubstance = readFromTexture(tSubstance, aInstance, uSubstanceTexDim);
+        #elif defined(dSubstanceType_groupInstance)
             vSubstance = readFromTexture(tSubstance, aInstance * float(uGroupCount) + group, uSubstanceTexDim);
         #elif defined(dSubstanceType_vertexInstance)
             vSubstance = readFromTexture(tSubstance, int(aInstance) * uVertexCount + VertexID, uSubstanceTexDim);
@@ -72,7 +76,9 @@ export const assign_color_varying = `
 #endif
 
 #ifdef dTransparency
-    #if defined(dTransparencyType_groupInstance)
+    #if defined(dTransparencyType_instance)
+        vTransparency = readFromTexture(tTransparency, aInstance, uTransparencyTexDim).a;
+    #elif defined(dTransparencyType_groupInstance)
         vTransparency = readFromTexture(tTransparency, aInstance * float(uGroupCount) + group, uTransparencyTexDim).a;
     #elif defined(dTransparencyType_vertexInstance)
         vTransparency = readFromTexture(tTransparency, int(aInstance) * uVertexCount + VertexID, uTransparencyTexDim).a;

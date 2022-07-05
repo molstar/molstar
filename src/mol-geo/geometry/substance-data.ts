@@ -10,6 +10,8 @@ import { TextureImage, createTextureImage } from '../../mol-gl/renderable/util';
 import { createNullTexture, Texture } from '../../mol-gl/webgl/texture';
 import { Material } from '../../mol-util/material';
 
+export type SubstanceType = 'instance' | 'groupInstance' | 'volumeInstance';
+
 export type SubstanceData = {
     tSubstance: ValueCell<TextureImage<Uint8Array>>
     uSubstanceTexDim: ValueCell<Vec2>
@@ -34,12 +36,13 @@ export function clearSubstance(array: Uint8Array, start: number, end: number) {
     return true;
 }
 
-export function createSubstance(count: number, substanceData?: SubstanceData): SubstanceData {
+export function createSubstance(count: number, type: SubstanceType, substanceData?: SubstanceData): SubstanceData {
     const substance = createTextureImage(Math.max(1, count), 4, Uint8Array, substanceData && substanceData.tSubstance.ref.value.array);
     if (substanceData) {
         ValueCell.update(substanceData.tSubstance, substance);
         ValueCell.update(substanceData.uSubstanceTexDim, Vec2.create(substance.width, substance.height));
         ValueCell.updateIfChanged(substanceData.dSubstance, count > 0);
+        ValueCell.updateIfChanged(substanceData.dSubstanceType, type);
         return substanceData;
     } else {
         return {
@@ -50,7 +53,7 @@ export function createSubstance(count: number, substanceData?: SubstanceData): S
             tSubstanceGrid: ValueCell.create(createNullTexture()),
             uSubstanceGridDim: ValueCell.create(Vec3.create(1, 1, 1)),
             uSubstanceGridTransform: ValueCell.create(Vec4.create(0, 0, 0, 1)),
-            dSubstanceType: ValueCell.create('groupInstance'),
+            dSubstanceType: ValueCell.create(type),
         };
     }
 }

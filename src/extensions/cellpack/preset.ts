@@ -13,6 +13,7 @@ import { CellPackGenerateColorThemeProvider } from './color/generate';
 
 export const CellpackPackingPresetParams = {
     traceOnly: PD.Boolean(true),
+    ignoreLight: PD.Boolean(false),
     representation: PD.Select('gaussian-surface', PD.arrayToOptions(['gaussian-surface', 'spacefill', 'point', 'orientation'] as const)),
 };
 export type CellpackPackingPresetParams = PD.ValuesFor<typeof CellpackPackingPresetParams>
@@ -27,7 +28,9 @@ export const CellpackPackingPreset = StructureRepresentationPresetProvider({
 
         const reprProps = {
             ignoreHydrogens: true,
-            traceOnly: params.traceOnly
+            traceOnly: params.traceOnly,
+            instanceGranularity: true,
+            ignoreLight: params.ignoreLight,
         };
         const components = {
             polymer: await presetStaticComponent(plugin, structureCell, 'polymer')
@@ -57,6 +60,7 @@ export const CellpackPackingPreset = StructureRepresentationPresetProvider({
 //
 
 export const CellpackMembranePresetParams = {
+    ignoreLight: PD.Boolean(false),
     representation: PD.Select('gaussian-surface', PD.arrayToOptions(['gaussian-surface', 'spacefill', 'point', 'orientation'] as const)),
 };
 export type CellpackMembranePresetParams = PD.ValuesFor<typeof CellpackMembranePresetParams>
@@ -71,6 +75,8 @@ export const CellpackMembranePreset = StructureRepresentationPresetProvider({
 
         const reprProps = {
             ignoreHydrogens: true,
+            instanceGranularity: true,
+            ignoreLight: params.ignoreLight,
         };
         const components = {
             membrane: await presetStaticComponent(plugin, structureCell, 'all', { label: 'Membrane' })

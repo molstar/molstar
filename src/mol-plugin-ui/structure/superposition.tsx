@@ -5,25 +5,26 @@
  * @author Sebastian Bittrich <sebastian.bittrich@rcsb.org>
  */
 
-import { CollapsableControls, PurePluginUIComponent } from '../base';
-import { Icon, ArrowUpwardSvg, ArrowDownwardSvg, DeleteOutlinedSvg, HelpOutlineSvg, TuneSvg, SuperposeAtomsSvg, SuperposeChainsSvg, SuperpositionSvg } from '../controls/icons';
-import { Button, ToggleButton, IconButton } from '../controls/common';
-import { StructureElement, StructureSelection, QueryContext, Structure, StructureProperties } from '../../mol-model/structure';
+import { SymmetryOperator } from '../../mol-math/geometry';
 import { Mat4 } from '../../mol-math/linear-algebra';
-import { ParamDefinition as PD } from '../../mol-util/param-definition';
-import { StateObjectRef, StateObjectCell, StateSelection } from '../../mol-state';
-import { StateTransforms } from '../../mol-plugin-state/transforms';
-import { PluginStateObject } from '../../mol-plugin-state/objects';
-import { alignAndSuperpose, superpose } from '../../mol-model/structure/structure/util/superposition';
-import { StructureSelectionQueries } from '../../mol-plugin-state/helpers/structure-selection-query';
-import { structureElementStatsLabel, elementLabel } from '../../mol-theme/label';
-import { ParameterControls } from '../controls/parameters';
-import { stripTags } from '../../mol-util/string';
-import { StructureSelectionHistoryEntry } from '../../mol-plugin-state/manager/structure/selection';
-import { ToggleSelectionModeButton } from './selection';
-import { alignAndSuperposeWithSIFTSMapping } from '../../mol-model/structure/structure/util/superposition-sifts-mapping';
-import { PluginCommands } from '../../mol-plugin/commands';
 import { SIFTSMapping } from '../../mol-model-props/sequence/sifts-mapping';
+import { QueryContext, Structure, StructureElement, StructureProperties, StructureSelection } from '../../mol-model/structure';
+import { alignAndSuperpose, superpose } from '../../mol-model/structure/structure/util/superposition';
+import { alignAndSuperposeWithSIFTSMapping } from '../../mol-model/structure/structure/util/superposition-sifts-mapping';
+import { StructureSelectionQueries } from '../../mol-plugin-state/helpers/structure-selection-query';
+import { StructureSelectionHistoryEntry } from '../../mol-plugin-state/manager/structure/selection';
+import { PluginStateObject } from '../../mol-plugin-state/objects';
+import { StateTransforms } from '../../mol-plugin-state/transforms';
+import { PluginCommands } from '../../mol-plugin/commands';
+import { StateObjectCell, StateObjectRef } from '../../mol-state';
+import { elementLabel, structureElementStatsLabel } from '../../mol-theme/label';
+import { ParamDefinition as PD } from '../../mol-util/param-definition';
+import { stripTags } from '../../mol-util/string';
+import { CollapsableControls, PurePluginUIComponent } from '../base';
+import { Button, IconButton, ToggleButton } from '../controls/common';
+import { ArrowDownwardSvg, ArrowUpwardSvg, DeleteOutlinedSvg, HelpOutlineSvg, Icon, SuperposeAtomsSvg, SuperposeChainsSvg, SuperpositionSvg, TuneSvg } from '../controls/icons';
+import { ParameterControls } from '../controls/parameters';
+import { ToggleSelectionModeButton } from './selection';
 
 export class StructureSuperpositionControls extends CollapsableControls {
     defaultState() {
@@ -104,19 +105,21 @@ export class SuperpositionControls extends PurePluginUIComponent<{ }, Superposit
         return this.plugin.managers.structure.selection;
     }
 
-    async transform(s: StateObjectRef<PluginStateObject.Molecule.Structure>, matrix: Mat4) {
+    async transform(s: StateObjectRef<PluginStateObject.Molecule.Structure>, matrix: Mat4, coordinateSystem?: SymmetryOperator) {
         const r = StateObjectRef.resolveAndCheck(this.plugin.state.data, s);
         if (!r) return;
-        // TODO should find any TransformStructureConformation decorator instance
-        const o = StateSelection.findTagInSubtree(this.plugin.state.data.tree, r.transform.ref, SuperpositionTag);
+        const o = this.plugin.state.data.selectQ(q => q.byRef(r.transform.ref).subtree().withTransformer(StateTransforms.Model.TransformStructureConformation))[0];
+
+        const transform = coordinateSystem && !Mat4.isIdentity(coordinateSystem.matrix)
+            ? Mat4.mul(Mat4(), coordinateSystem.matrix, matrix)
+            : matrix;
 
         const params = {
             transform: {
                 name: 'matrix' as const,
-                params: { data: matrix, transpose: false }
+                params: { data: transform, transpose: false }
             }
         };
-        // TODO add .insertOrUpdate to StateBuilder?
         const b = o
             ? this.plugin.state.data.build().to(o).update(params)
             : this.plugin.state.data.build().to(s)
@@ -124,18 +127,23 @@ export class SuperpositionControls extends PurePluginUIComponent<{ }, Superposit
         await this.plugin.runTask(this.plugin.state.data.updateTree(b));
     }
 
+    private getRootStructure(s: Structure) {
+        const parent = this.plugin.helpers.substructureParent.get(s)!;
+        return this.plugin.state.data.selectQ(q => q.byValue(parent).rootOfType(PluginStateObject.Molecule.Structure))[0].obj?.data!;
+    }
+
     superposeChains = async () => {
         const { query } = this.state.options.traceOnly ? StructureSelectionQueries.trace : StructureSelectionQueries.polymer;
         const entries = this.chainEntries;
 
-        const locis = entries.map((e, i) => {
+        const locis = entries.map(e => {
             const s = StructureElement.Loci.toStructure(e.loci);
             const loci = StructureSelection.toLociWithSourceUnits(query(new QueryContext(s)));
-            return StructureElement.Loci.remap(loci, i === 0
-                ? this.plugin.helpers.substructureParent.get(e.loci.structure.root)!.obj!.data
-                : loci.structure.root
-            );
+            return StructureElement.Loci.remap(loci, this.getRootStructure(e.loci.structure));
         });
+
+        const pivot = this.plugin.managers.structure.hierarchy.findStructure(locis[0]?.structure);
+        const coordinateSystem = pivot?.transform?.cell.obj?.data.coordinateSystem;
 
         const transforms = this.state.options.alignSequences
             ? alignAndSuperpose(locis)
@@ -145,7 +153,7 @@ export class SuperpositionControls extends PurePluginUIComponent<{ }, Superposit
         for (let i = 1, il = locis.length; i < il; ++i) {
             const eB = entries[i];
             const { bTransform, rmsd } = transforms[i - 1];
-            await this.transform(eB.cell, bTransform);
+            await this.transform(eB.cell, bTransform, coordinateSystem);
             const labelA = stripTags(eA.label);
             const labelB = stripTags(eB.label);
             this.plugin.log.info(`Superposed [${labelA}] and [${labelB}] with RMSD ${rmsd.toFixed(2)}.`);
@@ -156,19 +164,19 @@ export class SuperpositionControls extends PurePluginUIComponent<{ }, Superposit
     superposeAtoms = async () => {
         const entries = this.atomEntries;
 
-        const atomLocis = entries.map((e, i) => {
-            return StructureElement.Loci.remap(e.loci, i === 0
-                ? this.plugin.helpers.substructureParent.get(e.loci.structure.root)!.obj!.data
-                : e.loci.structure.root
-            );
+        const atomLocis = entries.map(e => {
+            return StructureElement.Loci.remap(e.loci, this.getRootStructure(e.loci.structure));
         });
         const transforms = superpose(atomLocis);
+
+        const pivot = this.plugin.managers.structure.hierarchy.findStructure(atomLocis[0]?.structure);
+        const coordinateSystem = pivot?.transform?.cell.obj?.data.coordinateSystem;
 
         const eA = entries[0];
         for (let i = 1, il = atomLocis.length; i < il; ++i) {
             const eB = entries[i];
             const { bTransform, rmsd } = transforms[i - 1];
-            await this.transform(eB.cell, bTransform);
+            await this.transform(eB.cell, bTransform, coordinateSystem);
             const labelA = stripTags(eA.label);
             const labelB = stripTags(eB.label);
             const count = entries[i].atoms.length;
@@ -184,10 +192,12 @@ export class SuperpositionControls extends PurePluginUIComponent<{ }, Superposit
         const structures = input.map(s => s.cell.obj?.data!);
         const { entries, failedPairs, zeroOverlapPairs } = alignAndSuperposeWithSIFTSMapping(structures, { traceOnly });
 
+        const coordinateSystem = input[0]?.transform?.cell.obj?.data.coordinateSystem;
+
         let rmsd = 0;
 
         for (const xform of entries) {
-            await this.transform(input[xform.other].cell, xform.transform.bTransform);
+            await this.transform(input[xform.other].cell, xform.transform.bTransform, coordinateSystem);
             rmsd += xform.transform.rmsd;
         }
 

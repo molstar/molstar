@@ -205,6 +205,7 @@ export const MarkerSchema = {
     tMarker: TextureSpec('image-uint8', 'alpha', 'ubyte', 'nearest'),
     markerAverage: ValueSpec('number'),
     markerStatus: ValueSpec('number'),
+    dMarkerType: DefineSpec('string', ['instance', 'groupInstance']),
 } as const;
 export type MarkerSchema = typeof MarkerSchema
 export type MarkerValues = Values<MarkerSchema>
@@ -217,7 +218,7 @@ export const OverpaintSchema = {
     uOverpaintGridDim: UniformSpec('v3'),
     uOverpaintGridTransform: UniformSpec('v4'),
     tOverpaintGrid: TextureSpec('texture', 'rgba', 'ubyte', 'linear'),
-    dOverpaintType: DefineSpec('string', ['groupInstance', 'volumeInstance']),
+    dOverpaintType: DefineSpec('string', ['instance', 'groupInstance', 'volumeInstance']),
 } as const;
 export type OverpaintSchema = typeof OverpaintSchema
 export type OverpaintValues = Values<OverpaintSchema>
@@ -231,7 +232,7 @@ export const TransparencySchema = {
     uTransparencyGridDim: UniformSpec('v3'),
     uTransparencyGridTransform: UniformSpec('v4'),
     tTransparencyGrid: TextureSpec('texture', 'alpha', 'ubyte', 'linear'),
-    dTransparencyType: DefineSpec('string', ['groupInstance', 'volumeInstance']),
+    dTransparencyType: DefineSpec('string', ['instance', 'groupInstance', 'volumeInstance']),
 } as const;
 export type TransparencySchema = typeof TransparencySchema
 export type TransparencyValues = Values<TransparencySchema>
@@ -244,7 +245,7 @@ export const SubstanceSchema = {
     uSubstanceGridDim: UniformSpec('v3'),
     uSubstanceGridTransform: UniformSpec('v4'),
     tSubstanceGrid: TextureSpec('texture', 'rgba', 'ubyte', 'linear'),
-    dSubstanceType: DefineSpec('string', ['groupInstance', 'volumeInstance']),
+    dSubstanceType: DefineSpec('string', ['instance', 'groupInstance', 'volumeInstance']),
 } as const;
 export type SubstanceSchema = typeof SubstanceSchema
 export type SubstanceValues = Values<SubstanceSchema>
@@ -253,6 +254,7 @@ export const ClippingSchema = {
     uClippingTexDim: UniformSpec('v2'),
     tClipping: TextureSpec('image-uint8', 'alpha', 'ubyte', 'nearest'),
     dClipping: DefineSpec('boolean'),
+    dClippingType: DefineSpec('string', ['instance', 'groupInstance']),
 } as const;
 export type ClippingSchema = typeof ClippingSchema
 export type ClippingValues = Values<ClippingSchema>
@@ -311,6 +313,8 @@ export const BaseSchema = {
     extraTransform: ValueSpec('float32'),
     /** denotes reflection in transform */
     hasReflection: ValueSpec('boolean'),
+    /** use instance granularity for marker, transparency, clipping, overpaint, substance */
+    instanceGranularity: ValueSpec('boolean'),
 
     /** bounding sphere taking aTransform into account and encompases all instances */
     boundingSphere: ValueSpec('sphere'),

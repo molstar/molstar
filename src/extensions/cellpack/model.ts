@@ -415,6 +415,7 @@ async function loadMembrane(plugin: PluginContext, name: string, state: State, p
             .apply(StructureFromAssemblies, undefined, { state: { isGhost: true } })
             .commit({ revertOnError: true });
         const membraneParams = {
+            ignoreLight: params.preset.adjustStyle,
             representation: params.preset.representation,
         };
         await CellpackMembranePreset.apply(membrane, membraneParams, plugin);
@@ -431,6 +432,7 @@ async function loadMembrane(plugin: PluginContext, name: string, state: State, p
             .apply(StateTransforms.Model.StructureFromModel, props, { state: { isGhost: true } })
             .commit({ revertOnError: true });
         const membraneParams = {
+            ignoreLight: params.preset.adjustStyle,
             representation: params.preset.representation,
         };
         await CellpackMembranePreset.apply(membrane, membraneParams, plugin);
@@ -514,6 +516,7 @@ async function loadPackings(plugin: PluginContext, runtime: RuntimeContext, stat
 
         const packingParams = {
             traceOnly: params.preset.traceOnly,
+            ignoreLight: params.preset.adjustStyle,
             representation: params.preset.representation,
         };
         await CellpackPackingPreset.apply(packing, packingParams, plugin);
@@ -565,6 +568,7 @@ const LoadCellPackModelParams = {
     ingredients: PD.FileList({ accept: '.cif,.bcif,.pdb', label: 'Ingredient files' }),
     preset: PD.Group({
         traceOnly: PD.Boolean(false),
+        adjustStyle: PD.Boolean(true),
         representation: PD.Select('gaussian-surface', PD.arrayToOptions(['spacefill', 'gaussian-surface', 'point', 'orientation'] as const))
     }, { isExpanded: true })
 };
@@ -575,5 +579,32 @@ export const LoadCellPackModel = StateAction.build({
     params: LoadCellPackModelParams,
     from: PSO.Root
 })(({ state, params }, ctx: PluginContext) => Task.create('CellPack Loader', async taskCtx => {
+    if (params.preset.adjustStyle) {
+        ctx.managers.interactivity.setProps({ granularity: 'chain' });
+        ctx.canvas3d?.setProps({
+            multiSample: { mode: 'off' },
+            cameraClipping: { far: false },
+            postprocessing: {
+                occlusion: {
+                    name: 'on',
+                    params: {
+                        samples: 32,
+                        radius: 8,
+                        bias: 1,
+                        blurKernelSize: 15,
+                        resolutionScale: 1,
+                    }
+                },
+                outline: {
+                    name: 'on',
+                    params: {
+                        scale: 1,
+                        threshold: 0.33,
+                        color: ColorNames.black,
+                    }
+                }
+            }
+        });
+    }
     await loadPackings(ctx, taskCtx, state, params);
 }));

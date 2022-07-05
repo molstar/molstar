@@ -5,7 +5,7 @@
  */
 
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
-import { Structure, Unit, StructureElement } from '../../mol-model/structure';
+import { Structure, Unit, StructureElement, Bond } from '../../mol-model/structure';
 import { RepresentationProps } from '../representation';
 import { Visual, VisualContext } from '../visual';
 import { Geometry, GeometryUtils } from '../../mol-geo/geometry/geometry';
@@ -126,6 +126,10 @@ export function UnitsVisual<G extends Geometry, P extends StructureParams & Geom
             updateState.createGeometry = true;
         }
 
+        if (newProps.instanceGranularity !== currentProps.instanceGranularity) {
+            updateState.updateTransform = true;
+        }
+
         if (!deepEqual(newProps.unitKinds, currentProps.unitKinds)) {
             // console.log('new unitKinds');
             updateState.createGeometry = true;
@@ -194,7 +198,11 @@ export function UnitsVisual<G extends Geometry, P extends StructureParams & Geom
                 // console.log('update transform');
                 locationIt = createLocationIterator(newStructureGroup);
                 const { instanceCount, groupCount } = locationIt;
-                createMarkers(instanceCount * groupCount, renderObject.values);
+                if (newProps.instanceGranularity) {
+                    createMarkers(instanceCount, 'instance', renderObject.values);
+                } else {
+                    createMarkers(instanceCount * groupCount, 'groupInstance', renderObject.values);
+                }
             }
 
             if (updateState.updateMatrix) {
@@ -259,11 +267,44 @@ export function UnitsVisual<G extends Geometry, P extends StructureParams & Geom
         return false;
     }
 
+    function eachInstance(loci: Loci, structureGroup: StructureGroup, apply: (interval: Interval) => boolean) {
+        let changed = false;
+        if (Bond.isLoci(loci)) {
+            const { structure, group } = structureGroup;
+            if (!Structure.areEquivalent(loci.structure, structure)) return false;
+            for (const b of loci.bonds) {
+                if (b.aUnit !== b.bUnit) continue;
+                const unitIdx = group.unitIndexMap.get(b.aUnit.id);
+                if (unitIdx !== undefined) {
+                    if (apply(Interval.ofSingleton(unitIdx))) changed = true;
+                }
+            }
+        } else if (StructureElement.Loci.is(loci)) {
+            const { structure, group } = structureGroup;
+            if (!Structure.areEquivalent(loci.structure, structure)) return false;
+            for (const e of loci.elements) {
+                const unitIdx = group.unitIndexMap.get(e.unit.id);
+                if (unitIdx !== undefined) {
+                    if (apply(Interval.ofSingleton(unitIdx))) changed = true;
+                }
+            }
+        }
+        return changed;
+    }
+
     function lociApply(loci: Loci, apply: (interval: Interval) => boolean, isMarking: boolean) {
         if (lociIsSuperset(loci)) {
-            return apply(Interval.ofBounds(0, locationIt.groupCount * locationIt.instanceCount));
+            if (currentProps.instanceGranularity) {
+                return apply(Interval.ofBounds(0, locationIt.instanceCount));
+            } else {
+                return apply(Interval.ofBounds(0, locationIt.groupCount * locationIt.instanceCount));
+            }
         } else {
-            return eachLocation(loci, currentStructureGroup, apply, isMarking);
+            if (currentProps.instanceGranularity) {
+                return eachInstance(loci, currentStructureGroup, apply);
+            } else {
+                return eachLocation(loci, currentStructureGroup, apply, isMarking);
+            }
         }
     }
 

@@ -6,7 +6,7 @@
 
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { Visual, VisualContext } from '../visual';
-import { Structure, StructureElement } from '../../mol-model/structure';
+import { Bond, Structure, StructureElement } from '../../mol-model/structure';
 import { Geometry, GeometryUtils } from '../../mol-geo/geometry/geometry';
 import { LocationIterator } from '../../mol-geo/util/location-iterator';
 import { Theme } from '../../mol-theme/theme';
@@ -126,6 +126,10 @@ export function ComplexVisual<G extends Geometry, P extends StructureParams & Ge
             updateState.createGeometry = true;
         }
 
+        if (newProps.instanceGranularity !== currentProps.instanceGranularity) {
+            updateState.updateTransform = true;
+        }
+
         if (updateState.updateSize && !('uSize' in renderObject.values)) {
             updateState.createGeometry = true;
         }
@@ -154,7 +158,11 @@ export function ComplexVisual<G extends Geometry, P extends StructureParams & Ge
                 // console.log('update transform')
                 locationIt = createLocationIterator(newStructure);
                 const { instanceCount, groupCount } = locationIt;
-                createMarkers(instanceCount * groupCount, renderObject.values);
+                if (newProps.instanceGranularity) {
+                    createMarkers(instanceCount, 'instance', renderObject.values);
+                } else {
+                    createMarkers(instanceCount * groupCount, 'groupInstance', renderObject.values);
+                }
             }
 
             if (updateState.createGeometry) {
@@ -205,11 +213,27 @@ export function ComplexVisual<G extends Geometry, P extends StructureParams & Ge
         return false;
     }
 
+    function eachInstance(loci: Loci, structure: Structure, apply: (interval: Interval) => boolean) {
+        let changed = false;
+        if (!StructureElement.Loci.is(loci) && !Bond.isLoci(loci)) return false;
+        if (!Structure.areEquivalent(loci.structure, structure)) return false;
+        if (apply(Interval.ofSingleton(0))) changed = true;
+        return changed;
+    }
+
     function lociApply(loci: Loci, apply: (interval: Interval) => boolean, isMarking: boolean) {
         if (lociIsSuperset(loci)) {
-            return apply(Interval.ofBounds(0, locationIt.groupCount * locationIt.instanceCount));
+            if (currentProps.instanceGranularity) {
+                return apply(Interval.ofBounds(0, locationIt.instanceCount));
+            } else {
+                return apply(Interval.ofBounds(0, locationIt.groupCount * locationIt.instanceCount));
+            }
         } else {
-            return eachLocation(loci, currentStructure, apply, isMarking);
+            if (currentProps.instanceGranularity) {
+                return eachInstance(loci, currentStructure, apply);
+            } else {
+                return eachLocation(loci, currentStructure, apply, isMarking);
+            }
         }
     }
 

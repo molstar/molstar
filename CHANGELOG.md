@@ -6,8 +6,35 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+
+## [v3.11.0] - 2022-07-04
+
+- Add ``instanceGranularity`` option for marker, transparency, clipping, overpaint, substance data to save memory
 - CellPack extension tweaks
     - Use instancing to create DNA/RNA curves to save memory
+    - Enable ``instanceGranularity`` by default
+    - Add ``adjustStyle`` option to LoadCellPackModel action (stylized, no multi-sample, no far clipping, chain picking)
+- Structure Superposition now respects pivot's coordinate system
+
+## [v3.10.2] - 2022-06-26
+
+- Fix superfluous shader varying
+- Improve use of gl_VertexID when possible
+
+## [v3.10.1] - 2022-06-26
+
+- Fix groupCount when updating TextureMesh-based visuals
+
+## [v3.10.0] - 2022-06-24
+
+- Add support for Glycam saccharide names
+- Add ``PluginConfig.Viewport.ShowTrajectoryControls`` config option
+
+## [v3.9.1] - 2022-06-19
+
+- Fix missing ``super.componentWillUnmount()`` calls (@simeonborko)
+- Fix missing ``uGroupCount`` update for visuals
+- Fix missing aromatic bond display
 
 ## [v3.9.0] - 2022-05-30
 
