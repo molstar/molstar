@@ -23,12 +23,12 @@ export const CylindersSchema = {
     elements: ElementsSpec('uint32'),
 
     padding: ValueSpec('number'),
-    uDoubleSided: UniformSpec('b'),
+    uDoubleSided: UniformSpec('b', 'material'),
     dIgnoreLight: DefineSpec('boolean'),
     dXrayShaded: DefineSpec('boolean'),
     dTransparentBackfaces: DefineSpec('string', ['off', 'on', 'opaque']),
-    uBumpFrequency: UniformSpec('f'),
-    uBumpAmplitude: UniformSpec('f'),
+    uBumpFrequency: UniformSpec('f', 'material'),
+    uBumpAmplitude: UniformSpec('f', 'material'),
 };
 export type CylindersSchema = typeof CylindersSchema
 export type CylindersValues = Values<CylindersSchema>

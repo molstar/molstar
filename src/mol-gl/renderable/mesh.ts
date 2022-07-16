@@ -18,13 +18,13 @@ export const MeshSchema = {
     aNormal: AttributeSpec('float32', 3, 0),
     elements: ElementsSpec('uint32'),
     dFlatShaded: DefineSpec('boolean'),
-    uDoubleSided: UniformSpec('b'),
+    uDoubleSided: UniformSpec('b', 'material'),
     dFlipSided: DefineSpec('boolean'),
     dIgnoreLight: DefineSpec('boolean'),
     dXrayShaded: DefineSpec('boolean'),
     dTransparentBackfaces: DefineSpec('string', ['off', 'on', 'opaque']),
-    uBumpFrequency: UniformSpec('f'),
-    uBumpAmplitude: UniformSpec('f'),
+    uBumpFrequency: UniformSpec('f', 'material'),
+    uBumpAmplitude: UniformSpec('f', 'material'),
     meta: ValueSpec('unknown')
 } as const;
 export type MeshSchema = typeof MeshSchema

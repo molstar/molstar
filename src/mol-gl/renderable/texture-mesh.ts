@@ -19,13 +19,13 @@ export const TextureMeshSchema = {
     tNormal: TextureSpec('texture', 'rgb', 'float', 'nearest'),
 
     dFlatShaded: DefineSpec('boolean'),
-    uDoubleSided: UniformSpec('b'),
+    uDoubleSided: UniformSpec('b', 'material'),
     dFlipSided: DefineSpec('boolean'),
     dIgnoreLight: DefineSpec('boolean'),
     dXrayShaded: DefineSpec('boolean'),
     dTransparentBackfaces: DefineSpec('string', ['off', 'on', 'opaque']),
-    uBumpFrequency: UniformSpec('f'),
-    uBumpAmplitude: UniformSpec('f'),
+    uBumpFrequency: UniformSpec('f', 'material'),
+    uBumpAmplitude: UniformSpec('f', 'material'),
     meta: ValueSpec('unknown')
 };
 export type TextureMeshSchema = typeof TextureMeshSchema

@@ -194,7 +194,7 @@ export const SizeSchema = {
     uSizeTexDim: UniformSpec('v2'),
     tSize: TextureSpec('image-uint8', 'rgb', 'ubyte', 'nearest'),
     dSizeType: DefineSpec('string', ['uniform', 'attribute', 'instance', 'group', 'groupInstance']),
-    uSizeFactor: UniformSpec('f'),
+    uSizeFactor: UniformSpec('f', 'material'),
 } as const;
 export type SizeSchema = typeof SizeSchema
 export type SizeValues = Values<SizeSchema>
@@ -273,11 +273,11 @@ export const BaseSchema = {
 
     dClipObjectCount: DefineSpec('number'),
     dClipVariant: DefineSpec('string', ['instance', 'pixel']),
-    uClipObjectType: UniformSpec('i[]'),
-    uClipObjectInvert: UniformSpec('b[]'),
-    uClipObjectPosition: UniformSpec('v3[]'),
-    uClipObjectRotation: UniformSpec('v4[]'),
-    uClipObjectScale: UniformSpec('v3[]'),
+    uClipObjectType: UniformSpec('i[]', 'material'),
+    uClipObjectInvert: UniformSpec('b[]', 'material'),
+    uClipObjectPosition: UniformSpec('v3[]', 'material'),
+    uClipObjectRotation: UniformSpec('v4[]', 'material'),
+    uClipObjectScale: UniformSpec('v3[]', 'material'),
 
     aInstance: AttributeSpec('float32', 1, 1),
     /**

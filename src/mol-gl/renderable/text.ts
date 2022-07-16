@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -24,13 +24,13 @@ export const TextSchema = {
     tFont: TextureSpec('image-uint8', 'alpha', 'ubyte', 'linear'),
     padding: ValueSpec('number'),
 
-    uBorderWidth: UniformSpec('f'),
-    uBorderColor: UniformSpec('v3'),
-    uOffsetX: UniformSpec('f'),
-    uOffsetY: UniformSpec('f'),
-    uOffsetZ: UniformSpec('f'),
-    uBackgroundColor: UniformSpec('v3'),
-    uBackgroundOpacity: UniformSpec('f'),
+    uBorderWidth: UniformSpec('f', 'material'),
+    uBorderColor: UniformSpec('v3', 'material'),
+    uOffsetX: UniformSpec('f', 'material'),
+    uOffsetY: UniformSpec('f', 'material'),
+    uOffsetZ: UniformSpec('f', 'material'),
+    uBackgroundColor: UniformSpec('v3', 'material'),
+    uBackgroundOpacity: UniformSpec('f', 'material'),
 };
 export type TextSchema = typeof TextSchema
 export type TextValues = Values<TextSchema>

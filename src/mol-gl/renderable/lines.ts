@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -20,7 +20,7 @@ export const LinesSchema = {
     aEnd: AttributeSpec('float32', 3, 0),
     elements: ElementsSpec('uint32'),
     dLineSizeAttenuation: DefineSpec('boolean'),
-    uDoubleSided: UniformSpec('b'),
+    uDoubleSided: UniformSpec('b', 'material'),
     dFlipSided: DefineSpec('boolean'),
 };
 export type LinesSchema = typeof LinesSchema
