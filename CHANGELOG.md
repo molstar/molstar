@@ -6,6 +6,7 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Add ``colorMarker`` option to Renderer. This disables the highlight and select marker at a shader level for faster rendering of large scenes in some cases.
 - Bind shared textures only once per pass, not for each render item
 - Fix missing 'material' annotation for some uniforms, causing unnecessary uniform updates
 - Remove use of ``isnan`` in impostor shaders, not needed and causing slowdown

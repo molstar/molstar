@@ -22,13 +22,15 @@ uniform int uMarkingType;
     #endif
 #endif
 
-uniform vec3 uHighlightColor;
-uniform vec3 uSelectColor;
-uniform float uHighlightStrength;
-uniform float uSelectStrength;
-uniform int uMarkerPriority;
+#if defined(dColorMarker)
+    uniform vec3 uHighlightColor;
+    uniform vec3 uSelectColor;
+    uniform float uHighlightStrength;
+    uniform float uSelectStrength;
+    uniform int uMarkerPriority;
+#endif
 
-#if defined(dRenderVariant_color) || defined(dRenderVariant_marking)
+#if defined(dNeedsMarker)
     uniform float uMarker;
     #if __VERSION__ == 100
         varying float vMarker;

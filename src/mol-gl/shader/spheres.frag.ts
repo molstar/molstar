@@ -48,7 +48,6 @@ bool Impostor(out vec3 cameraPos, out vec3 cameraNormal){
 
     cameraPos = rayDirection * negT + rayOrigin;
 
-
     if (calcDepth(cameraPos) <= 0.0) {
         cameraPos = rayDirection * posT + rayOrigin;
         interior = true;

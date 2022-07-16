@@ -89,6 +89,7 @@ export const RendererParams = {
     interiorColorFlag: PD.Boolean(true, { label: 'Use Interior Color' }),
     interiorColor: PD.Color(Color.fromNormalizedRgb(0.3, 0.3, 0.3)),
 
+    colorMarker: PD.Boolean(true, { description: 'Enable color marker' }),
     highlightColor: PD.Color(Color.fromNormalizedRgb(1.0, 0.4, 0.6)),
     selectColor: PD.Color(Color.fromNormalizedRgb(0.2, 1.0, 0.1)),
     highlightStrength: PD.Numeric(0.3, { min: 0.0, max: 1.0, step: 0.1 }),
@@ -244,6 +245,10 @@ namespace Renderer {
             let definesNeedUpdate = false;
             if (r.values.dLightCount.ref.value !== light.count) {
                 ValueCell.update(r.values.dLightCount, light.count);
+                definesNeedUpdate = true;
+            }
+            if (r.values.dColorMarker.ref.value !== p.colorMarker) {
+                ValueCell.update(r.values.dColorMarker, p.colorMarker);
                 definesNeedUpdate = true;
             }
             if (definesNeedUpdate) r.update();
@@ -662,6 +667,9 @@ namespace Renderer {
                     ValueCell.update(globalUniforms.uInteriorColor, Color.toVec3Normalized(globalUniforms.uInteriorColor.ref.value, p.interiorColor));
                 }
 
+                if (props.colorMarker !== undefined && props.colorMarker !== p.colorMarker) {
+                    p.colorMarker = props.colorMarker;
+                }
                 if (props.highlightColor !== undefined && props.highlightColor !== p.highlightColor) {
                     p.highlightColor = props.highlightColor;
                     ValueCell.update(globalUniforms.uHighlightColor, Color.toVec3Normalized(globalUniforms.uHighlightColor.ref.value, p.highlightColor));

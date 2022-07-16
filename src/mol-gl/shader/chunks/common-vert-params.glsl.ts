@@ -29,7 +29,7 @@ uniform int uPickType;
     #endif
 #endif
 
-#if defined(dRenderVariant_color) || defined(dRenderVariant_marking)
+#if defined(dNeedsMarker)
     uniform float uMarker;
     uniform vec2 uMarkerTexDim;
     uniform sampler2D tMarker;

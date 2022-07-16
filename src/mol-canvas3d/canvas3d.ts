@@ -395,7 +395,7 @@ namespace Canvas3D {
                 y > gl.drawingBufferHeight || y + height < 0
             ) return false;
 
-            const markingUpdated = resolveMarking();
+            const markingUpdated = resolveMarking() && (renderer.props.colorMarker || p.marking.enabled);
 
             let didRender = false;
             controls.update(currentTime);

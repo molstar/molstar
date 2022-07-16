@@ -17,6 +17,10 @@ export const common = `
     #define dColorType_varying
 #endif
 
+#if (defined(dRenderVariant_color) && defined(dColorMarker)) || defined(dRenderVariant_marking)
+    #define dNeedsMarker
+#endif
+
 #define MaskAll 0
 #define MaskOpaque 1
 #define MaskTransparent 2

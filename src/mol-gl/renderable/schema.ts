@@ -270,6 +270,7 @@ export const BaseSchema = {
     ...ClippingSchema,
 
     dLightCount: DefineSpec('number'),
+    dColorMarker: DefineSpec('boolean'),
 
     dClipObjectCount: DefineSpec('number'),
     dClipVariant: DefineSpec('string', ['instance', 'pixel']),
