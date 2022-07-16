@@ -581,9 +581,20 @@ export const LoadCellPackModel = StateAction.build({
 })(({ state, params }, ctx: PluginContext) => Task.create('CellPack Loader', async taskCtx => {
     if (params.preset.adjustStyle) {
         ctx.managers.interactivity.setProps({ granularity: 'chain' });
+        ctx.managers.structure.component.setOptions({
+            ... ctx.managers.structure.component.state.options,
+            visualQuality: 'custom',
+            ignoreLight: true,
+            showHydrogens: false,
+        });
         ctx.canvas3d?.setProps({
             multiSample: { mode: 'off' },
             cameraClipping: { far: false },
+            renderer: { colorMarker: false },
+            marking: {
+                enabled: true,
+                ghostEdgeStrength: 1,
+            },
             postprocessing: {
                 occlusion: {
                     name: 'on',

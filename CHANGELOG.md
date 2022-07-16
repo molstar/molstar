@@ -11,6 +11,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Fix missing 'material' annotation for some uniforms, causing unnecessary uniform updates
 - Remove use of ``isnan`` in impostor shaders, not needed and causing slowdown
 - Avoid using ``flat`` qualifier in shaders, causing slowdown
+- Improve CellPack's ``adjustStyle`` option (disable ``colorMarker``, set component options, enable marking w/o ghost)
 
 ## [v3.11.0] - 2022-07-04
 
