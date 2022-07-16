@@ -1,11 +1,11 @@
 /**
- * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { createAttributeBuffers, ElementsBuffer, AttributeKind } from './buffer';
-import { createTextures, Texture, Textures } from './texture';
+import { createTextures, Texture } from './texture';
 import { WebGLContext, checkError } from './context';
 import { ShaderCode, DefineValues } from '../shader-code';
 import { Program } from './program';
@@ -42,7 +42,7 @@ export interface RenderItem<T extends string> {
     readonly materialId: number
     getProgram: (variant: T) => Program
 
-    render: (variant: T, sharedTexturesList?: Textures) => void
+    render: (variant: T, sharedTexturesCount: number) => void
     update: () => Readonly<ValueChanges>
     destroy: () => void
 }
@@ -166,17 +166,12 @@ export function createRenderItem<T extends string>(ctx: WebGLContext, drawMode: 
         materialId,
         getProgram: (variant: T) => programs[variant],
 
-        render: (variant: T, sharedTexturesList?: Textures) => {
+        render: (variant: T, sharedTexturesCount: number) => {
             if (drawCount === 0 || instanceCount === 0 || ctx.isContextLost) return;
             const program = programs[variant];
             if (program.id === currentProgramId && state.currentRenderItemId === id) {
                 program.setUniforms(uniformValueEntries);
-                if (sharedTexturesList && sharedTexturesList.length > 0) {
-                    program.bindTextures(sharedTexturesList, 0);
-                    program.bindTextures(textures, sharedTexturesList.length);
-                } else {
-                    program.bindTextures(textures, 0);
-                }
+                program.bindTextures(textures, sharedTexturesCount);
             } else {
                 const vertexArray = vertexArrays[variant];
                 if (program.id !== state.currentProgramId || program.id !== currentProgramId ||
@@ -190,12 +185,7 @@ export function createRenderItem<T extends string>(ctx: WebGLContext, drawMode: 
                 }
                 program.setUniforms(uniformValueEntries);
                 program.setUniforms(frontBufferUniformValueEntries);
-                if (sharedTexturesList && sharedTexturesList.length > 0) {
-                    program.bindTextures(sharedTexturesList, 0);
-                    program.bindTextures(textures, sharedTexturesList.length);
-                } else {
-                    program.bindTextures(textures, 0);
-                }
+                program.bindTextures(textures, sharedTexturesCount);
                 if (vertexArray) {
                     vertexArray.bind();
                     // need to bind elements buffer explicitly since it is not always recorded in the VAO

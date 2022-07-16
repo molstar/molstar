@@ -6,6 +6,7 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Bind shared textures only once per pass, not for each render item
 
 ## [v3.11.0] - 2022-07-04
 

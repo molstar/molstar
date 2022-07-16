@@ -258,6 +258,7 @@ namespace Renderer {
             if (globalUniformsNeedUpdate) {
                 // console.log('globalUniformsNeedUpdate')
                 program.setUniforms(globalUniformList);
+                program.bindTextures(sharedTexturesList, 0);
                 globalUniformsNeedUpdate = false;
             }
 
@@ -315,7 +316,7 @@ namespace Renderer {
                 }
             }
 
-            r.render(variant, sharedTexturesList);
+            r.render(variant, sharedTexturesList.length);
         };
 
         const update = (camera: ICamera) => {
