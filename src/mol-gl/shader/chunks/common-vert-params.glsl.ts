@@ -21,10 +21,10 @@ uniform int uPickType;
     #if defined(dClipping)
         uniform vec2 uClippingTexDim;
         uniform sampler2D tClipping;
-        #if __VERSION__ == 100
+        #if __VERSION__ == 100 || defined(dClippingType_instance)
             varying float vClipping;
         #else
-            flat out float vClipping;
+            flat out float vClipping; // avoid if possible, causes slowdown, ASR
         #endif
     #endif
 #endif
@@ -33,10 +33,10 @@ uniform int uPickType;
     uniform float uMarker;
     uniform vec2 uMarkerTexDim;
     uniform sampler2D tMarker;
-    #if __VERSION__ == 100
+    #if __VERSION__ == 100 || defined(dMarkerType_instance)
         varying float vMarker;
     #else
-        flat out float vMarker;
+        flat out float vMarker; // avoid if possible, causes slowdown, ASR
     #endif
 #endif
 

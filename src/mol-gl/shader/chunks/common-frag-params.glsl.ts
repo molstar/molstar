@@ -14,10 +14,10 @@ uniform int uMarkingType;
     uniform vec3 uClipObjectScale[dClipObjectCount];
 
     #if defined(dClipping)
-        #if __VERSION__ == 100
+        #if __VERSION__ == 100 || defined(dClippingType_instance)
             varying float vClipping;
         #else
-            flat in float vClipping;
+            flat in float vClipping; // avoid if possible, causes slowdown, ASR
         #endif
     #endif
 #endif
@@ -32,10 +32,10 @@ uniform int uMarkingType;
 
 #if defined(dNeedsMarker)
     uniform float uMarker;
-    #if __VERSION__ == 100
+    #if __VERSION__ == 100 || defined(dMarkerType_instance)
         varying float vMarker;
     #else
-        flat in float vMarker;
+        flat in float vMarker; // avoid if possible, causes slowdown, ASR
     #endif
 #endif
 
