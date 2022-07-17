@@ -12,6 +12,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Remove use of ``isnan`` in impostor shaders, not needed and causing slowdown
 - Avoid using ``flat`` qualifier in shaders, causing slowdown
 - Improve CellPack's ``adjustStyle`` option (disable ``colorMarker``, set component options, enable marking w/o ghost)
+- Scan all entities when looking for ``struct_conn`` entries (fixes issue when the same ``label_asym_id`` is used in more than one entity)
 
 ## [v3.11.0] - 2022-07-04
 
