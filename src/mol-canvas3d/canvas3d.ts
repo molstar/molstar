@@ -574,7 +574,7 @@ namespace Canvas3D {
             }
             if (oldBoundingSphereVisible.radius === 0) nextCameraResetDuration = 0;
 
-            camera.setState({ radiusMax: scene.boundingSphere.radius }, 0);
+            if (!p.camera.manualReset) camera.setState({ radiusMax: scene.boundingSphere.radius }, 0);
             reprCount.next(reprRenderObjects.size);
             if (isDebugMode) consoleStats();
 
