@@ -124,7 +124,8 @@ class PluginState extends PluginComponent {
     dispose() {
         this.behaviors.cells.forEach(cell => {
             if (PluginBehavior.Behavior.is(cell.obj)) {
-                cell.obj.data.unregister();
+                cell.obj.data.unregister?.();
+                cell.obj.data.dispose?.();
             }
         });
 

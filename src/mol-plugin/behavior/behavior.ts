@@ -17,7 +17,8 @@ export { PluginBehavior };
 
 interface PluginBehavior<P = unknown> {
     register(ref: StateTransform.Ref): void,
-    unregister(): void,
+    unregister?(): void,
+    dispose?(): void,
 
     /** Update params in place. Optionally return a promise if it depends on an async action. */
     update?(params: P): boolean | Promise<boolean>
@@ -102,7 +103,7 @@ namespace PluginBehavior {
             register(): void {
                 this.sub = cmd.subscribe(this.ctx, data => action(data, this.ctx));
             }
-            unregister(): void {
+            dispose(): void {
                 if (this.sub) this.sub.unsubscribe();
                 this.sub = void 0;
             }
@@ -123,7 +124,7 @@ namespace PluginBehavior {
             this.subs.push(sub);
         }
         abstract register(): void;
-        unregister() {
+        dispose(): void {
             for (const s of this.subs) s.unsubscribe();
             this.subs = [];
         }
@@ -146,8 +147,7 @@ namespace PluginBehavior {
         protected subscribeObservable<T>(o: Observable<T>, action: (v: T) => void) {
             this.subs.push(o.subscribe(action));
         }
-
-        unregister() {
+        dispose(): void {
             for (const s of this.subs) s.unsubscribe();
             this.subs = [];
         }

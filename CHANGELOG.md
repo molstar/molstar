@@ -6,6 +6,10 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+## [v3.12.1] - 2022-07-20
+
+- Fix plugin behavior dispose logic to correctly unsubscribe observables.
+
 ## [v3.12.0] - 2022-07-17
 
 - Add ``colorMarker`` option to Renderer. This disables the highlight and select marker at a shader level for faster rendering of large scenes in some cases.
