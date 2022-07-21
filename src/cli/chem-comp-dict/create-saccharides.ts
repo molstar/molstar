@@ -14,7 +14,7 @@ const writeFile = util.promisify(fs.writeFile);
 
 import { DatabaseCollection } from '../../mol-data/db';
 import { CCD_Schema } from '../../mol-io/reader/cif/schema/ccd';
-import { ensureDataAvailable, readCCD } from './util';
+import { DefaultDataOptions, ensureDataAvailable, readCCD } from './util';
 
 function extractSaccharideNames(ccd: DatabaseCollection<CCD_Schema>) {
     const saccharideNames: string[] = [];
@@ -47,8 +47,8 @@ export const SaccharideNames = new Set(${JSON.stringify(ionNames).replace(/"/g, 
     writeFile(filePath, output);
 }
 
-async function run(out: string, forceDownload = false) {
-    await ensureDataAvailable(forceDownload);
+async function run(out: string, options = DefaultDataOptions) {
+    await ensureDataAvailable(options);
     const ccd = await readCCD();
     const saccharideNames = extractSaccharideNames(ccd);
     if (!fs.existsSync(path.dirname(out))) {
@@ -68,10 +68,15 @@ parser.add_argument('--forceDownload', '-f', {
     action: 'store_true',
     help: 'Force download of CCD and PVCD.'
 });
+parser.add_argument('--ccdUrl', '-a', {
+    help: 'Fetch the CCD from a custom URL. This forces download of the CCD.',
+    required: false
+});
 interface Args {
     out: string,
     forceDownload?: boolean,
+    ccdUrl?: string
 }
 const args: Args = parser.parse_args();
 
-run(args.out, args.forceDownload);
+run(args.out, { forceDownload: args.forceDownload, ccdUrl: args.ccdUrl });
