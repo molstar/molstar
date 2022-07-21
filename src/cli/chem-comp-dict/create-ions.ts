@@ -65,7 +65,7 @@ parser.add_argument('--forceDownload', '-f', {
     action: 'store_true',
     help: 'Force download of CCD and PVCD.'
 });
-parser.add_argument('--ccdUrl', '-a', {
+parser.add_argument('--ccdUrl', '-c', {
     help: 'Fetch the CCD from a custom URL. This forces download of the CCD.',
     required: false
 });

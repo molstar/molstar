@@ -283,11 +283,11 @@ parser.add_argument('--ccaOut', '-a', {
     help: 'Optional generated file output path for chem_comp_atom data.',
     required: false
 });
-parser.add_argument('--ccdUrl', '-a', {
+parser.add_argument('--ccdUrl', '-c', {
     help: 'Fetch the CCD from a custom URL. This forces download of the CCD.',
     required: false
 });
-parser.add_argument('--pvcdUrl', '-a', {
+parser.add_argument('--pvcdUrl', '-p', {
     help: 'Fetch the PVCD from a custom URL. This forces download of the PVCD.',
     required: false
 });
