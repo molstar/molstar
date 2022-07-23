@@ -22,6 +22,7 @@ import { Texture } from '../../../mol-gl/webgl/texture';
 import { WebGLContext } from '../../../mol-gl/webgl/context';
 import { applyMeshColorSmoothing } from '../../../mol-geo/geometry/mesh/color-smoothing';
 import { ColorSmoothingParams, getColorSmoothingProps } from '../../../mol-geo/geometry/base';
+import { ValueCell } from '../../../mol-util';
 
 export const MolecularSurfaceMeshParams = {
     ...UnitsMeshParams,
@@ -55,7 +56,12 @@ async function createMolecularSurfaceMesh(ctx: VisualContext, unit: Unit, struct
     }
 
     Mesh.transform(surface, transform);
-    if (ctx.webgl && !ctx.webgl.isWebGL2) Mesh.uniformTriangleGroup(surface);
+    if (ctx.webgl && !ctx.webgl.isWebGL2) {
+        Mesh.uniformTriangleGroup(surface);
+        ValueCell.updateIfChanged(surface.varyingGroup, false);
+    } else {
+        ValueCell.updateIfChanged(surface.varyingGroup, true);
+    }
 
     const sphere = Sphere3D.expand(Sphere3D(), unit.boundary.sphere, maxRadius);
     surface.setBoundingSphere(sphere);

@@ -17,7 +17,7 @@ export const TextureMeshSchema = {
     tPosition: TextureSpec('texture', 'rgb', 'float', 'nearest'),
     tGroup: TextureSpec('texture', 'alpha', 'float', 'nearest'),
     tNormal: TextureSpec('texture', 'rgb', 'float', 'nearest'),
-
+    dVaryingGroup: DefineSpec('boolean'),
     dFlatShaded: DefineSpec('boolean'),
     uDoubleSided: UniformSpec('b', 'material'),
     dFlipSided: DefineSpec('boolean'),

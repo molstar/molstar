@@ -28,6 +28,7 @@ import { applyTextureMeshColorSmoothing } from '../../../mol-geo/geometry/textur
 import { ColorSmoothingParams, getColorSmoothingProps } from '../../../mol-geo/geometry/base';
 import { Vec3 } from '../../../mol-math/linear-algebra';
 import { isTimingMode } from '../../../mol-util/debug';
+import { ValueCell } from '../../../mol-util/value-cell';
 
 const SharedParams = {
     ...GaussianDensityParams,
@@ -101,7 +102,12 @@ async function createGaussianSurfaceMesh(ctx: VisualContext, unit: Unit, structu
     (surface.meta.resolution as GaussianSurfaceMeta['resolution']) = resolution;
 
     Mesh.transform(surface, transform);
-    if (ctx.webgl && !ctx.webgl.isWebGL2) Mesh.uniformTriangleGroup(surface);
+    if (ctx.webgl && !ctx.webgl.isWebGL2) {
+        Mesh.uniformTriangleGroup(surface);
+        ValueCell.updateIfChanged(surface.varyingGroup, false);
+    } else {
+        ValueCell.updateIfChanged(surface.varyingGroup, true);
+    }
 
     const sphere = Sphere3D.expand(Sphere3D(), unit.boundary.sphere, maxRadius);
     surface.setBoundingSphere(sphere);
@@ -162,7 +168,12 @@ async function createStructureGaussianSurfaceMesh(ctx: VisualContext, structure:
     (surface.meta.resolution as GaussianSurfaceMeta['resolution']) = resolution;
 
     Mesh.transform(surface, transform);
-    if (ctx.webgl && !ctx.webgl.isWebGL2) Mesh.uniformTriangleGroup(surface);
+    if (ctx.webgl && !ctx.webgl.isWebGL2) {
+        Mesh.uniformTriangleGroup(surface);
+        ValueCell.updateIfChanged(surface.varyingGroup, false);
+    } else {
+        ValueCell.updateIfChanged(surface.varyingGroup, true);
+    }
 
     const sphere = Sphere3D.expand(Sphere3D(), structure.boundary.sphere, maxRadius);
     surface.setBoundingSphere(sphere);
@@ -237,6 +248,8 @@ async function createGaussianSurfaceTextureMesh(ctx: VisualContext, unit: Unit, 
     const surface = TextureMesh.create(gv.vertexCount, groupCount, gv.vertexTexture, gv.groupTexture, gv.normalTexture, boundingSphere, textureMesh);
     (surface.meta as GaussianSurfaceMeta).resolution = densityTextureData.resolution;
 
+    ValueCell.updateIfChanged(surface.varyingGroup, ctx.webgl.isWebGL2);
+
     return surface;
 }
 
@@ -310,6 +323,8 @@ async function createStructureGaussianSurfaceTextureMesh(ctx: VisualContext, str
     const boundingSphere = Sphere3D.expand(Sphere3D(), structure.boundary.sphere, densityTextureData.maxRadius);
     const surface = TextureMesh.create(gv.vertexCount, groupCount, gv.vertexTexture, gv.groupTexture, gv.normalTexture, boundingSphere, textureMesh);
     (surface.meta as GaussianSurfaceMeta).resolution = densityTextureData.resolution;
+
+    ValueCell.updateIfChanged(surface.varyingGroup, ctx.webgl.isWebGL2);
 
     return surface;
 }

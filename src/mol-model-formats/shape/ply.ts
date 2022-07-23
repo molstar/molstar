@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Schäfer, Marco <marco.schaefer@uni-tuebingen.de>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -19,6 +19,7 @@ import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { ColorNames } from '../../mol-util/color/names';
 import { deepClone } from '../../mol-util/object';
 import { stringToWords } from '../../mol-util/string';
+import { ValueCell } from '../../mol-util/value-cell';
 
 // TODO support 'edge' element, see https://www.mathworks.com/help/vision/ug/the-ply-format.html
 // TODO support missing face element
@@ -169,6 +170,9 @@ async function getMesh(ctx: RuntimeContext, vertex: PlyTable, face: PlyList, gro
 
     const m = MeshBuilder.getMesh(builderState);
     if (!hasNormals) Mesh.computeNormals(m);
+
+    // TODO: check if needed
+    ValueCell.updateIfChanged(m.varyingGroup, true);
 
     return m;
 }

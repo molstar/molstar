@@ -29,6 +29,7 @@ import { WebGLContext } from '../../mol-gl/webgl/context';
 import { CustomPropertyDescriptor } from '../../mol-model/custom-property';
 import { Texture } from '../../mol-gl/webgl/texture';
 import { BaseGeometry } from '../../mol-geo/geometry/base';
+import { ValueCell } from '../../mol-util/value-cell';
 
 export const VolumeIsosurfaceParams = {
     isoValue: Volume.IsoValueParam
@@ -94,6 +95,9 @@ export async function createVolumeIsosurfaceMesh(ctx: VisualContext, volume: Vol
         // 2nd arg means not to split triangles based on group id. Splitting triangles
         // is too expensive if each cell has its own group id as is the case here.
         Mesh.uniformTriangleGroup(surface, false);
+        ValueCell.updateIfChanged(surface.varyingGroup, false);
+    } else {
+        ValueCell.updateIfChanged(surface.varyingGroup, true);
     }
 
     surface.setBoundingSphere(Volume.getBoundingSphere(volume));
@@ -189,6 +193,8 @@ async function createVolumeIsosurfaceTextureMesh(ctx: VisualContext, volume: Vol
 
     const groupCount = volume.grid.cells.data.length;
     const surface = TextureMesh.create(gv.vertexCount, groupCount, gv.vertexTexture, gv.groupTexture, gv.normalTexture, Volume.getBoundingSphere(volume), textureMesh);
+
+    ValueCell.updateIfChanged(surface.varyingGroup, ctx.webgl.isWebGL2);
 
     return surface;
 }
