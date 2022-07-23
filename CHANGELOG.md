@@ -6,6 +6,8 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Fix: only update camera state if manualReset is off (#494)
+
 ## [v3.12.1] - 2022-07-20
 
 - Fix plugin behavior dispose logic to correctly unsubscribe observables.
