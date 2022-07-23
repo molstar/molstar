@@ -45,7 +45,7 @@ export const ModelInfo = {
         // const resn = SP.residue.label_comp_id, entType = SP.entity.type;
 
         const pref = checkPreferred
-            ? this.getPreferredAssembly(ctx, model)
+            ? ModelInfo.getPreferredAssembly(ctx, model)
             : void 0;
 
         const hetResidues: ModelInfo['hetResidues'] = [];

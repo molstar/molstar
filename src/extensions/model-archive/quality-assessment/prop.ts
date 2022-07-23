@@ -47,7 +47,7 @@ export const QualityAssessment = {
     },
 
     async obtain(ctx: CustomProperty.Context, model: Model, props: QualityAssessmentProps): Promise<CustomProperty.Data<QualityAssessment>> {
-        if (!model || !MmcifFormat.is(model.sourceData)) return this.Empty;
+        if (!model || !MmcifFormat.is(model.sourceData)) return QualityAssessment.Empty;
         const { ma_qa_metric, ma_qa_metric_local } = model.sourceData.data.db;
         const { model_id, label_asym_id, label_seq_id, metric_id, metric_value } = ma_qa_metric_local;
         const { index } = model.atomicHierarchy;

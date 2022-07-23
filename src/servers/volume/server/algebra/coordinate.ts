@@ -3,7 +3,7 @@
  */
 
 import { SpacegroupCell } from '../../../../mol-math/geometry';
-import * as Helpers from './helpers';
+import { Mat4, Vec3 } from '../../../../mol-math/linear-algebra';
 
 /** Information about a region sampled in fractional coordinates */
 export interface GridInfo {
@@ -141,4 +141,19 @@ export function sampleCounts(dimensions: Fractional, delta: Fractional) {
     ];
 }
 
-export const { round } = Helpers;
+// to prevent floating point rounding errors
+export function round(v: number) {
+    return Math.round(10000000 * v) / 10000000;
+}
+
+const Helpers = {
+    transform(x: { [index: number]: number }, matrix: Mat4) {
+        return Vec3.transformMat4(Vec3.zero(), x as Vec3, matrix);
+    },
+    snap(v: number, to: 'bottom' | 'top') {
+        switch (to) {
+            case 'bottom': return Math.floor(round(v)) | 0;
+            case 'top': return Math.ceil(round(v)) | 0;
+        }
+    }
+};

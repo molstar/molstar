@@ -573,12 +573,12 @@ const HphobHphil = {
         for (let i = 0, il = exposed.length; i < il; i++) {
             const unit = units[unitIndices[exposed[i]]];
             const elementIndex = elementIndices[exposed[i]];
-            v3set(this.testPoint, unit.conformation.x(elementIndex), unit.conformation.y(elementIndex), unit.conformation.z(elementIndex));
-            v3sub(this.testPoint, this.testPoint, spherePoint);
+            v3set(HphobHphil.testPoint, unit.conformation.x(elementIndex), unit.conformation.y(elementIndex), unit.conformation.z(elementIndex));
+            v3sub(HphobHphil.testPoint, HphobHphil.testPoint, spherePoint);
             if (hydrophobic[i]) {
-                sliceStats[Math.floor(v3dot(this.testPoint, diam) / diamNorm / stepSize)].hphob++;
+                sliceStats[Math.floor(v3dot(HphobHphil.testPoint, diam) / diamNorm / stepSize)].hphob++;
             } else {
-                sliceStats[Math.floor(v3dot(this.testPoint, diam) / diamNorm / stepSize)].hphil++;
+                sliceStats[Math.floor(v3dot(HphobHphil.testPoint, diam) / diamNorm / stepSize)].hphil++;
             }
         }
         return sliceStats;

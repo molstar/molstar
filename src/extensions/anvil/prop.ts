@@ -46,9 +46,10 @@ export const MembraneOrientation = {
                 if (!Unit.isAtomic(unit)) return 0;
                 const membraneOrientation = MembraneOrientationProvider.get(structure).value;
                 if (!membraneOrientation) return 0;
-                Vec3.set(Vec3(), x(ctx.element), y(ctx.element), z(ctx.element));
+                const pos = Vec3();
+                Vec3.set(pos, x(ctx.element), y(ctx.element), z(ctx.element));
                 const { normalVector, planePoint1, planePoint2 } = membraneOrientation!;
-                return isInMembranePlane(Vec3(), normalVector, planePoint1, planePoint2);
+                return isInMembranePlane(pos, normalVector, planePoint1, planePoint2);
             })
     }
 };
