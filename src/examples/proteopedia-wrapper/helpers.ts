@@ -88,7 +88,7 @@ export interface LoadParams {
     representationStyle?: RepresentationStyle
 }
 
-type RepresentationStyleEntry = {
+export type RepresentationStyleEntry = {
     hide?: boolean,
     kind?: StructureRepresentationRegistry.BuiltIn,
     coloring?: ColorTheme.BuiltIn
