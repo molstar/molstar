@@ -104,7 +104,7 @@ class Channel extends PluginUIComponent<{
             colorStripe={channel.color}
             pivot={<div className='msp-volume-channel-inline-controls'>
                 <Slider value={value} min={ctrlMin} max={ctrlMax} step={step}
-                    onChange={v => props.changeIso(props.name, v, isRelative)} disabled={props.params.isDisabled} onEnter={props.params.events.onEnter} />
+                    onChange={v => props.changeIso(props.name, v, isRelative)} onChangeImmediate={v => props.changeIso(props.name, v, isRelative)} disabled={props.params.isDisabled} onEnter={props.params.events.onEnter} />
                 <IconButton svg={this.getVisible() ? VisibilityOutlinedSvg : VisibilityOffOutlinedSvg} onClick={this.toggleVisible} toggleState={false} disabled={props.params.isDisabled} />
             </div>}
             controls={<ParameterControls onChange={({ name, value }) => props.changeParams(props.name, name, value)} params={ChannelParams} values={channel} onEnter={props.params.events.onEnter} isDisabled={props.params.isDisabled} />}
