@@ -240,15 +240,13 @@ async function createGaussianSurfaceTextureMesh(ctx: VisualContext, unit: Unit, 
 
     const axisOrder = Vec3.create(0, 1, 2);
     const buffer = textureMesh?.doubleBuffer.get();
-    const gv = extractIsosurface(ctx.webgl, densityTextureData.texture, densityTextureData.gridDim, densityTextureData.gridTexDim, densityTextureData.gridTexScale, densityTextureData.transform, isoLevel, false, true, axisOrder, buffer?.vertex, buffer?.group, buffer?.normal);
+    const gv = extractIsosurface(ctx.webgl, densityTextureData.texture, densityTextureData.gridDim, densityTextureData.gridTexDim, densityTextureData.gridTexScale, densityTextureData.transform, isoLevel, false, true, axisOrder, true, buffer?.vertex, buffer?.group, buffer?.normal);
     if (isTimingMode) ctx.webgl.timer.markEnd('createGaussianSurfaceTextureMesh');
 
     const groupCount = unit.elements.length;
     const boundingSphere = Sphere3D.expand(Sphere3D(), unit.boundary.sphere, densityTextureData.maxRadius);
     const surface = TextureMesh.create(gv.vertexCount, groupCount, gv.vertexTexture, gv.groupTexture, gv.normalTexture, boundingSphere, textureMesh);
     (surface.meta as GaussianSurfaceMeta).resolution = densityTextureData.resolution;
-
-    ValueCell.updateIfChanged(surface.varyingGroup, ctx.webgl.isWebGL2);
 
     return surface;
 }
@@ -316,15 +314,13 @@ async function createStructureGaussianSurfaceTextureMesh(ctx: VisualContext, str
 
     const axisOrder = Vec3.create(0, 1, 2);
     const buffer = textureMesh?.doubleBuffer.get();
-    const gv = extractIsosurface(ctx.webgl, densityTextureData.texture, densityTextureData.gridDim, densityTextureData.gridTexDim, densityTextureData.gridTexScale, densityTextureData.transform, isoLevel, false, true, axisOrder, buffer?.vertex, buffer?.group, buffer?.normal);
+    const gv = extractIsosurface(ctx.webgl, densityTextureData.texture, densityTextureData.gridDim, densityTextureData.gridTexDim, densityTextureData.gridTexScale, densityTextureData.transform, isoLevel, false, true, axisOrder, true, buffer?.vertex, buffer?.group, buffer?.normal);
     if (isTimingMode) ctx.webgl.timer.markEnd('createStructureGaussianSurfaceTextureMesh');
 
     const groupCount = structure.elementCount;
     const boundingSphere = Sphere3D.expand(Sphere3D(), structure.boundary.sphere, densityTextureData.maxRadius);
     const surface = TextureMesh.create(gv.vertexCount, groupCount, gv.vertexTexture, gv.groupTexture, gv.normalTexture, boundingSphere, textureMesh);
     (surface.meta as GaussianSurfaceMeta).resolution = densityTextureData.resolution;
-
-    ValueCell.updateIfChanged(surface.varyingGroup, ctx.webgl.isWebGL2);
 
     return surface;
 }
