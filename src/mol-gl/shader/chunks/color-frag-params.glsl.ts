@@ -27,7 +27,7 @@ uniform float uBumpiness;
         varying vec4 vSubstance;
     #endif
 #elif defined(dRenderVariant_pick)
-    #if __VERSION__ == 100
+    #if __VERSION__ == 100 || !defined(dVaryingGroup)
         #ifdef requiredDrawBuffers
             varying vec4 vObject;
             varying vec4 vInstance;
@@ -36,6 +36,7 @@ uniform float uBumpiness;
             varying vec4 vColor;
         #endif
     #else
+        // avoid flat until EXT_provoking_vertex is supported
         #ifdef requiredDrawBuffers
             flat in vec4 vObject;
             flat in vec4 vInstance;

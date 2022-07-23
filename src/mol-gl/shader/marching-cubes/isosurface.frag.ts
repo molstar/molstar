@@ -268,9 +268,9 @@ void main(void) {
     gl_FragData[0].xyz = (uGridTransform * vec4(b0 + t * (b0 - b1), 1.0)).xyz;
 
     // group id
-    #if __VERSION__ == 100
+    #if __VERSION__ == 100 || defined(dConstantGroup)
         // webgl1 does not support 'flat' interpolation (i.e. no interpolation)
-        // so we ensure a constant group id per triangle here
+        // ensure a constant group id per triangle as needed
         #ifdef dPackedGroup
             gl_FragData[1] = vec4(voxel(coord3d).rgb, 1.0);
         #else

@@ -28,6 +28,7 @@ import { applyTextureMeshColorSmoothing } from '../../../mol-geo/geometry/textur
 import { ColorSmoothingParams, getColorSmoothingProps } from '../../../mol-geo/geometry/base';
 import { Vec3 } from '../../../mol-math/linear-algebra';
 import { isTimingMode } from '../../../mol-util/debug';
+import { ValueCell } from '../../../mol-util/value-cell';
 
 const SharedParams = {
     ...GaussianDensityParams,
@@ -101,7 +102,12 @@ async function createGaussianSurfaceMesh(ctx: VisualContext, unit: Unit, structu
     (surface.meta.resolution as GaussianSurfaceMeta['resolution']) = resolution;
 
     Mesh.transform(surface, transform);
-    if (ctx.webgl && !ctx.webgl.isWebGL2) Mesh.uniformTriangleGroup(surface);
+    if (ctx.webgl && !ctx.webgl.isWebGL2) {
+        Mesh.uniformTriangleGroup(surface);
+        ValueCell.updateIfChanged(surface.varyingGroup, false);
+    } else {
+        ValueCell.updateIfChanged(surface.varyingGroup, true);
+    }
 
     const sphere = Sphere3D.expand(Sphere3D(), unit.boundary.sphere, maxRadius);
     surface.setBoundingSphere(sphere);
@@ -162,7 +168,12 @@ async function createStructureGaussianSurfaceMesh(ctx: VisualContext, structure:
     (surface.meta.resolution as GaussianSurfaceMeta['resolution']) = resolution;
 
     Mesh.transform(surface, transform);
-    if (ctx.webgl && !ctx.webgl.isWebGL2) Mesh.uniformTriangleGroup(surface);
+    if (ctx.webgl && !ctx.webgl.isWebGL2) {
+        Mesh.uniformTriangleGroup(surface);
+        ValueCell.updateIfChanged(surface.varyingGroup, false);
+    } else {
+        ValueCell.updateIfChanged(surface.varyingGroup, true);
+    }
 
     const sphere = Sphere3D.expand(Sphere3D(), structure.boundary.sphere, maxRadius);
     surface.setBoundingSphere(sphere);
@@ -229,7 +240,7 @@ async function createGaussianSurfaceTextureMesh(ctx: VisualContext, unit: Unit, 
 
     const axisOrder = Vec3.create(0, 1, 2);
     const buffer = textureMesh?.doubleBuffer.get();
-    const gv = extractIsosurface(ctx.webgl, densityTextureData.texture, densityTextureData.gridDim, densityTextureData.gridTexDim, densityTextureData.gridTexScale, densityTextureData.transform, isoLevel, false, true, axisOrder, buffer?.vertex, buffer?.group, buffer?.normal);
+    const gv = extractIsosurface(ctx.webgl, densityTextureData.texture, densityTextureData.gridDim, densityTextureData.gridTexDim, densityTextureData.gridTexScale, densityTextureData.transform, isoLevel, false, true, axisOrder, true, buffer?.vertex, buffer?.group, buffer?.normal);
     if (isTimingMode) ctx.webgl.timer.markEnd('createGaussianSurfaceTextureMesh');
 
     const groupCount = unit.elements.length;
@@ -303,7 +314,7 @@ async function createStructureGaussianSurfaceTextureMesh(ctx: VisualContext, str
 
     const axisOrder = Vec3.create(0, 1, 2);
     const buffer = textureMesh?.doubleBuffer.get();
-    const gv = extractIsosurface(ctx.webgl, densityTextureData.texture, densityTextureData.gridDim, densityTextureData.gridTexDim, densityTextureData.gridTexScale, densityTextureData.transform, isoLevel, false, true, axisOrder, buffer?.vertex, buffer?.group, buffer?.normal);
+    const gv = extractIsosurface(ctx.webgl, densityTextureData.texture, densityTextureData.gridDim, densityTextureData.gridTexDim, densityTextureData.gridTexScale, densityTextureData.transform, isoLevel, false, true, axisOrder, true, buffer?.vertex, buffer?.group, buffer?.normal);
     if (isTimingMode) ctx.webgl.timer.markEnd('createStructureGaussianSurfaceTextureMesh');
 
     const groupCount = structure.elementCount;

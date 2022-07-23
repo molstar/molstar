@@ -38,6 +38,7 @@ export interface TextureMesh {
     readonly vertexTexture: ValueCell<Texture>,
     readonly groupTexture: ValueCell<Texture>,
     readonly normalTexture: ValueCell<Texture>,
+    readonly varyingGroup: ValueCell<boolean>,
     readonly doubleBuffer: TextureMesh.DoubleBuffer
 
     readonly boundingSphere: Sphere3D
@@ -92,6 +93,7 @@ export namespace TextureMesh {
                 vertexTexture: ValueCell.create(vertexTexture),
                 groupTexture: ValueCell.create(groupTexture),
                 normalTexture: ValueCell.create(normalTexture),
+                varyingGroup: ValueCell.create(false),
                 doubleBuffer: new DoubleBuffer(),
                 boundingSphere: Sphere3D.clone(boundingSphere),
                 meta: {}
@@ -157,6 +159,7 @@ export namespace TextureMesh {
             tPosition: textureMesh.vertexTexture,
             tGroup: textureMesh.groupTexture,
             tNormal: textureMesh.normalTexture,
+            dVaryingGroup: textureMesh.varyingGroup,
 
             boundingSphere: ValueCell.create(boundingSphere),
             invariantBoundingSphere: ValueCell.create(invariantBoundingSphere),

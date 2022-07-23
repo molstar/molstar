@@ -21,10 +21,11 @@ uniform int uPickType;
     #if defined(dClipping)
         uniform vec2 uClippingTexDim;
         uniform sampler2D tClipping;
-        #if __VERSION__ == 100 || defined(dClippingType_instance)
+        #if __VERSION__ == 100 || defined(dClippingType_instance) || !defined(dVaryingGroup)
             varying float vClipping;
         #else
-            flat out float vClipping; // avoid if possible, causes slowdown, ASR
+            // avoid flat until EXT_provoking_vertex is supported
+            flat out float vClipping;
         #endif
     #endif
 #endif
@@ -33,10 +34,11 @@ uniform int uPickType;
     uniform float uMarker;
     uniform vec2 uMarkerTexDim;
     uniform sampler2D tMarker;
-    #if __VERSION__ == 100 || defined(dMarkerType_instance)
+    #if __VERSION__ == 100 || defined(dMarkerType_instance) || !defined(dVaryingGroup)
         varying float vMarker;
     #else
-        flat out float vMarker; // avoid if possible, causes slowdown, ASR
+        // avoid flat until EXT_provoking_vertex is supported
+        flat out float vMarker;
     #endif
 #endif
 
