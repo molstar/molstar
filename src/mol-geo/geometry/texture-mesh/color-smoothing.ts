@@ -27,20 +27,18 @@ export const ColorAccumulateSchema = {
     instanceCount: ValueSpec('number'),
     stride: ValueSpec('number'),
 
-    uTotalCount: UniformSpec('i'),
-    uInstanceCount: UniformSpec('i'),
-    uGroupCount: UniformSpec('i'),
+    uGroupCount: UniformSpec('i', 'material'),
 
     aTransform: AttributeSpec('float32', 16, 1),
     aInstance: AttributeSpec('float32', 1, 1),
     aSample: AttributeSpec('float32', 1, 0),
 
-    uGeoTexDim: UniformSpec('v2', 'buffered'),
-    tPosition: TextureSpec('texture', 'rgba', 'float', 'nearest'),
-    tGroup: TextureSpec('texture', 'rgba', 'float', 'nearest'),
+    uGeoTexDim: UniformSpec('v2', 'material'),
+    tPosition: TextureSpec('texture', 'rgba', 'float', 'nearest', 'material'),
+    tGroup: TextureSpec('texture', 'rgba', 'float', 'nearest', 'material'),
 
-    uColorTexDim: UniformSpec('v2'),
-    tColor: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
+    uColorTexDim: UniformSpec('v2', 'material'),
+    tColor: TextureSpec('texture', 'rgba', 'ubyte', 'nearest', 'material'),
     dColorType: DefineSpec('string', ['group', 'groupInstance', 'vertex', 'vertexInstance']),
 
     uCurrentSlice: UniformSpec('f'),
@@ -88,8 +86,6 @@ function getAccumulateRenderable(ctx: WebGLContext, input: AccumulateInput, box:
         ValueCell.updateIfChanged(v.instanceCount, input.instanceCount);
         ValueCell.updateIfChanged(v.stride, stride);
 
-        ValueCell.updateIfChanged(v.uTotalCount, input.vertexCount);
-        ValueCell.updateIfChanged(v.uInstanceCount, input.instanceCount);
         ValueCell.updateIfChanged(v.uGroupCount, input.groupCount);
 
         ValueCell.update(v.aTransform, input.transformBuffer);
@@ -126,8 +122,6 @@ function createAccumulateRenderable(ctx: WebGLContext, input: AccumulateInput, b
         instanceCount: ValueCell.create(input.instanceCount),
         stride: ValueCell.create(stride),
 
-        uTotalCount: ValueCell.create(input.vertexCount),
-        uInstanceCount: ValueCell.create(input.instanceCount),
         uGroupCount: ValueCell.create(input.groupCount),
 
         aTransform: ValueCell.create(input.transformBuffer),

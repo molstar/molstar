@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2021-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -10,7 +10,6 @@ precision highp float;
 #include common
 #include read_from_texture
 
-uniform int uTotalCount;
 uniform int uGroupCount;
 
 attribute float aSample;

@@ -36,6 +36,7 @@ export function splitValues(schema: RenderableSchema, values: RenderableValues) 
     const attributeValues: AttributeValues = {};
     const defineValues: DefineValues = {};
     const textureValues: TextureValues = {};
+    const materialTextureValues: TextureValues = {};
     const uniformValues: UniformValues = {};
     const materialUniformValues: UniformValues = {};
     const bufferedUniformValues: UniformValues = {};
@@ -44,7 +45,10 @@ export function splitValues(schema: RenderableSchema, values: RenderableValues) 
         if (spec.type === 'attribute') attributeValues[k] = values[k];
         if (spec.type === 'define') defineValues[k] = values[k];
         // check if k exists in values to exclude global textures
-        if (spec.type === 'texture' && values[k] !== undefined) textureValues[k] = values[k];
+        if (spec.type === 'texture' && values[k] !== undefined) {
+            if (spec.variant === 'material') materialTextureValues[k] = values[k];
+            else textureValues[k] = values[k];
+        }
         // check if k exists in values to exclude global uniforms
         if (spec.type === 'uniform' && values[k] !== undefined) {
             if (spec.variant === 'material') materialUniformValues[k] = values[k];
@@ -52,7 +56,7 @@ export function splitValues(schema: RenderableSchema, values: RenderableValues) 
             else uniformValues[k] = values[k];
         }
     });
-    return { attributeValues, defineValues, textureValues, uniformValues, materialUniformValues, bufferedUniformValues };
+    return { attributeValues, defineValues, textureValues, materialTextureValues, uniformValues, materialUniformValues, bufferedUniformValues };
 }
 
 export type Versions<T extends RenderableValues> = { [k in keyof T]: number }
@@ -76,9 +80,9 @@ export function UniformSpec<K extends UniformKind>(kind: K, variant?: 'material'
     return { type: 'uniform', kind, variant };
 }
 
-export type TextureSpec<K extends TextureKind> = { type: 'texture', kind: K, format: TextureFormat, dataType: TextureType, filter: TextureFilter }
-export function TextureSpec<K extends TextureKind>(kind: K, format: TextureFormat, dataType: TextureType, filter: TextureFilter): TextureSpec<K> {
-    return { type: 'texture', kind, format, dataType, filter };
+export type TextureSpec<K extends TextureKind> = { type: 'texture', kind: K, format: TextureFormat, dataType: TextureType, filter: TextureFilter, variant?: 'material' }
+export function TextureSpec<K extends TextureKind>(kind: K, format: TextureFormat, dataType: TextureType, filter: TextureFilter, variant?: 'material'): TextureSpec<K> {
+    return { type: 'texture', kind, format, dataType, filter, variant };
 }
 
 export type ElementsSpec<K extends ElementsKind> = { type: 'elements', kind: K }

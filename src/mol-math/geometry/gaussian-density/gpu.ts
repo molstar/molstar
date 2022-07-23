@@ -42,7 +42,7 @@ const GaussianDensitySchema = {
     uAlpha: UniformSpec('f', 'material'),
     uResolution: UniformSpec('f', 'material'),
     uRadiusFactorInv: UniformSpec('f', 'material'),
-    tMinDistanceTex: TextureSpec('texture', 'rgba', 'float', 'nearest'),
+    tMinDistanceTex: TextureSpec('texture', 'rgba', 'float', 'nearest', 'material'),
 
     dGridTexType: DefineSpec('string', ['2d', '3d']),
     dCalcType: DefineSpec('string', ['density', 'minDistance', 'groupId']),

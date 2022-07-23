@@ -118,7 +118,7 @@ export function createRenderItem<T extends string>(ctx: WebGLContext, drawMode: 
         (schema as any).aVertex = AttributeSpec('float32', 1, 0);
     }
 
-    const { attributeValues, defineValues, textureValues, uniformValues, materialUniformValues, bufferedUniformValues } = splitValues(schema, values);
+    const { attributeValues, defineValues, textureValues, materialTextureValues, uniformValues, materialUniformValues, bufferedUniformValues } = splitValues(schema, values);
 
     const uniformValueEntries = Object.entries(uniformValues);
     const materialUniformValueEntries = Object.entries(materialUniformValues);
@@ -136,6 +136,7 @@ export function createRenderItem<T extends string>(ctx: WebGLContext, drawMode: 
     }
 
     const textures = createTextures(ctx, schema, textureValues);
+    const materialTextures = createTextures(ctx, schema, materialTextureValues);
     const attributeBuffers = createAttributeBuffers(ctx, schema, attributeValues);
 
     let elementsBuffer: ElementsBuffer | undefined;
@@ -180,6 +181,7 @@ export function createRenderItem<T extends string>(ctx: WebGLContext, drawMode: 
                     // console.log('program.id changed or materialId changed/-1', materialId)
                     if (program.id !== state.currentProgramId) program.use();
                     program.setUniforms(materialUniformValueEntries);
+                    program.bindTextures(materialTextures, sharedTexturesCount + textures.length);
                     state.currentMaterialId = materialId;
                     currentProgramId = program.id;
                 }
@@ -309,6 +311,22 @@ export function createRenderItem<T extends string>(ctx: WebGLContext, drawMode: 
                         valueChanges.textures = true;
                     } else {
                         textures[i][1] = value.ref.value as Texture;
+                    }
+                    versions[k] = value.ref.version;
+                }
+            }
+
+            for (let i = 0, il = materialTextures.length; i < il; ++i) {
+                const [k, texture] = materialTextures[i];
+                const value = materialTextureValues[k];
+                if (value.ref.version !== versions[k]) {
+                    // update of textures with kind 'texture' is done externally
+                    if (schema[k].kind !== 'texture') {
+                        // console.log('texture version changed, uploading image', k);
+                        texture.load(value.ref.value as TextureImage<any> | TextureVolume<any>);
+                        valueChanges.textures = true;
+                    } else {
+                        materialTextures[i][1] = value.ref.value as Texture;
                     }
                     versions[k] = value.ref.version;
                 }

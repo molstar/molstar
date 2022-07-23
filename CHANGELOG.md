@@ -8,6 +8,7 @@ Note that since we don't clearly distinguish between a public and private interf
 
 - Fix: only update camera state if manualReset is off (#494)
 - Improve handling principal axes of points in a plane
+- Add 'material' annotation support for textures
 
 ## [v3.12.1] - 2022-07-20
 
