@@ -139,7 +139,7 @@ namespace Canvas3DContext {
 
         const input = InputObserver.fromElement(canvas, { pixelScale, preventGestures: true });
         const webgl = createContext(gl, { pixelScale });
-        const passes = new Passes(webgl, attribs);
+        const passes = new Passes(webgl, a);
 
         if (isDebugMode) {
             const loseContextExt = gl.getExtension('WEBGL_lose_context');
