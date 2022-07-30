@@ -20,6 +20,7 @@ export class MonadicParser<A> {
         return { success: false, index: makeLineColumnIndex(input, result.furthest), expected: result.expected };
     };
 
+    
     tryParse(str: string) {
         const result = this.parse(str);
         if (result.success) {
@@ -116,6 +117,7 @@ export class MonadicParser<A> {
     atLeast(n: number) {
         return MonadicParser.seq(this.times(n), this.many()).map(r => [...r[0], ...r[1]]);
     };
+
 
     map<B>(f: (a: A) => B): MonadicParser<B> {
         return new MonadicParser((input, i) => {
@@ -234,15 +236,36 @@ export namespace MonadicParser {
 
     export type Result<T> = Success<T> | Failure
 
-    // export function createLanguage(parsers: any) {
-    //     const language: any = {};
-    //     for (const key of Object.keys(parsers)) {
-    //         (function (key) {
-    //             language[key] = lazy(() => parsers[key](language));
-    //         })(key);
-    //     }
-    //     return language;
-    // }
+    //export function lookahead<A>(x: MonadicParser<A> | string | RegExp): MonadicParser<null> {
+    //export function seq(...parsers: MonadicParser<any>[]): MonadicParser<any[]> {
+    //export function seq<A, B, C>(a: MonadicParser<A>, b: MonadicParser<B>, c: MonadicParser<C>): MonadicParser<[A, B, C]>
+//        export function alt(...parsers: MonadicParser<any>[]): MonadicParser<any> {
+ //       const numParsers = parsers.length;
+  //      if (numParsers === 0) {
+  //          return fail('zero alternates');
+//        }
+
+    export function seqMap( a: MonadicParser<any>,b:MonadicParser<any>,c:any) {
+	var args = [].slice.call(arguments);
+	if (args.length === 0) {
+	    throw new Error("seqMap needs at least one argument");
+	}
+	var mapper = args.pop();
+	assertFunction(mapper);
+	return seq.apply(null, args).map(function(results: any) {
+	    return mapper.apply(null, results);
+	});
+    }
+
+    export function createLanguage(parsers: any) {
+        const language: any = {};
+        for (const key of Object.keys(parsers)) {
+            (function (key) {
+                language[key] = lazy(() => parsers[key](language));
+            })(key);
+        }
+        return language;
+    }
 
     export function seq<A>(a: MonadicParser<A>): MonadicParser<[A]>
     export function seq<A, B>(a: MonadicParser<A>, b: MonadicParser<B>): MonadicParser<[A, B]>
@@ -348,7 +371,7 @@ export namespace MonadicParser {
     export function fail(expected: string): MonadicParser<any> {
         return new MonadicParser((input, i) => makeFailure(i, expected));
     }
-
+    
     export function lookahead<A>(x: MonadicParser<A> | string | RegExp): MonadicParser<null> {
         if (isParser(x)) {
             return new MonadicParser((input, i) => {
@@ -455,6 +478,17 @@ export namespace MonadicParser {
     export const crlf = string('\r\n');
     export const newline = alt(crlf, lf, cr).desc('newline');
     export const end = alt(newline, eof);
+
+    export function of(A:any){
+	return succeed(A);
+    }
+    MonadicParser.createLanguage = createLanguage;
+    MonadicParser.seq = seq;
+    MonadicParser.seqMap = seqMap;
+    MonadicParser.of = succeed;
+    MonadicParser.regexp = regexp;
+//    MonadicParser.regexp.lookahead = lookahead;
+    //MonadicParser.RegExp = regexp;
 }
 
 function seqPick(idx: number, ...parsers: MonadicParser<any>[]): MonadicParser<any> {
@@ -551,3 +585,11 @@ function unsafeUnion(xs: string[], ys: string[]) {
 function isParser(obj: any): obj is MonadicParser<any> {
     return obj instanceof MonadicParser;
 }
+
+function assertFunction(x:any) {
+    if (typeof x !== "function") {
+	throw new Error("not a function: " + x);
+    }
+}
+
+
