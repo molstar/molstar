@@ -198,7 +198,7 @@ const lang = P.MonadicParser.createLanguage({
         return P.MonadicParser.alt(
             P.MonadicParser.regexp(new RegExp(`(?!(${w}))[A-Z0-9_]+`, 'i')),
             P.MonadicParser.regexp(/'((?:[^"\\]|\\.)*)'/, 1),
-            P.MonadicParser.regexp(/"((?:[^"\\]|\\.)*)"/, 1).map(x => B.core.type.regex([`^${x}$`, 'i']))
+            P.MonadicParser.regexp(/"((?:[^"\\]|\\.)*)"/, 1).map((x:any) => B.core.type.regex([`^${x}$`, 'i']))
         ).desc('string');
     },
 

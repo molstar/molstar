@@ -267,6 +267,28 @@ export namespace MonadicParser {
         return language;
     }
 
+   
+    //    function seq() {
+    //var parsers = [].slice.call(arguments);
+//	var numParsers = parsers.length;
+//	for (var j = 0; j < numParsers; j += 1) {
+//	    assertParser(parsers[j]);
+//	}
+//	return Parsimmon(function(input, i) {
+//	    var result;
+//	    var accum = new Array(numParsers);
+//	    for (var j = 0; j < numParsers; j += 1) {
+    //		result = mergeReplies(parsers[j]._(input, i), result);
+    //if (!result.status) {
+//		    return result;
+//		}
+//		accum[j] = result.value;
+//		i = result.index;
+//	    }
+//	    return mergeReplies(makeSuccess(i, accum), result);
+//	});
+  //  }
+
     export function seq<A>(a: MonadicParser<A>): MonadicParser<[A]>
     export function seq<A, B>(a: MonadicParser<A>, b: MonadicParser<B>): MonadicParser<[A, B]>
     export function seq<A, B, C>(a: MonadicParser<A>, b: MonadicParser<B>, c: MonadicParser<C>): MonadicParser<[A, B, C]>
@@ -346,10 +368,13 @@ export namespace MonadicParser {
         return RegExp('^(?:' + re.source + ')', flags(re));
     }
 
+   
+
+    //return new MonadicParser<any[]>((input, index) => {
     export function regexp(re: RegExp, group = 0) {
         const anchored = anchoredRegexp(re);
         const expected = '' + re;
-        return new MonadicParser(function (input, i) {
+        return new MonadicParser<any>( function (input:any, i:any){
             const match = anchored.exec(input.slice(i));
             if (match) {
                 if (0 <= group && group <= match.length) {
@@ -482,10 +507,16 @@ export namespace MonadicParser {
     export function of(A:any){
 	return succeed(A);
     }
+
+    export function regex(A:any){
+	return regexp(A);
+    }
+    
     MonadicParser.createLanguage = createLanguage;
     MonadicParser.seq = seq;
     MonadicParser.seqMap = seqMap;
     MonadicParser.of = succeed;
+    MonadicParser.regex = regexp;
     MonadicParser.regexp = regexp;
 //    MonadicParser.regexp.lookahead = lookahead;
     //MonadicParser.RegExp = regexp;
