@@ -249,3 +249,4 @@ const lang = P.MonadicParser.createLanguage({
 });
 
 export const transpiler: Transpiler = str => lang.Query.tryParse(str);
+export default transpiler
