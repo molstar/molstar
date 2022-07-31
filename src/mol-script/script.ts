@@ -4,8 +4,6 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-//import { transpileMolScript } from './script/mol-script/symbols';
-//import { parseMolScript } from './language/parser';
 import { parse } from './transpile';
 import { Expression } from './language/expression';
 import { StructureElement, QueryContext, StructureSelection, Structure, QueryFn, QueryContextOptions } from '../mol-model/structure';
@@ -33,15 +31,8 @@ namespace Script {
 
     export function toExpression(script: Script): Expression {
         switch (script.language) {
-//        case 'mol-script':
-//            const parsed = parseMolScript(script.expression);
-//            if (parsed.length === 0) throw new Error('No query');
-//            return transpileMolScript(parsed[0]);
-
 	case 'pymol':
 	    const parsed = parse("pymol",script.expression);
-//            if (parsed.length === 0) throw new Error('No query');
-            //return transpileMolScript(parsed);
 	    return parsed as Expression;	   
         }
         throw new Error('unsupported script language');
