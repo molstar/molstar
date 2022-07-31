@@ -10,23 +10,23 @@ const transpiler: {[index: string]: Transpiler} = _transpiler
 export function parse(lang: string, str: string) {
     try {
 	const query = transpiler[lang](str);
-	console.log(str);
+//	console.log(str);
 	//console.log(util.inspect(query, {depth: 20, color: true}));
-	console.log('\n');
+//	console.log('\n');
 	return query;      
 	//compile(query)
     } catch (e) {
-	console.log(str);
-	console.log(e.message);
-	console.log('\n');
+//	console.log(str);
+//	console.log(e.message);
+//	console.log('\n');
     }
 }
 
-const [,,lang, str] = process.argv;
+//const [,,lang, str] = process.argv;
 
-if (lang && str) {
-    parse(lang, str);
-}
+//if (lang && str) {
+//    parse(lang, str);
+//}
 
 //export default parse;
 
