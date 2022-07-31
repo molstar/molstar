@@ -1,10 +1,10 @@
-/**                                                                                                                                          
+/**
  * Copyright (c) 2017-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.                                           
- * @author Alexander Rose <alexander.rose@weirdbyte.de>                                                                                     \
- * @author Panagiotis Tourlas <panagiot_tourlov@hotmail.com>                                                                                \
- *                                                                                                                                           
- * @author Koya Sakuma                                                                                                                      \
- * This module was taken from MolQL and modified in similar manner as pymol and vmd tranpilers.                                              
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Panagiotis Tourlas <panagiot_tourlov@hotmail.com>                                                                                
+ *                                                                                                                                          
+ * @author Koya Sakuma
+ * This module was taken from MolQL and modified in similar manner as pymol and vmd tranpilers.                                              **/
 
 
 import * as P from '../../../mol-util/monadic-parser';
