@@ -4,8 +4,9 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { transpileMolScript } from './script/mol-script/symbols';
-import { parseMolScript } from './language/parser';
+//import { transpileMolScript } from './script/mol-script/symbols';
+//import { parseMolScript } from './language/parser';
+import { parse } from './transpile';
 import { Expression } from './language/expression';
 import { StructureElement, QueryContext, StructureSelection, Structure, QueryFn, QueryContextOptions } from '../mol-model/structure';
 import { compile } from './runtime/query/compiler';
@@ -20,7 +21,7 @@ function Script(expression: string, language: Script.Language): Script {
 }
 
 namespace Script {
-    export type Language = 'mol-script'
+    export type Language = 'pymol'
 
     export function is(x: any): x is Script {
         return !!x && typeof (x as Script).expression === 'string' && !!(x as Script).language;
@@ -32,10 +33,16 @@ namespace Script {
 
     export function toExpression(script: Script): Expression {
         switch (script.language) {
-            case 'mol-script':
-                const parsed = parseMolScript(script.expression);
-                if (parsed.length === 0) throw new Error('No query');
-                return transpileMolScript(parsed[0]);
+//        case 'mol-script':
+//            const parsed = parseMolScript(script.expression);
+//            if (parsed.length === 0) throw new Error('No query');
+//            return transpileMolScript(parsed[0]);
+
+	case 'pymol':
+	    const parsed = parse("pymol",script.expression);
+//            if (parsed.length === 0) throw new Error('No query');
+            //return transpileMolScript(parsed);
+	    return parsed as Expression;	   
         }
         throw new Error('unsupported script language');
     }

@@ -5,13 +5,13 @@ import _transpiler from './transpilers/all'
 
 const transpiler: {[index: string]: Transpiler} = _transpiler
 
-const util = require('util')
+//const util = require('util')
 
-function parse(lang: string, str: string) {
+export function parse(lang: string, str: string) {
     try {
 	const query = transpiler[lang](str);
 	console.log(str);
-	console.log(util.inspect(query, {depth: 20, color: true}));
+	//console.log(util.inspect(query, {depth: 20, color: true}));
 	console.log('\n');
 	return query;      
 	//compile(query)
@@ -28,4 +28,5 @@ if (lang && str) {
     parse(lang, str);
 }
 
-default export parse;
+//export default parse;
+

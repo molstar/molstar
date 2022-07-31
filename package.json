@@ -135,6 +135,7 @@
     "webpack-cli": "^4.10.0"
   },
     "dependencies": {
+	"util" : "*",
 	"parsimmon": "^1.6.2",
 	"semver": "^5.4.1",
 	"ciftools.js": "github:dsehnal/CIFTools.js#34cd913",

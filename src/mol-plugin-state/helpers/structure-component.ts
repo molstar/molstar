@@ -40,7 +40,7 @@ export const StructureComponentParams = () => ({
         static: PD.Text<StaticStructureComponentType>('polymer'),
         expression: PD.Value<Expression>(MolScriptBuilder.struct.generator.all),
         bundle: PD.Value<StructureElement.Bundle>(StructureElement.Bundle.Empty),
-        script: PD.Script({ language: 'mol-script', expression: '(sel.atom.all)' }),
+        script: PD.Script({ language: 'pymol', expression: 'all' }),
     }, { isHidden: true }),
     nullIfEmpty: PD.Optional(PD.Boolean(true, { isHidden: true })),
     label: PD.Text('', { isHidden: true })
