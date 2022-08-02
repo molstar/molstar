@@ -66,7 +66,7 @@ export const keywords: KeywordDict = {
   all: {
     '@desc': 'all atoms; same as *',
     abbr: ['*'],
-    map: () => B.struct.generator.atomGroups()
+    map: () => B.struct.generator.all()
   },
   bonded: {
     '@desc': 'covalently bonded',
