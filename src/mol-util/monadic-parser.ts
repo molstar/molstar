@@ -2,6 +2,7 @@
  * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Koya Sakuma
  */
 
 /**
@@ -236,15 +237,6 @@ export namespace MonadicParser {
 
     export type Result<T> = Success<T> | Failure
 
-    //export function lookahead<A>(x: MonadicParser<A> | string | RegExp): MonadicParser<null> {
-    //export function seq(...parsers: MonadicParser<any>[]): MonadicParser<any[]> {
-    //export function seq<A, B, C>(a: MonadicParser<A>, b: MonadicParser<B>, c: MonadicParser<C>): MonadicParser<[A, B, C]>
-//        export function alt(...parsers: MonadicParser<any>[]): MonadicParser<any> {
- //       const numParsers = parsers.length;
-  //      if (numParsers === 0) {
-  //          return fail('zero alternates');
-//        }
-
     export function seqMap( a: MonadicParser<any>,b:MonadicParser<any>,c:any) {
 	var args = [].slice.call(arguments);
 	if (args.length === 0) {
@@ -266,28 +258,6 @@ export namespace MonadicParser {
         }
         return language;
     }
-
-   
-    //    function seq() {
-    //var parsers = [].slice.call(arguments);
-//	var numParsers = parsers.length;
-//	for (var j = 0; j < numParsers; j += 1) {
-//	    assertParser(parsers[j]);
-//	}
-//	return Parsimmon(function(input, i) {
-//	    var result;
-//	    var accum = new Array(numParsers);
-//	    for (var j = 0; j < numParsers; j += 1) {
-    //		result = mergeReplies(parsers[j]._(input, i), result);
-    //if (!result.status) {
-//		    return result;
-//		}
-//		accum[j] = result.value;
-//		i = result.index;
-//	    }
-//	    return mergeReplies(makeSuccess(i, accum), result);
-//	});
-  //  }
 
     export function seq<A>(a: MonadicParser<A>): MonadicParser<[A]>
     export function seq<A, B>(a: MonadicParser<A>, b: MonadicParser<B>): MonadicParser<[A, B]>
@@ -369,8 +339,6 @@ export namespace MonadicParser {
     }
 
    
-
-    //return new MonadicParser<any[]>((input, index) => {
     export function regexp(re: RegExp, group = 0) {
         const anchored = anchoredRegexp(re);
         const expected = '' + re;
@@ -518,8 +486,6 @@ export namespace MonadicParser {
     MonadicParser.of = succeed;
     MonadicParser.regex = regexp;
     MonadicParser.regexp = regexp;
-//    MonadicParser.regexp.lookahead = lookahead;
-    //MonadicParser.RegExp = regexp;
 }
 
 function seqPick(idx: number, ...parsers: MonadicParser<any>[]): MonadicParser<any> {

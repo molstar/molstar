@@ -15,30 +15,25 @@ import { CollapsableControls, CollapsableState } from '../../mol-plugin-ui/base'
 import { Button } from '../../mol-plugin-ui/controls/common';
 import { SelectionModeSvg } from '../../mol-plugin-ui/controls/icons';
 import { ParameterControls } from '../../mol-plugin-ui/controls/parameters';
-import { PluginContext } from '../../mol-plugin/context';
+//import { PluginContext } from '../../mol-plugin/context';
 //import { formatBytes } from '../../mol-util';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 
-type ScriptFile = {
-}
 
-type ScriptLanguage = {
-}
+type ScriptLanguage = undefined;
 
 interface State {
     busy?: boolean
     languageValues: PD.Values<typeof ScriptImportParams>
-    importValues?: PD.Values<ImportParams>
     importParams?: ImportParams
     language?: ScriptLanguage
-    files?: ScriptFile[]
 }
 
 const ScriptImportParams = {
     language: PD.Text('', { description: 'Script Language' })
 };
 
-function createImportParams(files: ScriptFile[], plugin: PluginContext) {
+function createImportParams() {
     const params: PD.Params = {};
     let defaultType = '';
     return {
@@ -55,10 +50,8 @@ export class ScriptImportUI extends CollapsableControls<{}, State> {
             isCollapsed: true,
             brand: { accent: 'cyan', svg: SelectionModeSvg },
             languageValues: PD.getDefaultValues(ScriptImportParams),
-            importValues: undefined,
             importParams: undefined,
             language: undefined,
-            files: undefined,
         };
     }
     private loadLanguage = async () => {
@@ -78,8 +71,6 @@ export class ScriptImportUI extends CollapsableControls<{}, State> {
     }
     
         
-
-
     private renderLoadLanguage() {
         return <div style={{ marginBottom: 10 }}>
             <ParameterControls params={ScriptImportParams} values={this.state.languageValues} onChangeValues={this.languageParamsOnChange} isDisabled={this.state.busy} />
@@ -92,7 +83,7 @@ export class ScriptImportUI extends CollapsableControls<{}, State> {
    
     protected renderControls(): JSX.Element | null {
 	return <>
-	    {!this.state.language ? this.renderLoadLanguage() : null}
+	{!this.state.language ? this.renderLoadLanguage() : null}
 	{this.state.language ? this.renderLanguageInfo(this.state.language) : null}
 	</>;
     }
