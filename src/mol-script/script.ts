@@ -12,11 +12,20 @@ import { StructureElement, QueryContext, StructureSelection, Structure, QueryFn,
 import { compile } from './runtime/query/compiler';
 import { MolScriptBuilder } from './language/builder';
 
+
+
+
+
+
+
+
+
+
 export { Script };
 
-interface Script { expression: string, language: Script.Language }
+interface Script { expression: string, language: Script.Language}
 
-function Script(expression: string, language: Script.Language): Script {
+function Script(expression: string = "(sel.atom.all)", language: Script.Language = "mol-script"): Script {
     return { expression, language };
 }
 
