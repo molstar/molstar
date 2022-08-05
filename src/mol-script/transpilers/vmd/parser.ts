@@ -121,10 +121,16 @@ const lang = P.MonadicParser.createLanguage({
 
     Expression: function (r:any) {
         return P.MonadicParser.alt(
-            r.RangeListProperty,
+	    r.NamedAtomProperties,
+	    r.RangeListProperty,
             r.ValueQuery,
             r.Keywords,
+	    r.ValueRange,
         );
+    },
+
+    NamedAtomProperties: function () {
+        return P.MonadicParser.alt(...h.getNamedPropertyRules(properties));
     },
 
     Keywords: () => P.MonadicParser.alt(...h.getKeywordRules(keywords)),
