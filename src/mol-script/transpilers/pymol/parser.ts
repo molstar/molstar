@@ -59,11 +59,11 @@ const lang = P.MonadicParser.createLanguage({
 
     Expression: function (r : any) {
         return P.MonadicParser.alt(
+	    r.Keywords,
             r.AtomSelectionMacro.map(atomSelectionQuery),
             r.NamedAtomProperties,
             r.Pepseq,
             r.Rep,
-            r.Keywords,
             r.Object
         );
     },

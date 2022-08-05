@@ -23,10 +23,6 @@ const structureDict: {[key: string]: string} = {
   helix: 'helix',
   dna: 'dna',
   rna: 'rna',
-  carbohydrate: 'carbohydrate',
-  helix310: '3-10',
-  helixalpha: 'alpha',
-  helixpi: 'pi',
 
   0: 'none',
   1: 'turn',
@@ -50,44 +46,23 @@ export function structureMap(x: any) {
 }
 
 export const properties: PropertyDict = {
-  adpmax: {
-    '@desc': 'the maximum anisotropic displacement parameter for the selected atom',
-    '@examples': [''],
-    isUnsupported: true,
-    regex: reFloat, map: x => parseFloat(x),
-    level: 'atom-test'
-  },
-  adpmin: {
-    '@desc': 'the minimum anisotropic displacement parameter for the selected atom',
-    '@examples': [''],
-    isUnsupported: true,
-    regex: reFloat, map: x => parseFloat(x),
-    level: 'atom-test'
-  },
-  altloc: {
-    '@desc': 'PDB alternate location identifier',
-    '@examples': ['altloc = A'],
-    regex: /[a-zA-Z0-9]/, map: str,
-    level: 'atom-test', property: B.ammp('label_alt_id')
-  },
-  altname: {
-    '@desc': 'an alternative name given to atoms by some file readers (for example, P2N)',
-    '@examples': [''],
-    isUnsupported: true,
-    regex: /[a-zA-Z0-9]/, map: str,
-    level: 'atom-test'
-  },
-  atomID: {
-    '@desc': 'special atom IDs for PDB atoms assigned by Jmol',
-    '@examples': [''],
+    altloc: {
+	'@desc': 'PDB alternate location identifier',
+	'@examples': ['altloc = A'],
+	regex: /[a-zA-Z0-9]/, map: str,
+	level: 'atom-test', property: B.ammp('label_alt_id')
+    },    
+    atomID: {
+	'@desc': 'special atom IDs for PDB atoms assigned by Jmol',
+	'@examples': [''],
     isUnsupported: true,
     regex: rePosInt, map: x => parseInt(x),
     level: 'atom-test'
-  },
-  atomIndex: {
-    '@desc': 'atom 0-based index; a unique number for each atom regardless of the number of models loaded',
-    '@examples': [''],
-    isUnsupported: true,
+    },
+    atomIndex: {
+	'@desc': 'atom 0-based index; a unique number for each atom regardless of the number of models loaded',
+	'@examples': [''],
+	isUnsupported: true,
     regex: rePosInt, map: x => parseInt(x),
     level: 'atom-test'
   },
@@ -100,9 +75,9 @@ export const properties: PropertyDict = {
   atomno: {
     '@desc': 'sequential number; you can use "@" instead of "atomno=" -- for example, select @33 or Var x = @33 or @35',
     '@examples': [''],
-    isUnsupported: true,
+    isNumeric: true,
     regex: rePosInt, map: x => parseInt(x),
-    level: 'atom-test'
+    level: 'atom-test', property: B.ammp('id')
   },
   atomType: {
     '@desc': 'atom type (mol2, AMBER files) or atom name (other file types)',
@@ -205,10 +180,11 @@ export const properties: PropertyDict = {
     level: 'atom-test', property: B.acp('elementSymbol')
   },
   elemno: {
-    '@desc': 'atomic element number',
-    '@examples': ['elemno=8'],
-    regex: /[0-9\s{}-]+/, map: x => parseInt(x),
-    level: 'atom-test', property: B.acp('atomicNumber')
+      '@desc': 'atomic element number',
+      '@examples': ['elemno=8'],
+      isNumeric: true,
+      regex: /[0-9\s{}-]+/, map: x => parseInt(x),
+      level: 'atom-test', property: B.acp('atomicNumber')
   },
   eta: {
     '@desc': 'Based on Carlos M. Duarte, Leven M. Wadley, and Anna Marie Pyle, RNA structure comparison, motif search and discovery using a reduced representation of RNA conformational space, Nucleic Acids Research, 2003, Vol. 31, No. 16 4755-4761. The parameter eta is the C4\'[i-1]-P[i]-C4\'[i]-P[i+1] dihedral angle; theta is the P[i]-C4\'[i]-P[i+1]-C4\'[i+1] dihedral angle. Both are measured on a 0-360 degree scale because they are commonly near 180 degrees. Using the commands plot PROPERTIES eta theta resno; select visible;wireframe only one can create these authors\' "RNA worm" graph.',
@@ -464,10 +440,11 @@ export const properties: PropertyDict = {
     level: 'atom-test'
   },
   resno: {
-    '@desc': 'PDB residue number, not including insertion code (see also seqcode, below)',
-    '@examples': ['resno = 100'],
-    regex: /-?[0-9]+/, map: x => parseInt(x),
-    level: 'residue-test', property: B.ammp('auth_seq_id')
+      '@desc': 'PDB residue number, not including insertion code (see also seqcode, below)',
+      '@examples': ['resno = 100'],
+      isNumeric: true,
+      regex: /-?[0-9]+/, map: x => parseInt(x),
+      level: 'residue-test', property: B.ammp('auth_seq_id')
   },
   selected: {
     '@desc': '1.0 if atom is selected; 0.0 if not',

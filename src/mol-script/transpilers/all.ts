@@ -9,7 +9,7 @@ import jmol from './jmol/parser'
 //import molQLscript from './molql-script/parser'
 import pymol from './pymol/parser'
 import vmd from './vmd/parser'
-import ramol from './rasmol/parser'
+import rasmol from './rasmol/parser'
 
 export default {
     pymol,

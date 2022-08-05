@@ -65,7 +65,6 @@ export const keywords: KeywordDict = {
     },
     sidechain: {
         '@desc': 'Polymer non-backbone atoms (new in PyMOL 1.6.1)',
-        abbr: ['sc.']
     },
     present: {
         '@desc': 'All atoms with defined coordinates in the current state (used in creating movies)',
@@ -203,77 +202,31 @@ export const keywords: KeywordDict = {
     },
     backbone: {
         '@desc': 'the C, N, CA, and O atoms of a protein and the equivalent atoms in a nucleic acid.',
-        map: () => backboneExpr()
-    },
-    protein: {
-        '@desc': 'protein',
+        map: () => B.struct.generator.atomGroups({
+            'atom-test': B.core.set.has([
+                B.core.type.set(Backbone.protein.concat(ResDict.protein)),
+		B.ammp('label_atom_id')	
+	    ])
+	}),
+    },	    
+    proteinxxxxxx: {
+        '@desc': 'protein................',
 	abbr: ['polymer.protein'],
         map: () => B.struct.generator.atomGroups({
             'residue-test': B.core.set.has([
                 B.core.type.set(ResDict.protein),
                 B.ammp('label_comp_id')
             ])
-        })
-    }
-};
-
-function backboneExpr() {
-    return B.struct.combinator.merge([
-        B.struct.generator.queryInSelection({
-            0: proteinExpr(),
-            query: B.struct.generator.atomGroups({
-                'atom-test': B.core.set.has([
-                    h.atomNameSet(Backbone.protein),
-                    B.ammp('label_atom_id')
-                ])
-            })
-        }),
-        B.struct.generator.queryInSelection({
-            0: nucleicExpr(),
-            query: B.struct.generator.atomGroups({
-                'atom-test': B.core.set.has([
-                    h.atomNameSet(Backbone.nucleic),
-                    B.ammp('label_atom_id')
-                ])
-            })
-        })
-    ]);
-}
-
-function proteinExpr() {
-    return B.struct.filter.pick({
-        0: B.struct.generator.atomGroups({
-            'group-by': B.ammp('residueKey')
-        }),
-        test: B.core.set.isSubset([
-            h.atomNameSet(['C', 'N', 'CA', 'O']),
-            B.ammpSet('label_atom_id')
-        ])
-    });
-}
-
-function nucleicExpr() {
-    return B.struct.filter.pick({
-        0: B.struct.generator.atomGroups({
-            'group-by': B.ammp('residueKey')
-        }),
-        test: B.core.logic.and([
-            B.core.set.isSubset([
-                // B.core.type.set([ 'P', 'O1P', 'O2P' ]),
-                h.atomNameSet(['P']),
-                B.ammpSet('label_atom_id')
-            ]),
-            B.core.logic.or([
-                B.core.set.isSubset([
-                    h.atomNameSet(["O3'", "C3'", "C4'", "C5'", "O5'"]),
-                    B.ammpSet('label_atom_id')
-                ]),
-                B.core.set.isSubset([
-                    h.atomNameSet(['O3*', 'C3*', 'C4*', 'C5*', 'O5*']),
-                    B.ammpSet('label_atom_id')
-                ])
+	})
+    },
+    nucleicxxxxx: {
+	'@desc': 'protein................',
+	abbr: ['polymer.nucleic'],
+        map: () => B.struct.generator.atomGroups({
+            'residue-test': B.core.set.has([
+                B.core.type.set(ResDict.nucleic),
+                B.ammp('label_comp_id')
             ])
-        ])
-    });
-}
-
+        })
+    }				   
+};

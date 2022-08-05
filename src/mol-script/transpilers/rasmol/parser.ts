@@ -120,24 +120,28 @@ const lang = P.MonadicParser.createLanguage({
   },
 
     Expression: function(r:any) {
-    return P.MonadicParser.alt(
-      r.Keywords,
+	return P.MonadicParser.alt(
+	    r.NamedAtomProperties,
+	    r.Keywords,
+	    r.Resno.lookahead(P.MonadicParser.regexp(/\s*(?!(LIKE|>=|<=|!=|[:^%/.=><]))/i)).map((x:any) => B.struct.generator.atomGroups({
+		'residue-test': B.core.rel.eq([ B.ammp('auth_seq_id'), x ])
+	    })),
+	    r.AtomExpression.map(atomExpressionQuery),
+	    
+	    r.ValueQuery,
+	    
+	    r.Element.map((x: string) => B.struct.generator.atomGroups({
+		'atom-test': B.core.rel.eq([ B.acp('elementSymbol'), B.struct.type.elementSymbol(x) ])
+	    })),
+	    r.Resname.map((x: string) => B.struct.generator.atomGroups({
+		'residue-test': B.core.rel.eq([ B.ammp('label_comp_id'), x ])
+	    })),
+	)
+    },
 
-	r.Resno.lookahead(P.MonadicParser.regexp(/\s*(?!(LIKE|>=|<=|!=|[:^%/.=><]))/i)).map((x:any) => B.struct.generator.atomGroups({
-          'residue-test': B.core.rel.eq([ B.ammp('auth_seq_id'), x ])
-      })),
-      r.AtomExpression.map(atomExpressionQuery),
-
-      r.ValueQuery,
-
-      r.Element.map((x: string) => B.struct.generator.atomGroups({
-        'atom-test': B.core.rel.eq([ B.acp('elementSymbol'), B.struct.type.elementSymbol(x) ])
-      })),
-      r.Resname.map((x: string) => B.struct.generator.atomGroups({
-        'residue-test': B.core.rel.eq([ B.ammp('label_comp_id'), x ])
-      })),
-    )
-  },
+    NamedAtomProperties: function () {
+        return P.MonadicParser.alt(...h.getNamedPropertyRules(properties)); 
+    },
 
 Operator: function(r:any) {
     return h.combineOperators(operators, P.MonadicParser.alt(r.Parens, r.Expression))
@@ -145,41 +149,45 @@ Operator: function(r:any) {
 
 AtomExpression: function(r:any) {
     return P.MonadicParser.seq(
-      P.MonadicParser.lookahead(r.AtomPrefix),
-      P.MonadicParser.seq(
-        r.Resno.or(P.MonadicParser.of(null)),
-        r.Inscode.or(P.MonadicParser.of(null)),
-        r.Chainname.or(P.MonadicParser.of(null)),
-        r.Atomname.or(P.MonadicParser.of(null)),
-        r.Altloc.or(P.MonadicParser.of(null)),
-        r.Model.or(P.MonadicParser.of(null))
-      )
+	P.MonadicParser.lookahead(r.AtomPrefix),
+	P.MonadicParser.seq(
+            r.Resno.or(P.MonadicParser.of(null)),
+            r.Inscode.or(P.MonadicParser.of(null)),
+            r.Chainname.or(P.MonadicParser.of(null)),
+            r.Atomname.or(P.MonadicParser.of(null)),
+            r.Altloc.or(P.MonadicParser.of(null)),
+            r.Model.or(P.MonadicParser.of(null))),	
     )
   },
 
-  AtomPrefix: () => P.MonadicParser.regexp(/[0-9:^%/.]/).desc('atom-prefix'),
+    AtomPrefix: () => P.MonadicParser.regexp(/[0-9:^%/.]/).desc('atom-prefix'),
+    Chainname: () => P.MonadicParser.regexp(/:([A-Za-z]{1,3})/, 1).desc('chainname'),
+    Model: () => P.MonadicParser.regexp(/\/([0-9]+)/, 1).map(Number).desc('model'),
+    Element: () => P.MonadicParser.regexp(/_([A-Za-z]{1,3})/, 1).desc('element'),
+    Atomname: () => P.MonadicParser.regexp(/\.([a-zA-Z0-9]{1,4})/, 1).map(B.atomName).desc('atomname'),
+    Resname: () => P.MonadicParser.regexp(/[a-zA-Z0-9]{1,4}/).desc('resname'),
+    Resno: (r:any) => r.Integer.desc('resno'),
+    Resno2: (r:any) => r.split(',').Integer.desc("resno"),
+    Altloc: () => P.MonadicParser.regexp(/%([a-zA-Z0-9])/, 1).desc('altloc'),
+    Inscode: () => P.MonadicParser.regexp(/\^([a-zA-Z0-9])/, 1).desc('inscode'),
 
-  Chainname: () => P.MonadicParser.regexp(/:([A-Za-z]{1,3})/, 1).desc('chainname'),
-  Model: () => P.MonadicParser.regexp(/\/([0-9]+)/, 1).map(Number).desc('model'),
-  Element: () => P.MonadicParser.regexp(/_([A-Za-z]{1,3})/, 1).desc('element'),
-  Atomname: () => P.MonadicParser.regexp(/\.([a-zA-Z0-9]{1,4})/, 1).map(B.atomName).desc('atomname'),
-  Resname: () => P.MonadicParser.regexp(/[a-zA-Z0-9]{1,4}/).desc('resname'),
-Resno: (r:any) => r.Integer.desc('resno'),
-  Altloc: () => P.MonadicParser.regexp(/%([a-zA-Z0-9])/, 1).desc('altloc'),
-  Inscode: () => P.MonadicParser.regexp(/\^([a-zA-Z0-9])/, 1).desc('inscode'),
 
-  // BracketedResname: function (r) {
-  //   return P.MonadicParser.regexp(/\.([a-zA-Z0-9]{1,4})/, 1)
-  //     .desc('bracketed-resname')
-  //   // [0SD]
-  // },
+//    function listMap(x: string) { return x.split(',').map(x => x.replace(/^["']|["']$/g, '')); }
 
-  // ResnoRange: function (r) {
-  //   return P.MonadicParser.regexp(/\.([\s]){1,3}/, 1)
-  //     .desc('resno-range')
-  //   // 123-200
-  //   // -12--3
-  // },
+
+
+    BracketedResname: function (r:any) {
+	return P.MonadicParser.regexp(/\.([a-zA-Z0-9]{1,4})/, 1)
+	    .desc('bracketed-resname')
+	// [0SD]
+    },
+
+    ResnoRange: function (r:any) {
+	return P.MonadicParser.regexp(/\.([\s]){1,3}/, 1)
+	    .desc('resno-range')
+	// 123-200
+	// -12--3
+    },
 
   Keywords: () => P.MonadicParser.alt(...h.getKeywordRules(keywords)),
 

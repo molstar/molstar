@@ -30,7 +30,7 @@ function Script(expression: string = "(sel.atom.all)", language: Script.Language
 }
 
 namespace Script {
-    export type Language = 'mol-script' | 'pymol' | 'vmd' | 'jmol | rasmol' 
+    export type Language = 'mol-script' | 'pymol' | 'vmd' | 'jmol' | 'rasmol' 
 
     export function is(x: any): x is Script {
         return !!x && typeof (x as Script).expression === 'string' && !!(x as Script).language;
