@@ -15,8 +15,37 @@ import { keywords } from './keywords';
 import { functions } from './functions';
 import { OperatorList } from '../types';
 import { Transpiler } from '../transpiler';
+//import { AtomGroupArgs } from '../types';
 
-// const propertiesDict = h.getPropertyRules(properties)
+//const slash = P.MonadicParser.string('/');
+
+//function orNull(rule: P.MonadicParser<any>) {
+//    return rule.or(P.MonadicParser.of(null));
+//}
+
+/**function atomSelectionQuery(x: any) {
+   const tests: AtomGroupArgs = {};
+    const props: { [k: string]: any[] } = {};
+
+    for (let k in x) {
+        const ps = properties[k];
+        if (!ps) {
+            throw new Error(`property '${k}' not supported, value '${x[k]}'`);
+        }
+        if (x[k] === null) continue;
+        if (!props[ps.level]) props[ps.level] = [];
+        props[ps.level].push(x[k]);
+    }
+
+    for (let p in props) {
+        tests[p] = h.andExpr(props[p]);
+    }
+
+    return B.struct.generator.atomGroups(tests);
+}
+*/
+
+//const propertiesDict = h.getPropertyRules(properties)
 
 // <, <=, = or ==, >=, >, and !=
 // lt, le, eq, ge, gt, and ne, =~
@@ -119,20 +148,84 @@ const lang = P.MonadicParser.createLanguage({
         ).wrap(P.MonadicParser.string('('), P.MonadicParser.string(')'));
     },
 
-    Expression: function (r:any) {
+    Expression: function (r : any) {
         return P.MonadicParser.alt(
-	    r.NamedAtomProperties,
-	    r.RangeListProperty,
-            r.ValueQuery,
-            r.Keywords,
-	    r.ValueRange,
+	    r.Keywords,
+            r.NamedAtomProperties,
+	    r.ValueQuery
         );
     },
+    
+//    Expression: function (r:any) {
+//        return P.MonadicParser.alt(
+//	    r.NamedAtomProperties,
+//	    r.AtomSelectionMacro.map(atomSelectionQuery),
+//	    r.Keywords,
+ //           r.ValueQuery, 
+ //       );
+  //  },
 
     NamedAtomProperties: function () {
-        return P.MonadicParser.alt(...h.getNamedPropertyRules(properties));
+	return P.MonadicParser.alt(...h.getNamedPropertyRules(properties));                                                                                 
     },
 
+/*        AtomSelectionMacro: function (r : any) {
+        return P.MonadicParser.alt(
+            slash.then(P.MonadicParser.alt(
+                P.MonadicParser.seq(
+                    orNull(r.ObjectProperty).skip(slash),
+                    orNull(propertiesDict.segi).skip(slash),
+                    orNull(propertiesDict.chain).skip(slash),
+                    orNull(propertiesDict.resi).skip(slash),
+                    orNull(propertiesDict.name)
+                ).map(x => { return { object: x[0], segi: x[1], chain: x[2], resi: x[3], name: x[4] }; }),
+                P.MonadicParser.seq(
+                    orNull(r.ObjectProperty).skip(slash),
+                    orNull(propertiesDict.segi).skip(slash),
+                    orNull(propertiesDict.chain).skip(slash),
+                    orNull(propertiesDict.resi)
+                ).map(x => { return { object: x[0], segi: x[1], chain: x[2], resi: x[3] }; }),
+                P.MonadicParser.seq(
+                    orNull(r.ObjectProperty).skip(slash),
+                    orNull(propertiesDict.segi).skip(slash),
+                    orNull(propertiesDict.chain)
+                ).map(x => { return { object: x[0], segi: x[1], chain: x[2] }; }),
+                P.MonadicParser.seq(
+                    orNull(r.ObjectProperty).skip(slash),
+                    orNull(propertiesDict.segi)
+                ).map(x => { return { object: x[0], segi: x[1] }; }),
+                P.MonadicParser.seq(
+                    orNull(r.ObjectProperty)
+                ).map(x => { return { object: x[0] }; }),
+            )),
+            P.MonadicParser.alt(
+                P.MonadicParser.seq(
+                    orNull(r.ObjectProperty).skip(slash),
+                    orNull(propertiesDict.segi).skip(slash),
+                    orNull(propertiesDict.chain).skip(slash),
+                    orNull(propertiesDict.resi).skip(slash),
+                    orNull(propertiesDict.name)
+                ).map(x => { return { object: x[0], segi: x[1], chain: x[2], resi: x[3], name: x[4] }; }),
+                P.MonadicParser.seq(
+                    orNull(propertiesDict.segi).skip(slash),
+                    orNull(propertiesDict.chain).skip(slash),
+                    orNull(propertiesDict.resi).skip(slash),
+                    orNull(propertiesDict.name)
+                ).map(x => { return { segi: x[0], chain: x[1], resi: x[2], name: x[3] }; }),
+                P.MonadicParser.seq(
+                    orNull(propertiesDict.chain).skip(slash),
+                    orNull(propertiesDict.resi).skip(slash),
+                    orNull(propertiesDict.name)
+                ).map(x => { return { chain: x[0], resi: x[1], name: x[2] }; }),
+                P.MonadicParser.seq(
+                    orNull(propertiesDict.resi).skip(slash),
+                    orNull(propertiesDict.name)
+                ).map(x => { return { resi: x[0], name: x[1] }; }),
+            )
+        );
+    },
+*/
+    
     Keywords: () => P.MonadicParser.alt(...h.getKeywordRules(keywords)),
 
     ValueRange: function (r:any) {

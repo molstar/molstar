@@ -11,20 +11,10 @@ import { PropertyDict } from '../types';
 
 const reFloat = /[-+]?[0-9]*\.?[0-9]+/;
 const rePosInt = /[+]?[0-9]+/;
-const reInt = /[-+]?[0-9] +/;
+const reInt = /[-+]?[0-9]+/;
 
 function atomNameListMapVMD(x: string) { return x.split(' ').map(B.atomName); };
 function listMapVMD(x: string) { return x.split(' ').map(x => x.replace(/^["']|["']$/g, '')); }
-function rangeMapVMD(x: string) {
-    const [min, max] = x.split('\sto\s').map(x => parseInt(x));
-    return { min, max };
-}
-function listOrRangeMapVMD(x: string) {
-    return x.includes('to') ? rangeMapVMD(x) : listMapVMD(x).map(x => parseInt(x));
-}
-//function elementListMap(x: string) {
-//    return x.split('+').map(B.struct.type.elementSymbol); 
-//}
 
 function str(x: string) { return x; }
 
@@ -100,7 +90,7 @@ export const properties: PropertyDict = {
         '@desc': 'num  a set of connected atoms with the same residue number',
         '@examples': ['residue < 11', 'residue 11'],
         isNumeric: true,
-        regex: reInt, map: x => listOrRangeMapVMD,
+        regex: reInt, map: x => parseInt(x),
         level: 'residue-test', property: B.ammp('auth_seq_id')
     },
     resid: {

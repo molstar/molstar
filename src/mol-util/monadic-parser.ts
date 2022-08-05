@@ -2,7 +2,6 @@
  * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
- * @author Koya Sakuma
  */
 
 /**
@@ -237,6 +236,15 @@ export namespace MonadicParser {
 
     export type Result<T> = Success<T> | Failure
 
+    //export function lookahead<A>(x: MonadicParser<A> | string | RegExp): MonadicParser<null> {
+    //export function seq(...parsers: MonadicParser<any>[]): MonadicParser<any[]> {
+    //export function seq<A, B, C>(a: MonadicParser<A>, b: MonadicParser<B>, c: MonadicParser<C>): MonadicParser<[A, B, C]>
+//        export function alt(...parsers: MonadicParser<any>[]): MonadicParser<any> {
+ //       const numParsers = parsers.length;
+  //      if (numParsers === 0) {
+  //          return fail('zero alternates');
+//        }
+
     export function seqMap( a: MonadicParser<any>,b:MonadicParser<any>,c:any) {
 	var args = [].slice.call(arguments);
 	if (args.length === 0) {
@@ -258,6 +266,28 @@ export namespace MonadicParser {
         }
         return language;
     }
+
+   
+    //    function seq() {
+    //var parsers = [].slice.call(arguments);
+//	var numParsers = parsers.length;
+//	for (var j = 0; j < numParsers; j += 1) {
+//	    assertParser(parsers[j]);
+//	}
+//	return Parsimmon(function(input, i) {
+//	    var result;
+//	    var accum = new Array(numParsers);
+//	    for (var j = 0; j < numParsers; j += 1) {
+    //		result = mergeReplies(parsers[j]._(input, i), result);
+    //if (!result.status) {
+//		    return result;
+//		}
+//		accum[j] = result.value;
+//		i = result.index;
+//	    }
+//	    return mergeReplies(makeSuccess(i, accum), result);
+//	});
+  //  }
 
     export function seq<A>(a: MonadicParser<A>): MonadicParser<[A]>
     export function seq<A, B>(a: MonadicParser<A>, b: MonadicParser<B>): MonadicParser<[A, B]>
@@ -339,13 +369,9 @@ export namespace MonadicParser {
     }
 
    
-    export function regexp(re: RegExp, group=0) {
-	assertRegexp(re);
-	if (arguments.length >= 2) {
-	    assertNumber(group);
-	} else {
-	    group = 0;
-	}
+
+    //return new MonadicParser<any[]>((input, index) => {
+    export function regexp(re: RegExp, group = 0) {
         const anchored = anchoredRegexp(re);
         const expected = '' + re;
         return new MonadicParser<any>( function (input:any, i:any){
@@ -492,6 +518,8 @@ export namespace MonadicParser {
     MonadicParser.of = succeed;
     MonadicParser.regex = regexp;
     MonadicParser.regexp = regexp;
+//    MonadicParser.regexp.lookahead = lookahead;
+    //MonadicParser.RegExp = regexp;
 }
 
 function seqPick(idx: number, ...parsers: MonadicParser<any>[]): MonadicParser<any> {
@@ -595,38 +623,4 @@ function assertFunction(x:any) {
     }
 }
 
-function assertNumber(x:any) {
-  if (typeof x !== "number") {
-    throw new Error("not a number: " + x);
-  }
-}
 
-function assertRegexp(x:any) {
-  if (!(x instanceof RegExp)) {
-    throw new Error("not a regexp: " + x);
-  }
-  var f = flags(x);
-  for (var i = 0; i < f.length; i++) {
-    var c = f.charAt(i);
-    // Only allow regexp flags [imus] for now, since [g] and [y] specifically
-    // mess up Parsimmon. If more non-stateful regexp flags are added in the
-    // future, this will need to be revisited.
-    if (c !== "i" && c !== "m" && c !== "u" && c !== "s") {
-      throw new Error('unsupported regexp flag "' + c + '": ' + x);
-    }
-  }
-}
-
-function flags(re:RegExp) {
-  if (re.flags !== undefined) {
-    return re.flags;
-  }
-  // legacy browser support
-  return [
-    re.global ? "g" : "",
-    re.ignoreCase ? "i" : "",
-    re.multiline ? "m" : "",
-    re.unicode ? "u" : "",
-    re.sticky ? "y" : ""
-  ].join("");
-}
