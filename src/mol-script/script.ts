@@ -30,7 +30,7 @@ function Script(expression: string = "(sel.atom.all)", language: Script.Language
 }
 
 namespace Script {
-    export type Language = 'mol-script' | 'pymol' | 'vmd' | 'jmol' 
+    export type Language = 'mol-script' | 'pymol' | 'vmd' | 'jmol | rasmol' 
 
     export function is(x: any): x is Script {
         return !!x && typeof (x as Script).expression === 'string' && !!(x as Script).language;
@@ -51,7 +51,9 @@ namespace Script {
 	case 'jmol':
 	    return parse("jmol",script.expression) as Expression;
 	case 'vmd':
-	    return parse("vmd",script.expression) as Expression;	   
+	    return parse("vmd",script.expression) as Expression;
+	case 'rasmol':
+	    return parse("rasmol",script.expression) as Expression;	   
         }
  
         throw new Error('unsupported script language');
