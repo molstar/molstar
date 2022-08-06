@@ -16,7 +16,7 @@ import { PropertyWrapper } from '../../../mol-model-props/common/wrapper';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { MmcifFormat } from '../../../mol-model-formats/structure/mmcif';
 
-export type ConfalPyramids = PropertyWrapper<CPT.PyramidsData | undefined >;
+export type ConfalPyramids = PropertyWrapper<CPT.StepsData | undefined>;
 
 export namespace ConfalPyramids {
     export const Schema = {
@@ -106,18 +106,19 @@ export const ConfalPyramidsProvider: CustomModelProperty.Provider<ConfalPyramids
 type StepsSummaryTable = Table<typeof ConfalPyramids.Schema.ndb_struct_ntc_step_summary>;
 
 function createPyramidsFromCif(model: Model,
-    steps: Table<typeof ConfalPyramids.Schema.ndb_struct_ntc_step>,
-    stepsSummary: StepsSummaryTable): CPT.PyramidsData {
-    const pyramids = new Array<CPT.Pyramid>();
+    cifSteps: Table<typeof ConfalPyramids.Schema.ndb_struct_ntc_step>,
+    stepsSummary: StepsSummaryTable): CPT.StepsData {
+    const steps = new Array<CPT.Step>();
     const names = new Map<string, number>();
-    const locations = new Array<CPT.Location>();
+    const halfPyramids = new Array<CPT.HalfPyramid>();
     let hasMultipleModels = false;
 
     const {
         id, PDB_model_number, name,
         auth_asym_id_1, auth_seq_id_1, label_comp_id_1, label_alt_id_1, PDB_ins_code_1,
         auth_asym_id_2, auth_seq_id_2, label_comp_id_2, label_alt_id_2, PDB_ins_code_2,
-        _rowCount } = steps;
+        _rowCount
+    } = cifSteps;
 
     if (_rowCount !== stepsSummary._rowCount) throw new Error('Inconsistent mmCIF data');
 
@@ -126,9 +127,13 @@ function createPyramidsFromCif(model: Model,
         if (model_num !== model.modelNum)
             hasMultipleModels = true;
 
-        const { _NtC, _confal_score } = getNtCAndConfalScore(id.value(i), i, stepsSummary);
+        const {
+            NtC,
+            confal_score,
+            rmsd
+        } = getSummaryData(id.value(i), i, stepsSummary);
 
-        const pyramid = {
+        const step = {
             PDB_model_number: model_num,
             name: name.value(i),
             auth_asym_id_1: auth_asym_id_1.value(i),
@@ -141,30 +146,36 @@ function createPyramidsFromCif(model: Model,
             label_comp_id_2: label_comp_id_2.value(i),
             label_alt_id_2: label_alt_id_2.value(i),
             PDB_ins_code_2: PDB_ins_code_2.value(i),
-            confal_score: _confal_score,
-            NtC: _NtC
+            confal_score,
+            NtC,
+            rmsd,
         };
 
-        pyramids.push(pyramid);
-        names.set(pyramid.name, pyramids.length - 1);
+        steps.push(step);
+        names.set(step.name, steps.length - 1);
 
-        locations.push(CPT.Location(pyramid, false));
-        locations.push(CPT.Location(pyramid, true));
+        halfPyramids.push({ step, isLower: false });
+        halfPyramids.push({ step, isLower: true });
     }
 
-    return { pyramids, names, locations, hasMultipleModels };
+    return { steps, names, halfPyramids, hasMultipleModels };
 }
 
-function getNtCAndConfalScore(id: number, i: number, stepsSummary: StepsSummaryTable) {
-    const { step_id, confal_score, assigned_NtC } = stepsSummary;
+function getSummaryData(id: number, i: number, stepsSummary: StepsSummaryTable) {
+    const {
+        step_id,
+        confal_score,
+        assigned_NtC,
+        cartesian_rmsd_closest_NtC_representative,
+    } = stepsSummary;
 
     // Assume that step_ids in ntc_step_summary are in the same order as steps in ntc_step
     for (let j = i; j < stepsSummary._rowCount; j++) {
-        if (id === step_id.value(j)) return { _NtC: assigned_NtC.value(j), _confal_score: confal_score.value(j) };
+        if (id === step_id.value(j)) return { NtC: assigned_NtC.value(j), confal_score: confal_score.value(j), rmsd: cartesian_rmsd_closest_NtC_representative.value(j) };
     }
     // Safety net for cases where the previous assumption is not met
     for (let j = 0; j < i; j++) {
-        if (id === step_id.value(j)) return { _NtC: assigned_NtC.value(j), _confal_score: confal_score.value(j) };
+        if (id === step_id.value(j)) return { NtC: assigned_NtC.value(j), confal_score: confal_score.value(j), rmsd: cartesian_rmsd_closest_NtC_representative.value(j) };
     }
     throw new Error('Inconsistent mmCIF data');
 }
