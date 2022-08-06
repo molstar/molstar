@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Panagiotis Tourlas <panagiot_tourlov@hotmail.com>
  */
-//import * as Q from 'parsimmon';
+// import * as Q from 'parsimmon';
 import * as P from '../../mol-util/monadic-parser';
 import { MolScriptBuilder } from '../../mol-script/language/builder';
 const B = MolScriptBuilder;
@@ -47,11 +47,11 @@ export function postfix(opParser: P.MonadicParser<any>, nextParser: P.MonadicPar
     // INPUT  :: "4!!!"
     // PARSE  :: [4, "factorial", "factorial", "factorial"]
     // REDUCE :: ["factorial", ["factorial", ["factorial", 4]]]
-    return P.MonadicParser.seqMap( /* no seqMap() in monadic-parser.ts, any suitable replacement? */
+    return P.MonadicParser.seqMap(/* no seqMap() in monadic-parser.ts, any suitable replacement? */
         nextParser,
         opParser.many(),
-        (x:any, suffixes:any) =>
-            suffixes.reduce((acc:any, x:any) => {
+        (x: any, suffixes: any) =>
+            suffixes.reduce((acc: any, x: any) => {
                 return mapFn(x, acc);
             }, x)
     );
@@ -95,9 +95,9 @@ export function binaryLeft(opParser: P.MonadicParser<any>, nextParser: P.Monadic
     return P.MonadicParser.seqMap(
         nextParser,
         P.MonadicParser.seq(opParser, nextParser).many(),
-        (first:any, rest:any) => {
-            return rest.reduce((acc:any, ch:any) => {
-                let [op, another] = ch;
+        (first: any, rest: any) => {
+            return rest.reduce((acc: any, ch: any) => {
+                const [op, another] = ch;
                 return mapFn(op, acc, another);
             }, first);
         }
@@ -216,7 +216,7 @@ export function getPropertyRules(properties: PropertyDict) {
     Object.keys(properties).sort(strLenSortFn).forEach(name => {
         const ps = properties[name];
         const errorFn = makeError(`property '${name}' not supported`);
-        const rule = P.MonadicParser.regexp(ps.regex).map((x:any) => {
+        const rule = P.MonadicParser.regexp(ps.regex).map((x: any) => {
             if (ps.isUnsupported) errorFn();
             return testExpr(ps.property, ps.map(x));
         });
@@ -235,7 +235,7 @@ export function getNamedPropertyRules(properties: PropertyDict) {
     Object.keys(properties).sort(strLenSortFn).forEach(name => {
         const ps = properties[name];
         const errorFn = makeError(`property '${name}' not supported`);
-        const rule = P.MonadicParser.regexp(ps.regex).map((x:any) => {
+        const rule = P.MonadicParser.regexp(ps.regex).map((x: any) => {
             if (ps.isUnsupported) errorFn();
             return testExpr(ps.property, ps.map(x));
         });
@@ -247,7 +247,7 @@ export function getNamedPropertyRules(properties: PropertyDict) {
                 nameRule.then(P.MonadicParser.seq(
                     P.MonadicParser.regexp(/>=|<=|=|!=|>|</).trim(P.MonadicParser.optWhitespace),
                     P.MonadicParser.regexp(ps.regex).map(ps.map)
-                )).map((x:any) => {
+                )).map((x: any) => {
                     if (ps.isUnsupported) errorFn();
                     return testExpr(ps.property, { op: x[0], val: x[1] });
                 }).map(groupMap)
@@ -288,10 +288,10 @@ export function getFunctionRules(functions: FunctionDict, argRule: P.MonadicPars
     return functionsList;
 }
 
-//const rule = P.regex(getNamesRegex(name, ps.abbr)).lookahead(lookahead).map(() => {
+// const rule = P.regex(getNamesRegex(name, ps.abbr)).lookahead(lookahead).map(() => {
 //    if (ps.isUnsupported) errorFn()
 //    return ps.property
-//})
+// })
 
 export function getPropertyNameRules(properties: PropertyDict, lookahead: RegExp) {
     const list: P.MonadicParser<any>[] = [];
@@ -357,7 +357,7 @@ const entityProps = ['entityKey', 'label_entity_id', 'entityType'];
 const chainProps = ['chainKey', 'label_asym_id', 'label_entity_id', 'auth_asym_id', 'entityType'];
 const residueProps = ['residueKey', 'label_comp_id', 'label_seq_id', 'auth_comp_id', 'auth_seq_id', 'pdbx_formal_charge', 'secondaryStructureKey', 'secondaryStructureFlags', 'isModified', 'modifiedParentName'];
 export function testLevel(property: any) {
-   if (property.head.startsWith(propPrefix)) {
+    if (property.head.startsWith(propPrefix)) {
         const name = property.head.substr(propPrefix.length);
         if (entityProps.indexOf(name) !== -1) return 'entity-test' as string;
         if (chainProps.indexOf(name) !== -1) return 'chain-test' as string;

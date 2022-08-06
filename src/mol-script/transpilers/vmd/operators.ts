@@ -30,7 +30,7 @@ export const operators: OperatorList = [
         '@examples': ['within 5 of name FE'],
         name: 'within',
         type: h.prefix,
-        rule: h.prefixOp(/WITHIN\s+([-+]?[0-9]*\.?[0-9]+)\s+OF/i, 1).map((x:any) => parseFloat(x)),
+        rule: h.prefixOp(/WITHIN\s+([-+]?[0-9]*\.?[0-9]+)\s+OF/i, 1).map((x: any) => parseFloat(x)),
         map: (radius: number, selection: Expression) => {
             return B.struct.modifier.includeSurroundings({ 0: selection, radius });
         }
@@ -40,7 +40,7 @@ export const operators: OperatorList = [
         '@examples': ['exwithin 10 of resname HEM'],
         name: 'exwithin',
         type: h.prefix,
-        rule: h.prefixOp(/EXWITHIN\s+([-+]?[0-9]*\.?[0-9]+)\s+OF/i, 1).map((x:any) => parseFloat(x)),
+        rule: h.prefixOp(/EXWITHIN\s+([-+]?[0-9]*\.?[0-9]+)\s+OF/i, 1).map((x: any) => parseFloat(x)),
         map: (radius: number, target: Expression) => {
             return B.struct.modifier.exceptBy({
                 '0': B.struct.filter.within({
@@ -55,7 +55,7 @@ export const operators: OperatorList = [
         '@examples': ['same resid as name FE'],
         name: 'same',
         type: h.prefix,
-        rule: h.prefixOp(new RegExp(`SAME\\s+(${propNames})\\s+AS`, 'i'), 1).map((x:any) => properties[x].property),
+        rule: h.prefixOp(new RegExp(`SAME\\s+(${propNames})\\s+AS`, 'i'), 1).map((x: any) => properties[x].property),
         map: (property: Expression, source: Expression) => {
             return B.struct.filter.withSameAtomProperties({
                 '0': B.struct.generator.atomGroups(),

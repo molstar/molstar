@@ -205,28 +205,28 @@ export const keywords: KeywordDict = {
         map: () => B.struct.generator.atomGroups({
             'atom-test': B.core.set.has([
                 B.core.type.set(Backbone.protein.concat(ResDict.protein)),
-		B.ammp('label_atom_id')	
+                B.ammp('label_atom_id')
 	    ])
-	}),
-    },	    
+        }),
+    },
     proteinxxxxxx: {
         '@desc': 'protein................',
-	abbr: ['polymer.protein'],
+        abbr: ['polymer.protein'],
         map: () => B.struct.generator.atomGroups({
             'residue-test': B.core.set.has([
                 B.core.type.set(ResDict.protein),
                 B.ammp('label_comp_id')
             ])
-	})
+        })
     },
     nucleicxxxxx: {
-	'@desc': 'protein................',
-	abbr: ['polymer.nucleic'],
+        '@desc': 'protein................',
+        abbr: ['polymer.nucleic'],
         map: () => B.struct.generator.atomGroups({
             'residue-test': B.core.set.has([
                 B.core.type.set(ResDict.nucleic),
                 B.ammp('label_comp_id')
             ])
         })
-    }				   
+    }
 };

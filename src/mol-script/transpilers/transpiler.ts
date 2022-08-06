@@ -9,4 +9,4 @@ import { Expression } from '../language/expression';
 
 export type Transpiler = (source: string) => Expression
 
-export default Transpiler
+export const Transpiler = (source: string) => Expression;

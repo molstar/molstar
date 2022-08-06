@@ -92,7 +92,7 @@ export const operators: OperatorList = [
         type: h.postfix,
         rule: h
             .postfixOp(/GAP\s+([-+]?[0-9]*\.?[0-9]+)/i, 1)
-            .map((x:any) => parseFloat(x)),
+            .map((x: any) => parseFloat(x)),
         map: (distance: number, target: Expression) => {
             return B.struct.filter.within({
                 '0': B.struct.generator.atomGroups(),
@@ -112,7 +112,7 @@ export const operators: OperatorList = [
         type: h.postfix,
         rule: h
             .postfixOp(/(AROUND|a\.)\s+([-+]?[0-9]*\.?[0-9]+)/i, 2)
-            .map((x:any) => parseFloat(x)),
+            .map((x: any) => parseFloat(x)),
         map: (radius: number, target: Expression) => {
             return B.struct.modifier.exceptBy({
                 '0': B.struct.filter.within({
@@ -133,7 +133,7 @@ export const operators: OperatorList = [
         type: h.postfix,
         rule: h
             .postfixOp(/(EXPAND|x\.)\s+([-+]?[0-9]*\.?[0-9]+)/i, 2)
-            .map((x:any) => parseFloat(x)),
+            .map((x: any) => parseFloat(x)),
         map: (radius: number, selection: Expression) => {
             return B.struct.modifier.includeSurroundings({ 0: selection, radius });
         },
@@ -353,7 +353,7 @@ export const operators: OperatorList = [
         name: 'extend',
         abbr: ['xt.'],
         type: h.postfix,
-        rule: h.postfixOp(/(EXTEND|xt\.)\s+([0-9]+)/i, 2).map((x:any) => parseInt(x)),
+        rule: h.postfixOp(/(EXTEND|xt\.)\s+([0-9]+)/i, 2).map((x: any) => parseInt(x)),
         map: (count: number, selection: Expression) => {
             return h.asAtoms(
                 B.struct.modifier.includeConnected({

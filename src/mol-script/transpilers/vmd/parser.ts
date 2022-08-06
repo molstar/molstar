@@ -112,7 +112,7 @@ const valueOperators: OperatorList = [
 ];
 
 const lang = P.MonadicParser.createLanguage({
-    Parens: function (r:any) {
+    Parens: function (r: any) {
         return P.MonadicParser.alt(
             r.Parens,
             r.Operator,
@@ -120,7 +120,7 @@ const lang = P.MonadicParser.createLanguage({
         ).wrap(P.MonadicParser.string('('), P.MonadicParser.string(')'));
     },
 
-    Expression: function (r:any) {
+    Expression: function (r: any) {
         return P.MonadicParser.alt(
             r.RangeListProperty,
 	    r.NamedAtomProperties,
@@ -135,7 +135,7 @@ const lang = P.MonadicParser.createLanguage({
 
     Keywords: () => P.MonadicParser.alt(...h.getKeywordRules(keywords)),
 
-    ValueRange: function (r:any) {
+    ValueRange: function (r: any) {
         return P.MonadicParser.seq(
             r.Value
                 .skip(P.MonadicParser.regexp(/\s+TO\s+/i)),
@@ -143,7 +143,7 @@ const lang = P.MonadicParser.createLanguage({
         ).map(x => ({ range: x }));
     },
 
-    RangeListProperty: function (r:any) {
+    RangeListProperty: function (r: any) {
         return P.MonadicParser.seq(
             P.MonadicParser.alt(...h.getPropertyNameRules(properties, /\s/))
                 .skip(P.MonadicParser.whitespace),
@@ -156,7 +156,7 @@ const lang = P.MonadicParser.createLanguage({
             const listValues: (string | number)[] = [];
             const rangeValues: any[] = [];
 
-            values.forEach((v:any) => {
+            values.forEach((v: any) => {
                 if (v.range) {
                     rangeValues.push(
                         B.core.rel.inRange([property, v.range[0], v.range[1]])
@@ -178,16 +178,16 @@ const lang = P.MonadicParser.createLanguage({
 
 	    //  return B.struct.generator.atomGroups({ [h.testLevel(property)]: test });
 	    //  h.testLevel is not working for unknown reason, so relaced it by hardcoded 'atom-test'
-//	    console.log(h.testLevel(property));
+            //	    console.log(h.testLevel(property));
 	    return B.struct.generator.atomGroups({ 'atom-test': test });
         });
     },
 
-    Operator: function (r:any) {
+    Operator: function (r: any) {
         return h.combineOperators(operators, P.MonadicParser.alt(r.Parens, r.Expression, r.ValueQuery));
     },
 
-    Query: function (r:any) {
+    Query: function (r: any) {
         return P.MonadicParser.alt(
             r.Operator,
             r.Parens,
@@ -207,15 +207,15 @@ const lang = P.MonadicParser.createLanguage({
         return P.MonadicParser.alt(
             P.MonadicParser.regexp(new RegExp(`(?!(${w}))[A-Z0-9_]+`, 'i')),
             P.MonadicParser.regexp(/'((?:[^"\\]|\\.)*)'/, 1),
-            P.MonadicParser.regexp(/"((?:[^"\\]|\\.)*)"/, 1).map((x:any) => B.core.type.regex([`^${x}$`, 'i']))
+            P.MonadicParser.regexp(/"((?:[^"\\]|\\.)*)"/, 1).map((x: any) => B.core.type.regex([`^${x}$`, 'i']))
         ).desc('string');
     },
 
-    Value: function (r:any) {
+    Value: function (r: any) {
         return P.MonadicParser.alt(r.Number, r.String);
     },
 
-    ValueParens: function (r:any) {
+    ValueParens: function (r: any) {
         return P.MonadicParser.alt(
             r.ValueParens,
             r.ValueOperator,
@@ -227,11 +227,11 @@ const lang = P.MonadicParser.createLanguage({
         return P.MonadicParser.alt(...h.getPropertyNameRules(properties, /=~|==|>=|<=|=|!=|>|<|\)|\s|\+|-|\*|\//i));
     },
 
-    ValueOperator: function (r:any) {
+    ValueOperator: function (r: any) {
         return h.combineOperators(valueOperators, P.MonadicParser.alt(r.ValueParens, r.ValueExpressions));
     },
 
-    ValueExpressions: function (r:any) {
+    ValueExpressions: function (r: any) {
         return P.MonadicParser.alt(
             r.ValueFunctions,
             r.Value,
@@ -239,13 +239,13 @@ const lang = P.MonadicParser.createLanguage({
         );
     },
 
-    ValueFunctions: function (r:any) {
+    ValueFunctions: function (r: any) {
         return P.MonadicParser.alt(...h.getFunctionRules(functions, r.ValueOperator));
     },
 
-    ValueQuery: function (r:any) {
+    ValueQuery: function (r: any) {
         return P.MonadicParser.alt(
-            r.ValueOperator.map((x:any) => {
+            r.ValueOperator.map((x: any) => {
                 // if (!x.head || x.head.startsWith('core.math') || x.head.startsWith('structure-query.atom-property')) {
                 if (!x.head || !x.head.startsWith('structure-query.generator')) {
                     throw new Error(`values must be part of an comparison, value '${x}'`);
@@ -258,4 +258,3 @@ const lang = P.MonadicParser.createLanguage({
 });
 
 export const transpiler: Transpiler = str => lang.Query.tryParse(str);
-export default transpiler
