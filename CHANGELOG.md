@@ -6,6 +6,9 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Expose inter-bonds compute params in structure
+- Improve performance of inter/intra-bonds compute
+
 ## [v3.13.0] - 2022-07-24
 
 - Fix: only update camera state if manualReset is off (#494)

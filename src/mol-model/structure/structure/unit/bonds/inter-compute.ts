@@ -21,12 +21,18 @@ import { StructConn } from '../../../../../mol-model-formats/structure/property/
 import { equalEps } from '../../../../../mol-math/linear-algebra/3d/common';
 import { Model } from '../../../model';
 
+// avoiding namespace lookup improved performance in Chrome (Aug 2020)
+const v3distance = Vec3.distance;
+const v3set = Vec3.set;
+const v3squaredDistance = Vec3.squaredDistance;
+const v3transformMat4 = Vec3.transformMat4;
+
 const tmpDistVecA = Vec3();
 const tmpDistVecB = Vec3();
 function getDistance(unitA: Unit.Atomic, indexA: ElementIndex, unitB: Unit.Atomic, indexB: ElementIndex) {
     unitA.conformation.position(indexA, tmpDistVecA);
     unitB.conformation.position(indexB, tmpDistVecB);
-    return Vec3.distance(tmpDistVecA, tmpDistVecB);
+    return v3distance(tmpDistVecA, tmpDistVecB);
 }
 
 const _imageTransform = Mat4();
@@ -68,22 +74,22 @@ function findPairBonds(unitA: Unit.Atomic, unitB: Unit.Atomic, props: BondComput
 
     for (let _aI = 0 as StructureElement.UnitIndex; _aI < atomCount; _aI++) {
         const aI = atomsA[_aI];
-        Vec3.set(_imageA, xA[aI], yA[aI], zA[aI]);
-        if (isNotIdentity) Vec3.transformMat4(_imageA, _imageA, imageTransform);
-        if (Vec3.squaredDistance(_imageA, bCenter) > testDistanceSq) continue;
+        v3set(_imageA, xA[aI], yA[aI], zA[aI]);
+        if (isNotIdentity) v3transformMat4(_imageA, _imageA, imageTransform);
+        if (v3squaredDistance(_imageA, bCenter) > testDistanceSq) continue;
 
         if (!props.forceCompute && indexPairs) {
             const { maxDistance } = indexPairs;
             const { offset, b, edgeProps: { order, distance, flag } } = indexPairs.bonds;
 
             const srcA = sourceIndex.value(aI);
+            const aeI = getElementIdx(type_symbolA.value(aI));
             for (let i = offset[srcA], il = offset[srcA + 1]; i < il; ++i) {
                 const bI = invertedIndex![b[i]];
 
                 const _bI = SortedArray.indexOf(unitB.elements, bI) as StructureElement.UnitIndex;
                 if (_bI < 0) continue;
 
-                const aeI = getElementIdx(type_symbolA.value(aI));
                 const beI = getElementIdx(type_symbolA.value(bI));
 
                 const d = distance[i];
@@ -191,6 +197,7 @@ function findPairBonds(unitA: Unit.Atomic, unitB: Unit.Atomic, props: BondComput
 }
 
 export interface InterBondComputationProps extends BondComputationProps {
+    validUnit: (unit: Unit) => boolean
     validUnitPair: (structure: Structure, unitA: Unit, unitB: Unit) => boolean
     ignoreWater: boolean
     ignoreIon: boolean
@@ -215,7 +222,7 @@ function findBonds(structure: Structure, props: InterBondComputationProps) {
         findPairBonds(unitA as Unit.Atomic, unitB as Unit.Atomic, props, builder);
     }, {
         maxRadius: props.maxRadius,
-        validUnit: (unit: Unit) => Unit.isAtomic(unit),
+        validUnit: (unit: Unit) => props.validUnit(unit),
         validUnitPair: (unitA: Unit, unitB: Unit) => props.validUnitPair(structure, unitA, unitB)
     });
 
@@ -226,6 +233,7 @@ function computeInterUnitBonds(structure: Structure, props?: Partial<InterBondCo
     const p = { ...DefaultInterBondComputationProps, ...props };
     return findBonds(structure, {
         ...p,
+        validUnit: (props && props.validUnit) || (u => Unit.isAtomic(u)),
         validUnitPair: (props && props.validUnitPair) || ((s, a, b) => {
             const mtA = a.model.atomicHierarchy.derived.residue.moleculeType;
             const mtB = b.model.atomicHierarchy.derived.residue.moleculeType;
