@@ -13,9 +13,6 @@ const reFloat = /[-+]?[0-9]*\.?[0-9]+/;
 const rePosInt = /[+]?[0-9]+/;
 const reInt = /[-+]?[0-9]+/;
 
-function atomNameListMapVMD(x: string) { return x.split(' ').map(B.atomName); };
-function listMapVMD(x: string) { return x.split(' ').map(x => x.replace(/^["']|["']$/g, '')); }
-
 function str(x: string) { return x; }
 
 export const sstrucDict: { [key: string]: string } = {
@@ -37,7 +34,7 @@ export const properties: PropertyDict = {
     name: {
         '@desc': 'str    atom name',
         '@examples': ['name CA'],
-        regex: /[a-zA-Z0-9 ]+/, map: atomNameListMapVMD ,
+        regex: /[a-zA-Z0-9]+/, map: B.atomName,
         level: 'atom-test', property: B.ammp('label_atom_id')
     },
     type: {
@@ -83,8 +80,8 @@ export const properties: PropertyDict = {
     chain: {
         '@desc': 'str  the one-character chain identifier',
         '@examples': ['chain A'],
-        regex: /[a-zA-Z0-9 ]+/, map :listMapVMD,
-        level: 'chain-test', property: B.ammp('auth_asym_id')
+        regex: /[a-zA-Z0-9]+/, map: str,
+        level: 'residue-test', property: B.ammp('auth_asym_id')
     },
     residue: {
         '@desc': 'num  a set of connected atoms with the same residue number',
@@ -93,13 +90,6 @@ export const properties: PropertyDict = {
         regex: reInt, map: x => parseInt(x),
         level: 'residue-test', property: B.ammp('auth_seq_id')
     },
-    resid: {
-        '@desc': 'num  residue id',
-        '@examples': ['resid 42'],
-        isNumeric: true,
-        regex: reInt, map: x => parseInt(x),
-        level: 'residue-test', property: B.ammp('auth_seq_id')
-    },  
     fragment: {
         '@desc': 'num  a set of connected residues',
         '@examples': ['fragment 42'],
@@ -141,8 +131,15 @@ export const properties: PropertyDict = {
     resname: {
         '@desc': 'str  residue name',
         '@examples': ['resname ALA'],
-        regex: /[a-zA-Z0-9 ]+/, map: atomNameListMapVMD,
+        regex: /[a-zA-Z0-9]+/, map: str,
         level: 'residue-test', property: B.ammp('auth_comp_id')
+    },
+    resid: {
+        '@desc': 'num  residue id',
+        '@examples': ['resid 42'],
+        isNumeric: true,
+        regex: reInt, map: x => parseInt(x),
+        level: 'residue-test', property: B.ammp('auth_seq_id')
     },
     segname: {
         '@desc': 'str  segment name',
