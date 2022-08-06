@@ -5,7 +5,6 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { ScriptSetting } from '../../extensions/language-select';
 import { ANVILMembraneOrientation } from '../../extensions/anvil/behavior';
 import { CellPack } from '../../extensions/cellpack';
 import { DnatcoConfalPyramids } from '../../extensions/dnatco';
@@ -68,7 +67,6 @@ const Extensions = {
     'geo-export': PluginSpec.Behavior(GeometryExport),
     'ma-quality-assessment': PluginSpec.Behavior(MAQualityAssessment),
     'zenodo-import': PluginSpec.Behavior(ZenodoImport),
-    'script-language': PluginSpec.Behavior(ScriptSetting),
 };
 
 const DefaultViewerOptions = {
