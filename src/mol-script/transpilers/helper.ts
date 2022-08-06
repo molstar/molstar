@@ -338,11 +338,11 @@ export function asAtoms(e: Expression) {
 
 export function wrapValue(property: any, value: any, sstrucDict?: any) {
     switch (property.head) {
-        case 'structure.atom-property.macromolecular.label_atom_id':
+        case 'structure-query.atom-property.macromolecular.label_atom_id':
             return B.atomName(value);
-        case 'structure.atom-property.core.element-symbol':
+        case 'structure-query.atom-property.core.element-symbol':
             return B.es(value);
-        case 'structure.atom-property.macromolecular.secondary-structure-flags':
+        case 'structure-query.atom-property.macromolecular.secondary-structure-flags':
             if (sstrucDict) {
                 value = [sstrucDict[value.toUpperCase()] || 'none'];
             }
@@ -352,7 +352,7 @@ export function wrapValue(property: any, value: any, sstrucDict?: any) {
     }
 }
 
-const propPrefix = 'structure.atom-property.macromolecular.';
+const propPrefix = 'structure-query.atom-property.macromolecular.';
 const entityProps = ['entityKey', 'label_entity_id', 'entityType'];
 const chainProps = ['chainKey', 'label_asym_id', 'label_entity_id', 'auth_asym_id', 'entityType'];
 const residueProps = ['residueKey', 'label_comp_id', 'label_seq_id', 'auth_comp_id', 'auth_seq_id', 'pdbx_formal_charge', 'secondaryStructureKey', 'secondaryStructureFlags', 'isModified', 'modifiedParentName'];
@@ -367,7 +367,7 @@ export function testLevel(property: any) {
 }
 
 const flagProps = [
-    'structure.atom-property.macromolecular.secondary-structure-flags'
+    'structure-query.atom-property.macromolecular.secondary-structure-flags'
 ];
 export function valuesTest(property: any, values: any[]) {
     if (flagProps.indexOf(property.head) !== -1) {

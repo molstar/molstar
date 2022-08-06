@@ -246,7 +246,7 @@ ValueQuery: function(r:any) {
     return P.MonadicParser.alt(
 	r.ValueOperator.map((x:any) => {
         if (x.head) {
-          if (x.head.startsWith('structure.generator')) return x
+          if (x.head.startsWith('structure-query.generator')) return x
         } else {
           if (typeof x === 'string' && x.length <= 4) {
             return B.struct.generator.atomGroups({

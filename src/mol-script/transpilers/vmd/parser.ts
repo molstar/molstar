@@ -58,9 +58,9 @@ const valueOperators: OperatorList = [
         map: (op, e1, e2) => {
             // console.log(op, e1, e2)
             let expr;
-            if (e1.head === 'structure.atom-property.macromolecular.secondary-structure-flags') {
+            if (e1.head === 'structure-query.atom-property.macromolecular.secondary-structure-flags') {
                 expr = B.core.flags.hasAny([e1, sstrucMap(e2)]);
-            } else if (e2.head === 'structure.atom-property.macromolecular.secondary-structure-flags') {
+            } else if (e2.head === 'structure-query.atom-property.macromolecular.secondary-structure-flags') {
                 expr = B.core.flags.hasAny([e2, sstrucMap(e1)]);
             } else if (e1.head === 'core.type.regex') {
                 expr = B.core.str.match([e1, B.core.type.str([e2])]);
@@ -237,8 +237,8 @@ const lang = P.MonadicParser.createLanguage({
     ValueQuery: function (r:any) {
         return P.MonadicParser.alt(
             r.ValueOperator.map((x:any) => {
-                // if (!x.head || x.head.startsWith('core.math') || x.head.startsWith('structure.atom-property')) {
-                if (!x.head || !x.head.startsWith('structure.generator')) {
+                // if (!x.head || x.head.startsWith('core.math') || x.head.startsWith('structure-query.atom-property')) {
+                if (!x.head || !x.head.startsWith('structure-query.generator')) {
                     throw new Error(`values must be part of an comparison, value '${x}'`);
                 } else {
                     return x as any;
