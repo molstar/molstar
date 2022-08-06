@@ -5,6 +5,8 @@ Note that since we don't clearly distinguish between a public and private interf
 
 
 ## [Unreleased]
+
+- Fix defaultAttribs handling in Canvas3DContext.fromCanvas
 - Add custom labels to Confal pyramids
 - Improve naming of some internal types in Confal pyramids extension coordinate
 - Add example mmCIF file with categories necessary to display Confal pyramids
