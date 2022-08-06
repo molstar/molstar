@@ -357,13 +357,13 @@ const entityProps = ['entityKey', 'label_entity_id', 'entityType'];
 const chainProps = ['chainKey', 'label_asym_id', 'label_entity_id', 'auth_asym_id', 'entityType'];
 const residueProps = ['residueKey', 'label_comp_id', 'label_seq_id', 'auth_comp_id', 'auth_seq_id', 'pdbx_formal_charge', 'secondaryStructureKey', 'secondaryStructureFlags', 'isModified', 'modifiedParentName'];
 export function testLevel(property: any) {
-    if (property.head.startsWith(propPrefix)) {
+   if (property.head.startsWith(propPrefix)) {
         const name = property.head.substr(propPrefix.length);
-        if (entityProps.indexOf(name) !== -1) return 'entity-test';
-        if (chainProps.indexOf(name) !== -1) return 'chain-test';
-        if (residueProps.indexOf(name) !== -1) return 'residue-test';
+        if (entityProps.indexOf(name) !== -1) return 'entity-test' as string;
+        if (chainProps.indexOf(name) !== -1) return 'chain-test' as string;
+        if (residueProps.indexOf(name) !== -1) return 'residue-test' as string;
     }
-    return 'atom-test';
+    return 'atom-test' as string;
 }
 
 const flagProps = [

@@ -3,6 +3,7 @@
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Panagiotis Tourlas <panagiot_tourlov@hotmail.com>
+ * @author Koya Sakuma
  */
 
 import * as P from '../../../mol-util/monadic-parser';
@@ -170,7 +171,9 @@ const lang = P.MonadicParser.createLanguage({
                 test = rangeTest ? rangeTest : listTest;
             }
 
-            return B.struct.generator.atomGroups({ [h.testLevel(property)]: test });
+	    //            return B.struct.generator.atomGroups({ [h.testLevel(property)]: test });
+	    //  h.testLevel is not working for unknown reasons 
+	    return B.struct.generator.atomGroups({ 'atom-test': test });
         });
     },
 

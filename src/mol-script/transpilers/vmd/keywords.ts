@@ -105,7 +105,7 @@ const ResDict = {
 export const keywords: KeywordDict = {
     all: {
         '@desc': 'everything',
-        map: () => B.struct.generator.atomGroups()
+        map: () => B.struct.generator.all()
     },
     none: {
         '@desc': 'nothing',
