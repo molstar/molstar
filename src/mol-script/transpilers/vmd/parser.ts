@@ -123,9 +123,14 @@ const lang = P.MonadicParser.createLanguage({
     Expression: function (r:any) {
         return P.MonadicParser.alt(
             r.RangeListProperty,
+	    r.NamedAtomProperties,
             r.ValueQuery,
             r.Keywords,
         );
+    },
+
+    NamedAtomProperties: function () {
+        return P.MonadicParser.alt(...h.getNamedPropertyRules(properties));
     },
 
     Keywords: () => P.MonadicParser.alt(...h.getKeywordRules(keywords)),
@@ -171,8 +176,9 @@ const lang = P.MonadicParser.createLanguage({
                 test = rangeTest ? rangeTest : listTest;
             }
 
-	    //            return B.struct.generator.atomGroups({ [h.testLevel(property)]: test });
-	    //  h.testLevel is not working for unknown reasons 
+	    //  return B.struct.generator.atomGroups({ [h.testLevel(property)]: test });
+	    //  h.testLevel is not working for unknown reason, so relaced it by hardcoded 'atom-test'
+//	    console.log(h.testLevel(property));
 	    return B.struct.generator.atomGroups({ 'atom-test': test });
         });
     },
