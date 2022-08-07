@@ -195,8 +195,8 @@ export function testExpr(property: any, args: any) {
 
 export function invertExpr(selection: Expression) {
     return B.struct.generator.queryInSelection({
-        0: selection, query: B.struct.generator.atomGroups(), 'in-complement': true
-    });
+        0: selection, query: B.struct.generator.all(), 'in-complement': true}
+    );
 }
 
 export function strLenSortFn(a: string, b: string) {

@@ -248,6 +248,9 @@ const symbols = [
     D(MolScript.structureQuery.generator.rings, function structureQuery_generator_rings(ctx, xs) {
         return Queries.generators.rings(xs?.['fingerprint']?.(ctx) as any, xs?.['only-aromatic']?.(ctx))(ctx);
     }),
+    D(MolScript.structureQuery.generator.queryInSelection, function structureQuery_generator_queryInSelection(ctx, xs) {
+        return Queries.generators.querySelection(xs[0] as any, xs['query'] as any, xs['in-complement'] as any)(ctx);
+    }),
 
     // ============= MODIFIERS ================
 
