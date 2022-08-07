@@ -278,6 +278,7 @@ const symbols = [
             fixedPoint: xs['fixed-point']?.(ctx) ?? false
         })(ctx);
     }),
+    D(MolScript.structureQuery.modifier.intersectBy, function structureQuery_modifier_intersectBy(ctx, xs) { return Queries.modifiers.intersectBy(xs[0] as any, xs['by'] as any)(ctx); }),
 
     // ============= COMBINATORS ================
 
