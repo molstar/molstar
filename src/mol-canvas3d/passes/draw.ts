@@ -23,8 +23,8 @@ import { CopyRenderable, createCopyRenderable } from '../../mol-gl/compute/util'
 import { isTimingMode } from '../../mol-util/debug';
 
 type Props = {
-    postprocessing: PostprocessingProps
-    marking: MarkingProps
+    postprocessing: PostprocessingProps;
+    marking: MarkingProps;
     transparentBackground: boolean;
 }
 
@@ -284,15 +284,15 @@ export class DrawPass {
 
         if (helper.debug.isEnabled) {
             helper.debug.syncVisibility();
-            renderer.renderBlended(helper.debug.scene, camera, null);
+            renderer.renderBlended(helper.debug.scene, camera);
         }
         if (helper.handle.isEnabled) {
-            renderer.renderBlended(helper.handle.scene, camera, null);
+            renderer.renderBlended(helper.handle.scene, camera);
         }
         if (helper.camera.isEnabled) {
             helper.camera.update(camera);
             renderer.update(helper.camera.camera);
-            renderer.renderBlended(helper.camera.scene, helper.camera.camera, null);
+            renderer.renderBlended(helper.camera.scene, helper.camera.camera);
         }
 
         if (antialiasingEnabled) {
