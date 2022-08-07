@@ -46,8 +46,7 @@ const general = {
 describe('vmd general', () => {
     general.supported.forEach(str => {
         it(str, () => {
-            const expr = parse('vmd', str);
-            expect(expr).toThrow();
+            parse('vmd', str);
         });
     });
     general.unsupported.forEach(str => {

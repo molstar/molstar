@@ -47,9 +47,7 @@ const general = {
 describe('pymol general', () => {
     general.supported.forEach(str => {
         it(str, () => {
-            const expr = parse('pymol', str);
-	    expect(expr).toThrow();
-            //          compile(expr);
+            parse('pymol', str);
         });
     });
     general.unsupported.forEach(str => {
