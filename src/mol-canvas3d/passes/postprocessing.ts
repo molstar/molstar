@@ -28,6 +28,7 @@ import { Color } from '../../mol-util/color';
 import { FxaaParams, FxaaPass } from './fxaa';
 import { SmaaParams, SmaaPass } from './smaa';
 import { isTimingMode } from '../../mol-util/debug';
+import { BackgroundParams, BackgroundPass } from './background';
 
 const OutlinesSchema = {
     ...QuadSchema,
@@ -274,12 +275,13 @@ export const PostprocessingParams = {
         smaa: PD.Group(SmaaParams),
         off: PD.Group({})
     }, { options: [['fxaa', 'FXAA'], ['smaa', 'SMAA'], ['off', 'Off']], description: 'Smooth pixel edges' }),
+    background: PD.Group(BackgroundParams, { isExpanded: true }),
 };
 export type PostprocessingProps = PD.Values<typeof PostprocessingParams>
 
 export class PostprocessingPass {
     static isEnabled(props: PostprocessingProps) {
-        return props.occlusion.name === 'on' || props.outline.name === 'on';
+        return props.occlusion.name === 'on' || props.outline.name === 'on' || props.background.variant.name !== 'off';
     }
 
     static isOutlineEnabled(props: PostprocessingProps) {
@@ -317,6 +319,9 @@ export class PostprocessingPass {
         // downscale ssao for high pixel-ratios
         return Math.min(1, 1 / this.webgl.pixelRatio) * this.downsampleFactor;
     }
+
+    private readonly bgColor = Vec3();
+    readonly background: BackgroundPass;
 
     constructor(private webgl: WebGLContext, private drawPass: DrawPass) {
         const { colorTarget, depthTextureTransparent, depthTextureOpaque } = drawPass;
@@ -368,6 +373,8 @@ export class PostprocessingPass {
         this.ssaoBlurFirstPassRenderable = getSsaoBlurRenderable(webgl, this.ssaoDepthTexture, 'horizontal');
         this.ssaoBlurSecondPassRenderable = getSsaoBlurRenderable(webgl, this.ssaoDepthBlurProxyTexture, 'vertical');
         this.renderable = getPostprocessingRenderable(webgl, colorTarget.texture, depthTextureOpaque, depthTextureTransparent, this.outlinesTarget.texture, this.ssaoDepthTexture);
+
+        this.background = new BackgroundPass(webgl, width, height);
     }
 
     setSize(width: number, height: number) {
@@ -391,6 +398,8 @@ export class PostprocessingPass {
             ValueCell.update(this.ssaoRenderable.values.uTexSize, Vec2.set(this.ssaoRenderable.values.uTexSize.ref.value, sw, sh));
             ValueCell.update(this.ssaoBlurFirstPassRenderable.values.uTexSize, Vec2.set(this.ssaoBlurFirstPassRenderable.values.uTexSize.ref.value, sw, sh));
             ValueCell.update(this.ssaoBlurSecondPassRenderable.values.uTexSize, Vec2.set(this.ssaoBlurSecondPassRenderable.values.uTexSize.ref.value, sw, sh));
+
+            this.background.setSize(width, height);
         }
     }
 
@@ -549,6 +558,11 @@ export class PostprocessingPass {
         ValueCell.update(this.renderable.values.uOcclusionOffset, Vec2.set(this.renderable.values.uOcclusionOffset.ref.value, x, y));
     }
 
+    private transparentBackground = false;
+    setTransparentBackground(value: boolean) {
+        this.transparentBackground = value;
+    }
+
     render(camera: ICamera, toDrawingBuffer: boolean, transparentBackground: boolean, backgroundColor: Color, props: PostprocessingProps) {
         if (isTimingMode) this.webgl.timer.mark('PostprocessingPass.render');
         this.updateState(camera, transparentBackground, backgroundColor, props);
@@ -583,8 +597,23 @@ export class PostprocessingPass {
         }
 
         const { gl, state } = this.webgl;
-        state.clearColor(0, 0, 0, 1);
-        gl.clear(gl.COLOR_BUFFER_BIT);
+
+        this.background.update(camera, props.background);
+        if (this.background.isEnabled(props.background)) {
+            if (this.transparentBackground) {
+                state.clearColor(0, 0, 0, 0);
+            } else {
+                Color.toVec3Normalized(this.bgColor, backgroundColor);
+                state.clearColor(this.bgColor[0], this.bgColor[1], this.bgColor[2], 1);
+            }
+            gl.clear(gl.COLOR_BUFFER_BIT);
+            state.enable(gl.BLEND);
+            state.blendFuncSeparate(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA, gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+            this.background.render();
+        } else {
+            state.clearColor(0, 0, 0, 1);
+            gl.clear(gl.COLOR_BUFFER_BIT);
+        }
 
         this.renderable.render();
         if (isTimingMode) this.webgl.timer.markEnd('PostprocessingPass.render');

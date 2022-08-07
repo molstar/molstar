@@ -12,6 +12,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Add example mmCIF file with categories necessary to display Confal pyramids
 - Add ``fov`` (Field of View) Canvas3D parameter
 - Add ``sceneRadiusFactor`` Canvas3D parameter
+- Add background pass (skybox, image, horizontal/radial gradient)
 
 ## [v3.13.0] - 2022-07-24
 

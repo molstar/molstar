@@ -50,7 +50,7 @@ export class DrawPass {
     private copyFboTarget: CopyRenderable;
     private copyFboPostprocessing: CopyRenderable;
 
-    private wboit: WboitPass | undefined;
+    private readonly wboit: WboitPass | undefined;
     private readonly marking: MarkingPass;
     readonly postprocessing: PostprocessingPass;
     private readonly antialiasing: AntialiasingPass;
@@ -63,7 +63,6 @@ export class DrawPass {
         const { extensions, resources, isWebGL2 } = webgl;
 
         this.drawTarget = createNullRenderTarget(webgl.gl);
-
         this.colorTarget = webgl.createRenderTarget(width, height, true, 'uint8', 'linear');
         this.packedDepth = !extensions.depthTexture;
 
@@ -235,7 +234,7 @@ export class DrawPass {
         }
     }
 
-    private _render(renderer: Renderer, camera: ICamera, scene: Scene, helper: Helper, toDrawingBuffer: boolean, props: Props) {
+    private _render(renderer: Renderer, camera: ICamera, scene: Scene, helper: Helper, toDrawingBuffer: boolean, transparentBackground: boolean, props: Props) {
         const volumeRendering = scene.volumes.renderables.length > 0;
         const postprocessingEnabled = PostprocessingPass.isEnabled(props.postprocessing);
         const antialiasingEnabled = AntialiasingPass.isEnabled(props.postprocessing);
@@ -245,15 +244,15 @@ export class DrawPass {
         renderer.setViewport(x, y, width, height);
         renderer.update(camera);
 
-        if (props.transparentBackground && !antialiasingEnabled && toDrawingBuffer) {
+        if (transparentBackground && !antialiasingEnabled && toDrawingBuffer) {
             this.drawTarget.bind();
             renderer.clear(false);
         }
 
         if (this.wboitEnabled) {
-            this._renderWboit(renderer, camera, scene, props.transparentBackground, props.postprocessing);
+            this._renderWboit(renderer, camera, scene, transparentBackground, props.postprocessing);
         } else {
-            this._renderBlended(renderer, camera, scene, !volumeRendering && !postprocessingEnabled && !antialiasingEnabled && toDrawingBuffer, props.transparentBackground, props.postprocessing);
+            this._renderBlended(renderer, camera, scene, !volumeRendering && !postprocessingEnabled && !antialiasingEnabled && toDrawingBuffer, transparentBackground, props.postprocessing);
         }
 
         if (postprocessingEnabled) {
@@ -314,15 +313,19 @@ export class DrawPass {
     render(ctx: RenderContext, props: Props, toDrawingBuffer: boolean) {
         if (isTimingMode) this.webgl.timer.mark('DrawPass.render');
         const { renderer, camera, scene, helper } = ctx;
-        renderer.setTransparentBackground(props.transparentBackground);
+
+        this.postprocessing.setTransparentBackground(props.transparentBackground);
+        const transparentBackground = props.transparentBackground || this.postprocessing.background.isEnabled(props.postprocessing.background);
+
+        renderer.setTransparentBackground(transparentBackground);
         renderer.setDrawingBufferSize(this.colorTarget.getWidth(), this.colorTarget.getHeight());
         renderer.setPixelRatio(this.webgl.pixelRatio);
 
         if (StereoCamera.is(camera)) {
-            this._render(renderer, camera.left, scene, helper, toDrawingBuffer, props);
-            this._render(renderer, camera.right, scene, helper, toDrawingBuffer, props);
+            this._render(renderer, camera.left, scene, helper, toDrawingBuffer, transparentBackground, props);
+            this._render(renderer, camera.right, scene, helper, toDrawingBuffer, transparentBackground, props);
         } else {
-            this._render(renderer, camera, scene, helper, toDrawingBuffer, props);
+            this._render(renderer, camera, scene, helper, toDrawingBuffer, transparentBackground, props);
         }
         if (isTimingMode) this.webgl.timer.markEnd('DrawPass.render');
     }

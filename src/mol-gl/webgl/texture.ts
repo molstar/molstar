@@ -13,6 +13,7 @@ import { Framebuffer } from './framebuffer';
 import { isWebGL2, GLRenderingContext } from './compat';
 import { ValueOf } from '../../mol-util/type-helpers';
 import { WebGLExtensions } from './extensions';
+import { objectForEach } from '../../mol-util/object';
 
 const getNextTextureId = idFactory();
 
@@ -419,6 +420,113 @@ export function loadImageTexture(src: string, cell: ValueCell<Texture>, texture:
         ValueCell.update(cell, texture);
     };
     img.src = src;
+}
+
+//
+
+export interface ImageTexture extends Texture {
+    readonly isLoaded: boolean;
+}
+
+export type CubeSide = 'nx' | 'ny' | 'nz' | 'px' | 'py' | 'pz';
+
+export type CubeFaces = {
+    [k in CubeSide]: string;
+}
+
+export function getCubeTarget(gl: GLRenderingContext, side: CubeSide): number {
+    switch (side) {
+        case 'nx': return gl.TEXTURE_CUBE_MAP_NEGATIVE_X;
+        case 'ny': return gl.TEXTURE_CUBE_MAP_NEGATIVE_Y;
+        case 'nz': return gl.TEXTURE_CUBE_MAP_NEGATIVE_Z;
+        case 'px': return gl.TEXTURE_CUBE_MAP_POSITIVE_X;
+        case 'py': return gl.TEXTURE_CUBE_MAP_POSITIVE_Y;
+        case 'pz': return gl.TEXTURE_CUBE_MAP_POSITIVE_Z;
+    }
+}
+
+export function createCubeTexture(gl: GLRenderingContext, faces: CubeFaces, size: number, onload?: () => void): ImageTexture {
+    const target = gl.TEXTURE_CUBE_MAP;
+    const filter = gl.LINEAR;
+    const internalFormat = gl.RGBA;
+    const format = gl.RGBA;
+    const type = gl.UNSIGNED_BYTE;
+
+    const width = size;
+    const height = size;
+
+    const texture = gl.createTexture();
+    gl.bindTexture(target, texture);
+
+    let loadedCount = 0;
+    objectForEach(faces, (url, side) => {
+        const level = 0;
+        const cubeTarget = getCubeTarget(gl, side as CubeSide);
+
+        gl.texImage2D(cubeTarget, level, internalFormat, width, height, 0, format, type, null);
+        if (!url) return;
+
+        const image = new Image();
+        image.src = url;
+        image.addEventListener('load', () => {
+            gl.pixelStorei(gl.UNPACK_ALIGNMENT, 4);
+            gl.pixelStorei(gl.UNPACK_COLORSPACE_CONVERSION_WEBGL, gl.NONE);
+            gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, 0);
+            gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+            gl.bindTexture(target, texture);
+            gl.texImage2D(cubeTarget, level, internalFormat, format, type, image);
+            gl.generateMipmap(target);
+            loadedCount += 1;
+            if (loadedCount === 6) {
+                loaded = true;
+                if (!destroyed && onload) onload();
+            }
+        });
+    });
+    gl.generateMipmap(target);
+    gl.texParameteri(target, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+    gl.texParameteri(target, gl.TEXTURE_MAG_FILTER, filter);
+
+    let destroyed = false;
+    let loaded = false;
+
+    return {
+        id: getNextTextureId(),
+        target,
+        format,
+        internalFormat,
+        type,
+        filter,
+
+        get isLoaded() {
+            return loaded;
+        },
+
+        getWidth: () => width,
+        getHeight: () => height,
+        getDepth: () => 0,
+        getByteCount: () => getByteCount('rgba', 'ubyte', width, height, 0) * 6,
+
+        define: () => {},
+        load: () => {},
+        bind: (id: TextureId) => {
+            gl.activeTexture(gl.TEXTURE0 + id);
+            gl.bindTexture(target, texture);
+        },
+        unbind: (id: TextureId) => {
+            gl.activeTexture(gl.TEXTURE0 + id);
+            gl.bindTexture(target, null);
+        },
+        attachFramebuffer: () => {},
+        detachFramebuffer: () => {},
+
+        reset: () => {},
+        destroy: () => {
+            if (destroyed) return;
+            gl.deleteTexture(texture);
+            destroyed = true;
+        },
+    };
 }
 
 //

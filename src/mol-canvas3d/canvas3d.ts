@@ -40,6 +40,7 @@ import { Passes } from './passes/passes';
 import { shallowEqual } from '../mol-util';
 import { MarkingParams } from './passes/marking';
 import { GraphicsRenderVariantsBlended, GraphicsRenderVariantsWboit } from '../mol-gl/webgl/render-item';
+import { BackgroundPass } from './passes/background';
 import { degToRad, radToDeg } from '../mol-math/misc';
 
 export const Canvas3DParams = {
@@ -283,6 +284,7 @@ namespace Canvas3D {
 
     export function create({ webgl, input, passes, attribs }: Canvas3DContext, props: Partial<Canvas3DProps> = {}): Canvas3D {
         const p: Canvas3DProps = { ...DefaultCanvas3DParams, ...props };
+        BackgroundPass.loadTexture(webgl, p.postprocessing.background, () => requestDraw());
 
         const reprRenderObjects = new Map<Representation.Any, Set<GraphicsRenderObject>>();
         const reprUpdatedSubscriptions = new Map<Representation.Any, Subscription>();
@@ -824,6 +826,17 @@ namespace Canvas3D {
                     }
                 }
 
+                if (props.postprocessing?.background) {
+                    const newBackground = { ...p.postprocessing.background, ...props.postprocessing.background };
+                    if (!BackgroundPass.areTexturePropsEqual(newBackground, p.postprocessing.background)) {
+                        Object.assign(p.postprocessing.background, props.postprocessing.background);
+                        BackgroundPass.loadTexture(webgl, p.postprocessing.background, () => {
+                            if (!doNotRequestDraw) requestDraw();
+                        });
+                    } else {
+                        Object.assign(p.postprocessing.background, props.postprocessing.background);
+                    }
+                }
                 if (props.postprocessing) Object.assign(p.postprocessing, props.postprocessing);
                 if (props.marking) Object.assign(p.marking, props.marking);
                 if (props.multiSample) Object.assign(p.multiSample, props.multiSample);
