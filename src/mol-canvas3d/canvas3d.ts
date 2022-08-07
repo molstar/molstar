@@ -80,6 +80,7 @@ export const Canvas3DParams = {
     }),
 
     cameraResetDurationMs: PD.Numeric(250, { min: 0, max: 1000, step: 1 }, { description: 'The time it takes to reset the camera.' }),
+    sceneRadiusFactor: PD.Numeric(1, { min: 1, max: 10, step: 0.1 }),
     transparentBackground: PD.Boolean(false),
 
     multiSample: PD.Group(MultiSampleParams),
@@ -301,10 +302,15 @@ namespace Canvas3D {
 
         const scene = Scene.create(webgl, passes.draw.wboitEnabled ? GraphicsRenderVariantsWboit : GraphicsRenderVariantsBlended);
 
+        function getSceneRadius() {
+            return scene.boundingSphere.radius * p.sceneRadiusFactor;
+        }
+
         const camera = new Camera({
             position: Vec3.create(0, 0, 100),
             mode: p.camera.mode,
             fog: p.cameraFog.name === 'on' ? p.cameraFog.params.intensity : 0,
+            clipFar: p.cameraClipping.far,
             fov: degToRad(p.camera.fov),
         }, { x, y, width, height }, { pixelScale: attribs.pixelScale });
         const stereoCamera = new StereoCamera(camera, p.camera.stereo.params);
@@ -525,7 +531,7 @@ namespace Canvas3D {
                 const focus = camera.getFocus(center, radius);
                 const next = typeof nextCameraResetSnapshot === 'function' ? nextCameraResetSnapshot(scene, camera) : nextCameraResetSnapshot;
                 const snapshot = next ? { ...focus, ...next } : focus;
-                camera.setState({ ...snapshot, radiusMax: scene.boundingSphere.radius }, duration);
+                camera.setState({ ...snapshot, radiusMax: getSceneRadius() }, duration);
             }
 
             nextCameraResetDuration = void 0;
@@ -576,7 +582,7 @@ namespace Canvas3D {
             }
             if (oldBoundingSphereVisible.radius === 0) nextCameraResetDuration = 0;
 
-            if (!p.camera.manualReset) camera.setState({ radiusMax: scene.boundingSphere.radius }, 0);
+            if (!p.camera.manualReset) camera.setState({ radiusMax: getSceneRadius() }, 0);
             reprCount.next(reprRenderObjects.size);
             if (isDebugMode) consoleStats();
 
@@ -652,7 +658,7 @@ namespace Canvas3D {
 
         function getProps(): Canvas3DProps {
             const radius = scene.boundingSphere.radius > 0
-                ? 100 - Math.round((camera.transition.target.radius / scene.boundingSphere.radius) * 100)
+                ? 100 - Math.round((camera.transition.target.radius / getSceneRadius()) * 100)
                 : 0;
 
             return {
@@ -668,6 +674,7 @@ namespace Canvas3D {
                     : { name: 'off' as const, params: {} },
                 cameraClipping: { far: camera.state.clipFar, radius },
                 cameraResetDurationMs: p.cameraResetDurationMs,
+                sceneRadiusFactor: p.sceneRadiusFactor,
                 transparentBackground: p.transparentBackground,
                 viewport: p.viewport,
 
@@ -770,6 +777,11 @@ namespace Canvas3D {
                     ? produce(getProps(), properties as any)
                     : properties;
 
+                if (props.sceneRadiusFactor !== undefined) {
+                    p.sceneRadiusFactor = props.sceneRadiusFactor;
+                    camera.setState({ radiusMax: getSceneRadius() }, 0);
+                }
+
                 const cameraState: Partial<Camera.Snapshot> = Object.create(null);
                 if (props.camera && props.camera.mode !== undefined && props.camera.mode !== camera.state.mode) {
                     cameraState.mode = props.camera.mode;
@@ -787,7 +799,7 @@ namespace Canvas3D {
                         cameraState.clipFar = props.cameraClipping.far;
                     }
                     if (props.cameraClipping.radius !== undefined) {
-                        const radius = (scene.boundingSphere.radius / 100) * (100 - props.cameraClipping.radius);
+                        const radius = (getSceneRadius() / 100) * (100 - props.cameraClipping.radius);
                         if (radius > 0 && radius !== cameraState.radius) {
                             // if radius = 0, NaNs happen
                             cameraState.radius = Math.max(radius, 0.01);
