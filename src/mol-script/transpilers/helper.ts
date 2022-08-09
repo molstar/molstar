@@ -337,7 +337,7 @@ export function asAtoms(e: Expression) {
 }
 
 export function wrapValue(property: any, value: any, sstrucDict?: any) {
-    switch (property.head) {
+    switch (property.head.name) {
         case 'structure-query.atom-property.macromolecular.label_atom_id':
             return B.atomName(value);
         case 'structure-query.atom-property.core.element-symbol':
