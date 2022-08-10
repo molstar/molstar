@@ -199,6 +199,9 @@ export class VolumeStreamingCustomControls extends PluginUIComponent<StateTransf
             const viewParams = { ...oldView };
             if (value.name === 'selection-box') {
                 viewParams.radius = value.params.radius;
+            } else if (value.name === 'camera-target') {
+                viewParams.radius = value.params.radius;
+                viewParams.dynamicDetailLevel = value.params.dynamicDetailLevel;
             } else if (value.name === 'box') {
                 viewParams.bottomLeft = value.params.bottomLeft;
                 viewParams.topRight = value.params.topRight;
@@ -240,9 +243,18 @@ export class VolumeStreamingCustomControls extends PluginUIComponent<StateTransf
         const pivot = isEM ? 'em' : '2fo-fc';
 
         const params = this.props.params as VolumeStreaming.Params;
-        const entry = ((this.props.info.params as VolumeStreaming.ParamDefinition)
-            .entry.map(params.entry.name) as PD.Group<VolumeStreaming.EntryParamDefinition>);
+        const entry = (this.props.info.params as VolumeStreaming.ParamDefinition)
+            .entry.map(params.entry.name) as PD.Group<VolumeStreaming.EntryParamDefinition>;
         const detailLevel = entry.params.detailLevel;
+        const dynamicDetailLevel = (params.entry.params.view.params as any).dynamicDetailLevel;
+        const selectionDetailLevel = (params.entry.params.view.params as any).selectionDetailLevel;
+        console.log('params:', params);
+        console.log('entry.params:', entry.params);
+        console.log('entry:', (this.props.info.params as VolumeStreaming.ParamDefinition).entry);
+        console.log('detailLevel:', detailLevel);
+        console.log('dynamicDetailLevel:', dynamicDetailLevel);
+        console.log('selectionDetailLevel:', selectionDetailLevel);
+        // TODO Adam: somehow try to get the correct mdfkn dynamicDetailLevel value
         const isRelative = ((params.entry.params.channels as any)[pivot].isoValue as Volume.IsoValue).kind === 'relative';
 
         const sampling = b.info.header.sampling[0];
@@ -274,6 +286,13 @@ export class VolumeStreamingCustomControls extends PluginUIComponent<StateTransf
                     isRelative: isRelativeParam,
                     isUnbounded: isUnboundedParam,
                 }, { description: 'Box around focused element.' }),
+                'camera-target': PD.Group({
+                    radius: PD.Numeric(5, { min: 0, max: 50, step: 0.5 }, { description: 'Radius in \u212B within which the volume is shown.' }),
+                    detailLevel,
+                    dynamicDetailLevel: { ...detailLevel },
+                    isRelative: isRelativeParam,
+                    isUnbounded: isUnboundedParam,
+                }, { description: 'Box around camera target.' }),
                 'cell': PD.Group({
                     detailLevel,
                     isRelative: isRelativeParam,
@@ -286,8 +305,7 @@ export class VolumeStreamingCustomControls extends PluginUIComponent<StateTransf
                     isRelative: isRelativeParam,
                     isUnbounded: isUnboundedParam,
                 }, { description: 'Box around focused element.' }),
-                // 'auto': PD.Group({  }), // TODO based on camera distance/active selection/whatever, show whole structure or slice.
-            }, { options: VolumeStreaming.ViewTypeOptions, description: 'Controls what of the volume is displayed. "Off" hides the volume alltogether. "Bounded box" shows the volume inside the given box. "Around Focus" shows the volume around the element/atom last interacted with. "Whole Structure" shows the volume for the whole structure.' })
+            }, { options: VolumeStreaming.ViewTypeOptions, description: 'Controls what of the volume is displayed. "Off" hides the volume alltogether. "Bounded box" shows the volume inside the given box. "Around Focus" shows the volume around the element/atom last interacted with. "Around Camera" shows the volume around the point the camera is targeting. "Whole Structure" shows the volume for the whole structure.' })
         };
         const options = {
             entry: params.entry.name,
@@ -299,6 +317,7 @@ export class VolumeStreamingCustomControls extends PluginUIComponent<StateTransf
                     bottomLeft: (params.entry.params.view.params as any).bottomLeft,
                     topRight: (params.entry.params.view.params as any).topRight,
                     selectionDetailLevel: (params.entry.params.view.params as any).selectionDetailLevel,
+                    dynamicDetailLevel: (params.entry.params.view.params as any).dynamicDetailLevel,
                     isRelative,
                     isUnbounded
                 }

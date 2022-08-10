@@ -144,8 +144,18 @@ namespace PluginBehavior {
         protected subscribeCommand<T>(cmd: PluginCommand<T>, action: PluginCommand.Action<T>) {
             this.subs.push(cmd.subscribe(this.plugin, action));
         }
-        protected subscribeObservable<T>(o: Observable<T>, action: (v: T) => void) {
-            this.subs.push(o.subscribe(action));
+        protected subscribeObservable<T>(o: Observable<T>, action: (v: T) => void): PluginCommand.Subscription {
+            const sub = o.subscribe(action)
+            this.subs.push(sub);
+            return { 
+                unsubscribe: () => {
+                    const idx = this.subs.indexOf(sub);
+                    if (idx >= 0){
+                        this.subs.splice(idx, 1);
+                        sub.unsubscribe();
+                    }
+                } 
+            }
         }
         dispose(): void {
             for (const s of this.subs) s.unsubscribe();

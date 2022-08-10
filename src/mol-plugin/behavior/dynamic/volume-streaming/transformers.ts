@@ -219,6 +219,7 @@ const CreateVolumeStreamingBehavior = PluginStateTransform.BuiltIn({
     canAutoUpdate: ({ oldParams, newParams }) => {
         return oldParams.entry.params.view === newParams.entry.params.view
             || newParams.entry.params.view.name === 'selection-box'
+            || newParams.entry.params.view.name === 'camera-target'
             || newParams.entry.params.view.name === 'off';
     },
     apply: ({ a, params }, plugin: PluginContext) => Task.create('Volume streaming', async _ => {

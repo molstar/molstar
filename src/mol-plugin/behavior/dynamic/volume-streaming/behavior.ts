@@ -24,6 +24,10 @@ import { PluginContext } from '../../../context';
 import { EmptyLoci, Loci, isEmptyLoci } from '../../../../mol-model/loci';
 import { Asset } from '../../../../mol-util/assets';
 import { GlobalModelTransformInfo } from '../../../../mol-model/structure/model/properties/global-transform';
+import { distinctUntilChanged, filter, map, Observable, throttleTime } from 'rxjs';
+import { arrayEqual } from '../../../../mol-util';
+import { Camera } from '../../../../mol-canvas3d/camera';
+import { PluginCommand } from '../../../command';
 
 export class VolumeStreaming extends PluginStateObject.CreateBehavior<VolumeStreaming.Behavior>({ name: 'Volume Streaming' }) { }
 
@@ -53,7 +57,7 @@ export namespace VolumeStreaming {
         valuesInfo: [{ mean: 0, min: -1, max: 1, sigma: 0.1 }, { mean: 0, min: -1, max: 1, sigma: 0.1 }]
     };
 
-    export function createParams(options: { data?: VolumeServerInfo.Data, defaultView?: ViewTypes, channelParams?: DefaultChannelParams } = { }) {
+    export function createParams(options: { data?: VolumeServerInfo.Data, defaultView?: ViewTypes, channelParams?: DefaultChannelParams } = {}) {
         const { data, defaultView, channelParams } = options;
         const map = new Map<string, VolumeServerInfo.EntryData>();
         if (data) data.entries.forEach(d => map.set(d.dataId, d));
@@ -68,7 +72,7 @@ export namespace VolumeStreaming {
     export type EntryParams = PD.Values<EntryParamDefinition>
 
     export function createEntryParams(options: { entryData?: VolumeServerInfo.EntryData, defaultView?: ViewTypes, structure?: Structure, channelParams?: DefaultChannelParams }) {
-        const { entryData, defaultView, structure, channelParams = { } } = options;
+        const { entryData, defaultView, structure, channelParams = {} } = options;
 
         // fake the info
         const info = entryData || { kind: 'em', header: { sampling: [fakeSampling], availablePrecisions: [{ precision: 0, maxVoxels: 0 }] }, emDefaultContourLevel: Volume.IsoValue.relative(0) };
@@ -86,19 +90,24 @@ export namespace VolumeStreaming {
                     bottomLeft: PD.Vec3(Vec3.create(0, 0, 0), {}, { isHidden: true }),
                     topRight: PD.Vec3(Vec3.create(0, 0, 0), {}, { isHidden: true }),
                 }, { description: 'Box around focused element.', isFlat: true }),
+                'camera-target': PD.Group({
+                    radius: PD.Numeric(5, { min: 0, max: 50, step: 0.5 }, { description: 'Radius in \u212B within which the volume is shown.' }),
+                    // Minimal detail level for the inside of the zoomed region (real detail can be higher, depending on the region size)
+                    dynamicDetailLevel: createDetailParams(info.header.availablePrecisions, 0, { label: 'Dynamic Detail Level' }),  // TODO Adam choose appropriate default value
+                    bottomLeft: PD.Vec3(Vec3.create(0, 0, 0), {}, { isHidden: true }),
+                    topRight: PD.Vec3(Vec3.create(0, 0, 0), {}, { isHidden: true }),
+                }, { description: 'Box around camera target.', isFlat: true }),
                 'cell': PD.Group<{}>({}),
                 // Show selection-box if available and cell otherwise.
                 'auto': PD.Group({
                     radius: PD.Numeric(5, { min: 0, max: 50, step: 0.5 }, { description: 'Radius in \u212B within which the volume is shown.' }),
-                    selectionDetailLevel: PD.Select<number>(Math.min(6, info.header.availablePrecisions.length - 1),
-                        info.header.availablePrecisions.map((p, i) => [i, `${i + 1} [ ${Math.pow(p.maxVoxels, 1 / 3) | 0}^3 cells ]`] as [number, string]), { label: 'Selection Detail', description: 'Determines the maximum number of voxels. Depending on the size of the volume options are in the range from 0 (0.52M voxels) to 6 (25.17M voxels).' }),
+                    selectionDetailLevel: createDetailParams(info.header.availablePrecisions, 6, { label: 'Selection Detail' }),
                     isSelection: PD.Boolean(false, { isHidden: true }),
                     bottomLeft: PD.Vec3(box.min, {}, { isHidden: true }),
                     topRight: PD.Vec3(box.max, {}, { isHidden: true }),
                 }, { description: 'Box around focused element.', isFlat: true })
             }, { options: ViewTypeOptions, description: 'Controls what of the volume is displayed. "Off" hides the volume alltogether. "Bounded box" shows the volume inside the given box. "Around Interaction" shows the volume around the focused element/atom. "Whole Structure" shows the volume for the whole structure.' }),
-            detailLevel: PD.Select<number>(Math.min(3, info.header.availablePrecisions.length - 1),
-                info.header.availablePrecisions.map((p, i) => [i, `${i + 1} [ ${Math.pow(p.maxVoxels, 1 / 3) | 0}^3 cells ]`] as [number, string]), { description: 'Determines the maximum number of voxels. Depending on the size of the volume options are in the range from 0 (0.52M voxels) to 6 (25.17M voxels).' }),
+            detailLevel: createDetailParams(info.header.availablePrecisions, 3),
             channels: info.kind === 'em'
                 ? PD.Group({
                     'em': channelParam('EM', Color(0x638F8F), info.emDefaultContourLevel || Volume.IsoValue.relative(1), info.header.sampling[0].valuesInfo[0], channelParams['em'])
@@ -111,9 +120,19 @@ export namespace VolumeStreaming {
         };
     }
 
-    export const ViewTypeOptions = [['off', 'Off'], ['box', 'Bounded Box'], ['selection-box', 'Around Focus'], ['cell', 'Whole Structure'], ['auto', 'Auto']] as [ViewTypes, string][];
+    function createDetailParams(availablePrecisions: VolumeServerHeader.DetailLevel[], preferredPrecision: number, info?: PD.Info) {
+        return PD.Select<number>(Math.min(preferredPrecision, availablePrecisions.length - 1),
+            availablePrecisions.map((p, i) => [i, `${i + 1} [ ${Math.pow(p.maxVoxels, 1 / 3) | 0}^3 cells ]`] as [number, string]),
+            {
+                description: 'Determines the maximum number of voxels. Depending on the size of the volume options are in the range from 0 (0.52M voxels) to 6 (25.17M voxels).',
+                ...info
+            }
+        );
+    }
 
-    export type ViewTypes = 'off' | 'box' | 'selection-box' | 'cell' | 'auto'
+    export const ViewTypeOptions = [['off', 'Off'], ['box', 'Bounded Box'], ['selection-box', 'Around Focus'], ['camera-target', 'Around Camera'], ['cell', 'Whole Structure'], ['auto', 'Auto']] as [ViewTypes, string][];
+
+    export type ViewTypes = 'off' | 'box' | 'selection-box' | 'camera-target' | 'cell' | 'auto'
 
     export type ParamDefinition = ReturnType<typeof createParams>
     export type Params = PD.Values<ParamDefinition>
@@ -140,6 +159,13 @@ export namespace VolumeStreaming {
         private lastLoci: StructureElement.Loci | EmptyLoci = EmptyLoci;
         private ref: string = '';
         public infoMap: Map<string, VolumeServerInfo.EntryData>;
+        private cameraTargetObservable = this.plugin.canvas3d!.didDraw!.pipe(
+            throttleTime(500, undefined, { 'leading': true, 'trailing': true }),
+            map(() => this.plugin.canvas3d?.camera.getSnapshot()),
+            distinctUntilChanged((a, b) => this.isCameraTargetSame(a, b)),
+            filter(a => a !== undefined),
+        ) as Observable<Camera.Snapshot>;
+        private cameraTargetSubscription?: PluginCommand.Subscription = undefined;
 
         channels: Channels = {};
 
@@ -162,6 +188,9 @@ export namespace VolumeStreaming {
             let detail = this.params.entry.params.detailLevel;
             if (this.params.entry.params.view.name === 'auto' && this.params.entry.params.view.params.isSelection) {
                 detail = this.params.entry.params.view.params.selectionDetailLevel;
+            }
+            if (this.params.entry.params.view.name === 'camera-target' && box) {
+                detail = this.decideDetail(box, this.params.entry.params.view.params.dynamicDetailLevel);
             }
 
             url += `?detail=${detail}`;
@@ -227,6 +256,33 @@ export namespace VolumeStreaming {
             PluginCommands.State.Update(this.plugin, { state, tree: update, options: { doNotUpdateCurrent: true } });
         }
 
+        private updateCameraTargetParams(box: Box3D | undefined) {
+            if (this.params.entry.params.view.name !== 'camera-target') return;
+
+            const state = this.plugin.state.data;
+            const newParams: Params = {
+                ...this.params,
+                entry: {
+                    name: this.params.entry.name,
+                    params: {
+                        ...this.params.entry.params,
+                        view: {
+                            name: 'camera-target' as const,
+                            params: {
+                                radius: this.params.entry.params.view.params.radius,
+                                dynamicDetailLevel: this.params.entry.params.view.params.dynamicDetailLevel,
+                                bottomLeft: box?.min || Vec3.zero(),
+                                topRight: box?.max || Vec3.zero()
+                            }
+                        }
+                    }
+                }
+            };
+            const update = state.build().to(this.ref).update(newParams);
+
+            PluginCommands.State.Update(this.plugin, { state, tree: update, options: { doNotUpdateCurrent: true } });
+        }
+
         private updateAutoParams(box: Box3D | undefined, isSelection: boolean) {
             if (this.params.entry.params.view.name !== 'auto') return;
 
@@ -253,6 +309,7 @@ export namespace VolumeStreaming {
             const update = state.build().to(this.ref).update(newParams);
 
             PluginCommands.State.Update(this.plugin, { state, tree: update, options: { doNotUpdateCurrent: true } });
+            // TODO QUESTION is there a reason for this much code repetition? updateSelectionBoxParams vs updateAutoParams (and now also updateCameraTargetParams)
         }
 
         private getStructureRoot() {
@@ -301,6 +358,18 @@ export namespace VolumeStreaming {
                 entry.value.data.asset.dispose();
                 entry = entry.next;
             }
+        }
+
+        private isCameraTargetSame(a?: Camera.Snapshot, b?: Camera.Snapshot): boolean {
+            if (!a || !b) return false;
+            const targetSame = arrayEqual(a.target, b.target);
+            const sqDistA = (a.target[0] - a.position[0]) ** 2 + (a.target[1] - a.position[1]) ** 2 + (a.target[2] - a.position[2]) ** 2;
+            const sqDistB = (b.target[0] - b.position[0]) ** 2 + (b.target[1] - b.position[1]) ** 2 + (b.target[2] - b.position[2]) ** 2;
+            const distanceSame = Math.abs(sqDistA - sqDistB) / sqDistA < 1e-3;
+            return targetSame && distanceSame;
+        }
+        private cameraTargetDistance(snapshot: Camera.Snapshot): number {
+            return Vec3.distance(snapshot.target, snapshot.position);
         }
 
         private _invTransform: Mat4 = Mat4();
@@ -363,11 +432,66 @@ export namespace VolumeStreaming {
             this.updateSelectionBoxParams(box);
         }
 
+        private updateCameraTarget(snapshot: Camera.Snapshot) {
+            const box = this.boxFromCameraTarget(snapshot, true);
+            console.log('Subscribed:', 'distance:', this.cameraTargetDistance(snapshot), snapshot, 'box:', box);
+            this.updateCameraTargetParams(box);
+            // TODO Adam each new update should cancel the previous?
+        }
+
+        private boxFromCameraTarget(snapshot: Camera.Snapshot, boundByBoundarySize: boolean): Box3D {
+            // TODO QUESTION: what exactly is e.radius and e.radiusMax?
+            const target = snapshot.target;
+            const distance = this.cameraTargetDistance(snapshot);
+            const top = Math.tan(0.5 * snapshot.fov) * distance;
+            let radius = top;
+            const viewport = this.plugin.canvas3d?.camera.viewport;
+            if (viewport && viewport.width > viewport.height) {
+                radius *= viewport.width / viewport.height;
+            }
+            radius *= 0.5; // debug? // TODO Adam remove?
+            let radiusX, radiusY, radiusZ;
+            if (boundByBoundarySize) {
+                let bBoxSize = Vec3.zero();
+                Box3D.size(bBoxSize, this.data.structure.boundary.box);
+                radiusX = Math.min(radius, 0.5 * bBoxSize[0]);
+                radiusY = Math.min(radius, 0.5 * bBoxSize[1]);
+                radiusZ = Math.min(radius, 0.5 * bBoxSize[2]);
+            } else {
+                radiusX = radiusY = radiusZ = radius;
+            }
+            return Box3D.create(
+                Vec3.create(target[0] - radiusX, target[1] - radiusY, target[2] - radiusZ),
+                Vec3.create(target[0] + radiusX, target[1] + radiusY, target[2] + radiusZ)
+            );
+        }
+
+        private decideDetail(box: Box3D, baseDetail: number): number {
+            const cellVolume = this.info.kind === 'x-ray'
+                ? Box3D.volume(this.data.structure.boundary.box) 
+                : this.info.header.spacegroup.size.reduce((a, b) => a*b, 1);
+            const boxVolume = Box3D.volume(box);
+            let ratio = boxVolume/cellVolume;
+            const maxDetail = this.info.header.availablePrecisions.length - 1;
+            let detail = baseDetail;
+            while (ratio <= 0.5 && detail < maxDetail) {
+                ratio *= 2;
+                detail += 1;
+            }
+            console.log(`decided dynamic detail: ${detail}, (baseDetail: ${baseDetail}, box/cell volume ratio: ${boxVolume/cellVolume})`);
+            return detail;
+        }
+
         async update(params: Params) {
             const switchedToSelection = params.entry.params.view.name === 'selection-box' && this.params && this.params.entry && this.params.entry.params && this.params.entry.params.view && this.params.entry.params.view.name !== 'selection-box';
 
             this.params = params;
             let box: Box3D | undefined = void 0, emptyData = false;
+
+            if (params.entry.params.view.name !== 'camera-target' && this.cameraTargetSubscription){
+                this.cameraTargetSubscription.unsubscribe();
+                this.cameraTargetSubscription = undefined;
+            }
 
             switch (params.entry.params.view.name) {
                 case 'off':
@@ -388,6 +512,14 @@ export namespace VolumeStreaming {
                     Box3D.expand(box, box, Vec3.create(r, r, r));
                     break;
                 }
+                case 'camera-target':
+                    if (!this.cameraTargetSubscription){
+                        this.cameraTargetSubscription = this.subscribeObservable(this.cameraTargetObservable, (e) => this.updateCameraTarget(e));
+                    }
+                    // TODO QUESTION why should I subscribe here in `update`, when all other views subscribe in `register`?
+                    box = this.boxFromCameraTarget(this.plugin.canvas3d!.camera.getSnapshot(), true);
+                    console.log('boundary', this.data.structure.boundary.box);
+                    break;
                 case 'cell':
                     box = this.info.kind === 'x-ray'
                         ? this.data.structure.boundary.box
@@ -439,6 +571,7 @@ export namespace VolumeStreaming {
 
         getDescription() {
             if (this.params.entry.params.view.name === 'selection-box') return 'Selection';
+            if (this.params.entry.params.view.name === 'camera-target') return 'Camera';
             if (this.params.entry.params.view.name === 'box') return 'Static Box';
             if (this.params.entry.params.view.name === 'cell') return 'Cell';
             return '';
