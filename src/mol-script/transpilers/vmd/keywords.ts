@@ -171,7 +171,7 @@ export const keywords: KeywordDict = {
         '@desc': 'atoms for which numbonds > 0',
         map: () => h.asAtoms(B.struct.filter.pick({
             '0': B.struct.modifier.includeConnected({
-                '0': B.struct.generator.atomGroups(),
+                '0': B.struct.generator.all(),
                 'bond-test': B.core.flags.hasAny([
                     B.struct.bondProperty.flags(),
                     B.struct.type.bondFlags(['covalent', 'metallic', 'sulfide'])
