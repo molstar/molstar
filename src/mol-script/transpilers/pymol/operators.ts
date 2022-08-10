@@ -297,12 +297,12 @@ export const operators: OperatorList = [
         '@desc': 'All rings of size ≤ 7 which have at least one atom in s1.',
         '@examples': ['BYRING resn HEM'],
         name: 'byring',
-	isUnsupported: true, // structure-query.atom-set.atom-count' is not implemented.
+	//isUnsupported: true, // structure-query.atom-set.atom-count' is not implemented.
         type: h.prefix,
         rule: h.prefixOp(/BYRING/i),
         map: (op: string, selection: Expression) => {
             return h.asAtoms(
-                B.struct.filter.intersectedBy({
+		B.struct.modifier.intersectBy({
                     '0': B.struct.filter.pick({
                         '0': B.struct.generator.rings(),
                         test: B.core.logic.and([

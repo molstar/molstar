@@ -12,6 +12,7 @@ import * as modifiers from './query/queries/modifiers';
 import * as filters from './query/queries/filters';
 import * as combinators from './query/queries/combinators';
 import * as internal from './query/queries/internal';
+import * as atomset from './query/queries/atom-set';
 import { Predicates as pred } from './query/predicates';
 
 export const Queries = {
@@ -20,7 +21,8 @@ export const Queries = {
     modifiers,
     combinators,
     pred,
-    internal
+    internal,
+    atomset
 };
 
 export { StructureSelection, StructureQuery };
