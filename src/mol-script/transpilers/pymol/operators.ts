@@ -334,7 +334,7 @@ export const operators: OperatorList = [
     },
     {
         '@desc': 'Selects atoms directly bonded to s1, may include s1.',
-        '@examples': ['BOUND_TO resname CA'],
+        '@examples': ['BOUND_TO name CA'],
         name: 'bound_to',
         abbr: ['bto.'],
         type: h.prefix,
