@@ -235,6 +235,7 @@ export const operators: OperatorList = [
         '@desc': 'Expands selection to complete molecules.',
         '@examples': ['BYMOLECULE resi 20-30'],
         name: 'bymolecule',
+	isUnsupported: true, //structure-query.atom-property.topology.connected-component-key' is not implemented
         abbr: ['bymol', 'bm.'],
         type: h.prefix,
         rule: h.prefixOp(/BYMOLECULE|bymol|bm\./i),
@@ -261,7 +262,7 @@ export const operators: OperatorList = [
         '@desc': 'Expands selection to complete segments.',
         '@examples': ['BYSEGMENT resn CYS'],
         name: 'bysegment',
-        abbr: ['bysegi', 'byseg', 'bs.'],
+        abbr: ['bysegi', 'byseg', 'bs.'],        
         type: h.prefix,
         rule: h.prefixOp(/BYSEGMENT|bysegi|byseg|bs\./i),
         map: (op: string, selection: Expression) => {
@@ -296,6 +297,7 @@ export const operators: OperatorList = [
         '@desc': 'All rings of size ≤ 7 which have at least one atom in s1.',
         '@examples': ['BYRING resn HEM'],
         name: 'byring',
+	isUnsupported: true, // structure-query.atom-set.atom-count' is not implemented.
         type: h.prefix,
         rule: h.prefixOp(/BYRING/i),
         map: (op: string, selection: Expression) => {
