@@ -43,7 +43,7 @@ export const operators: OperatorList = [
         rule: h.prefixOp(/EXWITHIN\s+([-+]?[0-9]*\.?[0-9]+)\s+OF/i, 1).map((x: any) => parseFloat(x)),
         map: (radius: number, target: Expression) => {
             return B.struct.modifier.exceptBy({
-                '0':  B.struct.modifier.includeSurroundings({ 0: target, radius }),
+                '0': B.struct.modifier.includeSurroundings({ 0: target, radius }),
                 by: target
             });
         }

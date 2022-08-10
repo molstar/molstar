@@ -359,32 +359,32 @@ const symbols = [
 
     // ============= ATOM SET ================
 
-//    D(MolScript.structureQuery.combinator.merge, (ctx, xs) => Queries.combinators.merge(xs as any)(ctx)),
-    D(MolScript.structureQuery.atomSet.atomCount,     
-      function structureQuery_atomset_atomCount(ctx, xs) {
-	  console.log("From atomCount");
-	  console.log(Queries.atomset.atomCount(ctx))
-	  return Queries.atomset.atomCount(ctx)
-      }),
+    //    D(MolScript.structureQuery.combinator.merge, (ctx, xs) => Queries.combinators.merge(xs as any)(ctx)),
+    D(MolScript.structureQuery.atomSet.atomCount,
+        function structureQuery_atomset_atomCount(ctx, xs) {
+	  console.log('From atomCount');
+	  console.log(Queries.atomset.atomCount(ctx));
+	  return Queries.atomset.atomCount(ctx);
+        }),
 
 
-    D(MolScript.structureQuery.atomSet.countQuery,     
-      function structureQuery_atomset_countQuery(ctx, xs) {
-	  console.log("From countQuery");
-	  console.log(Queries.atomset.countQuery(ctx,xs[0](ctx) as any))
-	  return Queries.atomset.countQuery(ctx,xs[0](ctx) as any)
-      }),
+    D(MolScript.structureQuery.atomSet.countQuery,
+        function structureQuery_atomset_countQuery(ctx, xs) {
+	  console.log('From countQuery');
+	  console.log(Queries.atomset.countQuery(ctx, xs[0](ctx) as any));
+	  return Queries.atomset.countQuery(ctx, xs[0](ctx) as any);
+        }),
 
-//    env, v[0](env)
+    //    env, v[0](env)
 
-    D(MolScript.structureQuery.atomSet.propertySet,     
-      function structureQuery_atomset_propertySet(ctx, xs) { return Queries.atomset.propertySet(ctx, xs[0] as any)}),
-//    D(MolScript.structureQuery.filter.withSameAtomProperties, (ctx, xs) => Queries.filters.withSameAtomProperties(xs[0] as any, xs['source'] as any, xs['property'] as any)(ctx)),
-    
+    D(MolScript.structureQuery.atomSet.propertySet,
+        function structureQuery_atomset_propertySet(ctx, xs) { return Queries.atomset.propertySet(ctx, xs[0] as any); }),
+    //    D(MolScript.structureQuery.filter.withSameAtomProperties, (ctx, xs) => Queries.filters.withSameAtomProperties(xs[0] as any, xs['source'] as any, xs['property'] as any)(ctx)),
 
-//    Symbol(MolQL.structure.atomSet.propertySet)((env, v) => StructureRuntime.AtomSet.propertySet(env, v[0])),
 
-    
+    //    Symbol(MolQL.structure.atomSet.propertySet)((env, v) => StructureRuntime.AtomSet.propertySet(env, v[0])),
+
+
     // ============= BOND PROPERTIES ================
     D(MolScript.structureQuery.bondProperty.order, (ctx, xs) => ctx.atomicBond.order),
     D(MolScript.structureQuery.bondProperty.flags, (ctx, xs) => ctx.atomicBond.type),

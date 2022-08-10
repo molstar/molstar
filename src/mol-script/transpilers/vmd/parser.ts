@@ -179,7 +179,7 @@ const lang = P.MonadicParser.createLanguage({
 	    return B.struct.generator.atomGroups({ [h.testLevel(property)]: test });
 	    //  h.testLevel is not working for unknown reason, so relaced it by hardcoded 'atom-test'
             //	    console.log(h.testLevel(property));
-	    //return B.struct.generator.atomGroups({ 'atom-test': test });
+	    // return B.struct.generator.atomGroups({ 'atom-test': test });
         });
     },
 
