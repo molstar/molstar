@@ -16,6 +16,7 @@ export function parse(lang: string, str: string) {
         const query = transpiler[lang](str);
 
         console.log(str);
+	console.log(query);
         //	console.log(util.inspect(query, {depth: 20, color: true}))
         console.log('\n');
 
