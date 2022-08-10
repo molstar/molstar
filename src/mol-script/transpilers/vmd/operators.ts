@@ -43,9 +43,7 @@ export const operators: OperatorList = [
         rule: h.prefixOp(/EXWITHIN\s+([-+]?[0-9]*\.?[0-9]+)\s+OF/i, 1).map((x: any) => parseFloat(x)),
         map: (radius: number, target: Expression) => {
             return B.struct.modifier.exceptBy({
-                '0': B.struct.filter.within({
-                    '0': B.struct.generator.atomGroups(), target, 'max-radius': radius
-                }),
+                '0':  B.struct.modifier.includeSurroundings({ 0: target, radius }),
                 by: target
             });
         }
@@ -58,7 +56,7 @@ export const operators: OperatorList = [
         rule: h.prefixOp(new RegExp(`SAME\\s+(${propNames})\\s+AS`, 'i'), 1).map((x: any) => properties[x].property),
         map: (property: Expression, source: Expression) => {
             return B.struct.filter.withSameAtomProperties({
-                '0': B.struct.generator.atomGroups(),
+                '0': B.struct.generator.all(),
                 source,
                 property
             });
