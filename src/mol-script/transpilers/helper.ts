@@ -332,7 +332,7 @@ export function atomNameSet(ids: string[]) {
 export function asAtoms(e: Expression) {
     return B.struct.generator.queryInSelection({
         0: e,
-        query: B.struct.generator.atomGroups()
+        query: B.struct.generator.all()
     });
 }
 

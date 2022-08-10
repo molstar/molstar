@@ -315,11 +315,11 @@ export const operators: OperatorList = [
     },
     {
         '@desc': 'Selects atoms directly bonded to s1, excludes s1.',
-        '@examples': ['NEIGHBOUR resn CYS'],
-        name: 'neighbour',
+        '@examples': ['NEIGHBOR resn CYS'],
+        name: 'neighbor',
         type: h.prefix,
         abbr: ['nbr.'],
-        rule: h.prefixOp(/NEIGHBOUR|nbr\./i),
+        rule: h.prefixOp(/NEIGHBOR|nbr\./i),
         map: (op: string, selection: Expression) => {
             return B.struct.modifier.exceptBy({
                 '0': h.asAtoms(
