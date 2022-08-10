@@ -59,16 +59,16 @@ const valueOperators: OperatorList = [
         map: (op, e1, e2) => {
             // console.log(op, e1, e2)
             let expr;
-            if (e1.head === 'structure-query.atom-property.macromolecular.secondary-structure-flags') {
+            if (e1.head.name === 'structure-query.atom-property.macromolecular.secondary-structure-flags') {
                 expr = B.core.flags.hasAny([e1, sstrucMap(e2)]);
-            } else if (e2.head === 'structure-query.atom-property.macromolecular.secondary-structure-flags') {
+            } else if (e2.head.name === 'structure-query.atom-property.macromolecular.secondary-structure-flags') {
                 expr = B.core.flags.hasAny([e2, sstrucMap(e1)]);
-            } else if (e1.head === 'core.type.regex') {
+            } else if (e1.head.name === 'core.type.regex') {
                 expr = B.core.str.match([e1, B.core.type.str([e2])]);
-            } else if (e2.head === 'core.type.regex') {
+            } else if (e2.head.name === 'core.type.regex') {
                 expr = B.core.str.match([e2, B.core.type.str([e1])]);
             } else if (op === '=~') {
-                if (e1.head) {
+                if (e1.head.name) {
                     expr = B.core.str.match([
                         B.core.type.regex([`^${e2}$`, 'i']),
                         B.core.type.str([e1])
@@ -81,8 +81,8 @@ const valueOperators: OperatorList = [
                 }
             }
             if (!expr) {
-                if (e1.head) e2 = h.wrapValue(e1, e2);
-                if (e2.head) e1 = h.wrapValue(e2, e1);
+                if (e1.head.name) e2 = h.wrapValue(e1, e2);
+                if (e2.head.name) e1 = h.wrapValue(e2, e1);
                 switch (op) {
                     case '=':
                     case '==':
@@ -247,7 +247,7 @@ const lang = P.MonadicParser.createLanguage({
         return P.MonadicParser.alt(
             r.ValueOperator.map((x: any) => {
                 // if (!x.head || x.head.startsWith('core.math') || x.head.startsWith('structure-query.atom-property')) {
-                if (!x.head || !x.head.startsWith('structure-query.generator')) {
+                if (!x.head.name || !x.head.name.startsWith('structure-query.generator')) {
                     throw new Error(`values must be part of an comparison, value '${x}'`);
                 } else {
                     return x as any;
