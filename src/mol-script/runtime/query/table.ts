@@ -217,7 +217,7 @@ const symbols = [
         query: xs[0] as any,
         target: xs['target'] as any,
         minRadius: xs['min-radius'] as any,
-        maxRadius: xs['max-radius'] as any,
+        maxRadius: xs['max-radius'](ctx) as any,
         elementRadius: xs['atom-radius'] as any,
         invert: xs['invert'] as any
     })(ctx)),

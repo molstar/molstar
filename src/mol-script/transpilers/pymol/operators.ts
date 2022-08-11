@@ -95,7 +95,7 @@ export const operators: OperatorList = [
             .map((x: any) => parseFloat(x)),
         map: (distance: number, target: Expression) => {
             return B.struct.filter.within({
-                '0': B.struct.generator.atomGroups(),
+                '0': B.struct.generator.all(),
                 target,
                 'atom-radius': B.acp('vdw'),
                 'max-radius': distance,
@@ -116,7 +116,7 @@ export const operators: OperatorList = [
         map: (radius: number, target: Expression) => {
             return B.struct.modifier.exceptBy({
                 '0': B.struct.filter.within({
-                    '0': B.struct.generator.atomGroups(),
+                    '0': B.struct.generator.all(),
                     target,
                     'max-radius': radius,
                 }),
