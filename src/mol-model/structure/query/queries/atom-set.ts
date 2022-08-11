@@ -131,9 +131,12 @@ export function countQuery(ctx: QueryContext, query: StructureQuery) {
 
 
 export function propertySet(ctx: QueryContext, prop: UnitTypeProperties) {
-    const set = new Set();
-    const x = getCurrentStructureProperties(ctx, prop, set);
-    return x;
+    return (ctx : QueryContext) => {
+	const set = new Set();
+	const x = getCurrentStructureProperties(ctx, prop, set);
+//	console.log(x)
+	return x;
+    };
 }
 
 /*

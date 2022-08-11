@@ -362,23 +362,25 @@ const symbols = [
     //    D(MolScript.structureQuery.combinator.merge, (ctx, xs) => Queries.combinators.merge(xs as any)(ctx)),
     D(MolScript.structureQuery.atomSet.atomCount,
         function structureQuery_atomset_atomCount(ctx, xs) {
-	    console.log('From atomCount');
-	    console.log(Queries.atomset.atomCount(ctx)(ctx));
+//	    console.log('From atomCount');
+//	    console.log(Queries.atomset.atomCount(ctx)(ctx));
 	    return Queries.atomset.atomCount(ctx)(ctx);
         }),
 
 
     D(MolScript.structureQuery.atomSet.countQuery,
         function structureQuery_atomset_countQuery(ctx, xs) {
-	    console.log('From countQuery');
-	    console.log(Queries.atomset.countQuery(ctx, xs[0] as any)(ctx));
+//	    console.log('From countQuery');
+//	    console.log(Queries.atomset.countQuery(ctx, xs[0] as any)(ctx));
 	    return Queries.atomset.countQuery(ctx, xs[0] as any)(ctx);
         }),
 
     //    env, v[0](env)
 
     D(MolScript.structureQuery.atomSet.propertySet,
-        function structureQuery_atomset_propertySet(ctx, xs) { return Queries.atomset.propertySet(ctx, xs[0] as any); }),
+      function structureQuery_atomset_propertySet(ctx, xs) {
+	  return Queries.atomset.propertySet(ctx, xs[0] as any)(ctx);
+      }),
     //    D(MolScript.structureQuery.filter.withSameAtomProperties, (ctx, xs) => Queries.filters.withSameAtomProperties(xs[0] as any, xs['source'] as any, xs['property'] as any)(ctx)),
 
 
