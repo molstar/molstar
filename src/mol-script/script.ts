@@ -25,12 +25,12 @@ export { Script };
 
 interface Script { expression: string, language: Script.Language}
 
-function Script(expression: string = "(sel.atom.all)", language: Script.Language = "mol-script"): Script {
+function Script(expression: string = '(sel.atom.all)', language: Script.Language = 'mol-script'): Script {
     return { expression, language };
 }
 
 namespace Script {
-    export type Language = 'mol-script' | 'pymol' | 'vmd' | 'jmol' | 'rasmol' 
+    export type Language = 'mol-script' | 'pymol' | 'vmd' | 'jmol' | 'rasmol'
 
     export function is(x: any): x is Script {
         return !!x && typeof (x as Script).expression === 'string' && !!(x as Script).language;
@@ -42,20 +42,20 @@ namespace Script {
 
     export function toExpression(script: Script): Expression {
         switch (script.language) {
-	case 'mol-script':
+            case 'mol-script':
 	    const parsed = parseMolScript(script.expression);
 	    if (parsed.length === 0) throw new Error('No query');
 	    return transpileMolScript(parsed[0]);
-	case 'pymol':	    
-	    return parse("pymol",script.expression) as Expression;	           
-	case 'jmol':
-	    return parse("jmol",script.expression) as Expression;
-	case 'vmd':
-	    return parse("vmd",script.expression) as Expression;
-	case 'rasmol':
-	    return parse("rasmol",script.expression) as Expression;	   
+            case 'pymol':
+	    return parse('pymol', script.expression) as Expression;
+            case 'jmol':
+	    return parse('jmol', script.expression) as Expression;
+            case 'vmd':
+	    return parse('vmd', script.expression) as Expression;
+            case 'rasmol':
+	    return parse('rasmol', script.expression) as Expression;
         }
- 
+
         throw new Error('unsupported script language');
     }
 

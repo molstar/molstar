@@ -247,8 +247,8 @@ export function ConfalPyramidsColorTheme(ctx: ThemeDataContext, props: PD.Values
 
     function color(location: Location, isSecondary: boolean): Color {
         if (CPT.isLocation(location)) {
-            const { pyramid, isLower } = location.data;
-            const key = pyramid.NtC + `_${isLower ? 'Lwr' : 'Upr'}` as keyof PyramidsColors;
+            const { step, isLower } = location.data;
+            const key = step.NtC + `_${isLower ? 'Lwr' : 'Upr'}` as keyof PyramidsColors;
             return colorMap[key] ?? ErrorColor;
         }
 

@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Panagiotis Tourlas <panagiot_tourlov@hotmail.com>
  */
-//import * as Q from 'parsimmon';
+// import * as Q from 'parsimmon';
 import * as P from '../../mol-util/monadic-parser';
 import { MolScriptBuilder } from '../../mol-script/language/builder';
 const B = MolScriptBuilder;
@@ -47,11 +47,11 @@ export function postfix(opParser: P.MonadicParser<any>, nextParser: P.MonadicPar
     // INPUT  :: "4!!!"
     // PARSE  :: [4, "factorial", "factorial", "factorial"]
     // REDUCE :: ["factorial", ["factorial", ["factorial", 4]]]
-    return P.MonadicParser.seqMap( /* no seqMap() in monadic-parser.ts, any suitable replacement? */
+    return P.MonadicParser.seqMap(/* no seqMap() in monadic-parser.ts, any suitable replacement? */
         nextParser,
         opParser.many(),
-        (x:any, suffixes:any) =>
-            suffixes.reduce((acc:any, x:any) => {
+        (x: any, suffixes: any) =>
+            suffixes.reduce((acc: any, x: any) => {
                 return mapFn(x, acc);
             }, x)
     );
@@ -95,9 +95,9 @@ export function binaryLeft(opParser: P.MonadicParser<any>, nextParser: P.Monadic
     return P.MonadicParser.seqMap(
         nextParser,
         P.MonadicParser.seq(opParser, nextParser).many(),
-        (first:any, rest:any) => {
-            return rest.reduce((acc:any, ch:any) => {
-                let [op, another] = ch;
+        (first: any, rest: any) => {
+            return rest.reduce((acc: any, ch: any) => {
+                const [op, another] = ch;
                 return mapFn(op, acc, another);
             }, first);
         }
@@ -195,8 +195,8 @@ export function testExpr(property: any, args: any) {
 
 export function invertExpr(selection: Expression) {
     return B.struct.generator.queryInSelection({
-        0: selection, query: B.struct.generator.atomGroups(), 'in-complement': true
-    });
+        0: selection, query: B.struct.generator.all(), 'in-complement': true }
+    );
 }
 
 export function strLenSortFn(a: string, b: string) {
@@ -216,7 +216,7 @@ export function getPropertyRules(properties: PropertyDict) {
     Object.keys(properties).sort(strLenSortFn).forEach(name => {
         const ps = properties[name];
         const errorFn = makeError(`property '${name}' not supported`);
-        const rule = P.MonadicParser.regexp(ps.regex).map((x:any) => {
+        const rule = P.MonadicParser.regexp(ps.regex).map((x: any) => {
             if (ps.isUnsupported) errorFn();
             return testExpr(ps.property, ps.map(x));
         });
@@ -235,7 +235,7 @@ export function getNamedPropertyRules(properties: PropertyDict) {
     Object.keys(properties).sort(strLenSortFn).forEach(name => {
         const ps = properties[name];
         const errorFn = makeError(`property '${name}' not supported`);
-        const rule = P.MonadicParser.regexp(ps.regex).map((x:any) => {
+        const rule = P.MonadicParser.regexp(ps.regex).map((x: any) => {
             if (ps.isUnsupported) errorFn();
             return testExpr(ps.property, ps.map(x));
         });
@@ -247,7 +247,7 @@ export function getNamedPropertyRules(properties: PropertyDict) {
                 nameRule.then(P.MonadicParser.seq(
                     P.MonadicParser.regexp(/>=|<=|=|!=|>|</).trim(P.MonadicParser.optWhitespace),
                     P.MonadicParser.regexp(ps.regex).map(ps.map)
-                )).map((x:any) => {
+                )).map((x: any) => {
                     if (ps.isUnsupported) errorFn();
                     return testExpr(ps.property, { op: x[0], val: x[1] });
                 }).map(groupMap)
@@ -288,10 +288,10 @@ export function getFunctionRules(functions: FunctionDict, argRule: P.MonadicPars
     return functionsList;
 }
 
-//const rule = P.regex(getNamesRegex(name, ps.abbr)).lookahead(lookahead).map(() => {
+// const rule = P.regex(getNamesRegex(name, ps.abbr)).lookahead(lookahead).map(() => {
 //    if (ps.isUnsupported) errorFn()
 //    return ps.property
-//})
+// })
 
 export function getPropertyNameRules(properties: PropertyDict, lookahead: RegExp) {
     const list: P.MonadicParser<any>[] = [];
@@ -332,17 +332,17 @@ export function atomNameSet(ids: string[]) {
 export function asAtoms(e: Expression) {
     return B.struct.generator.queryInSelection({
         0: e,
-        query: B.struct.generator.atomGroups()
+        query: B.struct.generator.all()
     });
 }
 
 export function wrapValue(property: any, value: any, sstrucDict?: any) {
-    switch (property.head) {
-        case 'structure.atom-property.macromolecular.label_atom_id':
+    switch (property.head.name) {
+        case 'structure-query.atom-property.macromolecular.label_atom_id':
             return B.atomName(value);
-        case 'structure.atom-property.core.element-symbol':
+        case 'structure-query.atom-property.core.element-symbol':
             return B.es(value);
-        case 'structure.atom-property.macromolecular.secondary-structure-flags':
+        case 'structure-query.atom-property.macromolecular.secondary-structure-flags':
             if (sstrucDict) {
                 value = [sstrucDict[value.toUpperCase()] || 'none'];
             }
@@ -352,25 +352,25 @@ export function wrapValue(property: any, value: any, sstrucDict?: any) {
     }
 }
 
-const propPrefix = 'structure.atom-property.macromolecular.';
+const propPrefix = 'structure-query.atom-property.macromolecular.';
 const entityProps = ['entityKey', 'label_entity_id', 'entityType'];
 const chainProps = ['chainKey', 'label_asym_id', 'label_entity_id', 'auth_asym_id', 'entityType'];
 const residueProps = ['residueKey', 'label_comp_id', 'label_seq_id', 'auth_comp_id', 'auth_seq_id', 'pdbx_formal_charge', 'secondaryStructureKey', 'secondaryStructureFlags', 'isModified', 'modifiedParentName'];
 export function testLevel(property: any) {
-    if (property.head.startsWith(propPrefix)) {
-        const name = property.head.substr(propPrefix.length);
-        if (entityProps.indexOf(name) !== -1) return 'entity-test';
-        if (chainProps.indexOf(name) !== -1) return 'chain-test';
-        if (residueProps.indexOf(name) !== -1) return 'residue-test';
+    if (property.head.name.startsWith(propPrefix)) {
+        const name = property.head.name.substr(propPrefix.length);
+        if (entityProps.indexOf(name) !== -1) return 'entity-test' as string;
+        if (chainProps.indexOf(name) !== -1) return 'chain-test' as string;
+        if (residueProps.indexOf(name) !== -1) return 'residue-test' as string;
     }
-    return 'atom-test';
+    return 'atom-test' as string;
 }
 
 const flagProps = [
-    'structure.atom-property.macromolecular.secondary-structure-flags'
+    'structure-query.atom-property.macromolecular.secondary-structure-flags'
 ];
 export function valuesTest(property: any, values: any[]) {
-    if (flagProps.indexOf(property.head) !== -1) {
+    if (flagProps.indexOf(property.head.name) !== -1) {
         const name = values[0].head;
         const flags: any[] = [];
         values.forEach(v => flags.push(...v.args[0]));

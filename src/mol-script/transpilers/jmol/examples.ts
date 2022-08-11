@@ -5,7 +5,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-export default [{
+export const jmolSelectionsExamples = [{
     name: 'Residue 50 or 135',
     value: '50 or 135'
 }, {
@@ -23,4 +23,4 @@ export default [{
 }, {
     name: 'Pyrimidine residues',
     value: 'pyrimidine'
-}]
+}];

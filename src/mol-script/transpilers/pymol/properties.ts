@@ -10,7 +10,7 @@ const B = MolScriptBuilder;
 import { PropertyDict } from '../types';
 
 const reFloat = /[-+]?[0-9]*\.?[0-9]+/;
-//const rePosInt = /[0-9]+/;
+// const rePosInt = /[0-9]+/;
 
 function atomNameListMap(x: string) { return x.split('+').map(B.atomName); }
 function listMap(x: string) { return x.split('+').map(x => x.replace(/^["']|["']$/g, '')); }
@@ -105,14 +105,14 @@ export const properties: PropertyDict = {
     id: {
         '@desc': 'external-index-number a single integer',
         '@examples': ['id 23'],
-	regex: /[0-9+-]+/, map: listOrRangeMap,
+        regex: /[0-9+-]+/, map: listOrRangeMap,
         level: 'atom-test', property: B.ammp('id')
     },
     index: {
         '@desc': 'internal-index-number a single integer',
         '@examples': ['index 11'],
         regex: /[0-9+-]+/, map: listOrRangeMap,
-        level: 'atom-test',property: B.ammp('id')
+        level: 'atom-test', property: B.ammp('id')
     },
     ss: {
         '@desc': 'secondary-structure-type list of single letters. Helical regions should be assigned H and sheet regions S. Loop regions can either be assigned L or be blank.',

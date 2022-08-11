@@ -6,7 +6,7 @@
  * @author Koya Sakuma
  */
 
-export default [{
+export const rasmolSelectionsExamples = [{
     name: 'Residue 50 or 135',
     value: '50 or 135'
 }, {
@@ -24,4 +24,4 @@ export default [{
 }, {
     name: 'Pyrimidine residues',
     value: 'pyrimidine'
-}]
+}];

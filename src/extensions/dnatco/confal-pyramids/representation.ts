@@ -16,14 +16,14 @@ import { PrimitiveBuilder } from '../../../mol-geo/primitive/primitive';
 import { LocationIterator } from '../../../mol-geo/util/location-iterator';
 import { Mat4, Vec3 } from '../../../mol-math/linear-algebra';
 import { EmptyLoci, Loci } from '../../../mol-model/loci';
-import { Structure, StructureProperties, Unit } from '../../../mol-model/structure';
+import { Structure, Unit } from '../../../mol-model/structure';
 import { CustomProperty } from '../../../mol-model-props/common/custom-property';
 import { Representation, RepresentationContext, RepresentationParamsGetter } from '../../../mol-repr/representation';
 import { StructureRepresentation, StructureRepresentationProvider, StructureRepresentationStateBuilder, UnitsRepresentation } from '../../../mol-repr/structure/representation';
 import { UnitsMeshParams, UnitsMeshVisual, UnitsVisual } from '../../../mol-repr/structure/units-visual';
 import { VisualUpdateState } from '../../../mol-repr/util';
 import { VisualContext } from '../../../mol-repr/visual';
-import { getAltResidueLociFromId, StructureGroup } from '../../../mol-repr/structure/visual/util/common';
+import { StructureGroup } from '../../../mol-repr/structure/visual/util/common';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { Theme, ThemeRegistryContext } from '../../../mol-theme/theme';
 import { NullLocation } from '../../../mol-model/location';
@@ -58,13 +58,13 @@ function createConfalPyramidsIterator(structureGroup: StructureGroup): LocationI
         return LocationIterator(0, 1, 1, () => NullLocation);
     }
 
-    const { locations } = prop.data;
+    const { halfPyramids } = prop.data;
 
     const getLocation = (groupIndex: number, instanceIndex: number) => {
-        if (locations.length <= groupIndex) return NullLocation;
-        return locations[groupIndex];
+        if (halfPyramids.length <= groupIndex) return NullLocation;
+        return CPT.Location(halfPyramids[groupIndex]);
     };
-    return LocationIterator(locations.length, instanceCount, 1, getLocation);
+    return LocationIterator(halfPyramids.length, instanceCount, 1, getLocation);
 }
 
 function createConfalPyramidsMesh(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: PD.Values<ConfalPyramidsMeshParams>, mesh?: Mesh) {
@@ -73,16 +73,16 @@ function createConfalPyramidsMesh(ctx: VisualContext, unit: Unit, structure: Str
     const prop = ConfalPyramidsProvider.get(structure.model).value;
     if (prop === undefined || prop.data === undefined) return Mesh.createEmpty(mesh);
 
-    const { pyramids } = prop.data;
-    if (pyramids.length === 0) return Mesh.createEmpty(mesh);
+    const { steps } = prop.data;
+    if (steps.length === 0) return Mesh.createEmpty(mesh);
 
     const mb = MeshBuilder.createState(512, 512, mesh);
 
-    const handler = (pyramid: CPT.Pyramid, first: ConfalPyramidsUtil.FirstResidueAtoms, second: ConfalPyramidsUtil.SecondResidueAtoms, firsLocIndex: number, secondLocIndex: number) => {
+    const handler = (step: CPT.Step, first: ConfalPyramidsUtil.FirstResidueAtoms, second: ConfalPyramidsUtil.SecondResidueAtoms, firsLocIndex: number, secondLocIndex: number) => {
         if (firsLocIndex === -1 || secondLocIndex === -1)
             throw new Error('Invalid location index');
 
-        const scale = (pyramid.confal_score - 20.0) / 100.0;
+        const scale = (step.confal_score - 20.0) / 100.0;
         const O3 = first.O3.pos;
         const OP1 = second.OP1.pos; const OP2 = second.OP2.pos; const O5 = second.O5.pos; const P = second.P.pos;
 
@@ -127,13 +127,12 @@ function getConfalPyramidLoci(pickingId: PickingId, structureGroup: StructureGro
     const prop = ConfalPyramidsProvider.get(structure.model).value;
     if (prop === undefined || prop.data === undefined) return EmptyLoci;
 
-    const { locations } = prop.data;
+    const { halfPyramids } = prop.data;
 
-    if (locations.length <= groupId) return EmptyLoci;
-    const altId = StructureProperties.atom.label_alt_id(CPT.toElementLocation(locations[groupId]));
-    const rI = unit.residueIndex[locations[groupId].element.element];
+    if (halfPyramids.length <= groupId) return EmptyLoci;
+    const hp = halfPyramids[groupId];
 
-    return getAltResidueLociFromId(structure, unit, rI, altId);
+    return CPT.Loci(hp, [{}]);
 }
 
 function eachConfalPyramid(loci: Loci, structureGroup: StructureGroup, apply: (interval: Interval) => boolean) {

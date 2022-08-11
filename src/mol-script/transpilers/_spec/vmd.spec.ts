@@ -7,14 +7,14 @@
  */
 
 import * as u from './utils';
-//import { transpiler } from '../vmd/parser';
+// import { transpiler } from '../vmd/parser';
 import { parse } from '../../transpile';
 import { keywords } from '../vmd/keywords';
 import { properties } from '../vmd/properties';
 import { operators } from '../vmd/operators';
 
 /* FAULTY IMPORTS */
-//import compile from '../../compiler';
+// import compile from '../../compiler';
 
 const general = {
     supported: [
@@ -46,19 +46,18 @@ const general = {
 describe('vmd general', () => {
     general.supported.forEach(str => {
         it(str, () => {
-            const expr = parse("vmd",str);
-            expect(expr).toThrow();
+            parse('vmd', str);
         });
     });
     general.unsupported.forEach(str => {
         it(str, () => {
-            const transpileStr = () => parse("vmd",str);
+            const transpileStr = () => parse('vmd', str);
             expect(transpileStr).toThrow();
             expect(transpileStr).not.toThrowError(RangeError);
         });
     });
 });
 
-describe('vmd keywords', () => u.testKeywords(keywords, "vmd"));
-describe('vmd operators', () => u.testOperators(operators, "vmd"));
-describe('vmd properties', () => u.testProperties(properties, "vmd"));
+describe('vmd keywords', () => u.testKeywords(keywords, 'vmd'));
+describe('vmd operators', () => u.testOperators(operators, 'vmd'));
+describe('vmd properties', () => u.testProperties(properties, 'vmd'));

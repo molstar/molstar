@@ -31,7 +31,7 @@ function atomSelectionQuery(x: any) {
     const tests: AtomGroupArgs = {};
     const props: { [k: string]: any[] } = {};
 
-    for (let k in x) {
+    for (const k in x) {
         const ps = properties[k];
         if (!ps) {
             throw new Error(`property '${k}' not supported, value '${x[k]}'`);
@@ -41,7 +41,7 @@ function atomSelectionQuery(x: any) {
         props[ps.level].push(x[k]);
     }
 
-    for (let p in props) {
+    for (const p in props) {
         tests[p] = h.andExpr(props[p]);
     }
 
@@ -49,7 +49,7 @@ function atomSelectionQuery(x: any) {
 }
 
 const lang = P.MonadicParser.createLanguage({
-    Parens: function (r : any) {
+    Parens: function (r: any) {
         return P.MonadicParser.alt(
             r.Parens,
             r.Operator,
@@ -57,7 +57,7 @@ const lang = P.MonadicParser.createLanguage({
         ).wrap(P.MonadicParser.string('('), P.MonadicParser.string(')'));
     },
 
-    Expression: function (r : any) {
+    Expression: function (r: any) {
         return P.MonadicParser.alt(
 	    r.Keywords,
             r.AtomSelectionMacro.map(atomSelectionQuery),
@@ -68,7 +68,7 @@ const lang = P.MonadicParser.createLanguage({
         );
     },
 
-    AtomSelectionMacro: function (r : any) {
+    AtomSelectionMacro: function (r: any) {
         return P.MonadicParser.alt(
             slash.then(P.MonadicParser.alt(
                 P.MonadicParser.seq(
@@ -135,9 +135,9 @@ const lang = P.MonadicParser.createLanguage({
             .sort(h.strLenSortFn).map(h.escapeRegExp).join('|');
         return P.MonadicParser.regexp(new RegExp(`(?!(${w}))[A-Z0-9_]+`, 'i'));
     },
-    Object: (r : any) => {
+    Object: (r: any) => {
         return r.ObjectProperty.notFollowedBy(slash)
-            .map( (x:any)  => { throw new Error(`property 'object' not supported, value '${x}'`); });
+            .map((x: any) => { throw new Error(`property 'object' not supported, value '${x}'`); });
     },
 
     // Selects peptide sequence matching upper-case one-letter
@@ -155,11 +155,11 @@ const lang = P.MonadicParser.createLanguage({
             .map(h.makeError(`operator 'rep' not supported`));
     },
 
-    Operator: function (r : any) {
+    Operator: function (r: any) {
         return h.combineOperators(operators, P.MonadicParser.alt(r.Parens, r.Expression, r.Operator));
     },
 
-    Query: function (r : any) {
+    Query: function (r: any) {
         return P.MonadicParser.alt(
             r.Operator,
             r.Parens,
@@ -169,4 +169,3 @@ const lang = P.MonadicParser.createLanguage({
 });
 
 export const transpiler: Transpiler = str => lang.Query.tryParse(str);
-export default transpiler

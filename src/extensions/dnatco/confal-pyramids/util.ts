@@ -42,7 +42,7 @@ export namespace ConfalPyramidsUtil {
         ins_code: string,
     };
 
-    export type Handler = (pyramid: CPT.Pyramid, first: FirstResidueAtoms, second: SecondResidueAtoms, firstLocIndex: number, secondLocIndex: number) => void;
+    export type Handler = (pyramid: CPT.Step, first: FirstResidueAtoms, second: SecondResidueAtoms, firstLocIndex: number, secondLocIndex: number) => void;
 
     function residueInfoFromLocation(loc: StructureElement.Location): ResidueInfo {
         return {
@@ -77,11 +77,11 @@ export namespace ConfalPyramidsUtil {
     }
 
     class Utility {
-        protected getPyramidByName(name: string): { pyramid: CPT.Pyramid | undefined, index: number } {
+        protected getPyramidByName(name: string): { pyramid: CPT.Step | undefined, index: number } {
             const index = this.data.names.get(name);
             if (index === undefined) return { pyramid: undefined, index: -1 };
 
-            return { pyramid: this.data.pyramids[index], index };
+            return { pyramid: this.data.steps[index], index };
         }
 
         protected stepToName(entry_id: string, modelNum: number, locFirst: StructureElement.Location, locSecond: StructureElement.Location, fakeAltId_1: string, fakeAltId_2: string) {
@@ -107,7 +107,7 @@ export namespace ConfalPyramidsUtil {
             this.modelNum = unit.model.modelNum;
         }
 
-        protected readonly data: CPT.PyramidsData;
+        protected readonly data: CPT.StepsData;
         protected readonly hasMultipleModels: boolean;
         protected readonly entryId: string;
         protected readonly modelNum: number;
@@ -164,15 +164,7 @@ export namespace ConfalPyramidsUtil {
                     const name = this.stepToName(this.entryId, modelNum, firstLoc, secondLoc, first.O3.fakeAltId, second.OP1.fakeAltId);
                     const { pyramid, index } = this.getPyramidByName(name);
                     if (pyramid !== undefined) {
-                        const setLoc = (loc: CPT.Location, eI: ElementIndex) => {
-                            loc.element.structure = this.structure;
-                            loc.element.unit = this.unit;
-                            loc.element.element = eI;
-                        };
-
                         const locIndex = index * 2;
-                        setLoc(this.data.locations[locIndex], firstLoc.element);
-                        setLoc(this.data.locations[locIndex + 1], secondLoc.element);
                         this.handler(pyramid, first, second, locIndex, locIndex + 1);
                         ok = true;
                     }

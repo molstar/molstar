@@ -92,10 +92,10 @@ export const operators: OperatorList = [
         type: h.postfix,
         rule: h
             .postfixOp(/GAP\s+([-+]?[0-9]*\.?[0-9]+)/i, 1)
-            .map((x:any) => parseFloat(x)),
+            .map((x: any) => parseFloat(x)),
         map: (distance: number, target: Expression) => {
             return B.struct.filter.within({
-                '0': B.struct.generator.atomGroups(),
+                '0': B.struct.generator.all(),
                 target,
                 'atom-radius': B.acp('vdw'),
                 'max-radius': distance,
@@ -112,11 +112,11 @@ export const operators: OperatorList = [
         type: h.postfix,
         rule: h
             .postfixOp(/(AROUND|a\.)\s+([-+]?[0-9]*\.?[0-9]+)/i, 2)
-            .map((x:any) => parseFloat(x)),
+            .map((x: any) => parseFloat(x)),
         map: (radius: number, target: Expression) => {
             return B.struct.modifier.exceptBy({
                 '0': B.struct.filter.within({
-                    '0': B.struct.generator.atomGroups(),
+                    '0': B.struct.generator.all(),
                     target,
                     'max-radius': radius,
                 }),
@@ -133,7 +133,7 @@ export const operators: OperatorList = [
         type: h.postfix,
         rule: h
             .postfixOp(/(EXPAND|x\.)\s+([-+]?[0-9]*\.?[0-9]+)/i, 2)
-            .map((x:any) => parseFloat(x)),
+            .map((x: any) => parseFloat(x)),
         map: (radius: number, selection: Expression) => {
             return B.struct.modifier.includeSurroundings({ 0: selection, radius });
         },
@@ -235,6 +235,7 @@ export const operators: OperatorList = [
         '@desc': 'Expands selection to complete molecules.',
         '@examples': ['BYMOLECULE resi 20-30'],
         name: 'bymolecule',
+        isUnsupported: true, // structure-query.atom-property.topology.connected-component-key' is not implemented
         abbr: ['bymol', 'bm.'],
         type: h.prefix,
         rule: h.prefixOp(/BYMOLECULE|bymol|bm\./i),
@@ -296,11 +297,12 @@ export const operators: OperatorList = [
         '@desc': 'All rings of size ≤ 7 which have at least one atom in s1.',
         '@examples': ['BYRING resn HEM'],
         name: 'byring',
+        // isUnsupported: true, // structure-query.atom-set.atom-count' is not implemented.
         type: h.prefix,
         rule: h.prefixOp(/BYRING/i),
         map: (op: string, selection: Expression) => {
             return h.asAtoms(
-                B.struct.filter.intersectedBy({
+                B.struct.modifier.intersectBy({
                     '0': B.struct.filter.pick({
                         '0': B.struct.generator.rings(),
                         test: B.core.logic.and([
@@ -315,11 +317,11 @@ export const operators: OperatorList = [
     },
     {
         '@desc': 'Selects atoms directly bonded to s1, excludes s1.',
-        '@examples': ['NEIGHBOUR resn CYS'],
-        name: 'neighbour',
+        '@examples': ['NEIGHBOR resn CYS'],
+        name: 'neighbor',
         type: h.prefix,
         abbr: ['nbr.'],
-        rule: h.prefixOp(/NEIGHBOUR|nbr\./i),
+        rule: h.prefixOp(/NEIGHBOR|nbr\./i),
         map: (op: string, selection: Expression) => {
             return B.struct.modifier.exceptBy({
                 '0': h.asAtoms(
@@ -334,7 +336,7 @@ export const operators: OperatorList = [
     },
     {
         '@desc': 'Selects atoms directly bonded to s1, may include s1.',
-        '@examples': ['BOUND_TO resname CA'],
+        '@examples': ['BOUND_TO name CA'],
         name: 'bound_to',
         abbr: ['bto.'],
         type: h.prefix,
@@ -353,7 +355,7 @@ export const operators: OperatorList = [
         name: 'extend',
         abbr: ['xt.'],
         type: h.postfix,
-        rule: h.postfixOp(/(EXTEND|xt\.)\s+([0-9]+)/i, 2).map((x:any) => parseInt(x)),
+        rule: h.postfixOp(/(EXTEND|xt\.)\s+([0-9]+)/i, 2).map((x: any) => parseInt(x)),
         map: (count: number, selection: Expression) => {
             return h.asAtoms(
                 B.struct.modifier.includeConnected({

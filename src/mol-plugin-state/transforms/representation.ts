@@ -315,12 +315,12 @@ const OverpaintStructureRepresentation3DFromScript = PluginStateTransform.BuiltI
     to: SO.Molecule.Structure.Representation3DState,
     params: () => ({
         layers: PD.ObjectList({
-            script: PD.Script(Script()),
+            script: PD.Script(Script('(sel.atom.all)', 'mol-script')),
             color: PD.Color(ColorNames.blueviolet),
             clear: PD.Boolean(false)
         }, e => `${e.clear ? 'Clear' : Color.toRgbString(e.color)}`, {
             defaultValue: [{
-                script: Script(),
+                script: Script('(sel.atom.all)', 'mol-script'),
                 color: ColorNames.blueviolet,
                 clear: false
             }]
@@ -430,11 +430,11 @@ const TransparencyStructureRepresentation3DFromScript = PluginStateTransform.Bui
     to: SO.Molecule.Structure.Representation3DState,
     params: () => ({
         layers: PD.ObjectList({
-            script: PD.Script(Script()),
+            script: PD.Script(Script('(sel.atom.all)', 'mol-script')),
             value: PD.Numeric(0.5, { min: 0, max: 1, step: 0.01 }, { label: 'Transparency' }),
         }, e => `Transparency (${e.value})`, {
             defaultValue: [{
-                script: Script(),
+                script: Script('(sel.atom.all)', 'mol-script'),
                 value: 0.5,
             }]
         })
@@ -541,12 +541,12 @@ const SubstanceStructureRepresentation3DFromScript = PluginStateTransform.BuiltI
     to: SO.Molecule.Structure.Representation3DState,
     params: () => ({
         layers: PD.ObjectList({
-            script: PD.Script(Script()),
+            script: PD.Script(Script('(sel.atom.all)', 'mol-script')),
             material: Material.getParam(),
             clear: PD.Boolean(false)
         }, e => `${e.clear ? 'Clear' : Material.toString(e.material)}`, {
             defaultValue: [{
-                script: Script(),
+                script: Script('(sel.atom.all)', 'mol-script'),
                 material: Material({ roughness: 1 }),
                 clear: false
             }]
@@ -656,11 +656,11 @@ const ClippingStructureRepresentation3DFromScript = PluginStateTransform.BuiltIn
     to: SO.Molecule.Structure.Representation3DState,
     params: () => ({
         layers: PD.ObjectList({
-            script: PD.Script(Script()),
+            script: PD.Script(Script('(sel.atom.all)', 'mol-script')),
             groups: PD.Converted((g: Clipping.Groups) => Clipping.Groups.toNames(g), n => Clipping.Groups.fromNames(n), PD.MultiSelect(ObjectKeys(Clipping.Groups.Names), PD.objectToOptions(Clipping.Groups.Names))),
         }, e => `${Clipping.Groups.toNames(e.groups).length} group(s)`, {
             defaultValue: [{
-                script: Script(),
+                script: Script('(sel.atom.all)', 'mol-script'),
                 groups: Clipping.Groups.Flag.None,
             }]
         }),

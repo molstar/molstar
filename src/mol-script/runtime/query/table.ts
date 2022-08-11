@@ -217,7 +217,7 @@ const symbols = [
         query: xs[0] as any,
         target: xs['target'] as any,
         minRadius: xs['min-radius'] as any,
-        maxRadius: xs['max-radius'] as any,
+        maxRadius: xs['max-radius'](ctx) as any,
         elementRadius: xs['atom-radius'] as any,
         invert: xs['invert'] as any
     })(ctx)),
@@ -247,6 +247,9 @@ const symbols = [
     }),
     D(MolScript.structureQuery.generator.rings, function structureQuery_generator_rings(ctx, xs) {
         return Queries.generators.rings(xs?.['fingerprint']?.(ctx) as any, xs?.['only-aromatic']?.(ctx))(ctx);
+    }),
+    D(MolScript.structureQuery.generator.queryInSelection, function structureQuery_generator_queryInSelection(ctx, xs) {
+        return Queries.generators.querySelection(xs[0] as any, xs['query'] as any, xs['in-complement'] as any)(ctx);
     }),
 
     // ============= MODIFIERS ================
@@ -278,6 +281,7 @@ const symbols = [
             fixedPoint: xs['fixed-point']?.(ctx) ?? false
         })(ctx);
     }),
+    D(MolScript.structureQuery.modifier.intersectBy, function structureQuery_modifier_intersectBy(ctx, xs) { return Queries.modifiers.intersectBy(xs[0] as any, xs['by'] as any)(ctx); }),
 
     // ============= COMBINATORS ================
 
@@ -352,6 +356,36 @@ const symbols = [
     D(MolScript.structureQuery.atomProperty.macromolecular.secondaryStructureKey, atomProp(StructureProperties.residue.secondary_structure_key)),
     D(MolScript.structureQuery.atomProperty.macromolecular.secondaryStructureFlags, atomProp(StructureProperties.residue.secondary_structure_type)),
     D(MolScript.structureQuery.atomProperty.macromolecular.chemCompType, atomProp(StructureProperties.residue.chem_comp_type)),
+
+    // ============= ATOM SET ================
+
+    //    D(MolScript.structureQuery.combinator.merge, (ctx, xs) => Queries.combinators.merge(xs as any)(ctx)),
+    D(MolScript.structureQuery.atomSet.atomCount,
+        function structureQuery_atomset_atomCount(ctx, xs) {
+            //	    console.log('From atomCount');
+            //	    console.log(Queries.atomset.atomCount(ctx)(ctx));
+	    return Queries.atomset.atomCount(ctx)(ctx);
+        }),
+
+
+    D(MolScript.structureQuery.atomSet.countQuery,
+        function structureQuery_atomset_countQuery(ctx, xs) {
+            //	    console.log('From countQuery');
+            //	    console.log(Queries.atomset.countQuery(ctx, xs[0] as any)(ctx));
+	    return Queries.atomset.countQuery(ctx, xs[0] as any)(ctx);
+        }),
+
+    //    env, v[0](env)
+
+    D(MolScript.structureQuery.atomSet.propertySet,
+        function structureQuery_atomset_propertySet(ctx, xs) {
+	  return Queries.atomset.propertySet(ctx, xs[0] as any)(ctx);
+        }),
+    //    D(MolScript.structureQuery.filter.withSameAtomProperties, (ctx, xs) => Queries.filters.withSameAtomProperties(xs[0] as any, xs['source'] as any, xs['property'] as any)(ctx)),
+
+
+    //    Symbol(MolQL.structure.atomSet.propertySet)((env, v) => StructureRuntime.AtomSet.propertySet(env, v[0])),
+
 
     // ============= BOND PROPERTIES ================
     D(MolScript.structureQuery.bondProperty.order, (ctx, xs) => ctx.atomicBond.order),
