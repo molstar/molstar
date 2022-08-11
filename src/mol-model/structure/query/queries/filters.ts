@@ -6,7 +6,8 @@
 
 import { SetUtils } from '../../../../mol-util/set';
 import { Unit } from '../../structure';
-import { QueryContext, QueryFn, QueryPredicate } from '../context';
+//import { QueryContext, QueryFn, QueryPredicate } from '../context';
+import { QueryContext, QueryFn } from '../context';
 import { StructureQuery } from '../query';
 import { StructureSelection } from '../selection';
 import { structureAreIntersecting } from '../utils/structure-set';
@@ -16,7 +17,8 @@ import { Structure } from '../../structure/structure';
 import { StructureElement } from '../../structure/element';
 import { SortedArray } from '../../../../mol-data/int';
 
-export function pick(query: StructureQuery, pred: QueryPredicate): StructureQuery {
+//export function pick(query: StructureQuery, pred: QueryPredicate): StructureQuery {
+export function pick(query: StructureQuery, pred: QueryFn<any>): StructureQuery {
     return ctx => {
         const sel = query(ctx);
         const ret = StructureSelection.LinearBuilder(ctx.inputStructure);
