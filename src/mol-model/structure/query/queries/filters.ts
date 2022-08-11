@@ -77,7 +77,7 @@ export function getCurrentStructureProperties(ctx: QueryContext, props: UnitType
     return set;
 }
 
-function getCurrentStructurePropertiesInternal(ctx: QueryContext, props: QueryFn<any>, set: Set<any>) {
+export function getCurrentStructurePropertiesInternal(ctx: QueryContext, props: QueryFn<any>, set: Set<any>) {
     const { units } = ctx.currentStructure;
     const l = ctx.pushCurrentElement();
 

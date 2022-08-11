@@ -19,10 +19,11 @@ import { FastSet } from '../../../utils/collections'
 import { getAtomSetProperties } from './filters'
 */
 
-import { StructureQuery } from '../query';
+import { StructureQuery} from '../query';
 import { StructureSelection } from '../selection';
-import { getCurrentStructureProperties, UnitTypeProperties } from './filters';
-import { QueryContext } from '../context';
+//import { getCurrentStructurePropertiesInternal, UnitTypeProperties } from './filters';
+import { getCurrentStructurePropertiesInternal} from './filters';
+import { QueryContext, QueryFn } from '../context';
 // import { none } from './generators';
 // import { HashSet } from '../../../../mol-data/generic';
 // import { Structure } from '../../structure';
@@ -130,10 +131,11 @@ export function countQuery(ctx: QueryContext, query: StructureQuery) {
 }
 
 
-export function propertySet(ctx: QueryContext, prop: UnitTypeProperties) {
+//export function propertySet(ctx: QueryContext, prop: UnitTypeProperties) {
+export function propertySet(ctx: QueryContext, prop: QueryFn<any>) {
     return (ctx: QueryContext) => {
         const set = new Set();
-        const x = getCurrentStructureProperties(ctx, prop, set);
+        const x = getCurrentStructurePropertiesInternal(ctx, prop, set);
         //	console.log(x)
         return x;
     };
