@@ -35,16 +35,20 @@ const valueOperators: OperatorList = [
         map: (op, e1, e2) => {
             console.log(op, e1, e2)
             let expr;
-            if (e1 === 'structure') {
+	    if (e1 === 'structure') {
                 expr = B.core.flags.hasAny([B.ammp('secondaryStructureFlags'), structureMap(e2)]);
             } else if (e2 === 'structure') {
                 expr = B.core.flags.hasAny([B.ammp('secondaryStructureFlags'), structureMap(e1)]);
-            } else if (e1.head.name === 'core.type.regex') {
-                expr = B.core.str.match([e1, B.core.type.str([e2])]);
-            } else if (e2.head.name === 'core.type.regex') {
-                expr = B.core.str.match([e2, B.core.type.str([e1])]);
+            } else if (e1.head !== undefined){
+		if (e1.head.name === 'core.type.regex') {
+                    expr = B.core.str.match([e1, B.core.type.str([e2])]);
+		}
+            } else if (e2.head !== undefined){
+		if (e2.head.name === 'core.type.regex') {
+                    expr = B.core.str.match([e2, B.core.type.str([e1])]);
+		}
             } else if (op.toUpperCase() === 'LIKE') {
-                if (e1.head.name) {
+                if (e1.head) {
                     expr = B.core.str.match([
                         B.core.type.regex([`^${e2}$`, 'i']),
                         B.core.type.str([e1])
@@ -57,8 +61,8 @@ const valueOperators: OperatorList = [
                 }
             }
             if (!expr) {
-                if (e1.head.name) e2 = h.wrapValue(e1, e2);
-                if (e2.head.name) e1 = h.wrapValue(e2, e1);
+                if (e1.head) e2 = h.wrapValue(e1, e2);
+                if (e2.head) e1 = h.wrapValue(e2, e1);
                 switch (op) {
                     case '=':
                         expr = B.core.rel.eq([e1, e2]);
