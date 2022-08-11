@@ -83,9 +83,26 @@ export function pick(env: Environment, selection: Selection, pred: Expression<bo
 // }
 
 // export function atomCount(query : StructureSelection) : StructureQuery {
+
+
+
+//export function atomCount(env: Environment) {
+ //   return AtomSet.count(env.slots.atomSet);
+//}
+
+/*
 export function atomCount(ctx: QueryContext) {
     return (ctx: QueryContext) => {
         const all = StructureSelection.Singletons(ctx.inputStructure, ctx.inputStructure)
+        const x: number = StructureSelection.structureCount(all);
+        return x;
+    };
+}
+*/
+
+export function atomCount(ctx: QueryContext) {
+    return (ctx: QueryContext) => {
+        const all = StructureSelection.Singletons(ctx.currentStructure, ctx.currentStructure);
         const x: number = StructureSelection.structureCount(all);
         return x;
     };
