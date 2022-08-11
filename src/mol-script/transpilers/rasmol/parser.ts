@@ -39,14 +39,14 @@ const valueOperators: OperatorList = [
                 expr = B.core.flags.hasAny([B.ammp('secondaryStructureFlags'), structureMap(e2)]);
             } else if (e2 === 'structure') {
                 expr = B.core.flags.hasAny([B.ammp('secondaryStructureFlags'), structureMap(e1)]);
-            } else if (e1.head !== undefined){
-		if (e1.head.name === 'core.type.regex') {
+            } else if (e1.head !== undefined) {
+                if (e1.head.name === 'core.type.regex') {
                     expr = B.core.str.match([e1, B.core.type.str([e2])]);
-		}
-            } else if (e2.head !== undefined){
-		if (e2.head.name === 'core.type.regex') {
+                }
+            } else if (e2.head !== undefined) {
+                if (e2.head.name === 'core.type.regex') {
                     expr = B.core.str.match([e2, B.core.type.str([e1])]);
-		}
+                }
             } else if (op.toUpperCase() === 'LIKE') {
                 if (e1.head) {
                     expr = B.core.str.match([

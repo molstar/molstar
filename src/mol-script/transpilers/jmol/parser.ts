@@ -33,20 +33,20 @@ const valueOperators: OperatorList = [
         type: h.binaryLeft,
         rule: P.MonadicParser.regexp(/\s*(LIKE|>=|<=|=|!=|>|<)\s*/i, 1),
         map: (op, e1, e2) => {
-            console.log(op, e1, e2)
+            console.log(op, e1, e2);
             let expr;
 	    if (e1 === 'structure') {
                 expr = B.core.flags.hasAny([B.ammp('secondaryStructureFlags'), structureMap(e2)]);
             } else if (e2 === 'structure') {
                 expr = B.core.flags.hasAny([B.ammp('secondaryStructureFlags'), structureMap(e1)]);
-            } else if (e1.head !== undefined){
-		if (e1.head.name === 'core.type.regex') {
+            } else if (e1.head !== undefined) {
+                if (e1.head.name === 'core.type.regex') {
                     expr = B.core.str.match([e1, B.core.type.str([e2])]);
-		}
-            } else if (e2.head !== undefined){
-		if (e2.head.name === 'core.type.regex') {
+                }
+            } else if (e2.head !== undefined) {
+                if (e2.head.name === 'core.type.regex') {
                     expr = B.core.str.match([e2, B.core.type.str([e1])]);
-		}
+                }
             } else if (op.toUpperCase() === 'LIKE') {
                 if (e1.head) {
                     expr = B.core.str.match([

@@ -86,10 +86,10 @@ function getCurrentStructurePropertiesInternal(ctx: QueryContext, props: QueryFn
         l.unit = unit;
         const elements = unit.elements;
 
-        let fn = props
-//        if (Unit.isAtomic(unit)) fn = props.atomic;
-//        else fn = props.coarse;
-//        if (!fn) continue;
+        const fn = props;
+        //        if (Unit.isAtomic(unit)) fn = props.atomic;
+        //        else fn = props.coarse;
+        //        if (!fn) continue;
 
         for (let j = 0, _j = elements.length; j < _j; j++) {
             l.element = elements[j];
