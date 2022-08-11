@@ -77,14 +77,39 @@ export function getCurrentStructureProperties(ctx: QueryContext, props: UnitType
     return set;
 }
 
-function getSelectionProperties(ctx: QueryContext, query: StructureQuery, props: UnitTypeProperties) {
+function getCurrentStructurePropertiesInternal(ctx: QueryContext, props: QueryFn<any>, set: Set<any>) {
+    const { units } = ctx.currentStructure;
+    const l = ctx.pushCurrentElement();
+
+    l.structure = ctx.currentStructure;
+    for (const unit of units) {
+        l.unit = unit;
+        const elements = unit.elements;
+
+        let fn = props
+//        if (Unit.isAtomic(unit)) fn = props.atomic;
+//        else fn = props.coarse;
+//        if (!fn) continue;
+
+        for (let j = 0, _j = elements.length; j < _j; j++) {
+            l.element = elements[j];
+            set.add(fn(ctx));
+        }
+
+        ctx.throwIfTimedOut();
+    }
+    ctx.popCurrentElement();
+    return set;
+}
+
+function getSelectionProperties(ctx: QueryContext, query: StructureQuery, props: QueryFn<any>) {
     const set = new Set();
 
     const sel = query(ctx);
     ctx.pushCurrentElement();
     StructureSelection.forEach(sel, (s, i) => {
         ctx.currentStructure = s;
-        getCurrentStructureProperties(ctx, props, set);
+        getCurrentStructurePropertiesInternal(ctx, props, set);
 
         if (i % 10) ctx.throwIfTimedOut();
     });
@@ -92,7 +117,7 @@ function getSelectionProperties(ctx: QueryContext, query: StructureQuery, props:
     return set;
 }
 
-export function withSameAtomProperties(query: StructureQuery, propertySource: StructureQuery, props: UnitTypeProperties): StructureQuery {
+export function withSameAtomProperties(query: StructureQuery, propertySource: StructureQuery, props: QueryFn<any>): StructureQuery {
     return ctx => {
         const sel = query(ctx);
         const propSet = getSelectionProperties(ctx, propertySource, props);
@@ -101,7 +126,7 @@ export function withSameAtomProperties(query: StructureQuery, propertySource: St
         ctx.pushCurrentStructure();
         StructureSelection.forEach(sel, (s, i) => {
             ctx.currentStructure = s;
-            const currentProps = getCurrentStructureProperties(ctx, props, new Set());
+            const currentProps = getCurrentStructurePropertiesInternal(ctx, props, new Set());
             if (SetUtils.isSuperset(currentProps, propSet)) {
                 ret.add(s);
             }
