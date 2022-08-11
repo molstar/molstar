@@ -84,11 +84,20 @@ export function pick(env: Environment, selection: Selection, pred: Expression<bo
 
 // export function atomCount(query : StructureSelection) : StructureQuery {
 export function atomCount(ctx: QueryContext) {
-    return (ctx: any) => {
-        const x: number = StructureSelection.structureCount(ctx);
+    return (ctx: QueryContext) => {
+        const all = StructureSelection.Singletons(ctx.inputStructure, ctx.inputStructure)
+        const x: number = StructureSelection.structureCount(all);
         return x;
     };
 }
+
+
+//export function atomCount(ctx: QueryContext) {
+//    return (ctx: any) => {
+//        const x: number = StructureSelection.structureCount(ctx);
+//        return x;
+//    };
+//}
 
 // export function countQuery(env: Environment, query: Expression<AtomSelection>) {
 //    const sel = query(Environment(Context.ofAtomSet(env.context, env.slots.atomSet)))
@@ -96,7 +105,7 @@ export function atomCount(ctx: QueryContext) {
 // }
 
 export function countQuery(ctx: QueryContext, query: StructureQuery) {
-    return (ctx: any) => {
+    return (ctx : QueryContext) => {
         const sel = query(ctx);
         const x: number = StructureSelection.structureCount(sel);
         return x;
