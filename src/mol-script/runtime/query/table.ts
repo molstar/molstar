@@ -211,7 +211,7 @@ const symbols = [
     // ============= FILTERS ================
     D(MolScript.structureQuery.filter.pick, (ctx, xs) => Queries.filters.pick(xs[0] as any, xs['test'])(ctx)),
     D(MolScript.structureQuery.filter.first, (ctx, xs) => Queries.filters.first(xs[0] as any)(ctx)),
-    D(MolScript.structureQuery.filter.withSameAtomProperties, (ctx, xs) => Queries.filters.withSameAtomProperties(xs[0] as any, xs['source'] as any, xs['property'] as any)(ctx)),
+    D(MolScript.structureQuery.filter.withSameAtomProperties, (ctx, xs) => Queries.filters.withSameAtomProperties(xs[0] as any, xs['source'] as any, xs['property'])(ctx)),
     D(MolScript.structureQuery.filter.intersectedBy, (ctx, xs) => Queries.filters.areIntersectedBy(xs[0] as any, xs['by'] as any)(ctx)),
     D(MolScript.structureQuery.filter.within, (ctx, xs) => Queries.filters.within({
         query: xs[0] as any,

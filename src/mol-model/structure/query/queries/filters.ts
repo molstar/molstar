@@ -91,7 +91,7 @@ export function getCurrentStructurePropertiesInternal(ctx: QueryContext, props: 
         const fn = props;
         //        if (Unit.isAtomic(unit)) fn = props.atomic;
         //        else fn = props.coarse;
-        //        if (!fn) continue;
+        if (!fn) continue;
 
         for (let j = 0, _j = elements.length; j < _j; j++) {
             l.element = elements[j];
