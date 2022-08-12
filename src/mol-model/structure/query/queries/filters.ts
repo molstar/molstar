@@ -129,7 +129,7 @@ export function withSameAtomProperties(query: StructureQuery, propertySource: St
         StructureSelection.forEach(sel, (s, i) => {
             ctx.currentStructure = s;
             const currentProps = getCurrentStructurePropertiesInternal(ctx, props, new Set());
-            if (SetUtils.isSuperset(currentProps, propSet)) {
+            if (SetUtils.isSuperset(propSet,currentProps)) {
                 ret.add(s);
             }
 
