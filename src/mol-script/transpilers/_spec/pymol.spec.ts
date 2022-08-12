@@ -6,14 +6,13 @@
  */
 
 import * as u from './utils';
-import { parse } from '../../transpile';
-// import { transpiler } from '../pymol/parser';
+import { transpiler } from '../pymol/parser';
 import { keywords } from '../pymol/keywords';
 import { properties } from '../pymol/properties';
 import { operators } from '../pymol/operators';
 
 /* FAULTY IMPORTS */
-// import compile from '../../compiler';
+// import compile from '../../reference-implementation/molql/compiler';
 
 const general = {
     supported: [
@@ -47,12 +46,13 @@ const general = {
 describe('pymol general', () => {
     general.supported.forEach(str => {
         it(str, () => {
-            parse('pymol', str);
+            transpiler(str);
+            //          compile(expr);
         });
     });
     general.unsupported.forEach(str => {
         it(str, () => {
-            const transpileStr = () => parse('pymol', str);
+            const transpileStr = () => transpiler(str);
             expect(transpileStr).toThrow();
             expect(transpileStr).not.toThrowError(RangeError);
         });
@@ -70,6 +70,6 @@ describe('pymol general', () => {
 // 'b = 1',
 // 'fc.=.1',
 
-describe('pymol keywords', () => u.testKeywords(keywords, 'pymol'));
-describe('pymol operators', () => u.testOperators(operators, 'pymol'));
-describe('pymol properties', () => u.testProperties(properties, 'pymol'));
+describe('pymol keywords', () => u.testKeywords(keywords, transpiler));
+describe('pymol operators', () => u.testOperators(operators, transpiler));
+describe('pymol properties', () => u.testProperties(properties, transpiler));

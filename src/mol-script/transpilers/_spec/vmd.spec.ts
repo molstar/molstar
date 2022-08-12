@@ -1,4 +1,3 @@
-
 /**
  * Copyright (c) 2020-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -7,14 +6,13 @@
  */
 
 import * as u from './utils';
-// import { transpiler } from '../vmd/parser';
-import { parse } from '../../transpile';
+import { transpiler } from '../vmd/parser';
 import { keywords } from '../vmd/keywords';
 import { properties } from '../vmd/properties';
 import { operators } from '../vmd/operators';
 
 /* FAULTY IMPORTS */
-// import compile from '../../compiler';
+// import compile from '../../reference-implementation/molql/compiler';
 
 const general = {
     supported: [
@@ -46,18 +44,19 @@ const general = {
 describe('vmd general', () => {
     general.supported.forEach(str => {
         it(str, () => {
-            parse('vmd', str);
+            transpiler(str);
+            // compile(expr);
         });
     });
     general.unsupported.forEach(str => {
         it(str, () => {
-            const transpileStr = () => parse('vmd', str);
+            const transpileStr = () => transpiler(str);
             expect(transpileStr).toThrow();
             expect(transpileStr).not.toThrowError(RangeError);
         });
     });
 });
 
-describe('vmd keywords', () => u.testKeywords(keywords, 'vmd'));
-describe('vmd operators', () => u.testOperators(operators, 'vmd'));
-describe('vmd properties', () => u.testProperties(properties, 'vmd'));
+describe('vmd keywords', () => u.testKeywords(keywords, transpiler));
+describe('vmd operators', () => u.testOperators(operators, transpiler));
+describe('vmd properties', () => u.testProperties(properties, transpiler));
