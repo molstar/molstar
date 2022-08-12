@@ -74,7 +74,7 @@ const DefaultViewerOptions = {
     extensions: ObjectKeys(Extensions),
     layoutIsExpanded: true,
     layoutShowControls: false,
-    layoutShowRemoteState: false,
+    layoutShowRemoteState: true,
     layoutControlsDisplay: 'reactive' as PluginLayoutControlsDisplay,
     layoutShowSequence: false,
     layoutShowLog: false,
@@ -146,7 +146,7 @@ export class Viewer {
                     ...defaultSpec.components?.controls,
                     top: o.layoutShowSequence ? undefined : 'none',
                     bottom: o.layoutShowLog ? undefined : 'none',
-                    left: o.layoutShowLeftPanel ? undefined : 'none',
+                    left: o.layoutShowLeftPanel ? undefined : 'none'
                 },
                 remoteState: o.layoutShowRemoteState ? 'default' : 'none',
             },
@@ -183,6 +183,7 @@ export class Viewer {
                 // the preset needs to be added before the UI renders otherwise
                 // "Download Structure" wont be able to pick it up
                 plugin.builders.structure.representation.registerPreset(ViewerAutoPreset);
+
             }
         });
         return new Viewer(plugin);
