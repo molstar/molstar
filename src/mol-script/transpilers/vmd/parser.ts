@@ -130,7 +130,7 @@ const lang = P.MonadicParser.createLanguage({
     Expression: function (r: any) {
         return P.MonadicParser.alt(
             r.RangeListProperty,
-	    r.NamedAtomProperties,
+            //	    r.NamedAtomProperties,
             r.ValueQuery,
             r.Keywords,
         );
