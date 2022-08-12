@@ -73,14 +73,14 @@ const DefaultViewerOptions = {
     customFormats: CustomFormats as [string, DataFormatProvider][],
     extensions: ObjectKeys(Extensions),
     layoutIsExpanded: true,
-    layoutShowControls: true,
+    layoutShowControls: false,
     layoutShowRemoteState: true,
     layoutControlsDisplay: 'reactive' as PluginLayoutControlsDisplay,
-    layoutShowSequence: true,
-    layoutShowLog: true,
-    layoutShowLeftPanel: true,
-    collapseLeftPanel: false,
-    collapseRightPanel: false,
+    layoutShowSequence: false,
+    layoutShowLog: false,
+    layoutShowLeftPanel: false,
+    collapseLeftPanel: true,
+    collapseRightPanel: true,
     disableAntialiasing: PluginConfig.General.DisableAntialiasing.defaultValue,
     pixelScale: PluginConfig.General.PixelScale.defaultValue,
     pickScale: PluginConfig.General.PickScale.defaultValue,
@@ -146,7 +146,7 @@ export class Viewer {
                     ...defaultSpec.components?.controls,
                     top: o.layoutShowSequence ? undefined : 'none',
                     bottom: o.layoutShowLog ? undefined : 'none',
-                    left: o.layoutShowLeftPanel ? undefined : 'none',
+                    left: o.layoutShowLeftPanel ? undefined : 'none'
                 },
                 remoteState: o.layoutShowRemoteState ? 'default' : 'none',
             },
@@ -183,6 +183,7 @@ export class Viewer {
                 // the preset needs to be added before the UI renders otherwise
                 // "Download Structure" wont be able to pick it up
                 plugin.builders.structure.representation.registerPreset(ViewerAutoPreset);
+
             }
         });
         return new Viewer(plugin);
