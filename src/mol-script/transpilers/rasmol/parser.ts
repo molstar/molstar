@@ -28,6 +28,9 @@ import { OperatorList } from '../types';
 const propertiesDict = h.getPropertyRules(special_properties);
 
 const slash = P.MonadicParser.string('/');
+const dot = P.MonadicParser.string('.');
+const colon = P.MonadicParser.string(':');
+const star = P.MonadicParser.string('*');
 
 /* is Parser -> MonadicParser substitution correct? */
 function orNull(rule: P.MonadicParser<any>) {
@@ -165,59 +168,68 @@ const lang = P.MonadicParser.createLanguage({
         );
     },
 
-        AtomSelectionMacro: function (r: any) {
+
+    //    lys:a.ca  -> resn lys and chain A and name ca
+    //    lys*a.ca  -> resn lys and chain A and name ca
+    //
+    //    :a.ca -> chain A and name ca
+    //    *a.ca -> chain A and name ca
+    //
+    //    *.cg -> name ca
+    //    :.cg -> name ca
+    AtomSelectionMacro: function (r: any) {
         return P.MonadicParser.alt(
-            slash.then(P.MonadicParser.alt(
-                P.MonadicParser.seq(
-                    orNull(r.ObjectProperty).skip(slash),
-                    orNull(propertiesDict.segi).skip(slash),
-                    orNull(propertiesDict.chain).skip(slash),
-                    orNull(propertiesDict.resi).skip(slash),
+            colon.then(P.MonadicParser.alt(
+                P.MonadicParser.seq(                
+                    orNull(propertiesDict.chain).skip(dot),
                     orNull(propertiesDict.name)
-                ).map(x => { return { object: x[0], segi: x[1], chain: x[2], resi: x[3], name: x[4] }; }),
+                ).map(x => { return { chain: x[0], name: x[1]}; }),
                 P.MonadicParser.seq(
-                    orNull(r.ObjectProperty).skip(slash),
-                    orNull(propertiesDict.segi).skip(slash),
-                    orNull(propertiesDict.chain).skip(slash),
-                    orNull(propertiesDict.resi)
-                ).map(x => { return { object: x[0], segi: x[1], chain: x[2], resi: x[3] }; }),
-                P.MonadicParser.seq(
-                    orNull(r.ObjectProperty).skip(slash),
-                    orNull(propertiesDict.segi).skip(slash),
-                    orNull(propertiesDict.chain)
-                ).map(x => { return { object: x[0], segi: x[1], chain: x[2] }; }),
-                P.MonadicParser.seq(
-                    orNull(r.ObjectProperty).skip(slash),
-                    orNull(propertiesDict.segi)
-                ).map(x => { return { object: x[0], segi: x[1] }; }),
-                P.MonadicParser.seq(
-                    orNull(r.ObjectProperty)
-                ).map(x => { return { object: x[0] }; }),
+                    orNull(propertiesDict.name).skip(dot)
+                ).map(x => { return {name: x[0] }; }),
             )),
+	    star.then(P.MonadicParser.alt(
+                P.MonadicParser.seq(                
+                    orNull(propertiesDict.chain).skip(dot),
+                    orNull(propertiesDict.name)
+                ).map(x => { return { chain: x[0], name: x[1]}; }),
+                P.MonadicParser.seq(
+                    orNull(propertiesDict.name).skip(dot)
+                ).map(x => { return {name: x[0] }; }),
+            )),
+	    P.MonadicParser.alt(
+                P.MonadicParser.seq(
+                    orNull(propertiesDict.resi),
+                ).map(x => { return { resi: x[0]}; }),
+	    ),
+	    // 1-100 lys:a.ca lys:a lys lys.ca	  
             P.MonadicParser.alt(
                 P.MonadicParser.seq(
-                    orNull(r.ObjectProperty).skip(slash),
-                    orNull(propertiesDict.segi).skip(slash),
-                    orNull(propertiesDict.chain).skip(slash),
-                    orNull(propertiesDict.resi).skip(slash),
+                    orNull(propertiesDict.resn).skip(colon),
+                    orNull(propertiesDict.chain).skip(dot),
                     orNull(propertiesDict.name)
-                ).map(x => { return { object: x[0], segi: x[1], chain: x[2], resi: x[3], name: x[4] }; }),
+                ).map(x => { return { resn: x[0], chain: x[1], name: x[2] }; }),
+		P.MonadicParser.seq(
+                    orNull(propertiesDict.resn).skip(star),
+                    orNull(propertiesDict.chain).skip(dot),
+                    orNull(propertiesDict.name)
+                ).map(x => { return { resn: x[0], chain: x[1], name: x[2] }; }),
                 P.MonadicParser.seq(
-                    orNull(propertiesDict.segi).skip(slash),
-                    orNull(propertiesDict.chain).skip(slash),
-                    orNull(propertiesDict.resi).skip(slash),
-                    orNull(propertiesDict.name)
-                ).map(x => { return { segi: x[0], chain: x[1], resi: x[2], name: x[3] }; }),
+                    orNull(propertiesDict.resn).skip(colon),
+                    orNull(propertiesDict.chain),
+                ).map(x => { return { resn: x[0], chain: x[1] }; }),
+		P.MonadicParser.seq(
+                    orNull(propertiesDict.resn).skip(star),
+                    orNull(propertiesDict.chain),
+                ).map(x => { return { resn: x[0], chain: x[1] }; }),
+		P.MonadicParser.seq(
+                    orNull(propertiesDict.resn).skip(dot),
+                    orNull(propertiesDict.name),
+                ).map(x => { return { resn: x[0], name: x[1] }; }),
                 P.MonadicParser.seq(
-                    orNull(propertiesDict.chain).skip(slash),
-                    orNull(propertiesDict.resi).skip(slash),
-                    orNull(propertiesDict.name)
-                ).map(x => { return { chain: x[0], resi: x[1], name: x[2] }; }),
-                P.MonadicParser.seq(
-                    orNull(propertiesDict.resi).skip(slash),
-                    orNull(propertiesDict.name)
-                ).map(x => { return { resi: x[0], name: x[1] }; }),
-            )
+                    orNull(propertiesDict.resn)
+                ).map(x => {  return { resn: x[0] };}),
+	    ),
         );
 	},
 
