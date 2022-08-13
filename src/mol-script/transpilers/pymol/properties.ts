@@ -32,7 +32,7 @@ function listOrRangeMap(x: string) {
                 res.push(parseInt(x));
             }
         });
-        console.log(res)
+//        console.log(res)
         return res;
     }else if(x.includes('-') && !x.includes('+')){
         return rangeMap(x)
