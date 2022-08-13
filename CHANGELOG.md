@@ -10,6 +10,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Add custom labels to Confal pyramids
 - Improve naming of some internal types in Confal pyramids extension coordinate
 - Add example mmCIF file with categories necessary to display Confal pyramids
+- Change the lookup logic of NtC steps from residues
 
 ## [v3.13.0] - 2022-07-24
 
