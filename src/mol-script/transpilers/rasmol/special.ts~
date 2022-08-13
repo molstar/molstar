@@ -52,7 +52,7 @@ export function structureMap(x: any) {
     }
 }
 
-export const properties: PropertyDict = {
+export const special: PropertyDict = {
     altloc: {
         '@desc': 'PDB alternate location identifier',
         '@examples': ['altloc = A'],

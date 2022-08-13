@@ -11,7 +11,8 @@ import * as P from '../../../mol-util/monadic-parser';
 import * as h from '../helper';
 import { MolScriptBuilder } from '../../../mol-script/language/builder';
 const B = MolScriptBuilder;
-import { properties, structureMap } from './properties';
+import { properties, structureMap, structureDict } from './properties';
+import { special } from './special';
 import { operators } from './operators';
 import { keywords } from './keywords';
 import { AtomGroupArgs } from '../types';
@@ -125,7 +126,8 @@ const lang = P.MonadicParser.createLanguage({
 
     Expression: function (r: any) {
         return P.MonadicParser.alt(
-//	    r.NamedAtomProperties,
+	    //	    r.NamedAtomProperties,
+	    r.RangeListProperty,
 	    r.Keywords,
 	    r.Resno.lookahead(P.MonadicParser.regexp(/\s*(?!(LIKE|>=|<=|!=|[:^%/.=><]))/i)).map((x: any) => B.struct.generator.atomGroups({
                 'residue-test': B.core.rel.eq([B.ammp('auth_seq_id'), x])
@@ -147,6 +149,51 @@ const lang = P.MonadicParser.createLanguage({
         return P.MonadicParser.alt(...h.getNamedPropertyRules(properties));
     },
 
+        ValueRange: function (r: any) {
+        return P.MonadicParser.seq(
+            r.Value
+                .skip(P.MonadicParser.regexp(/-/i)),
+            r.Value
+        ).map(x => ({ range: x }));
+    },
+
+    RangeListProperty: function (r: any) {
+        return P.MonadicParser.seq(
+            P.MonadicParser.alt(...h.getPropertyNameRules(special, /\s/))
+                .skip(P.MonadicParser.whitespace),
+            P.MonadicParser.alt(
+                r.ValueRange,
+                r.Value
+            ).sepBy1(P.MonadicParser.comma)
+        ).map(x => {
+            const [property, values] = x;
+            const listValues: (string | number)[] = [];
+            const rangeValues: any[] = [];
+
+            values.forEach((v: any) => {
+                if (v.range) {
+                    rangeValues.push(
+                        B.core.rel.inRange([property, v.range[0], v.range[1]])
+                    );
+                } else {
+                    listValues.push(h.wrapValue(property, v, structureDict));
+                }
+            });
+
+            const rangeTest = h.orExpr(rangeValues);
+            const listTest = h.valuesTest(property, listValues);
+
+            let test;
+            if (rangeTest && listTest) {
+                test = B.core.logic.or([rangeTest, listTest]);
+            } else {
+                test = rangeTest ? rangeTest : listTest;
+            }
+
+	    return B.struct.generator.atomGroups({ [h.testLevel(property)]: test });
+        });
+    },
+
     Operator: function (r: any) {
         return h.combineOperators(operators, P.MonadicParser.alt(r.Parens, r.Expression));
     },
@@ -155,9 +202,12 @@ const lang = P.MonadicParser.createLanguage({
         return P.MonadicParser.seq(
             P.MonadicParser.lookahead(r.AtomPrefix),
             P.MonadicParser.seq(
+		r.ResnoRange.or(P.MonadicParser.of(null)),
                 r.Resno.or(P.MonadicParser.of(null)),
+//		r.Resno2.or(P.MonadicParser.of(null)),
                 r.Inscode.or(P.MonadicParser.of(null)),
                 r.Chainname.or(P.MonadicParser.of(null)),
+//		r.Chainname2.or(P.MonadicParser.of(null)),
                 r.Atomname.or(P.MonadicParser.of(null)),
                 r.Altloc.or(P.MonadicParser.of(null)),
                 r.Model.or(P.MonadicParser.of(null))),
@@ -166,12 +216,13 @@ const lang = P.MonadicParser.createLanguage({
 
     AtomPrefix: () => P.MonadicParser.regexp(/[0-9:^%/.]/).desc('atom-prefix'),
     Chainname: () => P.MonadicParser.regexp(/:([A-Za-z]{1,3})/, 1).desc('chainname'),
+//    Chainname2: () => P.MonadicParser.regexp(/\*([A-Za-z]{1,3})/, 1).desc('chainname'),
     Model: () => P.MonadicParser.regexp(/\/([0-9]+)/, 1).map(Number).desc('model'),
     Element: () => P.MonadicParser.regexp(/_([A-Za-z]{1,3})/, 1).desc('element'),
     Atomname: () => P.MonadicParser.regexp(/\.([a-zA-Z0-9]{1,4})/, 1).map(B.atomName).desc('atomname'),
     Resname: () => P.MonadicParser.regexp(/[a-zA-Z0-9]{1,4}/).desc('resname'),
     Resno: (r: any) => r.Integer.desc('resno'),
-    Resno2: (r: any) => r.split(',').Integer.desc('resno'),
+//    Resno2: (r: any) => r.split(',').Integer.desc('resno'),
     Altloc: () => P.MonadicParser.regexp(/%([a-zA-Z0-9])/, 1).desc('altloc'),
     Inscode: () => P.MonadicParser.regexp(/\^([a-zA-Z0-9])/, 1).desc('inscode'),
 
