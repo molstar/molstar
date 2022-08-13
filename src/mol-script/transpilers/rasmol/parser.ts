@@ -12,7 +12,9 @@ import * as h from '../helper';
 import { MolScriptBuilder } from '../../../mol-script/language/builder';
 const B = MolScriptBuilder;
 import { properties, structureMap, structureDict } from './properties';
-import { special } from './special';
+import { special_properties } from './special_properties';
+import { special_keywords } from './special_keywords';
+import { special_operators } from './special_operators';
 import { operators } from './operators';
 import { keywords } from './keywords';
 import { AtomGroupArgs } from '../types';
@@ -22,6 +24,38 @@ import { OperatorList } from '../types';
 // const propertiesDict = h.getPropertyRules(properties);
 
 // const slash = P.MonadicParser.string('/');
+
+const propertiesDict = h.getPropertyRules(special_properties);
+
+const slash = P.MonadicParser.string('/');
+
+/* is Parser -> MonadicParser substitution correct? */
+function orNull(rule: P.MonadicParser<any>) {
+    return rule.or(P.MonadicParser.of(null));
+}
+
+
+function atomSelectionQuery2(x: any) {
+    const tests: AtomGroupArgs = {};
+    const props: { [k: string]: any[] } = {};
+
+    for (const k in x) {
+        const ps = special_properties[k];
+        if (!ps) {
+            throw new Error(`property '${k}' not supported, value '${x[k]}'`);
+        }
+        if (x[k] === null) continue;
+        if (!props[ps.level]) props[ps.level] = [];
+        props[ps.level].push(x[k]);
+    }
+
+    for (const p in props) {
+        tests[p] = h.andExpr(props[p]);
+    }
+
+    return B.struct.generator.atomGroups(tests);
+}
+
 
 
 // <, <=, =, >=, >, !=, and LIKE
@@ -127,23 +161,77 @@ const lang = P.MonadicParser.createLanguage({
     Expression: function (r: any) {
         return P.MonadicParser.alt(
 	    //	    r.NamedAtomProperties,
-	    r.RangeListProperty,
-	    r.Keywords,
-	    r.Resno.lookahead(P.MonadicParser.regexp(/\s*(?!(LIKE|>=|<=|!=|[:^%/.=><]))/i)).map((x: any) => B.struct.generator.atomGroups({
-                'residue-test': B.core.rel.eq([B.ammp('auth_seq_id'), x])
-	    })),
-	    r.AtomExpression.map(atomExpressionQuery),
-
-	    r.ValueQuery,
-
-	    r.Element.map((x: string) => B.struct.generator.atomGroups({
-                'atom-test': B.core.rel.eq([B.acp('elementSymbol'), B.struct.type.elementSymbol(x)])
-	    })),
-	    r.Resname.map((x: string) => B.struct.generator.atomGroups({
-                'residue-test': B.core.rel.eq([B.ammp('label_comp_id'), x])
-	    })),
+	    r.AtomSelectionMacro.map(atomSelectionQuery2),
         );
     },
+
+        AtomSelectionMacro: function (r: any) {
+        return P.MonadicParser.alt(
+            slash.then(P.MonadicParser.alt(
+                P.MonadicParser.seq(
+                    orNull(r.ObjectProperty).skip(slash),
+                    orNull(propertiesDict.segi).skip(slash),
+                    orNull(propertiesDict.chain).skip(slash),
+                    orNull(propertiesDict.resi).skip(slash),
+                    orNull(propertiesDict.name)
+                ).map(x => { return { object: x[0], segi: x[1], chain: x[2], resi: x[3], name: x[4] }; }),
+                P.MonadicParser.seq(
+                    orNull(r.ObjectProperty).skip(slash),
+                    orNull(propertiesDict.segi).skip(slash),
+                    orNull(propertiesDict.chain).skip(slash),
+                    orNull(propertiesDict.resi)
+                ).map(x => { return { object: x[0], segi: x[1], chain: x[2], resi: x[3] }; }),
+                P.MonadicParser.seq(
+                    orNull(r.ObjectProperty).skip(slash),
+                    orNull(propertiesDict.segi).skip(slash),
+                    orNull(propertiesDict.chain)
+                ).map(x => { return { object: x[0], segi: x[1], chain: x[2] }; }),
+                P.MonadicParser.seq(
+                    orNull(r.ObjectProperty).skip(slash),
+                    orNull(propertiesDict.segi)
+                ).map(x => { return { object: x[0], segi: x[1] }; }),
+                P.MonadicParser.seq(
+                    orNull(r.ObjectProperty)
+                ).map(x => { return { object: x[0] }; }),
+            )),
+            P.MonadicParser.alt(
+                P.MonadicParser.seq(
+                    orNull(r.ObjectProperty).skip(slash),
+                    orNull(propertiesDict.segi).skip(slash),
+                    orNull(propertiesDict.chain).skip(slash),
+                    orNull(propertiesDict.resi).skip(slash),
+                    orNull(propertiesDict.name)
+                ).map(x => { return { object: x[0], segi: x[1], chain: x[2], resi: x[3], name: x[4] }; }),
+                P.MonadicParser.seq(
+                    orNull(propertiesDict.segi).skip(slash),
+                    orNull(propertiesDict.chain).skip(slash),
+                    orNull(propertiesDict.resi).skip(slash),
+                    orNull(propertiesDict.name)
+                ).map(x => { return { segi: x[0], chain: x[1], resi: x[2], name: x[3] }; }),
+                P.MonadicParser.seq(
+                    orNull(propertiesDict.chain).skip(slash),
+                    orNull(propertiesDict.resi).skip(slash),
+                    orNull(propertiesDict.name)
+                ).map(x => { return { chain: x[0], resi: x[1], name: x[2] }; }),
+                P.MonadicParser.seq(
+                    orNull(propertiesDict.resi).skip(slash),
+                    orNull(propertiesDict.name)
+                ).map(x => { return { resi: x[0], name: x[1] }; }),
+            )
+        );
+	},
+
+    ObjectProperty: () => {
+	const w = h.getReservedWords(special_properties, special_keywords, special_operators)
+              .sort(h.strLenSortFn).map(h.escapeRegExp).join('|');
+        return P.MonadicParser.regexp(new RegExp(`(?!(${w}))[A-Z0-9_]+`, 'i'));
+    },
+    Object: (r: any) => {
+        return r.ObjectProperty.notFollowedBy(slash)
+            .map((x: any) => { throw new Error(`property 'object' not supported, value '${x}'`); });
+    },
+
+
 
     NamedAtomProperties: function () {
         return P.MonadicParser.alt(...h.getNamedPropertyRules(properties));
@@ -159,7 +247,7 @@ const lang = P.MonadicParser.createLanguage({
 
     RangeListProperty: function (r: any) {
         return P.MonadicParser.seq(
-            P.MonadicParser.alt(...h.getPropertyNameRules(special, /\s/))
+            P.MonadicParser.alt(...h.getPropertyNameRules(special_properties, /\s/))
                 .skip(P.MonadicParser.whitespace),
             P.MonadicParser.alt(
                 r.ValueRange,
