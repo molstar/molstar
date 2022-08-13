@@ -16,7 +16,14 @@ const rePosInt = /[0-9]+/;
 
 function str(x: string) { return x; }
 
-const structureDict: {[key: string]: string} = {
+export function sstrucMap(x: string) {
+    return B.struct.type.secondaryStructureFlags(
+        [structureDict[x.toUpperCase()] || 'none']
+    );
+}
+
+
+export const structureDict: {[key: string]: string} = {
     none: 'none',
     turn: 'turn',
     sheet: 'beta',
@@ -445,6 +452,14 @@ export const properties: PropertyDict = {
         isNumeric: true,
         regex: /-?[0-9]+/, map: x => parseInt(x),
         level: 'residue-test', property: B.ammp('auth_seq_id')
+    },
+    hoge: {
+        '@desc': 'PDB residue number, not including insertion code (see also seqcode, below)',
+        '@examples': ['resno = 100'],
+//        isNumeric: true,
+        regex: /-?[0-9]+/, map: x => parseInt(x),
+        level: 'residue-test', property: B.ammp('auth_seq_id')
+
     },
     selected: {
         '@desc': '1.0 if atom is selected; 0.0 if not',
