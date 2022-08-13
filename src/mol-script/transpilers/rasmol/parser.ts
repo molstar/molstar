@@ -30,7 +30,11 @@ const propertiesDict = h.getPropertyRules(special_properties);
 const slash = P.MonadicParser.string('/');
 const dot = P.MonadicParser.string('.');
 const colon = P.MonadicParser.string(':');
+const comma = P.MonadicParser.string(',');
 const star = P.MonadicParser.string('*');
+const bra = P.MonadicParser.string('[');
+const ket = P.MonadicParser.string(']');
+const numbers = P.MonadicParser.regexp(/[0-9]/);
 
 /* is Parser -> MonadicParser substitution correct? */
 function orNull(rule: P.MonadicParser<any>) {
@@ -164,7 +168,20 @@ const lang = P.MonadicParser.createLanguage({
     Expression: function (r: any) {
         return P.MonadicParser.alt(
 	    //	    r.NamedAtomProperties,
+//	    r.AtomExpression.map(atomExpressionQuery),
 	    r.AtomSelectionMacro.map(atomSelectionQuery2),
+//	    r.AtomSelectionMacroResi.map(atomSelectionQuery2),
+//	    r.Keywords,
+//            r.Resno.lookahead(P.MonadicParser.regexp(/\s*(?!(LIKE|>=|<=|!=|[:^%/.=><]))/i)).map((x: any) => B.struct.generator.atomGroups({
+//                'residue-test': B.core.rel.eq([B.ammp('auth_seq_id'), x])
+//            })),
+//            r.ValueQuery,
+  //          r.Element.map((x: string) => B.struct.generator.atomGroups({
+//                'atom-test': B.core.rel.eq([B.acp('elementSymbol'), B.struct.type.elementSymbol(x)])
+  //          })),
+  //          r.Resname.map((x: string) => B.struct.generator.atomGroups({
+    //            'residue-test': B.core.rel.eq([B.ammp('label_comp_id'), x])
+      //      })),
         );
     },
 
@@ -197,12 +214,13 @@ const lang = P.MonadicParser.createLanguage({
                     orNull(propertiesDict.name).skip(dot)
                 ).map(x => { return {name: x[0] }; }),
             )),
-	    P.MonadicParser.alt(
-                P.MonadicParser.seq(
-                    orNull(propertiesDict.resi),
-                ).map(x => { return { resi: x[0]}; }),
-	    ),
-	    // 1-100 lys:a.ca lys:a lys lys.ca	  
+	    // 1-100 lys:a.ca lys:a lys lys.ca
+//	    numbers.then(P.MonadicParser.alt(
+//		P.MonadicParser.alt(
+//		    P.MonadicParser.seq(
+//			orNull(propertiesDict.resi),
+//		    ).map(x => { return { resi: x[0] };})
+//		))),
             P.MonadicParser.alt(
                 P.MonadicParser.seq(
                     orNull(propertiesDict.resn).skip(colon),
@@ -226,12 +244,22 @@ const lang = P.MonadicParser.createLanguage({
                     orNull(propertiesDict.resn).skip(dot),
                     orNull(propertiesDict.name),
                 ).map(x => { return { resn: x[0], name: x[1] }; }),
-                P.MonadicParser.seq(
-                    orNull(propertiesDict.resn)
-                ).map(x => {  return { resn: x[0] };}),
+		P.MonadicParser.seq(
+                    orNull(propertiesDict.resn),
+		).map(x => {  return { resn: x[0] };}),
 	    ),
         );
-	},
+    },
+
+    AtomSelectionMacroResi: function (r: any) {
+        return P.MonadicParser.alt(
+            P.MonadicParser.alt(
+                P.MonadicParser.seq(
+                    orNull(propertiesDict.resi)
+                ).map(x => {  return { resi: x[0] };}),
+	    ),
+        );
+    },
 
     ObjectProperty: () => {
 	const w = h.getReservedWords(special_properties, special_keywords, special_operators)
@@ -264,7 +292,7 @@ const lang = P.MonadicParser.createLanguage({
             P.MonadicParser.alt(
                 r.ValueRange,
                 r.Value
-            ).sepBy1(P.MonadicParser.comma)
+            ).sepBy1(comma)
         ).map(x => {
             const [property, values] = x;
             const listValues: (string | number)[] = [];
