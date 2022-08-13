@@ -32,8 +32,8 @@ const dot = P.MonadicParser.string('.');
 const colon = P.MonadicParser.string(':');
 const comma = P.MonadicParser.string(',');
 const star = P.MonadicParser.string('*');
-const bra = P.MonadicParser.string('[');
-const ket = P.MonadicParser.string(']');
+const bra = P.MonadicParser.string('(');
+const ket = P.MonadicParser.string(')');
 const numbers = P.MonadicParser.regexp(/[0-9]/);
 
 /* is Parser -> MonadicParser substitution correct? */
@@ -167,21 +167,26 @@ const lang = P.MonadicParser.createLanguage({
 
     Expression: function (r: any) {
         return P.MonadicParser.alt(
-	    //	    r.NamedAtomProperties,
-//	    r.AtomExpression.map(atomExpressionQuery),
-	    r.AtomSelectionMacro.map(atomSelectionQuery2),
-//	    r.AtomSelectionMacroResi.map(atomSelectionQuery2),
 //	    r.Keywords,
-//            r.Resno.lookahead(P.MonadicParser.regexp(/\s*(?!(LIKE|>=|<=|!=|[:^%/.=><]))/i)).map((x: any) => B.struct.generator.atomGroups({
-//                'residue-test': B.core.rel.eq([B.ammp('auth_seq_id'), x])
+//	    r.ValueQuery,
+	    r.AtomSelectionMacro.map(atomSelectionQuery2),
+	    r.AtomSelectionMacroResi.map(atomSelectionQuery2),
+//	    r.NamedAtomProperties,
+  
+
+  //          r.Resno.lookahead(P.MonadicParser.regexp(/\s*(?!(LIKE|>=|<=|!=|[:^%/.=><]))/i)).map((x: any) => B.struct.generator.atomGroups({	
+  //              'residue-test': B.core.rel.eq([B.ammp('auth_seq_id'), x])		
 //            })),
-//            r.ValueQuery,
-  //          r.Element.map((x: string) => B.struct.generator.atomGroups({
+//	    r.Atomno.lookahead(P.MonadicParser.regexp(/\s*(?!(LIKE|>=|<=|!=|[:^%/.=><]))/i)).map((x: any) => B.struct.generator.atomGroups({	
+  //              'atom-test': B.core.rel.eq([B.ammp('id'), x])		
+//            })),
+
+//            r.Element.map((x: string) => B.struct.generator.atomGroups({
 //                'atom-test': B.core.rel.eq([B.acp('elementSymbol'), B.struct.type.elementSymbol(x)])
-  //          })),
-  //          r.Resname.map((x: string) => B.struct.generator.atomGroups({
-    //            'residue-test': B.core.rel.eq([B.ammp('label_comp_id'), x])
-      //      })),
+//            })),
+//            r.Resname.map((x: string) => B.struct.generator.atomGroups({
+//		'residue-test': B.core.rel.eq([B.ammp('label_comp_id'), x])
+//            })),	  
         );
     },
 
@@ -215,40 +220,44 @@ const lang = P.MonadicParser.createLanguage({
                 ).map(x => { return {name: x[0] }; }),
             )),
 	    // 1-100 lys:a.ca lys:a lys lys.ca
-//	    numbers.then(P.MonadicParser.alt(
-//		P.MonadicParser.alt(
-//		    P.MonadicParser.seq(
-//			orNull(propertiesDict.resi),
-//		    ).map(x => { return { resi: x[0] };})
-//		))),
-            P.MonadicParser.alt(
-                P.MonadicParser.seq(
-                    orNull(propertiesDict.resn).skip(colon),
-                    orNull(propertiesDict.chain).skip(dot),
-                    orNull(propertiesDict.name)
-                ).map(x => { return { resn: x[0], chain: x[1], name: x[2] }; }),
-		P.MonadicParser.seq(
-                    orNull(propertiesDict.resn).skip(star),
-                    orNull(propertiesDict.chain).skip(dot),
-                    orNull(propertiesDict.name)
-                ).map(x => { return { resn: x[0], chain: x[1], name: x[2] }; }),
-                P.MonadicParser.seq(
-                    orNull(propertiesDict.resn).skip(colon),
-                    orNull(propertiesDict.chain),
-                ).map(x => { return { resn: x[0], chain: x[1] }; }),
-		P.MonadicParser.seq(
-                    orNull(propertiesDict.resn).skip(star),
-                    orNull(propertiesDict.chain),
-                ).map(x => { return { resn: x[0], chain: x[1] }; }),
-		P.MonadicParser.seq(
-                    orNull(propertiesDict.resn).skip(dot),
-                    orNull(propertiesDict.name),
-                ).map(x => { return { resn: x[0], name: x[1] }; }),
-		P.MonadicParser.seq(
-                    orNull(propertiesDict.resn),
-		).map(x => {  return { resn: x[0] };}),
-	    ),
-        );
+	    bra.then(P.MonadicParser.alt(
+		P.MonadicParser.alt(
+		    P.MonadicParser.seq(
+			orNull(propertiesDict.resi).skip(ket),
+		    ).map(x => { return { resi: x[0] };})
+		))),
+	    P.MonadicParser.alt(
+		P.MonadicParser.alt(
+                    P.MonadicParser.seq(
+			orNull(propertiesDict.resn).skip(colon),
+			orNull(propertiesDict.chain).skip(dot),
+			orNull(propertiesDict.name)
+                    ).map(x => { return { resn: x[0], chain: x[1], name: x[2] }; }),
+		    P.MonadicParser.seq(
+			orNull(propertiesDict.resn).skip(star),
+			orNull(propertiesDict.chain).skip(dot),
+			orNull(propertiesDict.name)
+                    ).map(x => { return { resn: x[0], chain: x[1], name: x[2] }; }),
+                    P.MonadicParser.seq(
+			orNull(propertiesDict.resn).skip(colon),
+			orNull(propertiesDict.chain),
+                    ).map(x => { return { resn: x[0], chain: x[1] }; }),
+		    P.MonadicParser.seq(
+			orNull(propertiesDict.resn).skip(star),
+			orNull(propertiesDict.chain),
+                    ).map(x => { return { resn: x[0], chain: x[1] }; }),
+		    P.MonadicParser.seq(
+			orNull(propertiesDict.resn).skip(dot),
+			orNull(propertiesDict.name),
+                    ).map(x => { return { resn: x[0], name: x[1] }; }),
+		    P.MonadicParser.seq(
+			orNull(propertiesDict.resn),
+		    ).map(x => {  return { resn: x[0] };}),
+		)
+	    )		  
+	    
+	)
+		    
     },
 
     AtomSelectionMacroResi: function (r: any) {
@@ -330,8 +339,9 @@ const lang = P.MonadicParser.createLanguage({
         return P.MonadicParser.seq(
             P.MonadicParser.lookahead(r.AtomPrefix),
             P.MonadicParser.seq(
-		r.ResnoRange.or(P.MonadicParser.of(null)),
+//		r.ResnoRange.or(P.MonadicParser.of(null)),
                 r.Resno.or(P.MonadicParser.of(null)),
+		r.Atomno.or(P.MonadicParser.of(null)),
 //		r.Resno2.or(P.MonadicParser.of(null)),
                 r.Inscode.or(P.MonadicParser.of(null)),
                 r.Chainname.or(P.MonadicParser.of(null)),
@@ -350,6 +360,7 @@ const lang = P.MonadicParser.createLanguage({
     Atomname: () => P.MonadicParser.regexp(/\.([a-zA-Z0-9]{1,4})/, 1).map(B.atomName).desc('atomname'),
     Resname: () => P.MonadicParser.regexp(/[a-zA-Z0-9]{1,4}/).desc('resname'),
     Resno: (r: any) => r.Integer.desc('resno'),
+    Atomno: (r: any) => r.Integer.desc('atomno'),
 //    Resno2: (r: any) => r.split(',').Integer.desc('resno'),
     Altloc: () => P.MonadicParser.regexp(/%([a-zA-Z0-9])/, 1).desc('altloc'),
     Inscode: () => P.MonadicParser.regexp(/\^([a-zA-Z0-9])/, 1).desc('inscode'),

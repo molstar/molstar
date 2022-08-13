@@ -38,7 +38,7 @@ export const operators: OperatorList = [
         '@examples': ['ASP or GLU'],
         name: 'or',
         type: h.binaryLeft,
-        rule: h.infixOp(/OR|\|/i),
+        rule: h.infixOp(/OR|\||\|\|/i),
         map: (op, s1, s2) => B.struct.combinator.merge([s1, s2])
     }
 ];

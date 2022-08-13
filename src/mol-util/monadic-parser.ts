@@ -470,7 +470,6 @@ export namespace MonadicParser {
     export const letters = regexp(/[a-z]*/i).desc('optional letters');
     export const optWhitespace = regexp(/\s*/).desc('optional whitespace');
     export const whitespace = regexp(/\s+/).desc('whitespace');
-    export const comma = regexp(/,/).desc('comma');
     export const cr = string('\r');
     export const lf = string('\n');
     export const crlf = string('\r\n');
