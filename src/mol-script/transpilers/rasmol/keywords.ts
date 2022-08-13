@@ -20,18 +20,21 @@ function nucleicExpr() {
     return B.struct.combinator.merge([
         B.struct.generator.atomGroups({
 	  'residue-test': B.core.set.has([
-                B.set(...['G', 'C', 'A', 'T', 'U', 'I', 'DG', 'DC', 'DA', 'DT', 'DU', 'DI', '+G', '+C', '+A', '+T', '+U', '+I']),
+              B.core.type.set(['G', 'C', 'A', 'T', 'U', 'I', 'DG', 'DC', 'DA', 'DT', 'DU', 'DI', '+G', '+C', '+A', '+T', '+U', '+I']),
                 B.ammp('label_comp_id')
 	  ])
         }),
         B.struct.filter.pick({
-	  0: B.struct.generator.atomGroups({
+	    0: B.struct.generator.atomGroups({
                 'group-by': B.ammp('residueKey')
-	  }),
-	  test: B.core.logic.and([
-                B.core.rel.eq([B.struct.atomSet.atomCount(), 1]),
-                B.core.rel.eq([B.ammp('label_atom_id'), B.atomName('P')]),
-	  ])
+	    }),
+	    test: B.core.logic.and([
+              B.core.set.isSubset([
+                // B.core.type.set([ 'P', 'O1P', 'O2P' ]),
+                h.atomNameSet(['P']),
+                B.ammpSet('label_atom_id')
+              ]),
+	    ])
         }),
         B.struct.filter.pick({
 	  0: B.struct.generator.atomGroups({

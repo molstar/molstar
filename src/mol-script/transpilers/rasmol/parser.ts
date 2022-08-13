@@ -125,7 +125,7 @@ const lang = P.MonadicParser.createLanguage({
 
     Expression: function (r: any) {
         return P.MonadicParser.alt(
-	    r.NamedAtomProperties,
+//	    r.NamedAtomProperties,
 	    r.Keywords,
 	    r.Resno.lookahead(P.MonadicParser.regexp(/\s*(?!(LIKE|>=|<=|!=|[:^%/.=><]))/i)).map((x: any) => B.struct.generator.atomGroups({
                 'residue-test': B.core.rel.eq([B.ammp('auth_seq_id'), x])
