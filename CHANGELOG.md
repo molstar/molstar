@@ -8,6 +8,12 @@ Note that since we don't clearly distinguish between a public and private interf
 
 - Expose inter-bonds compute params in structure
 - Improve performance of inter/intra-bonds compute
+- Fix defaultAttribs handling in Canvas3DContext.fromCanvas
+- Add custom labels to Confal pyramids
+- Improve naming of some internal types in Confal pyramids extension coordinate
+- Add example mmCIF file with categories necessary to display Confal pyramids
+- Change the lookup logic of NtC steps from residues
+- Add support for download of gzipped files
 
 ## [v3.13.0] - 2022-07-24
 

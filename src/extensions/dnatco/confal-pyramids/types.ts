@@ -6,10 +6,13 @@
  */
 
 import { DataLocation } from '../../../mol-model/location';
-import { ElementIndex, Structure, StructureElement, Unit } from '../../../mol-model/structure';
+import { DataLoci } from '../../../mol-model/loci';
+import { confalPyramidLabel } from './behavior';
 
 export namespace ConfalPyramidsTypes {
-    export type Pyramid = {
+    export const DataTag = 'dnatco-confal-half-pyramid';
+
+    export type Step = {
         PDB_model_number: number,
         name: string,
         auth_asym_id_1: string,
@@ -23,38 +26,40 @@ export namespace ConfalPyramidsTypes {
         label_alt_id_2: string,
         PDB_ins_code_2: string,
         confal_score: number,
-        NtC: string
+        NtC: string,
+        rmsd: number,
     }
 
-    export interface PyramidsData {
-        pyramids: Array<Pyramid>,
-        names: Map<string, number>,
-        locations: Array<Location>,
-        hasMultipleModels: boolean
+    export type MappedChains = Map<string, MappedResidues>;
+    export type MappedResidues = Map<number, number[]>;
+
+    export interface Steps {
+        steps: Array<Step>,
+        mapping: MappedChains[],
     }
 
-    export interface LocationData {
-        readonly pyramid: Pyramid
-        readonly isLower: boolean;
+    export interface HalfPyramid {
+        step: Step,
+        isLower: boolean,
     }
 
-    export interface Element {
-        structure: Structure;
-        unit: Unit.Atomic;
-        element: ElementIndex;
-    }
+    export interface Location extends DataLocation<HalfPyramid, {}> {}
 
-    export interface Location extends DataLocation<LocationData, Element> {}
-
-    export function Location(pyramid: Pyramid, isLower: boolean, structure?: Structure, unit?: Unit.Atomic, element?: ElementIndex) {
-        return DataLocation('pyramid', { pyramid, isLower }, { structure: structure as any, unit: unit as any, element: element as any });
+    export function Location(step: Step, isLower: boolean) {
+        return DataLocation(DataTag, { step, isLower }, {});
     }
 
     export function isLocation(x: any): x is Location {
-        return !!x && x.kind === 'data-location' && x.tag === 'pyramid';
+        return !!x && x.kind === 'data-location' && x.tag === DataTag;
     }
 
-    export function toElementLocation(location: Location) {
-        return StructureElement.Location.create(location.element.structure, location.element.unit, location.element.element);
+    export interface Loci extends DataLoci<HalfPyramid, {}> {}
+
+    export function Loci(data: HalfPyramid, elements: ReadonlyArray<{}>): Loci {
+        return DataLoci(DataTag, data, elements, undefined, () => confalPyramidLabel(data));
+    }
+
+    export function isLoci(x: any): x is Loci {
+        return !!x && x.kind === 'data-loci' && x.tag === DataTag;
     }
 }

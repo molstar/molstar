@@ -8,7 +8,7 @@
 import { ConfalPyramidsColorThemeProvider } from './color';
 import { ConfalPyramids, ConfalPyramidsProvider } from './property';
 import { ConfalPyramidsRepresentationProvider } from './representation';
-import { Loci } from '../../../mol-model/loci';
+import { ConfalPyramidsTypes } from './types';
 import { PluginBehavior } from '../../../mol-plugin/behavior/behavior';
 import { StructureRepresentationPresetProvider, PresetStructureRepresentations } from '../../../mol-plugin-state/builder/structure/representation-preset';
 import { StateObjectRef } from '../../../mol-state';
@@ -56,21 +56,10 @@ export const DnatcoConfalPyramids = PluginBehavior.create<{ autoAttach: boolean,
         description: 'Schematic depiction of conformer class and confal value.',
     },
     ctor: class extends PluginBehavior.Handler<{ autoAttach: boolean, showToolTip: boolean }> {
-
         private provider = ConfalPyramidsProvider;
-
-        private labelConfalPyramids = {
-            label: (loci: Loci): string | undefined => {
-                if (!this.params.showToolTip) return void 0;
-
-                /* TODO: Implement this */
-                return void 0;
-            }
-        };
 
         register(): void {
             this.ctx.customModelProperties.register(this.provider, this.params.autoAttach);
-            this.ctx.managers.lociLabels.addProvider(this.labelConfalPyramids);
 
             this.ctx.representation.structure.themes.colorThemeRegistry.add(ConfalPyramidsColorThemeProvider);
             this.ctx.representation.structure.registry.add(ConfalPyramidsRepresentationProvider);
@@ -88,7 +77,6 @@ export const DnatcoConfalPyramids = PluginBehavior.create<{ autoAttach: boolean,
 
         unregister() {
             this.ctx.customModelProperties.unregister(ConfalPyramidsProvider.descriptor.name);
-            this.ctx.managers.lociLabels.removeProvider(this.labelConfalPyramids);
 
             this.ctx.representation.structure.registry.remove(ConfalPyramidsRepresentationProvider);
             this.ctx.representation.structure.themes.colorThemeRegistry.remove(ConfalPyramidsColorThemeProvider);
@@ -101,3 +89,13 @@ export const DnatcoConfalPyramids = PluginBehavior.create<{ autoAttach: boolean,
         showToolTip: PD.Boolean(true)
     })
 });
+
+export function confalPyramidLabel(halfPyramid: ConfalPyramidsTypes.HalfPyramid) {
+    const { step } = halfPyramid;
+    return `
+        <b>${step.auth_asym_id_1}</b> |
+        <b>${step.label_comp_id_1} ${step.auth_seq_id_1}${step.PDB_ins_code_1}${step.label_alt_id_1.length > 0 ? ` (alt ${step.label_alt_id_1})` : ''}
+           ${step.label_comp_id_2} ${step.auth_seq_id_2}${step.PDB_ins_code_2}${step.label_alt_id_2.length > 0 ? ` (alt ${step.label_alt_id_2})` : ''} </b><br />
+        <i>NtC:</i> ${step.NtC} | <i>Confal score:</i> ${step.confal_score} | <i>RMSD:</i> ${step.rmsd.toFixed(2)}
+    `;
+}
