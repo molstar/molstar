@@ -21,6 +21,7 @@ function rangeMap(x: string) {
 function listOrRangeMap(x: string) {
     if (x.includes('-') && x.includes(',')){
 	const pSplit = x.split(',').map(x => x.replace(/^["']|["']$/g, ''));
+	console.log(pSplit)
 	const res : number[] =[];
 	pSplit.forEach( x => {
 	    if (x.includes('-')){
@@ -32,16 +33,17 @@ function listOrRangeMap(x: string) {
 		res.push(parseInt(x));
 	    }
 	});
-//	console.log(res)
 	return res;		    	
     }else if(x.includes('-') && !x.includes(',')){
 	return rangeMap(x)
     }else if(!x.includes('-') && x.includes(',')){
-	return listMap(x)
+	return listMap(x).map(x => parseInt(x));
+    }else{	
+	return parseInt(x);
     }
 }
 function elementListMap(x: string) {
-    return x.split('+').map(B.struct.type.elementSymbol);
+    return x.split(',').map(B.struct.type.elementSymbol);
 }
 
 //const sstrucDict: { [k: string]: string } = {
