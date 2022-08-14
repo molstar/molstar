@@ -11,7 +11,7 @@ import { RenderableSchema } from '../renderable/schema';
 import { idFactory } from '../../mol-util/id-factory';
 import { Framebuffer } from './framebuffer';
 import { isWebGL2, GLRenderingContext } from './compat';
-import { ValueOf } from '../../mol-util/type-helpers';
+import { isPromiseLike, ValueOf } from '../../mol-util/type-helpers';
 import { WebGLExtensions } from './extensions';
 import { objectForEach } from '../../mol-util/object';
 
@@ -424,14 +424,10 @@ export function loadImageTexture(src: string, cell: ValueCell<Texture>, texture:
 
 //
 
-export interface ImageTexture extends Texture {
-    readonly isLoaded: boolean;
-}
-
 export type CubeSide = 'nx' | 'ny' | 'nz' | 'px' | 'py' | 'pz';
 
 export type CubeFaces = {
-    [k in CubeSide]: string;
+    [k in CubeSide]: string | File | Promise<Blob>;
 }
 
 export function getCubeTarget(gl: GLRenderingContext, side: CubeSide): number {
@@ -445,50 +441,61 @@ export function getCubeTarget(gl: GLRenderingContext, side: CubeSide): number {
     }
 }
 
-export function createCubeTexture(gl: GLRenderingContext, faces: CubeFaces, size: number, onload?: () => void): ImageTexture {
+export function createCubeTexture(gl: GLRenderingContext, faces: CubeFaces, mipmaps: boolean, onload?: () => void): Texture {
     const target = gl.TEXTURE_CUBE_MAP;
     const filter = gl.LINEAR;
     const internalFormat = gl.RGBA;
     const format = gl.RGBA;
     const type = gl.UNSIGNED_BYTE;
 
-    const width = size;
-    const height = size;
+    let size = 0;
 
     const texture = gl.createTexture();
     gl.bindTexture(target, texture);
 
     let loadedCount = 0;
-    objectForEach(faces, (url, side) => {
+    objectForEach(faces, (source, side) => {
+        if (!source) return;
+
         const level = 0;
         const cubeTarget = getCubeTarget(gl, side as CubeSide);
 
-        gl.texImage2D(cubeTarget, level, internalFormat, width, height, 0, format, type, null);
-        if (!url) return;
-
         const image = new Image();
-        image.src = url;
+        if (source instanceof File) {
+            image.src = URL.createObjectURL(source);
+        } else if (isPromiseLike(source)) {
+            source.then(blob => {
+                image.src = URL.createObjectURL(blob);
+            });
+        } else {
+            image.src = source;
+        }
         image.addEventListener('load', () => {
+            if (size === 0) size = image.width;
+
+            gl.texImage2D(cubeTarget, level, internalFormat, size, size, 0, format, type, null);
             gl.pixelStorei(gl.UNPACK_ALIGNMENT, 4);
             gl.pixelStorei(gl.UNPACK_COLORSPACE_CONVERSION_WEBGL, gl.NONE);
             gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, 0);
             gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
             gl.bindTexture(target, texture);
             gl.texImage2D(cubeTarget, level, internalFormat, format, type, image);
-            gl.generateMipmap(target);
+
             loadedCount += 1;
-            if (loadedCount === 6) {
-                loaded = true;
-                if (!destroyed && onload) onload();
+            if (loadedCount === 6 && !destroyed) {
+                if (mipmaps) {
+                    gl.generateMipmap(target);
+                    gl.texParameteri(target, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+                } else {
+                    gl.texParameteri(target, gl.TEXTURE_MIN_FILTER, filter);
+                }
+                gl.texParameteri(target, gl.TEXTURE_MAG_FILTER, filter);
+                if (onload) onload();
             }
         });
     });
-    gl.generateMipmap(target);
-    gl.texParameteri(target, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
-    gl.texParameteri(target, gl.TEXTURE_MAG_FILTER, filter);
 
     let destroyed = false;
-    let loaded = false;
 
     return {
         id: getNextTextureId(),
@@ -498,14 +505,12 @@ export function createCubeTexture(gl: GLRenderingContext, faces: CubeFaces, size
         type,
         filter,
 
-        get isLoaded() {
-            return loaded;
-        },
-
-        getWidth: () => width,
-        getHeight: () => height,
+        getWidth: () => size,
+        getHeight: () => size,
         getDepth: () => 0,
-        getByteCount: () => getByteCount('rgba', 'ubyte', width, height, 0) * 6,
+        getByteCount: () => {
+            return getByteCount('rgba', 'ubyte', size, size, 0) * 6 * (mipmaps ? 2 : 1);
+        },
 
         define: () => {},
         load: () => {},

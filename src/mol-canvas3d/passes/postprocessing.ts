@@ -29,6 +29,7 @@ import { FxaaParams, FxaaPass } from './fxaa';
 import { SmaaParams, SmaaPass } from './smaa';
 import { isTimingMode } from '../../mol-util/debug';
 import { BackgroundParams, BackgroundPass } from './background';
+import { AssetManager } from '../../mol-util/assets';
 
 const OutlinesSchema = {
     ...QuadSchema,
@@ -275,7 +276,7 @@ export const PostprocessingParams = {
         smaa: PD.Group(SmaaParams),
         off: PD.Group({})
     }, { options: [['fxaa', 'FXAA'], ['smaa', 'SMAA'], ['off', 'Off']], description: 'Smooth pixel edges' }),
-    background: PD.Group(BackgroundParams, { isExpanded: true }),
+    background: PD.Group(BackgroundParams, { isFlat: true }),
 };
 export type PostprocessingProps = PD.Values<typeof PostprocessingParams>
 
@@ -323,7 +324,7 @@ export class PostprocessingPass {
     private readonly bgColor = Vec3();
     readonly background: BackgroundPass;
 
-    constructor(private webgl: WebGLContext, private drawPass: DrawPass) {
+    constructor(private readonly webgl: WebGLContext, assetManager: AssetManager, private readonly drawPass: DrawPass) {
         const { colorTarget, depthTextureTransparent, depthTextureOpaque } = drawPass;
         const width = colorTarget.getWidth();
         const height = colorTarget.getHeight();
@@ -374,7 +375,7 @@ export class PostprocessingPass {
         this.ssaoBlurSecondPassRenderable = getSsaoBlurRenderable(webgl, this.ssaoDepthBlurProxyTexture, 'vertical');
         this.renderable = getPostprocessingRenderable(webgl, colorTarget.texture, depthTextureOpaque, depthTextureTransparent, this.outlinesTarget.texture, this.ssaoDepthTexture);
 
-        this.background = new BackgroundPass(webgl, width, height);
+        this.background = new BackgroundPass(webgl, assetManager, width, height);
     }
 
     setSize(width: number, height: number) {

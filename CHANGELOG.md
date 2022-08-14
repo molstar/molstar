@@ -13,6 +13,12 @@ Note that since we don't clearly distinguish between a public and private interf
 - Add ``fov`` (Field of View) Canvas3D parameter
 - Add ``sceneRadiusFactor`` Canvas3D parameter
 - Add background pass (skybox, image, horizontal/radial gradient)
+    - Set simple-settings presets via ``PluginConfig.Background.Styles``
+    - Example presets in new backgrounds extension
+    - Load skybox/image from URL or File (saved in session)
+    - Opacity, saturation, lightness controls for skybox/image
+    - Coverage (viewport or canvas) controls for image/gradient
+- [Breaking] ``AssetManager`` needs to be passed to various graphics related classes
 
 ## [v3.13.0] - 2022-07-24
 

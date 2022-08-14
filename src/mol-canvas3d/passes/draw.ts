@@ -21,6 +21,7 @@ import { AntialiasingPass, PostprocessingPass, PostprocessingProps } from './pos
 import { MarkingPass, MarkingProps } from './marking';
 import { CopyRenderable, createCopyRenderable } from '../../mol-gl/compute/util';
 import { isTimingMode } from '../../mol-util/debug';
+import { AssetManager } from '../../mol-util/assets';
 
 type Props = {
     postprocessing: PostprocessingProps;
@@ -59,7 +60,7 @@ export class DrawPass {
         return !!this.wboit?.supported;
     }
 
-    constructor(private webgl: WebGLContext, width: number, height: number, enableWboit: boolean) {
+    constructor(private webgl: WebGLContext, assetManager: AssetManager, width: number, height: number, enableWboit: boolean) {
         const { extensions, resources, isWebGL2 } = webgl;
 
         this.drawTarget = createNullRenderTarget(webgl.gl);
@@ -78,7 +79,7 @@ export class DrawPass {
 
         this.wboit = enableWboit ? new WboitPass(webgl, width, height) : undefined;
         this.marking = new MarkingPass(webgl, width, height);
-        this.postprocessing = new PostprocessingPass(webgl, this);
+        this.postprocessing = new PostprocessingPass(webgl, assetManager, this);
         this.antialiasing = new AntialiasingPass(webgl, this);
 
         this.copyFboTarget = createCopyRenderable(webgl, this.colorTarget.texture);

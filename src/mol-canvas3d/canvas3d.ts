@@ -40,8 +40,8 @@ import { Passes } from './passes/passes';
 import { shallowEqual } from '../mol-util';
 import { MarkingParams } from './passes/marking';
 import { GraphicsRenderVariantsBlended, GraphicsRenderVariantsWboit } from '../mol-gl/webgl/render-item';
-import { BackgroundPass } from './passes/background';
 import { degToRad, radToDeg } from '../mol-math/misc';
+import { AssetManager } from '../mol-util/assets';
 
 export const Canvas3DParams = {
     camera: PD.Group({
@@ -110,6 +110,7 @@ interface Canvas3DContext {
     readonly attribs: Readonly<Canvas3DContext.Attribs>
     readonly contextLost: BehaviorSubject<now.Timestamp>
     readonly contextRestored: BehaviorSubject<now.Timestamp>
+    readonly assetManager: AssetManager
     dispose: (options?: Partial<{ doNotForceWebGLContextLoss: boolean }>) => void
 }
 
@@ -128,7 +129,7 @@ namespace Canvas3DContext {
     };
     export type Attribs = typeof DefaultAttribs
 
-    export function fromCanvas(canvas: HTMLCanvasElement, attribs: Partial<Attribs> = {}): Canvas3DContext {
+    export function fromCanvas(canvas: HTMLCanvasElement, assetManager: AssetManager, attribs: Partial<Attribs> = {}): Canvas3DContext {
         const a = { ...DefaultAttribs, ...attribs };
         const { antialias, preserveDrawingBuffer, pixelScale, preferWebGl1 } = a;
         const gl = getGLContext(canvas, {
@@ -143,7 +144,7 @@ namespace Canvas3DContext {
 
         const input = InputObserver.fromElement(canvas, { pixelScale, preventGestures: true });
         const webgl = createContext(gl, { pixelScale });
-        const passes = new Passes(webgl, a);
+        const passes = new Passes(webgl, assetManager, a);
 
         if (isDebugMode) {
             const loseContextExt = gl.getExtension('WEBGL_lose_context');
@@ -196,6 +197,7 @@ namespace Canvas3DContext {
             attribs: a,
             contextLost,
             contextRestored: webgl.contextRestored,
+            assetManager,
             dispose: (options?: Partial<{ doNotForceWebGLContextLoss: boolean }>) => {
                 input.dispose();
 
@@ -282,9 +284,8 @@ namespace Canvas3D {
     export interface DragEvent { current: Representation.Loci, buttons: ButtonsType, button: ButtonsType.Flag, modifiers: ModifiersKeys, pageStart: Vec2, pageEnd: Vec2 }
     export interface ClickEvent { current: Representation.Loci, buttons: ButtonsType, button: ButtonsType.Flag, modifiers: ModifiersKeys, page?: Vec2, position?: Vec3 }
 
-    export function create({ webgl, input, passes, attribs }: Canvas3DContext, props: Partial<Canvas3DProps> = {}): Canvas3D {
+    export function create({ webgl, input, passes, attribs, assetManager }: Canvas3DContext, props: Partial<Canvas3DProps> = {}): Canvas3D {
         const p: Canvas3DProps = { ...DefaultCanvas3DParams, ...props };
-        BackgroundPass.loadTexture(webgl, p.postprocessing.background, () => requestDraw());
 
         const reprRenderObjects = new Map<Representation.Any, Set<GraphicsRenderObject>>();
         const reprUpdatedSubscriptions = new Map<Representation.Any, Subscription>();
@@ -324,6 +325,10 @@ namespace Canvas3D {
         const pickHelper = new PickHelper(webgl, renderer, scene, helper, passes.pick, { x, y, width, height }, attribs.pickPadding);
         const interactionHelper = new Canvas3dInteractionHelper(identify, getLoci, input, camera, p.interaction);
         const multiSampleHelper = new MultiSampleHelper(passes.multiSample);
+
+        passes.draw.postprocessing.background.update(camera, p.postprocessing.background, changed => {
+            if (changed) requestDraw();
+        });
 
         let cameraResetRequested = false;
         let nextCameraResetDuration: number | undefined = void 0;
@@ -827,15 +832,10 @@ namespace Canvas3D {
                 }
 
                 if (props.postprocessing?.background) {
-                    const newBackground = { ...p.postprocessing.background, ...props.postprocessing.background };
-                    if (!BackgroundPass.areTexturePropsEqual(newBackground, p.postprocessing.background)) {
-                        Object.assign(p.postprocessing.background, props.postprocessing.background);
-                        BackgroundPass.loadTexture(webgl, p.postprocessing.background, () => {
-                            if (!doNotRequestDraw) requestDraw();
-                        });
-                    } else {
-                        Object.assign(p.postprocessing.background, props.postprocessing.background);
-                    }
+                    Object.assign(p.postprocessing.background, props.postprocessing.background);
+                    passes.draw.postprocessing.background.update(camera, p.postprocessing.background, changed => {
+                        if (changed && !doNotRequestDraw) requestDraw();
+                    });
                 }
                 if (props.postprocessing) Object.assign(p.postprocessing, props.postprocessing);
                 if (props.marking) Object.assign(p.marking, props.marking);
@@ -855,7 +855,7 @@ namespace Canvas3D {
                 }
             },
             getImagePass: (props: Partial<ImageProps> = {}) => {
-                return new ImagePass(webgl, renderer, scene, camera, helper, passes.draw.wboitEnabled, props);
+                return new ImagePass(webgl, assetManager, renderer, scene, camera, helper, passes.draw.wboitEnabled, props);
             },
             getRenderObjects(): GraphicsRenderObject[] {
                 const renderObjects: GraphicsRenderObject[] = [];

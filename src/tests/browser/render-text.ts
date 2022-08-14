@@ -15,6 +15,7 @@ import { SpheresBuilder } from '../../mol-geo/geometry/spheres/spheres-builder';
 import { createRenderObject } from '../../mol-gl/render-object';
 import { Spheres } from '../../mol-geo/geometry/spheres/spheres';
 import { resizeCanvas } from '../../mol-canvas3d/util';
+import { AssetManager } from '../../mol-util/assets';
 
 const parent = document.getElementById('app')!;
 parent.style.width = '100%';
@@ -24,7 +25,9 @@ const canvas = document.createElement('canvas');
 parent.appendChild(canvas);
 resizeCanvas(canvas, parent);
 
-const canvas3d = Canvas3D.create(Canvas3DContext.fromCanvas(canvas));
+const assetManager = new AssetManager();
+
+const canvas3d = Canvas3D.create(Canvas3DContext.fromCanvas(canvas, assetManager));
 canvas3d.animate();
 
 function textRepr() {
