@@ -19,26 +19,26 @@ function rangeMap(x: string) {
     return { min, max };
 }
 function listOrRangeMap(x: string) {
-    if (x.includes('-') && x.includes('+')){
-	const pSplit = x.split('+').map(x => x.replace(/^["']|["']$/g, ''));
-        const res : number[] =[];
-        pSplit.forEach( x => {
-            if (x.includes('-')){
+    if (x.includes('-') && x.includes('+')) {
+        const pSplit = x.split('+').map(x => x.replace(/^["']|["']$/g, ''));
+        const res: number[] = [];
+        pSplit.forEach(x => {
+            if (x.includes('-')) {
                 const [min, max] = x.split('-').map(x=>parseInt(x));
-                for (var i = min;  i <= max;  i++){
+                for (let i = min; i <= max; i++) {
                     res.push(i);
                 }
-            }else{
+            } else {
                 res.push(parseInt(x));
             }
         });
         return res;
-    }else if(x.includes('-') && !x.includes('+')){
-        return rangeMap(x)
-    }else if(!x.includes('-') && x.includes('+')){
-        return listMap(x).map(x => parseInt(x))
-    }else{
-	return listMap(x).map(x => parseInt(x))
+    } else if (x.includes('-') && !x.includes('+')) {
+        return rangeMap(x);
+    } else if (!x.includes('-') && x.includes('+')) {
+        return listMap(x).map(x => parseInt(x));
+    } else {
+        return listMap(x).map(x => parseInt(x));
     }
 }
 
