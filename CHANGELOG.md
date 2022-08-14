@@ -10,6 +10,8 @@ Note that since we don't clearly distinguish between a public and private interf
 - Add custom labels to Confal pyramids
 - Improve naming of some internal types in Confal pyramids extension coordinate
 - Add example mmCIF file with categories necessary to display Confal pyramids
+- Change the lookup logic of NtC steps from residues
+- Add support for download of gzipped files
 - Add ``fov`` (Field of View) Canvas3D parameter
 - Add ``sceneRadiusFactor`` Canvas3D parameter
 - Add background pass (skybox, image, horizontal/radial gradient)

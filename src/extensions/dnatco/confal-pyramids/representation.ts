@@ -6,7 +6,7 @@
  */
 
 import { ConfalPyramids, ConfalPyramidsProvider } from './property';
-import { ConfalPyramidsUtil } from './util';
+import { ConfalPyramidsIterator } from './util';
 import { ConfalPyramidsTypes as CPT } from './types';
 import { Interval } from '../../../mol-data/int';
 import { Mesh } from '../../../mol-geo/geometry/mesh/mesh';
@@ -32,6 +32,12 @@ const t = Mat4.identity();
 const w = Vec3.zero();
 const mp = Vec3.zero();
 
+const posO3 = Vec3();
+const posP = Vec3();
+const posOP1 = Vec3();
+const posOP2 = Vec3();
+const posO5 = Vec3();
+
 function calcMidpoint(mp: Vec3, v: Vec3, w: Vec3) {
     Vec3.sub(mp, v, w);
     Vec3.scale(mp, mp, 0.5);
@@ -53,64 +59,76 @@ function createConfalPyramidsIterator(structureGroup: StructureGroup): LocationI
     const { structure, group } = structureGroup;
     const instanceCount = group.units.length;
 
-    const prop = ConfalPyramidsProvider.get(structure.model).value;
-    if (prop === undefined || prop.data === undefined) {
-        return LocationIterator(0, 1, 1, () => NullLocation);
-    }
+    const data = ConfalPyramidsProvider.get(structure.model)?.value?.data;
+    if (!data) return LocationIterator(0, 1, 1, () => NullLocation);
 
-    const { halfPyramids } = prop.data;
+    const halfPyramidsCount = data.steps.length * 2;
 
     const getLocation = (groupIndex: number, instanceIndex: number) => {
-        if (halfPyramids.length <= groupIndex) return NullLocation;
-        return CPT.Location(halfPyramids[groupIndex]);
+        if (halfPyramidsCount <= groupIndex) return NullLocation;
+        const idx = Math.floor(groupIndex / 2); // Map groupIndex to a step, see createConfalPyramidsMesh() for full explanation
+        return CPT.Location(data.steps[idx], groupIndex % 2 === 1);
     };
-    return LocationIterator(halfPyramids.length, instanceCount, 1, getLocation);
+    return LocationIterator(halfPyramidsCount, instanceCount, 1, getLocation);
 }
 
 function createConfalPyramidsMesh(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: PD.Values<ConfalPyramidsMeshParams>, mesh?: Mesh) {
     if (!Unit.isAtomic(unit)) return Mesh.createEmpty(mesh);
 
-    const prop = ConfalPyramidsProvider.get(structure.model).value;
-    if (prop === undefined || prop.data === undefined) return Mesh.createEmpty(mesh);
+    const data = ConfalPyramidsProvider.get(structure.model)?.value?.data;
+    if (!data) return Mesh.createEmpty(mesh);
 
-    const { steps } = prop.data;
+    const { steps, mapping } = data;
     if (steps.length === 0) return Mesh.createEmpty(mesh);
+    const vertexCount = (6 * steps.length) / mapping.length;
 
-    const mb = MeshBuilder.createState(512, 512, mesh);
+    const mb = MeshBuilder.createState(vertexCount, vertexCount / 10, mesh);
 
-    const handler = (step: CPT.Step, first: ConfalPyramidsUtil.FirstResidueAtoms, second: ConfalPyramidsUtil.SecondResidueAtoms, firsLocIndex: number, secondLocIndex: number) => {
-        if (firsLocIndex === -1 || secondLocIndex === -1)
-            throw new Error('Invalid location index');
+    const it = new ConfalPyramidsIterator(structure, unit);
+    while (it.hasNext) {
+        const allPoints = it.move();
 
-        const scale = (step.confal_score - 20.0) / 100.0;
-        const O3 = first.O3.pos;
-        const OP1 = second.OP1.pos; const OP2 = second.OP2.pos; const O5 = second.O5.pos; const P = second.P.pos;
+        for (const points of allPoints) {
+            const { O3, P, OP1, OP2, O5, confalScore } = points;
+            const scale = (confalScore - 20.0) / 100.0;
+            // Steps can be drawn in a different order than they are stored.
+            // To make sure that we can get from the drawn pyramid back to the step in represents,
+            // we need to use an appropriate groupId. The stepIdx passed from the iterator
+            // is an index into the array of all steps in the structure.
+            // Since a step is drawn as two "half-pyramids" we need two ids to map to a single step.
+            // To do that, we just multiply the index by 2. idx*2 marks the "upper" half-pyramid,
+            // (idx*2)+1 the "lower" half-pyramid.
+            const groupIdx = points.stepIdx * 2;
 
-        shiftVertex(O3, P, scale);
-        shiftVertex(OP1, P, scale);
-        shiftVertex(OP2, P, scale);
-        shiftVertex(O5, P, scale);
-        calcMidpoint(mp, O3, O5);
+            unit.conformation.invariantPosition(O3, posO3);
+            unit.conformation.invariantPosition(P, posP);
+            unit.conformation.invariantPosition(OP1, posOP1);
+            unit.conformation.invariantPosition(OP2, posOP2);
+            unit.conformation.invariantPosition(O5, posO5);
 
-        mb.currentGroup = firsLocIndex;
-        let pb = PrimitiveBuilder(3);
-        /* Upper part (for first residue in step) */
-        pb.add(O3, OP1, OP2);
-        pb.add(O3, mp, OP1);
-        pb.add(O3, OP2, mp);
-        MeshBuilder.addPrimitive(mb, t, pb.getPrimitive());
+            shiftVertex(posO3, posP, scale);
+            shiftVertex(posOP1, posP, scale);
+            shiftVertex(posOP2, posP, scale);
+            shiftVertex(posO5, posP, scale);
+            calcMidpoint(mp, posO3, posO5);
 
-        /* Lower part (for second residue in step */
-        mb.currentGroup = secondLocIndex;
-        pb = PrimitiveBuilder(3);
-        pb.add(mp, O5, OP1);
-        pb.add(mp, OP2, O5);
-        pb.add(O5, OP2, OP1);
-        MeshBuilder.addPrimitive(mb, t, pb.getPrimitive());
-    };
+            mb.currentGroup = groupIdx;
+            let pb = PrimitiveBuilder(3);
+            /* Upper part (for first residue in step) */
+            pb.add(posO3, posOP1, posOP2);
+            pb.add(posO3, mp, posOP1);
+            pb.add(posO3, posOP2, mp);
+            MeshBuilder.addPrimitive(mb, t, pb.getPrimitive());
 
-    const walker = new ConfalPyramidsUtil.UnitWalker(structure, unit, handler);
-    walker.walk();
+            /* Lower part (for second residue in step) */
+            mb.currentGroup = groupIdx + 1;
+            pb = PrimitiveBuilder(3);
+            pb.add(mp, posO5, posOP1);
+            pb.add(mp, posOP2, posO5);
+            pb.add(posO5, posOP2, posOP1);
+            MeshBuilder.addPrimitive(mb, t, pb.getPrimitive());
+        }
+    }
 
     return MeshBuilder.getMesh(mb);
 }
@@ -124,15 +142,17 @@ function getConfalPyramidLoci(pickingId: PickingId, structureGroup: StructureGro
     const unit = structureGroup.group.units[instanceId];
     if (!Unit.isAtomic(unit)) return EmptyLoci;
 
-    const prop = ConfalPyramidsProvider.get(structure.model).value;
-    if (prop === undefined || prop.data === undefined) return EmptyLoci;
+    const data = ConfalPyramidsProvider.get(structure.model)?.value?.data;
+    if (!data) return EmptyLoci;
 
-    const { halfPyramids } = prop.data;
+    const halfPyramidsCount = data.steps.length * 2;
 
-    if (halfPyramids.length <= groupId) return EmptyLoci;
-    const hp = halfPyramids[groupId];
+    if (halfPyramidsCount <= groupId) return EmptyLoci;
 
-    return CPT.Loci(hp, [{}]);
+    const idx = Math.floor(groupId / 2); // Map groupIndex to a step, see createConfalPyramidsMesh() for full explanation
+    const step = data.steps[idx];
+
+    return CPT.Loci({ step, isLower: groupId % 2 === 1 }, [{}]);
 }
 
 function eachConfalPyramid(loci: Loci, structureGroup: StructureGroup, apply: (interval: Interval) => boolean) {
