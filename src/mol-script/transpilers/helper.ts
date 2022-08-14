@@ -3,6 +3,7 @@
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Panagiotis Tourlas <panagiot_tourlov@hotmail.com>
+ * @author Koya Sakuma
  */
 // import * as Q from 'parsimmon';
 import * as P from '../../mol-util/monadic-parser';
