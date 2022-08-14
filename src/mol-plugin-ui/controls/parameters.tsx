@@ -7,6 +7,7 @@
 
 import * as React from 'react';
 import { Mat4, Vec2, Vec3 } from '../../mol-math/linear-algebra';
+import { Script } from '../../mol-script/script';
 import { Asset } from '../../mol-util/assets';
 import { Color } from '../../mol-util/color';
 import { ColorListEntry } from '../../mol-util/color/color';
@@ -1466,31 +1467,35 @@ export class ConvertedControl extends React.PureComponent<ParamProps<PD.Converte
     }
 }
 
-export class ScriptControl extends SimpleParam<PD.Script> {
-    onChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const value = e.target.value;
-        if (value !== this.props.value.expression) {
-            this.update({ language: this.props.value.language, expression: value });
+export class ScriptControl extends React.PureComponent<ParamProps<PD.Script>> {
+    onChange: ParamOnChange = ({ name, value }) => {
+        const k = name as 'language' | 'expression';
+        if (value !== this.props.value[k]) {
+            this.props.onChange({ param: this.props.param, name: this.props.name, value: { ...this.props.value, [k]: value } });
         }
     };
 
-    onKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
-        if ((e.keyCode === 13 || e.charCode === 13 || e.key === 'Enter')) {
-            if (this.props.onEnter) this.props.onEnter();
-        }
-        e.stopPropagation();
-    };
-
-    renderControl() {
+    render() {
         // TODO: improve!
 
-        const placeholder = this.props.param.label || camelCaseToWords(this.props.name);
-        return <input type='text'
-            value={this.props.value.expression || ''}
-            placeholder={placeholder}
-            onChange={this.onChange}
-            onKeyPress={this.props.onEnter ? this.onKeyPress : void 0}
-            disabled={this.props.isDisabled}
-        />;
+        const selectParam: PD.Select<PD.Script['defaultValue']['language']> = {
+            defaultValue: this.props.value.language,
+            options: PD.objectToOptions(Script.Info),
+            type: 'select',
+        };
+        const select = <SelectControl param={selectParam}
+            isDisabled={this.props.isDisabled} onChange={this.onChange} onEnter={this.props.onEnter}
+            name='language' value={this.props.value.language} />;
+
+        const textParam: PD.Text = {
+            defaultValue: this.props.value.language,
+            type: 'text',
+        };
+        const text = <TextControl param={textParam} isDisabled={this.props.isDisabled} onChange={this.onChange} name='expression' value={this.props.value.expression} />;
+
+        return <>
+            {select}
+            {text}
+        </>;
     }
 }
