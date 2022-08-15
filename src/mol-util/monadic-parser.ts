@@ -2,15 +2,11 @@
  * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
- */
-/**
+ * @author Koya Sakuma <koya.sakuma.work@gmail.com>
+ **
  * Adapted from Parsimmon (https://github.com/jneen/parsimmon)
  * Copyright (c) 2011-present J. Adkisson (http://jneen.net).
- */
-/**
-*  @author Koya Sakuma
-*  implementation of seqMap for mol-script/transpiler/helper.ts
-**/
+ **/
 
 export class MonadicParser<A> {
     constructor(public _: MonadicParser.Action<A>) { }
@@ -479,14 +475,6 @@ export namespace MonadicParser {
         return regexp(re);
     }
 
-    MonadicParser.createLanguage = createLanguage;
-    MonadicParser.seq = seq;
-    MonadicParser.seqMap = seqMap;
-    MonadicParser.of = succeed;
-    MonadicParser.regex = regexp;
-    MonadicParser.regexp = regexp;
-//    MonadicParser.regexp.lookahead = lookahead;
-    // MonadicParser.RegExp = regexp;
 }
 
 function seqPick(idx: number, ...parsers: MonadicParser<any>[]): MonadicParser<any> {
