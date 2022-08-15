@@ -6,11 +6,10 @@
  */
 
 import { ConfalPyramidsProvider } from './property';
-import { ConfalPyramidsTypes as CPT } from './types';
+import { DnatcoTypes } from '../types';
+import { DnatcoUtil } from '../util';
 import { Segmentation } from '../../../mol-data/int';
-import { ChainIndex, ElementIndex, ResidueIndex, Structure, StructureElement, StructureProperties, Unit } from '../../../mol-model/structure';
-
-type Residue = Segmentation.Segment<ResidueIndex>;
+import { ChainIndex, ElementIndex, ResidueIndex, Structure, StructureElement, Unit } from '../../../mol-model/structure';
 
 export type Pyramid = {
     O3: ElementIndex,
@@ -22,31 +21,12 @@ export type Pyramid = {
     stepIdx: number,
 };
 
-const EmptyStepIndices = new Array<number>();
-
-function copyResidue(r?: Residue) {
-    return r ? { index: r.index, start: r.start, end: r.end } : void 0;
-}
-
-function getAtomIndex(loc: StructureElement.Location, residue: Residue, names: string[], altId: string): ElementIndex {
-    for (let eI = residue.start; eI < residue.end; eI++) {
-        loc.element = loc.unit.elements[eI];
-        const elName = StructureProperties.atom.label_atom_id(loc);
-        const elAltId = StructureProperties.atom.label_alt_id(loc);
-
-        if (names.includes(elName) && (elAltId === altId || elAltId.length === 0))
-            return loc.element;
-    }
-
-    return -1 as ElementIndex;
-}
-
-function getPyramid(loc: StructureElement.Location, one: Residue, two: Residue, altIdOne: string, altIdTwo: string, confalScore: number, stepIdx: number): Pyramid {
-    const O3 = getAtomIndex(loc, one, ['O3\'', 'O3*'], altIdOne);
-    const P = getAtomIndex(loc, two, ['P'], altIdTwo);
-    const OP1 = getAtomIndex(loc, two, ['OP1'], altIdTwo);
-    const OP2 = getAtomIndex(loc, two, ['OP2'], altIdTwo);
-    const O5 = getAtomIndex(loc, two, ['O5\'', 'O5*'], altIdTwo);
+function getPyramid(loc: StructureElement.Location, one: DnatcoUtil.Residue, two: DnatcoUtil.Residue, altIdOne: string, altIdTwo: string, confalScore: number, stepIdx: number): Pyramid {
+    const O3 = DnatcoUtil.getAtomIndex(loc, one, ['O3\'', 'O3*'], altIdOne);
+    const P = DnatcoUtil.getAtomIndex(loc, two, ['P'], altIdTwo);
+    const OP1 = DnatcoUtil.getAtomIndex(loc, two, ['OP1'], altIdTwo);
+    const OP2 = DnatcoUtil.getAtomIndex(loc, two, ['OP2'], altIdTwo);
+    const O5 = DnatcoUtil.getAtomIndex(loc, two, ['O5\'', 'O5*'], altIdTwo);
 
     return { O3, P, OP1, OP2, O5, confalScore, stepIdx };
 }
@@ -54,34 +34,20 @@ function getPyramid(loc: StructureElement.Location, one: Residue, two: Residue, 
 export class ConfalPyramidsIterator {
     private chainIt: Segmentation.SegmentIterator<ChainIndex>;
     private residueIt: Segmentation.SegmentIterator<ResidueIndex>;
-    private residueOne?: Residue;
-    private residueTwo: Residue;
-    private data?: CPT.Steps;
+    private residueOne?: DnatcoUtil.Residue;
+    private residueTwo: DnatcoUtil.Residue;
+    private data?: DnatcoTypes.Steps;
     private loc: StructureElement.Location;
 
-    private getStepIndices(r: Residue) {
-        this.loc.element = this.loc.unit.elements[r.start];
-
-        const modelIdx = StructureProperties.unit.model_num(this.loc) - 1;
-        const chainId = StructureProperties.chain.auth_asym_id(this.loc);
-        const seqId = StructureProperties.residue.auth_seq_id(this.loc);
-
-        const chains = this.data!.mapping[modelIdx];
-        if (!chains) return EmptyStepIndices;
-        const residues = chains.get(chainId);
-        if (!residues) return EmptyStepIndices;
-        return residues.get(seqId) ?? EmptyStepIndices;
-    }
-
     private moveStep() {
-        this.residueOne = copyResidue(this.residueTwo);
-        this.residueTwo = copyResidue(this.residueIt.move())!;
+        this.residueOne = DnatcoUtil.copyResidue(this.residueTwo);
+        this.residueTwo = DnatcoUtil.copyResidue(this.residueIt.move())!;
 
         return this.toPyramids(this.residueOne!, this.residueTwo);
     }
 
-    private toPyramids(one: Residue, two: Residue) {
-        const indices = this.getStepIndices(one);
+    private toPyramids(one: DnatcoUtil.Residue, two: DnatcoUtil.Residue) {
+        const indices = DnatcoUtil.getStepIndices(this.data!, this.loc, one);
 
         const points = [];
         for (const idx of indices) {

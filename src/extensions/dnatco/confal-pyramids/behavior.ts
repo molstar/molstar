@@ -6,9 +6,10 @@
  */
 
 import { ConfalPyramidsColorThemeProvider } from './color';
-import { ConfalPyramids, ConfalPyramidsProvider } from './property';
+import { ConfalPyramidsProvider } from './property';
 import { ConfalPyramidsRepresentationProvider } from './representation';
-import { ConfalPyramidsTypes } from './types';
+import { Dnatco } from '../property';
+import { DnatcoTypes } from '../types';
 import { PluginBehavior } from '../../../mol-plugin/behavior/behavior';
 import { StructureRepresentationPresetProvider, PresetStructureRepresentations } from '../../../mol-plugin-state/builder/structure/representation-preset';
 import { StateObjectRef } from '../../../mol-state';
@@ -22,7 +23,7 @@ export const DnatcoConfalPyramidsPreset = StructureRepresentationPresetProvider(
         description: 'Schematic depiction of conformer class and confal value.',
     },
     isApplicable(a) {
-        return a.data.models.length >= 1 && a.data.models.some(m => ConfalPyramids.isApplicable(m));
+        return a.data.models.length >= 1 && a.data.models.some(m => Dnatco.isApplicable(m));
     },
     params: () => StructureRepresentationPresetProvider.CommonParams,
     async apply(ref, params, plugin) {
@@ -90,8 +91,8 @@ export const DnatcoConfalPyramids = PluginBehavior.create<{ autoAttach: boolean,
     })
 });
 
-export function confalPyramidLabel(halfPyramid: ConfalPyramidsTypes.HalfPyramid) {
-    const { step } = halfPyramid;
+export function confalPyramidLabel(halfStep: DnatcoTypes.HalfStep) {
+    const { step } = halfStep;
     return `
         <b>${step.auth_asym_id_1}</b> |
         <b>${step.label_comp_id_1} ${step.auth_seq_id_1}${step.PDB_ins_code_1}${step.label_alt_id_1.length > 0 ? ` (alt ${step.label_alt_id_1})` : ''}
