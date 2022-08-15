@@ -87,6 +87,8 @@ export class ConfalPyramidsIterator {
             return this.moveStep();
         } else {
             this.residueIt.setSegment(this.chainIt.move());
+            if (this.residueIt.hasNext)
+                this.residueTwo = this.residueIt.move();
             return this.moveStep();
         }
     }
