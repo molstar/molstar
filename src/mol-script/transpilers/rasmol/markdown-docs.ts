@@ -1,10 +1,8 @@
 /*
  * Copyright (c) 2017-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
- * @author Alexander Rose <alexander.rose@weirdbyte.de>
- * @author Panagiotis Tourlas <panagiot_tourlov@hotmail.com>
  *
- * @author Koya Sakuma
- * This module is based on jmol transpiler from MolQL and modified in similar manner as pymol and vmd tranpilers.                                             */
+ * @author Koya Sakuma <koya.sakuma.work@gmail.com>
+*/
 
 import { properties } from './properties';
 import { operators } from './operators';
@@ -12,7 +10,7 @@ import { keywords } from './keywords';
 
 
 const _docs: string[] = [
-    'Jmol',
+    'RasMol',
     '============',
     '--------------------------------',
     ''
