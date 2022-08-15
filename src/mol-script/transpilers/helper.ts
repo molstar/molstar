@@ -31,7 +31,7 @@ export function prefix(opParser: P.MonadicParser<any>, nextParser: P.MonadicPars
 
 export function prefixRemoveKet(opParser: P.MonadicParser<any>, nextParser: P.MonadicParser<any>, mapFn: any) {
     const parser: P.MonadicParser<any> = P.MonadicParser.lazy(() => {
-        return P.MonadicParser.seq(opParser, parser.skip(P.MonadicParser.string(")")))
+        return P.MonadicParser.seq(opParser, parser.skip(P.MonadicParser.string(')')))
             .map(x => mapFn(...x))
             .or(nextParser);
     });

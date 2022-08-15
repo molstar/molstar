@@ -14,7 +14,7 @@ import { MolScriptBuilder } from '../../../mol-script/language/builder';
 const B = MolScriptBuilder;
 import { OperatorList } from '../types';
 import { Expression } from '../../language/expression';
-import { macroproperties } from './macroproperties'
+import { macroproperties } from './macroproperties';
 
 const propNames = Object.keys(macroproperties).sort(h.strLenSortFn)
     .filter(name => !macroproperties[name].isUnsupported).join('|');
@@ -34,8 +34,8 @@ export const operators: OperatorList = [
         '@examples': ['ASP and .CA'],
         name: 'and',
         type: h.binaryLeft,
-	rule: P.MonadicParser.alt(h.infixOp(/AND|&/i), P.MonadicParser.whitespace),
-        //rule: h.infixOp(/AND|&/i),
+        rule: P.MonadicParser.alt(h.infixOp(/AND|&/i), P.MonadicParser.whitespace),
+        // rule: h.infixOp(/AND|&/i),
         map: (op, selection, by) => B.struct.modifier.intersectBy({ 0: selection, by })
     },
     {
@@ -56,21 +56,22 @@ export const operators: OperatorList = [
             console.log(x)
 	    return parseFloat(x)}),
 	map: (radius: number, selection: Expression) => {
-	    
+
             return B.struct.modifier.includeSurroundings({ 0: selection, radius });
         }
     },
   */
     {
-        '@desc':'Selects atoms in s1 that are within X Angstroms of any atom in s2.',
+        '@desc': 'Selects atoms in s1 that are within X Angstroms of any atom in s2.',
         '@examples': ['chain A WITHIN 3 OF chain B'],
         name: 'within',
         abbr: ['w2.'],
-	//   type: h.binaryLeft,
-	type: h.prefixRemoveKet,
+        //   type: h.binaryLeft,
+        type: h.prefixRemoveKet,
         rule: h.prefixOpNoWhiteSpace(/within\s*\(\s*([-+]?[0-9]*\.?[0-9]+)\s*,/i, 1).map((x: any) => {
-	    console.log(x)
-	    return parseFloat(x)}),
+	    console.log(x);
+	    return parseFloat(x);
+        }),
         map: (radius: number, target: Expression) => {
 	    return B.struct.filter.within({
                 0: B.struct.generator.all(),
