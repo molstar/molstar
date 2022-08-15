@@ -786,7 +786,7 @@ const StructureSelectionFromScript = PluginStateTransform.BuiltIn({
     from: SO.Molecule.Structure,
     to: SO.Molecule.Structure,
     params: () => ({
-        script: PD.Script({ language: 'pymol', expression: 'all' }),
+        script: PD.Script({ language: 'mol-script', expression: '(sel.atom.atom-groups :residue-test (= atom.resname ALA))' }),
         label: PD.Optional(PD.Text(''))
     })
 })({

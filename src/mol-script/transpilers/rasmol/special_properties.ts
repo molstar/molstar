@@ -3,13 +3,14 @@
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Panagiotis Tourlas <panagiot_tourlov@hotmail.com>
+ * @author Koya Sakuma
  */
 
 import { MolScriptBuilder } from '../../../mol-script/language/builder';
 const B = MolScriptBuilder;
 import { PropertyDict } from '../types';
 
-//const reFloat = /[-+]?[0-9]*\.?[0-9]+/;
+// const reFloat = /[-+]?[0-9]*\.?[0-9]+/;
 // const rePosInt = /[0-9]+/;
 
 function atomNameListMap(x: string) { return x.split(',').map(B.atomName); }
@@ -19,45 +20,45 @@ function rangeMap(x: string) {
     return { min, max };
 }
 function listOrRangeMap(x: string) {
-    if (x.includes('-') && x.includes(',')){
-	const pSplit = x.split(',').map(x => x.replace(/^["']|["']$/g, ''));
-	console.log(pSplit)
-	const res : number[] =[];
-	pSplit.forEach( x => {
-	    if (x.includes('-')){
-		const [min, max] = x.split('-').map(x=>parseInt(x));
-		for (var i = min;  i <= max;  i++){
+    if (x.includes('-') && x.includes(',')) {
+        const pSplit = x.split(',').map(x => x.replace(/^["']|["']$/g, ''));
+        console.log(pSplit);
+        const res: number[] = [];
+        pSplit.forEach(x => {
+	    if (x.includes('-')) {
+                const [min, max] = x.split('-').map(x=>parseInt(x));
+                for (let i = min; i <= max; i++) {
 		    res.push(i);
-		}		 
-	    }else{
-		res.push(parseInt(x));
+                }
+	    } else {
+                res.push(parseInt(x));
 	    }
-	});
-	return res;		    	
-    }else if(x.includes('-') && !x.includes(',')){
-	return rangeMap(x)
-    }else if(!x.includes('-') && x.includes(',')){
-	return listMap(x).map(x => parseInt(x));
-    }else{	
-	return parseInt(x);
+        });
+        return res;
+    } else if (x.includes('-') && !x.includes(',')) {
+        return rangeMap(x);
+    } else if (!x.includes('-') && x.includes(',')) {
+        return listMap(x).map(x => parseInt(x));
+    } else {
+        return parseInt(x);
     }
 }
 function elementListMap(x: string) {
     return x.split(',').map(B.struct.type.elementSymbol);
 }
 
-//const sstrucDict: { [k: string]: string } = {
+// const sstrucDict: { [k: string]: string } = {
 //    H: 'helix',
 //    S: 'beta',
 //    L: 'none'
-//};
-//function sstrucListMap(x: string) {
+// };
+// function sstrucListMap(x: string) {
 //    return {
 //        flags: B.struct.type.secondaryStructureFlags(
 //            x.toUpperCase().split('+').map(ss => sstrucDict[ss] || 'none')
 //        )
 //    };
-//}
+// }
 
 export const special_properties: PropertyDict = {
     symbol: {

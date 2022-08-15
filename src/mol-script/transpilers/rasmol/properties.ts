@@ -456,7 +456,7 @@ export const properties: PropertyDict = {
     hoge: {
         '@desc': 'PDB residue number, not including insertion code (see also seqcode, below)',
         '@examples': ['resno = 100'],
-//        isNumeric: true,
+        //        isNumeric: true,
         regex: /-?[0-9]+/, map: x => parseInt(x),
         level: 'residue-test', property: B.ammp('auth_seq_id')
 

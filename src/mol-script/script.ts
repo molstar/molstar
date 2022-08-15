@@ -11,15 +11,7 @@ import { Expression } from './language/expression';
 import { StructureElement, QueryContext, StructureSelection, Structure, QueryFn, QueryContextOptions } from '../mol-model/structure';
 import { compile } from './runtime/query/compiler';
 import { MolScriptBuilder } from './language/builder';
-
-
-
-
-
-
-
-
-
+import { assertUnreachable } from '../mol-util/type-helpers';
 
 export { Script };
 
@@ -30,7 +22,14 @@ function Script(expression: string = '(sel.atom.all)', language: Script.Language
 }
 
 namespace Script {
-    export type Language = 'mol-script' | 'pymol' | 'vmd' | 'jmol' | 'rasmol'
+    export const Info = {
+        'mol-script': 'Mol-Script',
+        'pymol': 'PyMOL',
+        'vmd': 'VMD',
+        'jmol': 'Jmol',
+        'rasmol': 'Rasmol'
+    };
+    export type Language = keyof typeof Info;
 
     export function is(x: any): x is Script {
         return !!x && typeof (x as Script).expression === 'string' && !!(x as Script).language;
@@ -43,20 +42,17 @@ namespace Script {
     export function toExpression(script: Script): Expression {
         switch (script.language) {
             case 'mol-script':
-	    const parsed = parseMolScript(script.expression);
-	    if (parsed.length === 0) throw new Error('No query');
-	    return transpileMolScript(parsed[0]);
+                const parsed = parseMolScript(script.expression);
+                if (parsed.length === 0) throw new Error('No query');
+                return transpileMolScript(parsed[0]);
             case 'pymol':
-	    return parse('pymol', script.expression) as Expression;
             case 'jmol':
-	    return parse('jmol', script.expression) as Expression;
             case 'vmd':
-	    return parse('vmd', script.expression) as Expression;
             case 'rasmol':
-	    return parse('rasmol', script.expression) as Expression;
+                return parse(script.language, script.expression);
+            default:
+                assertUnreachable(script.language);
         }
-
-        throw new Error('unsupported script language');
     }
 
     export function toQuery(script: Script): QueryFn<StructureSelection> {

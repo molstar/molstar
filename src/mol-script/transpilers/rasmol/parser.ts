@@ -19,7 +19,7 @@ import { operators } from './operators';
 import { keywords } from './keywords';
 import { AtomGroupArgs } from '../types';
 import { Transpiler } from '../transpiler';
-//import { OperatorList } from '../types';
+// import { OperatorList } from '../types';
 
 // const propertiesDict = h.getPropertyRules(properties);
 
@@ -27,10 +27,10 @@ import { Transpiler } from '../transpiler';
 
 const propertiesDict = h.getPropertyRules(special_properties);
 
-//const slash = P.MonadicParser.string('/');
+// const slash = P.MonadicParser.string('/');
 const dot = P.MonadicParser.string('.');
 const colon = P.MonadicParser.string(':');
-//const comma = P.MonadicParser.string(',');
+// const comma = P.MonadicParser.string(',');
 const star = P.MonadicParser.string('*');
 const bra = P.MonadicParser.string('(');
 const ket = P.MonadicParser.string(')');
@@ -97,87 +97,88 @@ const lang = P.MonadicParser.createLanguage({
         return P.MonadicParser.alt(
 	    // :A.CA :.CA :A
             colon.then(P.MonadicParser.alt(
-                P.MonadicParser.seq(                
+                P.MonadicParser.seq(
                     orNull(propertiesDict.chain).skip(dot),
                     orNull(propertiesDict.name)
-                ).map(x => { return { chain: x[0], name: x[1]}; }),
+                ).map(x => { return { chain: x[0], name: x[1] }; }),
                 P.MonadicParser.seq(
                     orNull(propertiesDict.name).skip(dot)
-                ).map(x => { return {name: x[0] }; }),
-		P.MonadicParser.seq(
+                ).map(x => { return { name: x[0] }; }),
+                P.MonadicParser.seq(
                     orNull(propertiesDict.chain)
-                ).map(x => { return {chain: x[0] }; }),
+                ).map(x => { return { chain: x[0] }; }),
             )),
 	    // *A.CA *.CA
 	    star.then(P.MonadicParser.alt(
-                P.MonadicParser.seq(                
+                P.MonadicParser.seq(
                     orNull(propertiesDict.chain).skip(dot),
                     orNull(propertiesDict.name)
-                ).map(x => { return { chain: x[0], name: x[1]}; }),
+                ).map(x => { return { chain: x[0], name: x[1] }; }),
                 P.MonadicParser.seq(
                     orNull(propertiesDict.name).skip(dot)
-                ).map(x => { return {name: x[0] }; }),
-		P.MonadicParser.seq(
+                ).map(x => { return { name: x[0] }; }),
+                P.MonadicParser.seq(
                     orNull(propertiesDict.chain)
-                ).map(x => { return {chain: x[0] }; }),
+                ).map(x => { return { chain: x[0] }; }),
             )),
 	    // 1-100,201
 	    bra.then(P.MonadicParser.alt(
-		P.MonadicParser.alt(
+                P.MonadicParser.alt(
 		    P.MonadicParser.seq(
-			propertiesDict.resi.skip(ket),
+                        propertiesDict.resi.skip(ket),
 		    ).map(x => {
-			return { resi: x[0] }		
-			;})
-		)
+                        return { resi: x[0] }
+                        ;
+                    })
+                )
 	    )),
 	    //  lys:a.ca lys:a lys lys.ca
 	    P.MonadicParser.alt(
-		P.MonadicParser.alt(
+                P.MonadicParser.alt(
                     P.MonadicParser.seq(
-			orNull(propertiesDict.resn).skip(colon),
-			orNull(propertiesDict.chain).skip(dot),
-			orNull(propertiesDict.name)
+                        orNull(propertiesDict.resn).skip(colon),
+                        orNull(propertiesDict.chain).skip(dot),
+                        orNull(propertiesDict.name)
                     ).map(x => { return { resn: x[0], chain: x[1], name: x[2] }; }),
 		    P.MonadicParser.seq(
-			orNull(propertiesDict.resn).skip(star),
-			orNull(propertiesDict.chain).skip(dot),
-			orNull(propertiesDict.name)
+                        orNull(propertiesDict.resn).skip(star),
+                        orNull(propertiesDict.chain).skip(dot),
+                        orNull(propertiesDict.name)
                     ).map(x => { return { resn: x[0], chain: x[1], name: x[2] }; }),
                     P.MonadicParser.seq(
-			orNull(propertiesDict.resn).skip(colon),
-			orNull(propertiesDict.chain),
+                        orNull(propertiesDict.resn).skip(colon),
+                        orNull(propertiesDict.chain),
                     ).map(x => { return { resn: x[0], chain: x[1] }; }),
 		    P.MonadicParser.seq(
-			orNull(propertiesDict.resn).skip(star),
-			orNull(propertiesDict.chain),
+                        orNull(propertiesDict.resn).skip(star),
+                        orNull(propertiesDict.chain),
                     ).map(x => { return { resn: x[0], chain: x[1] }; }),
 		    P.MonadicParser.seq(
-			orNull(propertiesDict.resn).skip(dot),
-			orNull(propertiesDict.name),
+                        orNull(propertiesDict.resn).skip(dot),
+                        orNull(propertiesDict.name),
                     ).map(x => { return { resn: x[0], name: x[1] }; }),
 		    P.MonadicParser.seq(
-			orNull(propertiesDict.resn),
-		    ).map(x => {  return { resn: x[0] };}),
-		)
-	    )		  
-	    
-	)
-		    
+                        orNull(propertiesDict.resn),
+		    ).map(x => { return { resn: x[0] }; }),
+                )
+	    )
+
+        );
+
     },
 
     ObjectProperty: () => {
-	const w = h.getReservedWords(special_properties, special_keywords, special_operators)
-              .sort(h.strLenSortFn).map(h.escapeRegExp).join('|');
+        const w = h.getReservedWords(special_properties, special_keywords, special_operators)
+            .sort(h.strLenSortFn).map(h.escapeRegExp).join('|');
         return P.MonadicParser.regexp(new RegExp(`(?!(${w}))[A-Z0-9_]+`, 'i'));
     },
 
     ObjectProperty2: () => {
-	const w = h.getReservedWords(properties, keywords, operators)
-              .sort(h.strLenSortFn).map(h.escapeRegExp).join('|');
+        const w = h.getReservedWords(properties, keywords, operators)
+            .sort(h.strLenSortFn).map(h.escapeRegExp).join('|');
         return P.MonadicParser.regexp(new RegExp(`(?!(${w}))[A-Z0-9_]+`, 'i'));
     },
-    
+
     Object: (r: any) => {
         return r.ObjectProperty2
             .map((x: any) => { throw new Error(`property 'object' not supported, value '${x}'`); });
@@ -201,7 +202,7 @@ const lang = P.MonadicParser.createLanguage({
             r.Expression
         ).trim(P.MonadicParser.optWhitespace);
     }
-    
+
 });
 
 export const transpiler: Transpiler = str => lang.Query.tryParse(str);
