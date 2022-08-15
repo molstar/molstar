@@ -46,7 +46,7 @@ export const operators: OperatorList = [
         '@examples': ['within 5 of name FE'],
         name: 'within',
         type: h.prefix,
-        rule: h.prefixOp(/WITHIN\s+([-+]?[0-9]*\.?[0-9]+)\s+OF/i, 1).map((x: any) => parseFloat(x)),
+        rule: h.prefixOp(/within\s+([-+]?[0-9]*\.?[0-9]+)\s+of/, 1).map((x: any) => parseFloat(x)),
         map: (radius: number, selection: Expression) => {
             return B.struct.modifier.includeSurroundings({ 0: selection, radius });
         }

@@ -34,6 +34,8 @@ const colon = P.MonadicParser.string(':');
 const star = P.MonadicParser.string('*');
 const bra = P.MonadicParser.string('(');
 const ket = P.MonadicParser.string(')');
+const commu = P.MonadicParser.string('[');
+const tator = P.MonadicParser.string(']');
 
 
 /* is Parser -> MonadicParser substitution correct? */
@@ -63,6 +65,33 @@ function atomSelectionQuery2(x: any) {
     return B.struct.generator.atomGroups(tests);
 }
 
+function atomExpressionQuery(x: any[]) {
+    const resname = x[0];
+//    const tests: AtomGroupArgs = {};
+
+/*    if (chainname) {
+	// should be configurable, there is an option in Jmol to use auth or label
+	tests['chain-test'] = B.core.rel.eq([B.ammp('auth_asym_id'), chainname]);
+    }
+
+    const resProps = [];
+    if (resno) resProps.push(B.core.rel.eq([B.ammp('auth_seq_id'), resno]));
+    if (inscode) resProps.push(B.core.rel.eq([B.ammp('pdbx_PDB_ins_code'), inscode]));
+    if (resProps.length) tests['residue-test'] = h.andExpr(resProps);
+
+    const atomProps = [];
+    if (atomname) atomProps.push(B.core.rel.eq([B.ammp('auth_atom_id'), atomname]));
+    if (altloc) atomProps.push(B.core.rel.eq([B.ammp('label_alt_id'), altloc]));
+    if (atomProps.length) tests['atom-test'] = h.andExpr(atomProps);
+
+    return B.struct.generator.atomGroups(tests);
+*/
+    if (resname){
+	return B.struct.generator.atomGroups({'residue-test': B.core.rel.eq([B.ammp('label_comp_id'), resname])})
+    }
+				  
+}
+
 
 const lang = P.MonadicParser.createLanguage({
 
@@ -71,7 +100,7 @@ const lang = P.MonadicParser.createLanguage({
             r.Parens,
             r.Operator,
             r.Expression
-        ).wrap(P.MonadicParser.string('['), P.MonadicParser.string(']'));
+        ).wrap(P.MonadicParser.string('{'), P.MonadicParser.string('}'));
     },
 
     Expression: function (r: any) {
@@ -80,7 +109,8 @@ const lang = P.MonadicParser.createLanguage({
 	    r.Keywords,
 	    r.NamedAtomProperties,
 	    r.AtomSelectionMacro.map(atomSelectionQuery2),
-	    r.Object
+//	    r.AtomExpression.map(atomExpressionQuery),
+	    r.Object	    
         );
     },
 
@@ -133,38 +163,40 @@ const lang = P.MonadicParser.createLanguage({
                 )
 	    )),
 	    //  lys:a.ca lys:a lys lys.ca
-	    P.MonadicParser.alt(
-                P.MonadicParser.alt(
-                    P.MonadicParser.seq(
-                        orNull(propertiesDict.resn).skip(colon),
-                        orNull(propertiesDict.chain).skip(dot),
-                        orNull(propertiesDict.name)
-                    ).map(x => { return { resn: x[0], chain: x[1], name: x[2] }; }),
-		    P.MonadicParser.seq(
-                        orNull(propertiesDict.resn).skip(star),
-                        orNull(propertiesDict.chain).skip(dot),
-                        orNull(propertiesDict.name)
-                    ).map(x => { return { resn: x[0], chain: x[1], name: x[2] }; }),
-                    P.MonadicParser.seq(
-                        orNull(propertiesDict.resn).skip(colon),
-                        orNull(propertiesDict.chain),
-                    ).map(x => { return { resn: x[0], chain: x[1] }; }),
-		    P.MonadicParser.seq(
-                        orNull(propertiesDict.resn).skip(star),
-                        orNull(propertiesDict.chain),
-                    ).map(x => { return { resn: x[0], chain: x[1] }; }),
-		    P.MonadicParser.seq(
-                        orNull(propertiesDict.resn).skip(dot),
-                        orNull(propertiesDict.name),
-                    ).map(x => { return { resn: x[0], name: x[1] }; }),
-		    P.MonadicParser.seq(
-                        orNull(propertiesDict.resn),
-		    ).map(x => { return { resn: x[0] }; }),
+	    //  [lys]:a.ca [lys]:a [lys] [lys].ca
+	    commu.then(P.MonadicParser.alt(
+		P.MonadicParser.alt(
+                    P.MonadicParser.alt(
+			P.MonadicParser.seq(
+                            orNull(propertiesDict.resn).skip(tator).skip(colon),
+                            orNull(propertiesDict.chain).skip(dot),
+                            orNull(propertiesDict.name)
+			).map(x => { return { resn: x[0], chain: x[1], name: x[2] }; }),
+			P.MonadicParser.seq(
+                            orNull(propertiesDict.resn).skip(tator).skip(star),
+                            orNull(propertiesDict.chain).skip(dot),
+                            orNull(propertiesDict.name)
+			).map(x => { return { resn: x[0], chain: x[1], name: x[2] }; }),
+			P.MonadicParser.seq(
+                            orNull(propertiesDict.resn).skip(tator).skip(colon),
+                            orNull(propertiesDict.chain),
+			).map(x => { return { resn: x[0], chain: x[1] }; }),
+			P.MonadicParser.seq(
+                            orNull(propertiesDict.resn).skip(tator).skip(star),
+                            orNull(propertiesDict.chain),
+			).map(x => { return { resn: x[0], chain: x[1] }; }),
+			P.MonadicParser.seq(
+                            orNull(propertiesDict.resn).skip(tator).skip(dot),
+                            orNull(propertiesDict.name),
+			).map(x => { return { resn: x[0], name: x[1] }; }),
+			P.MonadicParser.seq(
+                            orNull(propertiesDict.resn).skip(tator),
+			).map(x => { return { resn: x[0]}; })
+		    )
                 )
 	    )
-
-        );
-
+		      )
+	)
     },
 
     ObjectProperty: () => {
@@ -184,6 +216,14 @@ const lang = P.MonadicParser.createLanguage({
             .map((x: any) => { throw new Error(`property 'object' not supported, value '${x}'`); });
     },
 
+    AtomExpression: function (r: any) {
+	return P.MonadicParser.seq(r.Resname.or(P.MonadicParser.of(null)));
+    },
+
+    
+//    Resname: () => P.MonadicParser.regexp(s/[a-zA-Z0-9]{1,4}/).desc('resname'),
+    Resname: () => P.MonadicParser.regexp(/\[[A-Z0-9]{1,4}\]/).desc('resname'),
+   
     NamedAtomProperties: function () {
         return P.MonadicParser.alt(...h.getNamedPropertyRules(properties));
     },
