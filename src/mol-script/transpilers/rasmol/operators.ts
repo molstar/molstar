@@ -31,7 +31,7 @@ export const operators: OperatorList = [
         '@examples': ['ASP and .CA'],
         name: 'and',
         type: h.binaryLeft,
-        rule: P.MonadicParser.alt(h.infixOp(/AND|&/i), P.MonadicParser.whitespace),
+        rule: P.MonadicParser.alt(h.infixOp(/AND|&/i)),
         // rule: h.infixOp(/AND|&/i),
         map: (op, selection, by) => B.struct.modifier.intersectBy({ 0: selection, by })
     },
@@ -39,8 +39,10 @@ export const operators: OperatorList = [
         '@desc': 'Selects atoms included in either s1 or s2.',
         '@examples': ['ASP or GLU'],
         name: 'or',
+	abbr: [','],
         type: h.binaryLeft,
-        rule: h.infixOp(/OR|\||\|\|/i),
+	rule: P.MonadicParser.alt(h.infixOp(/OR|\||\|\||,/i)),
+//        rule: h.infixOp(/OR|\||\|\|/i),
         map: (op, s1, s2) => B.struct.combinator.merge([s1, s2])
     },
     /*
