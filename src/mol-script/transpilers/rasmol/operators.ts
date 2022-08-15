@@ -41,5 +41,15 @@ export const operators: OperatorList = [
         rule: h.infixOp(/OR|\||\|\|/i),
         map: (op, s1, s2) => B.struct.combinator.merge([s1, s2])
     }
+    {
+        '@desc': 'Selects atoms within a specified distance of a selection',
+        '@examples': ['within 5 of name FE'],
+        name: 'within',
+        type: h.prefix,
+        rule: h.prefixOp(/WITHIN\s+([-+]?[0-9]*\.?[0-9]+)\s+OF/i, 1).map((x: any) => parseFloat(x)),
+        map: (radius: number, selection: Expression) => {
+            return B.struct.modifier.includeSurroundings({ 0: selection, radius });
+        }
+    },
 ];
 
