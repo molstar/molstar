@@ -39,10 +39,10 @@ export const operators: OperatorList = [
         '@desc': 'Selects atoms included in either s1 or s2.',
         '@examples': ['ASP or GLU'],
         name: 'or',
-	abbr: [','],
+        abbr: [','],
         type: h.binaryLeft,
-	rule: P.MonadicParser.alt(h.infixOp(/OR|\||\|\||,/i)),
-//        rule: h.infixOp(/OR|\||\|\|/i),
+        rule: P.MonadicParser.alt(h.infixOp(/OR|\||\|\||,/i)),
+        //        rule: h.infixOp(/OR|\||\|\|/i),
         map: (op, s1, s2) => B.struct.combinator.merge([s1, s2])
     },
     /*

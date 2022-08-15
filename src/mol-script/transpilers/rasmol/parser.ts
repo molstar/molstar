@@ -41,7 +41,6 @@ function orNull(rule: P.MonadicParser<any>) {
     return rule.or(P.MonadicParser.of(null));
 }
 
-
 function atomSelectionQuery2(x: any) {
     const tests: AtomGroupArgs = {};
     const props: { [k: string]: any[] } = {};
@@ -143,31 +142,31 @@ const lang = P.MonadicParser.createLanguage({
 	    commu.then(P.MonadicParser.alt(
                 P.MonadicParser.alt(
                     P.MonadicParser.alt(
-			P.MonadicParser.seq(
+                        P.MonadicParser.seq(
                             orNull(propertiesDict.resn).skip(tator),
 			    orNull(propertiesDict.resi).skip(colon),
                             orNull(propertiesDict.chain).skip(dot),
                             orNull(propertiesDict.name)
                         ).map(x => { return { resn: x[0], resi: x[1], chain: x[2], name: x[3] }; }),
-			P.MonadicParser.seq(
+                        P.MonadicParser.seq(
                             orNull(propertiesDict.resn).skip(tator),
 			    orNull(propertiesDict.resi).skip(colon),
                             orNull(propertiesDict.chain)
                         ).map(x => { return { resn: x[0], resi: x[1], chain: x[2] }; }),
-			P.MonadicParser.seq(
+                        P.MonadicParser.seq(
 			    orNull(propertiesDict.resn).skip(tator),
 			    orNull(propertiesDict.resi).skip(colon).skip(dot),
                             orNull(propertiesDict.name)
-			).map(x => { return { resn: x[0], resi: x[1], name: x[2] }; }),
-			P.MonadicParser.seq(
+                        ).map(x => { return { resn: x[0], resi: x[1], name: x[2] }; }),
+                        P.MonadicParser.seq(
                             orNull(propertiesDict.resn).skip(tator),
 			    orNull(propertiesDict.resi).skip(dot),
                             orNull(propertiesDict.name)
                         ).map(x => { return { resn: x[0], resi: x[1], name: x[2] }; }),
-			P.MonadicParser.seq(
+                        P.MonadicParser.seq(
                             orNull(propertiesDict.resn).skip(tator),
 			    orNull(propertiesDict.resi)
-                        ).map(x => { return { resn: x[0], resi: x[1]}; }),
+                        ).map(x => { return { resn: x[0], resi: x[1] }; }),
                         P.MonadicParser.seq(
                             orNull(propertiesDict.resn).skip(tator).skip(colon),
                             orNull(propertiesDict.chain).skip(dot),

@@ -214,6 +214,7 @@ export const properties: PropertyDict = {
     formalCharge: {
         '@desc': 'formal charge',
         '@examples': ['formalCharge=1'],
+        isNumeric: true,
         regex: reFloat, map: x => parseFloat(x),
         level: 'atom-test', property: B.ammp('pdbx_formal_charge')
     },
@@ -336,6 +337,7 @@ export const properties: PropertyDict = {
     mass: {
         '@desc': 'atomic mass -- especially useful with appended .max or .sum',
         '@examples': ['mass > 13'],
+        isNumeric: true,
         regex: reFloat, map: x => parseFloat(x),
         level: 'atom-test', property: B.acp('mass')
     },
@@ -391,6 +393,7 @@ export const properties: PropertyDict = {
     occupancy: {
         '@desc': 'CIF file site occupancy. In SELECT command comparisons ("select occupancy < 90"), an integer n implies measurement on a 0-100 scale; also, in the context %[occupancy] or %q for a label, the reported number is a percentage. In all other cases, such as when %Q is used in a label or when a decimal number is used in a comparison, the scale is 0.0 - 1.0.',
         '@examples': ['occupancy < 1'],
+        isNumeric: true,
         regex: reFloat, map: x => parseFloat(x),
         level: 'atom-test', property: B.ammp('occupancy')
     },
@@ -449,14 +452,6 @@ export const properties: PropertyDict = {
         isNumeric: true,
         regex: /-?[0-9]+/, map: x => parseInt(x),
         level: 'residue-test', property: B.ammp('auth_seq_id')
-    },
-    hoge: {
-        '@desc': 'PDB residue number, not including insertion code (see also seqcode, below)',
-        '@examples': ['resno = 100'],
-        //        isNumeric: true,
-        regex: /-?[0-9]+/, map: x => parseInt(x),
-        level: 'residue-test', property: B.ammp('auth_seq_id')
-
     },
     selected: {
         '@desc': '1.0 if atom is selected; 0.0 if not',
@@ -557,6 +552,7 @@ export const properties: PropertyDict = {
     temperature: {
         '@desc': 'yes  yes  temperature factor (B-factor)',
         '@examples': ['temperature >= 20'],
+        isNumeric: true,
         regex: reFloat, map: x => parseFloat(x),
         level: 'atom-test', property: B.ammp('B_iso_or_equiv')
     },
@@ -598,6 +594,7 @@ export const properties: PropertyDict = {
     vanderwaals: {
         '@desc': 'van der Waals radius',
         '@examples': ['vanderwaals >2'],
+        isNumeric: true,
         regex: reFloat, map: x => parseFloat(x),
         level: 'atom-test', property: B.acp('vdw')
     },
