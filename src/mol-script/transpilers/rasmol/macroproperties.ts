@@ -1,4 +1,4 @@
-\[/**
+/**
  * Copyright (c) 2017-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -60,7 +60,7 @@ function elementListMap(x: string) {
 //    };
 // }
 
-export const special_properties: PropertyDict = {
+export const macroproperties: PropertyDict = {
     symbol: {
         '@desc': 'chemical-symbol-list: list of 1- or 2-letter chemical symbols from the periodic table',
         '@examples': ['symbol O+N'],

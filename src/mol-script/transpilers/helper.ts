@@ -29,6 +29,16 @@ export function prefix(opParser: P.MonadicParser<any>, nextParser: P.MonadicPars
     return parser;
 }
 
+export function prefixRemoveKet(opParser: P.MonadicParser<any>, nextParser: P.MonadicParser<any>, mapFn: any) {
+    const parser: P.MonadicParser<any> = P.MonadicParser.lazy(() => {
+        return P.MonadicParser.seq(opParser, parser.skip(P.MonadicParser.string(")")))
+            .map(x => mapFn(...x))
+            .or(nextParser);
+    });
+    return parser;
+}
+
+
 // Ideally this function would be just like `PREFIX` but reordered like
 // `P.seq(parser, opParser).or(nextParser)`, but that doesn't work. The
 // reason for that is that Parsimmon will get stuck in infinite recursion, since
@@ -127,6 +137,11 @@ export function infixOp(re: RegExp, group: number = 0) {
 
 export function prefixOp(re: RegExp, group: number = 0) {
     return P.MonadicParser.regexp(re, group).skip(P.MonadicParser.whitespace);
+}
+
+export function prefixOpNoWhiteSpace(re: RegExp, group: number = 0) {
+    //    return P.MonadicParser.regexp(re, group).skip(P.MonadicParser.regexp(/\s*/));
+    return P.MonadicParser.regexp(re, group).skip(P.MonadicParser.regexp(/\s*/));
 }
 
 export function postfixOp(re: RegExp, group: number = 0) {
