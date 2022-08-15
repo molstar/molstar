@@ -23,6 +23,7 @@ import { ColorNames } from '../../mol-util/color/names';
 import { assertUnreachable } from '../../mol-util/type-helpers';
 import { parsePrmtop } from '../../mol-io/reader/prmtop/parser';
 import { parseTop } from '../../mol-io/reader/top/parser';
+import ky  from 'ky';
 
 export { Download };
 export { DownloadBlob };
@@ -56,6 +57,25 @@ const Download = PluginStateTransform.BuiltIn({
     }
 })({
     apply({ params: p, cache }, plugin: PluginContext) {
+
+        const api = ky.extend({
+            hooks: {
+                beforeRequest: [
+                    request => {
+                        request.headers.set('X-Requested-With', 'ky');
+                        request.headers.set('Host', 'vast-shore-20630.herokuapp.com');
+                        request.headers.set('Access-Control-Allow-Origin', '*');
+                        request.headers.set('Cross-Origin-Opener-Policy', 'same-origin');
+                        request.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE');
+                        request.headers.set('Access-Control-Allow-Headers', 'Content-Type');
+                        request.headers.set('Access-Control-Allow-Credentials', 'true');
+                    }
+                ]
+            }
+        });
+
+        alert('This is loading:', api.get('https://vast-shore-20630.herokuapp.com/'))
+        
         return Task.create('Download', async ctx => {
             const url = Asset.getUrlAsset(plugin.managers.asset, p.url);
             const asset = await plugin.managers.asset.resolve(url, p.isBinary ? 'binary' : 'string').runInContext(ctx);
