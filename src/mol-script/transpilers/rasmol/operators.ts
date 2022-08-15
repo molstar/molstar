@@ -13,7 +13,7 @@ import * as h from '../helper';
 import { MolScriptBuilder } from '../../../mol-script/language/builder';
 const B = MolScriptBuilder;
 import { OperatorList } from '../types';
-// import { Expression } from '../../language/expression';
+import { Expression } from '../../language/expression';
 
 
 export const operators: OperatorList = [
@@ -40,7 +40,7 @@ export const operators: OperatorList = [
         type: h.binaryLeft,
         rule: h.infixOp(/OR|\||\|\|/i),
         map: (op, s1, s2) => B.struct.combinator.merge([s1, s2])
-    }
+    },
     {
         '@desc': 'Selects atoms within a specified distance of a selection',
         '@examples': ['within 5 of name FE'],
