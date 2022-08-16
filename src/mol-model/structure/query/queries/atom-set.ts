@@ -33,7 +33,7 @@ export function countQuery(ctx: QueryContext, query: StructureQuery) {
 
 
 // export function propertySet(ctx: QueryContext, prop: UnitTypeProperties) {
-export function propertySet(ctx: QueryContext, prop: QueryFn<any>) {
+export function propertySet(prop: QueryFn<any>) {
     return (ctx: QueryContext) => {
         const set = new Set();
         const x = getCurrentStructureProperties(ctx, prop, set);
