@@ -93,7 +93,7 @@ function getSsaoRenderable(ctx: WebGLContext, depthTexture: Texture): SsaoRender
         ...QuadValues,
         tDepth: ValueCell.create(depthTexture),
 
-        uSamples: ValueCell.create([0.0, 0.0, 1.0]),
+        uSamples: ValueCell.create(getSamples(32)),
         dNSamples: ValueCell.create(32),
 
         uProjection: ValueCell.create(Mat4.identity()),
@@ -140,7 +140,7 @@ function getSsaoBlurRenderable(ctx: WebGLContext, ssaoDepthTexture: Texture, dir
         tSsaoDepth: ValueCell.create(ssaoDepthTexture),
         uTexSize: ValueCell.create(Vec2.create(ssaoDepthTexture.getWidth(), ssaoDepthTexture.getHeight())),
 
-        uKernel: ValueCell.create([0.0]),
+        uKernel: ValueCell.create(getBlurKernel(15)),
         dOcclusionKernelSize: ValueCell.create(15),
 
         uBlurDirectionX: ValueCell.create(direction === 'horizontal' ? 1 : 0),
@@ -173,15 +173,26 @@ function getBlurKernel(kernelSize: number): number[] {
     return kernel;
 }
 
-function getSamples(vectorSamples: Vec3[], nSamples: number): number[] {
+const RandomHemisphereVector: Vec3[] = [];
+for (let i = 0; i < 256; i++) {
+    const v = Vec3();
+    v[0] = Math.random() * 2.0 - 1.0;
+    v[1] = Math.random() * 2.0 - 1.0;
+    v[2] = Math.random();
+    Vec3.normalize(v, v);
+    Vec3.scale(v, v, Math.random());
+    RandomHemisphereVector.push(v);
+}
+
+function getSamples(nSamples: number): number[] {
     const samples = [];
     for (let i = 0; i < nSamples; i++) {
         let scale = (i * i + 2.0 * i + 1) / (nSamples * nSamples);
         scale = 0.1 + scale * (1.0 - 0.1);
 
-        samples.push(vectorSamples[i][0] * scale);
-        samples.push(vectorSamples[i][1] * scale);
-        samples.push(vectorSamples[i][2] * scale);
+        samples.push(RandomHemisphereVector[i][0] * scale);
+        samples.push(RandomHemisphereVector[i][1] * scale);
+        samples.push(RandomHemisphereVector[i][2] * scale);
     }
 
     return samples;
@@ -294,7 +305,6 @@ export class PostprocessingPass {
     private readonly outlinesTarget: RenderTarget;
     private readonly outlinesRenderable: OutlinesRenderable;
 
-    private readonly randomHemisphereVector: Vec3[];
     private readonly ssaoFramebuffer: Framebuffer;
     private readonly ssaoBlurFirstPassFramebuffer: Framebuffer;
     private readonly ssaoBlurSecondPassFramebuffer: Framebuffer;
@@ -340,16 +350,6 @@ export class PostprocessingPass {
         this.outlinesTarget = webgl.createRenderTarget(width, height, false);
         this.outlinesRenderable = getOutlinesRenderable(webgl, depthTextureOpaque, depthTextureTransparent);
 
-        this.randomHemisphereVector = [];
-        for (let i = 0; i < 256; i++) {
-            const v = Vec3();
-            v[0] = Math.random() * 2.0 - 1.0;
-            v[1] = Math.random() * 2.0 - 1.0;
-            v[2] = Math.random();
-            Vec3.normalize(v, v);
-            Vec3.scale(v, v, Math.random());
-            this.randomHemisphereVector.push(v);
-        }
         this.ssaoFramebuffer = webgl.resources.framebuffer();
         this.ssaoBlurFirstPassFramebuffer = webgl.resources.framebuffer();
         this.ssaoBlurSecondPassFramebuffer = webgl.resources.framebuffer();
@@ -450,7 +450,7 @@ export class PostprocessingPass {
                 needsUpdateSsao = true;
 
                 this.nSamples = props.occlusion.params.samples;
-                ValueCell.update(this.ssaoRenderable.values.uSamples, getSamples(this.randomHemisphereVector, this.nSamples));
+                ValueCell.update(this.ssaoRenderable.values.uSamples, getSamples(this.nSamples));
                 ValueCell.updateIfChanged(this.ssaoRenderable.values.dNSamples, this.nSamples);
             }
             ValueCell.updateIfChanged(this.ssaoRenderable.values.uRadius, Math.pow(2, props.occlusion.params.radius));
