@@ -366,7 +366,7 @@ const symbols = [
 
     D(MolScript.structureQuery.atomSet.countQuery,
         function structureQuery_atomset_countQuery(ctx, xs) {
-	    return Queries.atomset.countQuery(ctx, xs[0] as any)(ctx);
+	    return Queries.atomset.countQuery(xs[0] as any)(ctx);
         }),
 
     D(MolScript.structureQuery.atomSet.propertySet,
