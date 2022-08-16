@@ -219,7 +219,7 @@ const symbols = [
         minRadius: xs['min-radius']?.(ctx) as any,
         maxRadius: xs['max-radius']?.(ctx) as any,
         elementRadius: xs['atom-radius'] as any,
-        invert: xs['invert'] as any
+        invert: xs['invert']?.(ctx) as any
     })(ctx)),
     D(MolScript.structureQuery.filter.isConnectedTo, (ctx, xs) => Queries.filters.isConnectedTo({
         query: xs[0] as any,
