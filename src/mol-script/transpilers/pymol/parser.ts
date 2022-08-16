@@ -22,7 +22,6 @@ const propertiesDict = h.getPropertyRules(properties);
 
 const slash = P.MonadicParser.string('/');
 
-/* is Parser -> MonadicParser substitution correct? */
 function orNull(rule: P.MonadicParser<any>) {
     return rule.or(P.MonadicParser.of(null));
 }

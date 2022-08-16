@@ -37,12 +37,14 @@ const structureDict: {[key: string]: string} = {
     9: 'pi',
 };
 export function structureMap(x: any) {
-    if (x.head && x.head === 'core.type.regex') x = x.args[0].replace(/^\^|\$$/g, '');
-    x = structureDict[x.toString().toLowerCase()] || 'none';
-    if (['dna', 'rna', 'carbohydrate'].indexOf(x) !== -1) {
-        throw new Error("values 'dna', 'rna', 'carbohydrate' not yet supported for 'structure' property");
-    } else {
-        return B.struct.type.secondaryStructureFlags([x]);
+    if (x.head) {
+        if (x.head.name && x.head.name === 'core.type.regex') x = x.args[0].replace(/^\^|\$$/g, '');
+        x = structureDict[x.toString().toLowerCase()] || 'none';
+        if (['dna', 'rna', 'carbohydrate'].indexOf(x) !== -1) {
+            throw new Error("values 'dna', 'rna', 'carbohydrate' not yet supported for 'structure' property");
+        } else {
+            return B.struct.type.secondaryStructureFlags([x]);
+        }
     }
 }
 

@@ -12,9 +12,6 @@ import { keywords } from '../vmd/keywords';
 import { properties } from '../vmd/properties';
 import { operators } from '../vmd/operators';
 
-/* FAULTY IMPORTS */
-// import compile from '../../reference-implementation/molql/compiler';
-
 const general = {
     supported: [
         // trimming

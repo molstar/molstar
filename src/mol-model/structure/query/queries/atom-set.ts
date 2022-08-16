@@ -28,8 +28,6 @@ export function countQuery(query: StructureQuery) {
     };
 }
 
-
-// export function propertySet(ctx: QueryContext, prop: UnitTypeProperties) {
 export function propertySet(prop: QueryFn<any>) {
     return (ctx: QueryContext) => {
         const set = new Set();

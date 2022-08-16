@@ -58,7 +58,7 @@ export function postfix(opParser: P.MonadicParser<any>, nextParser: P.MonadicPar
     // INPUT  :: "4!!!"
     // PARSE  :: [4, "factorial", "factorial", "factorial"]
     // REDUCE :: ["factorial", ["factorial", ["factorial", 4]]]
-    return P.MonadicParser.seqMap(/* no seqMap() in monadic-parser.ts, any suitable replacement? */
+    return P.MonadicParser.seqMap(
         nextParser,
         opParser.many(),
         (x: any, suffixes: any) =>
@@ -80,7 +80,7 @@ export function binaryRight(opParser: P.MonadicParser<any>, nextParser: P.Monadi
                 P.MonadicParser.of(next),
                 parser
             ).map((x) => {
-                console.log(x);
+                //                console.log(x);
                 return x;
             }).or(P.MonadicParser.of(next))
         )

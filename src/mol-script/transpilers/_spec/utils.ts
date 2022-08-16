@@ -9,9 +9,6 @@
 import { Transpiler } from '../transpiler';
 import { KeywordDict, PropertyDict, OperatorList } from '../types';
 
-/* FAULTY IMPORTS */
-// import compile from '../../reference-implementation/molql/compiler';
-
 export function testKeywords(keywords: KeywordDict, transpiler: Transpiler) {
     for (const name in keywords) {
         it(name, () => {

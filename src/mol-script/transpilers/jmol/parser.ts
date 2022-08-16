@@ -31,7 +31,6 @@ const valueOperators: OperatorList = [
         type: h.binaryLeft,
         rule: P.MonadicParser.regexp(/\s*(LIKE|>=|<=|=|!=|>|<)\s*/i, 1),
         map: (op, e1, e2) => {
-            console.log(op, e1, e2);
             let expr;
 	    if (e1 === 'structure') {
                 expr = B.core.flags.hasAny([B.ammp('secondaryStructureFlags'), structureMap(e2)]);
@@ -239,7 +238,7 @@ const lang = P.MonadicParser.createLanguage({
     ValueQuery: function (r: any) {
         return P.MonadicParser.alt(
             r.ValueOperator.map((x: any) => {
-                if (x.head.name) {
+                if (x.head) {
                     if (x.head.name.startsWith('structure-query.generator')) return x;
                 } else {
                     if (typeof x === 'string' && x.length <= 4) {

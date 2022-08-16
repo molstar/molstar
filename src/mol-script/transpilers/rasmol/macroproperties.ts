@@ -20,7 +20,6 @@ function rangeMap(x: string) {
 function listOrRangeMap(x: string) {
     if (x.includes('-') && x.includes(',')) {
         const pSplit = x.split(',').map(x => x.replace(/^["']|["']$/g, ''));
-        console.log(pSplit);
         const res: number[] = [];
         pSplit.forEach(x => {
 	    if (x.includes('-')) {

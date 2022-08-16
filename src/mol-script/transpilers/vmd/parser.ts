@@ -17,8 +17,6 @@ import { functions } from './functions';
 import { OperatorList } from '../types';
 import { Transpiler } from '../transpiler';
 
-// const propertiesDict = h.getPropertyRules(properties)
-
 // <, <=, = or ==, >=, >, and !=
 // lt, le, eq, ge, gt, and ne, =~
 const valueOperators: OperatorList = [
@@ -57,8 +55,6 @@ const valueOperators: OperatorList = [
         type: h.binaryLeft,
         rule: P.MonadicParser.alt(P.MonadicParser.regexp(/\s*(=~|==|>=|<=|=|!=|>|<)\s*/, 1), P.MonadicParser.whitespace.result('=')),
         map: (op, e1, e2) => {
-            //	    console.log(e1.head !== undefined && e2.head !==undefined)
-            console.log(op, e1, e2);
             let expr;
 	    if (e1.head !== undefined) {
                 if (e1.head.name === 'structure-query.atom-property.macromolecular.secondary-structure-flags') {
@@ -184,9 +180,6 @@ const lang = P.MonadicParser.createLanguage({
             }
 
 	    return B.struct.generator.atomGroups({ [h.testLevel(property)]: test });
-	    //  h.testLevel is not working for unknown reason, so relaced it by hardcoded 'atom-test'
-            //	    console.log(h.testLevel(property));
-	    // return B.struct.generator.atomGroups({ 'atom-test': test });
         });
     },
 

@@ -12,9 +12,6 @@ import { keywords } from '../pymol/keywords';
 import { properties } from '../pymol/properties';
 import { operators } from '../pymol/operators';
 
-/* FAULTY IMPORTS */
-// import compile from '../../reference-implementation/molql/compiler';
-
 const general = {
     supported: [
         // macros

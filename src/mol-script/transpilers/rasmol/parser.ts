@@ -35,8 +35,6 @@ const ket = P.MonadicParser.string(')');
 const commu = P.MonadicParser.string('[');
 const tator = P.MonadicParser.string(']');
 
-
-/* is Parser -> MonadicParser substitution correct? */
 function orNull(rule: P.MonadicParser<any>) {
     return rule.or(P.MonadicParser.of(null));
 }
@@ -78,17 +76,10 @@ const lang = P.MonadicParser.createLanguage({
 	    r.Keywords,
 	    r.NamedAtomProperties,
 	    r.AtomSelectionMacro.map(atomSelectionQuery2),
-            //	    r.AtomExparession.map(atomExpressionQuery),
 	    r.Object,
 	    r.Object2,
         );
     },
-
-    //    AtomExpression: function (r: any) {
-    //	return P.MonadicParser.seq(r.Resname.or(P.MonadicParser.of(null)));
-    //    },
-
-
 
     //    lys:a.ca  -> resn lys and chain A and name ca
     //    lys*a.ca  -> resn lys and chain A and name ca
@@ -221,11 +212,6 @@ const lang = P.MonadicParser.createLanguage({
         return r.ObjectProperty2
             .map((x: any) => { throw new Error(`property 'object' not supported, value '${x}'`); });
     },
-
-
-
-    //    Resname: () => P.MonadicParser.regexp(s/[a-zA-Z0-9]{1,4}/).desc('resname'),
-    //    Resname: () => P.MonadicParser.regexp(/\[[A-Z0-9]{1,4}\]/).desc('resname'),
 
     NamedAtomProperties: function () {
         return P.MonadicParser.alt(...h.getNamedPropertyRules(properties));
