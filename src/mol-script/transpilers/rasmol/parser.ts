@@ -11,24 +11,16 @@ import { MolScriptBuilder } from '../../../mol-script/language/builder';
 const B = MolScriptBuilder;
 import { properties } from './properties';
 import { macroproperties } from './macroproperties';
-// import { macrokeywords } from './macrokeywords';
-// import { macrooperators } from './macrooperators';
 import { operators } from './operators';
 import { keywords } from './keywords';
 import { AtomGroupArgs } from '../types';
 import { Transpiler } from '../transpiler';
-// import { OperatorList } from '../types';
 
-// const propertiesDict = h.getPropertyRules(properties);
-
-// const slash = P.MonadicParser.string('/');
 
 const propertiesDict = h.getPropertyRules(macroproperties);
 
-// const slash = P.MonadicParser.string('/');
 const dot = P.MonadicParser.string('.');
 const colon = P.MonadicParser.string(':');
-// const comma = P.MonadicParser.string(',');
 const star = P.MonadicParser.string('*');
 const bra = P.MonadicParser.string('(');
 const ket = P.MonadicParser.string(')');
