@@ -91,7 +91,7 @@
     "Koya Sakuma <koya.sakuma.work@gmail.com>"
   ],
   "license": "MIT",
-    "devDependencies": {
+  "devDependencies": {
     "@graphql-codegen/add": "^3.2.0",
     "@graphql-codegen/cli": "^2.9.1",
     "@graphql-codegen/time": "^3.2.0",
