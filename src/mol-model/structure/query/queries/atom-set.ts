@@ -16,14 +16,11 @@ import { QueryContext, QueryFn } from '../context';
 
 
 export function atomCount(ctx: QueryContext) {
-    return (ctx: QueryContext) => {
-        const all = StructureSelection.Singletons(ctx.currentStructure, ctx.currentStructure);
-        const x: number = StructureSelection.structureCount(all);
-        return x;
-    };
+    return ctx.currentStructure.elementCount;
 }
 
-export function countQuery(ctx: QueryContext, query: StructureQuery) {
+
+export function countQuery(query: StructureQuery) {
     return (ctx: QueryContext) => {
         const sel = query(ctx);
         const x: number = StructureSelection.structureCount(sel);
