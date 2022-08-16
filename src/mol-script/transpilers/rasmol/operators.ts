@@ -42,7 +42,6 @@ export const operators: OperatorList = [
         '@desc': 'Selects atoms in s1 that are within X Angstroms of any atom in s2.',
         '@examples': ['within(5.0, [HEM])'],
         name: 'within',
-        abbr: ['w2.'],
         type: h.prefixRemoveKet,
         rule: h.prefixOpNoWhiteSpace(/within\s*\(\s*([-+]?[0-9]*\.?[0-9]+)\s*,/i, 1).map((x: any) => {
 	    return parseFloat(x);
