@@ -23,7 +23,7 @@ import { PluginUIContext } from '../context';
 import { ActionMenu } from './action-menu';
 import { ColorOptions, ColorValueOption, CombinedColorControl } from './color';
 import { Button, ControlGroup, ControlRow, ExpandGroup, IconButton, TextInput, ToggleButton } from './common';
-import { ArrowDownwardSvg, ArrowDropDownSvg, ArrowRightSvg, ArrowUpwardSvg, BookmarksOutlinedSvg, CheckSvg, ClearSvg, DeleteOutlinedSvg, HelpOutlineSvg, Icon, MoreHorizSvg } from './icons';
+import { ArrowDownwardSvg, ArrowDropDownSvg, ArrowRightSvg, ArrowUpwardSvg, BookmarksOutlinedSvg, CheckSvg, ClearSvg, DeleteOutlinedSvg, HelpOutlineSvg, Icon, MoreHorizSvg, WarningSvg } from './icons';
 import { legendFor } from './legend';
 import { LineGraphComponent } from './line-graph/line-graph-component';
 import { Slider, Slider2 } from './slider';
@@ -1495,6 +1495,9 @@ export class ScriptControl extends React.PureComponent<ParamProps<PD.Script>> {
 
         return <>
             {select}
+            {this.props.value.language !== 'mol-script' && <div className='msp-help-text' style={{ padding: '10px' }}>
+                <Icon svg={WarningSvg} /> Support for PyMOL, VMD, Jmol, and Rasmol selections is an experimental feature and may not always work as intended.
+            </div>}
             {text}
         </>;
     }
