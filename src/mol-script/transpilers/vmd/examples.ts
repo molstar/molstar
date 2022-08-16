@@ -5,7 +5,7 @@
  * @author Panagiotis Tourlas <panagiot_tourlov@hotmail.com>
  */
 
-export const vmdSelectionsExamples = [{
+export const examples = [{
     name: 'All water residues',
     value: 'water'
 }, {

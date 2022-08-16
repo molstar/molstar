@@ -6,7 +6,7 @@
  * @author Panagiotis Tourlas <panagiot_tourlov@hotmail.com>
  */
 
-export const pymolSelectionsExamples = [{
+export const examples = [{
     name: 'ALA residues',
     value: 'resn ALA'
 }, {

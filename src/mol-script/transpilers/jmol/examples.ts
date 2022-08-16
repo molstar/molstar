@@ -5,7 +5,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-export const jmolSelectionsExamples = [{
+export const examples = [{
     name: 'Residue 50 or 135',
     value: '50 or 135'
 }, {

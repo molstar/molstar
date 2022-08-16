@@ -6,7 +6,7 @@
  *
  */
 
-export const rasmolSelectionsExamples = [{
+export const examples = [{
     name: 'Residue 50 or 135',
     value: '(50) or (135)'
 }, {

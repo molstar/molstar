@@ -9,9 +9,10 @@ import { _transpiler as transpilers } from '../all';
 
 function testTranspilerExamples(name: string, transpiler: Transpiler) {
     describe(`${name} examples`, () => {
-        const examples = require(`../${name}/examples`).default;
+        const examples = require(`../${name}/examples`).examples;
+        //        console.log(examples);
         for (const e of examples) {
-	    console.log(e);
+
             it(e.name, () => {
                 // check if it transpiles and compiles/typechecks.
                 transpiler(e.value);
@@ -21,6 +22,6 @@ function testTranspilerExamples(name: string, transpiler: Transpiler) {
 }
 
 testTranspilerExamples('pymol', transpilers.pymol);
-// testTranspilerExamples('vmd', transpilers.vmd);
-// testTranspilerExamples('jmol', transpilers.jmol);
-// testTranspilerExamples('rasmol', transpilers.rasmol);
+testTranspilerExamples('vmd', transpilers.vmd);
+testTranspilerExamples('jmol', transpilers.jmol);
+testTranspilerExamples('rasmol', transpilers.rasmol);
