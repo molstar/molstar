@@ -27,7 +27,7 @@ namespace Script {
         'pymol': 'PyMOL',
         'vmd': 'VMD',
         'jmol': 'Jmol',
-        'rasmol': 'Rasmol'
+        'rasmol': 'RasMol'
     };
     export type Language = keyof typeof Info;
 
