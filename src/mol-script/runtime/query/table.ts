@@ -216,7 +216,7 @@ const symbols = [
     D(MolScript.structureQuery.filter.within, (ctx, xs) => Queries.filters.within({
         query: xs[0] as any,
         target: xs['target'] as any,
-        minRadius: xs['min-radius'] as any,
+        minRadius: xs['min-radius']?.(ctx) as any,
         maxRadius: xs['max-radius']?.(ctx) as any,
         elementRadius: xs['atom-radius'] as any,
         invert: xs['invert'] as any
