@@ -371,7 +371,7 @@ const symbols = [
 
     D(MolScript.structureQuery.atomSet.propertySet,
         function structureQuery_atomset_propertySet(ctx, xs) {
-	  return Queries.atomset.propertySet(ctx, xs[0] as any)(ctx);
+	  return Queries.atomset.propertySet(xs[0] as any)(ctx);
         }),
 
     // ============= BOND PROPERTIES ================
