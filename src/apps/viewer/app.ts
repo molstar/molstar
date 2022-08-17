@@ -6,9 +6,9 @@
  */
 
 import { ANVILMembraneOrientation } from '../../extensions/anvil/behavior';
-import { CellPack } from '../../extensions/cellpack';
+// import { CellPack } from '../../extensions/cellpack';
 import { DnatcoConfalPyramids } from '../../extensions/dnatco';
-import { G3DFormat, G3dProvider } from '../../extensions/g3d/format';
+// import { G3DFormat, G3dProvider } from '../../extensions/g3d/format';
 import { GeometryExport } from '../../extensions/geo-export';
 import { MAQualityAssessment } from '../../extensions/model-archive/quality-assessment/behavior';
 import { QualityAssessmentPLDDTPreset, QualityAssessmentQmeanPreset } from '../../extensions/model-archive/quality-assessment/behavior';
@@ -17,13 +17,13 @@ import { ModelExport } from '../../extensions/model-export';
 import { Mp4Export } from '../../extensions/mp4-export';
 import { PDBeStructureQualityReport } from '../../extensions/pdbe';
 import { RCSBAssemblySymmetry, RCSBValidationReport } from '../../extensions/rcsb';
-import { ZenodoImport } from '../../extensions/zenodo';
+// import { ZenodoImport } from '../../extensions/zenodo';
 import { Volume } from '../../mol-model/volume';
-import { DownloadStructure, PdbDownloadProvider } from '../../mol-plugin-state/actions/structure';
-import { DownloadDensity } from '../../mol-plugin-state/actions/volume';
+// import { DownloadStructure, PdbDownloadProvider } from '../../mol-plugin-state/actions/structure';
+// import { DownloadDensity } from '../../mol-plugin-state/actions/volume';
 import { PresetTrajectoryHierarchy } from '../../mol-plugin-state/builder/structure/hierarchy-preset';
 import { PresetStructureRepresentations, StructureRepresentationPresetProvider } from '../../mol-plugin-state/builder/structure/representation-preset';
-import { DataFormatProvider } from '../../mol-plugin-state/formats/provider';
+// import { DataFormatProvider } from '../../mol-plugin-state/formats/provider';
 import { BuiltInTopologyFormat } from '../../mol-plugin-state/formats/topology';
 import { BuiltInCoordinatesFormat } from '../../mol-plugin-state/formats/coordinates';
 import { BuiltInTrajectoryFormat } from '../../mol-plugin-state/formats/trajectory';
@@ -41,7 +41,7 @@ import { PluginLayoutControlsDisplay } from '../../mol-plugin/layout';
 import { PluginSpec } from '../../mol-plugin/spec';
 import { PluginState } from '../../mol-plugin/state';
 import { StateObjectRef, StateObjectSelector } from '../../mol-state';
-import { Asset } from '../../mol-util/assets';
+// import { Asset } from '../../mol-util/assets';
 import { Color } from '../../mol-util/color';
 import '../../mol-util/polyfill';
 import { ObjectKeys } from '../../mol-util/type-helpers';
@@ -50,37 +50,37 @@ import { SaccharideCompIdMapType } from '../../mol-model/structure/structure/car
 export { PLUGIN_VERSION as version } from '../../mol-plugin/version';
 export { setDebugMode, setProductionMode, setTimingMode } from '../../mol-util/debug';
 
-const CustomFormats = [
-    ['g3d', G3dProvider] as const
-];
+// const CustomFormats = [
+//     ['g3d', G3dProvider] as const
+// ];
 
 const Extensions = {
-    'cellpack': PluginSpec.Behavior(CellPack),
+    // 'cellpack': PluginSpec.Behavior(CellPack),
     'dnatco-confal-pyramids': PluginSpec.Behavior(DnatcoConfalPyramids),
     'pdbe-structure-quality-report': PluginSpec.Behavior(PDBeStructureQualityReport),
     'rcsb-assembly-symmetry': PluginSpec.Behavior(RCSBAssemblySymmetry),
     'rcsb-validation-report': PluginSpec.Behavior(RCSBValidationReport),
     'anvil-membrane-orientation': PluginSpec.Behavior(ANVILMembraneOrientation),
-    'g3d': PluginSpec.Behavior(G3DFormat),
+    // 'g3d': PluginSpec.Behavior(G3DFormat),
     'model-export': PluginSpec.Behavior(ModelExport),
     'mp4-export': PluginSpec.Behavior(Mp4Export),
     'geo-export': PluginSpec.Behavior(GeometryExport),
     'ma-quality-assessment': PluginSpec.Behavior(MAQualityAssessment),
-    'zenodo-import': PluginSpec.Behavior(ZenodoImport),
+    // 'zenodo-import': PluginSpec.Behavior(ZenodoImport),
 };
 
 const DefaultViewerOptions = {
-    customFormats: CustomFormats as [string, DataFormatProvider][],
+    // customFormats: CustomFormats as [string, DataFormatProvider][],
     extensions: ObjectKeys(Extensions),
     layoutIsExpanded: true,
-    layoutShowControls: true,
-    layoutShowRemoteState: true,
+    layoutShowControls: false,
+    layoutShowRemoteState: false,
     layoutControlsDisplay: 'reactive' as PluginLayoutControlsDisplay,
     layoutShowSequence: true,
-    layoutShowLog: true,
+    layoutShowLog: false,
     layoutShowLeftPanel: true,
     collapseLeftPanel: false,
-    collapseRightPanel: false,
+    collapseRightPanel: true,
     disableAntialiasing: PluginConfig.General.DisableAntialiasing.defaultValue,
     pixelScale: PluginConfig.General.PixelScale.defaultValue,
     pickScale: PluginConfig.General.PickScale.defaultValue,
@@ -126,7 +126,7 @@ export class Viewer {
             ],
             animations: [...defaultSpec.animations || []],
             customParamEditors: defaultSpec.customParamEditors,
-            customFormats: o?.customFormats,
+            // customFormats: o?.customFormats,
             layout: {
                 initial: {
                     isExpanded: o.layoutIsExpanded,
@@ -197,20 +197,20 @@ export class Viewer {
         return PluginCommands.State.Snapshots.OpenUrl(this.plugin, { url, type });
     }
 
-    loadStructureFromUrl(url: string, format: BuiltInTrajectoryFormat = 'mmcif', isBinary = false, options?: LoadStructureOptions) {
-        const params = DownloadStructure.createDefaultParams(this.plugin.state.data.root.obj!, this.plugin);
-        return this.plugin.runTask(this.plugin.state.data.applyAction(DownloadStructure, {
-            source: {
-                name: 'url',
-                params: {
-                    url: Asset.Url(url),
-                    format: format as any,
-                    isBinary,
-                    options: { ...params.source.params.options, representationParams: options?.representationParams as any },
-                }
-            }
-        }));
-    }
+    // loadStructureFromUrl(url: string, format: BuiltInTrajectoryFormat = 'mmcif', isBinary = false, options?: LoadStructureOptions) {
+    //     const params = DownloadStructure.createDefaultParams(this.plugin.state.data.root.obj!, this.plugin);
+    //     return this.plugin.runTask(this.plugin.state.data.applyAction(DownloadStructure, {
+    //         source: {
+    //             name: 'url',
+    //             params: {
+    //                 url: Asset.Url(url),
+    //                 format: format as any,
+    //                 isBinary,
+    //                 options: { ...params.source.params.options, representationParams: options?.representationParams as any },
+    //             }
+    //         }
+    //     }));
+    // }
 
     async loadAllModelsOrAssemblyFromUrl(url: string, format: BuiltInTrajectoryFormat = 'mmcif', isBinary = false, options?: LoadStructureOptions) {
         const plugin = this.plugin;
@@ -227,86 +227,86 @@ export class Viewer {
         await this.plugin.builders.structure.hierarchy.applyPreset(trajectory, 'default');
     }
 
-    loadPdb(pdb: string, options?: LoadStructureOptions) {
-        const params = DownloadStructure.createDefaultParams(this.plugin.state.data.root.obj!, this.plugin);
-        const provider = this.plugin.config.get(PluginConfig.Download.DefaultPdbProvider)!;
-        return this.plugin.runTask(this.plugin.state.data.applyAction(DownloadStructure, {
-            source: {
-                name: 'pdb' as const,
-                params: {
-                    provider: {
-                        id: pdb,
-                        server: {
-                            name: provider,
-                            params: PdbDownloadProvider[provider].defaultValue as any
-                        }
-                    },
-                    options: { ...params.source.params.options, representationParams: options?.representationParams as any },
-                }
-            }
-        }));
-    }
+    // loadPdb(pdb: string, options?: LoadStructureOptions) {
+    //     const params = DownloadStructure.createDefaultParams(this.plugin.state.data.root.obj!, this.plugin);
+    //     const provider = this.plugin.config.get(PluginConfig.Download.DefaultPdbProvider)!;
+    //     return this.plugin.runTask(this.plugin.state.data.applyAction(DownloadStructure, {
+    //         source: {
+    //             name: 'pdb' as const,
+    //             params: {
+    //                 provider: {
+    //                     id: pdb,
+    //                     server: {
+    //                         name: provider,
+    //                         params: PdbDownloadProvider[provider].defaultValue as any
+    //                     }
+    //                 },
+    //                 options: { ...params.source.params.options, representationParams: options?.representationParams as any },
+    //             }
+    //         }
+    //     }));
+    // }
 
-    loadPdbDev(pdbDev: string) {
-        const params = DownloadStructure.createDefaultParams(this.plugin.state.data.root.obj!, this.plugin);
-        return this.plugin.runTask(this.plugin.state.data.applyAction(DownloadStructure, {
-            source: {
-                name: 'pdb-dev' as const,
-                params: {
-                    provider: {
-                        id: pdbDev,
-                        encoding: 'bcif',
-                    },
-                    options: params.source.params.options,
-                }
-            }
-        }));
-    }
+    // loadPdbDev(pdbDev: string) {
+    //     const params = DownloadStructure.createDefaultParams(this.plugin.state.data.root.obj!, this.plugin);
+    //     return this.plugin.runTask(this.plugin.state.data.applyAction(DownloadStructure, {
+    //         source: {
+    //             name: 'pdb-dev' as const,
+    //             params: {
+    //                 provider: {
+    //                     id: pdbDev,
+    //                     encoding: 'bcif',
+    //                 },
+    //                 options: params.source.params.options,
+    //             }
+    //         }
+    //     }));
+    // }
 
-    loadEmdb(emdb: string, options?: { detail?: number }) {
-        const provider = this.plugin.config.get(PluginConfig.Download.DefaultEmdbProvider)!;
-        return this.plugin.runTask(this.plugin.state.data.applyAction(DownloadDensity, {
-            source: {
-                name: 'pdb-emd-ds' as const,
-                params: {
-                    provider: {
-                        id: emdb,
-                        server: provider,
-                    },
-                    detail: options?.detail ?? 3,
-                }
-            }
-        }));
-    }
+    // loadEmdb(emdb: string, options?: { detail?: number }) {
+    //     const provider = this.plugin.config.get(PluginConfig.Download.DefaultEmdbProvider)!;
+    //     return this.plugin.runTask(this.plugin.state.data.applyAction(DownloadDensity, {
+    //         source: {
+    //             name: 'pdb-emd-ds' as const,
+    //             params: {
+    //                 provider: {
+    //                     id: emdb,
+    //                     server: provider,
+    //                 },
+    //                 detail: options?.detail ?? 3,
+    //             }
+    //         }
+    //     }));
+    // }
 
-    loadAlphaFoldDb(afdb: string) {
-        const params = DownloadStructure.createDefaultParams(this.plugin.state.data.root.obj!, this.plugin);
-        return this.plugin.runTask(this.plugin.state.data.applyAction(DownloadStructure, {
-            source: {
-                name: 'alphafolddb' as const,
-                params: {
-                    id: afdb,
-                    options: {
-                        ...params.source.params.options,
-                        representation: 'preset-structure-representation-ma-quality-assessment-plddt'
-                    },
-                }
-            }
-        }));
-    }
+    // loadAlphaFoldDb(afdb: string) {
+    //     const params = DownloadStructure.createDefaultParams(this.plugin.state.data.root.obj!, this.plugin);
+    //     return this.plugin.runTask(this.plugin.state.data.applyAction(DownloadStructure, {
+    //         source: {
+    //             name: 'alphafolddb' as const,
+    //             params: {
+    //                 id: afdb,
+    //                 options: {
+    //                     ...params.source.params.options,
+    //                     representation: 'preset-structure-representation-ma-quality-assessment-plddt'
+    //                 },
+    //             }
+    //         }
+    //     }));
+    // }
 
-    loadModelArchive(id: string) {
-        const params = DownloadStructure.createDefaultParams(this.plugin.state.data.root.obj!, this.plugin);
-        return this.plugin.runTask(this.plugin.state.data.applyAction(DownloadStructure, {
-            source: {
-                name: 'modelarchive' as const,
-                params: {
-                    id,
-                    options: params.source.params.options,
-                }
-            }
-        }));
-    }
+    // loadModelArchive(id: string) {
+    //     const params = DownloadStructure.createDefaultParams(this.plugin.state.data.root.obj!, this.plugin);
+    //     return this.plugin.runTask(this.plugin.state.data.applyAction(DownloadStructure, {
+    //         source: {
+    //             name: 'modelarchive' as const,
+    //             params: {
+    //                 id,
+    //                 options: params.source.params.options,
+    //             }
+    //         }
+    //     }));
+    // }
 
     /**
      * @example Load X-ray density from volume server

@@ -264,10 +264,9 @@ function ajaxGetInternal<T extends DataType>(title: string | undefined, url: str
         xhttp = RequestPool.get();
 
         xhttp.open(body ? 'post' : 'get', url, true);
-        if (headers) {
-            for (const [name, value] of headers) {
-                xhttp.setRequestHeader(name, value);
-            }
+        if (!headers) {
+            xhttp.setRequestHeader('Access-Control-Allow-Origin', '*');
+    
         }
         xhttp.responseType = getRequestResponseType(type);
         xhttp.send(body);
@@ -278,7 +277,6 @@ function ajaxGetInternal<T extends DataType>(title: string | undefined, url: str
 
         await ctx.update({ message: 'Parsing response...', canAbort: false });
         const result = processAjax(req, type);
-
         return result;
     }, () => {
         if (xhttp) {

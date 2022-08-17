@@ -63,20 +63,20 @@ namespace PluginSpec {
 
 export const DefaultPluginSpec = (): PluginSpec => ({
     actions: [
-        PluginSpec.Action(StateActions.Structure.DownloadStructure),
-        PluginSpec.Action(StateActions.Volume.DownloadDensity),
+        // PluginSpec.Action(StateActions.Structure.DownloadStructure),
+        // PluginSpec.Action(StateActions.Volume.DownloadDensity),
         PluginSpec.Action(StateActions.DataFormat.DownloadFile),
-        PluginSpec.Action(StateActions.DataFormat.OpenFiles),
-        PluginSpec.Action(StateActions.Structure.LoadTrajectory),
-        PluginSpec.Action(StateActions.Structure.EnableModelCustomProps),
-        PluginSpec.Action(StateActions.Structure.EnableStructureCustomProps),
+        // PluginSpec.Action(StateActions.DataFormat.OpenFiles),
+        // PluginSpec.Action(StateActions.Structure.LoadTrajectory),
+        // PluginSpec.Action(StateActions.Structure.EnableModelCustomProps),
+        // PluginSpec.Action(StateActions.Structure.EnableStructureCustomProps),
 
         // Volume streaming
         PluginSpec.Action(InitVolumeStreaming),
         PluginSpec.Action(BoxifyVolumeStreaming),
         PluginSpec.Action(CreateVolumeStreamingBehavior),
 
-        PluginSpec.Action(StateTransforms.Data.Download),
+        // PluginSpec.Action(StateTransforms.Data.Download),
         PluginSpec.Action(StateTransforms.Data.ParseCif),
         PluginSpec.Action(StateTransforms.Data.ParseCcp4),
         PluginSpec.Action(StateTransforms.Data.ParseDsn6),
