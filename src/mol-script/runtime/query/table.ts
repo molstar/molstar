@@ -224,8 +224,8 @@ const symbols = [
     D(MolScript.structureQuery.filter.isConnectedTo, (ctx, xs) => Queries.filters.isConnectedTo({
         query: xs[0] as any,
         target: xs['target'] as any,
-        disjunct: xs['disjunct'] as any,
-        invert: xs['invert'] as any,
+        disjunct: xs['disjunct']?.(ctx) as any,
+        invert: xs['invert']?.(ctx) as any,
         bondTest: xs['bond-test']
     })(ctx)),
 
