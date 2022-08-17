@@ -29,14 +29,15 @@ const general = {
         ' [ALA] and [VAL] ',
         '  [ALA] and [VAL]',
         // within with whitespaces
-        'within (   5 ,  [HEM]) ',
+        'within (   5 ,  [HEM] ) ',
     ],
     unsupported: [
         // un-braketed residue name
         'LEU and ILE',
         // un-parenthesized residue index
         '100-120',
-        // un-parenthesized within in the head or middle of sentence
+        // within in the head or the middle of sentence
+        'within (   5 ,  [HEM] ) and backbone',
     ]
 };
 
