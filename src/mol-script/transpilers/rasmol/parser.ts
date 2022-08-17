@@ -59,7 +59,7 @@ const lang = P.MonadicParser.createLanguage({
             r.Parens,
             r.Operator,
             r.Expression
-        ).wrap(P.MonadicParser.string('( '), P.MonadicParser.string(' )'));
+        ).wrap(P.MonadicParser.regexp(/\(\s+/), P.MonadicParser.regexp(/\s+\)/));
     },
 
     Expression: function (r: any) {
