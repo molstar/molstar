@@ -249,7 +249,7 @@ const symbols = [
         return Queries.generators.rings(xs?.['fingerprint']?.(ctx) as any, xs?.['only-aromatic']?.(ctx))(ctx);
     }),
     D(MolScript.structureQuery.generator.queryInSelection, function structureQuery_generator_queryInSelection(ctx, xs) {
-        return Queries.generators.querySelection(xs[0] as any, xs['query'] as any, xs['in-complement'] as any)(ctx);
+        return Queries.generators.querySelection(xs[0] as any, xs['query'] as any, xs['in-complement']?.(ctx) as any)(ctx);
     }),
 
     // ============= MODIFIERS ================
