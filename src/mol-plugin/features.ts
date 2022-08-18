@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2021-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 export const PluginFeatureDetection = {
@@ -13,7 +14,10 @@ export const PluginFeatureDetection = {
         const unpportedSafariVersions = [
             'Version/15.1 Safari',
             'Version/15.2 Safari',
-            'Version/15.3 Safari'
+            'Version/15.3 Safari',
+            // the following 'only' break GPU surfaces
+            'Version/15.4 Safari',
+            'Version/15.5 Safari'
         ];
         if (unpportedSafariVersions.some(v => navigator.userAgent.indexOf(v) > 0)) {
             return true;
