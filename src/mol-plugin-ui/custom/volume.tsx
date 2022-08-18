@@ -246,14 +246,14 @@ export class VolumeStreamingCustomControls extends PluginUIComponent<StateTransf
         const entry = (this.props.info.params as VolumeStreaming.ParamDefinition)
             .entry.map(params.entry.name) as PD.Group<VolumeStreaming.EntryParamDefinition>;
         const detailLevel = entry.params.detailLevel;
-        const dynamicDetailLevel = (params.entry.params.view.params as any).dynamicDetailLevel;
-        const selectionDetailLevel = (params.entry.params.view.params as any).selectionDetailLevel;
-        console.log('params:', params);
-        console.log('entry.params:', entry.params);
-        console.log('entry:', (this.props.info.params as VolumeStreaming.ParamDefinition).entry);
-        console.log('detailLevel:', detailLevel);
-        console.log('dynamicDetailLevel:', dynamicDetailLevel);
-        console.log('selectionDetailLevel:', selectionDetailLevel);
+        // const dynamicDetailLevel = (params.entry.params.view.params as any).dynamicDetailLevel;
+        // const selectionDetailLevel = (params.entry.params.view.params as any).selectionDetailLevel;
+        // console.log('params:', params);
+        // console.log('entry.params:', entry.params);
+        // console.log('entry:', (this.props.info.params as VolumeStreaming.ParamDefinition).entry);
+        // console.log('detailLevel:', detailLevel);
+        // console.log('dynamicDetailLevel:', dynamicDetailLevel);
+        // console.log('selectionDetailLevel:', selectionDetailLevel);
         // TODO Adam: somehow try to get the correct mdfkn dynamicDetailLevel value
         const isRelative = ((params.entry.params.channels as any)[pivot].isoValue as Volume.IsoValue).kind === 'relative';
 
