@@ -13,6 +13,7 @@ Note that since we don't clearly distinguish between a public and private interf
     - Add example mmCIF file with categories necessary to display Confal pyramids
     - Change the lookup logic of NtC steps from residues
 - Add support for download of gzipped files
+- Fix Glycam Saccharide Names used by default
 
 ## [v3.13.0] - 2022-07-24
 

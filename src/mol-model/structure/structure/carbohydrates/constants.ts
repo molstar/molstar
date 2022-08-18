@@ -386,16 +386,6 @@ const DefaultSaccharideCompIdMap = (function () {
                 map.set(charmm[j], saccharide);
             }
         }
-
-        const glycam = GlycamSaccharideNames[saccharide.abbr];
-        if (glycam) {
-            for (let j = 0, jl = glycam.length; j < jl; ++j) {
-                // On collision, use PDB name as default.
-                if (!map.has(glycam[j])) {
-                    map.set(glycam[j], saccharide);
-                }
-            }
-        }
     }
     SaccharideNames.forEach(name => {
         if (!map.has(name)) map.set(name, UnknownSaccharideComponent);
