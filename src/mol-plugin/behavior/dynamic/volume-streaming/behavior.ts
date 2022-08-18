@@ -159,8 +159,10 @@ export namespace VolumeStreaming {
         private lastLoci: StructureElement.Loci | EmptyLoci = EmptyLoci;
         private ref: string = '';
         public infoMap: Map<string, VolumeServerInfo.EntryData>;
+        private debugCounter: number = 0;
+        private queue: MonoQueue;
         private cameraTargetObservable = this.plugin.canvas3d!.didDraw!.pipe(
-            throttleTime(500, undefined, { 'leading': true, 'trailing': true }),
+            // throttleTime(500, undefined, { 'leading': true, 'trailing': true }),  // debug TODO throttle
             map(() => this.plugin.canvas3d?.camera.getSnapshot()),
             distinctUntilChanged((a, b) => this.isCameraTargetSame(a, b)),
             filter(a => a !== undefined),
@@ -230,7 +232,7 @@ export namespace VolumeStreaming {
             return ret;
         }
 
-        private updateSelectionBoxParams(box: Box3D) {
+        private async updateSelectionBoxParams(box: Box3D) {
             if (this.params.entry.params.view.name !== 'selection-box') return;
 
             const state = this.plugin.state.data;
@@ -253,7 +255,7 @@ export namespace VolumeStreaming {
             };
             const update = state.build().to(this.ref).update(newParams);
 
-            PluginCommands.State.Update(this.plugin, { state, tree: update, options: { doNotUpdateCurrent: true } });
+            await PluginCommands.State.Update(this.plugin, { state, tree: update, options: { doNotUpdateCurrent: true } });
         }
 
         private updateCameraTargetParams(box: Box3D | undefined) {
@@ -318,6 +320,7 @@ export namespace VolumeStreaming {
 
         register(ref: string): void {
             this.ref = ref;
+            this.queue = new MonoQueue();
 
             this.subscribeObservable(this.plugin.state.events.object.removed, o => {
                 if (!PluginStateObject.Molecule.Structure.is(o.obj) || !StructureElement.Loci.is(this.lastLoci)) return;
@@ -415,27 +418,52 @@ export namespace VolumeStreaming {
         }
 
         private updateSelectionBox(loci: StructureElement.Loci | EmptyLoci) {
-            if (Loci.areEqual(this.lastLoci, loci)) {
-                this.lastLoci = EmptyLoci;
-                this.updateSelectionBoxParams(Box3D());
-                return;
-            }
+            console.log('Trigger', this.debugCounter++);
 
-            this.lastLoci = loci;
+            this.queue.enqueue(async () => {
+                if (Loci.areEqual(this.lastLoci, loci)) {
+                    this.lastLoci = EmptyLoci;
+                    this.updateSelectionBoxParams(Box3D());
+                    return;
+                }
 
-            if (isEmptyLoci(loci)) {
-                this.updateSelectionBoxParams(Box3D());
-                return;
-            }
+                this.lastLoci = loci;
 
-            const box = this.getBoxFromLoci(loci);
-            this.updateSelectionBoxParams(box);
+                if (isEmptyLoci(loci)) {
+                    this.updateSelectionBoxParams(Box3D());
+                    return;
+                }
+
+                const box = this.getBoxFromLoci(loci);
+                await this.updateSelectionBoxParams(box);
+            });
+            
+            // if (Loci.areEqual(this.lastLoci, loci)) {
+            //     this.lastLoci = EmptyLoci;
+            //     this.updateSelectionBoxParams(Box3D());
+            //     return;
+            // }
+
+            // this.lastLoci = loci;
+
+            // if (isEmptyLoci(loci)) {
+            //     this.updateSelectionBoxParams(Box3D());
+            //     return;
+            // }
+
+            // const box = this.getBoxFromLoci(loci);
+            // this.updateSelectionBoxParams(box);
         }
 
         private updateCameraTarget(snapshot: Camera.Snapshot) {
+            console.log('Trigger', this.debugCounter++);
             const box = this.boxFromCameraTarget(snapshot, true);
-            console.log('Subscribed:', 'distance:', this.cameraTargetDistance(snapshot), snapshot, 'box:', box);
             this.updateCameraTargetParams(box);
+            // new MonoQueue().enqueue(async () => {
+            //     const box = this.boxFromCameraTarget(snapshot, true);
+            //     console.log('Subscribed:', 'distance:', this.cameraTargetDistance(snapshot), snapshot, 'box:', box);
+            //     await this.updateCameraTargetParams(box);
+            // });
             // TODO Adam each new update should cancel the previous?
         }
 
@@ -478,7 +506,7 @@ export namespace VolumeStreaming {
                 ratio *= 2;
                 detail += 1;
             }
-            console.log(`decided dynamic detail: ${detail}, (baseDetail: ${baseDetail}, box/cell volume ratio: ${boxVolume/cellVolume})`);
+            // console.log(`decided dynamic detail: ${detail}, (baseDetail: ${baseDetail}, box/cell volume ratio: ${boxVolume/cellVolume})`);
             return detail;
         }
 
@@ -518,7 +546,7 @@ export namespace VolumeStreaming {
                     }
                     // TODO QUESTION why should I subscribe here in `update`, when all other views subscribe in `register`?
                     box = this.boxFromCameraTarget(this.plugin.canvas3d!.camera.getSnapshot(), true);
-                    console.log('boundary', this.data.structure.boundary.box);
+                    // console.log('boundary', this.data.structure.boundary.box);
                     break;
                 case 'cell':
                     box = this.info.kind === 'x-ray'
@@ -582,6 +610,40 @@ export namespace VolumeStreaming {
 
             this.infoMap = new Map<string, VolumeServerInfo.EntryData>();
             this.data.entries.forEach(info => this.infoMap.set(info.dataId, info));
+        }
+    }
+}
+
+/** Job queue that allows at most one running and one pending job. 
+ * A newly enqueued job will cancel any other pending job.
+ * TODO find a more appropriate place for this util class
+ */
+class MonoQueue {
+    private isRunning: boolean;
+    private queue: {id:number, func:() => any}[];
+    private counter = 0;
+    constructor() {
+        this.isRunning = false;
+        this.queue = [];
+    }
+    enqueue(job: () => any) {
+        console.log('MonoQueue enqueue', this.counter);
+        this.queue[0] = {id:this.counter, func:job};
+        this.counter++;
+        this.run();  // do not await
+    }
+    private async run() {
+        if (this.isRunning) return;
+        const job = this.queue.pop();
+        if (!job) return;
+        this.isRunning = true;
+        try {
+            console.log('MonoQueue run', job.id);
+            await job.func();
+            console.log('MonoQueue complete', job.id);
+        } finally {
+            this.isRunning = false;
+            this.run();
         }
     }
 }
