@@ -17,7 +17,8 @@ export const PluginFeatureDetection = {
             'Version/15.3 Safari',
             // the following 'only' break GPU surfaces
             'Version/15.4 Safari',
-            'Version/15.5 Safari'
+            'Version/15.5 Safari',
+            'Version/16.0 Safari',
         ];
         if (unpportedSafariVersions.some(v => navigator.userAgent.indexOf(v) > 0)) {
             return true;
