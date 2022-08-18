@@ -49,18 +49,9 @@
                 LightingDemo.load({ url: 'https://models.rcsb.org/4KTC.bcif', assemblyId: '1' }, 5, 1.3);
             });
 
-            addHeader('Example PDB IDs');
-            addControl('4KTC', () => LightingDemo.load({ url: 'https://models.rcsb.org/4KTC.bcif', assemblyId: '1' }, 5, 1.3));
-            addControl('5FJ5', () => LightingDemo.load({ url: 'https://models.rcsb.org/5FJ5.bcif', assemblyId: '1' }, 8, 1.8));
-            addControl('1UPN', () => LightingDemo.load({ url: 'https://models.rcsb.org/1UPN.bcif', assemblyId: '1' }, 7, 1.6));
-            addControl('1RB8', () => LightingDemo.load({ url: 'https://models.rcsb.org/1RB8.bcif', assemblyId: '1' }, 6, 1.3));
-
-            addSeparator()
-
-            addHeader('Lighting Presets');
-            addControl('Illustrative', () => LightingDemo.setPreset('illustrative'));
-            addControl('Standard', () => LightingDemo.setPreset('standard'));
-            addControl('Ambient Occlusion', () => LightingDemo.setPreset('occlusion'));
+            addHeader('Quanmol Samples');
+            addControl('Protein Structure', () => LightingDemo.load({ url: 'https://molstar-example.s3.us-west-1.amazonaws.com/2ym3_protein_processed.pdb', format: 'pdb', isBinary: false, assemblyId: '1' }, 5, 1.3));
+            addControl('Ligand Structure', () => LightingDemo.load({ url: 'https://molstar-example.s3.us-west-1.amazonaws.com/2ym3_ligand.mol2', format: 'mol2', isBinary: false, assemblyId: '1' }, 8, 1.8));
 
             ////////////////////////////////////////////////////////
 
@@ -84,6 +75,6 @@
                 $('controls').appendChild(h);
             }
         </script>
-        <!-- __MOLSTAR_ANALYTICS__ -->
+        <!-- Cloudflare Web Analytics --><script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "c414cbae2d284ea995171a81e4a3e721"}'></script><!-- End Cloudflare Web Analytics -->
     </body>
 </html>
