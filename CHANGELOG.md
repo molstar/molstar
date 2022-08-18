@@ -12,6 +12,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Add example mmCIF file with categories necessary to display Confal pyramids
 - Change the lookup logic of NtC steps from residues
 - Add support for download of gzipped files
+- Don't filter IndexPairBonds by element-based rules in MOL/SDF and MOL2 (without symmetry) models
 
 ## [v3.13.0] - 2022-07-24
 

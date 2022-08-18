@@ -80,7 +80,10 @@ export async function getMolModels(mol: MolFile, format: ModelFormat<any> | unde
         const indexA = Column.ofIntArray(Column.mapToArray(bonds.atomIdxA, x => x - 1, Int32Array));
         const indexB = Column.ofIntArray(Column.mapToArray(bonds.atomIdxB, x => x - 1, Int32Array));
         const order = Column.asArrayColumn(bonds.order, Int32Array);
-        const pairBonds = IndexPairBonds.fromData({ pairs: { indexA, indexB, order }, count: atoms.count });
+        const pairBonds = IndexPairBonds.fromData(
+            { pairs: { indexA, indexB, order }, count: atoms.count },
+            { maxDistance: Infinity }
+        );
         IndexPairBonds.Provider.set(models.representative, pairBonds);
     }
 
