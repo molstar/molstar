@@ -443,8 +443,15 @@ export namespace VolumeStreaming {
 
         private updateCameraTarget(snapshot: Camera.Snapshot) {
             this.updateQueue.enqueue(async () => {
-                const box = this.boxFromCameraTarget(snapshot, true);
-                await this.updateCameraTargetParams(box);
+                const origManualReset = this.plugin.canvas3d?.props.camera.manualReset;
+                try {
+                    console.log('Manual reset orig:', origManualReset);
+                    this.plugin.canvas3d?.setProps({ camera: { manualReset: true } });
+                    const box = this.boxFromCameraTarget(snapshot, true);
+                    await this.updateCameraTargetParams(box);
+                } finally {
+                    this.plugin.canvas3d?.setProps({ camera: { manualReset: origManualReset } });
+                }
             });
         }
 
@@ -487,7 +494,7 @@ export namespace VolumeStreaming {
                 ratio *= 2;
                 detail += 1;
             }
-            console.log(`decided dynamic detail: ${detail}, (baseDetail: ${baseDetail}, box/cell volume ratio: ${boxVolume/cellVolume})`);
+            console.log(`decided dynamic detail: ${detail}, (baseDetail: ${baseDetail}, box/cell volume ratio: ${boxVolume / cellVolume})`);
             return detail;
         }
 
