@@ -93,7 +93,7 @@ export namespace VolumeStreaming {
                 'camera-target': PD.Group({
                     radius: PD.Numeric(5, { min: 0, max: 50, step: 0.5 }, { description: 'Radius in \u212B within which the volume is shown.' }),
                     // Minimal detail level for the inside of the zoomed region (real detail can be higher, depending on the region size)
-                    dynamicDetailLevel: createDetailParams(info.header.availablePrecisions, 0, { label: 'Dynamic Detail Level' }),  // TODO Adam choose appropriate default value
+                    dynamicDetailLevel: createDetailParams(info.header.availablePrecisions, 0, { label: 'Dynamic Detail' }),  // TODO Adam choose appropriate default value
                     bottomLeft: PD.Vec3(Vec3.create(0, 0, 0), {}, { isHidden: true }),
                     topRight: PD.Vec3(Vec3.create(0, 0, 0), {}, { isHidden: true }),
                 }, { description: 'Box around camera target.', isFlat: true }),
