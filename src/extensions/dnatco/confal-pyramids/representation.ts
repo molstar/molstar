@@ -151,9 +151,7 @@ function getConfalPyramidLoci(pickingId: PickingId, structureGroup: StructureGro
     if (halfPyramidsCount <= groupId) return EmptyLoci;
 
     const idx = Math.floor(groupId / 2); // Map groupIndex to a step, see createConfalPyramidsMesh() for full explanation
-    const step = data.steps[idx];
-
-    return CPT.Loci({ step, isLower: groupId % 2 === 1 }, [{}]);
+    return CPT.Loci(data.steps, [idx]);
 }
 
 function eachConfalPyramid(loci: Loci, structureGroup: StructureGroup, apply: (interval: Interval) => boolean) {

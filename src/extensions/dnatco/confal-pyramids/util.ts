@@ -21,12 +21,17 @@ export type Pyramid = {
     stepIdx: number,
 };
 
-function getPyramid(loc: StructureElement.Location, one: DnatcoUtil.Residue, two: DnatcoUtil.Residue, altIdOne: string, altIdTwo: string, confalScore: number, stepIdx: number): Pyramid {
-    const O3 = DnatcoUtil.getAtomIndex(loc, one, ['O3\'', 'O3*'], altIdOne);
-    const P = DnatcoUtil.getAtomIndex(loc, two, ['P'], altIdTwo);
-    const OP1 = DnatcoUtil.getAtomIndex(loc, two, ['OP1'], altIdTwo);
-    const OP2 = DnatcoUtil.getAtomIndex(loc, two, ['OP2'], altIdTwo);
-    const O5 = DnatcoUtil.getAtomIndex(loc, two, ['O5\'', 'O5*'], altIdTwo);
+function getPyramid(
+    loc: StructureElement.Location,
+    one: DnatcoUtil.Residue, two: DnatcoUtil.Residue,
+    altIdOne: string, altIdTwo: string,
+    insCodeOne: string, insCodeTwo: string,
+    confalScore: number, stepIdx: number): Pyramid {
+    const O3 = DnatcoUtil.getAtomIndex(loc, one, ['O3\'', 'O3*'], altIdOne, insCodeOne);
+    const P = DnatcoUtil.getAtomIndex(loc, two, ['P'], altIdTwo, insCodeTwo);
+    const OP1 = DnatcoUtil.getAtomIndex(loc, two, ['OP1'], altIdTwo, insCodeTwo);
+    const OP2 = DnatcoUtil.getAtomIndex(loc, two, ['OP2'], altIdTwo, insCodeTwo);
+    const O5 = DnatcoUtil.getAtomIndex(loc, two, ['O5\'', 'O5*'], altIdTwo, insCodeTwo);
 
     return { O3, P, OP1, OP2, O5, confalScore, stepIdx };
 }
@@ -52,7 +57,7 @@ export class ConfalPyramidsIterator {
         const points = [];
         for (const idx of indices) {
             const step = this.data!.steps[idx];
-            points.push(getPyramid(this.loc, one, two, step.label_alt_id_1, step.label_alt_id_2, step.confal_score, idx));
+            points.push(getPyramid(this.loc, one, two, step.label_alt_id_1, step.label_alt_id_2, step.PDB_ins_code_1, step.PDB_ins_code_2, step.confal_score, idx));
         }
 
         return points;

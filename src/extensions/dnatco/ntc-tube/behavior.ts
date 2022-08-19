@@ -1,24 +1,24 @@
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Michal Malý <michal.maly@ibt.cas.cz>
  * @author Jiří Černý <jiri.cerny@ibt.cas.cz>
  */
 
-import { ConfalPyramidsColorThemeProvider } from './color';
-import { ConfalPyramidsProvider } from './property';
-import { ConfalPyramidsRepresentationProvider } from './representation';
-import { Dnatco } from '../property';
+import { NtCTubeColorThemeProvider } from './color';
+import { NtCTubeProvider } from './property';
+import { NtCTubeRepresentationProvider } from './representation';
 import { DnatcoTypes } from '../types';
+import { Dnatco } from '../property';
 import { StructureRepresentationPresetProvider, PresetStructureRepresentations } from '../../../mol-plugin-state/builder/structure/representation-preset';
 import { StateObjectRef } from '../../../mol-state';
 import { Task } from '../../../mol-task';
 
-export const ConfalPyramidsPreset = StructureRepresentationPresetProvider({
-    id: 'preset-structure-representation-confal-pyramids',
+export const NtCTubePreset = StructureRepresentationPresetProvider({
+    id: 'preset-structure-representation-ntc-tube',
     display: {
-        name: 'Confal Pyramids', group: 'Annotation',
-        description: 'Schematic depiction of conformer class and confal value.',
+        name: 'NtC Tube', group: 'Annotation',
+        description: 'NtC Tube',
     },
     isApplicable(a) {
         return a.data.models.length >= 1 && a.data.models.some(m => Dnatco.isApplicable(m));
@@ -29,25 +29,25 @@ export const ConfalPyramidsPreset = StructureRepresentationPresetProvider({
         const model = structureCell?.obj?.data.model;
         if (!structureCell || !model) return {};
 
-        await plugin.runTask(Task.create('Confal Pyramids', async runtime => {
-            await ConfalPyramidsProvider.attach({ runtime, assetManager: plugin.managers.asset }, model);
+        await plugin.runTask(Task.create('NtC tube', async runtime => {
+            await NtCTubeProvider.attach({ runtime, assetManager: plugin.managers.asset }, model);
         }));
 
         const { components, representations } = await PresetStructureRepresentations.auto.apply(ref, { ...params }, plugin);
 
-        const pyramids = await plugin.builders.structure.tryCreateComponentStatic(structureCell, 'nucleic', { label: 'Confal Pyramids' });
+        const tube = await plugin.builders.structure.tryCreateComponentStatic(structureCell, 'nucleic', { label: 'NtC Tube' });
         const { update, builder, typeParams } = StructureRepresentationPresetProvider.reprBuilder(plugin, params);
 
-        let pyramidsRepr;
+        let tubeRepr;
         if (representations)
-            pyramidsRepr = builder.buildRepresentation(update, pyramids, { type: ConfalPyramidsRepresentationProvider, typeParams, color: ConfalPyramidsColorThemeProvider }, { tag: 'confal-pyramdis' });
+            tubeRepr = builder.buildRepresentation(update, tube, { type: NtCTubeRepresentationProvider, typeParams, color: NtCTubeColorThemeProvider }, { tag: 'ntc-tube' });
 
         await update.commit({ revertOnError: true });
-        return { components: { ...components, pyramids }, representations: { ...representations, pyramidsRepr } };
+        return { components: { ...components, tube }, representations: { ...representations, tubeRepr } };
     }
 });
 
-export function confalPyramidLabel(step: DnatcoTypes.Step) {
+export function NtCTubeSegmentLabel(step: DnatcoTypes.Step) {
     return `
         <b>${step.auth_asym_id_1}</b> |
         <b>${step.label_comp_id_1} ${step.auth_seq_id_1}${step.PDB_ins_code_1}${step.label_alt_id_1.length > 0 ? ` (alt ${step.label_alt_id_1})` : ''}

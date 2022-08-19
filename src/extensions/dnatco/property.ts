@@ -57,16 +57,80 @@ export namespace Dnatco {
     };
     export type Schema = typeof Schema;
 
+    export function getStepsFromCif(
+        model: Model,
+        cifSteps: Table<typeof Dnatco.Schema.ndb_struct_ntc_step>,
+        stepsSummary: StepsSummaryTable
+    ): DnatcoTypes.Steps {
+        const steps = new Array<DnatcoTypes.Step>();
+        const mapping = new Array<DnatcoTypes.MappedChains>();
+
+        const {
+            id, PDB_model_number, name,
+            auth_asym_id_1, auth_seq_id_1, label_comp_id_1, label_alt_id_1, PDB_ins_code_1,
+            auth_asym_id_2, auth_seq_id_2, label_comp_id_2, label_alt_id_2, PDB_ins_code_2,
+            _rowCount
+        } = cifSteps;
+
+        if (_rowCount !== stepsSummary._rowCount) throw new Error('Inconsistent mmCIF data');
+
+        for (let i = 0; i < _rowCount; i++) {
+            const {
+                NtC,
+                confal_score,
+                rmsd
+            } = getSummaryData(id.value(i), i, stepsSummary);
+            const modelNum = PDB_model_number.value(i);
+            const chainId = auth_asym_id_1.value(i);
+            const seqId = auth_seq_id_1.value(i);
+            const modelIdx = modelNum - 1;
+
+            if (mapping.length <= modelIdx || !mapping[modelIdx])
+                mapping[modelIdx] = new Map<string, DnatcoTypes.MappedResidues>();
+
+            const step = {
+                PDB_model_number: modelNum,
+                name: name.value(i),
+                auth_asym_id_1: chainId,
+                auth_seq_id_1: seqId,
+                label_comp_id_1: label_comp_id_1.value(i),
+                label_alt_id_1: label_alt_id_1.value(i),
+                PDB_ins_code_1: PDB_ins_code_1.value(i),
+                auth_asym_id_2: auth_asym_id_2.value(i),
+                auth_seq_id_2: auth_seq_id_2.value(i),
+                label_comp_id_2: label_comp_id_2.value(i),
+                label_alt_id_2: label_alt_id_2.value(i),
+                PDB_ins_code_2: PDB_ins_code_2.value(i),
+                confal_score,
+                NtC,
+                rmsd,
+            };
+
+            steps.push(step);
+
+            const mappedChains = mapping[modelIdx];
+            const residuesOnChain = mappedChains.get(chainId) ?? new Map<number, number[]>();
+            const stepsForResidue = residuesOnChain.get(seqId) ?? [];
+            stepsForResidue.push(steps.length - 1);
+
+            residuesOnChain.set(seqId, stepsForResidue);
+            mappedChains.set(chainId, residuesOnChain);
+            mapping[modelIdx] = mappedChains;
+        }
+
+        return { steps, mapping };
+    }
+
     export async function fromCif(ctx: CustomProperty.Context, model: Model, props: DnatcoProps): Promise<CustomProperty.Data<DnatcoSteps>> {
         const info = PropertyWrapper.createInfo();
         const data = getCifData(model);
         if (data === undefined) return { value: { info, data: undefined } };
 
-        const fromCif = createPyramidsFromCif(model, data.steps, data.stepsSummary);
+        const fromCif = getStepsFromCif(model, data.steps, data.stepsSummary);
         return { value: { info, data: fromCif } };
     }
 
-    function getCifData(model: Model) {
+    export function getCifData(model: Model) {
         if (!MmcifFormat.is(model.sourceData)) throw new Error('Data format must be mmCIF');
         if (!hasNdbStructNtcCategories(model)) return undefined;
         return {
@@ -87,70 +151,6 @@ export namespace Dnatco {
 }
 
 type StepsSummaryTable = Table<typeof Dnatco.Schema.ndb_struct_ntc_step_summary>;
-
-function createPyramidsFromCif(
-    model: Model,
-    cifSteps: Table<typeof Dnatco.Schema.ndb_struct_ntc_step>,
-    stepsSummary: StepsSummaryTable
-): DnatcoTypes.Steps {
-    const steps = new Array<DnatcoTypes.Step>();
-    const mapping = new Array<DnatcoTypes.MappedChains>();
-
-    const {
-        id, PDB_model_number, name,
-        auth_asym_id_1, auth_seq_id_1, label_comp_id_1, label_alt_id_1, PDB_ins_code_1,
-        auth_asym_id_2, auth_seq_id_2, label_comp_id_2, label_alt_id_2, PDB_ins_code_2,
-        _rowCount
-    } = cifSteps;
-
-    if (_rowCount !== stepsSummary._rowCount) throw new Error('Inconsistent mmCIF data');
-
-    for (let i = 0; i < _rowCount; i++) {
-        const {
-            NtC,
-            confal_score,
-            rmsd
-        } = getSummaryData(id.value(i), i, stepsSummary);
-        const modelNum = PDB_model_number.value(i);
-        const chainId = auth_asym_id_1.value(i);
-        const seqId = auth_seq_id_1.value(i);
-        const modelIdx = modelNum - 1;
-
-        if (mapping.length <= modelIdx || !mapping[modelIdx])
-            mapping[modelIdx] = new Map<string, DnatcoTypes.MappedResidues>();
-
-        const step = {
-            PDB_model_number: modelNum,
-            name: name.value(i),
-            auth_asym_id_1: chainId,
-            auth_seq_id_1: seqId,
-            label_comp_id_1: label_comp_id_1.value(i),
-            label_alt_id_1: label_alt_id_1.value(i),
-            PDB_ins_code_1: PDB_ins_code_1.value(i),
-            auth_asym_id_2: auth_asym_id_2.value(i),
-            auth_seq_id_2: auth_seq_id_2.value(i),
-            label_comp_id_2: label_comp_id_2.value(i),
-            label_alt_id_2: label_alt_id_2.value(i),
-            PDB_ins_code_2: PDB_ins_code_2.value(i),
-            confal_score,
-            NtC,
-            rmsd,
-        };
-
-        steps.push(step);
-
-        const mappedChains = mapping[modelIdx];
-        const residuesOnChain = mappedChains.get(chainId) ?? new Map<number, number[]>();
-        const stepsForResidue = residuesOnChain.get(seqId) ?? [];
-        stepsForResidue.push(steps.length - 1);
-
-        residuesOnChain.set(seqId, stepsForResidue);
-        mappedChains.set(chainId, residuesOnChain);
-        mapping[modelIdx] = mappedChains;
-    }
-
-    return { steps, mapping };
-}
 
 function getSummaryData(id: number, i: number, stepsSummary: StepsSummaryTable) {
     const {

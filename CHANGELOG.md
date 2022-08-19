@@ -30,6 +30,8 @@ Note that since we don't clearly distinguish between a public and private interf
 - Add support to dim unmarked groups
 - Add support for marker edge strength
 - Factor out common code in `Dnatco` extension
+- Add `NtC tube` visual. Applicable for structures with NtC annotation
+- [Breaking] Rename `DnatcoConfalPyramids` to `DnatcoNtCs`
 
 ## [v3.28.0] - 2022-12-20
 
