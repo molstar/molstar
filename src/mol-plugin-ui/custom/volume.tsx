@@ -288,7 +288,7 @@ export class VolumeStreamingCustomControls extends PluginUIComponent<StateTransf
                     isUnbounded: isUnboundedParam,
                 }, { description: 'Box around focused element.' }),
                 'camera-target': PD.Group({
-                    radius: PD.Numeric(5, { min: 0, max: 50, step: 0.5 }, { description: 'Radius in \u212B within which the volume is shown.' }),
+                    radius: PD.Numeric(0.5, { min: 0, max: 1, step: 0.05 }, { description: 'Radius within which the volume is shown (relative to the field of view).' }),
                     detailLevel: {...detailLevel, isHidden: true},
                     dynamicDetailLevel: dynamicDetailLevel,
                     isRelative: isRelativeParam,
