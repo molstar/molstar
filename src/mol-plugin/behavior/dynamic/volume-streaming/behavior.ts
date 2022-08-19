@@ -124,7 +124,7 @@ export namespace VolumeStreaming {
         return PD.Select<number>(Math.min(preferredPrecision, availablePrecisions.length - 1),
             availablePrecisions.map((p, i) => [i, `${i + 1} [ ${Math.pow(p.maxVoxels, 1 / 3) | 0}^3 cells ]`] as [number, string]),
             {
-                description: 'Determines the maximum number of voxels. Depending on the size of the volume options are in the range from 0 (0.52M voxels) to 6 (25.17M voxels).',
+                description: 'Determines the maximum number of voxels. Depending on the size of the volume options are in the range from 1 (0.52M voxels) to 7 (25.17M voxels).',
                 ...info
             }
         );
