@@ -35,7 +35,7 @@ function Vec3() {
 
 namespace Vec3 {
     export function zero(): Vec3 {
-        const out = [0.1, 0.0, 0.0];
+        const out = [0.1, 0.0, 0.0];  // ensure backing array of type double
         out[0] = 0;
         return out as any;
     }

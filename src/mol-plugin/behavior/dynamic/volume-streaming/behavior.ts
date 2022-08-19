@@ -93,7 +93,7 @@ export namespace VolumeStreaming {
                 'camera-target': PD.Group({
                     radius: PD.Numeric(0.5, { min: 0, max: 1, step: 0.05 }, { description: 'Radius within which the volume is shown (relative to the field of view).' }),
                     // Minimal detail level for the inside of the zoomed region (real detail can be higher, depending on the region size)
-                    dynamicDetailLevel: createDetailParams(info.header.availablePrecisions, 0, { label: 'Dynamic Detail' }),  // TODO Adam choose appropriate default value
+                    dynamicDetailLevel: createDetailParams(info.header.availablePrecisions, 0, { label: 'Dynamic Detail' }),
                     bottomLeft: PD.Vec3(Vec3.create(0, 0, 0), {}, { isHidden: true }),
                     topRight: PD.Vec3(Vec3.create(0, 0, 0), {}, { isHidden: true }),
                 }, { description: 'Box around camera target.', isFlat: true }),
@@ -130,12 +130,29 @@ export namespace VolumeStreaming {
         );
     }
 
+    export function copyParams(origParams: Params): Params {
+        return {
+            entry: {
+                name: origParams.entry.name,
+                params: {
+                    detailLevel: origParams.entry.params.detailLevel,
+                    channels: origParams.entry.params.channels,
+                    view: {
+                        name: origParams.entry.params.view.name,
+                        params: { ...origParams.entry.params.view.params } as any,
+                    }
+                }
+            }
+        };
+    }
+
     export const ViewTypeOptions = [['off', 'Off'], ['box', 'Bounded Box'], ['selection-box', 'Around Focus'], ['camera-target', 'Around Camera'], ['cell', 'Whole Structure'], ['auto', 'Auto']] as [ViewTypes, string][];
 
     export type ViewTypes = 'off' | 'box' | 'selection-box' | 'camera-target' | 'cell' | 'auto'
 
     export type ParamDefinition = ReturnType<typeof createParams>
     export type Params = PD.Values<ParamDefinition>
+
 
     type ChannelsInfo = { [name in ChannelType]?: { isoValue: Volume.IsoValue, color: Color, wireframe: boolean, opacity: number } }
     type ChannelsData = { [name in 'EM' | '2FO-FC' | 'FO-FC']?: Volume }
@@ -231,90 +248,21 @@ export namespace VolumeStreaming {
             return ret;
         }
 
-        private async updateSelectionBoxParams(box: Box3D) {
-            if (this.params.entry.params.view.name !== 'selection-box') return;
+        private async updateParams(box: Box3D | undefined, autoIsSelection: boolean = false) {
+            const newParams = copyParams(this.params);
+            const viewType = newParams.entry.params.view.name;
+            if (viewType !== 'off' && viewType !== 'cell') {
+                newParams.entry.params.view.params.bottomLeft = box?.min || Vec3.zero();
+                newParams.entry.params.view.params.topRight = box?.max || Vec3.zero();
+            }
+            if (viewType === 'auto') {
+                newParams.entry.params.view.params.isSelection = autoIsSelection;
+            }
 
             const state = this.plugin.state.data;
-            const newParams: Params = {
-                ...this.params,
-                entry: {
-                    name: this.params.entry.name,
-                    params: {
-                        ...this.params.entry.params,
-                        view: {
-                            name: 'selection-box' as const,
-                            params: {
-                                radius: this.params.entry.params.view.params.radius,
-                                bottomLeft: box.min,
-                                topRight: box.max
-                            }
-                        }
-                    }
-                }
-            };
-            const update = state.build().to(this.ref).update(newParams);
-
-            // const task = state.updateTree(update, { doNotUpdateCurrent: true });
-            // const promise = this.plugin.runTask(task);
-            // setTimeout(() => this.plugin.managers.task.requestAbort(task.id), 200);
-            // await promise;
-            await PluginCommands.State.Update(this.plugin, { state, tree: update, options: { doNotUpdateCurrent: true } });
-        }
-
-        private async updateCameraTargetParams(box: Box3D | undefined) {
-            if (this.params.entry.params.view.name !== 'camera-target') return;
-
-            const state = this.plugin.state.data;
-            const newParams: Params = {
-                ...this.params,
-                entry: {
-                    name: this.params.entry.name,
-                    params: {
-                        ...this.params.entry.params,
-                        view: {
-                            name: 'camera-target' as const,
-                            params: {
-                                radius: this.params.entry.params.view.params.radius,
-                                dynamicDetailLevel: this.params.entry.params.view.params.dynamicDetailLevel,
-                                bottomLeft: box?.min || Vec3.zero(),
-                                topRight: box?.max || Vec3.zero()
-                            }
-                        }
-                    }
-                }
-            };
             const update = state.build().to(this.ref).update(newParams);
 
             await PluginCommands.State.Update(this.plugin, { state, tree: update, options: { doNotUpdateCurrent: true } });
-        }
-
-        private async updateAutoParams(box: Box3D | undefined, isSelection: boolean) {
-            if (this.params.entry.params.view.name !== 'auto') return;
-
-            const state = this.plugin.state.data;
-            const newParams: Params = {
-                ...this.params,
-                entry: {
-                    name: this.params.entry.name,
-                    params: {
-                        ...this.params.entry.params,
-                        view: {
-                            name: 'auto' as const,
-                            params: {
-                                radius: this.params.entry.params.view.params.radius,
-                                selectionDetailLevel: this.params.entry.params.view.params.selectionDetailLevel,
-                                isSelection,
-                                bottomLeft: box?.min || Vec3.zero(),
-                                topRight: box?.max || Vec3.zero()
-                            }
-                        }
-                    }
-                }
-            };
-            const update = state.build().to(this.ref).update(newParams);
-
-            await PluginCommands.State.Update(this.plugin, { state, tree: update, options: { doNotUpdateCurrent: true } });
-            // TODO QUESTION is there a reason for this much code repetition? updateSelectionBoxParams vs updateAutoParams (and now also updateCameraTargetParams)
         }
 
         private getStructureRoot() {
@@ -403,21 +351,12 @@ export namespace VolumeStreaming {
 
         private updateAuto(loci: StructureElement.Loci | EmptyLoci) {
             this.updateQueue.enqueue(async () => {
-                // if (Loci.areEqual(this.lastLoci, loci)) {
-                //     this.lastLoci = EmptyLoci;
-                //     this.updateSelectionBoxParams(Box3D.empty());
-                //     return;
-                // }
-
                 this.lastLoci = loci;
-
                 if (isEmptyLoci(loci)) {
-                    this.updateAutoParams(this.info.kind === 'x-ray' ? this.data.structure.boundary.box : void 0, false);
-                    return;
+                    await this.updateParams(this.info.kind === 'x-ray' ? this.data.structure.boundary.box : void 0, false);
+                } else {
+                    await this.updateParams(this.getBoxFromLoci(loci), true);
                 }
-
-                const box = this.getBoxFromLoci(loci);
-                await this.updateAutoParams(box, true);
             });
         }
 
@@ -425,19 +364,11 @@ export namespace VolumeStreaming {
             this.updateQueue.enqueue(async () => {
                 if (Loci.areEqual(this.lastLoci, loci)) {
                     this.lastLoci = EmptyLoci;
-                    this.updateSelectionBoxParams(Box3D());
-                    return;
+                } else {
+                    this.lastLoci = loci;
                 }
-
-                this.lastLoci = loci;
-
-                if (isEmptyLoci(loci)) {
-                    this.updateSelectionBoxParams(Box3D());
-                    return;
-                }
-
-                const box = this.getBoxFromLoci(loci);
-                await this.updateSelectionBoxParams(box);
+                const box = this.getBoxFromLoci(this.lastLoci);
+                await this.updateParams(box);
             });
         }
 
@@ -445,10 +376,9 @@ export namespace VolumeStreaming {
             this.updateQueue.enqueue(async () => {
                 const origManualReset = this.plugin.canvas3d?.props.camera.manualReset;
                 try {
-                    console.log('Manual reset orig:', origManualReset);
                     this.plugin.canvas3d?.setProps({ camera: { manualReset: true } });
                     const box = this.boxFromCameraTarget(snapshot, true);
-                    await this.updateCameraTargetParams(box);
+                    await this.updateParams(box);
                 } finally {
                     this.plugin.canvas3d?.setProps({ camera: { manualReset: origManualReset } });
                 }
@@ -456,7 +386,6 @@ export namespace VolumeStreaming {
         }
 
         private boxFromCameraTarget(snapshot: Camera.Snapshot, boundByBoundarySize: boolean): Box3D {
-            // TODO QUESTION: what exactly is e.radius and e.radiusMax?
             const target = snapshot.target;
             const distance = this.cameraTargetDistance(snapshot);
             const top = Math.tan(0.5 * snapshot.fov) * distance;
@@ -495,7 +424,7 @@ export namespace VolumeStreaming {
                 ratio *= 2;
                 detail += 1;
             }
-            console.log(`decided dynamic detail: ${detail}, (baseDetail: ${baseDetail}, box/cell volume ratio: ${boxVolume / cellVolume})`);
+            console.log(`Decided dynamic detail: ${detail}, (base detail: ${baseDetail}, box/cell volume ratio: ${boxVolume / cellVolume})`);
             return detail;
         }
 
@@ -533,9 +462,7 @@ export namespace VolumeStreaming {
                     if (!this.cameraTargetSubscription) {
                         this.cameraTargetSubscription = this.subscribeObservable(this.cameraTargetObservable, (e) => this.updateCameraTarget(e));
                     }
-                    // TODO QUESTION why should I subscribe here in `update`, when all other views subscribe in `register`?
                     box = this.boxFromCameraTarget(this.plugin.canvas3d!.camera.getSnapshot(), true);
-                    // console.log('boundary', this.data.structure.boundary.box);
                     break;
                 case 'cell':
                     box = this.info.kind === 'x-ray'
