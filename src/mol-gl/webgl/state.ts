@@ -69,6 +69,9 @@ export type WebGLState = {
     clearVertexAttribsState: () => void
     disableUnusedVertexAttribs: () => void
 
+    viewport: (x: number, y: number, width: number, height: number) => void
+    scissor: (x: number, y: number, width: number, height: number) => void
+
     reset: () => void
 }
 
@@ -94,6 +97,9 @@ export function createState(gl: GLRenderingContext): WebGLState {
 
     let maxVertexAttribs = gl.getParameter(gl.MAX_VERTEX_ATTRIBS);
     const vertexAttribsState: number[] = [];
+
+    let currentViewport: [number, number, number, number] = gl.getParameter(gl.VIEWPORT);
+    let currentScissor: [number, number, number, number] = gl.getParameter(gl.SCISSOR_BOX);
 
     const clearVertexAttribsState = () => {
         for (let i = 0; i < maxVertexAttribs; ++i) {
@@ -222,6 +228,26 @@ export function createState(gl: GLRenderingContext): WebGLState {
             }
         },
 
+        viewport: (x: number, y: number, width: number, height: number) => {
+            if (x !== currentViewport[0] || y !== currentViewport[1] || width !== currentViewport[2] || height !== currentViewport[3]) {
+                gl.viewport(x, y, width, height);
+                currentViewport[0] = x;
+                currentViewport[1] = y;
+                currentViewport[2] = width;
+                currentViewport[3] = height;
+            }
+        },
+
+        scissor: (x: number, y: number, width: number, height: number) => {
+            if (x !== currentScissor[0] || y !== currentScissor[1] || width !== currentScissor[2] || height !== currentScissor[3]) {
+                gl.scissor(x, y, width, height);
+                currentScissor[0] = x;
+                currentScissor[1] = y;
+                currentScissor[2] = width;
+                currentScissor[3] = height;
+            }
+        },
+
         reset: () => {
             enabledCapabilities = {};
 
@@ -247,6 +273,9 @@ export function createState(gl: GLRenderingContext): WebGLState {
             for (let i = 0; i < maxVertexAttribs; ++i) {
                 vertexAttribsState[i] = 0;
             }
+
+            currentViewport = gl.getParameter(gl.VIEWPORT);
+            currentScissor = gl.getParameter(gl.SCISSOR_BOX);
         }
     };
 }

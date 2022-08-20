@@ -23,7 +23,7 @@ import { Carbohydrates } from './carbohydrates/data';
 import { computeCarbohydrates } from './carbohydrates/compute';
 import { Vec3, Mat4 } from '../../../mol-math/linear-algebra';
 import { idFactory } from '../../../mol-util/id-factory';
-import { GridLookup3D } from '../../../mol-math/geometry';
+import { Box3D, GridLookup3D } from '../../../mol-math/geometry';
 import { UUID } from '../../../mol-util';
 import { CustomProperties } from '../../custom-property';
 import { AtomicHierarchy } from '../model/properties/atomic';
@@ -43,6 +43,8 @@ type State = {
     lookup3d?: StructureLookup3D,
     interUnitBonds?: InterUnitBonds,
     dynamicBonds: boolean,
+    interBondsValidUnit?: (unit: Unit) => boolean,
+    interBondsValidUnitPair?: (structure: Structure, unitA: Unit, unitB: Unit) => boolean,
     unitSymmetryGroups?: ReadonlyArray<Unit.SymmetryGroup>,
     unitSymmetryGroupsIndexMap?: IntMap<number>,
     unitsSortedByVolume?: ReadonlyArray<Unit>;
@@ -241,6 +243,8 @@ class Structure {
             this.state.interUnitBonds = computeInterUnitBonds(this, {
                 ignoreWater: !this.dynamicBonds,
                 ignoreIon: !this.dynamicBonds,
+                validUnit: this.state.interBondsValidUnit,
+                validUnitPair: this.state.interBondsValidUnitPair,
             });
         }
         return this.state.interUnitBonds;
@@ -248,6 +252,14 @@ class Structure {
 
     get dynamicBonds() {
         return this.state.dynamicBonds;
+    }
+
+    get interBondsValidUnit() {
+        return this.state.interBondsValidUnit;
+    }
+
+    get interBondsValidUnitPair() {
+        return this.state.interBondsValidUnitPair;
     }
 
     get unitSymmetryGroups(): ReadonlyArray<Unit.SymmetryGroup> {
@@ -380,7 +392,12 @@ class Structure {
             parent: parent?.remapModel(m),
             label: this.label,
             interUnitBonds: dynamicBonds ? undefined : interUnitBonds,
-            dynamicBonds
+            dynamicBonds,
+            interBondsValidUnit: this.state.interBondsValidUnit,
+            interBondsValidUnitPair: this.state.interBondsValidUnitPair,
+            coordinateSystem: this.state.coordinateSystem,
+            masterModel: this.state.masterModel,
+            representativeModel: this.state.representativeModel,
         });
     }
 
@@ -428,7 +445,6 @@ class Structure {
 
 function cmpUnits(units: ArrayLike<Unit>, i: number, j: number) {
     return units[i].id - units[j].id;
-
 }
 
 function getModels(s: Structure) {
@@ -634,6 +650,8 @@ namespace Structure {
          * Also enables calculation of inter-unit bonds in water molecules.
          */
         dynamicBonds?: boolean,
+        interBondsValidUnit?: (unit: Unit) => boolean,
+        interBondsValidUnitPair?: (structure: Structure, unitA: Unit, unitB: Unit) => boolean,
         coordinateSystem?: SymmetryOperator
         label?: string
         /** Master model for structures of a protein model and multiple ligand models */
@@ -721,6 +739,12 @@ namespace Structure {
         // handle props
         if (props.parent) state.parent = props.parent.parent || props.parent;
         if (props.interUnitBonds) state.interUnitBonds = props.interUnitBonds;
+
+        if (props.interBondsValidUnit) state.interBondsValidUnit = props.interBondsValidUnit;
+        else if (props.parent) state.interBondsValidUnit = props.parent.interBondsValidUnit;
+
+        if (props.interBondsValidUnitPair) state.interBondsValidUnitPair = props.interBondsValidUnitPair;
+        else if (props.parent) state.interBondsValidUnitPair = props.parent.interBondsValidUnitPair;
 
         if (props.dynamicBonds) state.dynamicBonds = props.dynamicBonds;
         else if (props.parent) state.dynamicBonds = props.parent.dynamicBonds;
@@ -1180,7 +1204,7 @@ namespace Structure {
 
     /**
      * Iterate over all unit pairs of a structure and invokes callback for valid units
-     * and unit pairs if within a max distance.
+     * and unit pairs if their boundaries are within a max distance.
      */
     export function eachUnitPair(structure: Structure, callback: (unitA: Unit, unitB: Unit) => void, props: EachUnitPairProps) {
         const { maxRadius, validUnit, validUnitPair } = props;
@@ -1188,15 +1212,19 @@ namespace Structure {
 
         const lookup = structure.lookup3d;
         const imageCenter = Vec3();
+        const bbox = Box3D();
+        const rvec = Vec3.create(maxRadius, maxRadius, maxRadius);
 
         for (const unit of structure.units) {
             if (!validUnit(unit)) continue;
 
             const bs = unit.boundary.sphere;
+            Box3D.expand(bbox, unit.boundary.box, rvec);
             Vec3.transformMat4(imageCenter, bs.center, unit.conformation.operator.matrix);
             const closeUnits = lookup.findUnitIndices(imageCenter[0], imageCenter[1], imageCenter[2], bs.radius + maxRadius);
             for (let i = 0; i < closeUnits.count; i++) {
                 const other = structure.units[closeUnits.indices[i]];
+                if (!Box3D.overlaps(bbox, other.boundary.box)) continue;
                 if (!validUnit(other) || unit.id >= other.id || !validUnitPair(unit, other)) continue;
 
                 if (other.elements.length >= unit.elements.length) callback(unit, other);

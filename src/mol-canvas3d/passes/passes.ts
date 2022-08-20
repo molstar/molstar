@@ -8,15 +8,16 @@ import { DrawPass } from './draw';
 import { PickPass } from './pick';
 import { MultiSamplePass } from './multi-sample';
 import { WebGLContext } from '../../mol-gl/webgl/context';
+import { AssetManager } from '../../mol-util/assets';
 
 export class Passes {
     readonly draw: DrawPass;
     readonly pick: PickPass;
     readonly multiSample: MultiSamplePass;
 
-    constructor(private webgl: WebGLContext, attribs: Partial<{ pickScale: number, enableWboit: boolean }> = {}) {
+    constructor(private webgl: WebGLContext, assetManager: AssetManager, attribs: Partial<{ pickScale: number, enableWboit: boolean }> = {}) {
         const { gl } = webgl;
-        this.draw = new DrawPass(webgl, gl.drawingBufferWidth, gl.drawingBufferHeight, attribs.enableWboit || false);
+        this.draw = new DrawPass(webgl, assetManager, gl.drawingBufferWidth, gl.drawingBufferHeight, attribs.enableWboit || false);
         this.pick = new PickPass(webgl, this.draw, attribs.pickScale || 0.25);
         this.multiSample = new MultiSamplePass(webgl, this.draw);
     }

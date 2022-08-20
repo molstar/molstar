@@ -46,6 +46,7 @@ import { Color } from '../../mol-util/color';
 import '../../mol-util/polyfill';
 import { ObjectKeys } from '../../mol-util/type-helpers';
 import { SaccharideCompIdMapType } from '../../mol-model/structure/structure/carbohydrates/constants';
+import { Backgrounds } from '../../extensions/backgrounds';
 
 export { PLUGIN_VERSION as version } from '../../mol-plugin/version';
 export { setDebugMode, setProductionMode, setTimingMode } from '../../mol-util/debug';
@@ -55,6 +56,7 @@ const CustomFormats = [
 ];
 
 const Extensions = {
+    'backgrounds': PluginSpec.Behavior(Backgrounds),
     'cellpack': PluginSpec.Behavior(CellPack),
     'dnatco-confal-pyramids': PluginSpec.Behavior(DnatcoConfalPyramids),
     'pdbe-structure-quality-report': PluginSpec.Behavior(PDBeStructureQualityReport),

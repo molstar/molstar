@@ -6,6 +6,8 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Expose inter-bonds compute params in structure
+- Improve performance of inter/intra-bonds compute
 - Fix defaultAttribs handling in Canvas3DContext.fromCanvas
 - Confal pyramids extension improvements
     - Add custom labels to Confal pyramids
@@ -13,8 +15,26 @@ Note that since we don't clearly distinguish between a public and private interf
     - Add example mmCIF file with categories necessary to display Confal pyramids
     - Change the lookup logic of NtC steps from residues
 - Add support for download of gzipped files
+- Don't filter IndexPairBonds by element-based rules in MOL/SDF and MOL2 (without symmetry) models
 - Fix Glycam Saccharide Names used by default
 - Fix GPU surfaces rendering in Safari with WebGL2
+- Add ``fov`` (Field of View) Canvas3D parameter
+- Add ``sceneRadiusFactor`` Canvas3D parameter
+- Add background pass (skybox, image, horizontal/radial gradient)
+    - Set simple-settings presets via ``PluginConfig.Background.Styles``
+    - Example presets in new backgrounds extension
+    - Load skybox/image from URL or File (saved in session)
+    - Opacity, saturation, lightness controls for skybox/image
+    - Coverage (viewport or canvas) controls for image/gradient
+- [Breaking] ``AssetManager`` needs to be passed to various graphics related classes
+- Fix SSAO renderable initialization
+- Reduce number of webgl state changes
+    - Add ``viewport`` and ``scissor`` to state object
+    - Add ``hasOpaque`` to scene object
+- Handle edge cases where some renderables would not get (correctly) rendered
+    - Fix text background rendering for opaque text
+    - Fix helper scenes not shown when rendering directly to draw target
+- Fix ``CustomElementProperty`` coloring not working
 
 ## [v3.13.0] - 2022-07-24
 

@@ -292,7 +292,9 @@ const glsl300VertPrefixCommon = `
 const glsl300FragPrefixCommon = `
 #define varying in
 #define texture2D texture
+#define textureCube texture
 #define texture2DLodEXT textureLod
+#define textureCubeLodEXT textureLod
 
 #define gl_FragColor out_FragData0
 #define gl_FragDepthEXT gl_FragDepth

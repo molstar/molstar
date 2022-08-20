@@ -113,7 +113,10 @@ async function getModels(mol2: Mol2File, ctx: RuntimeContext) {
                         return BondType.Flag.Covalent;
                 }
             }, Int8Array));
-            const pairBonds = IndexPairBonds.fromData({ pairs: { key, indexA, indexB, order, flag }, count: atoms.count });
+            const pairBonds = IndexPairBonds.fromData(
+                { pairs: { key, indexA, indexB, order, flag }, count: atoms.count },
+                { maxDistance: crysin ? -1 : Infinity }
+            );
 
             const first = _models.representative;
             IndexPairBonds.Provider.set(first, pairBonds);
