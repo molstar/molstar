@@ -14,7 +14,7 @@ Note that since we don't clearly distinguish between a public and private interf
     - Change the lookup logic of NtC steps from residues
 - Add support for download of gzipped files
 - Fix Glycam Saccharide Names used by default
-- Prefer WebGL1 for more Safari versions to avoid broken GPU surfaces rendering
+- Fix GPU surfaces rendering in Safari with WebGL2
 
 ## [v3.13.0] - 2022-07-24
 
