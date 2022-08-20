@@ -538,8 +538,8 @@ export class PostprocessingPass {
         state.depthMask(false);
 
         const { x, y, width, height } = camera.viewport;
-        gl.viewport(x, y, width, height);
-        gl.scissor(x, y, width, height);
+        state.viewport(x, y, width, height);
+        state.scissor(x, y, width, height);
     }
 
     private occlusionOffset: [x: number, y: number] = [0, 0];
