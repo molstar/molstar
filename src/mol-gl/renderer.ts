@@ -64,8 +64,7 @@ interface Renderer {
     renderDepthTransparent: (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => void
     renderMarkingDepth: (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => void
     renderMarkingMask: (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => void
-    renderBlended: (group: Scene.Group, camera: ICamera) => void
-    renderBlended: (scene: Scene, camera: ICamera) => void
+    renderBlended: (group: Scene, camera: ICamera) => void
     renderBlendedOpaque: (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => void
     renderBlendedTransparent: (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => void
     renderBlendedVolume: (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => void
@@ -478,10 +477,10 @@ namespace Renderer {
 
         const renderBlended = (scene: Scene, camera: ICamera) => {
             if (scene.hasOpaque) {
-                renderBlendedOpaque(scene, camera);
+                renderBlendedOpaque(scene, camera, null);
             }
             if (scene.opacityAverage < 1) {
-                renderBlendedTransparent(scene, camera);
+                renderBlendedTransparent(scene, camera, null);
             }
         };
 
