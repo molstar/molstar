@@ -6,12 +6,18 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Expose inter-bonds compute params in structure
+- Improve performance of inter/intra-bonds compute
 - Fix defaultAttribs handling in Canvas3DContext.fromCanvas
-- Add custom labels to Confal pyramids
-- Improve naming of some internal types in Confal pyramids extension coordinate
-- Add example mmCIF file with categories necessary to display Confal pyramids
-- Change the lookup logic of NtC steps from residues
+- Confal pyramids extension improvements
+    - Add custom labels to Confal pyramids
+    - Improve naming of some internal types in Confal pyramids extension coordinate
+    - Add example mmCIF file with categories necessary to display Confal pyramids
+    - Change the lookup logic of NtC steps from residues
 - Add support for download of gzipped files
+- Don't filter IndexPairBonds by element-based rules in MOL/SDF and MOL2 (without symmetry) models
+- Fix Glycam Saccharide Names used by default
+- Prefer WebGL1 for more Safari versions to avoid broken GPU surfaces rendering
 - Add ``fov`` (Field of View) Canvas3D parameter
 - Add ``sceneRadiusFactor`` Canvas3D parameter
 - Add background pass (skybox, image, horizontal/radial gradient)

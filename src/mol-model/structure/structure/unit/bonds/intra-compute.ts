@@ -21,6 +21,9 @@ import { ElementIndex } from '../../../model/indexing';
 import { equalEps } from '../../../../../mol-math/linear-algebra/3d/common';
 import { Model } from '../../../model/model';
 
+// avoiding namespace lookup improved performance in Chrome (Aug 2020)
+const v3distance = Vec3.distance;
+
 function getGraph(atomA: StructureElement.UnitIndex[], atomB: StructureElement.UnitIndex[], _order: number[], _flags: number[], atomCount: number, canRemap: boolean): IntraUnitBonds {
     const builder = new IntAdjacencyGraph.EdgeBuilder(atomCount, atomA, atomB);
     const flags = new Uint16Array(builder.slotCount);
@@ -39,7 +42,7 @@ const tmpDistVecB = Vec3();
 function getDistance(unit: Unit.Atomic, indexA: ElementIndex, indexB: ElementIndex) {
     unit.conformation.position(indexA, tmpDistVecA);
     unit.conformation.position(indexB, tmpDistVecB);
-    return Vec3.distance(tmpDistVecA, tmpDistVecB);
+    return v3distance(tmpDistVecA, tmpDistVecB);
 }
 
 const __structConnAdded = new Set<StructureElement.UnitIndex>();
