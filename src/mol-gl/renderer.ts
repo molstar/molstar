@@ -65,6 +65,7 @@ interface Renderer {
     renderMarkingDepth: (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => void
     renderMarkingMask: (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => void
     renderBlended: (group: Scene.Group, camera: ICamera) => void
+    renderBlended: (scene: Scene, camera: ICamera) => void
     renderBlendedOpaque: (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => void
     renderBlendedTransparent: (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => void
     renderBlendedVolume: (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => void
@@ -359,8 +360,8 @@ namespace Renderer {
             state.colorMask(true, true, true, true);
 
             const { x, y, width, height } = viewport;
-            gl.viewport(x, y, width, height);
-            gl.scissor(x, y, width, height);
+            state.viewport(x, y, width, height);
+            state.scissor(x, y, width, height);
 
             globalUniformsNeedUpdate = true;
             state.currentRenderItemId = -1;
@@ -475,9 +476,13 @@ namespace Renderer {
             if (isTimingMode) ctx.timer.markEnd('Renderer.renderMarkingMask');
         };
 
-        const renderBlended = (group: Scene.Group, camera: ICamera) => {
-            renderBlendedOpaque(group, camera, null);
-            renderBlendedTransparent(group, camera, null);
+        const renderBlended = (scene: Scene, camera: ICamera) => {
+            if (scene.hasOpaque) {
+                renderBlendedOpaque(scene, camera);
+            }
+            if (scene.opacityAverage < 1) {
+                renderBlendedTransparent(scene, camera);
+            }
         };
 
         const renderBlendedOpaque = (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => {
@@ -591,7 +596,7 @@ namespace Renderer {
                 // TODO: simplify, handle in renderable.state???
                 // uAlpha is updated in "render" so we need to recompute it here
                 const alpha = clamp(r.values.alpha.ref.value * r.state.alphaFactor, 0, 1);
-                if (alpha < 1 || r.values.transparencyAverage.ref.value > 0 || r.values.dGeometryType.ref.value === 'directVolume' || r.values.dPointStyle?.ref.value === 'fuzzy' || !!r.values.uBackgroundColor || r.values.dXrayShaded?.ref.value) {
+                if (alpha < 1 || r.values.transparencyAverage.ref.value > 0 || r.values.dGeometryType.ref.value === 'directVolume' || r.values.dPointStyle?.ref.value === 'fuzzy' || r.values.dGeometryType.ref.value === 'text' || r.values.dXrayShaded?.ref.value) {
                     renderObject(r, 'colorWboit', Flag.None);
                 }
             }
@@ -714,8 +719,8 @@ namespace Renderer {
                 }
             },
             setViewport: (x: number, y: number, width: number, height: number) => {
-                gl.viewport(x, y, width, height);
-                gl.scissor(x, y, width, height);
+                state.viewport(x, y, width, height);
+                state.scissor(x, y, width, height);
                 if (x !== viewport.x || y !== viewport.y || width !== viewport.width || height !== viewport.height) {
                     Viewport.set(viewport, x, y, width, height);
                     ValueCell.update(globalUniforms.uViewport, Vec4.set(globalUniforms.uViewport.ref.value, x, y, width, height));

@@ -28,6 +28,13 @@ Note that since we don't clearly distinguish between a public and private interf
     - Coverage (viewport or canvas) controls for image/gradient
 - [Breaking] ``AssetManager`` needs to be passed to various graphics related classes
 - Fix SSAO renderable initialization
+- Reduce number of webgl state changes
+    - Add ``viewport`` and ``scissor`` to state object
+    - Add ``hasOpaque`` to scene object
+- Handle edge cases where some renderables would not get (correctly) rendered
+    - Fix text background rendering for opaque text
+    - Fix helper scenes not shown when rendering directly to draw target
+- Fix ``CustomElementProperty`` coloring not working
 
 ## [v3.13.0] - 2022-07-24
 

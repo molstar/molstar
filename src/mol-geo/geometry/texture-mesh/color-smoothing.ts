@@ -319,8 +319,8 @@ export function calcTextureMeshColorSmoothing(input: ColorSmoothingInput, resolu
 
     if (isTimingMode) webgl.timer.mark('ColorAccumulate.render');
     setAccumulateDefaults(webgl);
-    gl.viewport(0, 0, width, height);
-    gl.scissor(0, 0, width, height);
+    state.viewport(0, 0, width, height);
+    state.scissor(0, 0, width, height);
     gl.clear(gl.COLOR_BUFFER_BIT);
     ValueCell.update(uCurrentY, 0);
     let currCol = 0;
@@ -336,8 +336,8 @@ export function calcTextureMeshColorSmoothing(input: ColorSmoothingInput, resolu
         // console.log({ i, currX, currY });
         ValueCell.update(uCurrentX, currX);
         ValueCell.update(uCurrentSlice, i);
-        gl.viewport(currX, currY, dx, dy);
-        gl.scissor(currX, currY, dx, dy);
+        state.viewport(currX, currY, dx, dy);
+        state.scissor(currX, currY, dx, dy);
         accumulateRenderable.render();
         ++currCol;
         currX += dx;
@@ -371,8 +371,8 @@ export function calcTextureMeshColorSmoothing(input: ColorSmoothingInput, resolu
 
     setNormalizeDefaults(webgl);
     texture.attachFramebuffer(framebuffer, 0);
-    gl.viewport(0, 0, width, height);
-    gl.scissor(0, 0, width, height);
+    state.viewport(0, 0, width, height);
+    state.scissor(0, 0, width, height);
     gl.clear(gl.COLOR_BUFFER_BIT);
     normalizeRenderable.render();
     if (isTimingMode) webgl.timer.markEnd('ColorNormalize.render');

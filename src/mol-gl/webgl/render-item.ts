@@ -168,7 +168,7 @@ export function createRenderItem<T extends string>(ctx: WebGLContext, drawMode: 
         getProgram: (variant: T) => programs[variant],
 
         render: (variant: T, sharedTexturesCount: number) => {
-            if (drawCount === 0 || instanceCount === 0 || ctx.isContextLost) return;
+            if (drawCount === 0 || instanceCount === 0) return;
             const program = programs[variant];
             if (program.id === currentProgramId && state.currentRenderItemId === id) {
                 program.setUniforms(uniformValueEntries);

@@ -142,12 +142,12 @@ export function readPixels(gl: GLRenderingContext, x: number, y: number, width: 
     if (isDebugMode) checkError(gl);
 }
 
-function getDrawingBufferPixelData(gl: GLRenderingContext) {
+function getDrawingBufferPixelData(gl: GLRenderingContext, state: WebGLState) {
     const w = gl.drawingBufferWidth;
     const h = gl.drawingBufferHeight;
     const buffer = new Uint8Array(w * h * 4);
     unbindFramebuffer(gl);
-    gl.viewport(0, 0, w, h);
+    state.viewport(0, 0, w, h);
     readPixels(gl, 0, 0, w, h, buffer);
     return PixelData.flipY(PixelData.create(buffer, w, h));
 }
@@ -346,15 +346,15 @@ export function createContext(gl: GLRenderingContext, props: Partial<{ pixelScal
         readPixelsAsync,
         waitForGpuCommandsComplete: () => waitForGpuCommandsComplete(gl),
         waitForGpuCommandsCompleteSync: () => waitForGpuCommandsCompleteSync(gl),
-        getDrawingBufferPixelData: () => getDrawingBufferPixelData(gl),
+        getDrawingBufferPixelData: () => getDrawingBufferPixelData(gl, state),
         clear: (red: number, green: number, blue: number, alpha: number) => {
             unbindFramebuffer(gl);
             state.enable(gl.SCISSOR_TEST);
             state.depthMask(true);
             state.colorMask(true, true, true, true);
             state.clearColor(red, green, blue, alpha);
-            gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
-            gl.scissor(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
+            state.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
+            state.scissor(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
             gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
         },
 
