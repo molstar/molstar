@@ -125,8 +125,8 @@ export function readAlphaTexture(ctx: WebGLContext, texture: Texture) {
     state.clearColor(0, 0, 0, 0);
     state.blendFunc(gl.ONE, gl.ONE);
     state.blendEquation(gl.FUNC_ADD);
-    gl.viewport(0, 0, width, height);
-    gl.scissor(0, 0, width, height);
+    state.viewport(0, 0, width, height);
+    state.scissor(0, 0, width, height);
     gl.clear(gl.COLOR_BUFFER_BIT);
     copy.render();
 

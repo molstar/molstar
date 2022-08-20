@@ -80,8 +80,12 @@ interface Scene extends Object3D {
     has: (o: GraphicsRenderObject) => boolean
     clear: () => void
     forEach: (callbackFn: (value: GraphicsRenderable, key: GraphicsRenderObject) => void) => void
+    /** Marker average of primitive renderables */
     readonly markerAverage: number
+    /** Opacity average of primitive renderables */
     readonly opacityAverage: number
+    /** Is `true` if any primitive renderable (possibly) has any opaque part */
+    readonly hasOpaque: boolean
 }
 
 namespace Scene {
@@ -103,6 +107,7 @@ namespace Scene {
 
         let markerAverage = 0;
         let opacityAverage = 0;
+        let hasOpaque = false;
 
         const object3d = Object3D.create();
         const { view, position, direction, up } = object3d;
@@ -160,7 +165,9 @@ namespace Scene {
             }
 
             renderables.sort(renderableSort);
+            markerAverage = calculateMarkerAverage();
             opacityAverage = calculateOpacityAverage();
+            hasOpaque = calculateHasOpaque();
             return true;
         }
 
@@ -182,7 +189,10 @@ namespace Scene {
             const newVisibleHash = computeVisibleHash();
             if (newVisibleHash !== visibleHash) {
                 boundingSphereVisibleDirty = true;
+                markerAverage = calculateMarkerAverage();
                 opacityAverage = calculateOpacityAverage();
+                hasOpaque = calculateHasOpaque();
+                visibleHash = newVisibleHash;
                 return true;
             } else {
                 return false;
@@ -220,6 +230,19 @@ namespace Scene {
             return count > 0 ? opacityAverage / count : 0;
         }
 
+        function calculateHasOpaque() {
+            if (primitives.length === 0) return false;
+            for (let i = 0, il = primitives.length; i < il; ++i) {
+                const p = primitives[i];
+                if (!p.state.visible) continue;
+
+                if (p.state.opaque) return true;
+                if (p.state.alphaFactor === 1 && p.values.alpha.ref.value === 1 && p.values.transparencyAverage.ref.value !== 1) return true;
+                if (p.values.dTransparentBackfaces?.ref.value === 'opaque') return true;
+            }
+            return false;
+        }
+
         return {
             view, position, direction, up,
 
@@ -247,6 +270,7 @@ namespace Scene {
                 }
                 markerAverage = calculateMarkerAverage();
                 opacityAverage = calculateOpacityAverage();
+                hasOpaque = calculateHasOpaque();
             },
             add: (o: GraphicsRenderObject) => commitQueue.add(o),
             remove: (o: GraphicsRenderObject) => commitQueue.remove(o),
@@ -283,7 +307,6 @@ namespace Scene {
                 if (boundingSphereVisibleDirty) {
                     calculateBoundingSphere(renderables, boundingSphereVisible, true);
                     boundingSphereVisibleDirty = false;
-                    visibleHash = computeVisibleHash();
                 }
                 return boundingSphereVisible;
             },
@@ -292,6 +315,9 @@ namespace Scene {
             },
             get opacityAverage() {
                 return opacityAverage;
+            },
+            get hasOpaque() {
+                return hasOpaque;
             },
         };
     }

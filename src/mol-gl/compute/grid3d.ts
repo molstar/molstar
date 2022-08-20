@@ -225,8 +225,8 @@ export function createGrid3dComputeRenderable<S extends RenderableSchema, P, CS>
 
 function resetGl(webgl: WebGLContext, w: number) {
     const { gl, state } = webgl;
-    gl.viewport(0, 0, w, w);
-    gl.scissor(0, 0, w, w);
+    state.viewport(0, 0, w, w);
+    state.scissor(0, 0, w, w);
     state.disable(gl.SCISSOR_TEST);
     state.disable(gl.BLEND);
     state.disable(gl.DEPTH_TEST);

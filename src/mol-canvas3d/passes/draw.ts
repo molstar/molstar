@@ -120,14 +120,13 @@ export class DrawPass {
     private _renderWboit(renderer: Renderer, camera: ICamera, scene: Scene, transparentBackground: boolean, postprocessingProps: PostprocessingProps) {
         if (!this.wboit?.supported) throw new Error('expected wboit to be supported');
 
-        this.colorTarget.bind();
+        this.depthTextureOpaque.attachFramebuffer(this.colorTarget.framebuffer, 'depth');
         renderer.clear(true);
 
         // render opaque primitives
-        this.depthTextureOpaque.attachFramebuffer(this.colorTarget.framebuffer, 'depth');
-        this.colorTarget.bind();
-        renderer.clearDepth();
-        renderer.renderWboitOpaque(scene.primitives, camera, null);
+        if (scene.hasOpaque) {
+            renderer.renderWboitOpaque(scene.primitives, camera, null);
+        }
 
         if (PostprocessingPass.isEnabled(postprocessingProps)) {
             if (PostprocessingPass.isOutlineEnabled(postprocessingProps)) {
@@ -165,14 +164,17 @@ export class DrawPass {
         if (toDrawingBuffer) {
             this.drawTarget.bind();
         } else {
-            this.colorTarget.bind();
             if (!this.packedDepth) {
                 this.depthTextureOpaque.attachFramebuffer(this.colorTarget.framebuffer, 'depth');
+            } else {
+                this.colorTarget.bind();
             }
         }
 
         renderer.clear(true);
-        renderer.renderBlendedOpaque(scene.primitives, camera, null);
+        if (scene.hasOpaque) {
+            renderer.renderBlendedOpaque(scene.primitives, camera, null);
+        }
 
         if (!toDrawingBuffer) {
             // do a depth pass if not rendering to drawing buffer and
