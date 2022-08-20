@@ -18,6 +18,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Don't filter IndexPairBonds by element-based rules in MOL/SDF and MOL2 (without symmetry) models
 - Fix Glycam Saccharide Names used by default
 - Prefer WebGL1 for more Safari versions to avoid broken GPU surfaces rendering
+- Fix ``CustomElementProperty`` coloring not working
 
 ## [v3.13.0] - 2022-07-24
 
