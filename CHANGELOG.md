@@ -24,6 +24,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Handle edge cases where some renderables would not get (correctly) rendered
     - Fix text background rendering for opaque text
     - Fix helper scenes not shown when rendering directly to draw target
+- Fix ``CustomElementProperty`` coloring not working
 
 ## [v3.13.0] - 2022-07-24
 

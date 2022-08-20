@@ -106,7 +106,7 @@ namespace CustomElementProperty {
             factory: Coloring,
             getParams: () => ({}),
             defaultValues: {},
-            isApplicable: (ctx: ThemeDataContext) => !!ctx.structure && !!modelProperty.get(ctx.structure.models[0]).value,
+            isApplicable: (ctx: ThemeDataContext) => !!ctx.structure,
             ensureCustomProperties: {
                 attach: (ctx: CustomProperty.Context, data: ThemeDataContext) => data.structure ? modelProperty.attach(ctx, data.structure.models[0], void 0, true) : Promise.resolve(),
                 detach: (data: ThemeDataContext) => data.structure && data.structure.models[0].customProperties.reference(modelProperty.descriptor, false)
