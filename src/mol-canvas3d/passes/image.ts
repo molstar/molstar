@@ -64,7 +64,7 @@ export class ImagePass {
         this.setSize(1024, 768);
     }
 
-    async updateBackground() {
+    updateBackground() {
         return new Promise<void>(resolve => {
             this.drawPass.postprocessing.background.update(this.camera, this.props.postprocessing.background, () => {
                 resolve();

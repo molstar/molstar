@@ -441,7 +441,7 @@ export function getCubeTarget(gl: GLRenderingContext, side: CubeSide): number {
     }
 }
 
-export function createCubeTexture(gl: GLRenderingContext, faces: CubeFaces, mipmaps: boolean, onload?: () => void): Texture {
+export function createCubeTexture(gl: GLRenderingContext, faces: CubeFaces, mipmaps: boolean, onload?: (errored?: boolean) => void): Texture {
     const target = gl.TEXTURE_CUBE_MAP;
     const filter = gl.LINEAR;
     const internalFormat = gl.RGBA;
@@ -482,16 +482,21 @@ export function createCubeTexture(gl: GLRenderingContext, faces: CubeFaces, mipm
             gl.texImage2D(cubeTarget, level, internalFormat, format, type, image);
 
             loadedCount += 1;
-            if (loadedCount === 6 && !destroyed) {
-                if (mipmaps) {
-                    gl.generateMipmap(target);
-                    gl.texParameteri(target, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
-                } else {
-                    gl.texParameteri(target, gl.TEXTURE_MIN_FILTER, filter);
+            if (loadedCount === 6) {
+                if (!destroyed) {
+                    if (mipmaps) {
+                        gl.generateMipmap(target);
+                        gl.texParameteri(target, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+                    } else {
+                        gl.texParameteri(target, gl.TEXTURE_MIN_FILTER, filter);
+                    }
+                    gl.texParameteri(target, gl.TEXTURE_MAG_FILTER, filter);
                 }
-                gl.texParameteri(target, gl.TEXTURE_MAG_FILTER, filter);
-                if (onload) onload();
+                onload?.(destroyed);
             }
+        });
+        image.addEventListener('error', () => {
+            onload?.(true);
         });
     });
 

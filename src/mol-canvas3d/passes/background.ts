@@ -137,20 +137,20 @@ export class BackgroundPass {
         const f = props.faces.params;
         if (!f.nx || !f.ny || !f.nz || !f.px || !f.py || !f.pz) {
             this.clearSkybox();
-            if (onload) onload(false);
+            onload?.(false);
             return;
         }
         if (!this.skybox || !tf || !areSkyboxTexturePropsEqual(props.faces, this.skybox.props.faces)) {
             this.clearSkybox();
-            const { texture, assets } = getSkyboxTexture(this.webgl, this.assetManager, props.faces, () => {
-                if (this.skybox) this.skybox.loaded = true;
-                if (onload) onload(true);
+            const { texture, assets } = getSkyboxTexture(this.webgl, this.assetManager, props.faces, errored => {
+                if (this.skybox) this.skybox.loaded = !errored;
+                onload?.(true);
             });
             this.skybox = { texture, props: { ...props }, assets, loaded: false };
             ValueCell.update(this.renderable.values.tSkybox, texture);
             this.renderable.update();
         } else {
-            if (onload) onload(false);
+            onload?.(false);
         }
         if (!this.skybox) return;
 
@@ -188,20 +188,20 @@ export class BackgroundPass {
     private updateImage(props: ImageProps, onload?: (loaded: boolean) => void) {
         if (!props.source.params) {
             this.clearImage();
-            if (onload) onload(false);
+            onload?.(false);
             return;
         }
         if (!this.image || !this.image.props.source.params || !areImageTexturePropsEqual(props.source, this.image.props.source)) {
             this.clearImage();
-            const { texture, asset } = getImageTexture(this.webgl, this.assetManager, props.source, () => {
-                if (this.image) this.image.loaded = true;
-                if (onload) onload(true);
+            const { texture, asset } = getImageTexture(this.webgl, this.assetManager, props.source, errored => {
+                if (this.image) this.image.loaded = !errored;
+                onload?.(true);
             });
             this.image = { texture, props: { ...props }, asset, loaded: false };
             ValueCell.update(this.renderable.values.tImage, texture);
             this.renderable.update();
         } else {
-            if (onload) onload(false);
+            onload?.(false);
         }
         if (!this.image) return;
 
@@ -248,7 +248,7 @@ export class BackgroundPass {
         if (props.variant.name === 'off') {
             this.clearSkybox();
             this.clearImage();
-            if (onload) onload(false);
+            onload?.(false);
             return;
         } else if (props.variant.name === 'skybox') {
             this.clearImage();
@@ -260,12 +260,12 @@ export class BackgroundPass {
             this.clearSkybox();
             this.clearImage();
             this.updateGradient(props.variant.params.topColor, props.variant.params.bottomColor, props.variant.params.ratio, props.variant.name, props.variant.params.coverage === 'viewport' ? true : false);
-            if (onload) onload(false);
+            onload?.(false);
         } else if (props.variant.name === 'radialGradient') {
             this.clearSkybox();
             this.clearImage();
             this.updateGradient(props.variant.params.centerColor, props.variant.params.edgeColor, props.variant.params.ratio, props.variant.name, props.variant.params.coverage === 'viewport' ? true : false);
-            if (onload) onload(false);
+            onload?.(false);
         }
 
         const { x, y, width, height } = camera.viewport;
@@ -363,7 +363,7 @@ function areSkyboxTexturePropsEqual(facesA: SkyboxProps['faces'], facesB: Skybox
     return getSkyboxHash(facesA) === getSkyboxHash(facesB);
 }
 
-function getSkyboxTexture(ctx: WebGLContext, assetManager: AssetManager, faces: SkyboxProps['faces'], onload?: () => void): { texture: Texture, assets: Asset[] } {
+function getSkyboxTexture(ctx: WebGLContext, assetManager: AssetManager, faces: SkyboxProps['faces'], onload?: (errored?: boolean) => void): { texture: Texture, assets: Asset[] } {
     const cubeAssets = getCubeAssets(assetManager, faces);
     const cubeFaces = getCubeFaces(assetManager, cubeAssets);
     const assets = [cubeAssets.nx, cubeAssets.ny, cubeAssets.nz, cubeAssets.px, cubeAssets.py, cubeAssets.pz];
@@ -387,12 +387,15 @@ function areImageTexturePropsEqual(sourceA: ImageProps['source'], sourceB: Image
     return getImageHash(sourceA) === getImageHash(sourceB);
 }
 
-function getImageTexture(ctx: WebGLContext, assetManager: AssetManager, source: ImageProps['source'], onload?: () => void): { texture: Texture, asset: Asset } {
+function getImageTexture(ctx: WebGLContext, assetManager: AssetManager, source: ImageProps['source'], onload?: (errored?: boolean) => void): { texture: Texture, asset: Asset } {
     const texture = ctx.resources.texture('image-uint8', 'rgba', 'ubyte', 'linear');
     const img = new Image();
     img.onload = () => {
         texture.load(img);
         onload?.();
+    };
+    img.onerror = () => {
+        onload?.(true);
     };
     const asset = source.name === 'url'
         ? Asset.getUrlAsset(assetManager, source.params)
