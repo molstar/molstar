@@ -15,6 +15,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Add support for download of gzipped files
 - Fix Glycam Saccharide Names used by default
 - Prefer WebGL1 for more Safari versions to avoid broken GPU surfaces rendering
+- Fix ``CustomElementProperty`` coloring not working
 
 ## [v3.13.0] - 2022-07-24
 
