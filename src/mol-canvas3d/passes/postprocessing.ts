@@ -28,6 +28,8 @@ import { Color } from '../../mol-util/color';
 import { FxaaParams, FxaaPass } from './fxaa';
 import { SmaaParams, SmaaPass } from './smaa';
 import { isTimingMode } from '../../mol-util/debug';
+import { BackgroundParams, BackgroundPass } from './background';
+import { AssetManager } from '../../mol-util/assets';
 
 const OutlinesSchema = {
     ...QuadSchema,
@@ -91,7 +93,7 @@ function getSsaoRenderable(ctx: WebGLContext, depthTexture: Texture): SsaoRender
         ...QuadValues,
         tDepth: ValueCell.create(depthTexture),
 
-        uSamples: ValueCell.create([0.0, 0.0, 1.0]),
+        uSamples: ValueCell.create(getSamples(32)),
         dNSamples: ValueCell.create(32),
 
         uProjection: ValueCell.create(Mat4.identity()),
@@ -138,7 +140,7 @@ function getSsaoBlurRenderable(ctx: WebGLContext, ssaoDepthTexture: Texture, dir
         tSsaoDepth: ValueCell.create(ssaoDepthTexture),
         uTexSize: ValueCell.create(Vec2.create(ssaoDepthTexture.getWidth(), ssaoDepthTexture.getHeight())),
 
-        uKernel: ValueCell.create([0.0]),
+        uKernel: ValueCell.create(getBlurKernel(15)),
         dOcclusionKernelSize: ValueCell.create(15),
 
         uBlurDirectionX: ValueCell.create(direction === 'horizontal' ? 1 : 0),
@@ -171,15 +173,26 @@ function getBlurKernel(kernelSize: number): number[] {
     return kernel;
 }
 
-function getSamples(vectorSamples: Vec3[], nSamples: number): number[] {
+const RandomHemisphereVector: Vec3[] = [];
+for (let i = 0; i < 256; i++) {
+    const v = Vec3();
+    v[0] = Math.random() * 2.0 - 1.0;
+    v[1] = Math.random() * 2.0 - 1.0;
+    v[2] = Math.random();
+    Vec3.normalize(v, v);
+    Vec3.scale(v, v, Math.random());
+    RandomHemisphereVector.push(v);
+}
+
+function getSamples(nSamples: number): number[] {
     const samples = [];
     for (let i = 0; i < nSamples; i++) {
         let scale = (i * i + 2.0 * i + 1) / (nSamples * nSamples);
         scale = 0.1 + scale * (1.0 - 0.1);
 
-        samples.push(vectorSamples[i][0] * scale);
-        samples.push(vectorSamples[i][1] * scale);
-        samples.push(vectorSamples[i][2] * scale);
+        samples.push(RandomHemisphereVector[i][0] * scale);
+        samples.push(RandomHemisphereVector[i][1] * scale);
+        samples.push(RandomHemisphereVector[i][2] * scale);
     }
 
     return samples;
@@ -274,12 +287,13 @@ export const PostprocessingParams = {
         smaa: PD.Group(SmaaParams),
         off: PD.Group({})
     }, { options: [['fxaa', 'FXAA'], ['smaa', 'SMAA'], ['off', 'Off']], description: 'Smooth pixel edges' }),
+    background: PD.Group(BackgroundParams, { isFlat: true }),
 };
 export type PostprocessingProps = PD.Values<typeof PostprocessingParams>
 
 export class PostprocessingPass {
     static isEnabled(props: PostprocessingProps) {
-        return props.occlusion.name === 'on' || props.outline.name === 'on';
+        return props.occlusion.name === 'on' || props.outline.name === 'on' || props.background.variant.name !== 'off';
     }
 
     static isOutlineEnabled(props: PostprocessingProps) {
@@ -291,7 +305,6 @@ export class PostprocessingPass {
     private readonly outlinesTarget: RenderTarget;
     private readonly outlinesRenderable: OutlinesRenderable;
 
-    private readonly randomHemisphereVector: Vec3[];
     private readonly ssaoFramebuffer: Framebuffer;
     private readonly ssaoBlurFirstPassFramebuffer: Framebuffer;
     private readonly ssaoBlurSecondPassFramebuffer: Framebuffer;
@@ -318,7 +331,10 @@ export class PostprocessingPass {
         return Math.min(1, 1 / this.webgl.pixelRatio) * this.downsampleFactor;
     }
 
-    constructor(private webgl: WebGLContext, private drawPass: DrawPass) {
+    private readonly bgColor = Vec3();
+    readonly background: BackgroundPass;
+
+    constructor(private readonly webgl: WebGLContext, assetManager: AssetManager, private readonly drawPass: DrawPass) {
         const { colorTarget, depthTextureTransparent, depthTextureOpaque } = drawPass;
         const width = colorTarget.getWidth();
         const height = colorTarget.getHeight();
@@ -334,16 +350,6 @@ export class PostprocessingPass {
         this.outlinesTarget = webgl.createRenderTarget(width, height, false);
         this.outlinesRenderable = getOutlinesRenderable(webgl, depthTextureOpaque, depthTextureTransparent);
 
-        this.randomHemisphereVector = [];
-        for (let i = 0; i < 256; i++) {
-            const v = Vec3();
-            v[0] = Math.random() * 2.0 - 1.0;
-            v[1] = Math.random() * 2.0 - 1.0;
-            v[2] = Math.random();
-            Vec3.normalize(v, v);
-            Vec3.scale(v, v, Math.random());
-            this.randomHemisphereVector.push(v);
-        }
         this.ssaoFramebuffer = webgl.resources.framebuffer();
         this.ssaoBlurFirstPassFramebuffer = webgl.resources.framebuffer();
         this.ssaoBlurSecondPassFramebuffer = webgl.resources.framebuffer();
@@ -368,6 +374,8 @@ export class PostprocessingPass {
         this.ssaoBlurFirstPassRenderable = getSsaoBlurRenderable(webgl, this.ssaoDepthTexture, 'horizontal');
         this.ssaoBlurSecondPassRenderable = getSsaoBlurRenderable(webgl, this.ssaoDepthBlurProxyTexture, 'vertical');
         this.renderable = getPostprocessingRenderable(webgl, colorTarget.texture, depthTextureOpaque, depthTextureTransparent, this.outlinesTarget.texture, this.ssaoDepthTexture);
+
+        this.background = new BackgroundPass(webgl, assetManager, width, height);
     }
 
     setSize(width: number, height: number) {
@@ -391,6 +399,8 @@ export class PostprocessingPass {
             ValueCell.update(this.ssaoRenderable.values.uTexSize, Vec2.set(this.ssaoRenderable.values.uTexSize.ref.value, sw, sh));
             ValueCell.update(this.ssaoBlurFirstPassRenderable.values.uTexSize, Vec2.set(this.ssaoBlurFirstPassRenderable.values.uTexSize.ref.value, sw, sh));
             ValueCell.update(this.ssaoBlurSecondPassRenderable.values.uTexSize, Vec2.set(this.ssaoBlurSecondPassRenderable.values.uTexSize.ref.value, sw, sh));
+
+            this.background.setSize(width, height);
         }
     }
 
@@ -440,7 +450,7 @@ export class PostprocessingPass {
                 needsUpdateSsao = true;
 
                 this.nSamples = props.occlusion.params.samples;
-                ValueCell.update(this.ssaoRenderable.values.uSamples, getSamples(this.randomHemisphereVector, this.nSamples));
+                ValueCell.update(this.ssaoRenderable.values.uSamples, getSamples(this.nSamples));
                 ValueCell.updateIfChanged(this.ssaoRenderable.values.dNSamples, this.nSamples);
             }
             ValueCell.updateIfChanged(this.ssaoRenderable.values.uRadius, Math.pow(2, props.occlusion.params.radius));
@@ -549,6 +559,11 @@ export class PostprocessingPass {
         ValueCell.update(this.renderable.values.uOcclusionOffset, Vec2.set(this.renderable.values.uOcclusionOffset.ref.value, x, y));
     }
 
+    private transparentBackground = false;
+    setTransparentBackground(value: boolean) {
+        this.transparentBackground = value;
+    }
+
     render(camera: ICamera, toDrawingBuffer: boolean, transparentBackground: boolean, backgroundColor: Color, props: PostprocessingProps) {
         if (isTimingMode) this.webgl.timer.mark('PostprocessingPass.render');
         this.updateState(camera, transparentBackground, backgroundColor, props);
@@ -583,8 +598,23 @@ export class PostprocessingPass {
         }
 
         const { gl, state } = this.webgl;
-        state.clearColor(0, 0, 0, 1);
-        gl.clear(gl.COLOR_BUFFER_BIT);
+
+        this.background.update(camera, props.background);
+        if (this.background.isEnabled(props.background)) {
+            if (this.transparentBackground) {
+                state.clearColor(0, 0, 0, 0);
+            } else {
+                Color.toVec3Normalized(this.bgColor, backgroundColor);
+                state.clearColor(this.bgColor[0], this.bgColor[1], this.bgColor[2], 1);
+            }
+            gl.clear(gl.COLOR_BUFFER_BIT);
+            state.enable(gl.BLEND);
+            state.blendFuncSeparate(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA, gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+            this.background.render();
+        } else {
+            state.clearColor(0, 0, 0, 1);
+            gl.clear(gl.COLOR_BUFFER_BIT);
+        }
 
         this.renderable.render();
         if (isTimingMode) this.webgl.timer.markEnd('PostprocessingPass.render');

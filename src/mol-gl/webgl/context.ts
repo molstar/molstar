@@ -164,6 +164,7 @@ function createStats() {
             renderbuffer: 0,
             shader: 0,
             texture: 0,
+            cubeTexture: 0,
             vertexArray: 0,
         },
 

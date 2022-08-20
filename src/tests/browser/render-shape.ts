@@ -19,6 +19,7 @@ import { Sphere } from '../../mol-geo/primitive/sphere';
 import { ColorNames } from '../../mol-util/color/names';
 import { Shape } from '../../mol-model/shape';
 import { ShapeRepresentation } from '../../mol-repr/shape/representation';
+import { AssetManager } from '../../mol-util/assets';
 
 const parent = document.getElementById('app')!;
 parent.style.width = '100%';
@@ -27,6 +28,8 @@ parent.style.height = '100%';
 const canvas = document.createElement('canvas');
 parent.appendChild(canvas);
 resizeCanvas(canvas, parent);
+
+const assetManager = new AssetManager();
 
 const info = document.createElement('div');
 info.style.position = 'absolute';
@@ -38,7 +41,7 @@ info.style.color = 'white';
 parent.appendChild(info);
 
 let prevReprLoci = Representation.Loci.Empty;
-const canvas3d = Canvas3D.create(Canvas3DContext.fromCanvas(canvas));
+const canvas3d = Canvas3D.create(Canvas3DContext.fromCanvas(canvas, assetManager));
 canvas3d.animate();
 canvas3d.input.move.subscribe(({ x, y }) => {
     const pickingId = canvas3d.identify(x, y)?.id;

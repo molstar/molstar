@@ -64,7 +64,7 @@ interface Renderer {
     renderDepthTransparent: (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => void
     renderMarkingDepth: (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => void
     renderMarkingMask: (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => void
-    renderBlended: (scene: Scene, camera: ICamera, depthTexture: Texture | null) => void
+    renderBlended: (group: Scene, camera: ICamera) => void
     renderBlendedOpaque: (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => void
     renderBlendedTransparent: (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => void
     renderBlendedVolume: (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => void
@@ -475,12 +475,12 @@ namespace Renderer {
             if (isTimingMode) ctx.timer.markEnd('Renderer.renderMarkingMask');
         };
 
-        const renderBlended = (scene: Scene, camera: ICamera, depthTexture: Texture | null) => {
+        const renderBlended = (scene: Scene, camera: ICamera) => {
             if (scene.hasOpaque) {
-                renderBlendedOpaque(scene, camera, depthTexture);
+                renderBlendedOpaque(scene, camera, null);
             }
             if (scene.opacityAverage < 1) {
-                renderBlendedTransparent(scene, camera, depthTexture);
+                renderBlendedTransparent(scene, camera, null);
             }
         };
 

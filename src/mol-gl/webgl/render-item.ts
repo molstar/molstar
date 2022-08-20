@@ -150,8 +150,8 @@ export function createRenderItem<T extends string>(ctx: WebGLContext, drawMode: 
         vertexArrays[k] = vertexArrayObject ? resources.vertexArray(programs[k], attributeBuffers, elementsBuffer) : null;
     }
 
-    let drawCount = values.drawCount.ref.value;
-    let instanceCount = values.instanceCount.ref.value;
+    let drawCount: number = values.drawCount.ref.value;
+    let instanceCount: number = values.instanceCount.ref.value;
 
     stats.drawCount += drawCount;
     stats.instanceCount += instanceCount;

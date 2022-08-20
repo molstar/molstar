@@ -22,6 +22,7 @@ import { Representation } from '../../mol-repr/representation';
 import { computeMarchingCubesMesh } from '../../mol-geo/util/marching-cubes/algorithm';
 import { Mesh } from '../../mol-geo/geometry/mesh/mesh';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
+import { AssetManager } from '../../mol-util/assets';
 
 const parent = document.getElementById('app')!;
 parent.style.width = '100%';
@@ -31,7 +32,9 @@ const canvas = document.createElement('canvas');
 parent.appendChild(canvas);
 resizeCanvas(canvas, parent);
 
-const canvas3d = Canvas3D.create(Canvas3DContext.fromCanvas(canvas), PD.merge(Canvas3DParams, PD.getDefaultValues(Canvas3DParams), {
+const assetManager = new AssetManager();
+
+const canvas3d = Canvas3D.create(Canvas3DContext.fromCanvas(canvas, assetManager), PD.merge(Canvas3DParams, PD.getDefaultValues(Canvas3DParams), {
     renderer: { backgroundColor: ColorNames.white },
     camera: { mode: 'orthographic' }
 }));

@@ -18,6 +18,16 @@ Note that since we don't clearly distinguish between a public and private interf
 - Don't filter IndexPairBonds by element-based rules in MOL/SDF and MOL2 (without symmetry) models
 - Fix Glycam Saccharide Names used by default
 - Prefer WebGL1 for more Safari versions to avoid broken GPU surfaces rendering
+- Add ``fov`` (Field of View) Canvas3D parameter
+- Add ``sceneRadiusFactor`` Canvas3D parameter
+- Add background pass (skybox, image, horizontal/radial gradient)
+    - Set simple-settings presets via ``PluginConfig.Background.Styles``
+    - Example presets in new backgrounds extension
+    - Load skybox/image from URL or File (saved in session)
+    - Opacity, saturation, lightness controls for skybox/image
+    - Coverage (viewport or canvas) controls for image/gradient
+- [Breaking] ``AssetManager`` needs to be passed to various graphics related classes
+- Fix SSAO renderable initialization
 - Reduce number of webgl state changes
     - Add ``viewport`` and ``scissor`` to state object
     - Add ``hasOpaque`` to scene object

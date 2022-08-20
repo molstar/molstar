@@ -30,7 +30,11 @@ const sharedConfig = {
                     { loader: 'css-loader', options: { sourceMap: false } },
                     { loader: 'sass-loader', options: { sourceMap: false } },
                 ]
-            }
+            },
+            {
+                test: /\.(jpg)$/i,
+                type: 'asset/resource',
+            },
         ]
     },
     plugins: [
@@ -76,7 +80,7 @@ function createEntry(src, outFolder, outFilename, isNode) {
 function createEntryPoint(name, dir, out, library) {
     return {
         entry: path.resolve(__dirname, `lib/${dir}/${name}.js`),
-        output: { filename: `${library || name}.js`, path: path.resolve(__dirname, `build/${out}`), library: library || out, libraryTarget: 'umd' },
+        output: { filename: `${library || name}.js`, path: path.resolve(__dirname, `build/${out}`), library: library || out, libraryTarget: 'umd', assetModuleFilename: 'images/[hash][ext][query]', 'publicPath': '' },
         ...sharedConfig
     };
 }
