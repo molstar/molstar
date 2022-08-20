@@ -6,6 +6,8 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+## [v3.14.0] - 2022-08-20
+
 - Expose inter-bonds compute params in structure
 - Improve performance of inter/intra-bonds compute
 - Fix defaultAttribs handling in Canvas3DContext.fromCanvas
