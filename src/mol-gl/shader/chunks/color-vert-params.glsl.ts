@@ -64,7 +64,6 @@ uniform float uBumpiness;
             varying vec4 vColor;
         #endif
     #else
-        // avoid flat until EXT_provoking_vertex is supported
         #ifdef requiredDrawBuffers
             flat out vec4 vObject;
             flat out vec4 vInstance;
