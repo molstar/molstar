@@ -124,19 +124,19 @@ namespace Box3D {
     }
 
     export function containsVec3(box: Box3D, v: Vec3) {
-        return (
+        return !(
             v[0] < box.min[0] || v[0] > box.max[0] ||
             v[1] < box.min[1] || v[1] > box.max[1] ||
             v[2] < box.min[2] || v[2] > box.max[2]
-        ) ? false : true;
+        );
     }
 
     export function overlaps(a: Box3D, b: Box3D) {
-        return (
+        return !(
             a.max[0] < b.min[0] || a.min[0] > b.max[0] ||
             a.max[1] < b.min[1] || a.min[1] > b.max[1] ||
             a.max[2] < b.min[2] || a.min[2] > b.max[2]
-        ) ? false : true;
+        );
     }
 }
 
