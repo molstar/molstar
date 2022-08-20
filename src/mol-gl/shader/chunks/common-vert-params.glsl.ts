@@ -44,7 +44,9 @@ varying vec3 vModelPosition;
 varying vec3 vViewPosition;
 
 #if defined(noNonInstancedActiveAttribs)
-    #define VertexID gl_VertexID
+    // int() is needed for some Safari versions
+    // see https://bugs.webkit.org/show_bug.cgi?id=244152
+    #define VertexID int(gl_VertexID)
 #else
     attribute float aVertex;
     #define VertexID int(aVertex)
