@@ -30,9 +30,10 @@ export const PluginFeatureDetection = {
         return !(window as any).MSStream && (isIOS || (isAppleDevice && isTouchScreen));
     },
     get wboit() {
-        if (typeof navigator === 'undefined' || typeof window === 'undefined') return true;
+        return true; // for testing
+        // if (typeof navigator === 'undefined' || typeof window === 'undefined') return true;
 
-        // disable Wboit in Safari 15
-        return !/Version\/15.\d Safari/.test(navigator.userAgent);
+        // // disable Wboit in Safari 15
+        // return !/Version\/15.\d Safari/.test(navigator.userAgent);
     }
 };
