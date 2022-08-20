@@ -24,7 +24,6 @@ uniform int uPickType;
         #if __VERSION__ == 100 || defined(dClippingType_instance) || !defined(dVaryingGroup)
             varying float vClipping;
         #else
-            // avoid flat until EXT_provoking_vertex is supported
             flat out float vClipping;
         #endif
     #endif
@@ -37,7 +36,6 @@ uniform int uPickType;
     #if __VERSION__ == 100 || defined(dMarkerType_instance) || !defined(dVaryingGroup)
         varying float vMarker;
     #else
-        // avoid flat until EXT_provoking_vertex is supported
         flat out float vMarker;
     #endif
 #endif
