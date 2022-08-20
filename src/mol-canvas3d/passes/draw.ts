@@ -256,30 +256,28 @@ export class DrawPass {
             this._renderBlended(renderer, camera, scene, !volumeRendering && !postprocessingEnabled && !antialiasingEnabled && toDrawingBuffer, props.transparentBackground, props.postprocessing);
         }
 
-        if (postprocessingEnabled) {
-            this.postprocessing.target.bind();
-        } else if (!toDrawingBuffer || volumeRendering || this.wboitEnabled) {
-            this.colorTarget.bind();
-        } else {
-            this.drawTarget.bind();
-        }
+        const target = postprocessingEnabled
+            ? this.postprocessing.target
+            : !toDrawingBuffer || volumeRendering || this.wboitEnabled
+                ? this.colorTarget
+                : this.drawTarget;
 
-        if (markingEnabled) {
-            if (scene.markerAverage > 0) {
-                const markingDepthTest = props.marking.ghostEdgeStrength < 1;
-                if (markingDepthTest && scene.markerAverage !== 1) {
-                    this.marking.depthTarget.bind();
-                    renderer.clear(false, true);
-                    renderer.renderMarkingDepth(scene.primitives, camera, null);
-                }
-
-                this.marking.maskTarget.bind();
+        if (markingEnabled && scene.markerAverage > 0) {
+            const markingDepthTest = props.marking.ghostEdgeStrength < 1;
+            if (markingDepthTest && scene.markerAverage !== 1) {
+                this.marking.depthTarget.bind();
                 renderer.clear(false, true);
-                renderer.renderMarkingMask(scene.primitives, camera, markingDepthTest ? this.marking.depthTarget.texture : null);
-
-                this.marking.update(props.marking);
-                this.marking.render(camera.viewport, postprocessingEnabled ? this.postprocessing.target : this.colorTarget);
+                renderer.renderMarkingDepth(scene.primitives, camera, null);
             }
+
+            this.marking.maskTarget.bind();
+            renderer.clear(false, true);
+            renderer.renderMarkingMask(scene.primitives, camera, markingDepthTest ? this.marking.depthTarget.texture : null);
+
+            this.marking.update(props.marking);
+            this.marking.render(camera.viewport, target);
+        } else {
+            target.bind();
         }
 
         if (helper.debug.isEnabled) {
