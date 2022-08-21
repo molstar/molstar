@@ -38,26 +38,7 @@ function atomSelectionQuery2(x: any) {
     for (const k in x) {
         const ps = macroproperties[k];
         if (!ps) {
-	    const [resno, inscode, chainname, atomname, altloc] = x[1];
-	    const tests: AtomGroupArgs = {};
-
-	    if (chainname) {
-                // should be configurable, there is an option in Jmol to use auth or label
-                tests['chain-test'] = B.core.rel.eq([B.ammp('auth_asym_id'), chainname]);
-	    }
-
-	    const resProps = [];
-	    if (resno) resProps.push(B.core.rel.eq([B.ammp('auth_seq_id'), resno]));
-	    if (inscode) resProps.push(B.core.rel.eq([B.ammp('pdbx_PDB_ins_code'), inscode]));
-	    if (resProps.length) tests['residue-test'] = h.andExpr(resProps);
-
-	    const atomProps = [];
-	    if (atomname) atomProps.push(B.core.rel.eq([B.ammp('auth_atom_id'), atomname]));
-	    if (altloc) atomProps.push(B.core.rel.eq([B.ammp('label_alt_id'), altloc]));
-	    if (atomProps.length) tests['atom-test'] = h.andExpr(atomProps);
-
-	    return B.struct.generator.atomGroups(tests);
-            //            throw new Error(`property '${k}' not supported, value '${x[k]}'`);
+            throw new Error(`property '${k}' not supported, value '${x[k]}'`);
         }
         if (x[k] === null) continue;
         if (!props[ps.level]) props[ps.level] = [];
