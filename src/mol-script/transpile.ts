@@ -14,12 +14,14 @@ const transpiler: {[index: string]: Transpiler} = _transpiler;
 
 export function parse(lang: Script.Language, str: string): Expression {
     try {
-	
+
         const query = transpiler[lang](str);
         return query;
-	
+
     } catch (e) {
+
         console.error(e.message);
         throw e;
+
     }
 }
