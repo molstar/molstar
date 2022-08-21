@@ -16,11 +16,6 @@ import { AtomGroupArgs } from '../types';
 import { Transpiler } from '../transpiler';
 import { OperatorList } from '../types';
 
-// const propertiesDict = h.getPropertyRules(properties);
-
-// const slash = P.MonadicParser.string('/');
-
-
 // <, <=, =, >=, >, !=, and LIKE
 const valueOperators: OperatorList = [
     {
@@ -169,18 +164,6 @@ const lang = P.MonadicParser.createLanguage({
     Altloc: () => P.MonadicParser.regexp(/%([a-zA-Z0-9])/, 1).desc('altloc'),
     Inscode: () => P.MonadicParser.regexp(/\^([a-zA-Z0-9])/, 1).desc('inscode'),
 
-    // BracketedResname: function (r) {
-    //   return P.MonadicParser.regexp(/\.([a-zA-Z0-9]{1,4})/, 1)
-    //     .desc('bracketed-resname')
-    //   // [0SD]
-    // },
-
-    // ResnoRange: function (r) {
-    //   return P.MonadicParser.regexp(/\.([\s]){1,3}/, 1)
-    //     .desc('resno-range')
-    //   // 123-200
-    //   // -12--3
-    // },
 
     Keywords: () => P.MonadicParser.alt(...h.getKeywordRules(keywords)),
 
