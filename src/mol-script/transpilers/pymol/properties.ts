@@ -37,7 +37,7 @@ function listOrRangeMap(x: string) {
 		for (let i = min; i <= max; i++) {
 		    res.push(i);
                 }		
-	    }else if (x.includes('-') && x.startsWith("-") && !x.match(/[0-9]+-[0-9]+/)) {
+	    }else if (x.includes('-') && x.startsWith("-") && !x.match(/[0-9]+-[-0-9]+/)) {
 		res.push(parseInt(x));
 	    }else{
                 res.push(parseInt(x));
@@ -63,7 +63,7 @@ function listOrRangeMap(x: string) {
 	    for (let i = min; i <= max; i++) {
 		res.push(i);
             }		
-	}else if (x.startsWith("-") && !x.match(/[0-9]+-[0-9]+/)) {
+	}else if (x.startsWith("-") && !x.match(/[0-9]+-[-0-9]+/)) {
 	    res.push(parseInt(x));
 	}else{
             res.push(parseInt(x));
