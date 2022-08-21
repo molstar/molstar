@@ -10,7 +10,6 @@ import * as h from '../helper';
 import { MolScriptBuilder } from '../../../mol-script/language/builder';
 const B = MolScriptBuilder;
 import { OperatorList } from '../types';
-// import { Expression } from '../../language/expression';
 
 
 export const operators: OperatorList = [
