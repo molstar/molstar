@@ -38,7 +38,26 @@ function atomSelectionQuery2(x: any) {
     for (const k in x) {
         const ps = macroproperties[k];
         if (!ps) {
-            throw new Error(`property '${k}' not supported, value '${x[k]}'`);
+	    const [resno, inscode, chainname, atomname, altloc] = x[1];
+	    const tests: AtomGroupArgs = {};
+	    
+	    if (chainname) {
+		// should be configurable, there is an option in Jmol to use auth or label
+		tests['chain-test'] = B.core.rel.eq([B.ammp('auth_asym_id'), chainname]);
+	    }
+	    
+	    const resProps = [];
+	    if (resno) resProps.push(B.core.rel.eq([B.ammp('auth_seq_id'), resno]));
+	    if (inscode) resProps.push(B.core.rel.eq([B.ammp('pdbx_PDB_ins_code'), inscode]));
+	    if (resProps.length) tests['residue-test'] = h.andExpr(resProps);
+	    
+	    const atomProps = [];
+	    if (atomname) atomProps.push(B.core.rel.eq([B.ammp('auth_atom_id'), atomname]));
+	    if (altloc) atomProps.push(B.core.rel.eq([B.ammp('label_alt_id'), altloc]));
+	    if (atomProps.length) tests['atom-test'] = h.andExpr(atomProps);
+	    
+	    return B.struct.generator.atomGroups(tests);	    	    
+//            throw new Error(`property '${k}' not supported, value '${x[k]}'`);
         }
         if (x[k] === null) continue;
         if (!props[ps.level]) props[ps.level] = [];
@@ -52,7 +71,32 @@ function atomSelectionQuery2(x: any) {
     return B.struct.generator.atomGroups(tests);
 }
 
+function atomExpressionQuery(x: any[]) {
+    const [resno, inscode, chainname, atomname, altloc] = x[1];
+    const tests: AtomGroupArgs = {};
+
+    if (chainname) {
+    // should be configurable, there is an option in Jmol to use auth or label
+        tests['chain-test'] = B.core.rel.eq([B.ammp('auth_asym_id'), chainname]);
+    }
+
+    const resProps = [];
+    if (resno) resProps.push(B.core.rel.eq([B.ammp('auth_seq_id'), resno]));
+    if (inscode) resProps.push(B.core.rel.eq([B.ammp('pdbx_PDB_ins_code'), inscode]));
+    if (resProps.length) tests['residue-test'] = h.andExpr(resProps);
+
+    const atomProps = [];
+    if (atomname) atomProps.push(B.core.rel.eq([B.ammp('auth_atom_id'), atomname]));
+    if (altloc) atomProps.push(B.core.rel.eq([B.ammp('label_alt_id'), altloc]));
+    if (atomProps.length) tests['atom-test'] = h.andExpr(atomProps);
+
+    return B.struct.generator.atomGroups(tests);
+}
+
+
 const lang = P.MonadicParser.createLanguage({
+
+    Integer: () => P.MonadicParser.regexp(/-?[0-9]+/).map(Number).desc('integer'),
 
     Parens: function (r: any) {
         return P.MonadicParser.alt(
@@ -68,6 +112,16 @@ const lang = P.MonadicParser.createLanguage({
 	    r.Keywords,
 	    r.NamedAtomProperties,
 	    r.AtomSelectionMacro.map(atomSelectionQuery2),
+	    r.Resno.lookahead(P.MonadicParser.regexp(/\s*(?!(LIKE|>=|<=|!=|[:^%/.=><]))/i)).map((x: any) => B.struct.generator.atomGroups({
+                'residue-test': B.core.rel.eq([B.ammp('auth_seq_id'), x])
+            })),
+	    r.AtomExpression.map(atomExpressionQuery),
+	    r.Element.map((x: string) => B.struct.generator.atomGroups({
+                'atom-test': B.core.rel.eq([B.acp('elementSymbol'), B.struct.type.elementSymbol(x)])
+            })),
+	    r.Resname.map((x: string) => B.struct.generator.atomGroups({
+                'residue-test': B.core.rel.eq([B.ammp('label_comp_id'), x])
+	    })),
 	    r.Object,
 	    r.Object2,
         );
@@ -212,6 +266,32 @@ const lang = P.MonadicParser.createLanguage({
     Operator: function (r: any) {
         return h.combineOperators(operators, P.MonadicParser.alt(r.Parens, r.Expression, r.Operator));
     },
+
+    AtomExpression: function (r: any) {
+        return P.MonadicParser.seq(
+            P.MonadicParser.lookahead(r.AtomPrefix),
+            P.MonadicParser.seq(
+                r.Resno.or(P.MonadicParser.of(null)),
+                r.Inscode.or(P.MonadicParser.of(null)),
+                r.Chainname.or(P.MonadicParser.of(null)),
+                r.Atomname.or(P.MonadicParser.of(null)),
+                r.Altloc.or(P.MonadicParser.of(null)),
+                r.Model.or(P.MonadicParser.of(null))
+            )
+        );
+    },
+    
+    AtomPrefix: () => P.MonadicParser.regexp(/[0-9:^%/.]/).desc('atom-prefix'),					    
+    Chainname: () => P.MonadicParser.regexp(/:([A-Za-z]{1,3})/, 1).desc('chainname'),
+    Model: () => P.MonadicParser.regexp(/\/([0-9]+)/, 1).map(Number).desc('model'),
+    Element: () => P.MonadicParser.regexp(/_([A-Za-z]{1,3})/, 1).desc('element'),
+    Atomname: () => P.MonadicParser.regexp(/\.([a-zA-Z0-9]{1,4})/, 1).map(B.atomName).desc('atomname'),
+   Resname: () => P.MonadicParser.regexp(/[A-Z0-9]{1,4}/).desc('resname'),
+    Resno: (r: any) => r.Integer.desc('resno'),
+    Altloc: () => P.MonadicParser.regexp(/%([a-zA-Z0-9])/, 1).desc('altloc'),
+    Inscode: () => P.MonadicParser.regexp(/\^([a-zA-Z0-9])/, 1).desc('inscode'),
+
+
 
 
     Keywords: () => P.MonadicParser.alt(...h.getKeywordRules(keywords)),
