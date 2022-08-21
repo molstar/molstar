@@ -80,7 +80,6 @@ export function binaryRight(opParser: P.MonadicParser<any>, nextParser: P.Monadi
                 P.MonadicParser.of(next),
                 parser
             ).map((x) => {
-                //                console.log(x);
                 return x;
             }).or(P.MonadicParser.of(next))
         )
@@ -131,8 +130,6 @@ export function combineOperators(opList: any[], rule: P.MonadicParser<any>) {
 
 export function infixOp(re: RegExp, group: number = 0) {
     return P.MonadicParser.whitespace.then(P.MonadicParser.regexp(re, group).skip(P.MonadicParser.whitespace));
-    // return P.optWhitespace.then(P.MonadicParser.regexp(re, group).lookahead(P.whitespace))
-    // return P.MonadicParser.regexp(re, group).skip(P.whitespace
 }
 
 export function prefixOp(re: RegExp, group: number = 0) {
@@ -146,10 +143,6 @@ export function prefixOpNoWhiteSpace(re: RegExp, group: number = 0) {
 export function postfixOp(re: RegExp, group: number = 0) {
     return P.MonadicParser.whitespace.then(P.MonadicParser.regexp(re, group));
 }
-
-// export function functionOp (re: RegExp, rule: P.MonadicParser<any>) {
-//   return P.MonadicParser.regexp(re, group).wrap(P.string('('), P.string(')'))
-// }
 
 export function ofOp(name: string, short?: string) {
     const op = short ? `${name}|${escapeRegExp(short)}` : name;
@@ -302,11 +295,6 @@ export function getFunctionRules(functions: FunctionDict, argRule: P.MonadicPars
 
     return functionsList;
 }
-
-// const rule = P.regex(getNamesRegex(name, ps.abbr)).lookahead(lookahead).map(() => {
-//    if (ps.isUnsupported) errorFn()
-//    return ps.property
-// })
 
 export function getPropertyNameRules(properties: PropertyDict, lookahead: RegExp) {
     const list: P.MonadicParser<any>[] = [];
