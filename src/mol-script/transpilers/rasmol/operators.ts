@@ -14,6 +14,22 @@ import { Expression } from '../../language/expression';
 
 export const operators: OperatorList = [
     {
+        '@desc': 'Selects atoms in s1 that are within X Angstroms of any atom in s2.',
+        '@examples': ['within(5.0, [HEM])'],
+        name: 'within',
+        type: h.prefixRemoveKet,
+        rule: h.prefixOpNoWhiteSpace(/within\s*\(\s*([-+]?[0-9]*\.?[0-9]+)\s*,/, 1).map((x: any) => {
+	    return parseFloat(x);
+        }),
+        map: (radius: number, target: Expression) => {
+	    return B.struct.filter.within({
+                0: B.struct.generator.all(),
+                target,
+                'max-radius': radius,
+	    });
+        },
+    },
+    {
         '@desc': 'Selects atoms that are not included in s1.',
         '@examples': ['not [ARG]'],
         name: 'not',
@@ -37,22 +53,6 @@ export const operators: OperatorList = [
         type: h.binaryLeft,
         rule: P.MonadicParser.alt(h.infixOp(/OR|\||\|\||,/i)),
         map: (op, s1, s2) => B.struct.combinator.merge([s1, s2])
-    },
-    {
-        '@desc': 'Selects atoms in s1 that are within X Angstroms of any atom in s2.',
-        '@examples': ['within(5.0, [HEM])'],
-        name: 'within',
-        type: h.prefixRemoveKet,
-        rule: h.prefixOpNoWhiteSpace(/within\s*\(\s*([-+]?[0-9]*\.?[0-9]+)\s*,/i, 1).map((x: any) => {
-	    return parseFloat(x);
-        }),
-        map: (radius: number, target: Expression) => {
-	    return B.struct.filter.within({
-                0: B.struct.generator.all(),
-                target,
-                'max-radius': radius,
-	    });
-        },
     },
 ];
 

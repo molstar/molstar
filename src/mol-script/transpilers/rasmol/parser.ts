@@ -20,63 +20,61 @@ import { Transpiler } from '../transpiler';
 function listMap(x: string) { return x.split(',').map(x => x.replace(/^["']|["']$/g, '')); }
 
 function listOrRangeMap(x: string) {
-    // cases 
+    // cases
     // case1: 1-100,200
-    console.log(x)
     if (x.includes('-') && x.includes(',')) {
         const pSplit = x.split(',').map(x => x.replace(/^["']|["']$/g, ''));
         const res: number[] = [];
         pSplit.forEach(x => {
-	    if (x.includes('-') && !x.startsWith("-")) {
+	    if (x.includes('-') && !x.startsWith('-')) {
                 const [min, max] = x.split('-').map(x=>parseInt(x));
                 for (let i = min; i <= max; i++) {
 		    res.push(i);
                 }
-	    }else if (x.includes('-') && x.startsWith("-") && x.match(/[0-9]+-[-0-9]+/)) {
-		const min = -parseInt(x.split('-')[1]);
-		var max ;
-		if (x.includes('--')) {
-		    max = -parseInt(x.split('-')[3])
-		}else{
-		    max = parseInt(x.split('-')[2])
-		}
-		for (let i = min; i <= max; i++) {
+	    } else if (x.includes('-') && x.startsWith('-') && x.match(/[0-9]+-[-0-9]+/)) {
+                const min = -parseInt(x.split('-')[1]);
+                let max;
+                if (x.includes('--')) {
+		    max = -parseInt(x.split('-')[3]);
+                } else {
+		    max = parseInt(x.split('-')[2]);
+                }
+                for (let i = min; i <= max; i++) {
 		    res.push(i);
-                }		
-	    }else if (x.includes('-') && x.startsWith("-") && !x.match(/[0-9]+-[-0-9]+/)) {
-		res.push(parseInt(x));
-	    }else{
+                }
+	    } else if (x.includes('-') && x.startsWith('-') && !x.match(/[0-9]+-[-0-9]+/)) {
+                res.push(parseInt(x));
+	    } else {
                 res.push(parseInt(x));
 	    }
         });
         return res;
     } else if (x.includes('-') && !x.includes(',')) {
-	const res: number[] = [];
-	if (!x.startsWith("-")) {
+        const res: number[] = [];
+        if (!x.startsWith('-')) {
             const [min, max] = x.split('-').map(x=>parseInt(x));
             for (let i = min; i <= max; i++) {
-		res.push(i);
+                res.push(i);
             }
-	}else if (x.startsWith("-") && x.match(/[0-9]+-[-0-9]+/)) {	    
+        } else if (x.startsWith('-') && x.match(/[0-9]+-[-0-9]+/)) {
 	    const min = -parseInt(x.split('-')[1]);
-	    console.log(min)
-	    var max ;
+	    let max;
 	    if (x.includes('--')) {
-		max = -parseInt(x.split('-')[3])
-	    }else{
-		max = parseInt(x.split('-')[2])
+                max = -parseInt(x.split('-')[3]);
+	    } else {
+                max = parseInt(x.split('-')[2]);
 	    }
 	    for (let i = min; i <= max; i++) {
-		res.push(i);
-            }		
-	}else if (x.startsWith("-") && !x.match(/[0-9]+-[-0-9]+/)) {
+                res.push(i);
+            }
+        } else if (x.startsWith('-') && !x.match(/[0-9]+-[-0-9]+/)) {
 	    res.push(parseInt(x));
-	}else{
+        } else {
             res.push(parseInt(x));
-	}
-        return res;	
+        }
+        return res;
     } else if (!x.includes('-') && x.includes(',')) {
-	return listMap(x).map(x => parseInt(x));
+        return listMap(x).map(x => parseInt(x));
     } else {
         return [parseInt(x)];
     }
@@ -118,7 +116,7 @@ function atomSelectionQuery2(x: any) {
 
 function atomExpressionQuery(x: any[]) {
     const [resnorange, resno, inscode, chainname, atomname, altloc] = x[1];
-    //const [resnorange,  inscode, chainname, atomname, altloc] = x[1];
+    // const [resnorange,  inscode, chainname, atomname, altloc] = x[1];
     const tests: AtomGroupArgs = {};
 
     if (chainname) {
@@ -136,7 +134,6 @@ function atomExpressionQuery(x: any[]) {
 
     const resProps: any = [];
     if (resno) {
-      console.log(resno);
         resProps.push(B.core.rel.eq([B.ammp('auth_seq_id'), resno]));
     }
     if (inscode) resProps.push(B.core.rel.eq([B.ammp('pdbx_PDB_ins_code'), inscode]));
@@ -152,14 +149,13 @@ function atomExpressionQuery(x: any[]) {
 
 function resnorangeExpressionQuery(x: any[]) {
     const [resnorange, chainname] = x;
-    //const [resnorange,  inscode, chainname, atomname, altloc] = x[1];
+    // const [resnorange,  inscode, chainname, atomname, altloc] = x[1];
     const tests: AtomGroupArgs = {};
 
     if (chainname) {
     // should be configurable, there is an option in Jmol to use auth or label
         tests['chain-test'] = B.core.rel.eq([B.ammp('auth_asym_id'), chainname]);
     }
-    
 
     const resnoRangeProps: any = [];
     if (resnorange) {
@@ -168,7 +164,7 @@ function resnorangeExpressionQuery(x: any[]) {
         });
     };
     if (resnoRangeProps.length) tests['residue-test'] = h.orExpr(resnoRangeProps);
-    
+
     return B.struct.generator.atomGroups(tests);
 }
 
@@ -191,27 +187,14 @@ const lang = P.MonadicParser.createLanguage({
 	    r.Keywords,
 	    r.NamedAtomProperties,
 	    r.AtomSelectionMacro.map(atomSelectionQuery2),
-/*	    r.ResnoRange.map((x:string) => {
-		const resnorange=listOrRangeMap(x);
-		const resnoRangeProps: any = [];
-		const tests: AtomGroupArgs = {};
-		console.log(resnorange)
-		resnorange.forEach((a: number) =>{
-		    resnoRangeProps.push(B.core.rel.eq([B.ammp('auth_seq_id'), a]));
-		});
-		console.log(resnoRangeProps)
-		tests['residue-test'] = h.orExpr(resnoRangeProps);
-		return B.struct.generator.atomGroups(tests);
-	    }),
-*/
 	    r.AtomExpression.map(atomExpressionQuery),
-	    r.ResnoRangeExpression.map(resnorangeExpressionQuery),
 	    r.Element.map((x: string) => B.struct.generator.atomGroups({
                 'atom-test': B.core.rel.eq([B.acp('elementSymbol'), B.struct.type.elementSymbol(x)])
             })),
 	    r.Resname.map((x: string) => B.struct.generator.atomGroups({
                 'residue-test': B.core.rel.eq([B.ammp('label_comp_id'), x])
 	    })),
+	    r.ResnoRangeExpression.map(resnorangeExpressionQuery),
 	    r.Object,
 	    r.Object2,
         );
@@ -343,7 +326,8 @@ const lang = P.MonadicParser.createLanguage({
     },
 
     Operator: function (r: any) {
-        return h.combineOperators(operators, P.MonadicParser.alt(r.Parens, r.Expression,r.Operator));
+	return h.combineOperators(operators, P.MonadicParser.alt(r.Parens, r.Expression, r.Operator));
+	//return h.combineOperators(operators, P.MonadicParser.alt(r.Parens, r.Expression));
     },
 
     AtomExpression: function (r: any) {
@@ -351,7 +335,7 @@ const lang = P.MonadicParser.createLanguage({
             P.MonadicParser.lookahead(r.AtomPrefix),
             P.MonadicParser.seq(
                 r.ResnoRange.or(P.MonadicParser.of(null)),
-		r.Resno.or(P.MonadicParser.of(null)),
+                r.Resno.or(P.MonadicParser.of(null)),
                 r.Inscode.or(P.MonadicParser.of(null)),
                 r.Chainname.or(P.MonadicParser.of(null)),
                 r.Atomname.or(P.MonadicParser.of(null)),
@@ -365,11 +349,11 @@ const lang = P.MonadicParser.createLanguage({
         return P.MonadicParser.seq(
             r.ResnoRange.or(P.MonadicParser.of(null)),
 	    r.Chainname.or(P.MonadicParser.of(null)),
-        )
+        );
     },
 
     AtomPrefix: () => P.MonadicParser.regexp(/[0-9:^%/.]/).desc('atom-prefix'),
-    Chainname: () => P.MonadicParser.regexp(/:([A-Za-z]{1,3})/, 1).desc('chainname'),
+    Chainname: () => P.MonadicParser.regexp(/:([A-Z]{1,3})/, 1).desc('chainname'),
     Model: () => P.MonadicParser.regexp(/\/([0-9]+)/, 1).map(Number).desc('model'),
     Element: () => P.MonadicParser.regexp(/_([A-Za-z]{1,3})/, 1).desc('element'),
     Atomname: () => P.MonadicParser.regexp(/\.([a-zA-Z0-9]{1,4})/, 1).map(B.atomName).desc('atomname'),
