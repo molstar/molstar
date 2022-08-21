@@ -11,7 +11,6 @@ const B = MolScriptBuilder;
 import { PropertyDict } from '../types';
 
 const reFloat = /[-+]?[0-9]*\.?[0-9]+/;
-// const rePosInt = /[0-9]+/;
 
 function atomNameListMap(x: string) { return x.split('+').map(B.atomName); }
 function listMap(x: string) { return x.split('+').map(x => x.replace(/^["']|["']$/g, '')); }
