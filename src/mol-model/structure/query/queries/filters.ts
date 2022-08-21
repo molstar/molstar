@@ -6,7 +6,6 @@
 
 import { SetUtils } from '../../../../mol-util/set';
 import { Unit } from '../../structure';
-// import { QueryContext, QueryFn, QueryPredicate } from '../context';
 import { QueryContext, QueryFn } from '../context';
 import { StructureQuery } from '../query';
 import { StructureSelection } from '../selection';
