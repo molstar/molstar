@@ -30,7 +30,6 @@ function nucleicExpr() {
 	    }),
 	    test: B.core.logic.and([
                 B.core.set.isSubset([
-                // B.core.type.set([ 'P', 'O1P', 'O2P' ]),
                     h.atomNameSet(['P']),
                     B.ammpSet('label_atom_id')
                 ]),
