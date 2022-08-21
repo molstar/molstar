@@ -132,7 +132,8 @@ const lang = P.MonadicParser.createLanguage({
             r.Parens,
             r.Operator,
             r.Expression
-        ).wrap(P.MonadicParser.regexp(/\(\s+/), P.MonadicParser.regexp(/\s+\)/));
+	).wrap(P.MonadicParser.string("("), P.MonadicParser.string(")"));
+//        ).wrap(P.MonadicParser.regexp(/\(\s+/), P.MonadicParser.regexp(/\s+\)/));
     },
 
     Expression: function (r: any) {
@@ -189,17 +190,6 @@ const lang = P.MonadicParser.createLanguage({
                     orNull(propertiesDict.chain)
                 ).map(x => { return { chain: x[0] }; }),
             )),
-	    // 1-100,201
-	    bra.then(P.MonadicParser.alt(
-                P.MonadicParser.alt(
-		    P.MonadicParser.seq(
-                        propertiesDict.resi.skip(ket),
-		    ).map(x => {
-                        return { resi: x[0] }
-                        ;
-                    })
-                )
-	    )),
 	    //  [lys]10:a.ca [lys]10:a [lys]10 [lys]10.ca
 	    //  [lys]:a.ca [lys]:a [lys] [lys].ca
 	    commu.then(P.MonadicParser.alt(
