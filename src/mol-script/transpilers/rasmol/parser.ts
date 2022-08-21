@@ -17,6 +17,41 @@ import { AtomGroupArgs } from '../types';
 import { Transpiler } from '../transpiler';
 
 
+function listMap(x: string) { return x.split(',').map(x => x.replace(/^["']|["']$/g, '')); }
+function rangeMap(x: string) {
+    const [min, max] = x.split('-').map(x => parseInt(x));
+    return { min, max };
+}
+function listOrRangeMap(x: string) {
+    if (x.includes('-') && x.includes(',')) {
+        const pSplit = x.split(',').map(x => x.replace(/^["']|["']$/g, ''));
+        const res: number[] = [];
+        pSplit.forEach(x => {
+	    if (x.includes('-')) {
+                const [min, max] = x.split('-').map(x=>parseInt(x));
+                for (let i = min; i <= max; i++) {
+		    res.push(i);
+                }
+	    } else {
+                res.push(parseInt(x));
+	    }
+        });
+        return res;
+    } else if (x.includes('-') && !x.includes(',')) {
+	const res: number[] = [];
+	const [min, max] = x.split('-').map(x=>parseInt(x));
+        for (let i = min; i <= max; i++) {
+	    res.push(i);
+        }	
+        return res;
+    } else if (!x.includes('-') && x.includes(',')) {
+        return listMap(x).map(x => parseInt(x));
+    } else {
+        return [parseInt(x)];
+    }
+}
+
+
 const propertiesDict = h.getPropertyRules(macroproperties);
 
 const dot = P.MonadicParser.string('.');
@@ -53,7 +88,7 @@ function atomSelectionQuery2(x: any) {
 }
 
 function atomExpressionQuery(x: any[]) {
-    const [resno, inscode, chainname, atomname, altloc] = x[1];
+    const [resnorange, resno, inscode, chainname, atomname, altloc] = x[1];
     const tests: AtomGroupArgs = {};
 
     if (chainname) {
@@ -61,8 +96,21 @@ function atomExpressionQuery(x: any[]) {
         tests['chain-test'] = B.core.rel.eq([B.ammp('auth_asym_id'), chainname]);
     }
 
-    const resProps = [];
-    if (resno) resProps.push(B.core.rel.eq([B.ammp('auth_seq_id'), resno]));
+    const resnoRangeProps:any = [];
+    console.log(resnorange)
+    if (resnorange){	
+	resnorange.forEach((x:number) =>{
+	resnoRangeProps.push(B.core.rel.eq([B.ammp('auth_seq_id'), x]));
+	})
+	console.log(resnoRangeProps);
+    };
+    if (resnoRangeProps.length) tests['residue-test'] = h.orExpr(resnoRangeProps);
+    
+    const resProps:any = [];
+    if (resno){
+	console.log(resno)
+	resProps.push(B.core.rel.eq([B.ammp('auth_seq_id'), resno]));
+    }
     if (inscode) resProps.push(B.core.rel.eq([B.ammp('pdbx_PDB_ins_code'), inscode]));
     if (resProps.length) tests['residue-test'] = h.andExpr(resProps);
 
@@ -93,9 +141,6 @@ const lang = P.MonadicParser.createLanguage({
 	    r.Keywords,
 	    r.NamedAtomProperties,
 	    r.AtomSelectionMacro.map(atomSelectionQuery2),
-	    r.Resno.lookahead(P.MonadicParser.regexp(/\s*(?!(LIKE|>=|<=|!=|[:^%/.=><]))/i)).map((x: any) => B.struct.generator.atomGroups({
-                'residue-test': B.core.rel.eq([B.ammp('auth_seq_id'), x])
-            })),
 	    r.AtomExpression.map(atomExpressionQuery),
 	    r.Element.map((x: string) => B.struct.generator.atomGroups({
                 'atom-test': B.core.rel.eq([B.acp('elementSymbol'), B.struct.type.elementSymbol(x)])
@@ -252,6 +297,7 @@ const lang = P.MonadicParser.createLanguage({
         return P.MonadicParser.seq(
             P.MonadicParser.lookahead(r.AtomPrefix),
             P.MonadicParser.seq(
+		r.ResnoRange.or(P.MonadicParser.of(null)),
                 r.Resno.or(P.MonadicParser.of(null)),
                 r.Inscode.or(P.MonadicParser.of(null)),
                 r.Chainname.or(P.MonadicParser.of(null)),
@@ -273,7 +319,11 @@ const lang = P.MonadicParser.createLanguage({
     Inscode: () => P.MonadicParser.regexp(/\^([a-zA-Z0-9])/, 1).desc('inscode'),
 
 
-
+   ResnoRange: function (r:any) {
+       return P.MonadicParser.regex(/[0-9,-]+/).map( listOrRangeMap ).desc('resnorange')
+	//   // 123-200
+    //   // -12--3
+    },
 
     Keywords: () => P.MonadicParser.alt(...h.getKeywordRules(keywords)),
 
