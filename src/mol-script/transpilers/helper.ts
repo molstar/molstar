@@ -5,7 +5,7 @@
  * @author Panagiotis Tourlas <panagiot_tourlov@hotmail.com>
  * @author Koya Sakuma <koya.sakuma.work@gmail.com>
  */
-// import * as Q from 'parsimmon';
+
 import * as P from '../../mol-util/monadic-parser';
 import { MolScriptBuilder } from '../../mol-script/language/builder';
 const B = MolScriptBuilder;
@@ -140,7 +140,6 @@ export function prefixOp(re: RegExp, group: number = 0) {
 }
 
 export function prefixOpNoWhiteSpace(re: RegExp, group: number = 0) {
-    //    return P.MonadicParser.regexp(re, group).skip(P.MonadicParser.regexp(/\s*/));
     return P.MonadicParser.regexp(re, group).skip(P.MonadicParser.regexp(/\s*/));
 }
 
