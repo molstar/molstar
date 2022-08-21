@@ -10,7 +10,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Add custom labels to Confal pyramids
 - Improve naming of some internal types in Confal pyramids extension coordinate
 - Add example mmCIF file with categories necessary to display Confal pyramids
-- Add traspilers for selection scripts that experimentally support PyMOL, VMD, Jmol and RasMol selection syntaxes
+- [Experimental] Add support for PyMOL, VMD, Jmol and RasMol atom expressions in selection scripts
 
 ## [v3.13.0] - 2022-07-24
 
