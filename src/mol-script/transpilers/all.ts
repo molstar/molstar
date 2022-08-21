@@ -5,8 +5,6 @@
  */
 
 import { transpiler as jmol } from './jmol/parser';
-// import json from './json/parser'
-// import molQLscript from './molql-script/parser'
 import { transpiler as pymol } from './pymol/parser';
 import { transpiler as vmd } from './vmd/parser';
 import { transpiler as rasmol } from './rasmol/parser';
