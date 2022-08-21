@@ -369,7 +369,7 @@ const lang = P.MonadicParser.createLanguage({
     ResnoRange: function (r: any) {
         return P.MonadicParser.regex(/-?[0-9,-]+/).map(listOrRangeMap).desc('resnorange');
         //   // 123-200
-	//   // -12--3
+        //   // -12--3
     },
 
     Keywords: () => P.MonadicParser.alt(...h.getKeywordRules(keywords)),
