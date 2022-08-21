@@ -40,24 +40,24 @@ function atomSelectionQuery2(x: any) {
         if (!ps) {
 	    const [resno, inscode, chainname, atomname, altloc] = x[1];
 	    const tests: AtomGroupArgs = {};
-	    
+
 	    if (chainname) {
-		// should be configurable, there is an option in Jmol to use auth or label
-		tests['chain-test'] = B.core.rel.eq([B.ammp('auth_asym_id'), chainname]);
+                // should be configurable, there is an option in Jmol to use auth or label
+                tests['chain-test'] = B.core.rel.eq([B.ammp('auth_asym_id'), chainname]);
 	    }
-	    
+
 	    const resProps = [];
 	    if (resno) resProps.push(B.core.rel.eq([B.ammp('auth_seq_id'), resno]));
 	    if (inscode) resProps.push(B.core.rel.eq([B.ammp('pdbx_PDB_ins_code'), inscode]));
 	    if (resProps.length) tests['residue-test'] = h.andExpr(resProps);
-	    
+
 	    const atomProps = [];
 	    if (atomname) atomProps.push(B.core.rel.eq([B.ammp('auth_atom_id'), atomname]));
 	    if (altloc) atomProps.push(B.core.rel.eq([B.ammp('label_alt_id'), altloc]));
 	    if (atomProps.length) tests['atom-test'] = h.andExpr(atomProps);
-	    
-	    return B.struct.generator.atomGroups(tests);	    	    
-//            throw new Error(`property '${k}' not supported, value '${x[k]}'`);
+
+	    return B.struct.generator.atomGroups(tests);
+            //            throw new Error(`property '${k}' not supported, value '${x[k]}'`);
         }
         if (x[k] === null) continue;
         if (!props[ps.level]) props[ps.level] = [];
@@ -280,13 +280,13 @@ const lang = P.MonadicParser.createLanguage({
             )
         );
     },
-    
-    AtomPrefix: () => P.MonadicParser.regexp(/[0-9:^%/.]/).desc('atom-prefix'),					    
+
+    AtomPrefix: () => P.MonadicParser.regexp(/[0-9:^%/.]/).desc('atom-prefix'),
     Chainname: () => P.MonadicParser.regexp(/:([A-Za-z]{1,3})/, 1).desc('chainname'),
     Model: () => P.MonadicParser.regexp(/\/([0-9]+)/, 1).map(Number).desc('model'),
     Element: () => P.MonadicParser.regexp(/_([A-Za-z]{1,3})/, 1).desc('element'),
     Atomname: () => P.MonadicParser.regexp(/\.([a-zA-Z0-9]{1,4})/, 1).map(B.atomName).desc('atomname'),
-   Resname: () => P.MonadicParser.regexp(/[A-Z0-9]{1,4}/).desc('resname'),
+    Resname: () => P.MonadicParser.regexp(/[A-Z0-9]{1,4}/).desc('resname'),
     Resno: (r: any) => r.Integer.desc('resno'),
     Altloc: () => P.MonadicParser.regexp(/%([a-zA-Z0-9])/, 1).desc('altloc'),
     Inscode: () => P.MonadicParser.regexp(/\^([a-zA-Z0-9])/, 1).desc('inscode'),
