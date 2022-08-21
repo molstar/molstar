@@ -18,10 +18,7 @@ import { Transpiler } from '../transpiler';
 
 
 function listMap(x: string) { return x.split(',').map(x => x.replace(/^["']|["']$/g, '')); }
-function rangeMap(x: string) {
-    const [min, max] = x.split('-').map(x => parseInt(x));
-    return { min, max };
-}
+
 function listOrRangeMap(x: string) {
     if (x.includes('-') && x.includes(',')) {
         const pSplit = x.split(',').map(x => x.replace(/^["']|["']$/g, ''));
@@ -38,11 +35,11 @@ function listOrRangeMap(x: string) {
         });
         return res;
     } else if (x.includes('-') && !x.includes(',')) {
-	const res: number[] = [];
-	const [min, max] = x.split('-').map(x=>parseInt(x));
+        const res: number[] = [];
+        const [min, max] = x.split('-').map(x=>parseInt(x));
         for (let i = min; i <= max; i++) {
 	    res.push(i);
-        }	
+        }
         return res;
     } else if (!x.includes('-') && x.includes(',')) {
         return listMap(x).map(x => parseInt(x));
@@ -57,8 +54,6 @@ const propertiesDict = h.getPropertyRules(macroproperties);
 const dot = P.MonadicParser.string('.');
 const colon = P.MonadicParser.string(':');
 const star = P.MonadicParser.string('*');
-const bra = P.MonadicParser.string('(');
-const ket = P.MonadicParser.string(')');
 const commu = P.MonadicParser.string('[');
 const tator = P.MonadicParser.string(']');
 
@@ -96,20 +91,20 @@ function atomExpressionQuery(x: any[]) {
         tests['chain-test'] = B.core.rel.eq([B.ammp('auth_asym_id'), chainname]);
     }
 
-    const resnoRangeProps:any = [];
-    console.log(resnorange)
-    if (resnorange){	
-	resnorange.forEach((x:number) =>{
-	resnoRangeProps.push(B.core.rel.eq([B.ammp('auth_seq_id'), x]));
-	})
-	console.log(resnoRangeProps);
+    const resnoRangeProps: any = [];
+    console.log(resnorange);
+    if (resnorange) {
+        resnorange.forEach((x: number) =>{
+            resnoRangeProps.push(B.core.rel.eq([B.ammp('auth_seq_id'), x]));
+        });
+        console.log(resnoRangeProps);
     };
     if (resnoRangeProps.length) tests['residue-test'] = h.orExpr(resnoRangeProps);
-    
-    const resProps:any = [];
-    if (resno){
-	console.log(resno)
-	resProps.push(B.core.rel.eq([B.ammp('auth_seq_id'), resno]));
+
+    const resProps: any = [];
+    if (resno) {
+        console.log(resno);
+        resProps.push(B.core.rel.eq([B.ammp('auth_seq_id'), resno]));
     }
     if (inscode) resProps.push(B.core.rel.eq([B.ammp('pdbx_PDB_ins_code'), inscode]));
     if (resProps.length) tests['residue-test'] = h.andExpr(resProps);
@@ -132,8 +127,7 @@ const lang = P.MonadicParser.createLanguage({
             r.Parens,
             r.Operator,
             r.Expression
-	).wrap(P.MonadicParser.string("("), P.MonadicParser.string(")"));
-//        ).wrap(P.MonadicParser.regexp(/\(\s+/), P.MonadicParser.regexp(/\s+\)/));
+        ).wrap(P.MonadicParser.string('('), P.MonadicParser.string(')'));
     },
 
     Expression: function (r: any) {
@@ -287,7 +281,7 @@ const lang = P.MonadicParser.createLanguage({
         return P.MonadicParser.seq(
             P.MonadicParser.lookahead(r.AtomPrefix),
             P.MonadicParser.seq(
-		r.ResnoRange.or(P.MonadicParser.of(null)),
+                r.ResnoRange.or(P.MonadicParser.of(null)),
                 r.Resno.or(P.MonadicParser.of(null)),
                 r.Inscode.or(P.MonadicParser.of(null)),
                 r.Chainname.or(P.MonadicParser.of(null)),
@@ -309,9 +303,9 @@ const lang = P.MonadicParser.createLanguage({
     Inscode: () => P.MonadicParser.regexp(/\^([a-zA-Z0-9])/, 1).desc('inscode'),
 
 
-   ResnoRange: function (r:any) {
-       return P.MonadicParser.regex(/[0-9,-]+/).map( listOrRangeMap ).desc('resnorange')
-	//   // 123-200
+    ResnoRange: function (r: any) {
+        return P.MonadicParser.regex(/[0-9,-]+/).map(listOrRangeMap).desc('resnorange');
+        //   // 123-200
     //   // -12--3
     },
 
