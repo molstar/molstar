@@ -32,10 +32,12 @@ const general = {
         'within (   5 ,  [HEM] ) ',
         // un-braketed residue name
         'LEU and ILE',
+        // un-parenthesized residue index range
+        '100-120,220',
+        // un-parenthesized residue index
+        '20',
     ],
     unsupported: [
-        // un-parenthesized residue index
-        '100-120',
         // within in the head or the middle of sentence
         'within (   5 ,  [HEM] ) and backbone',
     ]

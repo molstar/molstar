@@ -92,12 +92,10 @@ function atomExpressionQuery(x: any[]) {
     }
 
     const resnoRangeProps: any = [];
-    console.log(resnorange);
     if (resnorange) {
         resnorange.forEach((x: number) =>{
             resnoRangeProps.push(B.core.rel.eq([B.ammp('auth_seq_id'), x]));
         });
-        console.log(resnoRangeProps);
     };
     if (resnoRangeProps.length) tests['residue-test'] = h.orExpr(resnoRangeProps);
 
@@ -127,7 +125,7 @@ const lang = P.MonadicParser.createLanguage({
             r.Parens,
             r.Operator,
             r.Expression
-        ).wrap(P.MonadicParser.string('('), P.MonadicParser.string(')'));
+        ).wrap(P.MonadicParser.regexp(/\(\s*/), P.MonadicParser.regexp(/\s*\)/));
     },
 
     Expression: function (r: any) {
