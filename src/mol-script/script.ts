@@ -15,9 +15,9 @@ import { assertUnreachable } from '../mol-util/type-helpers';
 
 export { Script };
 
-interface Script { expression: string, language: Script.Language}
+interface Script { expression: string, language: Script.Language }
 
-function Script(expression: string = '(sel.atom.all)', language: Script.Language = 'mol-script'): Script {
+function Script(expression: string, language: Script.Language): Script {
     return { expression, language };
 }
 
