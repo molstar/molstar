@@ -36,10 +36,10 @@ const general = {
         '100-120,220',
         // un-parenthesized residue index
         '20',
-    ],
-    unsupported: [
         // within in the head or the middle of sentence
         'within (   5 ,  [HEM] ) and backbone',
+    ],
+    unsupported: [
     ]
 };
 

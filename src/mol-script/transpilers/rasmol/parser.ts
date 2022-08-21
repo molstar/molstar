@@ -116,7 +116,6 @@ function atomSelectionQuery2(x: any) {
 
 function atomExpressionQuery(x: any[]) {
     const [resnorange, resno, inscode, chainname, atomname, altloc] = x[1];
-    // const [resnorange,  inscode, chainname, atomname, altloc] = x[1];
     const tests: AtomGroupArgs = {};
 
     if (chainname) {
@@ -149,7 +148,6 @@ function atomExpressionQuery(x: any[]) {
 
 function resnorangeExpressionQuery(x: any[]) {
     const [resnorange, chainname] = x;
-    // const [resnorange,  inscode, chainname, atomname, altloc] = x[1];
     const tests: AtomGroupArgs = {};
 
     if (chainname) {
@@ -326,8 +324,7 @@ const lang = P.MonadicParser.createLanguage({
     },
 
     Operator: function (r: any) {
-	return h.combineOperators(operators, P.MonadicParser.alt(r.Parens, r.Expression, r.Operator));
-	//return h.combineOperators(operators, P.MonadicParser.alt(r.Parens, r.Expression));
+        return h.combineOperators(operators, P.MonadicParser.alt(r.Parens, r.Expression, r.Operator));
     },
 
     AtomExpression: function (r: any) {
@@ -372,7 +369,7 @@ const lang = P.MonadicParser.createLanguage({
     ResnoRange: function (r: any) {
         return P.MonadicParser.regex(/-?[0-9,-]+/).map(listOrRangeMap).desc('resnorange');
         //   // 123-200
-    //   // -12--3
+	//   // -12--3
     },
 
     Keywords: () => P.MonadicParser.alt(...h.getKeywordRules(keywords)),
