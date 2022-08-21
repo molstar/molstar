@@ -15,7 +15,6 @@ export function testKeywords(keywords: KeywordDict, transpiler: Transpiler) {
             const k = keywords[name];
             if (k.map) {
                 const expr = transpiler(name);
-                //                compile(expr);
                 expect(expr).toEqual(k.map());
             } else {
                 const transpile = () => transpiler(name);
@@ -33,7 +32,6 @@ export function testProperties(properties: PropertyDict, transpiler: Transpiler)
             it(name, () => {
                 if (!p.isUnsupported) {
                     transpiler(example);
-                    //                  compile(expr);
                 } else {
                     const transpile = () => transpiler(example);
                     expect(transpile).toThrow();
@@ -55,7 +53,6 @@ export function testOperators(operators: OperatorList, transpiler: Transpiler) {
             it(o.name, () => {
                 if (!o.isUnsupported) {
                     transpiler(example);
-                    //                compile(expr);
                 } else {
                     const transpile = () => transpiler(example);
                     expect(transpile).toThrow();
