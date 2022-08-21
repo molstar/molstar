@@ -165,6 +165,20 @@ const lang = P.MonadicParser.createLanguage({
     Inscode: () => P.MonadicParser.regexp(/\^([a-zA-Z0-9])/, 1).desc('inscode'),
 
 
+    // TODO: Support bracketed resname and resno range.
+    // BracketedResname: function (r) {
+    //   return P.regex(/\.([a-zA-Z0-9]{1,4})/, 1)
+    //     .desc('bracketed-resname')
+    //   // [0SD]
+    // },
+
+    // ResnoRange: function (r) {
+    //   return P.regex(/\.([\s]){1,3}/, 1)
+    //     .desc('resno-range')
+    //   // 123-200
+    //   // -12--3
+    // },
+
     Keywords: () => P.MonadicParser.alt(...h.getKeywordRules(keywords)),
 
     Query: function (r: any) {
