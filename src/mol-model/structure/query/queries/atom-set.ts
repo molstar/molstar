@@ -23,16 +23,14 @@ export function atomCount(ctx: QueryContext) {
 export function countQuery(query: StructureQuery) {
     return (ctx: QueryContext) => {
         const sel = query(ctx);
-        const x: number = StructureSelection.structureCount(sel);
-        return x;
+        return StructureSelection.structureCount(sel);
     };
 }
 
 export function propertySet(prop: QueryFn<any>) {
     return (ctx: QueryContext) => {
         const set = new Set();
-        const x = getCurrentStructureProperties(ctx, prop, set);
-        return x;
+        return getCurrentStructureProperties(ctx, prop, set);
     };
 }
 
