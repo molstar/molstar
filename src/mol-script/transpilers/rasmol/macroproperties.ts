@@ -8,9 +8,6 @@ import { MolScriptBuilder } from '../../../mol-script/language/builder';
 const B = MolScriptBuilder;
 import { PropertyDict } from '../types';
 
-// const reFloat = /[-+]?[0-9]*\.?[0-9]+/;
-// const rePosInt = /[0-9]+/;
-
 function atomNameListMap(x: string) { return x.split(',').map(B.atomName); }
 function listMap(x: string) { return x.split(',').map(x => x.replace(/^["']|["']$/g, '')); }
 function rangeMap(x: string) {
@@ -43,19 +40,6 @@ function listOrRangeMap(x: string) {
 function elementListMap(x: string) {
     return x.split(',').map(B.struct.type.elementSymbol);
 }
-
-// const sstrucDict: { [k: string]: string } = {
-//    H: 'helix',
-//    S: 'beta',
-//    L: 'none'
-// };
-// function sstrucListMap(x: string) {
-//    return {
-//        flags: B.struct.type.secondaryStructureFlags(
-//            x.toUpperCase().split('+').map(ss => sstrucDict[ss] || 'none')
-//        )
-//    };
-// }
 
 export const macroproperties: PropertyDict = {
     symbol: {
