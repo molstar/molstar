@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Adam Midlik <midlik@gmail.com>
  */
 
 import { PluginStateTransform, PluginStateObject } from '../../mol-plugin-state/objects';
@@ -144,8 +145,18 @@ namespace PluginBehavior {
         protected subscribeCommand<T>(cmd: PluginCommand<T>, action: PluginCommand.Action<T>) {
             this.subs.push(cmd.subscribe(this.plugin, action));
         }
-        protected subscribeObservable<T>(o: Observable<T>, action: (v: T) => void) {
-            this.subs.push(o.subscribe(action));
+        protected subscribeObservable<T>(o: Observable<T>, action: (v: T) => void): PluginCommand.Subscription {
+            const sub = o.subscribe(action)
+            this.subs.push(sub);
+            return { 
+                unsubscribe: () => {
+                    const idx = this.subs.indexOf(sub);
+                    if (idx >= 0){
+                        this.subs.splice(idx, 1);
+                        sub.unsubscribe();
+                    }
+                } 
+            }
         }
         dispose(): void {
             for (const s of this.subs) s.unsubscribe();
