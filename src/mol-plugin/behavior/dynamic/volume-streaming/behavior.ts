@@ -1,8 +1,9 @@
 /**
- * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Adam Midlik <midlik@gmail.com>
  */
 
 import { ParamDefinition as PD } from '../../../../mol-util/param-definition';
@@ -28,6 +29,7 @@ import { distinctUntilChanged, filter, map, Observable, throttleTime } from 'rxj
 import { arrayEqual } from '../../../../mol-util';
 import { Camera } from '../../../../mol-canvas3d/camera';
 import { PluginCommand } from '../../../command';
+import { SingleAsyncQueue } from '../../../../mol-util/single-async-queue';
 
 export class VolumeStreaming extends PluginStateObject.CreateBehavior<VolumeStreaming.Behavior>({ name: 'Volume Streaming' }) { }
 
@@ -176,7 +178,7 @@ export namespace VolumeStreaming {
         private lastLoci: StructureElement.Loci | EmptyLoci = EmptyLoci;
         private ref: string = '';
         public infoMap: Map<string, VolumeServerInfo.EntryData>;
-        private updateQueue: MonoQueue;
+        private updateQueue: SingleAsyncQueue;
         private cameraTargetObservable = this.plugin.canvas3d!.didDraw!.pipe(
             throttleTime(500, undefined, { 'leading': true, 'trailing': true }),
             map(() => this.plugin.canvas3d?.camera.getSnapshot()),
@@ -315,9 +317,9 @@ export namespace VolumeStreaming {
 
         private isCameraTargetSame(a?: Camera.Snapshot, b?: Camera.Snapshot): boolean {
             if (!a || !b) return false;
-            const targetSame = arrayEqual(a.target, b.target);
-            const sqDistA = (a.target[0] - a.position[0]) ** 2 + (a.target[1] - a.position[1]) ** 2 + (a.target[2] - a.position[2]) ** 2;
-            const sqDistB = (b.target[0] - b.position[0]) ** 2 + (b.target[1] - b.position[1]) ** 2 + (b.target[2] - b.position[2]) ** 2;
+            const targetSame = Vec3.equals(a.target, b.target);
+            const sqDistA = Vec3.squaredDistance(a.target, a.position);
+            const sqDistB = Vec3.squaredDistance(b.target, b.position);
             const distanceSame = Math.abs(sqDistA - sqDistB) / sqDistA < 1e-3;
             return targetSame && distanceSame;
         }
@@ -376,11 +378,11 @@ export namespace VolumeStreaming {
             this.updateQueue.enqueue(async () => {
                 const origManualReset = this.plugin.canvas3d?.props.camera.manualReset;
                 try {
-                    this.plugin.canvas3d?.setProps({ camera: { manualReset: true } });
+                    if (!origManualReset) this.plugin.canvas3d?.setProps({ camera: { manualReset: true } });
                     const box = this.boxFromCameraTarget(snapshot, true);
                     await this.updateParams(box);
                 } finally {
-                    this.plugin.canvas3d?.setProps({ camera: { manualReset: origManualReset } });
+                    if (!origManualReset) this.plugin.canvas3d?.setProps({ camera: { manualReset: origManualReset } });
                 }
             });
         }
@@ -424,7 +426,7 @@ export namespace VolumeStreaming {
                 ratio *= 2;
                 detail += 1;
             }
-            console.log(`Decided dynamic detail: ${detail}, (base detail: ${baseDetail}, box/cell volume ratio: ${boxVolume / cellVolume})`);
+            // console.log(`Decided dynamic detail: ${detail}, (base detail: ${baseDetail}, box/cell volume ratio: ${boxVolume / cellVolume})`);
             return detail;
         }
 
@@ -526,42 +528,7 @@ export namespace VolumeStreaming {
 
             this.infoMap = new Map<string, VolumeServerInfo.EntryData>();
             this.data.entries.forEach(info => this.infoMap.set(info.dataId, info));
-            this.updateQueue = new MonoQueue();
-        }
-    }
-}
-
-/** Job queue that allows at most one running and one pending job. 
- * A newly enqueued job will cancel any other pending jobs. */
-class MonoQueue {
-    private isRunning: boolean;
-    private queue: { id: number, func: () => any }[];
-    private counter: number;
-    private log: boolean;
-    constructor(log: boolean = false) {
-        this.isRunning = false;
-        this.queue = [];
-        this.counter = 0;
-        this.log = log;
-    }
-    enqueue(job: () => any) {
-        if (this.log) console.log('MonoQueue enqueue', this.counter);
-        this.queue[0] = { id: this.counter, func: job };
-        this.counter++;
-        this.run();  // do not await
-    }
-    private async run() {
-        if (this.isRunning) return;
-        const job = this.queue.pop();
-        if (!job) return;
-        this.isRunning = true;
-        try {
-            if (this.log) console.log('MonoQueue run', job.id);
-            await job.func();
-            if (this.log) console.log('MonoQueue complete', job.id);
-        } finally {
-            this.isRunning = false;
-            this.run();
+            this.updateQueue = new SingleAsyncQueue();
         }
     }
 }
