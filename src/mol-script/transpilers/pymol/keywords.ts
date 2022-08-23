@@ -17,9 +17,40 @@ const ResDict = {
 };
 
 const Backbone = {
-    nucleic: ['P', "O3'", "O5'", "C5'", "C4'", "C3'", 'OP1', 'OP2', 'O3*', 'O5*', 'C5*', 'C4*', 'C3*'],
+    nucleic: ['P', "O3'", "O5'", "C5'", "C4'", "C3'", 'OP1', 'OP2', 'O3*', 'O5*', 'C5*', 'C4*', 'C3*',
+	      "C2'","C1'","O4'","O2'"],
     protein: ['C', 'N', 'CA', 'O']
 };
+
+function backboneExpr() {
+    return B.struct.combinator.merge([
+	    B.struct.modifier.intersectBy(
+		{ 0: B.struct.generator.atomGroups({
+		    'residue-test': B.core.set.has([
+			B.core.type.set(ResDict.protein),
+			B.ammp('label_comp_id')
+		    ])})
+		  ,
+		  by : B.struct.generator.atomGroups({
+		      'atom-test': B.core.set.has([
+			  B.core.type.set(Backbone.protein),
+			  B.ammp('label_atom_id')])})
+		}),
+	    B.struct.modifier.intersectBy(
+		{ 0: B.struct.generator.atomGroups({
+		    'residue-test': B.core.set.has([
+			B.core.type.set(ResDict.nucleic),
+			B.ammp('label_comp_id')
+		    ])})
+		  ,
+		  by : B.struct.generator.atomGroups({
+		      'atom-test': B.core.set.has([
+			  B.core.type.set(Backbone.nucleic),
+			  B.ammp('label_atom_id')])})
+		}),
+	])
+    
+}
 
 
 export const keywords: KeywordDict = {
@@ -65,6 +96,15 @@ export const keywords: KeywordDict = {
     },
     sidechain: {
         '@desc': 'Polymer non-backbone atoms (new in PyMOL 1.6.1)',
+	abbr:['sc.'],
+	map: () => {
+	    return B.struct.modifier.exceptBy({
+		'0': B.struct.generator.atomGroups({
+		    'residue-test': B.core.set.has([
+			B.core.type.set(ResDict.nucleic.concat(ResDict.protein)),
+			B.ammp('label_comp_id')])}),
+		by: backboneExpr()
+	    })},
     },
     present: {
         '@desc': 'All atoms with defined coordinates in the current state (used in creating movies)',
@@ -202,15 +242,11 @@ export const keywords: KeywordDict = {
     },
     backbone: {
         '@desc': 'the C, N, CA, and O atoms of a protein and the equivalent atoms in a nucleic acid.',
-        map: () => B.struct.generator.atomGroups({
-            'atom-test': B.core.set.has([
-                B.core.type.set(Backbone.protein.concat(ResDict.protein)),
-                B.ammp('label_atom_id')
-	    ])
-        }),
+	abbr: ['bb.'],
+        map: () => backboneExpr()
     },
-    proteinxxxxxx: {
-        '@desc': 'protein................',
+    'bFCLHMz55tjm16c9': {
+        '@desc': 'protein',
         abbr: ['polymer.protein'],
         map: () => B.struct.generator.atomGroups({
             'residue-test': B.core.set.has([
@@ -219,8 +255,8 @@ export const keywords: KeywordDict = {
             ])
         })
     },
-    nucleicxxxxx: {
-        '@desc': 'protein................',
+    'bFCLHMz55tjm16c0': {
+        '@desc': 'nucleic acid',
         abbr: ['polymer.nucleic'],
         map: () => B.struct.generator.atomGroups({
             'residue-test': B.core.set.has([
