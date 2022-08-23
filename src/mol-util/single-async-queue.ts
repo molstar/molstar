@@ -5,7 +5,7 @@
  */
 
 
-/** Job queue that allows at most one running and one pending job. 
+/** Job queue that allows at most one running and one pending job.
  * A newly enqueued job will cancel any other pending jobs. */
 export class SingleAsyncQueue {
     private isRunning: boolean;
@@ -22,7 +22,7 @@ export class SingleAsyncQueue {
         if (this.log) console.log('SingleAsyncQueue enqueue', this.counter);
         this.queue[0] = { id: this.counter, func: job };
         this.counter++;
-        this.run();  // do not await
+        this.run(); // do not await
     }
     private async run() {
         if (this.isRunning) return;

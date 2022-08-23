@@ -399,7 +399,7 @@ export namespace VolumeStreaming {
             radius *= relativeRadius;
             let radiusX, radiusY, radiusZ;
             if (boundByBoundarySize) {
-                let bBoxSize = Vec3.zero();
+                const bBoxSize = Vec3.zero();
                 Box3D.size(bBoxSize, this.data.structure.boundary.box);
                 radiusX = Math.min(radius, 0.5 * bBoxSize[0]);
                 radiusY = Math.min(radius, 0.5 * bBoxSize[1]);

@@ -251,15 +251,15 @@ export class VolumeStreamingCustomControls extends PluginUIComponent<StateTransf
             ...detailLevel,
             label: 'Dynamic Detail',
             defaultValue: (entry.params.view as any).map('camera-target').params.dynamicDetailLevel.defaultValue,
-        }
+        };
         const selectionDetailLevel = {
             ...detailLevel,
             label: 'Selection Detail',
             defaultValue: (entry.params.view as any).map('auto').params.selectionDetailLevel.defaultValue,
-        }
+        };
 
         const sampling = b.info.header.sampling[0];
-        
+
         const isRelative = ((params.entry.params.channels as any)[pivot].isoValue as Volume.IsoValue).kind === 'relative';
         const isRelativeParam = PD.Boolean(isRelative, { description: 'Use normalized or absolute isocontour scale.', label: 'Normalized' });
 
@@ -290,7 +290,7 @@ export class VolumeStreamingCustomControls extends PluginUIComponent<StateTransf
                 }, { description: 'Box around focused element.' }),
                 'camera-target': PD.Group({
                     radius: PD.Numeric(0.5, { min: 0, max: 1, step: 0.05 }, { description: 'Radius within which the volume is shown (relative to the field of view).' }),
-                    detailLevel: {...detailLevel, isHidden: true},
+                    detailLevel: { ...detailLevel, isHidden: true },
                     dynamicDetailLevel: dynamicDetailLevel,
                     isRelative: isRelativeParam,
                     isUnbounded: isUnboundedParam,
