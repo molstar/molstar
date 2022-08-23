@@ -31,7 +31,7 @@ export type TextureKindValue = {
 export type TextureValueType = ValueOf<TextureKindValue>
 export type TextureKind = keyof TextureKindValue
 export type TextureType = 'ubyte' | 'ushort' | 'float' | 'fp16' | 'int'
-export type TextureFormat = 'alpha' | 'rgb' | 'rgba' | 'depth'
+export type TextureFormat = 'alpha' | 'rg' | 'rgb' | 'rgba' | 'depth'
 /** Numbers are shortcuts for color attachment */
 export type TextureAttachment = 'depth' | 'stencil' | 'color0' | 'color1' | 'color2' | 'color3' | 'color4' | 'color5' | 'color6' | 'color7' | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7
 export type TextureFilter = 'nearest' | 'linear'
@@ -63,6 +63,9 @@ export function getFormat(gl: GLRenderingContext, format: TextureFormat, type: T
         case 'rgb':
             if (isWebGL2(gl) && type === 'int') return gl.RGB_INTEGER;
             return gl.RGB;
+        case 'rg':
+            if (isWebGL2(gl) && type === 'float') return gl.RG;
+            return gl.RGBA;
         case 'rgba':
             if (isWebGL2(gl) && type === 'int') return gl.RGBA_INTEGER;
             return gl.RGBA;
@@ -79,6 +82,13 @@ export function getInternalFormat(gl: GLRenderingContext, format: TextureFormat,
                     case 'float': return gl.R32F;
                     case 'fp16': return gl.R16F;
                     case 'int': return gl.R32I;
+                }
+            case 'rg':
+                switch (type){
+                  case 'ubyte': return gl.RG;
+                  case 'float': return gl.RG32F;
+                  case 'fp16': return gl.RG16F;
+                  case 'int': return gl.RG32I;
                 }
             case 'rgb':
                 switch (type) {

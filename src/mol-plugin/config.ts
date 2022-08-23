@@ -31,7 +31,8 @@ export const PluginConfig = {
         PixelScale: item('plugin-config.pixel-scale', 1),
         PickScale: item('plugin-config.pick-scale', 0.25),
         PickPadding: item('plugin-config.pick-padding', 3),
-        EnableWboit: item('plugin-config.enable-wboit', true),
+        EnableWboit: item('plugin-config.enable-wboit', false),
+        EnableDpoit: item('plugin-config.enable-dpoit', true),
         // as of Oct 1 2021, WebGL 2 doesn't work on iOS 15.
         // TODO: check back in a few weeks to see if it was fixed
         PreferWebGl1: item('plugin-config.prefer-webgl1', PluginFeatureDetection.preferWebGl1),

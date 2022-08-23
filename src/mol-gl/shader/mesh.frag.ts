@@ -62,6 +62,7 @@ void main() {
         #include apply_marker_color
         #include apply_fog
         #include wboit_write
+        #include dpoit_write
     #endif
 }
 `;

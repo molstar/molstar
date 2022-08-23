@@ -39,6 +39,12 @@ uniform int uMarkingType;
     #endif
 #endif
 
+#if defined(dRenderVariant_colorDpoit)
+    #define MAX_DPOIT_DEPTH 99999.0
+    uniform sampler2D tDpoitDepth;
+    uniform sampler2D tDpoitFrontColor;
+#endif
+
 varying vec3 vModelPosition;
 varying vec3 vViewPosition;
 

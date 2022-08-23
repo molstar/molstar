@@ -39,7 +39,7 @@ import { Helper } from './helper/helper';
 import { Passes } from './passes/passes';
 import { shallowEqual } from '../mol-util';
 import { MarkingParams } from './passes/marking';
-import { GraphicsRenderVariantsBlended, GraphicsRenderVariantsWboit } from '../mol-gl/webgl/render-item';
+import { GraphicsRenderVariantsBlended, GraphicsRenderVariantsWboit, GraphicsRenderVariantsDpoit } from '../mol-gl/webgl/render-item';
 import { degToRad, radToDeg } from '../mol-math/misc';
 import { AssetManager } from '../mol-util/assets';
 
@@ -124,7 +124,8 @@ namespace Canvas3DContext {
         pickScale: 0.25,
         /** extra pixels to around target to check in case target is empty */
         pickPadding: 1,
-        enableWboit: true,
+        enableWboit: false,
+        enableDpoit: true,
         preferWebGl1: false
     };
     export type Attribs = typeof DefaultAttribs
@@ -302,8 +303,7 @@ namespace Canvas3D {
         let width = 128;
         let height = 128;
         updateViewport();
-
-        const scene = Scene.create(webgl, passes.draw.wboitEnabled ? GraphicsRenderVariantsWboit : GraphicsRenderVariantsBlended);
+        const scene = Scene.create(webgl, passes.draw.dpoitEnabled ? GraphicsRenderVariantsDpoit : (passes.draw.wboitEnabled ? GraphicsRenderVariantsWboit : GraphicsRenderVariantsBlended));
 
         function getSceneRadius() {
             return scene.boundingSphere.radius * p.sceneRadiusFactor;
@@ -855,7 +855,7 @@ namespace Canvas3D {
                 }
             },
             getImagePass: (props: Partial<ImageProps> = {}) => {
-                return new ImagePass(webgl, assetManager, renderer, scene, camera, helper, passes.draw.wboitEnabled, props);
+                return new ImagePass(webgl, assetManager, renderer, scene, camera, helper, passes.draw.wboitEnabled, passes.draw.dpoitEnabled, props);
             },
             getRenderObjects(): GraphicsRenderObject[] {
                 const renderObjects: GraphicsRenderObject[] = [];

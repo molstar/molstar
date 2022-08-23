@@ -355,5 +355,6 @@ void main() {
     float fragmentDepth = calcDepth((uModelView * vec4(start, 1.0)).xyz);
     float preFogAlpha = clamp(preFogAlphaBlended, 0.0, 1.0);
     #include wboit_write
+    #include dpoit_write
 }
 `;

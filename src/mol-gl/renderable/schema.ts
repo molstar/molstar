@@ -167,6 +167,11 @@ export type GlobalUniformValues = Values<GlobalUniformSchema>
 
 export const GlobalTextureSchema = {
     tDepth: TextureSpec('texture', 'depth', 'ushort', 'nearest'),
+
+    //dpoit
+    tDpoitDepth: TextureSpec('texture', 'rg', 'float', 'nearest'),
+    tDpoitFrontColor: TextureSpec('texture', 'rgba', 'float', 'nearest'),
+    tDpoitBackColor: TextureSpec('texture', 'rgba', 'float', 'nearest')
 } as const;
 export type GlobalTextureSchema = typeof GlobalTextureSchema
 export type GlobalTextureValues = Values<GlobalTextureSchema>
@@ -236,7 +241,7 @@ export const TransparencySchema = {
     uTransparencyGridDim: UniformSpec('v3'),
     uTransparencyGridTransform: UniformSpec('v4'),
     tTransparencyGrid: TextureSpec('texture', 'alpha', 'ubyte', 'linear'),
-    dTransparencyType: DefineSpec('string', ['instance', 'groupInstance', 'volumeInstance']),
+    dTransparencyType: DefineSpec('string', ['instance', 'groupInstance', 'volumeInstance'])
 } as const;
 export type TransparencySchema = typeof TransparencySchema
 export type TransparencyValues = Values<TransparencySchema>
