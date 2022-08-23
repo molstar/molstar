@@ -109,14 +109,14 @@ void main() {
 
     vec3 vViewPosition = vModelPosition + intersection.x * rayDir;
     vViewPosition = (uView * vec4(vViewPosition, 1.0)).xyz;
-    gl_FragDepthEXT = calcDepth(vViewPosition);
+    float fragmentDepth = calcDepth(vViewPosition);
+
+    if (fragmentDepth < 0.0) discard;
+    if (fragmentDepth > 1.0) discard;
+
+    gl_FragDepthEXT = fragmentDepth;
 
     vec3 vModelPosition = (uInvView * vec4(vViewPosition, 1.0)).xyz;
-
-    if (gl_FragDepthEXT < 0.0) discard;
-    if (gl_FragDepthEXT > 1.0) discard;
-
-    float fragmentDepth = gl_FragDepthEXT;
     #include assign_material_color
 
     #if defined(dRenderVariant_pick)

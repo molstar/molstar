@@ -29,10 +29,4 @@ export const PluginFeatureDetection = {
         const isTouchScreen = navigator.maxTouchPoints >= 4; // true for iOS 13 (and hopefully beyond)
         return !(window as any).MSStream && (isIOS || (isAppleDevice && isTouchScreen));
     },
-    get wboit() {
-        if (typeof navigator === 'undefined' || typeof window === 'undefined') return true;
-
-        // disable Wboit in Safari 15
-        return !/Version\/15.\d Safari/.test(navigator.userAgent);
-    }
 };

@@ -6,6 +6,8 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Fix wboit in Safari >=15 (add missing depth renderbuffer to wboit pass)
+
 ## [v3.14.0] - 2022-08-20
 
 - Expose inter-bonds compute params in structure
