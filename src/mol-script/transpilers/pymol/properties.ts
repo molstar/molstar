@@ -205,9 +205,9 @@ export const properties: PropertyDict = {
         level: 'atom-test'
     },
     elem: {
-	'@desc': 'str  atomic element symbol string ("X" if undefined)',
-	'@examples': ['elem N'],
-	regex: /[a-zA-Z0-9]{1,3}/, map: x => B.es(x),
-	level: 'atom-test', property: B.acp('elementSymbol')
+        '@desc': 'str  atomic element symbol string ("X" if undefined)',
+        '@examples': ['elem N'],
+        regex: /[a-zA-Z0-9]{1,3}/, map: x => B.es(x),
+        level: 'atom-test', property: B.acp('elementSymbol')
     }
 };
