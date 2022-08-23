@@ -11,8 +11,9 @@ import { RenderableSchema } from '../renderable/schema';
 import { idFactory } from '../../mol-util/id-factory';
 import { Framebuffer } from './framebuffer';
 import { isWebGL2, GLRenderingContext } from './compat';
-import { ValueOf } from '../../mol-util/type-helpers';
+import { isPromiseLike, ValueOf } from '../../mol-util/type-helpers';
 import { WebGLExtensions } from './extensions';
+import { objectForEach } from '../../mol-util/object';
 
 const getNextTextureId = idFactory();
 
@@ -419,6 +420,123 @@ export function loadImageTexture(src: string, cell: ValueCell<Texture>, texture:
         ValueCell.update(cell, texture);
     };
     img.src = src;
+}
+
+//
+
+export type CubeSide = 'nx' | 'ny' | 'nz' | 'px' | 'py' | 'pz';
+
+export type CubeFaces = {
+    [k in CubeSide]: string | File | Promise<Blob>;
+}
+
+export function getCubeTarget(gl: GLRenderingContext, side: CubeSide): number {
+    switch (side) {
+        case 'nx': return gl.TEXTURE_CUBE_MAP_NEGATIVE_X;
+        case 'ny': return gl.TEXTURE_CUBE_MAP_NEGATIVE_Y;
+        case 'nz': return gl.TEXTURE_CUBE_MAP_NEGATIVE_Z;
+        case 'px': return gl.TEXTURE_CUBE_MAP_POSITIVE_X;
+        case 'py': return gl.TEXTURE_CUBE_MAP_POSITIVE_Y;
+        case 'pz': return gl.TEXTURE_CUBE_MAP_POSITIVE_Z;
+    }
+}
+
+export function createCubeTexture(gl: GLRenderingContext, faces: CubeFaces, mipmaps: boolean, onload?: (errored?: boolean) => void): Texture {
+    const target = gl.TEXTURE_CUBE_MAP;
+    const filter = gl.LINEAR;
+    const internalFormat = gl.RGBA;
+    const format = gl.RGBA;
+    const type = gl.UNSIGNED_BYTE;
+
+    let size = 0;
+
+    const texture = gl.createTexture();
+    gl.bindTexture(target, texture);
+
+    let loadedCount = 0;
+    objectForEach(faces, (source, side) => {
+        if (!source) return;
+
+        const level = 0;
+        const cubeTarget = getCubeTarget(gl, side as CubeSide);
+
+        const image = new Image();
+        if (source instanceof File) {
+            image.src = URL.createObjectURL(source);
+        } else if (isPromiseLike(source)) {
+            source.then(blob => {
+                image.src = URL.createObjectURL(blob);
+            });
+        } else {
+            image.src = source;
+        }
+        image.addEventListener('load', () => {
+            if (size === 0) size = image.width;
+
+            gl.texImage2D(cubeTarget, level, internalFormat, size, size, 0, format, type, null);
+            gl.pixelStorei(gl.UNPACK_ALIGNMENT, 4);
+            gl.pixelStorei(gl.UNPACK_COLORSPACE_CONVERSION_WEBGL, gl.NONE);
+            gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, 0);
+            gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+            gl.bindTexture(target, texture);
+            gl.texImage2D(cubeTarget, level, internalFormat, format, type, image);
+
+            loadedCount += 1;
+            if (loadedCount === 6) {
+                if (!destroyed) {
+                    if (mipmaps) {
+                        gl.generateMipmap(target);
+                        gl.texParameteri(target, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+                    } else {
+                        gl.texParameteri(target, gl.TEXTURE_MIN_FILTER, filter);
+                    }
+                    gl.texParameteri(target, gl.TEXTURE_MAG_FILTER, filter);
+                }
+                onload?.(destroyed);
+            }
+        });
+        image.addEventListener('error', () => {
+            onload?.(true);
+        });
+    });
+
+    let destroyed = false;
+
+    return {
+        id: getNextTextureId(),
+        target,
+        format,
+        internalFormat,
+        type,
+        filter,
+
+        getWidth: () => size,
+        getHeight: () => size,
+        getDepth: () => 0,
+        getByteCount: () => {
+            return getByteCount('rgba', 'ubyte', size, size, 0) * 6 * (mipmaps ? 2 : 1);
+        },
+
+        define: () => {},
+        load: () => {},
+        bind: (id: TextureId) => {
+            gl.activeTexture(gl.TEXTURE0 + id);
+            gl.bindTexture(target, texture);
+        },
+        unbind: (id: TextureId) => {
+            gl.activeTexture(gl.TEXTURE0 + id);
+            gl.bindTexture(target, null);
+        },
+        attachFramebuffer: () => {},
+        detachFramebuffer: () => {},
+
+        reset: () => {},
+        destroy: () => {
+            if (destroyed) return;
+            gl.deleteTexture(texture);
+            destroyed = true;
+        },
+    };
 }
 
 //

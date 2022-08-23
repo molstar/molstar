@@ -85,7 +85,7 @@ function setRenderingDefaults(ctx: WebGLContext) {
 
 export function calcActiveVoxels(ctx: WebGLContext, volumeData: Texture, gridDim: Vec3, gridTexDim: Vec3, isoValue: number, gridScale: Vec2) {
     if (isTimingMode) ctx.timer.mark('calcActiveVoxels');
-    const { gl, resources } = ctx;
+    const { gl, state, resources } = ctx;
     const width = volumeData.getWidth();
     const height = volumeData.getHeight();
 
@@ -106,10 +106,10 @@ export function calcActiveVoxels(ctx: WebGLContext, volumeData: Texture, gridDim
 
     activeVoxelsTex.attachFramebuffer(framebuffer, 0);
     setRenderingDefaults(ctx);
-    gl.viewport(0, 0, width, height);
-    gl.scissor(0, 0, width, height);
+    state.viewport(0, 0, width, height);
+    state.scissor(0, 0, width, height);
     gl.clear(gl.COLOR_BUFFER_BIT);
-    gl.scissor(0, 0, gridTexDim[0], gridTexDim[1]);
+    state.scissor(0, 0, gridTexDim[0], gridTexDim[1]);
     renderable.render();
 
     // console.log('gridScale', gridScale, 'gridTexDim', gridTexDim, 'gridDim', gridDim);

@@ -126,7 +126,7 @@ and navigate to `build/viewer`
 
 **GraphQL schemas**
 
-    node node_modules//@graphql-codegen/cli/bin -c src/extensions/rcsb/graphql/codegen.yml
+    node node_modules/@graphql-codegen/cli/cjs/bin -c src/extensions/rcsb/graphql/codegen.yml
 
 ### Other scripts
 **Create chem comp bond table**
@@ -152,7 +152,7 @@ Or
     node lib/commonjs/cli/cif2bcif
 
 E.g.
- 
+
     node lib/commonjs/cli/cif2bcif src.cif out.bcif.gz
     node lib/commonjs/cli/cif2bcif src.bcif.gz out.cif
 

@@ -1,7 +1,7 @@
 /**
  * Copyright (c) 2017-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
- * Code-generated 'BIRD' schema file. Dictionary versions: mmCIF 5.359, IHM 1.17, MA 1.4.1.
+ * Code-generated 'BIRD' schema file. Dictionary versions: mmCIF 5.360, IHM 1.17, MA 1.4.2.
  *
  * @author molstar/ciftools package
  */

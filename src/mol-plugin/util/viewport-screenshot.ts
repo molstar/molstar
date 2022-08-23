@@ -309,7 +309,9 @@ class ViewportScreenshotHelper extends PluginComponent {
         if (width <= 0 || height <= 0) return;
 
         await ctx.update('Rendering image...');
-        const imageData = this.imagePass.getImageData(width, height, viewport);
+        const pass = this.imagePass;
+        await pass.updateBackground();
+        const imageData = pass.getImageData(width, height, viewport);
 
         await ctx.update('Encoding image...');
         const canvas = this.canvas;

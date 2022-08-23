@@ -24,7 +24,6 @@ uniform int uPickType;
         #if __VERSION__ == 100 || defined(dClippingType_instance) || !defined(dVaryingGroup)
             varying float vClipping;
         #else
-            // avoid flat until EXT_provoking_vertex is supported
             flat out float vClipping;
         #endif
     #endif
@@ -37,7 +36,6 @@ uniform int uPickType;
     #if __VERSION__ == 100 || defined(dMarkerType_instance) || !defined(dVaryingGroup)
         varying float vMarker;
     #else
-        // avoid flat until EXT_provoking_vertex is supported
         flat out float vMarker;
     #endif
 #endif
@@ -46,7 +44,9 @@ varying vec3 vModelPosition;
 varying vec3 vViewPosition;
 
 #if defined(noNonInstancedActiveAttribs)
-    #define VertexID gl_VertexID
+    // int() is needed for some Safari versions
+    // see https://bugs.webkit.org/show_bug.cgi?id=244152
+    #define VertexID int(gl_VertexID)
 #else
     attribute float aVertex;
     #define VertexID int(aVertex)

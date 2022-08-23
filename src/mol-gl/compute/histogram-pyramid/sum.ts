@@ -68,7 +68,7 @@ const sumInts = new Int32Array(4);
 
 export function getHistopyramidSum(ctx: WebGLContext, pyramidTopTexture: Texture) {
     if (isTimingMode) ctx.timer.mark('getHistopyramidSum');
-    const { gl, resources } = ctx;
+    const { gl, state, resources } = ctx;
 
     const renderable = getHistopyramidSumRenderable(ctx, pyramidTopTexture);
     ctx.state.currentRenderItemId = -1;
@@ -89,7 +89,7 @@ export function getHistopyramidSum(ctx: WebGLContext, pyramidTopTexture: Texture
 
     setRenderingDefaults(ctx);
 
-    gl.viewport(0, 0, 1, 1);
+    state.viewport(0, 0, 1, 1);
     renderable.render();
     gl.finish();
 

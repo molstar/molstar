@@ -26,7 +26,6 @@ import { EmptyLoci, Loci, isEmptyLoci } from '../../../../mol-model/loci';
 import { Asset } from '../../../../mol-util/assets';
 import { GlobalModelTransformInfo } from '../../../../mol-model/structure/model/properties/global-transform';
 import { distinctUntilChanged, filter, map, Observable, throttleTime } from 'rxjs';
-import { arrayEqual } from '../../../../mol-util';
 import { Camera } from '../../../../mol-canvas3d/camera';
 import { PluginCommand } from '../../../command';
 import { SingleAsyncQueue } from '../../../../mol-util/single-async-queue';
