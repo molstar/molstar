@@ -123,6 +123,7 @@ function getByteCount(format: TextureFormat, type: TextureType, width: number, h
 function getFormatSize(format: TextureFormat) {
     switch (format) {
         case 'alpha': return 1;
+        case 'rg': return 2;
         case 'rgb': return 3;
         case 'rgba': return 4;
         case 'depth': return 4;
