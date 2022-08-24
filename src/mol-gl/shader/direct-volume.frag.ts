@@ -62,6 +62,12 @@ uniform int uGroupCount;
     uniform sampler2D tMarker;
 #endif
 
+#if defined(dRenderVariant_colorDpoit)
+    #define MAX_DPOIT_DEPTH 99999.0
+    uniform sampler2D tDpoitDepth;
+    uniform sampler2D tDpoitFrontColor;
+#endif
+
 uniform float uMetalness;
 uniform float uRoughness;
 
