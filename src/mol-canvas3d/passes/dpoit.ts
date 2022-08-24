@@ -3,7 +3,7 @@
  *
  * @author Gianluca Tomasello <giagitom@gmail.com>
  *
- * Adapted from https://github.com/tsherif/webgl2examples, The MIT License, Copyright © 2017 Tarek Sherif, Shuai Shao 
+ * Adapted from https://github.com/tsherif/webgl2examples, The MIT License, Copyright © 2017 Tarek Sherif, Shuai Shao
  */
 
 import { QuadSchema, QuadValues } from '../../mol-gl/compute/util';
