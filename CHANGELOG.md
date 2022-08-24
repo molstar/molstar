@@ -6,6 +6,8 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Support ``globalColorParams`` and ``globalSymmetryParams`` in common representation params
+- Support ``label`` parameter in ``Viewer.loadStructureFromUrl``
 - Integration of Dual depth peeling - OIT method
 
 ## [v3.15.0] - 2022-08-23
