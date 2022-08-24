@@ -125,8 +125,8 @@ namespace Canvas3DContext {
         pickScale: 0.25,
         /** extra pixels to around target to check in case target is empty */
         pickPadding: 1,
-        enableWboit: false,
-        enableDpoit: true,
+        enableWboit: true,
+        enableDpoit: false,
         preferWebGl1: false
     };
     export type Attribs = typeof DefaultAttribs
@@ -291,8 +291,6 @@ namespace Canvas3D {
 
     export function create({ webgl, input, passes, attribs, assetManager }: Canvas3DContext, props: Partial<Canvas3DProps> = {}): Canvas3D {
         const p: Canvas3DProps = { ...DefaultCanvas3DParams, ...props };
-        console.trace();
-        console.log(props);
         const reprRenderObjects = new Map<Representation.Any, Set<GraphicsRenderObject>>();
         const reprUpdatedSubscriptions = new Map<Representation.Any, Subscription>();
         const reprCount = new BehaviorSubject(0);
