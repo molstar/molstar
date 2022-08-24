@@ -6,8 +6,12 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+## [v3.15.0] - 2022-08-23
+
 - Integration of Dual depth peeling - OIT method
 - Fix wboit in Safari >=15 (add missing depth renderbuffer to wboit pass)
+- Add 'Around Camera' option to Volume streaming
+- Avoid queuing more than one update in Volume streaming
 
 ## [v3.14.0] - 2022-08-20
 
