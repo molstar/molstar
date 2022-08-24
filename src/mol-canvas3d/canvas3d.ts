@@ -133,6 +133,9 @@ namespace Canvas3DContext {
 
     export function fromCanvas(canvas: HTMLCanvasElement, assetManager: AssetManager, attribs: Partial<Attribs> = {}): Canvas3DContext {
         const a = { ...DefaultAttribs, ...attribs };
+
+        if (a.enableWboit && a.enableDpoit) throw new Error('Multiple transparency methods not allowed.');
+
         const { antialias, preserveDrawingBuffer, pixelScale, preferWebGl1 } = a;
         const gl = getGLContext(canvas, {
             antialias,
