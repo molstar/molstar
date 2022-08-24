@@ -3,6 +3,7 @@
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Áron Samuel Kovács <aron.kovacs@mail.muni.cz>
+ * @author Gianluca Tomasello <giagitom@gmail.com>
  */
 
 import { WebGLContext } from '../../mol-gl/webgl/context';
@@ -152,7 +153,7 @@ export class DrawPass {
             this.postprocessing.render(camera, false, transparentBackground, renderer.props.backgroundColor, postprocessingProps);
         }
 
-        let dpoitTextures
+        let dpoitTextures;
         // render transparent primitives and volumes
         if (scene.opacityAverage < 1 || scene.volumes.renderables.length > 0) {
 
@@ -167,13 +168,13 @@ export class DrawPass {
                 renderer.renderDpoitTransparent(scene.volumes, camera, this.depthTextureOpaque, dpoitTextures);
             }
 
-            for (let i=0;i<2;i++){ //not working with 1 pass
+            for (let i = 0; i < 2; i++) { // not working with 1 pass
                 dpoitTextures = this.dpoit.bindDualDepthPeeling();
                 if (scene.opacityAverage < 1) {
-                  renderer.renderDpoitTransparent(scene.primitives, camera, this.depthTextureOpaque, dpoitTextures);
+                    renderer.renderDpoitTransparent(scene.primitives, camera, this.depthTextureOpaque, dpoitTextures);
                 }
                 if (scene.volumes.renderables.length > 0) {
-                  renderer.renderDpoitTransparent(scene.volumes, camera, this.depthTextureOpaque, dpoitTextures);
+                    renderer.renderDpoitTransparent(scene.volumes, camera, this.depthTextureOpaque, dpoitTextures);
                 }
                 this.dpoit.bindBlendBack();
                 this.dpoit.renderBlendBack();
@@ -328,8 +329,8 @@ export class DrawPass {
 
         if (this.wboitEnabled) {
             this._renderWboit(renderer, camera, scene, transparentBackground, props.postprocessing);
-        } else if (this.dpoitEnabled){
-              this._renderDpoit(renderer, camera, scene, transparentBackground, props.postprocessing);
+        } else if (this.dpoitEnabled) {
+            this._renderDpoit(renderer, camera, scene, transparentBackground, props.postprocessing);
         } else {
             this._renderBlended(renderer, camera, scene, !volumeRendering && !postprocessingEnabled && !antialiasingEnabled && toDrawingBuffer, transparentBackground, props.postprocessing);
         }

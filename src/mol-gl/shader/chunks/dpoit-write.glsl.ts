@@ -18,11 +18,8 @@ export const dpoit_write = `
                 if (interior) discard;
             #endif
 
-            // ---------------------------------------------------------
-            // Order Independent Transparency - Dual Depth Peeling
             // adapted from https://github.com/tsherif/webgl2examples
             // The MIT License, Copyright 2017 Tarek Sherif, Shuai Shao
-            // ---------------------------------------------------------
 
             vec2 lastDepth = texture2D(tDpoitDepth, coords).rg;
             vec4 lastFrontColor = texture2D(tDpoitFrontColor, coords);

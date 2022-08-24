@@ -2,6 +2,7 @@
  * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Gianluca Tomasello <giagitom@gmail.com>
  */
 
 import { createAttributeBuffers, ElementsBuffer, AttributeKind } from './buffer';
@@ -52,9 +53,9 @@ export interface RenderItem<T extends string> {
 const GraphicsRenderVariant = { colorBlended: '', colorWboit: '', colorDpoit: '', pick: '', depth: '', marking: '' };
 export type GraphicsRenderVariant = keyof typeof GraphicsRenderVariant
 export const GraphicsRenderVariants = Object.keys(GraphicsRenderVariant) as GraphicsRenderVariant[];
-export const GraphicsRenderVariantsBlended = GraphicsRenderVariants.filter(v => !['colorWboit','colorDpoit'].includes(v));
-export const GraphicsRenderVariantsWboit = GraphicsRenderVariants.filter(v => !['colorBlended','colorDpoit'].includes(v));
-export const GraphicsRenderVariantsDpoit = GraphicsRenderVariants.filter(v => !['colorWboit','colorBlended'].includes(v));
+export const GraphicsRenderVariantsBlended = GraphicsRenderVariants.filter(v => !['colorWboit', 'colorDpoit'].includes(v));
+export const GraphicsRenderVariantsWboit = GraphicsRenderVariants.filter(v => !['colorBlended', 'colorDpoit'].includes(v));
+export const GraphicsRenderVariantsDpoit = GraphicsRenderVariants.filter(v => !['colorWboit', 'colorBlended'].includes(v));
 
 const ComputeRenderVariant = { compute: '' };
 export type ComputeRenderVariant = keyof typeof ComputeRenderVariant

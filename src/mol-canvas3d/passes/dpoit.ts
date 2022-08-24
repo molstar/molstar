@@ -2,6 +2,8 @@
  * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Gianluca Tomasello <giagitom@gmail.com>
+ *
+ * Adapted from https://github.com/tsherif/webgl2examples, The MIT License, Copyright © 2017 Tarek Sherif, Shuai Shao 
  */
 
 import { QuadSchema, QuadValues } from '../../mol-gl/compute/util';
@@ -91,61 +93,61 @@ export class DpoitPass {
     }
 
     bind() {
-        const { state, gl, extensions : { blendMinMax, drawBuffers } } = this.webgl;
+        const { state, gl, extensions: { blendMinMax, drawBuffers } } = this.webgl;
 
-        //initialize
+        // initialize
         this.passCount = 0;
 
         this.blendBackFramebuffer.bind();
-        state.clearColor(0, 0, 0, 0); //correct blending when texture is cleared with background color (for example state.clearColor(1,1,1,0) on white background)
+        state.clearColor(0, 0, 0, 0); // correct blending when texture is cleared with background color (for example state.clearColor(1,1,1,0) on white background)
         gl.clear(gl.COLOR_BUFFER_BIT);
 
-        this.depthFramebuffers[0].bind()
+        this.depthFramebuffers[0].bind();
         drawBuffers!.drawBuffers([gl.NONE, gl.NONE, drawBuffers!.COLOR_ATTACHMENT2]);
         state.clearColor(this.DEPTH_CLEAR_VALUE, this.DEPTH_CLEAR_VALUE, 0, 0);
         gl.clear(gl.COLOR_BUFFER_BIT);
 
-        this.depthFramebuffers[1].bind()
+        this.depthFramebuffers[1].bind();
         state.clearColor(-this.MIN_DEPTH, this.MAX_DEPTH, 0, 0);
         gl.clear(gl.COLOR_BUFFER_BIT);
 
-        this.colorFramebuffers[0].bind()
+        this.colorFramebuffers[0].bind();
         state.clearColor(0, 0, 0, 0);
         gl.clear(gl.COLOR_BUFFER_BIT);
 
-        this.colorFramebuffers[1].bind()
+        this.colorFramebuffers[1].bind();
         state.clearColor(0, 0, 0, 0);
         gl.clear(gl.COLOR_BUFFER_BIT);
 
         this.depthFramebuffers[0].bind();
-        //rawBuffers!.drawBuffers([gl.NONE, gl.NONE, drawBuffers!.COLOR_ATTACHMENT2]);
+        // rawBuffers!.drawBuffers([gl.NONE, gl.NONE, drawBuffers!.COLOR_ATTACHMENT2]);
         state.blendEquation(blendMinMax!.MAX);
 
-        return { depth: this.depthTextures[1], frontColor: this.colorFrontTextures[1], backColor: this.colorBackTextures[1] }
+        return { depth: this.depthTextures[1], frontColor: this.colorFrontTextures[1], backColor: this.colorBackTextures[1] };
     }
 
     bindDualDepthPeeling() {
-        const { state, gl, extensions : { blendMinMax, drawBuffers } } = this.webgl;
+        const { state, gl, extensions: { blendMinMax, drawBuffers } } = this.webgl;
 
         this.readId = this.passCount % 2;
-        this.writeId = 1 - this.readId;  // ping-pong: 0 or 1
+        this.writeId = 1 - this.readId; // ping-pong: 0 or 1
 
-        this.passCount += 1 //increment for next pass
+        this.passCount += 1; // increment for next pass
 
-        this.depthFramebuffers[this.writeId].bind()
+        this.depthFramebuffers[this.writeId].bind();
         drawBuffers!.drawBuffers([gl.NONE, gl.NONE, drawBuffers!.COLOR_ATTACHMENT2]);
         state.clearColor(this.DEPTH_CLEAR_VALUE, this.DEPTH_CLEAR_VALUE, 0, 0);
         gl.clear(gl.COLOR_BUFFER_BIT);
 
-        this.colorFramebuffers[this.writeId].bind()
+        this.colorFramebuffers[this.writeId].bind();
         state.clearColor(0, 0, 0, 0);
         gl.clear(gl.COLOR_BUFFER_BIT);
 
-        this.depthFramebuffers[this.writeId].bind()
+        this.depthFramebuffers[this.writeId].bind();
         drawBuffers!.drawBuffers([drawBuffers!.COLOR_ATTACHMENT0, drawBuffers!.COLOR_ATTACHMENT1, drawBuffers!.COLOR_ATTACHMENT2]);
         state.blendEquation(blendMinMax!.MAX);
 
-        return { depth: this.depthTextures[this.readId], frontColor: this.colorFrontTextures[this.readId], backColor: this.colorBackTextures[this.readId] }
+        return { depth: this.depthTextures[this.readId], frontColor: this.colorFrontTextures[this.readId], backColor: this.colorBackTextures[this.readId] };
     }
 
     bindBlendBack() {
@@ -185,7 +187,7 @@ export class DpoitPass {
     setSize(width: number, height: number) {
         const [w, h] = this.renderable.values.uTexSize.ref.value;
         if (width !== w || height !== h) {
-            for (let i=0;i<2;i++){
+            for (let i = 0; i < 2; i++) {
                 this.depthTextures[i].define(width, height);
                 this.colorFrontTextures[i].define(width, height);
                 this.colorBackTextures[i].define(width, height);
@@ -201,35 +203,34 @@ export class DpoitPass {
     }
 
     private _init() {
-        const { extensions : { drawBuffers } } = this.webgl;
-        for (let i=0;i<2;i++){
-            //depth
+        const { extensions: { drawBuffers } } = this.webgl;
+        for (let i = 0; i < 2; i++) {
+            // depth
             this.depthFramebuffers[i].bind();
             this.depthTextures[i].attachFramebuffer(this.depthFramebuffers[i], 'color2');
             this.colorFrontTextures[i].attachFramebuffer(this.depthFramebuffers[i], 'color0');
             this.colorBackTextures[i].attachFramebuffer(this.depthFramebuffers[i], 'color1');
 
-            //color
+            // color
             this.colorFramebuffers[i].bind();
             drawBuffers!.drawBuffers([drawBuffers!.COLOR_ATTACHMENT0, drawBuffers!.COLOR_ATTACHMENT1]);
             this.colorFrontTextures[i].attachFramebuffer(this.colorFramebuffers[i], 'color0');
             this.colorBackTextures[i].attachFramebuffer(this.colorFramebuffers[i], 'color1');
         }
 
-        //blend back
+        // blend back
         this.blendBackFramebuffer.bind();
         drawBuffers!.drawBuffers([drawBuffers!.COLOR_ATTACHMENT0]);
         this.blendBackTexture.attachFramebuffer(this.blendBackFramebuffer, 'color0');
     }
 
     static isSupported(webgl: WebGLContext) {
-        const { extensions: { drawBuffers, textureFloat, colorBufferFloat, depthTexture, blendMinMax } } = webgl;
-        if (!textureFloat || !colorBufferFloat || !depthTexture || !drawBuffers || !blendMinMax) {
+        const { extensions: { drawBuffers, textureFloat, colorBufferFloat, blendMinMax } } = webgl;
+        if (!textureFloat || !colorBufferFloat || !drawBuffers || !blendMinMax) {
             if (isDebugMode) {
                 const missing: string[] = [];
                 if (!textureFloat) missing.push('textureFloat');
                 if (!colorBufferFloat) missing.push('colorBufferFloat');
-                if (!depthTexture) missing.push('depthTexture');
                 if (!drawBuffers) missing.push('drawBuffers');
                 if (!blendMinMax) missing.push('blendMinMax');
                 console.log(`Missing "${missing.join('", "')}" extensions required for "dpoit"`);
@@ -245,24 +246,24 @@ export class DpoitPass {
 
         const { resources } = webgl;
 
-        //textures
+        // textures
         this.depthTextures = [
-          resources.texture('image-float32', 'rg', 'float', 'nearest'),
-          resources.texture('image-float32', 'rg', 'float', 'nearest')
+            resources.texture('image-float32', 'rg', 'float', 'nearest'),
+            resources.texture('image-float32', 'rg', 'float', 'nearest')
         ];
         this.depthTextures[0].define(width, height);
         this.depthTextures[1].define(width, height);
 
         this.colorFrontTextures = [
-          resources.texture('image-float32', 'rgba', 'float', 'nearest'),
-          resources.texture('image-float32', 'rgba', 'float', 'nearest')
+            resources.texture('image-float32', 'rgba', 'float', 'nearest'),
+            resources.texture('image-float32', 'rgba', 'float', 'nearest')
         ];
         this.colorFrontTextures[0].define(width, height);
         this.colorFrontTextures[1].define(width, height);
 
         this.colorBackTextures = [
-          resources.texture('image-float32', 'rgba', 'float', 'nearest'),
-          resources.texture('image-float32', 'rgba', 'float', 'nearest')
+            resources.texture('image-float32', 'rgba', 'float', 'nearest'),
+            resources.texture('image-float32', 'rgba', 'float', 'nearest')
         ];
         this.colorBackTextures[0].define(width, height);
         this.colorBackTextures[1].define(width, height);
@@ -270,12 +271,12 @@ export class DpoitPass {
         this.blendBackTexture = resources.texture('image-float32', 'rgba', 'float', 'nearest');
         this.blendBackTexture.define(width, height);
 
-        //framebuffers
+        // framebuffers
         this.depthFramebuffers = [resources.framebuffer(), resources.framebuffer()];
         this.colorFramebuffers = [resources.framebuffer(), resources.framebuffer()];
         this.blendBackFramebuffer = resources.framebuffer();
 
-        this.blendBackRenderable = getBlendBackDpoitRenderable(webgl, this.colorBackTextures[0])
+        this.blendBackRenderable = getBlendBackDpoitRenderable(webgl, this.colorBackTextures[0]);
 
         this.renderable = getEvaluateDpoitRenderable(webgl, this.colorFrontTextures[0], this.blendBackTexture);
 

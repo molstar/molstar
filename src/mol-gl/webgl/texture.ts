@@ -2,6 +2,7 @@
  * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Gianluca Tomasello <giagitom@gmail.com>
  */
 
 import { WebGLContext } from './context';
@@ -84,11 +85,11 @@ export function getInternalFormat(gl: GLRenderingContext, format: TextureFormat,
                     case 'int': return gl.R32I;
                 }
             case 'rg':
-                switch (type){
-                  case 'ubyte': return gl.RG;
-                  case 'float': return gl.RG32F;
-                  case 'fp16': return gl.RG16F;
-                  case 'int': return gl.RG32I;
+                switch (type) {
+                    case 'ubyte': return gl.RG;
+                    case 'float': return gl.RG32F;
+                    case 'fp16': return gl.RG16F;
+                    case 'int': return gl.RG32I;
                 }
             case 'rgb':
                 switch (type) {

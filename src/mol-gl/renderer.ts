@@ -2,6 +2,7 @@
  * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Gianluca Tomasello <giagitom@gmail.com>
  */
 
 import { Viewport } from '../mol-canvas3d/camera/util';
@@ -71,7 +72,7 @@ interface Renderer {
     renderWboitOpaque: (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => void
     renderWboitTransparent: (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => void
     renderDpoitOpaque: (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => void
-    renderDpoitTransparent: (group: Scene.Group, camera: ICamera, depthTexture: Texture | null, dpoitTextures : { depth: Texture, frontColor: Texture, backColor: Texture }) => void
+    renderDpoitTransparent: (group: Scene.Group, camera: ICamera, depthTexture: Texture | null, dpoitTextures: { depth: Texture, frontColor: Texture, backColor: Texture }) => void
 
     setProps: (props: Partial<RendererProps>) => void
     setViewport: (x: number, y: number, width: number, height: number) => void
@@ -626,7 +627,7 @@ namespace Renderer {
             if (isTimingMode) ctx.timer.markEnd('Renderer.renderDpoitOpaque');
         };
 
-        const renderDpoitTransparent = (group: Scene.Group, camera: ICamera, depthTexture: Texture | null, dpoitTextures : { depth: Texture, frontColor: Texture, backColor: Texture }) => {
+        const renderDpoitTransparent = (group: Scene.Group, camera: ICamera, depthTexture: Texture | null, dpoitTextures: { depth: Texture, frontColor: Texture, backColor: Texture }) => {
             if (isTimingMode) ctx.timer.mark('Renderer.renderDpoitTransparent');
 
             state.enable(gl.BLEND);

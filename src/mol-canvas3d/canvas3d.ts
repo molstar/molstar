@@ -3,6 +3,7 @@
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Gianluca Tomasello <giagitom@gmail.com>
  */
 
 import { BehaviorSubject, Subscription } from 'rxjs';
@@ -287,7 +288,8 @@ namespace Canvas3D {
 
     export function create({ webgl, input, passes, attribs, assetManager }: Canvas3DContext, props: Partial<Canvas3DProps> = {}): Canvas3D {
         const p: Canvas3DProps = { ...DefaultCanvas3DParams, ...props };
-
+        console.trace();
+        console.log(props);
         const reprRenderObjects = new Map<Representation.Any, Set<GraphicsRenderObject>>();
         const reprUpdatedSubscriptions = new Map<Representation.Any, Subscription>();
         const reprCount = new BehaviorSubject(0);
