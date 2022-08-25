@@ -6,8 +6,11 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+## [v3.16.0] - 2022-08-25
+
 - Support ``globalColorParams`` and ``globalSymmetryParams`` in common representation params
 - Support ``label`` parameter in ``Viewer.loadStructureFromUrl``
+- Fix ``ViewportHelpContent`` Mouse Controls section
 
 ## [v3.15.0] - 2022-08-23
 
