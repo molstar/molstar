@@ -29,6 +29,7 @@ type Props = {
     postprocessing: PostprocessingProps;
     marking: MarkingProps;
     transparentBackground: boolean;
+    dpoitIterations: number;
 }
 
 type RenderContext = {
@@ -129,7 +130,7 @@ export class DrawPass {
         }
     }
 
-    private _renderDpoit(renderer: Renderer, camera: ICamera, scene: Scene, transparentBackground: boolean, postprocessingProps: PostprocessingProps) {
+    private _renderDpoit(renderer: Renderer, camera: ICamera, scene: Scene, iterations: number, transparentBackground: boolean, postprocessingProps: PostprocessingProps) {
         if (!this.dpoit?.supported) throw new Error('expected dpoit to be supported');
 
         this.colorTarget.bind();
@@ -168,7 +169,7 @@ export class DrawPass {
                 renderer.renderDpoitTransparent(scene.volumes, camera, this.depthTextureOpaque, dpoitTextures);
             }
 
-            for (let i = 0; i < 2; i++) { // not working with 1 pass
+            for (let i = 0; i < iterations; i++) {
                 dpoitTextures = this.dpoit.bindDualDepthPeeling();
                 if (scene.opacityAverage < 1) {
                     renderer.renderDpoitTransparent(scene.primitives, camera, this.depthTextureOpaque, dpoitTextures);
@@ -330,7 +331,7 @@ export class DrawPass {
         if (this.wboitEnabled) {
             this._renderWboit(renderer, camera, scene, transparentBackground, props.postprocessing);
         } else if (this.dpoitEnabled) {
-            this._renderDpoit(renderer, camera, scene, transparentBackground, props.postprocessing);
+            this._renderDpoit(renderer, camera, scene, props.dpoitIterations, transparentBackground, props.postprocessing);
         } else {
             this._renderBlended(renderer, camera, scene, !volumeRendering && !postprocessingEnabled && !antialiasingEnabled && toDrawingBuffer, transparentBackground, props.postprocessing);
         }
