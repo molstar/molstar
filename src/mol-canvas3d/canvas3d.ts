@@ -42,6 +42,7 @@ import { MarkingParams } from './passes/marking';
 import { GraphicsRenderVariantsBlended, GraphicsRenderVariantsWboit } from '../mol-gl/webgl/render-item';
 import { degToRad, radToDeg } from '../mol-math/misc';
 import { AssetManager } from '../mol-util/assets';
+import { deepClone } from '../mol-util/object';
 
 export const Canvas3DParams = {
     camera: PD.Group({
@@ -285,7 +286,7 @@ namespace Canvas3D {
     export interface ClickEvent { current: Representation.Loci, buttons: ButtonsType, button: ButtonsType.Flag, modifiers: ModifiersKeys, page?: Vec2, position?: Vec3 }
 
     export function create({ webgl, input, passes, attribs, assetManager }: Canvas3DContext, props: Partial<Canvas3DProps> = {}): Canvas3D {
-        const p: Canvas3DProps = { ...DefaultCanvas3DParams, ...props };
+        const p: Canvas3DProps = { ...deepClone(DefaultCanvas3DParams), ...deepClone(props) };
 
         const reprRenderObjects = new Map<Representation.Any, Set<GraphicsRenderObject>>();
         const reprUpdatedSubscriptions = new Map<Representation.Any, Subscription>();
