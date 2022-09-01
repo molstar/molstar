@@ -40,6 +40,40 @@ class GridLookup3DImpl<T extends number = number> implements GridLookup3D<T> {
         return ret;
     }
 
+    nearest(x: number, y: number, z: number): { index: number, squaredDistance: number } | undefined {
+        if (!OrderedSet.size(this.ctx.grid.data.indices)) return undefined;
+        this.ctx.x = x;
+        this.ctx.y = y;
+        this.ctx.z = z;
+        const radiusIncrement = 0.1; // how to choose a good increment?
+        const startingRadius = this.distanceTo(x, y, z);
+        this.ctx.radius = startingRadius < 0 ? radiusIncrement : startingRadius + radiusIncrement;
+        this.ctx.isCheck = false;
+        const result = this.result;
+        query(this.ctx, result);
+        while (!result.count) { // necessary to check if grid is empty to avoid infinite loop
+            this.ctx.radius += radiusIncrement;
+            query(this.ctx, result);
+        }
+        const { indices, squaredDistances } = result;
+        let index = indices[0], nearestDist = squaredDistances[0];
+
+        for (let i = 1, l = indices.length; i < l; i++) {
+            const dist = squaredDistances[i];
+            if (dist < nearestDist) {
+                nearestDist = dist;
+                index = indices[i];
+            }
+        }
+        return { index: index, squaredDistance: nearestDist };
+    }
+
+    distanceTo(x: number, y: number, z: number): number {
+        // distance between a sphere and a point
+        const { center, radius } = this.boundary.sphere;
+        return Vec3.distance(Vec3.create(x, y, z), center) - radius; // if negative, point is inside sphere
+    }
+
     check(x: number, y: number, z: number, radius: number): boolean {
         this.ctx.x = x;
         this.ctx.y = y;

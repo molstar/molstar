@@ -86,6 +86,55 @@ export class StructureLookup3D {
         return ctx.result;
     }
 
+    nearest(x: number, y: number, z: number): { index: number, unit: Unit, squaredDistance: number } | undefined {
+        return this._nearest(x, y, z);
+    }
+
+    _nearest(x: number, y: number, z: number): { index: number, unit: Unit, squaredDistance: number } | undefined {
+        const ctx = this.findContext;
+        const { units, elementCount } = this.structure;
+
+        if (!elementCount) return undefined;
+
+        const radiusIncrement = 0.1; // how to choose a good increment?
+        const startingRadius = this.distanceTo(x, y, z);
+        let radius = startingRadius < 0 ? radiusIncrement : startingRadius + radiusIncrement;
+
+        while (true) {
+            const closeUnits = this.unitLookup.find(x, y, z, radius, ctx.closeUnitsResult);
+            radius += radiusIncrement;
+            console.log(radius)
+            if (closeUnits.count) {
+                const { indices, squaredDistances, count } = closeUnits;
+                let nearestIndex: number, nearestUnit: Unit, nearestDist = Number.MAX_SAFE_INTEGER;
+                for (let t = 1, _t = closeUnits.count; t < _t; t++) {
+                    const unit = units[closeUnits.indices[t]];
+                    Vec3.set(this.pivot, x, y, z);
+                    if (!unit.conformation.operator.isIdentity) {
+                        Vec3.transformMat4(this.pivot, this.pivot, unit.conformation.operator.inverse);
+                    }
+                    const unitLookup = unit.lookup3d;
+                    const nearestResult = unitLookup.nearest(this.pivot[0], this.pivot[1], this.pivot[2]);
+                    if (nearestResult) {
+                        const { index: unitNearestIndex, squaredDistance: unitNearestDist } = nearestResult;
+                        if (unitNearestDist < nearestDist) {
+                            nearestDist = unitNearestDist;
+                            nearestIndex = unitNearestIndex;
+                            nearestUnit = unit;
+                        }
+                    }
+                }
+                return { index: nearestIndex!, unit: nearestUnit!, squaredDistance: nearestDist };
+            }
+        }
+    }
+
+    distanceTo(x: number, y: number, z: number): number {
+        // distance between a sphere and a point
+        const { center, radius } = this.boundary.sphere;
+        return Vec3.distance(Vec3.create(x, y, z), center) - radius; // if negative, point is inside sphere
+    }
+
     findIntoBuilder(x: number, y: number, z: number, radius: number, builder: StructureUniqueSubsetBuilder) {
         const { units } = this.structure;
         const closeUnits = this.unitLookup.find(x, y, z, radius);

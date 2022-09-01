@@ -41,6 +41,8 @@ export namespace Result {
 export interface Lookup3D<T = number> {
     // The result is mutated with each call to find.
     find(x: number, y: number, z: number, radius: number, result?: Result<T>): Result<T>,
+    nearest(x: number, y: number, z: number): { index: number, squaredDistance: number } | undefined,
+    distanceTo(x: number, y: number, z: number): number,
     check(x: number, y: number, z: number, radius: number): boolean,
     readonly boundary: { readonly box: Box3D, readonly sphere: Sphere3D }
     /** transient result */
