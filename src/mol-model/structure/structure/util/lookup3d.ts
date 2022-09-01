@@ -103,9 +103,7 @@ export class StructureLookup3D {
         while (true) {
             const closeUnits = this.unitLookup.find(x, y, z, radius, ctx.closeUnitsResult);
             radius += radiusIncrement;
-            console.log(radius)
             if (closeUnits.count) {
-                const { indices, squaredDistances, count } = closeUnits;
                 let nearestIndex: number, nearestUnit: Unit, nearestDist = Number.MAX_SAFE_INTEGER;
                 for (let t = 1, _t = closeUnits.count; t < _t; t++) {
                     const unit = units[closeUnits.indices[t]];
