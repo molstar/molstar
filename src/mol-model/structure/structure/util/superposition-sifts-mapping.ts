@@ -9,6 +9,7 @@ import { Segmentation } from '../../../../mol-data/int';
 import { MinimizeRmsd } from '../../../../mol-math/linear-algebra/3d/minimize-rmsd';
 import { SIFTSMapping } from '../../../../mol-model-props/sequence/sifts-mapping';
 import { ElementIndex } from '../../model/indexing';
+import { StructureElement } from '../element';
 import { Structure } from '../structure';
 import { Unit } from '../unit';
 
@@ -24,11 +25,11 @@ export interface AlignmentResult {
     failedPairs: [number, number][]
 }
 
-export function alignAndSuperposeWithSIFTSMapping(structures: Structure[], options?: { traceOnly?: boolean }): AlignmentResult {
+export function alignAndSuperposeWithSIFTSMapping(structures: Structure[], options?: { traceOnly?: boolean, includeResidueTest?: (loc: StructureElement.Location<Unit.Atomic>) => boolean }): AlignmentResult {
     const indexMap = new Map<string, IndexEntry>();
 
     for (let i = 0; i < structures.length; i++) {
-        buildIndex(structures[i], indexMap, i, options?.traceOnly ?? true);
+        buildIndex(structures[i], indexMap, i, options?.traceOnly ?? true, options?.includeResidueTest ?? _includeAllResidues);
     }
 
     const index = Array.from(indexMap.values());
@@ -137,11 +138,16 @@ interface IndexEntry {
     pivots: { [i: number]: [unit: Unit.Atomic, start: ElementIndex, end: ElementIndex] | undefined }
 }
 
-function buildIndex(structure: Structure, index: Map<string, IndexEntry>, sI: number, traceOnly: boolean) {
+function _includeAllResidues(_: any) { return true; }
+
+function buildIndex(structure: Structure, index: Map<string, IndexEntry>, sI: number, traceOnly: boolean, includeTest: (loc: StructureElement.Location<Unit.Atomic>) => boolean) {
+    const loc = StructureElement.Location.create<Unit.Atomic>(structure);
+
     for (const unit of structure.units) {
         if (unit.kind !== Unit.Kind.Atomic) continue;
 
         const { elements, model } = unit;
+        loc.unit = unit;
 
         const map = SIFTSMapping.Provider.get(model).value;
         if (!map) return;
@@ -158,8 +164,9 @@ function buildIndex(structure: Structure, index: Map<string, IndexEntry>, sI: nu
             while (residuesIt.hasNext) {
                 const residueSegment = residuesIt.move();
                 const rI = residueSegment.index;
+                loc.element = residueSegment.start as ElementIndex;
 
-                if (!dbName[rI]) continue;
+                if (!dbName[rI] || !includeTest(loc)) continue;
 
                 let start, end;
                 if (traceOnly) {
