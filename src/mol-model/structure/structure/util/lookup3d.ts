@@ -127,12 +127,6 @@ export class StructureLookup3D {
         }
     }
 
-    distanceTo(x: number, y: number, z: number): number {
-        // distance between a sphere and a point
-        const { center, radius } = this.boundary.sphere;
-        return Vec3.distance(Vec3.create(x, y, z), center) - radius; // if negative, point is inside sphere
-    }
-
     findIntoBuilder(x: number, y: number, z: number, radius: number, builder: StructureUniqueSubsetBuilder) {
         const { units } = this.structure;
         const closeUnits = this.unitLookup.find(x, y, z, radius);

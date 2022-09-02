@@ -68,12 +68,6 @@ class GridLookup3DImpl<T extends number = number> implements GridLookup3D<T> {
         return { index: index, squaredDistance: nearestDist };
     }
 
-    distanceTo(x: number, y: number, z: number): number {
-        // distance between a sphere and a point
-        const { center, radius } = this.boundary.sphere;
-        return Vec3.distance(Vec3.create(x, y, z), center) - radius; // if negative, point is inside sphere
-    }
-
     check(x: number, y: number, z: number, radius: number): boolean {
         this.ctx.x = x;
         this.ctx.y = y;
