@@ -8,7 +8,7 @@
 import { Segmentation } from '../../../../mol-data/int';
 import { MinimizeRmsd } from '../../../../mol-math/linear-algebra/3d/minimize-rmsd';
 import { SIFTSMapping } from '../../../../mol-model-props/sequence/sifts-mapping';
-import { ElementIndex } from '../../model/indexing';
+import { ElementIndex, ResidueIndex } from '../../model/indexing';
 import { StructureElement } from '../element';
 import { Structure } from '../structure';
 import { Unit } from '../unit';
@@ -25,7 +25,12 @@ export interface AlignmentResult {
     failedPairs: [number, number][]
 }
 
-export function alignAndSuperposeWithSIFTSMapping(structures: Structure[], options?: { traceOnly?: boolean, includeResidueTest?: (loc: StructureElement.Location<Unit.Atomic>) => boolean }): AlignmentResult {
+type IncludeResidueTest = (traceElementOrFirstAtom: StructureElement.Location<Unit.Atomic>, residueIndex: ResidueIndex, startIndex: ElementIndex, endIndex: ElementIndex) => boolean
+
+export function alignAndSuperposeWithSIFTSMapping(
+    structures: Structure[],
+    options?: { traceOnly?: boolean, includeResidueTest?: IncludeResidueTest }
+): AlignmentResult {
     const indexMap = new Map<string, IndexEntry>();
 
     for (let i = 0; i < structures.length; i++) {
@@ -138,9 +143,9 @@ interface IndexEntry {
     pivots: { [i: number]: [unit: Unit.Atomic, start: ElementIndex, end: ElementIndex] | undefined }
 }
 
-function _includeAllResidues(_: any) { return true; }
+function _includeAllResidues() { return true; }
 
-function buildIndex(structure: Structure, index: Map<string, IndexEntry>, sI: number, traceOnly: boolean, includeTest: (loc: StructureElement.Location<Unit.Atomic>) => boolean) {
+function buildIndex(structure: Structure, index: Map<string, IndexEntry>, sI: number, traceOnly: boolean, includeTest: IncludeResidueTest) {
     const loc = StructureElement.Location.create<Unit.Atomic>(structure);
 
     for (const unit of structure.units) {
@@ -164,19 +169,23 @@ function buildIndex(structure: Structure, index: Map<string, IndexEntry>, sI: nu
             while (residuesIt.hasNext) {
                 const residueSegment = residuesIt.move();
                 const rI = residueSegment.index;
-                loc.element = residueSegment.start as ElementIndex;
 
-                if (!dbName[rI] || !includeTest(loc)) continue;
+                if (!dbName[rI]) continue;
+
+                const traceElement = traceElementIndex[rI];
 
                 let start, end;
                 if (traceOnly) {
-                    start = traceElementIndex[rI];
+                    start = traceElement;
                     if (start === -1) continue;
                     end = start + 1 as ElementIndex;
                 } else {
                     start = elements[residueSegment.start];
                     end = elements[residueSegment.end - 1] + 1 as ElementIndex;
                 }
+
+                loc.element = (traceElement >= 0 ? traceElement : start) as ElementIndex;
+                if (!includeTest(loc, rI, start, end)) continue;
 
                 const key = `${dbName[rI]}-${accession[rI]}-${num[rI]}`;
 
