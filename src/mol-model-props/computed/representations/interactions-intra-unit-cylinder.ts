@@ -22,6 +22,8 @@ import { Interactions } from '../interactions/interactions';
 import { InteractionFlag } from '../interactions/common';
 import { Sphere3D } from '../../../mol-math/geometry';
 import { StructureGroup } from '../../../mol-repr/structure/visual/util/common';
+import { assertUnreachable } from '../../../mol-util/type-helpers';
+import { InteractionsSharedParams } from './shared';
 
 async function createIntraUnitInteractionsCylinderMesh(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: PD.Values<InteractionsIntraUnitParams>, mesh?: Mesh) {
     if (!Unit.isAtomic(unit)) return Mesh.createEmpty(mesh);
@@ -38,7 +40,7 @@ async function createIntraUnitInteractionsCylinderMesh(ctx: VisualContext, unit:
 
     const { x, y, z, members, offsets } = features;
     const { edgeCount, a, b, edgeProps: { flag } } = contacts;
-    const { sizeFactor } = props;
+    const { sizeFactor, parentDisplay } = props;
 
     if (!edgeCount) return Mesh.createEmpty(mesh);
 
@@ -60,10 +62,31 @@ async function createIntraUnitInteractionsCylinderMesh(ctx: VisualContext, unit:
             if (flag[edgeIndex] === InteractionFlag.Filtered) return true;
 
             if (childUnit) {
-                const f = a[edgeIndex];
-                for (let i = offsets[f], jl = offsets[f + 1]; i < jl; ++i) {
-                    const e = unit.elements[members[offsets[i]]];
-                    if (!SortedArray.has(childUnit.elements, e)) return true;
+                if (parentDisplay === 'stub') {
+                    const f = a[edgeIndex];
+                    for (let i = offsets[f], jl = offsets[f + 1]; i < jl; ++i) {
+                        const e = unit.elements[members[offsets[i]]];
+                        if (!SortedArray.has(childUnit.elements, e)) return true;
+                    }
+                } else if (parentDisplay === 'full' || parentDisplay === 'between') {
+                    let flagA = false;
+                    let flagB = false;
+
+                    const fA = a[edgeIndex];
+                    for (let i = offsets[fA], jl = offsets[fA + 1]; i < jl; ++i) {
+                        const eA = unit.elements[members[offsets[i]]];
+                        if (!SortedArray.has(childUnit.elements, eA)) flagA = true;
+                    }
+
+                    const fB = b[edgeIndex];
+                    for (let i = offsets[fB], jl = offsets[fB + 1]; i < jl; ++i) {
+                        const eB = unit.elements[members[offsets[i]]];
+                        if (!SortedArray.has(childUnit.elements, eB)) flagB = true;
+                    }
+
+                    return parentDisplay === 'full' ? flagA && flagB : flagA !== flagB;
+                } else {
+                    assertUnreachable(parentDisplay);
                 }
             }
 
@@ -86,10 +109,7 @@ async function createIntraUnitInteractionsCylinderMesh(ctx: VisualContext, unit:
 export const InteractionsIntraUnitParams = {
     ...UnitsMeshParams,
     ...LinkCylinderParams,
-    sizeFactor: PD.Numeric(0.3, { min: 0, max: 10, step: 0.01 }),
-    dashCount: PD.Numeric(6, { min: 2, max: 10, step: 2 }),
-    dashScale: PD.Numeric(0.4, { min: 0, max: 2, step: 0.1 }),
-    includeParent: PD.Boolean(false),
+    ...InteractionsSharedParams,
 };
 export type InteractionsIntraUnitParams = typeof InteractionsIntraUnitParams
 
@@ -106,7 +126,8 @@ export function InteractionsIntraUnitVisual(materialId: number): UnitsVisual<Int
                 newProps.dashCount !== currentProps.dashCount ||
                 newProps.dashScale !== currentProps.dashScale ||
                 newProps.dashCap !== currentProps.dashCap ||
-                newProps.radialSegments !== currentProps.radialSegments
+                newProps.radialSegments !== currentProps.radialSegments ||
+                newProps.parentDisplay !== currentProps.parentDisplay
             );
 
             const interactionsHash = InteractionsProvider.get(newStructureGroup.structure).version;
