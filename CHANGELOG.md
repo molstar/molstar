@@ -6,7 +6,8 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
-- [Fix] Clone ``Canvas3DParams`` when creating a ``Canvas3D`` instance to prevent shared state between multiple instances.
+- [Fix] Clone ``Canvas3DParams`` when creating a ``Canvas3D`` instance to prevent shared state between multiple instances
+- Add ``includeResidueTest`` option to ``alignAndSuperposeWithSIFTSMapping``
 
 ## [v3.16.0] - 2022-08-25
 
