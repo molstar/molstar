@@ -111,7 +111,7 @@ function createInterUnitInteractionCylinderMesh(ctx: VisualContext, structure: S
                         }
                     }
 
-                    return parentDisplay === 'full' ? flagA && flagB : flagA !== flagB;
+                    return parentDisplay === 'full' ? flagA && flagB : flagA === flagB;
                 } else {
                     assertUnreachable(parentDisplay);
                 }

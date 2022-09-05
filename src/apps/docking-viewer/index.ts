@@ -166,7 +166,7 @@ class Viewer {
             structures.push({ ref: structureProperties?.ref || structure.ref });
         }
 
-        // remove current structuresfrom hierarchy as they will be merged
+        // remove current structures from hierarchy as they will be merged
         // TODO only works with using loadStructuresFromUrlsAndMerge once
         //      need some more API metho to work with the hierarchy
         this.plugin.managers.structure.hierarchy.updateCurrent(this.plugin.managers.structure.hierarchy.current.structures, 'remove');

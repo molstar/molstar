@@ -64,7 +64,7 @@ async function createIntraUnitInteractionsCylinderMesh(ctx: VisualContext, unit:
             if (childUnit) {
                 if (parentDisplay === 'stub') {
                     const f = a[edgeIndex];
-                    for (let i = offsets[f], jl = offsets[f + 1]; i < jl; ++i) {
+                    for (let i = offsets[f], il = offsets[f + 1]; i < il; ++i) {
                         const e = unit.elements[members[offsets[i]]];
                         if (!SortedArray.has(childUnit.elements, e)) return true;
                     }
@@ -73,18 +73,18 @@ async function createIntraUnitInteractionsCylinderMesh(ctx: VisualContext, unit:
                     let flagB = false;
 
                     const fA = a[edgeIndex];
-                    for (let i = offsets[fA], jl = offsets[fA + 1]; i < jl; ++i) {
+                    for (let i = offsets[fA], il = offsets[fA + 1]; i < il; ++i) {
                         const eA = unit.elements[members[offsets[i]]];
                         if (!SortedArray.has(childUnit.elements, eA)) flagA = true;
                     }
 
                     const fB = b[edgeIndex];
-                    for (let i = offsets[fB], jl = offsets[fB + 1]; i < jl; ++i) {
+                    for (let i = offsets[fB], il = offsets[fB + 1]; i < il; ++i) {
                         const eB = unit.elements[members[offsets[i]]];
                         if (!SortedArray.has(childUnit.elements, eB)) flagB = true;
                     }
 
-                    return parentDisplay === 'full' ? flagA && flagB : flagA !== flagB;
+                    return parentDisplay === 'full' ? flagA && flagB : flagA === flagB;
                 } else {
                     assertUnreachable(parentDisplay);
                 }
