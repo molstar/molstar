@@ -1,6 +1,9 @@
 /**
  * Copyright (c) 2017-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
  * @author Koya Sakuma < koya.sakuma.work@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ *
  * Adapted from MolQL project
  **/
 
@@ -83,15 +86,16 @@ const valueOperators: OperatorList = [
 ];
 
 function atomExpressionQuery(x: any[]) {
-    const [resno, inscode, chainname, atomname, altloc] = x[1];
+    const [resname, resno, inscode, chainname, atomname, altloc] = x[1];
     const tests: AtomGroupArgs = {};
 
     if (chainname) {
-    // should be configurable, there is an option in Jmol to use auth or label
+        // TODO: should be configurable, there is an option in Jmol to use auth or label
         tests['chain-test'] = B.core.rel.eq([B.ammp('auth_asym_id'), chainname]);
     }
 
     const resProps = [];
+    if (resname) resProps.push(B.core.rel.eq([B.ammp('label_comp_id'), resname]));
     if (resno) resProps.push(B.core.rel.eq([B.ammp('auth_seq_id'), resno]));
     if (inscode) resProps.push(B.core.rel.eq([B.ammp('pdbx_PDB_ins_code'), inscode]));
     if (resProps.length) tests['residue-test'] = h.andExpr(resProps);
@@ -119,7 +123,13 @@ const lang = P.MonadicParser.createLanguage({
         return P.MonadicParser.alt(
             r.Keywords,
 
-            r.Resno.lookahead(P.MonadicParser.regexp(/\s*(?!(LIKE|>=|<=|!=|[:^%/.=><]))/i)).map((x: any) => B.struct.generator.atomGroups({
+            r.ResnoRange.map((x: [number, number]) => B.struct.generator.atomGroups({
+                'residue-test': B.core.logic.and([
+                    B.core.rel.gre([B.ammp('auth_seq_id'), x[0]]),
+                    B.core.rel.lte([B.ammp('auth_seq_id'), x[1]])
+                ])
+            })),
+            r.Resno.lookahead(P.MonadicParser.regexp(/\s*(?!(LIKE|>=|<=|!=|[\[:^%/.=><]))/i)).map((x: any) => B.struct.generator.atomGroups({
                 'residue-test': B.core.rel.eq([B.ammp('auth_seq_id'), x])
             })),
             r.AtomExpression.map(atomExpressionQuery),
@@ -143,6 +153,7 @@ const lang = P.MonadicParser.createLanguage({
         return P.MonadicParser.seq(
             P.MonadicParser.lookahead(r.AtomPrefix),
             P.MonadicParser.seq(
+                r.BracketedResname.or(P.MonadicParser.of(null)),
                 r.Resno.or(P.MonadicParser.of(null)),
                 r.Inscode.or(P.MonadicParser.of(null)),
                 r.Chainname.or(P.MonadicParser.of(null)),
@@ -150,10 +161,10 @@ const lang = P.MonadicParser.createLanguage({
                 r.Altloc.or(P.MonadicParser.of(null)),
                 r.Model.or(P.MonadicParser.of(null))
             )
-        );
+        ).desc('expression');
     },
 
-    AtomPrefix: () => P.MonadicParser.regexp(/[0-9:^%/.]/).desc('atom-prefix'),
+    AtomPrefix: () => P.MonadicParser.regexp(/[\[0-9:^%/.]/).desc('atom-prefix'),
 
     Chainname: () => P.MonadicParser.regexp(/:([A-Za-z]{1,3})/, 1).desc('chainname'),
     Model: () => P.MonadicParser.regexp(/\/([0-9]+)/, 1).map(Number).desc('model'),
@@ -164,22 +175,19 @@ const lang = P.MonadicParser.createLanguage({
     Altloc: () => P.MonadicParser.regexp(/%([a-zA-Z0-9])/, 1).desc('altloc'),
     Inscode: () => P.MonadicParser.regexp(/\^([a-zA-Z0-9])/, 1).desc('inscode'),
 
+    BracketedResname: () => P.MonadicParser.regexp(/\[([a-zA-Z0-9]{1,4})\]/, 1).desc('bracketed-resname'),
+    ResnoRange: (r: any) => {
+        return P.MonadicParser.seq(
+            r.Integer.skip(P.MonadicParser.seq(
+                P.MonadicParser.optWhitespace,
+                P.MonadicParser.string('-'),
+                P.MonadicParser.optWhitespace
+            )),
+            r.Integer
+        ).desc('resno-range');
+    },
 
-    // TODO: Support bracketed resname and resno range.
-    // BracketedResname: function (r) {
-    //   return P.regex(/\.([a-zA-Z0-9]{1,4})/, 1)
-    //     .desc('bracketed-resname')
-    //   // [0SD]
-    // },
-
-    // ResnoRange: function (r) {
-    //   return P.regex(/\.([\s]){1,3}/, 1)
-    //     .desc('resno-range')
-    //   // 123-200
-    //   // -12--3
-    // },
-
-    Keywords: () => P.MonadicParser.alt(...h.getKeywordRules(keywords)),
+    Keywords: () => P.MonadicParser.alt(...h.getKeywordRules(keywords)).desc('keyword'),
 
     Query: function (r: any) {
         return P.MonadicParser.alt(
@@ -202,7 +210,7 @@ const lang = P.MonadicParser.createLanguage({
             P.MonadicParser.regexp(new RegExp(`(?!(${w}))[A-Z0-9_]+`, 'i')),
             P.MonadicParser.regexp(/'((?:[^"\\]|\\.)*)'/, 1),
             P.MonadicParser.regexp(/"((?:[^"\\]|\\.)*)"/, 1).map(x => B.core.type.regex([`^${x}$`, 'i']))
-        );
+        ).desc('string');
     },
 
     Value: function (r: any) {

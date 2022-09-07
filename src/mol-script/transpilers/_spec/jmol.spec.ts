@@ -2,9 +2,10 @@
  * Copyright (c) 2020-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Koya Sakuma <koya.sakuma.work@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ *
  * Adapted from MolQL project
  */
-
 
 import * as u from './utils';
 import { transpiler } from '../jmol/parser';
@@ -48,6 +49,35 @@ const general = {
         '    atomName = CA   ',
         'atomName = CA   ',
         '    atomName = CA',
+
+        // value comparison
+        'resno > 10',
+        // atom expression
+        '[LEU]100:A.CA',
+        '[LEU]100:A',
+        '[LEU]100.CA',
+        '[LEU]:A.CA',
+        '[LEU].CA',
+        // comma as OR
+        '100, 42, ALA',
+        // residue numbering
+        '(1-10,15,21-30)',
+        // within with parentheses
+        // '( within(5,[HEM]) ) and backbone',
+        // trimming
+        '[ALA] and [VAL]  ',
+        ' [ALA] and [VAL] ',
+        '  [ALA] and [VAL]',
+        // within with whitespaces
+        // 'within (   5 ,  [HEM] ) ',
+        // un-braketed residue name
+        'LEU and ILE',
+        // un-parenthesized residue index range
+        '100-120,220',
+        // un-parenthesized residue index
+        '20',
+        // within in the head or the middle of sentence
+        // 'within (   5 ,  [HEM] ) and backbone',
     ],
     unsupported: [
         // values outside of comparisons

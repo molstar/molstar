@@ -129,11 +129,11 @@ export function combineOperators(opList: any[], rule: P.MonadicParser<any>) {
 }
 
 export function infixOp(re: RegExp, group: number = 0) {
-    return P.MonadicParser.whitespace.then(P.MonadicParser.regexp(re, group).skip(P.MonadicParser.whitespace));
+    return P.MonadicParser.optWhitespace.then(P.MonadicParser.regexp(re, group).skip(P.MonadicParser.optWhitespace));
 }
 
 export function prefixOp(re: RegExp, group: number = 0) {
-    return P.MonadicParser.regexp(re, group).skip(P.MonadicParser.whitespace);
+    return P.MonadicParser.regexp(re, group).skip(P.MonadicParser.optWhitespace);
 }
 
 export function prefixOpNoWhiteSpace(re: RegExp, group: number = 0) {
@@ -141,7 +141,7 @@ export function prefixOpNoWhiteSpace(re: RegExp, group: number = 0) {
 }
 
 export function postfixOp(re: RegExp, group: number = 0) {
-    return P.MonadicParser.whitespace.then(P.MonadicParser.regexp(re, group));
+    return P.MonadicParser.optWhitespace.then(P.MonadicParser.regexp(re, group));
 }
 
 export function ofOp(name: string, short?: string) {

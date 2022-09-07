@@ -1,16 +1,17 @@
-/*
+/**
  * Copyright (c) 2017-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
  * @author Koya Sakuma <koya.sakuma.work@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ *
  * Adapted from MolQL project
  */
-
 
 import * as P from '../../../mol-util/monadic-parser';
 import * as h from '../helper';
 import { MolScriptBuilder } from '../../../mol-script/language/builder';
 const B = MolScriptBuilder;
 import { OperatorList } from '../types';
-
 
 export const operators: OperatorList = [
     {
@@ -34,7 +35,7 @@ export const operators: OperatorList = [
         '@examples': ['ASP or GLU'],
         name: 'or',
         type: h.binaryLeft,
-        rule: h.infixOp(/OR|\|/i),
+        rule: h.infixOp(/OR|\||,/i),
         map: (op, s1, s2) => B.struct.combinator.merge([s1, s2])
     }
 ];
