@@ -24,4 +24,3 @@ function testTranspilerExamples(name: string, transpiler: Transpiler) {
 testTranspilerExamples('pymol', transpilers.pymol);
 testTranspilerExamples('vmd', transpilers.vmd);
 testTranspilerExamples('jmol', transpilers.jmol);
-testTranspilerExamples('rasmol', transpilers.rasmol);

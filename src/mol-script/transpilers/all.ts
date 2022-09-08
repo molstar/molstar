@@ -7,11 +7,9 @@
 import { transpiler as jmol } from './jmol/parser';
 import { transpiler as pymol } from './pymol/parser';
 import { transpiler as vmd } from './vmd/parser';
-import { transpiler as rasmol } from './rasmol/parser';
 
 export const _transpiler = {
     pymol,
     vmd,
     jmol,
-    rasmol
 };

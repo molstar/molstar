@@ -1496,7 +1496,7 @@ export class ScriptControl extends React.PureComponent<ParamProps<PD.Script>> {
         return <>
             {select}
             {this.props.value.language !== 'mol-script' && <div className='msp-help-text' style={{ padding: '10px' }}>
-                <Icon svg={WarningSvg} /> Support for PyMOL, VMD, Jmol, and RasMol selections is an experimental feature and may not always work as intended.
+                <Icon svg={WarningSvg} /> Support for PyMOL, VMD, and Jmol selections is an experimental feature and may not always work as intended.
             </div>}
             {text}
         </>;

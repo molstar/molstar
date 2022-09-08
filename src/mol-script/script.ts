@@ -27,7 +27,6 @@ namespace Script {
         'pymol': 'PyMOL',
         'vmd': 'VMD',
         'jmol': 'Jmol',
-        'rasmol': 'RasMol'
     };
     export type Language = keyof typeof Info;
 
@@ -48,7 +47,6 @@ namespace Script {
             case 'pymol':
             case 'jmol':
             case 'vmd':
-            case 'rasmol':
                 return parse(script.language, script.expression);
             default:
                 assertUnreachable(script.language);
