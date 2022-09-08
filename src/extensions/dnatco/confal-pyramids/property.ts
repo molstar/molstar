@@ -16,7 +16,7 @@ import { PropertyWrapper } from '../../../mol-model-props/common/wrapper';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { MmcifFormat } from '../../../mol-model-formats/structure/mmcif';
 
-export type ConfalPyramids = PropertyWrapper<CPT.StepsData | undefined>;
+export type ConfalPyramids = PropertyWrapper<CPT.Steps | undefined>;
 
 export namespace ConfalPyramids {
     export const Schema = {
@@ -105,13 +105,13 @@ export const ConfalPyramidsProvider: CustomModelProperty.Provider<ConfalPyramids
 
 type StepsSummaryTable = Table<typeof ConfalPyramids.Schema.ndb_struct_ntc_step_summary>;
 
-function createPyramidsFromCif(model: Model,
+function createPyramidsFromCif(
+    model: Model,
     cifSteps: Table<typeof ConfalPyramids.Schema.ndb_struct_ntc_step>,
-    stepsSummary: StepsSummaryTable): CPT.StepsData {
+    stepsSummary: StepsSummaryTable
+): CPT.Steps {
     const steps = new Array<CPT.Step>();
-    const names = new Map<string, number>();
-    const halfPyramids = new Array<CPT.HalfPyramid>();
-    let hasMultipleModels = false;
+    const mapping = new Array<CPT.MappedChains>();
 
     const {
         id, PDB_model_number, name,
@@ -123,21 +123,24 @@ function createPyramidsFromCif(model: Model,
     if (_rowCount !== stepsSummary._rowCount) throw new Error('Inconsistent mmCIF data');
 
     for (let i = 0; i < _rowCount; i++) {
-        const model_num = PDB_model_number.value(i);
-        if (model_num !== model.modelNum)
-            hasMultipleModels = true;
-
         const {
             NtC,
             confal_score,
             rmsd
         } = getSummaryData(id.value(i), i, stepsSummary);
+        const modelNum = PDB_model_number.value(i);
+        const chainId = auth_asym_id_1.value(i);
+        const seqId = auth_seq_id_1.value(i);
+        const modelIdx = modelNum - 1;
+
+        if (mapping.length <= modelIdx || !mapping[modelIdx])
+            mapping[modelIdx] = new Map<string, CPT.MappedResidues>();
 
         const step = {
-            PDB_model_number: model_num,
+            PDB_model_number: modelNum,
             name: name.value(i),
-            auth_asym_id_1: auth_asym_id_1.value(i),
-            auth_seq_id_1: auth_seq_id_1.value(i),
+            auth_asym_id_1: chainId,
+            auth_seq_id_1: seqId,
             label_comp_id_1: label_comp_id_1.value(i),
             label_alt_id_1: label_alt_id_1.value(i),
             PDB_ins_code_1: PDB_ins_code_1.value(i),
@@ -152,13 +155,18 @@ function createPyramidsFromCif(model: Model,
         };
 
         steps.push(step);
-        names.set(step.name, steps.length - 1);
 
-        halfPyramids.push({ step, isLower: false });
-        halfPyramids.push({ step, isLower: true });
+        const mappedChains = mapping[modelIdx];
+        const residuesOnChain = mappedChains.get(chainId) ?? new Map<number, number[]>();
+        const stepsForResidue = residuesOnChain.get(seqId) ?? [];
+        stepsForResidue.push(steps.length - 1);
+
+        residuesOnChain.set(seqId, stepsForResidue);
+        mappedChains.set(chainId, residuesOnChain);
+        mapping[modelIdx] = mappedChains;
     }
 
-    return { steps, names, halfPyramids, hasMultipleModels };
+    return { steps, mapping };
 }
 
 function getSummaryData(id: number, i: number, stepsSummary: StepsSummaryTable) {

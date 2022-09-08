@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2021-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 export const PluginFeatureDetection = {
@@ -13,7 +14,7 @@ export const PluginFeatureDetection = {
         const unpportedSafariVersions = [
             'Version/15.1 Safari',
             'Version/15.2 Safari',
-            'Version/15.3 Safari'
+            'Version/15.3 Safari',
         ];
         if (unpportedSafariVersions.some(v => navigator.userAgent.indexOf(v) > 0)) {
             return true;
@@ -28,10 +29,4 @@ export const PluginFeatureDetection = {
         const isTouchScreen = navigator.maxTouchPoints >= 4; // true for iOS 13 (and hopefully beyond)
         return !(window as any).MSStream && (isIOS || (isAppleDevice && isTouchScreen));
     },
-    get wboit() {
-        if (typeof navigator === 'undefined' || typeof window === 'undefined') return true;
-
-        // disable Wboit in Safari 15
-        return !/Version\/15.\d Safari/.test(navigator.userAgent);
-    }
 };

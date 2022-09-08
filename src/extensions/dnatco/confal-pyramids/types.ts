@@ -30,11 +30,12 @@ export namespace ConfalPyramidsTypes {
         rmsd: number,
     }
 
-    export interface StepsData {
+    export type MappedChains = Map<string, MappedResidues>;
+    export type MappedResidues = Map<number, number[]>;
+
+    export interface Steps {
         steps: Array<Step>,
-        names: Map<string, number>,
-        halfPyramids: Array<HalfPyramid>,
-        hasMultipleModels: boolean
+        mapping: MappedChains[],
     }
 
     export interface HalfPyramid {
@@ -44,8 +45,8 @@ export namespace ConfalPyramidsTypes {
 
     export interface Location extends DataLocation<HalfPyramid, {}> {}
 
-    export function Location(halfPyramid: HalfPyramid) {
-        return DataLocation(DataTag, halfPyramid, {});
+    export function Location(step: Step, isLower: boolean) {
+        return DataLocation(DataTag, { step, isLower }, {});
     }
 
     export function isLocation(x: any): x is Location {

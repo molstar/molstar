@@ -64,8 +64,8 @@ export class MarkingPass {
         state.depthMask(false);
 
         const { x, y, width, height } = viewport;
-        gl.viewport(x, y, width, height);
-        gl.scissor(x, y, width, height);
+        state.viewport(x, y, width, height);
+        state.scissor(x, y, width, height);
 
         state.clearColor(0, 0, 0, 0);
         gl.clear(gl.COLOR_BUFFER_BIT);
@@ -82,8 +82,8 @@ export class MarkingPass {
         state.depthMask(false);
 
         const { x, y, width, height } = viewport;
-        gl.viewport(x, y, width, height);
-        gl.scissor(x, y, width, height);
+        state.viewport(x, y, width, height);
+        state.scissor(x, y, width, height);
     }
 
     setSize(width: number, height: number) {

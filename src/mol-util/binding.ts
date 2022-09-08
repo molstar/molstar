@@ -24,6 +24,10 @@ namespace Binding {
         return { triggers, action, description };
     }
 
+    export function isBinding(x: any): x is Binding {
+        return !!x && Array.isArray(x.triggers) && typeof x.action === 'string';
+    }
+
     export const Empty: Binding = { triggers: [], action: '', description: '' };
     export function isEmpty(binding: Binding) {
         return binding.triggers.length === 0 ||

@@ -83,7 +83,7 @@ export const DownloadFile = StateAction.build({
     display: { name: 'Download File', description: 'Load one or more file from an URL' },
     from: PluginStateObject.Root,
     params: (a, ctx: PluginContext) => {
-        const options = [...ctx.dataFormats.options, ['zip', 'Zip'] as const];
+        const options = [...ctx.dataFormats.options, ['zip', 'Zip'] as const, ['gzip', 'Gzip'] as const];
         return {
             url: PD.Url(''),
             format: PD.Select(options[0][0], options),
@@ -96,17 +96,23 @@ export const DownloadFile = StateAction.build({
 
     await state.transaction(async () => {
         try {
-            if (params.format === 'zip') {
+            if (params.format === 'zip' || params.format === 'gzip') {
                 // TODO: add ReadZipFile transformer so this can be saved as a simple state snaphot,
                 //       would need support for extracting individual files from zip
                 const data = await plugin.builders.data.download({ url: params.url, isBinary: true });
-                const zippedFiles = await unzip(taskCtx, (data.obj?.data as Uint8Array).buffer);
-                for (const [fn, filedata] of Object.entries(zippedFiles)) {
-                    if (!(filedata instanceof Uint8Array) || filedata.length === 0) continue;
+                if (params.format === 'zip') {
+                    const zippedFiles = await unzip(taskCtx, (data.obj?.data as Uint8Array).buffer);
+                    for (const [fn, filedata] of Object.entries(zippedFiles)) {
+                        if (!(filedata instanceof Uint8Array) || filedata.length === 0) continue;
 
-                    const asset = Asset.File(new File([filedata], fn));
+                        const asset = Asset.File(new File([filedata], fn));
 
-                    await processFile(asset, plugin, 'auto', params.visuals);
+                        await processFile(asset, plugin, 'auto', params.visuals);
+                    }
+                } else {
+                    const url = Asset.getUrl(params.url);
+                    const info = getFileInfo(url);
+                    await processFile(Asset.File(new File([data.obj?.data as Uint8Array], info.name)), plugin, 'auto', params.visuals);
                 }
             } else {
                 const provider = plugin.dataFormats.get(params.format);

@@ -22,6 +22,8 @@ import { LocationIterator } from '../../../mol-geo/util/location-iterator';
 import { InteractionFlag } from '../interactions/common';
 import { Unit } from '../../../mol-model/structure/structure';
 import { Sphere3D } from '../../../mol-math/geometry';
+import { assertUnreachable } from '../../../mol-util/type-helpers';
+import { InteractionsSharedParams } from './shared';
 
 function createInterUnitInteractionCylinderMesh(ctx: VisualContext, structure: Structure, theme: Theme, props: PD.Values<InteractionsInterUnitParams>, mesh?: Mesh) {
     if (!structure.hasAtomic) return Mesh.createEmpty(mesh);
@@ -31,7 +33,7 @@ function createInterUnitInteractionCylinderMesh(ctx: VisualContext, structure: S
     const { contacts, unitsFeatures } = interactions;
 
     const { edgeCount, edges } = contacts;
-    const { sizeFactor } = props;
+    const { sizeFactor, parentDisplay } = props;
 
     if (!edgeCount) return Mesh.createEmpty(mesh);
 
@@ -70,14 +72,48 @@ function createInterUnitInteractionCylinderMesh(ctx: VisualContext, structure: S
 
             if (child) {
                 const b = edges[edgeIndex];
-                const childUnitA = child.unitMap.get(b.unitA);
-                if (!childUnitA) return true;
 
-                const unitA = structure.unitMap.get(b.unitA);
-                const { offsets, members } = unitsFeatures.get(b.unitA);
-                for (let i = offsets[b.indexA], il = offsets[b.indexA + 1]; i < il; ++i) {
-                    const eA = unitA.elements[members[i]];
-                    if (!SortedArray.has(childUnitA.elements, eA)) return true;
+                if (parentDisplay === 'stub') {
+                    const childUnitA = child.unitMap.get(b.unitA);
+                    if (!childUnitA) return true;
+
+                    const unitA = structure.unitMap.get(b.unitA);
+                    const { offsets, members } = unitsFeatures.get(b.unitA);
+                    for (let i = offsets[b.indexA], il = offsets[b.indexA + 1]; i < il; ++i) {
+                        const eA = unitA.elements[members[i]];
+                        if (!SortedArray.has(childUnitA.elements, eA)) return true;
+                    }
+                } else if (parentDisplay === 'full' || parentDisplay === 'between') {
+                    let flagA = false;
+                    let flagB = false;
+
+                    const childUnitA = child.unitMap.get(b.unitA);
+                    if (!childUnitA) {
+                        flagA = true;
+                    } else {
+                        const unitA = structure.unitMap.get(b.unitA);
+                        const { offsets, members } = unitsFeatures.get(b.unitA);
+                        for (let i = offsets[b.indexA], il = offsets[b.indexA + 1]; i < il; ++i) {
+                            const eA = unitA.elements[members[i]];
+                            if (!SortedArray.has(childUnitA.elements, eA)) flagA = true;
+                        }
+                    }
+
+                    const childUnitB = child.unitMap.get(b.unitB);
+                    if (!childUnitB) {
+                        flagB = true;
+                    } else {
+                        const unitB = structure.unitMap.get(b.unitB);
+                        const { offsets, members } = unitsFeatures.get(b.unitB);
+                        for (let i = offsets[b.indexB], il = offsets[b.indexB + 1]; i < il; ++i) {
+                            const eB = unitB.elements[members[i]];
+                            if (!SortedArray.has(childUnitB.elements, eB)) flagB = true;
+                        }
+                    }
+
+                    return parentDisplay === 'full' ? flagA && flagB : flagA === flagB;
+                } else {
+                    assertUnreachable(parentDisplay);
                 }
             }
 
@@ -101,10 +137,7 @@ function createInterUnitInteractionCylinderMesh(ctx: VisualContext, structure: S
 export const InteractionsInterUnitParams = {
     ...ComplexMeshParams,
     ...LinkCylinderParams,
-    sizeFactor: PD.Numeric(0.3, { min: 0, max: 10, step: 0.01 }),
-    dashCount: PD.Numeric(6, { min: 2, max: 10, step: 2 }),
-    dashScale: PD.Numeric(0.4, { min: 0, max: 2, step: 0.1 }),
-    includeParent: PD.Boolean(false),
+    ...InteractionsSharedParams,
 };
 export type InteractionsInterUnitParams = typeof InteractionsInterUnitParams
 
@@ -121,7 +154,8 @@ export function InteractionsInterUnitVisual(materialId: number): ComplexVisual<I
                 newProps.dashCount !== currentProps.dashCount ||
                 newProps.dashScale !== currentProps.dashScale ||
                 newProps.dashCap !== currentProps.dashCap ||
-                newProps.radialSegments !== currentProps.radialSegments
+                newProps.radialSegments !== currentProps.radialSegments ||
+                newProps.parentDisplay !== currentProps.parentDisplay
             );
 
             const interactionsHash = InteractionsProvider.get(newStructure).version;

@@ -17,6 +17,7 @@ import { createRenderObject } from '../../mol-gl/render-object';
 import { Representation } from '../../mol-repr/representation';
 import { Torus } from '../../mol-geo/primitive/torus';
 import { ParamDefinition } from '../../mol-util/param-definition';
+import { AssetManager } from '../../mol-util/assets';
 
 const parent = document.getElementById('app')!;
 parent.style.width = '100%';
@@ -26,7 +27,9 @@ const canvas = document.createElement('canvas');
 parent.appendChild(canvas);
 resizeCanvas(canvas, parent);
 
-const canvas3d = Canvas3D.create(Canvas3DContext.fromCanvas(canvas));
+const assetManager = new AssetManager();
+
+const canvas3d = Canvas3D.create(Canvas3DContext.fromCanvas(canvas, assetManager));
 canvas3d.animate();
 
 function meshRepr() {

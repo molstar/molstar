@@ -127,7 +127,7 @@ export function createIsosurfaceBuffers(ctx: WebGLContext, activeVoxelsBase: Tex
     if (!drawBuffers) throw new Error('need WebGL draw buffers');
 
     if (isTimingMode) ctx.timer.mark('createIsosurfaceBuffers');
-    const { gl, resources, extensions } = ctx;
+    const { gl, state, resources, extensions } = ctx;
     const { pyramidTex, height, levels, scale, count } = histogramPyramid;
     const width = pyramidTex.getWidth();
 
@@ -192,7 +192,7 @@ export function createIsosurfaceBuffers(ctx: WebGLContext, activeVoxelsBase: Tex
     ]);
 
     setRenderingDefaults(ctx);
-    gl.viewport(0, 0, width, height);
+    state.viewport(0, 0, width, height);
     gl.clear(gl.COLOR_BUFFER_BIT);
     renderable.render();
 

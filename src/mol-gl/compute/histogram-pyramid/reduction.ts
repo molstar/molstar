@@ -122,7 +122,7 @@ export interface HistogramPyramid {
 
 export function createHistogramPyramid(ctx: WebGLContext, inputTexture: Texture, scale: Vec2, gridTexDim: Vec3): HistogramPyramid {
     if (isTimingMode) ctx.timer.mark('createHistogramPyramid');
-    const { gl } = ctx;
+    const { gl, state } = ctx;
     const w = inputTexture.getWidth();
     const h = inputTexture.getHeight();
 
@@ -146,7 +146,7 @@ export function createHistogramPyramid(ctx: WebGLContext, inputTexture: Texture,
     const framebuffer = getFramebuffer('pyramid', ctx);
     pyramidTex.attachFramebuffer(framebuffer, 0);
 
-    gl.viewport(0, 0, maxSizeX, maxSizeY);
+    state.viewport(0, 0, maxSizeX, maxSizeY);
     if (isWebGL2(gl)) {
         gl.clearBufferiv(gl.COLOR, 0, [0, 0, 0, 0]);
     } else {
@@ -157,7 +157,7 @@ export function createHistogramPyramid(ctx: WebGLContext, inputTexture: Texture,
     for (let i = 0; i < levels; ++i) levelTexturesFramebuffers.push(getLevelTextureFramebuffer(ctx, i));
 
     const renderable = getHistopyramidReductionRenderable(ctx, inputTexture, levelTexturesFramebuffers[0].texture);
-    ctx.state.currentRenderItemId = -1;
+    state.currentRenderItemId = -1;
     setRenderingDefaults(ctx);
 
     let offset = 0;
@@ -176,15 +176,15 @@ export function createHistogramPyramid(ctx: WebGLContext, inputTexture: Texture,
             ValueCell.update(renderable.values.tPreviousLevel, levelTexturesFramebuffers[levels - i].texture);
             renderable.update();
         }
-        ctx.state.currentRenderItemId = -1;
-        gl.viewport(0, 0, size, size);
-        gl.scissor(0, 0, size, size);
+        state.currentRenderItemId = -1;
+        state.viewport(0, 0, size, size);
+        state.scissor(0, 0, size, size);
         if (isWebGL2(gl)) {
             gl.clearBufferiv(gl.COLOR, 0, [0, 0, 0, 0]);
         } else {
             gl.clear(gl.COLOR_BUFFER_BIT);
         }
-        gl.scissor(0, 0, gridTexDim[0], gridTexDim[1]);
+        state.scissor(0, 0, gridTexDim[0], gridTexDim[1]);
         renderable.render();
 
         pyramidTex.bind(0);

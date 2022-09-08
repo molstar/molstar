@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -12,6 +12,7 @@ import { EmdbDownloadProvider } from '../mol-plugin-state/actions/volume';
 import { StructureRepresentationPresetProvider } from '../mol-plugin-state/builder/structure/representation-preset';
 import { PluginFeatureDetection } from './features';
 import { SaccharideCompIdMapType } from '../mol-model/structure/structure/carbohydrates/constants';
+import { BackgroundProps } from '../mol-canvas3d/passes/background';
 
 export class PluginConfigItem<T = any> {
     toString() { return this.key; }
@@ -30,7 +31,7 @@ export const PluginConfig = {
         PixelScale: item('plugin-config.pixel-scale', 1),
         PickScale: item('plugin-config.pick-scale', 0.25),
         PickPadding: item('plugin-config.pick-padding', 3),
-        EnableWboit: item('plugin-config.enable-wboit', PluginFeatureDetection.wboit),
+        EnableWboit: item('plugin-config.enable-wboit', true),
         // as of Oct 1 2021, WebGL 2 doesn't work on iOS 15.
         // TODO: check back in a few weeks to see if it was fixed
         PreferWebGl1: item('plugin-config.prefer-webgl1', PluginFeatureDetection.preferWebGl1),
@@ -65,6 +66,9 @@ export const PluginConfig = {
         DefaultRepresentationPreset: item<string>('structure.default-representation-preset', 'auto'),
         DefaultRepresentationPresetParams: item<StructureRepresentationPresetProvider.CommonParams>('structure.default-representation-preset-params', { }),
         SaccharideCompIdMapType: item<SaccharideCompIdMapType>('structure.saccharide-comp-id-map-type', 'default'),
+    },
+    Background: {
+        Styles: item<[BackgroundProps, string][]>('background.styles', []),
     }
 };
 
