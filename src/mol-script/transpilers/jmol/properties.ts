@@ -13,7 +13,7 @@ const rePosInt = /[0-9]+/;
 
 function str(x: string) { return x; }
 
-const structureDict: {[key: string]: string} = {
+const structureDict: { [key: string]: string } = {
     none: 'none',
     turn: 'turn',
     sheet: 'beta',

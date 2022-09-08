@@ -31,7 +31,7 @@ const valueOperators: OperatorList = [
         rule: P.MonadicParser.regexp(/\s*(LIKE|>=|<=|=|!=|>|<)\s*/i, 1),
         map: (op, e1, e2) => {
             let expr;
-	    if (e1 === 'structure') {
+            if (e1 === 'structure') {
                 expr = B.core.flags.hasAny([B.ammp('secondaryStructureFlags'), structureMap(e2)]);
             } else if (e2 === 'structure') {
                 expr = B.core.flags.hasAny([B.ammp('secondaryStructureFlags'), structureMap(e1)]);

@@ -18,36 +18,38 @@ const ResDict = {
 
 const Backbone = {
     nucleic: ['P', "O3'", "O5'", "C5'", "C4'", "C3'", 'OP1', 'OP2', 'O3*', 'O5*', 'C5*', 'C4*', 'C3*',
-	      "C2'", "C1'", "O4'", "O2'"],
+        "C2'", "C1'", "O4'", "O2'"],
     protein: ['C', 'N', 'CA', 'O']
 };
 
 function backboneExpr() {
     return B.struct.combinator.merge([
-	    B.struct.modifier.intersectBy(
-            { 0: B.struct.generator.atomGroups({
-		    'residue-test': B.core.set.has([
+        B.struct.modifier.intersectBy({
+            0: B.struct.generator.atomGroups({
+                'residue-test': B.core.set.has([
                     B.core.type.set(ResDict.protein),
                     B.ammp('label_comp_id')
-		    ]) })
-		  ,
-		  by: B.struct.generator.atomGroups({
-		      'atom-test': B.core.set.has([
-			  B.core.type.set(Backbone.protein),
-			  B.ammp('label_atom_id')]) })
+                ])
             }),
-	    B.struct.modifier.intersectBy(
-            { 0: B.struct.generator.atomGroups({
-		    'residue-test': B.core.set.has([
+            by: B.struct.generator.atomGroups({
+                'atom-test': B.core.set.has([
+                    B.core.type.set(Backbone.protein),
+                    B.ammp('label_atom_id')])
+            })
+        }),
+        B.struct.modifier.intersectBy({
+            0: B.struct.generator.atomGroups({
+                'residue-test': B.core.set.has([
                     B.core.type.set(ResDict.nucleic),
                     B.ammp('label_comp_id')
-		    ]) })
-		  ,
-		  by: B.struct.generator.atomGroups({
-		      'atom-test': B.core.set.has([
-			  B.core.type.set(Backbone.nucleic),
-			  B.ammp('label_atom_id')]) })
+                ])
             }),
+            by: B.struct.generator.atomGroups({
+                'atom-test': B.core.set.has([
+                    B.core.type.set(Backbone.nucleic),
+                    B.ammp('label_atom_id')])
+            })
+        }),
     ]);
 
 }
@@ -98,13 +100,14 @@ export const keywords: KeywordDict = {
         '@desc': 'Polymer non-backbone atoms (new in PyMOL 1.6.1)',
         abbr: ['sc.'],
         map: () => {
-	    return B.struct.modifier.exceptBy({
+            return B.struct.modifier.exceptBy({
                 '0': B.struct.generator.atomGroups({
-		    'residue-test': B.core.set.has([
+                    'residue-test': B.core.set.has([
                         B.core.type.set(ResDict.nucleic.concat(ResDict.protein)),
-                        B.ammp('label_comp_id')]) }),
+                        B.ammp('label_comp_id')])
+                }),
                 by: backboneExpr()
-	    });
+            });
         },
     },
     present: {

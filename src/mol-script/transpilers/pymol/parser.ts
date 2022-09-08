@@ -58,7 +58,7 @@ const lang = P.MonadicParser.createLanguage({
 
     Expression: function (r: any) {
         return P.MonadicParser.alt(
-	    r.Keywords,
+            r.Keywords,
             r.AtomSelectionMacro.map(atomSelectionQuery),
             r.NamedAtomProperties,
             r.Pepseq,

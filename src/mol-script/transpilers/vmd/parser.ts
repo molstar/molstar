@@ -56,33 +56,33 @@ const valueOperators: OperatorList = [
         rule: P.MonadicParser.alt(P.MonadicParser.regexp(/\s*(=~|==|>=|<=|=|!=|>|<)\s*/, 1), P.MonadicParser.whitespace.result('=')),
         map: (op, e1, e2) => {
             let expr;
-	    if (e1.head !== undefined) {
+            if (e1.head !== undefined) {
                 if (e1.head.name === 'structure-query.atom-property.macromolecular.secondary-structure-flags') {
-		    expr = B.core.flags.hasAny([e1, sstrucMap(e2)]);
+                    expr = B.core.flags.hasAny([e1, sstrucMap(e2)]);
                 }
                 if (e1.head.name === 'core.type.regex') {
-		    expr = B.core.str.match([e1, B.core.type.str([e2])]);
+                    expr = B.core.str.match([e1, B.core.type.str([e2])]);
                 }
-	    } else if (e2.head !== undefined) {
+            } else if (e2.head !== undefined) {
                 if (e2.head.name === 'structure-query.atom-property.macromolecular.secondary-structure-flags') {
-		    expr = B.core.flags.hasAny([e2, sstrucMap(e1)]);
+                    expr = B.core.flags.hasAny([e2, sstrucMap(e1)]);
                 }
                 if (e2.head.name === 'core.type.regex') {
-		    expr = B.core.str.match([e2, B.core.type.str([e1])]);
+                    expr = B.core.str.match([e2, B.core.type.str([e1])]);
                 }
-	    } else if (op === '=~') {
+            } else if (op === '=~') {
                 if (e1.head) {
-		    expr = B.core.str.match([
+                    expr = B.core.str.match([
                         B.core.type.regex([`^${e2}$`, 'i']),
                         B.core.type.str([e1])
-		    ]);
+                    ]);
                 } else {
-		    expr = B.core.str.match([
+                    expr = B.core.str.match([
                         B.core.type.regex([`^${e1}$`, 'i']),
                         B.core.type.str([e2])
-		    ]);
+                    ]);
                 }
-	    }
+            }
             if (!expr) {
                 if (e1.head) e2 = h.wrapValue(e1, e2);
                 if (e2.head) e1 = h.wrapValue(e2, e1);
@@ -179,7 +179,7 @@ const lang = P.MonadicParser.createLanguage({
                 test = rangeTest ? rangeTest : listTest;
             }
 
-	    return B.struct.generator.atomGroups({ [h.testLevel(property)]: test });
+            return B.struct.generator.atomGroups({ [h.testLevel(property)]: test });
         });
     },
 

@@ -21,49 +21,49 @@ function listOrRangeMap(x: string) {
         const pSplit = x.split('+').map(x => x.replace(/^["']|["']$/g, ''));
         const res: number[] = [];
         pSplit.forEach(x => {
-	    if (x.includes('-') && !x.startsWith('-')) {
-                const [min, max] = x.split('-').map(x=>parseInt(x));
+            if (x.includes('-') && !x.startsWith('-')) {
+                const [min, max] = x.split('-').map(x => parseInt(x));
                 for (let i = min; i <= max; i++) {
-		    res.push(i);
+                    res.push(i);
                 }
-	    } else if (x.includes('-') && x.startsWith('-') && x.match(/[0-9]+-[-0-9]+/)) {
+            } else if (x.includes('-') && x.startsWith('-') && x.match(/[0-9]+-[-0-9]+/)) {
                 const min = -parseInt(x.split('-')[1]);
                 let max;
                 if (x.includes('--')) {
-		    max = -parseInt(x.split('-')[3]);
+                    max = -parseInt(x.split('-')[3]);
                 } else {
-		    max = parseInt(x.split('-')[2]);
+                    max = parseInt(x.split('-')[2]);
                 }
                 for (let i = min; i <= max; i++) {
-		    res.push(i);
+                    res.push(i);
                 }
-	    } else if (x.includes('-') && x.startsWith('-') && !x.match(/[0-9]+-[-0-9]+/)) {
+            } else if (x.includes('-') && x.startsWith('-') && !x.match(/[0-9]+-[-0-9]+/)) {
                 res.push(parseInt(x));
-	    } else {
+            } else {
                 res.push(parseInt(x));
-	    }
+            }
         });
         return res;
     } else if (x.includes('-') && !x.includes('+')) {
         const res: number[] = [];
         if (!x.startsWith('-')) {
-            const [min, max] = x.split('-').map(x=>parseInt(x));
+            const [min, max] = x.split('-').map(x => parseInt(x));
             for (let i = min; i <= max; i++) {
                 res.push(i);
             }
         } else if (x.startsWith('-') && x.match(/[0-9]+-[-0-9]+/)) {
-	    const min = -parseInt(x.split('-')[1]);
-	    let max;
-	    if (x.includes('--')) {
+            const min = -parseInt(x.split('-')[1]);
+            let max;
+            if (x.includes('--')) {
                 max = -parseInt(x.split('-')[3]);
-	    } else {
+            } else {
                 max = parseInt(x.split('-')[2]);
-	    }
-	    for (let i = min; i <= max; i++) {
+            }
+            for (let i = min; i <= max; i++) {
                 res.push(i);
             }
         } else if (x.startsWith('-') && !x.match(/[0-9]+-[-0-9]+/)) {
-	    res.push(parseInt(x));
+            res.push(parseInt(x));
         } else {
             res.push(parseInt(x));
         }
