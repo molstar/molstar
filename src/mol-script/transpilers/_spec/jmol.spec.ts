@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Koya Sakuma <koya.sakuma.work@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -62,14 +62,17 @@ const general = {
         '100, 42, ALA',
         // residue numbering
         '(1-10,15,21-30)',
+        // within
+        'within(5,[HEM])',
         // within with parentheses
-        // '( within(5,[HEM]) ) and backbone',
+        '(within(5,[HEM])) and backbone',
+        '( within(5,[HEM]) ) and backbone',
         // trimming
         '[ALA] and [VAL]  ',
         ' [ALA] and [VAL] ',
         '  [ALA] and [VAL]',
         // within with whitespaces
-        // 'within (   5 ,  [HEM] ) ',
+        'within (   5 ,  [HEM] ) ',
         // un-braketed residue name
         'LEU and ILE',
         // un-parenthesized residue index range
@@ -77,7 +80,7 @@ const general = {
         // un-parenthesized residue index
         '20',
         // within in the head or the middle of sentence
-        // 'within (   5 ,  [HEM] ) and backbone',
+        'within (   5 ,  [HEM] ) and backbone',
     ],
     unsupported: [
         // values outside of comparisons

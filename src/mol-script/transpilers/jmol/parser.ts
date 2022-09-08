@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Koya Sakuma < koya.sakuma.work@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -18,6 +18,7 @@ import { keywords } from './keywords';
 import { AtomGroupArgs } from '../types';
 import { Transpiler } from '../transpiler';
 import { OperatorList } from '../types';
+import { Expression } from '../../language/expression';
 
 // <, <=, =, >=, >, !=, and LIKE
 const valueOperators: OperatorList = [
@@ -116,7 +117,7 @@ const lang = P.MonadicParser.createLanguage({
             r.Parens,
             r.Operator,
             r.Expression
-        ).wrap(P.MonadicParser.string('('), P.MonadicParser.string(')'));
+        ).wrap(P.MonadicParser.regexp(/\(\s*/), P.MonadicParser.regexp(/\s*\)/));
     },
 
     Expression: function (r: any) {
@@ -129,11 +130,12 @@ const lang = P.MonadicParser.createLanguage({
                     B.core.rel.lte([B.ammp('auth_seq_id'), x[1]])
                 ])
             })),
-            r.Resno.lookahead(P.MonadicParser.regexp(/\s*(?!(LIKE|>=|<=|!=|[\[:^%/.=><]))/i)).map((x: any) => B.struct.generator.atomGroups({
+            r.Resno.lookahead(P.MonadicParser.regexp(/\s*(?!(LIKE|>=|<=|!=|[\[:^%/.=><]))/i)).map((x: number) => B.struct.generator.atomGroups({
                 'residue-test': B.core.rel.eq([B.ammp('auth_seq_id'), x])
             })),
             r.AtomExpression.map(atomExpressionQuery),
 
+            r.Within.map((x: [number, Expression]) => B.struct.modifier.includeSurroundings({ 0: x[1], radius: x[0] })),
             r.ValueQuery,
 
             r.Element.map((x: string) => B.struct.generator.atomGroups({
@@ -185,6 +187,15 @@ const lang = P.MonadicParser.createLanguage({
             )),
             r.Integer
         ).desc('resno-range');
+    },
+    Within: (r: any) => {
+        return P.MonadicParser.regexp(/within/i)
+            .skip(P.MonadicParser.regexp(/\s*\(\s*/))
+            .then(P.MonadicParser.seq(
+                r.Integer.skip(P.MonadicParser.regexp(/\s*,\s*/)),
+                r.Query
+            ))
+            .skip(P.MonadicParser.regexp(/\)/));
     },
 
     Keywords: () => P.MonadicParser.alt(...h.getKeywordRules(keywords)).desc('keyword'),

@@ -1,8 +1,11 @@
 /**
- * Copyright (c) 2017-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
  * @author Koya Sakuma <koya.sakuma.work@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ *
  * Adapted from MolQL project
-**/
+ */
 
 
 import { MolScriptBuilder } from '../../../mol-script/language/builder';
@@ -10,12 +13,34 @@ const B = MolScriptBuilder;
 import * as h from '../helper';
 import { KeywordDict } from '../types';
 
+const ResDict = {
+    acidic: ['ASP', 'GLU'],
+    aliphatic: ['ALA', 'GLY', 'ILE', 'LEU', 'VAL'],
+    amino: ['ALA', 'ARG', 'ASN', 'ASP', 'CYS', 'GLN', 'GLU', 'GLY', 'HIS', 'ILE', 'LEU', 'LYS', 'MET', 'PHE', 'PRO', 'SER', 'THR', 'TRP', 'TYR', 'VAL', 'ASX', 'GLX', 'UNK'],
+    aromatic: ['HIS', 'PHE', 'TRP', 'TYR'],
+    basic: ['ARG', 'HIS', 'LYS'],
+    buried: ['ALA', 'CYS', 'ILE', 'LEU', 'MET', 'PHE', 'TRP', 'VAL'],
+    cg: ['CYT', 'C', 'GUA', 'G'],
+    cyclic: ['HIS', 'PHE', 'PRO', 'TRP', 'TYR'],
+    hydrophobic: ['ALA', 'GLY', 'ILE', 'LEU', 'MET', 'PHE', 'PRO', 'TRP', 'TYR', 'VAL'],
+    large: ['ARG', 'GLU', 'GLN', 'HIS', 'ILE', 'LEU', 'LYS', 'MET', 'PHE', 'TRP', 'TYR'],
+    medium: ['ASN', 'ASP', 'CYS', 'PRO', 'THR', 'VAL'],
+    small: ['ALA', 'GLY', 'SER'],
+
+    nucleic: ['G', 'C', 'A', 'T', 'U', 'I', 'DG', 'DC', 'DA', 'DT', 'DU', 'DI', '+G', '+C', '+A', '+T', '+U', '+I']
+};
+
+const Backbone = {
+    nucleic: ['P', "O3'", "O5'", "C5'", "C4'", "C3'", 'OP1', 'OP2', 'O3*', 'O5*', 'C5*', 'C4*', 'C3*',
+	      "C2'", "C1'", "O4'", "O2'"],
+    protein: ['C', 'N', 'CA']
+};
 
 function nucleicExpr() {
     return B.struct.combinator.merge([
         B.struct.generator.atomGroups({
             'residue-test': B.core.set.has([
-                B.set(...['G', 'C', 'A', 'T', 'U', 'I', 'DG', 'DC', 'DA', 'DT', 'DU', 'DI', '+G', '+C', '+A', '+T', '+U', '+I']),
+                B.set(...ResDict.nucleic),
                 B.ammp('label_comp_id')
             ])
         }),
@@ -46,20 +71,49 @@ function nucleicExpr() {
     ]);
 }
 
-const ResDict = {
-    acidic: ['ASP', 'GLU'],
-    aliphatic: ['ALA', 'GLY', 'ILE', 'LEU', 'VAL'],
-    amino: ['ALA', 'ARG', 'ASN', 'ASP', 'CYS', 'GLN', 'GLU', 'GLY', 'HIS', 'ILE', 'LEU', 'LYS', 'MET', 'PHE', 'PRO', 'SER', 'THR', 'TRP', 'TYR', 'VAL', 'ASX', 'GLX', 'UNK'],
-    aromatic: ['HIS', 'PHE', 'TRP', 'TYR'],
-    basic: ['ARG', 'HIS', 'LYS'],
-    buried: ['ALA', 'CYS', 'ILE', 'LEU', 'MET', 'PHE', 'TRP', 'VAL'],
-    cg: ['CYT', 'C', 'GUA', 'G'],
-    cyclic: ['HIS', 'PHE', 'PRO', 'TRP', 'TYR'],
-    hydrophobic: ['ALA', 'GLY', 'ILE', 'LEU', 'MET', 'PHE', 'PRO', 'TRP', 'TYR', 'VAL'],
-    large: ['ARG', 'GLU', 'GLN', 'HIS', 'ILE', 'LEU', 'LYS', 'MET', 'PHE', 'TRP', 'TYR'],
-    medium: ['ASN', 'ASP', 'CYS', 'PRO', 'THR', 'VAL'],
-    small: ['ALA', 'GLY', 'SER'],
-};
+// TODO: improve, see keywords.protein['@desc'] below
+function proteinExpr() {
+    return B.struct.generator.atomGroups({
+        'residue-test': B.core.set.has([
+            B.set(...ResDict.amino),
+            B.ammp('label_comp_id')
+        ])
+    });
+}
+
+// TODO: improve, see keywords.backbone['@desc'] below
+function backboneExpr() {
+    return B.struct.combinator.merge([
+	    B.struct.modifier.intersectBy({
+            0: B.struct.generator.atomGroups({
+                'residue-test': B.core.set.has([
+                    B.core.type.set(ResDict.amino),
+                    B.ammp('label_comp_id')
+                ])
+            }),
+		    by: B.struct.generator.atomGroups({
+		       'atom-test': B.core.set.has([
+			        B.core.type.set(Backbone.protein),
+			        B.ammp('label_atom_id')
+                ])
+            })
+        }),
+	    B.struct.modifier.intersectBy({
+            0: B.struct.generator.atomGroups({
+		        'residue-test': B.core.set.has([
+                    B.core.type.set(ResDict.nucleic),
+                    B.ammp('label_comp_id')
+		        ])
+            }),
+		    by: B.struct.generator.atomGroups({
+		        'atom-test': B.core.set.has([
+			        B.core.type.set(Backbone.nucleic),
+			        B.ammp('label_atom_id')
+                ])
+            })
+        }),
+    ]);
+}
 
 export const keywords: KeywordDict = {
     // general terms
@@ -336,7 +390,8 @@ export const keywords: KeywordDict = {
         })
     },
     protein: {
-        '@desc': 'defined as a group that (a) has one of the following group names: ALA, ARG, ASN, ASP, CYS, GLN, GLU, GLY, HIS, ILE, LEU, LYS, MET, PHE, PRO, SER, THR, TRP, TYR, VAL, ASX, GLX, or UNK; or (b) contains PDB atom designations [C, O, CA, and N] bonded correctly; or (c) does not contain "O" but contains [C, CA, and N] bonded correctly; or (d) has only one atom, which has name CA and does not have the group name CA (indicating a calcium atom).'
+        '@desc': 'defined as a group that (a) has one of the following group names: ALA, ARG, ASN, ASP, CYS, GLN, GLU, GLY, HIS, ILE, LEU, LYS, MET, PHE, PRO, SER, THR, TRP, TYR, VAL, ASX, GLX, or UNK; or (b) contains PDB atom designations [C, O, CA, and N] bonded correctly; or (c) does not contain "O" but contains [C, CA, and N] bonded correctly; or (d) has only one atom, which has name CA and does not have the group name CA (indicating a calcium atom).',
+        map: () => proteinExpr()
     },
     acidic: {
         '@desc': 'ASP GLU',
@@ -496,7 +551,8 @@ export const keywords: KeywordDict = {
     },
     backbone: {
         '@desc': '(*.C, *.CA, *.N, and all nucleic other than the bases themselves)',
-        abbr: ['mainchain']
+        abbr: ['mainchain'],
+        map: () => backboneExpr()
     },
     sidechain: {
         '@desc': '((protein or nucleic) and not backbone)'
