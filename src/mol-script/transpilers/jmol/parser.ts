@@ -86,7 +86,7 @@ const valueOperators: OperatorList = [
 ];
 
 function atomExpressionQuery(x: any[]) {
-    const [resname, resno, inscode, chainname, atomname, altloc] = x[1];
+    const [resname, resnoRange, resno, inscode, chainname, atomname, altloc] = x[1];
     const tests: AtomGroupArgs = {};
 
     if (chainname) {
@@ -96,6 +96,10 @@ function atomExpressionQuery(x: any[]) {
 
     const resProps = [];
     if (resname) resProps.push(B.core.rel.eq([B.ammp('label_comp_id'), resname]));
+    if (resnoRange) resProps.push(B.core.logic.and([
+        B.core.rel.gre([B.ammp('auth_seq_id'), resnoRange[0]]),
+        B.core.rel.lte([B.ammp('auth_seq_id'), resnoRange[1]])
+    ]));
     if (resno) resProps.push(B.core.rel.eq([B.ammp('auth_seq_id'), resno]));
     if (inscode) resProps.push(B.core.rel.eq([B.ammp('pdbx_PDB_ins_code'), inscode]));
     if (resProps.length) tests['residue-test'] = h.andExpr(resProps);
@@ -123,15 +127,6 @@ const lang = P.MonadicParser.createLanguage({
         return P.MonadicParser.alt(
             r.Keywords,
 
-            r.ResnoRange.map((x: [number, number]) => B.struct.generator.atomGroups({
-                'residue-test': B.core.logic.and([
-                    B.core.rel.gre([B.ammp('auth_seq_id'), x[0]]),
-                    B.core.rel.lte([B.ammp('auth_seq_id'), x[1]])
-                ])
-            })),
-            r.Resno.lookahead(P.MonadicParser.regexp(/\s*(?!(LIKE|>=|<=|!=|[\[:^%/.=><]))/i)).map((x: number) => B.struct.generator.atomGroups({
-                'residue-test': B.core.rel.eq([B.ammp('auth_seq_id'), x])
-            })),
             r.AtomExpression.map(atomExpressionQuery),
 
             r.Within.map((x: [number, Expression]) => B.struct.modifier.includeSurroundings({ 0: x[1], radius: x[0] })),
@@ -155,6 +150,7 @@ const lang = P.MonadicParser.createLanguage({
             P.MonadicParser.lookahead(r.AtomPrefix),
             P.MonadicParser.seq(
                 r.BracketedResname.or(P.MonadicParser.of(null)),
+                r.ResnoRange.or(P.MonadicParser.of(null)),
                 r.Resno.or(P.MonadicParser.of(null)),
                 r.Inscode.or(P.MonadicParser.of(null)),
                 r.Chainname.or(P.MonadicParser.of(null)),
@@ -165,7 +161,7 @@ const lang = P.MonadicParser.createLanguage({
         ).desc('expression');
     },
 
-    AtomPrefix: () => P.MonadicParser.regexp(/[\[0-9:^%/.]/).desc('atom-prefix'),
+    AtomPrefix: () => P.MonadicParser.regexp(/[\[0-9:^%/.-]/).desc('atom-prefix'),
 
     Chainname: () => P.MonadicParser.regexp(/:([A-Za-z]{1,3})/, 1).desc('chainname'),
     Model: () => P.MonadicParser.regexp(/\/([0-9]+)/, 1).map(Number).desc('model'),

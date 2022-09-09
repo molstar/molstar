@@ -81,6 +81,12 @@ const general = {
         '20',
         // within in the head or the middle of sentence
         'within (   5 ,  [HEM] ) and backbone',
+
+        // atom expressions with ranges
+        '19-32:A',
+        '-2-32:B',
+        '-10--2:C',
+        '[1FO]19-32:A',
     ],
     unsupported: [
         // values outside of comparisons
