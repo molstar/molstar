@@ -22,6 +22,7 @@ import { AssetManager } from '../../mol-util/assets';
 
 export const ImageParams = {
     transparentBackground: PD.Boolean(false),
+    dpoitIterations: PD.Numeric(2, { min: 1, max: 10, step: 1 }),
     multiSample: PD.Group(MultiSampleParams),
     postprocessing: PD.Group(PostprocessingParams),
     marking: PD.Group(MarkingParams),
