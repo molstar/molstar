@@ -9,6 +9,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - [Fix] Clone ``Canvas3DParams`` when creating a ``Canvas3D`` instance to prevent shared state between multiple instances
 - Add ``includeResidueTest`` option to ``alignAndSuperposeWithSIFTSMapping``
 - Add ``parentDisplay`` param for interactions representation.
+- Fix handling of PDB TER records (#549)
 
 ## [v3.16.0] - 2022-08-25
 
