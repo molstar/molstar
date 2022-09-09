@@ -1,8 +1,10 @@
 /**
- * Copyright (c) 2017-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Panagiotis Tourlas <panagiot_tourlov@hotmail.com>
+ *
+ * Adapted from MolQL project
  */
 
 import { MolScriptBuilder } from '../../../mol-script/language/builder';
@@ -34,7 +36,8 @@ function backboneExpr() {
             by: B.struct.generator.atomGroups({
                 'atom-test': B.core.set.has([
                     B.core.type.set(Backbone.protein),
-                    B.ammp('label_atom_id')])
+                    B.ammp('label_atom_id')
+                ])
             })
         }),
         B.struct.modifier.intersectBy({
@@ -47,13 +50,12 @@ function backboneExpr() {
             by: B.struct.generator.atomGroups({
                 'atom-test': B.core.set.has([
                     B.core.type.set(Backbone.nucleic),
-                    B.ammp('label_atom_id')])
+                    B.ammp('label_atom_id')
+                ])
             })
         }),
     ]);
-
 }
-
 
 export const keywords: KeywordDict = {
     all: {
@@ -104,7 +106,8 @@ export const keywords: KeywordDict = {
                 '0': B.struct.generator.atomGroups({
                     'residue-test': B.core.set.has([
                         B.core.type.set(ResDict.nucleic.concat(ResDict.protein)),
-                        B.ammp('label_comp_id')])
+                        B.ammp('label_comp_id')
+                    ])
                 }),
                 by: backboneExpr()
             });
@@ -231,7 +234,7 @@ export const keywords: KeywordDict = {
             }),
             B.struct.generator.atomGroups({
                 'atom-test': B.core.set.has([
-                    h.atomNameSet(['C4*', 'C4']),
+                    h.atomNameSet(['C4*', 'C4\'']),
                     B.ammp('label_atom_id')
                 ]),
                 'residue-test': B.core.set.has([
@@ -245,12 +248,12 @@ export const keywords: KeywordDict = {
         '@desc': 'All metal atoms (new in PyMOL 1.6.1)'
     },
     backbone: {
-        '@desc': 'the C, N, CA, and O atoms of a protein and the equivalent atoms in a nucleic acid.',
+        '@desc': 'Polymer backbone atoms (new in PyMOL 1.6.1)',
         abbr: ['bb.'],
         map: () => backboneExpr()
     },
-    'bFCLHMz55tjm16c9': {
-        '@desc': 'protein',
+    'polymer.protein': {
+        '@desc': 'Protein (New in PyMOL 2.1)',
         abbr: ['polymer.protein'],
         map: () => B.struct.generator.atomGroups({
             'residue-test': B.core.set.has([
@@ -259,8 +262,8 @@ export const keywords: KeywordDict = {
             ])
         })
     },
-    'bFCLHMz55tjm16c0': {
-        '@desc': 'nucleic acid',
+    'polymer.nucleic': {
+        '@desc': 'Nucleic Acid (New in PyMOL 2.1)',
         abbr: ['polymer.nucleic'],
         map: () => B.struct.generator.atomGroups({
             'residue-test': B.core.set.has([
