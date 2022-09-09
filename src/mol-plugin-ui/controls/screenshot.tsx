@@ -24,8 +24,9 @@ export interface ScreenshotPreviewProps {
 
 const _ScreenshotPreview = (props: ScreenshotPreviewProps) => {
     const { plugin, cropFrameColor } = props;
+    const helper = plugin.helpers.viewportScreenshot;
+    if (!helper) return null;
 
-    const helper = plugin.helpers.viewportScreenshot!;
     const [currentCanvas, setCurrentCanvas] = useState<HTMLCanvasElement | null>(null);
     const canvasRef = useRef<HTMLCanvasElement | null>(null);
     const propsRef = useRef(props);
@@ -52,7 +53,7 @@ const _ScreenshotPreview = (props: ScreenshotPreviewProps) => {
         function preview() {
             const p = propsRef.current;
             if (!p.suspend && canvasRef.current) {
-                drawPreview(helper, canvasRef.current, p.customBackground, p.borderColor, p.borderWidth);
+                drawPreview(helper!, canvasRef.current, p.customBackground, p.borderColor, p.borderWidth);
             }
 
             if (!canvasRef.current) isDirty = true;
@@ -151,17 +152,17 @@ function drawPreview(helper: ViewportScreenshotHelper, target: HTMLCanvasElement
 
 function ViewportFrame({ plugin, canvas, color = 'rgba(255, 87, 45, 0.75)' }: { plugin: PluginContext, canvas: HTMLCanvasElement | null, color?: string }) {
     const helper = plugin.helpers.viewportScreenshot;
-    const params = useBehavior(helper?.behaviors.values!);
-    const cropParams = useBehavior(helper?.behaviors.cropParams!);
-    const crop = useBehavior(helper?.behaviors.relativeCrop!);
+    if (!helper || !canvas) return null;
+
+    const params = useBehavior(helper.behaviors.values);
+    const cropParams = useBehavior(helper.behaviors.cropParams);
+    const crop = useBehavior(helper.behaviors.relativeCrop!);
     const cropFrameRef = useRef<Viewport>({ x: 0, y: 0, width: 0, height: 0 });
     useBehavior(params?.resolution.name === 'viewport' ? plugin.canvas3d?.resized : void 0);
 
     const [drag, setDrag] = React.useState<string>('');
     const [start, setStart] = useState([0, 0]);
     const [current, setCurrent] = useState([0, 0]);
-
-    if (!helper || !canvas) return null;
 
     const { width, height } = helper.getSizeAndViewport();
 

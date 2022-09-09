@@ -96,15 +96,18 @@ export class DownloadScreenshotControls extends PluginUIComponent<{ close: () =>
 }
 
 function ScreenshotParams({ plugin, isDisabled }: { plugin: PluginContext, isDisabled: boolean }) {
-    const helper = plugin.helpers.viewportScreenshot!;
-    const values = useBehavior(helper.behaviors.values);
+    const helper = plugin.helpers.viewportScreenshot;
+    if (!helper) return null;
 
+    const values = useBehavior(helper.behaviors.values);
     return <ParameterControls params={helper.params} values={values} onChangeValues={v => helper.behaviors.values.next(v)} isDisabled={isDisabled} />;
 }
 
 function CropControls({ plugin }: { plugin: PluginContext }) {
     const helper = plugin.helpers.viewportScreenshot;
-    const cropParams = useBehavior(helper?.behaviors.cropParams!);
+    if (!helper) return null;
+
+    const cropParams = useBehavior(helper.behaviors.cropParams);
     useBehavior(helper?.behaviors.relativeCrop);
 
     if (!helper) return null;
