@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Gianluca Tomasello <giagitom@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  *
  * Adapted from https://github.com/tsherif/webgl2examples, The MIT License, Copyright © 2017 Tarek Sherif, Shuai Shao
  */
@@ -80,7 +81,6 @@ export class DpoitPass {
 
     private readonly depthFramebuffers: Framebuffer[];
     private readonly colorFramebuffers: Framebuffer[];
-    private readonly blendBackFramebuffer: Framebuffer;
 
     private readonly depthTextures: Texture[];
     private readonly colorFrontTextures: Texture[];
@@ -93,17 +93,12 @@ export class DpoitPass {
     }
 
     bind() {
-        const { state, gl, extensions: { blendMinMax, drawBuffers } } = this.webgl;
+        const { state, gl, extensions: { blendMinMax } } = this.webgl;
 
         // initialize
         this.passCount = 0;
 
-        this.blendBackFramebuffer.bind();
-        state.clearColor(0, 0, 0, 0); // correct blending when texture is cleared with background color (for example state.clearColor(1,1,1,0) on white background)
-        gl.clear(gl.COLOR_BUFFER_BIT);
-
         this.depthFramebuffers[0].bind();
-        drawBuffers!.drawBuffers([gl.NONE, gl.NONE, drawBuffers!.COLOR_ATTACHMENT2]);
         state.clearColor(this.DEPTH_CLEAR_VALUE, this.DEPTH_CLEAR_VALUE, 0, 0);
         gl.clear(gl.COLOR_BUFFER_BIT);
 
@@ -120,14 +115,13 @@ export class DpoitPass {
         gl.clear(gl.COLOR_BUFFER_BIT);
 
         this.depthFramebuffers[0].bind();
-        // rawBuffers!.drawBuffers([gl.NONE, gl.NONE, drawBuffers!.COLOR_ATTACHMENT2]);
         state.blendEquation(blendMinMax!.MAX);
 
         return { depth: this.depthTextures[1], frontColor: this.colorFrontTextures[1], backColor: this.colorBackTextures[1] };
     }
 
     bindDualDepthPeeling() {
-        const { state, gl, extensions: { blendMinMax, drawBuffers } } = this.webgl;
+        const { state, gl, extensions: { blendMinMax } } = this.webgl;
 
         this.readId = this.passCount % 2;
         this.writeId = 1 - this.readId; // ping-pong: 0 or 1
@@ -135,7 +129,6 @@ export class DpoitPass {
         this.passCount += 1; // increment for next pass
 
         this.depthFramebuffers[this.writeId].bind();
-        drawBuffers!.drawBuffers([gl.NONE, gl.NONE, drawBuffers!.COLOR_ATTACHMENT2]);
         state.clearColor(this.DEPTH_CLEAR_VALUE, this.DEPTH_CLEAR_VALUE, 0, 0);
         gl.clear(gl.COLOR_BUFFER_BIT);
 
@@ -144,23 +137,16 @@ export class DpoitPass {
         gl.clear(gl.COLOR_BUFFER_BIT);
 
         this.depthFramebuffers[this.writeId].bind();
-        drawBuffers!.drawBuffers([drawBuffers!.COLOR_ATTACHMENT0, drawBuffers!.COLOR_ATTACHMENT1, drawBuffers!.COLOR_ATTACHMENT2]);
         state.blendEquation(blendMinMax!.MAX);
 
         return { depth: this.depthTextures[this.readId], frontColor: this.colorFrontTextures[this.readId], backColor: this.colorBackTextures[this.readId] };
-    }
-
-    bindBlendBack() {
-        const { state, gl } = this.webgl;
-
-        this.blendBackFramebuffer.bind();
-        state.blendEquation(gl.FUNC_ADD);
     }
 
     renderBlendBack() {
         if (isTimingMode) this.webgl.timer.mark('DpoitPass.renderBlendBack');
         const { state, gl } = this.webgl;
 
+        state.blendEquation(gl.FUNC_ADD);
         state.blendFuncSeparate(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA, gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
 
         ValueCell.update(this.blendBackRenderable.values.tDpoitBackColor, this.colorBackTextures[this.writeId]);
@@ -207,6 +193,8 @@ export class DpoitPass {
         for (let i = 0; i < 2; i++) {
             // depth
             this.depthFramebuffers[i].bind();
+            drawBuffers!.drawBuffers([drawBuffers!.COLOR_ATTACHMENT0, drawBuffers!.COLOR_ATTACHMENT1, drawBuffers!.COLOR_ATTACHMENT2]);
+
             this.depthTextures[i].attachFramebuffer(this.depthFramebuffers[i], 'color2');
             this.colorFrontTextures[i].attachFramebuffer(this.depthFramebuffers[i], 'color0');
             this.colorBackTextures[i].attachFramebuffer(this.depthFramebuffers[i], 'color1');
@@ -214,14 +202,10 @@ export class DpoitPass {
             // color
             this.colorFramebuffers[i].bind();
             drawBuffers!.drawBuffers([drawBuffers!.COLOR_ATTACHMENT0, drawBuffers!.COLOR_ATTACHMENT1]);
+
             this.colorFrontTextures[i].attachFramebuffer(this.colorFramebuffers[i], 'color0');
             this.colorBackTextures[i].attachFramebuffer(this.colorFramebuffers[i], 'color1');
         }
-
-        // blend back
-        this.blendBackFramebuffer.bind();
-        drawBuffers!.drawBuffers([drawBuffers!.COLOR_ATTACHMENT0]);
-        this.blendBackTexture.attachFramebuffer(this.blendBackFramebuffer, 'color0');
     }
 
     static isSupported(webgl: WebGLContext) {
@@ -274,7 +258,6 @@ export class DpoitPass {
         // framebuffers
         this.depthFramebuffers = [resources.framebuffer(), resources.framebuffer()];
         this.colorFramebuffers = [resources.framebuffer(), resources.framebuffer()];
-        this.blendBackFramebuffer = resources.framebuffer();
 
         this.blendBackRenderable = getBlendBackDpoitRenderable(webgl, this.colorBackTextures[0]);
 

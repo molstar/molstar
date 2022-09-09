@@ -177,7 +177,12 @@ export class DrawPass {
                 if (scene.volumes.renderables.length > 0) {
                     renderer.renderDpoitTransparent(scene.volumes, camera, this.depthTextureOpaque, dpoitTextures);
                 }
-                this.dpoit.bindBlendBack();
+
+                if (PostprocessingPass.isEnabled(postprocessingProps)) {
+                    this.postprocessing.target.bind();
+                } else {
+                    this.colorTarget.bind();
+                }
                 this.dpoit.renderBlendBack();
             }
 
