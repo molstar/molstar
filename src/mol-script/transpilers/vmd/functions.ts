@@ -3,6 +3,8 @@
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Panagiotis Tourlas <panagiot_tourlov@hotmail.com>
+ *
+ * Adapted from MolQL project
  */
 
 import { MolScriptBuilder } from '../../../mol-script/language/builder';

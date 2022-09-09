@@ -5,8 +5,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  *
  * Adapted from MolQL project
- **/
-
+ */
 
 import * as P from '../../../mol-util/monadic-parser';
 import * as h from '../helper';

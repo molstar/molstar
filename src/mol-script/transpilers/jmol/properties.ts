@@ -1,8 +1,11 @@
-/*
- * Copyright (c) 2017-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+/**
+ * Copyright (c) 2017-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Koya Sakuma <koya.sakuma.work@gmail.com>
+ *
  * Adapted from MolQL project
-*/
+ */
 
 import { MolScriptBuilder } from '../../../mol-script/language/builder';
 const B = MolScriptBuilder;

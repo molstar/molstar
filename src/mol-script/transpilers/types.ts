@@ -1,13 +1,14 @@
 /**
- * Copyright (c) 2017-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Panagiotis Tourlas <panagiot_tourlov@hotmail.com>
+ *
+ * Adapted from MolQL project
  */
 
 import * as P from '../../mol-util/monadic-parser';
 import { Expression } from '../language/expression';
-// import Symbol from '../mini-lisp/symbol'
 
 export interface AtomGroupArgs {
     [index: string]: any
@@ -35,7 +36,7 @@ export interface Property {
     regex: RegExp
     map: (s: string) => any
     level: 'atom-test' | 'residue-test' | 'chain-test' | 'entity-test'
-    property?: any /* Symbol */
+    property?: Expression
 }
 
 export type PropertyDict = { [name: string]: Property }
