@@ -73,6 +73,7 @@ interface Renderer {
     renderWboitTransparent: (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => void
     renderDpoitOpaque: (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => void
     renderDpoitTransparent: (group: Scene.Group, camera: ICamera, depthTexture: Texture | null, dpoitTextures: { depth: Texture, frontColor: Texture, backColor: Texture }) => void
+    renderDpoitVolume: (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => void
 
     setProps: (props: Partial<RendererProps>) => void
     setViewport: (x: number, y: number, width: number, height: number) => void
@@ -144,7 +145,7 @@ namespace Renderer {
     const enum Flag {
         None = 0,
         BlendedFront = 1,
-        BlendedBack = 2
+        BlendedBack = 2,
     }
 
     const enum Mask {
@@ -620,7 +621,7 @@ namespace Renderer {
                 // TODO: simplify, handle in renderable.state???
                 // uAlpha is updated in "render" so we need to recompute it here
                 const alpha = clamp(r.values.alpha.ref.value * r.state.alphaFactor, 0, 1);
-                if ((alpha === 1 && r.values.transparencyAverage.ref.value !== 1 && r.values.dGeometryType.ref.value !== 'directVolume' && r.values.dPointStyle?.ref.value !== 'fuzzy' && !r.values.dXrayShaded?.ref.value) || r.values.dTransparentBackfaces?.ref.value === 'opaque') {
+                if ((alpha === 1 && r.values.transparencyAverage.ref.value !== 1 && r.values.dPointStyle?.ref.value !== 'fuzzy' && !r.values.dXrayShaded?.ref.value) || r.values.dTransparentBackfaces?.ref.value === 'opaque') {
                     renderObject(r, 'colorDpoit', Flag.None);
                 }
             }
@@ -643,15 +644,31 @@ namespace Renderer {
             for (let i = 0, il = renderables.length; i < il; ++i) {
                 const r = renderables[i];
 
-
                 // TODO: simplify, handle in renderable.state???
                 // uAlpha is updated in "render" so we need to recompute it here
                 const alpha = clamp(r.values.alpha.ref.value * r.state.alphaFactor, 0, 1);
-                if (alpha < 1 || r.values.transparencyAverage.ref.value > 0 || r.values.dGeometryType.ref.value === 'directVolume' || r.values.dPointStyle?.ref.value === 'fuzzy' || !!r.values.uBackgroundColor || r.values.dXrayShaded?.ref.value) {
+                if (alpha < 1 || r.values.transparencyAverage.ref.value > 0 || r.values.dPointStyle?.ref.value === 'fuzzy' || !!r.values.uBackgroundColor || r.values.dXrayShaded?.ref.value) {
                     renderObject(r, 'colorDpoit', Flag.None);
                 }
             }
             if (isTimingMode) ctx.timer.markEnd('Renderer.renderDpoitTransparent');
+        };
+
+        const renderDpoitVolume = (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => {
+            if (isTimingMode) ctx.timer.mark('Renderer.renderDpoitVolume');
+            state.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+            state.enable(gl.BLEND);
+
+            updateInternal(group, camera, depthTexture, Mask.Transparent, false);
+
+            const { renderables } = group;
+            for (let i = 0, il = renderables.length; i < il; ++i) {
+                const r = renderables[i];
+                if (r.values.dGeometryType.ref.value === 'directVolume') {
+                    renderObject(r, 'colorDpoit', Flag.None);
+                }
+            }
+            if (isTimingMode) ctx.timer.markEnd('Renderer.renderDpoitVolume');
         };
 
         return {
@@ -699,6 +716,7 @@ namespace Renderer {
             renderWboitTransparent,
             renderDpoitOpaque,
             renderDpoitTransparent,
+            renderDpoitVolume,
 
             setProps: (props: Partial<RendererProps>) => {
                 if (props.backgroundColor !== undefined && props.backgroundColor !== p.backgroundColor) {

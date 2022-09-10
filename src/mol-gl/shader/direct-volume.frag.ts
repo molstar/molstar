@@ -62,12 +62,6 @@ uniform int uGroupCount;
     uniform sampler2D tMarker;
 #endif
 
-#if defined(dRenderVariant_colorDpoit)
-    #define MAX_DPOIT_DEPTH 99999.0
-    uniform sampler2D tDpoitDepth;
-    uniform sampler2D tDpoitFrontColor;
-#endif
-
 uniform float uMetalness;
 uniform float uRoughness;
 
@@ -361,6 +355,5 @@ void main() {
     float fragmentDepth = calcDepth((uModelView * vec4(start, 1.0)).xyz);
     float preFogAlpha = clamp(preFogAlphaBlended, 0.0, 1.0);
     #include wboit_write
-    #include dpoit_write
 }
 `;

@@ -154,29 +154,17 @@ export class DrawPass {
             this.postprocessing.render(camera, false, transparentBackground, renderer.props.backgroundColor, postprocessingProps);
         }
 
-        let dpoitTextures;
-        // render transparent primitives and volumes
-        if (scene.opacityAverage < 1 || scene.volumes.renderables.length > 0) {
-
-            dpoitTextures = this.dpoit.bind();
+        // render transparent primitives
+        if (scene.opacityAverage < 1) {
+            const dpoitTextures = this.dpoit.bind();
 
             if (isTimingMode) this.webgl.timer.mark('DpoitPasses.render');
 
-            if (scene.opacityAverage < 1) {
-                renderer.renderDpoitTransparent(scene.primitives, camera, this.depthTextureOpaque, dpoitTextures);
-            }
-            if (scene.volumes.renderables.length > 0) {
-                renderer.renderDpoitTransparent(scene.volumes, camera, this.depthTextureOpaque, dpoitTextures);
-            }
+            renderer.renderDpoitTransparent(scene.primitives, camera, this.depthTextureOpaque, dpoitTextures);
 
             for (let i = 0; i < iterations; i++) {
-                dpoitTextures = this.dpoit.bindDualDepthPeeling();
-                if (scene.opacityAverage < 1) {
-                    renderer.renderDpoitTransparent(scene.primitives, camera, this.depthTextureOpaque, dpoitTextures);
-                }
-                if (scene.volumes.renderables.length > 0) {
-                    renderer.renderDpoitTransparent(scene.volumes, camera, this.depthTextureOpaque, dpoitTextures);
-                }
+                const dpoitTextures = this.dpoit.bindDualDepthPeeling();
+                renderer.renderDpoitTransparent(scene.primitives, camera, this.depthTextureOpaque, dpoitTextures);
 
                 if (PostprocessingPass.isEnabled(postprocessingProps)) {
                     this.postprocessing.target.bind();
@@ -195,6 +183,11 @@ export class DrawPass {
                 this.colorTarget.bind();
             }
             this.dpoit.render();
+        }
+
+        // render transparent volumes
+        if (scene.volumes.renderables.length > 0) {
+            renderer.renderDpoitVolume(scene.volumes, camera, this.depthTextureOpaque);
         }
     }
 
