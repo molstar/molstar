@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -288,7 +288,12 @@ class MeasurementEntry extends PurePluginUIComponent<{ cell: StructureMeasuremen
         for (const loci of this.lociArray) {
             this.plugin.managers.interactivity.lociHighlights.highlight({ loci }, false);
         }
-        this.plugin.managers.interactivity.lociHighlights.highlight({ loci: this.props.cell.obj?.data.repr.getLoci()! }, false);
+        const reprLocis = this.props.cell.obj?.data.repr.getAllLoci();
+        if (reprLocis) {
+            for (const loci of reprLocis) {
+                this.plugin.managers.interactivity.lociHighlights.highlight({ loci }, false);
+            }
+        }
     };
 
     clearHighlight = () => {

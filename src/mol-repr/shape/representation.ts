@@ -213,13 +213,15 @@ export function ShapeRepresentation<D, G extends Geometry, P extends Geometry.Pa
         get geometryVersion() { return geometryVersion; },
         updated,
         createOrUpdate,
-        getLoci(pickingId?: PickingId) {
-            if (pickingId === undefined) return Shape.Loci(_shape);
+        getLoci(pickingId: PickingId) {
             const { objectId, groupId, instanceId } = pickingId;
             if (_renderObject && _renderObject.id === objectId) {
                 return ShapeGroup.Loci(_shape, [{ ids: OrderedSet.ofSingleton(groupId), instance: instanceId }]);
             }
             return EmptyLoci;
+        },
+        getAllLoci() {
+            return [Shape.Loci(_shape)];
         },
         mark(loci: Loci, action: MarkerAction) {
             if (!MarkerActions.is(_state.markerActions, action)) return false;

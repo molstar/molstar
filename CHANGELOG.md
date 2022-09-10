@@ -10,6 +10,8 @@ Note that since we don't clearly distinguish between a public and private interf
 - Add ``includeResidueTest`` option to ``alignAndSuperposeWithSIFTSMapping``
 - Add ``parentDisplay`` param for interactions representation.
 - Fix handling of PDB TER records (#549)
+- Add support for getting multiple loci from a representation (``.getAllLoci()``)
+- Add ``key`` property to intra- and inter-bonds for referencing source data
 
 ## [v3.16.0] - 2022-08-25
 

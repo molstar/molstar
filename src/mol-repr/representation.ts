@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -154,8 +154,8 @@ interface Representation<D, P extends PD.Params = {}, S extends Representation.S
     createOrUpdate: (props?: Partial<PD.Values<P>>, data?: D) => Task<void>
     setState: (state: Partial<S>) => void
     setTheme: (theme: Theme) => void
-    /** If no pickingId is given, returns a Loci for the whole representation */
-    getLoci: (pickingId?: PickingId) => ModelLoci
+    getLoci: (pickingId: PickingId) => ModelLoci
+    getAllLoci: () => ModelLoci[]
     mark: (loci: ModelLoci, action: MarkerAction) => boolean
     destroy: () => void
 }
@@ -227,6 +227,7 @@ namespace Representation {
         setState: () => {},
         setTheme: () => {},
         getLoci: () => EmptyLoci,
+        getAllLoci: () => [],
         mark: () => false,
         destroy: () => {}
     };
@@ -327,7 +328,7 @@ namespace Representation {
             },
             get state() { return currentState; },
             get theme() { return currentTheme; },
-            getLoci: (pickingId?: PickingId) => {
+            getLoci: (pickingId: PickingId) => {
                 const { visuals } = currentProps;
                 for (let i = 0, il = reprList.length; i < il; ++i) {
                     if (!visuals || visuals.includes(reprMap[i])) {
@@ -336,6 +337,16 @@ namespace Representation {
                     }
                 }
                 return EmptyLoci;
+            },
+            getAllLoci: () => {
+                const loci: ModelLoci[] = [];
+                const { visuals } = currentProps;
+                for (let i = 0, il = reprList.length; i < il; ++i) {
+                    if (!visuals || visuals.includes(reprMap[i])) {
+                        loci.push(...reprList[i].getAllLoci());
+                    }
+                }
+                return loci;
             },
             mark: (loci: ModelLoci, action: MarkerAction) => {
                 let marked = false;
@@ -398,6 +409,10 @@ namespace Representation {
             getLoci: () => {
                 // TODO
                 return EmptyLoci;
+            },
+            getAllLoci: () => {
+                // TODO
+                return [];
             },
             mark: (loci: ModelLoci, action: MarkerAction) => {
                 // TODO
