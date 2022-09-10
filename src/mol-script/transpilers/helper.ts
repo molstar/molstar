@@ -31,16 +31,6 @@ export function prefix(opParser: P.MonadicParser<any>, nextParser: P.MonadicPars
     return parser;
 }
 
-export function prefixRemoveKet(opParser: P.MonadicParser<any>, nextParser: P.MonadicParser<any>, mapFn: any) {
-    const parser: P.MonadicParser<any> = P.MonadicParser.lazy(() => {
-        return P.MonadicParser.seq(opParser, parser.skip(P.MonadicParser.regexp(/\s*\)/)))
-            .map(x => mapFn(...x))
-            .or(nextParser);
-    });
-    return parser;
-}
-
-
 // Ideally this function would be just like `PREFIX` but reordered like
 // `P.seq(parser, opParser).or(nextParser)`, but that doesn't work. The
 // reason for that is that Parsimmon will get stuck in infinite recursion, since
@@ -136,10 +126,6 @@ export function infixOp(re: RegExp, group: number = 0) {
 
 export function prefixOp(re: RegExp, group: number = 0) {
     return P.MonadicParser.regexp(re, group).skip(P.MonadicParser.optWhitespace);
-}
-
-export function prefixOpNoWhiteSpace(re: RegExp, group: number = 0) {
-    return P.MonadicParser.regexp(re, group).skip(P.MonadicParser.regexp(/\s*/));
 }
 
 export function postfixOp(re: RegExp, group: number = 0) {
@@ -364,18 +350,18 @@ const residueProps = ['residueKey', 'label_comp_id', 'label_seq_id', 'auth_comp_
 export function testLevel(property: any) {
     if (property.head.name.startsWith(propPrefix)) {
         const name = property.head.name.substr(propPrefix.length);
-        if (entityProps.indexOf(name) !== -1) return 'entity-test' as string;
-        if (chainProps.indexOf(name) !== -1) return 'chain-test' as string;
-        if (residueProps.indexOf(name) !== -1) return 'residue-test' as string;
+        if (entityProps.includes(name)) return 'entity-test';
+        if (chainProps.includes(name)) return 'chain-test';
+        if (residueProps.includes(name)) return 'residue-test';
     }
-    return 'atom-test' as string;
+    return 'atom-test';
 }
 
 const flagProps = [
     'structure-query.atom-property.macromolecular.secondary-structure-flags'
 ];
 export function valuesTest(property: any, values: any[]) {
-    if (flagProps.indexOf(property.head.name) !== -1) {
+    if (flagProps.includes(property.head.name)) {
         const name = values[0].head;
         const flags: any[] = [];
         values.forEach(v => flags.push(...v.args[0]));
