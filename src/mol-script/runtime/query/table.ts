@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2019 Mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2022 Mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -356,6 +356,7 @@ const symbols = [
     // ============= BOND PROPERTIES ================
     D(MolScript.structureQuery.bondProperty.order, (ctx, xs) => ctx.atomicBond.order),
     D(MolScript.structureQuery.bondProperty.flags, (ctx, xs) => ctx.atomicBond.type),
+    D(MolScript.structureQuery.bondProperty.key, (ctx, xs) => ctx.atomicBond.key),
     D(MolScript.structureQuery.bondProperty.atomA, (ctx, xs) => ctx.atomicBond.a),
     D(MolScript.structureQuery.bondProperty.atomB, (ctx, xs) => ctx.atomicBond.b),
     D(MolScript.structureQuery.bondProperty.length, (ctx, xs) => ctx.atomicBond.length),

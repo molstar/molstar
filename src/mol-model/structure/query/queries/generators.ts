@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -322,7 +322,7 @@ export function bondedAtomicPairs(bondTest?: QueryPredicate): StructureQuery {
         for (const unit of structure.units) {
             if (unit.kind !== Unit.Kind.Atomic) continue;
 
-            const { offset: intraBondOffset, b: intraBondB, edgeProps: { flags, order } } = unit.bonds;
+            const { offset: intraBondOffset, b: intraBondB, edgeProps: { flags, order, key } } = unit.bonds;
             atomicBond.a.unit = unit;
             atomicBond.b.unit = unit;
             for (let i = 0 as StructureElement.UnitIndex, _i = unit.elements.length; i < _i; i++) {
@@ -335,6 +335,7 @@ export function bondedAtomicPairs(bondTest?: QueryPredicate): StructureQuery {
                     atomicBond.b.element = unit.elements[intraBondB[lI]];
                     atomicBond.type = flags[lI];
                     atomicBond.order = order[lI];
+                    atomicBond.key = key[lI];
                     // No need to "swap test" because each bond direction will be visited eventually.
                     if (atomicBond.test(ctx, false)) {
                         const b = structure.subsetBuilder(false);
@@ -358,6 +359,7 @@ export function bondedAtomicPairs(bondTest?: QueryPredicate): StructureQuery {
             atomicBond.bIndex = bond.indexB;
             atomicBond.order = bond.props.order;
             atomicBond.type = bond.props.flag;
+            atomicBond.key = bond.props.key;
 
             // No need to "swap test" because each bond direction will be visited eventually.
             if (atomicBond.test(ctx, false)) {

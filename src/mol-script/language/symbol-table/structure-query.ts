@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2019 Mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2022 Mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -333,6 +333,7 @@ const bondProperty = {
 
     flags: bondProp(Types.BondFlags),
     order: bondProp(Type.Num),
+    key: bondProp(Type.Num),
     length: bondProp(Type.Num),
     atomA: bondProp(Types.ElementReference),
     atomB: bondProp(Types.ElementReference)
@@ -356,5 +357,5 @@ export const structureQuery = {
     combinator,
     atomSet,
     atomProperty,
-    bondProperty: bondProperty
+    bondProperty
 };
