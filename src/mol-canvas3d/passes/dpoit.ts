@@ -46,17 +46,15 @@ function getBlendBackDpoitRenderable(ctx: WebGLContext, dopitBlendBackTexture: T
 const EvaluateDpoitSchema = {
     ...QuadSchema,
     tDpoitFrontColor: TextureSpec('texture', 'rgba', 'float', 'nearest'),
-    tDpoitBlendBackColor: TextureSpec('texture', 'rgba', 'float', 'nearest'),
     uTexSize: UniformSpec('v2'),
 };
 const EvaluateDpoitShaderCode = ShaderCode('evaluate-dpoit', quad_vert, evaluateDpoit_frag);
 type EvaluateDpoitRenderable = ComputeRenderable<Values<typeof EvaluateDpoitSchema>>
 
-function getEvaluateDpoitRenderable(ctx: WebGLContext, dpoitFrontColorTexture: Texture, dopitBlendBackTexture: Texture): EvaluateDpoitRenderable {
+function getEvaluateDpoitRenderable(ctx: WebGLContext, dpoitFrontColorTexture: Texture): EvaluateDpoitRenderable {
     const values: Values<typeof EvaluateDpoitSchema> = {
         ...QuadValues,
         tDpoitFrontColor: ValueCell.create(dpoitFrontColorTexture),
-        tDpoitBlendBackColor: ValueCell.create(dopitBlendBackTexture),
         uTexSize: ValueCell.create(Vec2.create(dpoitFrontColorTexture.getWidth(), dpoitFrontColorTexture.getHeight())),
     };
 
@@ -67,7 +65,6 @@ function getEvaluateDpoitRenderable(ctx: WebGLContext, dpoitFrontColorTexture: T
 }
 
 export class DpoitPass {
-
     private readonly DEPTH_CLEAR_VALUE = -99999.0;
     private readonly MAX_DEPTH = 1.0;
     private readonly MIN_DEPTH = 0.0;
@@ -85,7 +82,6 @@ export class DpoitPass {
     private readonly depthTextures: Texture[];
     private readonly colorFrontTextures: Texture[];
     private readonly colorBackTextures: Texture[];
-    private readonly blendBackTexture: Texture;
 
     private _supported = false;
     get supported() {
@@ -163,7 +159,6 @@ export class DpoitPass {
         state.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
 
         ValueCell.update(this.renderable.values.tDpoitFrontColor, this.colorFrontTextures[this.writeId]);
-        ValueCell.update(this.renderable.values.tDpoitBlendBackColor, this.blendBackTexture);
 
         this.renderable.update();
         this.renderable.render();
@@ -178,7 +173,6 @@ export class DpoitPass {
                 this.colorFrontTextures[i].define(width, height);
                 this.colorBackTextures[i].define(width, height);
             }
-            this.blendBackTexture.define(width, height);
             ValueCell.update(this.renderable.values.uTexSize, Vec2.set(this.renderable.values.uTexSize.ref.value, width, height));
             ValueCell.update(this.blendBackRenderable.values.uTexSize, Vec2.set(this.blendBackRenderable.values.uTexSize.ref.value, width, height));
         }
@@ -252,16 +246,13 @@ export class DpoitPass {
         this.colorBackTextures[0].define(width, height);
         this.colorBackTextures[1].define(width, height);
 
-        this.blendBackTexture = resources.texture('image-float32', 'rgba', 'float', 'nearest');
-        this.blendBackTexture.define(width, height);
-
         // framebuffers
         this.depthFramebuffers = [resources.framebuffer(), resources.framebuffer()];
         this.colorFramebuffers = [resources.framebuffer(), resources.framebuffer()];
 
+        // renderables
         this.blendBackRenderable = getBlendBackDpoitRenderable(webgl, this.colorBackTextures[0]);
-
-        this.renderable = getEvaluateDpoitRenderable(webgl, this.colorFrontTextures[0], this.blendBackTexture);
+        this.renderable = getEvaluateDpoitRenderable(webgl, this.colorFrontTextures[0]);
 
         this._supported = true;
         this._init();
