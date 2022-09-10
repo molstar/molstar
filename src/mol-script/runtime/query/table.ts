@@ -211,21 +211,21 @@ const symbols = [
     // ============= FILTERS ================
     D(MolScript.structureQuery.filter.pick, (ctx, xs) => Queries.filters.pick(xs[0] as any, xs['test'])(ctx)),
     D(MolScript.structureQuery.filter.first, (ctx, xs) => Queries.filters.first(xs[0] as any)(ctx)),
-    D(MolScript.structureQuery.filter.withSameAtomProperties, (ctx, xs) => Queries.filters.withSameAtomProperties(xs[0] as any, xs['source'] as any, xs['property'] as any)(ctx)),
+    D(MolScript.structureQuery.filter.withSameAtomProperties, (ctx, xs) => Queries.filters.withSameAtomProperties(xs[0] as any, xs['source'] as any, xs['property'])(ctx)),
     D(MolScript.structureQuery.filter.intersectedBy, (ctx, xs) => Queries.filters.areIntersectedBy(xs[0] as any, xs['by'] as any)(ctx)),
     D(MolScript.structureQuery.filter.within, (ctx, xs) => Queries.filters.within({
         query: xs[0] as any,
         target: xs['target'] as any,
-        minRadius: xs['min-radius'] as any,
-        maxRadius: xs['max-radius'] as any,
+        minRadius: xs['min-radius']?.(ctx) as any,
+        maxRadius: xs['max-radius']?.(ctx) as any,
         elementRadius: xs['atom-radius'] as any,
-        invert: xs['invert'] as any
+        invert: xs['invert']?.(ctx) as any
     })(ctx)),
     D(MolScript.structureQuery.filter.isConnectedTo, (ctx, xs) => Queries.filters.isConnectedTo({
         query: xs[0] as any,
         target: xs['target'] as any,
-        disjunct: xs['disjunct'] as any,
-        invert: xs['invert'] as any,
+        disjunct: xs['disjunct']?.(ctx) as any,
+        invert: xs['invert']?.(ctx) as any,
         bondTest: xs['bond-test']
     })(ctx)),
 
@@ -247,6 +247,9 @@ const symbols = [
     }),
     D(MolScript.structureQuery.generator.rings, function structureQuery_generator_rings(ctx, xs) {
         return Queries.generators.rings(xs?.['fingerprint']?.(ctx) as any, xs?.['only-aromatic']?.(ctx))(ctx);
+    }),
+    D(MolScript.structureQuery.generator.queryInSelection, function structureQuery_generator_queryInSelection(ctx, xs) {
+        return Queries.generators.querySelection(xs[0] as any, xs['query'] as any, xs['in-complement']?.(ctx) as any)(ctx);
     }),
 
     // ============= MODIFIERS ================
@@ -278,6 +281,7 @@ const symbols = [
             fixedPoint: xs['fixed-point']?.(ctx) ?? false
         })(ctx);
     }),
+    D(MolScript.structureQuery.modifier.intersectBy, function structureQuery_modifier_intersectBy(ctx, xs) { return Queries.modifiers.intersectBy(xs[0] as any, xs['by'] as any)(ctx); }),
 
     // ============= COMBINATORS ================
 
@@ -352,6 +356,23 @@ const symbols = [
     D(MolScript.structureQuery.atomProperty.macromolecular.secondaryStructureKey, atomProp(StructureProperties.residue.secondary_structure_key)),
     D(MolScript.structureQuery.atomProperty.macromolecular.secondaryStructureFlags, atomProp(StructureProperties.residue.secondary_structure_type)),
     D(MolScript.structureQuery.atomProperty.macromolecular.chemCompType, atomProp(StructureProperties.residue.chem_comp_type)),
+
+    // ============= ATOM SET ================
+
+    D(MolScript.structureQuery.atomSet.atomCount,
+        function structureQuery_atomset_atomCount(ctx, xs) {
+	    return Queries.atomset.atomCount(ctx);
+        }),
+
+    D(MolScript.structureQuery.atomSet.countQuery,
+        function structureQuery_atomset_countQuery(ctx, xs) {
+	    return Queries.atomset.countQuery(xs[0] as any)(ctx);
+        }),
+
+    D(MolScript.structureQuery.atomSet.propertySet,
+        function structureQuery_atomset_propertySet(ctx, xs) {
+	  return Queries.atomset.propertySet(xs[0] as any)(ctx);
+        }),
 
     // ============= BOND PROPERTIES ================
     D(MolScript.structureQuery.bondProperty.order, (ctx, xs) => ctx.atomicBond.order),
