@@ -67,21 +67,17 @@ export function getAtomSite(sites: AtomSiteTemplate, terIndices: Set<number>): {
         const seqId = auth_seq_id.int(i);
         let atomId = auth_atom_id.str(i);
 
-        let asymIdChanged = false;
-
         if (modelNum !== currModelNum) {
             asymIdCounts.clear();
             atomIdCounts.clear();
             currModelNum = modelNum;
             currAsymId = asymId;
             currSeqId = seqId;
-            asymIdChanged = true;
             currLabelAsymId = asymId;
         } else if (currAsymId !== asymId) {
             atomIdCounts.clear();
             currAsymId = asymId;
             currSeqId = seqId;
-            asymIdChanged = true;
             currLabelAsymId = asymId;
         } else if (currSeqId !== seqId) {
             atomIdCounts.clear();

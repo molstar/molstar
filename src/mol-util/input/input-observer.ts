@@ -304,6 +304,7 @@ namespace InputObserver {
         let buttons = ButtonsType.create(ButtonsType.Flag.None);
         let button = ButtonsType.Flag.None;
         let isInside = false;
+        let hasMoved = false;
 
         const events = createEvents();
         const { drag, interactionEnd, wheel, pinch, gesture, click, move, leave, enter, resize, modifiers, key } = events;
@@ -577,12 +578,13 @@ namespace InputObserver {
             if (!mask(ev.clientX, ev.clientY)) return;
 
             eventOffset(pointerEnd, ev);
-            if (Vec2.distance(pointerEnd, pointerDown) < 4) {
+            if (!hasMoved && Vec2.distance(pointerEnd, pointerDown) < 4) {
                 const { pageX, pageY } = ev;
                 const [x, y] = pointerEnd;
 
                 click.next({ x, y, pageX, pageY, buttons, button, modifiers: getModifierKeys() });
             }
+            hasMoved = false;
         }
 
         function onPointerMove(ev: PointerEvent) {
@@ -603,6 +605,10 @@ namespace InputObserver {
 
             const isStart = dragging === DraggingState.Started;
             if (isStart && !mask(ev.clientX, ev.clientY)) return;
+
+            if (Vec2.distance(pointerEnd, pointerDown) >= 4) {
+                hasMoved = true;
+            }
 
             const [dx, dy] = pointerDelta;
             drag.next({ x, y, dx, dy, pageX, pageY, buttons, button, modifiers: getModifierKeys(), isStart });
