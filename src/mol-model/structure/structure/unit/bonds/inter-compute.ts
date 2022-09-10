@@ -80,7 +80,7 @@ function findPairBonds(unitA: Unit.Atomic, unitB: Unit.Atomic, props: BondComput
 
         if (!props.forceCompute && indexPairs) {
             const { maxDistance } = indexPairs;
-            const { offset, b, edgeProps: { order, distance, flag } } = indexPairs.bonds;
+            const { offset, b, edgeProps: { order, distance, flag, key } } = indexPairs.bonds;
 
             const srcA = sourceIndex.value(aI);
             const aeI = getElementIdx(type_symbolA.value(aI));
@@ -113,7 +113,7 @@ function findPairBonds(unitA: Unit.Atomic, unitB: Unit.Atomic, props: BondComput
                 }
 
                 if (add) {
-                    builder.add(_aI, _bI, { order: order[i], flag: flag[i] });
+                    builder.add(_aI, _bI, { order: order[i], flag: flag[i], key: key[i] });
                 }
             }
             continue; // assume `indexPairs` supplies all bonds
@@ -131,7 +131,7 @@ function findPairBonds(unitA: Unit.Atomic, unitB: Unit.Atomic, props: BondComput
                 // check if the bond is within MAX_RADIUS for this pair of units
                 if (getDistance(unitA, aI, unitB, p.atomIndex) > maxRadius) continue;
 
-                builder.add(_aI, _bI, { order: se.order, flag: se.flags });
+                builder.add(_aI, _bI, { order: se.order, flag: se.flags, key: se.rowIndex });
                 added = true;
             }
             // assume, for an atom, that if any inter unit bond is given
@@ -187,7 +187,8 @@ function findPairBonds(unitA: Unit.Atomic, unitB: Unit.Atomic, props: BondComput
                 const compIdB = label_comp_idB.value(residueIndexB[bI]);
                 builder.add(_aI, _bI, {
                     order: getInterBondOrderFromTable(compIdA, compIdB, atomIdA, atomIdB),
-                    flag: (isMetal ? BondType.Flag.MetallicCoordination : BondType.Flag.Covalent) | BondType.Flag.Computed
+                    flag: (isMetal ? BondType.Flag.MetallicCoordination : BondType.Flag.Covalent) | BondType.Flag.Computed,
+                    key: -1
                 });
             }
         }

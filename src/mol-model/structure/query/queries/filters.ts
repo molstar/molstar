@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { SetUtils } from '../../../../mol-util/set';
@@ -246,7 +247,7 @@ function checkConnected(ctx: IsConnectedToCtx, structure: Structure) {
 
         const inputUnit = input.unitMap.get(unit.id) as Unit.Atomic;
 
-        const { offset, b, edgeProps: { flags, order } } = inputUnit.bonds;
+        const { offset, b, edgeProps: { flags, order, key } } = inputUnit.bonds;
         const bondedUnits = interBonds.getConnectedUnits(unit.id);
         const buCount = bondedUnits.length;
 
@@ -271,6 +272,7 @@ function checkConnected(ctx: IsConnectedToCtx, structure: Structure) {
                 atomicBond.bIndex = b[l] as StructureElement.UnitIndex;
                 atomicBond.type = flags[l];
                 atomicBond.order = order[l];
+                atomicBond.key = key[l];
                 if (atomicBond.test(queryCtx, true)) return true;
             }
 
@@ -293,6 +295,7 @@ function checkConnected(ctx: IsConnectedToCtx, structure: Structure) {
                     atomicBond.bIndex = bond.indexB;
                     atomicBond.type = bond.props.flag;
                     atomicBond.order = bond.props.order;
+                    atomicBond.key = bond.props.key;
                     if (atomicBond.test(queryCtx, true)) return true;
                 }
             }

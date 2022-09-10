@@ -32,6 +32,7 @@ const DnaAtomIdsList = [
 /** Used to reduce false positives for atom name-based type guessing */
 const NonPolymerNames = new Set([
     'FMN', 'NCN', 'FNS', 'FMA', 'ATP', 'ADP', 'AMP', 'GTP', 'GDP', 'GMP', // Mononucleotides
+    'LIG'
 ]);
 
 const StandardComponents = (function () {

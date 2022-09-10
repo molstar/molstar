@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -119,7 +119,9 @@ export function Highlight(ctx: PluginContext) {
                 ctx.managers.interactivity.lociHighlights.highlight({ loci: Structure.Loci(cell.obj.data) }, false);
             } else if (cell && SO.isRepresentation3D(cell.obj)) {
                 const { repr } = cell.obj.data;
-                ctx.managers.interactivity.lociHighlights.highlight({ loci: repr.getLoci(), repr }, false);
+                for (const loci of repr.getAllLoci()) {
+                    ctx.managers.interactivity.lociHighlights.highlight({ loci, repr }, false);
+                }
             } else if (SO.Molecule.Structure.Selections.is(cell.obj)) {
                 for (const entry of cell.obj.data) {
                     ctx.managers.interactivity.lociHighlights.highlight({ loci: entry.loci }, false);

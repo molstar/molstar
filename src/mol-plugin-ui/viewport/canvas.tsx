@@ -59,7 +59,7 @@ export class ViewportCanvas extends PluginUIComponent<ViewportCanvasParams, View
         return <div className='msp-no-webgl'>
             <div>
                 <p><b>WebGL does not seem to be available.</b></p>
-                <p>This can be caused by an outdated browser, graphics card driver issue, or bad weather. Sometimes, just restarting the browser helps.</p>
+                <p>This can be caused by an outdated browser, graphics card driver issue, or bad weather. Sometimes, just restarting the browser helps. Also, make sure hardware acceleration is enabled in your browser.</p>
                 <p>For a list of supported browsers, refer to <a href='http://caniuse.com/#feat=webgl' target='_blank'>http://caniuse.com/#feat=webgl</a>.</p>
             </div>
         </div>;
