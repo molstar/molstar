@@ -40,7 +40,7 @@ uniform int uMarkingType;
 #endif
 
 #if defined(dRenderVariant_colorDpoit)
-    #define MAX_DPOIT_DEPTH 99999.0
+    #define MAX_DPOIT_DEPTH 99999.0 // NOTE constant also set in TypeScript
     uniform sampler2D tDpoitDepth;
     uniform sampler2D tDpoitFrontColor;
 #endif

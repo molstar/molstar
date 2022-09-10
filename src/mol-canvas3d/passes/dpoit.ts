@@ -65,7 +65,7 @@ function getEvaluateDpoitRenderable(ctx: WebGLContext, dpoitFrontColorTexture: T
 }
 
 export class DpoitPass {
-    private readonly DEPTH_CLEAR_VALUE = -99999.0;
+    private readonly DEPTH_CLEAR_VALUE = -99999.0; // NOTE same constant is set in shaders
     private readonly MAX_DEPTH = 1.0;
     private readonly MIN_DEPTH = 0.0;
 
