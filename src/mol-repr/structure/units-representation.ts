@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -185,14 +185,17 @@ export function UnitsRepresentation<P extends StructureParams>(label: string, ct
         });
     }
 
-    function getLoci(pickingId?: PickingId) {
-        if (pickingId === undefined) return Structure.Loci(_structure.target);
+    function getLoci(pickingId: PickingId) {
         let loci: Loci = EmptyLoci;
         visuals.forEach(({ visual }) => {
             const _loci = visual.getLoci(pickingId);
             if (!isEmptyLoci(_loci)) loci = _loci;
         });
         return loci;
+    }
+
+    function getAllLoci() {
+        return [Structure.Loci(_structure.target)];
     }
 
     function mark(loci: Loci, action: MarkerAction) {
@@ -302,6 +305,7 @@ export function UnitsRepresentation<P extends StructureParams>(label: string, ct
         setState,
         setTheme,
         getLoci,
+        getAllLoci,
         mark,
         destroy
     };
