@@ -91,7 +91,7 @@ export function getAtomSite(sites: AtomSiteTemplate, terIndices: Set<number>): {
         if (asymIdCounts.has(asymId)) {
             // only change the chains name if there are TER records
             // otherwise assume repeated chain name use is from interleaved chains
-            if (terIndices.size > 0 && asymIdChanged || terIndices.has(i)) {
+            if (terIndices.has(i)) {
                 const asymIdCount = asymIdCounts.get(asymId)! + 1;
                 asymIdCounts.set(asymId, asymIdCount);
                 currLabelAsymId = `${asymId}_${asymIdCount}`;
