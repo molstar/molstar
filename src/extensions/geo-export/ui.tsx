@@ -60,6 +60,8 @@ export class GeometryExporterUI extends CollapsableControls<{}, State> {
     }
 
     componentDidMount() {
+        if (!this.plugin.canvas3d) return;
+
         const merged = merge(
             this.controls.behaviors.params,
             this.plugin.canvas3d!.reprCount

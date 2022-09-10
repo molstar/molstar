@@ -9,6 +9,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - [Fix] Clone ``Canvas3DParams`` when creating a ``Canvas3D`` instance to prevent shared state between multiple instances
 - Add ``includeResidueTest`` option to ``alignAndSuperposeWithSIFTSMapping``
 - Add ``parentDisplay`` param for interactions representation.
+- Support for ``failIfMajorPerformanceCaveat`` webgl attribute. Add ``PluginConfig.General.AllowMajorPerformanceCaveat`` and ``allow-major-performance-caveat`` Viewer GET param.
 - Fix handling of PDB TER records (#549)
 - Add support for getting multiple loci from a representation (``.getAllLoci()``)
 - Add ``key`` property to intra- and inter-bonds for referencing source data

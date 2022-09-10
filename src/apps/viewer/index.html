@@ -61,6 +61,7 @@
             var pickPadding = getParam('pick-padding', '[^&]+').trim();
             var disableWboit = getParam('disable-wboit', '[^&]+').trim() === '1';
             var preferWebgl1 = getParam('prefer-webgl1', '[^&]+').trim() === '1' || void 0;
+            var allowMajorPerformanceCaveat = getParam('allow-major-performance-caveat', '[^&]+').trim() === '1';
 
             molstar.Viewer.create('app', {
                 layoutShowControls: !hideControls,
@@ -76,6 +77,7 @@
                 pickPadding: isNaN(parseFloat(pickPadding)) ? 1 : parseFloat(pickPadding),
                 enableWboit: disableWboit ? false : void 0, // use default value if disable-wboit is not set
                 preferWebgl1: preferWebgl1,
+                allowMajorPerformanceCaveat: allowMajorPerformanceCaveat,
             }).then(viewer => {
                 var snapshotId = getParam('snapshot-id', '[^&]+').trim();
                 if (snapshotId) viewer.setRemoteSnapshot(snapshotId);

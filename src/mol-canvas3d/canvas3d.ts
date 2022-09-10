@@ -117,6 +117,7 @@ interface Canvas3DContext {
 
 namespace Canvas3DContext {
     export const DefaultAttribs = {
+        failIfMajorPerformanceCaveat: false,
         /** true by default to avoid issues with Safari (Jan 2021) */
         antialias: true,
         /** true to support multiple Canvas3D objects with a single context */
@@ -132,8 +133,9 @@ namespace Canvas3DContext {
 
     export function fromCanvas(canvas: HTMLCanvasElement, assetManager: AssetManager, attribs: Partial<Attribs> = {}): Canvas3DContext {
         const a = { ...DefaultAttribs, ...attribs };
-        const { antialias, preserveDrawingBuffer, pixelScale, preferWebGl1 } = a;
+        const { failIfMajorPerformanceCaveat, antialias, preserveDrawingBuffer, pixelScale, preferWebGl1 } = a;
         const gl = getGLContext(canvas, {
+            failIfMajorPerformanceCaveat,
             antialias,
             preserveDrawingBuffer,
             alpha: true, // the renderer requires an alpha channel

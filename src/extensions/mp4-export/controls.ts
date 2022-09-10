@@ -118,11 +118,13 @@ export class Mp4Controls extends PluginComponent {
     }
 
     private init() {
+        if (!this.plugin.canvas3d) return;
+
         this.subscribe(this.plugin.managers.animation.events.updated.pipe(debounceTime(16)), () => {
             this.sync();
         });
 
-        this.subscribe(this.plugin.canvas3d?.resized!, () => this.syncInfo());
+        this.subscribe(this.plugin.canvas3d.resized, () => this.syncInfo());
         this.subscribe(this.plugin.helpers.viewportScreenshot?.events.previewed!, () => this.syncInfo());
 
         this.subscribe(this.plugin.behaviors.state.isBusy, b => this.updateCanApply(b));
