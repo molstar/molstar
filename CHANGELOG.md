@@ -6,9 +6,15 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- [Fix] Clone ``Canvas3DParams`` when creating a ``Canvas3D`` instance to prevent shared state between multiple instances
+- Add ``includeResidueTest`` option to ``alignAndSuperposeWithSIFTSMapping``
+- Add ``parentDisplay`` param for interactions representation.
+- Integration of Dual depth peeling - OIT method
+
+## [v3.16.0] - 2022-08-25
+
 - Support ``globalColorParams`` and ``globalSymmetryParams`` in common representation params
 - Support ``label`` parameter in ``Viewer.loadStructureFromUrl``
-- Integration of Dual depth peeling - OIT method
 
 ## [v3.15.0] - 2022-08-23
 
