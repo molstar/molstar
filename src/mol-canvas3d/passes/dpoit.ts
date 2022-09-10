@@ -222,7 +222,7 @@ export class DpoitPass {
     constructor(private webgl: WebGLContext, width: number, height: number) {
         if (!DpoitPass.isSupported(webgl)) return;
 
-        const { resources } = webgl;
+        const { resources, extensions: { colorBufferHalfFloat, textureHalfFloat } } = webgl;
 
         // textures
         this.depthTextures = [
@@ -232,14 +232,20 @@ export class DpoitPass {
         this.depthTextures[0].define(width, height);
         this.depthTextures[1].define(width, height);
 
-        this.colorFrontTextures = [
+        this.colorFrontTextures = colorBufferHalfFloat && textureHalfFloat ? [
+            resources.texture('image-float16', 'rgba', 'fp16', 'nearest'),
+            resources.texture('image-float16', 'rgba', 'fp16', 'nearest')
+        ] : [
             resources.texture('image-float32', 'rgba', 'float', 'nearest'),
             resources.texture('image-float32', 'rgba', 'float', 'nearest')
         ];
         this.colorFrontTextures[0].define(width, height);
         this.colorFrontTextures[1].define(width, height);
 
-        this.colorBackTextures = [
+        this.colorBackTextures = colorBufferHalfFloat && textureHalfFloat ? [
+            resources.texture('image-float16', 'rgba', 'fp16', 'nearest'),
+            resources.texture('image-float16', 'rgba', 'fp16', 'nearest')
+        ] : [
             resources.texture('image-float32', 'rgba', 'float', 'nearest'),
             resources.texture('image-float32', 'rgba', 'float', 'nearest')
         ];
