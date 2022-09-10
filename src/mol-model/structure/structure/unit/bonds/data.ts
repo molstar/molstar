@@ -15,16 +15,17 @@ import { InterUnitGraph } from '../../../../../mol-math/graph/inter-unit-graph';
 type IntraUnitBonds = IntAdjacencyGraph<StructureElement.UnitIndex, {
     readonly order: ArrayLike<number>,
     readonly flags: ArrayLike<BondType.Flag>
+    readonly key: ArrayLike<number>,
 }, {
     /** can remap even with dynamicBonds on, e.g., for water molecules */
     readonly canRemap?: boolean
 }>
 
 namespace IntraUnitBonds {
-    export const Empty: IntraUnitBonds = IntAdjacencyGraph.create([], [], [], 0, { flags: [], order: [] });
+    export const Empty: IntraUnitBonds = IntAdjacencyGraph.create([], [], [], 0, { flags: [], order: [], key: [] });
 }
 
-type InterUnitEdgeProps = { readonly order: number, readonly flag: BondType.Flag }
+type InterUnitEdgeProps = { readonly order: number, readonly flag: BondType.Flag, readonly key: number }
 
 class InterUnitBonds extends InterUnitGraph<number, StructureElement.UnitIndex, InterUnitEdgeProps> {
     /** Get inter-unit bond given a bond-location */

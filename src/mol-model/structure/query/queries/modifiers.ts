@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2017-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { Segmentation, SortedArray } from '../../../../mol-data/int';
@@ -370,7 +371,7 @@ function expandConnected(ctx: QueryContext, structure: Structure) {
         }
 
         const inputUnitA = inputStructure.unitMap.get(unit.id) as Unit.Atomic;
-        const { offset: intraBondOffset, b: intraBondB, edgeProps: { flags, order } } = inputUnitA.bonds;
+        const { offset: intraBondOffset, b: intraBondB, edgeProps: { flags, order, key } } = inputUnitA.bonds;
 
         atomicBond.setStructure(inputStructure);
 
@@ -397,6 +398,7 @@ function expandConnected(ctx: QueryContext, structure: Structure) {
                 atomicBond.b.element = bElement;
                 atomicBond.type = flags[lI];
                 atomicBond.order = order[lI];
+                atomicBond.key = key[lI];
 
                 if (atomicBond.test(ctx, true)) {
                     builder.addToUnit(unit.id, bElement);
@@ -427,6 +429,7 @@ function expandConnected(ctx: QueryContext, structure: Structure) {
                     atomicBond.b.element = bElement;
                     atomicBond.type = bond.props.flag;
                     atomicBond.order = bond.props.order;
+                    atomicBond.key = bond.props.key;
 
                     if (atomicBond.test(ctx, true)) {
                         builder.addToUnit(bondedUnit.unitB, bElement);
