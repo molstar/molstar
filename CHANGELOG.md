@@ -10,11 +10,17 @@ Note that since we don't clearly distinguish between a public and private interf
 - Add ``includeResidueTest`` option to ``alignAndSuperposeWithSIFTSMapping``
 - Add ``parentDisplay`` param for interactions representation.
 - Integration of Dual depth peeling - OIT method
+- [Experimental] Add support for PyMOL, VMD, and Jmol atom expressions in selection scripts
+- Support for ``failIfMajorPerformanceCaveat`` webgl attribute. Add ``PluginConfig.General.AllowMajorPerformanceCaveat`` and ``allow-major-performance-caveat`` Viewer GET param.
+- Fix handling of PDB TER records (#549)
+- Add support for getting multiple loci from a representation (``.getAllLoci()``)
+- Add ``key`` property to intra- and inter-bonds for referencing source data
 
 ## [v3.16.0] - 2022-08-25
 
 - Support ``globalColorParams`` and ``globalSymmetryParams`` in common representation params
 - Support ``label`` parameter in ``Viewer.loadStructureFromUrl``
+- Fix ``ViewportHelpContent`` Mouse Controls section
 
 ## [v3.15.0] - 2022-08-23
 

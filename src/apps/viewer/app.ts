@@ -90,6 +90,7 @@ const DefaultViewerOptions = {
     enableWboit: PluginConfig.General.EnableWboit.defaultValue,
     enableDpoit: PluginConfig.General.EnableDpoit.defaultValue,
     preferWebgl1: PluginConfig.General.PreferWebGl1.defaultValue,
+    allowMajorPerformanceCaveat: PluginConfig.General.AllowMajorPerformanceCaveat.defaultValue,
 
     viewportShowExpand: PluginConfig.Viewport.ShowExpand.defaultValue,
     viewportShowControls: PluginConfig.Viewport.ShowControls.defaultValue,
@@ -161,6 +162,7 @@ export class Viewer {
                 [PluginConfig.General.EnableWboit, o.enableWboit],
                 [PluginConfig.General.EnableDpoit, o.enableDpoit],
                 [PluginConfig.General.PreferWebGl1, o.preferWebgl1],
+                [PluginConfig.General.AllowMajorPerformanceCaveat, o.allowMajorPerformanceCaveat],
                 [PluginConfig.Viewport.ShowExpand, o.viewportShowExpand],
                 [PluginConfig.Viewport.ShowControls, o.viewportShowControls],
                 [PluginConfig.Viewport.ShowSettings, o.viewportShowSettings],

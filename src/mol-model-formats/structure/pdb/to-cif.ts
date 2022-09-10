@@ -51,7 +51,7 @@ export async function pdbToMmCif(pdb: PdbFile): Promise<CifFrame> {
 
     let modelNum = 0, modelStr = '';
     let conectRange: [number, number] | undefined = undefined;
-    let hasTer = false;
+    const terIndices = new Set<number>();
 
     for (let i = 0, _i = lines.count; i < _i; i++) {
         let s = indices[2 * i], e = indices[2 * i + 1];
@@ -164,7 +164,7 @@ export async function pdbToMmCif(pdb: PdbFile): Promise<CifFrame> {
                 break;
             case 'T':
                 if (substringStartsWith(data, s, e, 'TER')) {
-                    hasTer = true;
+                    terIndices.add(atomSite.index);
                 }
         }
     }
@@ -183,7 +183,7 @@ export async function pdbToMmCif(pdb: PdbFile): Promise<CifFrame> {
         atomSite.label_entity_id[i] = entityBuilder.getEntityId(compId, moleculeType, asymIds.value(i));
     }
 
-    const atom_site = getAtomSite(atomSite, hasTer);
+    const atom_site = getAtomSite(atomSite, terIndices);
     if (!isPdbqt) delete atom_site.partial_charge;
 
     if (conectRange) {

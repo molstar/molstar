@@ -1,12 +1,13 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { SetUtils } from '../../../../mol-util/set';
 import { Unit } from '../../structure';
-import { QueryContext, QueryFn, QueryPredicate } from '../context';
+import { QueryContext, QueryFn } from '../context';
 import { StructureQuery } from '../query';
 import { StructureSelection } from '../selection';
 import { structureAreIntersecting } from '../utils/structure-set';
@@ -16,7 +17,7 @@ import { Structure } from '../../structure/structure';
 import { StructureElement } from '../../structure/element';
 import { SortedArray } from '../../../../mol-data/int';
 
-export function pick(query: StructureQuery, pred: QueryPredicate): StructureQuery {
+export function pick(query: StructureQuery, pred: QueryFn<any>): StructureQuery {
     return ctx => {
         const sel = query(ctx);
         const ret = StructureSelection.LinearBuilder(ctx.inputStructure);
@@ -50,9 +51,7 @@ export function first(query: StructureQuery): StructureQuery {
     };
 }
 
-export interface UnitTypeProperties { atomic?: QueryFn, coarse?: QueryFn }
-
-export function getCurrentStructureProperties(ctx: QueryContext, props: UnitTypeProperties, set: Set<any>) {
+export function getCurrentStructureProperties(ctx: QueryContext, props: QueryFn<any>, set: Set<any>) {
     const { units } = ctx.currentStructure;
     const l = ctx.pushCurrentElement();
 
@@ -61,9 +60,9 @@ export function getCurrentStructureProperties(ctx: QueryContext, props: UnitType
         l.unit = unit;
         const elements = unit.elements;
 
-        let fn;
-        if (Unit.isAtomic(unit)) fn = props.atomic;
-        else fn = props.coarse;
+        const fn = props;
+        //        if (Unit.isAtomic(unit)) fn = props.atomic;
+        //        else fn = props.coarse;
         if (!fn) continue;
 
         for (let j = 0, _j = elements.length; j < _j; j++) {
@@ -77,7 +76,7 @@ export function getCurrentStructureProperties(ctx: QueryContext, props: UnitType
     return set;
 }
 
-function getSelectionProperties(ctx: QueryContext, query: StructureQuery, props: UnitTypeProperties) {
+function getSelectionProperties(ctx: QueryContext, query: StructureQuery, props: QueryFn<any>) {
     const set = new Set();
 
     const sel = query(ctx);
@@ -92,7 +91,7 @@ function getSelectionProperties(ctx: QueryContext, query: StructureQuery, props:
     return set;
 }
 
-export function withSameAtomProperties(query: StructureQuery, propertySource: StructureQuery, props: UnitTypeProperties): StructureQuery {
+export function withSameAtomProperties(query: StructureQuery, propertySource: StructureQuery, props: QueryFn<any>): StructureQuery {
     return ctx => {
         const sel = query(ctx);
         const propSet = getSelectionProperties(ctx, propertySource, props);
@@ -102,7 +101,7 @@ export function withSameAtomProperties(query: StructureQuery, propertySource: St
         StructureSelection.forEach(sel, (s, i) => {
             ctx.currentStructure = s;
             const currentProps = getCurrentStructureProperties(ctx, props, new Set());
-            if (SetUtils.isSuperset(currentProps, propSet)) {
+            if (SetUtils.isSuperset(propSet, currentProps)) {
                 ret.add(s);
             }
 
@@ -248,7 +247,7 @@ function checkConnected(ctx: IsConnectedToCtx, structure: Structure) {
 
         const inputUnit = input.unitMap.get(unit.id) as Unit.Atomic;
 
-        const { offset, b, edgeProps: { flags, order } } = inputUnit.bonds;
+        const { offset, b, edgeProps: { flags, order, key } } = inputUnit.bonds;
         const bondedUnits = interBonds.getConnectedUnits(unit.id);
         const buCount = bondedUnits.length;
 
@@ -273,6 +272,7 @@ function checkConnected(ctx: IsConnectedToCtx, structure: Structure) {
                 atomicBond.bIndex = b[l] as StructureElement.UnitIndex;
                 atomicBond.type = flags[l];
                 atomicBond.order = order[l];
+                atomicBond.key = key[l];
                 if (atomicBond.test(queryCtx, true)) return true;
             }
 
@@ -295,6 +295,7 @@ function checkConnected(ctx: IsConnectedToCtx, structure: Structure) {
                     atomicBond.bIndex = bond.indexB;
                     atomicBond.type = bond.props.flag;
                     atomicBond.order = bond.props.order;
+                    atomicBond.key = bond.props.key;
                     if (atomicBond.test(queryCtx, true)) return true;
                 }
             }

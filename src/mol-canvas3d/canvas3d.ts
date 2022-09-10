@@ -119,6 +119,7 @@ interface Canvas3DContext {
 
 namespace Canvas3DContext {
     export const DefaultAttribs = {
+        failIfMajorPerformanceCaveat: false,
         /** true by default to avoid issues with Safari (Jan 2021) */
         antialias: true,
         /** true to support multiple Canvas3D objects with a single context */
@@ -138,8 +139,9 @@ namespace Canvas3DContext {
 
         if (a.enableWboit && a.enableDpoit) throw new Error('Multiple transparency methods not allowed.');
 
-        const { antialias, preserveDrawingBuffer, pixelScale, preferWebGl1 } = a;
+        const { failIfMajorPerformanceCaveat, antialias, preserveDrawingBuffer, pixelScale, preferWebGl1 } = a;
         const gl = getGLContext(canvas, {
+            failIfMajorPerformanceCaveat,
             antialias,
             preserveDrawingBuffer,
             alpha: true, // the renderer requires an alpha channel
