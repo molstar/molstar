@@ -21,6 +21,7 @@ import { blendBackDpoit_frag } from '../../mol-gl/shader/blend-back-dpoit.frag';
 import { Framebuffer } from '../../mol-gl/webgl/framebuffer';
 import { Vec2 } from '../../mol-math/linear-algebra';
 import { isDebugMode, isTimingMode } from '../../mol-util/debug';
+import { isWebGL2 } from '../../mol-gl/webgl/compat';
 
 const BlendBackDpoitSchema = {
     ...QuadSchema,
@@ -187,15 +188,22 @@ export class DpoitPass {
         for (let i = 0; i < 2; i++) {
             // depth
             this.depthFramebuffers[i].bind();
-            drawBuffers!.drawBuffers([drawBuffers!.COLOR_ATTACHMENT0, drawBuffers!.COLOR_ATTACHMENT1, drawBuffers!.COLOR_ATTACHMENT2]);
+            drawBuffers!.drawBuffers([
+                drawBuffers!.COLOR_ATTACHMENT0,
+                drawBuffers!.COLOR_ATTACHMENT1,
+                drawBuffers!.COLOR_ATTACHMENT2
+            ]);
 
-            this.depthTextures[i].attachFramebuffer(this.depthFramebuffers[i], 'color2');
             this.colorFrontTextures[i].attachFramebuffer(this.depthFramebuffers[i], 'color0');
             this.colorBackTextures[i].attachFramebuffer(this.depthFramebuffers[i], 'color1');
+            this.depthTextures[i].attachFramebuffer(this.depthFramebuffers[i], 'color2');
 
             // color
             this.colorFramebuffers[i].bind();
-            drawBuffers!.drawBuffers([drawBuffers!.COLOR_ATTACHMENT0, drawBuffers!.COLOR_ATTACHMENT1]);
+            drawBuffers!.drawBuffers([
+                drawBuffers!.COLOR_ATTACHMENT0,
+                drawBuffers!.COLOR_ATTACHMENT1
+            ]);
 
             this.colorFrontTextures[i].attachFramebuffer(this.colorFramebuffers[i], 'color0');
             this.colorBackTextures[i].attachFramebuffer(this.colorFramebuffers[i], 'color1');
@@ -232,23 +240,39 @@ export class DpoitPass {
         this.depthTextures[0].define(width, height);
         this.depthTextures[1].define(width, height);
 
-        this.colorFrontTextures = colorBufferHalfFloat && textureHalfFloat ? [
-            resources.texture('image-float16', 'rgba', 'fp16', 'nearest'),
-            resources.texture('image-float16', 'rgba', 'fp16', 'nearest')
-        ] : [
-            resources.texture('image-float32', 'rgba', 'float', 'nearest'),
-            resources.texture('image-float32', 'rgba', 'float', 'nearest')
-        ];
+        if (isWebGL2(webgl.gl)) {
+            this.colorFrontTextures = colorBufferHalfFloat && textureHalfFloat ? [
+                resources.texture('image-float16', 'rgba', 'fp16', 'nearest'),
+                resources.texture('image-float16', 'rgba', 'fp16', 'nearest')
+            ] : [
+                resources.texture('image-float32', 'rgba', 'float', 'nearest'),
+                resources.texture('image-float32', 'rgba', 'float', 'nearest')
+            ];
+
+            this.colorBackTextures = colorBufferHalfFloat && textureHalfFloat ? [
+                resources.texture('image-float16', 'rgba', 'fp16', 'nearest'),
+                resources.texture('image-float16', 'rgba', 'fp16', 'nearest')
+            ] : [
+                resources.texture('image-float32', 'rgba', 'float', 'nearest'),
+                resources.texture('image-float32', 'rgba', 'float', 'nearest')
+            ];
+        } else {
+            // in webgl1 drawbuffers must be in the same format for some reason
+
+            this.colorFrontTextures = [
+                resources.texture('image-float32', 'rgba', 'float', 'nearest'),
+                resources.texture('image-float32', 'rgba', 'float', 'nearest')
+            ];
+
+            this.colorBackTextures = [
+                resources.texture('image-float32', 'rgba', 'float', 'nearest'),
+                resources.texture('image-float32', 'rgba', 'float', 'nearest')
+            ];
+        }
+
         this.colorFrontTextures[0].define(width, height);
         this.colorFrontTextures[1].define(width, height);
 
-        this.colorBackTextures = colorBufferHalfFloat && textureHalfFloat ? [
-            resources.texture('image-float16', 'rgba', 'fp16', 'nearest'),
-            resources.texture('image-float16', 'rgba', 'fp16', 'nearest')
-        ] : [
-            resources.texture('image-float32', 'rgba', 'float', 'nearest'),
-            resources.texture('image-float32', 'rgba', 'float', 'nearest')
-        ];
         this.colorBackTextures[0].define(width, height);
         this.colorBackTextures[1].define(width, height);
 
