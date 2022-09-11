@@ -66,7 +66,8 @@ export function getFormat(gl: GLRenderingContext, format: TextureFormat, type: T
             return gl.RGB;
         case 'rg':
             if (isWebGL2(gl) && type === 'float') return gl.RG;
-            return gl.RGBA;
+            else if (isWebGL2(gl) && type === 'int') return gl.RG_INTEGER;
+            else throw new Error('texture format "rg" requires webgl2 and type "float" or int"');
         case 'rgba':
             if (isWebGL2(gl) && type === 'int') return gl.RGBA_INTEGER;
             return gl.RGBA;

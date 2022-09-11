@@ -233,14 +233,13 @@ export class DpoitPass {
         const { resources, extensions: { colorBufferHalfFloat, textureHalfFloat } } = webgl;
 
         // textures
-        this.depthTextures = [
-            resources.texture('image-float32', 'rg', 'float', 'nearest'),
-            resources.texture('image-float32', 'rg', 'float', 'nearest')
-        ];
-        this.depthTextures[0].define(width, height);
-        this.depthTextures[1].define(width, height);
 
         if (isWebGL2(webgl.gl)) {
+            this.depthTextures = [
+                resources.texture('image-float32', 'rg', 'float', 'nearest'),
+                resources.texture('image-float32', 'rg', 'float', 'nearest')
+            ];
+
             this.colorFrontTextures = colorBufferHalfFloat && textureHalfFloat ? [
                 resources.texture('image-float16', 'rgba', 'fp16', 'nearest'),
                 resources.texture('image-float16', 'rgba', 'fp16', 'nearest')
@@ -259,6 +258,11 @@ export class DpoitPass {
         } else {
             // in webgl1 drawbuffers must be in the same format for some reason
 
+            this.depthTextures = [
+                resources.texture('image-float32', 'rgba', 'float', 'nearest'),
+                resources.texture('image-float32', 'rgba', 'float', 'nearest')
+            ];
+
             this.colorFrontTextures = [
                 resources.texture('image-float32', 'rgba', 'float', 'nearest'),
                 resources.texture('image-float32', 'rgba', 'float', 'nearest')
@@ -270,6 +274,9 @@ export class DpoitPass {
             ];
         }
 
+        this.depthTextures[0].define(width, height);
+        this.depthTextures[1].define(width, height);
+
         this.colorFrontTextures[0].define(width, height);
         this.colorFrontTextures[1].define(width, height);
 
@@ -277,10 +284,12 @@ export class DpoitPass {
         this.colorBackTextures[1].define(width, height);
 
         // framebuffers
+
         this.depthFramebuffers = [resources.framebuffer(), resources.framebuffer()];
         this.colorFramebuffers = [resources.framebuffer(), resources.framebuffer()];
 
         // renderables
+
         this.blendBackRenderable = getBlendBackDpoitRenderable(webgl, this.colorBackTextures[0]);
         this.renderable = getEvaluateDpoitRenderable(webgl, this.colorFrontTextures[0]);
 
