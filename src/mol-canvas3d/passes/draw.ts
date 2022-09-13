@@ -133,14 +133,13 @@ export class DrawPass {
     private _renderDpoit(renderer: Renderer, camera: ICamera, scene: Scene, iterations: number, transparentBackground: boolean, postprocessingProps: PostprocessingProps) {
         if (!this.dpoit?.supported) throw new Error('expected dpoit to be supported');
 
-        this.colorTarget.bind();
+        this.depthTextureOpaque.attachFramebuffer(this.colorTarget.framebuffer, 'depth');
         renderer.clear(true);
 
         // render opaque primitives
-        this.depthTextureOpaque.attachFramebuffer(this.colorTarget.framebuffer, 'depth');
-        this.colorTarget.bind();
-        renderer.clearDepth();
-        renderer.renderDpoitOpaque(scene.primitives, camera, null);
+        if (scene.hasOpaque) {
+            renderer.renderDpoitOpaque(scene.primitives, camera, null);
+        }
 
         if (PostprocessingPass.isEnabled(postprocessingProps)) {
             if (PostprocessingPass.isOutlineEnabled(postprocessingProps)) {
@@ -156,32 +155,26 @@ export class DrawPass {
 
         // render transparent primitives
         if (scene.opacityAverage < 1) {
-            const dpoitTextures = this.dpoit.bind();
+            const target = PostprocessingPass.isEnabled(postprocessingProps)
+                ? this.postprocessing.target : this.colorTarget;
 
             if (isTimingMode) this.webgl.timer.mark('DpoitPasses.render');
 
+            const dpoitTextures = this.dpoit.bind();
             renderer.renderDpoitTransparent(scene.primitives, camera, this.depthTextureOpaque, dpoitTextures);
 
             for (let i = 0; i < iterations; i++) {
                 const dpoitTextures = this.dpoit.bindDualDepthPeeling();
                 renderer.renderDpoitTransparent(scene.primitives, camera, this.depthTextureOpaque, dpoitTextures);
 
-                if (PostprocessingPass.isEnabled(postprocessingProps)) {
-                    this.postprocessing.target.bind();
-                } else {
-                    this.colorTarget.bind();
-                }
+                target.bind();
                 this.dpoit.renderBlendBack();
             }
 
             if (isTimingMode) this.webgl.timer.markEnd('DpoitPasses.render');
 
             // evaluate dpoit
-            if (PostprocessingPass.isEnabled(postprocessingProps)) {
-                this.postprocessing.target.bind();
-            } else {
-                this.colorTarget.bind();
-            }
+            target.bind();
             this.dpoit.render();
         }
 

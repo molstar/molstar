@@ -41,7 +41,6 @@ export const dpoit_write = `
             float furthestDepth = lastDepth.y;
             float alphaMultiplier = 1.0 - lastFrontColor.a;
 
-
             if (fragmentDepth < nearestDepth || fragmentDepth > furthestDepth) {
                 // Skip this depth since it's been peeled.
                 return;
@@ -56,7 +55,6 @@ export const dpoit_write = `
             }
 
             // write to back and front color buffer
-
             if (fragmentDepth == nearestDepth) {
                 gl_FragColor.rgb += fragColor.rgb * fragColor.a * alphaMultiplier;
                 gl_FragColor.a = 1.0 - alphaMultiplier * (1.0 - fragColor.a);
