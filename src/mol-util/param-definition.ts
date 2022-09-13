@@ -324,7 +324,7 @@ export namespace ParamDefinition {
         conditionForValue(v: T): keyof C
         conditionedValue(v: T, condition: keyof C): T,
     }
-    export function Conditioned<T, P extends Base<T>, C = { [k: string]: P }>(defaultValue: T, conditionParams: C, conditionForValue: (v: T) => keyof C, conditionedValue: (v: T, condition: keyof C) => T, info?: Info): Conditioned<T, P, C> {
+    export function Conditioned<T, P extends Base<T>, C extends {} = { [k: string]: P }>(defaultValue: T, conditionParams: C, conditionForValue: (v: T) => keyof C, conditionedValue: (v: T, condition: keyof C) => T, info?: Info): Conditioned<T, P, C> {
         const options = Object.keys(conditionParams).map(k => [k, k]) as [string, string][];
         return setInfo({ type: 'conditioned', select: Select<string>(conditionForValue(defaultValue) as string, options, info), defaultValue, conditionParams, conditionForValue, conditionedValue }, info);
     }

@@ -42,7 +42,7 @@ export class PluginComponent {
     }
 }
 
-export class StatefulPluginComponent<State> extends PluginComponent {
+export class StatefulPluginComponent<State extends {}> extends PluginComponent {
     private _state: State;
 
     protected updateState(...states: Partial<State>[]): boolean {

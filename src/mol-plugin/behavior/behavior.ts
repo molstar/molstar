@@ -40,7 +40,7 @@ namespace PluginBehavior {
         'misc': 'Miscellaneous'
     };
 
-    export interface CreateParams<P> {
+    export interface CreateParams<P extends {}> {
         name: string,
         category: keyof typeof Categories,
         ctor: Ctor<P>,
@@ -73,7 +73,7 @@ namespace PluginBehavior {
         return categoryMap.get(t.id)!;
     }
 
-    export function create<P>(params: CreateParams<P>) {
+    export function create<P extends {}>(params: CreateParams<P>) {
         const t = PluginStateTransform.CreateBuiltIn<Category, Behavior, P>({
             name: params.name,
             display: params.display,
@@ -113,7 +113,7 @@ namespace PluginBehavior {
         };
     }
 
-    export abstract class Handler<P = { }> implements PluginBehavior<P> {
+    export abstract class Handler<P extends {} = {}> implements PluginBehavior<P> {
         private subs: PluginCommand.Subscription[] = [];
         protected subscribeCommand<T>(cmd: PluginCommand<T>, action: PluginCommand.Action<T>) {
             this.subs.push(cmd.subscribe(this.ctx, action));
