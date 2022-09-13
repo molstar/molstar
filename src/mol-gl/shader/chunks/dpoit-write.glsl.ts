@@ -59,9 +59,9 @@ export const dpoit_write = `
 
             if (fragmentDepth == nearestDepth) {
                 gl_FragColor.rgb += fragColor.rgb * fragColor.a * alphaMultiplier;
-                gl_FragColor.a = (1.0 - alphaMultiplier * (1.0 - fragColor.a)) * (uTransparentBackground ? fragColor.a : 1.0);
+                gl_FragColor.a = 1.0 - alphaMultiplier * (1.0 - fragColor.a);
             } else {
-                gl_FragData[1] += vec4(fragColor.rgb, fragColor.a * (uTransparentBackground ? fragColor.a : 1.0));
+                gl_FragData[1] += fragColor;
             }
 
         } else {

@@ -12,8 +12,19 @@ if (!uTransparentBackground) {
         gl_FragColor.rgb = mix(gl_FragColor.rgb, uFogColor, fogFactor);
     }
 } else {
-    // pre-multiplied alpha expected for transparent background
-    gl_FragColor.rgb *= fogAlpha;
-    gl_FragColor.a = fogAlpha;
+    #if defined(dRenderVariant_colorDpoit)
+        if (gl_FragColor.a < 1.0) {
+            // transparent objects are blended with background color
+            gl_FragColor.a = fogAlpha;
+        } else {
+            // opaque objects need to be pre-multiplied alpha
+            gl_FragColor.rgb *= fogAlpha;
+            gl_FragColor.a = fogAlpha;
+        }
+    #else
+        // pre-multiplied alpha expected for transparent background
+        gl_FragColor.rgb *= fogAlpha;
+        gl_FragColor.a = fogAlpha;
+    #endif
 }
 `;
