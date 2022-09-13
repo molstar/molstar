@@ -113,6 +113,7 @@ export class DpoitPass {
 
         this.depthFramebuffers[0].bind();
         state.blendEquation(blendMinMax!.MAX);
+        state.depthMask(false);
 
         return { depth: this.depthTextures[1], frontColor: this.colorFrontTextures[1], backColor: this.colorBackTextures[1] };
     }
@@ -135,6 +136,7 @@ export class DpoitPass {
 
         this.depthFramebuffers[this.writeId].bind();
         state.blendEquation(blendMinMax!.MAX);
+        state.depthMask(false);
 
         return { depth: this.depthTextures[this.readId], frontColor: this.colorFrontTextures[this.readId], backColor: this.colorBackTextures[this.readId] };
     }
