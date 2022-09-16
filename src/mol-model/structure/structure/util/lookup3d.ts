@@ -3,12 +3,14 @@
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Gianluca Tomasello <giagitom@gmail.com>
  */
 
 import { Structure } from '../structure';
 import { Lookup3D, GridLookup3D, Result } from '../../../../mol-math/geometry';
 import { Vec3 } from '../../../../mol-math/linear-algebra';
 import { OrderedSet } from '../../../../mol-data/int';
+import { arrayLess, arraySwap } from '../../../../mol-data/util';
 import { StructureUniqueSubsetBuilder } from './unique-subset-builder';
 import { StructureElement } from '../element';
 import { Unit } from '../unit';
@@ -39,6 +41,25 @@ export namespace StructureResult {
         out.count = result.count;
         return out;
     }
+
+    // sort in ascending order based on squaredDistances
+    export function sort(result: StructureResult) {
+        const { indices, squaredDistances, units, count } = result;
+        if (indices.length > count) {
+            // clear arrays before doing sorting if necessary
+            indices.length = count;
+            squaredDistances.length = count;
+            units.length = count;
+        }
+        for (let i = 1, c = result.count; i < c; i++) {
+            if (arrayLess(squaredDistances, i - 1, i) > 0) {
+                arraySwap(squaredDistances, i - 1, i);
+                arraySwap(indices, i - 1, i);
+                arraySwap(units, i - 1, i);
+                i = Math.max(0, i - 2);
+            }
+        }
+    }
 }
 
 export interface StructureLookup3DResultContext {
@@ -57,6 +78,10 @@ export class StructureLookup3D {
 
     findUnitIndices(x: number, y: number, z: number, radius: number): Result<number> {
         return this.unitLookup.find(x, y, z, radius);
+    }
+
+    nearestUnitIndices(x: number, y: number, z: number, k: number = 1): Result<number> {
+        return this.unitLookup.nearest(x, y, z, k);
     }
 
     private findContext = StructureLookup3DResultContext();
@@ -86,45 +111,40 @@ export class StructureLookup3D {
         return ctx.result;
     }
 
-    nearest(x: number, y: number, z: number): { index: number, unit: Unit, squaredDistance: number } | undefined {
-        return this._nearest(x, y, z);
+    nearest(x: number, y: number, z: number, k: number = 1, ctx?: StructureLookup3DResultContext): StructureResult {
+        return this._nearest(x, y, z, k, ctx ?? this.findContext);
     }
 
-    _nearest(x: number, y: number, z: number): { index: number, unit: Unit, squaredDistance: number } | undefined {
-        const ctx = this.findContext;
-        const { units, elementCount } = this.structure;
-
-        if (!elementCount) return undefined;
-
-        const radiusIncrement = 0.1; // how to choose a good increment?
-        const startingRadius = this.distanceTo(x, y, z);
-        let radius = startingRadius < 0 ? radiusIncrement : startingRadius + radiusIncrement;
-
-        while (true) {
-            const closeUnits = this.unitLookup.find(x, y, z, radius, ctx.closeUnitsResult);
-            radius += radiusIncrement;
-            if (closeUnits.count) {
-                let nearestIndex: number, nearestUnit: Unit, nearestDist = Number.MAX_SAFE_INTEGER;
-                for (let t = 1, _t = closeUnits.count; t < _t; t++) {
-                    const unit = units[closeUnits.indices[t]];
-                    Vec3.set(this.pivot, x, y, z);
-                    if (!unit.conformation.operator.isIdentity) {
-                        Vec3.transformMat4(this.pivot, this.pivot, unit.conformation.operator.inverse);
-                    }
-                    const unitLookup = unit.lookup3d;
-                    const nearestResult = unitLookup.nearest(this.pivot[0], this.pivot[1], this.pivot[2]);
-                    if (nearestResult) {
-                        const { index: unitNearestIndex, squaredDistance: unitNearestDist } = nearestResult;
-                        if (unitNearestDist < nearestDist) {
-                            nearestDist = unitNearestDist;
-                            nearestIndex = unitNearestIndex;
-                            nearestUnit = unit;
-                        }
-                    }
-                }
-                return { index: nearestIndex!, unit: nearestUnit!, squaredDistance: nearestDist };
+    _nearest(x: number, y: number, z: number, k: number, ctx: StructureLookup3DResultContext): StructureResult {
+        const result = ctx.result;
+        Result.reset(result);
+        const { units } = this.structure;
+        const closeUnits = this.unitLookup.nearest(x, y, z, units.length, ctx.closeUnitsResult); // sort all units based on distance to the point
+        if (closeUnits.count === 0) return result;
+        let totalCount = 0, maxDistResult = -Number.MAX_VALUE;
+        for (let t = 0, _t = closeUnits.count; t < _t; t++) {
+            const unitSqDist = closeUnits.squaredDistances[t];
+            if (totalCount >= k && maxDistResult < unitSqDist) break;
+            Vec3.set(this.pivot, x, y, z);
+            const unit = units[closeUnits.indices[t]];
+            if (!unit.conformation.operator.isIdentity) {
+                Vec3.transformMat4(this.pivot, this.pivot, unit.conformation.operator.inverse);
+            }
+            const unitLookup = unit.lookup3d;
+            const groupResult = unitLookup.nearest(this.pivot[0], this.pivot[1], this.pivot[2], k, ctx.unitGroupResult);
+            if (groupResult.count === 0) continue;
+            maxDistResult = Math.max(maxDistResult, groupResult.squaredDistances[groupResult.count - 1]);
+            totalCount += groupResult.count;
+            for (let j = 0, _j = groupResult.count; j < _j; j++) {
+                StructureResult.add(result, unit, groupResult.indices[j], groupResult.squaredDistances[j]);
+            }
+            StructureResult.sort(result);
+            if (totalCount > k) {
+                result.count = k;
+                totalCount = k;
             }
         }
+        return result;
     }
 
     findIntoBuilder(x: number, y: number, z: number, radius: number, builder: StructureUniqueSubsetBuilder) {
