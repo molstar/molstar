@@ -65,7 +65,7 @@ export namespace ComponentBond {
             return e;
         }
 
-        const { comp_id, atom_id_1, atom_id_2, value_order, pdbx_aromatic_flag, _rowCount } = data;
+        const { comp_id, atom_id_1, atom_id_2, value_order, pdbx_aromatic_flag, _rowCount, pdbx_ordinal } = data;
 
         let entry = addEntry(comp_id.value(0)!);
         for (let i = 0; i < _rowCount; i++) {
@@ -74,6 +74,7 @@ export namespace ComponentBond {
             const nameB = atom_id_2.value(i)!;
             const order = value_order.value(i)!;
             const aromatic = pdbx_aromatic_flag.value(i) === 'y';
+            const key = pdbx_ordinal.value(i);
 
             if (entry.id !== id) {
                 entry = addEntry(id);
@@ -89,29 +90,29 @@ export namespace ComponentBond {
                 case 'quad': ord = 4; break;
             }
 
-            entry.add(nameA, nameB, ord, flags);
+            entry.add(nameA, nameB, ord, flags, key);
         }
 
         return entries;
     }
 
     export class Entry {
-        readonly map: Map<string, Map<string, { order: number, flags: number }>> = new Map();
+        readonly map: Map<string, Map<string, { order: number, flags: number, key: number }>> = new Map();
 
-        add(a: string, b: string, order: number, flags: number, swap = true) {
+        add(a: string, b: string, order: number, flags: number, key: number, swap = true) {
             const e = this.map.get(a);
             if (e !== void 0) {
                 const f = e.get(b);
                 if (f === void 0) {
-                    e.set(b, { order, flags });
+                    e.set(b, { order, flags, key });
                 }
             } else {
-                const map = new Map<string, { order: number, flags: number }>();
-                map.set(b, { order, flags });
+                const map = new Map<string, { order: number, flags: number, key: number }>();
+                map.set(b, { order, flags, key });
                 this.map.set(a, map);
             }
 
-            if (swap) this.add(b, a, order, flags, false);
+            if (swap) this.add(b, a, order, flags, key, false);
         }
 
         constructor(public readonly id: string) { }

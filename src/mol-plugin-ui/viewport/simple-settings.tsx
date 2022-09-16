@@ -22,6 +22,8 @@ import { ViewportHelpContent } from './help';
 
 export class SimpleSettingsControl extends PluginUIComponent {
     componentDidMount() {
+        if (!this.plugin.canvas3d) return;
+
         this.subscribe(this.plugin.events.canvas3d.settingsUpdated, () => this.forceUpdate());
 
         this.subscribe(this.plugin.canvas3d!.camera.stateChanged, state => {
