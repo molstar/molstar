@@ -6,6 +6,8 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+## [v3.18.0] - 2022-09-17
+
 - Integration of Dual depth peeling - OIT method
 - Stereo camera improvements
     - Fix param updates not applied
