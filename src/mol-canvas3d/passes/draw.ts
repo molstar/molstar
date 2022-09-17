@@ -158,20 +158,18 @@ export class DrawPass {
             const target = PostprocessingPass.isEnabled(postprocessingProps)
                 ? this.postprocessing.target : this.colorTarget;
 
-            if (isTimingMode) this.webgl.timer.mark('DpoitPasses.render');
-
             const dpoitTextures = this.dpoit.bind();
             renderer.renderDpoitTransparent(scene.primitives, camera, this.depthTextureOpaque, dpoitTextures);
 
             for (let i = 0; i < iterations; i++) {
+                if (isTimingMode) this.webgl.timer.mark('DpoitPass.layer');
                 const dpoitTextures = this.dpoit.bindDualDepthPeeling();
                 renderer.renderDpoitTransparent(scene.primitives, camera, this.depthTextureOpaque, dpoitTextures);
 
                 target.bind();
                 this.dpoit.renderBlendBack();
+                if (isTimingMode) this.webgl.timer.markEnd('DpoitPass.layer');
             }
-
-            if (isTimingMode) this.webgl.timer.markEnd('DpoitPasses.render');
 
             // evaluate dpoit
             target.bind();
