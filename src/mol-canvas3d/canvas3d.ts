@@ -826,7 +826,10 @@ namespace Canvas3D {
 
                 if (props.camera?.helper) helper.camera.setProps(props.camera.helper);
                 if (props.camera?.manualReset !== undefined) p.camera.manualReset = props.camera.manualReset;
-                if (props.camera?.stereo !== undefined) Object.assign(p.camera.stereo, props.camera.stereo);
+                if (props.camera?.stereo !== undefined) {
+                    Object.assign(p.camera.stereo, props.camera.stereo);
+                    stereoCamera.setProps(p.camera.stereo.params);
+                }
                 if (props.cameraResetDurationMs !== undefined) p.cameraResetDurationMs = props.cameraResetDurationMs;
                 if (props.transparentBackground !== undefined) p.transparentBackground = props.transparentBackground;
                 if (props.dpoitIterations !== undefined) p.dpoitIterations = props.dpoitIterations;

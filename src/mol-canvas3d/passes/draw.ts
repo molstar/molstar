@@ -390,8 +390,12 @@ export class DrawPass {
         renderer.setPixelRatio(this.webgl.pixelRatio);
 
         if (StereoCamera.is(camera)) {
+            if (isTimingMode) this.webgl.timer.mark('StereoCamera.left');
             this._render(renderer, camera.left, scene, helper, toDrawingBuffer, transparentBackground, props);
+            if (isTimingMode) this.webgl.timer.markEnd('StereoCamera.left');
+            if (isTimingMode) this.webgl.timer.mark('StereoCamera.right');
             this._render(renderer, camera.right, scene, helper, toDrawingBuffer, transparentBackground, props);
+            if (isTimingMode) this.webgl.timer.markEnd('StereoCamera.right');
         } else {
             this._render(renderer, camera, scene, helper, toDrawingBuffer, transparentBackground, props);
         }
