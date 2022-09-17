@@ -3,6 +3,7 @@
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Áron Samuel Kovács <aron.kovacs@mail.muni.cz>
+ * @author Gianluca Tomasello <giagitom@gmail.com>
  */
 
 import { WebGLContext } from '../../mol-gl/webgl/context';
@@ -17,6 +18,7 @@ import { Helper } from '../helper/helper';
 
 import { StereoCamera } from '../camera/stereo';
 import { WboitPass } from './wboit';
+import { DpoitPass } from './dpoit';
 import { AntialiasingPass, PostprocessingPass, PostprocessingProps } from './postprocessing';
 import { MarkingPass, MarkingProps } from './marking';
 import { CopyRenderable, createCopyRenderable } from '../../mol-gl/compute/util';
@@ -27,6 +29,7 @@ type Props = {
     postprocessing: PostprocessingProps;
     marking: MarkingProps;
     transparentBackground: boolean;
+    dpoitIterations: number;
 }
 
 type RenderContext = {
@@ -52,6 +55,7 @@ export class DrawPass {
     private copyFboPostprocessing: CopyRenderable;
 
     private readonly wboit: WboitPass | undefined;
+    private readonly dpoit: DpoitPass | undefined;
     private readonly marking: MarkingPass;
     readonly postprocessing: PostprocessingPass;
     private readonly antialiasing: AntialiasingPass;
@@ -60,9 +64,12 @@ export class DrawPass {
         return !!this.wboit?.supported;
     }
 
-    constructor(private webgl: WebGLContext, assetManager: AssetManager, width: number, height: number, enableWboit: boolean) {
-        const { extensions, resources, isWebGL2 } = webgl;
+    get dpoitEnabled() {
+        return !!this.dpoit?.supported;
+    }
 
+    constructor(private webgl: WebGLContext, assetManager: AssetManager, width: number, height: number, enableWboit: boolean, enableDpoit: boolean) {
+        const { extensions, resources, isWebGL2 } = webgl;
         this.drawTarget = createNullRenderTarget(webgl.gl);
         this.colorTarget = webgl.createRenderTarget(width, height, true, 'uint8', 'linear');
         this.packedDepth = !extensions.depthTexture;
@@ -78,6 +85,7 @@ export class DrawPass {
         }
 
         this.wboit = enableWboit ? new WboitPass(webgl, width, height) : undefined;
+        this.dpoit = enableDpoit ? new DpoitPass(webgl, width, height) : undefined;
         this.marking = new MarkingPass(webgl, width, height);
         this.postprocessing = new PostprocessingPass(webgl, assetManager, this);
         this.antialiasing = new AntialiasingPass(webgl, this);
@@ -88,6 +96,7 @@ export class DrawPass {
 
     reset() {
         this.wboit?.reset();
+        this.dpoit?.reset();
     }
 
     setSize(width: number, height: number) {
@@ -111,9 +120,65 @@ export class DrawPass {
                 this.wboit.setSize(width, height);
             }
 
+            if (this.dpoit?.supported) {
+                this.dpoit.setSize(width, height);
+            }
+
             this.marking.setSize(width, height);
             this.postprocessing.setSize(width, height);
             this.antialiasing.setSize(width, height);
+        }
+    }
+
+    private _renderDpoit(renderer: Renderer, camera: ICamera, scene: Scene, iterations: number, transparentBackground: boolean, postprocessingProps: PostprocessingProps) {
+        if (!this.dpoit?.supported) throw new Error('expected dpoit to be supported');
+
+        this.depthTextureOpaque.attachFramebuffer(this.colorTarget.framebuffer, 'depth');
+        renderer.clear(true);
+
+        // render opaque primitives
+        if (scene.hasOpaque) {
+            renderer.renderDpoitOpaque(scene.primitives, camera, null);
+        }
+
+        if (PostprocessingPass.isEnabled(postprocessingProps)) {
+            if (PostprocessingPass.isOutlineEnabled(postprocessingProps)) {
+                this.depthTargetTransparent.bind();
+                renderer.clearDepth(true);
+                if (scene.opacityAverage < 1) {
+                    renderer.renderDepthTransparent(scene.primitives, camera, this.depthTextureOpaque);
+                }
+            }
+
+            this.postprocessing.render(camera, false, transparentBackground, renderer.props.backgroundColor, postprocessingProps);
+        }
+
+        // render transparent primitives
+        if (scene.opacityAverage < 1) {
+            const target = PostprocessingPass.isEnabled(postprocessingProps)
+                ? this.postprocessing.target : this.colorTarget;
+
+            const dpoitTextures = this.dpoit.bind();
+            renderer.renderDpoitTransparent(scene.primitives, camera, this.depthTextureOpaque, dpoitTextures);
+
+            for (let i = 0; i < iterations; i++) {
+                if (isTimingMode) this.webgl.timer.mark('DpoitPass.layer');
+                const dpoitTextures = this.dpoit.bindDualDepthPeeling();
+                renderer.renderDpoitTransparent(scene.primitives, camera, this.depthTextureOpaque, dpoitTextures);
+
+                target.bind();
+                this.dpoit.renderBlendBack();
+                if (isTimingMode) this.webgl.timer.markEnd('DpoitPass.layer');
+            }
+
+            // evaluate dpoit
+            target.bind();
+            this.dpoit.render();
+        }
+
+        // render transparent volumes
+        if (scene.volumes.renderables.length > 0) {
+            renderer.renderDpoitVolume(scene.volumes, camera, this.depthTextureOpaque);
         }
     }
 
@@ -254,13 +319,15 @@ export class DrawPass {
 
         if (this.wboitEnabled) {
             this._renderWboit(renderer, camera, scene, transparentBackground, props.postprocessing);
+        } else if (this.dpoitEnabled) {
+            this._renderDpoit(renderer, camera, scene, props.dpoitIterations, transparentBackground, props.postprocessing);
         } else {
             this._renderBlended(renderer, camera, scene, !volumeRendering && !postprocessingEnabled && !antialiasingEnabled && toDrawingBuffer, transparentBackground, props.postprocessing);
         }
 
         const target = postprocessingEnabled
             ? this.postprocessing.target
-            : !toDrawingBuffer || volumeRendering || this.wboitEnabled
+            : !toDrawingBuffer || volumeRendering || this.wboitEnabled || this.dpoitEnabled
                 ? this.colorTarget
                 : this.drawTarget;
 
@@ -303,7 +370,7 @@ export class DrawPass {
             this.webgl.state.disable(this.webgl.gl.DEPTH_TEST);
             if (postprocessingEnabled) {
                 this.copyFboPostprocessing.render();
-            } else if (volumeRendering || this.wboitEnabled) {
+            } else if (volumeRendering || this.wboitEnabled || this.dpoitEnabled) {
                 this.copyFboTarget.render();
             }
         }

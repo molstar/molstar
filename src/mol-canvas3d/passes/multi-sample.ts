@@ -61,6 +61,7 @@ type Props = {
     postprocessing: PostprocessingProps
     marking: MarkingProps
     transparentBackground: boolean;
+    dpoitIterations: number;
 }
 
 type RenderContext = {

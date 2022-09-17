@@ -15,9 +15,9 @@ export class Passes {
     readonly pick: PickPass;
     readonly multiSample: MultiSamplePass;
 
-    constructor(private webgl: WebGLContext, assetManager: AssetManager, attribs: Partial<{ pickScale: number, enableWboit: boolean }> = {}) {
+    constructor(private webgl: WebGLContext, assetManager: AssetManager, attribs: Partial<{ pickScale: number, enableWboit: boolean, enableDpoit: boolean }> = {}) {
         const { gl } = webgl;
-        this.draw = new DrawPass(webgl, assetManager, gl.drawingBufferWidth, gl.drawingBufferHeight, attribs.enableWboit || false);
+        this.draw = new DrawPass(webgl, assetManager, gl.drawingBufferWidth, gl.drawingBufferHeight, attribs.enableWboit || false, attribs.enableDpoit || false);
         this.pick = new PickPass(webgl, this.draw, attribs.pickScale || 0.25);
         this.multiSample = new MultiSamplePass(webgl, this.draw);
     }

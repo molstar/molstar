@@ -3,6 +3,7 @@
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Gianluca Tomasello <giagitom@gmail.com>
  */
 
 import { BehaviorSubject, Subscription } from 'rxjs';
@@ -39,7 +40,7 @@ import { Helper } from './helper/helper';
 import { Passes } from './passes/passes';
 import { shallowEqual } from '../mol-util';
 import { MarkingParams } from './passes/marking';
-import { GraphicsRenderVariantsBlended, GraphicsRenderVariantsWboit } from '../mol-gl/webgl/render-item';
+import { GraphicsRenderVariantsBlended, GraphicsRenderVariantsWboit, GraphicsRenderVariantsDpoit } from '../mol-gl/webgl/render-item';
 import { degToRad, radToDeg } from '../mol-math/misc';
 import { AssetManager } from '../mol-util/assets';
 import { deepClone } from '../mol-util/object';
@@ -84,6 +85,7 @@ export const Canvas3DParams = {
     cameraResetDurationMs: PD.Numeric(250, { min: 0, max: 1000, step: 1 }, { description: 'The time it takes to reset the camera.' }),
     sceneRadiusFactor: PD.Numeric(1, { min: 1, max: 10, step: 0.1 }),
     transparentBackground: PD.Boolean(false),
+    dpoitIterations: PD.Numeric(2, { min: 1, max: 10, step: 1 }),
 
     multiSample: PD.Group(MultiSampleParams),
     postprocessing: PD.Group(PostprocessingParams),
@@ -127,12 +129,16 @@ namespace Canvas3DContext {
         /** extra pixels to around target to check in case target is empty */
         pickPadding: 1,
         enableWboit: true,
+        enableDpoit: false,
         preferWebGl1: false
     };
     export type Attribs = typeof DefaultAttribs
 
     export function fromCanvas(canvas: HTMLCanvasElement, assetManager: AssetManager, attribs: Partial<Attribs> = {}): Canvas3DContext {
         const a = { ...DefaultAttribs, ...attribs };
+
+        if (a.enableWboit && a.enableDpoit) throw new Error('Multiple transparency methods not allowed.');
+
         const { failIfMajorPerformanceCaveat, antialias, preserveDrawingBuffer, pixelScale, preferWebGl1 } = a;
         const gl = getGLContext(canvas, {
             failIfMajorPerformanceCaveat,
@@ -305,8 +311,7 @@ namespace Canvas3D {
         let width = 128;
         let height = 128;
         updateViewport();
-
-        const scene = Scene.create(webgl, passes.draw.wboitEnabled ? GraphicsRenderVariantsWboit : GraphicsRenderVariantsBlended);
+        const scene = Scene.create(webgl, passes.draw.dpoitEnabled ? GraphicsRenderVariantsDpoit : (passes.draw.wboitEnabled ? GraphicsRenderVariantsWboit : GraphicsRenderVariantsBlended));
 
         function getSceneRadius() {
             return scene.boundingSphere.radius * p.sceneRadiusFactor;
@@ -686,6 +691,7 @@ namespace Canvas3D {
                 cameraResetDurationMs: p.cameraResetDurationMs,
                 sceneRadiusFactor: p.sceneRadiusFactor,
                 transparentBackground: p.transparentBackground,
+                dpoitIterations: p.dpoitIterations,
                 viewport: p.viewport,
 
                 postprocessing: { ...p.postprocessing },
@@ -823,6 +829,7 @@ namespace Canvas3D {
                 if (props.camera?.stereo !== undefined) Object.assign(p.camera.stereo, props.camera.stereo);
                 if (props.cameraResetDurationMs !== undefined) p.cameraResetDurationMs = props.cameraResetDurationMs;
                 if (props.transparentBackground !== undefined) p.transparentBackground = props.transparentBackground;
+                if (props.dpoitIterations !== undefined) p.dpoitIterations = props.dpoitIterations;
                 if (props.viewport !== undefined) {
                     const doNotUpdate = p.viewport === props.viewport ||
                         (p.viewport.name === props.viewport.name && shallowEqual(p.viewport.params, props.viewport.params));
@@ -858,7 +865,7 @@ namespace Canvas3D {
                 }
             },
             getImagePass: (props: Partial<ImageProps> = {}) => {
-                return new ImagePass(webgl, assetManager, renderer, scene, camera, helper, passes.draw.wboitEnabled, props);
+                return new ImagePass(webgl, assetManager, renderer, scene, camera, helper, passes.draw.wboitEnabled, passes.draw.dpoitEnabled, props);
             },
             getRenderObjects(): GraphicsRenderObject[] {
                 const renderObjects: GraphicsRenderObject[] = [];

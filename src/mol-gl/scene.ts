@@ -45,8 +45,8 @@ function calculateBoundingSphere(renderables: GraphicsRenderable[], boundingSphe
 }
 
 function renderableSort(a: GraphicsRenderable, b: GraphicsRenderable) {
-    const drawProgramIdA = (a.getProgram('colorBlended') || a.getProgram('colorWboit')).id;
-    const drawProgramIdB = (b.getProgram('colorBlended') || a.getProgram('colorWboit')).id;
+    const drawProgramIdA = (a.getProgram('colorBlended') || a.getProgram('colorWboit') || a.getProgram('colorDpoit')).id;
+    const drawProgramIdB = (b.getProgram('colorBlended') || b.getProgram('colorWboit') || b.getProgram('colorDpoit')).id;
     const materialIdA = a.materialId;
     const materialIdB = b.materialId;
 
