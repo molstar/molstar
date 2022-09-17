@@ -6,10 +6,13 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Integration of Dual depth peeling - OIT method
+
+## [v3.17.0] - 2022-09-11
+
 - [Fix] Clone ``Canvas3DParams`` when creating a ``Canvas3D`` instance to prevent shared state between multiple instances
 - Add ``includeResidueTest`` option to ``alignAndSuperposeWithSIFTSMapping``
 - Add ``parentDisplay`` param for interactions representation.
-- Integration of Dual depth peeling - OIT method
 - [Experimental] Add support for PyMOL, VMD, and Jmol atom expressions in selection scripts
 - Support for ``failIfMajorPerformanceCaveat`` webgl attribute. Add ``PluginConfig.General.AllowMajorPerformanceCaveat`` and ``allow-major-performance-caveat`` Viewer GET param.
 - Fix handling of PDB TER records (#549)
