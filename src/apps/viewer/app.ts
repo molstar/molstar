@@ -88,6 +88,7 @@ const DefaultViewerOptions = {
     pickScale: PluginConfig.General.PickScale.defaultValue,
     pickPadding: PluginConfig.General.PickPadding.defaultValue,
     enableWboit: PluginConfig.General.EnableWboit.defaultValue,
+    enableDpoit: PluginConfig.General.EnableDpoit.defaultValue,
     preferWebgl1: PluginConfig.General.PreferWebGl1.defaultValue,
     allowMajorPerformanceCaveat: PluginConfig.General.AllowMajorPerformanceCaveat.defaultValue,
 
@@ -159,6 +160,7 @@ export class Viewer {
                 [PluginConfig.General.PickScale, o.pickScale],
                 [PluginConfig.General.PickPadding, o.pickPadding],
                 [PluginConfig.General.EnableWboit, o.enableWboit],
+                [PluginConfig.General.EnableDpoit, o.enableDpoit],
                 [PluginConfig.General.PreferWebGl1, o.preferWebgl1],
                 [PluginConfig.General.AllowMajorPerformanceCaveat, o.allowMajorPerformanceCaveat],
                 [PluginConfig.Viewport.ShowExpand, o.viewportShowExpand],

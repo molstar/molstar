@@ -2,6 +2,7 @@
  * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Gianluca Tomasello <giagitom@gmail.com>
  */
 
 import { Viewport } from '../mol-canvas3d/camera/util';
@@ -70,6 +71,9 @@ interface Renderer {
     renderBlendedVolume: (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => void
     renderWboitOpaque: (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => void
     renderWboitTransparent: (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => void
+    renderDpoitOpaque: (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => void
+    renderDpoitTransparent: (group: Scene.Group, camera: ICamera, depthTexture: Texture | null, dpoitTextures: { depth: Texture, frontColor: Texture, backColor: Texture }) => void
+    renderDpoitVolume: (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => void
 
     setProps: (props: Partial<RendererProps>) => void
     setViewport: (x: number, y: number, width: number, height: number) => void
@@ -141,7 +145,7 @@ namespace Renderer {
     const enum Flag {
         None = 0,
         BlendedFront = 1,
-        BlendedBack = 2
+        BlendedBack = 2,
     }
 
     const enum Mask {
@@ -268,7 +272,7 @@ namespace Renderer {
             }
 
             if (r.values.dGeometryType.ref.value === 'directVolume') {
-                if (variant !== 'colorWboit' && variant !== 'colorBlended') {
+                if (variant !== 'colorDpoit' && variant !== 'colorWboit' && variant !== 'colorBlended') {
                     return; // only color supported
                 }
 
@@ -602,6 +606,71 @@ namespace Renderer {
             if (isTimingMode) ctx.timer.markEnd('Renderer.renderWboitTransparent');
         };
 
+        const renderDpoitOpaque = (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => {
+            if (isTimingMode) ctx.timer.mark('Renderer.renderDpoitOpaque');
+            state.disable(gl.BLEND);
+            state.enable(gl.DEPTH_TEST);
+            state.depthMask(true);
+
+            updateInternal(group, camera, depthTexture, Mask.Opaque, false);
+
+            const { renderables } = group;
+            for (let i = 0, il = renderables.length; i < il; ++i) {
+                const r = renderables[i];
+
+                // TODO: simplify, handle in renderable.state???
+                // uAlpha is updated in "render" so we need to recompute it here
+                const alpha = clamp(r.values.alpha.ref.value * r.state.alphaFactor, 0, 1);
+                if ((alpha === 1 && r.values.transparencyAverage.ref.value !== 1 && r.values.dPointStyle?.ref.value !== 'fuzzy' && !r.values.dXrayShaded?.ref.value) || r.values.dTransparentBackfaces?.ref.value === 'opaque') {
+                    renderObject(r, 'colorDpoit', Flag.None);
+                }
+            }
+            if (isTimingMode) ctx.timer.markEnd('Renderer.renderDpoitOpaque');
+        };
+
+        const renderDpoitTransparent = (group: Scene.Group, camera: ICamera, depthTexture: Texture | null, dpoitTextures: { depth: Texture, frontColor: Texture, backColor: Texture }) => {
+            if (isTimingMode) ctx.timer.mark('Renderer.renderDpoitTransparent');
+
+            state.enable(gl.BLEND);
+
+            arrayMapUpsert(sharedTexturesList, 'tDpoitDepth', dpoitTextures.depth);
+            arrayMapUpsert(sharedTexturesList, 'tDpoitFrontColor', dpoitTextures.frontColor);
+            arrayMapUpsert(sharedTexturesList, 'tDpoitBackColor', dpoitTextures.backColor);
+
+            updateInternal(group, camera, depthTexture, Mask.Transparent, false);
+
+            const { renderables } = group;
+
+            for (let i = 0, il = renderables.length; i < il; ++i) {
+                const r = renderables[i];
+
+                // TODO: simplify, handle in renderable.state???
+                // uAlpha is updated in "render" so we need to recompute it here
+                const alpha = clamp(r.values.alpha.ref.value * r.state.alphaFactor, 0, 1);
+                if (alpha < 1 || r.values.transparencyAverage.ref.value > 0 || r.values.dPointStyle?.ref.value === 'fuzzy' || !!r.values.uBackgroundColor || r.values.dXrayShaded?.ref.value) {
+                    renderObject(r, 'colorDpoit', Flag.None);
+                }
+            }
+            if (isTimingMode) ctx.timer.markEnd('Renderer.renderDpoitTransparent');
+        };
+
+        const renderDpoitVolume = (group: Scene.Group, camera: ICamera, depthTexture: Texture | null) => {
+            if (isTimingMode) ctx.timer.mark('Renderer.renderDpoitVolume');
+            state.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+            state.enable(gl.BLEND);
+
+            updateInternal(group, camera, depthTexture, Mask.Transparent, false);
+
+            const { renderables } = group;
+            for (let i = 0, il = renderables.length; i < il; ++i) {
+                const r = renderables[i];
+                if (r.values.dGeometryType.ref.value === 'directVolume') {
+                    renderObject(r, 'colorDpoit', Flag.None);
+                }
+            }
+            if (isTimingMode) ctx.timer.markEnd('Renderer.renderDpoitVolume');
+        };
+
         return {
             clear: (toBackgroundColor: boolean, ignoreTransparentBackground?: boolean) => {
                 state.enable(gl.SCISSOR_TEST);
@@ -645,6 +714,9 @@ namespace Renderer {
             renderBlendedVolume,
             renderWboitOpaque,
             renderWboitTransparent,
+            renderDpoitOpaque,
+            renderDpoitTransparent,
+            renderDpoitVolume,
 
             setProps: (props: Partial<RendererProps>) => {
                 if (props.backgroundColor !== undefined && props.backgroundColor !== p.backgroundColor) {

@@ -6,6 +6,16 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+## [v3.18.0] - 2022-09-17
+
+- Integration of Dual depth peeling - OIT method
+- Stereo camera improvements
+    - Fix param updates not applied
+    - Better param ranges and description
+    - Add timer.mark for left/right camera
+
+## [v3.17.0] - 2022-09-11
+
 - [Fix] Clone ``Canvas3DParams`` when creating a ``Canvas3D`` instance to prevent shared state between multiple instances
 - Add ``includeResidueTest`` option to ``alignAndSuperposeWithSIFTSMapping``
 - Add ``parentDisplay`` param for interactions representation.
