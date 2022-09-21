@@ -48,3 +48,8 @@ export function setDebugMode(value?: boolean) {
 export function setTimingMode(value?: boolean) {
     if (typeof value !== 'undefined') isTimingMode = value;
 }
+
+export const LoadCheckpoints: [string, number][] = [['debug', Date.now()]];
+export function loadCheckpoint(file: string) {
+    LoadCheckpoints.push([file, Date.now()]);
+}

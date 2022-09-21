@@ -49,7 +49,8 @@ import { SaccharideCompIdMapType } from '../../mol-model/structure/structure/car
 import { Backgrounds } from '../../extensions/backgrounds';
 
 export { PLUGIN_VERSION as version } from '../../mol-plugin/version';
-export { setDebugMode, setProductionMode, setTimingMode } from '../../mol-util/debug';
+export { setDebugMode, setProductionMode, setTimingMode, LoadCheckpoints } from '../../mol-util/debug';
+
 
 const CustomFormats = [
     ['g3d', G3dProvider] as const
