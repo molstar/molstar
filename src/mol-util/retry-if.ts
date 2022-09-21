@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../mol-util/debug';
+loadCheckpoint(`mol-util/retry-if.ts::start`);
 /**
  * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -32,3 +36,4 @@ export async function retryIf<T>(promiseProvider: () => Promise<T>, params: {
 
     throw new Error('Maximum retry count exceeded.');
 }
+loadCheckpoint(`mol-util/retry-if.ts::end`);

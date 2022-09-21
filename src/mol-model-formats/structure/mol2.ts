@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-model-formats/structure/mol2.ts::start`);
 /**
  * Copyright (c) 2020-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -175,3 +179,5 @@ namespace Mol2Format {
 export function trajectoryFromMol2(mol2: Mol2File): Task<Trajectory> {
     return Task.create('Parse MOL2', ctx => getModels(mol2, ctx));
 }
+
+loadCheckpoint(`mol-model-formats/structure/mol2.ts::end`);

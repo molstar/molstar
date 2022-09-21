@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-script/language/builder.ts::start`);
 /**
  * Copyright (c) 2018 Mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -46,3 +50,4 @@ export namespace MolScriptBuilder {
     /** atom macromolecular property set */
     export function ammpSet(p: keyof typeof _ammp) { return _aps([ammp(p)]); };
 }
+loadCheckpoint(`mol-script/language/builder.ts::end`);

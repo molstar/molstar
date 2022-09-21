@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../mol-util/debug';
+loadCheckpoint(`mol-state/index.ts::start`);
 /**
  * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -12,3 +16,4 @@ export * from './state/selection';
 export * from './transformer';
 export * from './transform';
 export * from './action';
+loadCheckpoint(`mol-state/index.ts::end`);

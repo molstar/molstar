@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../../mol-util/debug';
+loadCheckpoint(`mol-model-props/computed/secondary-structure/dssp/turns.ts::start`);
 /**
  * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -39,3 +43,4 @@ export function assignTurns(ctx: DSSPContext) {
         }
     }
 }
+loadCheckpoint(`mol-model-props/computed/secondary-structure/dssp/turns.ts::end`);

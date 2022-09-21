@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-plugin-ui/structure/quick-styles.tsx::start`);
 /**
  * Copyright (c) 2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -105,3 +109,4 @@ export class QuickStyles extends PurePluginUIComponent {
         </div>;
     }
 }
+loadCheckpoint(`mol-plugin-ui/structure/quick-styles.tsx::end`);

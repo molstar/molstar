@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../../../mol-util/debug';
+loadCheckpoint(`mol-model/structure/model/properties/atomic/types.ts::start`);
 /**
  * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -80,3 +84,4 @@ export function isNonmetal(element: ElementSymbol) {
         isNobleGas(element)
     );
 }
+loadCheckpoint(`mol-model/structure/model/properties/atomic/types.ts::end`);

@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-canvas3d/passes/fxaa.ts::start`);
 /**
  * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -131,3 +135,4 @@ function getFxaaRenderable(ctx: WebGLContext, colorTexture: Texture): FxaaRender
 
     return createComputeRenderable(renderItem, values);
 }
+loadCheckpoint(`mol-canvas3d/passes/fxaa.ts::end`);

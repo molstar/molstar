@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-model/sequence/alignment/sequence.ts::start`);
 /**
  * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -108,3 +112,4 @@ function entityKey(unit: Unit) {
 function getSequence(unit: Unit) {
     return unit.model.sequence.byEntityKey[entityKey(unit)].sequence;
 }
+loadCheckpoint(`mol-model/sequence/alignment/sequence.ts::end`);

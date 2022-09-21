@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-task/util/chunked.ts::start`);
 /**
  * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -44,3 +48,4 @@ async function chunkedSubtask<S>(ctx: RuntimeContext, initialChunk: number, stat
 }
 
 export { chunkedSubtask };
+loadCheckpoint(`mol-task/util/chunked.ts::end`);

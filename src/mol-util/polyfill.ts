@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../mol-util/debug';
+loadCheckpoint(`mol-util/polyfill.ts::start`);
 /**
  * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -693,3 +697,4 @@ if (!Float32Array.prototype.copyWithin) {
 if (!Float64Array.prototype.copyWithin) {
     Object.defineProperty(Float64Array.prototype, 'copyWithin', { value: Array.prototype.copyWithin });
 }
+loadCheckpoint(`mol-util/polyfill.ts::end`);

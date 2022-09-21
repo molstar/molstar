@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../../mol-util/debug';
+loadCheckpoint(`mol-model-props/computed/secondary-structure/dssp/bridges.ts::start`);
 /**
  * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -75,3 +79,4 @@ export function assignBridges(ctx: DSSPContext) {
 
     bridges.sort((a, b) => a.partner1 > b.partner1 ? 1 : a.partner1 < b.partner1 ? -1 : 0);
 }
+loadCheckpoint(`mol-model-props/computed/secondary-structure/dssp/bridges.ts::end`);

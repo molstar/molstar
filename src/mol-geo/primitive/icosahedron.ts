@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-geo/primitive/icosahedron.ts::start`);
 /**
  * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -38,3 +42,4 @@ const icosahedronCage = createCage(icosahedronVertices, icosahedronEdges);
 export function IcosahedronCage(): Cage {
     return icosahedronCage;
 }
+loadCheckpoint(`mol-geo/primitive/icosahedron.ts::end`);

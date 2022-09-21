@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-data/db/table.ts::start`);
 /**
  * Copyright (c) 2017 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -281,3 +285,4 @@ namespace Table {
 }
 
 export { Table };
+loadCheckpoint(`mol-data/db/table.ts::end`);

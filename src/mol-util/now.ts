@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../mol-util/debug';
+loadCheckpoint(`mol-util/now.ts::start`);
 /**
  * Copyright (c) 2017 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -46,3 +50,4 @@ function formatTimespan(t: number, includeMsZeroes = true) {
 }
 
 export { now, formatTimespan };
+loadCheckpoint(`mol-util/now.ts::end`);

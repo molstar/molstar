@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-model/structure/coordinates/coordinates.ts::start`);
 /**
  * Copyright (c) 2019-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -195,3 +199,4 @@ namespace Coordinates {
         return ret;
     }
 }
+loadCheckpoint(`mol-model/structure/coordinates/coordinates.ts::end`);

@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`extensions/geo-export/usdz-exporter.ts::start`);
 /**
  * Copyright (c) 2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -245,3 +249,4 @@ def Mesh "mesh${this.meshes.length}"
         this.centerTransform = t;
     }
 }
+loadCheckpoint(`extensions/geo-export/usdz-exporter.ts::end`);

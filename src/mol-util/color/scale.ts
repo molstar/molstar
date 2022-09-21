@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-util/color/scale.ts::start`);
 /**
  * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -101,3 +105,5 @@ export namespace ColorScale {
         };
     }
 }
+
+loadCheckpoint(`mol-util/color/scale.ts::end`);

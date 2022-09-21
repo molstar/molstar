@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-plugin-state/manager/structure/focus.ts::start`);
 /**
  * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -192,3 +196,4 @@ export class StructureFocusManager extends StatefulPluginComponent<StructureFocu
         });
     }
 }
+loadCheckpoint(`mol-plugin-state/manager/structure/focus.ts::end`);

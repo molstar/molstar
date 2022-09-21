@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-geo/util/marching-cubes/tables.ts::start`);
 /**
  * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -453,3 +457,4 @@ export const AllowedContours = [
     [0, 8, 8, 0, 0, 8, 8, 0, 0, 8, 0, 8],
     [0, 0, 8, 1, 0, 0, 8, 1, 1, 0, 8, 0]
 ];
+loadCheckpoint(`mol-geo/util/marching-cubes/tables.ts::end`);

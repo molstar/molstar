@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-model-formats/structure/xyz.ts::start`);
 /**
  * Copyright (c) 2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -106,3 +110,5 @@ namespace XyzFormat {
 export function trajectoryFromXyz(mol: XyzFile): Task<Trajectory> {
     return Task.create('Parse XYZ', ctx => getModels(mol, ctx));
 }
+
+loadCheckpoint(`mol-model-formats/structure/xyz.ts::end`);

@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-util/color/distinct.ts::start`);
 /**
  * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -162,3 +166,4 @@ export function distinctColors(count: number, props: Partial<DistinctColorsProps
 
     return sortByContrast(colors).map(c => Lab.toColor(c));
 }
+loadCheckpoint(`mol-util/color/distinct.ts::end`);

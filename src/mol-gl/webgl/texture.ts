@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-gl/webgl/texture.ts::start`);
 /**
  * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -590,3 +594,5 @@ export function createNullTexture(gl?: GLRenderingContext): Texture {
         destroy: () => {},
     };
 }
+
+loadCheckpoint(`mol-gl/webgl/texture.ts::end`);

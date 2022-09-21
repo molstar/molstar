@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`extensions/zenodo/index.ts::start`);
 /**
  * Copyright (c) 2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -28,3 +32,4 @@ export const ZenodoImport = PluginBehavior.create<{ }>({
     },
     params: () => ({ })
 });
+loadCheckpoint(`extensions/zenodo/index.ts::end`);

@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../../../mol-util/debug';
+loadCheckpoint(`mol-model/structure/model/properties/atomic/conformation.ts::start`);
 /**
  * Copyright (c) 2017-2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -51,3 +55,4 @@ export interface AtomicConformation {
      */
     z: ArrayLike<number>
 }
+loadCheckpoint(`mol-model/structure/model/properties/atomic/conformation.ts::end`);

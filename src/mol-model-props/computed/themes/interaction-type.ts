@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-model-props/computed/themes/interaction-type.ts::start`);
 /**
  * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -120,3 +124,4 @@ export const InteractionTypeColorThemeProvider: ColorTheme.Provider<InteractionT
         detach: (data) => data.structure && InteractionsProvider.ref(data.structure, false)
     }
 };
+loadCheckpoint(`mol-model-props/computed/themes/interaction-type.ts::end`);

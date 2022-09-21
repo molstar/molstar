@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-util/input/event-offset.ts::start`);
 /**
  * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -29,3 +33,4 @@ function getBoundingClientOffset(element: Element | Window | Document) {
         return (element as Element).getBoundingClientRect();
     }
 }
+loadCheckpoint(`mol-util/input/event-offset.ts::end`);

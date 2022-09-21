@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-gl/compute/marching-cubes/tables.ts::start`);
 /**
  * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -34,3 +38,4 @@ export function getTriIndices(): TextureImage<Uint8Array> {
     }
     return TriIndices;
 }
+loadCheckpoint(`mol-gl/compute/marching-cubes/tables.ts::end`);

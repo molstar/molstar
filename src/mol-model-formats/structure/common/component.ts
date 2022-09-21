@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-model-formats/structure/common/component.ts::start`);
 /**
  * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -192,3 +196,4 @@ export class ComponentBuilder {
 
     }
 }
+loadCheckpoint(`mol-model-formats/structure/common/component.ts::end`);

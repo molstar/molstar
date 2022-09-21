@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-repr/structure/representation/backbone.ts::start`);
 /**
  * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -57,3 +61,4 @@ export const BackboneRepresentationProvider = StructureRepresentationProvider({
     defaultSizeTheme: { name: 'uniform' },
     isApplicable: (structure: Structure) => structure.polymerResidueCount > 0,
 });
+loadCheckpoint(`mol-repr/structure/representation/backbone.ts::end`);

@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-repr/structure/representation/ball-and-stick.ts::start`);
 /**
  * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -62,3 +66,4 @@ export const BallAndStickRepresentationProvider = StructureRepresentationProvide
         return oldProps.includeParent !== newProps.includeParent;
     }
 });
+loadCheckpoint(`mol-repr/structure/representation/ball-and-stick.ts::end`);

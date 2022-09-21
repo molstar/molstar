@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../mol-util/debug';
+loadCheckpoint(`mol-plugin-ui/sequence.tsx::start`);
 /**
  * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -414,3 +418,4 @@ function NonEmptySequenceWrapper({ children }: { children: React.ReactNode }) {
         {children}
     </div>;
 }
+loadCheckpoint(`mol-plugin-ui/sequence.tsx::end`);

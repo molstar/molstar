@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-data/util/array.ts::start`);
 /**
  * Copyright (c) 2017 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -49,3 +53,4 @@ export function arrayGetCtor<T>(data: ArrayLike<T>): ArrayCtor<T> {
     if (!ret) throw new Error('data does not define a constructor and it should');
     return ret;
 }
+loadCheckpoint(`mol-data/util/array.ts::end`);

@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-gl/shader/chunks/color-frag-params.glsl.ts::start`);
 export const color_frag_params = `
 uniform float uMetalness;
 uniform float uRoughness;
@@ -50,3 +54,4 @@ uniform float uBumpiness;
     varying float vTransparency;
 #endif
 `;
+loadCheckpoint(`mol-gl/shader/chunks/color-frag-params.glsl.ts::end`);

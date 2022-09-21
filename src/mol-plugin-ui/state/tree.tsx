@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-plugin-ui/state/tree.tsx::start`);
 /**
  * Copyright (c) 2018 - 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -340,3 +344,4 @@ class StateTreeNodeLabel extends PluginUIComponent<{ cell: StateObjectCell, dept
         return row;
     }
 }
+loadCheckpoint(`mol-plugin-ui/state/tree.tsx::end`);

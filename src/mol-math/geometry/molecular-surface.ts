@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-math/geometry/molecular-surface.ts::start`);
 /**
  * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -372,3 +376,4 @@ export async function calcMolecularSurface(ctx: RuntimeContext, position: Requir
     // console.log({ field, idField, transform, updateChunk })
     return { field, idField, transform, resolution, maxRadius };
 }
+loadCheckpoint(`mol-math/geometry/molecular-surface.ts::end`);

@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../../mol-util/debug';
+loadCheckpoint(`mol-io/reader/cif/schema/cif-core.ts::start`);
 /**
  * Copyright (c) 2017-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -751,3 +755,4 @@ export const CifCore_Aliases = {
 
 export type CifCore_Schema = typeof CifCore_Schema;
 export interface CifCore_Database extends Database<CifCore_Schema> {};
+loadCheckpoint(`mol-io/reader/cif/schema/cif-core.ts::end`);

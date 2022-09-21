@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../mol-util/debug';
+loadCheckpoint(`mol-plugin-state/objects.ts::start`);
 /**
  * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -154,3 +158,4 @@ export namespace PluginStateTransform {
     export const CreateBuiltIn = StateTransformer.factory('ms-plugin');
     export const BuiltIn = StateTransformer.builderFactory('ms-plugin');
 }
+loadCheckpoint(`mol-plugin-state/objects.ts::end`);

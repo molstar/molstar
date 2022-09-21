@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../../mol-util/debug';
+loadCheckpoint(`extensions/model-archive/quality-assessment/color/qmean.ts::start`);
 /**
  * Copyright (c) 2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -93,3 +97,4 @@ export const QmeanScoreColorThemeProvider: ColorTheme.Provider<QmeanScoreColorTh
         }
     }
 };
+loadCheckpoint(`extensions/model-archive/quality-assessment/color/qmean.ts::end`);

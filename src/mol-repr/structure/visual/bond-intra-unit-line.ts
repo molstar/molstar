@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-repr/structure/visual/bond-intra-unit-line.ts::start`);
 /**
  * Copyright (c) 2020-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -183,3 +187,4 @@ export function IntraUnitBondLineVisual(materialId: number): UnitsVisual<IntraUn
         }
     }, materialId);
 }
+loadCheckpoint(`mol-repr/structure/visual/bond-intra-unit-line.ts::end`);

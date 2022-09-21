@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-math/geometry/distance-transform.ts::start`);
 /**
  * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -55,3 +59,5 @@ function edt1d(f: NumberArray, d: NumberArray, v: NumberArray, z: NumberArray, n
         d[q] = (q - v[k]) * (q - v[k]) + f[v[k]];
     }
 }
+
+loadCheckpoint(`mol-math/geometry/distance-transform.ts::end`);

@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-plugin-state/helpers/structure-transparency.ts::start`);
 /**
  * Copyright (c) 2019-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -72,3 +76,4 @@ function getFilteredBundle(layers: Transparency.BundleLayer[], structure: Struct
     const merged = Transparency.merge(transparency);
     return Transparency.filter(merged, structure) as Transparency<StructureElement.Loci>;
 }
+loadCheckpoint(`mol-plugin-state/helpers/structure-transparency.ts::end`);

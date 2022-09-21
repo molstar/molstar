@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-io/writer/cif/encoder.ts::start`);
 /**
  * Copyright (c) 2017-2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -330,3 +334,4 @@ function cifFieldsFromTableSchema(schema: Table.Schema) {
     }
     return fields;
 }
+loadCheckpoint(`mol-io/writer/cif/encoder.ts::end`);

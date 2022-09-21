@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-math/graph/int-adjacency-graph.ts::start`);
 /**
  * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -427,3 +431,4 @@ function areVertexSetsConnectedImpl(graph: IntAdjacencyGraph<any, any>, frontier
 
     return distance > 1 ? areVertexSetsConnectedImpl(graph, newFrontier, target, distance - 1, visited) : false;
 }
+loadCheckpoint(`mol-math/graph/int-adjacency-graph.ts::end`);

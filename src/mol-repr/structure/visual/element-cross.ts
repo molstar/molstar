@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-repr/structure/visual/element-cross.ts::start`);
 /**
  * Copyright (c) 2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -92,3 +96,4 @@ export function ElementCrossVisual(materialId: number): UnitsVisual<ElementCross
         }
     }, materialId);
 }
+loadCheckpoint(`mol-repr/structure/visual/element-cross.ts::end`);

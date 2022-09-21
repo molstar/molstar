@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../../mol-util/debug';
+loadCheckpoint(`mol-geo/geometry/mesh/builder/cylinder.ts::start`);
 /**
  * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -120,3 +124,4 @@ export function addFixedCountDashedCylinder(state: MeshBuilder.State, start: Vec
         MeshBuilder.addPrimitive(state, tmpCylinderMat, cylinder);
     }
 }
+loadCheckpoint(`mol-geo/geometry/mesh/builder/cylinder.ts::end`);

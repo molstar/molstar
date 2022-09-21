@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-plugin-ui/viewport/help.tsx::start`);
 /**
  * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -174,3 +178,4 @@ export class HelpContent extends PluginUIComponent {
         </div>;
     }
 }
+loadCheckpoint(`mol-plugin-ui/viewport/help.tsx::end`);

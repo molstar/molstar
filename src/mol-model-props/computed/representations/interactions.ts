@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-model-props/computed/representations/interactions.ts::start`);
 /**
  * Copyright (c) 2019-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -58,3 +62,4 @@ export const InteractionsRepresentationProvider = StructureRepresentationProvide
         return oldProps.includeParent !== newProps.includeParent;
     }
 });
+loadCheckpoint(`mol-model-props/computed/representations/interactions.ts::end`);

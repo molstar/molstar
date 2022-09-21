@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-model-props/computed/interactions/refine.ts::start`);
 /**
  * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -279,3 +283,4 @@ function metalCoordinationRefiner(structure: Structure, interactions: Interactio
         }
     };
 }
+loadCheckpoint(`mol-model-props/computed/interactions/refine.ts::end`);

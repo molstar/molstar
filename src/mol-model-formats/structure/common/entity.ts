@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-model-formats/structure/common/entity.ts::start`);
 /**
  * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -80,3 +84,4 @@ export class EntityBuilder {
         names.forEach(n => this.namesMap.set(n[0], n[1]));
     }
 }
+loadCheckpoint(`mol-model-formats/structure/common/entity.ts::end`);

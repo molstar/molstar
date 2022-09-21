@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-geo/primitive/box.ts::start`);
 /**
  * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -89,3 +93,4 @@ export function BoxCage() {
     }
     return boxCage;
 }
+loadCheckpoint(`mol-geo/primitive/box.ts::end`);

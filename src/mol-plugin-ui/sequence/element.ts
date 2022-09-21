@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-plugin-ui/sequence/element.ts::start`);
 /**
  * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -86,3 +90,4 @@ export class ElementSequenceWrapper extends SequenceWrapper<StructureUnit> {
         this.unitIndices = unitIndices;
     }
 }
+loadCheckpoint(`mol-plugin-ui/sequence/element.ts::end`);

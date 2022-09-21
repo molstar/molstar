@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../../mol-util/debug';
+loadCheckpoint(`mol-model/structure/model/properties/common.ts::start`);
 /**
  * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -38,3 +42,4 @@ export interface MissingResidues {
 
 export type StructAsym = Table.Row<Pick<mmCIF_Schema['struct_asym'], 'id' | 'entity_id'> & { auth_id: Column.Schema.Str }>
 export type StructAsymMap = ReadonlyMap<string, StructAsym>
+loadCheckpoint(`mol-model/structure/model/properties/common.ts::end`);

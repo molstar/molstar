@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-theme/size/physical.ts::start`);
 /**
  * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -72,3 +76,4 @@ export const PhysicalSizeThemeProvider: SizeTheme.Provider<PhysicalSizeThemePara
     defaultValues: PD.getDefaultValues(PhysicalSizeThemeParams),
     isApplicable: (ctx: ThemeDataContext) => !!ctx.structure
 };
+loadCheckpoint(`mol-theme/size/physical.ts::end`);

@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`extensions/cellpack/index.ts::start`);
 /**
  * Copyright (c) 2019-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -30,3 +34,4 @@ export const CellPack = PluginBehavior.create<{ autoAttach: boolean, showTooltip
         }
     }
 });
+loadCheckpoint(`extensions/cellpack/index.ts::end`);

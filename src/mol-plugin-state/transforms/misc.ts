@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-plugin-state/transforms/misc.ts::start`);
 /**
  * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -52,3 +56,4 @@ const CreateGroup = PluginStateTransform.BuiltIn({
 //         return new SO.Data.String(`Model: ${model.label}`, { label: model.label });
 //     }
 // });
+loadCheckpoint(`mol-plugin-state/transforms/misc.ts::end`);

@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-gl/shader/chunks/assign-size.glsl.ts::start`);
 export const assign_size = `
 #if defined(dSizeType_uniform)
     float size = uSize;
@@ -17,3 +21,4 @@ export const assign_size = `
 
 size *= uSizeFactor;
 `;
+loadCheckpoint(`mol-gl/shader/chunks/assign-size.glsl.ts::end`);

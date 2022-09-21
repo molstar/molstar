@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../../mol-util/debug';
+loadCheckpoint(`mol-model-props/computed/accessible-surface-area/shrake-rupley/common.ts::start`);
 /**
  * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -59,3 +63,4 @@ export const MaxAsa: { [k: string]: number } = {
     'VAL': 165.0
 };
 export const DefaultMaxAsa = 121.0;
+loadCheckpoint(`mol-model-props/computed/accessible-surface-area/shrake-rupley/common.ts::end`);

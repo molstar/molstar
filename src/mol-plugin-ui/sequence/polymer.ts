@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-plugin-ui/sequence/polymer.ts::start`);
 /**
  * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -142,3 +146,4 @@ function applyMarkerCoarse(e: StructureElement.Loci.Element, action: MarkerActio
     });
     return true;
 }
+loadCheckpoint(`mol-plugin-ui/sequence/polymer.ts::end`);

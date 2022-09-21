@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-repr/structure/visual/gaussian-surface-mesh.ts::start`);
 /**
  * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -367,3 +371,4 @@ export function StructureGaussianSurfaceTextureMeshVisual(materialId: number): C
         }
     }, materialId);
 }
+loadCheckpoint(`mol-repr/structure/visual/gaussian-surface-mesh.ts::end`);

@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-gl/shader/outlines.frag.ts::start`);
 /**
  * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -86,3 +90,4 @@ void main(void) {
     gl_FragColor = vec4(outline, packUnitIntervalToRG(bestDepth), 0.0);
 }
 `;
+loadCheckpoint(`mol-gl/shader/outlines.frag.ts::end`);

@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-repr/structure/representation/spacefill.ts::start`);
 /**
  * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -46,3 +50,4 @@ export const SpacefillRepresentationProvider = StructureRepresentationProvider({
     defaultSizeTheme: { name: 'physical' },
     isApplicable: (structure: Structure) => structure.elementCount > 0
 });
+loadCheckpoint(`mol-repr/structure/representation/spacefill.ts::end`);

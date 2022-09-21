@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`extensions/geo-export/mesh-exporter.ts::start`);
 /**
  * Copyright (c) 2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -483,3 +487,4 @@ export abstract class MeshExporter<D extends RenderObjectExportData> implements 
 
     abstract getBlob(ctx: RuntimeContext): Promise<Blob>;
 }
+loadCheckpoint(`extensions/geo-export/mesh-exporter.ts::end`);

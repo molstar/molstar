@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-canvas3d/passes/background.ts::start`);
 /**
  * Copyright (c) 2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -459,3 +463,5 @@ function getBackgroundRenderable(ctx: WebGLContext, width: number, height: numbe
 
     return createComputeRenderable(renderItem, values);
 }
+
+loadCheckpoint(`mol-canvas3d/passes/background.ts::end`);

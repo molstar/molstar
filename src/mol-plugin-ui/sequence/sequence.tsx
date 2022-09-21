@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-plugin-ui/sequence/sequence.tsx::start`);
 /**
  * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -306,3 +310,5 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
         </div>;
     }
 }
+
+loadCheckpoint(`mol-plugin-ui/sequence/sequence.tsx::end`);

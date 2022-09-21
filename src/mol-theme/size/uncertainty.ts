@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-theme/size/uncertainty.ts::start`);
 /**
  * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -61,3 +65,4 @@ export const UncertaintySizeThemeProvider: SizeTheme.Provider<UncertaintySizeThe
     defaultValues: PD.getDefaultValues(UncertaintySizeThemeParams),
     isApplicable: (ctx: ThemeDataContext) => !!ctx.structure && ctx.structure.models.some(m => m.atomicConformation.B_iso_or_equiv.isDefined || m.coarseHierarchy.isDefined)
 };
+loadCheckpoint(`mol-theme/size/uncertainty.ts::end`);

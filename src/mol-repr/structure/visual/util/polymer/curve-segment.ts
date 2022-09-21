@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../../../mol-util/debug';
+loadCheckpoint(`mol-repr/structure/visual/util/polymer/curve-segment.ts::start`);
 /**
  * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -165,3 +169,4 @@ export function interpolateSizes(state: CurveSegmentState, w0: number, w1: numbe
         }
     }
 }
+loadCheckpoint(`mol-repr/structure/visual/util/polymer/curve-segment.ts::end`);

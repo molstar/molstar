@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-plugin/util/viewport-screenshot.ts::start`);
 /**
  * Copyright (c) 2019-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -374,3 +378,4 @@ class ViewportScreenshotHelper extends PluginComponent {
 }
 
 declare const ClipboardItem: any;
+loadCheckpoint(`mol-plugin/util/viewport-screenshot.ts::end`);

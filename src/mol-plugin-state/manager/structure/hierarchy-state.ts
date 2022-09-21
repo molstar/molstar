@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-plugin-state/manager/structure/hierarchy-state.ts::start`);
 /**
  * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -356,3 +360,4 @@ function doPreOrder(tree: StateTree, state: BuildState): BuildState {
     _doPreOrder(ctx, tree.root);
     return ctx.state;
 }
+loadCheckpoint(`mol-plugin-state/manager/structure/hierarchy-state.ts::end`);

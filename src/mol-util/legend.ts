@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../mol-util/debug';
+loadCheckpoint(`mol-util/legend.ts::start`);
 /**
  * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -26,3 +30,4 @@ export interface ScaleLegend {
 export function ScaleLegend(minLabel: string, maxLabel: string, colors: ColorListEntry[]): ScaleLegend {
     return { kind: 'scale-legend', minLabel, maxLabel, colors };
 }
+loadCheckpoint(`mol-util/legend.ts::end`);

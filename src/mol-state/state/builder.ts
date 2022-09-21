@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-state/state/builder.ts::start`);
 /**
  * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -294,3 +298,4 @@ function tagsUnion(...arrays: (string[] | string | undefined)[]): string[] | und
     }
     return ret;
 }
+loadCheckpoint(`mol-state/state/builder.ts::end`);

@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../../../mol-util/debug';
+loadCheckpoint(`mol-model/structure/structure/unit/bonds/inter-compute.ts::start`);
 /**
  * Copyright (c) 2017-2022 Mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -252,3 +256,5 @@ function computeInterUnitBonds(structure: Structure, props?: Partial<InterBondCo
 }
 
 export { computeInterUnitBonds };
+
+loadCheckpoint(`mol-model/structure/structure/unit/bonds/inter-compute.ts::end`);

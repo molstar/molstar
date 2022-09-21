@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-state/tree/transient.ts::start`);
 /**
  * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -308,3 +312,4 @@ function ensurePresent(nodes: StateTree.Transforms, ref: StateTransform.Ref) {
         throw new Error(`Node '${ref}' is not present in the tree.`);
     }
 }
+loadCheckpoint(`mol-state/tree/transient.ts::end`);

@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-repr/structure/complex-visual.ts::start`);
 /**
  * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -429,3 +433,4 @@ export function ComplexTextureMeshVisual<P extends ComplexTextureMeshParams>(bui
         geometryUtils: TextureMesh.Utils
     }, materialId);
 }
+loadCheckpoint(`mol-repr/structure/complex-visual.ts::end`);

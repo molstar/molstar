@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-model-formats/shape/ply.ts::start`);
 /**
  * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -295,3 +299,4 @@ export function shapeFromPly(source: PlyFile, params?: {}) {
         };
     });
 }
+loadCheckpoint(`mol-model-formats/shape/ply.ts::end`);

@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-gl/shader/chunks/assign-clipping-varying.glsl.ts::start`);
 export const assign_clipping_varying = `
 #if dClipObjectCount != 0 && defined(dClipping)
     #if defined(dClippingType_instance)
@@ -7,3 +11,4 @@ export const assign_clipping_varying = `
     #endif
 #endif
 `;
+loadCheckpoint(`mol-gl/shader/chunks/assign-clipping-varying.glsl.ts::end`);

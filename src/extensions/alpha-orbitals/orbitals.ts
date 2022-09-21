@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`extensions/alpha-orbitals/orbitals.ts::start`);
 /**
  * Copyright (c) 2020-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -128,3 +132,4 @@ export function computeOrbitalIsocontourValues(input: Float32Array, cumulativeTh
         positive: positive !== Number.POSITIVE_INFINITY ? positive : void 0,
     };
 }
+loadCheckpoint(`extensions/alpha-orbitals/orbitals.ts::end`);

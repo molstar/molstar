@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`extensions/geo-export/glb-exporter.ts::start`);
 /**
  * Copyright (c) 2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -339,3 +343,4 @@ export class GlbExporter extends MeshExporter<GlbData> {
         this.centerTransform = Mat4.fromTranslation(Mat4(), tmpV);
     }
 }
+loadCheckpoint(`extensions/geo-export/glb-exporter.ts::end`);

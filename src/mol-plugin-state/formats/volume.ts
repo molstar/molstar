@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-plugin-state/formats/volume.ts::start`);
 /**
  * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -255,3 +259,4 @@ export const BuiltInVolumeFormats = [
 ] as const;
 
 export type BuildInVolumeFormat = (typeof BuiltInVolumeFormats)[number][0]
+loadCheckpoint(`mol-plugin-state/formats/volume.ts::end`);

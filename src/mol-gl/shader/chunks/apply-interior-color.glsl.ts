@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-gl/shader/chunks/apply-interior-color.glsl.ts::start`);
 export const apply_interior_color = `
 if (interior) {
     if (uInteriorColorFlag) {
@@ -11,3 +15,4 @@ if (interior) {
     #endif
 }
 `;
+loadCheckpoint(`mol-gl/shader/chunks/apply-interior-color.glsl.ts::end`);

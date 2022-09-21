@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../mol-util/debug';
+loadCheckpoint(`mol-util/string.ts::start`);
 /**
  * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -94,3 +98,4 @@ export function trimCharEnd(str: string, char: string) {
 export function stripTags(str: string) {
     return str.replace(/<\/?[^>]+>/g, '');
 }
+loadCheckpoint(`mol-util/string.ts::end`);

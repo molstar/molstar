@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-theme/color/polymer-id.ts::start`);
 /**
  * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -135,3 +139,4 @@ export const PolymerIdColorThemeProvider: ColorTheme.Provider<PolymerIdColorThem
     defaultValues: PD.getDefaultValues(PolymerIdColorThemeParams),
     isApplicable: (ctx: ThemeDataContext) => !!ctx.structure
 };
+loadCheckpoint(`mol-theme/color/polymer-id.ts::end`);

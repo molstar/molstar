@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../../../mol-util/debug';
+loadCheckpoint(`mol-model/structure/structure/unit/bonds/intra-compute.ts::start`);
 /**
  * Copyright (c) 2017-2022 Mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -278,3 +282,4 @@ function computeIntraUnitBonds(unit: Unit.Atomic, props?: Partial<BondComputatio
 }
 
 export { computeIntraUnitBonds };
+loadCheckpoint(`mol-model/structure/structure/unit/bonds/intra-compute.ts::end`);

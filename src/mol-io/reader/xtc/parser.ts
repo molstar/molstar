@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-io/reader/xtc/parser.ts::start`);
 /**
  * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -414,3 +418,4 @@ export function parseXtc(data: Uint8Array) {
         }
     });
 }
+loadCheckpoint(`mol-io/reader/xtc/parser.ts::end`);

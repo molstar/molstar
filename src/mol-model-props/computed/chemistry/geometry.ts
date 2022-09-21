@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-model-props/computed/chemistry/geometry.ts::start`);
 /**
  * Copyright (c) 2017-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -138,3 +142,4 @@ export function calcPlaneAngle(structure: Structure, unitA: Unit.Atomic, indexA:
     Vec3.cross(tmpDir2, neighbours[0], neighbours[1]);
     return Math.abs((Math.PI / 2) - Vec3.angle(tmpDir2, tmpDir1));
 }
+loadCheckpoint(`mol-model-props/computed/chemistry/geometry.ts::end`);

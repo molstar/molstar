@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-data/util/buckets.ts::start`);
 /**
  * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -103,3 +107,4 @@ export function makeBuckets<K extends string | number>(
 
     return _makeBuckets(indices, getKey, !!(options && options.sort), s, e);
 }
+loadCheckpoint(`mol-data/util/buckets.ts::end`);

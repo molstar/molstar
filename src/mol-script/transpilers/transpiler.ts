@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-script/transpilers/transpiler.ts::start`);
 /**
  * Copyright (c) 2017-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -12,3 +16,5 @@ import { Expression } from '../language/expression';
 export type Transpiler = (source: string) => Expression
 
 export const Transpiler = (source: string) => Expression;
+
+loadCheckpoint(`mol-script/transpilers/transpiler.ts::end`);

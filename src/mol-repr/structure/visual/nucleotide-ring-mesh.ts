@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-repr/structure/visual/nucleotide-ring-mesh.ts::start`);
 /**
  * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -221,3 +225,4 @@ export function NucleotideRingVisual(materialId: number): UnitsVisual<Nucleotide
         }
     }, materialId);
 }
+loadCheckpoint(`mol-repr/structure/visual/nucleotide-ring-mesh.ts::end`);

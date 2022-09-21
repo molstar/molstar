@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-plugin-state/helpers/structure-clipping.ts::start`);
 /**
  * Copyright (c) 2019-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -63,3 +67,4 @@ function getFilteredBundle(layers: Clipping.BundleLayer[], structure: Structure)
     const merged = Clipping.merge(clipping);
     return Clipping.filter(merged, structure);
 }
+loadCheckpoint(`mol-plugin-state/helpers/structure-clipping.ts::end`);

@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-plugin-state/builder/structure.ts::start`);
 /**
  * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -183,3 +187,4 @@ export class StructureBuilder {
     constructor(public plugin: PluginContext) {
     }
 }
+loadCheckpoint(`mol-plugin-state/builder/structure.ts::end`);

@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-theme/color/chain-id.ts::start`);
 /**
  * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -125,3 +129,4 @@ export const ChainIdColorThemeProvider: ColorTheme.Provider<ChainIdColorThemePar
     defaultValues: PD.getDefaultValues(ChainIdColorThemeParams),
     isApplicable: (ctx: ThemeDataContext) => !!ctx.structure
 };
+loadCheckpoint(`mol-theme/color/chain-id.ts::end`);

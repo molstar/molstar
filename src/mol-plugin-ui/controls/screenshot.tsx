@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-plugin-ui/controls/screenshot.tsx::start`);
 /**
  * Copyright (c) 2020-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -325,3 +329,4 @@ function getViewportFrame(srcWidth: number, srcHeight: number, w: number, h: num
         return { x: 0, y: Math.round((h - t) / 2), width: w, height: Math.round(t) };
     }
 }
+loadCheckpoint(`mol-plugin-ui/controls/screenshot.tsx::end`);

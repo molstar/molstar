@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../../mol-util/debug';
+loadCheckpoint(`mol-model/structure/export/categories/secondary-structure.ts::start`);
 /**
  * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -117,3 +121,4 @@ function findElements<T extends SecondaryStructure.Element>(ctx: CifExportContex
 
     return ssElements as SSElement<T>[];
 }
+loadCheckpoint(`mol-model/structure/export/categories/secondary-structure.ts::end`);

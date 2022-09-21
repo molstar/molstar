@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-model-formats/volume/ccp4.ts::start`);
 /**
  * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -106,3 +110,4 @@ namespace Ccp4Format {
         return { kind: 'ccp4', name: ccp4.name, data: ccp4 };
     }
 }
+loadCheckpoint(`mol-model-formats/volume/ccp4.ts::end`);

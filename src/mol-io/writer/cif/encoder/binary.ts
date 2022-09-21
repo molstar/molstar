@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../../mol-util/debug';
+loadCheckpoint(`mol-io/writer/cif/encoder/binary.ts::start`);
 /**
  * Copyright (c) 2017 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -205,3 +209,5 @@ function getFieldData(field: Field<any, any>, arrayCtor: ArrayCtor<string | numb
     }
     return { array, allPresent, mask };
 }
+
+loadCheckpoint(`mol-io/writer/cif/encoder/binary.ts::end`);

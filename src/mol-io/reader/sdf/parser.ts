@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-io/reader/sdf/parser.ts::start`);
 /**
  * Copyright (c) 2020-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -131,3 +135,4 @@ export function parseSdf(data: string) {
         return parseInternal(data);
     });
 }
+loadCheckpoint(`mol-io/reader/sdf/parser.ts::end`);

@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-script/transpilers/pymol/operators.ts::start`);
 /**
  * Copyright (c) 2017-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -369,3 +373,5 @@ export const operators: OperatorList = [
         },
     },
 ];
+
+loadCheckpoint(`mol-script/transpilers/pymol/operators.ts::end`);

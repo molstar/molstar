@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../../mol-util/debug';
+loadCheckpoint(`mol-model/structure/structure/util/unit-transforms.ts::start`);
 /**
  * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -74,3 +78,4 @@ export class StructureUnitTransforms {
         return this.groupUnitTransforms[this.groupIndexMap.get(group.hashCode)];
     }
 }
+loadCheckpoint(`mol-model/structure/structure/util/unit-transforms.ts::end`);

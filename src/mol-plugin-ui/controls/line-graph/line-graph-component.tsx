@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-plugin-ui/controls/line-graph/line-graph-component.tsx::start`);
 /**
  * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -384,3 +388,4 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
         return lines;
     }
 }
+loadCheckpoint(`mol-plugin-ui/controls/line-graph/line-graph-component.tsx::end`);

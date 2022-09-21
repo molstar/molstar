@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-gl/shader/spheres.vert.ts::start`);
 /**
  * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -100,3 +104,4 @@ void main(void){
     #include clip_instance
 }
 `;
+loadCheckpoint(`mol-gl/shader/spheres.vert.ts::end`);

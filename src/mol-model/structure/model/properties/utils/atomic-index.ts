@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../../../mol-util/debug';
+loadCheckpoint(`mol-model/structure/model/properties/utils/atomic-index.ts::start`);
 /**
  * Copyright (c) 2017-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -261,3 +265,4 @@ export function getAtomicIndex(data: AtomicData, entities: Entities, segments: A
 
     return new Index(map);
 }
+loadCheckpoint(`mol-model/structure/model/properties/utils/atomic-index.ts::end`);

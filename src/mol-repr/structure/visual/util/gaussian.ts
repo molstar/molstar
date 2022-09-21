@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../../mol-util/debug';
+loadCheckpoint(`mol-repr/structure/visual/util/gaussian.ts::start`);
 /**
  * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -88,3 +92,5 @@ export function computeStructureGaussianDensityTexture2d(structure: Structure, s
         return GaussianDensityTexture2d(webgl, position, box, radius, powerOfTwo, p, texture);
     });
 }
+
+loadCheckpoint(`mol-repr/structure/visual/util/gaussian.ts::end`);

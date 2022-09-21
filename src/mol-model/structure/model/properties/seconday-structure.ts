@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../../mol-util/debug';
+loadCheckpoint(`mol-model/structure/model/properties/seconday-structure.ts::start`);
 /**
  * Copyright (c) 2017-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -53,3 +57,4 @@ namespace SecondaryStructure {
 }
 
 export { SecondaryStructure };
+loadCheckpoint(`mol-model/structure/model/properties/seconday-structure.ts::end`);

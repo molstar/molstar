@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../../mol-util/debug';
+loadCheckpoint(`mol-plugin/behavior/dynamic/selection/structure-focus-representation.ts::start`);
 /**
  * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -248,3 +252,4 @@ export const StructureFocusRepresentation = PluginBehavior.create({
     ctor: StructureFocusRepresentationBehavior,
     params: (_, plugin) => StructureFocusRepresentationParams(plugin)
 });
+loadCheckpoint(`mol-plugin/behavior/dynamic/selection/structure-focus-representation.ts::end`);

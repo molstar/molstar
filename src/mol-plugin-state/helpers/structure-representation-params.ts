@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-plugin-state/helpers/structure-representation-params.ts::start`);
 /**
  * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -119,3 +123,4 @@ function createParamsProvider(ctx: PluginContext, structure: Structure, props: S
         sizeTheme: { name: size.name, params: sizeParams }
     });
 }
+loadCheckpoint(`mol-plugin-state/helpers/structure-representation-params.ts::end`);

@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-data/db/column-helpers.ts::start`);
 /**
  * Copyright (c) 2017 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -38,3 +42,4 @@ export function typedArrayWindow(data: any, params?: Column.ToArrayParams<any>):
     if (start === 0 && end === length) return data;
     return new constructor(buffer, byteOffset + BYTES_PER_ELEMENT * start, Math.min(length, end - start));
 }
+loadCheckpoint(`mol-data/db/column-helpers.ts::end`);

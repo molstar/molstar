@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-gl/shader/chunks/color-vert-params.glsl.ts::start`);
 export const color_vert_params = `
 uniform float uMetalness;
 uniform float uRoughness;
@@ -88,3 +92,4 @@ uniform float uBumpiness;
     #endif
 #endif
 `;
+loadCheckpoint(`mol-gl/shader/chunks/color-vert-params.glsl.ts::end`);

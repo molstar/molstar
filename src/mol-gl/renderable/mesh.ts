@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-gl/renderable/mesh.ts::start`);
 /**
  * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -41,3 +45,4 @@ export function MeshRenderable(ctx: WebGLContext, id: number, values: MeshValues
 
     return createRenderable(renderItem, values, state);
 }
+loadCheckpoint(`mol-gl/renderable/mesh.ts::end`);

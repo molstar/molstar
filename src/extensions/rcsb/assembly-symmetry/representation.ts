@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`extensions/rcsb/assembly-symmetry/representation.ts::start`);
 /**
  * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -382,3 +386,4 @@ export type AssemblySymmetryRepresentation = Representation<Structure, AssemblyS
 export function AssemblySymmetryRepresentation(ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, AssemblySymmetryParams>): AssemblySymmetryRepresentation {
     return Representation.createMulti('Assembly Symmetry', ctx, getParams, Representation.StateBuilder, AssemblySymmetryVisuals as unknown as Representation.Def<Structure, AssemblySymmetryParams>);
 }
+loadCheckpoint(`extensions/rcsb/assembly-symmetry/representation.ts::end`);

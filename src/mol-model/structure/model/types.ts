@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-model/structure/model/types.ts::start`);
 /**
  * Copyright (c) 2017-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -711,3 +715,4 @@ export const ResidueHydrophobicity = {
     'HID': [0.17, 0.11, -0.06], 'HIE': [0.17, 0.11, -0.06], 'HIP': [0.96, 2.33, 1.37],
 };
 export const DefaultResidueHydrophobicity = [0.00, 0.00, 0.00];
+loadCheckpoint(`mol-model/structure/model/types.ts::end`);

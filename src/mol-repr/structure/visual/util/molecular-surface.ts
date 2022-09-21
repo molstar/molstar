@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../../mol-util/debug';
+loadCheckpoint(`mol-repr/structure/visual/util/molecular-surface.ts::start`);
 /**
  * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -47,3 +51,4 @@ export function computeUnitMolecularSurface(structure: Structure, unit: Unit, si
 async function MolecularSurface(ctx: RuntimeContext, position: Required<PositionData>, boundary: Boundary, maxRadius: number, box: Box3D | null, props: MolecularSurfaceCalculationProps): Promise<DensityData> {
     return calcMolecularSurface(ctx, position, boundary, maxRadius, box, props);
 }
+loadCheckpoint(`mol-repr/structure/visual/util/molecular-surface.ts::end`);

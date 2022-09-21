@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-data/int/tuple.ts::start`);
 /**
  * Copyright (c) 2017-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -87,3 +91,4 @@ namespace IntTuple {
 }
 
 export { IntTuple };
+loadCheckpoint(`mol-data/int/tuple.ts::end`);

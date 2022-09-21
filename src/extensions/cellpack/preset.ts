@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`extensions/cellpack/preset.ts::start`);
 /**
  * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -98,3 +102,5 @@ export const CellpackMembranePreset = StructureRepresentationPresetProvider({
         return { components, representations };
     }
 });
+
+loadCheckpoint(`extensions/cellpack/preset.ts::end`);

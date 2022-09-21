@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-model-formats/structure/property/partial-charge.ts::start`);
 /**
  * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -22,3 +26,4 @@ namespace AtomPartialCharge {
 
     export const Provider = FormatPropertyProvider.create<AtomPartialCharge>(Descriptor);
 }
+loadCheckpoint(`mol-model-formats/structure/property/partial-charge.ts::end`);

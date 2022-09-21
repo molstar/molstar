@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-math/linear-algebra/matrix/matrix.ts::start`);
 /**
  * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -113,3 +117,4 @@ namespace Matrix {
 }
 
 export { Matrix };
+loadCheckpoint(`mol-math/linear-algebra/matrix/matrix.ts::end`);

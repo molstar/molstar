@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-model-formats/structure/util.ts::start`);
 /**
  * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -73,3 +77,5 @@ export function guessElementSymbolString(atomId: string, compId: string) {
     return ''; // no reasonable guess, return empty string
 }
 
+
+loadCheckpoint(`mol-model-formats/structure/util.ts::end`);

@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-util/zip/util.ts::start`);
 /**
  * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -134,3 +138,4 @@ export function revCodes(tree: number[], MAX_BITS: number) {
         tree[i] = r15[i0] >>> imb;
     }
 }
+loadCheckpoint(`mol-util/zip/util.ts::end`);

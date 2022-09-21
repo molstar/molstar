@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-model-formats/structure/basic/atomic.ts::start`);
 /**
  * Copyright (c) 2017-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -183,3 +187,4 @@ export function getAtomicHierarchyAndConformation(atom_site: AtomSite, sourceInd
     const conformation = getConformation(atom_site);
     return { sameAsPrevious, hierarchy, conformation, chainOperatorMapping };
 }
+loadCheckpoint(`mol-model-formats/structure/basic/atomic.ts::end`);

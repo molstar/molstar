@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../../../mol-util/debug';
+loadCheckpoint(`mol-plugin/behavior/dynamic/custom-props/sequence/sifts-mapping.ts::start`);
 /**
  * Copyright (c) 2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -67,3 +71,4 @@ function bestDatabaseSequenceMappingLabel(loci: Loci): string | undefined {
         return BestDatabaseSequenceMappingProp.getLabel(se);
     }
 }
+loadCheckpoint(`mol-plugin/behavior/dynamic/custom-props/sequence/sifts-mapping.ts::end`);

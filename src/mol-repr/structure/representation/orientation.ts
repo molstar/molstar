@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-repr/structure/representation/orientation.ts::start`);
 /**
  * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -43,3 +47,4 @@ export const OrientationRepresentationProvider = StructureRepresentationProvider
     defaultSizeTheme: { name: 'uniform' },
     isApplicable: (structure: Structure) => structure.elementCount > 0
 });
+loadCheckpoint(`mol-repr/structure/representation/orientation.ts::end`);

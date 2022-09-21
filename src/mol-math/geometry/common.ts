@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-math/geometry/common.ts::start`);
 /**
  * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -55,3 +59,4 @@ export function fillGridDim(length: number, start: number, step: number) {
     }
     return a;
 }
+loadCheckpoint(`mol-math/geometry/common.ts::end`);

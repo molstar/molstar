@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-theme/color/unit-index.ts::start`);
 /**
  * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -80,3 +84,4 @@ export const UnitIndexColorThemeProvider: ColorTheme.Provider<UnitIndexColorThem
     defaultValues: PD.getDefaultValues(UnitIndexColorThemeParams),
     isApplicable: (ctx: ThemeDataContext) => !!ctx.structure
 };
+loadCheckpoint(`mol-theme/color/unit-index.ts::end`);

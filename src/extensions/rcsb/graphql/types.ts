@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`extensions/rcsb/graphql/types.ts::start`);
 /* eslint-disable */
 export type Maybe<T> = T | null;
 export type InputMaybe<T> = Maybe<T>;
@@ -13620,3 +13624,5 @@ export type AssemblySymmetryQueryVariables = Exact<{
 
 
 export type AssemblySymmetryQuery = { readonly assembly?: { readonly rcsb_struct_symmetry?: ReadonlyArray<{ readonly kind: string, readonly oligomeric_state: string, readonly stoichiometry: ReadonlyArray<string | null>, readonly symbol: string, readonly type: string, readonly clusters: ReadonlyArray<{ readonly avg_rmsd?: number | null, readonly members: ReadonlyArray<{ readonly asym_id: string, readonly pdbx_struct_oper_list_ids?: ReadonlyArray<string | null> | null } | null> } | null>, readonly rotation_axes?: ReadonlyArray<{ readonly order?: number | null, readonly start: ReadonlyArray<number | null>, readonly end: ReadonlyArray<number | null> } | null> | null } | null> | null } | null };
+
+loadCheckpoint(`extensions/rcsb/graphql/types.ts::end`);

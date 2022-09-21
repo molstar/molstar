@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../../mol-util/debug';
+loadCheckpoint(`mol-model-props/computed/secondary-structure/dssp/dihedral-angles.ts::start`);
 /**
  * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -64,3 +68,4 @@ export function calculateUnitDihedralAngles(unit: Unit.Atomic, proteinInfo: Prot
 
     return { phi, psi };
 }
+loadCheckpoint(`mol-model-props/computed/secondary-structure/dssp/dihedral-angles.ts::end`);

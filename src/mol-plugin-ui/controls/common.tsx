@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-plugin-ui/controls/common.tsx::start`);
 /**
  * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -376,3 +380,4 @@ export function ControlRow(props: ControlRowProps) {
         {props.children}
     </div>;
 }
+loadCheckpoint(`mol-plugin-ui/controls/common.tsx::end`);

@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-plugin-state/animation/built-in/camera-rock.ts::start`);
 /**
  * Copyright (c) 2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -60,3 +64,4 @@ export const AnimateCameraRock = PluginStateAnimation.create({
         return { kind: 'next', state: animState };
     }
 });
+loadCheckpoint(`mol-plugin-state/animation/built-in/camera-rock.ts::end`);

@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../../mol-util/debug';
+loadCheckpoint(`mol-model/structure/query/utils/builders.ts::start`);
 /**
  * Copyright (c) 2017 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -81,3 +85,4 @@ export class LinearGroupingBuilder {
 
     constructor(private source: Structure) { }
 }
+loadCheckpoint(`mol-model/structure/query/utils/builders.ts::end`);

@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-canvas3d/passes/image.ts::start`);
 /**
  * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -122,3 +126,4 @@ export class ImagePass {
         return new ImageData(new Uint8ClampedArray(array), w, h);
     }
 }
+loadCheckpoint(`mol-canvas3d/passes/image.ts::end`);

@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-geo/util/location-iterator.ts::start`);
 /**
  * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -118,3 +122,4 @@ export function PositionLocation(position?: Vec3): PositionLocation {
 export function isPositionLocation(x: any): x is PositionLocation {
     return !!x && x.kind === 'position-location';
 }
+loadCheckpoint(`mol-geo/util/location-iterator.ts::end`);

@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../../mol-util/debug';
+loadCheckpoint(`mol-io/reader/cif/schema/bird.ts::start`);
 /**
  * Copyright (c) 2017-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -498,3 +502,4 @@ export const BIRD_Schema = {
 
 export type BIRD_Schema = typeof BIRD_Schema;
 export interface BIRD_Database extends Database<BIRD_Schema> {};
+loadCheckpoint(`mol-io/reader/cif/schema/bird.ts::end`);

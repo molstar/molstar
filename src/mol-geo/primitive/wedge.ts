@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-geo/primitive/wedge.ts::start`);
 /**
  * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -54,3 +58,4 @@ export function WedgeCage() {
     if (!wedgeCage) wedgeCage = PrismCage(points);
     return wedgeCage;
 }
+loadCheckpoint(`mol-geo/primitive/wedge.ts::end`);

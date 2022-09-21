@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../../mol-util/debug';
+loadCheckpoint(`mol-model-props/computed/accessible-surface-area/shrake-rupley/area.ts::start`);
 /**
  * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -88,3 +92,4 @@ function computeRange(ctx: ShrakeRupleyContext, begin: number, end: number) {
         area[serialResidueIndex[aI]] += scalingConstant * accessiblePointCount * radius1 * radius1;
     }
 }
+loadCheckpoint(`mol-model-props/computed/accessible-surface-area/shrake-rupley/area.ts::end`);

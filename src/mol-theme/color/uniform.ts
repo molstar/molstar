@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-theme/color/uniform.ts::start`);
 /**
  * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -44,3 +48,4 @@ export const UniformColorThemeProvider: ColorTheme.Provider<UniformColorThemePar
     defaultValues: PD.getDefaultValues(UniformColorThemeParams),
     isApplicable: (ctx: ThemeDataContext) => true
 };
+loadCheckpoint(`mol-theme/color/uniform.ts::end`);

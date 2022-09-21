@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-gl/shader/chunks/common.glsl.ts::start`);
 export const common = `
 // TODO find a better place for these convenience defines
 
@@ -229,3 +233,4 @@ float depthToViewZ(const in float isOrtho, const in float linearClipZ, const in 
     #define isInf isinf
 #endif
 `;
+loadCheckpoint(`mol-gl/shader/chunks/common.glsl.ts::end`);

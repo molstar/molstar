@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-io/reader/mol2/parser.ts::start`);
 /**
  * Copyright (c) 2017-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -316,3 +320,5 @@ export function parseMol2(data: string, name: string) {
         return await parseInternal(ctx, data, name);
     });
 }
+
+loadCheckpoint(`mol-io/reader/mol2/parser.ts::end`);

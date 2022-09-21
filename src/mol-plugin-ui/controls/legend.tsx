@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-plugin-ui/controls/legend.tsx::start`);
 /**
  * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -50,3 +54,4 @@ export class TableLegend extends React.PureComponent<LegendProps<TableLegendData
         </div>;
     }
 }
+loadCheckpoint(`mol-plugin-ui/controls/legend.tsx::end`);

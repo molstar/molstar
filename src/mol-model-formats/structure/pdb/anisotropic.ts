@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-model-formats/structure/pdb/anisotropic.ts::start`);
 /**
  * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -144,3 +148,4 @@ export function addAnisotropic(sites: AnisotropicTemplate, model: string, data: 
 
     sites.index++;
 }
+loadCheckpoint(`mol-model-formats/structure/pdb/anisotropic.ts::end`);

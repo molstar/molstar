@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../mol-util/debug';
+loadCheckpoint(`mol-util/image.ts::start`);
 /**
  * Copyright (c) 2019-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -46,3 +50,4 @@ namespace PixelData {
         return pixelData;
     }
 }
+loadCheckpoint(`mol-util/image.ts::end`);

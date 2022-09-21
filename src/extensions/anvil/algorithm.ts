@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`extensions/anvil/algorithm.ts::start`);
 /**
  * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -622,3 +626,4 @@ function setLocation(l: StructureElement.Location, structure: Structure, serialI
     l.element = structure.serialMapping.elementIndices[serialIndex];
     return l;
 }
+loadCheckpoint(`extensions/anvil/algorithm.ts::end`);

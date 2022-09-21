@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-model-props/computed/chemistry/valence-model.ts::start`);
 /**
  * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -345,3 +349,4 @@ export async function calcValenceModel(ctx: RuntimeContext, structure: Structure
     }
     return map;
 }
+loadCheckpoint(`mol-model-props/computed/chemistry/valence-model.ts::end`);

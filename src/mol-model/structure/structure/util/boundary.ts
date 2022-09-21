@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../../mol-util/debug';
+loadCheckpoint(`mol-model/structure/structure/util/boundary.ts::start`);
 /**
  * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -54,3 +58,4 @@ export function computeStructureBoundary(s: Structure): Boundary {
 
     return { box: boundaryHelper.getBox(), sphere: boundaryHelper.getSphere() };
 }
+loadCheckpoint(`mol-model/structure/structure/util/boundary.ts::end`);

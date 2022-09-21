@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-theme/color/entity-source.ts::start`);
 /**
  * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -184,3 +188,4 @@ export const EntitySourceColorThemeProvider: ColorTheme.Provider<EntitySourceCol
     defaultValues: PD.getDefaultValues(EntitySourceColorThemeParams),
     isApplicable: (ctx: ThemeDataContext) => !!ctx.structure
 };
+loadCheckpoint(`mol-theme/color/entity-source.ts::end`);

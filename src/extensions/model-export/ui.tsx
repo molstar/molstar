@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`extensions/model-export/ui.tsx::start`);
 /**
  * Copyright (c) 2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -67,3 +71,4 @@ function ExportControls({ plugin }: { plugin: PluginContext }) {
         </Button>
     </>;
 }
+loadCheckpoint(`extensions/model-export/ui.tsx::end`);

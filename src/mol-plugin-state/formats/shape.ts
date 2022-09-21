@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-plugin-state/formats/shape.ts::start`);
 /**
  * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -42,3 +46,4 @@ export const BuiltInShapeFormats = [
 ] as const;
 
 export type BuildInShapeFormat = (typeof BuiltInShapeFormats)[number][0]
+loadCheckpoint(`mol-plugin-state/formats/shape.ts::end`);

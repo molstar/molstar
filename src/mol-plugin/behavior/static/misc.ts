@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-plugin/behavior/static/misc.ts::start`);
 /**
  * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -26,3 +30,5 @@ export function Canvas3DSetSettings(ctx: PluginContext) {
         ctx.events.canvas3d.settingsUpdated.next(void 0);
     });
 }
+
+loadCheckpoint(`mol-plugin/behavior/static/misc.ts::end`);

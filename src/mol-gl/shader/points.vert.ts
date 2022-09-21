@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-gl/shader/points.vert.ts::start`);
 /**
  * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -43,3 +47,4 @@ void main(){
     #include clip_instance
 }
 `;
+loadCheckpoint(`mol-gl/shader/points.vert.ts::end`);

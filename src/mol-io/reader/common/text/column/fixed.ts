@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../../../mol-util/debug';
+loadCheckpoint(`mol-io/reader/common/text/column/fixed.ts::start`);
 /**
  * Copyright (c) 2017 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -44,3 +48,4 @@ export function FixedColumn<T extends Column.Schema>(lines: Tokens, offset: numb
         areValuesEqual: (rowA, rowB) => value(rowA) === value(rowB)
     };
 }
+loadCheckpoint(`mol-io/reader/common/text/column/fixed.ts::end`);

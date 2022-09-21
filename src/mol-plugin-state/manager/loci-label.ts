@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-plugin-state/manager/loci-label.ts::start`);
 /**
  * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -98,3 +102,4 @@ export class LociLabelManager {
         });
     }
 }
+loadCheckpoint(`mol-plugin-state/manager/loci-label.ts::end`);

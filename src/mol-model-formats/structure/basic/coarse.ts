@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-model-formats/structure/basic/coarse.ts::start`);
 /**
  * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -103,3 +107,4 @@ function getData(data: IhmSphereObjSite | IhmGaussianObjSite): CoarseElementData
     const { entity_id, seq_id_begin, seq_id_end, asym_id } = data;
     return { count: entity_id.rowCount, entity_id, asym_id, seq_id_begin, seq_id_end, ...getSegments(asym_id, seq_id_begin, seq_id_end) };
 }
+loadCheckpoint(`mol-model-formats/structure/basic/coarse.ts::end`);

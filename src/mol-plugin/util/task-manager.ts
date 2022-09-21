@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-plugin/util/task-manager.ts::start`);
 /**
  * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -119,3 +123,4 @@ namespace TaskManager {
         });
     }
 }
+loadCheckpoint(`mol-plugin/util/task-manager.ts::end`);

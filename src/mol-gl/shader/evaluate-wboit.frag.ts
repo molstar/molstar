@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-gl/shader/evaluate-wboit.frag.ts::start`);
 export const evaluateWboit_frag = `
 precision highp float;
 
@@ -16,3 +20,4 @@ void main() {
     gl_FragColor = vec4(accum.rgb / clamp(accum.a, 0.00000001, 50000.0), r);
 }
 `;
+loadCheckpoint(`mol-gl/shader/evaluate-wboit.frag.ts::end`);

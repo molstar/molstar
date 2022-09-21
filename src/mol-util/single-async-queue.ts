@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../mol-util/debug';
+loadCheckpoint(`mol-util/single-async-queue.ts::start`);
 /**
  * Copyright (c) 2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -39,3 +43,5 @@ export class SingleAsyncQueue {
         }
     }
 }
+
+loadCheckpoint(`mol-util/single-async-queue.ts::end`);

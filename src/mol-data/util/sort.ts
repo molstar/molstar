@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-data/util/sort.ts::start`);
 /**
  * Copyright (c) 2017 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -157,3 +161,4 @@ export function sort<T>(data: T, start: number, end: number, cmp: Comparer<T>, s
     quickSort(ctx, start, end - 1);
     return data;
 }
+loadCheckpoint(`mol-data/util/sort.ts::end`);

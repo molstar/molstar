@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-plugin/behavior/static/camera.ts::start`);
 /**
  * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -31,3 +35,4 @@ export function Focus(ctx: PluginContext) {
         ctx.events.canvas3d.settingsUpdated.next(void 0);
     });
 }
+loadCheckpoint(`mol-plugin/behavior/static/camera.ts::end`);

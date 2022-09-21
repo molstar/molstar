@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-geo/geometry/transparency-data.ts::start`);
 /**
  * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -87,3 +91,4 @@ export function createEmptyTransparency(transparencyData?: TransparencyData): Tr
         };
     }
 }
+loadCheckpoint(`mol-geo/geometry/transparency-data.ts::end`);

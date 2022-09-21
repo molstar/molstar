@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../../mol-util/debug';
+loadCheckpoint(`mol-model/structure/structure/element/element.ts::start`);
 /**
  * Copyright (c) 2017-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -10,3 +14,4 @@ export * from './loci';
 export * from './bundle';
 export * from './stats';
 export * from './util';
+loadCheckpoint(`mol-model/structure/structure/element/element.ts::end`);

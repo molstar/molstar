@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-gl/compute/histogram-pyramid/reduction.ts::start`);
 /**
  * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -209,3 +213,4 @@ export function createHistogramPyramid(ctx: WebGLContext, inputTexture: Texture,
 
     return { pyramidTex, count, height, levels, scale };
 }
+loadCheckpoint(`mol-gl/compute/histogram-pyramid/reduction.ts::end`);

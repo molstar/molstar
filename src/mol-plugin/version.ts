@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../mol-util/debug';
+loadCheckpoint(`mol-plugin/version.ts::start`);
 /**
  * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -10,3 +14,4 @@ export const PLUGIN_VERSION = '';
 
 /** to be filled in at build time */
 export const PLUGIN_VERSION_DATE = +new Date();
+loadCheckpoint(`mol-plugin/version.ts::end`);

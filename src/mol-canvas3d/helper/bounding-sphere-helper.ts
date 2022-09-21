@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-canvas3d/helper/bounding-sphere-helper.ts::start`);
 /**
  * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -163,3 +167,4 @@ function createBoundingSphereRenderObject(mesh: Mesh, color: Color, materialId: 
     const values = Mesh.Utils.createValuesSimple(mesh, { alpha: 0.1, doubleSided: false }, color, 1, transform);
     return createRenderObject('mesh', values, { disposed: false, visible: true, alphaFactor: 1, pickable: false, colorOnly: false, opaque: false, writeDepth: false }, materialId);
 }
+loadCheckpoint(`mol-canvas3d/helper/bounding-sphere-helper.ts::end`);

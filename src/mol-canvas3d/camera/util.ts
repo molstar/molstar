@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-canvas3d/camera/util.ts::start`);
 /**
  * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -100,3 +104,4 @@ export function cameraUnproject(out: Vec3, point: Vec3 | Vec4, viewport: Viewpor
     out[2] = 2 * pz - 1;
     return Vec3.transformMat4(out, out, inverseProjectionView);
 }
+loadCheckpoint(`mol-canvas3d/camera/util.ts::end`);

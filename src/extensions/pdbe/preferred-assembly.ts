@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`extensions/pdbe/preferred-assembly.ts::start`);
 /**
  * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -89,3 +93,4 @@ function asmNameFromJson(modelData: Model, data: any): string {
     }
     return assemblies[0].assembly_id;
 }
+loadCheckpoint(`extensions/pdbe/preferred-assembly.ts::end`);

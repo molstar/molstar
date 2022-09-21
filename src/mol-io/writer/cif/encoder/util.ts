@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../../mol-util/debug';
+loadCheckpoint(`mol-io/writer/cif/encoder/util.ts::start`);
 /**
  * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -38,3 +42,4 @@ export function getCategoryInstanceData<Ctx>(category: Category<Ctx>, ctx?: Ctx)
 
     return { instance, rowCount, source };
 }
+loadCheckpoint(`mol-io/writer/cif/encoder/util.ts::end`);

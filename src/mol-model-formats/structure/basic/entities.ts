@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-model-formats/structure/basic/entities.ts::start`);
 /**
  * Copyright (c) 2017-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -153,3 +157,4 @@ export function getEntitiesWithPRD(data: BasicData, entities: Entities, structAs
         prd_id: prdIdColumn
     };
 }
+loadCheckpoint(`mol-model-formats/structure/basic/entities.ts::end`);

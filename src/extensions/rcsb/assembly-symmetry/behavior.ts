@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`extensions/rcsb/assembly-symmetry/behavior.ts::start`);
 /**
  * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -195,3 +199,4 @@ export function tryCreateAssemblySymmetry(plugin: PluginContext, structure: Stat
         .applyOrUpdateTagged(AssemblySymmetry.Tag.Representation, AssemblySymmetry3D, params, { state: initialState });
     return assemblySymmetry.commit({ revertOnError: true });
 }
+loadCheckpoint(`extensions/rcsb/assembly-symmetry/behavior.ts::end`);

@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-gl/compute/grid3d.ts::start`);
 /**
  * Copyright (c) 2020-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -232,3 +236,4 @@ function resetGl(webgl: WebGLContext, w: number) {
     state.disable(gl.DEPTH_TEST);
     state.depthMask(false);
 }
+loadCheckpoint(`mol-gl/compute/grid3d.ts::end`);

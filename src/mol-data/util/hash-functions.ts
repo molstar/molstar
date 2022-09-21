@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-data/util/hash-functions.ts::start`);
 /**
  * Copyright (c) 2017-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -90,3 +94,4 @@ export function hashFnv32a(array: ArrayLike<number>) {
     }
     return hval >>> 0;
 }
+loadCheckpoint(`mol-data/util/hash-functions.ts::end`);

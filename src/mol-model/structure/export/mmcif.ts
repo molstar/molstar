@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-model/structure/export/mmcif.ts::start`);
 /**
  * Copyright (c) 2017-2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -262,3 +266,4 @@ function to_mmCIF(name: string, structure: Structure, asBinary = false, params?:
 }
 
 export { to_mmCIF };
+loadCheckpoint(`mol-model/structure/export/mmcif.ts::end`);

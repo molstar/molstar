@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../mol-util/debug';
+loadCheckpoint(`mol-util/log-entry.ts::start`);
 /**
  * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -20,3 +24,4 @@ namespace LogEntry {
     export function warning(msg: string): LogEntry { return { type: 'warning', timestamp: new Date(), message: msg }; }
     export function info(msg: string): LogEntry { return { type: 'info', timestamp: new Date(), message: msg }; }
 }
+loadCheckpoint(`mol-util/log-entry.ts::end`);

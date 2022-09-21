@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-plugin-state/animation/built-in/state-interpolation.ts::start`);
 /**
  * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -71,3 +75,4 @@ export const AnimateStateInterpolation = PluginStateAnimation.create({
         return { kind: 'next', state: { } };
     }
 });
+loadCheckpoint(`mol-plugin-state/animation/built-in/state-interpolation.ts::end`);

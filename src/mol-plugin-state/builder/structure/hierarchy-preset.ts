@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-plugin-state/builder/structure/hierarchy-preset.ts::start`);
 /**
  * Copyright (c) 2020-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -233,3 +237,4 @@ export const PresetTrajectoryHierarchy = {
     crystalContacts,
 };
 export type PresetTrajectoryHierarchy = typeof PresetTrajectoryHierarchy;
+loadCheckpoint(`mol-plugin-state/builder/structure/hierarchy-preset.ts::end`);

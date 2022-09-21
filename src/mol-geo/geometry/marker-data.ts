@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-geo/geometry/marker-data.ts::start`);
 /**
  * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -111,3 +115,4 @@ export function createEmptyMarkers(markerData?: MarkerData): MarkerData {
         };
     }
 }
+loadCheckpoint(`mol-geo/geometry/marker-data.ts::end`);

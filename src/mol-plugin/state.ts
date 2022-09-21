@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../mol-util/debug';
+loadCheckpoint(`mol-plugin/state.ts::start`);
 /**
  * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -188,3 +192,5 @@ namespace PluginState {
 
     export type SnapshotType = 'json' | 'molj' | 'zip' | 'molx'
 }
+
+loadCheckpoint(`mol-plugin/state.ts::end`);

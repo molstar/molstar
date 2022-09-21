@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-util/zip/huffman.ts::start`);
 /**
  * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -109,3 +113,4 @@ function restrictDepth(dps: HufTree[], MD: number, maxl: number) {
     }
     if (dbt !== 0) console.log('debt left');
 }
+loadCheckpoint(`mol-util/zip/huffman.ts::end`);

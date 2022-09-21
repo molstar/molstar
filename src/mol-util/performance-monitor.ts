@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../mol-util/debug';
+loadCheckpoint(`mol-util/performance-monitor.ts::start`);
 /*
  * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -63,3 +67,4 @@ export class PerformanceMonitor {
         return t;
     }
 }
+loadCheckpoint(`mol-util/performance-monitor.ts::end`);

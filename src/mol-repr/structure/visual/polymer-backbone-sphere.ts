@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-repr/structure/visual/polymer-backbone-sphere.ts::start`);
 /**
  * Copyright (c) 2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -130,3 +134,4 @@ export function PolymerBackboneSphereMeshVisual(materialId: number): UnitsVisual
         }
     }, materialId);
 }
+loadCheckpoint(`mol-repr/structure/visual/polymer-backbone-sphere.ts::end`);

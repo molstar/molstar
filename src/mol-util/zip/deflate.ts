@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-util/zip/deflate.ts::start`);
 /**
  * Copyright (c) 2020-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -380,3 +384,5 @@ function _putsF(dt: NumberArray, pos: number, val: number) {
     dt[o + 1] |= (val >>> 8);
     dt[o + 2] |= (val >>> 16);
 }
+
+loadCheckpoint(`mol-util/zip/deflate.ts::end`);

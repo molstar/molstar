@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`extensions/pdbe/structure-quality-report/prop.ts::start`);
 /**
  * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -287,3 +291,4 @@ function parseIssueTypes(groupData: Table<typeof StructureQualityReport.Schema.p
     }
     return ret;
 }
+loadCheckpoint(`extensions/pdbe/structure-quality-report/prop.ts::end`);

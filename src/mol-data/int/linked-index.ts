@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-data/int/linked-index.ts::start`);
 /**
  * Copyright (c) 2017 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -56,3 +60,4 @@ class LinkedIndexImpl implements LinkedIndex {
 }
 
 export { LinkedIndex };
+loadCheckpoint(`mol-data/int/linked-index.ts::end`);

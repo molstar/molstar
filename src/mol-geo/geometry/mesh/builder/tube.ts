@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../../mol-util/debug';
+loadCheckpoint(`mol-geo/geometry/mesh/builder/tube.ts::start`);
 /**
  * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -210,3 +214,4 @@ export function addTube(state: MeshBuilder.State, controlPoints: ArrayLike<numbe
     const addedVertexCount = (linearSegments + 1) * radialSegments + (startCap ? radialSegments + 1 : 0) + (endCap ? radialSegments + 1 : 0);
     ChunkedArray.addRepeat(groups, addedVertexCount, currentGroup);
 }
+loadCheckpoint(`mol-geo/geometry/mesh/builder/tube.ts::end`);

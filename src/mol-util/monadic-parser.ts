@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../mol-util/debug';
+loadCheckpoint(`mol-util/monadic-parser.ts::start`);
 /**
  * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -577,3 +581,5 @@ function assertFunction(x: any) {
         throw new Error('not a function: ' + x);
     }
 }
+
+loadCheckpoint(`mol-util/monadic-parser.ts::end`);

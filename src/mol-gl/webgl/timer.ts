@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-gl/webgl/timer.ts::start`);
 /**
  * Copyright (c) 2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -192,3 +196,5 @@ export function printTimerResults(results: TimerResult[]) {
         }
     });
 }
+
+loadCheckpoint(`mol-gl/webgl/timer.ts::end`);

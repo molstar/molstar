@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-math/geometry/symmetry-operator.ts::start`);
 /**
  * Copyright (c) 2017 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -284,3 +288,4 @@ function generalPosition<T extends number>({ matrix: m }: SymmetryOperator, { x:
         return r;
     };
 }
+loadCheckpoint(`mol-math/geometry/symmetry-operator.ts::end`);

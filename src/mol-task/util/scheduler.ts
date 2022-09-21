@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-task/util/scheduler.ts::start`);
 /**
  * Copyright (c) 2017 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -201,3 +205,5 @@ const Scheduler = {
 };
 
 export { Scheduler };
+
+loadCheckpoint(`mol-task/util/scheduler.ts::end`);

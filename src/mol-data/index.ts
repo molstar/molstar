@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../mol-util/debug';
+loadCheckpoint(`mol-data/index.ts::start`);
 /**
  * Copyright (c) 2017 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -11,3 +15,4 @@ import * as Util from './util';
 import * as Generic from './generic';
 
 export { DB, Int, Iterator, Util, Generic };
+loadCheckpoint(`mol-data/index.ts::end`);

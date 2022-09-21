@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`extensions/cellpack/model.ts::start`);
 /**
  * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -619,3 +623,5 @@ export const LoadCellPackModel = StateAction.build({
     }
     await loadPackings(ctx, taskCtx, state, params);
 }));
+
+loadCheckpoint(`extensions/cellpack/model.ts::end`);

@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-plugin-state/builder/data.ts::start`);
 /**
  * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -38,3 +42,4 @@ export class DataBuilder {
     constructor(public plugin: PluginContext) {
     }
 }
+loadCheckpoint(`mol-plugin-state/builder/data.ts::end`);

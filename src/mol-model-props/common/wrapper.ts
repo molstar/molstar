@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-model-props/common/wrapper.ts::start`);
 /**
  * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -53,3 +57,4 @@ namespace PropertyWrapper {
 }
 
 export { PropertyWrapper };
+loadCheckpoint(`mol-model-props/common/wrapper.ts::end`);

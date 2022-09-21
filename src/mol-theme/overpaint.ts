@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../mol-util/debug';
+loadCheckpoint(`mol-theme/overpaint.ts::start`);
 /**
  * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -125,3 +129,4 @@ namespace Overpaint {
         return { layers };
     }
 }
+loadCheckpoint(`mol-theme/overpaint.ts::end`);

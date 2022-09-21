@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-gl/shader/util/grid3d-template.frag.ts::start`);
 /**
  * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -51,3 +55,4 @@ void main(void) {
     gl_FragColor = floatToRgba({RETURN}, uLittleEndian);
 }
 `;
+loadCheckpoint(`mol-gl/shader/util/grid3d-template.frag.ts::end`);

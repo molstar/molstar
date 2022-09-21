@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../mol-util/debug';
+loadCheckpoint(`mol-util/url.ts::start`);
 /**
  * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -14,3 +18,4 @@ export function urlQueryParameter(id: string) {
 export function urlCombine(base: string, query: string) {
     return `${base}${base[base.length - 1] === '/' || query[0] === '/' ? '' : '/'}${query}`;
 }
+loadCheckpoint(`mol-util/url.ts::end`);

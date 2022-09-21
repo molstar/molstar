@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../mol-util/debug';
+loadCheckpoint(`mol-repr/util.ts::start`);
 /**
  * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -206,3 +210,4 @@ export function getQualityProps(props: Partial<QualityProps>, data?: any) {
         doubleSided
     };
 }
+loadCheckpoint(`mol-repr/util.ts::end`);

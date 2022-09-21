@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-gl/shader/chunks/float-to-rgba.glsl.ts::start`);
 /**
  * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -44,3 +48,4 @@ export const float_to_rgba = `
         );
     }
 `;
+loadCheckpoint(`mol-gl/shader/chunks/float-to-rgba.glsl.ts::end`);

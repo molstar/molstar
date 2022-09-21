@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-data/int/impl/interval.ts::start`);
 /**
  * Copyright (c) 2017-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -66,3 +70,4 @@ export function intersect(a: Tuple, b: Tuple) {
 export function intersectionSize(a: Tuple, b: Tuple) {
     return size(findRange(a, min(b), max(b)));
 }
+loadCheckpoint(`mol-data/int/impl/interval.ts::end`);

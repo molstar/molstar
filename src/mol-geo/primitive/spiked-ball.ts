@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-geo/primitive/spiked-ball.ts::start`);
 /**
  * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -60,3 +64,4 @@ export function SpikedBall(radiusRatio = 1): Primitive {
 
     return createPrimitive(vertices, indices);
 }
+loadCheckpoint(`mol-geo/primitive/spiked-ball.ts::end`);

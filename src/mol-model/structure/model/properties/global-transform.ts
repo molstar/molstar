@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../../mol-util/debug';
+loadCheckpoint(`mol-model/structure/model/properties/global-transform.ts::start`);
 /**
  * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -78,3 +82,4 @@ export namespace GlobalModelTransformInfo {
         });
     }
 }
+loadCheckpoint(`mol-model/structure/model/properties/global-transform.ts::end`);

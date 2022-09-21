@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../../mol-util/debug';
+loadCheckpoint(`mol-io/reader/cif/binary/parser.ts::start`);
 /**
  * Copyright (c) 2017 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -56,3 +60,4 @@ export function parseCifBinary(data: Uint8Array) {
         }
     });
 }
+loadCheckpoint(`mol-io/reader/cif/binary/parser.ts::end`);

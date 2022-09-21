@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../mol-util/debug';
+loadCheckpoint(`mol-repr/visual.ts::start`);
 /**
  * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -369,3 +373,4 @@ namespace Visual {
         ValueCell.update(values.boundingSphere, boundingSphere);
     }
 }
+loadCheckpoint(`mol-repr/visual.ts::end`);

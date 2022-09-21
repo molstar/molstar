@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-io/common/typed-array.ts::start`);
 /**
  * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -75,3 +79,5 @@ export async function readTypedArray(ctx: TypedArrayBufferContext, file: FileHan
     }
     return ctx.values;
 }
+
+loadCheckpoint(`mol-io/common/typed-array.ts::end`);

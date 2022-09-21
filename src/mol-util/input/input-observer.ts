@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-util/input/input-observer.ts::start`);
 /**
  * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -769,3 +773,4 @@ function normalizeWheel(event: any) {
 
 
 export { InputObserver };
+loadCheckpoint(`mol-util/input/input-observer.ts::end`);

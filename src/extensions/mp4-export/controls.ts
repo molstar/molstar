@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`extensions/mp4-export/controls.ts::start`);
 /**
  * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -147,3 +151,4 @@ export class Mp4Controls extends PluginComponent {
         this.init();
     }
 }
+loadCheckpoint(`extensions/mp4-export/controls.ts::end`);

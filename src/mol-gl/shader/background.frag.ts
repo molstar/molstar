@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-gl/shader/background.frag.ts::start`);
 export const background_frag = `
 precision mediump float;
 precision mediump samplerCube;
@@ -83,3 +87,5 @@ void main() {
     #endif
 }
 `;
+
+loadCheckpoint(`mol-gl/shader/background.frag.ts::end`);

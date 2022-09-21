@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-geo/primitive/sphere.ts::start`);
 /**
  * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -19,3 +23,4 @@ export function sphereVertexCount(detail: number) {
 export function Sphere(detail: number): Primitive {
     return Polyhedron(vertices, indices, { detail, radius: 1 });
 }
+loadCheckpoint(`mol-geo/primitive/sphere.ts::end`);

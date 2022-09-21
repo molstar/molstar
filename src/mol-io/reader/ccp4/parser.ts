@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-io/reader/ccp4/parser.ts::start`);
 /**
  * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -177,3 +181,4 @@ export function parseFile(file: FileHandle, size: number) {
 export function parse(buffer: Uint8Array, name: string) {
     return parseFile(FileHandle.fromBuffer(SimpleBuffer.fromUint8Array(buffer), name), buffer.length);
 }
+loadCheckpoint(`mol-io/reader/ccp4/parser.ts::end`);

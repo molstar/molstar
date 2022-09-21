@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-canvas3d/camera/transition.ts::start`);
 /**
  * Copyright (c) 2018-2019 Mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -107,3 +111,4 @@ namespace CameraTransitionManager {
         out.fog = lerp(source.fog, target.fog, t);
     }
 }
+loadCheckpoint(`mol-canvas3d/camera/transition.ts::end`);

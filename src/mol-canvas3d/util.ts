@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../mol-util/debug';
+loadCheckpoint(`mol-canvas3d/util.ts::start`);
 /**
  * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -58,3 +62,4 @@ export async function canvasToBlob(canvas: HTMLCanvasElement, type?: string, qua
         }
     });
 }
+loadCheckpoint(`mol-canvas3d/util.ts::end`);

@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-repr/structure/visual/gaussian-density-volume.ts::start`);
 /**
  * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -123,3 +127,4 @@ export function UnitsGaussianDensityVolumeVisual(materialId: number): UnitsVisua
         }
     }, materialId);
 }
+loadCheckpoint(`mol-repr/structure/visual/gaussian-density-volume.ts::end`);

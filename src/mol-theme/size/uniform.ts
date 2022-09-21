@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-theme/size/uniform.ts::start`);
 /**
  * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -39,3 +43,4 @@ export const UniformSizeThemeProvider: SizeTheme.Provider<UniformSizeThemeParams
     defaultValues: PD.getDefaultValues(UniformSizeThemeParams),
     isApplicable: (ctx: ThemeDataContext) => true
 };
+loadCheckpoint(`mol-theme/size/uniform.ts::end`);

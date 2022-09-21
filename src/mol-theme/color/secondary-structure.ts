@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-theme/color/secondary-structure.ts::start`);
 /**
  * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -131,3 +135,4 @@ export const SecondaryStructureColorThemeProvider: ColorTheme.Provider<Secondary
         detach: (data) => data.structure && SecondaryStructureProvider.ref(data.structure, false)
     }
 };
+loadCheckpoint(`mol-theme/color/secondary-structure.ts::end`);

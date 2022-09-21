@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-model-formats/volume/property.ts::start`);
 /**
  * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -45,3 +49,4 @@ namespace RecommendedIsoValue {
 
     export const Provider = PropertyProvider.create<RecommendedIsoValue>(Descriptor);
 }
+loadCheckpoint(`mol-model-formats/volume/property.ts::end`);

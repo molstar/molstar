@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-model/volume/grid.ts::start`);
 /**
  * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -79,3 +83,4 @@ namespace Grid {
 }
 
 export { Grid };
+loadCheckpoint(`mol-model/volume/grid.ts::end`);

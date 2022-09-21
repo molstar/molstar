@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-model-props/computed/chemistry/util.ts::start`);
 /**
  * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -117,3 +121,4 @@ export function eachResidueAtom(unit: Unit.Atomic, index: StructureElement.UnitI
         if (idx !== -1) cb(idx as StructureElement.UnitIndex);
     }
 }
+loadCheckpoint(`mol-model-props/computed/chemistry/util.ts::end`);

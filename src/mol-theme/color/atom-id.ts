@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-theme/color/atom-id.ts::start`);
 /**
  * Copyright (c) 2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -89,3 +93,4 @@ export const AtomIdColorThemeProvider: ColorTheme.Provider<AtomIdColorThemeParam
     defaultValues: PD.getDefaultValues(AtomIdColorThemeParams),
     isApplicable: (ctx: ThemeDataContext) => !!ctx.structure
 };
+loadCheckpoint(`mol-theme/color/atom-id.ts::end`);

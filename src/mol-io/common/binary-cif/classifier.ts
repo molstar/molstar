@@ -1,4 +1,8 @@
 
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-io/common/binary-cif/classifier.ts::start`);
+
 /**
  * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -179,3 +183,4 @@ namespace FloatClassifier {
         return m;
     }
 }
+loadCheckpoint(`mol-io/common/binary-cif/classifier.ts::end`);

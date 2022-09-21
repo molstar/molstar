@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-data/int/map.ts::start`);
 /**
  * Copyright (c) 2017 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -59,3 +63,4 @@ namespace IntMap {
 }
 
 export { IntMap };
+loadCheckpoint(`mol-data/int/map.ts::end`);

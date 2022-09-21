@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../../../mol-util/debug';
+loadCheckpoint(`mol-model/structure/model/properties/coarse/hierarchy.ts::start`);
 /**
  * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -88,3 +92,4 @@ export namespace CoarseHierarchy {
         gaussians: EmptyCoarseElements
     };
 }
+loadCheckpoint(`mol-model/structure/model/properties/coarse/hierarchy.ts::end`);

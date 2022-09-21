@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../../../mol-util/debug';
+loadCheckpoint(`mol-model/structure/model/properties/custom/indexed.ts::start`);
 /**
  * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -221,3 +225,4 @@ class EntityMappedCustomProperty<T = any> implements IndexedCustomProperty<Entit
         this.kind = Unit.Kind.Atomic;
     }
 }
+loadCheckpoint(`mol-model/structure/model/properties/custom/indexed.ts::end`);

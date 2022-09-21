@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-canvas3d/helper/helper.ts::start`);
 /**
  * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -35,3 +39,4 @@ export class Helper {
         this.handle = new HandleHelper(webgl, p.handle);
     }
 }
+loadCheckpoint(`mol-canvas3d/helper/helper.ts::end`);

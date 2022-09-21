@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-model-formats/volume/density-server.ts::start`);
 /**
  * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -70,3 +74,4 @@ namespace DscifFormat {
         return { kind: 'dscif', name: dscif._name, data: dscif };
     }
 }
+loadCheckpoint(`mol-model-formats/volume/density-server.ts::end`);

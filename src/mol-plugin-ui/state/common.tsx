@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-plugin-ui/state/common.tsx::start`);
 /**
  * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -276,3 +280,4 @@ abstract class TransformControlBase<P, S extends TransformControlBase.ComponentS
         return this.props.simpleApply ? this.renderSimple() : this.renderDefault();
     }
 }
+loadCheckpoint(`mol-plugin-ui/state/common.tsx::end`);

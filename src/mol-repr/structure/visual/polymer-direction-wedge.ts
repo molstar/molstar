@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-repr/structure/visual/polymer-direction-wedge.ts::start`);
 /**
  * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -111,3 +115,4 @@ export function PolymerDirectionVisual(materialId: number): UnitsVisual<PolymerD
         }
     }, materialId);
 }
+loadCheckpoint(`mol-repr/structure/visual/polymer-direction-wedge.ts::end`);

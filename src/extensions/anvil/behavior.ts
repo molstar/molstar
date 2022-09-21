@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`extensions/anvil/behavior.ts::start`);
 /**
  * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -173,3 +177,5 @@ export function tryCreateMembraneOrientation(plugin: PluginContext, structure: S
         .applyOrUpdateTagged('membrane-orientation-3d', MembraneOrientation3D, params, { state: initialState });
     return membraneOrientation.commit({ revertOnError: true });
 }
+
+loadCheckpoint(`extensions/anvil/behavior.ts::end`);

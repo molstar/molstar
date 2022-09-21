@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-model-props/computed/representations/interactions-intra-unit-cylinder.ts::start`);
 /**
  * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -246,3 +250,4 @@ function createInteractionsIterator(structureGroup: StructureGroup): LocationIte
     };
     return LocationIterator(groupCount, instanceCount, 1, getLocation);
 }
+loadCheckpoint(`mol-model-props/computed/representations/interactions-intra-unit-cylinder.ts::end`);

@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-script/language/symbol-table/structure-query.ts::start`);
 /**
  * Copyright (c) 2018-2022 Mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -359,3 +363,4 @@ export const structureQuery = {
     atomProperty,
     bondProperty
 };
+loadCheckpoint(`mol-script/language/symbol-table/structure-query.ts::end`);

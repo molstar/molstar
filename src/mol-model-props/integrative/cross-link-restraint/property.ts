@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-model-props/integrative/cross-link-restraint/property.ts::start`);
 /**
  * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -220,3 +224,4 @@ function extractCrossLinkRestraints(structure: Structure): PairRestraints<CrossL
 
     return new PairRestraints(pairs);
 }
+loadCheckpoint(`mol-model-props/integrative/cross-link-restraint/property.ts::end`);

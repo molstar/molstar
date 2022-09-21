@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-gl/renderable/image.ts::start`);
 /**
  * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -38,3 +42,4 @@ export function ImageRenderable(ctx: WebGLContext, id: number, values: ImageValu
     const renderItem = createGraphicsRenderItem(ctx, 'triangles', shaderCode, schema, { ...values, ...internalValues }, materialId, variants);
     return createRenderable(renderItem, values, state);
 }
+loadCheckpoint(`mol-gl/renderable/image.ts::end`);

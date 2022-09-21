@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-model/sequence/alignment/alignment.ts::start`);
 /**
  * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -194,3 +198,4 @@ class Alignment {
         return { aliA, aliB, score };
     }
 }
+loadCheckpoint(`mol-model/sequence/alignment/alignment.ts::end`);

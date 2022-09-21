@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-theme/color/illustrative.ts::start`);
 /**
  * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -83,3 +87,4 @@ export const IllustrativeColorThemeProvider: ColorTheme.Provider<IllustrativeCol
     defaultValues: PD.getDefaultValues(IllustrativeColorThemeParams),
     isApplicable: (ctx: ThemeDataContext) => !!ctx.structure
 };
+loadCheckpoint(`mol-theme/color/illustrative.ts::end`);

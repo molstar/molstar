@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-gl/shader/chunks/common-clip.glsl.ts::start`);
 /**
  * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -104,3 +108,4 @@ export const common_clip = `
     }
 #endif
 `;
+loadCheckpoint(`mol-gl/shader/chunks/common-clip.glsl.ts::end`);

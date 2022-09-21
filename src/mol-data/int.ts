@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../mol-util/debug';
+loadCheckpoint(`mol-data/int.ts::start`);
 /**
  * Copyright (c) 2017 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -14,3 +18,4 @@ import { IntMap } from './int/map';
 import { Iterator } from './iterator';
 
 export { Interval, OrderedSet, Segmentation, SortedArray, Tuple, LinkedIndex, IntMap, Iterator };
+loadCheckpoint(`mol-data/int.ts::end`);

@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../mol-util/debug';
+loadCheckpoint(`mol-plugin/config.ts::start`);
 /**
  * Copyright (c) 2020-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -95,3 +99,5 @@ export class PluginConfigManager {
         initial.forEach(([k, v]) => this._config.set(k, v));
     }
 }
+
+loadCheckpoint(`mol-plugin/config.ts::end`);

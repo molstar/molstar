@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../../mol-util/debug';
+loadCheckpoint(`mol-model/structure/structure/carbohydrates/constants.ts::start`);
 /**
  * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -437,3 +441,5 @@ export function setSaccharideCompIdMapType(type: SaccharideCompIdMapType) {
 export let SaccharideCompIdMap = DefaultSaccharideCompIdMap;
 
 export type SaccharideComponentMap = ReadonlyMap<string, SaccharideComponent>
+
+loadCheckpoint(`mol-model/structure/structure/carbohydrates/constants.ts::end`);

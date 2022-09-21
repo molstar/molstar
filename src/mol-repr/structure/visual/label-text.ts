@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-repr/structure/visual/label-text.ts::start`);
 /**
  * Copyright (c) 2019-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -176,3 +180,4 @@ function createElementText(ctx: VisualContext, structure: Structure, theme: Them
 
     return builder.getText();
 }
+loadCheckpoint(`mol-repr/structure/visual/label-text.ts::end`);

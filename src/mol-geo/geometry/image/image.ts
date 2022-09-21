@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-geo/geometry/image/image.ts::start`);
 /**
  * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -245,3 +249,4 @@ function getBoundingSphere(corners: Float32Array) {
 
     return sphere;
 }
+loadCheckpoint(`mol-geo/geometry/image/image.ts::end`);

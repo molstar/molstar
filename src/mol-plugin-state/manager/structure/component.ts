@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-plugin-state/manager/structure/component.ts::start`);
 /**
  * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -538,3 +542,5 @@ namespace StructureComponentManager {
         sizeParams?: SizeTheme.BuiltInParams<S>
     }
 }
+
+loadCheckpoint(`mol-plugin-state/manager/structure/component.ts::end`);

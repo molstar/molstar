@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-plugin-ui/structure/volume.tsx::start`);
 /**
  * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -317,3 +321,4 @@ class VolumeRepresentationControls extends PurePluginUIComponent<{ representatio
         </>;
     }
 }
+loadCheckpoint(`mol-plugin-ui/structure/volume.tsx::end`);

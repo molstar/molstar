@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-script/transpilers/vmd/examples.ts::start`);
 /**
  * Copyright (c) 2017-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -77,3 +81,5 @@ export const examples = [{
     name: 'Residues ala, arg, asn, asp, cys, and tyr',
     value: 'resname ALA to CYS TYR'
 }*/];
+
+loadCheckpoint(`mol-script/transpilers/vmd/examples.ts::end`);

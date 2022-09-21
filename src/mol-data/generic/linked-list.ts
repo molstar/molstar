@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-data/generic/linked-list.ts::start`);
 /**
  * Copyright (c) 2017 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -115,3 +119,4 @@ class LinkedListImpl<T> implements LinkedList<T> {
 }
 
 export { LinkedList };
+loadCheckpoint(`mol-data/generic/linked-list.ts::end`);

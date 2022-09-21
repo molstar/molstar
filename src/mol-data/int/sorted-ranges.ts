@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-data/int/sorted-ranges.ts::start`);
 /**
  * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -116,3 +120,4 @@ namespace SortedRanges {
 }
 
 export { SortedRanges };
+loadCheckpoint(`mol-data/int/sorted-ranges.ts::end`);

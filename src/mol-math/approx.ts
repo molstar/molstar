@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../mol-util/debug';
+loadCheckpoint(`mol-math/approx.ts::start`);
 /**
  * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -218,3 +222,4 @@ export function fastAtan2(y: number, x: number) {
     t = y < 0.0 ? -t : t;
     return t;
 }
+loadCheckpoint(`mol-math/approx.ts::end`);

@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../mol-util/debug';
+loadCheckpoint(`mol-util/data-source.ts::start`);
 /**
  * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -344,3 +348,4 @@ async function wrapPromise(index: number, id: string, p: Promise<Asset.Wrapper<'
         return { kind: 'error', error, index, id };
     }
 }
+loadCheckpoint(`mol-util/data-source.ts::end`);

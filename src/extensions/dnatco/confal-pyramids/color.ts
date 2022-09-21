@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`extensions/dnatco/confal-pyramids/color.ts::start`);
 /**
  * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -278,3 +282,5 @@ export const ConfalPyramidsColorThemeProvider: ColorTheme.Provider<ConfalPyramid
         detach: (data) => data.structure && ConfalPyramidsProvider.ref(data.structure.models[0], false)
     }
 };
+
+loadCheckpoint(`extensions/dnatco/confal-pyramids/color.ts::end`);

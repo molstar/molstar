@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../mol-util/debug';
+loadCheckpoint(`mol-util/assets.ts::start`);
 /**
  * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -129,3 +133,4 @@ class AssetManager {
         if (entry.refCount <= 0) this._assets.delete(asset.id);
     }
 }
+loadCheckpoint(`mol-util/assets.ts::end`);

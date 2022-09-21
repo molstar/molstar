@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-model-props/integrative/pair-restraints.ts::start`);
 /**
  * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -47,3 +51,4 @@ export class PairRestraints<T extends PairRestraint> {
         this.pairKeyIndices = pairKeyIndices;
     }
 }
+loadCheckpoint(`mol-model-props/integrative/pair-restraints.ts::end`);

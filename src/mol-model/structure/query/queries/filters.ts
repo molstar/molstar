@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../../mol-util/debug';
+loadCheckpoint(`mol-model/structure/query/queries/filters.ts::start`);
 /**
  * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -344,3 +348,5 @@ export function isConnectedTo({ query, target, disjunct, invert, bondTest }: IsC
         return ret.getSelection();
     };
 }
+
+loadCheckpoint(`mol-model/structure/query/queries/filters.ts::end`);

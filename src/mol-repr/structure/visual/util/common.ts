@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../../mol-util/debug';
+loadCheckpoint(`mol-repr/structure/visual/util/common.ts::start`);
 /**
  * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -298,3 +302,5 @@ export function isTrace(unit: Unit, element: ElementIndex) {
     if (atomId === 'CA' || atomId === 'BB' || atomId === 'P') return true;
     return false;
 }
+
+loadCheckpoint(`mol-repr/structure/visual/util/common.ts::end`);

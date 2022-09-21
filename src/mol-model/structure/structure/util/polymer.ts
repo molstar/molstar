@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../../mol-util/debug';
+loadCheckpoint(`mol-model/structure/structure/util/polymer.ts::start`);
 /**
  * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -123,3 +127,4 @@ export function getProteinElements(unit: Unit.Atomic) {
     }
     return SortedArray.ofSortedArray<ElementIndex>(indices);
 }
+loadCheckpoint(`mol-model/structure/structure/util/polymer.ts::end`);

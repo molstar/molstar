@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-util/color/lists.ts::start`);
 /**
  * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -228,3 +232,5 @@ export function getColorListFromName(name: ColorListName) {
     console.warn(`unknown color list named '${name}'`);
     return ColorLists['red-yellow-blue'];
 }
+
+loadCheckpoint(`mol-util/color/lists.ts::end`);

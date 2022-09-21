@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../../../mol-util/debug';
+loadCheckpoint(`mol-model/structure/model/properties/utils/coarse-keys.ts::start`);
 /**
  * Copyright (c) 2017-2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -103,3 +107,4 @@ export function getCoarseKeys(data: CoarseElementData, entities: Entities): Coar
 
     return { chainKey, entityKey, findSequenceKey, findChainKey, getEntityFromChain };
 }
+loadCheckpoint(`mol-model/structure/model/properties/utils/coarse-keys.ts::end`);

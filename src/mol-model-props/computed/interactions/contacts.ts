@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-model-props/computed/interactions/contacts.ts::start`);
 /**
  * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -215,3 +219,4 @@ export function addStructureContacts(structure: Structure, unitA: Unit.Atomic, f
 
     builder.finishUnitPair();
 }
+loadCheckpoint(`mol-model-props/computed/interactions/contacts.ts::end`);

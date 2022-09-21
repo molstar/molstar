@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`extensions/rcsb/assembly-symmetry/color.ts::start`);
 /**
  * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -112,3 +116,4 @@ export const AssemblySymmetryClusterColorThemeProvider: ColorTheme.Provider<Asse
         detach: (data) => data.structure && AssemblySymmetryProvider.ref(data.structure, false)
     }
 };
+loadCheckpoint(`extensions/rcsb/assembly-symmetry/color.ts::end`);

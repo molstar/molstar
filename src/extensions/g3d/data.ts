@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`extensions/g3d/data.ts::start`);
 /**
  * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -64,3 +68,4 @@ async function getRawData(ctx: PluginContext, urlOrData: string | Uint8Array, ra
         return urlOrData.slice(range.offset, range.offset + range.size);
     }
 }
+loadCheckpoint(`extensions/g3d/data.ts::end`);

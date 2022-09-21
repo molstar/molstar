@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../mol-util/debug';
+loadCheckpoint(`mol-util/date.ts::start`);
 /**
  * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -18,3 +22,4 @@ export function getFormattedTime() {
     const s = today.getSeconds();
     return y + '-' + m + '-' + d + '-' + h + '-' + mi + '-' + s;
 }
+loadCheckpoint(`mol-util/date.ts::end`);

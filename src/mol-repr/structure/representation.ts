@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-repr/structure/representation.ts::start`);
 /**
  * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -38,3 +42,5 @@ export { ComplexVisual } from './complex-visual';
 export { UnitsRepresentation } from './units-representation';
 export { UnitsVisual } from './units-visual';
 
+
+loadCheckpoint(`mol-repr/structure/representation.ts::end`);

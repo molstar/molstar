@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-repr/shape/loci/angle.ts::start`);
 /**
  * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -241,3 +245,4 @@ export type AngleRepresentation = Representation<AngleData, AngleParams>
 export function AngleRepresentation(ctx: RepresentationContext, getParams: RepresentationParamsGetter<AngleData, AngleParams>): AngleRepresentation {
     return Representation.createMulti('Angle', ctx, getParams, Representation.StateBuilder, AngleVisuals as unknown as Representation.Def<AngleData, AngleParams>);
 }
+loadCheckpoint(`mol-repr/shape/loci/angle.ts::end`);

@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../../../mol-util/debug';
+loadCheckpoint(`mol-model/structure/structure/unit/bonds/element-set-intra-bond-cache.ts::start`);
 /**
  * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -43,3 +47,4 @@ export class ElementSetIntraBondCache {
         return model._dynamicPropertyData.ElementSetIntraBondCache;
     }
 }
+loadCheckpoint(`mol-model/structure/structure/unit/bonds/element-set-intra-bond-cache.ts::end`);

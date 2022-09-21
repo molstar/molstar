@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../mol-util/debug';
+loadCheckpoint(`mol-model/loci.ts::start`);
 /**
  * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -303,3 +307,4 @@ namespace Loci {
         return loci;
     }
 }
+loadCheckpoint(`mol-model/loci.ts::end`);

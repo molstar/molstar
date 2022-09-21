@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-geo/geometry/substance-data.ts::start`);
 /**
  * Copyright (c) 2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -77,3 +81,4 @@ export function createEmptySubstance(substanceData?: SubstanceData): SubstanceDa
         };
     }
 }
+loadCheckpoint(`mol-geo/geometry/substance-data.ts::end`);

@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../../mol-util/debug';
+loadCheckpoint(`mol-model-props/computed/secondary-structure/dssp/trace-lookup.ts::start`);
 /**
  * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -20,3 +24,4 @@ export function calcUnitProteinTraceLookup3D(unit: Unit.Atomic, unitProteinResid
     const position = { x, y, z, indices: SortedArray.ofSortedArray(indices) };
     return GridLookup3D(position, getBoundary(position));
 }
+loadCheckpoint(`mol-model-props/computed/secondary-structure/dssp/trace-lookup.ts::end`);

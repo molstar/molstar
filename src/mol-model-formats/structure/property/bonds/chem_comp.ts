@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../../mol-util/debug';
+loadCheckpoint(`mol-model-formats/structure/property/bonds/chem_comp.ts::start`);
 /**
  * Copyright (c) 2017-2022 Mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -118,3 +122,4 @@ export namespace ComponentBond {
         constructor(public readonly id: string) { }
     }
 }
+loadCheckpoint(`mol-model-formats/structure/property/bonds/chem_comp.ts::end`);

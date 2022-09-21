@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`extensions/dnatco/index.ts::start`);
 /**
  * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -6,3 +10,5 @@
  */
 
 export { DnatcoConfalPyramids } from './confal-pyramids/behavior';
+
+loadCheckpoint(`extensions/dnatco/index.ts::end`);

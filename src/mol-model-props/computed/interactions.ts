@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-model-props/computed/interactions.ts::start`);
 /**
  * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -34,3 +38,4 @@ export const InteractionsProvider: CustomStructureProperty.Provider<Interactions
         return { value: await computeInteractions(ctx, data, p) };
     }
 });
+loadCheckpoint(`mol-model-props/computed/interactions.ts::end`);

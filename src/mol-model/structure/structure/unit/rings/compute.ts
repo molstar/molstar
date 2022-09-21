@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../../../mol-util/debug';
+loadCheckpoint(`mol-model/structure/structure/unit/rings/compute.ts::start`);
 /**
  * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -420,3 +424,4 @@ export function createIndex(rings: ArrayLike<SortedArray<StructureElement.UnitIn
 
     return { elementRingIndices, elementAromaticRingIndices, ringComponentIndex, ringComponents };
 }
+loadCheckpoint(`mol-model/structure/structure/unit/rings/compute.ts::end`);

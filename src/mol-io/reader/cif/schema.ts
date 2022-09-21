@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-io/reader/cif/schema.ts::start`);
 /**
  * Copyright (c) 2017-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -232,3 +236,4 @@ function createTable(key: string, schema: Table.Schema, frame: Data.CifFrame, al
     }
     return new CategoryTable(cat || Data.CifCategory.empty(key), schema, !!cat);
 }
+loadCheckpoint(`mol-io/reader/cif/schema.ts::end`);

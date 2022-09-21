@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-io/reader/ply/schema.ts::start`);
 /**
  * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -77,3 +81,4 @@ export interface PlyList {
     readonly type: PlyType,
     value: (row: number) => PlyListValue
 }
+loadCheckpoint(`mol-io/reader/ply/schema.ts::end`);

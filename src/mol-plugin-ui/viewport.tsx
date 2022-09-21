@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../mol-util/debug';
+loadCheckpoint(`mol-plugin-ui/viewport.tsx::start`);
 /**
  * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -123,3 +127,4 @@ export const Logo = () =>
     <a className='msp-logo' href='https://molstar.org' target='_blank' />;
 
 export const Viewport = () => <ViewportCanvas logo={Logo} />;
+loadCheckpoint(`mol-plugin-ui/viewport.tsx::end`);

@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-task/execution/synchronous.ts::start`);
 /**
  * Copyright (c) 2017 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -13,3 +17,4 @@ export class SynchronousRuntimeContext implements RuntimeContext {
 }
 
 export const SyncRuntimeContext = new SynchronousRuntimeContext();
+loadCheckpoint(`mol-task/execution/synchronous.ts::end`);

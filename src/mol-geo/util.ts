@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../mol-util/debug';
+loadCheckpoint(`mol-geo/util.ts::start`);
 /**
  * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -160,3 +164,5 @@ export function createGroupMapping(groups: ArrayLike<number>, dataCount: number,
 
     return { indices, offsets };
 }
+
+loadCheckpoint(`mol-geo/util.ts::end`);

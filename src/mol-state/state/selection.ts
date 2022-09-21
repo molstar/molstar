@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-state/state/selection.ts::start`);
 /**
  * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -378,3 +382,4 @@ namespace StateSelection {
 }
 
 export { StateSelection };
+loadCheckpoint(`mol-state/state/selection.ts::end`);

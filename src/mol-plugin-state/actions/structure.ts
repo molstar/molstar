@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-plugin-state/actions/structure.ts::start`);
 /**
  * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -438,3 +442,4 @@ export const LoadTrajectory = StateAction.build({
         }
     }).runInContext(taskCtx);
 }));
+loadCheckpoint(`mol-plugin-state/actions/structure.ts::end`);

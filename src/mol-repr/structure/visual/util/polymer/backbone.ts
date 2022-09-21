@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../../../mol-util/debug';
+loadCheckpoint(`mol-repr/structure/visual/util/polymer/backbone.ts::start`);
 /**
  * Copyright (c) 2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -124,3 +128,4 @@ function eachCoarsePolymerBackboneElement(unit: Unit.Spheres | Unit.Gaussians, c
         }
     }
 }
+loadCheckpoint(`mol-repr/structure/visual/util/polymer/backbone.ts::end`);

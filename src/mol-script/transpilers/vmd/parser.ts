@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-script/transpilers/vmd/parser.ts::start`);
 /**
  * Copyright (c) 2017-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -260,3 +264,5 @@ const lang = P.MonadicParser.createLanguage({
 });
 
 export const transpiler: Transpiler = str => lang.Query.tryParse(str);
+
+loadCheckpoint(`mol-script/transpilers/vmd/parser.ts::end`);

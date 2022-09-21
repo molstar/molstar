@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-model-props/computed/interactions/common.ts::start`);
 /**
  * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -248,3 +252,4 @@ export function featureGroupLabel(group: FeatureGroup): string {
             return 'Carboxylate';
     }
 }
+loadCheckpoint(`mol-model-props/computed/interactions/common.ts::end`);

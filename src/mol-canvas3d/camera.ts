@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../mol-util/debug';
+loadCheckpoint(`mol-canvas3d/camera.ts::start`);
 /**
  * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -402,3 +406,4 @@ function updateClip(camera: Camera) {
     camera.fogNear = fogNear;
     camera.fogFar = fogFar;
 }
+loadCheckpoint(`mol-canvas3d/camera.ts::end`);

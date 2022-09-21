@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-gl/shader/marching-cubes/isosurface.frag.ts::start`);
 export const isosurface_frag = `
 precision highp float;
 precision highp int;
@@ -310,3 +314,4 @@ void main(void) {
     gl_FragData[2].xyz *= transpose3(inverse3(mat3(uGridTransform)));
 }
 `;
+loadCheckpoint(`mol-gl/shader/marching-cubes/isosurface.frag.ts::end`);

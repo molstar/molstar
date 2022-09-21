@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-plugin-ui/controls/color.tsx::start`);
 /**
  * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -113,3 +117,4 @@ export function ColorValueOption(color: Color) {
         {Color.toRgbString(color)}
     </option> : null;
 }
+loadCheckpoint(`mol-plugin-ui/controls/color.tsx::end`);

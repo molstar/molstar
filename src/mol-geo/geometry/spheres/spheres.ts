@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-geo/geometry/spheres/spheres.ts::start`);
 /**
  * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -263,3 +267,4 @@ export namespace Spheres {
         state.writeDepth = state.opaque;
     }
 }
+loadCheckpoint(`mol-geo/geometry/spheres/spheres.ts::end`);

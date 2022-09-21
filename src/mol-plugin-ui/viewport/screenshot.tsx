@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-plugin-ui/viewport/screenshot.tsx::start`);
 /**
  * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -125,3 +129,4 @@ function CropControls({ plugin }: { plugin: PluginContext }) {
             onClick={() => helper.resetCrop()} />}
     </div>;
 }
+loadCheckpoint(`mol-plugin-ui/viewport/screenshot.tsx::end`);

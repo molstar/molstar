@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-model-props/computed/themes/accessible-surface-area.ts::start`);
 /**
  * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -86,3 +90,4 @@ export const AccessibleSurfaceAreaColorThemeProvider: ColorTheme.Provider<Access
         detach: (data) => data.structure && AccessibleSurfaceAreaProvider.ref(data.structure, false)
     }
 };
+loadCheckpoint(`mol-model-props/computed/themes/accessible-surface-area.ts::end`);

@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../mol-util/debug';
+loadCheckpoint(`mol-util/material.ts::start`);
 /**
  * Copyright (c) 2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -50,3 +54,5 @@ export namespace Material {
         });
     }
 }
+
+loadCheckpoint(`mol-util/material.ts::end`);

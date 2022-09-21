@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../mol-util/debug';
+loadCheckpoint(`mol-util/console-logger.ts::start`);
 /**
  * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -43,3 +47,5 @@ export namespace ConsoleLogger {
         if (e.stack) console.error(e.stack);
     }
 }
+
+loadCheckpoint(`mol-util/console-logger.ts::end`);

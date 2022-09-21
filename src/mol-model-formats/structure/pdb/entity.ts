@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-model-formats/structure/pdb/entity.ts::start`);
 /**
  * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -117,3 +121,4 @@ export function parseHetnam(lines: Tokens, lineStart: number, lineEnd: number) {
 
     return hetnams;
 }
+loadCheckpoint(`mol-model-formats/structure/pdb/entity.ts::end`);

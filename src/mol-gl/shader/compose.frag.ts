@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-gl/shader/compose.frag.ts::start`);
 export const compose_frag = `
 precision highp float;
 precision highp sampler2D;
@@ -11,3 +15,4 @@ void main() {
     gl_FragColor = texture2D(tColor, coords) * uWeight;
 }
 `;
+loadCheckpoint(`mol-gl/shader/compose.frag.ts::end`);

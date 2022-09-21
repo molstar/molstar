@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-model-formats/structure/pdb/conect.ts::start`);
 /**
  * Copyright (c) 2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -87,3 +91,4 @@ export function parseConect(lines: Tokens, lineStart: number, lineEnd: number, s
 
     return CifCategory.ofFields('struct_conn', struct_conn);
 }
+loadCheckpoint(`mol-model-formats/structure/pdb/conect.ts::end`);

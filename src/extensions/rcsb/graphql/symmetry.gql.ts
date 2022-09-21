@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`extensions/rcsb/graphql/symmetry.gql.ts::start`);
 export const symmetry_gql = /* GraphQL */ `
 query AssemblySymmetry($assembly_id: String!, $entry_id: String!) {
     assembly(assembly_id: $assembly_id, entry_id: $entry_id) {
@@ -23,3 +27,4 @@ query AssemblySymmetry($assembly_id: String!, $entry_id: String!) {
     }
 }
 `;
+loadCheckpoint(`extensions/rcsb/graphql/symmetry.gql.ts::end`);

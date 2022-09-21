@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-script/language/symbol-table/core.ts::start`);
 /**
  * Copyright (c) 2018 Mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -189,3 +193,5 @@ export const SymbolMap = (function () {
     for (const s of SymbolList) map[s.id] = s;
     return map;
 })();
+
+loadCheckpoint(`mol-script/language/symbol-table/core.ts::end`);

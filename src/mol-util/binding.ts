@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../mol-util/debug';
+loadCheckpoint(`mol-util/binding.ts::start`);
 /**
  * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -111,3 +115,4 @@ function formatModifiers(modifiers?: ModifiersKeys, verbose?: boolean) {
     }
     return s.join(' + ');
 }
+loadCheckpoint(`mol-util/binding.ts::end`);

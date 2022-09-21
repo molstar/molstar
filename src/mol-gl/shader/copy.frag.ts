@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-gl/shader/copy.frag.ts::start`);
 export const copy_frag = `
 precision highp float;
 precision highp sampler2D;
@@ -10,3 +14,4 @@ void main() {
     gl_FragColor = texture2D(tColor, coords);
 }
 `;
+loadCheckpoint(`mol-gl/shader/copy.frag.ts::end`);

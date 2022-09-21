@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-io/reader/cube/parser.ts::start`);
 /**
  * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -139,3 +143,4 @@ export function parseCube(data: string, name: string) {
         return Result.success({ header, atoms, values, name });
     });
 }
+loadCheckpoint(`mol-io/reader/cube/parser.ts::end`);

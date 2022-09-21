@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-canvas3d/camera/stereo.ts::start`);
 /**
  * Copyright (c) 2020-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -139,3 +143,4 @@ function update(camera: Camera, props: StereoCameraProps, left: EyeCamera, right
     Mat4.mul(right.projectionView, right.projection, right.view);
     Mat4.invert(right.inverseProjectionView, right.projectionView);
 }
+loadCheckpoint(`mol-canvas3d/camera/stereo.ts::end`);

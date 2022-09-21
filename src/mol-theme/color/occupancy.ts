@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-theme/color/occupancy.ts::start`);
 /**
  * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -67,3 +71,4 @@ export const OccupancyColorThemeProvider: ColorTheme.Provider<OccupancyColorThem
     defaultValues: PD.getDefaultValues(OccupancyColorThemeParams),
     isApplicable: (ctx: ThemeDataContext) => !!ctx.structure && ctx.structure.models.some(m => m.atomicConformation.occupancy.isDefined)
 };
+loadCheckpoint(`mol-theme/color/occupancy.ts::end`);

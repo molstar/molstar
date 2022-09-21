@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-gl/shader/chunks/matrix-scale.glsl.ts::start`);
 /**
  * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -10,3 +14,4 @@ float matrixScale(in mat4 m){
     return sqrt(r[0] * r[0] + r[1] * r[1] + r[2] * r[2]);
 }
 `;
+loadCheckpoint(`mol-gl/shader/chunks/matrix-scale.glsl.ts::end`);

@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`extensions/geo-export/stl-exporter.ts::start`);
 /**
  * Copyright (c) 2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -117,3 +121,4 @@ export class StlExporter extends MeshExporter<StlData> {
         this.centerTransform = Mat4.fromTranslation(Mat4(), tmpV);
     }
 }
+loadCheckpoint(`extensions/geo-export/stl-exporter.ts::end`);

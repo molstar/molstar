@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-data/db/database.ts::start`);
 /**
  * Copyright (c) 2017 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -42,3 +46,4 @@ namespace Database {
 }
 
 export { Database };
+loadCheckpoint(`mol-data/db/database.ts::end`);

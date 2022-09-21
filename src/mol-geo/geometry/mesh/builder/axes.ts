@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../../mol-util/debug';
+loadCheckpoint(`mol-geo/geometry/mesh/builder/axes.ts::start`);
 /**
  * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -32,3 +36,4 @@ export function addAxes(state: MeshBuilder.State, axes: Axes3D, radiusScale: num
 
     MeshBuilder.addCage(state, tmpMatrix, cage, radius, detail, radialSegments);
 }
+loadCheckpoint(`mol-geo/geometry/mesh/builder/axes.ts::end`);

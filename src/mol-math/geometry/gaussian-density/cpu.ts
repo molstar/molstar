@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-math/geometry/gaussian-density/cpu.ts::start`);
 /**
  * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -131,3 +135,4 @@ export async function GaussianDensityCPU(ctx: RuntimeContext, position: Position
 
     return { field, idField, transform, radiusFactor: 1, resolution, maxRadius };
 }
+loadCheckpoint(`mol-math/geometry/gaussian-density/cpu.ts::end`);

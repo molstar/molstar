@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-script/language/expression.ts::start`);
 /*
  * Copyright (c) 2018 Mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -26,3 +30,4 @@ namespace Expression {
 }
 
 export { Expression };
+loadCheckpoint(`mol-script/language/expression.ts::end`);

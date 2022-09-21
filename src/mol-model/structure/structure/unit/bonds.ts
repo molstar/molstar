@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../../mol-util/debug';
+loadCheckpoint(`mol-model/structure/structure/unit/bonds.ts::start`);
 /**
  * Copyright (c) 2017-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -250,3 +254,4 @@ namespace Bond {
 }
 
 export { Bond };
+loadCheckpoint(`mol-model/structure/structure/unit/bonds.ts::end`);

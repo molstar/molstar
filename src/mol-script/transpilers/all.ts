@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-script/transpilers/all.ts::start`);
 /**
  * Copyright (c) 2017-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -15,3 +19,5 @@ export const _transpiler = {
     vmd,
     jmol,
 };
+
+loadCheckpoint(`mol-script/transpilers/all.ts::end`);

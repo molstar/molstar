@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-geo/primitive/prism.ts::start`);
 /**
  * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -191,3 +195,4 @@ export function HexagonalPrismCage() {
     if (!hexagonalPrismCage) hexagonalPrismCage = PrismCage(polygon(6, false));
     return hexagonalPrismCage;
 }
+loadCheckpoint(`mol-geo/primitive/prism.ts::end`);

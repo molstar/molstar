@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../mol-util/debug';
+loadCheckpoint(`mol-util/index.ts::start`);
 /**
  * Copyright (c) 2017-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -209,3 +213,4 @@ export function formatBytes(count: number) {
     const i = Math.floor(Math.log(count) / Math.log(1024));
     return `${(count / Math.pow(1024, i)).toFixed(2)} ${units[i]}`;
 }
+loadCheckpoint(`mol-util/index.ts::end`);

@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-plugin-ui/state/animation.tsx::start`);
 /**
  * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -50,3 +54,4 @@ export class AnimationControls extends PluginUIComponent<{ onStart?: () => void 
         </>;
     }
 }
+loadCheckpoint(`mol-plugin-ui/state/animation.tsx::end`);

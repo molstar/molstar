@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`extensions/pdbe/structure-quality-report/color.ts::start`);
 /**
  * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -118,3 +122,4 @@ export const StructureQualityReportColorThemeProvider: ColorTheme.Provider<Param
         detach: (data) => data.structure && StructureQualityReportProvider.ref(data.structure.models[0], false)
     }
 };
+loadCheckpoint(`extensions/pdbe/structure-quality-report/color.ts::end`);

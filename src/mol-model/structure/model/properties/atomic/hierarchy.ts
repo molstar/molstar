@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../../../mol-util/debug';
+loadCheckpoint(`mol-model/structure/model/properties/atomic/hierarchy.ts::start`);
 /**
  * Copyright (c) 2017-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -256,3 +260,5 @@ export namespace AtomicHierarchy {
         return chainEndResidueIndexExcl(segs, cI) - chainStartResidueIndex(segs, cI);
     }
 }
+
+loadCheckpoint(`mol-model/structure/model/properties/atomic/hierarchy.ts::end`);

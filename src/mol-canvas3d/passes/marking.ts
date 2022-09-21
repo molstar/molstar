@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-canvas3d/passes/marking.ts::start`);
 /**
  * Copyright (c) 2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -195,3 +199,4 @@ function getOverlayRenderable(ctx: WebGLContext, edgeTexture: Texture): OverlayR
 
     return createComputeRenderable(renderItem, values);
 }
+loadCheckpoint(`mol-canvas3d/passes/marking.ts::end`);

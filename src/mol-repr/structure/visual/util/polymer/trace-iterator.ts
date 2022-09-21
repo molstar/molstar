@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../../../mol-util/debug';
+loadCheckpoint(`mol-repr/structure/visual/util/polymer/trace-iterator.ts::start`);
 /**
  * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -520,3 +524,4 @@ export class CoarsePolymerTraceIterator implements Iterator<PolymerTraceElement>
         this.hasNext = this.polymerIt.hasNext;
     }
 }
+loadCheckpoint(`mol-repr/structure/visual/util/polymer/trace-iterator.ts::end`);

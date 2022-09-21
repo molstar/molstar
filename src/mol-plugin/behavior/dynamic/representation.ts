@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-plugin/behavior/dynamic/representation.ts::start`);
 /**
  * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -294,3 +298,4 @@ export const FocusLoci = PluginBehavior.create<FocusLociProps>({
     params: () => FocusLociParams,
     display: { name: 'Representation Focus Loci on Canvas' }
 });
+loadCheckpoint(`mol-plugin/behavior/dynamic/representation.ts::end`);

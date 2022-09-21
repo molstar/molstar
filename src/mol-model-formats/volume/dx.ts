@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-model-formats/volume/dx.ts::start`);
 /**
  * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -56,3 +60,4 @@ namespace DxFormat {
         return { kind: 'dx', name: dx.name, data: dx };
     }
 }
+loadCheckpoint(`mol-model-formats/volume/dx.ts::end`);

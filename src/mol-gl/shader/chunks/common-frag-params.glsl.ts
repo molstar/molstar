@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-gl/shader/chunks/common-frag-params.glsl.ts::start`);
 export const common_frag_params = `
 uniform int uObjectId;
 uniform int uInstanceCount;
@@ -140,3 +144,4 @@ float fbm(in vec3 p) {
     return f;
 }
 `;
+loadCheckpoint(`mol-gl/shader/chunks/common-frag-params.glsl.ts::end`);

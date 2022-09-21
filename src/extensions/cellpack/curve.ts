@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`extensions/cellpack/curve.ts::start`);
 /**
  * Copyright (c) 2019-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -227,3 +231,4 @@ export function getMatFromResamplePoints(points: NumberArray, segmentLength: num
     }
     return transforms;
 }
+loadCheckpoint(`extensions/cellpack/curve.ts::end`);

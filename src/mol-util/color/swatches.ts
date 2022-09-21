@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-util/color/swatches.ts::start`);
 /**
  * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -21,3 +25,4 @@ export const DefaultColorSwatch = ColorSwatch([
     ['magenta', 0xFA28FF],
     ['violet', 0x7D2187]
 ]);
+loadCheckpoint(`mol-util/color/swatches.ts::end`);

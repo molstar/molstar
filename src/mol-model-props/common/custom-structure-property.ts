@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-model-props/common/custom-structure-property.ts::start`);
 /**
  * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -104,3 +108,4 @@ namespace CustomStructureProperty {
         });
     }
 }
+loadCheckpoint(`mol-model-props/common/custom-structure-property.ts::end`);

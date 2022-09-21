@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../../mol-util/debug';
+loadCheckpoint(`mol-plugin/behavior/dynamic/custom-props/structure-info.ts::start`);
 /**
  * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -110,3 +114,4 @@ export const StructureInfo = PluginBehavior.create({
         }
     }
 });
+loadCheckpoint(`mol-plugin/behavior/dynamic/custom-props/structure-info.ts::end`);

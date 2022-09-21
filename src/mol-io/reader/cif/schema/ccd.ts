@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../../mol-util/debug';
+loadCheckpoint(`mol-io/reader/cif/schema/ccd.ts::start`);
 /**
  * Copyright (c) 2017-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -399,3 +403,4 @@ export const CCD_Schema = {
 
 export type CCD_Schema = typeof CCD_Schema;
 export interface CCD_Database extends Database<CCD_Schema> {};
+loadCheckpoint(`mol-io/reader/cif/schema/ccd.ts::end`);

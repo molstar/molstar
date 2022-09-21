@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-io/reader/csv/data-model.ts::start`);
 /**
  * Copyright (c) 2017 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -27,3 +31,4 @@ export function CsvTable(rowCount: number, columnNames: string[], columns: CsvCo
 }
 
 export type CsvColumns = { [name: string]: CsvColumn }
+loadCheckpoint(`mol-io/reader/csv/data-model.ts::end`);

@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-io/common/binary-cif/encoding.ts::start`);
 /**
  * Copyright (c) 2017 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -153,3 +157,4 @@ export namespace Encoding {
     }
 
 }
+loadCheckpoint(`mol-io/common/binary-cif/encoding.ts::end`);

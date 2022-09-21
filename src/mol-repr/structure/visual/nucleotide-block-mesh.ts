@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-repr/structure/visual/nucleotide-block-mesh.ts::start`);
 /**
  * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -167,3 +171,4 @@ export function NucleotideBlockVisual(materialId: number): UnitsVisual<Nucleotid
         }
     }, materialId);
 }
+loadCheckpoint(`mol-repr/structure/visual/nucleotide-block-mesh.ts::end`);

@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-plugin-state/builder/structure/representation-preset.ts::start`);
 /**
  * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -444,3 +448,4 @@ export const PresetStructureRepresentations = {
     illustrative,
 };
 export type PresetStructureRepresentations = typeof PresetStructureRepresentations;
+loadCheckpoint(`mol-plugin-state/builder/structure/representation-preset.ts::end`);

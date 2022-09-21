@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-model/structure/structure/symmetry.ts::start`);
 /**
  * Copyright (c) 2017-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -302,3 +306,4 @@ async function findMatesRadius(ctx: RuntimeContext, structure: Structure, radius
 }
 
 export { StructureSymmetry };
+loadCheckpoint(`mol-model/structure/structure/symmetry.ts::end`);

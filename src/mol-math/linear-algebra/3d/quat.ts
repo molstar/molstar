@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-math/linear-algebra/3d/quat.ts::start`);
 /**
  * Copyright (c) 2017-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -465,3 +469,4 @@ namespace Quat {
 }
 
 export { Quat };
+loadCheckpoint(`mol-math/linear-algebra/3d/quat.ts::end`);

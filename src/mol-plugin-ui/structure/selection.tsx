@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-plugin-ui/structure/selection.tsx::start`);
 /**
  * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -413,3 +417,4 @@ function ResidueListSelectionHelper({ modifier, plugin, close }: { modifier: Str
         </Button>
     </>;
 }
+loadCheckpoint(`mol-plugin-ui/structure/selection.tsx::end`);

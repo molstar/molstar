@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-state/action/manager.ts::start`);
 /**
  * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -99,3 +103,4 @@ class StateActionManager {
         this.ev.dispose();
     }
 }
+loadCheckpoint(`mol-state/action/manager.ts::end`);

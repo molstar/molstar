@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-model/shape/shape.ts::start`);
 /**
  * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -233,3 +237,4 @@ export namespace ShapeGroup {
         return boundingSphere;
     }
 }
+loadCheckpoint(`mol-model/shape/shape.ts::end`);

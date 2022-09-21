@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-model/structure/model/util.ts::start`);
 /**
  * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -54,3 +58,4 @@ export function getAsymIdCount(model: Model) {
     });
     return { auth: auth.size, label: label.size };
 }
+loadCheckpoint(`mol-model/structure/model/util.ts::end`);

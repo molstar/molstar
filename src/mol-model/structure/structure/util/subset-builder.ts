@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../../mol-util/debug';
+loadCheckpoint(`mol-model/structure/structure/util/subset-builder.ts::start`);
 /**
  * Copyright (c) 2017 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -123,3 +127,5 @@ export class StructureSubsetBuilder {
 
     }
 }
+
+loadCheckpoint(`mol-model/structure/structure/util/subset-builder.ts::end`);

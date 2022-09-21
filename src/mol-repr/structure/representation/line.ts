@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-repr/structure/representation/line.ts::start`);
 /**
  * Copyright (c) 2020-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -64,3 +68,4 @@ export const LineRepresentationProvider = StructureRepresentationProvider({
         return oldProps.includeParent !== newProps.includeParent;
     }
 });
+loadCheckpoint(`mol-repr/structure/representation/line.ts::end`);

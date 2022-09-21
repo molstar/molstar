@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-script/language/container.ts::start`);
 /*
  * Copyright (c) 2018 Mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -11,3 +15,5 @@ export interface Container {
     version: string,
     expression: Expression
 }
+
+loadCheckpoint(`mol-script/language/container.ts::end`);

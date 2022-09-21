@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../../../mol-util/debug';
+loadCheckpoint(`mol-repr/structure/visual/util/polymer/gap-iterator.ts::start`);
 /**
  * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -73,3 +77,5 @@ export class CoarsePolymerGapIterator implements Iterator<PolymerGapPair> {
         this.hasNext = this.gapIt.hasNext;
     }
 }
+
+loadCheckpoint(`mol-repr/structure/visual/util/polymer/gap-iterator.ts::end`);

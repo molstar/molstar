@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`extensions/zenodo/ui.tsx::start`);
 /**
  * Copyright (c) 2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -300,3 +304,5 @@ export class ZenodoImportUI extends CollapsableControls<{}, State> {
         </>;
     }
 }
+
+loadCheckpoint(`extensions/zenodo/ui.tsx::end`);

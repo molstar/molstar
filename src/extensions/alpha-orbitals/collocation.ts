@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`extensions/alpha-orbitals/collocation.ts::start`);
 /**
  * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -160,3 +164,5 @@ function getRadiusBox(grid: CubeGridInfo, center: Vec3, radius: number) {
 
     return [min, max];
 }
+
+loadCheckpoint(`extensions/alpha-orbitals/collocation.ts::end`);

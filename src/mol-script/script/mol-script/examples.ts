@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-script/script/mol-script/examples.ts::start`);
 // /**
 //  * Copyright (c) 2018 Mol* contributors, licensed under MIT, See LICENSE file for more info.
 //  *
@@ -102,3 +106,4 @@
 //     (sel.atom.res (= atom.resname LYS))
 //   ])`
 // }]
+loadCheckpoint(`mol-script/script/mol-script/examples.ts::end`);

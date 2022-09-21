@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-gl/shader/chunks/texture3d-from-2d-nearest.glsl.ts::start`);
 /**
  * Copyright (c) 2017-2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -14,3 +18,4 @@ vec4 texture3dFrom2dNearest(sampler2D tex, vec3 pos, vec3 gridDim, vec2 texDim) 
     return texture2D(tex, coord);
 }
 `;
+loadCheckpoint(`mol-gl/shader/chunks/texture3d-from-2d-nearest.glsl.ts::end`);

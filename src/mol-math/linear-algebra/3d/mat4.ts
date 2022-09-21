@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-math/linear-algebra/3d/mat4.ts::start`);
 /**
  * Copyright (c) 2017-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -1102,3 +1106,4 @@ namespace Mat4 {
 }
 
 export { Mat4 };
+loadCheckpoint(`mol-math/linear-algebra/3d/mat4.ts::end`);

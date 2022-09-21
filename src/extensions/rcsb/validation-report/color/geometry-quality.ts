@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../../mol-util/debug';
+loadCheckpoint(`extensions/rcsb/validation-report/color/geometry-quality.ts::start`);
 /**
  * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -118,3 +122,4 @@ export const GeometryQualityColorThemeProvider: ColorTheme.Provider<GeometricQua
         detach: (data) => data.structure && ValidationReportProvider.ref(data.structure.models[0], false)
     }
 };
+loadCheckpoint(`extensions/rcsb/validation-report/color/geometry-quality.ts::end`);

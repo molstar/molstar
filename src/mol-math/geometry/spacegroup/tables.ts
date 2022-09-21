@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-math/geometry/spacegroup/tables.ts::start`);
 /**
  * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -1490,3 +1494,4 @@ export function getSpacegroupIndex(nameOrNumber: number | string | SpacegroupNam
     if (typeof index === 'undefined' || typeof SpacegroupName[index] === 'undefined') return -1;
     return index;
 }
+loadCheckpoint(`mol-math/geometry/spacegroup/tables.ts::end`);

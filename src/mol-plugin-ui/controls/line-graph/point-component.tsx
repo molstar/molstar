@@ -1,4 +1,8 @@
 
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-plugin-ui/controls/line-graph/point-component.tsx::start`);
+
 import * as React from 'react';
 
 import { Vec2 } from '../../../mol-math/linear-algebra';
@@ -46,3 +50,4 @@ export class PointComponent extends React.Component<any, {show: boolean}> {
         ]);
     }
 }
+loadCheckpoint(`mol-plugin-ui/controls/line-graph/point-component.tsx::end`);

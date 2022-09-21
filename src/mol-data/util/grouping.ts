@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-data/util/grouping.ts::start`);
 /**
  * Copyright (c) 2017 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -51,3 +55,4 @@ export function groupBy<V, K>(values: ArrayLike<V> | Column<V>, getKey: (x: V) =
     }
     return gs.getGrouping();
 }
+loadCheckpoint(`mol-data/util/grouping.ts::end`);

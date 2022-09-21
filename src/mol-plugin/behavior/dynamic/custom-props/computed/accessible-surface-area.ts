@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../../../mol-util/debug';
+loadCheckpoint(`mol-plugin/behavior/dynamic/custom-props/computed/accessible-surface-area.ts::start`);
 /**
  * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -139,3 +143,4 @@ const isAccessible = StructureSelectionQuery('Accessible Protein Residues', MS.s
         return AccessibleSurfaceAreaProvider.attach(ctx, structure);
     }
 });
+loadCheckpoint(`mol-plugin/behavior/dynamic/custom-props/computed/accessible-surface-area.ts::end`);

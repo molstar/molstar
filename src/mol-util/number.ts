@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../mol-util/debug';
+loadCheckpoint(`mol-util/number.ts::start`);
 /**
  * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -73,3 +77,4 @@ export function toPrecision(v: number, precision: number) {
 export function toFixed(v: number, fractionDigits: number) {
     return parseFloat(v.toFixed(fractionDigits));
 }
+loadCheckpoint(`mol-util/number.ts::end`);

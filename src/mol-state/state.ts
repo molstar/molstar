@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../mol-util/debug';
+loadCheckpoint(`mol-state/state.ts::start`);
 /**
  * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -976,3 +980,4 @@ async function updateObject(ctx: UpdateContext, cell: StateObjectCell, transform
     if (!cell.cache) cell.cache = Object.create(null);
     return runTask(transformer.definition.update({ a, oldParams, b, newParams, cache: cell.cache, spine: ctx.spine, dependencies: resolveDependencies(cell) }, ctx.parent.globalContext), ctx.taskCtx);
 }
+loadCheckpoint(`mol-state/state.ts::end`);

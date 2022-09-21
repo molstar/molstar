@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-repr/structure/representation/gaussian-volume.ts::start`);
 /**
  * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -43,3 +47,4 @@ export const GaussianVolumeRepresentationProvider = StructureRepresentationProvi
     defaultSizeTheme: { name: 'physical' },
     isApplicable: (structure: Structure) => structure.elementCount > 0
 });
+loadCheckpoint(`mol-repr/structure/representation/gaussian-volume.ts::end`);

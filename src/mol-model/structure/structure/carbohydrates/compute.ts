@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../../mol-util/debug';
+loadCheckpoint(`mol-model/structure/structure/carbohydrates/compute.ts::start`);
 /**
  * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -405,3 +409,4 @@ function buildLookups(elements: CarbohydrateElement[], links: CarbohydrateLink[]
 
     return { getElementIndices, getLinkIndices, getTerminalLinkIndices };
 }
+loadCheckpoint(`mol-model/structure/structure/carbohydrates/compute.ts::end`);

@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-gl/shader/direct-volume.frag.ts::start`);
 /**
  * Copyright (c) 2017-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -357,3 +361,5 @@ void main() {
     #include wboit_write
 }
 `;
+
+loadCheckpoint(`mol-gl/shader/direct-volume.frag.ts::end`);

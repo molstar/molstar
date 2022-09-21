@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-plugin-state/helpers/structure-overpaint.ts::start`);
 /**
  * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -74,3 +78,4 @@ function getFilteredBundle(layers: Overpaint.BundleLayer[], structure: Structure
     const merged = Overpaint.merge(overpaint);
     return Overpaint.filter(merged, structure);
 }
+loadCheckpoint(`mol-plugin-state/helpers/structure-overpaint.ts::end`);

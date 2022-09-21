@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../mol-util/debug';
+loadCheckpoint(`mol-util/mask.ts::start`);
 /**
  * Copyright (c) 2017 Mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -182,3 +186,4 @@ namespace Mask {
 }
 
 export { Mask };
+loadCheckpoint(`mol-util/mask.ts::end`);

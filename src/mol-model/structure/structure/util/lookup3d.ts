@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../../mol-util/debug';
+loadCheckpoint(`mol-model/structure/structure/util/lookup3d.ts::start`);
 /**
  * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -218,3 +222,4 @@ export class StructureLookup3D {
         this.unitLookup = GridLookup3D(position, boundary);
     }
 }
+loadCheckpoint(`mol-model/structure/structure/util/lookup3d.ts::end`);

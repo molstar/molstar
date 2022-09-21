@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../mol-util/debug';
+loadCheckpoint(`mol-script/script.ts::start`);
 /**
  * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -70,3 +74,5 @@ namespace Script {
         return query(new QueryContext(structure, options));
     }
 }
+
+loadCheckpoint(`mol-script/script.ts::end`);

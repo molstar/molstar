@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../../../mol-util/debug';
+loadCheckpoint(`mol-plugin/behavior/dynamic/custom-props/integrative/cross-link-restraint.ts::start`);
 /**
  * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -41,3 +45,4 @@ function crossLinkRestraintFromMmcif(model: Model) {
     if (ihm_cross_link_restraint._rowCount === 0) return;
     return ModelCrossLinkRestraint.fromTable(ihm_cross_link_restraint, model);
 }
+loadCheckpoint(`mol-plugin/behavior/dynamic/custom-props/integrative/cross-link-restraint.ts::end`);

@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-repr/volume/registry.ts::start`);
 /**
  * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -32,3 +36,4 @@ export namespace VolumeRepresentationRegistry {
     export type BuiltIn = keyof _BuiltIn
     export type BuiltInParams<T extends BuiltIn> = Partial<RepresentationProvider.ParamValues<_BuiltIn[T]>>
 }
+loadCheckpoint(`mol-repr/volume/registry.ts::end`);

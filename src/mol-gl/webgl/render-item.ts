@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-gl/webgl/render-item.ts::start`);
 /**
  * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -370,3 +374,5 @@ export function createRenderItem<T extends string>(ctx: WebGLContext, drawMode: 
         }
     };
 }
+
+loadCheckpoint(`mol-gl/webgl/render-item.ts::end`);

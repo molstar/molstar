@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-geo/geometry/texture-mesh/color-smoothing.ts::start`);
 /**
  * Copyright (c) 2021-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -539,3 +543,5 @@ export function applyTextureMeshSubstanceSmoothing(values: TextureMeshValues, re
     ValueCell.update(values.uSubstanceGridDim, smoothingData.gridDim);
     ValueCell.update(values.uSubstanceGridTransform, smoothingData.gridTransform);
 }
+
+loadCheckpoint(`mol-geo/geometry/texture-mesh/color-smoothing.ts::end`);

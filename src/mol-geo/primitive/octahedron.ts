@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-geo/primitive/octahedron.ts::start`);
 /**
  * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -47,3 +51,4 @@ const octahedronCage = createCage(octahedronVertices, octahedronEdges);
 export function OctahedronCage(): Cage {
     return octahedronCage;
 }
+loadCheckpoint(`mol-geo/primitive/octahedron.ts::end`);

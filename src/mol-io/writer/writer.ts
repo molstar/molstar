@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-io/writer/writer.ts::start`);
 /**
  * Copyright (c) 2017 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -14,3 +18,4 @@ namespace Writer {
 }
 
 export { Writer };
+loadCheckpoint(`mol-io/writer/writer.ts::end`);

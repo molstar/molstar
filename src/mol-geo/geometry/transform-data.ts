@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-geo/geometry/transform-data.ts::start`);
 /**
  * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -108,3 +112,4 @@ export function updateTransformData(transformData: TransformData) {
     }
     ValueCell.update(transformData.aTransform, aTransform);
 }
+loadCheckpoint(`mol-geo/geometry/transform-data.ts::end`);

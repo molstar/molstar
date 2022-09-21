@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-gl/shader/histogram-pyramid/sum.frag.ts::start`);
 /**
  * Copyright (c) 2019-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -24,3 +28,4 @@ void main(void) {
     #endif
 }
 `;
+loadCheckpoint(`mol-gl/shader/histogram-pyramid/sum.frag.ts::end`);

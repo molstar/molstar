@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-script/script/mol-script/symbols.ts::start`);
 /**
  * Copyright (c) 2018 Mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -374,3 +378,4 @@ export function transpileMolScript(expr: Expression) {
 //     return a.length - b.length;
 // });
 // export default [...sortedSymbols, ...NamedArgs.map(a => ':' + a), ...Constants];
+loadCheckpoint(`mol-script/script/mol-script/symbols.ts::end`);

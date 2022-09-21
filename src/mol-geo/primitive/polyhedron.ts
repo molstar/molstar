@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-geo/primitive/polyhedron.ts::start`);
 /**
  * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -130,3 +134,4 @@ function createBuilder(): Builder {
         }
     };
 }
+loadCheckpoint(`mol-geo/primitive/polyhedron.ts::end`);

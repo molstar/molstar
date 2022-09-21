@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-model/structure/model/indexing.ts::start`);
 /**
  * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -12,3 +16,4 @@ export type ResidueIndex = { readonly '@type': 'residue-index' } & number
 export type ChainIndex = { readonly '@type': 'chain-index' } & number
 /** Index of an entity in the model data */
 export type EntityIndex = { readonly '@type': 'entity-index' } & number
+loadCheckpoint(`mol-model/structure/model/indexing.ts::end`);

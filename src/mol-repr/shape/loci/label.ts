@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-repr/shape/loci/label.ts::start`);
 /**
  * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -86,3 +90,4 @@ export type LabelRepresentation = Representation<LabelData, LabelParams>
 export function LabelRepresentation(ctx: RepresentationContext, getParams: RepresentationParamsGetter<LabelData, LabelParams>): LabelRepresentation {
     return Representation.createMulti('Label', ctx, getParams, Representation.StateBuilder, LabelVisuals as unknown as Representation.Def<LabelData, LabelParams>);
 }
+loadCheckpoint(`mol-repr/shape/loci/label.ts::end`);

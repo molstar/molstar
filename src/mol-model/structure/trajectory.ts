@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-model/structure/trajectory.ts::start`);
 /**
  * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -43,3 +47,4 @@ export class ArrayTrajectory implements Trajectory {
         this.duration = frames.length;
     }
 }
+loadCheckpoint(`mol-model/structure/trajectory.ts::end`);

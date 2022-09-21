@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-model-props/computed/accessible-surface-area.ts::start`);
 /**
  * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -58,3 +62,4 @@ export const AccessibleSurfaceAreaProvider: CustomStructureProperty.Provider<Acc
         return { value: await AccessibleSurfaceArea.compute(data, p).runInContext(ctx.runtime) };
     }
 });
+loadCheckpoint(`mol-model-props/computed/accessible-surface-area.ts::end`);

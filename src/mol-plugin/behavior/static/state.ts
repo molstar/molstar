@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-plugin/behavior/static/state.ts::start`);
 /**
  * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -200,3 +204,4 @@ export function Snapshots(ctx: PluginContext) {
         return ctx.managers.snapshot.open(new File([data], `state.${type}`));
     });
 }
+loadCheckpoint(`mol-plugin/behavior/static/state.ts::end`);

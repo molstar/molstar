@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-gl/shader/ssao-blur.frag.ts::start`);
 /**
  * Copyright (c) 2019-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -96,3 +100,4 @@ void main(void) {
     gl_FragColor = vec4(packUnitIntervalToRG(sum / kernelSum), packedDepth);
 }
 `;
+loadCheckpoint(`mol-gl/shader/ssao-blur.frag.ts::end`);

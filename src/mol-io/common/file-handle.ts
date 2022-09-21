@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-io/common/file-handle.ts::start`);
 /**
  * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -82,3 +86,4 @@ export namespace FileHandle {
         };
     }
 }
+loadCheckpoint(`mol-io/common/file-handle.ts::end`);

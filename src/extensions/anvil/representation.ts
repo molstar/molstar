@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`extensions/anvil/representation.ts::start`);
 /**
  * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -148,3 +152,5 @@ function getLayerPlane(state: MeshBuilder.State, p: Vec3, centroid: Vec3, radius
     MeshBuilder.addPrimitive(state, Mat4.id, circle);
     MeshBuilder.addPrimitiveFlipped(state, Mat4.id, circle);
 }
+
+loadCheckpoint(`extensions/anvil/representation.ts::end`);

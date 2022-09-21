@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`extensions/model-archive/quality-assessment/behavior.ts::start`);
 /**
  * Copyright (c) 2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -210,3 +214,4 @@ export const QualityAssessmentQmeanPreset = StructureRepresentationPresetProvide
         return await PresetStructureRepresentations.auto.apply(ref, { ...params, theme: { globalName: colorTheme, focus: { name: colorTheme } } }, plugin);
     }
 });
+loadCheckpoint(`extensions/model-archive/quality-assessment/behavior.ts::end`);

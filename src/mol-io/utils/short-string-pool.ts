@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-io/utils/short-string-pool.ts::start`);
 /**
  * Copyright (c) 2017 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -22,3 +26,5 @@ namespace ShortStringPool {
 }
 
 export { ShortStringPool };
+
+loadCheckpoint(`mol-io/utils/short-string-pool.ts::end`);

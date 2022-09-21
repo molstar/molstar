@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-plugin/behavior/dynamic/camera.ts::start`);
 /**
  * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -128,3 +132,4 @@ export const CameraAxisHelper = PluginBehavior.create<{}>({
     params: () => ({}),
     display: { name: 'Camera Axis Helper' }
 });
+loadCheckpoint(`mol-plugin/behavior/dynamic/camera.ts::end`);

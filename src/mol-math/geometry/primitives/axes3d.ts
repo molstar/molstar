@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-math/geometry/primitives/axes3d.ts::start`);
 /**
  * Copyright (c) 2019-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -68,3 +72,4 @@ namespace Axes3D {
 }
 
 export { Axes3D };
+loadCheckpoint(`mol-math/geometry/primitives/axes3d.ts::end`);

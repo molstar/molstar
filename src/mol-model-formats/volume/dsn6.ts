@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-model-formats/volume/dsn6.ts::start`);
 /**
  * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -68,3 +72,4 @@ namespace Dsn6Format {
         return { kind: 'dsn6', name: dsn6.name, data: dsn6 };
     }
 }
+loadCheckpoint(`mol-model-formats/volume/dsn6.ts::end`);

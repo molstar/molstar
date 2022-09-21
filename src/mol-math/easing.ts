@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../mol-util/debug';
+loadCheckpoint(`mol-math/easing.ts::start`);
 /**
  * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -103,3 +107,5 @@ export function sinInOut(t: number) {
 }
 
 //
+
+loadCheckpoint(`mol-math/easing.ts::end`);

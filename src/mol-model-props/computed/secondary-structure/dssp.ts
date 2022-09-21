@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-model-props/computed/secondary-structure/dssp.ts::start`);
 /**
  * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -193,3 +197,4 @@ function getDSSPAssignment(flags: Uint32Array, getResidueFlag: (f: DSSPType) => 
 
     return type as unknown as ArrayLike<SecondaryStructureType>;
 }
+loadCheckpoint(`mol-model-props/computed/secondary-structure/dssp.ts::end`);

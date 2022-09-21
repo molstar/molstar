@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../../../mol-util/debug';
+loadCheckpoint(`mol-model/structure/model/properties/utils/atomic-ranges.ts::start`);
 /**
  * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -122,3 +126,4 @@ export function getAtomicRanges(hierarchy: AtomicHierarchy, entities: Entities, 
         cyclicPolymerMap
     };
 }
+loadCheckpoint(`mol-model/structure/model/properties/utils/atomic-ranges.ts::end`);

@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-repr/volume/direct-volume.ts::start`);
 /**
  * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -164,3 +168,4 @@ export const DirectVolumeRepresentationProvider = VolumeRepresentationProvider({
     defaultSizeTheme: { name: 'uniform' },
     isApplicable: (volume: Volume) => !Volume.isEmpty(volume)
 });
+loadCheckpoint(`mol-repr/volume/direct-volume.ts::end`);

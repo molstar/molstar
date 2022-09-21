@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../../mol-util/debug';
+loadCheckpoint(`mol-geo/geometry/mesh/builder/sphere.ts::start`);
 /**
  * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -28,3 +32,4 @@ export function getSphere(detail: number) {
 export function addSphere(state: MeshBuilder.State, center: Vec3, radius: number, detail: number) {
     MeshBuilder.addPrimitive(state, setSphereMat(tmpSphereMat, center, radius), getSphere(detail));
 }
+loadCheckpoint(`mol-geo/geometry/mesh/builder/sphere.ts::end`);

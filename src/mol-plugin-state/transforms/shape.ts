@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-plugin-state/transforms/shape.ts::start`);
 /**
  * Copyright (c) 2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -67,3 +71,5 @@ export function getBoxMesh(box: Box3D, radius: number, oldMesh?: Mesh) {
 
     return mesh;
 }
+
+loadCheckpoint(`mol-plugin-state/transforms/shape.ts::end`);

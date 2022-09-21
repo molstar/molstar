@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-gl/shader/smaa/weights.frag.ts::start`);
 /**
  * Slightly adapted from https://github.com/mrdoob/three.js
  * MIT License Copyright (c) 2010-2020 three.js authors
@@ -214,3 +218,4 @@ void main() {
     gl_FragColor = SMAABlendingWeightCalculationPS(vUv, vPixCoord, vOffset, tEdges, tArea, tSearch, ivec4(0.0));
 }
 `;
+loadCheckpoint(`mol-gl/shader/smaa/weights.frag.ts::end`);

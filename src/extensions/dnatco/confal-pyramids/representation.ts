@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`extensions/dnatco/confal-pyramids/representation.ts::start`);
 /**
  * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -203,3 +207,5 @@ export const ConfalPyramidsRepresentationProvider = StructureRepresentationProvi
         detach: (data) => ConfalPyramidsProvider.ref(data.model, false),
     }
 });
+
+loadCheckpoint(`extensions/dnatco/confal-pyramids/representation.ts::end`);

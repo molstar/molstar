@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-repr/structure/visual/polymer-trace-mesh.ts::start`);
 /**
  * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -207,3 +211,4 @@ export function PolymerTraceVisual(materialId: number): UnitsVisual<PolymerTrace
         }
     }, materialId);
 }
+loadCheckpoint(`mol-repr/structure/visual/polymer-trace-mesh.ts::end`);

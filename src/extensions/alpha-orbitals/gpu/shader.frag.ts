@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`extensions/alpha-orbitals/gpu/shader.frag.ts::start`);
 /**
  * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -143,3 +147,4 @@ export const MAIN = `
         v += R(R2, coeffStart, coeffEnd, fCoeff) * Y(L, X, aO, fA);
     }
 `;
+loadCheckpoint(`extensions/alpha-orbitals/gpu/shader.frag.ts::end`);

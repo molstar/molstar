@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`extensions/geo-export/ui.tsx::start`);
 /**
  * Copyright (c) 2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -109,3 +113,4 @@ export class GeometryExporterUI extends CollapsableControls<{}, State> {
         }
     };
 }
+loadCheckpoint(`extensions/geo-export/ui.tsx::end`);

@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-gl/compute/marching-cubes/isosurface.ts::start`);
 /**
  * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -222,3 +226,4 @@ export function extractIsosurface(ctx: WebGLContext, volumeData: Texture, gridDi
 
     return gv;
 }
+loadCheckpoint(`mol-gl/compute/marching-cubes/isosurface.ts::end`);

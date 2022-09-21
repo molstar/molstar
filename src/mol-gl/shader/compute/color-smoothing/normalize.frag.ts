@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../../mol-util/debug';
+loadCheckpoint(`mol-gl/shader/compute/color-smoothing/normalize.frag.ts::start`);
 /**
  * Copyright (c) 2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -20,3 +24,4 @@ void main(void) {
     gl_FragColor = color / count;
 }
 `;
+loadCheckpoint(`mol-gl/shader/compute/color-smoothing/normalize.frag.ts::end`);

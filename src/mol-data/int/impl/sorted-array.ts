@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-data/int/impl/sorted-array.ts::start`);
 /**
  * Copyright (c) 2017-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -401,3 +405,4 @@ function getSuitableIntersectionRange(a: Nums, b: Nums) {
     }
     return _maxIntRangeRet;
 }
+loadCheckpoint(`mol-data/int/impl/sorted-array.ts::end`);

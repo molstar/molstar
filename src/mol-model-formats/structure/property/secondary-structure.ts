@@ -1,4 +1,8 @@
 
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-model-formats/structure/property/secondary-structure.ts::start`);
+
 /**
  * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -224,3 +228,4 @@ function assignSecondaryStructureRanges(hierarchy: AtomicHierarchy, coordinates:
         }
     }
 }
+loadCheckpoint(`mol-model-formats/structure/property/secondary-structure.ts::end`);

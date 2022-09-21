@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../../../mol-util/debug';
+loadCheckpoint(`mol-model/structure/model/properties/coarse/conformation.ts::start`);
 /**
  * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -59,3 +63,4 @@ export interface CoarseGaussianConformation {
      */
     covariance_matrix: ArrayLike<Mat3>
 }
+loadCheckpoint(`mol-model/structure/model/properties/coarse/conformation.ts::end`);

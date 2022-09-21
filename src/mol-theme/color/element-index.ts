@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-theme/color/element-index.ts::start`);
 /**
  * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -81,3 +85,4 @@ export const ElementIndexColorThemeProvider: ColorTheme.Provider<ElementIndexCol
     defaultValues: PD.getDefaultValues(ElementIndexColorThemeParams),
     isApplicable: (ctx: ThemeDataContext) => !!ctx.structure
 };
+loadCheckpoint(`mol-theme/color/element-index.ts::end`);

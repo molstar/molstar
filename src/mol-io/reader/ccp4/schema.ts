@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-io/reader/ccp4/schema.ts::start`);
 /**
  * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -118,3 +122,4 @@ export interface Ccp4File {
     header: Ccp4Header
     values: Float32Array | Int16Array | Int8Array | Uint16Array
 }
+loadCheckpoint(`mol-io/reader/ccp4/schema.ts::end`);

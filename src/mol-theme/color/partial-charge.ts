@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-theme/color/partial-charge.ts::start`);
 /**
  * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -65,3 +69,4 @@ export const PartialChargeColorThemeProvider: ColorTheme.Provider<PartialChargeC
     defaultValues: PD.getDefaultValues(PartialChargeColorThemeParams),
     isApplicable: (ctx: ThemeDataContext) => !!ctx.structure && ctx.structure.models.some(m => AtomPartialCharge.Provider.get(m) !== undefined)
 };
+loadCheckpoint(`mol-theme/color/partial-charge.ts::end`);

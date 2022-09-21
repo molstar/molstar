@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`extensions/alpha-orbitals/gpu/compute.ts::start`);
 /**
  * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -168,3 +172,4 @@ function createTextureData(grid: CubeGridInfo, orbital: AlphaOrbital): UnboxedVa
         tAlpha: { width: baseCount, height: 1, array: alpha },
     };
 }
+loadCheckpoint(`extensions/alpha-orbitals/gpu/compute.ts::end`);

@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../../mol-util/debug';
+loadCheckpoint(`extensions/rcsb/validation-report/color/density-fit.ts::start`);
 /**
  * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -80,3 +84,4 @@ export const DensityFitColorThemeProvider: ColorTheme.Provider<{}, ValidationRep
         detach: (data) => data.structure && ValidationReportProvider.ref(data.structure.models[0], false)
     }
 };
+loadCheckpoint(`extensions/rcsb/validation-report/color/density-fit.ts::end`);

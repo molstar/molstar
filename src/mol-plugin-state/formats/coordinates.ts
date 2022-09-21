@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-plugin-state/formats/coordinates.ts::start`);
 /**
  * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -84,3 +88,5 @@ export const BuiltInCoordinatesFormats = [
 ] as const;
 
 export type BuiltInCoordinatesFormat = (typeof BuiltInCoordinatesFormats)[number][0]
+
+loadCheckpoint(`mol-plugin-state/formats/coordinates.ts::end`);

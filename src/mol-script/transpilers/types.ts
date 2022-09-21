@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-script/transpilers/types.ts::start`);
 /**
  * Copyright (c) 2017-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -61,3 +65,5 @@ export interface Function {
 }
 
 export type FunctionDict = { [name: string]: Function }
+
+loadCheckpoint(`mol-script/transpilers/types.ts::end`);

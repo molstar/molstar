@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-gl/webgl/vertex-array.ts::start`);
 /**
  * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -81,3 +85,4 @@ export function createVertexArray(gl: GLRenderingContext, extensions: WebGLExten
         }
     };
 }
+loadCheckpoint(`mol-gl/webgl/vertex-array.ts::end`);

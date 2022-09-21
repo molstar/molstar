@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`extensions/geo-export/render-object-exporter.ts::start`);
 /**
  * Copyright (c) 2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -18,3 +22,4 @@ export interface RenderObjectExporter<D extends RenderObjectExportData> {
     getData(ctx: RuntimeContext): Promise<D>
     getBlob(ctx: RuntimeContext): Promise<Blob>
 }
+loadCheckpoint(`extensions/geo-export/render-object-exporter.ts::end`);

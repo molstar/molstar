@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-geo/util/marching-cubes/builder.ts::start`);
 /**
  * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -116,3 +120,4 @@ export function MarchinCubesLinesBuilder(vertexChunkSize: number, lines?: Lines)
         }
     };
 }
+loadCheckpoint(`mol-geo/util/marching-cubes/builder.ts::end`);

@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-plugin-state/transforms/helpers.ts::start`);
 /**
  * Copyright (c) 2019-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -45,3 +49,4 @@ export function getOrientationDataFromStructureSelections(s: ReadonlyArray<Plugi
 export function getPlaneDataFromStructureSelections(s: ReadonlyArray<PluginStateObject.Molecule.Structure.SelectionEntry>): PlaneData {
     return { locis: s.map(v => v.loci) };
 }
+loadCheckpoint(`mol-plugin-state/transforms/helpers.ts::end`);

@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-gl/shader/depth-merge.frag.ts::start`);
 export const depthMerge_frag = `
 precision highp float;
 precision highp sampler2D;
@@ -22,3 +26,4 @@ void main() {
     gl_FragColor = packDepthToRGBA(depth);
 }
 `;
+loadCheckpoint(`mol-gl/shader/depth-merge.frag.ts::end`);

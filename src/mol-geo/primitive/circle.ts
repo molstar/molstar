@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-geo/primitive/circle.ts::start`);
 /**
  * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -67,3 +71,4 @@ export function Circle(props?: CirclerProps): Primitive {
 
     return { vertices, normals, indices };
 }
+loadCheckpoint(`mol-geo/primitive/circle.ts::end`);

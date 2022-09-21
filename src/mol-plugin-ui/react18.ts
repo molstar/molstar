@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../mol-util/debug';
+loadCheckpoint(`mol-plugin-ui/react18.ts::start`);
 /**
  * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -20,3 +24,4 @@ export async function createPluginUI(target: HTMLElement, spec?: PluginUISpec, o
     createRoot(target).render(createElement(Plugin, { plugin: ctx }));
     return ctx;
 }
+loadCheckpoint(`mol-plugin-ui/react18.ts::end`);

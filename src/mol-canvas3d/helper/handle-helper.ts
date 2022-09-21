@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-canvas3d/helper/handle-helper.ts::start`);
 /**
  * Copyright (c) 2020-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -209,3 +213,4 @@ function createHandleRenderObject(props: HandleProps) {
     const shape = getHandleShape(props);
     return Shape.createRenderObject(shape, props);
 }
+loadCheckpoint(`mol-canvas3d/helper/handle-helper.ts::end`);

@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-plugin-ui/structure/components.tsx::start`);
 /**
  * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -395,3 +399,4 @@ class StructureRepresentationEntry extends PurePluginUIComponent<{ group: Struct
         </div>;
     }
 }
+loadCheckpoint(`mol-plugin-ui/structure/components.tsx::end`);

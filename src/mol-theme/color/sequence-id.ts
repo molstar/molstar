@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-theme/color/sequence-id.ts::start`);
 /**
  * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -119,3 +123,4 @@ export const SequenceIdColorThemeProvider: ColorTheme.Provider<SequenceIdColorTh
     defaultValues: PD.getDefaultValues(SequenceIdColorThemeParams),
     isApplicable: (ctx: ThemeDataContext) => !!ctx.structure
 };
+loadCheckpoint(`mol-theme/color/sequence-id.ts::end`);

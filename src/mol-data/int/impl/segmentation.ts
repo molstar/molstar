@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-data/int/impl/segmentation.ts::start`);
 /**
  * Copyright (c) 2017 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -108,3 +112,4 @@ export function segments(segs: Segmentation, set: OrderedSet, segment?: Segs.Seg
     const int = typeof segment !== 'undefined' ? Interval.ofBounds(segment.start, segment.end) : Interval.ofBounds(0, OrderedSet.size(set));
     return new SegmentIterator(segs.offsets, segs.index, set, int);
 }
+loadCheckpoint(`mol-data/int/impl/segmentation.ts::end`);

@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-plugin-state/builder/structure/hierarchy.ts::start`);
 /**
  * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -111,3 +115,4 @@ export class TrajectoryHierarchyBuilder {
         objectForEach(PresetTrajectoryHierarchy, r => this.registerPreset(r));
     }
 }
+loadCheckpoint(`mol-plugin-state/builder/structure/hierarchy.ts::end`);

@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-gl/shader/blend-back-dpoit.frag.ts::start`);
 /**
  * Copyright (c) 2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -18,3 +22,5 @@ export const blendBackDpoit_frag = `
         }
     }
 `;
+
+loadCheckpoint(`mol-gl/shader/blend-back-dpoit.frag.ts::end`);

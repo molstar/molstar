@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-plugin-state/manager/snapshots.ts::start`);
 /**
  * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -355,3 +359,4 @@ namespace PluginStateSnapshotManager {
         entries: Entry[]
     }
 }
+loadCheckpoint(`mol-plugin-state/manager/snapshots.ts::end`);

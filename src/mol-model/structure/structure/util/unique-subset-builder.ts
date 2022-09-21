@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../../mol-util/debug';
+loadCheckpoint(`mol-model/structure/structure/util/unique-subset-builder.ts::start`);
 /**
  * Copyright (c) 2017 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -101,3 +105,5 @@ export class StructureUniqueSubsetBuilder {
 
     }
 }
+
+loadCheckpoint(`mol-model/structure/structure/util/unique-subset-builder.ts::end`);

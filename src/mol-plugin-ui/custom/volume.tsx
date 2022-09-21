@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-plugin-ui/custom/volume.tsx::start`);
 /**
  * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -340,3 +344,4 @@ export class VolumeStreamingCustomControls extends PluginUIComponent<StateTransf
         </>;
     }
 }
+loadCheckpoint(`mol-plugin-ui/custom/volume.tsx::end`);

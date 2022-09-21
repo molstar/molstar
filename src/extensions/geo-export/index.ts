@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`extensions/geo-export/index.ts::start`);
 /**
  * Copyright (c) 2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -28,3 +32,4 @@ export const GeometryExport = PluginBehavior.create<{ }>({
     },
     params: () => ({ })
 });
+loadCheckpoint(`extensions/geo-export/index.ts::end`);

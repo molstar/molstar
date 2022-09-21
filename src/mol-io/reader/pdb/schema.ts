@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-io/reader/pdb/schema.ts::start`);
 /**
  * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -12,3 +16,4 @@ export interface PdbFile {
     id?: string,
     isPdbqt?: boolean,
 }
+loadCheckpoint(`mol-io/reader/pdb/schema.ts::end`);

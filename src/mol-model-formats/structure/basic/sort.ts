@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-model-formats/structure/basic/sort.ts::start`);
 /**
  * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -43,3 +47,4 @@ export async function sortAtomSite(ctx: RuntimeContext, atom_site: AtomSite, sta
         sourceIndex: Column.ofIntArray(indices)
     };
 }
+loadCheckpoint(`mol-model-formats/structure/basic/sort.ts::end`);

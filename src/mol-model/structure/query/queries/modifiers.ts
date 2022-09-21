@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../../mol-util/debug';
+loadCheckpoint(`mol-model/structure/query/queries/modifiers.ts::start`);
 /**
  * Copyright (c) 2017-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -691,3 +695,4 @@ class StructConnGraph {
 }
 
 // TODO: unionBy (skip this one?), cluster
+loadCheckpoint(`mol-model/structure/query/queries/modifiers.ts::end`);

@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-gl/webgl/shader.ts::start`);
 /**
  * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -62,3 +66,4 @@ export function createShader(gl: GLRenderingContext, props: ShaderProps): Shader
         }
     };
 }
+loadCheckpoint(`mol-gl/webgl/shader.ts::end`);

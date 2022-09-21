@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-gl/shader/evaluate-dpoit.frag.ts::start`);
 /**
  * Copyright (c) 2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -15,3 +19,5 @@ void main() {
     gl_FragColor = texture2D(tDpoitFrontColor, coords);
 }
 `;
+
+loadCheckpoint(`mol-gl/shader/evaluate-dpoit.frag.ts::end`);

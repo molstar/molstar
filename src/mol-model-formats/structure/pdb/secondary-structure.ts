@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-model-formats/structure/pdb/secondary-structure.ts::start`);
 /**
  * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -259,3 +263,4 @@ export function parseSheet(lines: Tokens, lineStart: number, lineEnd: number): C
     };
     return CifCategory.ofFields('struct_sheet_range', struct_sheet_range);
 }
+loadCheckpoint(`mol-model-formats/structure/pdb/secondary-structure.ts::end`);

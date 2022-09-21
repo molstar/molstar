@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-geo/geometry/mesh/mesh.ts::start`);
 /**
  * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -758,3 +762,5 @@ export namespace Mesh {
         state.writeDepth = state.opaque;
     }
 }
+
+loadCheckpoint(`mol-geo/geometry/mesh/mesh.ts::end`);

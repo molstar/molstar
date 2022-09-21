@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../mol-util/debug';
+loadCheckpoint(`mol-util/number-packing.ts::start`);
 /**
  * Copyright (c) 2019-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -38,3 +42,4 @@ export function unpackRGBAToDepth(r: number, g: number, b: number, a: number) {
     Vec4.set(tmpDepthRGBA, r / 255, g / 255, b / 255, a / 255);
     return Vec4.dot(tmpDepthRGBA, UnpackFactors);
 }
+loadCheckpoint(`mol-util/number-packing.ts::end`);

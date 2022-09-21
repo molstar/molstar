@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-plugin-state/builder/preset-provider.ts::start`);
 /**
  * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -15,3 +19,4 @@ export interface PresetProvider<O extends StateObject = StateObject, P = any, S 
     params?(a: O | undefined, plugin: PluginContext): PD.For<P>,
     apply(a: StateObjectRef<O>, params: P, plugin: PluginContext): Promise<S> | S
 }
+loadCheckpoint(`mol-plugin-state/builder/preset-provider.ts::end`);

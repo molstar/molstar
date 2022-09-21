@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-gl/webgl/framebuffer.ts::start`);
 /**
  * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -81,3 +85,4 @@ export function createNullFramebuffer(): Framebuffer {
         destroy: () => {}
     };
 }
+loadCheckpoint(`mol-gl/webgl/framebuffer.ts::end`);

@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../mol-util/debug';
+loadCheckpoint(`mol-util/reference-cache.ts::start`);
 /**
  * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -65,3 +69,4 @@ export function createReferenceCache<T, P>(hashFn: (props: P) => string, ctor: (
         },
     };
 }
+loadCheckpoint(`mol-util/reference-cache.ts::end`);

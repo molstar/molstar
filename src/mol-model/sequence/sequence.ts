@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-model/sequence/sequence.ts::start`);
 /**
  * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -198,3 +202,5 @@ namespace Sequence {
 }
 
 export { Sequence };
+
+loadCheckpoint(`mol-model/sequence/sequence.ts::end`);

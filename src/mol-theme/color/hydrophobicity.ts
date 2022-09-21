@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-theme/color/hydrophobicity.ts::start`);
 /**
  * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -101,3 +105,4 @@ export const HydrophobicityColorThemeProvider: ColorTheme.Provider<Hydrophobicit
     defaultValues: PD.getDefaultValues(HydrophobicityColorThemeParams),
     isApplicable: (ctx: ThemeDataContext) => !!ctx.structure
 };
+loadCheckpoint(`mol-theme/color/hydrophobicity.ts::end`);

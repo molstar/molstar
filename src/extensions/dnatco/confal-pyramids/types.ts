@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`extensions/dnatco/confal-pyramids/types.ts::start`);
 /**
  * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -63,3 +67,5 @@ export namespace ConfalPyramidsTypes {
         return !!x && x.kind === 'data-loci' && x.tag === DataTag;
     }
 }
+
+loadCheckpoint(`extensions/dnatco/confal-pyramids/types.ts::end`);

@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../mol-util/debug';
+loadCheckpoint(`mol-model/custom-property.ts::start`);
 /**
  * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -92,3 +96,4 @@ class CustomProperties {
         });
     }
 }
+loadCheckpoint(`mol-model/custom-property.ts::end`);

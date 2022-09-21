@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-math/geometry/primitives/sphere3d.ts::start`);
 /**
  * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -280,3 +284,4 @@ namespace Sphere3D {
 }
 
 export { Sphere3D };
+loadCheckpoint(`mol-math/geometry/primitives/sphere3d.ts::end`);

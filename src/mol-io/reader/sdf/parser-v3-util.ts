@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-io/reader/sdf/parser-v3-util.ts::start`);
 /**
  * Copyright (c) 2021-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -117,3 +121,5 @@ function addSingleValue(tokenizer: Tokenizer, tokens: Tokens) {
     Tokenizer.trim(tokenizer, valueStart, tokenizer.position);
     TokenBuilder.addUnchecked(tokens, tokenizer.tokenStart, tokenizer.tokenEnd);
 }
+
+loadCheckpoint(`mol-io/reader/sdf/parser-v3-util.ts::end`);

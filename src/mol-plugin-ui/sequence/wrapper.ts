@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-plugin-ui/sequence/wrapper.ts::start`);
 /**
  * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -39,3 +43,4 @@ abstract class SequenceWrapper<D> {
 namespace SequenceWrapper {
     export type Any = SequenceWrapper<any>
 }
+loadCheckpoint(`mol-plugin-ui/sequence/wrapper.ts::end`);

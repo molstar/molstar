@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-data/util/chunked-array.ts::start`);
 /**
  * Copyright (c) 2017 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -193,3 +197,4 @@ namespace ChunkedArray {
 }
 
 export { ChunkedArray };
+loadCheckpoint(`mol-data/util/chunked-array.ts::end`);

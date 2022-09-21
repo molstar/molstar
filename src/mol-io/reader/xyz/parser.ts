@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-io/reader/xyz/parser.ts::start`);
 /**
  * Copyright (c) 2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -69,3 +73,4 @@ export function parseXyz(data: string) {
         return parseInternal(data);
     });
 }
+loadCheckpoint(`mol-io/reader/xyz/parser.ts::end`);

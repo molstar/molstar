@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-gl/shader/chunks/wboit-write.glsl.ts::start`);
 /**
  * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -32,3 +36,4 @@ export const wboit_write = `
     }
 #endif
 `;
+loadCheckpoint(`mol-gl/shader/chunks/wboit-write.glsl.ts::end`);

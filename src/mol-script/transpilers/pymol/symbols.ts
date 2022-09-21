@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-script/transpilers/pymol/symbols.ts::start`);
 /**
  * Copyright (c) 2017-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -33,3 +37,5 @@ for (const name in keywords) {
 }
 
 export const all = { Properties, Operators: [...Operators, 'of'], Keywords };
+
+loadCheckpoint(`mol-script/transpilers/pymol/symbols.ts::end`);

@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-gl/shader/marking/overlay.frag.ts::start`);
 export const overlay_frag = `
 precision highp float;
 precision highp sampler2D;
@@ -21,3 +25,4 @@ void main() {
     }
 }
 `;
+loadCheckpoint(`mol-gl/shader/marking/overlay.frag.ts::end`);

@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-util/zip/bin.ts::start`);
 /**
  * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -105,3 +109,5 @@ export function sizeUTF8(str: string) {
     }
     return i;
 }
+
+loadCheckpoint(`mol-util/zip/bin.ts::end`);

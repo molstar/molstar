@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-repr/structure/params.ts::start`);
 /**
  * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -49,3 +53,4 @@ export type StructureDirectVolumeParams = typeof StructureDirectVolumeParams
 
 export const StructureTextureMeshParams = { ...TextureMesh.Params };
 export type StructureTextureMeshParams = typeof StructureTextureMeshParams
+loadCheckpoint(`mol-repr/structure/params.ts::end`);

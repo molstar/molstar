@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-io/common/ascii.ts::start`);
 /**
  * Copyright (c) 2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -9,3 +13,4 @@ export function asciiWrite(data: Uint8Array, str: string) {
         data[i] = str.charCodeAt(i);
     }
 }
+loadCheckpoint(`mol-io/common/ascii.ts::end`);

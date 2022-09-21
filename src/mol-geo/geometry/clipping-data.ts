@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-geo/geometry/clipping-data.ts::start`);
 /**
  * Copyright (c) 2020-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -61,3 +65,4 @@ export function createEmptyClipping(clippingData?: ClippingData): ClippingData {
         };
     }
 }
+loadCheckpoint(`mol-geo/geometry/clipping-data.ts::end`);

@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-io/common/msgpack/encode.ts::start`);
 /*
  * Copyright (c) 2017 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -290,3 +294,4 @@ function encodeInternal(value: any, view: DataView, bytes: Uint8Array, offset: n
     }
     throw new Error('Unknown type ' + type);
 }
+loadCheckpoint(`mol-io/common/msgpack/encode.ts::end`);

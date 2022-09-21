@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-math/linear-algebra/3d.ts::start`);
 /**
  * Copyright (c) 2017-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -32,3 +36,4 @@ export type Vec<T> =
         T extends 3 ? Vec3 :
             T extends 2 ? Vec2 :
                 number[]
+loadCheckpoint(`mol-math/linear-algebra/3d.ts::end`);

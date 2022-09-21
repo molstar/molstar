@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../../mol-util/debug';
+loadCheckpoint(`mol-model-formats/structure/property/bonds/index-pair.ts::start`);
 /**
  * Copyright (c) 2019-2022 Mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -92,3 +96,4 @@ export namespace IndexPairBonds {
         };
     }
 }
+loadCheckpoint(`mol-model-formats/structure/property/bonds/index-pair.ts::end`);

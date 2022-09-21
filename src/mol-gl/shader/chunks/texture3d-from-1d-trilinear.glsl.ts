@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-gl/shader/chunks/texture3d-from-1d-trilinear.glsl.ts::start`);
 /**
  * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -28,3 +32,4 @@ vec4 texture3dFrom1dTrilinear(const in sampler2D tex, const in vec3 pos, const i
     return mix(s0, s1, pd.z);
 }
 `;
+loadCheckpoint(`mol-gl/shader/chunks/texture3d-from-1d-trilinear.glsl.ts::end`);

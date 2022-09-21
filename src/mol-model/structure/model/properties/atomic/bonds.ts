@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../../../mol-util/debug';
+loadCheckpoint(`mol-model/structure/model/properties/atomic/bonds.ts::start`);
 /**
  * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -88,3 +92,4 @@ export function getInterBondOrderFromTable(compId1: string, atomId1: string, com
     }
     return InterBondOrderTable.get(`${compId1}|${atomId1}|${compId2}|${atomId2}`) || 1;
 }
+loadCheckpoint(`mol-model/structure/model/properties/atomic/bonds.ts::end`);

@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../mol-util/debug';
+loadCheckpoint(`mol-util/uuid.ts::start`);
 /**
  * Copyright (c) 2017 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -39,3 +43,4 @@ namespace UUID {
 }
 
 export { UUID };
+loadCheckpoint(`mol-util/uuid.ts::end`);

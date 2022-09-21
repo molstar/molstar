@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../../../mol-util/debug';
+loadCheckpoint(`mol-plugin/behavior/dynamic/custom-props/computed/interactions.ts::start`);
 /**
  * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -118,3 +122,4 @@ export const Interactions = PluginBehavior.create<{ autoAttach: boolean, showToo
         showTooltip: PD.Boolean(true)
     })
 });
+loadCheckpoint(`mol-plugin/behavior/dynamic/custom-props/computed/interactions.ts::end`);

@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-repr/structure/visual/carbohydrate-terminal-link-cylinder.ts::start`);
 /**
  * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -157,3 +161,4 @@ function eachTerminalLink(loci: Loci, structure: Structure, apply: (interval: In
     }
     return changed;
 }
+loadCheckpoint(`mol-repr/structure/visual/carbohydrate-terminal-link-cylinder.ts::end`);

@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-theme/color/operator-name.ts::start`);
 /**
  * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -82,3 +86,4 @@ export const OperatorNameColorThemeProvider: ColorTheme.Provider<OperatorNameCol
     defaultValues: PD.getDefaultValues(OperatorNameColorThemeParams),
     isApplicable: (ctx: ThemeDataContext) => !!ctx.structure
 };
+loadCheckpoint(`mol-theme/color/operator-name.ts::end`);

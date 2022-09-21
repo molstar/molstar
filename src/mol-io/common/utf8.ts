@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-io/common/utf8.ts::start`);
 /**
  * Copyright (c) 2017-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -130,3 +134,4 @@ export function utf8ByteCount(str: string) {
     }
     return count;
 }
+loadCheckpoint(`mol-io/common/utf8.ts::end`);

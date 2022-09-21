@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-model-formats/structure/psf.ts::start`);
 /**
  * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -139,3 +143,4 @@ export function topologyFromPsf(psf: PsfFile): Task<Topology> {
         return Topology.create(psf.id, basic, bonds, format);
     });
 }
+loadCheckpoint(`mol-model-formats/structure/psf.ts::end`);

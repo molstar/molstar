@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-gl/shader/cylinders.vert.ts::start`);
 /**
  * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -72,3 +76,4 @@ void main() {
     #include clip_instance
 }
 `;
+loadCheckpoint(`mol-gl/shader/cylinders.vert.ts::end`);

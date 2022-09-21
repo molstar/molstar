@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-theme/color/shape-group.ts::start`);
 /**
  * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -44,3 +48,4 @@ export const ShapeGroupColorThemeProvider: ColorTheme.Provider<ShapeGroupColorTh
     defaultValues: PD.getDefaultValues(ShapeGroupColorThemeParams),
     isApplicable: (ctx: ThemeDataContext) => !!ctx.shape
 };
+loadCheckpoint(`mol-theme/color/shape-group.ts::end`);

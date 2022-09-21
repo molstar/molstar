@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../../../mol-util/debug';
+loadCheckpoint(`mol-model/structure/structure/unit/bonds/common.ts::start`);
 /**
  * Copyright (c) 2017-2022 Mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -123,3 +127,4 @@ const H_ID = __ElementIndex['H']!;
 export function isHydrogen(i: number) {
     return i === H_ID;
 }
+loadCheckpoint(`mol-model/structure/structure/unit/bonds/common.ts::end`);

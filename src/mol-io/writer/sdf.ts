@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-io/writer/sdf.ts::start`);
 /**
  * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -21,3 +25,4 @@ export namespace SdfWriter {
         return new MolEncoder(encoderName, metaInformation, hydrogens, '$$$$');
     }
 }
+loadCheckpoint(`mol-io/writer/sdf.ts::end`);

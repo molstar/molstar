@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-repr/structure/visual/molecular-surface-mesh.ts::start`);
 /**
  * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -105,3 +109,4 @@ export function MolecularSurfaceMeshVisual(materialId: number): UnitsVisual<Mole
         }
     }, materialId);
 }
+loadCheckpoint(`mol-repr/structure/visual/molecular-surface-mesh.ts::end`);

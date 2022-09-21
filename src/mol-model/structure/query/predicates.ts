@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-model/structure/query/predicates.ts::start`);
 /**
  * Copyright (c) 2017 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -100,3 +104,4 @@ namespace Predicates {
 }
 
 export { Predicates };
+loadCheckpoint(`mol-model/structure/query/predicates.ts::end`);

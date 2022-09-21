@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-geo/geometry/text/text.ts::start`);
 /**
  * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -332,3 +336,4 @@ function getPadding(mappings: Float32Array, depths: Float32Array, charCount: num
     return Math.max(maxDepth, maxSize + maxSize * maxOffset);
     // return maxSize + maxSize * maxOffset + maxDepth
 }
+loadCheckpoint(`mol-geo/geometry/text/text.ts::end`);

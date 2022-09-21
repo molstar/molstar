@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-plugin/behavior/dynamic/custom-props.ts::start`);
 /**
  * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -14,3 +18,4 @@ export { ValenceModel } from './custom-props/computed/valence-model';
 export { SIFTSMapping as BestDatabaseSequenceMapping } from './custom-props/sequence/sifts-mapping';
 
 export { CrossLinkRestraint } from './custom-props/integrative/cross-link-restraint';
+loadCheckpoint(`mol-plugin/behavior/dynamic/custom-props.ts::end`);

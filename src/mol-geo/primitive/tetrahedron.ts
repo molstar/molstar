@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-geo/primitive/tetrahedron.ts::start`);
 /**
  * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -30,3 +34,4 @@ const tetrahedronCage = createCage(tetrahedronVertices, tetrahedronEdges);
 export function TetrahedronCage(): Cage {
     return tetrahedronCage;
 }
+loadCheckpoint(`mol-geo/primitive/tetrahedron.ts::end`);

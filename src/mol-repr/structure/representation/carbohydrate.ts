@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-repr/structure/representation/carbohydrate.ts::start`);
 /**
  * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -51,3 +55,4 @@ export const CarbohydrateRepresentationProvider = StructureRepresentationProvide
         return structure.models.some(m => Model.hasCarbohydrate(m));
     }
 });
+loadCheckpoint(`mol-repr/structure/representation/carbohydrate.ts::end`);

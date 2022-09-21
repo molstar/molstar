@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-gl/shader/direct-volume.vert.ts::start`);
 /**
  * Copyright (c) 2017-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -47,3 +51,4 @@ void main() {
     gl_Position.z = gl_Position.w - 0.01;
 }
 `;
+loadCheckpoint(`mol-gl/shader/direct-volume.vert.ts::end`);

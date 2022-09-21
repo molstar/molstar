@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../mol-util/debug';
+loadCheckpoint(`mol-plugin-ui/base.tsx::start`);
 /**
  * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -123,3 +127,4 @@ export abstract class CollapsableControls<P = {}, S = {}, SS = {}> extends Plugi
         this.state = state;
     }
 }
+loadCheckpoint(`mol-plugin-ui/base.tsx::end`);

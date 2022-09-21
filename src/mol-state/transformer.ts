@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../mol-util/debug';
+loadCheckpoint(`mol-state/transformer.ts::start`);
 /**
  * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -252,3 +256,4 @@ namespace Transformer {
         update() { return UpdateResult.Unchanged; }
     });
 }
+loadCheckpoint(`mol-state/transformer.ts::end`);

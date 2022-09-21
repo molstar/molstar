@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-geo/primitive/pyramid.ts::start`);
 /**
  * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -127,3 +131,4 @@ export function OctagonalPyramidCage() {
     if (!octagonalPyramidCage) octagonalPyramidCage = PyramidCage(polygon(8, true));
     return octagonalPyramidCage;
 }
+loadCheckpoint(`mol-geo/primitive/pyramid.ts::end`);

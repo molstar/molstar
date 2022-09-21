@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-math/geometry/spacegroup/cell.ts::start`);
 /**
  * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -42,3 +46,4 @@ namespace Cell {
         }
     }
 }
+loadCheckpoint(`mol-math/geometry/spacegroup/cell.ts::end`);

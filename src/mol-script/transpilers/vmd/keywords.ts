@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-script/transpilers/vmd/keywords.ts::start`);
 /**
  * Copyright (c) 2017-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -301,3 +305,5 @@ export const keywords: KeywordDict = {
         })
     }
 };
+
+loadCheckpoint(`mol-script/transpilers/vmd/keywords.ts::end`);

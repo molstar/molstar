@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-model-formats/structure/mmcif.ts::start`);
 /**
  * Copyright (c) 2017-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -104,3 +108,4 @@ export function trajectoryFromMmCIF(frame: CifFrame): Task<Trajectory> {
     const basic = createBasic(format.data.db, true);
     return Task.create('Create mmCIF Model', ctx => createModels(basic, format, ctx));
 }
+loadCheckpoint(`mol-model-formats/structure/mmcif.ts::end`);

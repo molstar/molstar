@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-script/transpilers/pymol/markdown-docs.ts::start`);
 /**
  * Copyright (c) 2017-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -61,3 +65,4 @@ for (const name in keywords) {
 }
 
 export const docs = _docs.join('\n');
+loadCheckpoint(`mol-script/transpilers/pymol/markdown-docs.ts::end`);

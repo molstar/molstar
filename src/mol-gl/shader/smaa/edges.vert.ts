@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-gl/shader/smaa/edges.vert.ts::start`);
 /**
  * Slightly adapted from https://github.com/mrdoob/three.js
  * MIT License Copyright (c) 2010-2020 three.js authors
@@ -34,3 +38,4 @@ void main() {
     gl_Position = vec4(position, 0.0, 1.0);
 }
 `;
+loadCheckpoint(`mol-gl/shader/smaa/edges.vert.ts::end`);

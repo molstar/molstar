@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-data/int/segmentation.ts::start`);
 /**
  * Copyright (c) 2017 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -34,3 +38,4 @@ interface Segmentation<T extends number = number, I extends number = number> {
 }
 
 export { Segmentation };
+loadCheckpoint(`mol-data/int/segmentation.ts::end`);

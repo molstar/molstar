@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-repr/structure/visual/polymer-tube-mesh.ts::start`);
 /**
  * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -130,3 +134,4 @@ export function PolymerTubeVisual(materialId: number): UnitsVisual<PolymerTubePa
         }
     }, materialId);
 }
+loadCheckpoint(`mol-repr/structure/visual/polymer-tube-mesh.ts::end`);

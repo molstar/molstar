@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-plugin-state/animation/built-in/state-snapshots.ts::start`);
 /**
  * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -82,3 +86,4 @@ export const AnimateStateSnapshots = PluginStateAnimation.create({
         return { kind: 'next', state: { ...animState, currentIndex: i } };
     }
 });
+loadCheckpoint(`mol-plugin-state/animation/built-in/state-snapshots.ts::end`);

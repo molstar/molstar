@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-script/language/parser.ts::start`);
 /**
  * Copyright (c) 2018 Mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -178,3 +182,4 @@ namespace Language {
         return ret;
     }
 }
+loadCheckpoint(`mol-script/language/parser.ts::end`);

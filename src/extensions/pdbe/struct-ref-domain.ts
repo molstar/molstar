@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`extensions/pdbe/struct-ref-domain.ts::start`);
 /**
  * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -119,3 +123,4 @@ function fromPDBeJson(modelData: Model, data: any): PDBeStructRefDomain.Property
 
     return Table.ofRows(PDBeStructRefDomain.Schema.pdbe_struct_ref_domain, rows) as PDBeStructRefDomain.Property['data'];
 }
+loadCheckpoint(`extensions/pdbe/struct-ref-domain.ts::end`);

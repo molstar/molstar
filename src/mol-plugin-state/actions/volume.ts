@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-plugin-state/actions/volume.ts::start`);
 /**
  * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -156,3 +160,4 @@ export const AssignColorVolume = StateAction.build({
 })(({ ref, params, state }, plugin: PluginContext) => {
     return plugin.build().to(ref).apply(StateTransforms.Volume.AssignColorVolume, { ref: params.ref }, { dependsOn: [params.ref] }).commit();
 });
+loadCheckpoint(`mol-plugin-state/actions/volume.ts::end`);

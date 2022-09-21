@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-geo/geometry/points/points.ts::start`);
 /**
  * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -245,3 +249,4 @@ export namespace Points {
         state.writeDepth = state.opaque;
     }
 }
+loadCheckpoint(`mol-geo/geometry/points/points.ts::end`);

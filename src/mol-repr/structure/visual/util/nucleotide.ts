@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../../mol-util/debug';
+loadCheckpoint(`mol-repr/structure/visual/util/nucleotide.ts::start`);
 /**
  * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -69,3 +73,4 @@ export function eachNucleotideElement(loci: Loci, structureGroup: StructureGroup
     }
     return changed;
 }
+loadCheckpoint(`mol-repr/structure/visual/util/nucleotide.ts::end`);

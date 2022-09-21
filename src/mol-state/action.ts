@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../mol-util/debug';
+loadCheckpoint(`mol-state/action.ts::start`);
 /**
  * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -126,3 +130,4 @@ namespace StateAction {
 
     export const build = Builder.build;
 }
+loadCheckpoint(`mol-state/action.ts::end`);

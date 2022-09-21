@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-io/reader/nctraj/parser.ts::start`);
 /**
  * Copyright (c) 2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -87,3 +91,4 @@ export function parseNctraj(data: Uint8Array) {
         }
     });
 }
+loadCheckpoint(`mol-io/reader/nctraj/parser.ts::end`);

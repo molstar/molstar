@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`extensions/cellpack/representation.ts::start`);
 /**
  * Copyright (c) 2019-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -68,3 +72,4 @@ export type MBRepresentation = Representation<MembraneSphereData, MBParams>
 export function MBRepresentation(ctx: RepresentationContext, getParams: RepresentationParamsGetter<MembraneSphereData, MBParams>): MBRepresentation {
     return Representation.createMulti('MB', ctx, getParams, Representation.StateBuilder, MembraneSphereVisuals as unknown as Representation.Def<MembraneSphereData, MBParams>);
 }
+loadCheckpoint(`extensions/cellpack/representation.ts::end`);

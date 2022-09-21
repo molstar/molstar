@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-plugin-ui/sequence/hetero.ts::start`);
 /**
  * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -99,3 +103,4 @@ export class HeteroSequenceWrapper extends SequenceWrapper<StructureUnit> {
         this.seqToUnit = seqToUnit;
     }
 }
+loadCheckpoint(`mol-plugin-ui/sequence/hetero.ts::end`);

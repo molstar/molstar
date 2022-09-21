@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-script/script/mol-script/script-macro.ts::start`);
 /**
  * Copyright (c) 2018-2019 Mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -37,3 +41,4 @@ export function aggregate(property: any, fn: any, initial?: any) {
         value: fn([B.struct.slot.elementSetReduce(), property])
     });
 }
+loadCheckpoint(`mol-script/script/mol-script/script-macro.ts::end`);

@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-canvas3d/passes/passes.ts::start`);
 /**
  * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -29,3 +33,4 @@ export class Passes {
         this.multiSample.syncSize();
     }
 }
+loadCheckpoint(`mol-canvas3d/passes/passes.ts::end`);

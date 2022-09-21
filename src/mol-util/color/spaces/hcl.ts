@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-util/color/spaces/hcl.ts::start`);
 /**
  * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -105,3 +109,4 @@ namespace Hcl {
     // Corresponds roughly to RGB brighter/darker
     const Kn = 18;
 }
+loadCheckpoint(`mol-util/color/spaces/hcl.ts::end`);

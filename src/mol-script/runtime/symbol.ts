@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-script/runtime/symbol.ts::start`);
 // /**
 //  * Copyright (c) 2018 Mol* contributors, licensed under MIT, See LICENSE file for more info.
 //  *
@@ -30,3 +34,4 @@
 // }
 
 // export { SymbolRuntime }
+loadCheckpoint(`mol-script/runtime/symbol.ts::end`);

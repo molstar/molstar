@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`extensions/cellpack/property.ts::start`);
 /**
  * Copyright (c) 2019-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -35,3 +39,5 @@ export const CellPackInfoProvider: CustomStructureProperty.Provider<typeof CellP
         };
     }
 });
+
+loadCheckpoint(`extensions/cellpack/property.ts::end`);

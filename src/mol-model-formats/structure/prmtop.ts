@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-model-formats/structure/prmtop.ts::start`);
 /**
  * Copyright (c) 2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -172,3 +176,4 @@ export function topologyFromPrmtop(prmtop: PrmtopFile): Task<Topology> {
         return Topology.create(prmtop.title.join(' ') || 'PRMTOP', basic, bonds, format);
     });
 }
+loadCheckpoint(`mol-model-formats/structure/prmtop.ts::end`);

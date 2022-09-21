@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../../mol-util/debug';
+loadCheckpoint(`extensions/rcsb/validation-report/color/random-coil-index.ts::start`);
 /**
  * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -71,3 +75,4 @@ export const RandomCoilIndexColorThemeProvider: ColorTheme.Provider<{}, Validati
         detach: (data) => data.structure && ValidationReportProvider.ref(data.structure.models[0], false)
     }
 };
+loadCheckpoint(`extensions/rcsb/validation-report/color/random-coil-index.ts::end`);

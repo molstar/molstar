@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-plugin-ui/state/apply-action.tsx::start`);
 /**
  * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -75,3 +79,4 @@ class ApplyActionControl extends TransformControlBase<ApplyActionControl.Props, 
         return newState;
     }
 }
+loadCheckpoint(`mol-plugin-ui/state/apply-action.tsx::end`);

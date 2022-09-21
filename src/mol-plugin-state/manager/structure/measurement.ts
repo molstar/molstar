@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-plugin-state/manager/structure/measurement.ts::start`);
 /**
  * Copyright (c) 2019-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -360,3 +364,4 @@ class StructureMeasurementManager extends StatefulPluginComponent<StructureMeasu
         });
     }
 }
+loadCheckpoint(`mol-plugin-state/manager/structure/measurement.ts::end`);

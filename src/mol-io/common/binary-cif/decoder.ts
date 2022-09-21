@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-io/common/binary-cif/decoder.ts::start`);
 /**
  * Copyright (c) 2017 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -191,3 +195,4 @@ function stringArray(data: Uint8Array, encoding: Encoding.StringArray) {
     }
     return result;
 }
+loadCheckpoint(`mol-io/common/binary-cif/decoder.ts::end`);

@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-data/int/sorted-array.ts::start`);
 /**
  * Copyright (c) 2017-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -56,3 +60,4 @@ namespace SortedArray {
 interface SortedArray<T extends number = number> extends ArrayLike<T> { '@type': 'int-sorted-array' }
 
 export { SortedArray };
+loadCheckpoint(`mol-data/int/sorted-array.ts::end`);

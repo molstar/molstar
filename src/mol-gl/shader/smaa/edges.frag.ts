@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-gl/shader/smaa/edges.frag.ts::start`);
 /**
  * Slightly adapted from https://github.com/mrdoob/three.js
  * MIT License Copyright (c) 2010-2020 three.js authors
@@ -74,3 +78,4 @@ void main() {
     gl_FragColor = SMAAColorEdgeDetectionPS(vUv, vOffset, tColor);
 }
 `;
+loadCheckpoint(`mol-gl/shader/smaa/edges.frag.ts::end`);

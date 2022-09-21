@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-model-formats/structure/basic/properties.ts::start`);
 /**
  * Copyright (c) 2017-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -136,3 +140,4 @@ export function getStructAsymMap(atomic: AtomicHierarchy, data?: BasicData): Mod
 
     return map;
 }
+loadCheckpoint(`mol-model-formats/structure/basic/properties.ts::end`);

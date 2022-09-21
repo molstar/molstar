@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../../mol-util/debug';
+loadCheckpoint(`mol-model/structure/structure/util/superposition.ts::start`);
 /**
  * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -93,3 +97,4 @@ function getMinSize(xs: StructureElement.Loci[]) {
     }
     return s;
 }
+loadCheckpoint(`mol-model/structure/structure/util/superposition.ts::end`);

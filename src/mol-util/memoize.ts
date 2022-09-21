@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../mol-util/debug';
+loadCheckpoint(`mol-util/memoize.ts::start`);
 /**
  * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -34,3 +38,4 @@ export function memoize1<A, T>(f: (a: A) => T): (a: A) => T {
         return v;
     };
 }
+loadCheckpoint(`mol-util/memoize.ts::end`);

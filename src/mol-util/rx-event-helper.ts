@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../mol-util/debug';
+loadCheckpoint(`mol-util/rx-event-helper.ts::start`);
 /**
  * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -46,3 +50,4 @@ class _RxEventHelper {
         this._disposed = true;
     }
 }
+loadCheckpoint(`mol-util/rx-event-helper.ts::end`);

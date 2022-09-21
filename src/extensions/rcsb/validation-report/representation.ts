@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`extensions/rcsb/validation-report/representation.ts::start`);
 /**
  * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -317,3 +321,4 @@ export const ClashesRepresentationProvider = StructureRepresentationProvider({
         detach: (data) => ClashesProvider.ref(data, false)
     }
 });
+loadCheckpoint(`extensions/rcsb/validation-report/representation.ts::end`);

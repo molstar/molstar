@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../../mol-util/debug';
+loadCheckpoint(`mol-model/structure/structure/util/superposition-sifts-mapping.ts::start`);
 /**
  * Copyright (c) 2021-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -202,3 +206,4 @@ function buildIndex(structure: Structure, index: Map<string, IndexEntry>, sI: nu
         }
     }
 }
+loadCheckpoint(`mol-model/structure/structure/util/superposition-sifts-mapping.ts::end`);

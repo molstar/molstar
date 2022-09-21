@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-io/reader/csv/field.ts::start`);
 /**
  * Copyright (c) 2017 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -7,3 +11,4 @@
 import { CifField } from '../cif/data-model';
 
 export const Field = CifField.ofTokens;
+loadCheckpoint(`mol-io/reader/csv/field.ts::end`);

@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../../mol-util/debug';
+loadCheckpoint(`mol-model/structure/query/utils/structure-set.ts::start`);
 /**
  * Copyright (c) 2017 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -127,3 +131,4 @@ export function structureSubtract(a: Structure, b: Structure): Structure {
 
     return Structure.create(units, { parent: a.parent || b.parent });
 }
+loadCheckpoint(`mol-model/structure/query/utils/structure-set.ts::end`);

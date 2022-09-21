@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../../mol-util/debug';
+loadCheckpoint(`mol-plugin/behavior/dynamic/volume-streaming/util.ts::start`);
 /**
  * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -128,3 +132,4 @@ export async function getEmdbIds(plugin: PluginContext, taskCtx: RuntimeContext,
 
     return emdbIds;
 }
+loadCheckpoint(`mol-plugin/behavior/dynamic/volume-streaming/util.ts::end`);

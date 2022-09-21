@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`extensions/dnatco/confal-pyramids/property.ts::start`);
 /**
  * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -187,3 +191,5 @@ function getSummaryData(id: number, i: number, stepsSummary: StepsSummaryTable) 
     }
     throw new Error('Inconsistent mmCIF data');
 }
+
+loadCheckpoint(`extensions/dnatco/confal-pyramids/property.ts::end`);

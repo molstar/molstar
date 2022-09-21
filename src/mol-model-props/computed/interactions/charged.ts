@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-model-props/computed/interactions/charged.ts::start`);
 /**
  * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -378,3 +382,4 @@ export const CationPiProvider: ContactProvider<CationPiParams> = {
         };
     }
 };
+loadCheckpoint(`mol-model-props/computed/interactions/charged.ts::end`);

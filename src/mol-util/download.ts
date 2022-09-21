@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../mol-util/debug';
+loadCheckpoint(`mol-util/download.ts::start`);
 /**
  * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -67,3 +71,4 @@ export function download(data: Blob | string, downloadName = 'download') {
         }
     }
 }
+loadCheckpoint(`mol-util/download.ts::end`);

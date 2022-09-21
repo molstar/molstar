@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../mol-util/debug';
+loadCheckpoint(`mol-plugin/spec.ts::start`);
 /**
  * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -139,3 +143,4 @@ export const DefaultPluginSpec = (): PluginSpec => ({
         AnimateStateInterpolation
     ]
 });
+loadCheckpoint(`mol-plugin/spec.ts::end`);

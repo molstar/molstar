@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-io/reader/cif/data-model.ts::start`);
 /**
  * Copyright (c) 2017-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -343,3 +347,4 @@ export function getCifFieldType(field: CifField): Column.Schema.Int | Column.Sch
     if (floatCount > 0) return Column.Schema.float;
     return Column.Schema.int;
 }
+loadCheckpoint(`mol-io/reader/cif/data-model.ts::end`);

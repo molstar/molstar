@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../../mol-util/debug';
+loadCheckpoint(`mol-io/reader/cif/schema/ccd-extras.ts::start`);
 /**
  * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -14,3 +18,4 @@ export const ccd_chemCompAtom_schema = {
     charge: CCD_Schema.chem_comp_atom.charge,
     pdbx_stereo_config: CCD_Schema.chem_comp_atom.pdbx_stereo_config
 };
+loadCheckpoint(`mol-io/reader/cif/schema/ccd-extras.ts::end`);

@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-repr/structure/representation/cartoon.ts::start`);
 /**
  * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -84,3 +88,4 @@ export const CartoonRepresentationProvider = StructureRepresentationProvider({
         }
     }
 });
+loadCheckpoint(`mol-repr/structure/representation/cartoon.ts::end`);

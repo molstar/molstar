@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../../mol-util/debug';
+loadCheckpoint(`mol-model/structure/model/properties/sequence.ts::start`);
 /**
  * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -138,3 +142,4 @@ namespace StructureSequence {
 }
 
 export { StructureSequence };
+loadCheckpoint(`mol-model/structure/model/properties/sequence.ts::end`);

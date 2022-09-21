@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../mol-util/debug';
+loadCheckpoint(`mol-gl/render-object.ts::start`);
 /**
  * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -63,3 +67,5 @@ export function createRenderable<T extends RenderObjectType>(ctx: WebGLContext, 
     }
     throw new Error('unsupported type');
 }
+
+loadCheckpoint(`mol-gl/render-object.ts::end`);

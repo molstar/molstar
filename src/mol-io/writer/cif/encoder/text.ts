@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../../mol-util/debug';
+loadCheckpoint(`mol-io/writer/cif/encoder/text.ts::start`);
 /**
  * Copyright (c) 2017-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -275,3 +279,5 @@ function writeMultiline(builder: StringBuilder, val: string) {
     StringBuilder.writeSafe(builder, '\n;' + val);
     StringBuilder.writeSafe(builder, '\n;\n');
 }
+
+loadCheckpoint(`mol-io/writer/cif/encoder/text.ts::end`);

@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-model/structure/structure.ts::start`);
 /**
  * Copyright (c) 2017-2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -14,3 +18,4 @@ import { StructureProperties } from './structure/properties';
 export { StructureElement, Bond, Structure, Unit, StructureSymmetry, StructureProperties };
 export * from './structure/unit/rings';
 export * from './export/mmcif';
+loadCheckpoint(`mol-model/structure/structure.ts::end`);

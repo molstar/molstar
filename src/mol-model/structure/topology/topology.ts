@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-model/structure/topology/topology.ts::start`);
 /**
  * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -59,3 +63,4 @@ namespace Topology {
         };
     }
 }
+loadCheckpoint(`mol-model/structure/topology/topology.ts::end`);

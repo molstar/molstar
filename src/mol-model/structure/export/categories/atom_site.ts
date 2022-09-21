@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../../mol-util/debug';
+loadCheckpoint(`mol-model/structure/export/categories/atom_site.ts::start`);
 /**
  * Copyright (c) 2017-2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -258,3 +262,4 @@ export function atomIdFields<K, D>(getLocation: (key: K, data: D) => StructureEl
     addModelNum(ret, getLocation, options);
     return ret.getFields();
 }
+loadCheckpoint(`mol-model/structure/export/categories/atom_site.ts::end`);

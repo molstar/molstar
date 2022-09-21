@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-math/geometry/lookup3d/common.ts::start`);
 /**
  * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -46,3 +50,4 @@ export interface Lookup3D<T = number> {
     /** transient result */
     readonly result: Result<T>
 }
+loadCheckpoint(`mol-math/geometry/lookup3d/common.ts::end`);

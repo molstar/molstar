@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-gl/shader/histogram-pyramid/reduction.frag.ts::start`);
 export const reduction_frag = `
 precision highp float;
 precision highp int;
@@ -57,3 +61,4 @@ void main(void) {
     #endif
 }
 `;
+loadCheckpoint(`mol-gl/shader/histogram-pyramid/reduction.frag.ts::end`);

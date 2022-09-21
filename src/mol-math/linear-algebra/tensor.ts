@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-math/linear-algebra/tensor.ts::start`);
 import { Mat3 } from './3d/mat3';
 /**
  * Copyright (c) 2017-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
@@ -314,3 +318,4 @@ export namespace Tensor {
         return (xs: number[]) => reorder(xs, indices);
     }
 }
+loadCheckpoint(`mol-math/linear-algebra/tensor.ts::end`);

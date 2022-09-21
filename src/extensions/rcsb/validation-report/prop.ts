@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`extensions/rcsb/validation-report/prop.ts::start`);
 /**
  * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -572,3 +576,4 @@ function parseValidationReportXml(xml: XMLDocument, model: Model): ValidationRep
 
     return validationReport;
 }
+loadCheckpoint(`extensions/rcsb/validation-report/prop.ts::end`);

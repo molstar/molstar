@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`extensions/pdbe/index.ts::start`);
 /**
  * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -7,3 +11,4 @@
 export { PDBeStructureQualityReport } from './structure-quality-report/behavior';
 export { PDBePreferredAssembly } from './preferred-assembly';
 export { PDBeStructRefDomain } from './struct-ref-domain';
+loadCheckpoint(`extensions/pdbe/index.ts::end`);

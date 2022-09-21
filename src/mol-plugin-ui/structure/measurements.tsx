@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-plugin-ui/structure/measurements.tsx::start`);
 /**
  * Copyright (c) 2020-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -371,3 +375,4 @@ class MeasurementEntry extends PurePluginUIComponent<{ cell: StructureMeasuremen
         </>;
     }
 }
+loadCheckpoint(`mol-plugin-ui/structure/measurements.tsx::end`);

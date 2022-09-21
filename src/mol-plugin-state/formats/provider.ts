@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-plugin-state/formats/provider.ts::start`);
 /**
  * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -39,3 +43,4 @@ export function guessCifVariant(info: FileInfo, data: Uint8Array | string): cifV
     }
     return -1;
 }
+loadCheckpoint(`mol-plugin-state/formats/provider.ts::end`);

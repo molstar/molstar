@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-plugin-ui/state/update-transform.tsx::start`);
 /**
  * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -118,3 +122,4 @@ class TransformUpdaterControl extends PluginUIComponent<{ nodeRef: string, initi
         return <UpdateTransformControl state={state} transform={transform} initiallyCollapsed={this.props.initiallyCollapsed} customHeader={this.props.header} />;
     }
 }
+loadCheckpoint(`mol-plugin-ui/state/update-transform.tsx::end`);

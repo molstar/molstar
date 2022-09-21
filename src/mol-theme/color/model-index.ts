@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-theme/color/model-index.ts::start`);
 /**
  * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -73,3 +77,4 @@ export const ModelIndexColorThemeProvider: ColorTheme.Provider<ModelIndexColorTh
     defaultValues: PD.getDefaultValues(ModelIndexColorThemeParams),
     isApplicable: (ctx: ThemeDataContext) => !!ctx.structure && ctx.structure.elementCount > 0 && Model.TrajectoryInfo.get(ctx.structure.models[0]).size > 1
 };
+loadCheckpoint(`mol-theme/color/model-index.ts::end`);

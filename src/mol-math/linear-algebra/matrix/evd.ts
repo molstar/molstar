@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-math/linear-algebra/matrix/evd.ts::start`);
 /**
  * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -308,3 +312,4 @@ function hypotenuse(a: number, b: number) {
 
     return 0.0;
 }
+loadCheckpoint(`mol-math/linear-algebra/matrix/evd.ts::end`);

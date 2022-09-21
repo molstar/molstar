@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-model/shape/provider.ts::start`);
 /**
  * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -14,3 +18,4 @@ export interface ShapeProvider<D, G extends Geometry, P extends Geometry.Params<
     getShape: ShapeGetter<D, G, P>
     geometryUtils: GeometryUtils<G>
 }
+loadCheckpoint(`mol-model/shape/provider.ts::end`);

@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../../mol-util/debug';
+loadCheckpoint(`mol-io/reader/cif/text/parser.ts::start`);
 /**
  * Copyright (c) 2017-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -789,3 +793,4 @@ export function parseCifText(data: string) {
         return await parseInternal(data, ctx);
     });
 }
+loadCheckpoint(`mol-io/reader/cif/text/parser.ts::end`);

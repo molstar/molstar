@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-plugin-ui/sequence/chain.ts::start`);
 /**
  * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -87,3 +91,4 @@ export class ChainSequenceWrapper extends SequenceWrapper<StructureUnit> {
         this.loci = StructureElement.Loci(this.data.structure, lociElements);
     }
 }
+loadCheckpoint(`mol-plugin-ui/sequence/chain.ts::end`);

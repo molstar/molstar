@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../mol-util/debug';
+loadCheckpoint(`mol-plugin-state/transforms.ts::start`);
 /**
  * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -21,3 +25,4 @@ export const StateTransforms = {
 };
 
 export type StateTransforms = typeof StateTransforms
+loadCheckpoint(`mol-plugin-state/transforms.ts::end`);

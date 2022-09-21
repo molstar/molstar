@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-state/tree/immutable.ts::start`);
 /**
  * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -230,3 +234,4 @@ namespace StateTree {
         return ref;
     }
 }
+loadCheckpoint(`mol-state/tree/immutable.ts::end`);

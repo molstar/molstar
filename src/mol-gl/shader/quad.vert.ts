@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-gl/shader/quad.vert.ts::start`);
 /**
  * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -15,3 +19,4 @@ void main(void) {
     gl_Position = vec4(position, 0.0, 1.0);
 }
 `;
+loadCheckpoint(`mol-gl/shader/quad.vert.ts::end`);

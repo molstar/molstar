@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../mol-util/debug';
+loadCheckpoint(`mol-theme/size.ts::start`);
 /**
  * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -50,3 +54,4 @@ namespace SizeTheme {
     export type ParamValues<C extends SizeTheme.Provider<any>> = C extends SizeTheme.Provider<infer P> ? PD.Values<P> : never
     export type BuiltInParams<T extends BuiltIn> = Partial<ParamValues<_BuiltIn[T]>>
 }
+loadCheckpoint(`mol-theme/size.ts::end`);

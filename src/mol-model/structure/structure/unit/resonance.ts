@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../../mol-util/debug';
+loadCheckpoint(`mol-model/structure/structure/unit/resonance.ts::start`);
 /**
  * Copyright (c) 2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -81,3 +85,5 @@ function getDelocalizedTriplets(unit: Unit.Atomic) {
         triplets,
     };
 }
+
+loadCheckpoint(`mol-model/structure/structure/unit/resonance.ts::end`);

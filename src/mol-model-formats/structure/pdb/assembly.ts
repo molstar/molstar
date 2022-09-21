@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-model-formats/structure/pdb/assembly.ts::start`);
 /**
  * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -249,3 +253,4 @@ export function parseMtrix(lines: Tokens, lineStart: number, lineEnd: number): C
 
     return [CifCategory.ofFields('struct_ncs_oper', struct_ncs_oper)];
 }
+loadCheckpoint(`mol-model-formats/structure/pdb/assembly.ts::end`);

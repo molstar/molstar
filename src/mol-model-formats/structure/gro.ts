@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-model-formats/structure/gro.ts::start`);
 /**
  * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -135,3 +139,5 @@ export function trajectoryFromGRO(gro: GroFile): Task<Trajectory> {
         return new ArrayTrajectory(models);
     });
 }
+
+loadCheckpoint(`mol-model-formats/structure/gro.ts::end`);

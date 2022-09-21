@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../../mol-util/debug';
+loadCheckpoint(`mol-model/structure/structure/util/principal-axes.ts::start`);
 /**
  * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -24,3 +28,4 @@ export function getPrincipalAxes(unit: Unit): PrincipalAxes {
     const positions = toPositionsArray(unit);
     return PrincipalAxes.ofPositions(positions);
 }
+loadCheckpoint(`mol-model/structure/structure/util/principal-axes.ts::end`);

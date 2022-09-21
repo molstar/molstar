@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-plugin-state/manager/camera.ts::start`);
 /**
  * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -135,3 +139,4 @@ export class CameraManager {
     constructor(readonly plugin: PluginContext) {
     }
 }
+loadCheckpoint(`mol-plugin-state/manager/camera.ts::end`);

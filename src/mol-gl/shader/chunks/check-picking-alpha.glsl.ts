@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-gl/shader/chunks/check-picking-alpha.glsl.ts::start`);
 export const check_picking_alpha = `
 float viewZ = depthToViewZ(uIsOrtho, fragmentDepth, uNear, uFar);
 float fogFactor = smoothstep(uFogNear, uFogFar, abs(viewZ));
@@ -11,3 +15,4 @@ if (uAlpha < uPickingAlphaThreshold || alpha < 0.1) {
     #endif
 }
 `;
+loadCheckpoint(`mol-gl/shader/chunks/check-picking-alpha.glsl.ts::end`);

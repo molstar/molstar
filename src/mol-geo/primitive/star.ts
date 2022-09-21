@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-geo/primitive/star.ts::start`);
 /**
  * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -53,3 +57,4 @@ export function Star(props?: StarProps): Primitive {
 
     return builder.getPrimitive();
 }
+loadCheckpoint(`mol-geo/primitive/star.ts::end`);

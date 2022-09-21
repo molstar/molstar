@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-io/reader/pdb/parser.ts::start`);
 /**
  * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -17,3 +21,4 @@ export function parsePDB(data: string, id?: string, isPdbqt = false): Task<Reade
         isPdbqt
     }));
 }
+loadCheckpoint(`mol-io/reader/pdb/parser.ts::end`);

@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-plugin-state/manager/structure/hierarchy.ts::start`);
 /**
  * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -296,3 +300,4 @@ export namespace StructureHierarchyManager {
         return sameTraj && t ? `${t.cell.obj?.label} | ${structures.length} structures` : `${structures.length} structures`;
     }
 }
+loadCheckpoint(`mol-plugin-state/manager/structure/hierarchy.ts::end`);

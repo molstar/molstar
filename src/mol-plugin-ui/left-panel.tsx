@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../mol-util/debug';
+loadCheckpoint(`mol-plugin-ui/left-panel.tsx::start`);
 /**
  * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -184,3 +188,5 @@ class RemoveAllButton extends PluginUIComponent<{ }> {
         return <IconButton svg={DeleteOutlinedSvg} onClick={this.remove} title={'Remove All'} style={{ display: 'inline-block' }} small className='msp-no-hover-outline' transparent />;
     }
 }
+
+loadCheckpoint(`mol-plugin-ui/left-panel.tsx::end`);

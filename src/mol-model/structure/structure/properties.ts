@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-model/structure/structure/properties.ts::start`);
 /**
  * Copyright (c) 2017-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -197,3 +201,4 @@ const StructureProperties = {
 
 type StructureProperties = typeof StructureProperties
 export { StructureProperties };
+loadCheckpoint(`mol-model/structure/structure/properties.ts::end`);

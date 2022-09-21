@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-plugin-ui/state/snapshots.tsx::start`);
 /**
  * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -360,3 +364,5 @@ class RemoteStateSnapshotList extends PurePluginUIComponent<
         </ul>;
     }
 }
+
+loadCheckpoint(`mol-plugin-ui/state/snapshots.tsx::end`);

@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-gl/renderable/schema.ts::start`);
 /**
  * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -334,3 +338,5 @@ export const BaseSchema = {
 } as const;
 export type BaseSchema = typeof BaseSchema
 export type BaseValues = Values<BaseSchema>
+
+loadCheckpoint(`mol-gl/renderable/schema.ts::end`);

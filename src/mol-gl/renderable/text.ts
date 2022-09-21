@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-gl/renderable/text.ts::start`);
 /**
  * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -44,3 +48,4 @@ export function TextRenderable(ctx: WebGLContext, id: number, values: TextValues
     const renderItem = createGraphicsRenderItem(ctx, 'triangles', shaderCode, schema, { ...values, ...internalValues }, materialId, variants);
     return createRenderable(renderItem, values, state);
 }
+loadCheckpoint(`mol-gl/renderable/text.ts::end`);

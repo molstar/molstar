@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-repr/structure/representation/putty.ts::start`);
 /**
  * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -56,3 +60,4 @@ export const PuttyRepresentationProvider = StructureRepresentationProvider({
     defaultSizeTheme: { name: 'uncertainty' },
     isApplicable: (structure: Structure) => structure.polymerResidueCount > 0,
 });
+loadCheckpoint(`mol-repr/structure/representation/putty.ts::end`);

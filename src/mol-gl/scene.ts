@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../mol-util/debug';
+loadCheckpoint(`mol-gl/scene.ts::start`);
 /**
  * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -324,3 +328,4 @@ namespace Scene {
 }
 
 export { Scene };
+loadCheckpoint(`mol-gl/scene.ts::end`);

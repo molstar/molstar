@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-repr/shape/representation.ts::start`);
 /**
  * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -289,3 +293,4 @@ function eachShapeGroup(loci: Loci, shape: Shape, apply: (interval: Interval) =>
     }
     return changed;
 }
+loadCheckpoint(`mol-repr/shape/representation.ts::end`);

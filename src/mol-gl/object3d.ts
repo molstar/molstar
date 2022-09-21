@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../mol-util/debug';
+loadCheckpoint(`mol-gl/object3d.ts::start`);
 /**
  * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -29,3 +33,4 @@ export namespace Object3D {
         Mat4.lookAt(object3d.view, object3d.position, center, object3d.up);
     }
 }
+loadCheckpoint(`mol-gl/object3d.ts::end`);

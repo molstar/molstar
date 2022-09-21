@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-repr/structure/visual/ellipsoid-mesh.ts::start`);
 /**
  * Copyright (c) 2019-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -122,3 +126,4 @@ export function createEllipsoidMesh(ctx: VisualContext, unit: Unit, structure: S
 
     return m;
 }
+loadCheckpoint(`mol-repr/structure/visual/ellipsoid-mesh.ts::end`);

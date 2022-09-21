@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-data/util/combination.ts::start`);
 /**
  * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -63,3 +67,4 @@ export function combinations<T>(array: T[], count: number): T[][] {
     while (combinationIt.hasNext) out.push(combinationIt.move().slice());
     return out;
 }
+loadCheckpoint(`mol-data/util/combination.ts::end`);

@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-gl/shader/chunks/size-vert-params.glsl.ts::start`);
 export const size_vert_params = `
 #if defined(dSizeType_uniform)
     uniform float uSize;
@@ -10,3 +14,4 @@ export const size_vert_params = `
 
 uniform float uSizeFactor;
 `;
+loadCheckpoint(`mol-gl/shader/chunks/size-vert-params.glsl.ts::end`);

@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../mol-util/debug';
+loadCheckpoint(`mol-plugin-ui/spec.ts::start`);
 /**
  * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -44,3 +48,4 @@ export const DefaultPluginUISpec = (): PluginUISpec => ({
         [CreateVolumeStreamingBehavior, VolumeStreamingCustomControls]
     ],
 });
+loadCheckpoint(`mol-plugin-ui/spec.ts::end`);

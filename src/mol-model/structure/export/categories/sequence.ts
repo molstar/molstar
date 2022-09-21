@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../../mol-util/debug';
+loadCheckpoint(`mol-model/structure/export/categories/sequence.ts::start`);
 /**
  * Copyright (c) 2017-2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -33,3 +37,5 @@ function getCategoryInstance(structures: Structure[], categoryName: 'struct_asym
     return CifCategory.ofTable(category, indices);
 
 }
+
+loadCheckpoint(`mol-model/structure/export/categories/sequence.ts::end`);

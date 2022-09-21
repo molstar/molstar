@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-geo/geometry/lines/lines-builder.ts::start`);
 /**
  * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -112,3 +116,4 @@ function fillMappingAndIndices(n: number, mb: Float32Array, ib: Uint32Array) {
         ib[io + 3] = o + 1; ib[io + 4] = o + 3; ib[io + 5] = o + 2;
     }
 }
+loadCheckpoint(`mol-geo/geometry/lines/lines-builder.ts::end`);

@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-geo/geometry/lines/lines.ts::start`);
 /**
  * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -274,3 +278,4 @@ export namespace Lines {
         }
     }
 }
+loadCheckpoint(`mol-geo/geometry/lines/lines.ts::end`);

@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`extensions/model-export/export.ts::start`);
 /**
  * Copyright (c) 2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -85,3 +89,4 @@ function _exportHierarchy(plugin: PluginContext, options?: { format?: 'cif' | 'b
         plugin.log.info(`[Export] Done.`);
     });
 }
+loadCheckpoint(`extensions/model-export/export.ts::end`);

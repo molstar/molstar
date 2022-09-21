@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-plugin/behavior/static/representation.ts::start`);
 /**
  * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -91,3 +95,4 @@ function updateVisibility(cell: StateObjectCell, r: Representation<any>) {
         return false;
     }
 }
+loadCheckpoint(`mol-plugin/behavior/static/representation.ts::end`);

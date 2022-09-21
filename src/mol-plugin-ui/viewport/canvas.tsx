@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-plugin-ui/viewport/canvas.tsx::start`);
 /**
  * Copyright (c) 2020-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -78,3 +82,4 @@ export class ViewportCanvas extends PluginUIComponent<ViewportCanvasParams, View
         </div>;
     }
 }
+loadCheckpoint(`mol-plugin-ui/viewport/canvas.tsx::end`);

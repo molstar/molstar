@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-plugin-ui/structure/generic.tsx::start`);
 /**
  * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -152,3 +156,4 @@ export class GenericEntry<T extends StructureHierarchyRef> extends PurePluginUIC
         </>;
     }
 }
+loadCheckpoint(`mol-plugin-ui/structure/generic.tsx::end`);

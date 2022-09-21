@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../../mol-util/debug';
+loadCheckpoint(`mol-repr/structure/visual/util/link.ts::start`);
 /**
  * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -491,3 +495,4 @@ export function createLinkLines(ctx: VisualContext, linkBuilder: LinkBuilderProp
         return { lines: l };
     }
 }
+loadCheckpoint(`mol-repr/structure/visual/util/link.ts::end`);

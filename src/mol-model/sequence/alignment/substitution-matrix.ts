@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-model/sequence/alignment/substitution-matrix.ts::start`);
 /**
  * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -79,3 +83,4 @@ export const SubstitutionMatrices = (() => ({
     blosum62x: prepareMatrix(aminoacidsX, blosum62x)
 }))();
 export type SubstitutionMatrix = keyof typeof SubstitutionMatrices;
+loadCheckpoint(`mol-model/sequence/alignment/substitution-matrix.ts::end`);

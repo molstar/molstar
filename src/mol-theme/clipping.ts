@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../mol-util/debug';
+loadCheckpoint(`mol-theme/clipping.ts::start`);
 /**
  * Copyright (c) 2020-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -188,3 +192,4 @@ namespace Clipping {
         return { layers };
     }
 }
+loadCheckpoint(`mol-theme/clipping.ts::end`);

@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-math/linear-algebra/3d/common.ts::start`);
 /**
  * Copyright (c) 2017-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -22,3 +26,5 @@ export const EPSILON = 0.000001;
 export function equalEps(a: number, b: number, eps: number) {
     return Math.abs(a - b) <= eps;
 }
+
+loadCheckpoint(`mol-math/linear-algebra/3d/common.ts::end`);

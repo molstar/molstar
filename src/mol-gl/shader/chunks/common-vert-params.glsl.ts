@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-gl/shader/chunks/common-vert-params.glsl.ts::start`);
 export const common_vert_params = `
 uniform mat4 uProjection, uModel, uView;
 uniform vec3 uCameraPosition;
@@ -52,3 +56,4 @@ varying vec3 vViewPosition;
     #define VertexID int(aVertex)
 #endif
 `;
+loadCheckpoint(`mol-gl/shader/chunks/common-vert-params.glsl.ts::end`);

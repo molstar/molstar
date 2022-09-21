@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-model/structure/util.ts::start`);
 /**
  * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -56,3 +60,4 @@ export function getPositions(unit: Unit, indices: ArrayLike<number>): NumberArra
     }
     return positions;
 }
+loadCheckpoint(`mol-model/structure/util.ts::end`);

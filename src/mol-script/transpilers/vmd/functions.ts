@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-script/transpilers/vmd/functions.ts::start`);
 /**
  * Copyright (c) 2017-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -98,3 +102,5 @@ export const functions: FunctionDict = {
         map: x => B.core.math.log10([x]),
     }
 };
+
+loadCheckpoint(`mol-script/transpilers/vmd/functions.ts::end`);

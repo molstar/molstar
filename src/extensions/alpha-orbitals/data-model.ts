@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`extensions/alpha-orbitals/data-model.ts::start`);
 /**
  * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -141,3 +145,5 @@ export function createGrid(gridInfo: RegularGrid3d, values: Float32Array, axisOr
 
     return grid;
 }
+
+loadCheckpoint(`extensions/alpha-orbitals/data-model.ts::end`);

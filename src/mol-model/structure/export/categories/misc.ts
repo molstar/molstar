@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../../mol-util/debug';
+loadCheckpoint(`mol-model/structure/export/categories/misc.ts::start`);
 /**
  * Copyright (c) 2017-2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -55,3 +59,4 @@ export const _pdbx_nonpoly_scheme: CifCategory<CifExportContext> = {
         return CifCategory.ofTable(pdbx_nonpoly_scheme);
     }
 };
+loadCheckpoint(`mol-model/structure/export/categories/misc.ts::end`);

@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../../mol-util/debug';
+loadCheckpoint(`mol-model/structure/query/queries/atom-set.ts::start`);
 /**
  * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -34,3 +38,5 @@ export function propertySet(prop: QueryFn<any>) {
     };
 }
 
+
+loadCheckpoint(`mol-model/structure/query/queries/atom-set.ts::end`);

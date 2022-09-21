@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../mol-util/debug';
+loadCheckpoint(`mol-math/geometry.ts::start`);
 /**
  * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -13,3 +17,4 @@ export * from './geometry/lookup3d/grid';
 export * from './geometry/primitives/box3d';
 export * from './geometry/primitives/sphere3d';
 export * from './geometry/primitives/axes3d';
+loadCheckpoint(`mol-math/geometry.ts::end`);

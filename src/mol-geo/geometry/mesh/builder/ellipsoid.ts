@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../../mol-util/debug';
+loadCheckpoint(`mol-geo/geometry/mesh/builder/ellipsoid.ts::start`);
 /**
  * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -21,3 +25,4 @@ function setEllipsoidMat(m: Mat4, center: Vec3, dirMajor: Vec3, dirMinor: Vec3, 
 export function addEllipsoid(state: MeshBuilder.State, center: Vec3, dirMajor: Vec3, dirMinor: Vec3, radiusScale: Vec3, detail: number) {
     MeshBuilder.addPrimitive(state, setEllipsoidMat(tmpEllipsoidMat, center, dirMajor, dirMinor, radiusScale), getSphere(detail));
 }
+loadCheckpoint(`mol-geo/geometry/mesh/builder/ellipsoid.ts::end`);

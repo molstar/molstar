@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-theme/color/molecule-type.ts::start`);
 /**
  * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -90,3 +94,4 @@ export const MoleculeTypeColorThemeProvider: ColorTheme.Provider<MoleculeTypeCol
     defaultValues: PD.getDefaultValues(MoleculeTypeColorThemeParams),
     isApplicable: (ctx: ThemeDataContext) => !!ctx.structure
 };
+loadCheckpoint(`mol-theme/color/molecule-type.ts::end`);

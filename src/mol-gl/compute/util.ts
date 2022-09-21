@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-gl/compute/util.ts::start`);
 /**
  * Copyright (c) 2020-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -135,3 +139,4 @@ export function readAlphaTexture(ctx: WebGLContext, texture: Texture) {
 
     return { array, width, height };
 }
+loadCheckpoint(`mol-gl/compute/util.ts::end`);

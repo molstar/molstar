@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-plugin-state/transforms/volume.ts::start`);
 /**
  * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -189,3 +193,5 @@ const AssignColorVolume = PluginStateTransform.BuiltIn({
         });
     }
 });
+
+loadCheckpoint(`mol-plugin-state/transforms/volume.ts::end`);

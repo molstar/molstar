@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../mol-util/debug';
+loadCheckpoint(`mol-util/make-dir.ts::start`);
 /**
  * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -20,3 +24,4 @@ export function makeDir(path: string, root?: string): boolean {
 
     return !dirs.length || makeDir(dirs.join('/'), root);
 }
+loadCheckpoint(`mol-util/make-dir.ts::end`);

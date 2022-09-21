@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-geo/geometry/direct-volume/direct-volume.ts::start`);
 /**
  * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -325,3 +329,4 @@ export namespace DirectVolume {
 function getBoundingSphere(gridDimension: Vec3, gridTransform: Mat4) {
     return Sphere3D.fromDimensionsAndTransform(Sphere3D(), gridDimension, gridTransform);
 }
+loadCheckpoint(`mol-geo/geometry/direct-volume/direct-volume.ts::end`);

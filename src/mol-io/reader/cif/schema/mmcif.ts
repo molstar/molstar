@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../../mol-util/debug';
+loadCheckpoint(`mol-io/reader/cif/schema/mmcif.ts::start`);
 /**
  * Copyright (c) 2017-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -5076,3 +5080,4 @@ export const mmCIF_Schema = {
 
 export type mmCIF_Schema = typeof mmCIF_Schema;
 export interface mmCIF_Database extends Database<mmCIF_Schema> {};
+loadCheckpoint(`mol-io/reader/cif/schema/mmcif.ts::end`);

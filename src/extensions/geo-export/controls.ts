@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`extensions/geo-export/controls.ts::start`);
 /**
  * Copyright (c) 2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -87,3 +91,4 @@ export class GeometryControls extends PluginComponent {
         super();
     }
 }
+loadCheckpoint(`extensions/geo-export/controls.ts::end`);

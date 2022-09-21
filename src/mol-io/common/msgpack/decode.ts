@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-io/common/msgpack/decode.ts::start`);
 /*
  * Copyright (c) 2017-2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -216,3 +220,4 @@ function parse(state: State) {
 
     throw new Error('Unknown type 0x' + type.toString(16));
 }
+loadCheckpoint(`mol-io/common/msgpack/decode.ts::end`);

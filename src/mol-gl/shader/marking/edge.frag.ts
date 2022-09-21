@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-gl/shader/marking/edge.frag.ts::start`);
 export const edge_frag = `
 precision highp float;
 precision highp sampler2D;
@@ -27,3 +31,4 @@ void main() {
     gl_FragColor = vec4(visibility, mask, marker, fogAlpha);
 }
 `;
+loadCheckpoint(`mol-gl/shader/marking/edge.frag.ts::end`);

@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../mol-util/debug';
+loadCheckpoint(`mol-util/clip.ts::start`);
 /**
  * Copyright (c) 2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -112,3 +116,4 @@ export namespace Clip {
         return true;
     }
 }
+loadCheckpoint(`mol-util/clip.ts::end`);

@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-io/writer/mol.ts::start`);
 /**
  * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -19,3 +23,4 @@ export namespace MolWriter {
         return new MolEncoder(encoderName, false, hydrogens);
     }
 }
+loadCheckpoint(`mol-io/writer/mol.ts::end`);

@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../../mol-util/debug';
+loadCheckpoint(`mol-model/structure/structure/unit/rings.ts::start`);
 /**
  * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -212,3 +216,4 @@ function getAromaticRings(unit: Unit.Atomic, rings: ReadonlyArray<UnitRing>): Re
 }
 
 export { UnitRing, UnitRings };
+loadCheckpoint(`mol-model/structure/structure/unit/rings.ts::end`);

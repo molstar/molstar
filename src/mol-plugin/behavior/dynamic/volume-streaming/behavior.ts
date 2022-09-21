@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../../mol-util/debug';
+loadCheckpoint(`mol-plugin/behavior/dynamic/volume-streaming/behavior.ts::start`);
 /**
  * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -531,3 +535,5 @@ export namespace VolumeStreaming {
         }
     }
 }
+
+loadCheckpoint(`mol-plugin/behavior/dynamic/volume-streaming/behavior.ts::end`);

@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../../mol-util/debug';
+loadCheckpoint(`mol-model/structure/export/categories/utils.ts::start`);
 /**
  * Copyright (c) 2017-2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -97,3 +101,4 @@ function classifyField(name: string, field: CifField): CifWriter.Field {
         return CifWriter.Field.int(name, field.int, { valueKind: field.valueKind, typedArray: Int32Array });
     }
 }
+loadCheckpoint(`mol-model/structure/export/categories/utils.ts::end`);

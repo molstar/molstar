@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-io/reader/dx/parser.ts::start`);
 /**
  * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -127,3 +131,4 @@ export function parseDx(data: string | Uint8Array, name: string) {
         return parseBinary(taskCtx, data, name);
     });
 }
+loadCheckpoint(`mol-io/reader/dx/parser.ts::end`);

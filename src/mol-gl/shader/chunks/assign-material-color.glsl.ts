@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-gl/shader/chunks/assign-material-color.glsl.ts::start`);
 export const assign_material_color = `
 #if defined(dNeedsMarker)
     float marker = uMarker;
@@ -122,3 +126,4 @@ export const assign_material_color = `
     #endif
 #endif
 `;
+loadCheckpoint(`mol-gl/shader/chunks/assign-material-color.glsl.ts::end`);

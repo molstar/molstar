@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-repr/shape/loci/dihedral.ts::start`);
 /**
  * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -347,3 +351,4 @@ export type DihedralRepresentation = Representation<DihedralData, DihedralParams
 export function DihedralRepresentation(ctx: RepresentationContext, getParams: RepresentationParamsGetter<DihedralData, DihedralParams>): DihedralRepresentation {
     return Representation.createMulti('Dihedral', ctx, getParams, Representation.StateBuilder, DihedralVisuals as unknown as Representation.Def<DihedralData, DihedralParams>);
 }
+loadCheckpoint(`mol-repr/shape/loci/dihedral.ts::end`);

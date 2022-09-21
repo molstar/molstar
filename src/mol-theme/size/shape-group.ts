@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-theme/size/shape-group.ts::start`);
 /**
  * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -43,3 +47,4 @@ export const ShapeGroupSizeThemeProvider: SizeTheme.Provider<ShapeGroupSizeTheme
     defaultValues: PD.getDefaultValues(ShapeGroupSizeThemeParams),
     isApplicable: (ctx: ThemeDataContext) => !!ctx.shape
 };
+loadCheckpoint(`mol-theme/size/shape-group.ts::end`);

@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-data/util/interval-iterator.ts::start`);
 /**
  * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -43,3 +47,4 @@ export class IntervalIterator<I extends number = number> implements Iterator<Seg
         this.hasNext = OrderedSet.areIntersecting(this.interval, this.set);
     }
 }
+loadCheckpoint(`mol-data/util/interval-iterator.ts::end`);

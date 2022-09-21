@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../../mol-util/debug';
+loadCheckpoint(`mol-model-props/computed/secondary-structure/dssp/ladders.ts::start`);
 /**
  * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -99,3 +103,4 @@ export function assignLadders(ctx: DSSPContext) {
         }
     }
 }
+loadCheckpoint(`mol-model-props/computed/secondary-structure/dssp/ladders.ts::end`);

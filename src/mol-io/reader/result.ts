@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-io/reader/result.ts::start`);
 /*
  * Copyright (c) 2017 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -40,3 +44,4 @@ namespace ReaderResult {
 }
 
 export { ReaderResult };
+loadCheckpoint(`mol-io/reader/result.ts::end`);

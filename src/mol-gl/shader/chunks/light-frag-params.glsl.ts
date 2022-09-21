@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-gl/shader/chunks/light-frag-params.glsl.ts::start`);
 /**
  * Copyright (c) 2017-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -135,3 +139,4 @@ void RE_IndirectSpecular_Physical( const in vec3 radiance, const in vec3 irradia
     reflectedLight.indirectDiffuse += diffuse * cosineWeightedIrradiance;
 }
 `;
+loadCheckpoint(`mol-gl/shader/chunks/light-frag-params.glsl.ts::end`);

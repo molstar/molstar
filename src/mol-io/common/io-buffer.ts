@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-io/common/io-buffer.ts::start`);
 /**
  * Copyright (c) 2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -451,3 +455,5 @@ export class IOBuffer {
         }
     }
 }
+
+loadCheckpoint(`mol-io/common/io-buffer.ts::end`);

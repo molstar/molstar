@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-model/structure/query.ts::start`);
 /**
  * Copyright (c) 2017 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -26,3 +30,5 @@ export const Queries = {
 };
 
 export { StructureSelection, StructureQuery };
+
+loadCheckpoint(`mol-model/structure/query.ts::end`);

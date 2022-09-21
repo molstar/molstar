@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`extensions/alpha-orbitals/transforms.ts::start`);
 /**
  * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -223,3 +227,4 @@ function volumeParams(plugin: PluginContext, volume: PluginStateObject.Volume.Da
         colorParams: { value: params.color }
     });
 }
+loadCheckpoint(`extensions/alpha-orbitals/transforms.ts::end`);

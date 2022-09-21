@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../../../mol-util/debug';
+loadCheckpoint(`mol-plugin/behavior/dynamic/custom-props/computed/secondary-structure.ts::start`);
 /**
  * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -36,3 +40,4 @@ export const SecondaryStructure = PluginBehavior.create<{ autoAttach: boolean }>
         autoAttach: PD.Boolean(false)
     })
 });
+loadCheckpoint(`mol-plugin/behavior/dynamic/custom-props/computed/secondary-structure.ts::end`);

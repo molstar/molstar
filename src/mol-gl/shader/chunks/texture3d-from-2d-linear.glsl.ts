@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-gl/shader/chunks/texture3d-from-2d-linear.glsl.ts::start`);
 /**
  * Copyright (c) 2017-2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -23,3 +27,4 @@ vec4 texture3dFrom2dLinear(sampler2D tex, vec3 pos, vec3 gridDim, vec2 texDim) {
     return mix(color0, color1, delta0);
 }
 `;
+loadCheckpoint(`mol-gl/shader/chunks/texture3d-from-2d-linear.glsl.ts::end`);

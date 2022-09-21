@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-math/geometry/gaussian-density/gpu.ts::start`);
 /**
  * Copyright (c) 2017-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -481,3 +485,4 @@ function fieldFromTexture2d(ctx: WebGLContext, texture: Texture, dim: Vec3, texD
 
     return { field, idField };
 }
+loadCheckpoint(`mol-math/geometry/gaussian-density/gpu.ts::end`);

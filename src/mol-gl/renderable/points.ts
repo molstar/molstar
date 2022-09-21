@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-gl/renderable/points.ts::start`);
 /**
  * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -31,3 +35,4 @@ export function PointsRenderable(ctx: WebGLContext, id: number, values: PointsVa
     const renderItem = createGraphicsRenderItem(ctx, 'points', shaderCode, schema, { ...values, ...internalValues }, materialId, variants);
     return createRenderable(renderItem, values, state);
 }
+loadCheckpoint(`mol-gl/renderable/points.ts::end`);

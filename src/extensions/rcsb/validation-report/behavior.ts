@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`extensions/rcsb/validation-report/behavior.ts::start`);
 /**
  * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -381,3 +385,4 @@ export const ValidationReportRandomCoilIndexPreset = StructureRepresentationPres
         return await PresetStructureRepresentations.auto.apply(ref, { ...params, theme: { globalName: colorTheme, focus: { name: colorTheme } } }, plugin);
     }
 });
+loadCheckpoint(`extensions/rcsb/validation-report/behavior.ts::end`);

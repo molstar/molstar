@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../mol-util/debug';
+loadCheckpoint(`mol-util/param-definition.ts::start`);
 /**
  * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -681,3 +685,4 @@ export namespace ParamDefinition {
         return options.length > 0 ? options[0][0] : void 0 as any as T;
     }
 }
+loadCheckpoint(`mol-util/param-definition.ts::end`);

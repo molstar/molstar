@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`extensions/mp4-export/encoder.ts::start`);
 /**
  * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -104,3 +108,4 @@ function validateViewport(params: Mp4EncoderParams) {
         throw new Error('Viewport exceeds the canvas dimensions.');
     }
 }
+loadCheckpoint(`extensions/mp4-export/encoder.ts::end`);

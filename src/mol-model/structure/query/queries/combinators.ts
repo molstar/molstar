@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../../mol-util/debug';
+loadCheckpoint(`mol-model/structure/query/queries/combinators.ts::start`);
 /**
  * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -65,3 +69,4 @@ export function intersect(queries: ArrayLike<StructureQuery>): StructureQuery {
 }
 
 // TODO: distanceCluster
+loadCheckpoint(`mol-model/structure/query/queries/combinators.ts::end`);

@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../mol-util/debug';
+loadCheckpoint(`mol-util/is-little-endian.ts::start`);
 /**
  * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -12,3 +16,4 @@ export function isLittleEndian() {
     uint8Array[1] = 0xBB;
     return uint16array[0] === 0xBBAA;
 }
+loadCheckpoint(`mol-util/is-little-endian.ts::end`);

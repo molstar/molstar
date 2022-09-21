@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../mol-util/debug';
+loadCheckpoint(`mol-math/interpolate.ts::start`);
 /**
  * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -65,3 +69,4 @@ export function almostIdentity(value: number, start: number, stop: number) {
     const t = value / start;
     return (a * t + b) * t * t + stop;
 }
+loadCheckpoint(`mol-math/interpolate.ts::end`);

@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`extensions/cellpack/state.ts::start`);
 /**
  * Copyright (c) 2019-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -324,3 +328,4 @@ export const CreateCompartmentSphere = CreateTransformer({
         });
     }
 });
+loadCheckpoint(`extensions/cellpack/state.ts::end`);

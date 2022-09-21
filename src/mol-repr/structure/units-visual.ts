@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-repr/structure/units-visual.ts::start`);
 /**
  * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -539,3 +543,4 @@ export function UnitsTextureMeshVisual<P extends UnitsTextureMeshParams>(builder
         geometryUtils: TextureMesh.Utils
     }, materialId);
 }
+loadCheckpoint(`mol-repr/structure/units-visual.ts::end`);

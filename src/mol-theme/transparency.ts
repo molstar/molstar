@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../mol-util/debug';
+loadCheckpoint(`mol-theme/transparency.ts::start`);
 /**
  * Copyright (c) 2019-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -136,3 +140,4 @@ namespace Transparency {
         return { kind: 'element-loci', layers };
     }
 }
+loadCheckpoint(`mol-theme/transparency.ts::end`);

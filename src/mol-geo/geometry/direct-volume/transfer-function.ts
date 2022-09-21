@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-geo/geometry/direct-volume/transfer-function.ts::start`);
 /**
  * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -64,3 +68,4 @@ export function createTransferFunctionTexture(controlPoints: ControlPoint[], tex
         return ValueCell.create(textureImage);
     }
 }
+loadCheckpoint(`mol-geo/geometry/direct-volume/transfer-function.ts::end`);

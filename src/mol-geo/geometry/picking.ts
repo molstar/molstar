@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-geo/geometry/picking.ts::start`);
 /**
  * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -15,3 +19,5 @@ export namespace PickingId {
         return a.objectId === b.objectId && a.instanceId === b.instanceId && a.groupId === b.groupId;
     }
 }
+
+loadCheckpoint(`mol-geo/geometry/picking.ts::end`);

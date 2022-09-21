@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-data/int/interval.ts::start`);
 /**
  * Copyright (c) 2017 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -61,3 +65,4 @@ namespace Interval {
 interface Interval<T extends number = number> { '@type': 'int-interval' }
 
 export { Interval };
+loadCheckpoint(`mol-data/int/interval.ts::end`);

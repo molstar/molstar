@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-plugin-state/manager/structure/selection.ts::start`);
 /**
  * Copyright (c) 2019-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -549,3 +553,4 @@ function getElementRange(structure: Structure, ref: StructureElement.Loci['eleme
         indices: OrderedSet.ofRange(min as StructureElement.UnitIndex, max as StructureElement.UnitIndex)
     }]);
 }
+loadCheckpoint(`mol-plugin-state/manager/structure/selection.ts::end`);

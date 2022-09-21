@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-model-formats/structure/dcd.ts::start`);
 /**
  * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -82,3 +86,5 @@ export function coordinatesFromDcd(dcdFile: DcdFile): Task<Coordinates> {
         return Coordinates.create(frames, deltaTime, offsetTime);
     });
 }
+
+loadCheckpoint(`mol-model-formats/structure/dcd.ts::end`);

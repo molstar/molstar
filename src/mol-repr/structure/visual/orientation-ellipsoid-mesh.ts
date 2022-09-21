@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-repr/structure/visual/orientation-ellipsoid-mesh.ts::start`);
 /**
  * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -135,3 +139,4 @@ function eachUnit(loci: Loci, structureGroup: StructureGroup, apply: (interval: 
     }
     return changed;
 }
+loadCheckpoint(`mol-repr/structure/visual/orientation-ellipsoid-mesh.ts::end`);

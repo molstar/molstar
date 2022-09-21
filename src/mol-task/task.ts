@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../mol-util/debug';
+loadCheckpoint(`mol-task/task.ts::start`);
 /**
  * Copyright (c) 2017-2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -91,3 +95,4 @@ namespace Task {
 }
 
 export { Task };
+loadCheckpoint(`mol-task/task.ts::end`);

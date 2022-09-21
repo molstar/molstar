@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-plugin-state/animation/helpers.ts::start`);
 /**
  * Copyright (c) 2019-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -90,3 +94,4 @@ export function spinStructure(structure: Structure, unitTransforms: StructureUni
         unitTransforms.setTransform(_t, u);
     }
 }
+loadCheckpoint(`mol-plugin-state/animation/helpers.ts::end`);

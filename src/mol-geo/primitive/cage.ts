@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-geo/primitive/cage.ts::start`);
 /**
  * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -35,3 +39,4 @@ export function transformCage(cage: Cage, t: Mat4) {
     }
     return cage;
 }
+loadCheckpoint(`mol-geo/primitive/cage.ts::end`);

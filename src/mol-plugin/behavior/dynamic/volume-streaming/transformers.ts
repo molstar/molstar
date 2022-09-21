@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../../mol-util/debug';
+loadCheckpoint(`mol-plugin/behavior/dynamic/volume-streaming/transformers.ts::start`);
 /**
  * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -302,3 +306,4 @@ function createVolumeProps(streaming: VolumeStreaming.Behavior, channelName: Vol
         'isosurface', { isoValue: channel.isoValue, alpha: channel.opacity, visuals: channel.wireframe ? ['wireframe'] : ['solid'] },
         'uniform', { value: channel.color });
 }
+loadCheckpoint(`mol-plugin/behavior/dynamic/volume-streaming/transformers.ts::end`);

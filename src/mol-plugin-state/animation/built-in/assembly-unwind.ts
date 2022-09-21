@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-plugin-state/animation/built-in/assembly-unwind.ts::start`);
 /**
  * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -103,3 +107,4 @@ export const AnimateAssemblyUnwind = PluginStateAnimation.create({
         return { kind: 'next', state: { t: newTime } };
     }
 });
+loadCheckpoint(`mol-plugin-state/animation/built-in/assembly-unwind.ts::end`);

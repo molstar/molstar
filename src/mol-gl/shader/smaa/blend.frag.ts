@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-gl/shader/smaa/blend.frag.ts::start`);
 /**
  * Slightly adapted from https://github.com/mrdoob/three.js
  * MIT License Copyright (c) 2010-2020 three.js authors
@@ -64,3 +68,4 @@ void main() {
     gl_FragColor = SMAANeighborhoodBlendingPS(vUv, vOffset, tColor, tWeights);
 }
 `;
+loadCheckpoint(`mol-gl/shader/smaa/blend.frag.ts::end`);

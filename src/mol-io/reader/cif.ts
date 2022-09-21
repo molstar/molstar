@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-io/reader/cif.ts::start`);
 /**
  * Copyright (c) 2017-2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -33,3 +37,4 @@ export const CIF = {
 };
 
 export * from './cif/data-model';
+loadCheckpoint(`mol-io/reader/cif.ts::end`);

@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`extensions/rcsb/assembly-symmetry/prop.ts::start`);
 /**
  * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -204,3 +208,4 @@ export const AssemblySymmetryProvider: CustomStructureProperty.Provider<Assembly
         return { value: assemblySymmetry };
     }
 });
+loadCheckpoint(`extensions/rcsb/assembly-symmetry/prop.ts::end`);

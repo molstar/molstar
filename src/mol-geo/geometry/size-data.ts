@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-geo/geometry/size-data.ts::start`);
 /**
  * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -133,3 +137,4 @@ export function createGroupInstanceSize(locationIt: LocationIterator, sizeFn: Lo
     }
     return createTextureSize(sizes, 'groupInstance', sizeData);
 }
+loadCheckpoint(`mol-geo/geometry/size-data.ts::end`);

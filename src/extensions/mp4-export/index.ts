@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`extensions/mp4-export/index.ts::start`);
 /**
  * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -28,3 +32,4 @@ export const Mp4Export = PluginBehavior.create<{ }>({
     },
     params: () => ({ })
 });
+loadCheckpoint(`extensions/mp4-export/index.ts::end`);

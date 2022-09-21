@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../../mol-util/debug';
+loadCheckpoint(`mol-io/reader/cif/binary/field.ts::start`);
 /**
  * Copyright (c) 2017-2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -56,3 +60,4 @@ export function Field(column: EncodedColumn): Data.CifField {
             : params => ColumnHelpers.createAndFillArray(rowCount, float, params)
     };
 }
+loadCheckpoint(`mol-io/reader/cif/binary/field.ts::end`);

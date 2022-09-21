@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-theme/color/volume-value.ts::start`);
 /**
  * Copyright (c) 2021-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -59,3 +63,4 @@ export const VolumeValueColorThemeProvider: ColorTheme.Provider<VolumeValueColor
     defaultValues: PD.getDefaultValues(VolumeValueColorThemeParams),
     isApplicable: (ctx: ThemeDataContext) => !!ctx.volume,
 };
+loadCheckpoint(`mol-theme/color/volume-value.ts::end`);

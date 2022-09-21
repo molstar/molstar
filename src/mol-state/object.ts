@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../mol-util/debug';
+loadCheckpoint(`mol-state/object.ts::start`);
 /**
  * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -216,3 +220,4 @@ export namespace StateObjectRef {
         return cell;
     }
 }
+loadCheckpoint(`mol-state/object.ts::end`);

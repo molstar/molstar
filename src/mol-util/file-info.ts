@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../mol-util/debug';
+loadCheckpoint(`mol-util/file-info.ts::start`);
 /**
  * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -60,3 +64,4 @@ export function getFileInfo(file: FileInput): FileInfo {
 
     return { path, name, ext, base, dir, protocol, query, src: file };
 }
+loadCheckpoint(`mol-util/file-info.ts::end`);

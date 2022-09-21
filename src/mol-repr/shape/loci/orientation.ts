@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-repr/shape/loci/orientation.ts::start`);
 /**
  * Copyright (c) 2019-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -146,3 +150,4 @@ export function OrientationRepresentation(ctx: RepresentationContext, getParams:
     repr.setState({ markerActions: MarkerActions.Highlighting });
     return repr;
 }
+loadCheckpoint(`mol-repr/shape/loci/orientation.ts::end`);

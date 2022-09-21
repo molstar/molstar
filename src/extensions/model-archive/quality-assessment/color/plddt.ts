@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../../mol-util/debug';
+loadCheckpoint(`extensions/model-archive/quality-assessment/color/plddt.ts::start`);
 /**
  * Copyright (c) 2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -104,3 +108,4 @@ export const PLDDTConfidenceColorThemeProvider: ColorTheme.Provider<PLDDTConfide
         }
     }
 };
+loadCheckpoint(`extensions/model-archive/quality-assessment/color/plddt.ts::end`);

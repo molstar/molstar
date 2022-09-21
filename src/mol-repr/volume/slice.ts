@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-repr/volume/slice.ts::start`);
 /**
  * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -232,3 +236,4 @@ export const SliceRepresentationProvider = VolumeRepresentationProvider({
     defaultSizeTheme: { name: 'uniform' },
     isApplicable: (volume: Volume) => !Volume.isEmpty(volume)
 });
+loadCheckpoint(`mol-repr/volume/slice.ts::end`);

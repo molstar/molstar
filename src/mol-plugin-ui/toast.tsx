@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../mol-util/debug';
+loadCheckpoint(`mol-plugin-ui/toast.tsx::start`);
 /**
  * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -57,3 +61,5 @@ export class Toasts extends PluginUIComponent {
         </div>;
     }
 }
+
+loadCheckpoint(`mol-plugin-ui/toast.tsx::end`);

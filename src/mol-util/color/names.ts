@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-util/color/names.ts::start`);
 /**
  * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -173,3 +177,5 @@ export const ColorNamesValueMap = (function () {
     });
     return map;
 })();
+
+loadCheckpoint(`mol-util/color/names.ts::end`);

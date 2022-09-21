@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-geo/primitive/primitive.ts::start`);
 /**
  * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -112,3 +116,4 @@ export function transformPrimitive(primitive: Primitive, t: Mat4) {
     }
     return primitive;
 }
+loadCheckpoint(`mol-geo/primitive/primitive.ts::end`);

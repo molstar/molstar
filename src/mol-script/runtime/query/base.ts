@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-script/runtime/query/base.ts::start`);
 /**
  * Copyright (c) 2018 Mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -184,3 +188,4 @@ export function compile<T = any>(expression: Expression): QueryFn<T> {
     const ctx = new QueryCompilerCtx(DefaultQueryRuntimeTable);
     return _compile(ctx, expression).fn;
 }
+loadCheckpoint(`mol-script/runtime/query/base.ts::end`);

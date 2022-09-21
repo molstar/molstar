@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../mol-util/debug';
+loadCheckpoint(`mol-theme/theme.ts::start`);
 /**
  * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -157,3 +161,4 @@ export class ThemeRegistry<T extends ColorTheme<any, any> | SizeTheme<any>> {
         return getTypes(this.getApplicableList(ctx));
     }
 }
+loadCheckpoint(`mol-theme/theme.ts::end`);

@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-data/generic/unique-array.ts::start`);
 /**
  * Copyright (c) 2017 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -27,3 +31,4 @@ namespace UniqueArray {
 }
 
 export { UniqueArray };
+loadCheckpoint(`mol-data/generic/unique-array.ts::end`);

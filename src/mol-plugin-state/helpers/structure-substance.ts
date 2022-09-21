@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-plugin-state/helpers/structure-substance.ts::start`);
 /**
  * Copyright (c) 2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -74,3 +78,4 @@ function getFilteredBundle(layers: Substance.BundleLayer[], structure: Structure
     const merged = Substance.merge(substance);
     return Substance.filter(merged, structure);
 }
+loadCheckpoint(`mol-plugin-state/helpers/structure-substance.ts::end`);

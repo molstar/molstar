@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-model/structure/query/context.ts::start`);
 /**
  * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -158,3 +162,4 @@ class QueryContextBondInfo<U extends Unit = Unit> {
         return StructureElement.Location.distance(this.a, this. b);
     }
 }
+loadCheckpoint(`mol-model/structure/query/context.ts::end`);

@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-script/language/symbol.ts::start`);
 /*
  * Copyright (c) 2018 Mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -92,3 +96,5 @@ export function isSymbol(x: any): x is MSymbol {
 
 export type SymbolMap = { [id: string]: MSymbol | undefined }
 
+
+loadCheckpoint(`mol-script/language/symbol.ts::end`);

@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`extensions/alpha-orbitals/spherical-functions.ts::start`);
 /**
  * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -91,3 +95,5 @@ function L4(alpha: number[], x: number, y: number, z: number) {
         alpha[8] * (2.958039891549808 * xxx * y + -2.958039891549808 * x * yyy)
     );
 }
+
+loadCheckpoint(`extensions/alpha-orbitals/spherical-functions.ts::end`);

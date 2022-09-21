@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-model-formats/structure/property/symmetry.ts::start`);
 /**
  * Copyright (c) 2017-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -100,3 +104,4 @@ function getNcsOperators(struct_ncs_oper: Table<mmCIF_Schema['struct_ncs_oper']>
     }
     return opers;
 }
+loadCheckpoint(`mol-model-formats/structure/property/symmetry.ts::end`);

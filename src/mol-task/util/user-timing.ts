@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-task/util/user-timing.ts::start`);
 /**
  * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -23,3 +27,4 @@ export namespace UserTiming {
         if (timingEnabled) performance.measure(`✳️ ${task.name}`, startMarkName(task), endMarkName(task));
     }
 }
+loadCheckpoint(`mol-task/util/user-timing.ts::end`);

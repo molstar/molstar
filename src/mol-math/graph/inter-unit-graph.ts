@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-math/graph/inter-unit-graph.ts::start`);
 /**
  * Copyright (c) 2017-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -175,3 +179,4 @@ namespace InterUnitGraph {
 }
 
 const emptyArray: any[] = [];
+loadCheckpoint(`mol-math/graph/inter-unit-graph.ts::end`);

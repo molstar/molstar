@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-geo/primitive/dodecahedron.ts::start`);
 /**
  * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -67,3 +71,4 @@ const dodecahedronCage = createCage(dodecahedronVertices, dodecahedronEdges);
 export function DodecahedronCage(): Cage {
     return dodecahedronCage;
 }
+loadCheckpoint(`mol-geo/primitive/dodecahedron.ts::end`);

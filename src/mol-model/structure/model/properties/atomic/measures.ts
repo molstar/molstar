@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../../../mol-util/debug';
+loadCheckpoint(`mol-model/structure/model/properties/atomic/measures.ts::start`);
 /**
  * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -37,3 +41,4 @@ export function AtomNumber(element: ElementSymbol): number {
     const i = AtomicNumbers[element as any as string];
     return i === void 0 ? DefaultAtomNumber : i;
 }
+loadCheckpoint(`mol-model/structure/model/properties/atomic/measures.ts::end`);

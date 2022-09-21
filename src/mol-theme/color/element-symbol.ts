@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-theme/color/element-symbol.ts::start`);
 /**
  * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -112,3 +116,4 @@ export const ElementSymbolColorThemeProvider: ColorTheme.Provider<ElementSymbolC
     defaultValues: PD.getDefaultValues(ElementSymbolColorThemeParams),
     isApplicable: (ctx: ThemeDataContext) => !!ctx.structure
 };
+loadCheckpoint(`mol-theme/color/element-symbol.ts::end`);

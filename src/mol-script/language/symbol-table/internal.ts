@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-script/language/symbol-table/internal.ts::start`);
 /**
  * Copyright (c) 2019 Mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -32,3 +36,4 @@ export const internal = {
     '@header': 'Internal Queries',
     generator
 };
+loadCheckpoint(`mol-script/language/symbol-table/internal.ts::end`);

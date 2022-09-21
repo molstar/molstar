@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-plugin-ui/controls/icons.tsx::start`);
 /**
  * Copyright (c) 2020-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -179,3 +183,5 @@ export const SelectionModeSvg = CursorDefaultOutlineSvg;
 export const SuperposeAtomsSvg = ScatterPlotSvg;
 export const SuperposeChainsSvg = LinearScaleSvg;
 export const SuperpositionSvg = FlipToFrontSvg;
+
+loadCheckpoint(`mol-plugin-ui/controls/icons.tsx::end`);

@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../../mol-util/debug';
+loadCheckpoint(`mol-model-formats/structure/property/bonds/struct_conn.ts::start`);
 /**
  * Copyright (c) 2017-2021 Mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -179,3 +183,4 @@ export namespace StructConn {
         return entries;
     }
 }
+loadCheckpoint(`mol-model-formats/structure/property/bonds/struct_conn.ts::end`);

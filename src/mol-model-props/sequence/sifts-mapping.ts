@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-model-props/sequence/sifts-mapping.ts::start`);
 /**
  * Copyright (c) 2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -107,3 +111,5 @@ namespace SIFTSMapping {
         return { dbName, accession, num, residue };
     }
 }
+
+loadCheckpoint(`mol-model-props/sequence/sifts-mapping.ts::end`);

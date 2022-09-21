@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-plugin-ui/controls/parameters.tsx::start`);
 /**
  * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -1502,3 +1506,5 @@ export class ScriptControl extends React.PureComponent<ParamProps<PD.Script>> {
         </>;
     }
 }
+
+loadCheckpoint(`mol-plugin-ui/controls/parameters.tsx::end`);

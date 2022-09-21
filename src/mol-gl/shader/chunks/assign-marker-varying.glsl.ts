@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-gl/shader/chunks/assign-marker-varying.glsl.ts::start`);
 export const assign_marker_varying = `
 #if defined(dNeedsMarker)
     #if defined(dMarkerType_instance)
@@ -7,3 +11,4 @@ export const assign_marker_varying = `
     #endif
 #endif
 `;
+loadCheckpoint(`mol-gl/shader/chunks/assign-marker-varying.glsl.ts::end`);

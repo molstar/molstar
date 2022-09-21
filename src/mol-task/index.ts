@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../mol-util/debug';
+loadCheckpoint(`mol-task/index.ts::start`);
 /**
  * Copyright (c) 2017 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -12,3 +16,4 @@ import { MultistepTask } from './util/multistep';
 import { chunkedSubtask } from './util/chunked';
 
 export { Task, RuntimeContext, Progress, Scheduler, MultistepTask, chunkedSubtask };
+loadCheckpoint(`mol-task/index.ts::end`);

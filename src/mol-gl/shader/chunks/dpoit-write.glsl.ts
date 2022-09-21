@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-gl/shader/chunks/dpoit-write.glsl.ts::start`);
 /**
  * Copyright (c) 2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -68,3 +72,5 @@ export const dpoit_write = `
     }
 #endif
 `;
+
+loadCheckpoint(`mol-gl/shader/chunks/dpoit-write.glsl.ts::end`);

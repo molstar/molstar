@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-geo/geometry/overpaint-data.ts::start`);
 /**
  * Copyright (c) 2019-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -77,3 +81,4 @@ export function createEmptyOverpaint(overpaintData?: OverpaintData): OverpaintDa
         };
     }
 }
+loadCheckpoint(`mol-geo/geometry/overpaint-data.ts::end`);

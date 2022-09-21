@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../mol-util/debug';
+loadCheckpoint(`mol-plugin/layout.ts::start`);
 /**
  * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -212,3 +216,4 @@ export class PluginLayout extends StatefulPluginComponent<PluginLayoutStateProps
         }
     }
 }
+loadCheckpoint(`mol-plugin/layout.ts::end`);

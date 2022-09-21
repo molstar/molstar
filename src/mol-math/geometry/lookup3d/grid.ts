@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-math/geometry/lookup3d/grid.ts::start`);
 /**
  * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -278,3 +282,4 @@ function query<T extends number = number>(ctx: QueryContext, result: Result<T>):
     }
     return result.count > 0;
 }
+loadCheckpoint(`mol-math/geometry/lookup3d/grid.ts::end`);

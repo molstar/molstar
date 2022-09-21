@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-model-formats/structure/basic/sequence.ts::start`);
 /**
  * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -45,3 +49,4 @@ export function getSequence(data: BasicData, entities: Entities, atomicHierarchy
 
     return { byEntityKey, sequences };
 }
+loadCheckpoint(`mol-model-formats/structure/basic/sequence.ts::end`);

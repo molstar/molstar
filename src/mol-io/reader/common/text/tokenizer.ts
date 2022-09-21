@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../../mol-util/debug';
+loadCheckpoint(`mol-io/reader/common/text/tokenizer.ts::start`);
 /**
  * Copyright (c) 2017 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -305,3 +309,4 @@ export namespace TokenBuilder {
         };
     }
 }
+loadCheckpoint(`mol-io/reader/common/text/tokenizer.ts::end`);

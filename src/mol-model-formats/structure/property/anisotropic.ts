@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-model-formats/structure/property/anisotropic.ts::start`);
 /**
  * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -80,3 +84,4 @@ namespace AtomSiteAnisotrop {
         return elementToAnsiotrop;
     }
 }
+loadCheckpoint(`mol-model-formats/structure/property/anisotropic.ts::end`);

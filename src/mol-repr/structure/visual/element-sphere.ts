@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-repr/structure/visual/element-sphere.ts::start`);
 /**
  * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -70,3 +74,4 @@ export function ElementSphereMeshVisual(materialId: number): UnitsVisual<Element
         }
     }, materialId);
 }
+loadCheckpoint(`mol-repr/structure/visual/element-sphere.ts::end`);

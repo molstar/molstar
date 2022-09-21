@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../../mol-util/debug';
+loadCheckpoint(`mol-model-formats/structure/property/atoms/chem_comp.ts::start`);
 /**
  * Copyright (c) 2020 Mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -94,3 +98,4 @@ export namespace ComponentAtom {
         constructor(public readonly id: string) { }
     }
 }
+loadCheckpoint(`mol-model-formats/structure/property/atoms/chem_comp.ts::end`);

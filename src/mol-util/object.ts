@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../mol-util/debug';
+loadCheckpoint(`mol-util/object.ts::start`);
 /**
  * Copyright (c) 2017 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -111,3 +115,4 @@ export function objectForEach<T>(o: { [k: string]: T }, f: (v: T, k: string) => 
         f((o as any)[k], k);
     }
 }
+loadCheckpoint(`mol-util/object.ts::end`);

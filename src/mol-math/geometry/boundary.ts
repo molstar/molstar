@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-math/geometry/boundary.ts::start`);
 /**
  * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -60,3 +64,4 @@ export function getBoundary(data: PositionData): Boundary {
 
     return { box: boundaryHelper.getBox(), sphere };
 }
+loadCheckpoint(`mol-math/geometry/boundary.ts::end`);

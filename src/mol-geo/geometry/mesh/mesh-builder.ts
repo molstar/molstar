@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-geo/geometry/mesh/mesh-builder.ts::start`);
 /**
  * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -161,3 +165,4 @@ export namespace MeshBuilder {
         return Mesh.create(vb, ib, nb, gb, state.vertices.elementCount, state.indices.elementCount, mesh);
     }
 }
+loadCheckpoint(`mol-geo/geometry/mesh/mesh-builder.ts::end`);

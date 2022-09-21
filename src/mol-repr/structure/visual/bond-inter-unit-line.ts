@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-repr/structure/visual/bond-inter-unit-line.ts::start`);
 /**
  * Copyright (c) 2020-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -152,3 +156,5 @@ export function InterUnitBondLineVisual(materialId: number): ComplexVisual<Inter
         }
     }, materialId);
 }
+
+loadCheckpoint(`mol-repr/structure/visual/bond-inter-unit-line.ts::end`);

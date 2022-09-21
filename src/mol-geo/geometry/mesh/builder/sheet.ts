@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../../mol-util/debug';
+loadCheckpoint(`mol-geo/geometry/mesh/builder/sheet.ts::start`);
 /**
  * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -220,3 +224,4 @@ export function addSheet(state: MeshBuilder.State, controlPoints: ArrayLike<numb
         (endCap && arrowHeight === 0 ? 4 : 0);
     for (let i = 0, il = addedVertexCount; i < il; ++i) caAdd(groups, currentGroup);
 }
+loadCheckpoint(`mol-geo/geometry/mesh/builder/sheet.ts::end`);

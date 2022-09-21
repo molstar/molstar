@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`extensions/dnatco/confal-pyramids/util.ts::start`);
 /**
  * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -125,3 +129,5 @@ export class ConfalPyramidsIterator {
         }
     }
 }
+
+loadCheckpoint(`extensions/dnatco/confal-pyramids/util.ts::end`);

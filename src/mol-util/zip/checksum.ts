@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-util/zip/checksum.ts::start`);
 /**
  * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -46,3 +50,4 @@ export function adler(data: Uint8Array, o: number, len: number) {
     }
     return (b << 16) | a;
 }
+loadCheckpoint(`mol-util/zip/checksum.ts::end`);

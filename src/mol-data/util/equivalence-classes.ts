@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-data/util/equivalence-classes.ts::start`);
 /**
  * Copyright (c) 2017 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -45,3 +49,5 @@ export class EquivalenceClassesImpl<K, V> {
 export function EquivalenceClasses<K, V>(getHash: (x: V) => any, areEqual: (a: V, b: V) => boolean) {
     return new EquivalenceClassesImpl<K, V>(getHash, areEqual);
 }
+
+loadCheckpoint(`mol-data/util/equivalence-classes.ts::end`);

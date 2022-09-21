@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-script/runtime/environment.ts::start`);
 // /**
 //  * Copyright (c) 2018 Mol* contributors, licensed under MIT, See LICENSE file for more info.
 //  *
@@ -35,3 +39,4 @@
 // }
 
 // export default Environment
+loadCheckpoint(`mol-script/runtime/environment.ts::end`);

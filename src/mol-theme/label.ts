@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../mol-util/debug';
+loadCheckpoint(`mol-theme/label.ts::start`);
 /**
  * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -344,3 +348,4 @@ export function dihedralLabel(quad: Loci.Bundle<4>, options: Partial<LabelOption
     const label = bundleLabel(quad, o);
     return o.condensed ? `${dihedral} | ${label}` : `Dihedral ${dihedral}</br>${label}`;
 }
+loadCheckpoint(`mol-theme/label.ts::end`);

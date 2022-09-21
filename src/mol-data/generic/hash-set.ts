@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-data/generic/hash-set.ts::start`);
 /**
  * Copyright (c) 2017 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -48,3 +52,4 @@ class HashSetImpl<T> implements SetLike<T> {
 export function HashSet<T>(getHash: (v: T) => any, areEqual: (a: T, b: T) => boolean): SetLike<T> {
     return new HashSetImpl<T>(getHash, areEqual);
 }
+loadCheckpoint(`mol-data/generic/hash-set.ts::end`);

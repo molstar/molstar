@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-model-props/computed/representations/shared.ts::start`);
 /**
  * Copyright (c) 2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -14,3 +18,5 @@ export const InteractionsSharedParams = {
     parentDisplay: PD.Select('stub', PD.arrayToOptions(['stub', 'full', 'between'] as const), { description: 'Only has an effect when "includeParent" is enabled. "Stub" shows just the child side of interactions to the parent. "Full" shows both sides of interactions to the parent. "Between" shows only interactions to the parent.' }),
 };
 export type InteractionsSharedParams = typeof InteractionsSharedParams
+
+loadCheckpoint(`mol-model-props/computed/representations/shared.ts::end`);

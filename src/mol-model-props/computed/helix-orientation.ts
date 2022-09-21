@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-model-props/computed/helix-orientation.ts::start`);
 /**
  * Copyright (c) 2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -29,3 +33,4 @@ export const HelixOrientationProvider: CustomModelProperty.Provider<HelixOrienta
         return { value: calcHelixOrientation(data) };
     }
 });
+loadCheckpoint(`mol-model-props/computed/helix-orientation.ts::end`);

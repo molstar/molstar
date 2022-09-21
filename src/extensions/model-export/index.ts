@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`extensions/model-export/index.ts::start`);
 /**
  * Copyright (c) 2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -28,3 +32,4 @@ export const ModelExport = PluginBehavior.create<{}>({
     },
     params: () => ({})
 });
+loadCheckpoint(`extensions/model-export/index.ts::end`);

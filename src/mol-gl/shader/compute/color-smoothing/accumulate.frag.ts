@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../../mol-util/debug';
+loadCheckpoint(`mol-gl/shader/compute/color-smoothing/accumulate.frag.ts::start`);
 /**
  * Copyright (c) 2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -28,3 +32,4 @@ void main() {
     gl_FragData[1] = vec4(f);
 }
 `;
+loadCheckpoint(`mol-gl/shader/compute/color-smoothing/accumulate.frag.ts::end`);

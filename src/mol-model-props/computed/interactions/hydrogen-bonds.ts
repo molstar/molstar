@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-model-props/computed/interactions/hydrogen-bonds.ts::start`);
 /**
  * Copyright (c) 2019-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -326,3 +330,4 @@ export const WeakHydrogenBondsProvider: ContactProvider<WeakHydrogenBondsParams>
         };
     }
 };
+loadCheckpoint(`mol-model-props/computed/interactions/hydrogen-bonds.ts::end`);

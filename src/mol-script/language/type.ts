@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-script/language/type.ts::start`);
 /*
  * Copyright (c) 2018 Mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -38,3 +42,4 @@ namespace Type {
 }
 
 export { Type };
+loadCheckpoint(`mol-script/language/type.ts::end`);

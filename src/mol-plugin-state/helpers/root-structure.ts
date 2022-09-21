@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-plugin-state/helpers/root-structure.ts::start`);
 /**
  * Copyright (c) 2019-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -192,3 +196,4 @@ export namespace RootStructureDefinition {
         assertUnreachable(params);
     }
 }
+loadCheckpoint(`mol-plugin-state/helpers/root-structure.ts::end`);

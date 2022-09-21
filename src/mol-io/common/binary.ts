@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-io/common/binary.ts::start`);
 /**
  * Copyright (c) 2017-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -30,3 +34,4 @@ export function uint8ToString(array: Uint8Array) {
         return String.fromCharCode.apply(null, array);
     }
 }
+loadCheckpoint(`mol-io/common/binary.ts::end`);

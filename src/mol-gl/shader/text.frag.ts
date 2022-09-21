@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-gl/shader/text.frag.ts::start`);
 /**
  * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -87,3 +91,5 @@ void main(){
     #endif
 }
 `;
+
+loadCheckpoint(`mol-gl/shader/text.frag.ts::end`);

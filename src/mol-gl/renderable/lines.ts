@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-gl/renderable/lines.ts::start`);
 /**
  * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -36,3 +40,4 @@ export function LinesRenderable(ctx: WebGLContext, id: number, values: LinesValu
 
     return createRenderable(renderItem, values, state);
 }
+loadCheckpoint(`mol-gl/renderable/lines.ts::end`);

@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-gl/shader/chunks/read-from-texture.glsl.ts::start`);
 /**
  * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -19,3 +23,4 @@ vec4 readFromTexture(const in sampler2D tex, const in int i, const in vec2 dim) 
     return texture2D(tex, uv);
 }
 `;
+loadCheckpoint(`mol-gl/shader/chunks/read-from-texture.glsl.ts::end`);

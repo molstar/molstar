@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../../mol-util/debug';
+loadCheckpoint(`mol-model-props/computed/secondary-structure/dssp/protein-info.ts::start`);
 /**
  * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -44,3 +48,4 @@ export function getUnitProteinInfo(unit: Unit.Atomic): ProteinInfo {
         nIndices: n as unknown as ArrayLike<ElementIndex | -1>,
     };
 }
+loadCheckpoint(`mol-model-props/computed/secondary-structure/dssp/protein-info.ts::end`);

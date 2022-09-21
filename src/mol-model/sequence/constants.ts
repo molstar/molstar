@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-model/sequence/constants.ts::start`);
 /**
  * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -83,3 +87,4 @@ export function getDnaOneLetterCode(residueName: string): NuclecicAlphabet {
     const code = DnaOneLetterCodes[residueName];
     return code || 'X';
 }
+loadCheckpoint(`mol-model/sequence/constants.ts::end`);

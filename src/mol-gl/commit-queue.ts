@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../mol-util/debug';
+loadCheckpoint(`mol-gl/commit-queue.ts::start`);
 /**
  * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -53,3 +57,5 @@ export class CommitQueue {
         return o;
     }
 }
+
+loadCheckpoint(`mol-gl/commit-queue.ts::end`);

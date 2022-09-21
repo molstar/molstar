@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-plugin-state/manager/animation.ts::start`);
 /**
  * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -255,3 +259,4 @@ namespace PluginAnimationManager {
         }
     }
 }
+loadCheckpoint(`mol-plugin-state/manager/animation.ts::end`);

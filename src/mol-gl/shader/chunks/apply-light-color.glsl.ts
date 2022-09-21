@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-gl/shader/chunks/apply-light-color.glsl.ts::start`);
 /**
  * Copyright (c) 2017-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -65,3 +69,4 @@ export const apply_light_color = `
     gl_FragColor.a *= 1.0 - pow(abs(dot(normal, vec3(0.0, 0.0, 1.0))), uXrayEdgeFalloff);
 #endif
 `;
+loadCheckpoint(`mol-gl/shader/chunks/apply-light-color.glsl.ts::end`);

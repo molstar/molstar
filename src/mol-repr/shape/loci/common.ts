@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-repr/shape/loci/common.ts::start`);
 /**
  * Copyright (c) 2020-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -21,3 +25,4 @@ export const LociLabelTextParams = {
     borderWidth: PD.Numeric(0.2, { min: 0, max: 0.5, step: 0.01 })
 };
 export type LociLabelTextParams = typeof LociLabelTextParams
+loadCheckpoint(`mol-repr/shape/loci/common.ts::end`);

@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-math/linear-algebra/3d/minimize-rmsd.ts::start`);
 /**
  * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -170,3 +174,4 @@ function findMinimalRmsdTransformImpl(state: RmsdTransformState): void {
     makeTransformMatrix(state);
     state.result.rmsd = rmsd;
 }
+loadCheckpoint(`mol-math/linear-algebra/3d/minimize-rmsd.ts::end`);

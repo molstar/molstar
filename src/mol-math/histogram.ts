@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../mol-util/debug';
+loadCheckpoint(`mol-math/histogram.ts::start`);
 /**
  * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -37,3 +41,4 @@ function _calcHistogram(data: ArrayLike<number>, binCount: number, min: number, 
 
     return { min, max, binWidth, counts };
 }
+loadCheckpoint(`mol-math/histogram.ts::end`);

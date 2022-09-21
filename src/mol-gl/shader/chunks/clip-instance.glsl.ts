@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-gl/shader/chunks/clip-instance.glsl.ts::start`);
 export const clip_instance = `
 #if defined(dClipVariant_instance) && dClipObjectCount != 0
     int flag = 0;
@@ -11,3 +15,4 @@ export const clip_instance = `
         gl_Position.z = 2.0 * gl_Position.w;
 #endif
 `;
+loadCheckpoint(`mol-gl/shader/chunks/clip-instance.glsl.ts::end`);

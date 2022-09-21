@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../../mol-util/debug';
+loadCheckpoint(`mol-model/structure/query/queries/internal.ts::start`);
 /**
  * Copyright (c) 2017 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -127,3 +131,4 @@ export function bundleGenerator(elements: BundleElement[]): StructureQuery {
         return StructureSelection.Sequence(ctx.inputStructure, [Bundle.toStructure(bundle, ctx.inputStructure)]);
     };
 }
+loadCheckpoint(`mol-model/structure/query/queries/internal.ts::end`);

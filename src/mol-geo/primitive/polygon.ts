@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-geo/primitive/polygon.ts::start`);
 /**
  * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -24,3 +28,4 @@ export function polygon(sideCount: number, shift: boolean, radius = -1) {
     }
     return points;
 }
+loadCheckpoint(`mol-geo/primitive/polygon.ts::end`);

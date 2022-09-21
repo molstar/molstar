@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-gl/compute/histogram-pyramid/sum.ts::start`);
 /**
  * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -101,3 +105,4 @@ export function getHistopyramidSum(ctx: WebGLContext, pyramidTopTexture: Texture
         ? sumInts[0]
         : unpackRGBToInt(sumBytes[0], sumBytes[1], sumBytes[2]);
 }
+loadCheckpoint(`mol-gl/compute/histogram-pyramid/sum.ts::end`);

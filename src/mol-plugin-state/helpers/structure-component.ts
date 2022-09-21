@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-plugin-state/helpers/structure-component.ts::start`);
 /**
  * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -168,3 +172,4 @@ export function updateStructureComponent(a: Structure, b: SO.Molecule.Structure,
 
     return updated ? StateTransformer.UpdateResult.Updated : StateTransformer.UpdateResult.Unchanged;
 }
+loadCheckpoint(`mol-plugin-state/helpers/structure-component.ts::end`);

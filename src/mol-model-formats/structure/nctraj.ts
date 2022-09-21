@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-model-formats/structure/nctraj.ts::start`);
 /**
  * Copyright (c) 2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -50,3 +54,5 @@ export function coordinatesFromNctraj(file: NctrajFile): Task<Coordinates> {
         return Coordinates.create(frames, deltaTime, offsetTime);
     });
 }
+
+loadCheckpoint(`mol-model-formats/structure/nctraj.ts::end`);

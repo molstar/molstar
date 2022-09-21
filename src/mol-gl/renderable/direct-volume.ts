@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-gl/renderable/direct-volume.ts::start`);
 /**
  * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -58,3 +62,4 @@ export function DirectVolumeRenderable(ctx: WebGLContext, id: number, values: Di
     const renderItem = createGraphicsRenderItem(ctx, 'triangles', shaderCode, schema, { ...values, ...internalValues }, materialId, variants);
     return createRenderable(renderItem, values, state);
 }
+loadCheckpoint(`mol-gl/renderable/direct-volume.ts::end`);

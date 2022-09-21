@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-plugin-ui/structure/source.tsx::start`);
 /**
  * Copyright (c) 2020-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -316,3 +320,4 @@ export class StructureSourceControls extends CollapsableControls<{}, StructureSo
         </>;
     }
 }
+loadCheckpoint(`mol-plugin-ui/structure/source.tsx::end`);

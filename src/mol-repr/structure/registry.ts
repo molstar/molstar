@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-repr/structure/registry.ts::start`);
 /**
  * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -55,3 +59,4 @@ export namespace StructureRepresentationRegistry {
     export type BuiltIn = keyof _BuiltIn
     export type BuiltInParams<T extends BuiltIn> = Partial<RepresentationProvider.ParamValues<_BuiltIn[T]>>
 }
+loadCheckpoint(`mol-repr/structure/registry.ts::end`);

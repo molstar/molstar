@@ -1,4 +1,8 @@
 
+
+import { loadCheckpoint } from '../mol-util/debug';
+loadCheckpoint(`mol-util/lru-cache.ts::start`);
+
 /**
  * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -54,3 +58,4 @@ namespace LRUCache {
         return removed;
     }
 }
+loadCheckpoint(`mol-util/lru-cache.ts::end`);

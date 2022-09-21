@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-geo/geometry/cylinders/cylinders-builder.ts::start`);
 /**
  * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -100,3 +104,5 @@ function fillMappingAndIndices(n: number, mb: Float32Array, ib: Uint32Array) {
         ib[io + 9] = o + 4; ib[io + 10] = o + 5; ib[io + 11] = o + 3;
     }
 }
+
+loadCheckpoint(`mol-geo/geometry/cylinders/cylinders-builder.ts::end`);

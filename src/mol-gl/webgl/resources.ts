@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-gl/webgl/resources.ts::start`);
 /**
  * Copyright (c) 2020-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -193,3 +197,4 @@ export function createResources(gl: GLRenderingContext, state: WebGLState, stats
         }
     };
 }
+loadCheckpoint(`mol-gl/webgl/resources.ts::end`);

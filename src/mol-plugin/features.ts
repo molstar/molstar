@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../mol-util/debug';
+loadCheckpoint(`mol-plugin/features.ts::start`);
 /**
  * Copyright (c) 2021-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -30,3 +34,4 @@ export const PluginFeatureDetection = {
         return !(window as any).MSStream && (isIOS || (isAppleDevice && isTouchScreen));
     },
 };
+loadCheckpoint(`mol-plugin/features.ts::end`);

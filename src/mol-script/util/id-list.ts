@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-script/util/id-list.ts::start`);
 /**
  * Copyright (c) 2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -100,3 +104,4 @@ export function compileIdListSelection(input: string, idType: 'auth' | 'label' |
         return residueEntriesToQuery(entries, idType);
     }
 }
+loadCheckpoint(`mol-script/util/id-list.ts::end`);

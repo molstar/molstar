@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../../mol-util/debug';
+loadCheckpoint(`mol-model/structure/query/queries/generators.ts::start`);
 /**
  * Copyright (c) 2017-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -374,3 +378,4 @@ export function bondedAtomicPairs(bondTest?: QueryPredicate): StructureQuery {
         return ret.getSelection();
     };
 }
+loadCheckpoint(`mol-model/structure/query/queries/generators.ts::end`);

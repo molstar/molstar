@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-model-formats/structure/top.ts::start`);
 /**
  * Copyright (c) 2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -224,3 +228,4 @@ export function topologyFromTop(top: TopFile): Task<Topology> {
         return Topology.create(top.system || 'TOP', basic, bonds, format);
     });
 }
+loadCheckpoint(`mol-model-formats/structure/top.ts::end`);

@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-gl/_spec/gl.ts::start`);
 /**
  * Copyright (c) 2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -26,3 +30,4 @@ export function tryGetGLContext(width: number, height: number, requiredExtension
         return;
     }
 }
+loadCheckpoint(`mol-gl/_spec/gl.ts::end`);

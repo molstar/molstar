@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-gl/webgl/compat.ts::start`);
 /**
  * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -528,3 +532,5 @@ export function testColorBuffer(gl: GLRenderingContext, type: number) {
 
     return true;
 }
+
+loadCheckpoint(`mol-gl/webgl/compat.ts::end`);

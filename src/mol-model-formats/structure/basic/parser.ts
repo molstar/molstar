@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-model-formats/structure/basic/parser.ts::start`);
 /**
  * Copyright (c) 2017-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -235,3 +239,4 @@ async function readIntegrative(ctx: RuntimeContext, data: BasicData, properties:
 
     return models;
 }
+loadCheckpoint(`mol-model-formats/structure/basic/parser.ts::end`);

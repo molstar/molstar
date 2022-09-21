@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`extensions/anvil/prop.ts::start`);
 /**
  * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -78,3 +82,4 @@ async function computeAnvil(ctx: CustomProperty.Context, data: Structure, props:
     const p = { ...PD.getDefaultValues(ANVILParams), ...props };
     return await computeANVIL(data, p).runInContext(ctx.runtime);
 }
+loadCheckpoint(`extensions/anvil/prop.ts::end`);

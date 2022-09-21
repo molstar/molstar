@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-util/color/params.ts::start`);
 /**
  * Copyright (c) 2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -15,3 +19,4 @@ export function getColorMapParams<T extends { [k: string]: number }>(map: ColorM
     });
     return colors as { [k in keyof T]: PD.Color };
 }
+loadCheckpoint(`mol-util/color/params.ts::end`);

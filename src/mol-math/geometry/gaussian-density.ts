@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-math/geometry/gaussian-density.ts::start`);
 /**
  * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -54,3 +58,4 @@ function _computeGaussianDensityTexture(type: '2d' | '3d', position: PositionDat
             GaussianDensityTexture3d(webgl, position, box, radius, props, texture);
     });
 }
+loadCheckpoint(`mol-math/geometry/gaussian-density.ts::end`);

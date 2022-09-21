@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../mol-util/debug';
+loadCheckpoint(`mol-util/map.ts::start`);
 /**
  * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -35,3 +39,4 @@ export function DefaultMap<K, V>(valueCtor: () => V) {
 //         return value
 //     }
 // }
+loadCheckpoint(`mol-util/map.ts::end`);

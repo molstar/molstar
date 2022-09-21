@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-model-formats/structure/cube.ts::start`);
 /**
  * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -81,3 +85,5 @@ namespace MolFormat {
 export function trajectoryFromCube(cube: CubeFile): Task<Trajectory> {
     return Task.create('Parse Cube', ctx => getModels(cube, ctx));
 }
+
+loadCheckpoint(`mol-model-formats/structure/cube.ts::end`);

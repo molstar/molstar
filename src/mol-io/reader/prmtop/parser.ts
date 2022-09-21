@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-io/reader/prmtop/parser.ts::start`);
 /**
  * Copyright (c) 2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -174,3 +178,4 @@ export function parsePrmtop(data: string) {
         return await parseInternal(data, ctx);
     });
 }
+loadCheckpoint(`mol-io/reader/prmtop/parser.ts::end`);

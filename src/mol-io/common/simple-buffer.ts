@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-io/common/simple-buffer.ts::start`);
 /**
  * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -125,3 +129,4 @@ export namespace SimpleBuffer {
         flipByteOrder(source, target, byteCount, elementByteSize, offset);
     }
 }
+loadCheckpoint(`mol-io/common/simple-buffer.ts::end`);

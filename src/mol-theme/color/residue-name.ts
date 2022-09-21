@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-theme/color/residue-name.ts::start`);
 /**
  * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -143,3 +147,4 @@ export const ResidueNameColorThemeProvider: ColorTheme.Provider<ResidueNameColor
     defaultValues: PD.getDefaultValues(ResidueNameColorThemeParams),
     isApplicable: (ctx: ThemeDataContext) => !!ctx.structure
 };
+loadCheckpoint(`mol-theme/color/residue-name.ts::end`);

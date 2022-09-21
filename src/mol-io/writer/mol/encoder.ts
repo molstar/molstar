@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-io/writer/mol/encoder.ts::start`);
 /**
  * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -140,3 +144,4 @@ export class MolEncoder extends LigandEncoder {
         }
     }
 }
+loadCheckpoint(`mol-io/writer/mol/encoder.ts::end`);

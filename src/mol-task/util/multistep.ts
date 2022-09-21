@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-task/util/multistep.ts::start`);
 /**
  * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -15,3 +19,4 @@ function MultistepTask<P, T>(name: string, steps: string[], f: MultistepFn<P, T>
 }
 
 export { MultistepTask };
+loadCheckpoint(`mol-task/util/multistep.ts::end`);

@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-util/color/color.ts::start`);
 /**
  * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -176,3 +180,4 @@ export function getAdjustedColorMap<T extends { [k: string]: number }>(map: Colo
 
 export type ColorSwatch = [string, Color][]
 export function ColorSwatch(l: [string, number][]) { return l as unknown as ColorSwatch; }
+loadCheckpoint(`mol-util/color/color.ts::end`);

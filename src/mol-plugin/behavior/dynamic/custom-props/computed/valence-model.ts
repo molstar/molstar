@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../../../mol-util/debug';
+loadCheckpoint(`mol-plugin/behavior/dynamic/custom-props/computed/valence-model.ts::start`);
 /**
  * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -101,3 +105,4 @@ export const ValenceModel = PluginBehavior.create<{ autoAttach: boolean, showToo
         showTooltip: PD.Boolean(true)
     })
 });
+loadCheckpoint(`mol-plugin/behavior/dynamic/custom-props/computed/valence-model.ts::end`);

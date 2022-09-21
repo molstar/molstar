@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-theme/color/operator-hkl.ts::start`);
 /**
  * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -128,3 +132,4 @@ export const OperatorHklColorThemeProvider: ColorTheme.Provider<OperatorHklColor
     defaultValues: PD.getDefaultValues(OperatorHklColorThemeParams),
     isApplicable: (ctx: ThemeDataContext) => !!ctx.structure
 };
+loadCheckpoint(`mol-theme/color/operator-hkl.ts::end`);

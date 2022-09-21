@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-script/transpilers/vmd/operators.ts::start`);
 /**
  * Copyright (c) 2017-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -81,3 +85,5 @@ export const operators: OperatorList = [
         map: (op, s1, s2) => B.struct.combinator.merge([s1, s2])
     }
 ];
+
+loadCheckpoint(`mol-script/transpilers/vmd/operators.ts::end`);

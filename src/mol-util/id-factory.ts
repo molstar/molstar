@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../mol-util/debug';
+loadCheckpoint(`mol-util/id-factory.ts::start`);
 /**
  * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -13,3 +17,4 @@ export function idFactory(firstId = 0, maxId = Number.MAX_SAFE_INTEGER) {
         return ret;
     };
 }
+loadCheckpoint(`mol-util/id-factory.ts::end`);

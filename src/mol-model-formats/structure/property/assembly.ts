@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-model-formats/structure/property/assembly.ts::start`);
 /**
  * Copyright (c) 2017 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -148,3 +152,4 @@ function parseOperatorList(value: string): string[][] {
 
     return ret;
 }
+loadCheckpoint(`mol-model-formats/structure/property/assembly.ts::end`);

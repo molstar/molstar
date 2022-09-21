@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-model-props/computed/helix-orientation/helix-orientation.ts::start`);
 /**
  * Copyright (c) 2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -137,3 +141,5 @@ export function calcHelixOrientation(model: Model): HelixOrientation {
         centers
     };
 }
+
+loadCheckpoint(`mol-model-props/computed/helix-orientation/helix-orientation.ts::end`);

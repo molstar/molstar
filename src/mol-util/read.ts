@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../mol-util/debug';
+loadCheckpoint(`mol-util/read.ts::start`);
 /**
  * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -42,3 +46,4 @@ export function readUrlAsText(url: string) {
 export function readUrlAsBuffer(url: string) {
     return readUrl(url, true) as Promise<Uint8Array>;
 }
+loadCheckpoint(`mol-util/read.ts::end`);

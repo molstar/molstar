@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-plugin-state/animation/model.ts::start`);
 /**
  * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -73,3 +77,4 @@ namespace PluginStateAnimation {
         if (d?.kind === 'fixed') return d.durationMs;
     }
 }
+loadCheckpoint(`mol-plugin-state/animation/model.ts::end`);

@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-model-formats/structure/sdf.ts::start`);
 /**
  * Copyright (c) 2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -27,3 +31,5 @@ namespace SdfFormat {
 export function trajectoryFromSdf(mol: SdfFileCompound): Task<Trajectory> {
     return Task.create('Parse SDF', ctx => getMolModels(mol.molFile, SdfFormat.create(mol), ctx));
 }
+
+loadCheckpoint(`mol-model-formats/structure/sdf.ts::end`);

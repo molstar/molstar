@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-script/runtime/query/table.ts::start`);
 /**
  * Copyright (c) 2018-2022 Mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -429,3 +433,5 @@ function getArray<T = any>(ctx: QueryContext, xs: any): T[] {
         DefaultQueryRuntimeTable.addSymbol(s);
     }
 })();
+
+loadCheckpoint(`mol-script/runtime/query/table.ts::end`);

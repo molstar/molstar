@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`extensions/pdbe/structure-quality-report/behavior.ts::start`);
 /**
  * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -70,3 +74,4 @@ export const PDBeStructureQualityReport = PluginBehavior.create<{ autoAttach: bo
         showTooltip: PD.Boolean(true)
     })
 });
+loadCheckpoint(`extensions/pdbe/structure-quality-report/behavior.ts::end`);

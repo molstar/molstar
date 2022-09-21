@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../mol-util/debug';
+loadCheckpoint(`mol-util/type-helpers.ts::start`);
 /**
  * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -34,3 +38,4 @@ export function assertUnreachable(x: never): never {
 export function isPromiseLike<T = any>(x: any): x is Promise<T> {
     return typeof x?.then === 'function';
 }
+loadCheckpoint(`mol-util/type-helpers.ts::end`);

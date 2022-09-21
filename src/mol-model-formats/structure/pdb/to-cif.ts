@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-model-formats/structure/pdb/to-cif.ts::start`);
 /**
  * Copyright (c) 2019-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -207,3 +211,4 @@ export async function pdbToMmCif(pdb: PdbFile): Promise<CifFrame> {
         categories
     };
 }
+loadCheckpoint(`mol-model-formats/structure/pdb/to-cif.ts::end`);

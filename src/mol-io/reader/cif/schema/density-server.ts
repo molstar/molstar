@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../../mol-util/debug';
+loadCheckpoint(`mol-io/reader/cif/schema/density-server.ts::start`);
 /**
  * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -66,3 +70,4 @@ export interface DensityServer_Header_Database extends Database<DensityServer_He
 
 export type DensityServer_Data_Schema = typeof DensityServer_Data_Schema;
 export interface DensityServer_Data_Database extends Database<DensityServer_Data_Schema> {}
+loadCheckpoint(`mol-io/reader/cif/schema/density-server.ts::end`);

@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../../mol-util/debug';
+loadCheckpoint(`mol-gl/shader/compute/color-smoothing/accumulate.vert.ts::start`);
 /**
  * Copyright (c) 2021-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -48,3 +52,4 @@ void main() {
     #endif
 }
 `;
+loadCheckpoint(`mol-gl/shader/compute/color-smoothing/accumulate.vert.ts::end`);

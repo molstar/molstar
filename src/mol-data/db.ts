@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../mol-util/debug';
+loadCheckpoint(`mol-data/db.ts::start`);
 /**
  * Copyright (c) 2017 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -13,3 +17,4 @@ import * as ColumnHelpers from './db/column-helpers';
 type DatabaseCollection<T extends Database.Schema> = { [name: string]: Database<T> }
 
 export { DatabaseCollection, Database, Table, Column, ColumnHelpers };
+loadCheckpoint(`mol-data/db.ts::end`);

@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-model-props/computed/interactions/interactions.ts::start`);
 /**
  * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -254,3 +258,4 @@ function findInterUnitContacts(structure: Structure, unitsFeatures: IntMap<Featu
 
     return builder.getContacts(unitsFeatures);
 }
+loadCheckpoint(`mol-model-props/computed/interactions/interactions.ts::end`);

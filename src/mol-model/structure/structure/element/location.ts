@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../../mol-util/debug';
+loadCheckpoint(`mol-model/structure/structure/element/location.ts::start`);
 /**
  * Copyright (c) 2017-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -70,3 +74,4 @@ namespace Location {
         return l.unit.model.atomicHierarchy.chainAtomSegments.index[l.element];
     }
 }
+loadCheckpoint(`mol-model/structure/structure/element/location.ts::end`);

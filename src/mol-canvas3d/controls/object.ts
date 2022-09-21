@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-canvas3d/controls/object.ts::start`);
 /**
  * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -56,3 +60,4 @@ export namespace ObjectControls {
         return Vec3.negate(out, panOffset);
     }
 }
+loadCheckpoint(`mol-canvas3d/controls/object.ts::end`);

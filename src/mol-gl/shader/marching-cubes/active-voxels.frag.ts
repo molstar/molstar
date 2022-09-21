@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-gl/shader/marching-cubes/active-voxels.frag.ts::start`);
 export const activeVoxels_frag = `
 precision highp float;
 precision highp int;
@@ -69,3 +73,4 @@ void main(void) {
     gl_FragColor = vec4(vec3(totalTrianglesToGenerate * 3.0), c / 255.0);
 }
 `;
+loadCheckpoint(`mol-gl/shader/marching-cubes/active-voxels.frag.ts::end`);

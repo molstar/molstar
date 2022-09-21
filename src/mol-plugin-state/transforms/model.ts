@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-plugin-state/transforms/model.ts::start`);
 /**
  * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -1080,3 +1084,5 @@ const ShapeFromPly = PluginStateTransform.BuiltIn({
         });
     }
 });
+
+loadCheckpoint(`mol-plugin-state/transforms/model.ts::end`);

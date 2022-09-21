@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-gl/webgl/uniform.ts::start`);
 /**
  * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -119,3 +123,4 @@ export function cloneUniformValues(uniformValues: UniformValues): UniformValues 
     });
     return clonedValues;
 }
+loadCheckpoint(`mol-gl/webgl/uniform.ts::end`);

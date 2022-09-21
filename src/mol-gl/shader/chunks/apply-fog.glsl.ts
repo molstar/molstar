@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-gl/shader/chunks/apply-fog.glsl.ts::start`);
 export const apply_fog = `
 float viewZ = depthToViewZ(uIsOrtho, fragmentDepth, uNear, uFar);
 float fogFactor = smoothstep(uFogNear, uFogFar, abs(viewZ));
@@ -28,3 +32,4 @@ if (!uTransparentBackground) {
     #endif
 }
 `;
+loadCheckpoint(`mol-gl/shader/chunks/apply-fog.glsl.ts::end`);

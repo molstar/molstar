@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-script/language/helpers.ts::start`);
 /*
  * Copyright (c) 2018 Mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -52,3 +56,4 @@ function _symbolList(obj: any, list: MSymbol[]) {
         _symbolList(obj[childKey], list);
     }
 }
+loadCheckpoint(`mol-script/language/helpers.ts::end`);

@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../../mol-util/debug';
+loadCheckpoint(`mol-geo/geometry/mesh/builder/ribbon.ts::start`);
 /**
  * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -118,3 +122,4 @@ export function addRibbon(state: MeshBuilder.State, controlPoints: ArrayLike<num
     const addedVertexCount = (linearSegments + 1) * 4;
     for (let i = 0, il = addedVertexCount; i < il; ++i) caAdd(groups, currentGroup);
 }
+loadCheckpoint(`mol-geo/geometry/mesh/builder/ribbon.ts::end`);

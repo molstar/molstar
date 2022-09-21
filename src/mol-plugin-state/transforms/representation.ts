@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-plugin-state/transforms/representation.ts::start`);
 /**
  * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -1166,3 +1170,4 @@ const StructureSelectionsPlane3D = PluginStateTransform.BuiltIn({
         });
     },
 });
+loadCheckpoint(`mol-plugin-state/transforms/representation.ts::end`);

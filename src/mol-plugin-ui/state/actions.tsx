@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-plugin-ui/state/actions.tsx::start`);
 /**
  * Copyright (c) 2018 - 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -47,3 +51,4 @@ export class StateObjectActions extends PluginUIComponent<{ state: State, nodeRe
         </div>;
     }
 }
+loadCheckpoint(`mol-plugin-ui/state/actions.tsx::end`);

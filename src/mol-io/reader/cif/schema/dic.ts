@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../../mol-util/debug';
+loadCheckpoint(`mol-io/reader/cif/schema/dic.ts::start`);
 /**
  * Copyright (c) 2017-2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -73,3 +77,4 @@ export const dic_Schema = {
 
 export type dic_Schema = typeof dic_Schema;
 export interface dic_Database extends Database<dic_Schema> {}
+loadCheckpoint(`mol-io/reader/cif/schema/dic.ts::end`);

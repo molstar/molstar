@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-plugin-state/formats/registry.ts::start`);
 /**
  * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -102,3 +106,4 @@ export class DataFormatRegistry {
         return this._list;
     }
 }
+loadCheckpoint(`mol-plugin-state/formats/registry.ts::end`);

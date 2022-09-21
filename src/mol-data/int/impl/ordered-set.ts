@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-data/int/impl/ordered-set.ts::start`);
 /**
  * Copyright (c) 2017-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -363,3 +367,4 @@ export function indexedIntersect(idxA: OrderedSetImpl, a: S, b: S): OrderedSetIm
 
     return ofSortedArray(indices);
 }
+loadCheckpoint(`mol-data/int/impl/ordered-set.ts::end`);

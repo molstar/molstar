@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-geo/primitive/torus.ts::start`);
 /**
  * Copyright (c) 2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -76,3 +80,4 @@ export function Torus(props?: TorusProps): Primitive {
         indices: new Uint32Array(indices)
     };
 }
+loadCheckpoint(`mol-geo/primitive/torus.ts::end`);

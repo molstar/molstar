@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-task/execution/progress.ts::start`);
 /**
  * Copyright (c) 2017 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -37,3 +41,4 @@ namespace Progress {
 }
 
 export { Progress };
+loadCheckpoint(`mol-task/execution/progress.ts::end`);

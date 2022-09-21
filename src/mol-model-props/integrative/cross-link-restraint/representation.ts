@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-model-props/integrative/cross-link-restraint/representation.ts::start`);
 /**
  * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -157,3 +161,4 @@ export const CrossLinkRestraintRepresentationProvider = StructureRepresentationP
         detach: (data) => CrossLinkRestraintProvider.ref(data, false)
     }
 });
+loadCheckpoint(`mol-model-props/integrative/cross-link-restraint/representation.ts::end`);

@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-util/color/palette.ts::start`);
 /**
  * Copyright (c) 2019-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -96,3 +100,4 @@ export function getPalette(count: number, props: PaletteProps, labelOptions: Par
 
     return { color, legend };
 }
+loadCheckpoint(`mol-util/color/palette.ts::end`);

@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-math/linear-algebra/3d/vec2.ts::start`);
 /**
  * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -174,3 +178,4 @@ namespace Vec2 {
 }
 
 export { Vec2 };
+loadCheckpoint(`mol-math/linear-algebra/3d/vec2.ts::end`);

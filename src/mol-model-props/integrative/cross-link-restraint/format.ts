@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-model-props/integrative/cross-link-restraint/format.ts::start`);
 /**
  * Copyright (c) 2018-2020 Mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -105,3 +109,4 @@ namespace ModelCrossLinkRestraint {
         };
     }
 }
+loadCheckpoint(`mol-model-props/integrative/cross-link-restraint/format.ts::end`);

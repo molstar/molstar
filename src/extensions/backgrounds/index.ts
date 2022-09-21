@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`extensions/backgrounds/index.ts::start`);
 /**
  * Copyright (c) 2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -88,3 +92,5 @@ export const Backgrounds = PluginBehavior.create<{ }>({
     },
     params: () => ({ })
 });
+
+loadCheckpoint(`extensions/backgrounds/index.ts::end`);

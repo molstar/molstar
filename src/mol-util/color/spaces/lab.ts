@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-util/color/spaces/lab.ts::start`);
 /**
  * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -162,3 +166,4 @@ namespace Lab {
         return [x, y, z];
     }
 }
+loadCheckpoint(`mol-util/color/spaces/lab.ts::end`);

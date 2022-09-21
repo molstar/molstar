@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-repr/structure/representation/ellipsoid.ts::start`);
 /**
  * Copyright (c) 2019-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -62,3 +66,4 @@ export const EllipsoidRepresentationProvider = StructureRepresentationProvider({
         return oldProps.includeParent !== newProps.includeParent;
     }
 });
+loadCheckpoint(`mol-repr/structure/representation/ellipsoid.ts::end`);

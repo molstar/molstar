@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-gl/shader/fxaa.frag.ts::start`);
 export const fxaa_frag = `
 precision highp float;
 precision highp int;
@@ -227,3 +231,4 @@ void main(void) {
     gl_FragColor = texture2D(tColor, finalUv);
 }
 `;
+loadCheckpoint(`mol-gl/shader/fxaa.frag.ts::end`);

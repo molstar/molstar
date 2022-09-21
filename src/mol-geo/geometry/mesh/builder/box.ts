@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../../mol-util/debug';
+loadCheckpoint(`mol-geo/geometry/mesh/builder/box.ts::start`);
 /**
  * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -109,3 +113,4 @@ export function addOrientedBox(state: MeshBuilder.State, axes: Axes3D, radiusSca
 
     MeshBuilder.addCage(state, tmpMatrix, cage, radius, detail, radialSegments);
 }
+loadCheckpoint(`mol-geo/geometry/mesh/builder/box.ts::end`);

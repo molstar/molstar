@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-task/execution/observable.ts::start`);
 /**
  * Copyright (c) 2017-2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -249,3 +253,4 @@ class ObservableRuntimeContext implements RuntimeContext {
         this.info = info;
     }
 }
+loadCheckpoint(`mol-task/execution/observable.ts::end`);

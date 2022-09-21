@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-plugin-state/animation/built-in/spin-structure.ts::start`);
 /**
  * Copyright (c) 2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -71,3 +75,4 @@ export const AnimateStructureSpin = PluginStateAnimation.create({
         return { kind: 'next', state: { t: newTime } };
     }
 });
+loadCheckpoint(`mol-plugin-state/animation/built-in/spin-structure.ts::end`);

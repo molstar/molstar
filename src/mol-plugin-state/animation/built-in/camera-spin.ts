@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-plugin-state/animation/built-in/camera-spin.ts::start`);
 /**
  * Copyright (c) 2020-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -58,3 +62,4 @@ export const AnimateCameraSpin = PluginStateAnimation.create({
         return { kind: 'next', state: animState };
     }
 });
+loadCheckpoint(`mol-plugin-state/animation/built-in/camera-spin.ts::end`);

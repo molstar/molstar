@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-gl/_spec/gl.shim.ts::start`);
 /**
  * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -785,3 +789,4 @@ export function createGl(width: number, height: number, contextAttributes: WebGL
         stencilOpSeparate: function () { },
     };
 }
+loadCheckpoint(`mol-gl/_spec/gl.shim.ts::end`);

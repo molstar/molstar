@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../../mol-util/debug';
+loadCheckpoint(`mol-model/structure/export/categories/atom_site_operator_mapping.ts::start`);
 /**
  * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -105,3 +109,5 @@ function getEntries(ctx: CifExportContext) {
 
     return entries;
 }
+
+loadCheckpoint(`mol-model/structure/export/categories/atom_site_operator_mapping.ts::end`);

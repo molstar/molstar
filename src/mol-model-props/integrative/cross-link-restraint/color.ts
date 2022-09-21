@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-model-props/integrative/cross-link-restraint/color.ts::start`);
 /**
  * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -73,3 +77,4 @@ export const CrossLinkColorThemeProvider: ColorTheme.Provider<CrossLinkColorThem
         detach: (data) => data.structure && CrossLinkRestraintProvider.ref(data.structure, false)
     }
 };
+loadCheckpoint(`mol-model-props/integrative/cross-link-restraint/color.ts::end`);

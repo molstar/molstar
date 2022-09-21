@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-geo/primitive/plane.ts::start`);
 /**
  * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -38,3 +42,4 @@ export function Plane(): Primitive {
 export function PlaneCage(): Cage {
     return planeCage;
 }
+loadCheckpoint(`mol-geo/primitive/plane.ts::end`);

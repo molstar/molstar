@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-model-formats/structure/common/util.ts::start`);
 /**
  * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -25,3 +29,4 @@ function _getChainId(index: number) {
 }
 
 export const getChainId = memoize1(_getChainId);
+loadCheckpoint(`mol-model-formats/structure/common/util.ts::end`);

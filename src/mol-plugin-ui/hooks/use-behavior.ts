@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-plugin-ui/hooks/use-behavior.ts::start`);
 /**
  * Copyright (c) 2020-22 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -55,3 +59,4 @@ export function useBehavior<T>(s: Behavior<T> | undefined): T | undefined;
 export function useBehavior<T>(s: Behavior<T> | undefined): T | undefined {
     return _useBehavior(s);
 }
+loadCheckpoint(`mol-plugin-ui/hooks/use-behavior.ts::end`);

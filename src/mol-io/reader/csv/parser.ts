@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-io/reader/csv/parser.ts::start`);
 /**
  * Copyright (c) 2017 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -286,3 +290,4 @@ export function parseCsv(data: string, opts?: Partial<CsvOptions>) {
         return await parseInternal(data, ctx, completeOpts);
     });
 }
+loadCheckpoint(`mol-io/reader/csv/parser.ts::end`);

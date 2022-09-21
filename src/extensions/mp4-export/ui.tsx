@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`extensions/mp4-export/ui.tsx::start`);
 /**
  * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -122,3 +126,4 @@ export class Mp4EncoderUI extends CollapsableControls<{}, State> {
         }
     };
 }
+loadCheckpoint(`extensions/mp4-export/ui.tsx::end`);

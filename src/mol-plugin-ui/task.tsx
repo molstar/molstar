@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../mol-util/debug';
+loadCheckpoint(`mol-plugin-ui/task.tsx::start`);
 /**
  * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -99,3 +103,5 @@ export function OverlayTaskProgress() {
         {tracked.valueSeq().map(e => <ProgressEntry key={e!.id} event={e!} />)}
     </div>;
 }
+
+loadCheckpoint(`mol-plugin-ui/task.tsx::end`);

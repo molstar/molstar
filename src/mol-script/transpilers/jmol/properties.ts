@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-script/transpilers/jmol/properties.ts::start`);
 /**
  * Copyright (c) 2017-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -665,3 +669,5 @@ export const properties: PropertyDict = {
     },
 };
 
+
+loadCheckpoint(`mol-script/transpilers/jmol/properties.ts::end`);

@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../../mol-util/debug';
+loadCheckpoint(`mol-io/reader/cif/schema/mmcif-extras.ts::start`);
 /**
  * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -31,3 +35,5 @@ export const mmCIF_chemComp_schema = {
     type: Column.Schema.Aliased<mmCIF_Schema['chem_comp']['type']['T'] | 'ion' | 'lipid'>(Column.Schema.str)
 };
 export type mmCIF_chemComp_schema = typeof mmCIF_chemComp_schema;
+
+loadCheckpoint(`mol-io/reader/cif/schema/mmcif-extras.ts::end`);

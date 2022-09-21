@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../mol-util/debug';
+loadCheckpoint(`mol-plugin-ui/context.ts::start`);
 /**
  * Copyright (c) 2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -31,3 +35,4 @@ export class PluginUIContext extends PluginContext {
         this.initCustomParamEditors();
     }
 }
+loadCheckpoint(`mol-plugin-ui/context.ts::end`);

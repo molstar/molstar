@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-task/execution/runtime-context.ts::start`);
 /**
  * Copyright (c) 2017 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -33,3 +37,4 @@ namespace RuntimeContext {
 }
 
 export { RuntimeContext };
+loadCheckpoint(`mol-task/execution/runtime-context.ts::end`);

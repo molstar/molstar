@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../mol-util/debug';
+loadCheckpoint(`mol-theme/substance.ts::start`);
 /**
  * Copyright (c) 2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -133,3 +137,4 @@ namespace Substance {
         return { layers };
     }
 }
+loadCheckpoint(`mol-theme/substance.ts::end`);

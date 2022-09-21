@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-gl/shader/chunks/apply-marker-color.glsl.ts::start`);
 export const apply_marker_color = `
 #if defined(dColorMarker)
     if (marker > 0.0) {
@@ -11,3 +15,4 @@ export const apply_marker_color = `
     }
 #endif
 `;
+loadCheckpoint(`mol-gl/shader/chunks/apply-marker-color.glsl.ts::end`);

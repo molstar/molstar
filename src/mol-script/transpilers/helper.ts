@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-script/transpilers/helper.ts::start`);
 /**
  * Copyright (c) 2017-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -383,3 +387,5 @@ export function resnameExpr(resnameList: string[]) {
         ])
     });
 }
+
+loadCheckpoint(`mol-script/transpilers/helper.ts::end`);

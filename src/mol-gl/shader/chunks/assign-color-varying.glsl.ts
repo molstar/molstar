@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-gl/shader/chunks/assign-color-varying.glsl.ts::start`);
 export const assign_color_varying = `
 #if defined(dRenderVariant_color)
     #if defined(dColorType_attribute)
@@ -88,3 +92,4 @@ export const assign_color_varying = `
     #endif
 #endif
 `;
+loadCheckpoint(`mol-gl/shader/chunks/assign-color-varying.glsl.ts::end`);

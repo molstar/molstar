@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../mol-util/debug';
+loadCheckpoint(`mol-util/param-mapping.ts::start`);
 /**
  * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -35,3 +39,4 @@ export function ParamMapping<S, T, Ctx>(def: {
         apply: apply ? apply : () => { }
     });
 }
+loadCheckpoint(`mol-util/param-mapping.ts::end`);

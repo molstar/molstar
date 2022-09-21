@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../../../mol-util/debug';
+loadCheckpoint(`mol-model/structure/model/properties/utils/residue-set.ts::start`);
 /**
  * Copyright (c) 2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -105,3 +109,4 @@ const _comp_id = StructureProperties.atom.label_comp_id;
 const _alt_id = StructureProperties.atom.label_alt_id;
 const _ins_code = StructureProperties.residue.pdbx_PDB_ins_code;
 const _op_name = StructureProperties.unit.operator_name;
+loadCheckpoint(`mol-model/structure/model/properties/utils/residue-set.ts::end`);

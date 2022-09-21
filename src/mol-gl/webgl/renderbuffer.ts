@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-gl/webgl/renderbuffer.ts::start`);
 /**
  * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -101,3 +105,4 @@ export function createRenderbuffer(gl: GLRenderingContext, format: RenderbufferF
         }
     };
 }
+loadCheckpoint(`mol-gl/webgl/renderbuffer.ts::end`);

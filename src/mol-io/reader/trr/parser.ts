@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-io/reader/trr/parser.ts::start`);
 /**
  * Copyright (c) 2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -155,3 +159,4 @@ export function parseTrr(data: Uint8Array) {
         }
     });
 }
+loadCheckpoint(`mol-io/reader/trr/parser.ts::end`);

@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-canvas3d/passes/multi-sample.ts::start`);
 /**
  * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -370,3 +374,4 @@ export class MultiSampleHelper {
 
     }
 }
+loadCheckpoint(`mol-canvas3d/passes/multi-sample.ts::end`);

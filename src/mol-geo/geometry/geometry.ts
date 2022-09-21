@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-geo/geometry/geometry.ts::start`);
 /**
  * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -130,3 +134,4 @@ export namespace Geometry {
         return granularity === 'instance' && locationIt.nonInstanceable ? 'group' : granularity;
     }
 }
+loadCheckpoint(`mol-geo/geometry/geometry.ts::end`);

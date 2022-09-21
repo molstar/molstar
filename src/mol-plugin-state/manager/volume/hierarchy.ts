@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-plugin-state/manager/volume/hierarchy.ts::start`);
 /**
  * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -133,3 +137,4 @@ export namespace VolumeHierarchyManager {
             : plugin.representation.volume.registry.types;
     }
 }
+loadCheckpoint(`mol-plugin-state/manager/volume/hierarchy.ts::end`);

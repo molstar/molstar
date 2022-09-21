@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`extensions/rcsb/assembly-symmetry/ui.tsx::start`);
 /**
  * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -153,3 +157,4 @@ const EnableAssemblySymmetry3D = StateAction.build({
 })(({ a, ref, state }, plugin: PluginContext) => Task.create('Enable Assembly Symmetry', async ctx => {
     await AssemblySymmetryPreset.apply(ref, Object.create(null), plugin);
 }));
+loadCheckpoint(`extensions/rcsb/assembly-symmetry/ui.tsx::end`);

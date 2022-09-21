@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-model-formats/volume/cube.ts::start`);
 /**
  * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -79,3 +83,4 @@ namespace CubeFormat {
         return { kind: 'cube', name: cube.name, data: cube };
     }
 }
+loadCheckpoint(`mol-model-formats/volume/cube.ts::end`);

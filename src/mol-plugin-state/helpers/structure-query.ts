@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-plugin-state/helpers/structure-query.ts::start`);
 /**
  * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -57,3 +61,4 @@ namespace StructureQueryHelper {
         obj.data = s;
     }
 }
+loadCheckpoint(`mol-plugin-state/helpers/structure-query.ts::end`);

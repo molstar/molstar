@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`extensions/dnatco/confal-pyramids/behavior.ts::start`);
 /**
  * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -99,3 +103,5 @@ export function confalPyramidLabel(halfPyramid: ConfalPyramidsTypes.HalfPyramid)
         <i>NtC:</i> ${step.NtC} | <i>Confal score:</i> ${step.confal_score} | <i>RMSD:</i> ${step.rmsd.toFixed(2)}
     `;
 }
+
+loadCheckpoint(`extensions/dnatco/confal-pyramids/behavior.ts::end`);

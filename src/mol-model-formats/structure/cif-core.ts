@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-model-formats/structure/cif-core.ts::start`);
 /**
  * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -276,3 +280,5 @@ export function trajectoryFromCifCore(frame: CifFrame): Task<Trajectory> {
     const format = CifCoreFormat.fromFrame(frame);
     return Task.create('Parse CIF Core', ctx => getModels(format.data.db, format, ctx));
 }
+
+loadCheckpoint(`mol-model-formats/structure/cif-core.ts::end`);

@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-repr/structure/visual/molecular-surface-wireframe.ts::start`);
 /**
  * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -61,3 +65,4 @@ export function MolecularSurfaceWireframeVisual(materialId: number): UnitsVisual
         }
     }, materialId);
 }
+loadCheckpoint(`mol-repr/structure/visual/molecular-surface-wireframe.ts::end`);

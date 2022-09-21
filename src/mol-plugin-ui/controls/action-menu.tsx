@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-plugin-ui/controls/action-menu.tsx::start`);
 /**
  * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -308,3 +312,4 @@ function collectItems(items: ActionMenu.Items, target: ActionMenu.Item[]) {
     }
     return target;
 }
+loadCheckpoint(`mol-plugin-ui/controls/action-menu.tsx::end`);

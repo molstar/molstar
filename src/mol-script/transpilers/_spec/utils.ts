@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../mol-util/debug';
+loadCheckpoint(`mol-script/transpilers/_spec/utils.ts::start`);
 /**
  * Copyright (c) 2020-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -67,3 +71,5 @@ export function testOperators(operators: OperatorList, transpiler: Transpiler) {
         });
     });
 }
+
+loadCheckpoint(`mol-script/transpilers/_spec/utils.ts::end`);

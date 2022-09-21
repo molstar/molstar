@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../mol-util/debug';
+loadCheckpoint(`mol-canvas3d/canvas3d.ts::start`);
 /**
  * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -934,3 +938,5 @@ namespace Canvas3D {
         }
     }
 }
+
+loadCheckpoint(`mol-canvas3d/canvas3d.ts::end`);

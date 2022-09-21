@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../mol-util/debug';
+loadCheckpoint(`mol-plugin/commands.ts::start`);
 /**
  * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -69,3 +73,4 @@ export const PluginCommands = {
         ResetSettings: PluginCommand<{ }>()
     }
 };
+loadCheckpoint(`mol-plugin/commands.ts::end`);

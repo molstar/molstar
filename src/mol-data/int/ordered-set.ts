@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-data/int/ordered-set.ts::start`);
 /**
  * Copyright (c) 2017-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -83,3 +87,4 @@ namespace OrderedSet {
 type OrderedSet<T extends number = number> = SortedArray<T> | Interval<T>
 
 export { OrderedSet };
+loadCheckpoint(`mol-data/int/ordered-set.ts::end`);

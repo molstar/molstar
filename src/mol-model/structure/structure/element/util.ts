@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../../mol-util/debug';
+loadCheckpoint(`mol-model/structure/structure/element/util.ts::start`);
 /**
  * Copyright (c) 2017-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -52,3 +56,4 @@ export function chainIndex(e: Location) {
 export function entityIndex(l: Location) {
     return StructureProperties.entity.key(l);
 }
+loadCheckpoint(`mol-model/structure/structure/element/util.ts::end`);

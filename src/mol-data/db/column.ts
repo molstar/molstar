@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`mol-data/db/column.ts::start`);
 /**
  * Copyright (c) 2017-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -460,3 +464,4 @@ function columnIndicesOf<T>(c: Column<T>, test: (e: T) => boolean) {
     }
     return ret;
 }
+loadCheckpoint(`mol-data/db/column.ts::end`);

@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../../../../mol-util/debug';
+loadCheckpoint(`mol-model/structure/model/properties/utils/coarse-ranges.ts::start`);
 /**
  * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -49,3 +53,4 @@ export function getCoarseRanges(data: CoarseElementData, chemicalComponentMap: R
         gapRanges: SortedRanges.ofSortedRanges(gapRanges as ElementIndex[])
     };
 }
+loadCheckpoint(`mol-model/structure/model/properties/utils/coarse-ranges.ts::end`);

@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`extensions/g3d/model.ts::start`);
 /**
  * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -243,3 +247,4 @@ export const G3dLabelProvider: LociLabelProvider = {
         return `<b>Start:</b> ${info.start[seqId]} <small>| resolution ${info.resolution}<small>`;
     }
 };
+loadCheckpoint(`extensions/g3d/model.ts::end`);

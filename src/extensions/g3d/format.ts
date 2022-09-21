@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../../mol-util/debug';
+loadCheckpoint(`extensions/g3d/format.ts::start`);
 /**
  * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -171,3 +175,4 @@ export const G3DFormat = PluginBehavior.create<{ autoAttach: boolean, showToolti
         }
     }
 });
+loadCheckpoint(`extensions/g3d/format.ts::end`);

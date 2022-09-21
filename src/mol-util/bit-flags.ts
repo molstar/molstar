@@ -1,3 +1,7 @@
+
+
+import { loadCheckpoint } from '../mol-util/debug';
+loadCheckpoint(`mol-util/bit-flags.ts::start`);
 /**
  * Copyright (c) 2017 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -15,3 +19,4 @@ namespace BitFlags {
 }
 
 export { BitFlags };
+loadCheckpoint(`mol-util/bit-flags.ts::end`);
