@@ -21,7 +21,7 @@
         <script type="text/javascript" src="./molstar.js"></script>
         <script type="text/javascript">
             console.log(molstar.LoadCheckpoints);
-            document.body.innerText = molstar.LoadCheckpoints.map(function (c, i) { return c[0] + ": " + (molstar.LoadCheckpoints[i][1] - molstar.LoadCheckpoints[Math.max(0, i - 1)][1]) + ' ms' }).join('\n')
+            document.body.innerText = "[\n" + molstar.LoadCheckpoints.map(function (c, i) { return "['" + c[0] + "', " + c[1] + '],' }).join('\n') + "\n]"
 
             // molstar.Viewer.create('app', {
             //     layoutIsExpanded: true,
