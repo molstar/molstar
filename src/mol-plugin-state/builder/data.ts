@@ -1,10 +1,10 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { StateTransformer, StateTransform } from '../../mol-state';
+import { StateTransformer, StateTransform, StateObjectCell } from '../../mol-state';
 import { PluginContext } from '../../mol-plugin/context';
 import { Download, ReadFile, DownloadBlob, RawData } from '../transforms/data';
 import { getFileInfo } from '../../mol-util/file-info';
@@ -19,9 +19,10 @@ export class DataBuilder {
         return data.commit({ revertOnError: true });
     }
 
-    download(params: StateTransformer.Params<Download>, options?: Partial<StateTransform.Options>) {
-        const data = this.dataState.build().toRoot().apply(Download, params, options);
-        return data.commit({ revertOnError: true });
+    download(params: StateTransformer.Params<Download>, options?: Partial<StateTransform.Options> & { parent?: StateObjectCell | string }) {
+        const data = this.dataState.build();
+        const parent = options?.parent ? data.to(options.parent) : data.toRoot();
+        return parent.apply(Download, params, options).commit({ revertOnError: true });
     }
 
     downloadBlob(params: StateTransformer.Params<DownloadBlob>, options?: Partial<StateTransform.Options>) {
