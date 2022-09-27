@@ -24,7 +24,10 @@ export class Passes {
 
     updateSize() {
         const { gl } = this.webgl;
-        this.draw.setSize(gl.drawingBufferWidth, gl.drawingBufferHeight);
+        // Avoid setting dimensions to 0x0 because it causes "empty textures are not allowed" error.
+        const width = Math.max(gl.drawingBufferWidth, 2);
+        const height = Math.max(gl.drawingBufferHeight, 2);
+        this.draw.setSize(width, height);
         this.pick.syncSize();
         this.multiSample.syncSize();
     }
