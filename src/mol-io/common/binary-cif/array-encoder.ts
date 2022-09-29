@@ -264,28 +264,35 @@ export namespace ArrayEncoding {
         return false;
     }
 
-    function packingSize(data: Int32Array, upperLimit: number) {
+    function packingSizeUnsigned(data: Int32Array, upperLimit: number) {
+        let size = 0;
+        for (let i = 0, n = data.length; i < n; i++) {
+            size += (data[i] / upperLimit) | 0;
+        }
+        size += data.length;
+        return size;
+    }
+
+
+    function packingSizeSigned(data: Int32Array, upperLimit: number) {
         const lowerLimit = -upperLimit - 1;
         let size = 0;
         for (let i = 0, n = data.length; i < n; i++) {
             const value = data[i];
-            if (value === 0) {
-                size += 1;
-            } else if (value > 0) {
-                size += Math.ceil(value / upperLimit);
-                if (value % upperLimit === 0) size += 1;
+            if (value >= 0) {
+                size += (value / upperLimit) | 0;
             } else {
-                size += Math.ceil(value / lowerLimit);
-                if (value % lowerLimit === 0) size += 1;
+                size += (value / lowerLimit) | 0;
             }
         }
+        size += data.length;
         return size;
     }
 
     function determinePacking(data: Int32Array): { isSigned: boolean, size: number, bytesPerElement: number } {
         const signed = isSigned(data);
-        const size8 = signed ? packingSize(data, 0x7F) : packingSize(data, 0xFF);
-        const size16 = signed ? packingSize(data, 0x7FFF) : packingSize(data, 0xFFFF);
+        const size8 = signed ? packingSizeSigned(data, 0x7F) : packingSizeUnsigned(data, 0xFF);
+        const size16 = signed ? packingSizeSigned(data, 0x7FFF) : packingSizeUnsigned(data, 0xFFFF);
 
         if (data.length * 4 < size16 * 2) {
             // 4 byte packing is the most effective
