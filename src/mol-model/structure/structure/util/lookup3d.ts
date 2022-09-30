@@ -10,11 +10,11 @@ import { Structure } from '../structure';
 import { Lookup3D, GridLookup3D, Result } from '../../../../mol-math/geometry';
 import { Vec3 } from '../../../../mol-math/linear-algebra';
 import { OrderedSet } from '../../../../mol-data/int';
-import { arrayLess, arraySwap } from '../../../../mol-data/util';
 import { StructureUniqueSubsetBuilder } from './unique-subset-builder';
 import { StructureElement } from '../element';
 import { Unit } from '../unit';
 import { UnitIndex } from '../element/util';
+import { FibonacciHeap } from '../../../../mol-util/fibonacci-heap';
 
 export interface StructureResult extends Result<StructureElement.UnitIndex> {
     units: Unit[]
@@ -41,25 +41,6 @@ export namespace StructureResult {
         out.count = result.count;
         return out;
     }
-
-    // sort in ascending order based on squaredDistances
-    export function sort(result: StructureResult) {
-        const { indices, squaredDistances, units, count } = result;
-        if (indices.length > count) {
-            // clear arrays before doing sorting if necessary
-            indices.length = count;
-            squaredDistances.length = count;
-            units.length = count;
-        }
-        for (let i = 1, c = result.count; i < c; i++) {
-            if (arrayLess(squaredDistances, i - 1, i) > 0) {
-                arraySwap(squaredDistances, i - 1, i);
-                arraySwap(indices, i - 1, i);
-                arraySwap(units, i - 1, i);
-                i = Math.max(0, i - 2);
-            }
-        }
-    }
 }
 
 export interface StructureLookup3DResultContext {
@@ -75,6 +56,7 @@ export function StructureLookup3DResultContext(): StructureLookup3DResultContext
 export class StructureLookup3D {
     private unitLookup: Lookup3D;
     private pivot = Vec3();
+    private tmpHeap = new FibonacciHeap();
 
     findUnitIndices(x: number, y: number, z: number, radius: number): Result<number> {
         return this.unitLookup.find(x, y, z, radius);
@@ -117,7 +99,9 @@ export class StructureLookup3D {
 
     _nearest(x: number, y: number, z: number, k: number, ctx: StructureLookup3DResultContext): StructureResult {
         const result = ctx.result;
+        const heap = this.tmpHeap;
         Result.reset(result);
+        this.tmpHeap.clear();
         const { units } = this.structure;
         const closeUnits = this.unitLookup.nearest(x, y, z, units.length, ctx.closeUnitsResult); // sort all units based on distance to the point
         if (closeUnits.count === 0) return result;
@@ -136,13 +120,15 @@ export class StructureLookup3D {
             maxDistResult = Math.max(maxDistResult, groupResult.squaredDistances[groupResult.count - 1]);
             totalCount += groupResult.count;
             for (let j = 0, _j = groupResult.count; j < _j; j++) {
-                StructureResult.add(result, unit, groupResult.indices[j], groupResult.squaredDistances[j]);
+                heap.insert(groupResult.squaredDistances[j], { index: groupResult.indices[j], unit: unit });
             }
-            StructureResult.sort(result);
-            if (totalCount > k) {
-                result.count = k;
-                totalCount = k;
-            }
+        }
+        while (!heap.isEmpty() && result.count < k) {
+            const node = heap.extractMinimum();
+            if (!node) throw new Error('Cannot extract minimum, should not happen');
+            const { key: squaredDistance } = node;
+            const { unit, index } = node.value as { index: UnitIndex, unit: Unit };
+            StructureResult.add(result, unit as Unit, index as UnitIndex, squaredDistance as number);
         }
         return result;
     }

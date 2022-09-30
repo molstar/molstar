@@ -13,6 +13,7 @@ import { PositionData } from '../common';
 import { Vec3, EPSILON } from '../../linear-algebra';
 import { OrderedSet } from '../../../mol-data/int';
 import { Boundary } from '../boundary';
+import { FibonacciHeap } from '../../../mol-util/fibonacci-heap';
 
 interface GridLookup3D<T = number> extends Lookup3D<T> {
     readonly buckets: { readonly offset: ArrayLike<number>, readonly count: ArrayLike<number>, readonly array: ArrayLike<number> }
@@ -294,16 +295,16 @@ function query<T extends number = number>(ctx: QueryContext, result: Result<T>):
 const tmpDirVec = Vec3();
 const tmpVec = Vec3();
 const tmpMapG = new Map<number, boolean>();
-const tmpArrG1 = new Array();
-const tmpArrG2 = new Array();
-const tmpNearestIds = new Array();
+const tmpArrG1 = [0.1];
+const tmpArrG2 = [0.1];
+const tmpHeapG = new FibonacciHeap();
 function queryNearest<T extends number = number>(ctx: QueryContext, result: Result<T>): boolean {
     const { expandedBox: box, boundingSphere: { center }, size: [sX, sY, sZ], bucketOffset, bucketCounts, bucketArray, grid, data: { x: px, y: py, z: pz, indices, radius }, delta, maxRadius } = ctx.grid;
     const [minX, minY, minZ] = box.min;
     const { x, y, z, k } = ctx;
     const indicesCount = OrderedSet.size(indices);
     Result.reset(result);
-    if (indicesCount === 0) return false;
+    if (indicesCount === 0 || k <= 0) return false;
     let gX, gY, gZ;
     Vec3.set(tmpVec, x, y, z);
     if (!Box3D.containsVec3(box, tmpVec)) {
@@ -319,9 +320,11 @@ function queryNearest<T extends number = number>(ctx: QueryContext, result: Resu
     }
     let gCount = 1, nextGCount = 0, arrG = tmpArrG1, nextArrG = tmpArrG2, prevFurthestDist = Number.MAX_VALUE, prevNearestDist = -Number.MAX_VALUE, nearestDist = Number.MAX_VALUE, findFurthest = true, furthestDist = - Number.MAX_VALUE, distSqG: number;
     arrG.length = 0;
+    nextArrG.length = 0;
     arrG.push(gX, gY, gZ);
     tmpMapG.clear();
-    while (result.count < k && result.count < indicesCount) {
+    tmpHeapG.clear();
+    while (result.count < indicesCount) {
         const arrGLen = gCount * 3;
         for (let ig = 0; ig < arrGLen; ig += 3) {
             gX = arrG[ig];
@@ -332,7 +335,6 @@ function queryNearest<T extends number = number>(ctx: QueryContext, result: Resu
             tmpMapG.set(gridId, true);
             distSqG = (gX - x) * (gX - x) + (gY - y) * (gY - y) + (gZ - z) * (gZ - z);
             if (!findFurthest && distSqG > furthestDist && distSqG < nearestDist) continue;
-
             // evaluate distances in the current grid point
             const bucketIdx = grid[gridId];
             if (bucketIdx !== 0) {
@@ -351,24 +353,16 @@ function queryNearest<T extends number = number>(ctx: QueryContext, result: Resu
                         const sqR = r * r;
                         if (findFurthest && distSq > furthestDist) furthestDist = distSq + sqR;
                         distSq = distSq - sqR;
-
                     } else {
                         if (findFurthest && distSq > furthestDist) furthestDist = distSq;
                     }
-
-                    if (distSq <= nearestDist && distSq > prevNearestDist) {
-                        if (nearestDist === distSq) { // handles multiple elements exactly at same distance
-                            tmpNearestIds.push(idx);
-                        } else {
-                            if (tmpNearestIds.length > 1) tmpNearestIds.length = 1;
-                            tmpNearestIds[0] = idx;
-                        }
-                        nearestDist = distSq;
+                    if (distSq > prevNearestDist && distSq <= furthestDist) {
+                        tmpHeapG.insert(distSq, idx);
+                        nearestDist = tmpHeapG.findMinimum()!.key as unknown as number;
                     }
                 }
                 if (prevFurthestDist < furthestDist) findFurthest = false;
             }
-
             // fill grid points array with valid adiacent positions
             for (let ix = -1; ix <= 1; ix++) {
                 const xPos = gX + ix;
@@ -379,6 +373,8 @@ function queryNearest<T extends number = number>(ctx: QueryContext, result: Resu
                     for (let iz = -1; iz <= 1; iz++) {
                         const zPos = gZ + iz;
                         if (zPos < 0 || zPos >= sZ) continue;
+                        const gridId = (((xPos * sY) + yPos) * sZ) + zPos;
+                        if (tmpMapG.get(gridId)) continue; // already visited
                         nextArrG.push(xPos, yPos, zPos);
                         nextGCount++;
                     }
@@ -386,10 +382,14 @@ function queryNearest<T extends number = number>(ctx: QueryContext, result: Resu
             }
         }
         if (nextGCount === 0) {
-            prevNearestDist = nearestDist;
-            for (let i = 0, l = tmpNearestIds.length; i < l; i++) {
-                Result.add(result, tmpNearestIds[i], nearestDist);
+            while (!tmpHeapG.isEmpty() && result.count < k) {
+                const node = tmpHeapG.extractMinimum();
+                if (!node) throw new Error('Cannot extract minimum, should not happen');
+                const { key: squaredDistance, value: index } = node;
+                Result.add(result, index as number, squaredDistance as number);
             }
+            if (result.count >= k) return result.count > 0;
+            prevNearestDist = nearestDist;
             if (furthestDist === nearestDist) {
                 findFurthest = true;
                 prevFurthestDist = furthestDist;
@@ -397,7 +397,14 @@ function queryNearest<T extends number = number>(ctx: QueryContext, result: Resu
             } else {
                 nearestDist = furthestDist + EPSILON; // adding EPSILON fixes a bug
             }
-            tmpMapG.clear();
+            // resotre visibility of current gid points
+            for (let ig = 0; ig < arrGLen; ig += 3) {
+                gX = arrG[ig];
+                gY = arrG[ig + 1];
+                gZ = arrG[ig + 2];
+                const gridId = (((gX * sY) + gY) * sZ) + gZ;
+                tmpMapG.set(gridId, false);
+            }
         } else {
             const tmp = arrG;
             arrG = nextArrG;
