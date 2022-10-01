@@ -37,7 +37,7 @@ export const dpoit_write = `
             // back color is separately blend afterwards each pass
             gl_FragData[1] = vec4(0.0);
 
-            float nearestDepth = - lastDepth.x;
+            float nearestDepth = -lastDepth.x;
             float furthestDepth = lastDepth.y;
             float alphaMultiplier = 1.0 - lastFrontColor.a;
 

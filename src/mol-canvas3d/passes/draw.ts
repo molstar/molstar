@@ -153,6 +153,8 @@ export class DrawPass {
             this.postprocessing.render(camera, false, transparentBackground, renderer.props.backgroundColor, postprocessingProps);
         }
 
+        this.depthTextureOpaque.detachFramebuffer(this.colorTarget.framebuffer, 'depth');
+
         // render transparent primitives
         if (scene.opacityAverage < 1) {
             const target = PostprocessingPass.isEnabled(postprocessingProps)
