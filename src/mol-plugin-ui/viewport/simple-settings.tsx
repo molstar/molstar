@@ -135,6 +135,7 @@ const SimpleSettingsMapping = ParamMapping({
         canvas.cameraClipping = {
             radius: s.clipping.radius,
             far: s.clipping.far,
+            minNear: s.clipping.minNear,
         };
 
         props.layout = s.layout;
