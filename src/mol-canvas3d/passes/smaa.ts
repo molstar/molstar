@@ -74,6 +74,7 @@ export class SmaaPass {
         state.viewport(x, y, width, height);
         state.scissor(x, y, width, height);
 
+        state.colorMask(true, true, true, true);
         state.clearColor(0, 0, 0, 1);
         gl.clear(gl.COLOR_BUFFER_BIT);
 
