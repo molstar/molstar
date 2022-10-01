@@ -115,6 +115,7 @@ export function calcActiveVoxels(ctx: WebGLContext, volumeData: Texture, gridDim
     // console.log('gridScale', gridScale, 'gridTexDim', gridTexDim, 'gridDim', gridDim);
     // console.log('volumeData', volumeData);
     // console.log('at', readTexture(ctx, activeVoxelsTex));
+    // printTextureImage(readTexture(ctx, activeVoxelsTex), { scale: 0.75 });
 
     gl.finish();
     if (isTimingMode) ctx.timer.markEnd('calcActiveVoxels');

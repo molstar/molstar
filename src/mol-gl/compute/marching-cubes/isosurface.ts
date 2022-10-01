@@ -199,6 +199,10 @@ export function createIsosurfaceBuffers(ctx: WebGLContext, activeVoxelsBase: Tex
     gl.finish();
     if (isTimingMode) ctx.timer.markEnd('createIsosurfaceBuffers');
 
+    // printTextureImage(readTexture(ctx, vertexTexture, new Float32Array(width * height * 4)), { scale: 0.75 });
+    // printTextureImage(readTexture(ctx, groupTexture, new Uint8Array(width * height * 4)), { scale: 0.75 });
+    // printTextureImage(readTexture(ctx, normalTexture, new Float32Array(width * height * 4)), { scale: 0.75 });
+
     return { vertexTexture, groupTexture, normalTexture, vertexCount: count };
 }
 

@@ -197,7 +197,7 @@ export function createHistogramPyramid(ctx: WebGLContext, inputTexture: Texture,
     gl.finish();
     if (isTimingMode) ctx.timer.markEnd('createHistogramPyramid');
 
-    // printTexture(ctx, pyramidTex, 2)
+    // printTextureImage(readTexture(ctx, pyramidTex), { scale: 0.75 });
 
     //
 
