@@ -6,9 +6,10 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Fix "empty textures" error on empty canvas
 - Optimize BinaryCIF integer packing encoder
-- Fix Dual depth peeling when post-processing is off or when rendering direct-volumes
-- Add `cameraClipping.minNear` parameter
+- Fix dual depth peeling when post-processing is off or when rendering direct-volumes
+- Add ``cameraClipping.minNear`` parameter
 - Fix black artifacts on specular highlights with transparent background
 
 ## [v3.18.0] - 2022-09-17
