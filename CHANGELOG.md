@@ -6,6 +6,7 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Optimize BinaryCIF integer packing encoder
 - Fix Dual depth peeling when post-processing is off or when rendering direct-volumes
 - Add `cameraClipping.minNear` parameter
 
