@@ -12,7 +12,7 @@ import { ColorTheme } from '../color';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { ThemeDataContext } from '../theme';
 import { TableLegend } from '../../mol-util/legend';
-import { getAdjustedColorMap } from '../../mol-util/color/color';
+import { getAdjustedColor, getAdjustedColorMap } from '../../mol-util/color/color';
 import { getColorMapParams } from '../../mol-util/color/params';
 import { ChainIdColorTheme, ChainIdColorThemeParams } from './chain-id';
 import { OperatorNameColorThemeParams, OperatorNameColorTheme } from './operator-name';
@@ -68,7 +68,7 @@ export function ElementSymbolColorTheme(ctx: ThemeDataContext, props: PD.Values<
 
     function elementColor(element: ElementSymbol, location: Location) {
         return (carbonColor && element === 'C')
-            ? carbonColor(location, false)
+            ? getAdjustedColor(carbonColor(location, false), props.saturation, props.lightness)
             : elementSymbolColor(colorMap, element);
     }
 
