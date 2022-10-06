@@ -46,7 +46,7 @@ export const ElementSymbolColorThemeParams = {
 };
 export type ElementSymbolColorThemeParams = typeof ElementSymbolColorThemeParams
 export function getElementSymbolColorThemeParams(ctx: ThemeDataContext) {
-    return PD.clone(ElementSymbolColorThemeParams)
+    return PD.clone(ElementSymbolColorThemeParams);
 }
 
 export function elementSymbolColor(colorMap: ElementSymbolColors, element: ElementSymbol): Color {

@@ -174,7 +174,7 @@ export function getAdjustedColor(color: Color, saturation: number, lightness: nu
     let c = color;
     c = Color.saturate(c, saturation);
     c = Color.darken(c, -lightness);
-    return c
+    return c;
 }
 
 export type ColorSwatch = [string, Color][]
