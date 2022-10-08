@@ -6,7 +6,6 @@
 	"recommendations": [
 		"dbaeumer.vscode-eslint",
 		"firsttris.vscode-jest-runner",
-		"msjsdiag.debugger-for-chrome",
 		"slevesque.shader",
 		"stpn.vscode-graphql",
 		"wayou.vscode-todo-highlight"
