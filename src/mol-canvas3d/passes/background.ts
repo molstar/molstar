@@ -49,6 +49,7 @@ const SkyboxParams = {
             pz: PD.File({ label: 'Positive Z / Front', accept: 'image/*' }),
         }, { isExpanded: true, label: 'Files' }),
     }),
+    blur: PD.Numeric(0, { min: 0.0, max: 1.0, step: 0.01 }, { description: 'Note, this only works in WebGL2 or when "EXT_shader_texture_lod" is available.' }),
     ...SharedParams,
 };
 type SkyboxProps = PD.Values<typeof SkyboxParams>
@@ -170,6 +171,7 @@ export class BackgroundPass {
         Mat4.invert(m, m);
         ValueCell.update(this.renderable.values.uViewDirectionProjectionInverse, m);
 
+        ValueCell.updateIfChanged(this.renderable.values.uBlur, props.blur);
         ValueCell.updateIfChanged(this.renderable.values.uOpacity, props.opacity);
         ValueCell.updateIfChanged(this.renderable.values.uSaturation, props.saturation);
         ValueCell.updateIfChanged(this.renderable.values.uLightness, props.lightness);
@@ -367,7 +369,7 @@ function getSkyboxTexture(ctx: WebGLContext, assetManager: AssetManager, faces: 
     const cubeAssets = getCubeAssets(assetManager, faces);
     const cubeFaces = getCubeFaces(assetManager, cubeAssets);
     const assets = [cubeAssets.nx, cubeAssets.ny, cubeAssets.nz, cubeAssets.px, cubeAssets.py, cubeAssets.pz];
-    const texture = ctx.resources.cubeTexture(cubeFaces, false, onload);
+    const texture = ctx.resources.cubeTexture(cubeFaces, true, onload);
     return { texture, assets };
 }
 
@@ -424,12 +426,15 @@ const BackgroundSchema = {
     uGradientColorA: UniformSpec('v3'),
     uGradientColorB: UniformSpec('v3'),
     uGradientRatio: UniformSpec('f'),
+    uBlur: UniformSpec('f'),
     uOpacity: UniformSpec('f'),
     uSaturation: UniformSpec('f'),
     uLightness: UniformSpec('f'),
     dVariant: DefineSpec('string', ['skybox', 'image', 'verticalGradient', 'horizontalGradient', 'radialGradient']),
 };
-const SkyboxShaderCode = ShaderCode('background', background_vert, background_frag);
+const SkyboxShaderCode = ShaderCode('background', background_vert, background_frag, {
+    shaderTextureLod: 'optional'
+});
 type BackgroundRenderable = ComputeRenderable<Values<typeof BackgroundSchema>>
 
 function getBackgroundRenderable(ctx: WebGLContext, width: number, height: number): BackgroundRenderable {
@@ -448,6 +453,7 @@ function getBackgroundRenderable(ctx: WebGLContext, width: number, height: numbe
         uGradientColorA: ValueCell.create(Vec3()),
         uGradientColorB: ValueCell.create(Vec3()),
         uGradientRatio: ValueCell.create(0.5),
+        uBlur: ValueCell.create(0),
         uOpacity: ValueCell.create(1),
         uSaturation: ValueCell.create(0),
         uLightness: ValueCell.create(0),

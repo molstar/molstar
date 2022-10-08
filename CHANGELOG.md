@@ -6,6 +6,8 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Add mipmap-based blur for skybox backgrounds
+
 ## [v3.19.0] - 2022-10-01
 
 - Fix "empty textures" error on empty canvas

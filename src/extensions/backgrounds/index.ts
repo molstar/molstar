@@ -72,6 +72,7 @@ export const Backgrounds = PluginBehavior.create<{ }>({
                             lightness: 0,
                             saturation: 0,
                             opacity: 1,
+                            blur: 0.3,
                         }
                     }
                 }, 'Purple Nebula Skybox'],
