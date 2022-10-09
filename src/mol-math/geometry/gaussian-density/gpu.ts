@@ -204,7 +204,7 @@ function calcGaussianDensityTexture2d(webgl: WebGLContext, position: PositionDat
         render(texture, false);
     }
 
-    // printTexture(webgl, minDistTex, 0.75);
+    // printTextureImage(readTexture(webgl, minDistTex), { scale: 0.75 });
 
     return { texture, scale, bbox: expandedBox, gridDim: dim, gridTexDim, gridTexScale, radiusFactor, resolution, maxRadius };
 }

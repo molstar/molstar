@@ -387,6 +387,8 @@ export function calcTextureMeshColorSmoothing(input: ColorSmoothingInput, resolu
     const type = isInstanceType ? 'volumeInstance' : 'volume';
     if (isTimingMode) webgl.timer.markEnd('calcTextureMeshColorSmoothing');
 
+    // printTextureImage(readTexture(webgl, texture), { scale: 0.75 });
+
     return { texture, gridDim, gridTexDim: Vec2.create(width, height), gridTransform, type };
 }
 

@@ -57,6 +57,7 @@ export const apply_light_color = `
     RE_IndirectSpecular_Physical(radiance, iblIrradiance, clearcoatRadiance, geometry, physicalMaterial, reflectedLight);
 
     vec3 outgoingLight = reflectedLight.directDiffuse + reflectedLight.indirectDiffuse + reflectedLight.directSpecular + reflectedLight.indirectSpecular;
+    outgoingLight = clamp(outgoingLight, 0.0, 1.0); // prevents black artifacts on specular highlight with transparent background
 
     gl_FragColor = vec4(outgoingLight, color.a);
 #endif

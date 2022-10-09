@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -8,6 +8,7 @@ import { Sphere3D } from '../../mol-math/geometry';
 import { Vec3, Mat4 } from '../../mol-math/linear-algebra';
 import { BoundaryHelper } from '../../mol-math/geometry/boundary-helper';
 import { TextureFilter } from '../webgl/texture';
+import { arrayMinMax } from '../../mol-util/array';
 
 export function calculateTextureInfo(n: number, itemSize: number) {
     n = Math.max(n, 2); // observed issues with 1 pixel textures
@@ -42,7 +43,8 @@ export function createTextureImage<T extends Uint8Array | Float32Array>(n: numbe
 const DefaultPrintImageOptions = {
     scale: 1,
     pixelated: false,
-    id: 'molstar.debug.image'
+    id: 'molstar.debug.image',
+    normalize: false,
 };
 export type PrintImageOptions = typeof DefaultPrintImageOptions
 
@@ -58,7 +60,17 @@ export function printTextureImage(textureImage: TextureImage<any>, options: Part
             }
         }
     } else if (itemSize === 4) {
-        data.set(array);
+        if (options.normalize) {
+            const [min, max] = arrayMinMax(array);
+            for (let i = 0, il = width * height * 4; i < il; i += 4) {
+                data[i] = ((array[i] - min) / (max - min)) * 255;
+                data[i + 1] = ((array[i + 1] - min) / (max - min)) * 255;
+                data[i + 2] = ((array[i + 2] - min) / (max - min)) * 255;
+                data[i + 3] = 255;
+            }
+        } else {
+            data.set(array);
+        }
     } else {
         console.warn(`itemSize '${itemSize}' not supported`);
     }

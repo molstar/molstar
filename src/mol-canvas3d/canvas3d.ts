@@ -65,6 +65,7 @@ export const Canvas3DParams = {
     cameraClipping: PD.Group({
         radius: PD.Numeric(100, { min: 0, max: 99, step: 1 }, { label: 'Clipping', description: 'How much of the scene to show.' }),
         far: PD.Boolean(true, { description: 'Hide scene in the distance' }),
+        minNear: PD.Numeric(5, { min: 0.1, max: 10, step: 0.1 }, { description: 'Note, may cause performance issues rendering impostors when set too small and cause issues with outline rendering when too close to 0.' }),
     }, { pivot: 'radius' }),
     viewport: PD.MappedStatic('canvas', {
         canvas: PD.Group({}),
@@ -322,6 +323,7 @@ namespace Canvas3D {
             mode: p.camera.mode,
             fog: p.cameraFog.name === 'on' ? p.cameraFog.params.intensity : 0,
             clipFar: p.cameraClipping.far,
+            minNear: p.cameraClipping.minNear,
             fov: degToRad(p.camera.fov),
         }, { x, y, width, height }, { pixelScale: attribs.pixelScale });
         const stereoCamera = new StereoCamera(camera, p.camera.stereo.params);
@@ -687,7 +689,7 @@ namespace Canvas3D {
                 cameraFog: camera.state.fog > 0
                     ? { name: 'on' as const, params: { intensity: camera.state.fog } }
                     : { name: 'off' as const, params: {} },
-                cameraClipping: { far: camera.state.clipFar, radius },
+                cameraClipping: { far: camera.state.clipFar, radius, minNear: camera.state.minNear },
                 cameraResetDurationMs: p.cameraResetDurationMs,
                 sceneRadiusFactor: p.sceneRadiusFactor,
                 transparentBackground: p.transparentBackground,
@@ -813,6 +815,9 @@ namespace Canvas3D {
                 if (props.cameraClipping !== undefined) {
                     if (props.cameraClipping.far !== undefined && props.cameraClipping.far !== camera.state.clipFar) {
                         cameraState.clipFar = props.cameraClipping.far;
+                    }
+                    if (props.cameraClipping.minNear !== undefined && props.cameraClipping.minNear !== camera.state.minNear) {
+                        cameraState.minNear = props.cameraClipping.minNear;
                     }
                     if (props.cameraClipping.radius !== undefined) {
                         const radius = (getSceneRadius() / 100) * (100 - props.cameraClipping.radius);
