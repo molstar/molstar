@@ -272,25 +272,42 @@ const TrajectoryFromMmCif = PluginStateTransform.BuiltIn({
     params(a) {
         if (!a) {
             return {
-                blockHeader: PD.Optional(PD.Text(void 0, { description: 'Header of the block to parse. If none is specifed, the 1st data block in the file is used.' }))
+                blockHeader: PD.Optional(PD.Text(void 0, { description: 'Header of the block to parse. If none is specifed, the 1st data block in the file is used.' })),
+                loadAllBlocks: PD.Optional(PD.Boolean(false, { description: 'If True, ignore Block Header parameter and parse all datablocks into a single trajectory.' })),
             };
         }
         const { blocks } = a.data;
         return {
-            blockHeader: PD.Optional(PD.Select(blocks[0] && blocks[0].header, blocks.map(b => [b.header, b.header] as [string, string]), { description: 'Header of the block to parse' }))
+            blockHeader: PD.Optional(PD.Select(blocks[0] && blocks[0].header, blocks.map(b => [b.header, b.header] as [string, string]), { description: 'Header of the block to parse' })),
+            loadAllBlocks: PD.Optional(PD.Boolean(false, { description: 'If True, ignore Block Header parameter and parse all data blocks into a single trajectory.' })),
         };
     }
 })({
     isApplicable: a => a.data.blocks.length > 0,
     apply({ a, params }) {
         return Task.create('Parse mmCIF', async ctx => {
-            const header = params.blockHeader || a.data.blocks[0].header;
-            const block = a.data.blocks.find(b => b.header === header);
-            if (!block) throw new Error(`Data block '${[header]}' not found.`);
-            const models = await trajectoryFromMmCIF(block).runInContext(ctx);
-            if (models.frameCount === 0) throw new Error('No models found.');
-            const props = trajectoryProps(models);
-            return new SO.Molecule.Trajectory(models, props);
+            let trajectory: Trajectory;
+            if (params.loadAllBlocks) {
+                const models: Model[] = [];
+                for (const block of a.data.blocks) {
+                    if (ctx.shouldUpdate) {
+                        await ctx.update(`Parsing ${block.header}...`);
+                    }
+                    const t = await trajectoryFromMmCIF(block).runInContext(ctx);
+                    for (let i = 0; i < t.frameCount; i++) {
+                        models.push(await Task.resolveInContext(t.getFrameAtIndex(i), ctx));
+                    }
+                }
+                trajectory = new ArrayTrajectory(models);
+            } else {
+                const header = params.blockHeader || a.data.blocks[0].header;
+                const block = a.data.blocks.find(b => b.header === header);
+                if (!block) throw new Error(`Data block '${[header]}' not found.`);
+                trajectory = await trajectoryFromMmCIF(block).runInContext(ctx);
+            }
+            if (trajectory.frameCount === 0) throw new Error('No models found.');
+            const props = trajectoryProps(trajectory);
+            return new SO.Molecule.Trajectory(trajectory, props);
         });
     }
 });
