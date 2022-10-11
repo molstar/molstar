@@ -38,6 +38,7 @@ import { EntityIdColorThemeProvider } from './color/entity-id';
 import { Texture, TextureFilter } from '../mol-gl/webgl/texture';
 import { VolumeValueColorThemeProvider } from './color/volume-value';
 import { Vec3, Vec4 } from '../mol-math/linear-algebra';
+import { ModelIndexColorThemeProvider } from './color/model-index';
 
 export type LocationColor = (location: Location, isSecondary: boolean) => Color
 
@@ -132,7 +133,7 @@ namespace ColorTheme {
         'entity-source': EntitySourceColorThemeProvider,
         'hydrophobicity': HydrophobicityColorThemeProvider,
         'illustrative': IllustrativeColorThemeProvider,
-        'trajectory-index': TrajectoryIndexColorThemeProvider,
+        'model-index': ModelIndexColorThemeProvider,
         'molecule-type': MoleculeTypeColorThemeProvider,
         'occupancy': OccupancyColorThemeProvider,
         'operator-hkl': OperatorHklColorThemeProvider,
@@ -144,6 +145,7 @@ namespace ColorTheme {
         'secondary-structure': SecondaryStructureColorThemeProvider,
         'sequence-id': SequenceIdColorThemeProvider,
         'shape-group': ShapeGroupColorThemeProvider,
+        'trajectory-index': TrajectoryIndexColorThemeProvider,
         'uncertainty': UncertaintyColorThemeProvider,
         'unit-index': UnitIndexColorThemeProvider,
         'uniform': UniformColorThemeProvider,
