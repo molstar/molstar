@@ -9,7 +9,7 @@ import { Location } from '../../mol-model/location';
 import { StructureElement, Bond, Model } from '../../mol-model/structure';
 import { ColorTheme, LocationColor } from '../color';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
-import { ThemeDataContext } from '../../mol-theme/theme';
+import { ThemeDataContext } from '../theme';
 import { getPaletteParams, getPalette } from '../../mol-util/color/palette';
 import { TableLegend, ScaleLegend } from '../../mol-util/legend';
 

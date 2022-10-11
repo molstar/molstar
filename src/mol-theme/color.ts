@@ -28,7 +28,7 @@ import { UncertaintyColorThemeProvider } from './color/uncertainty';
 import { EntitySourceColorThemeProvider } from './color/entity-source';
 import { IllustrativeColorThemeProvider } from './color/illustrative';
 import { HydrophobicityColorThemeProvider } from './color/hydrophobicity';
-import { TrajectoryIndexColorThemeProvider } from './color/model-index';
+import { TrajectoryIndexColorThemeProvider } from './color/trajectory-index';
 import { OccupancyColorThemeProvider } from './color/occupancy';
 import { OperatorNameColorThemeProvider } from './color/operator-name';
 import { OperatorHklColorThemeProvider } from './color/operator-hkl';
