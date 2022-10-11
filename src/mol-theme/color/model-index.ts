@@ -14,17 +14,17 @@ import { getPaletteParams, getPalette } from '../../mol-util/color/palette';
 import { TableLegend, ScaleLegend } from '../../mol-util/legend';
 
 const DefaultColor = Color(0xCCCCCC);
-const Description = 'Gives every model a unique color based on the position (index) of the model in the list of models in the structure.';
+const Description = 'Gives every model a unique color based on the position (index) of the trajectory in the list of trajectories in the structure.';
 
-export const ModelIndexColorThemeParams = {
+export const TrajectoryIndexColorThemeParams = {
     ...getPaletteParams({ type: 'colors', colorList: 'purples' }),
 };
-export type ModelIndexColorThemeParams = typeof ModelIndexColorThemeParams
-export function getModelIndexColorThemeParams(ctx: ThemeDataContext) {
-    return ModelIndexColorThemeParams; // TODO return copy
+export type TrajectoryIndexColorThemeParams = typeof TrajectoryIndexColorThemeParams
+export function getTrajectoryIndexColorThemeParams(ctx: ThemeDataContext) {
+    return TrajectoryIndexColorThemeParams; // TODO return copy
 }
 
-export function ModelIndexColorTheme(ctx: ThemeDataContext, props: PD.Values<ModelIndexColorThemeParams>): ColorTheme<ModelIndexColorThemeParams> {
+export function TrajectoryIndexColorTheme(ctx: ThemeDataContext, props: PD.Values<TrajectoryIndexColorThemeParams>): ColorTheme<TrajectoryIndexColorThemeParams> {
     let color: LocationColor;
     let legend: ScaleLegend | TableLegend | undefined;
 
@@ -55,7 +55,7 @@ export function ModelIndexColorTheme(ctx: ThemeDataContext, props: PD.Values<Mod
     }
 
     return {
-        factory: ModelIndexColorTheme,
+        factory: TrajectoryIndexColorTheme,
         granularity: 'instance',
         color,
         props,
@@ -64,12 +64,12 @@ export function ModelIndexColorTheme(ctx: ThemeDataContext, props: PD.Values<Mod
     };
 }
 
-export const ModelIndexColorThemeProvider: ColorTheme.Provider<ModelIndexColorThemeParams, 'model-index'> = {
-    name: 'model-index',
-    label: 'Model Index',
+export const TrajectoryIndexColorThemeProvider: ColorTheme.Provider<TrajectoryIndexColorThemeParams, 'trajectory-index'> = {
+    name: 'trajectory-index',
+    label: 'Trajectory Index',
     category: ColorTheme.Category.Chain,
-    factory: ModelIndexColorTheme,
-    getParams: getModelIndexColorThemeParams,
-    defaultValues: PD.getDefaultValues(ModelIndexColorThemeParams),
+    factory: TrajectoryIndexColorTheme,
+    getParams: getTrajectoryIndexColorThemeParams,
+    defaultValues: PD.getDefaultValues(TrajectoryIndexColorThemeParams),
     isApplicable: (ctx: ThemeDataContext) => !!ctx.structure && ctx.structure.elementCount > 0 && Model.TrajectoryInfo.get(ctx.structure.models[0]).size > 1
 };
