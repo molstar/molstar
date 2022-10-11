@@ -17,7 +17,7 @@ const DefaultColor = Color(0xCCCCCC);
 const Description = 'Gives every model a unique color based on the position (index) of the model in the list of models in the structure.';
 
 export const ModelIndexColorThemeParams = {
-    ...getPaletteParams({ type: 'colors', colorList: 'purples' }),
+    ...getPaletteParams({ type: 'colors', colorList: 'many-distinct' }),
 };
 export type ModelIndexColorThemeParams = typeof ModelIndexColorThemeParams
 export function getModelIndexColorThemeParams(ctx: ThemeDataContext) {
@@ -35,17 +35,12 @@ export function ModelIndexColorTheme(ctx: ThemeDataContext, props: PD.Values<Mod
 
         const palette = getPalette(size, props);
         legend = palette.legend;
-        const modelColor = new Map<number, Color>();
-        for (let i = 0, il = models.length; i < il; ++i) {
-            const idx = Model.Index.get(models[i])?.value || 0;
-            modelColor.set(idx, palette.color(idx));
-        }
 
         color = (location: Location): Color => {
             if (StructureElement.Location.is(location)) {
-                return modelColor.get(Model.Index.get(location.unit.model).value || 0)!;
+                return palette.color(Model.Index.get(location.unit.model).value || 0)!;
             } else if (Bond.isLocation(location)) {
-                return modelColor.get(Model.Index.get(location.aUnit.model).value || 0)!;
+                return palette.color(Model.Index.get(location.aUnit.model).value || 0)!;
             }
             return DefaultColor;
         };
