@@ -53,17 +53,14 @@ export function StructureLookup3DResultContext(): StructureLookup3DResultContext
     return { result: StructureResult.create(), closeUnitsResult: Result.create(), unitGroupResult: Result.create() };
 }
 
+const tmpHeap = new FibonacciHeap();
+
 export class StructureLookup3D {
     private unitLookup: Lookup3D;
     private pivot = Vec3();
-    private tmpHeap = new FibonacciHeap();
 
     findUnitIndices(x: number, y: number, z: number, radius: number): Result<number> {
         return this.unitLookup.find(x, y, z, radius);
-    }
-
-    nearestUnitIndices(x: number, y: number, z: number, k: number = 1): Result<number> {
-        return this.unitLookup.nearest(x, y, z, k);
     }
 
     private findContext = StructureLookup3DResultContext();
@@ -99,11 +96,11 @@ export class StructureLookup3D {
 
     _nearest(x: number, y: number, z: number, k: number, ctx: StructureLookup3DResultContext): StructureResult {
         const result = ctx.result;
-        const heap = this.tmpHeap;
         Result.reset(result);
-        this.tmpHeap.clear();
+        tmpHeap.clear();
         const { units } = this.structure;
-        const closeUnits = this.unitLookup.nearest(x, y, z, units.length, ctx.closeUnitsResult); // sort all units based on distance to the point
+        let elementsCount = 0;
+        const closeUnits = this.unitLookup.nearest(x, y, z, units.length, (uid: number) => (elementsCount += units[uid].elements.length) >= k, ctx.closeUnitsResult); // sort units based on distance to the point
         if (closeUnits.count === 0) return result;
         let totalCount = 0, maxDistResult = -Number.MAX_VALUE;
         for (let t = 0, _t = closeUnits.count; t < _t; t++) {
@@ -115,16 +112,16 @@ export class StructureLookup3D {
                 Vec3.transformMat4(this.pivot, this.pivot, unit.conformation.operator.inverse);
             }
             const unitLookup = unit.lookup3d;
-            const groupResult = unitLookup.nearest(this.pivot[0], this.pivot[1], this.pivot[2], k, ctx.unitGroupResult);
+            const groupResult = unitLookup.nearest(this.pivot[0], this.pivot[1], this.pivot[2], k, void 0, ctx.unitGroupResult);
             if (groupResult.count === 0) continue;
-            maxDistResult = Math.max(maxDistResult, groupResult.squaredDistances[groupResult.count - 1]);
             totalCount += groupResult.count;
+            maxDistResult = Math.max(maxDistResult, groupResult.squaredDistances[groupResult.count - 1]);
             for (let j = 0, _j = groupResult.count; j < _j; j++) {
-                heap.insert(groupResult.squaredDistances[j], { index: groupResult.indices[j], unit: unit });
+                tmpHeap.insert(groupResult.squaredDistances[j], { index: groupResult.indices[j], unit: unit });
             }
         }
-        while (!heap.isEmpty() && result.count < k) {
-            const node = heap.extractMinimum();
+        while (!tmpHeap.isEmpty() && result.count < k) {
+            const node = tmpHeap.extractMinimum();
             if (!node) throw new Error('Cannot extract minimum, should not happen');
             const { key: squaredDistance } = node;
             const { unit, index } = node.value as { index: UnitIndex, unit: Unit };

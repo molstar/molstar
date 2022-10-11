@@ -1,17 +1,17 @@
 /**
- * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Gianluca Tomasello <giagitom@gmail.com>
  *
  * Adapted from https://github.com/gwtw/ts-fibonacci-heap, Copyright (c) 2014 Daniel Imms, MIT
  */
 
-type CompareFunction<K, V> = (a: INode<K, V>, b: INode<K, V>) => number;
-
 interface INode<K, V> {
     key: K;
     value?: V;
 }
+
+type CompareFunction<K, V> = (a: INode<K, V>, b: INode<K, V>) => number;
 
 class Node<K, V> implements INode<K, V> {
     public key: K;
@@ -35,28 +35,32 @@ class Node<K, V> implements INode<K, V> {
 class NodeListIterator<K, V> {
     private _index: number;
     private _items: Node<K, V>[];
-
+    private _len: number;
     /**
    * Creates an Iterator used to simplify the consolidate() method. It works by
    * making a shallow copy of the nodes in the root list and iterating over the
    * shallow copy instead of the source as the source will be modified.
    * @param start A node from the root list.
    */
-    constructor(start: Node<K, V>) {
+    constructor(start?: Node<K, V>) {
         this._index = -1;
         this._items = [];
-        let current = start;
-        do {
-            this._items.push(current);
-            current = current.next;
-        } while (start !== current);
+        this._len = 0;
+        if (start) {
+            let current = start, l = 0;
+            do {
+                this._items[l++] = current;
+                current = current.next;
+            } while (start !== current);
+            this._len = l;
+        }
     }
 
     /**
    * @return Whether there is a next node in the iterator.
    */
     public hasNext(): boolean {
-        return this._index < this._items.length - 1;
+        return this._index < this._len - 1;
     }
 
     /**
@@ -65,8 +69,23 @@ class NodeListIterator<K, V> {
     public next(): Node<K, V> {
         return this._items[++this._index];
     }
+
+    /**
+   * @return Resets iterator to reuse it.
+   */
+    public reset(start: Node<K, V>) {
+        this._index = -1;
+        this._len = 0;
+        let current = start, l = 0;
+        do {
+            this._items[l++] = current;
+            current = current.next;
+        } while (start !== current);
+        this._len = l;
+    }
 }
 
+const tmpIt = new NodeListIterator<any, any>();
 /**
  * A Fibonacci heap data structure with a key and optional value.
 */
@@ -277,9 +296,9 @@ export class FibonacciHeap<K, V> {
     private _consolidate(minNode: Node<K, V>): Node<K, V> | null {
 
         const aux = [];
-        const it = new NodeListIterator<K, V>(minNode);
-        while (it.hasNext()) {
-            let current = it.next();
+        tmpIt.reset(minNode);
+        while (tmpIt.hasNext()) {
+            let current = tmpIt.next();
 
             // If there exists another node with the same degree, merge them
             let auxCurrent = aux[current.degree];
