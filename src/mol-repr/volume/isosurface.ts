@@ -32,7 +32,8 @@ import { BaseGeometry } from '../../mol-geo/geometry/base';
 import { ValueCell } from '../../mol-util/value-cell';
 
 export const VolumeIsosurfaceParams = {
-    isoValue: Volume.IsoValueParam
+    isoValue: Volume.IsoValueParam,
+    pickingGranularity: PD.Select<'voxels' | 'surfaces'>('voxels', [['voxels', 'Voxels'], ['surfaces', 'Surfaces']]),
 };
 export type VolumeIsosurfaceParams = typeof VolumeIsosurfaceParams
 export type VolumeIsosurfaceProps = PD.Values<VolumeIsosurfaceParams>
@@ -67,7 +68,11 @@ function getLoci(volume: Volume, props: VolumeIsosurfaceProps) {
 function getIsosurfaceLoci(pickingId: PickingId, volume: Volume, props: VolumeIsosurfaceProps, id: number) {
     const { objectId, groupId } = pickingId;
     if (id === objectId) {
-        return Volume.Cell.Loci(volume, Interval.ofSingleton(groupId as Volume.CellIndex));
+        if (props.pickingGranularity === 'surfaces') {
+            return Volume.Isosurface.Loci(volume, props.isoValue);
+        } else {
+            return Volume.Cell.Loci(volume, Interval.ofSingleton(groupId as Volume.CellIndex));
+        }
     }
     return EmptyLoci;
 }
