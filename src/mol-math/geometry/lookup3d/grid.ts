@@ -404,13 +404,23 @@ function queryNearest<T extends number = number>(ctx: QueryContext, result: Resu
         }
         expandGrid = false;
         if (nextGCount === 0) {
-            while (!tmpHeapG.isEmpty() && (gridPointsFinished || tmpHeapG.findMinimum()!.key as unknown as number <= maxRange) && result.count < k) {
-                const node = tmpHeapG.extractMinimum();
-                const squaredDistance = node!.key, index = node!.value;
+            if (k === 1){
+              const node = tmpHeapG.findMinimum()
+              if (node) {
+                const { key: squaredDistance, value : index } = node!
+                //const squaredDistance = node!.key, index = node!.value;
                 Result.add(result, index as number, squaredDistance as number);
-                if (stopIf && !stop) {
-                    stop = stopIf(index, squaredDistance);
-                }
+                return true
+              }
+            } else {
+              while (!tmpHeapG.isEmpty() && (gridPointsFinished || tmpHeapG.findMinimum()!.key as number <= maxRange) && result.count < k) {
+                  const node = tmpHeapG.extractMinimum();
+                  const squaredDistance = node!.key, index = node!.value;
+                  Result.add(result, index as number, squaredDistance as number);
+                  if (stopIf && !stop) {
+                      stop = stopIf(index, squaredDistance);
+                  }
+              }
             }
             if (result.count >= k || stop || result.count >= indicesCount) return result.count > 0;
             expandGrid = true;

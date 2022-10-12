@@ -53,11 +53,10 @@ export function StructureLookup3DResultContext(): StructureLookup3DResultContext
     return { result: StructureResult.create(), closeUnitsResult: Result.create(), unitGroupResult: Result.create() };
 }
 
-const tmpHeap = new FibonacciHeap();
-
 export class StructureLookup3D {
     private unitLookup: Lookup3D;
     private pivot = Vec3();
+    private heap = new FibonacciHeap();
 
     findUnitIndices(x: number, y: number, z: number, radius: number): Result<number> {
         return this.unitLookup.find(x, y, z, radius);
@@ -95,9 +94,9 @@ export class StructureLookup3D {
     }
 
     _nearest(x: number, y: number, z: number, k: number, ctx: StructureLookup3DResultContext): StructureResult {
-        const result = ctx.result;
+        const result = ctx.result, heap = this.heap;
         Result.reset(result);
-        tmpHeap.clear();
+        heap.clear();
         const { units } = this.structure;
         let elementsCount = 0;
         const closeUnits = this.unitLookup.nearest(x, y, z, units.length, (uid: number) => (elementsCount += units[uid].elements.length) >= k, ctx.closeUnitsResult); // sort units based on distance to the point
@@ -117,15 +116,23 @@ export class StructureLookup3D {
             totalCount += groupResult.count;
             maxDistResult = Math.max(maxDistResult, groupResult.squaredDistances[groupResult.count - 1]);
             for (let j = 0, _j = groupResult.count; j < _j; j++) {
-                tmpHeap.insert(groupResult.squaredDistances[j], { index: groupResult.indices[j], unit: unit });
+                heap.insert(groupResult.squaredDistances[j], { index: groupResult.indices[j], unit: unit });
             }
         }
-        while (!tmpHeap.isEmpty() && result.count < k) {
-            const node = tmpHeap.extractMinimum();
-            if (!node) throw new Error('Cannot extract minimum, should not happen');
+        if (k === 1){
+          const node = heap.findMinimum()
+          if (node) {
             const { key: squaredDistance } = node;
             const { unit, index } = node.value as { index: UnitIndex, unit: Unit };
             StructureResult.add(result, unit as Unit, index as UnitIndex, squaredDistance as number);
+          }
+        } else {
+          while (!heap.isEmpty() && result.count < k) {
+              const node = heap.extractMinimum();
+              const { key: squaredDistance } = node!;
+              const { unit, index } = node!.value as { index: UnitIndex, unit: Unit };
+              StructureResult.add(result, unit as Unit, index as UnitIndex, squaredDistance as number);
+          }
         }
         return result;
     }
