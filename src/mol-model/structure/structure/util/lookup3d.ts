@@ -119,20 +119,20 @@ export class StructureLookup3D {
                 heap.insert(groupResult.squaredDistances[j], { index: groupResult.indices[j], unit: unit });
             }
         }
-        if (k === 1){
-          const node = heap.findMinimum()
-          if (node) {
-            const { key: squaredDistance } = node;
-            const { unit, index } = node.value as { index: UnitIndex, unit: Unit };
-            StructureResult.add(result, unit as Unit, index as UnitIndex, squaredDistance as number);
-          }
+        if (k === 1) {
+            const node = heap.findMinimum();
+            if (node) {
+                const { key: squaredDistance } = node;
+                const { unit, index } = node.value as { index: UnitIndex, unit: Unit };
+                StructureResult.add(result, unit as Unit, index as UnitIndex, squaredDistance as number);
+            }
         } else {
-          while (!heap.isEmpty() && result.count < k) {
-              const node = heap.extractMinimum();
-              const { key: squaredDistance } = node!;
-              const { unit, index } = node!.value as { index: UnitIndex, unit: Unit };
-              StructureResult.add(result, unit as Unit, index as UnitIndex, squaredDistance as number);
-          }
+            while (!heap.isEmpty() && result.count < k) {
+                const node = heap.extractMinimum();
+                const { key: squaredDistance } = node!;
+                const { unit, index } = node!.value as { index: UnitIndex, unit: Unit };
+                StructureResult.add(result, unit as Unit, index as UnitIndex, squaredDistance as number);
+            }
         }
         return result;
     }
