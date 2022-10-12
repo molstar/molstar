@@ -21,7 +21,7 @@ export const TrajectoryIndexColorThemeParams = {
 };
 export type TrajectoryIndexColorThemeParams = typeof TrajectoryIndexColorThemeParams
 export function getTrajectoryIndexColorThemeParams(ctx: ThemeDataContext) {
-    return TrajectoryIndexColorThemeParams; // TODO return copy
+    return PD.clone(TrajectoryIndexColorThemeParams);
 }
 
 export function TrajectoryIndexColorTheme(ctx: ThemeDataContext, props: PD.Values<TrajectoryIndexColorThemeParams>): ColorTheme<TrajectoryIndexColorThemeParams> {

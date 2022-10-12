@@ -1,7 +1,7 @@
 /**
  * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
- * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Jason Pattle <jpattle@exscientia.co.uk>
  */
 
 import { Color } from '../../mol-util/color';
@@ -21,7 +21,7 @@ export const ModelIndexColorThemeParams = {
 };
 export type ModelIndexColorThemeParams = typeof ModelIndexColorThemeParams
 export function getModelIndexColorThemeParams(ctx: ThemeDataContext) {
-    return ModelIndexColorThemeParams; // TODO return copy
+    return PD.clone(ModelIndexColorThemeParams);
 }
 
 export function ModelIndexColorTheme(ctx: ThemeDataContext, props: PD.Values<ModelIndexColorThemeParams>): ColorTheme<ModelIndexColorThemeParams> {
