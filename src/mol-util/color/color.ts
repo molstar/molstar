@@ -166,15 +166,12 @@ export function ColorMap<T extends { [k: string]: number }>(o: T) { return o as 
 export function getAdjustedColorMap<T extends { [k: string]: number }>(map: ColorMap<T>, saturation: number, lightness: number) {
     const adjustedMap: { [k: string]: Color } = {};
     for (const e in map) {
-        adjustedMap[e] = getAdjustedColor(map[e], saturation, lightness);
+        let c = map[e];
+        c = Color.saturate(c, saturation);
+        c = Color.darken(c, -lightness);
+        adjustedMap[e] = c;
     }
     return adjustedMap as ColorMap<T>;
-}
-export function getAdjustedColor(color: Color, saturation: number, lightness: number) {
-    let c = color;
-    c = Color.saturate(c, saturation);
-    c = Color.darken(c, -lightness);
-    return c;
 }
 
 export type ColorSwatch = [string, Color][]

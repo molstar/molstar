@@ -12,7 +12,7 @@ import { ColorTheme } from '../color';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { ThemeDataContext } from '../theme';
 import { TableLegend } from '../../mol-util/legend';
-import { getAdjustedColor, getAdjustedColorMap } from '../../mol-util/color/color';
+import { getAdjustedColorMap } from '../../mol-util/color/color';
 import { getColorMapParams } from '../../mol-util/color/params';
 import { ChainIdColorTheme, ChainIdColorThemeParams } from './chain-id';
 import { OperatorNameColorThemeParams, OperatorNameColorTheme } from './operator-name';
@@ -41,7 +41,6 @@ export const ElementSymbolColorThemeParams = {
     }, { description: 'Use chain-id coloring for carbon atoms.' }),
     saturation: PD.Numeric(0, { min: -6, max: 6, step: 0.1 }),
     lightness: PD.Numeric(0.2, { min: -6, max: 6, step: 0.1 }),
-    adjustCarbonColor: PD.Boolean(false, { description: 'apply the saturation and lightness adjustments to the carbon color' }),
     colors: PD.MappedStatic('default', {
         'default': PD.EmptyGroup(),
         'custom': PD.Group(getColorMapParams(ElementSymbolColors))
@@ -70,11 +69,9 @@ export function ElementSymbolColorTheme(ctx: ThemeDataContext, props: PD.Values<
                             pcc.name === 'element-symbol' ? undefined :
                                 assertUnreachable(pcc);
 
-    const getFinalCarbonColor = props.adjustCarbonColor ? getAdjustedColor : (color: Color) => color;
-
     function elementColor(element: ElementSymbol, location: Location) {
         return (carbonColor && element === 'C')
-            ? getFinalCarbonColor(carbonColor(location, false), props.saturation, props.lightness)
+            ? carbonColor(location, false)
             : elementSymbolColor(colorMap, element);
     }
 
