@@ -13,6 +13,9 @@ Note that since we don't clearly distinguish between a public and private interf
 - Fix dual depth peeling when post-processing is off or when rendering direct-volumes
 - Add ``cameraClipping.minNear`` parameter
 - Fix black artifacts on specular highlights with transparent background
+- [Breaking] Renamed the ``model-index`` color theme to ``trajectory-index``
+- Added a new ``model-index`` color theme that uses the `Model.Index` property
+- Added the new ``model-index`` color theme as an option for the carbon color in the ``element-symbol`` color theme
 
 ## [v3.18.0] - 2022-09-17
 
