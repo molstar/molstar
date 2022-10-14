@@ -277,6 +277,12 @@ namespace Sphere3D {
     export function distance(a: Sphere3D, b: Sphere3D) {
         return Vec3.distance(a.center, b.center) - a.radius + b.radius;
     }
+
+    /** Get the distance of v from sphere. If negative, v is inside sphere */
+    export function distanceToVec(sphere: Sphere3D, v: Vec3): number {
+        const { center, radius } = sphere;
+        return Vec3.distance(v, center) - radius;
+    }
 }
 
 export { Sphere3D };
