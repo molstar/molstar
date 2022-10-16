@@ -14,7 +14,7 @@ import { getPaletteParams, getPalette } from '../../mol-util/color/palette';
 import { TableLegend, ScaleLegend } from '../../mol-util/legend';
 
 const DefaultColor = Color(0xCCCCCC);
-const Description = 'Gives every model a unique color based on the position (index) of the model in the list of models in the structure.';
+const Description = 'Gives every model a unique color based on its index.';
 
 export const ModelIndexColorThemeParams = {
     ...getPaletteParams({ type: 'colors', colorList: 'many-distinct' }),

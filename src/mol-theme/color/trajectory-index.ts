@@ -14,7 +14,7 @@ import { getPaletteParams, getPalette } from '../../mol-util/color/palette';
 import { TableLegend, ScaleLegend } from '../../mol-util/legend';
 
 const DefaultColor = Color(0xCCCCCC);
-const Description = 'Gives every model a unique color based on the position (index) of the trajectory in the list of trajectories in the structure.';
+const Description = 'Gives every model (frame) a unique color based on the index in its trajectory.';
 
 export const TrajectoryIndexColorThemeParams = {
     ...getPaletteParams({ type: 'colors', colorList: 'purples' }),
