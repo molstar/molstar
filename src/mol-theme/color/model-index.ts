@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Jason Pattle <jpattle@exscientia.co.uk>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { Color } from '../../mol-util/color';
@@ -29,9 +30,8 @@ export function ModelIndexColorTheme(ctx: ThemeDataContext, props: PD.Values<Mod
     let legend: ScaleLegend | TableLegend | undefined;
 
     if (ctx.structure) {
-        const { models } = ctx.structure.root;
-
-        const size = Math.max(...models.map(m => Model.Index.get(m)?.value || 0));
+        // max-index is the same for all models
+        const size = (Model.MaxIndex.get(ctx.structure.models[0])?.value || -1) + 1;
 
         const palette = getPalette(size, props);
         legend = palette.legend;

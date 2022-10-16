@@ -213,6 +213,9 @@ export namespace Model {
     export type Index = number;
     export const Index = CustomModelProperty.createSimple<Index>('index', 'static');
 
+    export type MaxIndex = number;
+    export const MaxIndex = CustomModelProperty.createSimple<MaxIndex>('max_index', 'static');
+
     export function getRoot(model: Model) {
         return model.parent || model;
     }

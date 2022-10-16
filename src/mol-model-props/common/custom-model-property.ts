@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -71,12 +71,12 @@ namespace CustomModelProperty {
             },
             ref: (data: Model, add: boolean) => data.customProperties.reference(builder.descriptor, add),
             get: (data: Model) => get(data)?.data,
-            set: (data: Model, props: Partial<PD.Values<Params>> = {}) => {
+            set: (data: Model, props: Partial<PD.Values<Params>> = {}, value?: Value) => {
                 const property = get(data);
                 const p = PD.merge(builder.defaultParams, property.props, props);
                 if (!PD.areEqual(builder.defaultParams, property.props, p)) {
                     // this invalidates property.value
-                    set(data, p, undefined);
+                    set(data, p, value);
                     // dispose of assets
                     data.customProperties.assets(builder.descriptor);
                 }
@@ -96,7 +96,7 @@ namespace CustomModelProperty {
             getParams: () => ({ value: PD.Value(defaultValue, { isHidden: true }) }),
             isApplicable: () => true,
             obtain: async (ctx: CustomProperty.Context, data: Model, props: Partial<PD.Values<typeof defaultParams>>) => {
-                return { value: props.value ?? defaultValue };
+                return { ...PD.getDefaultValues(defaultParams), ...props };
             }
         });
     }
