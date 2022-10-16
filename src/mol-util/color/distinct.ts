@@ -13,6 +13,7 @@ import { deepClone } from '../../mol-util/object';
 import { deepEqual } from '../../mol-util';
 import { arraySum } from '../../mol-util/array';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
+import { ColorNames } from './names';
 
 export const DistinctColorsParams = {
     hue: PD.Interval([1, 360], { min: 0, max: 360, step: 1 }),
@@ -105,7 +106,8 @@ export function distinctColors(count: number, props: Partial<DistinctColorsProps
 
     const samples = getSamples(Math.max(p.minSampleCount, count * 5), p);
     if (samples.length < count) {
-        throw new Error('Not enough samples to generate distinct colors, increase sample count.');
+        console.warn('Not enough samples to generate distinct colors, increase sample count.');
+        return (new Array(count)).fill(ColorNames.lightgrey);
     }
 
     const colors: Lab[] = [];
