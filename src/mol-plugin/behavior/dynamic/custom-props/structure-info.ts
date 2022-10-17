@@ -65,6 +65,19 @@ export const StructureInfo = PluginBehavior.create({
             }
         }
 
+        private setStructureMaxIndex() {
+            const value = this.maxModelIndex;
+            const cells = this.ctx.state.data.select(StateSelection.Generators.rootsOfType(PluginStateObject.Molecule.Structure));
+            for (const c of cells) {
+                const s = c.obj?.data;
+                if (s) {
+                    if (Structure.MaxIndex.get(s).value !== value) {
+                        Structure.MaxIndex.set(s, { value }, value);
+                    }
+                }
+            }
+        }
+
         private handleModel(model: Model, oldModel?: Model) {
             if (Model.Index.get(model).value === undefined) {
                 const oldIndex = oldModel && Model.Index.get(oldModel).value;
@@ -107,10 +120,12 @@ export const StructureInfo = PluginBehavior.create({
             this.ctx.customModelProperties.register(Model.Index, true);
             this.ctx.customModelProperties.register(Model.MaxIndex, true);
             this.ctx.customStructureProperties.register(Structure.Index, true);
+            this.ctx.customStructureProperties.register(Structure.MaxIndex, true);
 
             this.subscribeObservable(this.ctx.state.data.events.object.created, o => {
                 this.handle(o.ref, o.obj);
                 this.setModelMaxIndex();
+                this.setStructureMaxIndex();
             });
 
             this.subscribeObservable(this.ctx.state.data.events.object.updated, o => {
@@ -123,6 +138,7 @@ export const StructureInfo = PluginBehavior.create({
             this.ctx.customModelProperties.unregister(Model.Index.descriptor.name);
             this.ctx.customModelProperties.unregister(Model.MaxIndex.descriptor.name);
             this.ctx.customStructureProperties.unregister(Structure.Index.descriptor.name);
+            this.ctx.customStructureProperties.unregister(Structure.MaxIndex.descriptor.name);
         }
     }
 });

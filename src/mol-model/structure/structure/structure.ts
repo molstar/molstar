@@ -1357,6 +1357,9 @@ namespace Structure {
     export type Index = number;
     export const Index = CustomStructureProperty.createSimple<Index>('index', 'root');
 
+    export type MaxIndex = number;
+    export const MaxIndex = CustomStructureProperty.createSimple<MaxIndex>('max_index', 'root');
+
     const PrincipalAxesProp = '__PrincipalAxes__';
     export function getPrincipalAxes(structure: Structure): PrincipalAxes {
         if (structure.currentPropertyData[PrincipalAxesProp]) return structure.currentPropertyData[PrincipalAxesProp];

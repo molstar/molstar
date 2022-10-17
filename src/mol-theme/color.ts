@@ -39,6 +39,7 @@ import { Texture, TextureFilter } from '../mol-gl/webgl/texture';
 import { VolumeValueColorThemeProvider } from './color/volume-value';
 import { Vec3, Vec4 } from '../mol-math/linear-algebra';
 import { ModelIndexColorThemeProvider } from './color/model-index';
+import { StructureIndexColorThemeProvider } from './color/structure-index';
 
 export type LocationColor = (location: Location, isSecondary: boolean) => Color
 
@@ -145,6 +146,7 @@ namespace ColorTheme {
         'secondary-structure': SecondaryStructureColorThemeProvider,
         'sequence-id': SequenceIdColorThemeProvider,
         'shape-group': ShapeGroupColorThemeProvider,
+        'structure-index': StructureIndexColorThemeProvider,
         'trajectory-index': TrajectoryIndexColorThemeProvider,
         'uncertainty': UncertaintyColorThemeProvider,
         'unit-index': UnitIndexColorThemeProvider,
