@@ -219,4 +219,14 @@ export namespace Volume {
             return Sphere3D.expand(bs, bs, Mat4.getMaxScaleOnAxis(transform) * 10);
         }
     }
+
+    export type PickingGranularity = 'volume' | 'object' | 'voxel';
+    export const PickingGranularity = {
+        set(volume: Volume, granularity: PickingGranularity) {
+            volume._propertyData['__picking_granularity__'] = granularity;
+        },
+        get(volume: Volume): PickingGranularity {
+            return volume._propertyData['__picking_granularity__'] ?? 'voxel';
+        }
+    };
 }
