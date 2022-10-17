@@ -31,7 +31,7 @@ export function ModelIndexColorTheme(ctx: ThemeDataContext, props: PD.Values<Mod
 
     if (ctx.structure) {
         // max-index is the same for all models
-        const size = (Model.MaxIndex.get(ctx.structure.models[0])?.value || -1) + 1;
+        const size = (Model.MaxIndex.get(ctx.structure.models[0]).value ?? -1) + 1;
 
         const palette = getPalette(size, props);
         legend = palette.legend;

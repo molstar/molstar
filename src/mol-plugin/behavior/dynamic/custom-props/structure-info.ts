@@ -53,12 +53,14 @@ export const StructureInfo = PluginBehavior.create({
         }
 
         private setModelMaxIndex() {
-            const maxIndex = this.maxModelIndex;
+            const value = this.maxModelIndex;
             const cells = this.ctx.state.data.select(StateSelection.Generators.rootsOfType(PluginStateObject.Molecule.Model));
             for (const c of cells) {
                 const m = c.obj?.data;
                 if (m) {
-                    Model.MaxIndex.set(m, { value: maxIndex }, maxIndex);
+                    if (Model.MaxIndex.get(m).value !== value) {
+                        Model.MaxIndex.set(m, { value }, value);
+                    }
                 }
             }
         }
