@@ -86,7 +86,7 @@ const allModels = TrajectoryHierarchyPresetProvider({
     id: 'preset-trajectory-all-models',
     display: {
         name: 'All Models', group: 'Preset',
-        description: 'Shows all models; colored by model-index.'
+        description: 'Shows all models; colored by trajectory-index.'
     },
     isApplicable: o => {
         return o.data.frameCount > 1;
@@ -115,7 +115,7 @@ const allModels = TrajectoryHierarchyPresetProvider({
 
             const quality = structure.obj ? getStructureQuality(structure.obj.data, { elementCountFactor: tr.frameCount }) : 'medium';
             const representationPreset = params.representationPreset || plugin.config.get(PluginConfig.Structure.DefaultRepresentationPreset) || PresetStructureRepresentations.auto.id;
-            await builder.representation.applyPreset(structureProperties, representationPreset, { theme: { globalName: 'model-index' }, quality });
+            await builder.representation.applyPreset(structureProperties, representationPreset, { theme: { globalName: 'trajectory-index' }, quality });
         }
 
         return { models, structures };
