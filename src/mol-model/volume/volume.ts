@@ -219,4 +219,14 @@ export namespace Volume {
             return Sphere3D.expand(bs, bs, Mat4.getMaxScaleOnAxis(transform) * 10);
         }
     }
+
+    export type PickingGranuality = 'surface' | 'voxel';
+    export const PickingGranuality = {
+        set(volume: Volume, granuality: PickingGranuality) {
+            volume._propertyData['__picking_granuality__'] = granuality;
+        },
+        get(volume: Volume): PickingGranuality {
+            return volume._propertyData['__picking_granuality__'] ?? 'voxel';
+        }
+    };
 }
