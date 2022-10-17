@@ -6,9 +6,13 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+## [v3.22.0] - 2022-10-17
+
+- Replace `VolumeIsosurfaceParams.pickingGranularity` param with `Volume.PickingGranuality` 
+
 ## [v3.21.0] - 2022-10-17
 
-- Add `VolumeIsosurfaceParams.pickingGranularity` param.
+- Add `VolumeIsosurfaceParams.pickingGranularity` param
 - Prevent component controls collapsing when option is selected
 
 ## [v3.20.0] - 2022-10-16
