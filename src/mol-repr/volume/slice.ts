@@ -153,6 +153,8 @@ function getSliceLoci(pickingId: PickingId, volume: Volume, props: PD.Values<Sli
         const granularity = Volume.PickingGranularity.get(volume);
         if (granularity === 'volume') {
             return Volume.Loci(volume);
+        } if (granularity === 'object') {
+            return getLoci(volume, props);
         } else {
             return Volume.Cell.Loci(volume, Interval.ofSingleton(groupId as Volume.CellIndex));
         }
