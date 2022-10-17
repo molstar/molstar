@@ -68,10 +68,10 @@ function getIsosurfaceLoci(pickingId: PickingId, volume: Volume, props: VolumeIs
     const { objectId, groupId } = pickingId;
 
     if (id === objectId) {
-        const granuality = Volume.PickingGranularity.get(volume);
-        if (granuality === 'volume') {
+        const granularity = Volume.PickingGranularity.get(volume);
+        if (granularity === 'volume') {
             return Volume.Loci(volume);
-        } else if (granuality === 'surface') {
+        } else if (granularity === 'object') {
             return Volume.Isosurface.Loci(volume, props.isoValue);
         } else {
             return Volume.Cell.Loci(volume, Interval.ofSingleton(groupId as Volume.CellIndex));
