@@ -2,6 +2,7 @@
  * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Gianluca Tomasello <giagitom@gmail.com>
  */
 
 import { GridLookup3D } from '../../geometry';
@@ -24,7 +25,15 @@ describe('GridLookup3d', () => {
         expect(r.count).toBe(1);
         expect(r.indices[0]).toBe(0);
 
+        r = grid.nearest(0, 0, 0, 1);
+        expect(r.count).toBe(1);
+        expect(r.indices[0]).toBe(0);
+
         r = grid.find(0, 0, 0, 1);
+        expect(r.count).toBe(3);
+        expect(sortArray(r.indices)).toEqual([0, 1, 2]);
+
+        r = grid.nearest(0, 0, 0, 3);
         expect(r.count).toBe(3);
         expect(sortArray(r.indices)).toEqual([0, 1, 2]);
     });
@@ -38,9 +47,17 @@ describe('GridLookup3d', () => {
         expect(r.count).toBe(1);
         expect(r.indices[0]).toBe(0);
 
+        r = grid.nearest(0, 0, 0, 1);
+        expect(r.count).toBe(1);
+        expect(r.indices[0]).toBe(0);
+
         r = grid.find(0, 0, 0, 0.5);
         expect(r.count).toBe(2);
         expect(sortArray(r.indices)).toEqual([0, 1]);
+
+        r = grid.nearest(0, 0, 0, 3);
+        expect(r.count).toBe(3);
+        expect(sortArray(r.indices)).toEqual([0, 1, 2]);
     });
 
     it('indexed', () => {
@@ -51,7 +68,14 @@ describe('GridLookup3d', () => {
         let r = grid.find(0, 0, 0, 0);
         expect(r.count).toBe(0);
 
+        r = grid.nearest(0, 0, 0, 1);
+        expect(r.count).toBe(1);
+
         r = grid.find(0, 0, 0, 0.5);
+        expect(r.count).toBe(1);
+        expect(sortArray(r.indices)).toEqual([0]);
+
+        r = grid.nearest(0, 0, 0, 3);
         expect(r.count).toBe(1);
         expect(sortArray(r.indices)).toEqual([0]);
     });

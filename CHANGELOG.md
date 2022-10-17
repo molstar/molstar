@@ -6,9 +6,11 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
-- [Breaking] Renamed the ``model-index`` color theme to ``trajectory-index``
-- Added a new ``model-index`` color theme that uses the `Model.Index` property
-- Added the new ``model-index`` color theme as an option for the carbon color in the ``element-symbol`` and ``ilustrative`` color themes
+- [Breaking] Rename the ``model-index`` color theme to ``trajectory-index``
+- Add a new ``model-index`` color theme that uniquely colors each loaded model
+- Add the new ``model-index`` color theme as an option for the carbon color in the ``element-symbol`` and ``ilustrative`` color themes
+- Add nearest method to lookup3d
+- Add mipmap-based blur for skybox backgrounds
 
 ## [v3.19.0] - 2022-10-01
 

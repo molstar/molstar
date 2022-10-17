@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -88,7 +88,7 @@ export class FontAtlas {
         this.scratchCanvas.width = this.maxWidth;
         this.scratchCanvas.height = this.lineHeight;
 
-        this.scratchContext = this.scratchCanvas.getContext('2d')!;
+        this.scratchContext = this.scratchCanvas.getContext('2d', { willReadFrequently: true })!;
         this.scratchContext.font = `${p.fontStyle} ${p.fontVariant} ${p.fontWeight} ${fontSize}px ${p.fontFamily}`;
         this.scratchContext.fillStyle = 'black';
         this.scratchContext.textBaseline = 'middle';

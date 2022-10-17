@@ -3,6 +3,7 @@
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Gianluca Tomasello <giagitom@gmail.com>
  */
 
 import { Result, Lookup3D } from './common';
@@ -12,6 +13,7 @@ import { PositionData } from '../common';
 import { Vec3 } from '../../linear-algebra';
 import { OrderedSet } from '../../../mol-data/int';
 import { Boundary } from '../boundary';
+import { FibonacciHeap } from '../../../mol-util/fibonacci-heap';
 
 interface GridLookup3D<T = number> extends Lookup3D<T> {
     readonly buckets: { readonly offset: ArrayLike<number>, readonly count: ArrayLike<number>, readonly array: ArrayLike<number> }
@@ -37,6 +39,17 @@ class GridLookup3DImpl<T extends number = number> implements GridLookup3D<T> {
         this.ctx.isCheck = false;
         const ret = result ?? this.result;
         query(this.ctx, ret);
+        return ret;
+    }
+
+    nearest(x: number, y: number, z: number, k: number = 1, stopIf?: Function, result?: Result<T>): Result<T> {
+        this.ctx.x = x;
+        this.ctx.y = y;
+        this.ctx.z = z;
+        this.ctx.k = k;
+        this.ctx.stopIf = stopIf;
+        const ret = result ?? this.result;
+        queryNearest(this.ctx, ret);
         return ret;
     }
 
@@ -221,12 +234,14 @@ interface QueryContext {
     x: number,
     y: number,
     z: number,
+    k: number,
+    stopIf?: Function,
     radius: number,
     isCheck: boolean
 }
 
 function createContext(grid: Grid3D): QueryContext {
-    return { grid, x: 0.1, y: 0.1, z: 0.1, radius: 0.1, isCheck: false };
+    return { grid, x: 0.1, y: 0.1, z: 0.1, k: 1, stopIf: undefined, radius: 0.1, isCheck: false };
 }
 
 function query<T extends number = number>(ctx: QueryContext, result: Result<T>): boolean {
@@ -274,6 +289,154 @@ function query<T extends number = number>(ctx: QueryContext, result: Result<T>):
                     }
                 }
             }
+        }
+    }
+    return result.count > 0;
+}
+
+const tmpDirVec = Vec3();
+const tmpVec = Vec3();
+const tmpSetG = new Set<number>();
+const tmpSetG2 = new Set<number>();
+const tmpArrG1 = [0.1];
+const tmpArrG2 = [0.1];
+const tmpArrG3 = [0.1];
+const tmpHeapG = new FibonacciHeap();
+function queryNearest<T extends number = number>(ctx: QueryContext, result: Result<T>): boolean {
+    const { min, expandedBox: box, boundingSphere: { center }, size: [sX, sY, sZ], bucketOffset, bucketCounts, bucketArray, grid, data: { x: px, y: py, z: pz, indices, radius }, delta, maxRadius } = ctx.grid;
+    const { x, y, z, k, stopIf } = ctx;
+    const indicesCount = OrderedSet.size(indices);
+    Result.reset(result);
+    if (indicesCount === 0 || k <= 0) return false;
+    let gX, gY, gZ, stop = false, gCount = 1, expandGrid = true, nextGCount = 0, arrG = tmpArrG1, nextArrG = tmpArrG2, maxRange = 0, expandRange = true, gridId: number, gridPointsFinished = false;
+    const expandedArrG = tmpArrG3, sqMaxRadius = maxRadius * maxRadius;
+    arrG.length = 0;
+    expandedArrG.length = 0;
+    tmpSetG.clear();
+    tmpHeapG.clear();
+    Vec3.set(tmpVec, x, y, z);
+    if (!Box3D.containsVec3(box, tmpVec)) {
+        // intersect ray pointing to box center
+        Box3D.nearestIntersectionWithRay(tmpVec, box, tmpVec, Vec3.normalize(tmpDirVec, Vec3.sub(tmpDirVec, center, tmpVec)));
+        gX = Math.max(0, Math.min(sX - 1, Math.floor((tmpVec[0] - min[0]) / delta[0])));
+        gY = Math.max(0, Math.min(sY - 1, Math.floor((tmpVec[1] - min[1]) / delta[1])));
+        gZ = Math.max(0, Math.min(sZ - 1, Math.floor((tmpVec[2] - min[2]) / delta[2])));
+    } else {
+        gX = Math.floor((x - min[0]) / delta[0]);
+        gY = Math.floor((y - min[1]) / delta[1]);
+        gZ = Math.floor((z - min[2]) / delta[2]);
+    }
+    const dX = maxRadius !== 0 ? Math.max(1, Math.min(sX - 1, Math.ceil(maxRadius / delta[0]))) : 1;
+    const dY = maxRadius !== 0 ? Math.max(1, Math.min(sY - 1, Math.ceil(maxRadius / delta[1]))) : 1;
+    const dZ = maxRadius !== 0 ? Math.max(1, Math.min(sZ - 1, Math.ceil(maxRadius / delta[2]))) : 1;
+    arrG.push(gX, gY, gZ, (((gX * sY) + gY) * sZ) + gZ);
+    while (result.count < indicesCount) {
+        const arrGLen = gCount * 4;
+        for (let ig = 0; ig < arrGLen; ig += 4) {
+            gridId = arrG[ig + 3];
+            if (!tmpSetG.has(gridId)) {
+                tmpSetG.add(gridId);
+                gridPointsFinished = tmpSetG.size >= grid.length;
+                const bucketIdx = grid[gridId];
+                if (bucketIdx !== 0) {
+                    const _maxRange = maxRange;
+                    const ki = bucketIdx - 1;
+                    const offset = bucketOffset[ki];
+                    const count = bucketCounts[ki];
+                    const end = offset + count;
+                    for (let i = offset; i < end; i++) {
+                        const bIdx = bucketArray[i];
+                        const idx = OrderedSet.getAt(indices, bIdx);
+                        const dx = px[idx] - x;
+                        const dy = py[idx] - y;
+                        const dz = pz[idx] - z;
+                        let distSq = dx * dx + dy * dy + dz * dz;
+                        if (maxRadius !== 0) {
+                            const r = radius![idx];
+                            distSq -= r * r;
+                        }
+                        if (expandRange && distSq > maxRange) {
+                            maxRange = distSq;
+                        }
+                        tmpHeapG.insert(distSq, bIdx);
+                    }
+                    if (_maxRange < maxRange) expandRange = false;
+                }
+            }
+        }
+        // find next grid points
+        nextArrG.length = 0;
+        nextGCount = 0;
+        tmpSetG2.clear();
+        for (let ig = 0; ig < arrGLen; ig += 4) {
+            gX = arrG[ig];
+            gY = arrG[ig + 1];
+            gZ = arrG[ig + 2];
+            // fill grid points array with valid adiacent positions
+            for (let ix = -dX; ix <= dX; ix++) {
+                const xPos = gX + ix;
+                if (xPos < 0 || xPos >= sX) continue;
+                for (let iy = -dY; iy <= dY; iy++) {
+                    const yPos = gY + iy;
+                    if (yPos < 0 || yPos >= sY) continue;
+                    for (let iz = -dZ; iz <= dZ; iz++) {
+                        const zPos = gZ + iz;
+                        if (zPos < 0 || zPos >= sZ) continue;
+                        gridId = (((xPos * sY) + yPos) * sZ) + zPos;
+                        if (tmpSetG2.has(gridId)) continue; // already scanned
+                        tmpSetG2.add(gridId);
+                        if (tmpSetG.has(gridId)) continue; // already visited
+                        if (!expandGrid) {
+                            const xP = min[0] + xPos * delta[0] - x;
+                            const yP = min[1] + yPos * delta[1] - y;
+                            const zP = min[2] + zPos * delta[2] - z;
+                            const distSqG = (xP * xP) + (yP * yP) + (zP * zP) - sqMaxRadius; // is sqMaxRadius necessary?
+                            if (distSqG > maxRange) {
+                                expandedArrG.push(xPos, yPos, zPos, gridId);
+                                continue;
+                            }
+                        }
+                        nextArrG.push(xPos, yPos, zPos, gridId);
+                        nextGCount++;
+                    }
+                }
+            }
+        }
+        expandGrid = false;
+        if (nextGCount === 0) {
+            if (k === 1) {
+                const node = tmpHeapG.findMinimum();
+                if (node) {
+                    const { key: squaredDistance, value: index } = node!;
+                    // const squaredDistance = node!.key, index = node!.value;
+                    Result.add(result, index as number, squaredDistance as number);
+                    return true;
+                }
+            } else {
+                while (!tmpHeapG.isEmpty() && (gridPointsFinished || tmpHeapG.findMinimum()!.key as number <= maxRange) && result.count < k) {
+                    const node = tmpHeapG.extractMinimum();
+                    const squaredDistance = node!.key, index = node!.value;
+                    Result.add(result, index as number, squaredDistance as number);
+                    if (stopIf && !stop) {
+                        stop = stopIf(index, squaredDistance);
+                    }
+                }
+            }
+            if (result.count >= k || stop || result.count >= indicesCount) return result.count > 0;
+            expandGrid = true;
+            expandRange = true;
+            if (expandedArrG.length > 0) {
+                for (let i = 0, l = expandedArrG.length; i < l; i++) {
+                    arrG.push(expandedArrG[i]);
+                }
+                expandedArrG.length = 0;
+                gCount = arrG.length;
+            }
+        } else {
+            const tmp = arrG;
+            arrG = nextArrG;
+            nextArrG = tmp;
+            gCount = nextGCount;
         }
     }
     return result.count > 0;
