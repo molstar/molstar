@@ -241,7 +241,9 @@ namespace Loci {
                 ? Structure.toStructureElementLoci(loci.structure)
                 : ShapeGroup.isLoci(loci)
                     ? Shape.Loci(loci.shape)
-                    : loci;
+                    : Volume.Cell.isLoci(loci)
+                        ? Volume.Loci(loci.volume)
+                        : loci;
         },
         'elementInstances': (loci: Loci) => {
             return StructureElement.Loci.is(loci)

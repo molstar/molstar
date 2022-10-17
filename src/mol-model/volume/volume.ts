@@ -220,7 +220,7 @@ export namespace Volume {
         }
     }
 
-    export type PickingGranularity = 'surface' | 'voxel';
+    export type PickingGranularity = 'volume' | 'surface' | 'voxel';
     export const PickingGranularity = {
         set(volume: Volume, granularity: PickingGranularity) {
             volume._propertyData['__picking_granularity__'] = granularity;
