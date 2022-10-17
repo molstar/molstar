@@ -6,6 +6,11 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+## [v3.21.0] - 2022-10-17
+
+- Add `VolumeIsosurfaceParams.pickingGranularity` param.
+- Prevent component controls collapsing when option is selected
+
 ## [v3.20.0] - 2022-10-16
 
 - [Breaking] Rename the ``model-index`` color theme to ``trajectory-index``
