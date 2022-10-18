@@ -73,6 +73,7 @@ export class PluginContext {
     protected subs: Subscription[] = [];
 
     private disposed = false;
+    private canvasContainer: HTMLDivElement | undefined = void 0;
     private ev = RxEventHelper.create();
 
     readonly config = new PluginConfigManager(this.spec.config); // needed to init state
@@ -185,6 +186,52 @@ export class PluginContext {
      * to State Actions and similar constructs via the PluginContext.
      */
     readonly customState: unknown = Object.create(null);
+
+    mount(target: HTMLElement, canvas3dContext?: Canvas3DContext) {
+        if (this.disposed) throw new Error('Cannot mount a disposed context');
+
+        if (!this.canvasContainer) {
+            const container = document.createElement('div');
+            Object.assign(container.style, {
+                position: 'absolute',
+                left: 0,
+                top: 0,
+                right: 0,
+                bottom: 0,
+                '-webkit-user-select': 'none',
+                'user-select': 'none',
+                '-webkit-tap-highlight-color': 'rgba(0,0,0,0)',
+                '-webkit-touch-callout': 'none',
+                'touch-action': 'manipulation',
+            });
+            let canvas = canvas3dContext?.canvas;
+            if (!canvas) {
+                canvas = document.createElement('canvas');
+                Object.assign(canvas.style, {
+                    'background-image': 'linear-gradient(45deg, lightgrey 25%, transparent 25%, transparent 75%, lightgrey 75%, lightgrey), linear-gradient(45deg, lightgrey 25%, transparent 25%, transparent 75%, lightgrey 75%, lightgrey)',
+                    'background-size': '60px 60px',
+                    'background-position': '0 0, 30px 30px'
+                });
+                container.appendChild(canvas);
+            }
+            if (!this.initViewer(canvas, container, canvas3dContext)) {
+                return false;
+            }
+            this.canvasContainer = container;
+        }
+
+        if (this.canvasContainer.parentElement !== target) {
+            this.canvasContainer.parentElement?.removeChild(this.canvasContainer);
+        }
+
+        target.appendChild(this.canvasContainer);
+        this.handleResize();
+        return true;
+    }
+
+    unmount() {
+        this.canvasContainer?.parentElement?.removeChild(this.canvasContainer);
+    }
 
     initViewer(canvas: HTMLCanvasElement, container: HTMLDivElement, canvas3dContext?: Canvas3DContext) {
         try {
@@ -305,6 +352,9 @@ export class PluginContext {
 
         objectForEach(this.managers, m => (m as any)?.dispose?.());
         objectForEach(this.managers.structure, m => (m as any)?.dispose?.());
+
+        this.unmount();
+        this.canvasContainer = undefined;
 
         this.disposed = true;
     }

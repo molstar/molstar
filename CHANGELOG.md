@@ -6,6 +6,8 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Add `PluginContext.mount/unmount` methods; these should make it easier to reuse a plugin context with both custom and built-in UI
+
 ## [v3.22.0] - 2022-10-17
 
 - Replace `VolumeIsosurfaceParams.pickingGranularity` param with `Volume.PickingGranuality` 
