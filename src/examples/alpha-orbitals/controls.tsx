@@ -4,16 +4,16 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import * as ReactDOM from 'react-dom';
+import { createRoot } from 'react-dom/client';
 import { AlphaOrbitalsExample } from '.';
 import { ParameterControls } from '../../mol-plugin-ui/controls/parameters';
 import { useBehavior } from '../../mol-plugin-ui/hooks/use-behavior';
 import { PluginContextContainer } from '../../mol-plugin-ui/plugin';
 
 export function mountControls(orbitals: AlphaOrbitalsExample, parent: Element) {
-    ReactDOM.render(<PluginContextContainer plugin={orbitals.plugin}>
+    createRoot(parent).render(<PluginContextContainer plugin={orbitals.plugin}>
         <Controls orbitals={orbitals} />
-    </PluginContextContainer>, parent);
+    </PluginContextContainer>);
 }
 
 function Controls({ orbitals }: { orbitals: AlphaOrbitalsExample }) {

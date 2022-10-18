@@ -6,7 +6,9 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
-- Add `PluginContext.mount/unmount` methods; these should make it easier to reuse a plugin context with both custom and built-in UI
+- Add `PluginContext.initContainer/mount/unmount` methods; these should make it easier to reuse a plugin context with both custom and built-in UI
+- Add `PluginContext.canvas3dInitialized`
+- `createPluginUI` now resolves after the 3d canvas has been initialized.
 
 ## [v3.22.0] - 2022-10-17
 
