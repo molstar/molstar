@@ -24,14 +24,6 @@ import { BehaviorSubject } from 'rxjs';
 import { useBehavior } from './hooks/use-behavior';
 
 export class Plugin extends React.Component<{ plugin: PluginUIContext, children?: any }, {}> {
-    region(kind: 'left' | 'right' | 'bottom' | 'main', element: JSX.Element) {
-        return <div className={`msp-layout-region msp-layout-${kind}`}>
-            <div className='msp-layout-static'>
-                {element}
-            </div>
-        </div>;
-    }
-
     render() {
         return <PluginReactContext.Provider value={this.props.plugin}>
             <Layout />
