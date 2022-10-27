@@ -70,6 +70,7 @@ function checkActiveAttributes(gl: GLRenderingContext, program: WebGLProgram, sc
             }
             if (name === 'gl_InstanceID') continue; // WebGL2 built-in
             if (name === 'gl_VertexID') continue; // WebGL2 built-in
+            if (name === 'gl_DrawID') continue; // WEBGL_multi_draw built-in
             const spec = schema[name];
             if (spec === undefined) {
                 throw new Error(`missing 'uniform' or 'texture' with name '${name}' in schema`);

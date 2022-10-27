@@ -401,6 +401,64 @@ export function getDisjointTimerQuery(gl: GLRenderingContext): COMPAT_disjoint_t
     }
 }
 
+export interface COMPAT_multi_draw {
+    readonly multiDrawArrays: (mode: number, firstsList: ArrayLike<number>, firstsOffset: number, countsList: ArrayLike<number>, countsOffset: number, drawcount: number) => void;
+    readonly multiDrawElements: (mode: number, countsList: ArrayLike<number>, countsOffset: number, type: number, offsetsList: ArrayLike<number>, offsetsOffset: number, drawcount: number) => void;
+    readonly multiDrawArraysInstanced: (mode: number, firstsList: ArrayLike<number>, firstsOffset: number, countsList: ArrayLike<number>, countsOffset: number, instanceCountsList: ArrayLike<number>, instanceCountsOffset: number, drawcount: number) => void;
+    readonly multiDrawElementsInstanced: (mode: number, countsList: ArrayLike<number>, countsOffset: number, type: number, offsetsList: ArrayLike<number>, offsetsOffset: number, instanceCountsList: ArrayLike<number>, instanceCountsOffset: number, drawcount: number) => void;
+    readonly isEmulated: boolean
+}
+
+export function getMultiDraw(gl: GLRenderingContext, instancedArrays: COMPAT_instanced_arrays | null): COMPAT_multi_draw | null {
+    const ext = gl.getExtension('WEBGL_multi_draw');
+    if (ext) {
+        return {
+            multiDrawArrays: ext.multiDrawArraysWEBGL,
+            multiDrawElements: ext.multiDrawElementsWEBGL,
+            multiDrawArraysInstanced: ext.multiDrawArraysInstancedWEBGL,
+            multiDrawElementsInstanced: ext.multiDrawElementsInstancedWEBGL,
+            isEmulated: false,
+        };
+    } else if (instancedArrays) {
+        if (isDebugMode) {
+            console.log('Emulating support for "multi_draw"');
+        }
+        return {
+            multiDrawArrays: (mode: number, firstsList: ArrayLike<number>, firstsOffset: number, countsList: ArrayLike<number>, countsOffset: number, drawcount: number) => {
+                for (let i = 0; i < drawcount; ++i) {
+                    if (countsList[countsOffset + i] > 0) {
+                        gl.drawArrays(mode, firstsList[firstsOffset + i], countsList[countsOffset + i]);
+                    }
+                }
+            },
+            multiDrawElements: (mode: number, countsList: ArrayLike<number>, countsOffset: number, type: number, offsetsList: ArrayLike<number>, offsetsOffset: number, drawcount: number) => {
+                for (let i = 0; i < drawcount; ++i) {
+                    if (countsList[countsOffset + i] > 0) {
+                        gl.drawElements(mode, countsList[countsOffset + i], type, offsetsList[offsetsOffset + i]);
+                    }
+                }
+            },
+            multiDrawArraysInstanced: (mode: number, firstsList: ArrayLike<number>, firstsOffset: number, countsList: ArrayLike<number>, countsOffset: number, instanceCountsList: ArrayLike<number>, instanceCountsOffset: number, drawcount: number) => {
+                for (let i = 0; i < drawcount; ++i) {
+                    if (countsList[countsOffset + i] > 0) {
+                        instancedArrays.drawArraysInstanced(mode, firstsList[firstsOffset + i], countsList[countsOffset + i], instanceCountsList[instanceCountsOffset + i]);
+                    }
+                }
+            },
+            multiDrawElementsInstanced: (mode: number, countsList: ArrayLike<number>, countsOffset: number, type: number, offsetsList: ArrayLike<number>, offsetsOffset: number, instanceCountsList: ArrayLike<number>, instanceCountsOffset: number, drawcount: number) => {
+                for (let i = 0; i < drawcount; ++i) {
+                    if (countsList[countsOffset + i] > 0) {
+                        instancedArrays.drawElementsInstanced(mode, countsList[countsOffset + i], type, offsetsList[offsetsOffset + i], instanceCountsList[instanceCountsOffset + i]);
+                    }
+                }
+            },
+            isEmulated: true,
+        };
+    } else {
+        return null;
+    }
+}
+
 export function getNoNonInstancedActiveAttribs(gl: GLRenderingContext): boolean {
     if (!isWebGL2(gl)) return false;
 
