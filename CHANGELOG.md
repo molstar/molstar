@@ -6,6 +6,8 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Make `PluginContext.initContainer` checkered canvas background optional
+
 ## [v3.23.0] - 2022-10-19
 
 - Add `PluginContext.initContainer/mount/unmount` methods; these should make it easier to reuse a plugin context with both custom and built-in UI

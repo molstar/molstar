@@ -193,7 +193,7 @@ export class PluginContext {
      */
     readonly customState: unknown = Object.create(null);
 
-    initContainer(canvas3dContext?: Canvas3DContext) {
+    initContainer(options?: { canvas3dContext?: Canvas3DContext, checkeredCanvasBackground?: boolean }) {
         if (this.canvasContainer) return true;
 
         const container = document.createElement('div');
@@ -209,27 +209,33 @@ export class PluginContext {
             '-webkit-touch-callout': 'none',
             'touch-action': 'manipulation',
         });
-        let canvas = canvas3dContext?.canvas;
+        let canvas = options?.canvas3dContext?.canvas;
         if (!canvas) {
             canvas = document.createElement('canvas');
-            Object.assign(canvas.style, {
-                'background-image': 'linear-gradient(45deg, lightgrey 25%, transparent 25%, transparent 75%, lightgrey 75%, lightgrey), linear-gradient(45deg, lightgrey 25%, transparent 25%, transparent 75%, lightgrey 75%, lightgrey)',
-                'background-size': '60px 60px',
-                'background-position': '0 0, 30px 30px'
-            });
+            if (options?.checkeredCanvasBackground) {
+                Object.assign(canvas.style, {
+                    'background-image': 'linear-gradient(45deg, lightgrey 25%, transparent 25%, transparent 75%, lightgrey 75%, lightgrey), linear-gradient(45deg, lightgrey 25%, transparent 25%, transparent 75%, lightgrey 75%, lightgrey)',
+                    'background-size': '60px 60px',
+                    'background-position': '0 0, 30px 30px'
+                });
+            }
             container.appendChild(canvas);
         }
-        if (!this.initViewer(canvas, container, canvas3dContext)) {
+        if (!this.initViewer(canvas, container, options?.canvas3dContext)) {
             return false;
         }
         this.canvasContainer = container;
         return true;
     }
 
-    mount(target: HTMLElement) {
+    /**
+     * Mount the plugin into the target element (assumes the target has "relative"-like positioninig).
+     * If initContainer wasn't called separately before, initOptions will be passed to it.
+     */
+    mount(target: HTMLElement, initOptions?: { canvas3dContext?: Canvas3DContext, checkeredCanvasBackground?: boolean }) {
         if (this.disposed) throw new Error('Cannot mount a disposed context');
 
-        if (!this.initContainer()) return false;
+        if (!this.initContainer(initOptions)) return false;
 
         if (this.canvasContainer!.parentElement !== target) {
             this.canvasContainer!.parentElement?.removeChild(this.canvasContainer!);
