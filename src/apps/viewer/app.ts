@@ -7,6 +7,7 @@
 
 import { ANVILMembraneOrientation } from '../../extensions/anvil/behavior';
 import { CellPack } from '../../extensions/cellpack';
+import { PetWorld } from '../../extensions/petworld';
 import { DnatcoConfalPyramids } from '../../extensions/dnatco';
 import { G3DFormat, G3dProvider } from '../../extensions/g3d/format';
 import { GeometryExport } from '../../extensions/geo-export';
@@ -58,6 +59,7 @@ const CustomFormats = [
 const Extensions = {
     'backgrounds': PluginSpec.Behavior(Backgrounds),
     'cellpack': PluginSpec.Behavior(CellPack),
+    'petworld': PluginSpec.Behavior(PetWorld),
     'dnatco-confal-pyramids': PluginSpec.Behavior(DnatcoConfalPyramids),
     'pdbe-structure-quality-report': PluginSpec.Behavior(PDBeStructureQualityReport),
     'rcsb-assembly-symmetry': PluginSpec.Behavior(RCSBAssemblySymmetry),
