@@ -59,7 +59,7 @@ export interface WebGLResources {
     renderbuffer: (format: RenderbufferFormat, attachment: RenderbufferAttachment, width: number, height: number) => Renderbuffer
     shader: (type: ShaderType, source: string) => Shader
     texture: (kind: TextureKind, format: TextureFormat, type: TextureType, filter: TextureFilter) => Texture,
-    cubeTexture: (faces: CubeFaces, mipaps: boolean, onload?: () => void) => Texture,
+    cubeTexture: (faces: CubeFaces, mipmaps: boolean, onload?: () => void) => Texture,
     vertexArray: (program: Program, attributeBuffers: AttributeBuffers, elementsBuffer?: ElementsBuffer) => VertexArray,
 
     getByteCounts: () => ByteCounts

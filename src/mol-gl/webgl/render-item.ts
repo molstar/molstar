@@ -44,7 +44,7 @@ export interface RenderItem<T extends string> {
     getProgram: (variant: T) => Program
 
     render: (variant: T, sharedTexturesCount: number) => void
-    update: () => Readonly<ValueChanges>
+    update: () => void
     destroy: () => void
 }
 
@@ -342,8 +342,6 @@ export function createRenderItem<T extends string>(ctx: WebGLContext, drawMode: 
                     versions[k] = uniform.ref.version;
                 }
             }
-
-            return valueChanges;
         },
         destroy: () => {
             if (!destroyed) {
