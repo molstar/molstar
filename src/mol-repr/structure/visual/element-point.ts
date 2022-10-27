@@ -24,6 +24,7 @@ export const ElementPointParams = {
     pointSizeAttenuation: PD.Boolean(false),
     ignoreHydrogens: PD.Boolean(false),
     traceOnly: PD.Boolean(false),
+    stride: PD.Numeric(1, { min: 1, max: 100, step: 1 }),
 };
 export type ElementPointParams = typeof ElementPointParams
 
@@ -89,7 +90,8 @@ export function ElementPointVisual(materialId: number): UnitsVisual<ElementPoint
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<ElementPointParams>, currentProps: PD.Values<ElementPointParams>) => {
             state.createGeometry = (
                 newProps.ignoreHydrogens !== currentProps.ignoreHydrogens ||
-                newProps.traceOnly !== currentProps.traceOnly
+                newProps.traceOnly !== currentProps.traceOnly ||
+                newProps.stride !== currentProps.stride
             );
         }
     }, materialId);
