@@ -20,6 +20,7 @@ export interface ShaderExtensions {
     readonly fragDepth?: ShaderExtensionsValue
     readonly drawBuffers?: ShaderExtensionsValue
     readonly shaderTextureLod?: ShaderExtensionsValue
+    /** Needed to enable the `gl_DrawID` built-in */
     readonly multiDraw?: ShaderExtensionsValue
 }
 
@@ -249,7 +250,7 @@ function getGlsl100VertPrefix(extensions: WebGLExtensions, shaderExtensions: Sha
         }
     }
     if (shaderExtensions.multiDraw) {
-        if (extensions.multiDraw) {
+        if (extensions.multiDraw && !extensions.multiDraw.isEmulated) {
             prefix.push('#extension GL_ANGLE_multi_draw : require');
             prefix.push('#define enabledMultiDraw');
         } else if (shaderExtensions.multiDraw === 'required') {
@@ -323,7 +324,7 @@ function getGlsl300VertPrefix(extensions: WebGLExtensions, shaderExtensions: Sha
         }
     }
     if (shaderExtensions.multiDraw) {
-        if (extensions.multiDraw) {
+        if (extensions.multiDraw && !extensions.multiDraw.isEmulated) {
             prefix.push('#extension GL_ANGLE_multi_draw : require');
             prefix.push('#define enabledMultiDraw');
         } else if (shaderExtensions.multiDraw === 'required') {
