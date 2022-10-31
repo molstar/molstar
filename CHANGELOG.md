@@ -7,6 +7,7 @@ Note that since we don't clearly distinguish between a public and private interf
 ## [Unreleased]
 
 - Make `PluginContext.initContainer` checkered canvas background optional
+- `by-volume-value` theme (coloring or arbitrary geometries by user-selected volume)
 
 ## [v3.23.0] - 2022-10-19
 
