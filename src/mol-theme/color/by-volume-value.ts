@@ -17,7 +17,7 @@ import { lerp } from '../../mol-math/interpolate';
 
 const Description = `Assigns a color based volume value at a given vertex.`;
 
-export const ByVolumeValueColorThemeParams = {
+export const ExternalVolumeColorThemeParams = {
     volume: PD.ValueRef<Volume>(
         (ctx: PluginContext) => {
             const volumes = ctx.state.data.selectQ(q => q.root.subtree().filter(c => Volume.is(c.obj?.data)));
@@ -25,16 +25,31 @@ export const ByVolumeValueColorThemeParams = {
         },
         (ref, getData) => getData(ref),
     ),
-    domain: PD.MappedStatic('auto', {
-        custom: PD.Interval([-1, 1]),
-        auto: PD.EmptyGroup()
+    coloring: PD.MappedStatic('absolute-value', {
+        'absolute-value': PD.Group({
+            domain: PD.MappedStatic('auto', {
+                custom: PD.Interval([-1, 1]),
+                auto: PD.Group({
+                    symmetric: PD.Boolean(false, { description: 'If true the automatic range is determined as [-|max|, |max|].' })
+                })
+            }),
+            list: PD.ColorList('red-white-blue', { presetKind: 'scale' })
+        }),
+        'relative-value': PD.Group({
+            domain: PD.MappedStatic('auto', {
+                custom: PD.Interval([-1, 1]),
+                auto: PD.Group({
+                    symmetric: PD.Boolean(false, { description: 'If true the automatic range is determined as [-|max|, |max|].' })
+                })
+            }),
+            list: PD.ColorList('red-white-blue', { presetKind: 'scale' })
+        })
     }),
-    list: PD.ColorList('red-white-blue', { presetKind: 'scale' }),
-    defaultColor: PD.Color(Color(0xcccccc))
+    defaultColor: PD.Color(Color(0xcccccc)),
 };
-export type ByVolumeValueColorThemeParams = typeof ByVolumeValueColorThemeParams
+export type ExternalVolumeColorThemeParams = typeof ExternalVolumeColorThemeParams
 
-export function ByVolumeValueColorTheme(ctx: ThemeDataContext, props: PD.Values<ByVolumeValueColorThemeParams>): ColorTheme<ByVolumeValueColorThemeParams> {
+export function ExternalVolumeColorTheme(ctx: ThemeDataContext, props: PD.Values<ExternalVolumeColorThemeParams>): ColorTheme<ExternalVolumeColorThemeParams> {
     let volume: Volume | undefined;
     try {
         volume = props.volume.getValue();
@@ -42,14 +57,29 @@ export function ByVolumeValueColorTheme(ctx: ThemeDataContext, props: PD.Values<
         // .getValue() is resolved during state reconciliation => would throw from UI
     }
 
-    const domain: [number, number] = props.domain.name === 'custom' ? props.domain.params : volume ? [volume.grid.stats.min, volume.grid.stats.max] : [-1, 1];
-    const scale = ColorScale.create({ domain, listOrName: props.list.colors });
-
     // NOTE: this will currently not work with GPU iso-surfaces since it requires vertex coloring
     // TODO: create texture to be able to do the sampling on the GPU
 
     let color;
     if (volume) {
+        const coloring = props.coloring.params;
+        const { stats } = volume.grid;
+        const domain: [number, number] = coloring.domain.name === 'custom' ? coloring.domain.params : [stats.min, stats.max];
+
+        const isRelative = props.coloring.name === 'relative-value';
+        if (coloring.domain.name === 'auto' && isRelative) {
+            domain[0] = (domain[0] - stats.mean) / stats.sigma;
+            domain[1] = (domain[1] - stats.mean) / stats.sigma;
+        }
+
+        if (props.coloring.params.domain.name === 'auto' && props.coloring.params.domain.params.symmetric) {
+            const max = Math.max(Math.abs(domain[0]), Math.abs(domain[1]));
+            domain[0] = -max;
+            domain[1] = max;
+        }
+
+        const scale = ColorScale.create({ domain, listOrName: coloring.list.colors });
+
         const cartnToGrid = Grid.getGridToCartesianTransform(volume.grid);
         Mat4.invert(cartnToGrid, cartnToGrid);
         const gridCoords = Vec3();
@@ -96,7 +126,10 @@ export function ByVolumeValueColorTheme(ctx: ThemeDataContext, props: PD.Values<
             d = get(data, ii, jj, kk);
             const y = lerp(lerp(a, b, u), lerp(c, d, u), v);
 
-            const value = lerp(x, y, w);
+            let value = lerp(x, y, w);
+            if (isRelative) {
+                value = (value - stats.mean) / stats.sigma;
+            }
 
             return scale.color(value);
         };
@@ -105,22 +138,22 @@ export function ByVolumeValueColorTheme(ctx: ThemeDataContext, props: PD.Values<
     }
 
     return {
-        factory: ByVolumeValueColorTheme,
+        factory: ExternalVolumeColorTheme,
         granularity: 'vertex',
         preferSmoothing: true,
         color,
         props,
         description: Description,
-        legend: scale ? scale.legend : undefined
+        // TODO: figure out how to do legend for this
     };
 }
 
-export const ByVolumeValueColorThemeProvider: ColorTheme.Provider<ByVolumeValueColorThemeParams, 'by-volume-value'> = {
-    name: 'by-volume-value',
-    label: 'By Volume Value',
+export const ExternalVolumeColorThemeProvider: ColorTheme.Provider<ExternalVolumeColorThemeParams, 'external-volume'> = {
+    name: 'external-volume',
+    label: 'External Volume',
     category: ColorTheme.Category.Misc,
-    factory: ByVolumeValueColorTheme,
-    getParams: () => ByVolumeValueColorThemeParams,
-    defaultValues: PD.getDefaultValues(ByVolumeValueColorThemeParams),
+    factory: ExternalVolumeColorTheme,
+    getParams: () => ExternalVolumeColorThemeParams,
+    defaultValues: PD.getDefaultValues(ExternalVolumeColorThemeParams),
     isApplicable: (ctx: ThemeDataContext) => true, // TODO
 };
