@@ -287,7 +287,7 @@ export const AminoAcidNames = SetUtils.unionMany(AminoAcidNamesL, AminoAcidNames
 
 export const CommonProteinCaps = new Set([
     'NME', 'ACE'
-])
+]);
 
 export const RnaBaseNames = new Set([
     'A', 'C', 'T', 'G', 'I', 'U',
