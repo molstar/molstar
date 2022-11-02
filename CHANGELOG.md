@@ -7,6 +7,7 @@ Note that since we don't clearly distinguish between a public and private interf
 ## [Unreleased]
 
 - Make `PluginContext.initContainer` checkered canvas background optional
+- Excluded common protein caps `NME` and `ACE` from the ligand selection query
 
 ## [v3.23.0] - 2022-10-19
 
