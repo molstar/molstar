@@ -438,10 +438,9 @@ export interface COMPAT_multi_draw {
      * Renders multiple primitives from array data. It is identical to multiple calls to the `drawElementsInstanced` method.
      */
     readonly multiDrawElementsInstanced: (mode: number, countsList: Int32Array, countsOffset: number, type: number, offsetsList: Int32Array, offsetsOffset: number, instanceCountsList: Int32Array, instanceCountsOffset: number, drawcount: number) => void;
-    readonly isEmulated: boolean
 }
 
-export function getMultiDraw(gl: GLRenderingContext, instancedArrays: COMPAT_instanced_arrays | null): COMPAT_multi_draw | null {
+export function getMultiDraw(gl: GLRenderingContext): COMPAT_multi_draw | null {
     const ext = gl.getExtension('WEBGL_multi_draw');
     if (ext) {
         return {
@@ -449,42 +448,6 @@ export function getMultiDraw(gl: GLRenderingContext, instancedArrays: COMPAT_ins
             multiDrawElements: ext.multiDrawElementsWEBGL.bind(ext),
             multiDrawArraysInstanced: ext.multiDrawArraysInstancedWEBGL.bind(ext),
             multiDrawElementsInstanced: ext.multiDrawElementsInstancedWEBGL.bind(ext),
-            isEmulated: false,
-        };
-    } else if (instancedArrays) {
-        if (isDebugMode) {
-            console.log('Emulating support for "multi_draw"');
-        }
-        return {
-            multiDrawArrays: (mode: number, firstsList: Int32Array, firstsOffset: number, countsList: Int32Array, countsOffset: number, drawcount: number) => {
-                for (let i = 0; i < drawcount; ++i) {
-                    if (countsList[countsOffset + i] > 0) {
-                        gl.drawArrays(mode, firstsList[firstsOffset + i], countsList[countsOffset + i]);
-                    }
-                }
-            },
-            multiDrawElements: (mode: number, countsList: Int32Array, countsOffset: number, type: number, offsetsList: Int32Array, offsetsOffset: number, drawcount: number) => {
-                for (let i = 0; i < drawcount; ++i) {
-                    if (countsList[countsOffset + i] > 0) {
-                        gl.drawElements(mode, countsList[countsOffset + i], type, offsetsList[offsetsOffset + i]);
-                    }
-                }
-            },
-            multiDrawArraysInstanced: (mode: number, firstsList: Int32Array, firstsOffset: number, countsList: Int32Array, countsOffset: number, instanceCountsList: Int32Array, instanceCountsOffset: number, drawcount: number) => {
-                for (let i = 0; i < drawcount; ++i) {
-                    if (countsList[countsOffset + i] > 0) {
-                        instancedArrays.drawArraysInstanced(mode, firstsList[firstsOffset + i], countsList[countsOffset + i], instanceCountsList[instanceCountsOffset + i]);
-                    }
-                }
-            },
-            multiDrawElementsInstanced: (mode: number, countsList: Int32Array, countsOffset: number, type: number, offsetsList: Int32Array, offsetsOffset: number, instanceCountsList: Int32Array, instanceCountsOffset: number, drawcount: number) => {
-                for (let i = 0; i < drawcount; ++i) {
-                    if (countsList[countsOffset + i] > 0) {
-                        instancedArrays.drawElementsInstanced(mode, countsList[countsOffset + i], type, offsetsList[offsetsOffset + i], instanceCountsList[instanceCountsOffset + i]);
-                    }
-                }
-            },
-            isEmulated: true,
         };
     } else {
         return null;
@@ -512,37 +475,14 @@ export function getDrawInstancedBaseVertexBaseInstance(gl: GLRenderingContext): 
 export interface COMPAT_multi_draw_instanced_base_vertex_base_instance {
     readonly multiDrawArraysInstancedBaseInstance: (mode: number, firstsList: Int32Array, firstsOffset: number, countsList: Int32Array, countsOffset: number, instanceCountsList: Int32Array, instanceCountsOffset: number, baseInstancesList: Uint32Array, baseInstancesOffset: number, drawcount: number) => void;
     readonly multiDrawElementsInstancedBaseVertexBaseInstance: (mode: number, countsList: Int32Array, countsOffset: number, type: number, offsetsList: Int32Array, offsetsOffset: number, instanceCountsList: Int32Array, instanceCountsOffset: number, baseVerticesList: Int32Array, baseVerticesOffset: number, baseInstancesList: Uint32Array, baseInstancesOffset: number, drawcount: number) => void;
-    readonly isEmulated?: boolean
 }
 
-export function getMultiDrawInstancedBaseVertexBaseInstance(gl: GLRenderingContext, drawInstancedBaseVertexBaseInstance: COMPAT_draw_instanced_base_vertex_base_instance | null): COMPAT_multi_draw_instanced_base_vertex_base_instance | null {
+export function getMultiDrawInstancedBaseVertexBaseInstance(gl: GLRenderingContext): COMPAT_multi_draw_instanced_base_vertex_base_instance | null {
     const ext = gl.getExtension('WEBGL_multi_draw_instanced_base_vertex_base_instance');
     if (ext) {
         return {
             multiDrawArraysInstancedBaseInstance: ext.multiDrawArraysInstancedBaseInstanceWEBGL.bind(ext),
             multiDrawElementsInstancedBaseVertexBaseInstance: ext.multiDrawElementsInstancedBaseVertexBaseInstanceWEBGL.bind(ext),
-            isEmulated: false,
-        };
-    } else if (drawInstancedBaseVertexBaseInstance) {
-        if (isDebugMode) {
-            console.log('Emulating support for "multi_draw_instanced_base_vertex_base_instance"');
-        }
-        return {
-            multiDrawArraysInstancedBaseInstance: (mode: number, firstsList: Int32Array, firstsOffset: number, countsList: Int32Array, countsOffset: number, instanceCountsList: Int32Array, instanceCountsOffset: number, baseInstancesList: Uint32Array, baseInstancesOffset: number, drawcount: number) => {
-                for (let i = 0; i < drawcount; ++i) {
-                    if (countsList[countsOffset + i] > 0) {
-                        drawInstancedBaseVertexBaseInstance.drawArraysInstancedBaseInstance(mode, firstsList[firstsOffset + i], countsList[countsOffset + i], instanceCountsList[instanceCountsOffset + i], baseInstancesList[baseInstancesOffset + i]);
-                    }
-                }
-            },
-            multiDrawElementsInstancedBaseVertexBaseInstance: (mode: number, countsList: Int32Array, countsOffset: number, type: number, offsetsList: Int32Array, offsetsOffset: number, instanceCountsList: Int32Array, instanceCountsOffset: number, baseVerticesList: Int32Array, baseVerticesOffset: number, baseInstancesList: Uint32Array, baseInstancesOffset: number, drawcount: number) => {
-                for (let i = 0; i < drawcount; ++i) {
-                    if (countsList[countsOffset + i] > 0) {
-                        drawInstancedBaseVertexBaseInstance.drawElementsInstancedBaseVertexBaseInstance(mode, countsList[countsOffset + i], type, offsetsList[offsetsOffset + i], instanceCountsList[instanceCountsOffset + i], baseVerticesList[baseVerticesOffset + i], baseInstancesList[baseInstancesOffset + i]);
-                    }
-                }
-            },
-            isEmulated: true,
         };
     } else {
         return null;

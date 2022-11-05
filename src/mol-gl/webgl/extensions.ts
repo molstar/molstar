@@ -109,7 +109,7 @@ export function createExtensions(gl: GLRenderingContext): WebGLExtensions {
     if (isDebugMode && disjointTimerQuery === null) {
         console.log('Could not find support for "disjoint_timer_query"');
     }
-    const multiDraw = getMultiDraw(gl, instancedArrays);
+    const multiDraw = getMultiDraw(gl);
     if (isDebugMode && multiDraw === null) {
         console.log('Could not find support for "multi_draw"');
     }
@@ -117,7 +117,7 @@ export function createExtensions(gl: GLRenderingContext): WebGLExtensions {
     if (isDebugMode && drawInstancedBaseVertexBaseInstance === null) {
         console.log('Could not find support for "draw_instanced_base_vertex_base_instance"');
     }
-    const multiDrawInstancedBaseVertexBaseInstance = getMultiDrawInstancedBaseVertexBaseInstance(gl, drawInstancedBaseVertexBaseInstance);
+    const multiDrawInstancedBaseVertexBaseInstance = getMultiDrawInstancedBaseVertexBaseInstance(gl);
     if (isDebugMode && multiDrawInstancedBaseVertexBaseInstance === null) {
         console.log('Could not find support for "multi_draw_instanced_base_vertex_base_instance"');
     }

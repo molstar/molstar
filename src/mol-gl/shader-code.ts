@@ -250,7 +250,7 @@ function getGlsl100VertPrefix(extensions: WebGLExtensions, shaderExtensions: Sha
         }
     }
     if (shaderExtensions.multiDraw) {
-        if (extensions.multiDraw && !extensions.multiDraw.isEmulated) {
+        if (extensions.multiDraw) {
             prefix.push('#extension GL_ANGLE_multi_draw : require');
             prefix.push('#define enabledMultiDraw');
         } else if (shaderExtensions.multiDraw === 'required') {
@@ -324,7 +324,7 @@ function getGlsl300VertPrefix(extensions: WebGLExtensions, shaderExtensions: Sha
         }
     }
     if (shaderExtensions.multiDraw) {
-        if (extensions.multiDraw && !extensions.multiDraw.isEmulated) {
+        if (extensions.multiDraw) {
             prefix.push('#extension GL_ANGLE_multi_draw : require');
             prefix.push('#define enabledMultiDraw');
         } else if (shaderExtensions.multiDraw === 'required') {
