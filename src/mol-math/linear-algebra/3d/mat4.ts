@@ -124,7 +124,7 @@ namespace Mat4 {
         return a[4 * j + i];
     }
 
-    export function toArray(a: Mat4, out: NumberArray, offset: number) {
+    export function toArray<T extends NumberArray>(a: Mat4, out: T, offset: number) {
         out[offset + 0] = a[0];
         out[offset + 1] = a[1];
         out[offset + 2] = a[2];
