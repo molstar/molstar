@@ -23,6 +23,7 @@ export type ValueKindType = {
 
     'm4': Mat4,
     'float32': Float32Array
+    'uint32': Uint32Array
     'sphere': Sphere3D
     'instanceGrid': InstanceGrid
 }
