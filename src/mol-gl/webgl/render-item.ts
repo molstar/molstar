@@ -324,7 +324,7 @@ export function createRenderItem<T extends string>(ctx: WebGLContext, drawMode: 
                 if (value.ref.version !== versions[k]) {
                     // update of textures with kind 'texture' is done externally
                     if (schema[k].kind !== 'texture') {
-                        // console.log('texture version changed, uploading image', k);
+                        // console.log('materialTexture version changed, uploading image', k);
                         texture.load(value.ref.value as TextureImage<any> | TextureVolume<any>);
                         valueChanges.textures = true;
                     } else {
@@ -352,9 +352,11 @@ export function createRenderItem<T extends string>(ctx: WebGLContext, drawMode: 
                 }
                 textures.forEach(([k, texture]) => {
                     // lifetime of textures with kind 'texture' is defined externally
-                    if (schema[k].kind !== 'texture') {
-                        texture.destroy();
-                    }
+                    if (schema[k].kind !== 'texture') texture.destroy();
+                });
+                materialTextures.forEach(([k, texture]) => {
+                    // lifetime of textures with kind 'texture' is defined externally
+                    if (schema[k].kind !== 'texture') texture.destroy();
                 });
                 attributeBuffers.forEach(([_, buffer]) => buffer.destroy());
                 if (elementsBuffer) elementsBuffer.destroy();
