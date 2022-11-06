@@ -24,6 +24,7 @@ export interface Program {
     use: () => void
     setUniforms: (uniformValues: UniformsList) => void
     bindAttributes: (attribueBuffers: AttributeBuffers) => void
+    offsetAttributes: (attributeBuffers: AttributeBuffers, offset: number) => void
     bindTextures: (textures: Textures, startingTargetUnit: number) => void
 
     reset: () => void
@@ -211,6 +212,13 @@ export function createProgram(gl: GLRenderingContext, state: WebGLState, extensi
                 if (l !== -1) buffer.bind(l);
             }
             state.disableUnusedVertexAttribs();
+        },
+        offsetAttributes: (attributeBuffers: AttributeBuffers, offset) => {
+            for (let i = 0, il = attributeBuffers.length; i < il; ++i) {
+                const [k, buffer] = attributeBuffers[i];
+                const l = locations[k];
+                if (l !== -1) buffer.changeOffset(l, offset);
+            }
         },
         bindTextures: (textures: Textures, startingTargetUnit: number) => {
             for (let i = 0, il = textures.length; i < il; ++i) {
