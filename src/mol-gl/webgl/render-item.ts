@@ -19,7 +19,7 @@ import { isDebugMode } from '../../mol-util/debug';
 import { VertexArray } from './vertex-array';
 import { fillSerial } from '../../mol-util/array';
 import { deepClone } from '../../mol-util/object';
-import { cloneUniformValues } from './uniform';
+import { cloneUniformValues, UniformsList } from './uniform';
 
 const getNextRenderItemId = idFactory();
 
@@ -49,6 +49,7 @@ export type MultiDrawInstancedData = {
     baseVertices: Int32Array
     baseInstances: Uint32Array
     count: number
+    uniforms: UniformsList
 }
 
 export interface RenderItem<T extends string> {
@@ -56,7 +57,7 @@ export interface RenderItem<T extends string> {
     readonly materialId: number
     getProgram: (variant: T) => Program
 
-    render: (variant: T, sharedTexturesCount: number, mdiData?: MultiDrawInstancedData) => void
+    render: (variant: T, sharedTexturesCount: number, mdiDataList?: MultiDrawInstancedData[]) => void
     update: () => void
     destroy: () => void
 }
@@ -187,7 +188,7 @@ export function createRenderItem<T extends string>(ctx: WebGLContext, drawMode: 
         materialId,
         getProgram: (variant: T) => programs[variant],
 
-        render: (variant: T, sharedTexturesCount: number, mdiData?: MultiDrawInstancedData) => {
+        render: (variant: T, sharedTexturesCount: number, mdiDataList?: MultiDrawInstancedData[]) => {
             if (drawCount === 0 || instanceCount === 0) return;
 
             const program = programs[variant];
@@ -226,42 +227,46 @@ export function createRenderItem<T extends string>(ctx: WebGLContext, drawMode: 
                     throw new Error(`Framebuffer error rendering item id ${id}: '${e}'`);
                 }
             }
-            if (mdiData) {
-                if (multiDrawInstancedBaseVertexBaseInstance) {
-                    if (elementsBuffer) {
-                        multiDrawInstancedBaseVertexBaseInstance.multiDrawElementsInstancedBaseVertexBaseInstance(glDrawMode, mdiData.counts, 0, elementsBuffer._dataType, mdiData.offsets, 0, mdiData.instanceCounts, 0, mdiData.baseVertices, 0, mdiData.baseInstances, 0, mdiData.count);
-                    } else {
-                        multiDrawInstancedBaseVertexBaseInstance.multiDrawArraysInstancedBaseInstance(glDrawMode, mdiData.firsts, 0, mdiData.counts, 0, mdiData.instanceCounts, 0, mdiData.baseInstances, 0, mdiData.count);
-                    }
-                } else if (drawInstancedBaseVertexBaseInstance) {
-                    // TODO: emulate gl_DrawID
-                    if (elementsBuffer) {
-                        for (let i = 0; i < mdiData.count; ++i) {
-                            if (mdiData.counts[i] > 0) {
-                                drawInstancedBaseVertexBaseInstance.drawElementsInstancedBaseVertexBaseInstance(glDrawMode, mdiData.counts[i], elementsBuffer._dataType, mdiData.offsets[i], mdiData.instanceCounts[i], mdiData.baseVertices[i], mdiData.baseInstances[i]);
+            if (mdiDataList) {
+                for (const mdiData of mdiDataList) {
+                    program.setUniforms(mdiData.uniforms);
+                    // console.log(mdiData.uniforms)
+                    if (multiDrawInstancedBaseVertexBaseInstance) {
+                        if (elementsBuffer) {
+                            multiDrawInstancedBaseVertexBaseInstance.multiDrawElementsInstancedBaseVertexBaseInstance(glDrawMode, mdiData.counts, 0, elementsBuffer._dataType, mdiData.offsets, 0, mdiData.instanceCounts, 0, mdiData.baseVertices, 0, mdiData.baseInstances, 0, mdiData.count);
+                        } else {
+                            multiDrawInstancedBaseVertexBaseInstance.multiDrawArraysInstancedBaseInstance(glDrawMode, mdiData.firsts, 0, mdiData.counts, 0, mdiData.instanceCounts, 0, mdiData.baseInstances, 0, mdiData.count);
+                        }
+                    } else if (drawInstancedBaseVertexBaseInstance) {
+                        // TODO: emulate gl_DrawID
+                        if (elementsBuffer) {
+                            for (let i = 0; i < mdiData.count; ++i) {
+                                if (mdiData.counts[i] > 0) {
+                                    drawInstancedBaseVertexBaseInstance.drawElementsInstancedBaseVertexBaseInstance(glDrawMode, mdiData.counts[i], elementsBuffer._dataType, mdiData.offsets[i], mdiData.instanceCounts[i], mdiData.baseVertices[i], mdiData.baseInstances[i]);
+                                }
+                            }
+                        } else {
+                            for (let i = 0; i < mdiData.count; ++i) {
+                                if (mdiData.counts[i] > 0) {
+                                    drawInstancedBaseVertexBaseInstance.drawArraysInstancedBaseInstance(glDrawMode, mdiData.firsts[i], mdiData.counts[i], mdiData.instanceCounts[i], mdiData.baseInstances[i]);
+                                }
                             }
                         }
                     } else {
-                        for (let i = 0; i < mdiData.count; ++i) {
-                            if (mdiData.counts[i] > 0) {
-                                drawInstancedBaseVertexBaseInstance.drawArraysInstancedBaseInstance(glDrawMode, mdiData.firsts[i], mdiData.counts[i], mdiData.instanceCounts[i], mdiData.baseInstances[i]);
+                        // TODO: emulate gl_DrawID
+                        if (elementsBuffer) {
+                            for (let i = 0; i < mdiData.count; ++i) {
+                                if (mdiData.counts[i] > 0) {
+                                    program.offsetAttributes(instanceBuffers, mdiData.baseInstances[i]);
+                                    instancedArrays.drawElementsInstanced(glDrawMode, mdiData.counts[i], elementsBuffer._dataType, mdiData.offsets[i], mdiData.instanceCounts[i]);
+                                }
                             }
-                        }
-                    }
-                } else {
-                    // TODO: emulate gl_DrawID
-                    if (elementsBuffer) {
-                        for (let i = 0; i < mdiData.count; ++i) {
-                            if (mdiData.counts[i] > 0) {
-                                program.offsetAttributes(instanceBuffers, mdiData.baseInstances[i]);
-                                instancedArrays.drawElementsInstanced(glDrawMode, mdiData.counts[i], elementsBuffer._dataType, mdiData.offsets[i], mdiData.instanceCounts[i]);
-                            }
-                        }
-                    } else {
-                        for (let i = 0; i < mdiData.count; ++i) {
-                            if (mdiData.counts[i] > 0) {
-                                program.offsetAttributes(instanceBuffers, mdiData.baseInstances[i]);
-                                instancedArrays.drawArraysInstanced(glDrawMode, 0, mdiData.counts[i], mdiData.instanceCounts[i]);
+                        } else {
+                            for (let i = 0; i < mdiData.count; ++i) {
+                                if (mdiData.counts[i] > 0) {
+                                    program.offsetAttributes(instanceBuffers, mdiData.baseInstances[i]);
+                                    instancedArrays.drawArraysInstanced(glDrawMode, 0, mdiData.counts[i], mdiData.instanceCounts[i]);
+                                }
                             }
                         }
                     }

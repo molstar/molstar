@@ -13,6 +13,7 @@ import { clamp } from '../mol-math/interpolate';
 import { Frustum3D } from '../mol-math/geometry/primitives/frustum3d';
 import { Plane3D } from '../mol-math/geometry/primitives/plane3d';
 import { Sphere3D } from '../mol-math/geometry';
+import { Vec4 } from '../mol-math/linear-algebra/3d/vec4';
 
 // avoiding namespace lookup improved performance in Chrome (Aug 2020)
 const p3distanceToPoint = Plane3D.distanceToPoint;
@@ -57,6 +58,7 @@ function getMdiData(cellCount: number, mdiData?: MultiDrawInstancedData): MultiD
             baseVertices: new Int32Array(cellCount),
             baseInstances: new Uint32Array(cellCount),
             count: 0,
+            uniforms: [],
         };
     }
 }
@@ -67,6 +69,7 @@ export function createRenderable<T extends GraphicsRenderableValues>(renderItem:
     const id = getNextRenderableId();
 
     let mdiData = getMdiData(0);
+    const mdiDataList: MultiDrawInstancedData[] = [];
     let cullEnabled = false;
 
     const s = Sphere3D();
@@ -88,34 +91,84 @@ export function createRenderable<T extends GraphicsRenderableValues>(renderItem:
             const [minDistance, maxDistance] = values.uLod.ref.value;
             const hasLod = minDistance !== 0 || maxDistance !== 0;
 
-            mdiData = getMdiData(cellCount, mdiData);
-            const { baseInstances, instanceCounts, counts } = mdiData;
-            let o = 0;
+            const lodLevels: [minDistance: number, maxDistance: number, overlap: number, count: number, sizeFactor: number][] | undefined = values.lodLevels?.ref.value;
 
-            for (let i = 0; i < cellCount; ++i) {
-                s3fromArray(s, cellSpheres, i * 4);
-                if (hasLod) {
+            if (lodLevels) {
+                mdiDataList.length = lodLevels.length;
+                for (let i = 0, il = lodLevels.length; i < il; ++i) {
+                    mdiDataList[i] = getMdiData(cellCount, mdiDataList[i]);
+                    mdiDataList[i].count = 0;
+                    if (mdiDataList[i].uniforms.length !== 1) {
+                        mdiDataList[i].uniforms.length = 1;
+                        mdiDataList[i].uniforms[0] = ['uLod', ValueCell.create(Vec4())];
+                    }
+                    ValueCell.update(mdiDataList[i].uniforms[0][1], Vec4.set(mdiDataList[i].uniforms[0][1].ref.value as Vec4, lodLevels[i][0], lodLevels[i][1], lodLevels[i][2], lodLevels[i][4]));
+                }
+
+                for (let i = 0; i < cellCount; ++i) {
+                    s3fromArray(s, cellSpheres, i * 4);
                     const d = p3distanceToPoint(cameraPlane, s.center);
-                    if (d + s.radius < minDistance) continue;
-                    if (d - s.radius > maxDistance) continue;
-                }
-                if (!f3intersectsSphere3D(frustum, s)) continue;
+                    if (hasLod) {
+                        if (d + s.radius < minDistance) continue;
+                        if (d - s.radius > maxDistance) continue;
+                    }
+                    if (!f3intersectsSphere3D(frustum, s)) continue;
 
-                const begin = cellOffsets[i];
-                const end = cellOffsets[i + 1];
-                const count = end - begin;
-                if (count === 0) continue;
+                    const begin = cellOffsets[i];
+                    const end = cellOffsets[i + 1];
+                    const count = end - begin;
+                    if (count === 0) continue;
 
-                if (o > 0 && baseInstances[o - 1] + instanceCounts[o - 1] === begin) {
-                    instanceCounts[o - 1] += count;
-                } else {
-                    counts[o] = values.drawCount.ref.value;
-                    instanceCounts[o] = count;
-                    baseInstances[o] = begin;
-                    o += 1;
+                    for (let j = 0, jl = lodLevels.length; j < jl; ++j) {
+                        if (d + s.radius < lodLevels[j][0]) continue;
+                        if (d - s.radius > lodLevels[j][1]) continue;
+
+                        const l = mdiDataList[j];
+                        const o = l.count;
+
+                        if (o > 0 && l.baseInstances[o - 1] + l.instanceCounts[o - 1] === begin && l.counts[o - 1] === lodLevels[j][3]) {
+                            l.instanceCounts[o - 1] += count;
+                        } else {
+                            l.counts[o] = lodLevels[j][3];
+                            l.instanceCounts[o] = count;
+                            l.baseInstances[o] = begin;
+                            l.count += 1;
+                        }
+                    }
                 }
+                // console.log(mdiDataList)
+            } else {
+                mdiData = getMdiData(cellCount, mdiData);
+                const { baseInstances, instanceCounts, counts } = mdiData;
+                let o = 0;
+
+                for (let i = 0; i < cellCount; ++i) {
+                    s3fromArray(s, cellSpheres, i * 4);
+                    if (hasLod) {
+                        const d = p3distanceToPoint(cameraPlane, s.center);
+                        if (d + s.radius < minDistance) continue;
+                        if (d - s.radius > maxDistance) continue;
+                    }
+                    if (!f3intersectsSphere3D(frustum, s)) continue;
+
+                    const begin = cellOffsets[i];
+                    const end = cellOffsets[i + 1];
+                    const count = end - begin;
+                    if (count === 0) continue;
+
+                    if (o > 0 && baseInstances[o - 1] + instanceCounts[o - 1] === begin) {
+                        instanceCounts[o - 1] += count;
+                    } else {
+                        counts[o] = values.drawCount.ref.value;
+                        instanceCounts[o] = count;
+                        baseInstances[o] = begin;
+                        o += 1;
+                    }
+                }
+                mdiData.count = o;
+                mdiDataList.length = 1;
+                mdiDataList[0] = mdiData;
             }
-            mdiData.count = o;
 
             // console.log({
             //     counts: counts.slice(),
@@ -133,7 +186,7 @@ export function createRenderable<T extends GraphicsRenderableValues>(renderItem:
             if (values.uAlpha && values.alpha) {
                 ValueCell.updateIfChanged(values.uAlpha, clamp(values.alpha.ref.value * state.alphaFactor, 0, 1));
             }
-            renderItem.render(variant, sharedTexturesCount, cullEnabled ? mdiData : undefined);
+            renderItem.render(variant, sharedTexturesCount, cullEnabled ? mdiDataList : undefined);
         },
         getProgram: (variant: GraphicsRenderVariant) => renderItem.getProgram(variant),
         update: () => renderItem.update(),
