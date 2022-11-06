@@ -21,6 +21,7 @@ import { Texture, Textures } from './webgl/texture';
 import { arrayMapUpsert } from '../mol-util/array';
 import { clamp } from '../mol-math/interpolate';
 import { isTimingMode } from '../mol-util/debug';
+import { Frustum3D } from '../mol-math/geometry/primitives/frustum3d';
 
 export interface RendererStats {
     programCount: number
@@ -182,6 +183,7 @@ namespace Renderer {
 
         const cameraDir = Vec3();
         const viewOffset = Vec2();
+        const frustum = Frustum3D();
 
         const ambientColor = Vec3();
         Vec3.scale(ambientColor, Color.toArrayNormalized(p.ambientColor, ambientColor, 0), p.ambientIntensity);
@@ -246,16 +248,21 @@ namespace Renderer {
                 return;
             }
 
-            let definesNeedUpdate = false;
+            // TODO: check what happens if sphere surrounds frustum fully
+            if (!Frustum3D.intersectsSphere3D(frustum, r.values.boundingSphere.ref.value)) {
+                return;
+            }
+
+            let needUpdate = false;
             if (r.values.dLightCount.ref.value !== light.count) {
                 ValueCell.update(r.values.dLightCount, light.count);
-                definesNeedUpdate = true;
+                needUpdate = true;
             }
             if (r.values.dColorMarker.ref.value !== p.colorMarker) {
                 ValueCell.update(r.values.dColorMarker, p.colorMarker);
-                definesNeedUpdate = true;
+                needUpdate = true;
             }
-            if (definesNeedUpdate) r.update();
+            if (needUpdate) r.update();
 
             const program = r.getProgram(variant);
             if (state.currentProgramId !== program.id) {
@@ -345,6 +352,8 @@ namespace Renderer {
             ValueCell.updateIfChanged(globalUniforms.uFogFar, camera.fogFar);
             ValueCell.updateIfChanged(globalUniforms.uFogNear, camera.fogNear);
             ValueCell.updateIfChanged(globalUniforms.uTransparentBackground, transparentBackground);
+
+            Frustum3D.fromProjectionMatrix(frustum, camera.projectionView);
         };
 
         const updateInternal = (group: Scene.Group, camera: ICamera, depthTexture: Texture | null, renderMask: Mask, markingDepthTest: boolean) => {
