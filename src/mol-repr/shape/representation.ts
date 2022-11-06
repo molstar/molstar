@@ -110,7 +110,7 @@ export function ShapeRepresentation<D, G extends Geometry, P extends Geometry.Pa
             if (updateState.createNew) {
                 renderObjects.length = 0; // clear list o renderObjects
                 locationIt = Shape.groupIterator(_shape);
-                const transform = Shape.createTransform(_shape.transforms);
+                const transform = Shape.createTransform(_shape.transforms, _shape.geometry.boundingSphere, newProps.cellSize);
                 const values = geometryUtils.createValues(_shape.geometry, transform, locationIt, _theme, newProps);
                 const state = geometryUtils.createRenderableState(newProps);
                 if (builder.modifyState) Object.assign(state, builder.modifyState(state));
@@ -126,7 +126,7 @@ export function ShapeRepresentation<D, G extends Geometry, P extends Geometry.Pa
 
                 if (updateState.updateTransform) {
                     // console.log('update transform')
-                    Shape.createTransform(_shape.transforms, _renderObject.values);
+                    Shape.createTransform(_shape.transforms, _shape.geometry.boundingSphere, newProps.cellSize, _renderObject.values);
                     locationIt = Shape.groupIterator(_shape);
                     const { instanceCount, groupCount } = locationIt;
                     if (props.instanceGranularity) {

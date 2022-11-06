@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -74,22 +74,22 @@ export namespace Shape {
         return LocationIterator(shape.groupCount, instanceCount, 1, getLocation);
     }
 
-    export function createTransform(transforms: Mat4[], transformData?: TransformData) {
+    export function createTransform(transforms: Mat4[], invariantBoundingSphere: Sphere3D, cellSize: number, transformData?: TransformData) {
         const transformArray = transformData && transformData.aTransform.ref.value.length >= transforms.length * 16 ? transformData.aTransform.ref.value : new Float32Array(transforms.length * 16);
         for (let i = 0, il = transforms.length; i < il; ++i) {
             Mat4.toArray(transforms[i], transformArray, i * 16);
         }
-        return _createTransform(transformArray, transforms.length, transformData);
+        return _createTransform(transformArray, transforms.length, invariantBoundingSphere, cellSize, transformData);
     }
 
     export function createRenderObject<G extends Geometry>(shape: Shape<G>, props: PD.Values<Geometry.Params<G>>) {
         props;
-        const theme = Shape.getTheme(shape);
+        const theme = getTheme(shape);
         const utils = Geometry.getUtils(shape.geometry);
 
         const materialId = getNextMaterialId();
         const locationIt = groupIterator(shape);
-        const transform = Shape.createTransform(shape.transforms);
+        const transform = createTransform(shape.transforms, shape.geometry.boundingSphere, props.cellSize);
         const values = utils.createValues(shape.geometry, transform, locationIt, theme, props);
         const state = utils.createRenderableState(props);
 

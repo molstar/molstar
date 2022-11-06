@@ -73,6 +73,7 @@ export function getColorSmoothingProps(smoothColors: PD.Values<ColorSmoothingPar
 export namespace BaseGeometry {
     export const MaterialCategory: PD.Info = { category: 'Material' };
     export const ShadingCategory: PD.Info = { category: 'Shading' };
+    export const CullingLodCategory: PD.Info = { category: 'Culling & LOD' };
     export const CustomQualityParamInfo: PD.Info = {
         category: 'Custom Quality',
         hideIf: (params: PD.Values<Params>) => typeof params.quality !== 'undefined' && params.quality !== 'custom'
@@ -84,6 +85,7 @@ export namespace BaseGeometry {
         material: Material.getParam(),
         clip: PD.Group(Clip.Params),
         instanceGranularity: PD.Boolean(false, { description: 'Use instance granularity for marker, transparency, clipping, overpaint, substance data to save memory.' }),
+        cellSize: PD.Numeric(500, { min: 0, max: 10000, step: 100 }, { ...CullingLodCategory, description: 'Instance grid cell size.' }),
     };
     export type Params = typeof Params
 
