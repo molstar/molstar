@@ -265,6 +265,12 @@ namespace Renderer {
                 if (d - radius > maxDistance) return;
             }
 
+            if (r.values.instanceGrid.ref.value.cellSize > 0) {
+                r.cull(cameraPlane, frustum);
+            } else {
+                r.uncull();
+            }
+
             let needUpdate = false;
             if (r.values.dLightCount.ref.value !== light.count) {
                 ValueCell.update(r.values.dLightCount, light.count);
