@@ -1,12 +1,14 @@
 export const common_vert_params = `
 uniform mat4 uProjection, uModel, uView;
 uniform vec3 uCameraPosition;
+uniform vec4 uCameraPlane;
 
 uniform int uObjectId;
 uniform int uVertexCount;
 uniform int uInstanceCount;
 uniform int uGroupCount;
 uniform vec4 uInvariantBoundingSphere;
+uniform vec4 uLod;
 
 uniform bool uDoubleSided;
 uniform int uPickType;

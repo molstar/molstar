@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -57,6 +57,14 @@ void main() {
     // ensure cylinder 'dir' is pointing towards the camera
     if(dot(camDir, dir) < 0.0) dir = -dir;
 
+    float d;
+    if (uLod.x != 0.0 && uLod.y != 0.0) {
+        // d = distance(vModelPosition, uCameraPosition);
+        d = dot(uCameraPlane.xyz, vModelPosition) + uCameraPlane.w;
+        float f = smoothstep(uLod.x - uLod.z, uLod.x, d);
+        vSize *= f;
+    }
+
     vec3 left = cross(camDir, dir);
     vec3 up = cross(left, dir);
     left = vSize * normalize(left);
@@ -68,6 +76,13 @@ void main() {
     vec4 mvPosition = uView * vec4(vModelPosition, 1.0);
     vViewPosition = mvPosition.xyz;
     gl_Position = uProjection * mvPosition;
+
+    if (uLod.x != 0.0 && uLod.y != 0.0) {
+        if (d < (uLod.x - uLod.z) || d > uLod.y) {
+            // move out of [ -w, +w ] to 'discard' in vert shader
+            gl_Position.z = 2.0 * gl_Position.w;
+        }
+    }
 
     #include clip_instance
 }

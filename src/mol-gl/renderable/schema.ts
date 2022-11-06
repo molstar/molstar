@@ -136,6 +136,7 @@ export const GlobalUniformSchema = {
 
     uCameraPosition: UniformSpec('v3'),
     uCameraDir: UniformSpec('v3'),
+    uCameraPlane: UniformSpec('v4'),
     uNear: UniformSpec('f'),
     uFar: UniformSpec('f'),
     uFogNear: UniformSpec('f'),
@@ -313,6 +314,7 @@ export const BaseSchema = {
     uInstanceCount: UniformSpec('i'),
     uGroupCount: UniformSpec('i'),
     uInvariantBoundingSphere: UniformSpec('v4'),
+    uLod: UniformSpec('v4'),
 
     drawCount: ValueSpec('number'),
     instanceCount: ValueSpec('number'),

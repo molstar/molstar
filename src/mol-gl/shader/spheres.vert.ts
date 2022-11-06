@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -73,7 +73,6 @@ void quadraticProjection(const in float radius, const in vec3 position){
     gl_Position.xy *= gl_Position.w;
 }
 
-
 void main(void){
     #include assign_group
     #include assign_color_varying
@@ -84,18 +83,32 @@ void main(void){
     vRadius = size * matrixScale(uModelView);
 
     vec4 position4 = vec4(aPosition, 1.0);
+    vModelPosition = (uModel * aTransform * position4).xyz; // for clipping in frag shader
+
+    float d;
+    if (uLod.x != 0.0 && uLod.y != 0.0) {
+        d = dot(uCameraPlane.xyz, vModelPosition) + uCameraPlane.w;
+        float f = smoothstep(uLod.x - uLod.z, uLod.x, d);
+        vRadius *= f;
+    }
+
     vec4 mvPosition = uModelView * aTransform * position4;
     mvPosition.z -= vRadius; // avoid clipping, added again in fragment shader
 
     gl_Position = uProjection * vec4(mvPosition.xyz, 1.0);
-    quadraticProjection(size, aPosition);
+    quadraticProjection(vRadius, aPosition);
 
     vRadiusSq = vRadius * vRadius;
     vec4 vPoint4 = uInvProjection * gl_Position;
     vPoint = vPoint4.xyz / vPoint4.w;
     vPointViewPosition = -mvPosition.xyz / mvPosition.w;
 
-    vModelPosition = (uModel * aTransform * position4).xyz; // for clipping in frag shader
+    if (uLod.x != 0.0 && uLod.y != 0.0) {
+        if (d < (uLod.x - uLod.z) || d > uLod.y) {
+            // move out of [ -w, +w ] to 'discard' in vert shader
+            gl_Position.z = 2.0 * gl_Position.w;
+        }
+    }
 
     #include clip_instance
 }

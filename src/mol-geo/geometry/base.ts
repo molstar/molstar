@@ -18,6 +18,8 @@ import { UniformSizeTheme } from '../../mol-theme/size/uniform';
 import { smoothstep } from '../../mol-math/interpolate';
 import { Material } from '../../mol-util/material';
 import { Clip } from '../../mol-util/clip';
+import { Vec3 } from '../../mol-math/linear-algebra/3d/vec3';
+import { Vec4 } from '../../mol-math/linear-algebra/3d/vec4';
 
 export const VisualQualityInfo = {
     'custom': {},
@@ -85,6 +87,7 @@ export namespace BaseGeometry {
         material: Material.getParam(),
         clip: PD.Group(Clip.Params),
         instanceGranularity: PD.Boolean(false, { description: 'Use instance granularity for marker, transparency, clipping, overpaint, substance data to save memory.' }),
+        lod: PD.Vec3(Vec3(), undefined, { ...CullingLodCategory, description: 'Level of detail.', fieldLabels: { x: 'Min Distance', y: 'Max Distance', z: 'Overlap (Shader)' } }),
         cellSize: PD.Numeric(500, { min: 0, max: 10000, step: 100 }, { ...CullingLodCategory, description: 'Instance grid cell size.' }),
     };
     export type Params = typeof Params
@@ -124,6 +127,7 @@ export namespace BaseGeometry {
             uClipObjectScale: ValueCell.create(clip.objects.scale),
 
             instanceGranularity: ValueCell.create(props.instanceGranularity),
+            uLod: ValueCell.create(Vec4.create(props.lod[0], props.lod[1], props.lod[2], 1)),
         };
     }
 
@@ -143,6 +147,7 @@ export namespace BaseGeometry {
         ValueCell.update(values.uClipObjectScale, clip.objects.scale);
 
         ValueCell.updateIfChanged(values.instanceGranularity, props.instanceGranularity);
+        ValueCell.update(values.uLod, Vec4.set(values.uLod.ref.value, props.lod[0], props.lod[1], props.lod[2], 1));
     }
 
     export function createRenderableState(props: Partial<PD.Values<Params>> = {}): RenderableState {
