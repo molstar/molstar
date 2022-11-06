@@ -97,6 +97,9 @@ function checkActiveUniforms(gl: GLRenderingContext, program: WebGLProgram, sche
                 // name assigned by `gl.shim.ts`, ignore for checks
                 continue;
             }
+            if (name === 'gl_InstanceID') continue; // WebGL2 built-in
+            if (name === 'gl_VertexID') continue; // WebGL2 built-in
+            if (name === 'gl_DrawID') continue; // WEBGL_multi_draw built-in
             const baseName = name.replace(/[[0-9]+\]$/, ''); // 'array' uniforms
             const spec = schema[baseName];
             if (spec === undefined) {
