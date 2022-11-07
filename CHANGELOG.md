@@ -7,7 +7,7 @@ Note that since we don't clearly distinguish between a public and private interf
 ## [Unreleased]
 
 - Make `PluginContext.initContainer` checkered canvas background optional
-- `external-volume` theme (coloring of arbitrary geometries by user-selected volume)
+- Add `external-volume` theme (coloring of arbitrary geometries by user-selected volume)
 
 ## [v3.23.0] - 2022-10-19
 
@@ -18,7 +18,7 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [v3.22.0] - 2022-10-17
 
-- Replace `VolumeIsosurfaceParams.pickingGranularity` param with `Volume.PickingGranuality` 
+- Replace `VolumeIsosurfaceParams.pickingGranularity` param with `Volume.PickingGranuality`
 
 ## [v3.21.0] - 2022-10-17
 
