@@ -360,14 +360,12 @@ const ligand = StructureSelectionQuery('Ligand', MS.struct.modifier.union([
                     ])
                 }),
             ]),
-            MS.struct.modifier.wholeResidues({
-                0: MS.struct.generator.atomGroups({
-                    'chain-test': MS.core.rel.eq([MS.ammp('objectPrimitive'), 'atomistic']),
-                    'residue-test': MS.core.set.has([
-                        MS.set(...SetUtils.toArray(CommonProteinCaps)),
-                        MS.ammp('label_comp_id'),
-                    ]),
-                }),
+            MS.struct.generator.atomGroups({
+                'chain-test': MS.core.rel.eq([MS.ammp('objectPrimitive'), 'atomistic']),
+                'residue-test': MS.core.set.has([
+                    MS.set(...SetUtils.toArray(CommonProteinCaps)),
+                    MS.ammp('label_comp_id'),
+                ]),
             }),
         ])
     })
