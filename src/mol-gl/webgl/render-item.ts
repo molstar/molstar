@@ -38,7 +38,7 @@ export function getDrawMode(ctx: WebGLContext, drawMode: DrawMode) {
     }
 }
 
-export type MultiDrawInstancedData = {
+export type MultiDrawBaseData = {
     /** Only used for `multiDrawArraysInstancedBaseInstance` */
     firsts: Int32Array
     counts: Int32Array
@@ -57,7 +57,7 @@ export interface RenderItem<T extends string> {
     readonly materialId: number
     getProgram: (variant: T) => Program
 
-    render: (variant: T, sharedTexturesCount: number, mdiDataList?: MultiDrawInstancedData[]) => void
+    render: (variant: T, sharedTexturesCount: number, mdbDataList?: MultiDrawBaseData[]) => void
     update: () => void
     destroy: () => void
 }
@@ -188,7 +188,7 @@ export function createRenderItem<T extends string>(ctx: WebGLContext, drawMode: 
         materialId,
         getProgram: (variant: T) => programs[variant],
 
-        render: (variant: T, sharedTexturesCount: number, mdiDataList?: MultiDrawInstancedData[]) => {
+        render: (variant: T, sharedTexturesCount: number, mdbDataList?: MultiDrawBaseData[]) => {
             if (drawCount === 0 || instanceCount === 0) return;
 
             const program = programs[variant];
@@ -227,45 +227,45 @@ export function createRenderItem<T extends string>(ctx: WebGLContext, drawMode: 
                     throw new Error(`Framebuffer error rendering item id ${id}: '${e}'`);
                 }
             }
-            if (mdiDataList) {
-                for (const mdiData of mdiDataList) {
-                    program.setUniforms(mdiData.uniforms);
+            if (mdbDataList) {
+                for (const mdbData of mdbDataList) {
+                    program.setUniforms(mdbData.uniforms);
                     // console.log(mdiData.uniforms)
                     if (multiDrawInstancedBaseVertexBaseInstance) {
                         if (elementsBuffer) {
-                            multiDrawInstancedBaseVertexBaseInstance.multiDrawElementsInstancedBaseVertexBaseInstance(glDrawMode, mdiData.counts, 0, elementsBuffer._dataType, mdiData.offsets, 0, mdiData.instanceCounts, 0, mdiData.baseVertices, 0, mdiData.baseInstances, 0, mdiData.count);
+                            multiDrawInstancedBaseVertexBaseInstance.multiDrawElementsInstancedBaseVertexBaseInstance(glDrawMode, mdbData.counts, 0, elementsBuffer._dataType, mdbData.offsets, 0, mdbData.instanceCounts, 0, mdbData.baseVertices, 0, mdbData.baseInstances, 0, mdbData.count);
                         } else {
-                            multiDrawInstancedBaseVertexBaseInstance.multiDrawArraysInstancedBaseInstance(glDrawMode, mdiData.firsts, 0, mdiData.counts, 0, mdiData.instanceCounts, 0, mdiData.baseInstances, 0, mdiData.count);
+                            multiDrawInstancedBaseVertexBaseInstance.multiDrawArraysInstancedBaseInstance(glDrawMode, mdbData.firsts, 0, mdbData.counts, 0, mdbData.instanceCounts, 0, mdbData.baseInstances, 0, mdbData.count);
                         }
                     } else if (drawInstancedBaseVertexBaseInstance) {
                         // TODO: emulate gl_DrawID
                         if (elementsBuffer) {
-                            for (let i = 0; i < mdiData.count; ++i) {
-                                if (mdiData.counts[i] > 0) {
-                                    drawInstancedBaseVertexBaseInstance.drawElementsInstancedBaseVertexBaseInstance(glDrawMode, mdiData.counts[i], elementsBuffer._dataType, mdiData.offsets[i], mdiData.instanceCounts[i], mdiData.baseVertices[i], mdiData.baseInstances[i]);
+                            for (let i = 0; i < mdbData.count; ++i) {
+                                if (mdbData.counts[i] > 0) {
+                                    drawInstancedBaseVertexBaseInstance.drawElementsInstancedBaseVertexBaseInstance(glDrawMode, mdbData.counts[i], elementsBuffer._dataType, mdbData.offsets[i], mdbData.instanceCounts[i], mdbData.baseVertices[i], mdbData.baseInstances[i]);
                                 }
                             }
                         } else {
-                            for (let i = 0; i < mdiData.count; ++i) {
-                                if (mdiData.counts[i] > 0) {
-                                    drawInstancedBaseVertexBaseInstance.drawArraysInstancedBaseInstance(glDrawMode, mdiData.firsts[i], mdiData.counts[i], mdiData.instanceCounts[i], mdiData.baseInstances[i]);
+                            for (let i = 0; i < mdbData.count; ++i) {
+                                if (mdbData.counts[i] > 0) {
+                                    drawInstancedBaseVertexBaseInstance.drawArraysInstancedBaseInstance(glDrawMode, mdbData.firsts[i], mdbData.counts[i], mdbData.instanceCounts[i], mdbData.baseInstances[i]);
                                 }
                             }
                         }
                     } else {
                         // TODO: emulate gl_DrawID
                         if (elementsBuffer) {
-                            for (let i = 0; i < mdiData.count; ++i) {
-                                if (mdiData.counts[i] > 0) {
-                                    program.offsetAttributes(instanceBuffers, mdiData.baseInstances[i]);
-                                    instancedArrays.drawElementsInstanced(glDrawMode, mdiData.counts[i], elementsBuffer._dataType, mdiData.offsets[i], mdiData.instanceCounts[i]);
+                            for (let i = 0; i < mdbData.count; ++i) {
+                                if (mdbData.counts[i] > 0) {
+                                    program.offsetAttributes(instanceBuffers, mdbData.baseInstances[i]);
+                                    instancedArrays.drawElementsInstanced(glDrawMode, mdbData.counts[i], elementsBuffer._dataType, mdbData.offsets[i], mdbData.instanceCounts[i]);
                                 }
                             }
                         } else {
-                            for (let i = 0; i < mdiData.count; ++i) {
-                                if (mdiData.counts[i] > 0) {
-                                    program.offsetAttributes(instanceBuffers, mdiData.baseInstances[i]);
-                                    instancedArrays.drawArraysInstanced(glDrawMode, 0, mdiData.counts[i], mdiData.instanceCounts[i]);
+                            for (let i = 0; i < mdbData.count; ++i) {
+                                if (mdbData.counts[i] > 0) {
+                                    program.offsetAttributes(instanceBuffers, mdbData.baseInstances[i]);
+                                    instancedArrays.drawArraysInstanced(glDrawMode, 0, mdbData.counts[i], mdbData.instanceCounts[i]);
                                 }
                             }
                         }

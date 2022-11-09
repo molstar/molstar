@@ -6,7 +6,7 @@
 
 import { Program } from './webgl/program';
 import { RenderableValues, Values, RenderableSchema, BaseValues } from './renderable/schema';
-import { GraphicsRenderItem, ComputeRenderItem, GraphicsRenderVariant, MultiDrawInstancedData } from './webgl/render-item';
+import { GraphicsRenderItem, ComputeRenderItem, GraphicsRenderVariant, MultiDrawBaseData } from './webgl/render-item';
 import { ValueCell } from '../mol-util';
 import { idFactory } from '../mol-util/id-factory';
 import { clamp } from '../mol-math/interpolate';
@@ -46,9 +46,9 @@ export interface Renderable<T extends RenderableValues> {
     dispose: () => void
 }
 
-function getMdiData(cellCount: number, mdiData?: MultiDrawInstancedData): MultiDrawInstancedData {
-    if (mdiData && mdiData.instanceCounts.length >= cellCount) {
-        return mdiData;
+function getMdbData(cellCount: number, mdbData?: MultiDrawBaseData): MultiDrawBaseData {
+    if (mdbData && mdbData.instanceCounts.length >= cellCount) {
+        return mdbData;
     } else {
         return {
             firsts: new Int32Array(cellCount),
@@ -68,8 +68,8 @@ type GraphicsRenderableValues = RenderableValues & BaseValues
 export function createRenderable<T extends GraphicsRenderableValues>(renderItem: GraphicsRenderItem, values: T, state: RenderableState): Renderable<T> {
     const id = getNextRenderableId();
 
-    let mdiData = getMdiData(0);
-    const mdiDataList: MultiDrawInstancedData[] = [];
+    let mdbData = getMdbData(0);
+    const mdbDataList: MultiDrawBaseData[] = [];
     let cullEnabled = false;
 
     const s = Sphere3D();
@@ -94,15 +94,15 @@ export function createRenderable<T extends GraphicsRenderableValues>(renderItem:
             const lodLevels: [minDistance: number, maxDistance: number, overlap: number, count: number, sizeFactor: number][] | undefined = values.lodLevels?.ref.value;
 
             if (lodLevels) {
-                mdiDataList.length = lodLevels.length;
+                mdbDataList.length = lodLevels.length;
                 for (let i = 0, il = lodLevels.length; i < il; ++i) {
-                    mdiDataList[i] = getMdiData(cellCount, mdiDataList[i]);
-                    mdiDataList[i].count = 0;
-                    if (mdiDataList[i].uniforms.length !== 1) {
-                        mdiDataList[i].uniforms.length = 1;
-                        mdiDataList[i].uniforms[0] = ['uLod', ValueCell.create(Vec4())];
+                    mdbDataList[i] = getMdbData(cellCount, mdbDataList[i]);
+                    mdbDataList[i].count = 0;
+                    if (mdbDataList[i].uniforms.length !== 1) {
+                        mdbDataList[i].uniforms.length = 1;
+                        mdbDataList[i].uniforms[0] = ['uLod', ValueCell.create(Vec4())];
                     }
-                    ValueCell.update(mdiDataList[i].uniforms[0][1], Vec4.set(mdiDataList[i].uniforms[0][1].ref.value as Vec4, lodLevels[i][0], lodLevels[i][1], lodLevels[i][2], lodLevels[i][4]));
+                    ValueCell.update(mdbDataList[i].uniforms[0][1], Vec4.set(mdbDataList[i].uniforms[0][1].ref.value as Vec4, lodLevels[i][0], lodLevels[i][1], lodLevels[i][2], lodLevels[i][4]));
                 }
 
                 for (let i = 0; i < cellCount; ++i) {
@@ -123,7 +123,7 @@ export function createRenderable<T extends GraphicsRenderableValues>(renderItem:
                         if (d + s.radius < lodLevels[j][0]) continue;
                         if (d - s.radius > lodLevels[j][1]) continue;
 
-                        const l = mdiDataList[j];
+                        const l = mdbDataList[j];
                         const o = l.count;
 
                         if (o > 0 && l.baseInstances[o - 1] + l.instanceCounts[o - 1] === begin && l.counts[o - 1] === lodLevels[j][3]) {
@@ -138,8 +138,8 @@ export function createRenderable<T extends GraphicsRenderableValues>(renderItem:
                 }
                 // console.log(mdiDataList)
             } else {
-                mdiData = getMdiData(cellCount, mdiData);
-                const { baseInstances, instanceCounts, counts } = mdiData;
+                mdbData = getMdbData(cellCount, mdbData);
+                const { baseInstances, instanceCounts, counts } = mdbData;
                 let o = 0;
 
                 for (let i = 0; i < cellCount; ++i) {
@@ -165,16 +165,16 @@ export function createRenderable<T extends GraphicsRenderableValues>(renderItem:
                         o += 1;
                     }
                 }
-                mdiData.count = o;
-                mdiDataList.length = 1;
-                mdiDataList[0] = mdiData;
+                mdbData.count = o;
+                mdbDataList.length = 1;
+                mdbDataList[0] = mdbData;
             }
 
             // console.log({
             //     counts: counts.slice(),
             //     instanceCounts: instanceCounts.slice(),
             //     baseInstances: baseInstances.slice(),
-            //     drawcount: mdiData.count,
+            //     drawcount: mdbData.count,
             // });
 
             cullEnabled = true;
@@ -186,7 +186,7 @@ export function createRenderable<T extends GraphicsRenderableValues>(renderItem:
             if (values.uAlpha && values.alpha) {
                 ValueCell.updateIfChanged(values.uAlpha, clamp(values.alpha.ref.value * state.alphaFactor, 0, 1));
             }
-            renderItem.render(variant, sharedTexturesCount, cullEnabled ? mdiDataList : undefined);
+            renderItem.render(variant, sharedTexturesCount, cullEnabled ? mdbDataList : undefined);
         },
         getProgram: (variant: GraphicsRenderVariant) => renderItem.getProgram(variant),
         update: () => renderItem.update(),
