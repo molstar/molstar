@@ -88,7 +88,7 @@ void main(void){
     float d;
     if (uLod.x != 0.0 && uLod.y != 0.0) {
         d = dot(uCameraPlane.xyz, vModelPosition) + uCameraPlane.w;
-        float f = smoothstep(uLod.x - uLod.z, uLod.x, d);
+        float f = smoothstep(uLod.x - uLod.z, uLod.x, d) * uLod.w;
         vRadius *= f;
     }
 
