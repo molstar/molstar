@@ -88,14 +88,24 @@ const VolumeFromCube = PluginStateTransform.BuiltIn({
         return {
             dataIndex,
             entryId: PD.Text(''),
-            clampMin: PD.Numeric(-1024),
-            clampMax: PD.Numeric(1024),
+            clamp: PD.MappedStatic('off', {
+                'off': PD.EmptyGroup(),
+                'on': PD.Group({
+                    min: PD.Numeric(-1024),
+                    max: PD.Numeric(1024),
+                })
+            }, { cycle: true })
         };
     }
 })({
     apply({ a, params }) {
         return Task.create('Create volume from Cube', async ctx => {
-            const volume = await volumeFromCube(a.data, { ...params, label: a.data.name || a.label }).runInContext(ctx);
+            const volume = await volumeFromCube(a.data, {
+                dataIndex: params.dataIndex,
+                label: a.data.name || a.label,
+                entryId: params.entryId,
+                clamp: params.clamp.name === 'on' ? params.clamp.params : undefined,
+            }).runInContext(ctx);
             const props = { label: volume.label || 'Volume', description: `Volume ${a.data.header.dim[0]}\u00D7${a.data.header.dim[1]}\u00D7${a.data.header.dim[2]}` };
             return new SO.Volume.Data(volume, props);
         });

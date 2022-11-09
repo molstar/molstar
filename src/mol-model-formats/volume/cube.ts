@@ -14,7 +14,7 @@ import { ModelFormat } from '../format';
 import { CustomProperties } from '../../mol-model/custom-property';
 import { clamp } from '../../mol-math/interpolate';
 
-export function volumeFromCube(source: CubeFile, params?: { dataIndex?: number, label?: string, entryId?: string, clampMin?: number, clampMax?: number }): Task<Volume> {
+export function volumeFromCube(source: CubeFile, params?: { dataIndex?: number, label?: string, entryId?: string, clamp?: { min: number, max: number } }): Task<Volume> {
     return Task.create<Volume>('Create Volume', async () => {
         const { header, values: sourceValues } = source;
         const space = Tensor.Space(header.dim, [0, 1, 2], Float64Array);
@@ -26,8 +26,7 @@ export function volumeFromCube(source: CubeFile, params?: { dataIndex?: number, 
             // get every nth value from the source values
             const [h, k, l] = header.dim;
             const nth = (params?.dataIndex || 0) + 1;
-            const clampMin = params?.clampMin || -Infinity;
-            const clampMax = params?.clampMax || -Infinity;
+            const { min, max } = params?.clamp || { min: -Infinity, max: Infinity };
 
             let o = 0, s = 0;
 
@@ -35,7 +34,7 @@ export function volumeFromCube(source: CubeFile, params?: { dataIndex?: number, 
             for (let u = 0; u < h; u++) {
                 for (let v = 0; v < k; v++) {
                     for (let w = 0; w < l; w++) {
-                        values[o++] = clamp(sourceValues[s], clampMin, clampMax);
+                        values[o++] = clamp(sourceValues[s], min, max);
                         s += nth;
                     }
                 }
