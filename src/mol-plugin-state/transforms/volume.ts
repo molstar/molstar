@@ -88,6 +88,8 @@ const VolumeFromCube = PluginStateTransform.BuiltIn({
         return {
             dataIndex,
             entryId: PD.Text(''),
+            clampMin: PD.Numeric(-1024),
+            clampMax: PD.Numeric(1024),
         };
     }
 })({
