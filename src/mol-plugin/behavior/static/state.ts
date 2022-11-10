@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -37,12 +37,16 @@ export function SyncBehaviors(ctx: PluginContext) {
 
     ctx.state.events.object.removed.subscribe(o => {
         if (!SO.isBehavior(o.obj)) return;
-        o.obj.data.unregister();
+        o.obj.data.unregister?.();
+        o.obj.data.dispose?.();
     });
 
     ctx.state.events.object.updated.subscribe(o => {
         if (o.action === 'recreate') {
-            if (o.oldObj && SO.isBehavior(o.oldObj)) o.oldObj.data.unregister();
+            if (o.oldObj && SO.isBehavior(o.oldObj)) {
+                o.oldObj.data.unregister?.();
+                o.oldObj.data.dispose?.();
+            }
             if (o.obj && SO.isBehavior(o.obj)) o.obj.data.register(o.ref);
         }
     });
@@ -115,7 +119,9 @@ export function Highlight(ctx: PluginContext) {
                 ctx.managers.interactivity.lociHighlights.highlight({ loci: Structure.Loci(cell.obj.data) }, false);
             } else if (cell && SO.isRepresentation3D(cell.obj)) {
                 const { repr } = cell.obj.data;
-                ctx.managers.interactivity.lociHighlights.highlight({ loci: repr.getLoci(), repr }, false);
+                for (const loci of repr.getAllLoci()) {
+                    ctx.managers.interactivity.lociHighlights.highlight({ loci, repr }, false);
+                }
             } else if (SO.Molecule.Structure.Selections.is(cell.obj)) {
                 for (const entry of cell.obj.data) {
                     ctx.managers.interactivity.lociHighlights.highlight({ loci: entry.loci }, false);

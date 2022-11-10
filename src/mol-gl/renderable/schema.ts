@@ -2,6 +2,7 @@
  * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Gianluca Tomasello <giagitom@gmail.com>
  */
 
 import { ValueCell } from '../../mol-util';
@@ -36,6 +37,7 @@ export function splitValues(schema: RenderableSchema, values: RenderableValues) 
     const attributeValues: AttributeValues = {};
     const defineValues: DefineValues = {};
     const textureValues: TextureValues = {};
+    const materialTextureValues: TextureValues = {};
     const uniformValues: UniformValues = {};
     const materialUniformValues: UniformValues = {};
     const bufferedUniformValues: UniformValues = {};
@@ -44,7 +46,10 @@ export function splitValues(schema: RenderableSchema, values: RenderableValues) 
         if (spec.type === 'attribute') attributeValues[k] = values[k];
         if (spec.type === 'define') defineValues[k] = values[k];
         // check if k exists in values to exclude global textures
-        if (spec.type === 'texture' && values[k] !== undefined) textureValues[k] = values[k];
+        if (spec.type === 'texture' && values[k] !== undefined) {
+            if (spec.variant === 'material') materialTextureValues[k] = values[k];
+            else textureValues[k] = values[k];
+        }
         // check if k exists in values to exclude global uniforms
         if (spec.type === 'uniform' && values[k] !== undefined) {
             if (spec.variant === 'material') materialUniformValues[k] = values[k];
@@ -52,7 +57,7 @@ export function splitValues(schema: RenderableSchema, values: RenderableValues) 
             else uniformValues[k] = values[k];
         }
     });
-    return { attributeValues, defineValues, textureValues, uniformValues, materialUniformValues, bufferedUniformValues };
+    return { attributeValues, defineValues, textureValues, materialTextureValues, uniformValues, materialUniformValues, bufferedUniformValues };
 }
 
 export type Versions<T extends RenderableValues> = { [k in keyof T]: number }
@@ -76,9 +81,9 @@ export function UniformSpec<K extends UniformKind>(kind: K, variant?: 'material'
     return { type: 'uniform', kind, variant };
 }
 
-export type TextureSpec<K extends TextureKind> = { type: 'texture', kind: K, format: TextureFormat, dataType: TextureType, filter: TextureFilter }
-export function TextureSpec<K extends TextureKind>(kind: K, format: TextureFormat, dataType: TextureType, filter: TextureFilter): TextureSpec<K> {
-    return { type: 'texture', kind, format, dataType, filter };
+export type TextureSpec<K extends TextureKind> = { type: 'texture', kind: K, format: TextureFormat, dataType: TextureType, filter: TextureFilter, variant?: 'material' }
+export function TextureSpec<K extends TextureKind>(kind: K, format: TextureFormat, dataType: TextureType, filter: TextureFilter, variant?: 'material'): TextureSpec<K> {
+    return { type: 'texture', kind, format, dataType, filter, variant };
 }
 
 export type ElementsSpec<K extends ElementsKind> = { type: 'elements', kind: K }
@@ -163,6 +168,11 @@ export type GlobalUniformValues = Values<GlobalUniformSchema>
 
 export const GlobalTextureSchema = {
     tDepth: TextureSpec('texture', 'depth', 'ushort', 'nearest'),
+
+    // dpoit
+    tDpoitDepth: TextureSpec('texture', 'rg', 'float', 'nearest'),
+    tDpoitFrontColor: TextureSpec('texture', 'rgba', 'float', 'nearest'),
+    tDpoitBackColor: TextureSpec('texture', 'rgba', 'float', 'nearest')
 } as const;
 export type GlobalTextureSchema = typeof GlobalTextureSchema
 export type GlobalTextureValues = Values<GlobalTextureSchema>
@@ -194,7 +204,7 @@ export const SizeSchema = {
     uSizeTexDim: UniformSpec('v2'),
     tSize: TextureSpec('image-uint8', 'rgb', 'ubyte', 'nearest'),
     dSizeType: DefineSpec('string', ['uniform', 'attribute', 'instance', 'group', 'groupInstance']),
-    uSizeFactor: UniformSpec('f'),
+    uSizeFactor: UniformSpec('f', 'material'),
 } as const;
 export type SizeSchema = typeof SizeSchema
 export type SizeValues = Values<SizeSchema>
@@ -232,7 +242,7 @@ export const TransparencySchema = {
     uTransparencyGridDim: UniformSpec('v3'),
     uTransparencyGridTransform: UniformSpec('v4'),
     tTransparencyGrid: TextureSpec('texture', 'alpha', 'ubyte', 'linear'),
-    dTransparencyType: DefineSpec('string', ['instance', 'groupInstance', 'volumeInstance']),
+    dTransparencyType: DefineSpec('string', ['instance', 'groupInstance', 'volumeInstance'])
 } as const;
 export type TransparencySchema = typeof TransparencySchema
 export type TransparencyValues = Values<TransparencySchema>
@@ -270,14 +280,15 @@ export const BaseSchema = {
     ...ClippingSchema,
 
     dLightCount: DefineSpec('number'),
+    dColorMarker: DefineSpec('boolean'),
 
     dClipObjectCount: DefineSpec('number'),
     dClipVariant: DefineSpec('string', ['instance', 'pixel']),
-    uClipObjectType: UniformSpec('i[]'),
-    uClipObjectInvert: UniformSpec('b[]'),
-    uClipObjectPosition: UniformSpec('v3[]'),
-    uClipObjectRotation: UniformSpec('v4[]'),
-    uClipObjectScale: UniformSpec('v3[]'),
+    uClipObjectType: UniformSpec('i[]', 'material'),
+    uClipObjectInvert: UniformSpec('b[]', 'material'),
+    uClipObjectPosition: UniformSpec('v3[]', 'material'),
+    uClipObjectRotation: UniformSpec('v4[]', 'material'),
+    uClipObjectScale: UniformSpec('v3[]', 'material'),
 
     aInstance: AttributeSpec('float32', 1, 1),
     /**

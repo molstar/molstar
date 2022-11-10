@@ -111,6 +111,7 @@ export namespace BaseGeometry {
             uRoughness: ValueCell.create(props.material.roughness),
             uBumpiness: ValueCell.create(props.material.bumpiness),
             dLightCount: ValueCell.create(1),
+            dColorMarker: ValueCell.create(true),
 
             dClipObjectCount: ValueCell.create(clip.objects.count),
             dClipVariant: ValueCell.create(clip.variant),

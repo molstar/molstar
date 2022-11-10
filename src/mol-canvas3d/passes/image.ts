@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -18,9 +18,11 @@ import { PixelData } from '../../mol-util/image';
 import { Helper } from '../helper/helper';
 import { CameraHelper, CameraHelperParams } from '../helper/camera-helper';
 import { MarkingParams } from './marking';
+import { AssetManager } from '../../mol-util/assets';
 
 export const ImageParams = {
     transparentBackground: PD.Boolean(false),
+    dpoitIterations: PD.Numeric(2, { min: 1, max: 10, step: 1 }),
     multiSample: PD.Group(MultiSampleParams),
     postprocessing: PD.Group(PostprocessingParams),
     marking: PD.Group(MarkingParams),
@@ -47,10 +49,10 @@ export class ImagePass {
     get width() { return this._width; }
     get height() { return this._height; }
 
-    constructor(private webgl: WebGLContext, private renderer: Renderer, private scene: Scene, private camera: Camera, helper: Helper, enableWboit: boolean, props: Partial<ImageProps>) {
+    constructor(private webgl: WebGLContext, assetManager: AssetManager, private renderer: Renderer, private scene: Scene, private camera: Camera, helper: Helper, enableWboit: boolean, enableDpoit: boolean, props: Partial<ImageProps>) {
         this.props = { ...PD.getDefaultValues(ImageParams), ...props };
 
-        this.drawPass = new DrawPass(webgl, 128, 128, enableWboit);
+        this.drawPass = new DrawPass(webgl, assetManager, 128, 128, enableWboit, enableDpoit);
         this.multiSamplePass = new MultiSamplePass(webgl, this.drawPass);
         this.multiSampleHelper = new MultiSampleHelper(this.multiSamplePass);
 
@@ -61,6 +63,14 @@ export class ImagePass {
         };
 
         this.setSize(1024, 768);
+    }
+
+    updateBackground() {
+        return new Promise<void>(resolve => {
+            this.drawPass.postprocessing.background.update(this.camera, this.props.postprocessing.background, () => {
+                resolve();
+            });
+        });
     }
 
     setSize(width: number, height: number) {

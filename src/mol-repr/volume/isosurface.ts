@@ -29,6 +29,7 @@ import { WebGLContext } from '../../mol-gl/webgl/context';
 import { CustomPropertyDescriptor } from '../../mol-model/custom-property';
 import { Texture } from '../../mol-gl/webgl/texture';
 import { BaseGeometry } from '../../mol-geo/geometry/base';
+import { ValueCell } from '../../mol-util/value-cell';
 
 export const VolumeIsosurfaceParams = {
     isoValue: Volume.IsoValueParam
@@ -65,8 +66,16 @@ function getLoci(volume: Volume, props: VolumeIsosurfaceProps) {
 
 function getIsosurfaceLoci(pickingId: PickingId, volume: Volume, props: VolumeIsosurfaceProps, id: number) {
     const { objectId, groupId } = pickingId;
+
     if (id === objectId) {
-        return Volume.Cell.Loci(volume, Interval.ofSingleton(groupId as Volume.CellIndex));
+        const granularity = Volume.PickingGranularity.get(volume);
+        if (granularity === 'volume') {
+            return Volume.Loci(volume);
+        } else if (granularity === 'object') {
+            return Volume.Isosurface.Loci(volume, props.isoValue);
+        } else {
+            return Volume.Cell.Loci(volume, Interval.ofSingleton(groupId as Volume.CellIndex));
+        }
     }
     return EmptyLoci;
 }
@@ -94,6 +103,9 @@ export async function createVolumeIsosurfaceMesh(ctx: VisualContext, volume: Vol
         // 2nd arg means not to split triangles based on group id. Splitting triangles
         // is too expensive if each cell has its own group id as is the case here.
         Mesh.uniformTriangleGroup(surface, false);
+        ValueCell.updateIfChanged(surface.varyingGroup, false);
+    } else {
+        ValueCell.updateIfChanged(surface.varyingGroup, true);
     }
 
     surface.setBoundingSphere(Volume.getBoundingSphere(volume));
@@ -185,7 +197,7 @@ async function createVolumeIsosurfaceTextureMesh(ctx: VisualContext, volume: Vol
 
     const axisOrder = volume.grid.cells.space.axisOrderSlowToFast as Vec3;
     const buffer = textureMesh?.doubleBuffer.get();
-    const gv = extractIsosurface(ctx.webgl, texture, gridDimension, gridTexDim, gridTexScale, transform, isoLevel, value < 0, false, axisOrder, buffer?.vertex, buffer?.group, buffer?.normal);
+    const gv = extractIsosurface(ctx.webgl, texture, gridDimension, gridTexDim, gridTexScale, transform, isoLevel, value < 0, false, axisOrder, true, buffer?.vertex, buffer?.group, buffer?.normal);
 
     const groupCount = volume.grid.cells.data.length;
     const surface = TextureMesh.create(gv.vertexCount, groupCount, gv.vertexTexture, gv.groupTexture, gv.normalTexture, Volume.getBoundingSphere(volume), textureMesh);

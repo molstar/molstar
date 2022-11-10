@@ -1,8 +1,9 @@
 /**
- * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Adam Midlik <midlik@gmail.com>
  */
 
 import { PluginStateObject as SO, PluginStateTransform } from '../../../../mol-plugin-state/objects';
@@ -42,7 +43,7 @@ export const InitVolumeStreaming = StateAction.build({
         return {
             method: PD.Select<VolumeServerInfo.Kind>(method, [['em', 'EM'], ['x-ray', 'X-Ray']]),
             entries: PD.ObjectList({ id: PD.Text(ids[0] || '') }, ({ id }) => id, { defaultValue: ids.map(id => ({ id })) }),
-            defaultView: PD.Select<VolumeStreaming.ViewTypes>(method === 'em' ? 'cell' : 'selection-box', VolumeStreaming.ViewTypeOptions as any),
+            defaultView: PD.Select<VolumeStreaming.ViewTypes>(method === 'em' ? 'auto' : 'selection-box', VolumeStreaming.ViewTypeOptions as any),
             options: PD.Group({
                 serverUrl: PD.Text(plugin.config.get(PluginConfig.VolumeStreaming.DefaultServer) || 'https://ds.litemol.org'),
                 behaviorRef: PD.Text('', { isHidden: true }),
@@ -219,6 +220,7 @@ const CreateVolumeStreamingBehavior = PluginStateTransform.BuiltIn({
     canAutoUpdate: ({ oldParams, newParams }) => {
         return oldParams.entry.params.view === newParams.entry.params.view
             || newParams.entry.params.view.name === 'selection-box'
+            || newParams.entry.params.view.name === 'camera-target'
             || newParams.entry.params.view.name === 'off';
     },
     apply: ({ a, params }, plugin: PluginContext) => Task.create('Volume streaming', async _ => {

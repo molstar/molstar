@@ -48,7 +48,6 @@ bool Impostor(out vec3 cameraPos, out vec3 cameraNormal){
 
     cameraPos = rayDirection * negT + rayOrigin;
 
-
     if (calcDepth(cameraPos) <= 0.0) {
         cameraPos = rayDirection * posT + rayOrigin;
         interior = true;
@@ -71,17 +70,17 @@ void main(void){
     }
 
     vec3 vViewPosition = cameraPos;
-    gl_FragDepthEXT = calcDepth(vViewPosition);
-    if (!flag && gl_FragDepthEXT >= 0.0) {
-        gl_FragDepthEXT = 0.0 + (0.0000001 / vRadius);
+    float fragmentDepth = calcDepth(vViewPosition);
+    if (!flag && fragmentDepth >= 0.0) {
+        fragmentDepth = 0.0 + (0.0000001 / vRadius);
     }
 
+    if (fragmentDepth < 0.0) discard;
+    if (fragmentDepth > 1.0) discard;
+
+    gl_FragDepthEXT = fragmentDepth;
+
     vec3 vModelPosition = (uInvView * vec4(vViewPosition, 1.0)).xyz;
-
-    if (gl_FragDepthEXT < 0.0) discard;
-    if (gl_FragDepthEXT > 1.0) discard;
-
-    float fragmentDepth = gl_FragDepthEXT;
     #include assign_material_color
 
     #if defined(dRenderVariant_pick)
@@ -106,6 +105,7 @@ void main(void){
         #include apply_marker_color
         #include apply_fog
         #include wboit_write
+        #include dpoit_write
     #endif
 }
 `;

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -26,7 +26,7 @@ export const DirectVolumeSchema = {
     uTransform: UniformSpec('m4'),
     uGridDim: UniformSpec('v3'),
     tTransferTex: TextureSpec('image-uint8', 'alpha', 'ubyte', 'linear'),
-    uTransferScale: UniformSpec('f'),
+    uTransferScale: UniformSpec('f', 'material'),
 
     dGridTexType: DefineSpec('string', ['2d', '3d']),
     uGridTexDim: UniformSpec('v3'),

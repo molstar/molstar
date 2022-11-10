@@ -21,7 +21,7 @@ uniform int uPickType;
     #if defined(dClipping)
         uniform vec2 uClippingTexDim;
         uniform sampler2D tClipping;
-        #if __VERSION__ == 100
+        #if __VERSION__ == 100 || defined(dClippingType_instance) || !defined(dVaryingGroup)
             varying float vClipping;
         #else
             flat out float vClipping;
@@ -29,11 +29,11 @@ uniform int uPickType;
     #endif
 #endif
 
-#if defined(dRenderVariant_color) || defined(dRenderVariant_marking)
+#if defined(dNeedsMarker)
     uniform float uMarker;
     uniform vec2 uMarkerTexDim;
     uniform sampler2D tMarker;
-    #if __VERSION__ == 100
+    #if __VERSION__ == 100 || defined(dMarkerType_instance) || !defined(dVaryingGroup)
         varying float vMarker;
     #else
         flat out float vMarker;
@@ -44,7 +44,9 @@ varying vec3 vModelPosition;
 varying vec3 vViewPosition;
 
 #if defined(noNonInstancedActiveAttribs)
-    #define VertexID gl_VertexID
+    // int() is needed for some Safari versions
+    // see https://bugs.webkit.org/show_bug.cgi?id=244152
+    #define VertexID int(gl_VertexID)
 #else
     attribute float aVertex;
     #define VertexID int(aVertex)

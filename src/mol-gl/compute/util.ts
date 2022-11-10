@@ -75,9 +75,9 @@ export function getSharedCopyRenderable(ctx: WebGLContext, texture: Texture) {
 const ReadTextureName = 'read-texture';
 const ReadAlphaTextureName = 'read-alpha-texture';
 
-export function readTexture(ctx: WebGLContext, texture: Texture) {
+export function readTexture<T extends Uint8Array | Float32Array | Int32Array = Uint8Array>(ctx: WebGLContext, texture: Texture, array?: T) {
     const { gl, resources } = ctx;
-    if (texture.type !== gl.UNSIGNED_BYTE) throw new Error('unsupported texture type');
+    if (!array && texture.type !== gl.UNSIGNED_BYTE) throw new Error('unsupported texture type');
 
     if (!ctx.namedFramebuffers[ReadTextureName]) {
         ctx.namedFramebuffers[ReadTextureName] = resources.framebuffer();
@@ -86,7 +86,7 @@ export function readTexture(ctx: WebGLContext, texture: Texture) {
 
     const width = texture.getWidth();
     const height = texture.getHeight();
-    const array = new Uint8Array(width * height * 4);
+    if (!array) array = new Uint8Array(width * height * 4) as T;
     framebuffer.bind();
     texture.attachFramebuffer(framebuffer, 0);
     ctx.readPixels(0, 0, width, height, array);
@@ -125,8 +125,8 @@ export function readAlphaTexture(ctx: WebGLContext, texture: Texture) {
     state.clearColor(0, 0, 0, 0);
     state.blendFunc(gl.ONE, gl.ONE);
     state.blendEquation(gl.FUNC_ADD);
-    gl.viewport(0, 0, width, height);
-    gl.scissor(0, 0, width, height);
+    state.viewport(0, 0, width, height);
+    state.scissor(0, 0, width, height);
     gl.clear(gl.COLOR_BUFFER_BIT);
     copy.render();
 

@@ -82,24 +82,20 @@ export class AlphaOrbitalsExample {
 
         this.plugin.managers.interactivity.setProps({ granularity: 'element' });
 
-        this.plugin.behaviors.canvas3d.initialized.subscribe(init => {
-            if (!init) return;
-
-            if (!canComputeGrid3dOnGPU(this.plugin.canvas3d?.webgl)) {
-                PluginCommands.Toast.Show(this.plugin, {
-                    title: 'Error',
-                    message: `Browser/device does not support required WebGL extension (OES_texture_float).`
-                });
-                return;
-            }
-
-            this.load({
-                moleculeSdf: DemoMoleculeSDF,
-                ...DemoOrbitals
+        if (!canComputeGrid3dOnGPU(this.plugin.canvas3d?.webgl)) {
+            PluginCommands.Toast.Show(this.plugin, {
+                title: 'Error',
+                message: `Browser/device does not support required WebGL extension (OES_texture_float).`
             });
+            return;
+        }
 
-            mountControls(this, document.getElementById('controls')!);
+        this.load({
+            moleculeSdf: DemoMoleculeSDF,
+            ...DemoOrbitals
         });
+
+        mountControls(this, document.getElementById('controls')!);
     }
 
     readonly params = new BehaviorSubject<ParamDefinition.For<Params>>({} as any);

@@ -18,7 +18,7 @@ import { SetUtils } from '../../mol-util/set';
 import { DefaultMap } from '../../mol-util/map';
 import { mmCIF_chemCompBond_schema } from '../../mol-io/reader/cif/schema/mmcif-extras';
 import { ccd_chemCompAtom_schema } from '../../mol-io/reader/cif/schema/ccd-extras';
-import { ensureDataAvailable, getEncodedCif, readCCD, readPVCD } from './util';
+import { DefaultDataOptions, ensureDataAvailable, getEncodedCif, readCCD, readPVCD } from './util';
 
 type CCB = Table<CCD_Schema['chem_comp_bond']>
 type CCA = Table<CCD_Schema['chem_comp_atom']>
@@ -239,8 +239,8 @@ function createAtoms(ccd: DatabaseCollection<CCD_Schema>, pvcd: DatabaseCollecti
     );
 }
 
-async function run(out: string, binary = false, forceDownload = false, ccaOut?: string) {
-    await ensureDataAvailable(forceDownload);
+async function run(out: string, binary = false, options = DefaultDataOptions, ccaOut?: string) {
+    await ensureDataAvailable(options);
     const ccd = await readCCD();
     const pvcd = await readPVCD();
 
@@ -283,12 +283,22 @@ parser.add_argument('--ccaOut', '-a', {
     help: 'Optional generated file output path for chem_comp_atom data.',
     required: false
 });
+parser.add_argument('--ccdUrl', '-c', {
+    help: 'Fetch the CCD from a custom URL. This forces download of the CCD.',
+    required: false
+});
+parser.add_argument('--pvcdUrl', '-p', {
+    help: 'Fetch the PVCD from a custom URL. This forces download of the PVCD.',
+    required: false
+});
 interface Args {
     out: string,
     forceDownload?: boolean,
     binary?: boolean,
-    ccaOut?: string
+    ccaOut?: string,
+    ccdUrl?: string,
+    pvcdUrl?: string
 }
 const args: Args = parser.parse_args();
 
-run(args.out, args.binary, args.forceDownload, args.ccaOut);
+run(args.out, args.binary, { forceDownload: args.forceDownload, ccdUrl: args.ccdUrl, pvcdUrl: args.pvcdUrl }, args.ccaOut);

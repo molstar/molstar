@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -126,12 +126,12 @@ export namespace Volume {
                 'absolute': PD.Converted(
                     (v: Volume.IsoValue) => Volume.IsoValue.toAbsolute(v, Grid.One.stats).absoluteValue,
                     (v: number) => Volume.IsoValue.absolute(v),
-                    PD.Numeric(mean, { min, max, step: toPrecision(sigma / 100, 2) })
+                    PD.Numeric(mean, { min, max, step: toPrecision(sigma / 100, 2) }, { immediateUpdate: true })
                 ),
                 'relative': PD.Converted(
                     (v: Volume.IsoValue) => Volume.IsoValue.toRelative(v, Grid.One.stats).relativeValue,
                     (v: number) => Volume.IsoValue.relative(v),
-                    PD.Numeric(Math.min(1, relMax), { min: relMin, max: relMax, step: toPrecision(Math.round(((max - min) / sigma)) / 100, 2) })
+                    PD.Numeric(Math.min(1, relMax), { min: relMin, max: relMax, step: toPrecision(Math.round(((max - min) / sigma)) / 100, 2) }, { immediateUpdate: true })
                 )
             },
             (v: Volume.IsoValue) => v.kind === 'absolute' ? 'absolute' : 'relative',
@@ -219,4 +219,14 @@ export namespace Volume {
             return Sphere3D.expand(bs, bs, Mat4.getMaxScaleOnAxis(transform) * 10);
         }
     }
+
+    export type PickingGranularity = 'volume' | 'object' | 'voxel';
+    export const PickingGranularity = {
+        set(volume: Volume, granularity: PickingGranularity) {
+            volume._propertyData['__picking_granularity__'] = granularity;
+        },
+        get(volume: Volume): PickingGranularity {
+            return volume._propertyData['__picking_granularity__'] ?? 'voxel';
+        }
+    };
 }

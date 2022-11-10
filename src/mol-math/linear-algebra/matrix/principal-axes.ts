@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -9,6 +9,7 @@ import { Vec3 } from '../3d/vec3';
 import { svd } from './svd';
 import { NumberArray } from '../../../mol-util/type-helpers';
 import { Axes3D } from '../../geometry';
+import { EPSILON } from '../3d/common';
 
 export { PrincipalAxes };
 
@@ -58,10 +59,15 @@ namespace PrincipalAxes {
         return Axes3D.create(origin, dirA, dirB, dirC);
     }
 
+    export function calculateNormalizedAxes(momentsAxes: Axes3D): Axes3D {
+        const a = Axes3D.clone(momentsAxes);
+        if (Vec3.magnitude(a.dirC) < EPSILON) {
+            Vec3.cross(a.dirC, a.dirA, a.dirB);
+        }
+        return Axes3D.normalize(a, a);
+    }
+
     const tmpBoxVec = Vec3();
-    const tmpBoxVecA = Vec3();
-    const tmpBoxVecB = Vec3();
-    const tmpBoxVecC = Vec3();
     /**
      * Get the scale/length for each dimension for a box around the axes
      * to enclose the given positions
@@ -82,13 +88,11 @@ namespace PrincipalAxes {
         const t = Vec3();
 
         const center = momentsAxes.origin;
-        const normVecA = Vec3.normalize(tmpBoxVecA, momentsAxes.dirA);
-        const normVecB = Vec3.normalize(tmpBoxVecB, momentsAxes.dirB);
-        const normVecC = Vec3.normalize(tmpBoxVecC, momentsAxes.dirC);
+        const a = calculateNormalizedAxes(momentsAxes);
 
         for (let i = 0, il = positions.length; i < il; i += 3) {
-            Vec3.projectPointOnVector(p, Vec3.fromArray(p, positions, i), normVecA, center);
-            const dp1 = Vec3.dot(normVecA, Vec3.normalize(t, Vec3.sub(t, p, center)));
+            Vec3.projectPointOnVector(p, Vec3.fromArray(p, positions, i), a.dirA, center);
+            const dp1 = Vec3.dot(a.dirA, Vec3.normalize(t, Vec3.sub(t, p, center)));
             const dt1 = Vec3.distance(p, center);
             if (dp1 > 0) {
                 if (dt1 > d1a) d1a = dt1;
@@ -96,8 +100,8 @@ namespace PrincipalAxes {
                 if (dt1 > d1b) d1b = dt1;
             }
 
-            Vec3.projectPointOnVector(p, Vec3.fromArray(p, positions, i), normVecB, center);
-            const dp2 = Vec3.dot(normVecB, Vec3.normalize(t, Vec3.sub(t, p, center)));
+            Vec3.projectPointOnVector(p, Vec3.fromArray(p, positions, i), a.dirB, center);
+            const dp2 = Vec3.dot(a.dirB, Vec3.normalize(t, Vec3.sub(t, p, center)));
             const dt2 = Vec3.distance(p, center);
             if (dp2 > 0) {
                 if (dt2 > d2a) d2a = dt2;
@@ -105,8 +109,8 @@ namespace PrincipalAxes {
                 if (dt2 > d2b) d2b = dt2;
             }
 
-            Vec3.projectPointOnVector(p, Vec3.fromArray(p, positions, i), normVecC, center);
-            const dp3 = Vec3.dot(normVecC, Vec3.normalize(t, Vec3.sub(t, p, center)));
+            Vec3.projectPointOnVector(p, Vec3.fromArray(p, positions, i), a.dirC, center);
+            const dp3 = Vec3.dot(a.dirC, Vec3.normalize(t, Vec3.sub(t, p, center)));
             const dt3 = Vec3.distance(p, center);
             if (dp3 > 0) {
                 if (dt3 > d3a) d3a = dt3;
@@ -115,16 +119,16 @@ namespace PrincipalAxes {
             }
         }
 
-        const dirA = Vec3.setMagnitude(Vec3(), normVecA, (d1a + d1b) / 2);
-        const dirB = Vec3.setMagnitude(Vec3(), normVecB, (d2a + d2b) / 2);
-        const dirC = Vec3.setMagnitude(Vec3(), normVecC, (d3a + d3b) / 2);
+        const dirA = Vec3.setMagnitude(Vec3(), a.dirA, (d1a + d1b) / 2);
+        const dirB = Vec3.setMagnitude(Vec3(), a.dirB, (d2a + d2b) / 2);
+        const dirC = Vec3.setMagnitude(Vec3(), a.dirC, (d3a + d3b) / 2);
 
         const origin = Vec3();
         const addCornerHelper = function (d1: number, d2: number, d3: number) {
             Vec3.copy(tmpBoxVec, center);
-            Vec3.scaleAndAdd(tmpBoxVec, tmpBoxVec, normVecA, d1);
-            Vec3.scaleAndAdd(tmpBoxVec, tmpBoxVec, normVecB, d2);
-            Vec3.scaleAndAdd(tmpBoxVec, tmpBoxVec, normVecC, d3);
+            Vec3.scaleAndAdd(tmpBoxVec, tmpBoxVec, a.dirA, d1);
+            Vec3.scaleAndAdd(tmpBoxVec, tmpBoxVec, a.dirB, d2);
+            Vec3.scaleAndAdd(tmpBoxVec, tmpBoxVec, a.dirC, d3);
             Vec3.add(origin, origin, tmpBoxVec);
         };
         addCornerHelper(d1a, d2a, d3a);

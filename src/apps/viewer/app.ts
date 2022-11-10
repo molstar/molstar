@@ -46,6 +46,7 @@ import { Color } from '../../mol-util/color';
 import '../../mol-util/polyfill';
 import { ObjectKeys } from '../../mol-util/type-helpers';
 import { SaccharideCompIdMapType } from '../../mol-model/structure/structure/carbohydrates/constants';
+import { Backgrounds } from '../../extensions/backgrounds';
 
 export { PLUGIN_VERSION as version } from '../../mol-plugin/version';
 export { setDebugMode, setProductionMode, setTimingMode } from '../../mol-util/debug';
@@ -55,6 +56,7 @@ const CustomFormats = [
 ];
 
 const Extensions = {
+    'backgrounds': PluginSpec.Behavior(Backgrounds),
     'cellpack': PluginSpec.Behavior(CellPack),
     'dnatco-confal-pyramids': PluginSpec.Behavior(DnatcoConfalPyramids),
     'pdbe-structure-quality-report': PluginSpec.Behavior(PDBeStructureQualityReport),
@@ -86,7 +88,9 @@ const DefaultViewerOptions = {
     pickScale: PluginConfig.General.PickScale.defaultValue,
     pickPadding: PluginConfig.General.PickPadding.defaultValue,
     enableWboit: PluginConfig.General.EnableWboit.defaultValue,
+    enableDpoit: PluginConfig.General.EnableDpoit.defaultValue,
     preferWebgl1: PluginConfig.General.PreferWebGl1.defaultValue,
+    allowMajorPerformanceCaveat: PluginConfig.General.AllowMajorPerformanceCaveat.defaultValue,
 
     viewportShowExpand: PluginConfig.Viewport.ShowExpand.defaultValue,
     viewportShowControls: PluginConfig.Viewport.ShowControls.defaultValue,
@@ -156,7 +160,9 @@ export class Viewer {
                 [PluginConfig.General.PickScale, o.pickScale],
                 [PluginConfig.General.PickPadding, o.pickPadding],
                 [PluginConfig.General.EnableWboit, o.enableWboit],
+                [PluginConfig.General.EnableDpoit, o.enableDpoit],
                 [PluginConfig.General.PreferWebGl1, o.preferWebgl1],
+                [PluginConfig.General.AllowMajorPerformanceCaveat, o.allowMajorPerformanceCaveat],
                 [PluginConfig.Viewport.ShowExpand, o.viewportShowExpand],
                 [PluginConfig.Viewport.ShowControls, o.viewportShowControls],
                 [PluginConfig.Viewport.ShowSettings, o.viewportShowSettings],
@@ -197,7 +203,7 @@ export class Viewer {
         return PluginCommands.State.Snapshots.OpenUrl(this.plugin, { url, type });
     }
 
-    loadStructureFromUrl(url: string, format: BuiltInTrajectoryFormat = 'mmcif', isBinary = false, options?: LoadStructureOptions) {
+    loadStructureFromUrl(url: string, format: BuiltInTrajectoryFormat = 'mmcif', isBinary = false, options?: LoadStructureOptions & { label?: string }) {
         const params = DownloadStructure.createDefaultParams(this.plugin.state.data.root.obj!, this.plugin);
         return this.plugin.runTask(this.plugin.state.data.applyAction(DownloadStructure, {
             source: {
@@ -206,6 +212,7 @@ export class Viewer {
                     url: Asset.Url(url),
                     format: format as any,
                     isBinary,
+                    label: options?.label,
                     options: { ...params.source.params.options, representationParams: options?.representationParams as any },
                 }
             }

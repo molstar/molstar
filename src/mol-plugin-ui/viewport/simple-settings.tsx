@@ -8,8 +8,10 @@
 import { produce } from 'immer';
 import { Canvas3DParams, Canvas3DProps } from '../../mol-canvas3d/canvas3d';
 import { PluginCommands } from '../../mol-plugin/commands';
+import { PluginConfig } from '../../mol-plugin/config';
 import { StateTransform } from '../../mol-state';
 import { Color } from '../../mol-util/color';
+import { deepClone } from '../../mol-util/object';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { ParamMapping } from '../../mol-util/param-mapping';
 import { Mutable } from '../../mol-util/type-helpers';
@@ -20,6 +22,8 @@ import { ViewportHelpContent } from './help';
 
 export class SimpleSettingsControl extends PluginUIComponent {
     componentDidMount() {
+        if (!this.plugin.canvas3d) return;
+
         this.subscribe(this.plugin.events.canvas3d.settingsUpdated, () => this.forceUpdate());
 
         this.subscribe(this.plugin.canvas3d!.camera.stateChanged, state => {
@@ -50,7 +54,8 @@ const SimpleSettingsParams = {
     camera: Canvas3DParams.camera,
     background: PD.Group({
         color: PD.Color(Color(0xFCFBF9), { label: 'Background', description: 'Custom background color' }),
-        transparent: PD.Boolean(false)
+        transparent: PD.Boolean(false),
+        style: Canvas3DParams.postprocessing.params.background,
     }, { pivot: 'color' }),
     lighting: PD.Group({
         occlusion: Canvas3DParams.postprocessing.params.occlusion,
@@ -75,6 +80,13 @@ const SimpleSettingsMapping = ParamMapping({
             if (controls.left !== 'none') options.push(['left', LayoutOptions.left]);
             params.layout.options = options;
         }
+        const bgStyles = ctx.config.get(PluginConfig.Background.Styles) || [];
+        if (bgStyles.length > 0) {
+            Object.assign(params.background.params.style, {
+                presets: deepClone(bgStyles),
+                isFlat: false, // so the presets menu is shown
+            });
+        }
         return params;
     },
     target(ctx: PluginUIContext) {
@@ -97,7 +109,8 @@ const SimpleSettingsMapping = ParamMapping({
             camera: canvas.camera,
             background: {
                 color: renderer.backgroundColor,
-                transparent: canvas.transparentBackground
+                transparent: canvas.transparentBackground,
+                style: canvas.postprocessing.background,
             },
             lighting: {
                 occlusion: canvas.postprocessing.occlusion,
@@ -117,10 +130,12 @@ const SimpleSettingsMapping = ParamMapping({
         canvas.renderer.backgroundColor = s.background.color;
         canvas.postprocessing.occlusion = s.lighting.occlusion;
         canvas.postprocessing.outline = s.lighting.outline;
+        canvas.postprocessing.background = s.background.style;
         canvas.cameraFog = s.lighting.fog;
         canvas.cameraClipping = {
             radius: s.clipping.radius,
             far: s.clipping.far,
+            minNear: s.clipping.minNear,
         };
 
         props.layout = s.layout;

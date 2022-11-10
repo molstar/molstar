@@ -358,9 +358,11 @@ export function VolumeRepresentation<P extends VolumeParams>(label: string, ctx:
         createOrUpdate,
         setState,
         setTheme,
-        getLoci: (pickingId?: PickingId): Loci => {
-            if (pickingId === undefined) return getLoci(_volume, _props);
+        getLoci: (pickingId: PickingId): Loci => {
             return visual ? visual.getLoci(pickingId) : EmptyLoci;
+        },
+        getAllLoci: (): Loci[] => {
+            return [getLoci(_volume, _props)];
         },
         mark,
         destroy

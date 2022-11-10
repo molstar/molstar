@@ -37,7 +37,9 @@ const canvas = document.createElement('canvas');
 parent.appendChild(canvas);
 resizeCanvas(canvas, parent);
 
-const canvas3d = Canvas3D.create(Canvas3DContext.fromCanvas(canvas));
+const assetManager = new AssetManager();
+
+const canvas3d = Canvas3D.create(Canvas3DContext.fromCanvas(canvas, assetManager));
 canvas3d.animate();
 
 const info = document.createElement('div');
@@ -123,7 +125,7 @@ function getMembraneOrientationRepr() {
 }
 
 async function init() {
-    const ctx = { runtime: SyncRuntimeContext, assetManager: new AssetManager() };
+    const ctx = { runtime: SyncRuntimeContext, assetManager };
 
     const cif = await downloadFromPdb('3pqr');
     const models = await getModels(cif);

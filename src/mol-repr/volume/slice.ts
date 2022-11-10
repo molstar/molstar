@@ -150,7 +150,14 @@ function getLoci(volume: Volume, props: PD.Values<SliceParams>) {
 function getSliceLoci(pickingId: PickingId, volume: Volume, props: PD.Values<SliceParams>, id: number) {
     const { objectId, groupId } = pickingId;
     if (id === objectId) {
-        return Volume.Cell.Loci(volume, Interval.ofSingleton(groupId as Volume.CellIndex));
+        const granularity = Volume.PickingGranularity.get(volume);
+        if (granularity === 'volume') {
+            return Volume.Loci(volume);
+        } if (granularity === 'object') {
+            return getLoci(volume, props);
+        } else {
+            return Volume.Cell.Loci(volume, Interval.ofSingleton(groupId as Volume.CellIndex));
+        }
     }
     return EmptyLoci;
 }

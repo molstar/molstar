@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -96,18 +96,21 @@ export class DownloadScreenshotControls extends PluginUIComponent<{ close: () =>
 }
 
 function ScreenshotParams({ plugin, isDisabled }: { plugin: PluginContext, isDisabled: boolean }) {
-    const helper = plugin.helpers.viewportScreenshot!;
-    const values = useBehavior(helper.behaviors.values);
+    const helper = plugin.helpers.viewportScreenshot;
+
+    const values = useBehavior(helper?.behaviors.values);
+    if (!helper) return null;
 
     return <ParameterControls params={helper.params} values={values} onChangeValues={v => helper.behaviors.values.next(v)} isDisabled={isDisabled} />;
 }
 
 function CropControls({ plugin }: { plugin: PluginContext }) {
     const helper = plugin.helpers.viewportScreenshot;
-    const cropParams = useBehavior(helper?.behaviors.cropParams!);
+
+    const cropParams = useBehavior(helper?.behaviors.cropParams);
     useBehavior(helper?.behaviors.relativeCrop);
 
-    if (!helper) return null;
+    if (!helper || !cropParams) return null;
 
     return <div style={{ width: '100%', height: '24px', marginTop: '8px' }}>
         <ToggleButton icon={CropOrginalSvg} title='Auto-crop' inline isSelected={cropParams.auto}

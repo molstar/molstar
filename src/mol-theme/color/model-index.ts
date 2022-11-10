@@ -1,6 +1,7 @@
 /**
- * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
+ * @author Jason Pattle <jpattle@exscientia.co.uk>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
@@ -14,14 +15,14 @@ import { getPaletteParams, getPalette } from '../../mol-util/color/palette';
 import { TableLegend, ScaleLegend } from '../../mol-util/legend';
 
 const DefaultColor = Color(0xCCCCCC);
-const Description = 'Gives every model a unique color based on the position (index) of the model in the list of models in the structure.';
+const Description = 'Gives every model a unique color based on its index.';
 
 export const ModelIndexColorThemeParams = {
-    ...getPaletteParams({ type: 'colors', colorList: 'purples' }),
+    ...getPaletteParams({ type: 'colors', colorList: 'many-distinct' }),
 };
 export type ModelIndexColorThemeParams = typeof ModelIndexColorThemeParams
 export function getModelIndexColorThemeParams(ctx: ThemeDataContext) {
-    return ModelIndexColorThemeParams; // TODO return copy
+    return PD.clone(ModelIndexColorThemeParams);
 }
 
 export function ModelIndexColorTheme(ctx: ThemeDataContext, props: PD.Values<ModelIndexColorThemeParams>): ColorTheme<ModelIndexColorThemeParams> {
@@ -29,24 +30,17 @@ export function ModelIndexColorTheme(ctx: ThemeDataContext, props: PD.Values<Mod
     let legend: ScaleLegend | TableLegend | undefined;
 
     if (ctx.structure) {
-        const { models } = ctx.structure.root;
-
-        let size = 0;
-        for (const m of models) size = Math.max(size, Model.TrajectoryInfo.get(m)?.size || 0);
+        // max-index is the same for all models
+        const size = (Model.MaxIndex.get(ctx.structure.models[0]).value ?? -1) + 1;
 
         const palette = getPalette(size, props);
         legend = palette.legend;
-        const modelColor = new Map<number, Color>();
-        for (let i = 0, il = models.length; i < il; ++i) {
-            const idx = Model.TrajectoryInfo.get(models[i])?.index || 0;
-            modelColor.set(idx, palette.color(idx));
-        }
 
         color = (location: Location): Color => {
             if (StructureElement.Location.is(location)) {
-                return modelColor.get(Model.TrajectoryInfo.get(location.unit.model).index)!;
+                return palette.color(Model.Index.get(location.unit.model).value || 0)!;
             } else if (Bond.isLocation(location)) {
-                return modelColor.get(Model.TrajectoryInfo.get(location.aUnit.model).index)!;
+                return palette.color(Model.Index.get(location.aUnit.model).value || 0)!;
             }
             return DefaultColor;
         };
@@ -71,5 +65,5 @@ export const ModelIndexColorThemeProvider: ColorTheme.Provider<ModelIndexColorTh
     factory: ModelIndexColorTheme,
     getParams: getModelIndexColorThemeParams,
     defaultValues: PD.getDefaultValues(ModelIndexColorThemeParams),
-    isApplicable: (ctx: ThemeDataContext) => !!ctx.structure && ctx.structure.elementCount > 0 && Model.TrajectoryInfo.get(ctx.structure.models[0]).size > 1
+    isApplicable: (ctx: ThemeDataContext) => !!ctx.structure && ctx.structure.elementCount > 0
 };

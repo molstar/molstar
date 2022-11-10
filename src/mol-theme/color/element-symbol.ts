@@ -19,6 +19,8 @@ import { OperatorNameColorThemeParams, OperatorNameColorTheme } from './operator
 import { EntityIdColorTheme, EntityIdColorThemeParams } from './entity-id';
 import { assertUnreachable } from '../../mol-util/type-helpers';
 import { EntitySourceColorTheme, EntitySourceColorThemeParams } from './entity-source';
+import { ModelIndexColorTheme, ModelIndexColorThemeParams } from './model-index';
+import { StructureIndexColorTheme, StructureIndexColorThemeParams } from './structure-index';
 
 // from Jmol http://jmol.sourceforge.net/jscolors/ (or 0xFFFFFF)
 export const ElementSymbolColors = ColorMap({
@@ -35,6 +37,8 @@ export const ElementSymbolColorThemeParams = {
         'entity-id': PD.Group(EntityIdColorThemeParams),
         'entity-source': PD.Group(EntitySourceColorThemeParams),
         'operator-name': PD.Group(OperatorNameColorThemeParams),
+        'model-index': PD.Group(ModelIndexColorThemeParams),
+        'structure-index': PD.Group(StructureIndexColorThemeParams),
         'element-symbol': PD.EmptyGroup()
     }, { description: 'Use chain-id coloring for carbon atoms.' }),
     saturation: PD.Numeric(0, { min: -6, max: 6, step: 0.1 }),
@@ -46,7 +50,7 @@ export const ElementSymbolColorThemeParams = {
 };
 export type ElementSymbolColorThemeParams = typeof ElementSymbolColorThemeParams
 export function getElementSymbolColorThemeParams(ctx: ThemeDataContext) {
-    return ElementSymbolColorThemeParams; // TODO return copy
+    return PD.clone(ElementSymbolColorThemeParams);
 }
 
 export function elementSymbolColor(colorMap: ElementSymbolColors, element: ElementSymbol): Color {
@@ -63,8 +67,10 @@ export function ElementSymbolColorTheme(ctx: ThemeDataContext, props: PD.Values<
             pcc.name === 'entity-id' ? EntityIdColorTheme(ctx, pcc.params).color :
                 pcc.name === 'entity-source' ? EntitySourceColorTheme(ctx, pcc.params).color :
                     pcc.name === 'operator-name' ? OperatorNameColorTheme(ctx, pcc.params).color :
-                        pcc.name === 'element-symbol' ? undefined :
-                            assertUnreachable(pcc);
+                        pcc.name === 'model-index' ? ModelIndexColorTheme(ctx, pcc.params).color :
+                            pcc.name === 'structure-index' ? StructureIndexColorTheme(ctx, pcc.params).color :
+                                pcc.name === 'element-symbol' ? undefined :
+                                    assertUnreachable(pcc);
 
     function elementColor(element: ElementSymbol, location: Location) {
         return (carbonColor && element === 'C')

@@ -111,24 +111,28 @@ export namespace StructConn {
             symmetry: struct_conn.ptnr2_symmetry
         };
 
+        const entityIds = Array.from(model.entities.data.id.toArray());
         const _p = (row: number, ps: typeof p1) => {
             if (ps.label_asym_id.valueKind(row) !== Column.ValueKind.Present) return void 0;
             const asymId = ps.label_asym_id.value(row);
-            const entityIndex = model.atomicHierarchy.index.findEntity(asymId);
-            if (entityIndex < 0) return void 0;
-            const residueIndex = model.atomicHierarchy.index.findResidue(
-                model.entities.data.id.value(entityIndex),
-                asymId,
-                ps.auth_seq_id.value(row),
-                ps.ins_code.value(row)
-            );
-            if (residueIndex < 0) return void 0;
             const atomName = ps.label_atom_id.value(row);
             // turns out "mismat" records might not have atom name value
-            if (!atomName) return void 0;
-            const atomIndex = model.atomicHierarchy.index.findAtomOnResidue(residueIndex, atomName, ps.label_alt_id.value(row));
-            if (atomIndex < 0) return void 0;
-            return { residueIndex, atomIndex, symmetry: ps.symmetry.value(row) };
+            if (!atomName) return undefined;
+
+            const altId = ps.label_alt_id.value(row);
+            for (const eId of entityIds) {
+                const residueIndex = model.atomicHierarchy.index.findResidue(
+                    eId,
+                    asymId,
+                    ps.auth_seq_id.value(row),
+                    ps.ins_code.value(row)
+                );
+                if (residueIndex < 0) continue;
+                const atomIndex = model.atomicHierarchy.index.findAtomOnResidue(residueIndex, atomName, altId);
+                if (atomIndex < 0) continue;
+                return { residueIndex, atomIndex, symmetry: ps.symmetry.value(row) };
+            }
+            return void 0;
         };
 
         const entries: StructConn.Entry[] = [];

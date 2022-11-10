@@ -1,5 +1,5 @@
 export const assign_material_color = `
-#if defined(dRenderVariant_color) || defined(dRenderVariant_marking)
+#if defined(dNeedsMarker)
     float marker = uMarker;
     if (uMarker == -1.0) {
         marker = floor(vMarker * 255.0 + 0.5); // rounding required to work on some cards on win
@@ -86,7 +86,7 @@ export const assign_material_color = `
 // apply per-group transparency
 #if defined(dTransparency) && (defined(dRenderVariant_pick) || defined(dRenderVariant_color))
     float ta = 1.0 - vTransparency;
-    if (vTransparency < 0.2) ta = 1.0; // hard cutoff looks better
+    if (vTransparency < 0.09) ta = 1.0; // hard cutoff looks better
 
     #if defined(dRenderVariant_pick)
         if (ta < uPickingAlphaThreshold)

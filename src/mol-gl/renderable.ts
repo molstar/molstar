@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -10,7 +10,6 @@ import { GraphicsRenderItem, ComputeRenderItem, GraphicsRenderVariant } from './
 import { ValueCell } from '../mol-util';
 import { idFactory } from '../mol-util/id-factory';
 import { clamp } from '../mol-math/interpolate';
-import { Textures } from './webgl/texture';
 
 const getNextRenderableId = idFactory();
 
@@ -30,7 +29,7 @@ export interface Renderable<T extends RenderableValues> {
     readonly values: T
     readonly state: RenderableState
 
-    render: (variant: GraphicsRenderVariant, sharedTexturesList?: Textures) => void
+    render: (variant: GraphicsRenderVariant, sharedTexturesCount: number) => void
     getProgram: (variant: GraphicsRenderVariant) => Program
     update: () => void
     dispose: () => void
@@ -43,11 +42,11 @@ export function createRenderable<T extends Values<RenderableSchema>>(renderItem:
         values,
         state,
 
-        render: (variant: GraphicsRenderVariant, sharedTexturesList?: Textures) => {
+        render: (variant: GraphicsRenderVariant, sharedTexturesCount: number) => {
             if (values.uAlpha && values.alpha) {
                 ValueCell.updateIfChanged(values.uAlpha, clamp(values.alpha.ref.value * state.alphaFactor, 0, 1));
             }
-            renderItem.render(variant, sharedTexturesList);
+            renderItem.render(variant, sharedTexturesCount);
         },
         getProgram: (variant: GraphicsRenderVariant) => renderItem.getProgram(variant),
         update: () => renderItem.update(),
@@ -73,7 +72,7 @@ export function createComputeRenderable<T extends Values<RenderableSchema>>(rend
         id: getNextRenderableId(),
         values,
 
-        render: () => renderItem.render('compute'),
+        render: () => renderItem.render('compute', 0),
         update: () => renderItem.update(),
         dispose: () => renderItem.destroy()
     };

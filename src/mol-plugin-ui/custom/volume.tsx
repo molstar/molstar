@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Adam Midlik <midlik@gmail.com>
  */
 
 import { PluginUIComponent } from '../base';
@@ -104,7 +105,7 @@ class Channel extends PluginUIComponent<{
             colorStripe={channel.color}
             pivot={<div className='msp-volume-channel-inline-controls'>
                 <Slider value={value} min={ctrlMin} max={ctrlMax} step={step}
-                    onChange={v => props.changeIso(props.name, v, isRelative)} disabled={props.params.isDisabled} onEnter={props.params.events.onEnter} />
+                    onChange={v => props.changeIso(props.name, v, isRelative)} onChangeImmediate={v => props.changeIso(props.name, v, isRelative)} disabled={props.params.isDisabled} onEnter={props.params.events.onEnter} />
                 <IconButton svg={this.getVisible() ? VisibilityOutlinedSvg : VisibilityOffOutlinedSvg} onClick={this.toggleVisible} toggleState={false} disabled={props.params.isDisabled} />
             </div>}
             controls={<ParameterControls onChange={({ name, value }) => props.changeParams(props.name, name, value)} params={ChannelParams} values={channel} onEnter={props.params.events.onEnter} isDisabled={props.params.isDisabled} />}
@@ -199,6 +200,9 @@ export class VolumeStreamingCustomControls extends PluginUIComponent<StateTransf
             const viewParams = { ...oldView };
             if (value.name === 'selection-box') {
                 viewParams.radius = value.params.radius;
+            } else if (value.name === 'camera-target') {
+                viewParams.radius = value.params.radius;
+                viewParams.dynamicDetailLevel = value.params.dynamicDetailLevel;
             } else if (value.name === 'box') {
                 viewParams.bottomLeft = value.params.bottomLeft;
                 viewParams.topRight = value.params.topRight;
@@ -240,13 +244,23 @@ export class VolumeStreamingCustomControls extends PluginUIComponent<StateTransf
         const pivot = isEM ? 'em' : '2fo-fc';
 
         const params = this.props.params as VolumeStreaming.Params;
-        const entry = ((this.props.info.params as VolumeStreaming.ParamDefinition)
-            .entry.map(params.entry.name) as PD.Group<VolumeStreaming.EntryParamDefinition>);
+        const entry = (this.props.info.params as VolumeStreaming.ParamDefinition)
+            .entry.map(params.entry.name) as PD.Group<VolumeStreaming.EntryParamDefinition>;
         const detailLevel = entry.params.detailLevel;
-        const isRelative = ((params.entry.params.channels as any)[pivot].isoValue as Volume.IsoValue).kind === 'relative';
+        const dynamicDetailLevel = {
+            ...detailLevel,
+            label: 'Dynamic Detail',
+            defaultValue: (entry.params.view as any).map('camera-target').params.dynamicDetailLevel.defaultValue,
+        };
+        const selectionDetailLevel = {
+            ...detailLevel,
+            label: 'Selection Detail',
+            defaultValue: (entry.params.view as any).map('auto').params.selectionDetailLevel.defaultValue,
+        };
 
         const sampling = b.info.header.sampling[0];
 
+        const isRelative = ((params.entry.params.channels as any)[pivot].isoValue as Volume.IsoValue).kind === 'relative';
         const isRelativeParam = PD.Boolean(isRelative, { description: 'Use normalized or absolute isocontour scale.', label: 'Normalized' });
 
         const isUnbounded = !!(params.entry.params.view.params as any).isUnbounded;
@@ -274,6 +288,13 @@ export class VolumeStreamingCustomControls extends PluginUIComponent<StateTransf
                     isRelative: isRelativeParam,
                     isUnbounded: isUnboundedParam,
                 }, { description: 'Box around focused element.' }),
+                'camera-target': PD.Group({
+                    radius: PD.Numeric(0.5, { min: 0, max: 1, step: 0.05 }, { description: 'Radius within which the volume is shown (relative to the field of view).' }),
+                    detailLevel: { ...detailLevel, isHidden: true },
+                    dynamicDetailLevel: dynamicDetailLevel,
+                    isRelative: isRelativeParam,
+                    isUnbounded: isUnboundedParam,
+                }, { description: 'Box around camera target.' }),
                 'cell': PD.Group({
                     detailLevel,
                     isRelative: isRelativeParam,
@@ -282,12 +303,11 @@ export class VolumeStreamingCustomControls extends PluginUIComponent<StateTransf
                 'auto': PD.Group({
                     radius: PD.Numeric(5, { min: 0, max: 50, step: 0.5 }, { description: 'Radius in \u212B within which the volume is shown.' }),
                     detailLevel,
-                    selectionDetailLevel: { ...detailLevel, label: 'Selection Detail' },
+                    selectionDetailLevel: selectionDetailLevel,
                     isRelative: isRelativeParam,
                     isUnbounded: isUnboundedParam,
                 }, { description: 'Box around focused element.' }),
-                // 'auto': PD.Group({  }), // TODO based on camera distance/active selection/whatever, show whole structure or slice.
-            }, { options: VolumeStreaming.ViewTypeOptions, description: 'Controls what of the volume is displayed. "Off" hides the volume alltogether. "Bounded box" shows the volume inside the given box. "Around Focus" shows the volume around the element/atom last interacted with. "Whole Structure" shows the volume for the whole structure.' })
+            }, { options: VolumeStreaming.ViewTypeOptions, description: 'Controls what of the volume is displayed. "Off" hides the volume alltogether. "Bounded box" shows the volume inside the given box. "Around Focus" shows the volume around the element/atom last interacted with. "Around Camera" shows the volume around the point the camera is targeting. "Whole Structure" shows the volume for the whole structure.' })
         };
         const options = {
             entry: params.entry.name,
@@ -299,6 +319,7 @@ export class VolumeStreamingCustomControls extends PluginUIComponent<StateTransf
                     bottomLeft: (params.entry.params.view.params as any).bottomLeft,
                     topRight: (params.entry.params.view.params as any).topRight,
                     selectionDetailLevel: (params.entry.params.view.params as any).selectionDetailLevel,
+                    dynamicDetailLevel: (params.entry.params.view.params as any).dynamicDetailLevel,
                     isRelative,
                     isUnbounded
                 }

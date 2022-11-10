@@ -3,6 +3,7 @@
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Gianluca Tomasello <giagitom@gmail.com>
  */
 
 import { Structure } from '../structure';
@@ -13,6 +14,7 @@ import { StructureUniqueSubsetBuilder } from './unique-subset-builder';
 import { StructureElement } from '../element';
 import { Unit } from '../unit';
 import { UnitIndex } from '../element/util';
+import { FibonacciHeap } from '../../../../mol-util/fibonacci-heap';
 
 export interface StructureResult extends Result<StructureElement.UnitIndex> {
     units: Unit[]
@@ -54,6 +56,7 @@ export function StructureLookup3DResultContext(): StructureLookup3DResultContext
 export class StructureLookup3D {
     private unitLookup: Lookup3D;
     private pivot = Vec3();
+    private heap = new FibonacciHeap();
 
     findUnitIndices(x: number, y: number, z: number, radius: number): Result<number> {
         return this.unitLookup.find(x, y, z, radius);
@@ -84,6 +87,54 @@ export class StructureLookup3D {
             }
         }
         return ctx.result;
+    }
+
+    nearest(x: number, y: number, z: number, k: number = 1, ctx?: StructureLookup3DResultContext): StructureResult {
+        return this._nearest(x, y, z, k, ctx ?? this.findContext);
+    }
+
+    _nearest(x: number, y: number, z: number, k: number, ctx: StructureLookup3DResultContext): StructureResult {
+        const result = ctx.result, heap = this.heap;
+        Result.reset(result);
+        heap.clear();
+        const { units } = this.structure;
+        let elementsCount = 0;
+        const closeUnits = this.unitLookup.nearest(x, y, z, units.length, (uid: number) => (elementsCount += units[uid].elements.length) >= k, ctx.closeUnitsResult); // sort units based on distance to the point
+        if (closeUnits.count === 0) return result;
+        let totalCount = 0, maxDistResult = -Number.MAX_VALUE;
+        for (let t = 0, _t = closeUnits.count; t < _t; t++) {
+            const unitSqDist = closeUnits.squaredDistances[t];
+            if (totalCount >= k && maxDistResult < unitSqDist) break;
+            Vec3.set(this.pivot, x, y, z);
+            const unit = units[closeUnits.indices[t]];
+            if (!unit.conformation.operator.isIdentity) {
+                Vec3.transformMat4(this.pivot, this.pivot, unit.conformation.operator.inverse);
+            }
+            const unitLookup = unit.lookup3d;
+            const groupResult = unitLookup.nearest(this.pivot[0], this.pivot[1], this.pivot[2], k, void 0, ctx.unitGroupResult);
+            if (groupResult.count === 0) continue;
+            totalCount += groupResult.count;
+            maxDistResult = Math.max(maxDistResult, groupResult.squaredDistances[groupResult.count - 1]);
+            for (let j = 0, _j = groupResult.count; j < _j; j++) {
+                heap.insert(groupResult.squaredDistances[j], { index: groupResult.indices[j], unit: unit });
+            }
+        }
+        if (k === 1) {
+            const node = heap.findMinimum();
+            if (node) {
+                const { key: squaredDistance } = node;
+                const { unit, index } = node.value as { index: UnitIndex, unit: Unit };
+                StructureResult.add(result, unit as Unit, index as UnitIndex, squaredDistance as number);
+            }
+        } else {
+            while (!heap.isEmpty() && result.count < k) {
+                const node = heap.extractMinimum();
+                const { key: squaredDistance } = node!;
+                const { unit, index } = node!.value as { index: UnitIndex, unit: Unit };
+                StructureResult.add(result, unit as Unit, index as UnitIndex, squaredDistance as number);
+            }
+        }
+        return result;
     }
 
     findIntoBuilder(x: number, y: number, z: number, radius: number, builder: StructureUniqueSubsetBuilder) {

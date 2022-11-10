@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -22,6 +22,7 @@ import { Representation } from '../../mol-repr/representation';
 import { computeMarchingCubesMesh } from '../../mol-geo/util/marching-cubes/algorithm';
 import { Mesh } from '../../mol-geo/geometry/mesh/mesh';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
+import { AssetManager } from '../../mol-util/assets';
 
 const parent = document.getElementById('app')!;
 parent.style.width = '100%';
@@ -31,7 +32,9 @@ const canvas = document.createElement('canvas');
 parent.appendChild(canvas);
 resizeCanvas(canvas, parent);
 
-const canvas3d = Canvas3D.create(Canvas3DContext.fromCanvas(canvas), PD.merge(Canvas3DParams, PD.getDefaultValues(Canvas3DParams), {
+const assetManager = new AssetManager();
+
+const canvas3d = Canvas3D.create(Canvas3DContext.fromCanvas(canvas, assetManager), PD.merge(Canvas3DParams, PD.getDefaultValues(Canvas3DParams), {
     renderer: { backgroundColor: ColorNames.white },
     camera: { mode: 'orthographic' }
 }));
@@ -73,7 +76,7 @@ async function init() {
         console.timeEnd('gpu mc pyramid2');
 
         console.time('gpu mc vert2');
-        createIsosurfaceBuffers(webgl, activeVoxelsTex2, densityTextureData2.texture, compacted2, densityTextureData2.gridDim, densityTextureData2.gridTexDim, densityTextureData2.transform, isoValue, false, true, Vec3.create(0, 1, 2));
+        createIsosurfaceBuffers(webgl, activeVoxelsTex2, densityTextureData2.texture, compacted2, densityTextureData2.gridDim, densityTextureData2.gridTexDim, densityTextureData2.transform, isoValue, false, true, Vec3.create(0, 1, 2), true);
         webgl.waitForGpuCommandsCompleteSync();
         console.timeEnd('gpu mc vert2');
         console.timeEnd('gpu mc2');
@@ -96,7 +99,7 @@ async function init() {
     console.timeEnd('gpu mc pyramid');
 
     console.time('gpu mc vert');
-    const gv = createIsosurfaceBuffers(webgl, activeVoxelsTex, densityTextureData.texture, compacted, densityTextureData.gridDim, densityTextureData.gridTexDim, densityTextureData.transform, isoValue, false, true, Vec3.create(0, 1, 2));
+    const gv = createIsosurfaceBuffers(webgl, activeVoxelsTex, densityTextureData.texture, compacted, densityTextureData.gridDim, densityTextureData.gridTexDim, densityTextureData.transform, isoValue, false, true, Vec3.create(0, 1, 2), true);
     webgl.waitForGpuCommandsCompleteSync();
     console.timeEnd('gpu mc vert');
     console.timeEnd('gpu mc');

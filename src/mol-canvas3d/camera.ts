@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -260,7 +260,8 @@ namespace Camera {
             radius: 0,
             radiusMax: 10,
             fog: 50,
-            clipFar: true
+            clipFar: true,
+            minNear: 5,
         };
     }
 
@@ -276,6 +277,7 @@ namespace Camera {
         radiusMax: number
         fog: number
         clipFar: boolean
+        minNear: number
     }
 
     export function copySnapshot(out: Snapshot, source?: Partial<Snapshot>) {
@@ -292,6 +294,7 @@ namespace Camera {
         if (typeof source.radiusMax !== 'undefined') out.radiusMax = source.radiusMax;
         if (typeof source.fog !== 'undefined') out.fog = source.fog;
         if (typeof source.clipFar !== 'undefined') out.clipFar = source.clipFar;
+        if (typeof source.minNear !== 'undefined') out.minNear = source.minNear;
 
         return out;
     }
@@ -303,6 +306,7 @@ namespace Camera {
             && a.radiusMax === b.radiusMax
             && a.fog === b.fog
             && a.clipFar === b.clipFar
+            && a.minNear === b.minNear
             && Vec3.exactEquals(a.position, b.position)
             && Vec3.exactEquals(a.up, b.up)
             && Vec3.exactEquals(a.target, b.target);
@@ -370,7 +374,7 @@ function updatePers(camera: Camera) {
 }
 
 function updateClip(camera: Camera) {
-    let { radius, radiusMax, mode, fog, clipFar } = camera.state;
+    let { radius, radiusMax, mode, fog, clipFar, minNear } = camera.state;
     if (radius < 0.01) radius = 0.01;
 
     const normalizedFar = clipFar ? radius : radiusMax;
@@ -384,12 +388,12 @@ function updateClip(camera: Camera) {
 
     if (mode === 'perspective') {
         // set at least to 5 to avoid slow sphere impostor rendering
-        near = Math.max(Math.min(radiusMax, 5), near);
-        far = Math.max(5, far);
+        near = Math.max(Math.min(radiusMax, minNear), near);
+        far = Math.max(minNear, far);
     } else {
         // not too close to 0 as it causes issues with outline rendering
-        near = Math.max(Math.min(radiusMax, 5), near);
-        far = Math.max(5, far);
+        near = Math.max(Math.min(radiusMax, minNear), near);
+        far = Math.max(minNear, far);
     }
 
     if (near === far) {

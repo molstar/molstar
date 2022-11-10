@@ -13,14 +13,7 @@ export const apply_light_color = `
 #else
     #ifdef bumpEnabled
         if (uBumpFrequency > 0.0 && uBumpAmplitude > 0.0) {
-            vec3 bumpNormal = perturbNormal(-vViewPosition, normal, fbm(vModelPosition * uBumpFrequency), (uBumpAmplitude * bumpiness) / uBumpFrequency);
-            #ifdef enabledFragDepth
-                if (!isNaN(bumpNormal.x) && !isNaN(bumpNormal.y) && !isNaN(bumpNormal.z)) {
-                    normal = bumpNormal;
-                }
-            #else
-                normal = bumpNormal;
-            #endif
+            normal = perturbNormal(-vViewPosition, normal, fbm(vModelPosition * uBumpFrequency), (uBumpAmplitude * bumpiness) / uBumpFrequency);
         }
     #endif
 
@@ -64,6 +57,7 @@ export const apply_light_color = `
     RE_IndirectSpecular_Physical(radiance, iblIrradiance, clearcoatRadiance, geometry, physicalMaterial, reflectedLight);
 
     vec3 outgoingLight = reflectedLight.directDiffuse + reflectedLight.indirectDiffuse + reflectedLight.directSpecular + reflectedLight.indirectSpecular;
+    outgoingLight = clamp(outgoingLight, 0.01, 0.99); // prevents black artifacts on specular highlight with transparent background
 
     gl_FragColor = vec4(outgoingLight, color.a);
 #endif

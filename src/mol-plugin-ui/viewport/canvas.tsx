@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -19,13 +19,14 @@ export interface ViewportCanvasParams {
 
     parentClassName?: string,
     parentStyle?: React.CSSProperties,
+    // NOTE: hostClassName/hostStyle no longer in use
+    // TODO: remove in 4.0
     hostClassName?: string,
     hostStyle?: React.CSSProperties,
 }
 
 export class ViewportCanvas extends PluginUIComponent<ViewportCanvasParams, ViewportCanvasState> {
     private container = React.createRef<HTMLDivElement>();
-    private canvas = React.createRef<HTMLCanvasElement>();
 
     state: ViewportCanvasState = {
         noWebGl: false,
@@ -37,7 +38,7 @@ export class ViewportCanvas extends PluginUIComponent<ViewportCanvasParams, View
     };
 
     componentDidMount() {
-        if (!this.canvas.current || !this.container.current || !this.plugin.initViewer(this.canvas.current!, this.container.current!)) {
+        if (!this.container.current || !this.plugin.mount(this.container.current!, { checkeredCanvasBackground: true })) {
             this.setState({ noWebGl: true });
             return;
         }
@@ -47,7 +48,7 @@ export class ViewportCanvas extends PluginUIComponent<ViewportCanvasParams, View
 
     componentWillUnmount() {
         super.componentWillUnmount();
-        // TODO viewer cleanup
+        this.plugin.unmount();
     }
 
     renderMissing() {
@@ -59,7 +60,7 @@ export class ViewportCanvas extends PluginUIComponent<ViewportCanvasParams, View
         return <div className='msp-no-webgl'>
             <div>
                 <p><b>WebGL does not seem to be available.</b></p>
-                <p>This can be caused by an outdated browser, graphics card driver issue, or bad weather. Sometimes, just restarting the browser helps.</p>
+                <p>This can be caused by an outdated browser, graphics card driver issue, or bad weather. Sometimes, just restarting the browser helps. Also, make sure hardware acceleration is enabled in your browser.</p>
                 <p>For a list of supported browsers, refer to <a href='http://caniuse.com/#feat=webgl' target='_blank'>http://caniuse.com/#feat=webgl</a>.</p>
             </div>
         </div>;
@@ -70,10 +71,7 @@ export class ViewportCanvas extends PluginUIComponent<ViewportCanvasParams, View
 
         const Logo = this.props.logo;
 
-        return <div className={this.props.parentClassName || 'msp-viewport'} style={this.props.parentStyle}>
-            <div className={this.props.hostClassName || 'msp-viewport-host3d'} style={this.props.hostStyle} ref={this.container}>
-                <canvas ref={this.canvas} />
-            </div>
+        return <div className={this.props.parentClassName || 'msp-viewport'} style={this.props.parentStyle} ref={this.container}>
             {(this.state.showLogo && Logo) && <Logo />}
         </div>;
     }

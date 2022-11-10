@@ -50,15 +50,17 @@ uniform int uVertexCount;
 uniform int uInstanceCount;
 uniform int uGroupCount;
 
-uniform vec3 uHighlightColor;
-uniform vec3 uSelectColor;
-uniform float uHighlightStrength;
-uniform float uSelectStrength;
-uniform int uMarkerPriority;
+#if defined(dColorMarker)
+    uniform vec3 uHighlightColor;
+    uniform vec3 uSelectColor;
+    uniform float uHighlightStrength;
+    uniform float uSelectStrength;
+    uniform int uMarkerPriority;
 
-uniform float uMarker;
-uniform vec2 uMarkerTexDim;
-uniform sampler2D tMarker;
+    uniform float uMarker;
+    uniform vec2 uMarkerTexDim;
+    uniform sampler2D tMarker;
+#endif
 
 uniform float uMetalness;
 uniform float uRoughness;
@@ -304,11 +306,13 @@ vec4 raymarch(vec3 startLoc, vec3 step, vec3 rayDir) {
 
         gl_FragColor.a = material.a * uAlpha * uTransferScale;
 
-        float marker = uMarker;
-        if (uMarker == -1.0) {
-            marker = readFromTexture(tMarker, vInstance * float(uGroupCount) + group, uMarkerTexDim).a;
-            marker = floor(marker * 255.0 + 0.5); // rounding required to work on some cards on win
-        }
+        #if defined(dColorMarker)
+            float marker = uMarker;
+            if (uMarker == -1.0) {
+                marker = readFromTexture(tMarker, vInstance * float(uGroupCount) + group, uMarkerTexDim).a;
+                marker = floor(marker * 255.0 + 0.5); // rounding required to work on some cards on win
+            }
+        #endif
         #include apply_marker_color
 
         preFogAlphaBlended = (1.0 - preFogAlphaBlended) * gl_FragColor.a + preFogAlphaBlended;

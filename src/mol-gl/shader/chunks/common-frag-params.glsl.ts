@@ -14,7 +14,7 @@ uniform int uMarkingType;
     uniform vec3 uClipObjectScale[dClipObjectCount];
 
     #if defined(dClipping)
-        #if __VERSION__ == 100
+        #if __VERSION__ == 100 || defined(dClippingType_instance) || !defined(dVaryingGroup)
             varying float vClipping;
         #else
             flat in float vClipping;
@@ -22,19 +22,27 @@ uniform int uMarkingType;
     #endif
 #endif
 
-uniform vec3 uHighlightColor;
-uniform vec3 uSelectColor;
-uniform float uHighlightStrength;
-uniform float uSelectStrength;
-uniform int uMarkerPriority;
+#if defined(dColorMarker)
+    uniform vec3 uHighlightColor;
+    uniform vec3 uSelectColor;
+    uniform float uHighlightStrength;
+    uniform float uSelectStrength;
+    uniform int uMarkerPriority;
+#endif
 
-#if defined(dRenderVariant_color) || defined(dRenderVariant_marking)
+#if defined(dNeedsMarker)
     uniform float uMarker;
-    #if __VERSION__ == 100
+    #if __VERSION__ == 100 || defined(dMarkerType_instance) || !defined(dVaryingGroup)
         varying float vMarker;
     #else
         flat in float vMarker;
     #endif
+#endif
+
+#if defined(dRenderVariant_colorDpoit)
+    #define MAX_DPOIT_DEPTH 99999.0 // NOTE constant also set in TypeScript
+    uniform sampler2D tDpoitDepth;
+    uniform sampler2D tDpoitFrontColor;
 #endif
 
 varying vec3 vModelPosition;

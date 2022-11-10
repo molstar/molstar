@@ -67,6 +67,7 @@ import { texture3d_from_1d_trilinear } from './shader/chunks/texture3d-from-1d-t
 import { texture3d_from_2d_linear } from './shader/chunks/texture3d-from-2d-linear.glsl';
 import { texture3d_from_2d_nearest } from './shader/chunks/texture3d-from-2d-nearest.glsl';
 import { wboit_write } from './shader/chunks/wboit-write.glsl';
+import { dpoit_write } from './shader/chunks/dpoit-write.glsl';
 
 const ShaderChunks: { [k: string]: string } = {
     apply_fog,
@@ -99,7 +100,8 @@ const ShaderChunks: { [k: string]: string } = {
     texture3d_from_1d_trilinear,
     texture3d_from_2d_linear,
     texture3d_from_2d_nearest,
-    wboit_write
+    wboit_write,
+    dpoit_write
 };
 
 const reInclude = /^(?!\/\/)\s*#include\s+(\S+)/gm;
@@ -292,7 +294,9 @@ const glsl300VertPrefixCommon = `
 const glsl300FragPrefixCommon = `
 #define varying in
 #define texture2D texture
+#define textureCube texture
 #define texture2DLodEXT textureLod
+#define textureCubeLodEXT textureLod
 
 #define gl_FragColor out_FragData0
 #define gl_FragDepthEXT gl_FragDepth

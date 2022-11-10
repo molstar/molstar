@@ -8,22 +8,26 @@ import { DrawPass } from './draw';
 import { PickPass } from './pick';
 import { MultiSamplePass } from './multi-sample';
 import { WebGLContext } from '../../mol-gl/webgl/context';
+import { AssetManager } from '../../mol-util/assets';
 
 export class Passes {
     readonly draw: DrawPass;
     readonly pick: PickPass;
     readonly multiSample: MultiSamplePass;
 
-    constructor(private webgl: WebGLContext, attribs: Partial<{ pickScale: number, enableWboit: boolean }> = {}) {
+    constructor(private webgl: WebGLContext, assetManager: AssetManager, attribs: Partial<{ pickScale: number, enableWboit: boolean, enableDpoit: boolean }> = {}) {
         const { gl } = webgl;
-        this.draw = new DrawPass(webgl, gl.drawingBufferWidth, gl.drawingBufferHeight, attribs.enableWboit || false);
+        this.draw = new DrawPass(webgl, assetManager, gl.drawingBufferWidth, gl.drawingBufferHeight, attribs.enableWboit || false, attribs.enableDpoit || false);
         this.pick = new PickPass(webgl, this.draw, attribs.pickScale || 0.25);
         this.multiSample = new MultiSamplePass(webgl, this.draw);
     }
 
     updateSize() {
         const { gl } = this.webgl;
-        this.draw.setSize(gl.drawingBufferWidth, gl.drawingBufferHeight);
+        // Avoid setting dimensions to 0x0 because it causes "empty textures are not allowed" error.
+        const width = Math.max(gl.drawingBufferWidth, 2);
+        const height = Math.max(gl.drawingBufferHeight, 2);
+        this.draw.setSize(width, height);
         this.pick.syncSize();
         this.multiSample.syncSize();
     }

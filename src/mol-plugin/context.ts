@@ -35,7 +35,7 @@ import { Representation } from '../mol-repr/representation';
 import { StructureRepresentationRegistry } from '../mol-repr/structure/registry';
 import { VolumeRepresentationRegistry } from '../mol-repr/volume/registry';
 import { StateTransform } from '../mol-state';
-import { RuntimeContext, Task } from '../mol-task';
+import { RuntimeContext, Scheduler, Task } from '../mol-task';
 import { ColorTheme } from '../mol-theme/color';
 import { SizeTheme } from '../mol-theme/size';
 import { ThemeRegistryContext } from '../mol-theme/theme';
@@ -71,8 +71,10 @@ export class PluginContext {
     };
 
     protected subs: Subscription[] = [];
+    private initCanvas3dPromiseCallbacks: [res: () => void, rej: (err: any) => void] = [() => {}, () => {}];
 
     private disposed = false;
+    private canvasContainer: HTMLDivElement | undefined = void 0;
     private ev = RxEventHelper.create();
 
     readonly config = new PluginConfigManager(this.spec.config); // needed to init state
@@ -102,9 +104,14 @@ export class PluginContext {
             leftPanelTabName: this.ev.behavior<LeftPanelTabName>('root')
         },
         canvas3d: {
+            // TODO: remove in 4.0?
             initialized: this.canvas3dInit.pipe(filter(v => !!v), take(1))
         }
     } as const;
+
+    readonly canvas3dInitialized = new Promise<void>((res, rej) => {
+        this.initCanvas3dPromiseCallbacks = [res, rej];
+    });
 
     readonly canvas3dContext: Canvas3DContext | undefined;
     readonly canvas3d: Canvas3D | undefined;
@@ -186,6 +193,63 @@ export class PluginContext {
      */
     readonly customState: unknown = Object.create(null);
 
+    initContainer(options?: { canvas3dContext?: Canvas3DContext, checkeredCanvasBackground?: boolean }) {
+        if (this.canvasContainer) return true;
+
+        const container = document.createElement('div');
+        Object.assign(container.style, {
+            position: 'absolute',
+            left: 0,
+            top: 0,
+            right: 0,
+            bottom: 0,
+            '-webkit-user-select': 'none',
+            'user-select': 'none',
+            '-webkit-tap-highlight-color': 'rgba(0,0,0,0)',
+            '-webkit-touch-callout': 'none',
+            'touch-action': 'manipulation',
+        });
+        let canvas = options?.canvas3dContext?.canvas;
+        if (!canvas) {
+            canvas = document.createElement('canvas');
+            if (options?.checkeredCanvasBackground) {
+                Object.assign(canvas.style, {
+                    'background-image': 'linear-gradient(45deg, lightgrey 25%, transparent 25%, transparent 75%, lightgrey 75%, lightgrey), linear-gradient(45deg, lightgrey 25%, transparent 25%, transparent 75%, lightgrey 75%, lightgrey)',
+                    'background-size': '60px 60px',
+                    'background-position': '0 0, 30px 30px'
+                });
+            }
+            container.appendChild(canvas);
+        }
+        if (!this.initViewer(canvas, container, options?.canvas3dContext)) {
+            return false;
+        }
+        this.canvasContainer = container;
+        return true;
+    }
+
+    /**
+     * Mount the plugin into the target element (assumes the target has "relative"-like positioninig).
+     * If initContainer wasn't called separately before, initOptions will be passed to it.
+     */
+    mount(target: HTMLElement, initOptions?: { canvas3dContext?: Canvas3DContext, checkeredCanvasBackground?: boolean }) {
+        if (this.disposed) throw new Error('Cannot mount a disposed context');
+
+        if (!this.initContainer(initOptions)) return false;
+
+        if (this.canvasContainer!.parentElement !== target) {
+            this.canvasContainer!.parentElement?.removeChild(this.canvasContainer!);
+        }
+
+        target.appendChild(this.canvasContainer!);
+        this.handleResize();
+        return true;
+    }
+
+    unmount() {
+        this.canvasContainer?.parentElement?.removeChild(this.canvasContainer);
+    }
+
     initViewer(canvas: HTMLCanvasElement, container: HTMLDivElement, canvas3dContext?: Canvas3DContext) {
         try {
             this.layout.setRoot(container);
@@ -200,8 +264,10 @@ export class PluginContext {
                 const pickScale = this.config.get(PluginConfig.General.PickScale) || 0.25;
                 const pickPadding = this.config.get(PluginConfig.General.PickPadding) ?? 1;
                 const enableWboit = this.config.get(PluginConfig.General.EnableWboit) || false;
+                const enableDpoit = this.config.get(PluginConfig.General.EnableDpoit) || false;
                 const preferWebGl1 = this.config.get(PluginConfig.General.PreferWebGl1) || false;
-                (this.canvas3dContext as Canvas3DContext) = Canvas3DContext.fromCanvas(canvas, { antialias, preserveDrawingBuffer, pixelScale, pickScale, pickPadding, enableWboit, preferWebGl1 });
+                const failIfMajorPerformanceCaveat = !(this.config.get(PluginConfig.General.AllowMajorPerformanceCaveat) ?? false);
+                (this.canvas3dContext as Canvas3DContext) = Canvas3DContext.fromCanvas(canvas, this.managers.asset, { antialias, preserveDrawingBuffer, pixelScale, pickScale, pickPadding, enableWboit, enableDpoit, preferWebGl1, failIfMajorPerformanceCaveat });
             }
             (this.canvas3d as Canvas3D) = Canvas3D.create(this.canvas3dContext!);
             this.canvas3dInit.next(true);
@@ -230,10 +296,12 @@ export class PluginContext {
 
             this.handleResize();
 
+            Scheduler.setImmediate(() => this.initCanvas3dPromiseCallbacks[0]());
             return true;
         } catch (e) {
             this.log.error('' + e);
             console.error(e);
+            Scheduler.setImmediate(() => this.initCanvas3dPromiseCallbacks[1](e));
             return false;
         }
     }
@@ -303,6 +371,9 @@ export class PluginContext {
 
         objectForEach(this.managers, m => (m as any)?.dispose?.());
         objectForEach(this.managers.structure, m => (m as any)?.dispose?.());
+
+        this.unmount();
+        this.canvasContainer = undefined;
 
         this.disposed = true;
     }

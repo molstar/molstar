@@ -90,6 +90,7 @@ const DownloadStructure = StateAction.build({
                     url: PD.Url(''),
                     format: PD.Select<BuiltInTrajectoryFormat>('mmcif', PD.arrayToOptions(BuiltInTrajectoryFormats.map(f => f[0]), f => f)),
                     isBinary: PD.Boolean(false),
+                    label: PD.Optional(PD.Text('')),
                     options
                 }, { isFlat: true, label: 'URL' })
             })
@@ -104,7 +105,7 @@ const DownloadStructure = StateAction.build({
 
     switch (src.name) {
         case 'url':
-            downloadParams = [{ url: src.params.url, isBinary: src.params.isBinary }];
+            downloadParams = [{ url: src.params.url, isBinary: src.params.isBinary, label: src.params.label || undefined }];
             format = src.params.format;
             break;
         case 'pdb':

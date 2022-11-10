@@ -45,6 +45,8 @@ export interface Mesh {
     readonly normalBuffer: ValueCell<Float32Array>,
     /** Group buffer as array of group ids for each vertex wrapped in a value cell */
     readonly groupBuffer: ValueCell<Float32Array>,
+    /** Indicates that group may vary within a triangle, wrapped in a value cell */
+    readonly varyingGroup: ValueCell<boolean>,
 
     /** Bounding sphere of the mesh */
     readonly boundingSphere: Sphere3D
@@ -95,6 +97,7 @@ export namespace Mesh {
             indexBuffer: ValueCell.create(indices),
             normalBuffer: ValueCell.create(normals),
             groupBuffer: ValueCell.create(groups),
+            varyingGroup: ValueCell.create(false),
             get boundingSphere() {
                 const newHash = hashCode(mesh);
                 if (newHash !== currentHash) {
@@ -686,6 +689,7 @@ export namespace Mesh {
             aNormal: mesh.normalBuffer,
             aGroup: mesh.groupBuffer,
             elements: mesh.indexBuffer,
+            dVaryingGroup: mesh.varyingGroup,
             boundingSphere: ValueCell.create(boundingSphere),
             invariantBoundingSphere: ValueCell.create(invariantBoundingSphere),
             uInvariantBoundingSphere: ValueCell.create(Vec4.ofSphere(invariantBoundingSphere)),

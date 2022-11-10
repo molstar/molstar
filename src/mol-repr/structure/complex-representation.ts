@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -72,9 +72,12 @@ export function ComplexRepresentation<P extends StructureParams>(label: string, 
         });
     }
 
-    function getLoci(pickingId?: PickingId) {
-        if (pickingId === undefined) return Structure.Loci(_structure.target);
+    function getLoci(pickingId: PickingId) {
         return visual ? visual.getLoci(pickingId) : EmptyLoci;
+    }
+
+    function getAllLoci() {
+        return [Structure.Loci(_structure.target)];
     }
 
     function mark(loci: Loci, action: MarkerAction) {
@@ -157,6 +160,7 @@ export function ComplexRepresentation<P extends StructureParams>(label: string, 
         setState,
         setTheme,
         getLoci,
+        getAllLoci,
         mark,
         destroy
     };

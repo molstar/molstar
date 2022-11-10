@@ -42,7 +42,7 @@ const GaussianDensitySchema = {
     uAlpha: UniformSpec('f', 'material'),
     uResolution: UniformSpec('f', 'material'),
     uRadiusFactorInv: UniformSpec('f', 'material'),
-    tMinDistanceTex: TextureSpec('texture', 'rgba', 'float', 'nearest'),
+    tMinDistanceTex: TextureSpec('texture', 'rgba', 'float', 'nearest', 'material'),
 
     dGridTexType: DefineSpec('string', ['2d', '3d']),
     dCalcType: DefineSpec('string', ['density', 'minDistance', 'groupId']),
@@ -166,8 +166,8 @@ function calcGaussianDensityTexture2d(webgl: WebGLContext, position: PositionDat
         state.currentRenderItemId = -1;
         fbTex.attachFramebuffer(framebuffer, 0);
         if (clear) {
-            gl.viewport(0, 0, width, height);
-            gl.scissor(0, 0, width, height);
+            state.viewport(0, 0, width, height);
+            state.scissor(0, 0, width, height);
             gl.clear(gl.COLOR_BUFFER_BIT);
         }
         ValueCell.update(uCurrentY, 0);
@@ -184,8 +184,8 @@ function calcGaussianDensityTexture2d(webgl: WebGLContext, position: PositionDat
             // console.log({ i, currX, currY });
             ValueCell.update(uCurrentX, currX);
             ValueCell.update(uCurrentSlice, i);
-            gl.viewport(currX, currY, dx, dy);
-            gl.scissor(currX, currY, dx, dy);
+            state.viewport(currX, currY, dx, dy);
+            state.scissor(currX, currY, dx, dy);
             renderable.render();
             ++currCol;
             currX += dx;
@@ -204,7 +204,7 @@ function calcGaussianDensityTexture2d(webgl: WebGLContext, position: PositionDat
         render(texture, false);
     }
 
-    // printTexture(webgl, minDistTex, 0.75);
+    // printTextureImage(readTexture(webgl, minDistTex), { scale: 0.75 });
 
     return { texture, scale, bbox: expandedBox, gridDim: dim, gridTexDim, gridTexScale, radiusFactor, resolution, maxRadius };
 }
@@ -232,8 +232,8 @@ function calcGaussianDensityTexture3d(webgl: WebGLContext, position: PositionDat
     const framebuffer = getFramebuffer(webgl);
     framebuffer.bind();
     setRenderingDefaults(webgl);
-    gl.viewport(0, 0, dx, dy);
-    gl.scissor(0, 0, dx, dy);
+    state.viewport(0, 0, dx, dy);
+    state.scissor(0, 0, dx, dy);
 
     if (!texture) texture = colorBufferHalfFloat && textureHalfFloat
         ? resources.texture('volume-float16', 'rgba', 'fp16', 'linear')

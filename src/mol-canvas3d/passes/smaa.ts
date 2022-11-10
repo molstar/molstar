@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -11,7 +11,7 @@ import { ShaderCode } from '../../mol-gl/shader-code';
 import { WebGLContext } from '../../mol-gl/webgl/context';
 import { createComputeRenderItem } from '../../mol-gl/webgl/render-item';
 import { RenderTarget } from '../../mol-gl/webgl/render-target';
-import { createTexture, loadImageTexture, Texture } from '../../mol-gl/webgl/texture';
+import { loadImageTexture, Texture } from '../../mol-gl/webgl/texture';
 import { Vec2, Vec4 } from '../../mol-math/linear-algebra';
 import { ValueCell } from '../../mol-util';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
@@ -71,9 +71,10 @@ export class SmaaPass {
         state.depthMask(false);
 
         const { x, y, width, height } = viewport;
-        gl.viewport(x, y, width, height);
-        gl.scissor(x, y, width, height);
+        state.viewport(x, y, width, height);
+        state.scissor(x, y, width, height);
 
+        state.colorMask(true, true, true, true);
         state.clearColor(0, 0, 0, 1);
         gl.clear(gl.COLOR_BUFFER_BIT);
 
@@ -191,8 +192,8 @@ function getWeightsRenderable(ctx: WebGLContext, edgesTexture: Texture): Weights
     const width = edgesTexture.getWidth();
     const height = edgesTexture.getHeight();
 
-    const areaTexture = createTexture(ctx.gl, ctx.extensions, 'image-uint8', 'rgb', 'ubyte', 'linear');
-    const searchTexture = createTexture(ctx.gl, ctx.extensions, 'image-uint8', 'rgba', 'ubyte', 'nearest');
+    const areaTexture = ctx.resources.texture('image-uint8', 'rgb', 'ubyte', 'linear');
+    const searchTexture = ctx.resources.texture('image-uint8', 'rgba', 'ubyte', 'nearest');
 
     const values: Values<typeof WeightsSchema> = {
         ...QuadValues,

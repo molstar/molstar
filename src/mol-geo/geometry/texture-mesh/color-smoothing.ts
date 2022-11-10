@@ -27,20 +27,18 @@ export const ColorAccumulateSchema = {
     instanceCount: ValueSpec('number'),
     stride: ValueSpec('number'),
 
-    uTotalCount: UniformSpec('i'),
-    uInstanceCount: UniformSpec('i'),
-    uGroupCount: UniformSpec('i'),
+    uGroupCount: UniformSpec('i', 'material'),
 
     aTransform: AttributeSpec('float32', 16, 1),
     aInstance: AttributeSpec('float32', 1, 1),
     aSample: AttributeSpec('float32', 1, 0),
 
-    uGeoTexDim: UniformSpec('v2', 'buffered'),
-    tPosition: TextureSpec('texture', 'rgba', 'float', 'nearest'),
-    tGroup: TextureSpec('texture', 'rgba', 'float', 'nearest'),
+    uGeoTexDim: UniformSpec('v2', 'material'),
+    tPosition: TextureSpec('texture', 'rgba', 'float', 'nearest', 'material'),
+    tGroup: TextureSpec('texture', 'rgba', 'float', 'nearest', 'material'),
 
-    uColorTexDim: UniformSpec('v2'),
-    tColor: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
+    uColorTexDim: UniformSpec('v2', 'material'),
+    tColor: TextureSpec('texture', 'rgba', 'ubyte', 'nearest', 'material'),
     dColorType: DefineSpec('string', ['group', 'groupInstance', 'vertex', 'vertexInstance']),
 
     uCurrentSlice: UniformSpec('f'),
@@ -88,8 +86,6 @@ function getAccumulateRenderable(ctx: WebGLContext, input: AccumulateInput, box:
         ValueCell.updateIfChanged(v.instanceCount, input.instanceCount);
         ValueCell.updateIfChanged(v.stride, stride);
 
-        ValueCell.updateIfChanged(v.uTotalCount, input.vertexCount);
-        ValueCell.updateIfChanged(v.uInstanceCount, input.instanceCount);
         ValueCell.updateIfChanged(v.uGroupCount, input.groupCount);
 
         ValueCell.update(v.aTransform, input.transformBuffer);
@@ -126,8 +122,6 @@ function createAccumulateRenderable(ctx: WebGLContext, input: AccumulateInput, b
         instanceCount: ValueCell.create(input.instanceCount),
         stride: ValueCell.create(stride),
 
-        uTotalCount: ValueCell.create(input.vertexCount),
-        uInstanceCount: ValueCell.create(input.instanceCount),
         uGroupCount: ValueCell.create(input.groupCount),
 
         aTransform: ValueCell.create(input.transformBuffer),
@@ -325,8 +319,8 @@ export function calcTextureMeshColorSmoothing(input: ColorSmoothingInput, resolu
 
     if (isTimingMode) webgl.timer.mark('ColorAccumulate.render');
     setAccumulateDefaults(webgl);
-    gl.viewport(0, 0, width, height);
-    gl.scissor(0, 0, width, height);
+    state.viewport(0, 0, width, height);
+    state.scissor(0, 0, width, height);
     gl.clear(gl.COLOR_BUFFER_BIT);
     ValueCell.update(uCurrentY, 0);
     let currCol = 0;
@@ -342,8 +336,8 @@ export function calcTextureMeshColorSmoothing(input: ColorSmoothingInput, resolu
         // console.log({ i, currX, currY });
         ValueCell.update(uCurrentX, currX);
         ValueCell.update(uCurrentSlice, i);
-        gl.viewport(currX, currY, dx, dy);
-        gl.scissor(currX, currY, dx, dy);
+        state.viewport(currX, currY, dx, dy);
+        state.scissor(currX, currY, dx, dy);
         accumulateRenderable.render();
         ++currCol;
         currX += dx;
@@ -377,8 +371,8 @@ export function calcTextureMeshColorSmoothing(input: ColorSmoothingInput, resolu
 
     setNormalizeDefaults(webgl);
     texture.attachFramebuffer(framebuffer, 0);
-    gl.viewport(0, 0, width, height);
-    gl.scissor(0, 0, width, height);
+    state.viewport(0, 0, width, height);
+    state.scissor(0, 0, width, height);
     gl.clear(gl.COLOR_BUFFER_BIT);
     normalizeRenderable.render();
     if (isTimingMode) webgl.timer.markEnd('ColorNormalize.render');
@@ -392,6 +386,8 @@ export function calcTextureMeshColorSmoothing(input: ColorSmoothingInput, resolu
     const gridTransform = Vec4.create(min[0], min[1], min[2], scaleFactor);
     const type = isInstanceType ? 'volumeInstance' : 'volume';
     if (isTimingMode) webgl.timer.markEnd('calcTextureMeshColorSmoothing');
+
+    // printTextureImage(readTexture(webgl, texture), { scale: 0.75 });
 
     return { texture, gridDim, gridTexDim: Vec2.create(width, height), gridTransform, type };
 }

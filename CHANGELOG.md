@@ -6,6 +6,127 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Make `PluginContext.initContainer` checkered canvas background optional
+
+## [v3.23.0] - 2022-10-19
+
+- Add `PluginContext.initContainer/mount/unmount` methods; these should make it easier to reuse a plugin context with both custom and built-in UI
+- Add `PluginContext.canvas3dInitialized`
+- `createPluginUI` now resolves after the 3d canvas has been initialized
+- Change EM Volume Streaming default from `Whote Structure` to `Auto`
+
+## [v3.22.0] - 2022-10-17
+
+- Replace `VolumeIsosurfaceParams.pickingGranularity` param with `Volume.PickingGranuality` 
+
+## [v3.21.0] - 2022-10-17
+
+- Add `VolumeIsosurfaceParams.pickingGranularity` param
+- Prevent component controls collapsing when option is selected
+
+## [v3.20.0] - 2022-10-16
+
+- [Breaking] Rename the ``model-index`` color theme to ``trajectory-index``
+- Add a new ``model-index`` color theme that uniquely colors each loaded model
+- Add the new ``model-index`` and ``structure-index`` color themes as an option for the carbon color in the ``element-symbol`` and ``ilustrative`` color themes
+- Add ``structure-index`` color theme that uniquely colors each root structure
+- Add ``nearest`` method to ``Lookup3D``
+- Add mipmap-based blur for skybox backgrounds
+
+## [v3.19.0] - 2022-10-01
+
+- Fix "empty textures" error on empty canvas
+- Optimize BinaryCIF integer packing encoder
+- Fix dual depth peeling when post-processing is off or when rendering direct-volumes
+- Add ``cameraClipping.minNear`` parameter
+- Fix black artifacts on specular highlights with transparent background
+
+## [v3.18.0] - 2022-09-17
+
+- Integration of Dual depth peeling - OIT method
+- Stereo camera improvements
+    - Fix param updates not applied
+    - Better param ranges and description
+    - Add timer.mark for left/right camera
+
+## [v3.17.0] - 2022-09-11
+
+- [Fix] Clone ``Canvas3DParams`` when creating a ``Canvas3D`` instance to prevent shared state between multiple instances
+- Add ``includeResidueTest`` option to ``alignAndSuperposeWithSIFTSMapping``
+- Add ``parentDisplay`` param for interactions representation.
+- [Experimental] Add support for PyMOL, VMD, and Jmol atom expressions in selection scripts
+- Support for ``failIfMajorPerformanceCaveat`` webgl attribute. Add ``PluginConfig.General.AllowMajorPerformanceCaveat`` and ``allow-major-performance-caveat`` Viewer GET param.
+- Fix handling of PDB TER records (#549)
+- Add support for getting multiple loci from a representation (``.getAllLoci()``)
+- Add ``key`` property to intra- and inter-bonds for referencing source data
+- Fix click event triggered after move
+
+## [v3.16.0] - 2022-08-25
+
+- Support ``globalColorParams`` and ``globalSymmetryParams`` in common representation params
+- Support ``label`` parameter in ``Viewer.loadStructureFromUrl``
+- Fix ``ViewportHelpContent`` Mouse Controls section
+
+## [v3.15.0] - 2022-08-23
+
+- Fix wboit in Safari >=15 (add missing depth renderbuffer to wboit pass)
+- Add 'Around Camera' option to Volume streaming
+- Avoid queuing more than one update in Volume streaming
+
+## [v3.14.0] - 2022-08-20
+
+- Expose inter-bonds compute params in structure
+- Improve performance of inter/intra-bonds compute
+- Fix defaultAttribs handling in Canvas3DContext.fromCanvas
+- Confal pyramids extension improvements
+    - Add custom labels to Confal pyramids
+    - Improve naming of some internal types in Confal pyramids extension coordinate
+    - Add example mmCIF file with categories necessary to display Confal pyramids
+    - Change the lookup logic of NtC steps from residues
+- Add support for download of gzipped files
+- Don't filter IndexPairBonds by element-based rules in MOL/SDF and MOL2 (without symmetry) models
+- Fix Glycam Saccharide Names used by default
+- Fix GPU surfaces rendering in Safari with WebGL2
+- Add ``fov`` (Field of View) Canvas3D parameter
+- Add ``sceneRadiusFactor`` Canvas3D parameter
+- Add background pass (skybox, image, horizontal/radial gradient)
+    - Set simple-settings presets via ``PluginConfig.Background.Styles``
+    - Example presets in new backgrounds extension
+    - Load skybox/image from URL or File (saved in session)
+    - Opacity, saturation, lightness controls for skybox/image
+    - Coverage (viewport or canvas) controls for image/gradient
+- [Breaking] ``AssetManager`` needs to be passed to various graphics related classes
+- Fix SSAO renderable initialization
+- Reduce number of webgl state changes
+    - Add ``viewport`` and ``scissor`` to state object
+    - Add ``hasOpaque`` to scene object
+- Handle edge cases where some renderables would not get (correctly) rendered
+    - Fix text background rendering for opaque text
+    - Fix helper scenes not shown when rendering directly to draw target
+- Fix ``CustomElementProperty`` coloring not working
+
+## [v3.13.0] - 2022-07-24
+
+- Fix: only update camera state if manualReset is off (#494)
+- Improve handling principal axes of points in a plane
+- Add 'material' annotation support for textures
+- More effort to avoid using ``flat`` qualifier in shaders: add ``dVaryingGroup``
+- Enable ``immediateUpdate`` for iso level in isosurface and volume streaming controls
+- Add support to download CCD from configurable URL
+
+## [v3.12.1] - 2022-07-20
+
+- Fix plugin behavior dispose logic to correctly unsubscribe observables.
+
+## [v3.12.0] - 2022-07-17
+
+- Add ``colorMarker`` option to Renderer. This disables the highlight and select marker at a shader level for faster rendering of large scenes in some cases.
+- Bind shared textures only once per pass, not for each render item
+- Fix missing 'material' annotation for some uniforms, causing unnecessary uniform updates
+- Remove use of ``isnan`` in impostor shaders, not needed and causing slowdown
+- Avoid using ``flat`` qualifier in shaders, causing slowdown
+- Improve CellPack's ``adjustStyle`` option (disable ``colorMarker``, set component options, enable marking w/o ghost)
+- Scan all entities when looking for ``struct_conn`` entries (fixes issue when the same ``label_asym_id`` is used in more than one entity)
 
 ## [v3.11.0] - 2022-07-04
 

@@ -61,6 +61,7 @@ type Props = {
     postprocessing: PostprocessingProps
     marking: MarkingProps
     transparentBackground: boolean;
+    dpoitIterations: number;
 }
 
 type RenderContext = {
@@ -176,8 +177,8 @@ export class MultiSamplePass {
             state.blendFuncSeparate(gl.ONE, gl.ONE, gl.ONE, gl.ONE);
             state.disable(gl.DEPTH_TEST);
             state.depthMask(false);
-            gl.viewport(x, y, width, height);
-            gl.scissor(x, y, width, height);
+            state.viewport(x, y, width, height);
+            state.scissor(x, y, width, height);
             if (i === 0) {
                 state.clearColor(0, 0, 0, 0);
                 gl.clear(gl.COLOR_BUFFER_BIT);
@@ -192,8 +193,8 @@ export class MultiSamplePass {
         compose.update();
 
         this.bindOutputTarget(toDrawingBuffer);
-        gl.viewport(x, y, width, height);
-        gl.scissor(x, y, width, height);
+        state.viewport(x, y, width, height);
+        state.scissor(x, y, width, height);
 
         state.disable(gl.BLEND);
         compose.render();
@@ -231,8 +232,8 @@ export class MultiSamplePass {
             state.disable(gl.BLEND);
             state.disable(gl.DEPTH_TEST);
             state.depthMask(false);
-            gl.viewport(x, y, width, height);
-            gl.scissor(x, y, width, height);
+            state.viewport(x, y, width, height);
+            state.scissor(x, y, width, height);
             compose.render();
             sampleIndex += 1;
         } else {
@@ -267,8 +268,8 @@ export class MultiSamplePass {
                 state.blendFuncSeparate(gl.ONE, gl.ONE, gl.ONE, gl.ONE);
                 state.disable(gl.DEPTH_TEST);
                 state.depthMask(false);
-                gl.viewport(x, y, width, height);
-                gl.scissor(x, y, width, height);
+                state.viewport(x, y, width, height);
+                state.scissor(x, y, width, height);
                 if (sampleIndex === 0) {
                     state.clearColor(0, 0, 0, 0);
                     gl.clear(gl.COLOR_BUFFER_BIT);
@@ -283,8 +284,8 @@ export class MultiSamplePass {
         drawPass.postprocessing.setOcclusionOffset(0, 0);
 
         this.bindOutputTarget(toDrawingBuffer);
-        gl.viewport(x, y, width, height);
-        gl.scissor(x, y, width, height);
+        state.viewport(x, y, width, height);
+        state.scissor(x, y, width, height);
 
         const accumulationWeight = sampleIndex * sampleWeight;
         if (accumulationWeight > 0) {

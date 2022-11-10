@@ -58,20 +58,22 @@ class Viewer {
     }
 
     static async create(elementOrId: string | HTMLElement, colors = [Color(0x992211), Color(0xDDDDDD)], showButtons = true) {
-        const o = { ...DefaultViewerOptions, ...{
-            layoutIsExpanded: false,
-            layoutShowControls: false,
-            layoutShowRemoteState: false,
-            layoutShowSequence: true,
-            layoutShowLog: false,
-            layoutShowLeftPanel: true,
+        const o = {
+            ...DefaultViewerOptions, ...{
+                layoutIsExpanded: false,
+                layoutShowControls: false,
+                layoutShowRemoteState: false,
+                layoutShowSequence: true,
+                layoutShowLog: false,
+                layoutShowLeftPanel: true,
 
-            viewportShowExpand: true,
-            viewportShowControls: false,
-            viewportShowSettings: false,
-            viewportShowSelectionMode: false,
-            viewportShowAnimation: false,
-        } };
+                viewportShowExpand: true,
+                viewportShowControls: false,
+                viewportShowSettings: false,
+                viewportShowSelectionMode: false,
+                viewportShowAnimation: false,
+            }
+        };
         const defaultSpec = DefaultPluginUISpec();
 
         const spec: PluginUISpec = {
@@ -135,18 +137,16 @@ class Viewer {
             }
         };
 
-        plugin.behaviors.canvas3d.initialized.subscribe(v => {
-            if (v) {
-                PluginCommands.Canvas3D.SetSettings(plugin, { settings: {
-                    renderer: {
-                        ...plugin.canvas3d!.props.renderer,
-                        backgroundColor: ColorNames.white,
-                    },
-                    camera: {
-                        ...plugin.canvas3d!.props.camera,
-                        helper: { axes: { name: 'off', params: {} } }
-                    }
-                } });
+        PluginCommands.Canvas3D.SetSettings(plugin, {
+            settings: {
+                renderer: {
+                    ...plugin.canvas3d!.props.renderer,
+                    backgroundColor: ColorNames.white,
+                },
+                camera: {
+                    ...plugin.canvas3d!.props.camera,
+                    helper: { axes: { name: 'off', params: {} } }
+                }
             }
         });
 
@@ -166,7 +166,7 @@ class Viewer {
             structures.push({ ref: structureProperties?.ref || structure.ref });
         }
 
-        // remove current structuresfrom hierarchy as they will be merged
+        // remove current structures from hierarchy as they will be merged
         // TODO only works with using loadStructuresFromUrlsAndMerge once
         //      need some more API metho to work with the hierarchy
         this.plugin.managers.structure.hierarchy.updateCurrent(this.plugin.managers.structure.hierarchy.current.structures, 'remove');

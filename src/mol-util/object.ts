@@ -8,7 +8,7 @@
 const hasOwnProperty = Object.prototype.hasOwnProperty;
 
 /** Assign to the object if a given property in update is undefined */
-export function assignIfUndefined<T>(to: Partial<T>, full: T): T {
+export function assignIfUndefined<T extends {}>(to: Partial<T>, full: T): T {
     for (const k of Object.keys(full)) {
         if (!hasOwnProperty.call(full, k)) continue;
 
@@ -20,7 +20,7 @@ export function assignIfUndefined<T>(to: Partial<T>, full: T): T {
 }
 
 /** Create new object if any property in "update" changes in "source". */
-export function shallowMerge2<T>(source: T, update: Partial<T>): T {
+export function shallowMerge2<T extends {}>(source: T, update: Partial<T>): T {
     // Adapted from LiteMol (https://github.com/dsehnal/LiteMol)
     let changed = false;
     for (const k of Object.keys(update)) {
@@ -36,7 +36,7 @@ export function shallowMerge2<T>(source: T, update: Partial<T>): T {
     return Object.assign({}, source, update);
 }
 
-export function shallowEqual<T>(a: T, b: T) {
+export function shallowEqual<T extends {}>(a: T, b: T) {
     if (!a) {
         if (!b) return true;
         return false;
@@ -52,11 +52,11 @@ export function shallowEqual<T>(a: T, b: T) {
     return true;
 }
 
-export function shallowMerge<T>(source: T, ...rest: (Partial<T> | undefined)[]): T {
+export function shallowMerge<T extends {}>(source: T, ...rest: (Partial<T> | undefined)[]): T {
     return shallowMergeArray(source, rest);
 }
 
-export function shallowMergeArray<T>(source: T, rest: (Partial<T> | undefined)[]): T {
+export function shallowMergeArray<T extends {}>(source: T, rest: (Partial<T> | undefined)[]): T {
     // Adapted from LiteMol (https://github.com/dsehnal/LiteMol)
     let ret: any = source;
 

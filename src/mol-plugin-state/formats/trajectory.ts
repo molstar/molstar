@@ -75,7 +75,7 @@ export const CifCoreProvider: TrajectoryFormatProvider = {
     visuals: defaultVisuals
 };
 
-function directTrajectory<P>(transformer: StateTransformer<PluginStateObject.Data.String | PluginStateObject.Data.Binary, PluginStateObject.Molecule.Trajectory, P>, transformerParams?: P): TrajectoryFormatProvider['parse'] {
+function directTrajectory<P extends {}>(transformer: StateTransformer<PluginStateObject.Data.String | PluginStateObject.Data.Binary, PluginStateObject.Molecule.Trajectory, P>, transformerParams?: P): TrajectoryFormatProvider['parse'] {
     return async (plugin, data, params) => {
         const state = plugin.state.data;
         const trajectory = await state.build().to(data)

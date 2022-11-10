@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { Structure, StructureElement, Unit } from '../structure';
@@ -113,6 +114,7 @@ class QueryContextBondInfo<U extends Unit = Unit> {
     bIndex: StructureElement.UnitIndex = 0 as StructureElement.UnitIndex;
     type: BondType = BondType.Flag.None;
     order: number = 0;
+    key: number = -1;
 
     private testFn: QueryPredicate = defaultBondTest;
 

@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Adam Midlik <midlik@gmail.com>
  */
 
 import { PluginStateTransform, PluginStateObject } from '../../mol-plugin-state/objects';
@@ -17,7 +18,8 @@ export { PluginBehavior };
 
 interface PluginBehavior<P = unknown> {
     register(ref: StateTransform.Ref): void,
-    unregister(): void,
+    unregister?(): void,
+    dispose?(): void,
 
     /** Update params in place. Optionally return a promise if it depends on an async action. */
     update?(params: P): boolean | Promise<boolean>
@@ -38,7 +40,7 @@ namespace PluginBehavior {
         'misc': 'Miscellaneous'
     };
 
-    export interface CreateParams<P> {
+    export interface CreateParams<P extends {}> {
         name: string,
         category: keyof typeof Categories,
         ctor: Ctor<P>,
@@ -71,7 +73,7 @@ namespace PluginBehavior {
         return categoryMap.get(t.id)!;
     }
 
-    export function create<P>(params: CreateParams<P>) {
+    export function create<P extends {}>(params: CreateParams<P>) {
         const t = PluginStateTransform.CreateBuiltIn<Category, Behavior, P>({
             name: params.name,
             display: params.display,
@@ -102,7 +104,7 @@ namespace PluginBehavior {
             register(): void {
                 this.sub = cmd.subscribe(this.ctx, data => action(data, this.ctx));
             }
-            unregister(): void {
+            dispose(): void {
                 if (this.sub) this.sub.unsubscribe();
                 this.sub = void 0;
             }
@@ -111,7 +113,7 @@ namespace PluginBehavior {
         };
     }
 
-    export abstract class Handler<P = { }> implements PluginBehavior<P> {
+    export abstract class Handler<P extends {} = {}> implements PluginBehavior<P> {
         private subs: PluginCommand.Subscription[] = [];
         protected subscribeCommand<T>(cmd: PluginCommand<T>, action: PluginCommand.Action<T>) {
             this.subs.push(cmd.subscribe(this.ctx, action));
@@ -123,7 +125,7 @@ namespace PluginBehavior {
             this.subs.push(sub);
         }
         abstract register(): void;
-        unregister() {
+        dispose(): void {
             for (const s of this.subs) s.unsubscribe();
             this.subs = [];
         }
@@ -143,11 +145,20 @@ namespace PluginBehavior {
         protected subscribeCommand<T>(cmd: PluginCommand<T>, action: PluginCommand.Action<T>) {
             this.subs.push(cmd.subscribe(this.plugin, action));
         }
-        protected subscribeObservable<T>(o: Observable<T>, action: (v: T) => void) {
-            this.subs.push(o.subscribe(action));
+        protected subscribeObservable<T>(o: Observable<T>, action: (v: T) => void): PluginCommand.Subscription {
+            const sub = o.subscribe(action);
+            this.subs.push(sub);
+            return {
+                unsubscribe: () => {
+                    const idx = this.subs.indexOf(sub);
+                    if (idx >= 0) {
+                        this.subs.splice(idx, 1);
+                        sub.unsubscribe();
+                    }
+                }
+            };
         }
-
-        unregister() {
+        dispose(): void {
             for (const s of this.subs) s.unsubscribe();
             this.subs = [];
         }

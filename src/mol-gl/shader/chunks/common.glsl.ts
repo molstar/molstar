@@ -1,7 +1,7 @@
 export const common = `
 // TODO find a better place for these convenience defines
 
-#if defined(dRenderVariant_colorBlended) || defined(dRenderVariant_colorWboit)
+#if defined(dRenderVariant_colorBlended) || defined(dRenderVariant_colorWboit) || defined(dRenderVariant_colorDpoit)
     #define dRenderVariant_color
 #endif
 
@@ -15,6 +15,10 @@ export const common = `
 
 #if defined(dColorType_attribute) || defined(dColorType_texture) || defined(dColorType_grid)
     #define dColorType_varying
+#endif
+
+#if (defined(dRenderVariant_color) && defined(dColorMarker)) || defined(dRenderVariant_marking)
+    #define dNeedsMarker
 #endif
 
 #define MaskAll 0

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -17,7 +17,7 @@ import { hashString, hashFnv32a } from '../../mol-data/util';
 import { DefineValues, ShaderCode } from '../shader-code';
 import { RenderableSchema } from '../renderable/schema';
 import { createRenderbuffer, Renderbuffer, RenderbufferAttachment, RenderbufferFormat } from './renderbuffer';
-import { Texture, TextureKind, TextureFormat, TextureType, TextureFilter, createTexture } from './texture';
+import { Texture, TextureKind, TextureFormat, TextureType, TextureFilter, createTexture, CubeFaces, createCubeTexture } from './texture';
 import { VertexArray, createVertexArray } from './vertex-array';
 
 function defineValueHash(v: boolean | number | string): number {
@@ -59,6 +59,7 @@ export interface WebGLResources {
     renderbuffer: (format: RenderbufferFormat, attachment: RenderbufferAttachment, width: number, height: number) => Renderbuffer
     shader: (type: ShaderType, source: string) => Shader
     texture: (kind: TextureKind, format: TextureFormat, type: TextureType, filter: TextureFilter) => Texture,
+    cubeTexture: (faces: CubeFaces, mipaps: boolean, onload?: () => void) => Texture,
     vertexArray: (program: Program, attributeBuffers: AttributeBuffers, elementsBuffer?: ElementsBuffer) => VertexArray,
 
     getByteCounts: () => ByteCounts
@@ -76,6 +77,7 @@ export function createResources(gl: GLRenderingContext, state: WebGLState, stats
         renderbuffer: new Set<Resource>(),
         shader: new Set<Resource>(),
         texture: new Set<Resource>(),
+        cubeTexture: new Set<Resource>(),
         vertexArray: new Set<Resource>(),
     };
 
@@ -137,6 +139,9 @@ export function createResources(gl: GLRenderingContext, state: WebGLState, stats
         texture: (kind: TextureKind, format: TextureFormat, type: TextureType, filter: TextureFilter) => {
             return wrap('texture', createTexture(gl, extensions, kind, format, type, filter));
         },
+        cubeTexture: (faces: CubeFaces, mipmaps: boolean, onload?: () => void) => {
+            return wrap('cubeTexture', createCubeTexture(gl, faces, mipmaps, onload));
+        },
         vertexArray: (program: Program, attributeBuffers: AttributeBuffers, elementsBuffer?: ElementsBuffer) => {
             return wrap('vertexArray', createVertexArray(gl, extensions, program, attributeBuffers, elementsBuffer));
         },
@@ -144,6 +149,9 @@ export function createResources(gl: GLRenderingContext, state: WebGLState, stats
         getByteCounts: () => {
             let texture = 0;
             sets.texture.forEach(r => {
+                texture += (r as Texture).getByteCount();
+            });
+            sets.cubeTexture.forEach(r => {
                 texture += (r as Texture).getByteCount();
             });
 
