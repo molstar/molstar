@@ -13,6 +13,8 @@ import { Loci } from '../../mol-model/loci';
 import { BoundaryHelper } from '../../mol-math/geometry/boundary-helper';
 import { GraphicsRenderObject } from '../../mol-gl/render-object';
 import { StructureElement } from '../../mol-model/structure';
+import { Vec3 } from '../../mol-math/linear-algebra/3d/vec3';
+import { pcaFocus } from './focus-camera/focus-first-residue';
 
 // TODO: make this customizable somewhere?
 const DefaultCameraFocusOptions = {
@@ -84,7 +86,7 @@ export class CameraManager {
         }
     }
 
-    focusSpheres<T>(xs: ReadonlyArray<T>, sphere: (t: T) => Sphere3D | undefined, options?: Partial<CameraFocusOptions>) {
+    focusSpheres<T>(xs: ReadonlyArray<T>, sphere: (t: T) => Sphere3D | undefined, options?: Partial<CameraFocusOptions> & { principalAxes?: PrincipalAxes }, positionToFlip?: Vec3) {
         const spheres = [];
 
         for (const x of xs) {
@@ -93,7 +95,7 @@ export class CameraManager {
         }
 
         if (spheres.length === 0) return;
-        if (spheres.length === 1) return this.focusSphere(spheres[0], options);
+        if (spheres.length === 1) return this.focusSphere(spheres[0], options, positionToFlip);
 
         this.boundaryHelper.reset();
         for (const s of spheres) {
@@ -103,15 +105,16 @@ export class CameraManager {
         for (const s of spheres) {
             this.boundaryHelper.radiusSphere(s);
         }
-        this.focusSphere(this.boundaryHelper.getSphere(), options);
+        this.focusSphere(this.boundaryHelper.getSphere(), options, positionToFlip);
     }
 
-    focusSphere(sphere: Sphere3D, options?: Partial<CameraFocusOptions> & { principalAxes?: PrincipalAxes }) {
+    focusSphere(sphere: Sphere3D, options?: Partial<CameraFocusOptions> & { principalAxes?: PrincipalAxes }, positionToFlip?: Vec3) {
         const { extraRadius, minRadius, durationMs } = { ...DefaultCameraFocusOptions, ...options };
         const radius = Math.max(sphere.radius + extraRadius, minRadius);
 
         if (options?.principalAxes) {
-            const { origin, dirA, dirC } = options?.principalAxes.boxAxes;
+            const newPrincipalAxes = pcaFocus(this.plugin, options, positionToFlip);
+            const { origin, dirA, dirC } = newPrincipalAxes;
             const snapshot = this.plugin.canvas3d?.camera.getFocus(origin, radius, dirA, dirC);
             this.plugin.canvas3d?.requestCameraReset({ durationMs, snapshot });
             // this.plugin.canvas3d?.camera.focus(origin, radius, durationMs, dirA, dirC);

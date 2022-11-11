@@ -7,6 +7,7 @@
 
 import * as React from 'react';
 import { getStructureThemeTypes } from '../../mol-plugin-state/helpers/structure-representation-params';
+import { getPcaTransform } from '../../mol-plugin-state/manager/focus-camera/focus-first-residue';
 import { StructureComponentManager } from '../../mol-plugin-state/manager/structure/component';
 import { StructureHierarchyManager } from '../../mol-plugin-state/manager/structure/hierarchy';
 import { StructureComponentRef, StructureRepresentationRef } from '../../mol-plugin-state/manager/structure/hierarchy-state';
@@ -315,7 +316,7 @@ class StructureComponentGroup extends PurePluginUIComponent<{ group: StructureCo
         this.plugin.managers.camera.focusSpheres(this.props.group, e => {
             if (e.cell.state.isHidden) return;
             return e.cell.obj?.data.boundary.sphere;
-        });
+        }, ... getPcaTransform(this.props.group));
     };
 
     get reprLabel() {
