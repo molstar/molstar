@@ -31,6 +31,8 @@ export interface Program {
     destroy: () => void
 }
 
+export type Programs = { [k: string]: Program }
+
 type Locations = { [k: string]: number }
 
 function getLocations(gl: GLRenderingContext, program: WebGLProgram, schema: RenderableSchema) {
