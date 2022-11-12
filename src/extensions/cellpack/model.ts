@@ -22,12 +22,14 @@ import { ParseCellPack, StructureFromCellpack, DefaultCellPackBaseUrl, Structure
 import { MolScriptBuilder as MS } from '../../mol-script/language/builder';
 import { getMatFromResamplePoints } from './curve';
 import { compile } from '../../mol-script/runtime/query/compiler';
-import { CellpackPackingPreset, CellpackMembranePreset } from './preset';
+import { CellpackPackingPreset, CellpackMembranePreset, CellpackPreset } from './preset';
 import { Asset } from '../../mol-util/assets';
 import { Color } from '../../mol-util/color';
 import { objectForEach } from '../../mol-util/object';
 import { readFromFile } from '../../mol-util/data-source';
 import { ColorNames } from '../../mol-util/color/names';
+import { getFileInfo } from '../../mol-util/file-info';
+import { MmcifProvider } from '../../mol-plugin-state/formats/trajectory';
 
 function getCellPackModelUrl(fileName: string, baseUrl: string) {
     return `${baseUrl}/results/${fileName}`;
@@ -329,7 +331,7 @@ export function createStructureFromCellPack(plugin: PluginContext, packing: Cell
         for (let i = 0, il = structure.models.length; i < il; ++i) {
             Model.TrajectoryInfo.set(structure.models[i], { size: il, index: i });
         }
-        return { structure, assets, colors: colors };
+        return { structure, assets, colors };
     });
 }
 
@@ -550,7 +552,7 @@ async function loadPackings(plugin: PluginContext, runtime: RuntimeContext, stat
 
 const LoadCellPackModelParams = {
     source: PD.MappedStatic('id', {
-        'id': PD.Select('InfluenzaModel2.json', [
+        id: PD.Select('InfluenzaModel2.json', [
             ['blood_hiv_immature_inside.json', 'Blood HIV immature'],
             ['HIV_immature_model.json', 'HIV immature'],
             ['Blood_HIV.json', 'Blood HIV'],
@@ -560,8 +562,9 @@ const LoadCellPackModelParams = {
             ['ExosomeModel.json', 'Exosome Model'],
             ['MycoplasmaGenitalium.json', 'Mycoplasma Genitalium curated model'],
         ] as const, { description: 'Download the model definition with `id` from the server at `baseUrl.`' }),
-        'file': PD.File({ accept: '.json,.cpr,.zip', description: 'Open model definition from .json/.cpr file or open .zip file containing model definition plus ingredients.', label: 'Recipe file' }),
-    }, { options: [['id', 'Id'], ['file', 'File']] }),
+        file: PD.File({ accept: '.json,.cpr,.zip', description: 'Open model definition from .json/.cpr file or open .zip file containing model definition plus ingredients.', label: 'Recipe file' }),
+        cif: PD.File({ accept: '.cif,.bcif', description: 'CellPack-style cif file.', label: 'CellPack CIF' }),
+    }),
     baseUrl: PD.Text(DefaultCellPackBaseUrl),
     results: PD.File({ accept: '.bin', description: 'open results file in binary format from cellpackgpu for the specified recipe', label: 'Results file' }),
     membrane: PD.Select('lipids', PD.arrayToOptions(['lipids', 'geometry', 'none'])),
@@ -569,7 +572,7 @@ const LoadCellPackModelParams = {
     preset: PD.Group({
         traceOnly: PD.Boolean(false),
         adjustStyle: PD.Boolean(true),
-        representation: PD.Select('gaussian-surface', PD.arrayToOptions(['spacefill', 'gaussian-surface', 'point', 'orientation'] as const))
+        representation: PD.Select('spacefill', PD.arrayToOptions(['spacefill', 'gaussian-surface', 'point', 'orientation'] as const))
     }, { isExpanded: true })
 };
 type LoadCellPackModelParams = PD.Values<typeof LoadCellPackModelParams>
@@ -617,5 +620,19 @@ export const LoadCellPackModel = StateAction.build({
             }
         });
     }
-    await loadPackings(ctx, taskCtx, state, params);
+    if (params.source.name === 'cif') {
+        if (params.source.params === null) {
+            ctx.log.error('No file selected');
+            return;
+        }
+        const file = params.source.params;
+
+        const info = getFileInfo(file.file!);
+        const isBinary = ctx.dataFormats.binaryExtensions.has(info.ext);
+        const { data } = await ctx.builders.data.readFile({ file, isBinary });
+        const parsed = await MmcifProvider.parse(ctx, data);
+        await ctx.builders.structure.hierarchy.applyPreset(parsed.trajectory, CellpackPreset);
+    } else {
+        await loadPackings(ctx, taskCtx, state, params);
+    }
 }));

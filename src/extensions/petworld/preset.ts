@@ -36,29 +36,21 @@ const PetworldStructurePreset = StructureRepresentationPresetProvider({
             traceOnly: params.traceOnly,
             instanceGranularity: true,
             ignoreLight: params.ignoreLight,
+            lodLevels: [
+                { minDistance: 1, maxDistance: 1000, overlap: 0, stride: 1 },
+                { minDistance: 1000, maxDistance: 4000, overlap: 500, stride: 10 },
+                { minDistance: 4000, maxDistance: 10000000, overlap: 500, stride: 50 },
+            ],
         };
         const components = {
             all: await presetStaticComponent(plugin, structureCell, 'all'),
-        };
-
-        const reprProps0 = {
-            ...reprProps,
-            lod: [1, 2000, 0],
-        };
-        const stride1 = 30;
-        const reprProps1 = {
-            ...reprProps,
-            lod: [2000, 10000000, 800],
-            sizeFactor: 1 * Math.cbrt(stride1),
-            stride: stride1,
         };
 
         const color = PetworldColorThemeProvider.name;
 
         const { update, builder, typeParams } = StructureRepresentationPresetProvider.reprBuilder(plugin, {});
         const representations = {
-            lod0: builder.buildRepresentation<any>(update, components.all, { type: 'spacefill', typeParams: { ...typeParams, ...reprProps0 }, color, colorParams: { palette: { name: 'colors', params: { list: { colors: ColorLists['many-distinct'].list } } } } }, { tag: 'lod0' }),
-            lod1: builder.buildRepresentation<any>(update, components.all, { type: 'spacefill', typeParams: { ...typeParams, ...reprProps1 }, color, colorParams: { palette: { name: 'colors', params: { list: { colors: ColorLists['many-distinct'].list } } } } }, { tag: 'lod1' }),
+            all: builder.buildRepresentation<any>(update, components.all, { type: 'spacefill', typeParams: { ...typeParams, ...reprProps }, color, colorParams: { palette: { name: 'colors', params: { list: { colors: ColorLists['many-distinct'].list } } } } }, { tag: 'all' }),
         };
 
         await update.commit({ revertOnError: true });

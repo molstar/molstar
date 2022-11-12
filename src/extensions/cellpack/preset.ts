@@ -10,11 +10,12 @@ import { StructureRepresentationPresetProvider, presetStaticComponent } from '..
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { ColorNames } from '../../mol-util/color/names';
 import { CellPackGenerateColorThemeProvider } from './color/generate';
+import { TrajectoryHierarchyPresetProvider } from '../../mol-plugin-state/builder/structure/hierarchy-preset';
 
 export const CellpackPackingPresetParams = {
-    traceOnly: PD.Boolean(true),
-    ignoreLight: PD.Boolean(false),
-    representation: PD.Select('gaussian-surface', PD.arrayToOptions(['gaussian-surface', 'spacefill', 'point', 'orientation'] as const)),
+    traceOnly: PD.Boolean(false),
+    ignoreLight: PD.Boolean(true),
+    representation: PD.Select('spacefill', PD.arrayToOptions(['gaussian-surface', 'spacefill', 'point', 'orientation'] as const)),
 };
 export type CellpackPackingPresetParams = PD.ValuesFor<typeof CellpackPackingPresetParams>
 
@@ -32,28 +33,53 @@ export const CellpackPackingPreset = StructureRepresentationPresetProvider({
             instanceGranularity: true,
             ignoreLight: params.ignoreLight,
         };
-        const components = {
-            polymer: await presetStaticComponent(plugin, structureCell, 'polymer')
-        };
 
-        if (params.representation === 'gaussian-surface') {
-            Object.assign(reprProps, {
-                quality: 'custom', resolution: 10, radiusOffset: 2, doubleSided: false
-            });
-        } else if (params.representation === 'spacefill') {
-            Object.assign(reprProps, { sizeFactor: params.traceOnly ? 2 : 1 });
+        if (params.representation === 'spacefill') {
+            const components = {
+                all: await presetStaticComponent(plugin, structureCell, 'all')
+            };
+
+            const reprPropsSpacefill = {
+                ...reprProps,
+                lodLevels: [
+                    { minDistance: 1, maxDistance: 1000, overlap: 0, stride: 1 },
+                    { minDistance: 1000, maxDistance: 4000, overlap: 500, stride: 10 },
+                    { minDistance: 4000, maxDistance: 10000000, overlap: 500, stride: 50 },
+                ],
+            };
+
+            // default is generated
+            const color = CellPackGenerateColorThemeProvider.name;
+
+            const { update, builder, typeParams } = StructureRepresentationPresetProvider.reprBuilder(plugin, {});
+            const representations = {
+                all: builder.buildRepresentation<any>(update, components.all, { type: 'spacefill', typeParams: { ...typeParams, ...reprPropsSpacefill }, color }, { tag: 'all' }),
+            };
+
+            await update.commit({ revertOnError: true });
+            return { components, representations };
+        } else {
+            const components = {
+                polymer: await presetStaticComponent(plugin, structureCell, 'polymer')
+            };
+
+            if (params.representation === 'gaussian-surface') {
+                Object.assign(reprProps, {
+                    quality: 'custom', resolution: 10, radiusOffset: 2, doubleSided: false
+                });
+            }
+
+            // default is generated
+            const color = CellPackGenerateColorThemeProvider.name;
+
+            const { update, builder, typeParams } = StructureRepresentationPresetProvider.reprBuilder(plugin, {});
+            const representations = {
+                polymer: builder.buildRepresentation<any>(update, components.polymer, { type: params.representation, typeParams: { ...typeParams, ...reprProps }, color }, { tag: 'polymer' })
+            };
+
+            await update.commit({ revertOnError: true });
+            return { components, representations };
         }
-
-        // default is generated
-        const color = CellPackGenerateColorThemeProvider.name;
-
-        const { update, builder, typeParams } = StructureRepresentationPresetProvider.reprBuilder(plugin, {});
-        const representations = {
-            polymer: builder.buildRepresentation<any>(update, components.polymer, { type: params.representation, typeParams: { ...typeParams, ...reprProps }, color }, { tag: 'polymer' })
-        };
-
-        await update.commit({ revertOnError: true });
-        return { components, representations };
     }
 });
 
@@ -61,7 +87,7 @@ export const CellpackPackingPreset = StructureRepresentationPresetProvider({
 
 export const CellpackMembranePresetParams = {
     ignoreLight: PD.Boolean(false),
-    representation: PD.Select('gaussian-surface', PD.arrayToOptions(['gaussian-surface', 'spacefill', 'point', 'orientation'] as const)),
+    representation: PD.Select('spacefill', PD.arrayToOptions(['gaussian-surface', 'spacefill', 'point', 'orientation'] as const)),
 };
 export type CellpackMembranePresetParams = PD.ValuesFor<typeof CellpackMembranePresetParams>
 
@@ -82,19 +108,70 @@ export const CellpackMembranePreset = StructureRepresentationPresetProvider({
             membrane: await presetStaticComponent(plugin, structureCell, 'all', { label: 'Membrane' })
         };
 
-        if (params.representation === 'gaussian-surface') {
-            Object.assign(reprProps, {
-                quality: 'custom', resolution: 10, radiusOffset: 2, doubleSided: false
-            });
+        if (params.representation === 'spacefill') {
+            const reprPropsSpacefill = {
+                ...reprProps,
+                lodLevels: [
+                    { minDistance: 1, maxDistance: 1000, overlap: 0, stride: 1 },
+                    { minDistance: 1000, maxDistance: 4000, overlap: 500, stride: 10 },
+                    { minDistance: 4000, maxDistance: 10000000, overlap: 500, stride: 50 },
+                ],
+            };
+
+            const { update, builder, typeParams } = StructureRepresentationPresetProvider.reprBuilder(plugin, {});
+            const representations = {
+                membrane: builder.buildRepresentation<any>(update, components.membrane, { type: 'spacefill', typeParams: { ...typeParams, ...reprPropsSpacefill }, color: 'uniform', colorParams: { value: ColorNames.lightgrey } }, { tag: 'all' }),
+            };
+
+            await update.commit({ revertOnError: true });
+            return { components, representations };
+        } else {
+            if (params.representation === 'gaussian-surface') {
+                Object.assign(reprProps, {
+                    quality: 'custom', resolution: 10, radiusOffset: 2, doubleSided: false
+                });
+            }
+
+            const { update, builder, typeParams } = StructureRepresentationPresetProvider.reprBuilder(plugin, {});
+            const representations = {
+                membrane: builder.buildRepresentation(update, components.membrane, { type: params.representation, typeParams: { ...typeParams, ...reprProps }, color: 'uniform', colorParams: { value: ColorNames.lightgrey } }, { tag: 'all' })
+            };
+
+            await update.commit({ revertOnError: true });
+            return { components, representations };
         }
+    }
+});
 
-        const { update, builder, typeParams } = StructureRepresentationPresetProvider.reprBuilder(plugin, {});
-        const representations = {
-            membrane: builder.buildRepresentation(update, components.membrane, { type: params.representation, typeParams: { ...typeParams, ...reprProps }, color: 'uniform', colorParams: { value: ColorNames.lightgrey } }, { tag: 'all' })
+//
+
+export const CellpackPreset = TrajectoryHierarchyPresetProvider({
+    id: 'preset-trajectory-default',
+    display: {
+        name: 'Cellpack', group: 'Preset',
+        description: 'Shows Cellpack structure.'
+    },
+    isApplicable: o => {
+        // TODO: check if cellpack cif
+        return true;
+    },
+    async apply(trajectory, params, plugin) {
+        const builder = plugin.builders.structure;
+
+        const model = await builder.createModel(trajectory, { modelIndex: 0 });
+        const modelProperties = await builder.insertModelProperties(model);
+
+        const structure = await builder.createStructure(modelProperties || model, { name: 'assembly', params: { id: '1' } });
+        const structureProperties = await builder.insertStructureProperties(structure);
+
+        const representation = await plugin.builders.structure.representation.applyPreset(structureProperties, CellpackPackingPreset);
+
+        return {
+            model,
+            modelProperties,
+            structure,
+            structureProperties,
+            representation
         };
-
-        await update.commit({ revertOnError: true });
-
-        return { components, representations };
     }
 });

@@ -10,13 +10,17 @@ import { Structure, Trajectory } from '../../mol-model/structure';
 import { Assembly } from '../../mol-model/structure/model/properties/symmetry';
 import { PluginStateObject as SO, PluginStateTransform } from '../../mol-plugin-state/objects';
 import { Task } from '../../mol-task';
-import { Table } from '../../mol-data/db';
+import { Column, Table } from '../../mol-data/db';
 import { mmCIF_Schema } from '../../mol-io/reader/cif/schema/mmcif';
 import { MmcifFormat } from '../../mol-model-formats/structure/mmcif';
 import { arrayFind } from '../../mol-data/util';
-import { StateObject } from '../../mol-state';
+import { StateAction, StateObject } from '../../mol-state';
 import { CifField } from '../../mol-io/reader/cif';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
+import { PluginContext } from '../../mol-plugin/context';
+import { getFileInfo } from '../../mol-util/file-info';
+import { PetworldPreset } from './preset';
+import { MmcifProvider } from '../../mol-plugin-state/formats/trajectory';
 
 const plus1 = (v: number) => v + 1, minus1 = (v: number) => v - 1;
 
@@ -57,8 +61,20 @@ function buildModelsAssembly(trajectory: Trajectory, asmName: string, modelIndex
         const pdbx_model = frame.categories.pdbx_model.getField('name')!;
         const PDB_model_num = frame.categories.pdbx_struct_assembly_gen.getField('PDB_model_num')!;
 
-        (model as any).label = pdbx_model.str(modelIndex);
+        // hack to use model name as entity description
+        const label = pdbx_model.str(modelIndex);
+        (model as any).label = label;
+        model.entities.data = {
+            ...model.entities.data,
+            pdbx_description: Column.asArrayColumn(model.entities.data.pdbx_description),
+        };
+        const entityIds = model.atomicHierarchy.chains.label_entity_id.toArray();
+        for (let i = 0, il = entityIds.length; i < il; ++i) {
+            const idx = model.entities.getEntityIndex(entityIds[i]);
+            (model.entities.data.pdbx_description.__array as any)[idx] = [label];
+        }
 
+        // hack to cache models assemblies
         if (!(trajectory as any).__modelsAssemblies) {
             (trajectory as any).__modelsAssemblies = createModelsAssemblies(db.pdbx_struct_assembly, db.pdbx_struct_assembly_gen as StructAssemblyGen, db.pdbx_struct_oper_list, PDB_model_num);
         }
@@ -128,3 +144,23 @@ function createModelsAssembly(pdbx_struct_assembly: StructAssembly, pdbx_struct_
 
     return { assembly, modelNums };
 }
+
+export const LoadPetworldModel = StateAction.build({
+    display: { name: 'Load Petworld', description: 'Open or download a model' },
+    params: {
+        cif: PD.File({ accept: '.cif,.bcif', description: 'Petworld-style cif file.', label: 'Petworld CIF' }),
+    },
+    from: SO.Root
+})(({ params }, ctx: PluginContext) => Task.create('Petworld Loader', async taskCtx => {
+    if (params.cif === null) {
+        ctx.log.error('No file selected');
+        return;
+    }
+    const file = params.cif;
+
+    const info = getFileInfo(file.file!);
+    const isBinary = ctx.dataFormats.binaryExtensions.has(info.ext);
+    const { data } = await ctx.builders.data.readFile({ file, isBinary });
+    const parsed = await MmcifProvider.parse(ctx, data);
+    await ctx.builders.structure.hierarchy.applyPreset(parsed.trajectory, PetworldPreset);
+}));

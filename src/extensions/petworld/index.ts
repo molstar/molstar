@@ -6,7 +6,7 @@
 
 import { PluginBehavior } from '../../mol-plugin/behavior';
 import { PetworldColorThemeProvider } from './color';
-import { StructureFromPetworld } from './model';
+import { LoadPetworldModel, StructureFromPetworld } from './model';
 import { PetworldPreset } from './preset';
 
 export const PetWorld = PluginBehavior.create<{ autoAttach: boolean, showTooltip: boolean }>({
@@ -18,12 +18,14 @@ export const PetWorld = PluginBehavior.create<{ autoAttach: boolean, showTooltip
     },
     ctor: class extends PluginBehavior.Handler<{ autoAttach: boolean, showTooltip: boolean }> {
         register(): void {
+            this.ctx.state.data.actions.add(LoadPetworldModel);
             this.ctx.state.data.actions.add(StructureFromPetworld);
             this.ctx.builders.structure.hierarchy.registerPreset(PetworldPreset);
             this.ctx.representation.structure.themes.colorThemeRegistry.add(PetworldColorThemeProvider);
         }
 
         unregister() {
+            this.ctx.state.data.actions.remove(LoadPetworldModel);
             this.ctx.state.data.actions.remove(StructureFromPetworld);
             this.ctx.builders.structure.hierarchy.unregisterPreset(PetworldPreset);
             this.ctx.representation.structure.themes.colorThemeRegistry.remove(PetworldColorThemeProvider);
