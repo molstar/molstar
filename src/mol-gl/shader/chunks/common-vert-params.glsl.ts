@@ -53,4 +53,10 @@ varying vec3 vViewPosition;
     attribute float aVertex;
     #define VertexID int(aVertex)
 #endif
+
+#if defined(enabledMultiDraw)
+    #define DrawID gl_DrawID
+#else
+    #define DrawID uDrawId
+#endif
 `;

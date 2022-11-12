@@ -7,7 +7,7 @@
 import { ShaderCode, DefineValues, addShaderDefines } from '../shader-code';
 import { WebGLState } from './state';
 import { WebGLExtensions } from './extensions';
-import { getUniformSetters, UniformsList, getUniformType, UniformSetters, isArrayUniform } from './uniform';
+import { getUniformSetters, UniformsList, getUniformType, UniformSetters, isArrayUniform, UniformType } from './uniform';
 import { AttributeBuffers, getAttribType } from './buffer';
 import { TextureId, Textures } from './texture';
 import { idFactory } from '../../mol-util/id-factory';
@@ -23,6 +23,7 @@ export interface Program {
 
     use: () => void
     setUniforms: (uniformValues: UniformsList) => void
+    uniform: (k: string, v: UniformType) => void
     bindAttributes: (attribueBuffers: AttributeBuffers) => void
     offsetAttributes: (attributeBuffers: AttributeBuffers, offset: number) => void
     bindTextures: (textures: Textures, startingTargetUnit: number) => void
@@ -208,6 +209,10 @@ export function createProgram(gl: GLRenderingContext, state: WebGLState, extensi
                     if (l !== null) uniformSetters[k](gl, l, v.ref.value);
                 }
             }
+        },
+        uniform: (k: string, v: UniformType) => {
+            const l = locations[k];
+            if (l !== null) uniformSetters[k](gl, l, v);
         },
         bindAttributes: (attributeBuffers: AttributeBuffers) => {
             state.clearVertexAttribsState();

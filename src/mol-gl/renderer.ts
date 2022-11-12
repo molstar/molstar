@@ -192,6 +192,8 @@ namespace Renderer {
         Vec3.scale(ambientColor, Color.toArrayNormalized(p.ambientColor, ambientColor, 0), p.ambientIntensity);
 
         const globalUniforms: GlobalUniformValues = {
+            uDrawId: ValueCell.create(0),
+
             uModel: ValueCell.create(Mat4.identity()),
             uView: ValueCell.create(view),
             uInvView: ValueCell.create(invView),

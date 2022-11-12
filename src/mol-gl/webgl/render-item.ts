@@ -223,7 +223,7 @@ export function createRenderItem<T extends string>(ctx: WebGLContext, drawMode: 
             if (mdbDataList) {
                 for (const mdbData of mdbDataList) {
                     program.setUniforms(mdbData.uniforms);
-                    // console.log(mdiData.uniforms)
+                    // console.log(mdbData.uniforms)
                     if (multiDrawInstancedBaseVertexBaseInstance) {
                         if (elementsBuffer) {
                             multiDrawInstancedBaseVertexBaseInstance.multiDrawElementsInstancedBaseVertexBaseInstance(glDrawMode, mdbData.counts, 0, elementsBuffer._dataType, mdbData.offsets, 0, mdbData.instanceCounts, 0, mdbData.baseVertices, 0, mdbData.baseInstances, 0, mdbData.count);
@@ -231,25 +231,26 @@ export function createRenderItem<T extends string>(ctx: WebGLContext, drawMode: 
                             multiDrawInstancedBaseVertexBaseInstance.multiDrawArraysInstancedBaseInstance(glDrawMode, mdbData.firsts, 0, mdbData.counts, 0, mdbData.instanceCounts, 0, mdbData.baseInstances, 0, mdbData.count);
                         }
                     } else if (drawInstancedBaseVertexBaseInstance) {
-                        // TODO: emulate gl_DrawID
                         if (elementsBuffer) {
                             for (let i = 0; i < mdbData.count; ++i) {
                                 if (mdbData.counts[i] > 0) {
+                                    program.uniform('uDrawId', i);
                                     drawInstancedBaseVertexBaseInstance.drawElementsInstancedBaseVertexBaseInstance(glDrawMode, mdbData.counts[i], elementsBuffer._dataType, mdbData.offsets[i], mdbData.instanceCounts[i], mdbData.baseVertices[i], mdbData.baseInstances[i]);
                                 }
                             }
                         } else {
                             for (let i = 0; i < mdbData.count; ++i) {
                                 if (mdbData.counts[i] > 0) {
+                                    program.uniform('uDrawId', i);
                                     drawInstancedBaseVertexBaseInstance.drawArraysInstancedBaseInstance(glDrawMode, mdbData.firsts[i], mdbData.counts[i], mdbData.instanceCounts[i], mdbData.baseInstances[i]);
                                 }
                             }
                         }
                     } else {
-                        // TODO: emulate gl_DrawID
                         if (elementsBuffer) {
                             for (let i = 0; i < mdbData.count; ++i) {
                                 if (mdbData.counts[i] > 0) {
+                                    program.uniform('uDrawId', i);
                                     program.offsetAttributes(instanceBuffers, mdbData.baseInstances[i]);
                                     instancedArrays.drawElementsInstanced(glDrawMode, mdbData.counts[i], elementsBuffer._dataType, mdbData.offsets[i], mdbData.instanceCounts[i]);
                                 }
@@ -257,6 +258,7 @@ export function createRenderItem<T extends string>(ctx: WebGLContext, drawMode: 
                         } else {
                             for (let i = 0; i < mdbData.count; ++i) {
                                 if (mdbData.counts[i] > 0) {
+                                    program.uniform('uDrawId', i);
                                     program.offsetAttributes(instanceBuffers, mdbData.baseInstances[i]);
                                     instancedArrays.drawArraysInstanced(glDrawMode, 0, mdbData.counts[i], mdbData.instanceCounts[i]);
                                 }

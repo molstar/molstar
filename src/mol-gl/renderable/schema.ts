@@ -119,6 +119,8 @@ export type RenderableValues = { readonly [k: string]: ValueCell<any> }
 //
 
 export const GlobalUniformSchema = {
+    uDrawId: UniformSpec('i'),
+
     uModel: UniformSpec('m4'),
     uView: UniformSpec('m4'),
     uInvView: UniformSpec('m4'),
