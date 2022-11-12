@@ -127,6 +127,8 @@ export namespace Spheres {
     }
 
     function getStrideOrderedElements(elements: Uint32Array, count: number, strides: number[]) {
+        if (strides.length === 0) return;
+
         const orderedElements = new Uint32Array(count * 6);
         const offsets = [0];
 
@@ -160,6 +162,7 @@ export namespace Spheres {
         overlap: number
         stride: number
     }[]
+
     function areLodLevelsEqual(a: LodLevels, b: LodLevels) {
         if (a.length !== b.length) return false;
         for (let i = 0, il = a.length; i < il; ++i) {
@@ -169,6 +172,19 @@ export namespace Spheres {
             if (a[i].stride !== b[i].stride) return false;
         }
         return true;
+    }
+
+    type LodLevelsValue = [minDistance: number, maxDistance: number, overlap: number, count: number, sizeFactor: number, stride: number][];
+
+    function getLodLevelsValue(prop: LodLevels, offsets: number[]): LodLevelsValue {
+        return prop.map((l, i) => [
+            l.minDistance,
+            l.maxDistance,
+            l.overlap,
+            offsets[offsets.length - 1 - i],
+            Math.cbrt(l.stride),
+            l.stride,
+        ]);
     }
 
     export const Params = {
@@ -187,12 +203,7 @@ export namespace Spheres {
             stride: PD.Numeric(0),
         }, o => `${o.stride}`, {
             ...BaseGeometry.CullingLodCategory,
-            defaultValue: [{
-                minDistance: 0,
-                maxDistance: 0,
-                overlap: 0,
-                stride: 0
-            }]
+            defaultValue: [] as LodLevels
         })
     };
     export type Params = typeof Params
@@ -249,15 +260,7 @@ export namespace Spheres {
 
         const strides = props.lodLevels.map(l => l.stride).reverse();
         const ordered = getStrideOrderedElements(spheres.indexBuffer.ref.value, spheres.sphereCount, strides);
-        const lodLevels = props.lodLevels.map((l, i) => [
-            l.minDistance,
-            l.maxDistance,
-            l.overlap,
-            ordered.offsets[ordered.offsets.length - 1 - i],
-            Math.cbrt(l.stride),
-            l.stride,
-        ]);
-        // console.log({ ordered, lodLevels })
+        const lodLevels = ordered ? getLodLevelsValue(props.lodLevels, ordered.offsets) : [];
 
         return {
             dGeometryType: ValueCell.create('spheres'),
@@ -265,7 +268,7 @@ export namespace Spheres {
             aPosition: spheres.centerBuffer,
             aMapping: spheres.mappingBuffer,
             aGroup: spheres.groupBuffer,
-            elements: ValueCell.create(ordered.elements),
+            elements: ValueCell.create(ordered ? ordered.elements : spheres.indexBuffer.ref.value),
             boundingSphere: ValueCell.create(boundingSphere),
             invariantBoundingSphere: ValueCell.create(invariantBoundingSphere),
             uInvariantBoundingSphere: ValueCell.create(Vec4.ofSphere(invariantBoundingSphere)),
@@ -300,7 +303,6 @@ export namespace Spheres {
         return createValues(spheres, s.transform, s.locationIterator, s.theme, p);
     }
 
-    type LodLevelValue = [minDistance: number, maxDistance: number, overlap: number, count: number, sizeFactor: number, stride: number][];
     function updateValues(values: SpheresValues, props: PD.Values<Params>) {
         BaseGeometry.updateValues(values, props);
         ValueCell.updateIfChanged(values.uSizeFactor, props.sizeFactor);
@@ -311,7 +313,7 @@ export namespace Spheres {
         ValueCell.updateIfChanged(values.uBumpFrequency, props.bumpFrequency);
         ValueCell.updateIfChanged(values.uBumpAmplitude, props.bumpAmplitude);
 
-        const lodLevels: LodLevels = (values.lodLevels.ref.value as LodLevelValue).map(l => ({
+        const lodLevels: LodLevels = (values.lodLevels.ref.value as LodLevelsValue).map(l => ({
             minDistance: l[0],
             maxDistance: l[1],
             overlap: l[2],
@@ -320,16 +322,9 @@ export namespace Spheres {
         if (!areLodLevelsEqual(props.lodLevels, lodLevels)) {
             const strides = props.lodLevels.map(l => l.stride).reverse();
             const ordered = getStrideOrderedElements(values.indexBuffer.ref.value, values.uVertexCount.ref.value / 4, strides);
-            const lodLevels = props.lodLevels.map((l, i) => [
-                l.minDistance,
-                l.maxDistance,
-                l.overlap,
-                ordered.offsets[ordered.offsets.length - 1 - i],
-                Math.cbrt(l.stride),
-                l.stride,
-            ]);
+            const lodLevels = ordered ? getLodLevelsValue(props.lodLevels, ordered.offsets) : [];
             // console.log(lodLevels);
-            ValueCell.update(values.elements, ordered.elements);
+            ValueCell.update(values.elements, ordered ? ordered.elements : values.indexBuffer.ref.value);
             ValueCell.update(values.lodLevels, lodLevels);
         }
     }

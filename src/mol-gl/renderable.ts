@@ -71,6 +71,7 @@ export function createRenderable<T extends GraphicsRenderableValues>(renderItem:
     let mdbData = getMdbData(0);
     const mdbDataList: MultiDrawBaseData[] = [];
     let cullEnabled = false;
+    let lodLevelsVersion = -1;
 
     const s = Sphere3D();
 
@@ -93,16 +94,21 @@ export function createRenderable<T extends GraphicsRenderableValues>(renderItem:
 
             const lodLevels: [minDistance: number, maxDistance: number, overlap: number, count: number, sizeFactor: number][] | undefined = values.lodLevels?.ref.value;
 
-            if (lodLevels) {
+            if (lodLevels && lodLevels.length > 0) {
                 mdbDataList.length = lodLevels.length;
                 for (let i = 0, il = lodLevels.length; i < il; ++i) {
                     mdbDataList[i] = getMdbData(cellCount, mdbDataList[i]);
                     mdbDataList[i].count = 0;
-                    if (mdbDataList[i].uniforms.length !== 1) {
-                        mdbDataList[i].uniforms.length = 1;
-                        mdbDataList[i].uniforms[0] = ['uLod', ValueCell.create(Vec4())];
+                }
+                if (values.lodLevels.ref.version !== lodLevelsVersion) {
+                    for (let i = 0, il = lodLevels.length; i < il; ++i) {
+                        if (mdbDataList[i].uniforms.length !== 1) {
+                            mdbDataList[i].uniforms.length = 1;
+                            mdbDataList[i].uniforms[0] = ['uLod', ValueCell.create(Vec4())];
+                        }
+                        ValueCell.update(mdbDataList[i].uniforms[0][1], Vec4.set(mdbDataList[i].uniforms[0][1].ref.value as Vec4, lodLevels[i][0], lodLevels[i][1], lodLevels[i][2], lodLevels[i][4]));
                     }
-                    ValueCell.update(mdbDataList[i].uniforms[0][1], Vec4.set(mdbDataList[i].uniforms[0][1].ref.value as Vec4, lodLevels[i][0], lodLevels[i][1], lodLevels[i][2], lodLevels[i][4]));
+                    lodLevelsVersion = values.lodLevels.ref.version;
                 }
 
                 for (let i = 0; i < cellCount; ++i) {
@@ -168,6 +174,7 @@ export function createRenderable<T extends GraphicsRenderableValues>(renderItem:
                 mdbData.count = o;
                 mdbDataList.length = 1;
                 mdbDataList[0] = mdbData;
+                mdbDataList[0].uniforms.length = 0;
             }
 
             // console.log({

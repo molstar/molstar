@@ -267,7 +267,7 @@ namespace Renderer {
                 if (d - radius > maxDistance) return;
             }
 
-            if (r.values.instanceGrid.ref.value.cellSize > 0) {
+            if (r.values.instanceGrid.ref.value.cellSize > 1 || r.values.lodLevels) {
                 r.cull(cameraPlane, frustum);
             } else {
                 r.uncull();

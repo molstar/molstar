@@ -86,7 +86,7 @@ void main(void){
     vModelPosition = (uModel * aTransform * position4).xyz; // for clipping in frag shader
 
     float d;
-    if (uLod.x != 0.0 && uLod.y != 0.0) {
+    if (uLod.x != 0.0 || uLod.y != 0.0) {
         d = dot(uCameraPlane.xyz, vModelPosition) + uCameraPlane.w;
         float f = smoothstep(uLod.x - uLod.z, uLod.x, d) * uLod.w;
         vRadius *= f;
@@ -103,7 +103,7 @@ void main(void){
     vPoint = vPoint4.xyz / vPoint4.w;
     vPointViewPosition = -mvPosition.xyz / mvPosition.w;
 
-    if (uLod.x != 0.0 && uLod.y != 0.0) {
+    if (uLod.x != 0.0 || uLod.y != 0.0) {
         if (d < (uLod.x - uLod.z) || d > uLod.y) {
             // move out of [ -w, +w ] to 'discard' in vert shader
             gl_Position.z = 2.0 * gl_Position.w;
