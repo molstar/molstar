@@ -20,6 +20,7 @@ import { InterUnitGraph } from '../../../../../mol-math/graph/inter-unit-graph';
 import { StructConn } from '../../../../../mol-model-formats/structure/property/bonds/struct_conn';
 import { equalEps } from '../../../../../mol-math/linear-algebra/3d/common';
 import { Model } from '../../../model';
+import { sortedCantorPairing } from '../../../../../mol-data/util';
 
 // avoiding namespace lookup improved performance in Chrome (Aug 2020)
 const v3distance = Vec3.distance;
@@ -71,6 +72,7 @@ function findPairBonds(unitA: Unit.Atomic, unitB: Unit.Atomic, props: BondComput
     const testDistanceSq = (bRadius + maxRadius) * (bRadius + maxRadius);
 
     builder.startUnitPair(unitA.id, unitB.id);
+    const opPairKey = sortedCantorPairing(unitA.conformation.operator.key, unitB.conformation.operator.key);
 
     for (let _aI = 0 as StructureElement.UnitIndex; _aI < atomCount; _aI++) {
         const aI = atomsA[_aI];
@@ -80,7 +82,7 @@ function findPairBonds(unitA: Unit.Atomic, unitB: Unit.Atomic, props: BondComput
 
         if (!props.forceCompute && indexPairs) {
             const { maxDistance } = indexPairs;
-            const { offset, b, edgeProps: { order, distance, flag, key } } = indexPairs.bonds;
+            const { offset, b, edgeProps: { order, distance, flag, key, operator } } = indexPairs.bonds;
 
             const srcA = sourceIndex.value(aI);
             const aeI = getElementIdx(type_symbolA.value(aI));
@@ -89,6 +91,9 @@ function findPairBonds(unitA: Unit.Atomic, unitB: Unit.Atomic, props: BondComput
 
                 const _bI = SortedArray.indexOf(unitB.elements, bI) as StructureElement.UnitIndex;
                 if (_bI < 0) continue;
+
+                const op = operator[i];
+                if (op >= 0 && opPairKey !== op) continue;
 
                 const beI = getElementIdx(type_symbolA.value(bI));
 

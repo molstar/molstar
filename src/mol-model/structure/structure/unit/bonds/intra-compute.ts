@@ -20,6 +20,7 @@ import { Vec3 } from '../../../../../mol-math/linear-algebra';
 import { ElementIndex } from '../../../model/indexing';
 import { equalEps } from '../../../../../mol-math/linear-algebra/3d/common';
 import { Model } from '../../../model/model';
+import { sortedCantorPairing } from '../../../../../mol-data/util';
 
 // avoiding namespace lookup improved performance in Chrome (Aug 2020)
 const v3distance = Vec3.distance;
@@ -55,7 +56,7 @@ function findIndexPairBonds(unit: Unit.Atomic) {
     const { type_symbol } = unit.model.atomicHierarchy.atoms;
     const atomCount = unit.elements.length;
     const { maxDistance } = indexPairs;
-    const { offset, b, edgeProps: { order, distance, flag, key } } = indexPairs.bonds;
+    const { offset, b, edgeProps: { order, distance, flag, key, operator } } = indexPairs.bonds;
 
     const { atomSourceIndex: sourceIndex } = unit.model.atomicHierarchy;
     const { invertedIndex } = Model.getInvertedAtomSourceIndex(unit.model);
@@ -65,6 +66,8 @@ function findIndexPairBonds(unit: Unit.Atomic) {
     const flags: number[] = [];
     const orders: number[] = [];
     const keys: number[] = [];
+
+    const opPairKey = sortedCantorPairing(unit.conformation.operator.key, unit.conformation.operator.key);
 
     for (let _aI = 0 as StructureElement.UnitIndex; _aI < atomCount; _aI++) {
         const aI = atoms[_aI];
@@ -79,6 +82,9 @@ function findIndexPairBonds(unit: Unit.Atomic) {
 
             const _bI = SortedArray.indexOf(unit.elements, bI) as StructureElement.UnitIndex;
             if (_bI < 0) continue;
+
+            const op = operator[i];
+            if (op >= 0 && opPairKey !== op) continue;
 
             const beI = getElementIdx(type_symbol.value(bI));
 
