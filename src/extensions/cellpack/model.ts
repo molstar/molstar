@@ -551,7 +551,7 @@ async function loadPackings(plugin: PluginContext, runtime: RuntimeContext, stat
 }
 
 const LoadCellPackModelParams = {
-    source: PD.MappedStatic('id', {
+    source: PD.MappedStatic('cif', {
         id: PD.Select('InfluenzaModel2.json', [
             ['blood_hiv_immature_inside.json', 'Blood HIV immature'],
             ['HIV_immature_model.json', 'HIV immature'],
@@ -565,15 +565,15 @@ const LoadCellPackModelParams = {
         file: PD.File({ accept: '.json,.cpr,.zip', description: 'Open model definition from .json/.cpr file or open .zip file containing model definition plus ingredients.', label: 'Recipe file' }),
         cif: PD.File({ accept: '.cif,.bcif', description: 'CellPack-style cif file.', label: 'CellPack CIF' }),
     }),
-    baseUrl: PD.Text(DefaultCellPackBaseUrl),
-    results: PD.File({ accept: '.bin', description: 'open results file in binary format from cellpackgpu for the specified recipe', label: 'Results file' }),
-    membrane: PD.Select('lipids', PD.arrayToOptions(['lipids', 'geometry', 'none'])),
-    ingredients: PD.FileList({ accept: '.cif,.bcif,.pdb', label: 'Ingredient files' }),
+    baseUrl: PD.Text(DefaultCellPackBaseUrl, { hideIf: g => g.source.name === 'cif' }),
+    results: PD.File({ accept: '.bin', description: 'open results file in binary format from cellpackgpu for the specified recipe', label: 'Results file', hideIf: g => g.source.name === 'cif' }),
+    membrane: PD.Select('lipids', PD.arrayToOptions(['lipids', 'geometry', 'none']), { hideIf: g => g.source.name === 'cif' }),
+    ingredients: PD.FileList({ accept: '.cif,.bcif,.pdb', label: 'Ingredient files', hideIf: g => g.source.name === 'cif' }),
     preset: PD.Group({
         traceOnly: PD.Boolean(false),
         adjustStyle: PD.Boolean(true),
         representation: PD.Select('spacefill', PD.arrayToOptions(['spacefill', 'gaussian-surface', 'point', 'orientation'] as const))
-    }, { isExpanded: true })
+    }, { isExpanded: true, hideIf: g => g.source.name === 'cif' })
 };
 type LoadCellPackModelParams = PD.Values<typeof LoadCellPackModelParams>
 

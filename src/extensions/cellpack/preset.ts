@@ -11,6 +11,8 @@ import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { ColorNames } from '../../mol-util/color/names';
 import { CellPackGenerateColorThemeProvider } from './color/generate';
 import { TrajectoryHierarchyPresetProvider } from '../../mol-plugin-state/builder/structure/hierarchy-preset';
+import { CellPackInfoProvider } from './property';
+import { CellPackColorThemeProvider } from './color/basic';
 
 export const CellpackPackingPresetParams = {
     traceOnly: PD.Boolean(false),
@@ -49,7 +51,7 @@ export const CellpackPackingPreset = StructureRepresentationPresetProvider({
             };
 
             // default is generated
-            const color = CellPackGenerateColorThemeProvider.name;
+            const color = (structureCell.obj && CellPackInfoProvider.get(structureCell.obj.data).value) ? CellPackGenerateColorThemeProvider.name : CellPackColorThemeProvider.name;
 
             const { update, builder, typeParams } = StructureRepresentationPresetProvider.reprBuilder(plugin, {});
             const representations = {
