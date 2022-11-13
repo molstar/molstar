@@ -39,6 +39,7 @@ uniform float uBumpiness;
             uniform vec4 uOverpaintGridTransform;
             uniform sampler2D tOverpaintGrid;
         #endif
+        uniform float uOverpaintStrength;
     #endif
 
     #ifdef dSubstance
@@ -53,6 +54,7 @@ uniform float uBumpiness;
             uniform vec4 uSubstanceGridTransform;
             uniform sampler2D tSubstanceGrid;
         #endif
+        uniform float uSubstanceStrength;
     #endif
 #elif defined(dRenderVariant_pick)
     #if __VERSION__ == 100 || !defined(dVaryingGroup)
@@ -86,5 +88,6 @@ uniform float uBumpiness;
         uniform vec4 uTransparencyGridTransform;
         uniform sampler2D tTransparencyGrid;
     #endif
+    uniform float uTransparencyStrength;
 #endif
 `;

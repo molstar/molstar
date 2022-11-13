@@ -252,6 +252,9 @@ export function VolumeVisual<G extends Geometry, P extends VolumeParams & Geomet
         setClipping(clipping: Clipping) {
             return Visual.setClipping(renderObject, clipping, lociApply, true);
         },
+        setThemeStrength(strength: { overpaint: number, transparency: number, substance: number }) {
+            Visual.setThemeStrength(renderObject, strength);
+        },
         destroy() {
             dispose?.(geometry);
             if (renderObject) {
