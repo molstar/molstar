@@ -113,8 +113,7 @@ export class CameraManager {
         const radius = Math.max(sphere.radius + extraRadius, minRadius);
 
         if (options?.principalAxes) {
-            const newPrincipalAxes = pcaFocus(this.plugin, options, positionToFlip);
-            const { origin, dirA, dirC } = newPrincipalAxes;
+            const { origin, dirA, dirC } = pcaFocus(this.plugin, options, positionToFlip);
             const snapshot = this.plugin.canvas3d?.camera.getFocus(origin, radius, dirA, dirC);
             this.plugin.canvas3d?.requestCameraReset({ durationMs, snapshot });
             // this.plugin.canvas3d?.camera.focus(origin, radius, durationMs, dirA, dirC);
