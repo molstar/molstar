@@ -6,6 +6,8 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+## [v3.24.0] - 2022-11-13
+
 - Make `PluginContext.initContainer` checkered canvas background optional
 - Store URL of downloaded assets to detect zip/gzip based on extension
 - Add optional `operator.key`; can be referenced in `IndexPairBonds`
