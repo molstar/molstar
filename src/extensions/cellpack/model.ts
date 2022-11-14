@@ -595,7 +595,7 @@ export const LoadCellPackModel = StateAction.build({
             cameraClipping: { far: false },
             renderer: { colorMarker: false },
             marking: {
-                enabled: true,
+                enabled: false,
                 ghostEdgeStrength: 1,
             },
             postprocessing: {
