@@ -127,6 +127,7 @@ export function ComplexRepresentation<P extends StructureParams>(label: string, 
             const remappedClipping = Clipping.remap(state.clipping, _structure);
             visual.setClipping(remappedClipping);
         }
+        if (state.themeStrength !== undefined && visual) visual.setThemeStrength(state.themeStrength);
         if (state.transform !== undefined && visual) visual.setTransform(state.transform);
         if (state.unitTransforms !== undefined && visual) {
             // Since ComplexVisuals always renders geometries between units, the application

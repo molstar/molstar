@@ -191,6 +191,8 @@ namespace Representation {
         substance: Substance
         /** Bit mask of per group clipping applied to the representation's renderobjects */
         clipping: Clipping
+        /** Strength of the representations overpaint, transparency, substance*/
+        themeStrength: { overpaint: number, transparency: number, substance: number }
         /** Controls if the representation's renderobjects are synced automatically with GPU or not */
         syncManually: boolean
         /** A transformation applied to the representation's renderobjects */
@@ -199,7 +201,20 @@ namespace Representation {
         markerActions: MarkerActions
     }
     export function createState(): State {
-        return { visible: true, alphaFactor: 1, pickable: true, colorOnly: false, syncManually: false, transform: Mat4.identity(), overpaint: Overpaint.Empty, transparency: Transparency.Empty, substance: Substance.Empty, clipping: Clipping.Empty, markerActions: MarkerActions.All };
+        return {
+            visible: true,
+            alphaFactor: 1,
+            pickable: true,
+            colorOnly: false,
+            syncManually: false,
+            transform: Mat4.identity(),
+            overpaint: Overpaint.Empty,
+            transparency: Transparency.Empty,
+            substance: Substance.Empty,
+            clipping: Clipping.Empty,
+            themeStrength: { overpaint: 1, transparency: 1, substance: 1 },
+            markerActions: MarkerActions.All
+        };
     }
     export function updateState(state: State, update: Partial<State>) {
         if (update.visible !== undefined) state.visible = update.visible;
@@ -210,6 +225,7 @@ namespace Representation {
         if (update.transparency !== undefined) state.transparency = update.transparency;
         if (update.substance !== undefined) state.substance = update.substance;
         if (update.clipping !== undefined) state.clipping = update.clipping;
+        if (update.themeStrength !== undefined) state.themeStrength = update.themeStrength;
         if (update.syncManually !== undefined) state.syncManually = update.syncManually;
         if (update.transform !== undefined) Mat4.copy(state.transform, update.transform);
         if (update.markerActions !== undefined) state.markerActions = update.markerActions;
@@ -432,6 +448,7 @@ namespace Representation {
                 if (state.substance !== undefined) {
                     // TODO
                 }
+                if (state.themeStrength !== undefined) Visual.setThemeStrength(renderObject, state.themeStrength);
                 if (state.transform !== undefined) Visual.setTransform(renderObject, state.transform);
 
                 Representation.updateState(currentState, state);

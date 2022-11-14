@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2021-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -21,6 +21,7 @@ export type SubstanceData = {
     uSubstanceGridDim: ValueCell<Vec3>,
     uSubstanceGridTransform: ValueCell<Vec4>,
     dSubstanceType: ValueCell<string>,
+    uSubstanceStrength: ValueCell<number>,
 }
 
 export function applySubstanceMaterial(array: Uint8Array, start: number, end: number, material: Material) {
@@ -54,6 +55,7 @@ export function createSubstance(count: number, type: SubstanceType, substanceDat
             uSubstanceGridDim: ValueCell.create(Vec3.create(1, 1, 1)),
             uSubstanceGridTransform: ValueCell.create(Vec4.create(0, 0, 0, 1)),
             dSubstanceType: ValueCell.create(type),
+            uSubstanceStrength: ValueCell.create(1),
         };
     }
 }
@@ -74,6 +76,7 @@ export function createEmptySubstance(substanceData?: SubstanceData): SubstanceDa
             uSubstanceGridDim: ValueCell.create(Vec3.create(1, 1, 1)),
             uSubstanceGridTransform: ValueCell.create(Vec4.create(0, 0, 0, 1)),
             dSubstanceType: ValueCell.create('groupInstance'),
+            uSubstanceStrength: ValueCell.create(1),
         };
     }
 }
