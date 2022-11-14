@@ -8,17 +8,18 @@ Note that since we don't clearly distinguish between a public and private interf
 
 - Make `PluginContext.initContainer` checkered canvas background optional
 - Store URL of downloaded assets to detect zip/gzip based on extension
+- Add optional `operator.key`; can be referenced in `IndexPairBonds`
 
 ## [v3.23.0] - 2022-10-19
 
 - Add `PluginContext.initContainer/mount/unmount` methods; these should make it easier to reuse a plugin context with both custom and built-in UI
 - Add `PluginContext.canvas3dInitialized`
 - `createPluginUI` now resolves after the 3d canvas has been initialized
-- Change EM Volume Streaming default from `Whote Structure` to `Auto`
+- Change EM Volume Streaming default from `Whole Structure` to `Auto`
 
 ## [v3.22.0] - 2022-10-17
 
-- Replace `VolumeIsosurfaceParams.pickingGranularity` param with `Volume.PickingGranuality` 
+- Replace `VolumeIsosurfaceParams.pickingGranularity` param with `Volume.PickingGranuality`
 
 ## [v3.21.0] - 2022-10-17
 
