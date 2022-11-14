@@ -6,10 +6,12 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Fix handling of gzipped assets (reverts #615)
+
 ## [v3.24.0] - 2022-11-13
 
 - Make `PluginContext.initContainer` checkered canvas background optional
-- Store URL of downloaded assets to detect zip/gzip based on extension
+- Store URL of downloaded assets to detect zip/gzip based on extension (#615)
 - Add optional `operator.key`; can be referenced in `IndexPairBonds`
 - Add overpaint/transparency/substance theme strength to representations
 - Fix viewport color for transparent background
