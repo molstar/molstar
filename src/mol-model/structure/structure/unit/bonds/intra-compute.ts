@@ -55,7 +55,7 @@ function findIndexPairBonds(unit: Unit.Atomic) {
     const { type_symbol } = unit.model.atomicHierarchy.atoms;
     const atomCount = unit.elements.length;
     const { maxDistance } = indexPairs;
-    const { offset, b, edgeProps: { order, distance, flag, key } } = indexPairs.bonds;
+    const { offset, b, edgeProps: { order, distance, flag, key, operatorA, operatorB } } = indexPairs.bonds;
 
     const { atomSourceIndex: sourceIndex } = unit.model.atomicHierarchy;
     const { invertedIndex } = Model.getInvertedAtomSourceIndex(unit.model);
@@ -65,6 +65,8 @@ function findIndexPairBonds(unit: Unit.Atomic) {
     const flags: number[] = [];
     const orders: number[] = [];
     const keys: number[] = [];
+
+    const opKey = unit.conformation.operator.key;
 
     for (let _aI = 0 as StructureElement.UnitIndex; _aI < atomCount; _aI++) {
         const aI = atoms[_aI];
@@ -79,6 +81,10 @@ function findIndexPairBonds(unit: Unit.Atomic) {
 
             const _bI = SortedArray.indexOf(unit.elements, bI) as StructureElement.UnitIndex;
             if (_bI < 0) continue;
+
+            const opA = operatorA[i];
+            const opB = operatorB[i];
+            if ((opA >= 0 && opA !== opKey) || (opB >= 0 && opB !== opKey)) continue;
 
             const beI = getElementIdx(type_symbol.value(bI));
 

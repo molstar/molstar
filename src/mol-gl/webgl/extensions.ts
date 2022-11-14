@@ -4,14 +4,14 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { GLRenderingContext, COMPAT_instanced_arrays, COMPAT_standard_derivatives, COMPAT_vertex_array_object, getInstancedArrays, getStandardDerivatives, COMPAT_element_index_uint, getElementIndexUint, COMPAT_texture_float, getTextureFloat, COMPAT_texture_float_linear, getTextureFloatLinear, COMPAT_blend_minmax, getBlendMinMax, getFragDepth, COMPAT_frag_depth, COMPAT_color_buffer_float, getColorBufferFloat, COMPAT_draw_buffers, getDrawBuffers, getShaderTextureLod, COMPAT_shader_texture_lod, getDepthTexture, COMPAT_depth_texture, COMPAT_sRGB, getSRGB, getTextureHalfFloat, getTextureHalfFloatLinear, COMPAT_texture_half_float, COMPAT_texture_half_float_linear, COMPAT_color_buffer_half_float, getColorBufferHalfFloat, getVertexArrayObject, getDisjointTimerQuery, COMPAT_disjoint_timer_query, getNoNonInstancedActiveAttribs } from './compat';
+import { GLRenderingContext, COMPAT_instanced_arrays, COMPAT_standard_derivatives, COMPAT_vertex_array_object, getInstancedArrays, getStandardDerivatives, COMPAT_element_index_uint, getElementIndexUint, COMPAT_texture_float, getTextureFloat, COMPAT_texture_float_linear, getTextureFloatLinear, COMPAT_blend_minmax, getBlendMinMax, getFragDepth, COMPAT_frag_depth, COMPAT_color_buffer_float, getColorBufferFloat, COMPAT_draw_buffers, getDrawBuffers, getShaderTextureLod, COMPAT_shader_texture_lod, getDepthTexture, COMPAT_depth_texture, COMPAT_sRGB, getSRGB, getTextureHalfFloat, getTextureHalfFloatLinear, COMPAT_texture_half_float, COMPAT_texture_half_float_linear, COMPAT_color_buffer_half_float, getColorBufferHalfFloat, getVertexArrayObject, getDisjointTimerQuery, COMPAT_disjoint_timer_query, getNoNonInstancedActiveAttribs, getDrawBuffersIndexed, COMPAT_draw_buffers_indexed, getParallelShaderCompile, COMPAT_parallel_shader_compile, getFboRenderMipmap, COMPAT_fboRenderMipmap } from './compat';
 import { isDebugMode } from '../../mol-util/debug';
 
 export type WebGLExtensions = {
     instancedArrays: COMPAT_instanced_arrays
     elementIndexUint: COMPAT_element_index_uint
+    standardDerivatives: COMPAT_standard_derivatives
 
-    standardDerivatives: COMPAT_standard_derivatives | null
     textureFloat: COMPAT_texture_float | null
     textureFloatLinear: COMPAT_texture_float_linear | null
     textureHalfFloat: COMPAT_texture_half_float | null
@@ -23,9 +23,12 @@ export type WebGLExtensions = {
     colorBufferFloat: COMPAT_color_buffer_float | null
     colorBufferHalfFloat: COMPAT_color_buffer_half_float | null
     drawBuffers: COMPAT_draw_buffers | null
+    drawBuffersIndexed: COMPAT_draw_buffers_indexed | null
     shaderTextureLod: COMPAT_shader_texture_lod | null
     sRGB: COMPAT_sRGB | null
     disjointTimerQuery: COMPAT_disjoint_timer_query | null
+    parallelShaderCompile: COMPAT_parallel_shader_compile | null
+    fboRenderMipmap: COMPAT_fboRenderMipmap | null
 
     noNonInstancedActiveAttribs: boolean
 }
@@ -94,6 +97,10 @@ export function createExtensions(gl: GLRenderingContext): WebGLExtensions {
     if (isDebugMode && drawBuffers === null) {
         console.log('Could not find support for "draw_buffers"');
     }
+    const drawBuffersIndexed = getDrawBuffersIndexed(gl);
+    if (isDebugMode && drawBuffersIndexed === null) {
+        console.log('Could not find support for "draw_buffers_indexed"');
+    }
     const shaderTextureLod = getShaderTextureLod(gl);
     if (isDebugMode && shaderTextureLod === null) {
         console.log('Could not find support for "shader_texture_lod"');
@@ -106,28 +113,39 @@ export function createExtensions(gl: GLRenderingContext): WebGLExtensions {
     if (isDebugMode && disjointTimerQuery === null) {
         console.log('Could not find support for "disjoint_timer_query"');
     }
+    const parallelShaderCompile = getParallelShaderCompile(gl);
+    if (isDebugMode && parallelShaderCompile === null) {
+        console.log('Could not find support for "parallel_shader_compile"');
+    }
+    const fboRenderMipmap = getFboRenderMipmap(gl);
+    if (isDebugMode && fboRenderMipmap === null) {
+        console.log('Could not find support for "fbo_render_mipmap"');
+    }
 
     const noNonInstancedActiveAttribs = getNoNonInstancedActiveAttribs(gl);
 
     return {
         instancedArrays,
         standardDerivatives,
+        elementIndexUint,
+
         textureFloat,
         textureFloatLinear,
         textureHalfFloat,
         textureHalfFloatLinear,
-        elementIndexUint,
         depthTexture,
-
         blendMinMax,
         vertexArrayObject,
         fragDepth,
         colorBufferFloat,
         colorBufferHalfFloat,
         drawBuffers,
+        drawBuffersIndexed,
         shaderTextureLod,
         sRGB,
         disjointTimerQuery,
+        parallelShaderCompile,
+        fboRenderMipmap,
 
         noNonInstancedActiveAttribs,
     };

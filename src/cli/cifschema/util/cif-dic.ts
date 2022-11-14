@@ -71,6 +71,7 @@ export function getFieldType(type: string, description: string, values?: string[
         case 'ec-type':
         case 'ucode-alphanum-csv':
         case 'id_list':
+        case 'entity_id_list':
             return ListCol('str', ',', description);
         case 'id_list_spc':
             return ListCol('str', ' ', description);

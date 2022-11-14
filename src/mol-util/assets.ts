@@ -100,7 +100,7 @@ class AssetManager {
                 }
 
                 const data = await ajaxGet({ ...asset, type: 'binary' }).runInContext(ctx);
-                const file = new File([data], 'raw-data');
+                const file = new File([data], asset.url);
                 this._assets.set(asset.id, { asset, file, refCount: 1 });
                 return Asset.Wrapper(await readFromFile(file, type).runInContext(ctx), asset, this);
             });
