@@ -21,6 +21,7 @@ export type TransparencyData = {
     uTransparencyGridDim: ValueCell<Vec3>,
     uTransparencyGridTransform: ValueCell<Vec4>,
     dTransparencyType: ValueCell<string>,
+    uTransparencyStrength: ValueCell<number>,
 }
 
 export function applyTransparencyValue(array: Uint8Array, start: number, end: number, value: number) {
@@ -63,6 +64,7 @@ export function createTransparency(count: number, type: TransparencyType, transp
             uTransparencyGridDim: ValueCell.create(Vec3.create(1, 1, 1)),
             uTransparencyGridTransform: ValueCell.create(Vec4.create(0, 0, 0, 1)),
             dTransparencyType: ValueCell.create(type),
+            uTransparencyStrength: ValueCell.create(1),
         };
     }
 }
@@ -84,6 +86,7 @@ export function createEmptyTransparency(transparencyData?: TransparencyData): Tr
             uTransparencyGridDim: ValueCell.create(Vec3.create(1, 1, 1)),
             uTransparencyGridTransform: ValueCell.create(Vec4.create(0, 0, 0, 1)),
             dTransparencyType: ValueCell.create('groupInstance'),
+            uTransparencyStrength: ValueCell.create(1),
         };
     }
 }

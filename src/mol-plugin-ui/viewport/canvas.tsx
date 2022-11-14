@@ -38,7 +38,7 @@ export class ViewportCanvas extends PluginUIComponent<ViewportCanvasParams, View
     };
 
     componentDidMount() {
-        if (!this.container.current || !this.plugin.mount(this.container.current!)) {
+        if (!this.container.current || !this.plugin.mount(this.container.current!, { checkeredCanvasBackground: true })) {
             this.setState({ noWebGl: true });
             return;
         }

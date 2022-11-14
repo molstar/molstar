@@ -19,6 +19,9 @@ export function isWebGL2(gl: any): gl is WebGL2RenderingContext {
     return typeof WebGL2RenderingContext !== 'undefined' && gl instanceof WebGL2RenderingContext;
 }
 
+/**
+ * See https://registry.khronos.org/webgl/extensions/ANGLE_instanced_arrays/
+ */
 export interface COMPAT_instanced_arrays {
     /**
      * Renders primitives from array data like the `drawArrays` method. In addition, it can execute multiple instances of the range of elements.
@@ -66,6 +69,9 @@ export function getInstancedArrays(gl: GLRenderingContext): COMPAT_instanced_arr
     }
 }
 
+/**
+ * See https://registry.khronos.org/webgl/extensions/OES_standard_derivatives/
+ */
 export interface COMPAT_standard_derivatives {
     readonly FRAGMENT_SHADER_DERIVATIVE_HINT: number;
 }
@@ -80,6 +86,9 @@ export function getStandardDerivatives(gl: GLRenderingContext): COMPAT_standard_
     }
 }
 
+/**
+ * See https://registry.khronos.org/webgl/extensions/OES_element_index_uint/
+ */
 export interface COMPAT_element_index_uint {
 }
 
@@ -87,6 +96,9 @@ export function getElementIndexUint(gl: GLRenderingContext): COMPAT_element_inde
     return isWebGL2(gl) ? {} : gl.getExtension('OES_element_index_uint');
 }
 
+/**
+ * See https://registry.khronos.org/webgl/extensions/OES_vertex_array_object/
+ */
 export interface COMPAT_vertex_array_object {
     readonly VERTEX_ARRAY_BINDING: number;
     bindVertexArray(arrayObject: WebGLVertexArrayObject | null): void;
@@ -152,6 +164,9 @@ export function getTextureHalfFloatLinear(gl: GLRenderingContext): COMPAT_textur
     return gl.getExtension('OES_texture_half_float_linear');
 }
 
+/**
+ * See https://registry.khronos.org/webgl/extensions/EXT_blend_minmax/
+ */
 export interface COMPAT_blend_minmax {
     readonly MIN: number
     readonly MAX: number
@@ -167,6 +182,9 @@ export function getBlendMinMax(gl: GLRenderingContext): COMPAT_blend_minmax | nu
     }
 }
 
+/**
+ * See https://registry.khronos.org/webgl/extensions/EXT_frag_depth/
+ */
 export interface COMPAT_frag_depth {
 }
 
@@ -216,6 +234,9 @@ export function getColorBufferHalfFloat(gl: GLRenderingContext): COMPAT_color_bu
     }
 }
 
+/**
+ * See https://registry.khronos.org/webgl/extensions/WEBGL_draw_buffers/
+ */
 export interface COMPAT_draw_buffers {
     drawBuffers(buffers: number[]): void;
     readonly COLOR_ATTACHMENT0: number;
@@ -288,6 +309,73 @@ export function getDrawBuffers(gl: GLRenderingContext): COMPAT_draw_buffers | nu
     }
 }
 
+/**
+ * See https://registry.khronos.org/webgl/extensions/OES_draw_buffers_indexed/
+ */
+export interface COMPAT_draw_buffers_indexed {
+    /**
+     * Enables blending for an individual draw buffer.
+     *
+     * @param target must be BLEND.
+     * @param index is an integer i specifying the draw buffer associated with the symbolic constant DRAW_BUFFERi.
+     */
+    enablei: (target: number, index: number) => void;
+    /**
+     * Disables  blending for an individual draw buffer.
+     *
+     * @param target must be BLEND.
+     * @param index is an integer i specifying the draw buffer associated with the symbolic constant DRAW_BUFFERi.
+     */
+    disablei: (buf: number, mode: number) => void;
+    /**
+     * The buf argument is an integer i that indicates that the blend equations should be modified for DRAW_BUFFERi.
+     *
+     * mode accepts the same tokens as mode in blendEquation.
+     */
+    blendEquationi: (target: number, index: number) => void;
+    /**
+     * The buf argument is an integer i that indicates that the blend equations should be modified for DRAW_BUFFERi.
+     *
+     * modeRGB and modeAlpha accept the same tokens as modeRGB and modeAlpha in blendEquationSeparate.
+     */
+    blendEquationSeparatei: (buf: number, modeRGB: number, modeAlpha: number) => void;
+    /**
+     * The buf argument is an integer i that indicates that the blend functions should be modified for DRAW_BUFFERi.
+     *
+     * src and dst accept the same tokens as src and dst in blendFunc.
+     */
+    blendFunci: (buf: number, src: number, dst: number) => void;
+    /**
+     * The buf argument is an integer i that indicates that the blend functions should be modified for DRAW_BUFFERi.
+     *
+     * srcRGB, dstRGB, srcAlpha, and dstAlpha accept the same tokens as srcRGB, dstRGB, srcAlpha, and dstAlpha parameters in blendEquationSeparate.
+     */
+    blendFuncSeparatei: (buf: number, srcRGB: number, dstRGB: number, srcAlpha: number, dstAlpha: number) => void;
+    /**
+     * The buf argument is an integer i that indicates that the write mask should be modified for DRAW_BUFFERi.
+     *
+     * r, g, b, and a indicate whether R, G, B, or A values, respectively, are written or not (a value of TRUE means that the corresponding value is written).
+     */
+    colorMaski: (buf: number, r: boolean, g: boolean, b: boolean, a: boolean) => void;
+}
+
+export function getDrawBuffersIndexed(gl: GLRenderingContext): COMPAT_draw_buffers_indexed | null {
+    const ext = gl.getExtension('OES_draw_buffers_indexed');
+    if (ext === null) return null;
+    return {
+        enablei: ext.enableiOES.bind(ext),
+        disablei: ext.disableiOES.bind(ext),
+        blendEquationi: ext.blendEquationiOES.bind(ext),
+        blendEquationSeparatei: ext.blendEquationSeparateiOES.bind(ext),
+        blendFunci: ext.blendFunciOES.bind(ext),
+        blendFuncSeparatei: ext.blendFuncSeparateiOES.bind(ext),
+        colorMaski: ext.colorMaskiOES.bind(ext),
+    };
+}
+
+/**
+ * See https://registry.khronos.org/webgl/extensions/EXT_shader_texture_lod/
+ */
 export interface COMPAT_shader_texture_lod {
 }
 
@@ -295,6 +383,9 @@ export function getShaderTextureLod(gl: GLRenderingContext): COMPAT_shader_textu
     return isWebGL2(gl) ? {} : gl.getExtension('EXT_shader_texture_lod');
 }
 
+/**
+ * See https://registry.khronos.org/webgl/extensions/WEBGL_depth_texture/
+ */
 export interface COMPAT_depth_texture {
     readonly UNSIGNED_INT_24_8: number;
 }
@@ -313,6 +404,9 @@ export function getDepthTexture(gl: GLRenderingContext): COMPAT_depth_texture | 
     }
 }
 
+/**
+ * See https://registry.khronos.org/webgl/extensions/EXT_sRGB/
+ */
 export interface COMPAT_sRGB {
     readonly FRAMEBUFFER_ATTACHMENT_COLOR_ENCODING: number;
     readonly SRGB8_ALPHA8: number;
@@ -340,6 +434,9 @@ export function getSRGB(gl: GLRenderingContext): COMPAT_sRGB | null {
     }
 }
 
+/**
+ * See https://registry.khronos.org/webgl/extensions/EXT_disjoint_timer_query/ and https://registry.khronos.org/webgl/extensions/EXT_disjoint_timer_query_webgl2/
+ */
 export interface COMPAT_disjoint_timer_query {
     /** A GLint indicating the number of bits used to hold the query result for the given target. */
     QUERY_COUNTER_BITS: number
@@ -487,6 +584,31 @@ export function getMultiDrawInstancedBaseVertexBaseInstance(gl: GLRenderingConte
     } else {
         return null;
     }
+}
+
+/**
+ * See https://registry.khronos.org/webgl/extensions/KHR_parallel_shader_compile/
+ */
+export interface COMPAT_parallel_shader_compile {
+    readonly COMPLETION_STATUS: number;
+}
+
+export function getParallelShaderCompile(gl: GLRenderingContext): COMPAT_parallel_shader_compile | null {
+    const ext = gl.getExtension('KHR_parallel_shader_compile');
+    if (ext === null) return null;
+    return {
+        COMPLETION_STATUS: ext.COMPLETION_STATUS_KHR,
+    };
+}
+
+/**
+ * See https://registry.khronos.org/webgl/extensions/OES_fbo_render_mipmap/
+ */
+export interface COMPAT_fboRenderMipmap {
+}
+
+export function getFboRenderMipmap(gl: GLRenderingContext): COMPAT_fboRenderMipmap | null {
+    return isWebGL2(gl) ? {} : gl.getExtension('OES_fbo_render_mipmap');
 }
 
 export function getNoNonInstancedActiveAttribs(gl: GLRenderingContext): boolean {
