@@ -6,6 +6,7 @@ import { ParamDefinition } from '../../mol-util/param-definition';
 import { Task } from '../../mol-task';
 
 import { CellStarEntry, CellStarEntryFromRoot, CellStarEntryParams } from './entry-root';
+import { createEntryId } from './helpers';
 
 
 export const CellStar = PluginBehavior.create<{ autoAttach: boolean, showTooltip: boolean }>({
@@ -34,19 +35,13 @@ export const LoadCellStar = StateAction.build({
     params: CellStarEntryParams,
 })(({ params, state }, ctx: PluginContext) => Task.create('CellStar', taskCtx => {
     return state.transaction(async () => {
-        if (params.entryId.trim().length === 0) {
+        if (params.entryNumber.trim().length === 0) {
             throw new Error('Specify Entry ID');
         }
-        console.log('Cell* loading', params.entryId);
+        console.log('Cell* loading', createEntryId(params.source, params.entryNumber));
 
         ctx.behaviors.layout.leftPanelTabName.next('data');
 
-        // const trajectory = await state.build().toRoot()
-        //     .apply(G3DHeaderFromUrl, { url: params.url })
-        //     .apply(G3DTrajectory)
-        //     .commit();
-
-        // await defaultStructure(ctx, { trajectory });
-        state.build().toRoot().apply(CellStarEntryFromRoot, params).commit();
+        await state.build().toRoot().apply(CellStarEntryFromRoot, params).commit();
     }).runInContext(taskCtx);
 }));
