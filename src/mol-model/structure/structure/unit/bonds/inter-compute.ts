@@ -94,7 +94,8 @@ function findPairBonds(unitA: Unit.Atomic, unitB: Unit.Atomic, props: BondComput
 
                 const opA = operatorA[i];
                 const opB = operatorB[i];
-                if ((opA >= 0 && opA !== opKeyA) || (opB >= 0 && opB !== opKeyB)) continue;
+                if ((opA >= 0 && opA !== opKeyA && opA !== opKeyB) ||
+                    (opB >= 0 && opB !== opKeyB && opB !== opKeyA)) continue;
 
                 const beI = getElementIdx(type_symbolA.value(bI));
 
