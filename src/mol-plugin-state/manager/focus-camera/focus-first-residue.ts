@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) 2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author Ke Ma <mark.ma@rcsb.org>
+ */
 import { Structure } from '../../../mol-model/structure';
 import { Vec3 } from '../../..//mol-math/linear-algebra/3d/vec3';
 import { PluginContext } from '../../../mol-plugin/context';

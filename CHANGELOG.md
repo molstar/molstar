@@ -6,6 +6,10 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Change the position of the camera based on the PCA of the structure and the following rules.
+- The first residue should be in first quadrant if there is only one chain
+- The average position of the residues of the first chain should be in the first residue if there are more than one chain.
+
 ## [v3.24.0] - 2022-11-13
 
 - Make `PluginContext.initContainer` checkered canvas background optional
