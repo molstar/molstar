@@ -7,6 +7,7 @@ import { Task } from '../../mol-task';
 
 import { CellStarEntry, CellStarEntryFromRoot, CellStarEntryParams } from './entry-root';
 import { createEntryId } from './helpers';
+import { CellStarUI } from './ui';
 
 
 export const CellStar = PluginBehavior.create<{ autoAttach: boolean, showTooltip: boolean }>({
@@ -20,10 +21,12 @@ export const CellStar = PluginBehavior.create<{ autoAttach: boolean, showTooltip
         register() {
             console.log('Registering CellStar extension behavior');
             this.ctx.state.data.actions.add(LoadCellStar);
+            this.ctx.customStructureControls.set('cellstar', CellStarUI as any);
         }
         unregister() {
             console.log('Unregistering CellStar extension behavior');
             this.ctx.state.data.actions.remove(LoadCellStar);
+            this.ctx.customStructureControls.delete('cellstar');
         }
     }
 });
