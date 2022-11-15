@@ -6,6 +6,8 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+## [v3.25.0] - 2022-11-16
+
 - Fix handling of gzipped assets (reverts #615)
 
 ## [v3.24.0] - 2022-11-13
