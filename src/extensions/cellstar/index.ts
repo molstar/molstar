@@ -45,6 +45,11 @@ export const LoadCellStar = StateAction.build({
 
         ctx.behaviors.layout.leftPanelTabName.next('data');
 
-        await state.build().toRoot().apply(CellStarEntryFromRoot, params).commit();
+        const entryNode = await state.build().toRoot().apply(CellStarEntryFromRoot, params).commit();
+        if (entryNode.data) {
+            entryNode.data.entryRoot = entryNode;
+            await entryNode.data.volumeData.showVolume();
+            await entryNode.data.latticeSegmentationData.showLatticeSegmentation();
+        }
     }).runInContext(taskCtx);
 }));

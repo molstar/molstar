@@ -1,3 +1,7 @@
+import { Volume } from '../../mol-model/volume';
+import { PluginStateObject } from '../../mol-plugin-state/objects';
+import { setSubtreeVisibility } from '../../mol-plugin/behavior/static/state';
+import { StateBuilder, StateObjectSelector, StateTransformer } from '../../mol-state';
 import { ParamDefinition } from '../../mol-util/param-definition';
 
 
@@ -26,7 +30,7 @@ export function createEntryId(source: string, entryNumber: string | number) {
  * export type MyChoiceType = Choice.Values<typeof MyChoice>; // 'yes'|'no'
  * ```
  */
- export class Choice<T extends string, D extends T> {
+export class Choice<T extends string, D extends T> {
     readonly defaultValue: D;
     readonly options: [T, string][];
     private readonly nameDict: { [value in T]: string };
@@ -45,3 +49,86 @@ export function createEntryId(source: string, entryNumber: string | number) {
 export namespace Choice {
     export type Values<T extends Choice<any, any>> = T extends Choice<infer R, any> ? R : any;
 }
+
+
+export function isDefined<T>(x: T | undefined): x is T {
+    return x !== undefined;
+}
+
+
+export class NodeManager {
+    private nodes: { [key: string]: StateObjectSelector };
+
+    constructor() {
+        this.nodes = {};
+    }
+
+    private static nodeExists(node: StateObjectSelector): boolean {
+        try {
+            return node.checkValid();
+        } catch {
+            return false;
+        }
+    }
+
+    public getNode(key: string): StateObjectSelector | undefined {
+        const node = this.nodes[key];
+        if (node && !NodeManager.nodeExists(node)) {
+            delete this.nodes[key];
+            return undefined;
+        }
+        return node;
+    }
+
+    public getNodes(): StateObjectSelector[] {
+        return Object.keys(this.nodes).map(key => this.getNode(key)).filter(node => node) as StateObjectSelector[];
+    }
+
+    public deleteAllNodes(update: StateBuilder.Root) {
+        for (const node of this.getNodes()) {
+            update.delete(node);
+        }
+        this.nodes = {};
+    }
+
+    public hideAllNodes() {
+        for (const node of this.getNodes()) {
+            setSubtreeVisibility(node.state!, node.ref, true);  // hide
+        }
+    }
+
+    public async showNode(key: string, factory: () => StateObjectSelector | Promise<StateObjectSelector>, forceVisible: boolean = true) {
+        console.log('showNode:', key);
+        let node = this.getNode(key);
+        if (node) {
+            console.log('showNode set visible');
+            if (forceVisible) {
+                setSubtreeVisibility(node.state!, node.ref, false);  // show
+            }
+        } else {
+            console.log('showNode create');
+            node = await factory();
+            this.nodes[key] = node;
+        }
+        return node;
+    }
+
+}
+
+
+const CreateTransformer = StateTransformer.builderFactory('cellstar');
+
+export const CreateVolume = CreateTransformer({
+    name: 'create-transformer',
+    from: PluginStateObject.Root,
+    to: PluginStateObject.Volume.Data,
+    params: {
+        label: ParamDefinition.Text('Volume', { isHidden: true }),
+        description: ParamDefinition.Text('', { isHidden: true }),
+        volume: ParamDefinition.Value<Volume>(undefined as any, { isHidden: true }),
+    }
+})({
+    apply({ params }) {
+        return new PluginStateObject.Volume.Data(params.volume, { label: params.label, description: params.description });
+    }
+})

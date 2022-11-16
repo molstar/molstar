@@ -65,12 +65,12 @@ const Extensions = {
     'rcsb-validation-report': PluginSpec.Behavior(RCSBValidationReport),
     'anvil-membrane-orientation': PluginSpec.Behavior(ANVILMembraneOrientation),
     'g3d': PluginSpec.Behavior(G3DFormat),
-    'cellstar': PluginSpec.Behavior(CellStar),
     'model-export': PluginSpec.Behavior(ModelExport),
     'mp4-export': PluginSpec.Behavior(Mp4Export),
     'geo-export': PluginSpec.Behavior(GeometryExport),
     'ma-quality-assessment': PluginSpec.Behavior(MAQualityAssessment),
     'zenodo-import': PluginSpec.Behavior(ZenodoImport),
+    'cellstar': PluginSpec.Behavior(CellStar),
 };
 
 const DefaultViewerOptions = {
