@@ -229,6 +229,7 @@ export const OverpaintSchema = {
     uOverpaintGridTransform: UniformSpec('v4'),
     tOverpaintGrid: TextureSpec('texture', 'rgba', 'ubyte', 'linear'),
     dOverpaintType: DefineSpec('string', ['instance', 'groupInstance', 'volumeInstance']),
+    uOverpaintStrength: UniformSpec('f', 'material'),
 } as const;
 export type OverpaintSchema = typeof OverpaintSchema
 export type OverpaintValues = Values<OverpaintSchema>
@@ -242,7 +243,8 @@ export const TransparencySchema = {
     uTransparencyGridDim: UniformSpec('v3'),
     uTransparencyGridTransform: UniformSpec('v4'),
     tTransparencyGrid: TextureSpec('texture', 'alpha', 'ubyte', 'linear'),
-    dTransparencyType: DefineSpec('string', ['instance', 'groupInstance', 'volumeInstance'])
+    dTransparencyType: DefineSpec('string', ['instance', 'groupInstance', 'volumeInstance']),
+    uTransparencyStrength: UniformSpec('f', 'material'),
 } as const;
 export type TransparencySchema = typeof TransparencySchema
 export type TransparencyValues = Values<TransparencySchema>
@@ -256,6 +258,7 @@ export const SubstanceSchema = {
     uSubstanceGridTransform: UniformSpec('v4'),
     tSubstanceGrid: TextureSpec('texture', 'rgba', 'ubyte', 'linear'),
     dSubstanceType: DefineSpec('string', ['instance', 'groupInstance', 'volumeInstance']),
+    uSubstanceStrength: UniformSpec('f', 'material'),
 } as const;
 export type SubstanceSchema = typeof SubstanceSchema
 export type SubstanceValues = Values<SubstanceSchema>

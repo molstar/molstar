@@ -6,18 +6,28 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+## [v3.25.0] - 2022-11-16
+
+- Fix handling of gzipped assets (reverts #615)
+
+## [v3.24.0] - 2022-11-13
+
 - Make `PluginContext.initContainer` checkered canvas background optional
+- Store URL of downloaded assets to detect zip/gzip based on extension (#615)
+- Add optional `operator.key`; can be referenced in `IndexPairBonds`
+- Add overpaint/transparency/substance theme strength to representations
+- Fix viewport color for transparent background
 
 ## [v3.23.0] - 2022-10-19
 
 - Add `PluginContext.initContainer/mount/unmount` methods; these should make it easier to reuse a plugin context with both custom and built-in UI
 - Add `PluginContext.canvas3dInitialized`
 - `createPluginUI` now resolves after the 3d canvas has been initialized
-- Change EM Volume Streaming default from `Whote Structure` to `Auto`
+- Change EM Volume Streaming default from `Whole Structure` to `Auto`
 
 ## [v3.22.0] - 2022-10-17
 
-- Replace `VolumeIsosurfaceParams.pickingGranularity` param with `Volume.PickingGranuality` 
+- Replace `VolumeIsosurfaceParams.pickingGranularity` param with `Volume.PickingGranuality`
 
 ## [v3.21.0] - 2022-10-17
 

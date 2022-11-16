@@ -42,6 +42,7 @@ export const assign_color_varying = `
         #else
             vOverpaint.rgb = mix(vColor.rgb, vOverpaint.rgb, vOverpaint.a);
         #endif
+        vOverpaint *= uOverpaintStrength;
     #endif
 
     #ifdef dSubstance
@@ -58,6 +59,7 @@ export const assign_color_varying = `
 
         // pre-mix to avoid artifacts due to empty substance
         vSubstance.rgb = mix(vec3(uMetalness, uRoughness, uBumpiness), vSubstance.rgb, vSubstance.a);
+        vSubstance *= uSubstanceStrength;
     #endif
 #elif defined(dRenderVariant_pick)
     #ifdef requiredDrawBuffers
@@ -86,5 +88,6 @@ export const assign_color_varying = `
         vec3 tgridPos = (uTransparencyGridTransform.w * (vModelPosition - uTransparencyGridTransform.xyz)) / uTransparencyGridDim;
         vTransparency = texture3dFrom2dLinear(tTransparencyGrid, tgridPos, uTransparencyGridDim, uTransparencyTexDim).a;
     #endif
+    vTransparency *= uTransparencyStrength;
 #endif
 `;
