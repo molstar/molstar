@@ -58,7 +58,7 @@ export class CellStarEntryData {
 
     private async initialize() {
         this.metadata = await this.api.getMetadata(this.source, this.entryId);
-        this.pdbs = await ExternalAPIs.getPdbIdsForEmdbEntry(this.entryId);
+        this.pdbs = await ExternalAPIs.getPdbIdsForEmdbEntry(this.metadata.grid.general.source_db_id ?? this.entryId);
     }
 
     static async create(plugin: PluginContext, serverUrl: string, source: Source, entryNumber: string) {

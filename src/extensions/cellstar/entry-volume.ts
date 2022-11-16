@@ -23,10 +23,10 @@ export class CellStarVolumeData {
         if (hasVolumes) {
             const url = this.entryData.api.volumeUrl(this.entryData.source, this.entryData.entryId, null, MAX_VOXELS);
             const data = await this.entryData.newUpdate().apply(Download, { url, isBinary: true, label: `Volume Data: ${url}` }).commit();
-            const parsed = await this.entryData.plugin.dataFormats.get('dscif')!.parse(this.entryData.plugin, data, { entryId: this.entryData.entryId });
+            const parsed = await this.entryData.plugin.dataFormats.get('dscif')!.parse(this.entryData.plugin, data);
             const volume: StateObjectSelector<PluginStateObject.Volume.Data> = parsed.volumes?.[0] ?? parsed.volume;
             this.volume = volume.cell!.obj!.data;
-            const isoLevel = await ExternalAPIs.getIsovalue(this.entryData.entryId);;
+            const isoLevel = await ExternalAPIs.getIsovalue(this.entryData.metadata.grid.general.source_db_id ?? this.entryData.entryId);;
             await this.entryData.plugin.build()
                 .to(volume)
                 .apply(StateTransforms.Representation.VolumeRepresentation3D, createVolumeRepresentationParams(this.entryData.plugin, this.volume, {

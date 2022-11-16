@@ -11,6 +11,7 @@ export async function getIsovalue(entryId: string): Promise<{ kind: 'absolute' |
             const contours: any[] = json?.map?.contour_list?.contour;
             if (contours && contours.length > 0) {
                 const theContour = contours.find(c => c.primary) || contours[0];
+                if (theContour.level === undefined) throw new Error('EMDB API response missing contour level.');
                 return { kind: 'absolute', value: theContour.level };
             }
         } catch {

@@ -2,7 +2,9 @@
 export interface Metadata {
     grid: { 
         general: { 
-            details: string ,
+            details: string,
+            source_db_name: string,
+            source_db_id: string,
         },
         volumes: Volumes,
         segmentation_lattices: SegmentationLattices,
