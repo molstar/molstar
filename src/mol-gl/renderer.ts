@@ -54,6 +54,7 @@ export const enum MarkingType {
 interface Renderer {
     readonly stats: RendererStats
     readonly props: Readonly<RendererProps>
+    readonly light: Readonly<Light>
 
     clear: (toBackgroundColor: boolean, ignoreTransparentBackground?: boolean) => void
     clearDepth: (packed?: boolean) => void
@@ -118,7 +119,7 @@ export const RendererParams = {
 };
 export type RendererProps = PD.Values<typeof RendererParams>
 
-type Light = {
+export type Light = {
     count: number
     direction: number[]
     color: number[]
@@ -126,7 +127,7 @@ type Light = {
 
 const tmpDir = Vec3();
 const tmpColor = Vec3();
-function getLight(props: RendererProps['light'], light?: Light): Light {
+export function getLight(props: RendererProps['light'], light?: Light): Light {
     const { direction, color } = light || {
         direction: (new Array(5 * 3)).fill(0),
         color: (new Array(5 * 3)).fill(0),
@@ -826,6 +827,9 @@ namespace Renderer {
                     instanceCount: stats.instanceCount,
                     instancedDrawCount: stats.instancedDrawCount,
                 };
+            },
+            get light(): Light {
+                return light;
             },
             dispose: () => {
                 // TODO

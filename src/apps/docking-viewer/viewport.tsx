@@ -48,7 +48,9 @@ function occlusionStyle(plugin: PluginContext) {
                 blurKernelSize: 15,
                 radius: 5,
                 samples: 32,
-                resolutionScale: 1
+                resolutionScale: 1,
+                shadow: { name: 'off', params: {} },
+                closeAO: { name: 'off', params: {} }
             } },
             outline: { name: 'on', params: {
                 scale: 1.0,

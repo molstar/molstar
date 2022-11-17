@@ -29,6 +29,18 @@ uniform vec2 uOcclusionOffset;
 
 uniform float uMaxPossibleViewZDiff;
 
+#if dLightCount != 0
+    uniform vec3 uLightDirection[dLightCount];
+    uniform vec3 uLightColor[dLightCount];
+#endif
+
+// #pragma unroll_loop_start
+// for (int i = 0; i < dLightCount; ++i) {
+//     uLightDirection[i];
+//     uLightColor[i];
+// }
+// #pragma unroll_loop_end
+
 const vec3 occlusionColor = vec3(0.0);
 
 #include common
