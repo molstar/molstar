@@ -1,9 +1,10 @@
 import { BehaviorSubject } from 'rxjs';
+import { CIF } from '../../mol-io/reader/cif';
 import { Volume } from '../../mol-model/volume';
 import { createVolumeRepresentationParams } from '../../mol-plugin-state/helpers/volume-representation-params';
 import { StateTransforms } from '../../mol-plugin-state/transforms';
-import { Download } from '../../mol-plugin-state/transforms/data';
 import { CreateGroup } from '../../mol-plugin-state/transforms/misc';
+import { Asset } from '../../mol-util/assets';
 import { Color } from '../../mol-util/color';
 
 import { Segment } from './cellstar-api/data';
@@ -12,7 +13,7 @@ import { CreateVolume, NodeManager } from './helpers';
 import { LatticeSegmentation } from './lattice-segmentation';
 
 
-export class CellStarSegmentationData {
+export class CellStarLatticeSegmentationData {
     private entryData: CellStarEntryData;
 
     private segmentation?: LatticeSegmentation;
@@ -23,13 +24,18 @@ export class CellStarSegmentationData {
         this.entryData = rootData;
     }
 
-    async showLatticeSegmentation() {
+    async showSegmentation() {
         const hasLattices = this.entryData.metadata.grid.segmentation_lattices.segmentation_lattice_ids.length > 0;
         if (hasLattices) {
             const url = this.entryData.api.latticeUrl(this.entryData.source, this.entryData.entryId, 0, null, MAX_VOXELS);
-            const data = await this.entryData.newUpdate().apply(Download, { url, isBinary: true, label: `Segmentation Data: ${url}` }).commit();
-            const cif = await this.entryData.plugin.build().to(data).apply(StateTransforms.Data.ParseCif).commit();
-            const latticeBlock = cif.data!.blocks.find(b => b.header === 'SEGMENTATION_DATA');
+
+            const urlAsset = Asset.getUrlAsset(this.entryData.plugin.managers.asset, url);
+            const asset = await this.entryData.plugin.runTask(this.entryData.plugin.managers.asset.resolve(urlAsset, 'binary'));
+            const parsed = await this.entryData.plugin.runTask(CIF.parseBinary(asset.data));
+            if (parsed.isError) {
+                throw new Error(`Failed parsing CIF file from ${url}`);
+            }
+            const latticeBlock = parsed.result.blocks.find(b => b.header === 'SEGMENTATION_DATA');
             if (latticeBlock) {
                 this.segmentation = await LatticeSegmentation.fromCifBlock(latticeBlock);
                 await this.showSegments(this.entryData.metadata.annotation.segment_list);
@@ -42,12 +48,14 @@ export class CellStarSegmentationData {
     /** Make visible the specified set of lattice segments */
     async showSegments(segments: Segment[]) {
         this.currentSegment.next(segments.length === 1 ? segments[0] : undefined);
-
-        const update = this.entryData.newUpdate();
-        const group = await this.entryData.groupNodeMgr.showNode('Segmentation', () => update.apply(CreateGroup, {label: 'Segmentation'}).selector, false);
-
         this.segmentationNodeMgr.hideAllNodes();
 
+        segments = segments.filter(seg => this.segmentation?.hasSegment(seg.id));
+        if (segments.length == 0) return;
+
+        const group = await this.entryData.groupNodeMgr.showNode('LatticeSegmentation', async () => await this.entryData.newUpdate().apply(CreateGroup, { label: 'Segmentation', description: 'Lattice' }).commit(), false)
+        
+        const update = this.entryData.newUpdate();
         for (const seg of segments) {
             this.segmentationNodeMgr.showNode(seg.id.toString(), () => {
                 const volume = this.segmentation?.createSegment(seg.id);

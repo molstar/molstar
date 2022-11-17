@@ -32,7 +32,6 @@ export class CellStarUI extends CollapsableControls<{}, { data: CellStarUIData }
             const isHidden = nodes.length === 0;
             this.setState({ isHidden: isHidden });
             this.setState({ data: { entryNode: nodes[0] } }); // TODO allow select entry if more entries
-            console.log('event', e, nodes);
         });
     }
 }
@@ -86,12 +85,12 @@ function CellStarControls({ plugin, data }: { plugin: PluginContext, data: CellS
         
         {allSegments.length > 0 && <>
             <p style={{margin: 5}}><b>Segmentation:</b></p>
-            <Button onClick={() => entryData.latticeSegmentationData.showSegments(allSegments)}
+            <Button onClick={() => entryData.showSegments(allSegments)}
                 style={{ fontWeight: currentSegment?.id === undefined ? 'bold' : undefined }}>
                 All segments
             </Button>
             {allSegments.map(segment =>
-                <Button key={segment.id} onClick={() => entryData.latticeSegmentationData.showSegments([segment])}
+                <Button key={segment.id} onClick={() => entryData.showSegments([segment])}
                     style={{ fontWeight: segment.id === currentSegment?.id  ? 'bold' : undefined }}>
                     {segment.biological_annotation.name ?? 'Unnamed segment'}
                 </Button>

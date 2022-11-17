@@ -61,6 +61,9 @@ export class LatticeSegmentation {
         return result;
     }
 
+    public hasSegment(segId: number): boolean {
+        return this.inverseSegmentMap.has(segId);
+    }
     public createSegment(segId: number): Volume {
         const { space, data }: Tensor = this.grid.cells;
         const [nx, ny, nz] = space.dimensions;

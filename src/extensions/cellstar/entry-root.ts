@@ -5,12 +5,13 @@ import { Task } from '../../mol-task';
 import { ParamDefinition } from '../../mol-util/param-definition';
 
 import { DEFAULT_VOLUME_SERVER_V2, VolumeApiV2 } from './cellstar-api/api';
-import { Metadata } from './cellstar-api/data';
+import { Metadata, Segment } from './cellstar-api/data';
 import { Choice, createEntryId, NodeManager } from './helpers';
 import { CellStarVolumeData } from './entry-volume';
-import { CellStarSegmentationData as CellStarLatticeSegmentationData } from './entry-segmentation';
+import { CellStarLatticeSegmentationData } from './entry-segmentation';
 import { CellStarModelData } from './entry-models';
 import * as ExternalAPIs from './external-api';
+import { CellStarMeshSegmentationData } from './entry-meshes';
 
 
 export const MAX_VOXELS = 10**7;
@@ -38,10 +39,11 @@ export class CellStarEntryData {
     metadata: Metadata;
     pdbs: string[];
 
-    public groupNodeMgr = new NodeManager();
-    public readonly volumeData: CellStarVolumeData;
-    public readonly latticeSegmentationData: CellStarLatticeSegmentationData;
-    public readonly modelData: CellStarModelData;
+    public readonly groupNodeMgr = new NodeManager();
+    public readonly volumeData = new CellStarVolumeData(this);
+    public readonly latticeSegmentationData = new CellStarLatticeSegmentationData(this);
+    public readonly meshSegmentationData = new CellStarMeshSegmentationData(this);
+    public readonly modelData = new CellStarModelData(this);
 
 
     private constructor(plugin: PluginContext, serverUrl: string, source: Source, entryNumber: string) {
@@ -50,10 +52,6 @@ export class CellStarEntryData {
         this.source = source;
         this.entryNumber = entryNumber;
         this.entryId = createEntryId(source, entryNumber);
-
-        this.volumeData = new CellStarVolumeData(this);
-        this.latticeSegmentationData = new CellStarLatticeSegmentationData(this);
-        this.modelData = new CellStarModelData(this);
     }
 
     private async initialize() {
@@ -73,6 +71,15 @@ export class CellStarEntryData {
         } else {
             return this.plugin.build().toRoot();
         }
+    }
+    
+    public async showSegmentations() {
+        await this.latticeSegmentationData.showSegmentation();
+        await this.meshSegmentationData.showSegmentation();
+    }
+    public async showSegments(segments: Segment[]) {
+        await this.latticeSegmentationData.showSegments(segments);
+        await this.meshSegmentationData.showSegments(segments);
     }
 }
 

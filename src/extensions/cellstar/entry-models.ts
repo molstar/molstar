@@ -36,9 +36,7 @@ export class CellStarModelData {
         console.log(pdbId, 'Nodes:', this.pdbModelNodeMgr.getNodes());
         this.pdbModelNodeMgr.hideAllNodes();
         if (pdbId) {
-            const update = this.entryData.newUpdate();
-            const group = await this.entryData.groupNodeMgr.showNode('Fitted Models', () => update.apply(CreateGroup, {label: 'Fitted Models'}).selector, false);
-            await update.commit();
+            const group = await this.entryData.groupNodeMgr.showNode('FittedModels', async () => await this.entryData.newUpdate().apply(CreateGroup, { label: 'Fitted Models' }).commit(), false)
             await this.pdbModelNodeMgr.showNode(pdbId, async () => await this.loadPdb(pdbId, group));
         }
         this.currentPdb.next(pdbId);

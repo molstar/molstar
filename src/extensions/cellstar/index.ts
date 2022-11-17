@@ -49,7 +49,7 @@ export const LoadCellStar = StateAction.build({
         if (entryNode.data) {
             entryNode.data.entryRoot = entryNode;
             await entryNode.data.volumeData.showVolume();
-            await entryNode.data.latticeSegmentationData.showLatticeSegmentation();
+            await entryNode.data.showSegmentations();
         }
     }).runInContext(taskCtx);
 }));
