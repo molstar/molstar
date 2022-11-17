@@ -15,18 +15,22 @@ interface CellStarUIData {
     activeNode?: CellStarEntry,
 }
 namespace CellStarUIData {
-    export function changeAvailableEntryNodes(oldData: CellStarUIData, newNodes: CellStarEntry[]): CellStarUIData {
-        if (newNodes.length === oldData.availableNodes.length) {
+    export function changeAvailableNodes(data: CellStarUIData, newNodes: CellStarEntry[]): CellStarUIData {
+        if (newNodes.length === data.availableNodes.length) {
             // No change
-            return oldData;
-        } else if (newNodes.length > oldData.availableNodes.length) {
+            return data;
+        } else if (newNodes.length > data.availableNodes.length) {
             // Added
             return { availableNodes: newNodes, activeNode: newNodes[newNodes.length - 1] };
         } else {
             // Removed 
-            const newActiveNode = newNodes.find(node => node.id === oldData.activeNode?.id) ?? newNodes[0];
+            const newActiveNode = newNodes.find(node => node.id === data.activeNode?.id) ?? newNodes[0];
             return { availableNodes: newNodes, activeNode: newActiveNode };
         }
+    }
+    export function changeActiveNode(data: CellStarUIData, newActive: string): CellStarUIData {
+        const newActiveNode = data.availableNodes.find(node => node.id === newActive) ?? data.availableNodes[0];
+        return { availableNodes: data.availableNodes, activeNode: newActiveNode };
     }
 }
 
@@ -49,13 +53,9 @@ export class CellStarUI extends CollapsableControls<{}, { data: CellStarUIData }
         this.setState({ isHidden: true, isCollapsed: false });
         this.subscribe(this.plugin.state.data.events.changed, e => {
             const nodes = e.state.selectQ(q => q.ofType(CellStarEntry)).map(cell => cell?.obj).filter(isDefined);
-            console.log('NODES');
-            for (const node of nodes) {
-                console.log('node', node);
-            }
             const isHidden = nodes.length === 0;
             this.setState({ isHidden: isHidden });
-            const newData = CellStarUIData.changeAvailableEntryNodes(this.state.data, nodes)
+            const newData = CellStarUIData.changeAvailableNodes(this.state.data, nodes)
             this.setState({ data: newData });
         });
     }
@@ -82,13 +82,8 @@ function CellStarControls({ plugin, data, setData }: { plugin: PluginContext, da
     const allPdbs = entryData.pdbs;
     const currentPdb = useBehavior(entryData.modelData.currentPdb);
 
-    function changeValues(next: typeof values) {
-        const nextEntryNode = data.availableNodes.find((node) => node.id === next.entry) ?? data.availableNodes[0];
-        setData({ availableNodes: data.availableNodes, activeNode: nextEntryNode });
-    }
-
     return <>
-        <ParameterControls params={params} values={values} onChangeValues={changeValues} />
+        <ParameterControls params={params} values={values} onChangeValues={next => setData(CellStarUIData.changeActiveNode(data, next.entry))} />
 
         {allPdbs.length > 0 && <>
             <p style={{ margin: 5 }}><b>Fitted models in PDB:</b></p>
