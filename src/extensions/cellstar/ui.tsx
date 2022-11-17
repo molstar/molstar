@@ -1,14 +1,33 @@
 import { CollapsableControls, CollapsableState } from '../../mol-plugin-ui/base';
 import { PluginContext } from '../../mol-plugin/context';
 import { Button } from '../../mol-plugin-ui/controls/common';
+import { ParamDefinition } from '../../mol-util/param-definition';
+import { useBehavior } from '../../mol-plugin-ui/hooks/use-behavior';
 
 import { CellStarEntry } from './entry-root';
 import { isDefined } from './helpers';
-import { useBehavior } from '../../mol-plugin-ui/hooks/use-behavior';
+import { ParameterControls } from '../../mol-plugin-ui/controls/parameters';
+import * as Icons from '../../mol-plugin-ui/controls/icons';
 
 
 interface CellStarUIData {
-    entryNode?: CellStarEntry,
+    availableNodes: CellStarEntry[],
+    activeNode?: CellStarEntry,
+}
+namespace CellStarUIData {
+    export function changeAvailableEntryNodes(oldData: CellStarUIData, newNodes: CellStarEntry[]): CellStarUIData {
+        if (newNodes.length === oldData.availableNodes.length) {
+            // No change
+            return oldData;
+        } else if (newNodes.length > oldData.availableNodes.length) {
+            // Added
+            return { availableNodes: newNodes, activeNode: newNodes[newNodes.length - 1] };
+        } else {
+            // Removed 
+            const newActiveNode = newNodes.find(node => node.id === oldData.activeNode?.id) ?? newNodes[0];
+            return { availableNodes: newNodes, activeNode: newActiveNode };
+        }
+    }
 }
 
 export class CellStarUI extends CollapsableControls<{}, { data: CellStarUIData }> {
@@ -16,52 +35,45 @@ export class CellStarUI extends CollapsableControls<{}, { data: CellStarUIData }
         return {
             header: 'CellStar',
             isCollapsed: true,
-            // brand: { accent: 'cyan', svg: GetAppSvg }
+            brand: { accent: 'orange', svg: Icons.ExtensionSvg },
             data: {
-                entryNode: undefined
+                availableNodes: [],
+                activeNode: undefined,
             }
         };
     }
     protected renderControls(): JSX.Element | null {
-        return <CellStarControls plugin={this.plugin} data={this.state.data} />;
+        return <CellStarControls plugin={this.plugin} data={this.state.data} setData={d => this.setState({ data: d })} />;
     }
     componentDidMount(): void {
         this.setState({ isHidden: true, isCollapsed: false });
         this.subscribe(this.plugin.state.data.events.changed, e => {
             const nodes = e.state.selectQ(q => q.ofType(CellStarEntry)).map(cell => cell?.obj).filter(isDefined);
+            console.log('NODES');
+            for (const node of nodes) {
+                console.log('node', node);
+            }
             const isHidden = nodes.length === 0;
             this.setState({ isHidden: isHidden });
-            this.setState({ data: { entryNode: nodes[0] } }); // TODO allow select entry if more entries
+            const newData = CellStarUIData.changeAvailableEntryNodes(this.state.data, nodes)
+            this.setState({ data: newData });
         });
     }
 }
 
 
-function CellStarControls({ plugin, data }: { plugin: PluginContext, data: CellStarUIData }) {
-    // const [params, setParams] = useState(DefaultParams);
-    // const [exporting, setExporting] = useState(false);
-    // useBehavior(plugin.managers.structure.hierarchy.behaviors.selection); // triggers UI update
-    // const isBusy = useBehavior(plugin.behaviors.state.isBusy);
-    // const hierarchy = plugin.managers.structure.hierarchy.current;
-
-    // let label: string = 'Nothing to Export';
-    // if (hierarchy.structures.length === 1) {
-    //     label = 'Export';
-    // } if (hierarchy.structures.length > 1) {
-    //     label = 'Export (as ZIP)';
-    // }
-
-    // const onExport = async () => {
-    //     setExporting(true);
-    //     try {
-    //         await exportHierarchy(plugin, { format: params.format });
-    //     } finally {
-    //         setExporting(false);
-    //     }
-    // };
-    const entryData = data.entryNode?.data;
+function CellStarControls({ plugin, data, setData }: { plugin: PluginContext, data: CellStarUIData, setData: (d: CellStarUIData) => void }) {
+    const entryData = data.activeNode?.data;
     if (!entryData) {
         return <p>No data!</p>;
+    }
+
+    const params = {
+        /** Reference to the active CellStarEntry node */
+        entry: ParamDefinition.Select(data.activeNode!.id.toString(), data.availableNodes.map(entry => [entry.id.toString(), entry.data.entryId]))
+    };
+    const values: ParamDefinition.ValuesFor<typeof params> = {
+        entry: data.activeNode!.id.toString(),
     }
 
     const allSegments = entryData.metadata.annotation.segment_list;
@@ -70,11 +82,16 @@ function CellStarControls({ plugin, data }: { plugin: PluginContext, data: CellS
     const allPdbs = entryData.pdbs;
     const currentPdb = useBehavior(entryData.modelData.currentPdb);
 
+    function changeValues(next: typeof values) {
+        const nextEntryNode = data.availableNodes.find((node) => node.id === next.entry) ?? data.availableNodes[0];
+        setData({ availableNodes: data.availableNodes, activeNode: nextEntryNode });
+    }
+
     return <>
-        <p style={{margin: 5}}><b>Entry:</b> {entryData.entryId}</p>
+        <ParameterControls params={params} values={values} onChangeValues={changeValues} />
 
         {allPdbs.length > 0 && <>
-            <p style={{margin: 5}}><b>Fitted models in PDB:</b></p>
+            <p style={{ margin: 5 }}><b>Fitted models in PDB:</b></p>
             {allPdbs.map(pdb =>
                 <Button key={pdb} onClick={() => entryData.modelData.showPdb(pdb === currentPdb ? undefined : pdb)}
                     style={{ fontWeight: pdb === currentPdb ? 'bold' : undefined }}>
@@ -82,16 +99,16 @@ function CellStarControls({ plugin, data }: { plugin: PluginContext, data: CellS
                 </Button>
             )}
         </>}
-        
+
         {allSegments.length > 0 && <>
-            <p style={{margin: 5}}><b>Segmentation:</b></p>
+            <p style={{ margin: 5 }}><b>Segmentation:</b></p>
             <Button onClick={() => entryData.showSegments(allSegments)}
                 style={{ fontWeight: currentSegment?.id === undefined ? 'bold' : undefined }}>
                 All segments
             </Button>
             {allSegments.map(segment =>
                 <Button key={segment.id} onClick={() => entryData.showSegments([segment])}
-                    style={{ fontWeight: segment.id === currentSegment?.id  ? 'bold' : undefined }}>
+                    style={{ fontWeight: segment.id === currentSegment?.id ? 'bold' : undefined }}>
                     {segment.biological_annotation.name ?? 'Unnamed segment'}
                 </Button>
             )}
@@ -102,15 +119,5 @@ function CellStarControls({ plugin, data }: { plugin: PluginContext, data: CellS
                 {ref.description}
             </p>)}
         </>}
-        
-        {/* <ParameterControls params={Params} values={params} onChangeValues={setParams} isDisabled={isBusy || exporting} />
-        <Button
-            onClick={onExport}
-            style={{ marginTop: 1 }}
-            disabled={isBusy || hierarchy.structures.length === 0 || exporting}
-            commit={hierarchy.structures.length ? 'on' : 'off'}
-        >
-            {label}
-        </Button> */}
     </>;
 }

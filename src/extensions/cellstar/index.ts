@@ -1,11 +1,10 @@
 import { PluginBehavior } from '../../mol-plugin/behavior';
 import { PluginContext } from '../../mol-plugin/context';
-import { StateAction, StateObjectRef } from '../../mol-state';
-import { PluginStateObject as SO, PluginStateTransform } from '../../mol-plugin-state/objects';
-import { ParamDefinition } from '../../mol-util/param-definition';
+import { StateAction } from '../../mol-state';
+import { PluginStateObject as SO } from '../../mol-plugin-state/objects';
 import { Task } from '../../mol-task';
 
-import { CellStarEntry, CellStarEntryFromRoot, CellStarEntryParams } from './entry-root';
+import { CellStarEntryFromRoot, CellStarEntryParams } from './entry-root';
 import { createEntryId } from './helpers';
 import { CellStarUI } from './ui';
 

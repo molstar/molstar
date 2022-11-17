@@ -40,14 +40,13 @@ export class CellStarMeshSegmentationData {
         segments = segments.filter(seg => meshSegments[seg.id] !== undefined);
         if (segments.length == 0) return;
 
-        const group = await this.entryData.groupNodeMgr.showNode('MeshSegmentation', async () => await this.entryData.newUpdate().apply(CreateGroup, { label: 'Segmentation', description: 'Mesh' }).commit(), false)
+        const group = await this.entryData.groupNodeMgr.showNode('MeshSegmentation', async () => await this.entryData.newUpdate().apply(CreateGroup, { label: 'Segmentation', description: 'Mesh' }, { state: { isCollapsed: true } }).commit(), false)
 
         const [vx, vy, vz] = this.entryData.metadata.grid.volumes.voxel_size[1];
         const [gx, gy, gz] = this.entryData.metadata.grid.volumes.grid_dimensions;
         const totalVolume = vx * vy * vz * gx * gy * gz;
 
         for (const seg of segments) {
-            console.log('Mesh Segment', seg.id);
             this.segmentationNodeMgr.showNode(seg.id.toString(), async () => {
                 const detail = MetadataUtils.getSufficientDetail(this.entryData.metadata!, seg.id, DEFAULT_MESH_DETAIL);
                 const color = seg.colour.length >= 3 ? Color.fromNormalizedArray(seg.colour, 0) : ColorNames.gray;

@@ -1,7 +1,5 @@
 import { BehaviorSubject } from 'rxjs';
-import { PluginStateObject } from '../../mol-plugin-state/objects';
-import { StateTransforms } from '../../mol-plugin-state/transforms';
-import { Download, RawData } from '../../mol-plugin-state/transforms/data';
+import { RawData } from '../../mol-plugin-state/transforms/data';
 import { CreateGroup } from '../../mol-plugin-state/transforms/misc';
 import { StateObjectSelector } from '../../mol-state';
 import { Asset } from '../../mol-util/assets';
@@ -36,7 +34,8 @@ export class CellStarModelData {
         console.log(pdbId, 'Nodes:', this.pdbModelNodeMgr.getNodes());
         this.pdbModelNodeMgr.hideAllNodes();
         if (pdbId) {
-            const group = await this.entryData.groupNodeMgr.showNode('FittedModels', async () => await this.entryData.newUpdate().apply(CreateGroup, { label: 'Fitted Models' }).commit(), false)
+            // await update.commit();
+            const group = await this.entryData.groupNodeMgr.showNode('FittedModels', async () => await this.entryData.newUpdate().apply(CreateGroup, { label: 'Fitted Models' }, { state: { isCollapsed: true } }).commit(), false)
             await this.pdbModelNodeMgr.showNode(pdbId, async () => await this.loadPdb(pdbId, group));
         }
         this.currentPdb.next(pdbId);

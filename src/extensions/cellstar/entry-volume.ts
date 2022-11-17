@@ -22,7 +22,7 @@ export class CellStarVolumeData {
     async showVolume() {
         const hasVolumes = this.entryData.metadata.grid.volumes.volume_downsamplings.length > 0;
         if (hasVolumes) {
-            const group = await this.entryData.groupNodeMgr.showNode('Volume', async () => await this.entryData.newUpdate().apply(CreateGroup, { label: 'Volume' }).commit(), false)
+            const group = await this.entryData.groupNodeMgr.showNode('Volume', async () => await this.entryData.newUpdate().apply(CreateGroup, { label: 'Volume' }, { state: { isCollapsed: true } }).commit(), false)
             const url = this.entryData.api.volumeUrl(this.entryData.source, this.entryData.entryId, null, MAX_VOXELS);
             const data = await this.entryData.newUpdate().to(group).apply(Download, { url, isBinary: true, label: `Volume Data: ${url}` }).commit();
             const parsed = await this.entryData.plugin.dataFormats.get('dscif')!.parse(this.entryData.plugin, data);

@@ -53,7 +53,7 @@ export class CellStarLatticeSegmentationData {
         segments = segments.filter(seg => this.segmentation?.hasSegment(seg.id));
         if (segments.length == 0) return;
 
-        const group = await this.entryData.groupNodeMgr.showNode('LatticeSegmentation', async () => await this.entryData.newUpdate().apply(CreateGroup, { label: 'Segmentation', description: 'Lattice' }).commit(), false)
+        const group = await this.entryData.groupNodeMgr.showNode('LatticeSegmentation', async () => await this.entryData.newUpdate().apply(CreateGroup, { label: 'Segmentation', description: 'Lattice' }, { state: { isCollapsed: true } }).commit(), false)
         
         const update = this.entryData.newUpdate();
         for (const seg of segments) {
