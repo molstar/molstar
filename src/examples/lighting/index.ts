@@ -30,6 +30,7 @@ const Canvas3DPresets = {
                     radius: 5,
                     samples: 32,
                     resolutionScale: 1,
+                    softAO: { name: 'off', params: {} },
                     shadow: { name: 'off', params: {} },
                     closeAO: { name: 'off', params: {} }
                 } },
@@ -50,6 +51,7 @@ const Canvas3DPresets = {
                     radius: 5,
                     samples: 32,
                     resolutionScale: 1,
+                    softAO: { name: 'off', params: {} },
                     shadow: { name: 'off', params: {} },
                     closeAO: { name: 'off', params: {} }
                 } },

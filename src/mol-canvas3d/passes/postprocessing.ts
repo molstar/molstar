@@ -92,11 +92,25 @@ const SsaoSchema = {
     uCloseBias: UniformSpec('f'),
     uCloseDistance: UniformSpec('f'),
 
+    uCDistanceCutoff: UniformSpec('f'),
+    uCCutoffFalloff: UniformSpec('f'),
+    uCIntensity: UniformSpec('f'),
+    uCDistance: UniformSpec('f'),
+
     uShadow: UniformSpec('i'),
     dSSample: DefineSpec('number'),
     uSDistance: UniformSpec('f'),
     uSTolerance: UniformSpec('f'),
     uSBias: UniformSpec('f'),
+
+    uSoftAO: UniformSpec('i'),
+    uAorange: UniformSpec('f'),
+    uDepthTolerance: UniformSpec('f'),
+    uAoMultiplier: UniformSpec('f'),
+    uAoCap: UniformSpec('f'),
+    uAScale: UniformSpec('f'),
+    uARings: UniformSpec('i'),
+    uASamples: UniformSpec('i'),
 
     uLightDirection: UniformSpec('v3[]'),
     uLightColor: UniformSpec('v3[]'),
@@ -134,12 +148,25 @@ function getSsaoRenderable(ctx: WebGLContext, depthTexture: Texture): SsaoRender
         uCloseAO: ValueCell.create(1),
         uCloseBias: ValueCell.create(1.0),
         uCloseDistance: ValueCell.create(0.01),
+        uCDistanceCutoff: ValueCell.create(1.0),
+        uCCutoffFalloff: ValueCell.create(1.0),
+        uCIntensity: ValueCell.create(1.0),
+        uCDistance: ValueCell.create(1.0),
 
         uShadow: ValueCell.create(1),
         dSSample: ValueCell.create(1),
         uSDistance: ValueCell.create(3.0),
         uSTolerance: ValueCell.create(0.2),
         uSBias: ValueCell.create(1.5),
+
+        uSoftAO: ValueCell.create(1),
+        uAorange: ValueCell.create(1.0),
+        uDepthTolerance: ValueCell.create(1.0),
+        uAoMultiplier: ValueCell.create(1.0),
+        uAoCap: ValueCell.create(1.0),
+        uAScale: ValueCell.create(1.0),
+        uARings: ValueCell.create(1),
+        uASamples: ValueCell.create(1),
 
         dOrthographic: ValueCell.create(0),
         uNear: ValueCell.create(0.0),
@@ -328,8 +355,24 @@ export const PostprocessingParams = {
             }, { cycle: true, description: 'Darken occluded crevices with the ambient occlusion effect' }),
             closeAO: PD.MappedStatic('on', {
                 on: PD.Group({
-                    cbias: PD.Numeric(1.0, { min: 0.0, max: 2.0, step: 0.01 }),
-                    cdistance: PD.Numeric(0.015, { min: 0.0, max: 0.2, step: 0.001 }),
+                    cbias: PD.Numeric(0.0, { min: 0.0, max: 1.0, step: 0.01 }),
+                    cradius: PD.Numeric(0.015, { min: 0.0, max: 0.2, step: 0.001 }),
+                    cdistancecutoff: PD.Numeric(2000.0, { min: 0.0, max: 10000.0, step: 1.0 }),
+                    ccutofffalloff: PD.Numeric(25.0, { min: 0.0, max: 10000.0, step: 0.001 }),
+                    cintensity: PD.Numeric(1.0, { min: 0.0, max: 1.0, step: 0.1 }),
+                    cdistance: PD.Numeric(0.0015, { min: 0.0, max: 0.2, step: 0.001 }),
+                }),
+                off: PD.Group({})
+            }, { cycle: true, description: 'Darken occluded crevices with the ambient occlusion effect' }),
+            softAO: PD.MappedStatic('on', {
+                on: PD.Group({
+                    uAorange: PD.Numeric(160.0, { min: 0.0, max: 500.0, step: 1.0 }),
+                    uDepthTolerance: PD.Numeric(0.0, { min: 0.0, max: 200.0, step: 0.01 }),
+                    uAoMultiplier: PD.Numeric(100.0, { min: 0.0, max: 2000.0, step: 0.01 }),
+                    uAoCap: PD.Numeric(1.0, { min: 0.0, max: 10.0, step: 0.01 }),
+                    uAScale: PD.Numeric(1.0, { min: 0.0, max: 10.0, step: 0.01 }),
+                    uARings: PD.Numeric(6.0, { min: 0.0, max: 10.0, step: 1 }),
+                    uASamples: PD.Numeric(3.0, { min: 0.0, max: 10.0, step: 1 }),
                 }),
                 off: PD.Group({})
             }, { cycle: true, description: 'Darken occluded crevices with the ambient occlusion effect' }),
@@ -477,16 +520,17 @@ export class PostprocessingPass {
         const orthographic = camera.state.mode === 'orthographic' ? 1 : 0;
         const outlinesEnabled = props.outline.name === 'on';
         const occlusionEnabled = props.occlusion.name === 'on';
-
         const invProjection = Mat4.identity();
         Mat4.invert(invProjection, camera.projection);
 
         if (props.occlusion.name === 'on') {
             const shadowocclusionEnabled = props.occlusion.params.shadow.name === 'on' ? 1 : 0;
             const closeocclusionEnabled = props.occlusion.params.closeAO.name === 'on' ? 1 : 0;
+            const softocclusionEnabled = props.occlusion.params.softAO.name === 'on' ? 1 : 0;
 
             ValueCell.update(this.ssaoRenderable.values.uShadow, shadowocclusionEnabled);
             ValueCell.update(this.ssaoRenderable.values.uCloseAO, closeocclusionEnabled);
+            ValueCell.update(this.ssaoRenderable.values.uSoftAO, softocclusionEnabled);
 
             ValueCell.update(this.ssaoRenderable.values.uProjection, camera.projection);
             ValueCell.update(this.ssaoRenderable.values.uInvProjection, invProjection);
@@ -547,13 +591,31 @@ export class PostprocessingPass {
 
             if (props.occlusion.params.closeAO.name === 'on') {
                 ValueCell.update(this.ssaoRenderable.values.uCloseBias, props.occlusion.params.closeAO.params.cbias);
-                ValueCell.update(this.ssaoRenderable.values.uCloseDistance, props.occlusion.params.closeAO.params.cdistance);
+                ValueCell.update(this.ssaoRenderable.values.uCloseDistance, props.occlusion.params.closeAO.params.cradius);
+                ValueCell.update(this.ssaoRenderable.values.uCDistanceCutoff, props.occlusion.params.closeAO.params.cdistancecutoff);
+                ValueCell.update(this.ssaoRenderable.values.uCCutoffFalloff, props.occlusion.params.closeAO.params.ccutofffalloff);
+                ValueCell.update(this.ssaoRenderable.values.uCIntensity, props.occlusion.params.closeAO.params.cintensity);
+                ValueCell.update(this.ssaoRenderable.values.uCDistance, props.occlusion.params.closeAO.params.cdistance);
                 if (this.ssaoRenderable.values.uCloseBias.ref.value !== props.occlusion.params.closeAO.params.cbias ||
                     this.ssaoRenderable.values.uCloseDistance.ref.value !== props.occlusion.params.closeAO.params.cdistance) {
                     needsUpdateSsao = true;
                 }
             }
 
+            if (props.occlusion.params.softAO.name === 'on') {
+                ValueCell.update(this.ssaoRenderable.values.uAorange, props.occlusion.params.softAO.params.uAorange);
+                ValueCell.update(this.ssaoRenderable.values.uDepthTolerance, props.occlusion.params.softAO.params.uDepthTolerance);
+                ValueCell.update(this.ssaoRenderable.values.uAoMultiplier, props.occlusion.params.softAO.params.uAoMultiplier);
+                ValueCell.update(this.ssaoRenderable.values.uAoCap, props.occlusion.params.softAO.params.uAoCap);
+                ValueCell.update(this.ssaoRenderable.values.uAScale, props.occlusion.params.softAO.params.uAScale);
+                ValueCell.update(this.ssaoRenderable.values.uARings, props.occlusion.params.softAO.params.uARings);
+                ValueCell.update(this.ssaoRenderable.values.uASamples, props.occlusion.params.softAO.params.uASamples);
+
+                if (this.ssaoRenderable.values.uCloseBias.ref.value !== props.occlusion.params.softAO.params.uASamples ||
+                    this.ssaoRenderable.values.uCloseDistance.ref.value !== props.occlusion.params.softAO.params.uARings) {
+                    needsUpdateSsao = true;
+                }
+            }
 
             // console.log(light.direction);
             ValueCell.update(this.ssaoRenderable.values.uLightDirection, light.direction);

@@ -50,7 +50,8 @@ function occlusionStyle(plugin: PluginContext) {
                 samples: 32,
                 resolutionScale: 1,
                 shadow: { name: 'off', params: {} },
-                closeAO: { name: 'off', params: {} }
+                closeAO: { name: 'off', params: {} },
+                softAO: { name: 'off', params: {} }
             } },
             outline: { name: 'on', params: {
                 scale: 1.0,

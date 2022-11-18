@@ -33,13 +33,30 @@ uniform mat4 uInvProjection;
 uniform float uRadius;
 uniform float uBias;
 
+// shadow uniform
 uniform float uSDistance;
 uniform float uSTolerance;
 uniform float uSBias;
 uniform int uShadow;
+
+//ssao-pro uniform
 uniform int uCloseAO;
 uniform float uCloseBias;
 uniform float uCloseDistance;
+uniform float uCDistanceCutoff;
+uniform float uCCutoffFalloff;
+uniform float uCIntensity;
+uniform float uCDistance;
+    
+//ssao-old-blender uniform
+uniform int uSoftAO;
+uniform float uAorange;
+uniform float uDepthTolerance;
+uniform float uAoMultiplier;
+uniform float uAoCap;
+uniform float uAScale;
+uniform int uARings;
+uniform int uASamples;
 
 #define PI 3.14159265
 #define SAMPLES_HIGH 1
@@ -73,6 +90,14 @@ bool outsideBounds(const in vec2 p) {
     return p.x < uBounds.x || p.y < uBounds.y || p.x > uBounds.z || p.y > uBounds.w;
 }
 
+float getViewZ(in float depth) {
+    #if dOrthographic == 1
+        return orthographicDepthToViewZ(depth, uNear, uFar);
+    #else
+        return perspectiveDepthToViewZ(depth, uNear, uFar);
+    #endif
+}
+
 float getDepth(const in vec2 coords) {
     if (outsideBounds(coords)) {
         return 1.0;
@@ -95,27 +120,35 @@ vec3 normalFromDepth(const in float depth, const in float depth1, const in float
     return normalize(normal);
 }
 
-float compareDepths( in float depth1, in float depth2 ){
+float readDepth( in vec2 coord ) {
+	return (2.0 * uNear) / (uFar + uNear - getDepth(coord) * (uFar - uNear));	
+}
+
+float compareDepths( in float d1, in float d2 ){
     float near = uNear;
     float far = uFar;
-    float aorange = 160.0; //uniform
-    float depthTolerance = 0.0;//uniform
-    float aoMultiplier = 100.0;//uniform
-    float aoCap = 1.0;//uniform
-    float diff = sqrt(clamp(1.0-(depth1-depth2) / (aorange/(far-near)),0.0,1.0));
-    float ao = min(aoCap,max(0.0,depth1-depth2-depthTolerance) * aoMultiplier) * diff;
+    //float aorange = 160.0; //uniform
+    //float depthTolerance = 0.0;//uniform
+    //float aoMultiplier = 100.0;//uniform
+    //float aoCap = 1.0;//uniform
+    //go linear ?
+    float depth1 = d1;//getViewZ(d1);
+    float depth2 = d2;//getViewZ(d2);
+    //float diff = sqrt(clamp(1.0-(depth1-depth2) / (uAorange),0.0,1.0));
+    float diff = sqrt(clamp(1.0-(depth1-depth2) / (uAorange/(far-near)),0.0,1.0));
+    float ao = min(uAoCap,max(0.0,depth1-depth2-uDepthTolerance) * uAoMultiplier) * diff;
     return ao;
 }
 
 float computeAO(in vec2 scrCoord){
-    float depth = getDepth(scrCoord);
+    float depth = readDepth(scrCoord);
     vec2 invTexSize = 1.0 / uTexSize;
     int do_noise = 0;
     
-    float scale = 1.0; //uniform
+    float scale = uAScale; //uniform
     float aspect = uTexSize.x/uTexSize.y;
-    int rings = min(6,int(uRadius)); //uniform
-    int samples = min(6,int(dNSamples)); //uniform
+    int rings = uARings;//min(6,int(uRadius)); //uniform
+    int samples = uASamples;//min(6,int(dNSamples)); //uniform
     //vec3 randomVec = normalize(vec3(getNoiseVec2(scrCoord), 0.0));
     vec2 noise = getNoiseVec2(scrCoord);//getRandom(srcCoord);//
     float w;
@@ -141,7 +174,7 @@ float computeAO(in vec2 scrCoord){
             float step = PI*2.0 / float(ringsamples);
             pw = (cos(float(j)*step)*float(i));
             ph = (sin(float(j)*step)*float(i))*aspect;
-            float v = getDepth( vec2(scrCoord.s+pw*w,scrCoord.t+ph*h));
+            float v = readDepth( vec2(scrCoord.s+pw*w,scrCoord.t+ph*h) );
             ao += compareDepths(depth, v);
             s += 1.0;
             }
@@ -171,9 +204,9 @@ float computeOcclusion(in float aradius, in mat3 TBN, in vec3 selfViewPos ){
 
 float calcAO(in vec2 tcoord, in vec2 uv, in vec3 p, in vec3 cnorm)
 {
-    float _Bias = 0.129;
-    float _Intensity = uCloseBias;
-    float _Distance = 0.001;
+    float _Bias = uCloseBias;
+    float _Intensity = uCIntensity;
+    float _Distance = uCDistance;
     vec2 t = tcoord + uv;
     float depth = getDepth(t);
     vec3 diff = screenSpaceToViewSpace(vec3(t, depth), uInvProjection) - p;
@@ -186,14 +219,6 @@ float calcAO(in vec2 tcoord, in vec2 uv, in vec3 p, in vec3 cnorm)
 float invlerp(float from, float to, float value)
 {
     return (value - from) / (to - from);
-}
-
-float getViewZ(const in float depth) {
-    #if dOrthographic == 1
-        return orthographicDepthToViewZ(depth, uNear, uFar);
-    #else
-        return perspectiveDepthToViewZ(depth, uNear, uFar);
-    #endif
 }
 
 // Gold Noise function
@@ -209,8 +234,8 @@ float random_0t1(in vec2 coordinate, in float seed)
 float ssao(in vec2 uv, in vec3 normal)
 {
     float _SampleRadius = 5.0;
-    float _DistanceCutoff = 100.0;
-    float _CutoffFalloff = 25.0;
+    float _DistanceCutoff = uCDistanceCutoff;//100.0;
+    float _CutoffFalloff = uCCutoffFalloff;//25.0;
 
     vec2 CROSS[4] = vec2[4]( vec2(1.0, 0.0), vec2(-1.0, 0.0), vec2(0.0, 1.0), vec2(0.0, -1.0) );
     float depth = getDepth(uv);
@@ -218,7 +243,7 @@ float ssao(in vec2 uv, in vec3 normal)
     vec3 position = screenSpaceToViewSpace(vec3(uv, depth), uInvProjection);
     float radius =  uCloseDistance; // original was max(_SampleRadius / eyeDepth, 0.005);
     // clip(_DistanceCutoff - eyeDepth); // Skip out of range pixels
-    if (_DistanceCutoff - eyeDepth < 0.0) discard;
+    if (_DistanceCutoff - abs(eyeDepth) < 0.0) return 1.0;
     #if defined(SAMPLE_NOISE)
         float a = random_0t1(uv,depth);
         float b = random_0t1(uv,eyeDepth);
@@ -360,17 +385,21 @@ void main(void) {
 
     float occlusion = computeOcclusion(uRadius, TBN, selfViewPos);
     occlusion = 1.0 - (uBias * occlusion / float(dNSamples));
-    
-    /*
+    float ao1=0.0;
     // alternative ao algo
-    float ao = computeAO(selfCoords);
-    ao = clamp(ao,0.0,1.0);
-    if ( ao > 1.0 ) {ao = 1.0 ;}
-    if ( ao < 0.0 ) {ao = 0.0 ;}
-    if (selfDepth > 1.0 ) {ao = 1.0 ;}
-    if (selfDepth < 0.0 ) {ao = 0.0 ;}
-    ao = 1.0 - (uBias * ao);
-    */
+    if (uSoftAO == 1)
+    {
+        ao1 = computeAO(selfCoords);
+        ao1 = clamp(ao1,0.0,1.0);
+        if ( ao1 > 1.0 ) {ao1 = 1.0 ;}
+        if ( ao1 < 0.0 ) {ao1 = 0.0 ;}
+        if (selfDepth > 1.0 ) {ao1 = 1.0 ;}
+        if (selfDepth < 0.0 ) {ao1 = 0.0 ;}
+        ao1 = 1.0 - (ao1);
+    }
+    
+    bool isClose = true;
+    if (abs(selfViewPos.z) > 1200.0) isClose = false;
 
     float ao = 1.0;
     if (uCloseAO == 1){
@@ -390,6 +419,9 @@ void main(void) {
     }
     else{ 
         o = min(ao,occlusion);
+    }
+    if (uSoftAO==1){
+        o = min(ao1,o);
     }
     vec2 packedOcclusion = packUnitIntervalToRG(o);
     gl_FragColor = vec4(packedOcclusion, selfPackedDepth);
