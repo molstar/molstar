@@ -6,6 +6,8 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Fix edge-case in `Structure.eachUnitPair` with single-element units
+
 ## [v3.25.0] - 2022-11-16
 
 - Fix handling of gzipped assets (reverts #615)
