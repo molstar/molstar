@@ -1,4 +1,3 @@
-import { BehaviorSubject } from 'rxjs';
 import { CIF } from '../../mol-io/reader/cif';
 import { Volume } from '../../mol-model/volume';
 import { createVolumeRepresentationParams } from '../../mol-plugin-state/helpers/volume-representation-params';
@@ -18,7 +17,7 @@ export class CellStarLatticeSegmentationData {
 
     private segmentation?: LatticeSegmentation;
     private segmentationNodeMgr = new NodeManager();
-    currentSegment = new BehaviorSubject<Segment | undefined>(undefined);
+    
 
     constructor(rootData: CellStarEntryData) {
         this.entryData = rootData;
@@ -45,9 +44,9 @@ export class CellStarLatticeSegmentationData {
         }
     }
 
+
     /** Make visible the specified set of lattice segments */
     async showSegments(segments: Segment[]) {
-        this.currentSegment.next(segments.length === 1 ? segments[0] : undefined);
         this.segmentationNodeMgr.hideAllNodes();
 
         segments = segments.filter(seg => this.segmentation?.hasSegment(seg.id));
@@ -58,7 +57,7 @@ export class CellStarLatticeSegmentationData {
         const update = this.entryData.newUpdate();
         for (const seg of segments) {
             this.segmentationNodeMgr.showNode(seg.id.toString(), () => {
-                const volume = this.segmentation?.createSegment(seg.id);
+                const volume = this.segmentation?.createSegment(seg);
                 Volume.PickingGranularity.set(volume!, 'volume');
                 const volumeNode = update.to(group).apply(CreateVolume, { volume, label: `Segment ${seg.id}`, description: seg.biological_annotation?.name }, { state: { isCollapsed: true } });
 

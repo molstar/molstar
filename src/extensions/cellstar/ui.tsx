@@ -1,6 +1,6 @@
 import { CollapsableControls, CollapsableState } from '../../mol-plugin-ui/base';
 import { PluginContext } from '../../mol-plugin/context';
-import { Button } from '../../mol-plugin-ui/controls/common';
+import { Button, IconButton } from '../../mol-plugin-ui/controls/common';
 import { ParamDefinition } from '../../mol-util/param-definition';
 import { useBehavior } from '../../mol-plugin-ui/hooks/use-behavior';
 
@@ -37,7 +37,7 @@ namespace CellStarUIData {
 export class CellStarUI extends CollapsableControls<{}, { data: CellStarUIData }> {
     protected defaultState(): CollapsableState & { data: CellStarUIData } {
         return {
-            header: 'CellStar',
+            header: 'Cell* VolumeServer',
             isCollapsed: true,
             brand: { accent: 'orange', svg: Icons.ExtensionSvg },
             data: {
@@ -77,7 +77,8 @@ function CellStarControls({ plugin, data, setData }: { plugin: PluginContext, da
     }
 
     const allSegments = entryData.metadata.annotation.segment_list;
-    const currentSegment = useBehavior(entryData.latticeSegmentationData.currentSegment);
+    const currentSegment = useBehavior(entryData.currentSegment);
+    const visibleSegments = useBehavior(entryData.visibleSegments);
 
     const allPdbs = entryData.pdbs;
     const currentPdb = useBehavior(entryData.modelData.currentPdb);
@@ -89,30 +90,38 @@ function CellStarControls({ plugin, data, setData }: { plugin: PluginContext, da
             <p style={{ margin: 5 }}><b>Fitted models in PDB:</b></p>
             {allPdbs.map(pdb =>
                 <Button key={pdb} onClick={() => entryData.modelData.showPdb(pdb === currentPdb ? undefined : pdb)}
-                    style={{ fontWeight: pdb === currentPdb ? 'bold' : undefined }}>
+                    style={{ fontWeight: pdb === currentPdb ? 'bold' : undefined, textAlign: 'left' }}>
                     {pdb}
                 </Button>
             )}
         </>}
 
-        {allSegments.length > 0 && <>
-            <p style={{ margin: 5 }}><b>Segmentation:</b></p>
-            <Button onClick={() => entryData.showSegments(allSegments)}
-                style={{ fontWeight: currentSegment?.id === undefined ? 'bold' : undefined }}>
-                All segments
-            </Button>
-            {allSegments.map(segment =>
-                <Button key={segment.id} onClick={() => entryData.showSegments([segment])}
-                    style={{ fontWeight: segment.id === currentSegment?.id ? 'bold' : undefined }}>
-                    {segment.biological_annotation.name ?? 'Unnamed segment'}
-                </Button>
-            )}
-        </>}
-        {currentSegment && <>
-            {currentSegment.biological_annotation.external_references.map(ref => <p key={ref.id}>
+
+        <div style={{ padding: 8, maxHeight: 120, overflow: 'hidden', overflowY: 'auto' }}>
+            {!currentSegment && 'No segment selected'}
+            {currentSegment && `Segment id ${currentSegment.id}`}
+            {currentSegment?.biological_annotation.external_references.map(ref => <p key={ref.id}>
                 <b>{ref.resource}:{ref.accession}</b><br />
                 {ref.description}
             </p>)}
+        </div>
+
+        {allSegments.length > 0 && <>
+            <Button onClick={() => entryData.toggleAllSegments()}
+                style={{ marginTop: 1 }}>
+                Toggle All segments
+            </Button>
+            {allSegments.map(segment =>
+                <div style={{ display: 'flex', marginTop: 1 }} key={segment.id}>
+                    <Button onClick={() => entryData.showAnnotation(segment)}
+                        style={{ fontWeight: segment.id === currentSegment?.id ? 'bold' : undefined, marginRight: 1, flexGrow: 1, textAlign: 'left' }}>
+                        <div title={segment.biological_annotation.name ?? 'Unnamed segment'} style={{ maxWidth: 240, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'  }}>
+                            {segment.biological_annotation.name ?? 'Unnamed segment'}
+                        </div>
+                    </Button>
+                    <IconButton svg={visibleSegments.includes(segment) ? Icons.VisibilityOutlinedSvg : Icons.VisibilityOffOutlinedSvg} onClick={() => entryData.toggleSegment(segment)} /> 
+                </div>
+            )}
         </>}
     </>;
 }

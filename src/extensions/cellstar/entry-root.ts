@@ -12,6 +12,8 @@ import { CellStarLatticeSegmentationData } from './entry-segmentation';
 import { CellStarModelData } from './entry-models';
 import * as ExternalAPIs from './external-api';
 import { CellStarMeshSegmentationData } from './entry-meshes';
+import { BehaviorSubject } from 'rxjs';
+import { Volume } from '../meshes/molstar-lib-imports';
 
 
 export const MAX_VOXELS = 10**7;
@@ -44,6 +46,8 @@ export class CellStarEntryData {
     public readonly latticeSegmentationData = new CellStarLatticeSegmentationData(this);
     public readonly meshSegmentationData = new CellStarMeshSegmentationData(this);
     public readonly modelData = new CellStarModelData(this);
+    currentSegment = new BehaviorSubject<Segment | undefined>(undefined);
+    visibleSegments = new BehaviorSubject<Segment[]>([]);
 
 
     private constructor(plugin: PluginContext, serverUrl: string, source: Source, entryNumber: string) {
@@ -52,6 +56,13 @@ export class CellStarEntryData {
         this.source = source;
         this.entryNumber = entryNumber;
         this.entryId = createEntryId(source, entryNumber);
+
+        // TODO: find a way to dispose this (similar to .subscribeObservable in Behaviors)
+        plugin.behaviors.interaction.click.subscribe(e => {
+            if (Volume.isLoci(e.current.loci) && e.current.loci.volume._propertyData.segment) {
+                this.currentSegment.next(e.current.loci.volume._propertyData.segment);
+            }
+        })
     }
 
     private async initialize() {
@@ -76,10 +87,34 @@ export class CellStarEntryData {
     public async showSegmentations() {
         await this.latticeSegmentationData.showSegmentation();
         await this.meshSegmentationData.showSegmentation();
+        this.visibleSegments.next(this.metadata.annotation.segment_list);
+    }
+    
+    async toggleSegment(segment: Segment) {
+        const current = this.visibleSegments.value;
+        if (current.includes(segment)) {
+            this.showSegments(current.filter(s => s !== segment));
+        } else {
+            this.showSegments([...current, segment]);
+        }
+    }
+
+    toggleAllSegments() {
+        const current = this.visibleSegments.value;
+        if (current.length !== this.metadata.annotation.segment_list.length) {
+            this.showSegments(this.metadata.annotation.segment_list);
+        } else {
+            this.showSegments([]);
+        }
+    }
+
+    showAnnotation(segment: Segment) {
+        this.currentSegment.next(segment);
     }
     public async showSegments(segments: Segment[]) {
         await this.latticeSegmentationData.showSegments(segments);
         await this.meshSegmentationData.showSegments(segments);
+        this.visibleSegments.next(segments);
     }
 }
 

@@ -1,4 +1,3 @@
-import { BehaviorSubject } from 'rxjs';
 import { CreateGroup } from '../../mol-plugin-state/transforms/misc';
 import { Color } from '../../mol-util/color';
 import { ColorNames } from '../../mol-util/color/names';
@@ -17,8 +16,7 @@ export class CellStarMeshSegmentationData {
     private entryData: CellStarEntryData;
 
     private segmentationNodeMgr = new NodeManager();
-    currentSegment = new BehaviorSubject<Segment | undefined>(undefined);
-
+    
     constructor(rootData: CellStarEntryData) {
         this.entryData = rootData;
     }
@@ -32,7 +30,6 @@ export class CellStarMeshSegmentationData {
 
     /** Make visible the specified set of mesh segments */
     async showSegments(segments: Segment[]) {
-        this.currentSegment.next(segments.length === 1 ? segments[0] : undefined);
         this.segmentationNodeMgr.hideAllNodes();
 
         const meshSegments = this.entryData.metadata.grid.segmentation_meshes.mesh_component_numbers.segment_ids ?? {};

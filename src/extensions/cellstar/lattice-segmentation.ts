@@ -4,6 +4,7 @@ import { Tensor, Vec3 } from '../../mol-math/linear-algebra';
 import { volumeFromDensityServerData } from '../../mol-model-formats/volume/density-server';
 import { CustomProperties } from '../../mol-model/custom-property';
 import { Grid, Volume } from '../../mol-model/volume';
+import { Segment } from './cellstar-api/data';
 
 
 export class LatticeSegmentation {
@@ -64,7 +65,7 @@ export class LatticeSegmentation {
     public hasSegment(segId: number): boolean {
         return this.inverseSegmentMap.has(segId);
     }
-    public createSegment(segId: number): Volume {
+    public createSegment(seg: Segment): Volume {
         const { space, data }: Tensor = this.grid.cells;
         const [nx, ny, nz] = space.dimensions;
         const axisOrder = [...space.axisOrderSlowToFast];
@@ -73,7 +74,7 @@ export class LatticeSegmentation {
 
         const EXPAND_START = 2; // We need to add 2 layers of zeros, probably because of a bug in GPU marching cubes implementation
         const EXPAND_END = 1;
-        let bbox = this.getSegmentBoundingBoxes()[segId];
+        let bbox = this.getSegmentBoundingBoxes()[seg.id];
         // if (!Box.equal(bbox, this.getBoundingBox(segId))) throw new Error('Assertion Error');
         bbox = Box.expand(bbox, EXPAND_START, EXPAND_END);
         bbox = Box.confine(bbox, cell);
@@ -86,8 +87,8 @@ export class LatticeSegmentation {
         const newData = newTensor.data;
         const newSet = newSpace.set;
 
-        const sets = this.inverseSegmentMap.get(segId);
-        if (!sets) throw new Error(`This LatticeSegmentation does not contain segment ${segId}`);
+        const sets = this.inverseSegmentMap.get(seg.id);
+        if (!sets) throw new Error(`This LatticeSegmentation does not contain segment ${seg.id}`);
 
         for (let jz = 0; jz < mz; jz++) {
             for (let jy = 0; jy < my; jy++) {
@@ -114,8 +115,9 @@ export class LatticeSegmentation {
         }
         const result = {
             sourceData: { kind: 'custom', name: 'test', data: newTensor.data as any },
+            label: seg.biological_annotation.name,
             customProperties: new CustomProperties(),
-            _propertyData: {},
+            _propertyData: { segment: seg },
             grid: {
                 stats: { min: 0, max: 1, mean: 0, sigma: 1 },
                 cells: newTensor,

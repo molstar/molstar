@@ -26,7 +26,7 @@ export class CellStarModelData {
 
         const dataNode = await this.entryData.plugin.build().to(parent).apply(RawData, { data, label: `PDB Data: ${url}` }).commit();
         const trajectoryNode = await this.entryData.plugin.builders.structure.parseTrajectory(dataNode, 'mmcif');
-        await this.entryData.plugin.builders.structure.hierarchy.applyPreset(trajectoryNode, 'default');
+        await this.entryData.plugin.builders.structure.hierarchy.applyPreset(trajectoryNode, 'default', { representationPreset: 'polymer-cartoon' });
         return dataNode;
     }
 
