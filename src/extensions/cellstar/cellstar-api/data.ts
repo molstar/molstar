@@ -1,7 +1,7 @@
 
 export interface Metadata {
-    grid: { 
-        general: { 
+    grid: {
+        general: {
             details: string,
             source_db_name: string,
             source_db_id: string,
@@ -10,7 +10,7 @@ export interface Metadata {
         segmentation_lattices: SegmentationLattices,
         segmentation_meshes: SegmentationMeshes,
     },
-    annotation: Annotation,
+    annotation: Annotation | null,
 }
 
 export interface Volumes {
@@ -48,8 +48,8 @@ export interface SegmentationMeshes {
             }
         }
     }
-    detail_lvl_to_fraction: { 
-        [lvl: number]: number 
+    detail_lvl_to_fraction: {
+        [lvl: number]: number
     }
 }
 

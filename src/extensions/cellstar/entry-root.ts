@@ -14,6 +14,9 @@ import * as ExternalAPIs from './external-api';
 import { CellStarMeshSegmentationData } from './entry-meshes';
 import { BehaviorSubject } from 'rxjs';
 import { Volume } from '../meshes/molstar-lib-imports';
+import { PluginComponent } from '../../mol-plugin-state/component';
+import { ShapeGroup } from '../../mol-model/shape';
+import { MeshlistData } from '../meshes/mesh-extension';
 
 
 export const MAX_VOXELS = 10**7;
@@ -29,7 +32,7 @@ export const CellStarEntryParams = {
     entryNumber: ParamDefinition.Text('1832'),
 }
 
-export class CellStarEntryData {
+export class CellStarEntryData extends PluginComponent {
     plugin: PluginContext;
     entryRoot?: StateObjectSelector;
     api: VolumeApiV2;
@@ -48,21 +51,31 @@ export class CellStarEntryData {
     public readonly modelData = new CellStarModelData(this);
     currentSegment = new BehaviorSubject<Segment | undefined>(undefined);
     visibleSegments = new BehaviorSubject<Segment[]>([]);
+    opacity = new BehaviorSubject(1);
 
 
     private constructor(plugin: PluginContext, serverUrl: string, source: Source, entryNumber: string) {
+        super();
+
         this.plugin = plugin
         this.api = new VolumeApiV2(serverUrl);
         this.source = source;
         this.entryNumber = entryNumber;
         this.entryId = createEntryId(source, entryNumber);
 
-        // TODO: find a way to dispose this (similar to .subscribeObservable in Behaviors)
-        plugin.behaviors.interaction.click.subscribe(e => {
-            if (Volume.isLoci(e.current.loci) && e.current.loci.volume._propertyData.segment) {
+        this.subscribe(plugin.behaviors.interaction.click, e => {
+            if (Volume.isLoci(e.current.loci) && e.current.loci.volume._propertyData.ownerId === this.entryRoot?.ref && e.current.loci.volume._propertyData.segment) {
                 this.currentSegment.next(e.current.loci.volume._propertyData.segment);
             }
+            if (ShapeGroup.isLoci(e.current.loci)) {
+                const meshData = (e.current.loci.shape.sourceData ?? {}) as MeshlistData;
+                if (meshData.ownerId === this.entryRoot?.ref && meshData.segmentId !== undefined) {
+                    this.currentSegment.next(this.metadata.annotation?.segment_list.find(segment => segment.id === meshData.segmentId));
+                }
+            }
         })
+        this.subscribe(this.opacity, o => this.latticeSegmentationData.updateOpacity(o));
+        this.subscribe(this.opacity, o => this.meshSegmentationData.updateOpacity(o));
     }
 
     private async initialize() {
@@ -87,7 +100,7 @@ export class CellStarEntryData {
     public async showSegmentations() {
         await this.latticeSegmentationData.showSegmentation();
         await this.meshSegmentationData.showSegmentation();
-        this.visibleSegments.next(this.metadata.annotation.segment_list);
+        this.visibleSegments.next(this.metadata.annotation?.segment_list ?? []);
     }
     
     async toggleSegment(segment: Segment) {
@@ -101,8 +114,8 @@ export class CellStarEntryData {
 
     toggleAllSegments() {
         const current = this.visibleSegments.value;
-        if (current.length !== this.metadata.annotation.segment_list.length) {
-            this.showSegments(this.metadata.annotation.segment_list);
+        if (current.length !== (this.metadata.annotation?.segment_list.length ?? 0)) {
+            this.showSegments(this.metadata.annotation?.segment_list ?? []);
         } else {
             this.showSegments([]);
         }
@@ -112,7 +125,7 @@ export class CellStarEntryData {
         this.currentSegment.next(segment);
     }
     public async showSegments(segments: Segment[]) {
-        await this.latticeSegmentationData.showSegments(segments);
+        await this.latticeSegmentationData.showSegments(segments, { opacity: this.opacity.value });
         await this.meshSegmentationData.showSegments(segments);
         this.visibleSegments.next(segments);
     }

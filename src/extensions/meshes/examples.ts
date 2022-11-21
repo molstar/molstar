@@ -62,7 +62,8 @@ export async function runMultimeshExample(plugin: MS.PluginUIContext, segments: 
 
 /** Download data and create state tree hierarchy down to visual representation. */
 export async function createMeshFromUrl(plugin: MS.PluginContext, meshDataUrl: string, segmentId: number, detail: number, 
-        collapseTree: boolean, log: boolean, color?: MS.Color, parent?: MS.StateObjectSelector, transparentIfBboxAbove?: number) {
+        collapseTree: boolean, log: boolean, color?: MS.Color, parent?: MS.StateObjectSelector, transparentIfBboxAbove?: number,
+        name?: string, ownerId?: string) {
 
     // PARAMS - Depend on the type of transformer T -> Params<T>
     // 1st argument to plugin.builders.data.rawData, 2nd argument to .apply
@@ -96,9 +97,10 @@ export async function createMeshFromUrl(plugin: MS.PluginContext, meshDataUrl: s
     // PARSED DATA NODE
     const parsedDataNode = await plugin.build().to(cifNode).apply(
         ParseMeshlistTransformer,
-        { label: undefined, segmentId: segmentId, segmentName: `Segment ${segmentId}`, detail: detail }, // params
+        { label: undefined, segmentId: segmentId, segmentName: name ?? `Segment ${segmentId}`, detail: detail }, // params
         { ref: `ref-parsed-data-node-${segmentId}` } // options
     ).commit();
+    if (ownerId && parsedDataNode.data) parsedDataNode.data.ownerId = ownerId;
     if (log) console.log('parsedDataNode:', parsedDataNode);
     if (log) console.log('parsedDataNode.data:', parsedDataNode.data);
     if (log) console.log('parsedDataNode mesh list stats:\n', MeshlistData.stats(parsedDataNode.data!));
@@ -121,7 +123,7 @@ export async function createMeshFromUrl(plugin: MS.PluginContext, meshDataUrl: s
     // MESH REPR NODE
     const reprNode = await plugin.build().to(shapeNode).apply(MS.ShapeRepresentation3D,
         { alpha: transparent ? BACKGROUND_OPACITY : FOREROUND_OPACITY },
-        { ref: `ref-repr-nod+e${segmentId}` }
+        { ref: `ref-repr-nod+e${segmentId}`, tags: ['mesh-segment'] }
     ).commit();
     if (log) console.log('reprNode:', reprNode);
     if (log) console.log('reprNode.data:', reprNode.data);

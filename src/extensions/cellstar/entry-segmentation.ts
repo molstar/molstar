@@ -12,12 +12,15 @@ import { CreateVolume, NodeManager } from './helpers';
 import { LatticeSegmentation } from './lattice-segmentation';
 
 
+const LATTICE_SEGMENT_TAG = 'lattice-segment';
+
+
 export class CellStarLatticeSegmentationData {
     private entryData: CellStarEntryData;
 
     private segmentation?: LatticeSegmentation;
     private segmentationNodeMgr = new NodeManager();
-    
+
 
     constructor(rootData: CellStarEntryData) {
         this.entryData = rootData;
@@ -37,38 +40,50 @@ export class CellStarLatticeSegmentationData {
             const latticeBlock = parsed.result.blocks.find(b => b.header === 'SEGMENTATION_DATA');
             if (latticeBlock) {
                 this.segmentation = await LatticeSegmentation.fromCifBlock(latticeBlock);
-                await this.showSegments(this.entryData.metadata.annotation.segment_list);
+                await this.showSegments(this.entryData.metadata.annotation?.segment_list ?? []);
             } else {
                 console.log('WARNING: Block SEGMENTATION_DATA is missing. Not showing segmentations.');
             }
         }
     }
 
+    updateOpacity(opacity: number) {
+        const group = this.entryData.groupNodeMgr.getNode('LatticeSegmentation');
+        if (!group) return;
+
+        const segs = this.entryData.plugin.state.data.selectQ(q => q.byRef(group.ref).subtree().withTag(LATTICE_SEGMENT_TAG));
+        const update = this.entryData.newUpdate();
+        for (const s of segs) {
+            update.to(s).update(StateTransforms.Representation.VolumeRepresentation3D, p => { p.type.params.alpha = opacity; })
+        }
+        return update.commit();
+    }
+
 
     /** Make visible the specified set of lattice segments */
-    async showSegments(segments: Segment[]) {
+    async showSegments(segments: Segment[], options?: { opacity?: number }) {
         this.segmentationNodeMgr.hideAllNodes();
 
         segments = segments.filter(seg => this.segmentation?.hasSegment(seg.id));
         if (segments.length == 0) return;
 
         const group = await this.entryData.groupNodeMgr.showNode('LatticeSegmentation', async () => await this.entryData.newUpdate().apply(CreateGroup, { label: 'Segmentation', description: 'Lattice' }, { state: { isCollapsed: true } }).commit(), false)
-        
+
         const update = this.entryData.newUpdate();
         for (const seg of segments) {
             this.segmentationNodeMgr.showNode(seg.id.toString(), () => {
-                const volume = this.segmentation?.createSegment(seg);
+                const volume = this.segmentation?.createSegment(seg, { ownerId: this.entryData.entryRoot?.ref, segment: seg });
                 Volume.PickingGranularity.set(volume!, 'volume');
                 const volumeNode = update.to(group).apply(CreateVolume, { volume, label: `Segment ${seg.id}`, description: seg.biological_annotation?.name }, { state: { isCollapsed: true } });
 
                 volumeNode.apply(StateTransforms.Representation.VolumeRepresentation3D, createVolumeRepresentationParams(this.entryData.plugin, volume, {
                     type: 'isosurface',
-                    typeParams: { alpha: 1, isoValue: Volume.IsoValue.absolute(0.95) },
+                    typeParams: { alpha: options?.opacity ?? 1, isoValue: Volume.IsoValue.absolute(0.95) },
                     color: 'uniform',
                     colorParams: { value: Color.fromNormalizedArray(seg.colour, 0) }
-                }));
+                }), { tags: [LATTICE_SEGMENT_TAG] });
                 return volumeNode.selector;
-            });
+            }, undefined);
         }
         await update.commit();
     }

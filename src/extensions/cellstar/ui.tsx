@@ -1,6 +1,6 @@
 import { CollapsableControls, CollapsableState } from '../../mol-plugin-ui/base';
 import { PluginContext } from '../../mol-plugin/context';
-import { Button, IconButton } from '../../mol-plugin-ui/controls/common';
+import { Button, ControlRow, IconButton } from '../../mol-plugin-ui/controls/common';
 import { ParamDefinition } from '../../mol-util/param-definition';
 import { useBehavior } from '../../mol-plugin-ui/hooks/use-behavior';
 
@@ -8,6 +8,7 @@ import { CellStarEntry } from './entry-root';
 import { isDefined } from './helpers';
 import { ParameterControls } from '../../mol-plugin-ui/controls/parameters';
 import * as Icons from '../../mol-plugin-ui/controls/icons';
+import { Slider } from '../../mol-plugin-ui/controls/slider';
 
 
 interface CellStarUIData {
@@ -76,9 +77,10 @@ function CellStarControls({ plugin, data, setData }: { plugin: PluginContext, da
         entry: data.activeNode!.id.toString(),
     }
 
-    const allSegments = entryData.metadata.annotation.segment_list;
+    const allSegments = entryData.metadata.annotation?.segment_list ?? [];
     const currentSegment = useBehavior(entryData.currentSegment);
     const visibleSegments = useBehavior(entryData.visibleSegments);
+    const opacity = useBehavior(entryData.opacity);
 
     const allPdbs = entryData.pdbs;
     const currentPdb = useBehavior(entryData.modelData.currentPdb);
@@ -97,14 +99,17 @@ function CellStarControls({ plugin, data, setData }: { plugin: PluginContext, da
         </>}
 
 
-        <div style={{ padding: 8, maxHeight: 120, overflow: 'hidden', overflowY: 'auto' }}>
+        <div style={{ padding: 8, maxHeight: 200, overflow: 'hidden', overflowY: 'auto' }}>
             {!currentSegment && 'No segment selected'}
             {currentSegment && `Segment id ${currentSegment.id}`}
-            {currentSegment?.biological_annotation.external_references.map(ref => <p key={ref.id}>
-                <b>{ref.resource}:{ref.accession}</b><br />
-                {ref.description}
-            </p>)}
+            {currentSegment?.biological_annotation.external_references.map(ref =>
+                <p key={ref.id} style={{marginTop: 4}}>
+                    <b>{ref.resource}:{ref.accession}</b><br />
+                    <i>{capitalize(ref.label)}:</i> {ref.description}
+                </p>)}
         </div>
+
+        <ControlRow label='Opacity' control={<Slider min={0} max={1} value={opacity} step={0.05} onChange={v => entryData.opacity.next(v)} />} />
 
         {allSegments.length > 0 && <>
             <Button onClick={() => entryData.toggleAllSegments()}
@@ -115,13 +120,19 @@ function CellStarControls({ plugin, data, setData }: { plugin: PluginContext, da
                 <div style={{ display: 'flex', marginTop: 1 }} key={segment.id}>
                     <Button onClick={() => entryData.showAnnotation(segment)}
                         style={{ fontWeight: segment.id === currentSegment?.id ? 'bold' : undefined, marginRight: 1, flexGrow: 1, textAlign: 'left' }}>
-                        <div title={segment.biological_annotation.name ?? 'Unnamed segment'} style={{ maxWidth: 240, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'  }}>
+                        <div title={segment.biological_annotation.name ?? 'Unnamed segment'} style={{ maxWidth: 240, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                             {segment.biological_annotation.name ?? 'Unnamed segment'}
                         </div>
                     </Button>
-                    <IconButton svg={visibleSegments.includes(segment) ? Icons.VisibilityOutlinedSvg : Icons.VisibilityOffOutlinedSvg} onClick={() => entryData.toggleSegment(segment)} /> 
+                    <IconButton svg={visibleSegments.includes(segment) ? Icons.VisibilityOutlinedSvg : Icons.VisibilityOffOutlinedSvg} onClick={() => entryData.toggleSegment(segment)} />
                 </div>
             )}
         </>}
     </>;
+}
+
+function capitalize(text: string) {
+    const first = text.charAt(0);
+    const rest = text.slice(1);
+    return first.toUpperCase() + rest;
 }

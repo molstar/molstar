@@ -139,7 +139,7 @@ export namespace MetadataUtils {
     }
     export function annotationsBySegment(metadata: Metadata): { [id: number]: Segment } {
         const result: { [id: number]: Segment } = {};
-        for (const segment of metadata.annotation.segment_list) {
+        for (const segment of metadata.annotation?.segment_list ?? []) {
             if (segment.id in result) {
                 throw new Error(`Duplicate segment annotation for segment ${segment.id}`);
             }
@@ -150,7 +150,9 @@ export namespace MetadataUtils {
     export function dropSegments(metadata: Metadata, segments: number[]): void {
         if (metadata.grid.segmentation_meshes.mesh_component_numbers.segment_ids === undefined) return;
         const dropSet = new Set(segments);
-        metadata.annotation.segment_list = metadata.annotation.segment_list.filter(seg => !dropSet.has(seg.id));
+        if (metadata.annotation) {
+            metadata.annotation.segment_list = metadata.annotation.segment_list.filter(seg => !dropSet.has(seg.id));
+        }
         for (const seg of segments) {
             delete metadata.grid.segmentation_meshes.mesh_component_numbers.segment_ids[seg];
         }

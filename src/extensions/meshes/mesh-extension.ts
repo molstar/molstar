@@ -50,7 +50,10 @@ export namespace MeshlistData {
         const mesh = data.mesh;
         const meshShape: MS.Shape<MS.Mesh> = MS.Shape.create('MyShape', data, mesh,
             () => color,
-            () => 1, (group) => `${data.segmentName} | Segment ${data.segmentId} | Detail ${data.detail} | Mesh ${group}`);
+            () => 1,
+            // group => `${data.segmentName} | Segment ${data.segmentId} | Detail ${data.detail} | Mesh ${group}`,
+            group => data.segmentName,
+        );
         return meshShape;
     }
 

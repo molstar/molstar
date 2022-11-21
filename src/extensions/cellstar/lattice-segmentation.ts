@@ -65,7 +65,7 @@ export class LatticeSegmentation {
     public hasSegment(segId: number): boolean {
         return this.inverseSegmentMap.has(segId);
     }
-    public createSegment(seg: Segment): Volume {
+    public createSegment(seg: Segment, propertyData?: {[key: string]: any}): Volume {
         const { space, data }: Tensor = this.grid.cells;
         const [nx, ny, nz] = space.dimensions;
         const axisOrder = [...space.axisOrderSlowToFast];
@@ -115,15 +115,15 @@ export class LatticeSegmentation {
         }
         const result = {
             sourceData: { kind: 'custom', name: 'test', data: newTensor.data as any },
-            label: seg.biological_annotation.name,
+            label: seg.biological_annotation.name ?? `Segment ${seg.id}`,
             customProperties: new CustomProperties(),
-            _propertyData: { segment: seg },
+            _propertyData: propertyData ?? {},
             grid: {
                 stats: { min: 0, max: 1, mean: 0, sigma: 1 },
                 cells: newTensor,
                 transform: newTransform,
             }
-        };
+        } as Volume;
         return result;
     }
 
@@ -222,29 +222,15 @@ export class LatticeSegmentation {
         return map;
     }
 
-    public benchmark(segId: number) {
+    public benchmark(segment: Segment) {
         const N = 100;
 
-        console.time(`createSegment ${segId} ${N}x`);
+        console.time(`createSegment ${segment.id} ${N}x`);
         for (let i = 0; i < N; i++) {
             this.getSegmentBoundingBoxes = lazyGetter(() => LatticeSegmentation._getSegmentBoundingBoxes(this));
-            this.createSegment(segId);
+            this.createSegment(segment);
         }
-        console.timeEnd(`createSegment ${segId} ${N}x`);
-    }
-    public benchmarkAll() {
-        const N = 100;
-        const segments: number[] = [];
-        this.inverseSegmentMap.forEach((v, k) => segments.push(k));
-
-        console.time(`createSegment ALL ${N}x`);
-        for (let i = 0; i < N; i++) {
-            this.getSegmentBoundingBoxes = lazyGetter(() => LatticeSegmentation._getSegmentBoundingBoxes(this));
-            for (const segId of segments) {
-                this.createSegment(segId);
-            }
-        }
-        console.timeEnd(`createSegment ALL ${N}x`);
+        console.timeEnd(`createSegment ${segment.id} ${N}x`);
     }
 }
 

@@ -3,6 +3,7 @@ import { Color } from '../../mol-util/color';
 import { ColorNames } from '../../mol-util/color/names';
 import { createMeshFromUrl } from '../meshes/examples';
 import { BACKGROUND_SEGMENT_VOLUME_THRESHOLD } from '../meshes/mesh-streaming/behavior';
+import { ShapeRepresentation3D } from '../../mol-plugin-state/transforms/representation';
 
 import { Segment } from './cellstar-api/data';
 import { CellStarEntryData } from './entry-root';
@@ -24,8 +25,20 @@ export class CellStarMeshSegmentationData {
     async showSegmentation() {
         const hasMeshes = this.entryData.metadata.grid.segmentation_meshes.mesh_component_numbers.segment_ids !== undefined;
         if (hasMeshes) {
-            await this.showSegments(this.entryData.metadata.annotation.segment_list);
+            await this.showSegments(this.entryData.metadata.annotation?.segment_list ?? []);
         }
+    }
+
+    updateOpacity(opacity: number) {
+        const group = this.entryData.groupNodeMgr.getNode('MeshSegmentation');
+        if (!group) return;
+
+        const segs = this.entryData.plugin.state.data.selectQ(q => q.byRef(group.ref).subtree().withTag('mesh-segment'));
+        const update = this.entryData.newUpdate();
+        for (const s of segs) {
+            update.to(s).update(ShapeRepresentation3D, p => { (p as any).alpha = opacity; })
+        }
+        return update.commit();
     }
 
     /** Make visible the specified set of mesh segments */
@@ -48,7 +61,7 @@ export class CellStarMeshSegmentationData {
                 const detail = MetadataUtils.getSufficientDetail(this.entryData.metadata!, seg.id, DEFAULT_MESH_DETAIL);
                 const color = seg.colour.length >= 3 ? Color.fromNormalizedArray(seg.colour, 0) : ColorNames.gray;
                 return await createMeshFromUrl(this.entryData.plugin, this.entryData.api.meshUrl_Bcif(this.entryData.source, this.entryData.entryId, seg.id, detail), seg.id, detail, 
-                    true, false, color, group, BACKGROUND_SEGMENT_VOLUME_THRESHOLD * totalVolume);
+                    true, false, color, group, BACKGROUND_SEGMENT_VOLUME_THRESHOLD * totalVolume, seg.biological_annotation.name ?? `Segment ${seg.id}`, this.entryData.entryRoot?.ref);
             });
         }
     }
