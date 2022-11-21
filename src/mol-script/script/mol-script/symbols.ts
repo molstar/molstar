@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2018 Mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2022 Mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { UniqueArray } from '../../../mol-data/generic';
@@ -205,6 +206,7 @@ export const SymbolTable = [
             Alias(MolScript.structureQuery.atomProperty.core.z, 'atom.z'),
             Alias(MolScript.structureQuery.atomProperty.core.sourceIndex, 'atom.src-index'),
             Alias(MolScript.structureQuery.atomProperty.core.operatorName, 'atom.op-name'),
+            Alias(MolScript.structureQuery.atomProperty.core.operatorKey, 'atom.op-key'),
             Alias(MolScript.structureQuery.atomProperty.core.modelIndex, 'atom.model-index'),
             Alias(MolScript.structureQuery.atomProperty.core.modelLabel, 'atom.model-label'),
             Alias(MolScript.structureQuery.atomProperty.core.atomKey, 'atom.key'),
@@ -253,6 +255,7 @@ export const SymbolTable = [
             'Bond Properties',
             Alias(MolScript.structureQuery.bondProperty.order, 'bond.order'),
             Alias(MolScript.structureQuery.bondProperty.length, 'bond.length'),
+            Alias(MolScript.structureQuery.bondProperty.key, 'bond.key'),
             Alias(MolScript.structureQuery.bondProperty.atomA, 'bond.atom-a'),
             Alias(MolScript.structureQuery.bondProperty.atomB, 'bond.atom-b'),
             Macro(MSymbol('bond.is', Arguments.List(StructureQueryTypes.BondFlag), Type.Bool,

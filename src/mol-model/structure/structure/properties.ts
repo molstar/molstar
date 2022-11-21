@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -173,6 +173,7 @@ const unit = {
     multiChain: p(l => Unit.Traits.is(l.unit.traits, Unit.Trait.MultiChain)),
     object_primitive: p(l => l.unit.objectPrimitive),
     operator_name: p(l => l.unit.conformation.operator.name),
+    operator_key: p(l => l.unit.conformation.operator.key),
     model_index: p(l => l.unit.model.modelNum),
     model_label: p(l => l.unit.model.label),
     model_entry_id: p(l => l.unit.model.entryId),
