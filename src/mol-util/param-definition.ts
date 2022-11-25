@@ -314,7 +314,7 @@ export namespace ParamDefinition {
         toValue(v: C): T
     }
     export function Converted<T, C extends Any>(fromValue: (v: T) => C['defaultValue'], toValue: (v: C['defaultValue']) => T, converted: C): Converted<T, C['defaultValue']> {
-        return { type: 'converted', defaultValue: toValue(converted.defaultValue), converted, fromValue, toValue };
+        return setInfo({ type: 'converted', defaultValue: toValue(converted.defaultValue), converted, fromValue, toValue }, converted);
     }
 
     export interface Conditioned<T, P extends Base<T>, C = { [k: string]: P }> extends Base<T> {
