@@ -9,7 +9,6 @@ import { Structure, StructureElement } from '../../mol-model/structure';
 import { Volume } from '../../mol-model/volume';
 import { PluginContext } from '../../mol-plugin/context';
 import { VolumeRepresentationRegistry } from '../../mol-repr/volume/registry';
-import { VolumeParams } from '../../mol-repr/volume/representation';
 import { StateTransformer, StateObject } from '../../mol-state';
 import { Task } from '../../mol-task';
 import { ColorTheme } from '../../mol-theme/color';
@@ -806,17 +805,16 @@ const ThemeStrengthRepresentation3D = PluginStateTransform.BuiltIn({
 //
 
 export namespace VolumeRepresentation3DHelpers {
-    export function getDefaultParams(ctx: PluginContext, name: VolumeRepresentationRegistry.BuiltIn, volume: Volume, volumeParams?: Partial<PD.Values<VolumeParams>>): StateTransformer.Params<VolumeRepresentation3D> {
+    export function getDefaultParams(ctx: PluginContext, name: VolumeRepresentationRegistry.BuiltIn, volume: Volume, volumeParams?: Partial<PD.Values<PD.Params>>, colorName?: ColorTheme.BuiltIn, colorParams?: Partial<ColorTheme.Props>, sizeName?: SizeTheme.BuiltIn, sizeParams?: Partial<SizeTheme.Props>): StateTransformer.Params<VolumeRepresentation3D> {
         const type = ctx.representation.volume.registry.get(name);
 
-        const themeDataCtx = { volume };
-        const colorParams = ctx.representation.volume.themes.colorThemeRegistry.get(type.defaultColorTheme.name).getParams(themeDataCtx);
-        const sizeParams = ctx.representation.volume.themes.sizeThemeRegistry.get(type.defaultSizeTheme.name).getParams(themeDataCtx);
+        const colorType = ctx.representation.volume.themes.colorThemeRegistry.get(colorName || type.defaultColorTheme.name);
+        const sizeType = ctx.representation.volume.themes.sizeThemeRegistry.get(sizeName || type.defaultSizeTheme.name);
         const volumeDefaultParams = PD.getDefaultValues(type.getParams(ctx.representation.volume.themes, volume));
         return ({
             type: { name, params: volumeParams ? { ...volumeDefaultParams, ...volumeParams } : volumeDefaultParams },
-            colorTheme: { name: type.defaultColorTheme.name, params: PD.getDefaultValues(colorParams) },
-            sizeTheme: { name: type.defaultSizeTheme.name, params: PD.getDefaultValues(sizeParams) }
+            colorTheme: { name: colorType.name, params: colorParams ? { ...colorType.defaultValues, ...colorParams } : colorType.defaultValues },
+            sizeTheme: { name: sizeType.name, params: sizeParams ? { ...sizeType.defaultValues, ...sizeParams } : sizeType.defaultValues }
         });
     }
 
