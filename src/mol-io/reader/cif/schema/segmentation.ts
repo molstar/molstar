@@ -10,7 +10,6 @@ import { DensityServer_Data_Schema } from './density-server';
 import Schema = Column.Schema
 
 const int = Schema.int;
-const float = Schema.float;
 
 export const Segmentation_Data_Schema = {
     volume_data_3d_info: DensityServer_Data_Schema.volume_data_3d_info,
@@ -19,7 +18,7 @@ export const Segmentation_Data_Schema = {
         segment_id: int,
     },
     segmentation_data_3d: {
-        values: float
+        values: int
     }
 };
 
