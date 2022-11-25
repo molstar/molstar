@@ -80,12 +80,12 @@ export class DataFormatRegistry {
 
     auto(info: FileInfo, dataStateObject: PluginStateObject.Data.Binary | PluginStateObject.Data.String) {
         for (let i = 0, il = this.list.length; i < il; ++i) {
-            const { provider } = this._list[i];
+            const p = this._list[i].provider;
 
             let hasExt = false;
-            if (provider.binaryExtensions && provider.binaryExtensions.indexOf(info.ext) >= 0) hasExt = true;
-            else if (provider.stringExtensions && provider.stringExtensions.indexOf(info.ext) >= 0) hasExt = true;
-            if (hasExt && (!provider.isApplicable || provider.isApplicable(info, dataStateObject.data))) return provider;
+            if (p.binaryExtensions?.includes(info.ext)) hasExt = true;
+            else if (p.stringExtensions?.includes(info.ext)) hasExt = true;
+            if (hasExt && (!p.isApplicable || p.isApplicable(info, dataStateObject.data))) return p;
         }
         return;
     }
