@@ -5,8 +5,8 @@
  */
 
 import { Grid } from './grid';
-import { OrderedSet } from '../../mol-data/int';
-import { Sphere3D } from '../../mol-math/geometry';
+import { OrderedSet, SortedArray } from '../../mol-data/int';
+import { Box3D, Sphere3D } from '../../mol-math/geometry';
 import { Vec3, Mat4 } from '../../mol-math/linear-algebra';
 import { BoundaryHelper } from '../../mol-math/geometry/boundary-helper';
 import { CubeFormat } from '../../mol-model-formats/volume/cube';
@@ -220,6 +220,44 @@ export namespace Volume {
         }
     }
 
+    export namespace Segment {
+        export interface Loci { readonly kind: 'segment-loci', readonly volume: Volume, readonly segments: SortedArray }
+        export function Loci(volume: Volume, segments: ArrayLike<number>): Loci { return { kind: 'segment-loci', volume, segments: SortedArray.ofUnsortedArray(segments) }; }
+        export function isLoci(x: any): x is Loci { return !!x && x.kind === 'segment-loci'; }
+        export function areLociEqual(a: Loci, b: Loci) { return a.volume === b.volume && SortedArray.areEqual(a.segments, b.segments); }
+        export function isLociEmpty(loci: Loci) { return loci.volume.grid.cells.data.length === 0 || loci.segments.length === 0; }
+
+        const bbox = Box3D();
+        export function getBoundingSphere(volume: Volume, segments: ArrayLike<number>, boundingSphere?: Sphere3D) {
+            const segmentation = Volume.Segmentation.get(volume);
+            if (segmentation) {
+                Box3D.setEmpty(bbox);
+                for (let i = 0, il = segments.length; i < il; ++i) {
+                    const b = segmentation.bounds[segments[i]];
+                    Box3D.add(bbox, b.min);
+                    Box3D.add(bbox, b.max);
+                }
+                const transform = Grid.getGridToCartesianTransform(volume.grid);
+                Box3D.transform(bbox, bbox, transform);
+                return Sphere3D.fromBox3D(boundingSphere || Sphere3D(), bbox);
+            } else {
+                return Volume.getBoundingSphere(volume, boundingSphere);
+            }
+        }
+
+        export interface Location {
+            readonly kind: 'segment-location',
+            volume: Volume
+            segment: number
+        }
+        export function Location(volume?: Volume, segment?: number): Location {
+            return { kind: 'segment-location', volume: volume as any, segment: segment as any };
+        }
+        export function isLocation(x: any): x is Location {
+            return !!x && x.kind === 'segment-location';
+        }
+    }
+
     export type PickingGranularity = 'volume' | 'object' | 'voxel';
     export const PickingGranularity = {
         set(volume: Volume, granularity: PickingGranularity) {
@@ -227,6 +265,20 @@ export namespace Volume {
         },
         get(volume: Volume): PickingGranularity {
             return volume._propertyData['__picking_granularity__'] ?? 'voxel';
+        }
+    };
+
+    export type Segmentation = {
+        segments: Map<number, Set<number>>
+        sets: Map<number, Set<number>>
+        bounds: { [k: number]: Box3D }
+    };
+    export const Segmentation = {
+        set(volume: Volume, segmentation: Segmentation) {
+            volume._propertyData['__segmentation__'] = segmentation;
+        },
+        get(volume: Volume): Segmentation | undefined {
+            return volume._propertyData['__segmentation__'];
         }
     };
 }

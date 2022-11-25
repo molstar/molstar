@@ -14,7 +14,7 @@ import { createIdentityTransform } from '../../mol-geo/geometry/transform-data';
 import { createRenderObject, getNextMaterialId, GraphicsRenderObject } from '../../mol-gl/render-object';
 import { PickingId } from '../../mol-geo/geometry/picking';
 import { Loci, isEveryLoci, EmptyLoci, isEmptyLoci } from '../../mol-model/loci';
-import { Interval } from '../../mol-data/int';
+import { Interval, SortedArray } from '../../mol-data/int';
 import { getQualityProps, VisualUpdateState } from '../util';
 import { ColorTheme } from '../../mol-theme/color';
 import { ValueCell } from '../../mol-util';
@@ -188,10 +188,16 @@ export function VolumeVisual<G extends Geometry, P extends VolumeParams & Geomet
 
     function eachInstance(loci: Loci, volume: Volume, key: number, apply: (interval: Interval) => boolean) {
         let changed = false;
-        if (!Volume.Cell.isLoci(loci)) return false;
-        if (Volume.Cell.isLociEmpty(loci)) return false;
-        if (!Volume.areEquivalent(loci.volume, volume)) return false;
-        if (apply(Interval.ofSingleton(0))) changed = true;
+        if (Volume.Cell.isLoci(loci)) {
+            if (Volume.Cell.isLociEmpty(loci)) return false;
+            if (!Volume.areEquivalent(loci.volume, volume)) return false;
+            if (apply(Interval.ofSingleton(0))) changed = true;
+        } else if (Volume.Segment.isLoci(loci)) {
+            if (Volume.Segment.isLociEmpty(loci)) return false;
+            if (!Volume.areEquivalent(loci.volume, volume)) return false;
+            if (!SortedArray.has(loci.segments, key)) return false;
+            if (apply(Interval.ofSingleton(0))) changed = true;
+        }
         return changed;
     }
 
