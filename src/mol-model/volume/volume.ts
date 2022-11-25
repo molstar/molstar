@@ -181,9 +181,35 @@ export namespace Volume {
         export function areLociEqual(a: Loci, b: Loci) { return a.volume === b.volume && Volume.IsoValue.areSame(a.isoValue, b.isoValue, a.volume.grid.stats); }
         export function isLociEmpty(loci: Loci) { return loci.volume.grid.cells.data.length === 0; }
 
+        const bbox = Box3D();
         export function getBoundingSphere(volume: Volume, isoValue: Volume.IsoValue, boundingSphere?: Sphere3D) {
-            // TODO get bounding sphere for subgrid with values >= isoValue
-            return Volume.getBoundingSphere(volume, boundingSphere);
+            const value = Volume.IsoValue.toAbsolute(isoValue, volume.grid.stats).absoluteValue;
+            const neg = value < 0;
+
+            const c = [0, 0, 0];
+            const getCoords = volume.grid.cells.space.getCoords;
+            const d = volume.grid.cells.data;
+            const [xn, yn, zn] = volume.grid.cells.space.dimensions;
+
+            let minx = xn - 1, miny = yn - 1, minz = zn - 1;
+            let maxx = 0, maxy = 0, maxz = 0;
+            for (let i = 0, il = d.length; i < il; ++i) {
+                if ((neg && d[i] <= value) || (!neg && d[i] >= value)) {
+                    getCoords(i, c);
+                    if (c[0] < minx) minx = c[0];
+                    if (c[1] < miny) miny = c[1];
+                    if (c[2] < minz) minz = c[2];
+                    if (c[0] > maxx) maxx = c[0];
+                    if (c[1] > maxy) maxy = c[1];
+                    if (c[2] > maxz) maxz = c[2];
+                }
+            }
+
+            Vec3.set(bbox.min, minx - 1, miny - 1, minz - 1);
+            Vec3.set(bbox.max, maxx + 1, maxy + 1, maxz + 1);
+            const transform = Grid.getGridToCartesianTransform(volume.grid);
+            Box3D.transform(bbox, bbox, transform);
+            return Sphere3D.fromBox3D(boundingSphere || Sphere3D(), bbox);
         }
     }
 

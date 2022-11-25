@@ -108,7 +108,7 @@ export async function createVolumeIsosurfaceMesh(ctx: VisualContext, volume: Vol
         ValueCell.updateIfChanged(surface.varyingGroup, true);
     }
 
-    surface.setBoundingSphere(Volume.getBoundingSphere(volume));
+    surface.setBoundingSphere(Volume.Isosurface.getBoundingSphere(volume, props.isoValue));
 
     return surface;
 }
@@ -200,7 +200,8 @@ async function createVolumeIsosurfaceTextureMesh(ctx: VisualContext, volume: Vol
     const gv = extractIsosurface(ctx.webgl, texture, gridDimension, gridTexDim, gridTexScale, transform, isoLevel, value < 0, false, axisOrder, true, buffer?.vertex, buffer?.group, buffer?.normal);
 
     const groupCount = volume.grid.cells.data.length;
-    const surface = TextureMesh.create(gv.vertexCount, groupCount, gv.vertexTexture, gv.groupTexture, gv.normalTexture, Volume.getBoundingSphere(volume), textureMesh);
+    const boundingSphere = Volume.getBoundingSphere(volume); // getting isosurface bounding-sphere is too expensive here
+    const surface = TextureMesh.create(gv.vertexCount, groupCount, gv.vertexTexture, gv.groupTexture, gv.normalTexture, boundingSphere, textureMesh);
 
     return surface;
 }
@@ -244,7 +245,7 @@ export async function createVolumeIsosurfaceWireframe(ctx: VisualContext, volume
     const transform = Grid.getGridToCartesianTransform(volume.grid);
     Lines.transform(wireframe, transform);
 
-    wireframe.setBoundingSphere(Volume.getBoundingSphere(volume));
+    wireframe.setBoundingSphere(Volume.Isosurface.getBoundingSphere(volume, props.isoValue));
 
     return wireframe;
 }
