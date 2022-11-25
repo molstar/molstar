@@ -11,6 +11,7 @@ import { equalEps } from '../../mol-math/linear-algebra/3d/common';
 import { Vec3 } from '../../mol-math/linear-algebra/3d/vec3';
 import { packIntToRGBArray } from '../../mol-util/number-packing';
 import { SetUtils } from '../../mol-util/set';
+import { Box3D } from '../../mol-math/geometry';
 
 // avoiding namespace lookup improved performance in Chrome (Aug 2020)
 const v3set = Vec3.set;
@@ -200,4 +201,49 @@ export function createVolumeTexture3d(volume: Volume) {
     }
 
     return textureVolume;
+}
+
+export function createSegmentTexture2d(volume: Volume, set: number[], bbox: Box3D, padding = 0) {
+    const data = volume.grid.cells.data;
+    const dim = Box3D.size(Vec3(), bbox);
+    const o = volume.grid.cells.space.dataOffset;
+    const { width, height } = getVolumeTexture2dLayout(dim, padding);
+
+    const itemSize = 1;
+    const array = new Uint8Array(width * height * itemSize);
+    const textureImage = { array, width, height };
+
+    const [xn, yn, zn] = dim;
+    const xn1 = xn - 1;
+    const yn1 = yn - 1;
+    const zn1 = zn - 1;
+
+    const xnp = xn + padding;
+    const ynp = yn + padding;
+
+    const [minx, miny, minz] = bbox.min;
+    const [maxx, maxy, maxz] = bbox.max;
+
+    for (let z = 0; z < zn; ++z) {
+        for (let y = 0; y < yn; ++y) {
+            for (let x = 0; x < xn; ++x) {
+                const column = Math.floor(((z * xnp) % width) / xnp);
+                const row = Math.floor((z * xnp) / width);
+                const px = column * xnp + x;
+                const index = itemSize * ((row * ynp * width) + (y * width) + px);
+
+                const v0 = set.includes(data[o(x + minx, y + miny, z + minz)]) ? 255 : 0;
+                const xp = set.includes(data[o(Math.min(xn1 + maxx, x + 1 + minx), y + miny, z + minz)]) ? 255 : 0;
+                const xn = set.includes(data[o(Math.max(0, x - 1 + minx), y + miny, z + minz)]) ? 255 : 0;
+                const yp = set.includes(data[o(x + minx, Math.min(yn1 + maxy, y + 1 + miny), z + minz)]) ? 255 : 0;
+                const yn = set.includes(data[o(x + minx, Math.max(0, y - 1 + miny), z + minz)]) ? 255 : 0;
+                const zp = set.includes(data[o(x + minx, y + miny, Math.min(zn1 + maxz, z + 1 + minz))]) ? 255 : 0;
+                const zn = set.includes(data[o(x + minx, y + miny, Math.max(0, z - 1 + minz))]) ? 255 : 0;
+
+                array[index] = Math.round((v0 + v0 + xp + xn + yp + yn + zp + zn) / 8);
+            }
+        }
+    }
+
+    return textureImage;
 }

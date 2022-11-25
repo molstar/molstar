@@ -237,5 +237,5 @@ export const SliceRepresentationProvider = VolumeRepresentationProvider({
     defaultValues: PD.getDefaultValues(SliceParams),
     defaultColorTheme: { name: 'uniform' },
     defaultSizeTheme: { name: 'uniform' },
-    isApplicable: (volume: Volume) => !Volume.isEmpty(volume)
+    isApplicable: (volume: Volume) => !Volume.isEmpty(volume) && !Volume.Segmentation.get(volume)
 });

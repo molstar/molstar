@@ -305,5 +305,5 @@ export const IsosurfaceRepresentationProvider = VolumeRepresentationProvider({
     defaultValues: PD.getDefaultValues(IsosurfaceParams),
     defaultColorTheme: { name: 'uniform' },
     defaultSizeTheme: { name: 'uniform' },
-    isApplicable: (volume: Volume) => !Volume.isEmpty(volume)
+    isApplicable: (volume: Volume) => !Volume.isEmpty(volume) && !Volume.Segmentation.get(volume)
 });
