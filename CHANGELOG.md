@@ -6,6 +6,11 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+## [v3.25.1] - 2022-11-20
+
+- Fix edge-case in `Structure.eachUnitPair` with single-element units
+- Fix 'auto' structure-quality for coarse models
+
 ## [v3.25.0] - 2022-11-16
 
 - Fix handling of gzipped assets (reverts #615)

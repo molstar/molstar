@@ -75,7 +75,7 @@ export type QualityThresholds = typeof DefaultQualityThresholds
 export function getStructureQuality(structure: Structure, tresholds: Partial<QualityThresholds> = {}): VisualQuality {
     const t = { ...DefaultQualityThresholds, ...tresholds };
     let score = structure.elementCount * t.elementCountFactor;
-    if (structure.isCoarseGrained) score *= t.coarseGrainedFactor;
+    if (structure.isCoarseGrained || structure.isCoarse) score *= t.coarseGrainedFactor;
     if (score > t.lowestElementCount) {
         return 'lowest';
     } else if (score > t.lowerElementCount) {
