@@ -51,12 +51,12 @@ function occlusionStyle(plugin: PluginContext) {
                 samples: 32,
                 resolutionScale: 1,
             } },
-            shadow: { name: 'off', params: { } },
             outline: { name: 'on', params: {
                 scale: 1.0,
                 threshold: 0.33,
                 color: Color(0x0000),
-            } }
+            } },
+            shadow: { name: 'off', params: {} },
         }
     } });
 }

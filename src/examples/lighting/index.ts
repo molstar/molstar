@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -30,11 +30,9 @@ const Canvas3DPresets = {
                     radius: 5,
                     samples: 32,
                     resolutionScale: 1,
-                    softAO: { name: 'off', params: {} },
-                    shadow: { name: 'off', params: {} },
-                    closeAO: { name: 'off', params: {} }
                 } },
-                outline: { name: 'on', params: { scale: 1, threshold: 0.33, color: Color(0x000000) } }
+                outline: { name: 'on', params: { scale: 1, threshold: 0.33, color: Color(0x000000) } },
+                shadow: { name: 'off', params: {} },
             },
             renderer: {
                 ambientIntensity: 1.0,
@@ -51,11 +49,9 @@ const Canvas3DPresets = {
                     radius: 5,
                     samples: 32,
                     resolutionScale: 1,
-                    softAO: { name: 'off', params: {} },
-                    shadow: { name: 'off', params: {} },
-                    closeAO: { name: 'off', params: {} }
                 } },
-                outline: { name: 'off', params: {} }
+                outline: { name: 'off', params: {} },
+                shadow: { name: 'off', params: {} },
             },
             renderer: {
                 ambientIntensity: 0.4,
@@ -68,7 +64,8 @@ const Canvas3DPresets = {
         canvas3d: <Preset>{
             postprocessing: {
                 occlusion: { name: 'off', params: {} },
-                outline: { name: 'off', params: {} }
+                outline: { name: 'off', params: {} },
+                shadow: { name: 'off', params: {} },
             },
             renderer: {
                 ambientIntensity: 0.4,

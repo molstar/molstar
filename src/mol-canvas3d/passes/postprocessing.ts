@@ -137,17 +137,12 @@ const SsaoSchema = {
 
     uProjection: UniformSpec('m4'),
     uInvProjection: UniformSpec('m4'),
-    uView: UniformSpec('m4'),
     uBounds: UniformSpec('v4'),
 
     uTexSize: UniformSpec('v2'),
 
     uRadius: UniformSpec('f'),
     uBias: UniformSpec('f'),
-
-    dOrthographic: DefineSpec('number'),
-    uNear: UniformSpec('f'),
-    uFar: UniformSpec('f'),
 };
 
 type SsaoRenderable = ComputeRenderable<Values<typeof SsaoSchema>>
@@ -162,17 +157,12 @@ function getSsaoRenderable(ctx: WebGLContext, depthTexture: Texture): SsaoRender
 
         uProjection: ValueCell.create(Mat4.identity()),
         uInvProjection: ValueCell.create(Mat4.identity()),
-        uView: ValueCell.create(Mat4.identity()),
         uBounds: ValueCell.create(Vec4()),
 
         uTexSize: ValueCell.create(Vec2.create(ctx.gl.drawingBufferWidth, ctx.gl.drawingBufferHeight)),
 
         uRadius: ValueCell.create(8.0),
         uBias: ValueCell.create(0.025),
-
-        dOrthographic: ValueCell.create(0),
-        uNear: ValueCell.create(0.0),
-        uFar: ValueCell.create(10000.0),
     };
 
     const schema = { ...SsaoSchema };
@@ -296,10 +286,6 @@ const PostprocessingSchema = {
     dOutlineEnable: DefineSpec('boolean'),
     dOutlineScale: DefineSpec('number'),
     uOutlineThreshold: UniformSpec('f'),
-
-    dLightCount: DefineSpec('number'),
-    uLightDirection: UniformSpec('v3[]'),
-    uLightColor: UniformSpec('v3[]'),
 };
 type PostprocessingRenderable = ComputeRenderable<Values<typeof PostprocessingSchema>>
 
@@ -333,10 +319,6 @@ function getPostprocessingRenderable(ctx: WebGLContext, colorTexture: Texture, d
         dOutlineEnable: ValueCell.create(false),
         dOutlineScale: ValueCell.create(1),
         uOutlineThreshold: ValueCell.create(0.33),
-
-        dLightCount: ValueCell.create(0),
-        uLightDirection: ValueCell.create([]),
-        uLightColor: ValueCell.create([]),
     };
 
     const schema = { ...PostprocessingSchema };
@@ -353,7 +335,7 @@ export const PostprocessingParams = {
             radius: PD.Numeric(5, { min: 0, max: 10, step: 0.1 }, { description: 'Final occlusion radius is 2^x' }),
             bias: PD.Numeric(0.8, { min: 0, max: 3, step: 0.1 }),
             blurKernelSize: PD.Numeric(15, { min: 1, max: 25, step: 2 }),
-            resolutionScale: PD.Numeric(1, { min: 0.1, max: 1, step: 0.05 }, { description: 'Adjust resolution of occlusion calculation' })
+            resolutionScale: PD.Numeric(1, { min: 0.1, max: 1, step: 0.05 }, { description: 'Adjust resolution of occlusion calculation' }),
         }),
         off: PD.Group({})
     }, { cycle: true, description: 'Darken occluded crevices with the ambient occlusion effect' }),
@@ -522,11 +504,6 @@ export class PostprocessingPass {
         if (props.occlusion.name === 'on') {
             ValueCell.update(this.ssaoRenderable.values.uProjection, camera.projection);
             ValueCell.update(this.ssaoRenderable.values.uInvProjection, invProjection);
-            ValueCell.update(this.ssaoRenderable.values.uView, camera.view);
-
-            ValueCell.updateIfChanged(this.ssaoRenderable.values.uNear, camera.near);
-            ValueCell.updateIfChanged(this.ssaoRenderable.values.uFar, camera.far);
-            ValueCell.updateIfChanged(this.ssaoRenderable.values.dOrthographic, orthographic);
 
             const [w, h] = this.renderable.values.uTexSize.ref.value;
             const b = this.ssaoRenderable.values.uBounds;

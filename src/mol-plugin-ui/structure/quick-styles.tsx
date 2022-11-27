@@ -62,10 +62,7 @@ export class QuickStyles extends PurePluginUIComponent {
                         name: 'on',
                         params: { bias: 0.8, blurKernelSize: 15, radius: 5, samples: 32, resolutionScale: 1 }
                     },
-                    shadow: {
-                        name: 'off',
-                        params: { }
-                    },
+                    shadow: { name: 'off', params: {} },
                 }
             });
         }
@@ -83,15 +80,12 @@ export class QuickStyles extends PurePluginUIComponent {
                         params: pp.outline.name === 'on'
                             ? pp.outline.params
                             : { scale: 1, color: Color(0x000000), threshold: 0.33 }
-                    }
-                    /*
+                    },
                     occlusion: {
                         name: 'on',
-                        params: pp.occlusion.name === 'on'
-                            ? pp.occlusion.params
-                            : { bias: 0.8, blurKernelSize: 15, radius: 5, samples: 32, resolutionScale: 1, shadow: { name: 'off', params: {} }, closeAO: { name: 'off', params: {}} }
+                        params: { bias: 0.8, blurKernelSize: 15, radius: 5, samples: 32, resolutionScale: 1 }
                     },
-                    */
+                    shadow: { name: 'off', params: {} },
                 }
             });
         }
