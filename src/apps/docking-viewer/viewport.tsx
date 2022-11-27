@@ -31,7 +31,8 @@ function shinyStyle(plugin: PluginContext) {
         postprocessing: {
             ...plugin.canvas3d!.props.postprocessing,
             occlusion: { name: 'off', params: {} },
-            outline: { name: 'off', params: {} }
+            shadow: { name: 'off', params: {} },
+            outline: { name: 'off', params: {} },
         }
     } });
 }
@@ -49,10 +50,8 @@ function occlusionStyle(plugin: PluginContext) {
                 radius: 5,
                 samples: 32,
                 resolutionScale: 1,
-                shadow: { name: 'off', params: {} },
-                closeAO: { name: 'off', params: {} },
-                softAO: { name: 'off', params: {} }
             } },
+            shadow: { name: 'off', params: { } },
             outline: { name: 'on', params: {
                 scale: 1.0,
                 threshold: 0.33,

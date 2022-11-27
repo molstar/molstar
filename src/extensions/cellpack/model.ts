@@ -604,9 +604,15 @@ export const LoadCellPackModel = StateAction.build({
                         bias: 1,
                         blurKernelSize: 15,
                         resolutionScale: 1,
-                        shadow: { name: 'off', params: {} },
-                        softAO: { name: 'off', params: {} },
-                        closeAO: { name: 'off', params: {} }
+                    }
+                },
+                shadow: {
+                    name: 'on',
+                    params: {
+                        bias: 0.6,
+                        maxDistance: 80,
+                        steps: 1,
+                        tolerance: 1.0,
                     }
                 },
                 outline: {

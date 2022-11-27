@@ -6,6 +6,8 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Add screen-space shadow post-processing effect
+
 ## [v3.25.1] - 2022-11-20
 
 - Fix edge-case in `Structure.eachUnitPair` with single-element units

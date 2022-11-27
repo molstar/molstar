@@ -60,8 +60,12 @@ export class QuickStyles extends PurePluginUIComponent {
                     },
                     occlusion: {
                         name: 'on',
-                        params: { bias: 0.8, blurKernelSize: 15, radius: 5, samples: 32, resolutionScale: 1, shadow: { name: 'off', params: {} }, softAO: { name: 'off', params: {} }, closeAO: { name: 'off', params: {} } }
-                    }
+                        params: { bias: 0.8, blurKernelSize: 15, radius: 5, samples: 32, resolutionScale: 1 }
+                    },
+                    shadow: {
+                        name: 'off',
+                        params: { }
+                    },
                 }
             });
         }
