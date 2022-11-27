@@ -368,7 +368,7 @@ export type PostprocessingProps = PD.Values<typeof PostprocessingParams>
 
 export class PostprocessingPass {
     static isEnabled(props: PostprocessingProps) {
-        return props.occlusion.name === 'on' || props.outline.name === 'on' || props.background.variant.name !== 'off';
+        return props.occlusion.name === 'on' || props.shadow.name === 'on' || props.outline.name === 'on' || props.background.variant.name !== 'off';
     }
 
     static isOutlineEnabled(props: PostprocessingProps) {
