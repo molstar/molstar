@@ -83,7 +83,9 @@ export class QuickStyles extends PurePluginUIComponent {
                     },
                     occlusion: {
                         name: 'on',
-                        params: { bias: 0.8, blurKernelSize: 15, radius: 5, samples: 32, resolutionScale: 1 }
+                        params: pp.occlusion.name === 'on'
+                            ? pp.occlusion.params
+                            : { bias: 0.8, blurKernelSize: 15, radius: 5, samples: 32, resolutionScale: 1 }
                     },
                     shadow: { name: 'off', params: {} },
                 }
