@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -15,6 +15,7 @@ import { BIRD_Schema, BIRD_Database } from './cif/schema/bird';
 import { dic_Schema, dic_Database } from './cif/schema/dic';
 import { DensityServer_Data_Schema, DensityServer_Data_Database } from './cif/schema/density-server';
 import { CifCore_Database, CifCore_Schema, CifCore_Aliases } from './cif/schema/cif-core';
+import { Segmentation_Data_Database, Segmentation_Data_Schema } from './cif/schema/segmentation';
 
 export const CIF = {
     parse: (data: string|Uint8Array) => typeof data === 'string' ? parseCifText(data) : parseCifBinary(data),
@@ -29,6 +30,7 @@ export const CIF = {
         dic: (frame: CifFrame) => toDatabase<dic_Schema, dic_Database>(dic_Schema, frame),
         cifCore: (frame: CifFrame) => toDatabase<CifCore_Schema, CifCore_Database>(CifCore_Schema, frame, CifCore_Aliases),
         densityServer: (frame: CifFrame) => toDatabase<DensityServer_Data_Schema, DensityServer_Data_Database>(DensityServer_Data_Schema, frame),
+        segmentation: (frame: CifFrame) => toDatabase<Segmentation_Data_Schema, Segmentation_Data_Database>(Segmentation_Data_Schema, frame),
     }
 };
 

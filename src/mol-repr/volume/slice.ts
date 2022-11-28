@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -24,7 +24,7 @@ import { ColorTheme } from '../../mol-theme/color';
 import { packIntToRGBArray } from '../../mol-util/number-packing';
 import { eachVolumeLoci } from './util';
 
-export async function createImage(ctx: VisualContext, volume: Volume, theme: Theme, props: PD.Values<SliceParams>, image?: Image) {
+export async function createImage(ctx: VisualContext, volume: Volume, key: number, theme: Theme, props: PD.Values<SliceParams>, image?: Image) {
     const { dimension: { name: dim }, isoValue } = props;
 
     const { space, data } = volume.grid.cells;
@@ -147,7 +147,7 @@ function getLoci(volume: Volume, props: PD.Values<SliceParams>) {
     return Volume.Cell.Loci(volume, SortedArray.ofUnsortedArray(groupArray));
 }
 
-function getSliceLoci(pickingId: PickingId, volume: Volume, props: PD.Values<SliceParams>, id: number) {
+function getSliceLoci(pickingId: PickingId, volume: Volume, key: number, props: PD.Values<SliceParams>, id: number) {
     const { objectId, groupId } = pickingId;
     if (id === objectId) {
         const granularity = Volume.PickingGranularity.get(volume);
@@ -162,7 +162,7 @@ function getSliceLoci(pickingId: PickingId, volume: Volume, props: PD.Values<Sli
     return EmptyLoci;
 }
 
-function eachSlice(loci: Loci, volume: Volume, props: PD.Values<SliceParams>, apply: (interval: Interval) => boolean) {
+function eachSlice(loci: Loci, volume: Volume, key: number, props: PD.Values<SliceParams>, apply: (interval: Interval) => boolean) {
     return eachVolumeLoci(loci, volume, undefined, apply);
 }
 
@@ -237,5 +237,5 @@ export const SliceRepresentationProvider = VolumeRepresentationProvider({
     defaultValues: PD.getDefaultValues(SliceParams),
     defaultColorTheme: { name: 'uniform' },
     defaultSizeTheme: { name: 'uniform' },
-    isApplicable: (volume: Volume) => !Volume.isEmpty(volume)
+    isApplicable: (volume: Volume) => !Volume.isEmpty(volume) && !Volume.Segmentation.get(volume)
 });

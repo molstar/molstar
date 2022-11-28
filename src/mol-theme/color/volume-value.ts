@@ -10,6 +10,7 @@ import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { ThemeDataContext } from '../theme';
 import { ColorNames } from '../../mol-util/color/names';
 import { ColorTypeDirect } from '../../mol-geo/geometry/color-data';
+import { Volume } from '../../mol-model/volume/volume';
 
 const Description = 'Assign color based on the given value of a volume cell.';
 
@@ -57,5 +58,5 @@ export const VolumeValueColorThemeProvider: ColorTheme.Provider<VolumeValueColor
     factory: VolumeValueColorTheme,
     getParams: getVolumeValueColorThemeParams,
     defaultValues: PD.getDefaultValues(VolumeValueColorThemeParams),
-    isApplicable: (ctx: ThemeDataContext) => !!ctx.volume,
+    isApplicable: (ctx: ThemeDataContext) => !!ctx.volume && !Volume.Segmentation.get(ctx.volume),
 };

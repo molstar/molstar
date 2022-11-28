@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -10,6 +10,7 @@ import { IsosurfaceRepresentationProvider } from './isosurface';
 import { objectForEach } from '../../mol-util/object';
 import { SliceRepresentationProvider } from './slice';
 import { DirectVolumeRepresentationProvider } from './direct-volume';
+import { SegmentRepresentationProvider } from './segment';
 
 export class VolumeRepresentationRegistry extends RepresentationRegistry<Volume, Representation.State> {
     constructor() {
@@ -26,6 +27,7 @@ export namespace VolumeRepresentationRegistry {
         'isosurface': IsosurfaceRepresentationProvider,
         'slice': SliceRepresentationProvider,
         'direct-volume': DirectVolumeRepresentationProvider,
+        'segment': SegmentRepresentationProvider,
     };
 
     type _BuiltIn = typeof BuiltIn
