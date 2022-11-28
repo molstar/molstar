@@ -5,6 +5,7 @@ import { StateTransforms } from '../../mol-plugin-state/transforms';
 import { CreateGroup } from '../../mol-plugin-state/transforms/misc';
 import { Asset } from '../../mol-util/assets';
 import { Color } from '../../mol-util/color';
+import { PluginCommands, PluginStateObject } from '../meshes/molstar-lib-imports';
 
 import { Segment } from './cellstar-api/data';
 import { CellStarEntryData, MAX_VOXELS } from './entry-root';
@@ -57,6 +58,16 @@ export class CellStarLatticeSegmentationData {
             update.to(s).update(StateTransforms.Representation.VolumeRepresentation3D, p => { p.type.params.alpha = opacity; })
         }
         return update.commit();
+    }
+
+    highlightSegment(segment?: Segment) {
+        PluginCommands.Interactivity.ClearHighlights(this.entryData.plugin);
+        if (!segment) return;
+        const node = this.segmentationNodeMgr.getNode(segment.id.toString());
+        if (!node) return;
+        const vis = this.entryData.plugin.state.data.selectQ(q => q.byRef(node.ref).subtree().ofType(PluginStateObject.Volume.Representation3D))[0];
+        if (!vis) return;
+        PluginCommands.Interactivity.Object.Highlight(this.entryData.plugin, { state: this.entryData.plugin.state.data, ref: vis.transform.ref });
     }
 
 

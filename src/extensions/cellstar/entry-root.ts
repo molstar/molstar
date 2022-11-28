@@ -12,7 +12,7 @@ import { CellStarLatticeSegmentationData } from './entry-segmentation';
 import { CellStarModelData } from './entry-models';
 import * as ExternalAPIs from './external-api';
 import { CellStarMeshSegmentationData } from './entry-meshes';
-import { BehaviorSubject } from 'rxjs';
+import { BehaviorSubject, Subject, throttleTime } from 'rxjs';
 import { Volume } from '../meshes/molstar-lib-imports';
 import { PluginComponent } from '../../mol-plugin-state/component';
 import { ShapeGroup } from '../../mol-model/shape';
@@ -52,6 +52,7 @@ export class CellStarEntryData extends PluginComponent {
     currentSegment = new BehaviorSubject<Segment | undefined>(undefined);
     visibleSegments = new BehaviorSubject<Segment[]>([]);
     opacity = new BehaviorSubject(1);
+    private highlightRequest = new Subject<Segment | undefined>();
 
 
     private constructor(plugin: PluginContext, serverUrl: string, source: Source, entryNumber: string) {
@@ -76,6 +77,10 @@ export class CellStarEntryData extends PluginComponent {
         })
         this.subscribe(this.opacity, o => this.latticeSegmentationData.updateOpacity(o));
         this.subscribe(this.opacity, o => this.meshSegmentationData.updateOpacity(o));
+        this.subscribe(this.highlightRequest.pipe(throttleTime(50, undefined, { leading: true, trailing: true })), segment => {
+            this.latticeSegmentationData.highlightSegment(segment);
+            // TODO: meshes
+        });
     }
 
     private async initialize() {
@@ -101,6 +106,10 @@ export class CellStarEntryData extends PluginComponent {
         await this.latticeSegmentationData.showSegmentation();
         await this.meshSegmentationData.showSegmentation();
         this.visibleSegments.next(this.metadata.annotation?.segment_list ?? []);
+    }
+
+    highlightSegment(segment?: Segment) {
+        this.highlightRequest.next(segment);
     }
     
     async toggleSegment(segment: Segment) {

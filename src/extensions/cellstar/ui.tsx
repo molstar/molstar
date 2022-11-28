@@ -100,8 +100,9 @@ function CellStarControls({ plugin, data, setData }: { plugin: PluginContext, da
 
 
         <div style={{ padding: 8, maxHeight: 200, overflow: 'hidden', overflowY: 'auto' }}>
+            <p style={{ fontWeight: 'bold' }}>{entryData.metadata.annotation?.name ?? 'Unnamed Annotation'}</p>
             {!currentSegment && 'No segment selected'}
-            {currentSegment && `Segment id ${currentSegment.id}`}
+            {currentSegment && `${currentSegment.biological_annotation.name} (${currentSegment.id})`}
             {currentSegment?.biological_annotation.external_references.map(ref =>
                 <p key={ref.id} style={{marginTop: 4}}>
                     <b>{ref.resource}:{ref.accession}</b><br />
@@ -117,7 +118,7 @@ function CellStarControls({ plugin, data, setData }: { plugin: PluginContext, da
                 Toggle All segments
             </Button>
             {allSegments.map(segment =>
-                <div style={{ display: 'flex', marginTop: 1 }} key={segment.id}>
+                <div style={{ display: 'flex', marginTop: 1 }} key={segment.id} onMouseEnter={() => entryData.highlightSegment(segment)} onMouseLeave={() => entryData.highlightSegment()}>
                     <Button onClick={() => entryData.showAnnotation(segment)}
                         style={{ fontWeight: segment.id === currentSegment?.id ? 'bold' : undefined, marginRight: 1, flexGrow: 1, textAlign: 'left' }}>
                         <div title={segment.biological_annotation.name ?? 'Unnamed segment'} style={{ maxWidth: 240, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
