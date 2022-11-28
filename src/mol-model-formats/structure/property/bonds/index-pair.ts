@@ -103,4 +103,20 @@ export namespace IndexPairBonds {
             maxDistance: p.maxDistance
         };
     }
+
+    /** Like `getEdgeIndex` but taking `edgeProps.operatorA` and `edgeProps.operatorB` into account */
+    export function getEdgeIndexForOperators(bonds: IndexPairs, i: ElementIndex, j: ElementIndex, opI: number, opJ: number): number {
+        let a, b, opA, opB;
+        if (i < j) {
+            a = i; b = j;
+            opA = opI; opB = opJ;
+        } else {
+            a = j; b = i;
+            opA = opJ; opB = opI;
+        }
+        for (let t = bonds.offset[a], _t = bonds.offset[a + 1]; t < _t; t++) {
+            if (bonds.b[t] === b && bonds.edgeProps.operatorA[t] === opA && bonds.edgeProps.operatorB[t] === opB) return t;
+        }
+        return -1;
+    }
 }
