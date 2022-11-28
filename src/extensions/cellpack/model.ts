@@ -611,7 +611,7 @@ export const LoadCellPackModel = StateAction.build({
                     params: {
                         bias: 0.6,
                         maxDistance: 80,
-                        steps: 1,
+                        steps: 3,
                         tolerance: 1.0,
                     }
                 },
