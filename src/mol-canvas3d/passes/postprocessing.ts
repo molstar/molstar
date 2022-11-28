@@ -79,6 +79,7 @@ const ShadowsSchema = {
 
     uProjection: UniformSpec('m4'),
     uInvProjection: UniformSpec('m4'),
+    uBounds: UniformSpec('v4'),
 
     dOrthographic: DefineSpec('number'),
     uNear: UniformSpec('f'),
@@ -106,6 +107,7 @@ function getShadowsRenderable(ctx: WebGLContext, depthTexture: Texture): Shadows
 
         uProjection: ValueCell.create(Mat4.identity()),
         uInvProjection: ValueCell.create(Mat4.identity()),
+        uBounds: ValueCell.create(Vec4()),
 
         dOrthographic: ValueCell.create(0),
         uNear: ValueCell.create(1),
@@ -501,13 +503,14 @@ export class PostprocessingPass {
         const invProjection = Mat4.identity();
         Mat4.invert(invProjection, camera.projection);
 
+        const [w, h] = this.renderable.values.uTexSize.ref.value;
+        const v = camera.viewport;
+
         if (props.occlusion.name === 'on') {
             ValueCell.update(this.ssaoRenderable.values.uProjection, camera.projection);
             ValueCell.update(this.ssaoRenderable.values.uInvProjection, invProjection);
 
-            const [w, h] = this.renderable.values.uTexSize.ref.value;
             const b = this.ssaoRenderable.values.uBounds;
-            const v = camera.viewport;
             const s = this.ssaoScale;
             Vec4.set(b.ref.value,
                 Math.floor(v.x * s) / (w * s),
@@ -582,6 +585,14 @@ export class PostprocessingPass {
         if (props.shadow.name === 'on') {
             ValueCell.update(this.shadowsRenderable.values.uProjection, camera.projection);
             ValueCell.update(this.shadowsRenderable.values.uInvProjection, invProjection);
+
+            Vec4.set(this.shadowsRenderable.values.uBounds.ref.value,
+                v.x / w,
+                v.y / h,
+                (v.x + v.width) / w,
+                (v.y + v.height) / h
+            );
+            ValueCell.update(this.shadowsRenderable.values.uBounds, this.shadowsRenderable.values.uBounds.ref.value);
 
             ValueCell.updateIfChanged(this.shadowsRenderable.values.uNear, camera.near);
             ValueCell.updateIfChanged(this.shadowsRenderable.values.uFar, camera.far);

@@ -125,7 +125,7 @@ void main(void) {
         if (!isBackground(opaqueDepth)) {
             viewDist = abs(getViewZ(opaqueDepth));
             fogFactor = smoothstep(uFogNear, uFogFar, viewDist);
-            vec4 shadow = texture2D(tShadows, coords + uOcclusionOffset);
+            vec4 shadow = texture2D(tShadows, coords);
             if (!uTransparentBackground) {
                 color.rgb = mix(mix(vec3(0), uFogColor, fogFactor), color.rgb, shadow.a);
             } else {

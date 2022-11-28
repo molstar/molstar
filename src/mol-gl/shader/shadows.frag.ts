@@ -14,6 +14,7 @@ precision highp sampler2D;
 
 uniform sampler2D tDepth;
 uniform vec2 uTexSize;
+uniform vec4 uBounds;
 
 uniform float uNear;
 uniform float uFar;
@@ -34,7 +35,11 @@ bool isBackground(const in float depth) {
     return depth == 1.0;
 }
 
-float getViewZ(in float depth) {
+bool outsideBounds(const in vec2 p) {
+    return p.x < uBounds.x || p.y < uBounds.y || p.x > uBounds.z || p.y > uBounds.w;
+}
+
+float getViewZ(const in float depth) {
     #if dOrthographic == 1
         return orthographicDepthToViewZ(depth, uNear, uFar);
     #else
@@ -50,8 +55,13 @@ float getDepth(const in vec2 coords) {
     #endif
 }
 
+float screenFade(const in vec2 coords) {
+    vec2 fade = max(12.0 * abs(coords - 0.5) - 5.0, vec2(0.0));
+    return saturate(1.0 - dot(fade, fade));
+}
+
 // based on https://panoskarabelas.com/posts/screen_space_shadows/
-float screenSpaceShadow(in vec2 coords, in vec3 position, in vec3 lightDirection, in float stepLength) {
+float screenSpaceShadow(const in vec3 position, const in vec3 lightDirection, const in float stepLength) {
     // Ray position and direction (in view-space)
     vec3 rayPos = position;
     vec3 rayDir = -lightDirection;
@@ -66,22 +76,26 @@ float screenSpaceShadow(in vec2 coords, in vec3 position, in vec3 lightDirection
         // Step the ray
         rayPos += rayStep;
 
-        // Compute the difference between the ray's and the camera's depth
         rayCoords = uProjection * vec4(rayPos, 1.0);
         rayCoords.xyz = (rayCoords.xyz / rayCoords.w) * 0.5 + 0.5;
+
+        if (outsideBounds(rayCoords.xy))
+            return 1.0;
+
+        // Compute the difference between the ray's and the camera's depth
         float depth = getDepth(rayCoords.xy);
         float viewZ = getViewZ(depth);
         float zDelta = rayPos.z - viewZ;
 
         if (zDelta < uTolerance) {
             occlusion = 1.0;
+
+            // Fade out as we approach the edges of the screen
+            occlusion *= screenFade(rayCoords.xy);
+
             break;
         }
     }
-
-    // Fade out as we approach the edges of the screen
-    vec2 fade = max(12.0 * abs(rayCoords.xy - 0.5) - 5.0, vec2(0.0));
-    occlusion *= saturate(1.0 - dot(fade, fade));
 
     return 1.0 - (uBias * occlusion);
 }
@@ -105,7 +119,7 @@ void main(void) {
         float sh[dLightCount];
         #pragma unroll_loop_start
         for (int i = 0; i < dLightCount; ++i) {
-            sh[i] = screenSpaceShadow(selfCoords, selfViewPos, uLightDirection[i], stepLength);
+            sh[i] = screenSpaceShadow(selfViewPos, uLightDirection[i], stepLength);
             o = min(o, sh[i]);
         }
         #pragma unroll_loop_end
