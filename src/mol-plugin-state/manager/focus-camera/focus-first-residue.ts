@@ -47,7 +47,7 @@ export function calculateDisplacement(position: Vec3, origin: Vec3, normalDir: V
 export function getAxesToFlip(position: Vec3, origin: Vec3, up: Vec3, normalDir: Vec3) {
     const toYAxis = calculateDisplacement(position, origin, normalDir);
     const toXAxis = calculateDisplacement(position, origin, up);
-    const Axes: string[] = [];
+    const axes: ('aroundX' | 'aroundY')[] = [];
     if (toYAxis < 0) Axes.push('aroundY');
     if (toXAxis < 0) Axes.push('aroundX');
     return Axes;
