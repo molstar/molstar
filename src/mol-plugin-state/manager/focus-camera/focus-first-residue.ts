@@ -60,7 +60,7 @@ export function getFirstResidueOrAveragePosition(structure: Structure, caPositio
     } else {
         // if more than one chain => average of coordinates of the first chain
         const tmpMatrixPos = Vec3.zero();
-        const AtomIndexs = structure.units[0].props.polymerElements;
+        const atomIndices = structure.units[0].props.polymerElements;
         const firstChainPositions = [];
         if (AtomIndexs) {
             for (let i = 0; i < AtomIndexs.length; i++) {
