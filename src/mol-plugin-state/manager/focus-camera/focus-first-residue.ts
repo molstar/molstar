@@ -130,28 +130,15 @@ export function pcaFocus(plugin: PluginContext, options: Partial<CameraFocusOpti
     };
 }
 
-export function getPcaTransform(group: StructureComponentRef[]): [{principalAxes: PrincipalAxes}|undefined, Vec3|undefined] {
-    let isPolymer = true;
-    let positions = new Float32Array();
-    let positionToFlip = Vec3.zero();
-
-    if (group[0].cell.obj) {
-        const polymerStructure = group[0].cell.obj.data;
-        positions = getPolymerPositions(polymerStructure);
-        positionToFlip = getFirstResidueOrAveragePosition(polymerStructure, positions);
-        if (polymerStructure.units[0].props.polymerElements?.length === 0) isPolymer = false;
+export function getPcaTransform(group: StructureComponentRef[]): { principalAxes?: PrincipalAxes, positionsToFlip?: Vec3 } | udnefined {
+    const polymerStructure = group[0].cell.obj?.data;
+    if (!polymerStructure.units[0]?.props.polymerElements?.length) {
+        return undefined;
     }
-
-    if (isPolymer) {
-        return [
-            { principalAxes: PrincipalAxes.ofPositions(positions) },
-            positionToFlip
-        ];
-    } else {
-        return [
-            undefined,
-            undefined
-        ];
-
-    }
+    
+    
+    const positions = getPolymerPositions(polymerStructure);
+    const positionToFlip = getFirstResidueOrAveragePosition(polymerStructure, positions);
+   
+    return { principalAxes: PrincipalAxes.ofPositions(positions), positionToFlip };
 }
