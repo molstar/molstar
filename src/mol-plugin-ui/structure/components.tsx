@@ -317,7 +317,7 @@ class StructureComponentGroup extends PurePluginUIComponent<{ group: StructureCo
         this.plugin.managers.camera.focusSpheres(this.props.group, e => {
             if (e.cell.state.isHidden) return;
             return e.cell.obj?.data.boundary.sphere;
-        }, ... getPcaTransform(this.props.group));
+        }, getPcaTransform(this.props.group));
     };
 
     get reprLabel() {
