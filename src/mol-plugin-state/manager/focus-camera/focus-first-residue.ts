@@ -92,7 +92,7 @@ export function getFirstResidueOrAveragePosition(structure: Structure, caPositio
 export function pcaFocus(plugin: PluginContext, options: Partial<CameraFocusOptions> & { principalAxes?: PrincipalAxes }, positionToFlip?: Vec3) {
     if (options?.principalAxes) {
         const { origin, dirA, dirB, dirC } = options.principalAxes.boxAxes;
-        let toFlip: String[] = [];
+        let toFlip: ('aroundX' | 'aroundY')[] = [];
         if (positionToFlip) {
             toFlip = getAxesToFlip(positionToFlip, origin, dirA, dirB);
         }
