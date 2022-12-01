@@ -119,12 +119,7 @@ export function pcaFocus(plugin: PluginContext, options: Partial<CameraFocusOpti
                 Vec3.negate(plugin.canvas3d?.camera.up, plugin.canvas3d.camera.up);
             }
         }
-        const newPrincipalAxes = {
-            origin: origin,
-            dirA: dirA,
-            dirB: dirB,
-            dirC: dirC
-        };
+        return { origin, dirA, dirB, dirC };
         return newPrincipalAxes;
     }
     return {
