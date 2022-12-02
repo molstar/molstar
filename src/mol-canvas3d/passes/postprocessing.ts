@@ -279,7 +279,7 @@ export const PostprocessingParams = {
             scale: PD.Numeric(1, { min: 1, max: 5, step: 1 }),
             threshold: PD.Numeric(0.33, { min: 0.01, max: 1, step: 0.01 }),
             color: PD.Color(Color(0x000000)),
-            minimumOpacity: PD.Optional(PD.Numeric(0.0, { min: 0.0, max: 1.0, step: 0.01 }, { description: 'The minimum opacity value needed for an object to be have an outline'})),
+            minimumOpacity: PD.Optional(PD.Numeric(0.0, { min: 0.0, max: 1.0, step: 0.01 }, { description: 'The minimum opacity value needed for an object to be have an outline' })),
         }),
         off: PD.Group({})
     }, { cycle: true, description: 'Draw outline around 3D objects' }),
@@ -302,7 +302,7 @@ export class PostprocessingPass {
     }
 
     static getOutlineMinimumOpacity(props: PostprocessingProps) {
-        return props.outline.name === 'on' ? props.outline.params.minimumOpacity ?? 0.0 : 0.0
+        return props.outline.name === 'on' ? props.outline.params.minimumOpacity ?? 0.0 : 0.0;
     }
 
     readonly target: RenderTarget;
