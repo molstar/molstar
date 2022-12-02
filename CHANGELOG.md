@@ -5,6 +5,7 @@ Note that since we don't clearly distinguish between a public and private interf
 
 
 ## [Unreleased]
+- Add option `minimumOpacity` parameter to outlines to hide any outlines of components with a lower alpha value lower
 
 ## [v3.25.1] - 2022-11-20
 
