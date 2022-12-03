@@ -5,6 +5,7 @@ Note that since we don't clearly distinguish between a public and private interf
 
 
 ## [Unreleased]
+- Excluded common protein caps `NME` and `ACE` from the ligand selection query
 
 ## [v3.25.1] - 2022-11-20
 
