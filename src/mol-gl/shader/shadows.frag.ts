@@ -56,7 +56,8 @@ float getDepth(const in vec2 coords) {
 }
 
 float screenFade(const in vec2 coords) {
-    vec2 fade = max(12.0 * abs(coords - 0.5) - 5.0, vec2(0.0));
+    vec2 c = (coords - uBounds.xy) / (uBounds.zw - uBounds.xy);
+    vec2 fade = max(12.0 * abs(c - 0.5) - 5.0, vec2(0.0));
     return saturate(1.0 - dot(fade, fade));
 }
 
