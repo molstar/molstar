@@ -6,6 +6,8 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Support for ``powerPreference`` webgl attribute. Add ``PluginConfig.General.PowerPreference`` and ``power-preference`` Viewer GET param.
+
 ## [v3.25.1] - 2022-11-20
 
 - Fix edge-case in `Structure.eachUnitPair` with single-element units

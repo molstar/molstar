@@ -267,7 +267,8 @@ export class PluginContext {
                 const enableDpoit = this.config.get(PluginConfig.General.EnableDpoit) || false;
                 const preferWebGl1 = this.config.get(PluginConfig.General.PreferWebGl1) || false;
                 const failIfMajorPerformanceCaveat = !(this.config.get(PluginConfig.General.AllowMajorPerformanceCaveat) ?? false);
-                (this.canvas3dContext as Canvas3DContext) = Canvas3DContext.fromCanvas(canvas, this.managers.asset, { antialias, preserveDrawingBuffer, pixelScale, pickScale, pickPadding, enableWboit, enableDpoit, preferWebGl1, failIfMajorPerformanceCaveat });
+                const powerPreference = this.config.get(PluginConfig.General.PowerPreference) || 'high-performance';
+                (this.canvas3dContext as Canvas3DContext) = Canvas3DContext.fromCanvas(canvas, this.managers.asset, { antialias, preserveDrawingBuffer, pixelScale, pickScale, pickPadding, enableWboit, enableDpoit, preferWebGl1, failIfMajorPerformanceCaveat, powerPreference });
             }
             (this.canvas3d as Canvas3D) = Canvas3D.create(this.canvas3dContext!);
             this.canvas3dInit.next(true);
