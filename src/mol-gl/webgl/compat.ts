@@ -129,6 +129,9 @@ export function getVertexArrayObject(gl: GLRenderingContext): COMPAT_vertex_arra
     }
 }
 
+/**
+ * See https://registry.khronos.org/webgl/extensions/OES_texture_float/
+ */
 export interface COMPAT_texture_float {
 }
 
@@ -136,6 +139,9 @@ export function getTextureFloat(gl: GLRenderingContext): COMPAT_texture_float | 
     return isWebGL2(gl) ? {} : gl.getExtension('OES_texture_float');
 }
 
+/**
+ * See https://registry.khronos.org/webgl/extensions/OES_texture_float_linear/
+ */
 export interface COMPAT_texture_float_linear {
 }
 
@@ -143,6 +149,9 @@ export function getTextureFloatLinear(gl: GLRenderingContext): COMPAT_texture_fl
     return gl.getExtension('OES_texture_float_linear');
 }
 
+/**
+ * See https://registry.khronos.org/webgl/extensions/OES_texture_half_float/
+ */
 export interface COMPAT_texture_half_float {
     readonly HALF_FLOAT: number
 }
@@ -157,6 +166,9 @@ export function getTextureHalfFloat(gl: GLRenderingContext): COMPAT_texture_half
     }
 }
 
+/**
+ * See https://registry.khronos.org/webgl/extensions/OES_texture_half_float_linear/
+ */
 export interface COMPAT_texture_half_float_linear {
 }
 
@@ -192,6 +204,9 @@ export function getFragDepth(gl: GLRenderingContext): COMPAT_frag_depth | null {
     return isWebGL2(gl) ? {} : gl.getExtension('EXT_frag_depth');
 }
 
+/**
+ * See https://registry.khronos.org/webgl/extensions/EXT_color_buffer_float/
+ */
 export interface COMPAT_color_buffer_float {
     readonly RGBA32F: number;
 }
@@ -213,6 +228,9 @@ export function getColorBufferFloat(gl: GLRenderingContext): COMPAT_color_buffer
     }
 }
 
+/**
+ * See https://registry.khronos.org/webgl/extensions/EXT_color_buffer_half_float/
+ */
 export interface COMPAT_color_buffer_half_float {
     readonly RGBA16F: number;
 }
@@ -518,6 +536,9 @@ export function getDisjointTimerQuery(gl: GLRenderingContext): COMPAT_disjoint_t
     }
 }
 
+/**
+ * See https://registry.khronos.org/webgl/extensions/WEBGL_multi_draw/
+ */
 export interface COMPAT_multi_draw {
     /**
      * Renders multiple primitives from array data. It is identical to multiple calls to the `drawArrays` method.
@@ -551,9 +572,18 @@ export function getMultiDraw(gl: GLRenderingContext): COMPAT_multi_draw | null {
     }
 }
 
+/**
+ * See https://registry.khronos.org/webgl/extensions/WEBGL_draw_instanced_base_vertex_base_instance/
+ */
 export interface COMPAT_draw_instanced_base_vertex_base_instance {
+    /**
+     * Behaves identically to DrawArraysInstanced except that `baseInstance` is passed down to DrawArraysOneInstance instead of zero.
+     */
     readonly drawArraysInstancedBaseInstance: (mode: number, first: number, count: number,
         instanceCount: number, baseInstance: number) => void;
+    /**
+     * Behaves identically to DrawElementsInstanced except that `baseVertex` and `baseInstance` are passed down to DrawElementsOneInstance instead of zero.
+     */
     readonly drawElementsInstancedBaseVertexBaseInstance: (mode: number, count: number, type: number, offset: number, instanceCount: number, baseVertex: number, baseInstance: number) => void;
 }
 
@@ -569,8 +599,17 @@ export function getDrawInstancedBaseVertexBaseInstance(gl: GLRenderingContext): 
     }
 }
 
+/**
+ * See https://registry.khronos.org/webgl/extensions/WEBGL_multi_draw_instanced_base_vertex_base_instance/
+ */
 export interface COMPAT_multi_draw_instanced_base_vertex_base_instance {
+    /**
+     * Behaves identically to DrawArraysInstancedBaseInstance except that a list of arrays is specified instead. The number of lists is specified in the `drawcount` parameter.
+     */
     readonly multiDrawArraysInstancedBaseInstance: (mode: number, firstsList: Int32Array, firstsOffset: number, countsList: Int32Array, countsOffset: number, instanceCountsList: Int32Array, instanceCountsOffset: number, baseInstancesList: Uint32Array, baseInstancesOffset: number, drawcount: number) => void;
+    /**
+     * Behaves identically to DrawElementsInstancedBaseVertexBaseInstance except that a list of arrays is specified instead. The number of lists is specified in the `drawcount` parameter.
+     */
     readonly multiDrawElementsInstancedBaseVertexBaseInstance: (mode: number, countsList: Int32Array, countsOffset: number, type: number, offsetsList: Int32Array, offsetsOffset: number, instanceCountsList: Int32Array, instanceCountsOffset: number, baseVerticesList: Int32Array, baseVerticesOffset: number, baseInstancesList: Uint32Array, baseInstancesOffset: number, drawcount: number) => void;
 }
 
