@@ -24,7 +24,7 @@ namespace CellStarUIData {
             // Added
             return { availableNodes: newNodes, activeNode: newNodes[newNodes.length - 1] };
         } else {
-            // Removed 
+            // Removed
             const newActiveNode = newNodes.find(node => node.id === data.activeNode?.id) ?? newNodes[0];
             return { availableNodes: newNodes, activeNode: newActiveNode };
         }
@@ -56,7 +56,7 @@ export class CellStarUI extends CollapsableControls<{}, { data: CellStarUIData }
             const nodes = e.state.selectQ(q => q.ofType(CellStarEntry)).map(cell => cell?.obj).filter(isDefined);
             const isHidden = nodes.length === 0;
             this.setState({ isHidden: isHidden });
-            const newData = CellStarUIData.changeAvailableNodes(this.state.data, nodes)
+            const newData = CellStarUIData.changeAvailableNodes(this.state.data, nodes);
             this.setState({ data: newData });
         });
     }
@@ -75,7 +75,7 @@ function CellStarControls({ plugin, data, setData }: { plugin: PluginContext, da
     };
     const values: ParamDefinition.ValuesFor<typeof params> = {
         entry: data.activeNode!.id.toString(),
-    }
+    };
 
     const allSegments = entryData.metadata.annotation?.segment_list ?? [];
     const currentSegment = useBehavior(entryData.currentSegment);
@@ -104,7 +104,7 @@ function CellStarControls({ plugin, data, setData }: { plugin: PluginContext, da
             {!currentSegment && 'No segment selected'}
             {currentSegment && `${currentSegment.biological_annotation.name} (${currentSegment.id})`}
             {currentSegment?.biological_annotation.external_references.map(ref =>
-                <p key={ref.id} style={{marginTop: 4}}>
+                <p key={ref.id} style={{ marginTop: 4 }}>
                     <b>{ref.resource}:{ref.accession}</b><br />
                     <i>{capitalize(ref.label)}:</i> {ref.description}
                 </p>)}
@@ -118,7 +118,9 @@ function CellStarControls({ plugin, data, setData }: { plugin: PluginContext, da
                 Toggle All segments
             </Button>
             {allSegments.map(segment =>
-                <div style={{ display: 'flex', marginTop: 1 }} key={segment.id} onMouseEnter={() => entryData.highlightSegment(segment)} onMouseLeave={() => entryData.highlightSegment()}>
+                <div style={{ display: 'flex', marginTop: 1 }} key={segment.id}
+                    onMouseEnter={() => entryData.highlightSegment(segment)}
+                    onMouseLeave={() => entryData.highlightSegment()}>
                     <Button onClick={() => entryData.showAnnotation(segment)}
                         style={{ fontWeight: segment.id === currentSegment?.id ? 'bold' : undefined, marginRight: 1, flexGrow: 1, textAlign: 'left' }}>
                         <div title={segment.biological_annotation.name ?? 'Unnamed segment'} style={{ maxWidth: 240, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>

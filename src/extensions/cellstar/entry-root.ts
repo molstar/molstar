@@ -1,25 +1,29 @@
+import { BehaviorSubject, Subject, throttleTime } from 'rxjs';
+
+import { ShapeGroup } from '../../mol-model/shape';
+import { Volume } from '../../mol-model/volume';
+import { PluginComponent } from '../../mol-plugin-state/component';
 import { PluginStateObject as SO, PluginStateTransform } from '../../mol-plugin-state/objects';
+import { PluginCommands } from '../../mol-plugin/commands';
 import { PluginContext } from '../../mol-plugin/context';
 import { StateObjectSelector } from '../../mol-state';
 import { Task } from '../../mol-task';
 import { ParamDefinition } from '../../mol-util/param-definition';
+import { MeshlistData } from '../meshes/mesh-extension';
 
 import { DEFAULT_VOLUME_SERVER_V2, VolumeApiV2 } from './cellstar-api/api';
 import { Metadata, Segment } from './cellstar-api/data';
-import { Choice, createEntryId, NodeManager } from './helpers';
-import { CellStarVolumeData } from './entry-volume';
-import { CellStarLatticeSegmentationData } from './entry-segmentation';
-import { CellStarModelData } from './entry-models';
-import * as ExternalAPIs from './external-api';
 import { CellStarMeshSegmentationData } from './entry-meshes';
-import { BehaviorSubject, Subject, throttleTime } from 'rxjs';
-import { Volume } from '../meshes/molstar-lib-imports';
-import { PluginComponent } from '../../mol-plugin-state/component';
-import { ShapeGroup } from '../../mol-model/shape';
-import { MeshlistData } from '../meshes/mesh-extension';
+import { CellStarModelData } from './entry-models';
+import { CellStarLatticeSegmentationData } from './entry-segmentation';
+import { CellStarLatticeSegmentationData2 } from './entry-segmentation-2';
+import { CellStarVolumeData } from './entry-volume';
+import * as ExternalAPIs from './external-api';
+import { Choice, createEntryId, NodeManager } from './helpers';
 
 
-export const MAX_VOXELS = 10**7;
+export const MAX_VOXELS = 10 ** 7;
+// export const MAX_VOXELS = 10**2; // DEBUG
 
 
 const SourceChoice = new Choice({ emdb: 'EMDB', empiar: 'EMPIAR' }, 'emdb');
@@ -30,7 +34,7 @@ export const CellStarEntryParams = {
     serverUrl: ParamDefinition.Text(DEFAULT_VOLUME_SERVER_V2),
     source: SourceChoice.PDSelect(),
     entryNumber: ParamDefinition.Text('1832'),
-}
+};
 
 export class CellStarEntryData extends PluginComponent {
     plugin: PluginContext;
@@ -47,6 +51,7 @@ export class CellStarEntryData extends PluginComponent {
     public readonly groupNodeMgr = new NodeManager();
     public readonly volumeData = new CellStarVolumeData(this);
     public readonly latticeSegmentationData = new CellStarLatticeSegmentationData(this);
+    public readonly latticeSegmentationData2 = new CellStarLatticeSegmentationData2(this);
     public readonly meshSegmentationData = new CellStarMeshSegmentationData(this);
     public readonly modelData = new CellStarModelData(this);
     currentSegment = new BehaviorSubject<Segment | undefined>(undefined);
@@ -58,29 +63,44 @@ export class CellStarEntryData extends PluginComponent {
     private constructor(plugin: PluginContext, serverUrl: string, source: Source, entryNumber: string) {
         super();
 
-        this.plugin = plugin
+        this.plugin = plugin;
         this.api = new VolumeApiV2(serverUrl);
         this.source = source;
         this.entryNumber = entryNumber;
         this.entryId = createEntryId(source, entryNumber);
 
         this.subscribe(plugin.behaviors.interaction.click, e => {
-            if (Volume.isLoci(e.current.loci) && e.current.loci.volume._propertyData.ownerId === this.entryRoot?.ref && e.current.loci.volume._propertyData.segment) {
-                this.currentSegment.next(e.current.loci.volume._propertyData.segment);
+            const loci = e.current.loci;
+            if (Volume.isLoci(loci) && loci.volume._propertyData.ownerId === this.entryRoot?.ref && loci.volume._propertyData.segment) {
+                this.currentSegment.next(loci.volume._propertyData.segment); // TODO remove with old latticeSegmentationData
             }
-            if (ShapeGroup.isLoci(e.current.loci)) {
-                const meshData = (e.current.loci.shape.sourceData ?? {}) as MeshlistData;
+            if (Volume.Segment.isLoci(loci) && loci.volume._propertyData.ownerId === this.entryRoot?.ref) {
+                const clickedSegmentId = loci.segments.length === 1 ? loci.segments[0] : undefined;
+                const clickedSegment = this.metadata.annotation?.segment_list.find(seg => seg.id === clickedSegmentId);
+                this.currentSegment.next(clickedSegment);
+            }
+            if (ShapeGroup.isLoci(loci)) {
+                const meshData = (loci.shape.sourceData ?? {}) as MeshlistData;
                 if (meshData.ownerId === this.entryRoot?.ref && meshData.segmentId !== undefined) {
                     this.currentSegment.next(this.metadata.annotation?.segment_list.find(segment => segment.id === meshData.segmentId));
                 }
             }
-        })
-        this.subscribe(this.opacity, o => this.latticeSegmentationData.updateOpacity(o));
-        this.subscribe(this.opacity, o => this.meshSegmentationData.updateOpacity(o));
-        this.subscribe(this.highlightRequest.pipe(throttleTime(50, undefined, { leading: true, trailing: true })), segment => {
-            this.latticeSegmentationData.highlightSegment(segment);
-            // TODO: meshes
         });
+        this.subscribe(this.opacity, opacity => {
+            this.latticeSegmentationData.updateOpacity(opacity);
+            this.latticeSegmentationData2.updateOpacity(opacity);
+            this.meshSegmentationData.updateOpacity(opacity);
+        });
+        this.subscribe(this.highlightRequest.pipe(throttleTime(50, undefined, { leading: true, trailing: true })),
+            async segment => {
+                await PluginCommands.Interactivity.ClearHighlights(this.plugin);
+                if (segment) {
+                    await this.latticeSegmentationData.highlightSegment(segment);
+                    await this.latticeSegmentationData2.highlightSegment(segment);
+                    await this.meshSegmentationData.highlightSegment(segment);
+                }
+            }
+        );
     }
 
     private async initialize() {
@@ -93,7 +113,7 @@ export class CellStarEntryData extends PluginComponent {
         await result.initialize();
         return result;
     }
-    
+
     public newUpdate() {
         if (this.entryRoot) {
             return this.plugin.build().to(this.entryRoot);
@@ -101,9 +121,10 @@ export class CellStarEntryData extends PluginComponent {
             return this.plugin.build().toRoot();
         }
     }
-    
+
     public async showSegmentations() {
         await this.latticeSegmentationData.showSegmentation();
+        await this.latticeSegmentationData2.showSegmentation();
         await this.meshSegmentationData.showSegmentation();
         this.visibleSegments.next(this.metadata.annotation?.segment_list ?? []);
     }
@@ -111,7 +132,7 @@ export class CellStarEntryData extends PluginComponent {
     highlightSegment(segment?: Segment) {
         this.highlightRequest.next(segment);
     }
-    
+
     async toggleSegment(segment: Segment) {
         const current = this.visibleSegments.value;
         if (current.includes(segment)) {
@@ -135,6 +156,7 @@ export class CellStarEntryData extends PluginComponent {
     }
     public async showSegments(segments: Segment[]) {
         await this.latticeSegmentationData.showSegments(segments, { opacity: this.opacity.value });
+        await this.latticeSegmentationData2.showSegments(segments, { opacity: this.opacity.value });
         await this.meshSegmentationData.showSegments(segments);
         this.visibleSegments.next(segments);
     }

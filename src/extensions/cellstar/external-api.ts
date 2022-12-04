@@ -1,4 +1,4 @@
-import { splitEntryId } from "./helpers";
+import { splitEntryId } from './helpers';
 
 
 /** Try to get author-defined contour value for isosurface from EMDB API. Return relative value 1.0, if not applicable or fails.  */

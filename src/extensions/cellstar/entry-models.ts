@@ -10,7 +10,7 @@ import { NodeManager } from './helpers';
 
 export class CellStarModelData {
     private entryData: CellStarEntryData;
-    /*private*/ pdbModelNodeMgr = new NodeManager();
+    private pdbModelNodeMgr = new NodeManager();
     currentPdb = new BehaviorSubject<string | undefined>(undefined);
 
     constructor(rootData: CellStarEntryData) {
@@ -35,7 +35,7 @@ export class CellStarModelData {
         this.pdbModelNodeMgr.hideAllNodes();
         if (pdbId) {
             // await update.commit();
-            const group = await this.entryData.groupNodeMgr.showNode('FittedModels', async () => await this.entryData.newUpdate().apply(CreateGroup, { label: 'Fitted Models' }, { state: { isCollapsed: true } }).commit(), false)
+            const group = await this.entryData.groupNodeMgr.showNode('FittedModels', async () => await this.entryData.newUpdate().apply(CreateGroup, { label: 'Fitted Models' }, { state: { isCollapsed: true } }).commit(), false);
             await this.pdbModelNodeMgr.showNode(pdbId, async () => await this.loadPdb(pdbId, group));
         }
         this.currentPdb.next(pdbId);

@@ -75,7 +75,6 @@ export class LatticeSegmentation {
         const EXPAND_START = 2; // We need to add 2 layers of zeros, probably because of a bug in GPU marching cubes implementation
         const EXPAND_END = 1;
         let bbox = this.getSegmentBoundingBoxes()[seg.id];
-        // if (!Box.equal(bbox, this.getBoundingBox(segId))) throw new Error('Assertion Error');
         bbox = Box.expand(bbox, EXPAND_START, EXPAND_END);
         bbox = Box.confine(bbox, cell);
         const [ox, oy, oz] = Box.origin(bbox);
@@ -125,40 +124,6 @@ export class LatticeSegmentation {
             }
         } as Volume;
         return result;
-    }
-
-    private getBoundingBox(segId: number): Box {
-        const { space, data }: Tensor = this.grid.cells;
-        const [nx, ny, nz] = space.dimensions;
-        const get = space.get;
-
-        let minX = nx, minY = ny, minZ = nz;
-        let maxX = -1, maxY = -1, maxZ = -1;
-
-        const sets = this.inverseSegmentMap.get(segId);
-        if (!sets) throw new Error(`This LatticeSegmentation does not contain segment ${segId}`);
-
-        for (let iz = 0; iz < nz; iz++) {
-            for (let iy = 0; iy < ny; iy++) {
-                for (let ix = 0; ix < nx; ix++) {
-                    // Iterating in ZYX order is faster (probably fewer cache misses)
-                    const setId = get(data, ix, iy, iz);
-                    if (sets.has(setId)) {
-                        if (ix < minX) minX = ix;
-                        if (iy < minY) minY = iy;
-                        if (iz < minZ) minZ = iz;
-                        if (ix > maxX) maxX = ix;
-                        if (iy > maxY) maxY = iy;
-                        if (iz > maxZ) maxZ = iz;
-                    }
-                }
-            }
-        }
-        if (maxX === -1) { // segment contains no voxels
-            return Box.create(0, 1, 0, 1, 0, 1);
-        }
-        const box = Box.create(minX, maxX + 1, minY, maxY + 1, minZ, maxZ + 1);
-        return box;
     }
 
     private static _getSegmentBoundingBoxes(self: LatticeSegmentation) {
@@ -269,7 +234,9 @@ namespace Box {
         return [xTo - xFrom, yTo - yFrom, zTo - zFrom];
     }
     export function origin(box: Box): [number, number, number] {
-        const [xFrom, xTo, yFrom, yTo, zFrom, zTo] = box;
+        const xFrom = box[0];
+        const yFrom = box[2];
+        const zFrom = box[4];
         return [xFrom, yFrom, zFrom];
     }
     export function log(name: string, box: Box): void {

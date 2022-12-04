@@ -25,14 +25,14 @@ export const CellStar = PluginBehavior.create<{ autoAttach: boolean, showTooltip
             const entries = new Map<string, CellStarEntryData>();
             this.subscribeObservable(this.ctx.state.data.events.cell.created, o => {
                 if (o.cell.obj instanceof CellStarEntryData) entries.set(o.ref, o.cell.obj);
-            })
+            });
 
             this.subscribeObservable(this.ctx.state.data.events.cell.removed, o => {
                 if (entries.has(o.ref)) {
                     entries.get(o.ref)!.dispose();
                     entries.delete(o.ref);
                 }
-            })
+            });
         }
         unregister() {
             console.log('Unregistering CellStar extension behavior');
