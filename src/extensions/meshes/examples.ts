@@ -61,9 +61,9 @@ export async function runMultimeshExample(plugin: MS.PluginUIContext, segments: 
 }
 
 /** Download data and create state tree hierarchy down to visual representation. */
-export async function createMeshFromUrl(plugin: MS.PluginContext, meshDataUrl: string, segmentId: number, detail: number, 
-        collapseTree: boolean, log: boolean, color?: MS.Color, parent?: MS.StateObjectSelector, transparentIfBboxAbove?: number,
-        name?: string, ownerId?: string) {
+export async function createMeshFromUrl(plugin: MS.PluginContext, meshDataUrl: string, segmentId: number, detail: number,
+    collapseTree: boolean, log: boolean, color?: MS.Color, parent?: MS.StateObjectSelector, transparentIfBboxAbove?: number,
+    name?: string, ownerId?: string) {
 
     // PARAMS - Depend on the type of transformer T -> Params<T>
     // 1st argument to plugin.builders.data.rawData, 2nd argument to .apply
@@ -113,7 +113,7 @@ export async function createMeshFromUrl(plugin: MS.PluginContext, meshDataUrl: s
     if (log) console.log('shapeNode:', shapeNode);
     if (log) console.log('shapeNode.data:', shapeNode.data);
 
-    
+
     let transparent = false;
     if (transparentIfBboxAbove !== undefined && parsedDataNode.data) {
         const bbox = MeshlistData.bbox(parsedDataNode.data) || MS.Box3D.zero();

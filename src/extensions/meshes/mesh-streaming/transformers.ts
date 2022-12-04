@@ -19,7 +19,7 @@ export const MeshServerTransformer = CellStarTransform({
     params: MeshServerInfo.Params,
 })({
     apply({ a, params }, plugin: MS.PluginContext) { // `a` is the parent node, `params` are 2nd argument to To.apply()
-        params.serverUrl = params.serverUrl.replace(/\/*$/, '');  // trim trailing slash
+        params.serverUrl = params.serverUrl.replace(/\/*$/, ''); // trim trailing slash
         const description: string = params.entryId;
         return new MeshServerInfo({ ...params }, { label: 'Mesh Server', description: description });
     }
@@ -44,7 +44,7 @@ export const MeshStreamingTransformer = CellStarTransform({
     },
     update({ a, b, oldParams, newParams }) {
         return MS.Task.create('Update Mesh Streaming', async ctx => {
-            if (a.data.source !== b.data.parentData.source || a.data.entryId !== b.data.parentData.entryId){
+            if (a.data.source !== b.data.parentData.source || a.data.entryId !== b.data.parentData.entryId) {
                 return MS.StateTransformer.UpdateResult.Recreate;
             }
             b.data.parentData = a.data;

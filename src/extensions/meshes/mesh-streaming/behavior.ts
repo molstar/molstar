@@ -14,7 +14,7 @@ const DEFAULT_SEGMENT_COLOR = MS.ColorNames.lightgray;
 export const NO_SEGMENT = -1;
 /** Maximum (worst) detail level available in GUI (TODO set actual maximum possible value) */
 const MAX_DETAIL = 10;
-const DEFAULT_DETAIL = 7;  // TODO decide a reasonable default
+const DEFAULT_DETAIL = 7; // TODO decide a reasonable default
 /** Segments whose bounding box volume is above this value (relative to the overall bounding box) are considered as background segments */
 export const BACKGROUND_SEGMENT_VOLUME_THRESHOLD = 0.5;
 // const DEBUG_IGNORED_SEGMENTS = new Set([13, 15]); // TODO remove
