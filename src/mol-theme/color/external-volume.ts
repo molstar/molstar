@@ -57,7 +57,7 @@ export function ExternalVolumeColorTheme(ctx: ThemeDataContext, props: PD.Values
         // .getValue() is resolved during state reconciliation => would throw from UI
     }
 
-    // NOTE: this will currently not work with GPU iso-surfaces since it requires vertex coloring
+    // NOTE: this will currently be slow for with GPU/texture meshes due to slow iteration
     // TODO: create texture to be able to do the sampling on the GPU
 
     let color;
@@ -155,5 +155,5 @@ export const ExternalVolumeColorThemeProvider: ColorTheme.Provider<ExternalVolum
     factory: ExternalVolumeColorTheme,
     getParams: () => ExternalVolumeColorThemeParams,
     defaultValues: PD.getDefaultValues(ExternalVolumeColorThemeParams),
-    isApplicable: (ctx: ThemeDataContext) => true, // TODO
+    isApplicable: (ctx: ThemeDataContext) => true,
 };
