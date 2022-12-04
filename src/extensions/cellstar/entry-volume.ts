@@ -7,7 +7,7 @@ import { CreateGroup } from '../../mol-plugin-state/transforms/misc';
 import { StateObjectSelector } from '../../mol-state';
 import { Color } from '../../mol-util/color';
 
-import { CellStarEntryData, MAX_VOXELS } from './entry-root';
+import { BOX, CellStarEntryData, MAX_VOXELS } from './entry-root';
 import * as ExternalAPIs from './external-api';
 
 
@@ -26,7 +26,7 @@ export class CellStarVolumeData {
                 async () => await this.entryData.newUpdate().apply(CreateGroup, { label: 'Volume' }, { state: { isCollapsed: true } }).commit(),
                 false
             );
-            const url = this.entryData.api.volumeUrl(this.entryData.source, this.entryData.entryId, null, MAX_VOXELS);
+            const url = this.entryData.api.volumeUrl(this.entryData.source, this.entryData.entryId, BOX, MAX_VOXELS);
             const data = await this.entryData.newUpdate().to(group).apply(Download, { url, isBinary: true, label: `Volume Data: ${url}` }).commit();
             const parsed = await this.entryData.plugin.dataFormats.get('dscif')!.parse(this.entryData.plugin, data);
             const volume: StateObjectSelector<PluginStateObject.Volume.Data> = parsed.volumes?.[0] ?? parsed.volume;

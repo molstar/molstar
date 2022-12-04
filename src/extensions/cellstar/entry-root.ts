@@ -22,7 +22,9 @@ import { Choice, createEntryId, NodeManager } from './helpers';
 
 
 export const MAX_VOXELS = 10 ** 7;
-// export const MAX_VOXELS = 10**2; // DEBUG
+// export const MAX_VOXELS = 10 ** 2; // DEBUG
+export const BOX: [[number, number, number], [number, number, number]] | null = null;
+// export const BOX: [[number, number, number], [number, number, number]] | null = [[-90, -90, -90], [90, 90, 90]]; // DEBUG
 
 
 const SourceChoice = new Choice({ emdb: 'EMDB', empiar: 'EMPIAR' }, 'emdb');

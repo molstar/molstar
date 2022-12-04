@@ -8,7 +8,7 @@ import { StateObjectSelector } from '../../mol-state';
 import { Color } from '../../mol-util/color';
 
 import { Segment } from './cellstar-api/data';
-import { CellStarEntryData, MAX_VOXELS } from './entry-root';
+import { BOX, CellStarEntryData, MAX_VOXELS } from './entry-root';
 
 
 const GROUP_NAME = 'LatticeSegmentation';
@@ -26,7 +26,7 @@ export class CellStarLatticeSegmentationData {
     async showSegmentation() {
         const hasLattices = this.entryData.metadata.grid.segmentation_lattices.segmentation_lattice_ids.length > 0;
         if (hasLattices) {
-            const url = this.entryData.api.latticeUrl(this.entryData.source, this.entryData.entryId, 0, null, MAX_VOXELS);
+            const url = this.entryData.api.latticeUrl(this.entryData.source, this.entryData.entryId, 0, BOX, MAX_VOXELS);
             const group = await this.entryData.groupNodeMgr.showNode(GROUP_NAME,
                 async () => await this.entryData.newUpdate().apply(CreateGroup, { label: 'Segmentation', description: 'Lattice' }, { state: { isCollapsed: false } }).commit(),
                 false);
