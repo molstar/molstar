@@ -15,7 +15,6 @@ import { DEFAULT_VOLUME_SERVER_V2, VolumeApiV2 } from './cellstar-api/api';
 import { Metadata, Segment } from './cellstar-api/data';
 import { CellStarMeshSegmentationData } from './entry-meshes';
 import { CellStarModelData } from './entry-models';
-import { CellStarLatticeSegmentationData } from './entry-segmentation';
 import { CellStarLatticeSegmentationData2 } from './entry-segmentation-2';
 import { CellStarVolumeData } from './entry-volume';
 import * as ExternalAPIs from './external-api';
@@ -50,7 +49,6 @@ export class CellStarEntryData extends PluginComponent {
 
     public readonly groupNodeMgr = new NodeManager();
     public readonly volumeData = new CellStarVolumeData(this);
-    public readonly latticeSegmentationData = new CellStarLatticeSegmentationData(this);
     public readonly latticeSegmentationData2 = new CellStarLatticeSegmentationData2(this);
     public readonly meshSegmentationData = new CellStarMeshSegmentationData(this);
     public readonly modelData = new CellStarModelData(this);
@@ -71,9 +69,6 @@ export class CellStarEntryData extends PluginComponent {
 
         this.subscribe(plugin.behaviors.interaction.click, e => {
             const loci = e.current.loci;
-            if (Volume.isLoci(loci) && loci.volume._propertyData.ownerId === this.entryRoot?.ref && loci.volume._propertyData.segment) {
-                this.currentSegment.next(loci.volume._propertyData.segment); // TODO remove with old latticeSegmentationData
-            }
             if (Volume.Segment.isLoci(loci) && loci.volume._propertyData.ownerId === this.entryRoot?.ref) {
                 const clickedSegmentId = loci.segments.length === 1 ? loci.segments[0] : undefined;
                 const clickedSegment = this.metadata.annotation?.segment_list.find(seg => seg.id === clickedSegmentId);
@@ -87,7 +82,6 @@ export class CellStarEntryData extends PluginComponent {
             }
         });
         this.subscribe(this.opacity, opacity => {
-            this.latticeSegmentationData.updateOpacity(opacity);
             this.latticeSegmentationData2.updateOpacity(opacity);
             this.meshSegmentationData.updateOpacity(opacity);
         });
@@ -95,7 +89,6 @@ export class CellStarEntryData extends PluginComponent {
             async segment => {
                 await PluginCommands.Interactivity.ClearHighlights(this.plugin);
                 if (segment) {
-                    await this.latticeSegmentationData.highlightSegment(segment);
                     await this.latticeSegmentationData2.highlightSegment(segment);
                     await this.meshSegmentationData.highlightSegment(segment);
                 }
@@ -123,7 +116,6 @@ export class CellStarEntryData extends PluginComponent {
     }
 
     public async showSegmentations() {
-        await this.latticeSegmentationData.showSegmentation();
         await this.latticeSegmentationData2.showSegmentation();
         await this.meshSegmentationData.showSegmentation();
         this.visibleSegments.next(this.metadata.annotation?.segment_list ?? []);
@@ -155,7 +147,6 @@ export class CellStarEntryData extends PluginComponent {
         this.currentSegment.next(segment);
     }
     public async showSegments(segments: Segment[]) {
-        await this.latticeSegmentationData.showSegments(segments, { opacity: this.opacity.value });
         await this.latticeSegmentationData2.showSegments(segments, { opacity: this.opacity.value });
         await this.meshSegmentationData.showSegments(segments);
         this.visibleSegments.next(segments);
