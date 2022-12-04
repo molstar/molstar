@@ -201,6 +201,7 @@ async function createVolumeIsosurfaceTextureMesh(ctx: VisualContext, volume: Vol
 
     const groupCount = volume.grid.cells.data.length;
     const surface = TextureMesh.create(gv.vertexCount, groupCount, gv.vertexTexture, gv.groupTexture, gv.normalTexture, Volume.getBoundingSphere(volume), textureMesh);
+    surface.meta.webgl = ctx.webgl;
 
     return surface;
 }
