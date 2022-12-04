@@ -11,12 +11,12 @@ import { Segment } from './cellstar-api/data';
 import { CellStarEntryData, MAX_VOXELS } from './entry-root';
 
 
-const GROUP_NAME = 'LatticeSegmentation2';
-const SEGMENT_REPR_TAG = 'lattice-segment-2';
+const GROUP_NAME = 'LatticeSegmentation';
+const SEGMENT_REPR_TAG = 'lattice-segment';
 const DEFAULT_SEGMENT_COLOR = Color.fromNormalizedRgb(0.8, 0.8, 0.8);
 
 
-export class CellStarLatticeSegmentationData2 {
+export class CellStarLatticeSegmentationData {
     private entryData: CellStarEntryData;
 
     constructor(rootData: CellStarEntryData) {
@@ -27,7 +27,9 @@ export class CellStarLatticeSegmentationData2 {
         const hasLattices = this.entryData.metadata.grid.segmentation_lattices.segmentation_lattice_ids.length > 0;
         if (hasLattices) {
             const url = this.entryData.api.latticeUrl(this.entryData.source, this.entryData.entryId, 0, null, MAX_VOXELS);
-            const group = await this.entryData.groupNodeMgr.showNode(GROUP_NAME, async () => await this.entryData.newUpdate().apply(CreateGroup, { label: 'Segmentation', description: 'Lattice 2' }, { state: { isCollapsed: false } }).commit(), false); // TODO remove '2'
+            const group = await this.entryData.groupNodeMgr.showNode(GROUP_NAME,
+                async () => await this.entryData.newUpdate().apply(CreateGroup, { label: 'Segmentation', description: 'Lattice' }, { state: { isCollapsed: false } }).commit(),
+                false);
             const data = await this.entryData.newUpdate().to(group).apply(Download, { url, isBinary: true, label: `Segmentation Data: ${url}` }).commit();
             console.log(this.entryData.plugin.dataFormats.list);
             const parsed = await this.entryData.plugin.dataFormats.get('segcif')!.parse(this.entryData.plugin, data);
