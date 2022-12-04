@@ -343,9 +343,9 @@ export const PostprocessingParams = {
     }, { cycle: true, description: 'Darken occluded crevices with the ambient occlusion effect' }),
     shadow: PD.MappedStatic('off', {
         on: PD.Group({
-            steps: PD.Numeric(1, { min: 1, max: 20, step: 1 }),
+            steps: PD.Numeric(1, { min: 1, max: 64, step: 1 }),
             bias: PD.Numeric(0.6, { min: 0.0, max: 1.0, step: 0.01 }),
-            maxDistance: PD.Numeric(3.0, { min: 0.0, max: 100.0, step: 1.0 }),
+            maxDistance: PD.Numeric(3, { min: 0, max: 256, step: 1 }),
             tolerance: PD.Numeric(1.0, { min: 0.0, max: 10.0, step: 0.1 }),
         }),
         off: PD.Group({})
