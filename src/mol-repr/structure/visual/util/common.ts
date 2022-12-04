@@ -151,7 +151,7 @@ function squaredDistance(x: number, y: number, z: number, center: Vec3) {
 }
 
 /** marks `indices` for filtering/ignoring in `id` when not in `elements` */
-function filterId(id: AssignableArrayLike<number>, elements: SortedArray, indices: SortedArray) {
+function filterUnitId(id: AssignableArrayLike<number>, elements: SortedArray, indices: SortedArray) {
     let start = 0;
     const end = elements.length;
     for (let i = 0, il = indices.length; i < il; ++i) {
@@ -168,24 +168,25 @@ function filterId(id: AssignableArrayLike<number>, elements: SortedArray, indice
 export function getUnitConformationAndRadius(structure: Structure, unit: Unit, sizeTheme: SizeTheme<any>, props: CommonSurfaceProps) {
     const { ignoreHydrogens, traceOnly, includeParent } = props;
     const rootUnit = includeParent ? structure.root.unitMap.get(unit.id) : unit;
+    const differentRoot = includeParent && rootUnit !== unit;
 
     const { x, y, z } = getConformation(rootUnit);
     const { elements } = rootUnit;
     const { center, radius: sphereRadius } = unit.boundary.sphere;
-    const extraRadius = (2 + 1.5) * 2; // TODO should be twice (the max vdW/sphere radius plus the probe radius)
+    const extraRadius = (4 + 1.5) * 2; // TODO should be twice (the max vdW/sphere radius plus the probe radius)
     const radiusSq = (sphereRadius + extraRadius) * (sphereRadius + extraRadius);
 
     let indices: SortedArray<ElementIndex>;
     let id: AssignableArrayLike<number>;
 
-    if (ignoreHydrogens || traceOnly || (includeParent && rootUnit !== unit)) {
-        const _indices = [];
-        const _id = [];
+    if (ignoreHydrogens || traceOnly || differentRoot) {
+        const _indices: number[] = [];
+        const _id: number[] = [];
         for (let i = 0, il = elements.length; i < il; ++i) {
             const eI = elements[i];
             if (ignoreHydrogens && isHydrogen(rootUnit, eI)) continue;
             if (traceOnly && !isTrace(rootUnit, eI)) continue;
-            if (includeParent && squaredDistance(x[eI], y[eI], z[eI], center) > radiusSq) continue;
+            if (differentRoot && squaredDistance(x[eI], y[eI], z[eI], center) > radiusSq) continue;
 
             _indices.push(eI);
             _id.push(i);
@@ -198,11 +199,11 @@ export function getUnitConformationAndRadius(structure: Structure, unit: Unit, s
     }
 
     if (includeParent && rootUnit !== unit) {
-        filterId(id, unit.elements, indices);
+        filterUnitId(id, unit.elements, indices);
     }
 
     const position = { indices, x, y, z, id };
-    const boundary = unit === rootUnit ? unit.boundary : getBoundary(position);
+    const boundary = differentRoot ? getBoundary(position) : unit.boundary;
 
     const l = StructureElement.Location.create(structure, rootUnit);
     const radius = (index: number) => {
@@ -213,25 +214,36 @@ export function getUnitConformationAndRadius(structure: Structure, unit: Unit, s
     return { position, boundary, radius };
 }
 
-export function getStructureConformationAndRadius(structure: Structure, sizeTheme: SizeTheme<any>, ignoreHydrogens: boolean, traceOnly: boolean) {
-    const l = StructureElement.Location.create(structure);
+export function getStructureConformationAndRadius(structure: Structure, sizeTheme: SizeTheme<any>, props: CommonSurfaceProps) {
+    const { ignoreHydrogens, traceOnly, includeParent } = props;
+    const differentRoot = includeParent && !!structure.parent;
+    const l = StructureElement.Location.create(structure.root);
+
+    const { center, radius: sphereRadius } = structure.boundary.sphere;
+    const extraRadius = (4 + 1.5) * 2; // TODO should be twice (the max vdW/sphere radius plus the probe radius)
+    const radiusSq = (sphereRadius + extraRadius) * (sphereRadius + extraRadius);
 
     let xs: ArrayLike<number>;
     let ys: ArrayLike<number>;
     let zs: ArrayLike<number>;
     let rs: ArrayLike<number>;
-    let id: ArrayLike<number>;
+    let id: AssignableArrayLike<number>;
+    let indices: OrderedSet<number>;
 
-    if (ignoreHydrogens || traceOnly) {
+    if (ignoreHydrogens || traceOnly || differentRoot) {
+        const { getSerialIndex } = structure.serialMapping;
+        const units = differentRoot ? structure.root.units : structure.units;
+
         const _xs: number[] = [];
         const _ys: number[] = [];
         const _zs: number[] = [];
         const _rs: number[] = [];
         const _id: number[] = [];
-        for (let i = 0, m = 0, il = structure.units.length; i < il; ++i) {
-            const unit = structure.units[i];
+        for (let i = 0, il = units.length; i < il; ++i) {
+            const unit = units[i];
             const { elements } = unit;
             const { x, y, z } = unit.conformation;
+            const childUnit = structure.unitMap.get(unit.id);
 
             l.unit = unit;
             for (let j = 0, jl = elements.length; j < jl; ++j) {
@@ -239,17 +251,30 @@ export function getStructureConformationAndRadius(structure: Structure, sizeThem
                 if (ignoreHydrogens && isHydrogen(unit, eI)) continue;
                 if (traceOnly && !isTrace(unit, eI)) continue;
 
-                _xs.push(x(eI));
-                _ys.push(y(eI));
-                _zs.push(z(eI));
+                const _x = x(eI), _y = y(eI), _z = z(eI);
+                if (differentRoot && squaredDistance(_x, _y, _z, center) > radiusSq) continue;
+
+                _xs.push(_x);
+                _ys.push(_y);
+                _zs.push(_z);
                 l.element = eI;
                 _rs.push(sizeTheme.size(l));
-                _id.push(m + j);
+
+                if (differentRoot) {
+                    const idx = childUnit ? SortedArray.indexOf(childUnit.elements, eI) : -1;
+                    if (idx === -1) {
+                        _id.push(-2); // mark for filtering/ignoring when not in `elements`
+                    } else {
+                        _id.push(getSerialIndex(childUnit, eI));
+                    }
+                } else {
+                    _id.push(getSerialIndex(unit, eI));
+                }
             }
-            m += elements.length;
         }
         xs = _xs, ys = _ys, zs = _zs, rs = _rs;
         id = _id;
+        indices = OrderedSet.ofRange(0, id.length);
     } else {
         const { elementCount } = structure;
         const _xs = new Float32Array(elementCount);
@@ -275,12 +300,14 @@ export function getStructureConformationAndRadius(structure: Structure, sizeThem
         }
         xs = _xs, ys = _ys, zs = _zs, rs = _rs;
         id = fillSerial(new Uint32Array(elementCount));
+        indices = OrderedSet.ofRange(0, id.length);
     }
 
-    const position = { indices: OrderedSet.ofRange(0, id.length), x: xs, y: ys, z: zs, id };
+    const position = { indices, x: xs, y: ys, z: zs, id };
+    const boundary = differentRoot ? getBoundary(position) : structure.boundary;
     const radius = (index: number) => rs[index];
 
-    return { position, radius };
+    return { position, boundary, radius };
 }
 
 const _H = AtomicNumbers['H'];
