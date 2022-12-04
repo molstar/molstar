@@ -150,7 +150,7 @@ export class DrawPass {
                 }
             }
 
-            this.postprocessing.render(camera, false, transparentBackground, renderer.props.backgroundColor, postprocessingProps);
+            this.postprocessing.render(camera, false, transparentBackground, renderer.props.backgroundColor, postprocessingProps, renderer.light);
         }
 
         this.depthTextureOpaque.detachFramebuffer(this.colorTarget.framebuffer, 'depth');
@@ -204,7 +204,7 @@ export class DrawPass {
                 }
             }
 
-            this.postprocessing.render(camera, false, transparentBackground, renderer.props.backgroundColor, postprocessingProps);
+            this.postprocessing.render(camera, false, transparentBackground, renderer.props.backgroundColor, postprocessingProps, renderer.light);
         }
 
         // render transparent primitives and volumes
@@ -268,7 +268,7 @@ export class DrawPass {
                     }
                 }
 
-                this.postprocessing.render(camera, false, transparentBackground, renderer.props.backgroundColor, postprocessingProps);
+                this.postprocessing.render(camera, false, transparentBackground, renderer.props.backgroundColor, postprocessingProps, renderer.light);
 
                 if (!this.packedDepth) {
                     this.depthTextureOpaque.attachFramebuffer(this.postprocessing.target.framebuffer, 'depth');
