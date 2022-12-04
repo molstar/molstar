@@ -71,6 +71,8 @@ function findPairBonds(unitA: Unit.Atomic, unitB: Unit.Atomic, props: BondComput
     const testDistanceSq = (bRadius + maxRadius) * (bRadius + maxRadius);
 
     builder.startUnitPair(unitA.id, unitB.id);
+    const opKeyA = unitA.conformation.operator.key;
+    const opKeyB = unitB.conformation.operator.key;
 
     for (let _aI = 0 as StructureElement.UnitIndex; _aI < atomCount; _aI++) {
         const aI = atomsA[_aI];
@@ -80,7 +82,7 @@ function findPairBonds(unitA: Unit.Atomic, unitB: Unit.Atomic, props: BondComput
 
         if (!props.forceCompute && indexPairs) {
             const { maxDistance } = indexPairs;
-            const { offset, b, edgeProps: { order, distance, flag, key } } = indexPairs.bonds;
+            const { offset, b, edgeProps: { order, distance, flag, key, operatorA, operatorB } } = indexPairs.bonds;
 
             const srcA = sourceIndex.value(aI);
             const aeI = getElementIdx(type_symbolA.value(aI));
@@ -89,6 +91,11 @@ function findPairBonds(unitA: Unit.Atomic, unitB: Unit.Atomic, props: BondComput
 
                 const _bI = SortedArray.indexOf(unitB.elements, bI) as StructureElement.UnitIndex;
                 if (_bI < 0) continue;
+
+                const opA = operatorA[i];
+                const opB = operatorB[i];
+                if ((opA >= 0 && opA !== opKeyA && opA !== opKeyB) ||
+                    (opB >= 0 && opB !== opKeyB && opB !== opKeyA)) continue;
 
                 const beI = getElementIdx(type_symbolA.value(bI));
 

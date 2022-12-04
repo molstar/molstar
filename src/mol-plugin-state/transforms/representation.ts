@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -43,6 +43,7 @@ import { Box3D } from '../../mol-math/geometry';
 import { PlaneParams, PlaneRepresentation } from '../../mol-repr/shape/loci/plane';
 import { Substance } from '../../mol-theme/substance';
 import { Material } from '../../mol-util/material';
+import { lerp } from '../../mol-math/interpolate';
 
 export { StructureRepresentation3D };
 export { ExplodeStructureRepresentation3D };
@@ -56,6 +57,7 @@ export { SubstanceStructureRepresentation3DFromScript };
 export { SubstanceStructureRepresentation3DFromBundle };
 export { ClippingStructureRepresentation3DFromScript };
 export { ClippingStructureRepresentation3DFromBundle };
+export { ThemeStrengthRepresentation3D };
 export { VolumeRepresentation3D };
 
 type StructureRepresentation3D = typeof StructureRepresentation3D
@@ -742,6 +744,62 @@ const ClippingStructureRepresentation3DFromBundle = PluginStateTransform.BuiltIn
         b.data.repr = a.data.repr;
         b.label = `Clipping (${newClipping.layers.length} Layers)`;
         return StateTransformer.UpdateResult.Updated;
+    }
+});
+
+type ThemeStrengthRepresentation3D = typeof ThemeStrengthRepresentation3D
+const ThemeStrengthRepresentation3D = PluginStateTransform.BuiltIn({
+    name: 'theme-strength-representation-3d',
+    display: 'Theme Strength 3D Representation',
+    from: SO.Molecule.Structure.Representation3D,
+    to: SO.Molecule.Structure.Representation3DState,
+    params: () => ({
+        overpaintStrength: PD.Numeric(1, { min: 0, max: 1, step: 0.01 }),
+        transparencyStrength: PD.Numeric(1, { min: 0, max: 1, step: 0.01 }),
+        substanceStrength: PD.Numeric(1, { min: 0, max: 1, step: 0.01 }),
+    })
+})({
+    canAutoUpdate() {
+        return true;
+    },
+    apply({ a, params }) {
+        return new SO.Molecule.Structure.Representation3DState({
+            state: {
+                themeStrength: {
+                    overpaint: params.overpaintStrength,
+                    transparency: params.transparencyStrength,
+                    substance: params.substanceStrength
+                },
+            },
+            initialState: {
+                themeStrength: { overpaint: 1, transparency: 1, substance: 1 },
+            },
+            info: { },
+            repr: a.data.repr
+        }, { label: 'Theme Strength', description: `${params.overpaintStrength.toFixed(2)}, ${params.transparencyStrength.toFixed(2)}, ${params.substanceStrength.toFixed(2)}` });
+    },
+    update({ a, b, newParams, oldParams }) {
+        if (newParams.overpaintStrength === b.data.state.themeStrength?.overpaint &&
+            newParams.transparencyStrength === b.data.state.themeStrength?.transparency &&
+            newParams.substanceStrength === b.data.state.themeStrength?.substance
+        ) return StateTransformer.UpdateResult.Unchanged;
+
+        b.data.state.themeStrength = {
+            overpaint: newParams.overpaintStrength,
+            transparency: newParams.transparencyStrength,
+            substance: newParams.substanceStrength,
+        };
+        b.data.repr = a.data.repr;
+        b.label = 'Theme Strength';
+        b.description = `${newParams.overpaintStrength.toFixed(2)}, ${newParams.transparencyStrength.toFixed(2)}, ${newParams.substanceStrength.toFixed(2)}`;
+        return StateTransformer.UpdateResult.Updated;
+    },
+    interpolate(src, tar, t) {
+        return {
+            overpaintStrength: lerp(src.overpaintStrength, tar.overpaintStrength, t),
+            transparencyStrength: lerp(src.transparencyStrength, tar.transparencyStrength, t),
+            substanceStrength: lerp(src.substanceStrength, tar.substanceStrength, t),
+        };
     }
 });
 
