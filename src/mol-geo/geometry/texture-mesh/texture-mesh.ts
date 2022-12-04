@@ -7,7 +7,7 @@
 import { ValueCell } from '../../../mol-util';
 import { Sphere3D } from '../../../mol-math/geometry';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
-import { LocationIterator } from '../../../mol-geo/util/location-iterator';
+import { LocationIterator, PositionLocation } from '../../../mol-geo/util/location-iterator';
 import { TransformData } from '../transform-data';
 import { createColors } from '../color-data';
 import { createMarkers } from '../marker-data';
@@ -20,11 +20,12 @@ import { createEmptyTransparency } from '../transparency-data';
 import { TextureMeshValues } from '../../../mol-gl/renderable/texture-mesh';
 import { calculateTransformBoundingSphere } from '../../../mol-gl/renderable/util';
 import { createNullTexture, Texture } from '../../../mol-gl/webgl/texture';
-import { Vec2, Vec4 } from '../../../mol-math/linear-algebra';
+import { Vec2, Vec3, Vec4 } from '../../../mol-math/linear-algebra';
 import { createEmptyClipping } from '../clipping-data';
 import { NullLocation } from '../../../mol-model/location';
 import { createEmptySubstance } from '../substance-data';
 import { RenderableState } from '../../../mol-gl/renderable';
+import { WebGLContext } from '../../../mol-gl/webgl/context';
 
 export interface TextureMesh {
     readonly kind: 'texture-mesh',
@@ -43,7 +44,10 @@ export interface TextureMesh {
 
     readonly boundingSphere: Sphere3D
 
-    readonly meta: { [k: string]: unknown }
+    readonly meta: {
+        webgl?: WebGLContext
+        [k: string]: unknown
+    }
 }
 
 export namespace TextureMesh {
@@ -131,8 +135,41 @@ export namespace TextureMesh {
         updateBoundingSphere,
         createRenderableState,
         updateRenderableState,
-        createPositionIterator: () => LocationIterator(1, 1, 1, () => NullLocation)
+        createPositionIterator,
     };
+
+    const TextureMeshName = 'texture-mesh';
+
+    function createPositionIterator(textureMesh: TextureMesh, transform: TransformData): LocationIterator {
+        const webgl = textureMesh.meta.webgl;
+        if (!webgl) return LocationIterator(1, 1, 1, () => NullLocation);
+
+        if (!webgl.namedFramebuffers[TextureMeshName]) {
+            webgl.namedFramebuffers[TextureMeshName] = webgl.resources.framebuffer();
+        }
+        const framebuffer = webgl.namedFramebuffers[TextureMeshName];
+        const [width, height] = textureMesh.geoTextureDim.ref.value;
+        const vertices = new Float32Array(width * height * 4);
+        framebuffer.bind();
+        textureMesh.vertexTexture.ref.value.attachFramebuffer(framebuffer, 0);
+        webgl.readPixels(0, 0, width, height, vertices);
+
+        const groupCount = textureMesh.vertexCount;
+        const instanceCount = transform.instanceCount.ref.value;
+        const location = PositionLocation();
+        const p = location.position;
+        const v = vertices;
+        const m = transform.aTransform.ref.value;
+        const getLocation = (groupIndex: number, instanceIndex: number) => {
+            if (instanceIndex < 0) {
+                Vec3.fromArray(p, v, groupIndex * 4);
+            } else {
+                Vec3.transformMat4Offset(p, v, m, 0, groupIndex * 4, instanceIndex * 16);
+            }
+            return location;
+        };
+        return LocationIterator(groupCount, instanceCount, 1, getLocation);
+    }
 
     function createValues(textureMesh: TextureMesh, transform: TransformData, locationIt: LocationIterator, theme: Theme, props: PD.Values<Params>): TextureMeshValues {
         const { instanceCount, groupCount } = locationIt;
