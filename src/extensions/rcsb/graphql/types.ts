@@ -4,7 +4,7 @@ export type InputMaybe<T> = Maybe<T>;
 export type Exact<T extends { [key: string]: unknown }> = { [K in keyof T]: T[K] };
 export type MakeOptional<T, K extends keyof T> = Omit<T, K> & { [SubKey in K]?: Maybe<T[SubKey]> };
 export type MakeMaybe<T, K extends keyof T> = Omit<T, K> & { [SubKey in K]: Maybe<T[SubKey]> };
-// Generated on 2022-08-20T16:36:05-07:00
+// Generated on 2022-12-03T21:55:37-08:00
 
 /** All built-in and custom scalars, mapped to their actual values */
 export type Scalars = {
@@ -344,6 +344,14 @@ export type Citation = {
    */
   readonly journal_abbrev?: Maybe<Scalars['String']>;
   /**
+   * Full name of the cited journal; relevant for journal articles.
+   *
+   * Examples:
+   * Journal of Molecular Biology
+   *
+   */
+  readonly journal_full?: Maybe<Scalars['String']>;
+  /**
    * The American Society for Testing and Materials (ASTM) code
    *  assigned to the journal cited (also referred to as the CODEN
    *  designator of the Chemical Abstracts Service); relevant for
@@ -550,6 +558,7 @@ export type CoreBranchedEntityInstance = {
   readonly rcsb_id: Scalars['String'];
   readonly rcsb_latest_revision?: Maybe<RcsbLatestRevision>;
   readonly rcsb_ligand_neighbors?: Maybe<ReadonlyArray<Maybe<RcsbLigandNeighbors>>>;
+  readonly struct_asym?: Maybe<StructAsym>;
 };
 
 export type CoreChemComp = {
@@ -661,6 +670,7 @@ export type CoreEntry = {
   readonly exptl?: Maybe<ReadonlyArray<Maybe<Exptl>>>;
   readonly exptl_crystal?: Maybe<ReadonlyArray<Maybe<ExptlCrystal>>>;
   readonly exptl_crystal_grow?: Maybe<ReadonlyArray<Maybe<ExptlCrystalGrow>>>;
+  readonly ma_data?: Maybe<ReadonlyArray<Maybe<MaData>>>;
   /** Get all non-polymer (non-solvent) entities for this PDB entry. */
   readonly nonpolymer_entities?: Maybe<ReadonlyArray<Maybe<CoreNonpolymerEntity>>>;
   readonly pdbx_SG_project?: Maybe<ReadonlyArray<Maybe<PdbxSgProject>>>;
@@ -701,6 +711,7 @@ export type CoreEntry = {
   /** The list of content types associated with this entry. */
   readonly rcsb_associated_holdings?: Maybe<CurrentEntry>;
   readonly rcsb_binding_affinity?: Maybe<ReadonlyArray<Maybe<RcsbBindingAffinity>>>;
+  readonly rcsb_comp_model_provenance?: Maybe<RcsbCompModelProvenance>;
   readonly rcsb_entry_container_identifiers: RcsbEntryContainerIdentifiers;
   readonly rcsb_entry_group_membership?: Maybe<ReadonlyArray<Maybe<RcsbEntryGroupMembership>>>;
   readonly rcsb_entry_info: RcsbEntryInfo;
@@ -713,6 +724,7 @@ export type CoreEntry = {
    *
    */
   readonly rcsb_id: Scalars['String'];
+  readonly rcsb_ma_qa_metric_global?: Maybe<ReadonlyArray<Maybe<RcsbMaQaMetricGlobal>>>;
   readonly rcsb_primary_citation?: Maybe<RcsbPrimaryCitation>;
   readonly refine?: Maybe<ReadonlyArray<Maybe<Refine>>>;
   readonly refine_analyze?: Maybe<ReadonlyArray<Maybe<RefineAnalyze>>>;
@@ -786,6 +798,7 @@ export type CoreNonpolymerEntityInstance = {
   readonly rcsb_nonpolymer_instance_validation_score?: Maybe<ReadonlyArray<Maybe<RcsbNonpolymerInstanceValidationScore>>>;
   readonly rcsb_nonpolymer_struct_conn?: Maybe<ReadonlyArray<Maybe<RcsbNonpolymerStructConn>>>;
   readonly rcsb_target_neighbors?: Maybe<ReadonlyArray<Maybe<RcsbTargetNeighbors>>>;
+  readonly struct_asym?: Maybe<StructAsym>;
 };
 
 export type CorePfam = {
@@ -919,6 +932,7 @@ export type CorePolymerEntityInstance = {
   readonly rcsb_polymer_instance_feature?: Maybe<ReadonlyArray<Maybe<RcsbPolymerInstanceFeature>>>;
   readonly rcsb_polymer_instance_feature_summary?: Maybe<ReadonlyArray<Maybe<RcsbPolymerInstanceFeatureSummary>>>;
   readonly rcsb_polymer_struct_conn?: Maybe<ReadonlyArray<Maybe<RcsbPolymerStructConn>>>;
+  readonly struct_asym?: Maybe<StructAsym>;
 };
 
 export type CorePubmed = {
@@ -1284,9 +1298,9 @@ export type Em2dCrystalEntity = {
   readonly id: Scalars['String'];
   /** pointer to _em_image_processing.id in the EM_IMAGE_PROCESSING category. */
   readonly image_processing_id: Scalars['String'];
-  /** Unit-cell length a in Angstroms. */
+  /** Unit-cell length a in angstroms. */
   readonly length_a?: Maybe<Scalars['Float']>;
-  /** Unit-cell length b in Angstroms. */
+  /** Unit-cell length b in angstroms. */
   readonly length_b?: Maybe<Scalars['Float']>;
   /** Thickness of 2D crystal */
   readonly length_c?: Maybe<Scalars['Float']>;
@@ -1317,11 +1331,11 @@ export type Em3dCrystalEntity = {
   readonly id: Scalars['String'];
   /** pointer to _em_image_processing.id in the EM_IMAGE_PROCESSING category. */
   readonly image_processing_id: Scalars['String'];
-  /** Unit-cell length a in Angstroms. */
+  /** Unit-cell length a in angstroms. */
   readonly length_a?: Maybe<Scalars['Float']>;
-  /** Unit-cell length b in Angstroms. */
+  /** Unit-cell length b in angstroms. */
   readonly length_b?: Maybe<Scalars['Float']>;
-  /** Unit-cell length c in Angstroms. */
+  /** Unit-cell length c in angstroms. */
   readonly length_c?: Maybe<Scalars['Float']>;
   /**
    * Space group name.
@@ -1482,7 +1496,7 @@ export type Em3dReconstruction = {
    */
   readonly refinement_type?: Maybe<Scalars['String']>;
   /**
-   * The final resolution (in Angstroms)of the 3D reconstruction.
+   * The final resolution (in angstroms)of the 3D reconstruction.
    *
    * Examples:
    * null, null
@@ -1558,7 +1572,7 @@ export type EmDiffractionShell = {
    */
   readonly fourier_space_coverage?: Maybe<Scalars['Float']>;
   /**
-   * High resolution limit for this shell (Angstroms)
+   * High resolution limit for this shell (angstroms)
    *
    * Examples:
    * null
@@ -1568,7 +1582,7 @@ export type EmDiffractionShell = {
   /** Unique identifier for the category em_diffraction_shell */
   readonly id: Scalars['String'];
   /**
-   * Low resolution limit for this shell (Angstroms)
+   * Low resolution limit for this shell (angstroms)
    *
    * Examples:
    * null
@@ -1614,7 +1628,7 @@ export type EmDiffractionStats = {
    */
   readonly fourier_space_coverage?: Maybe<Scalars['Float']>;
   /**
-   * High resolution limit of the structure factor data, in Angstroms
+   * High resolution limit of the structure factor data, in angstroms
    *
    * Examples:
    * null
@@ -1998,12 +2012,12 @@ export type EmImaging = {
   /** The magnification indicated by the microscope readout. */
   readonly nominal_magnification?: Maybe<Scalars['Int']>;
   /**
-   * The specimen temperature maximum (degrees Kelvin) for the duration
+   * The specimen temperature maximum (kelvin) for the duration
    *  of imaging.
    */
   readonly recording_temperature_maximum?: Maybe<Scalars['Float']>;
   /**
-   * The specimen temperature minimum (degrees Kelvin) for the duration
+   * The specimen temperature minimum (kelvin) for the duration
    *  of imaging.
    */
   readonly recording_temperature_minimum?: Maybe<Scalars['Float']>;
@@ -2028,7 +2042,7 @@ export type EmImaging = {
   /** Foreign key to the EM_SPECIMEN category */
   readonly specimen_id?: Maybe<Scalars['String']>;
   /**
-   * The mean specimen stage temperature (degrees Kelvin) during imaging
+   * The mean specimen stage temperature (in kelvin) during imaging
    *  in the microscope.
    */
   readonly temperature?: Maybe<Scalars['Float']>;
@@ -2215,7 +2229,7 @@ export type EmStaining = {
 };
 
 export type EmVitrification = {
-  /** The temperature (in degrees Kelvin) of the sample just prior to vitrification. */
+  /** The temperature (in kelvin) of the sample just prior to vitrification. */
   readonly chamber_temperature?: Maybe<Scalars['Float']>;
   /**
    * This is the name of the cryogen.
@@ -2259,7 +2273,7 @@ export type EmVitrification = {
   /** This data item is a pointer to _em_specimen.id */
   readonly specimen_id: Scalars['String'];
   /**
-   * The vitrification temperature (in degrees Kelvin), e.g.,
+   * The vitrification temperature (in kelvin), e.g.,
    *   temperature of the plunge instrument cryogen bath.
    */
   readonly temp?: Maybe<Scalars['Float']>;
@@ -2364,6 +2378,14 @@ export type EntityPoly = {
    *
    */
   readonly pdbx_seq_one_letter_code_can?: Maybe<Scalars['String']>;
+  /**
+   * Evidence for the assignment of the polymer sequence.
+   *
+   * Allowable values:
+   * depositor provided, derived from coordinates
+   *
+   */
+  readonly pdbx_sequence_evidence_code?: Maybe<Scalars['String']>;
   /**
    * The PDB strand/chain id(s) corresponding to this polymer entity.
    *
@@ -3005,6 +3027,8 @@ export type Entry = {
    *  identifier.
    */
   readonly id: Scalars['String'];
+  /** An identifier for the model collection associated with the entry. */
+  readonly ma_collection_id?: Maybe<Scalars['String']>;
 };
 
 export type Exptl = {
@@ -3261,6 +3285,29 @@ export type InterfacePartnerFeatureFeaturePositions = {
   readonly end_seq_id?: Maybe<Scalars['Int']>;
   /** The value(s) of the feature over the monomer segment. */
   readonly values?: Maybe<ReadonlyArray<Maybe<Scalars['Float']>>>;
+};
+
+export type MaData = {
+  /**
+   * The type of data held in the dataset.
+   *
+   * Allowable values:
+   * coevolution MSA, input structure, model coordinates, other, polymeric template library, spatial restraints, target, target-template alignment, template structure
+   *
+   */
+  readonly content_type?: Maybe<Scalars['String']>;
+  /** Details for other content types. */
+  readonly content_type_other_details?: Maybe<Scalars['String']>;
+  /** A unique identifier for the data. */
+  readonly id: Scalars['Int'];
+  /**
+   * An author-given name for the content held in the dataset.
+   *
+   * Examples:
+   * NMR NOE Distances, Target Template Alignment, Coevolution Data
+   *
+   */
+  readonly name?: Maybe<Scalars['String']>;
 };
 
 export type MethodDetails = {
@@ -4199,7 +4246,7 @@ export type PdbxNmrExptlSampleConditions = {
    */
   readonly pressure_units?: Maybe<Scalars['String']>;
   /**
-   * The temperature (in Kelvin) at which NMR data were
+   * The temperature (in kelvin) at which NMR data were
    *  collected.
    */
   readonly temperature?: Maybe<Scalars['String']>;
@@ -4453,7 +4500,7 @@ export type PdbxPrdAudit = {
    * An identifier for the wwPDB site creating or modifying the molecule.
    *
    * Allowable values:
-   * BMRB, PDBC, PDBJ, PDBe, RCSB
+   * BMRB, PDBC, PDBE, PDBJ, RCSB
    *
    */
   readonly processing_site?: Maybe<Scalars['String']>;
@@ -6817,7 +6864,7 @@ export type Query = {
   readonly assemblies?: Maybe<ReadonlyArray<Maybe<CoreAssembly>>>;
   /** Get an assembly given the PDB ID and ASSEMBLY ID. Here ASSEMBLY ID is '1', '2', '3', etc. or 'deposited' for deposited coordinates. */
   readonly assembly?: Maybe<CoreAssembly>;
-  /** Get a list of PDB branched entities given a list of ENTITY IDs. Here ENTITY ID is a compound identifier that includes entry_id and entity_id separated by '_', e.g. 1XXX_1. */
+  /** Get a list of PDB branched entities given a list of ENTITY IDs. Here ENTITY ID is a compound identifier that includes entry_id and entity_id separated by '_', e.g. 1XXX_1. Note that the ENTRY ID part must be upper case. */
   readonly branched_entities?: Maybe<ReadonlyArray<Maybe<CoreBranchedEntity>>>;
   /** Get a PDB branched entity, given the PDB ID and ENTITY ID. Here ENTITY ID is a '1', '2', '3', etc. */
   readonly branched_entity?: Maybe<CoreBranchedEntity>;
@@ -6841,9 +6888,9 @@ export type Query = {
   readonly group_provenance?: Maybe<GroupProvenance>;
   /** Get a pairwise polymeric interface given the PDB ID, ASSEMBLY ID and INTERFACE ID. */
   readonly interface?: Maybe<CoreInterface>;
-  /** Get a list of pairwise polymeric interfaces given a list of INTERFACE IDs. Here INTERFACE ID is a compound identifier that includes entry_id, assembly_id and interface_id e.g. 1XXX-1.1. */
+  /** Get a list of pairwise polymeric interfaces given a list of INTERFACE IDs. Here INTERFACE ID is a compound identifier that includes entry_id, assembly_id and interface_id e.g. 1XXX-1.1. Note that the ENTRY ID part must be upper case. */
   readonly interfaces?: Maybe<ReadonlyArray<Maybe<CoreInterface>>>;
-  /** Get a list of PDB non-polymer entities given a list of ENTITY IDs. Here ENTITY ID is a compound identifier that includes entry_id and entity_id separated by '_', e.g. 1XXX_1. */
+  /** Get a list of PDB non-polymer entities given a list of ENTITY IDs. Here ENTITY ID is a compound identifier that includes entry_id and entity_id separated by '_', e.g. 1XXX_1. Note that the ENTRY ID part must be upper case. */
   readonly nonpolymer_entities?: Maybe<ReadonlyArray<Maybe<CoreNonpolymerEntity>>>;
   /** Get a PDB non-polymer entity, given the PDB ID and ENTITY ID. Here ENTITY ID is a '1', '2', '3', etc. */
   readonly nonpolymer_entity?: Maybe<CoreNonpolymerEntity>;
@@ -6851,7 +6898,7 @@ export type Query = {
   readonly nonpolymer_entity_instance?: Maybe<CoreNonpolymerEntityInstance>;
   /** Get a list of PDB non-polymer entity instances (chains), given the list of ENTITY INSTANCE IDs. Here ENTITY INSTANCE ID identifies structural element in the asymmetric unit, e.g. 'A', 'B', etc. */
   readonly nonpolymer_entity_instances?: Maybe<ReadonlyArray<Maybe<CoreNonpolymerEntityInstance>>>;
-  /** Get a list of PDB polymer entities given a list of ENTITY IDs. Here ENTITY ID is a compound identifier that includes entry_id and entity_id separated by '_', e.g. 1XXX_1. */
+  /** Get a list of PDB polymer entities given a list of ENTITY IDs. Here ENTITY ID is a compound identifier that includes entry_id and entity_id separated by '_', e.g. 1XXX_1. Note that the ENTRY ID part must be upper case. */
   readonly polymer_entities?: Maybe<ReadonlyArray<Maybe<CorePolymerEntity>>>;
   /** Get a PDB polymer entity, given the PDB ID and ENTITY ID. Here ENTITY ID is a '1', '2', '3', etc. */
   readonly polymer_entity?: Maybe<CorePolymerEntity>;
@@ -8421,6 +8468,29 @@ export type RcsbClusterMembership = {
   readonly identity?: Maybe<Scalars['Int']>;
 };
 
+export type RcsbCompModelProvenance = {
+  /**
+   * Entry identifier corresponding to the computed structure model.
+   *
+   * Examples:
+   * AF-P60325-F1, ma-bak-cepc-0019
+   *
+   */
+  readonly entry_id: Scalars['String'];
+  /**
+   * Source database for the computed structure model.
+   *
+   * Allowable values:
+   * AlphaFoldDB, ModelArchive
+   *
+   */
+  readonly source_db?: Maybe<Scalars['String']>;
+  /** Source filename for the computed structure model. */
+  readonly source_filename?: Maybe<Scalars['String']>;
+  /** Source URL for computed structure model file. */
+  readonly source_url?: Maybe<Scalars['String']>;
+};
+
 export type RcsbEntityHostOrganism = {
   /**
    * The beginning polymer sequence position for the polymer section corresponding
@@ -8657,7 +8727,7 @@ export type RcsbEntitySourceOrganism = {
    * A code indicating the provenance of the source organism details for the entity
    *
    * Allowable values:
-   * PDB Primary Data
+   * PDB Primary Data, UniProt
    *
    */
   readonly provenance_source?: Maybe<Scalars['String']>;
@@ -8731,7 +8801,7 @@ export type RcsbEntryContainerIdentifiers = {
    * Entry identifier for the container.
    *
    * Examples:
-   * 1KIP, 4HHB
+   * 4HHB, AF_AFP60325F1, MA_MABAKCEPC0019
    *
    */
   readonly entry_id: Scalars['String'];
@@ -8879,6 +8949,15 @@ export type RcsbEntryInfo = {
    *
    */
   readonly na_polymer_entity_types?: Maybe<Scalars['String']>;
+  /**
+   * This data item identifies secondary structure
+   *  features of nucleic acids in the entry.
+   *
+   * Allowable values:
+   * a-form double helix, b-form double helix, bulge loop, double helix, four-way junction, hairpin loop, internal loop, mismatched base pair, other right-handed double helix, parallel strands, quadruple helix, tetraloop, three-way junction, triple helix, two-way junction, z-form double helix
+   *
+   */
+  readonly ndb_struct_conf_na_feature_combined?: Maybe<ReadonlyArray<Maybe<Scalars['String']>>>;
   /** Bound nonpolymer components in this entry. */
   readonly nonpolymer_bound_components?: Maybe<ReadonlyArray<Maybe<Scalars['String']>>>;
   /** The number of distinct non-polymer entities in the structure entry exclusive of solvent. */
@@ -8955,6 +9034,21 @@ export type RcsbEntryInfo = {
   readonly software_programs_combined?: Maybe<ReadonlyArray<Maybe<Scalars['String']>>>;
   /** The number of distinct solvent entities per deposited structure model. */
   readonly solvent_entity_count?: Maybe<Scalars['Int']>;
+  /**
+   * Indicates if the structure was determined using experimental or computational methods.
+   *
+   * Allowable values:
+   * computational, experimental
+   *
+   */
+  readonly structure_determination_methodology: Scalars['String'];
+  /**
+   * Indicates the priority of the value in _rcsb_entry_info.structure_determination_methodology.
+   *  The lower the number the higher the priority.
+   *  Priority values for "experimental" structures is currently set to 10 and
+   *  the values for "computational" structures is set to 100.
+   */
+  readonly structure_determination_methodology_priority?: Maybe<Scalars['Int']>;
 };
 
 export type RcsbEntryInfoDiffrnResolutionHigh = {
@@ -9292,6 +9386,49 @@ export type RcsbLigandNeighbors = {
   readonly ligand_model_id?: Maybe<Scalars['Int']>;
   /** The sequence position for the target instance. */
   readonly seq_id?: Maybe<Scalars['Int']>;
+};
+
+export type RcsbMaQaMetricGlobal = {
+  readonly ma_qa_metric_global?: Maybe<ReadonlyArray<Maybe<RcsbMaQaMetricGlobalMaQaMetricGlobal>>>;
+  /** The model identifier. */
+  readonly model_id: Scalars['Int'];
+};
+
+export type RcsbMaQaMetricGlobalMaQaMetricGlobal = {
+  /**
+   * Description of the global QA metric.
+   *
+   * Examples:
+   * confidence score predicting accuracy according to the CA-only Local Distance Difference Test (lDDT-CA) in [0,100]
+   *
+   */
+  readonly description?: Maybe<Scalars['String']>;
+  /**
+   * Name of the global QA metric.
+   *
+   * Examples:
+   * pLDDT
+   *
+   */
+  readonly name: Scalars['String'];
+  /**
+   * The type of global QA metric.
+   *
+   * Allowable values:
+   * PAE, contact probability, distance, energy, ipTM, normalized score, other, pLDDT, pLDDT all-atom, pLDDT all-atom in [0,1], pLDDT in [0,1], pTM, zscore
+   *
+   */
+  readonly type: Scalars['String'];
+  /** Details for other type of global QA metric. */
+  readonly type_other_details?: Maybe<Scalars['String']>;
+  /**
+   * Value of the global QA metric.
+   *
+   * Examples:
+   * null
+   *
+   */
+  readonly value: Scalars['Float'];
 };
 
 export type RcsbMembraneLineage = {
@@ -10332,7 +10469,7 @@ export type RcsbPolymerEntityContainerIdentifiersReferenceSequenceIdentifiers = 
    * Source of the reference database assignment
    *
    * Allowable values:
-   * PDB, RCSB, SIFTS
+   * PDB, RCSB, SIFTS, UniProt
    *
    */
   readonly provenance_source?: Maybe<Scalars['String']>;
@@ -10737,7 +10874,7 @@ export type RcsbPolymerInstanceFeature = {
    * A type or category of the feature.
    *
    * Allowable values:
-   * ANGLE_OUTLIER, BINDING_SITE, BOND_OUTLIER, C-MANNOSYLATION_SITE, CATH, CIS-PEPTIDE, ECOD, HELIX_P, MEMBRANE_SEGMENT, MOGUL_ANGLE_OUTLIER, MOGUL_BOND_OUTLIER, N-GLYCOSYLATION_SITE, O-GLYCOSYLATION_SITE, RAMACHANDRAN_OUTLIER, ROTAMER_OUTLIER, RSCC_OUTLIER, RSRZ_OUTLIER, S-GLYCOSYLATION_SITE, SABDAB_ANTIBODY_HEAVY_CHAIN_SUBCLASS, SABDAB_ANTIBODY_LIGHT_CHAIN_SUBCLASS, SABDAB_ANTIBODY_LIGHT_CHAIN_TYPE, SCOP, SCOP2B_SUPERFAMILY, SCOP2_FAMILY, SCOP2_SUPERFAMILY, SHEET, STEREO_OUTLIER, UNASSIGNED_SEC_STRUCT, UNOBSERVED_ATOM_XYZ, UNOBSERVED_RESIDUE_XYZ, ZERO_OCCUPANCY_ATOM_XYZ, ZERO_OCCUPANCY_RESIDUE_XYZ, ASA
+   * ANGLE_OUTLIER, BEND, BINDING_SITE, BOND_OUTLIER, C-MANNOSYLATION_SITE, CATH, CIS-PEPTIDE, ECOD, HELIX_P, HELX_LH_PP_P, HELX_RH_3T_P, HELX_RH_AL_P, HELX_RH_PI_P, MA_QA_METRIC_LOCAL_TYPE_CONTACT_PROBABILITY, MA_QA_METRIC_LOCAL_TYPE_DISTANCE, MA_QA_METRIC_LOCAL_TYPE_ENERGY, MA_QA_METRIC_LOCAL_TYPE_IPTM, MA_QA_METRIC_LOCAL_TYPE_NORMALIZED_SCORE, MA_QA_METRIC_LOCAL_TYPE_OTHER, MA_QA_METRIC_LOCAL_TYPE_PAE, MA_QA_METRIC_LOCAL_TYPE_PLDDT, MA_QA_METRIC_LOCAL_TYPE_PLDDT_ALL-ATOM, MA_QA_METRIC_LOCAL_TYPE_PLDDT_ALL-ATOM_[0,1], MA_QA_METRIC_LOCAL_TYPE_PLDDT_[0,1], MA_QA_METRIC_LOCAL_TYPE_PTM, MA_QA_METRIC_LOCAL_TYPE_ZSCORE, MEMBRANE_SEGMENT, MOGUL_ANGLE_OUTLIER, MOGUL_BOND_OUTLIER, N-GLYCOSYLATION_SITE, O-GLYCOSYLATION_SITE, RAMACHANDRAN_OUTLIER, ROTAMER_OUTLIER, RSCC_OUTLIER, RSRZ_OUTLIER, S-GLYCOSYLATION_SITE, SABDAB_ANTIBODY_HEAVY_CHAIN_SUBCLASS, SABDAB_ANTIBODY_LIGHT_CHAIN_SUBCLASS, SABDAB_ANTIBODY_LIGHT_CHAIN_TYPE, SCOP, SCOP2B_SUPERFAMILY, SCOP2_FAMILY, SCOP2_SUPERFAMILY, SHEET, STEREO_OUTLIER, STRN, TURN_TY1_P, UNASSIGNED_SEC_STRUCT, UNOBSERVED_ATOM_XYZ, UNOBSERVED_RESIDUE_XYZ, ZERO_OCCUPANCY_ATOM_XYZ, ZERO_OCCUPANCY_RESIDUE_XYZ, ASA
    *
    */
   readonly type?: Maybe<Scalars['String']>;
@@ -10748,7 +10885,7 @@ export type RcsbPolymerInstanceFeatureAdditionalProperties = {
    * The additional property name.
    *
    * Allowable values:
-   * CATH_DOMAIN_ID, CATH_NAME, ECOD_DOMAIN_ID, ECOD_FAMILY_NAME, OMEGA_ANGLE, PARTNER_ASYM_ID, PARTNER_BOND_DISTANCE, PARTNER_COMP_ID, SCOP2_DOMAIN_ID, SCOP2_FAMILY_ID, SCOP2_FAMILY_NAME, SCOP2_SUPERFAMILY_ID, SCOP2_SUPERFAMILY_NAME, SCOP_DOMAIN_ID, SCOP_NAME, SCOP_SUN_ID, SHEET_SENSE
+   * CATH_DOMAIN_ID, CATH_NAME, ECOD_DOMAIN_ID, ECOD_FAMILY_NAME, MODELCIF_MODEL_ID, OMEGA_ANGLE, PARTNER_ASYM_ID, PARTNER_BOND_DISTANCE, PARTNER_COMP_ID, SCOP2_DOMAIN_ID, SCOP2_FAMILY_ID, SCOP2_FAMILY_NAME, SCOP2_SUPERFAMILY_ID, SCOP2_SUPERFAMILY_NAME, SCOP_DOMAIN_ID, SCOP_NAME, SCOP_SUN_ID, SHEET_SENSE
    *
    */
   readonly name?: Maybe<Scalars['String']>;
@@ -10818,7 +10955,7 @@ export type RcsbPolymerInstanceFeatureSummary = {
    * Type or category of the feature.
    *
    * Allowable values:
-   * ANGLE_OUTLIER, BINDING_SITE, BOND_OUTLIER, C-MANNOSYLATION_SITE, CATH, CIS-PEPTIDE, ECOD, HELIX_P, MEMBRANE_SEGMENT, MOGUL_ANGLE_OUTLIER, MOGUL_BOND_OUTLIER, N-GLYCOSYLATION_SITE, O-GLYCOSYLATION_SITE, RAMACHANDRAN_OUTLIER, ROTAMER_OUTLIER, RSCC_OUTLIER, RSRZ_OUTLIER, S-GLYCOSYLATION_SITE, SABDAB_ANTIBODY_HEAVY_CHAIN_SUBCLASS, SABDAB_ANTIBODY_LIGHT_CHAIN_SUBCLASS, SABDAB_ANTIBODY_LIGHT_CHAIN_TYPE, SAbDab Antibody Heavy Chain Subclass, SAbDab Antibody Light Chain Subclass, SAbDab Antibody Light Chain Type, SCOP, SCOP2 Family, SCOP2 Superfamily, SCOP2B Superfamily, SCOP2B_SUPERFAMILY, SCOP2_FAMILY, SCOP2_SUPERFAMILY, SHEET, STEREO_OUTLIER, UNASSIGNED_SEC_STRUCT, UNOBSERVED_ATOM_XYZ, UNOBSERVED_RESIDUE_XYZ, ZERO_OCCUPANCY_ATOM_XYZ, ZERO_OCCUPANCY_RESIDUE_XYZ
+   * ANGLE_OUTLIER, BEND, BINDING_SITE, BOND_OUTLIER, C-MANNOSYLATION_SITE, CATH, CIS-PEPTIDE, ECOD, HELIX_P, HELX_LH_PP_P, HELX_RH_3T_P, HELX_RH_AL_P, HELX_RH_PI_P, MA_QA_METRIC_LOCAL_TYPE_CONTACT_PROBABILITY, MA_QA_METRIC_LOCAL_TYPE_DISTANCE, MA_QA_METRIC_LOCAL_TYPE_ENERGY, MA_QA_METRIC_LOCAL_TYPE_IPTM, MA_QA_METRIC_LOCAL_TYPE_NORMALIZED_SCORE, MA_QA_METRIC_LOCAL_TYPE_OTHER, MA_QA_METRIC_LOCAL_TYPE_PAE, MA_QA_METRIC_LOCAL_TYPE_PLDDT, MA_QA_METRIC_LOCAL_TYPE_PLDDT_ALL-ATOM, MA_QA_METRIC_LOCAL_TYPE_PLDDT_ALL-ATOM_[0,1], MA_QA_METRIC_LOCAL_TYPE_PLDDT_[0,1], MA_QA_METRIC_LOCAL_TYPE_PTM, MA_QA_METRIC_LOCAL_TYPE_ZSCORE, MEMBRANE_SEGMENT, MOGUL_ANGLE_OUTLIER, MOGUL_BOND_OUTLIER, N-GLYCOSYLATION_SITE, O-GLYCOSYLATION_SITE, RAMACHANDRAN_OUTLIER, ROTAMER_OUTLIER, RSCC_OUTLIER, RSRZ_OUTLIER, S-GLYCOSYLATION_SITE, SABDAB_ANTIBODY_HEAVY_CHAIN_SUBCLASS, SABDAB_ANTIBODY_LIGHT_CHAIN_SUBCLASS, SABDAB_ANTIBODY_LIGHT_CHAIN_TYPE, SCOP, SCOP2B_SUPERFAMILY, SCOP2_FAMILY, SCOP2_SUPERFAMILY, SHEET, STEREO_OUTLIER, STRN, TURN_TY1_P, UNASSIGNED_SEC_STRUCT, UNOBSERVED_ATOM_XYZ, UNOBSERVED_RESIDUE_XYZ, ZERO_OCCUPANCY_ATOM_XYZ, ZERO_OCCUPANCY_RESIDUE_XYZ
    *
    */
   readonly type?: Maybe<Scalars['String']>;
@@ -13378,6 +13515,11 @@ export type ReflnsShell = {
 
 export type Software = {
   /**
+   * This data item is a pointer to _citation.id in the CITATION
+   *  category.
+   */
+  readonly citation_id?: Maybe<Scalars['String']>;
+  /**
    * The classification of the program according to its
    *  major function.
    *
@@ -13525,6 +13667,37 @@ export type Struct = {
    *
    */
   readonly title?: Maybe<Scalars['String']>;
+};
+
+export type StructAsym = {
+  /**
+   * This data item is a pointer to _atom_site.pdbx_PDB_strand_id the
+   *  ATOM_SITE category.
+   *
+   * Examples:
+   * 1ABC
+   *
+   */
+  readonly pdbx_PDB_id?: Maybe<Scalars['String']>;
+  /**
+   * This data item is a pointer to _atom_site.ndb_alias_strand_id the
+   *  ATOM_SITE category.
+   */
+  readonly pdbx_alt_id?: Maybe<Scalars['String']>;
+  /**
+   * This data item gives the order of the structural elements in the
+   *  ATOM_SITE category.
+   */
+  readonly pdbx_order?: Maybe<Scalars['Int']>;
+  /**
+   * This data item describes the general type of the structural elements
+   *  in the ATOM_SITE category.
+   *
+   * Allowable values:
+   * ATOMN, ATOMP, ATOMS, HETAC, HETAD, HETAI, HETAIN, HETAS, HETIC
+   *
+   */
+  readonly pdbx_type?: Maybe<Scalars['String']>;
 };
 
 export type StructKeywords = {

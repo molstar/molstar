@@ -1,13 +1,13 @@
 /**
- * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { MolecularSurfaceMeshVisual, MolecularSurfaceMeshParams } from '../visual/molecular-surface-mesh';
+import { MolecularSurfaceMeshVisual, MolecularSurfaceMeshParams, StructureMolecularSurfaceMeshVisual } from '../visual/molecular-surface-mesh';
 import { UnitsRepresentation } from '../units-representation';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
-import { StructureRepresentation, StructureRepresentationProvider, StructureRepresentationStateBuilder } from '../representation';
+import { ComplexRepresentation, StructureRepresentation, StructureRepresentationProvider, StructureRepresentationStateBuilder } from '../representation';
 import { Representation, RepresentationParamsGetter, RepresentationContext } from '../../../mol-repr/representation';
 import { ThemeRegistryContext } from '../../../mol-theme/theme';
 import { Structure } from '../../../mol-model/structure';
@@ -16,6 +16,7 @@ import { BaseGeometry } from '../../../mol-geo/geometry/base';
 
 const MolecularSurfaceVisuals = {
     'molecular-surface-mesh': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, MolecularSurfaceMeshParams>) => UnitsRepresentation('Molecular surface mesh', ctx, getParams, MolecularSurfaceMeshVisual),
+    'structure-molecular-surface-mesh': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, MolecularSurfaceMeshParams>) => ComplexRepresentation('Structure Molecular surface mesh', ctx, getParams, StructureMolecularSurfaceMeshVisual),
     'molecular-surface-wireframe': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, MolecularSurfaceWireframeParams>) => UnitsRepresentation('Molecular surface wireframe', ctx, getParams, MolecularSurfaceWireframeVisual),
 };
 

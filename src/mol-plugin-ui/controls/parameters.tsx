@@ -18,7 +18,7 @@ import { getPrecision } from '../../mol-util/number';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { ParamMapping } from '../../mol-util/param-mapping';
 import { camelCaseToWords } from '../../mol-util/string';
-import { PluginUIComponent } from '../base';
+import { PluginReactContext, PluginUIComponent } from '../base';
 import { PluginUIContext } from '../context';
 import { ActionMenu } from './action-menu';
 import { ColorOptions, ColorValueOption, CombinedColorControl } from './color';
@@ -505,10 +505,12 @@ export class ValueRefControl extends React.PureComponent<ParamProps<PD.ValueRef<
 
     toggle = () => this.setState({ showOptions: !this.state.showOptions });
 
-    items = memoizeLatest((param: PD.ValueRef) => ActionMenu.createItemsFromSelectOptions(param.getOptions()));
+    private get items() {
+        return ActionMenu.createItemsFromSelectOptions(this.props.param.getOptions(this.context));
+    }
 
     renderControl() {
-        const items = this.items(this.props.param);
+        const items = this.items;
         const current = this.props.value.ref ? ActionMenu.findItem(items, this.props.value.ref) : void 0;
         const label = current
             ? current.label
@@ -521,7 +523,7 @@ export class ValueRefControl extends React.PureComponent<ParamProps<PD.ValueRef<
     renderAddOn() {
         if (!this.state.showOptions) return null;
 
-        const items = this.items(this.props.param);
+        const items = this.items;
         const current = ActionMenu.findItem(items, this.props.value.ref);
 
         return <ActionMenu items={items} current={current} onSelect={this.onSelect} />;
@@ -539,6 +541,7 @@ export class ValueRefControl extends React.PureComponent<ParamProps<PD.ValueRef<
         });
     }
 }
+ValueRefControl.contextType = PluginReactContext;
 
 export class IntervalControl extends React.PureComponent<ParamProps<PD.Interval>, { isExpanded: boolean }> {
     state = { isExpanded: false };

@@ -5,9 +5,7 @@ Note that since we don't clearly distinguish between a public and private interf
 
 
 ## [Unreleased]
-- Excluded common protein caps `NME` and `ACE` from the ligand selection query
 
-- Add screen-space shadow post-processing effect
 - Add culling support
     - Cull per-object and per-instance
     - Cull based on frustum and camera distance
@@ -15,6 +13,14 @@ Note that since we don't clearly distinguish between a public and private interf
     - Visibility based on camera distance
     - Special mode for spheres with automatic LOD levels
 - Add `Frustum3D` and `Plane3D` math primitives
+
+## [v3.26.0] - 2022-12-04
+
+- Support for ``powerPreference`` webgl attribute. Add ``PluginConfig.General.PowerPreference`` and ``power-preference`` Viewer GET param.
+- Excluded common protein caps `NME` and `ACE` from the ligand selection query
+- Add screen-space shadow post-processing effect
+- Add "Structure Molecular Surface" visual
+- Add `external-volume` theme (coloring of arbitrary geometries by user-selected volume)
 
 ## [v3.25.1] - 2022-11-20
 

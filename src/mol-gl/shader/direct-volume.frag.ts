@@ -270,16 +270,16 @@ vec4 raymarch(vec3 startLoc, vec3 step, vec3 rayDir) {
         #elif defined(dColorType_groupInstance)
             material.rgb = readFromTexture(tColor, vInstance * float(uGroupCount) + group, uColorTexDim).rgb;
         #elif defined(dColorType_vertex)
-            material.rgb = texture3dFrom1dTrilinear(tColor, isoPos, uGridDim, uColorTexDim, 0.0).rgb;
+            material.rgb = texture3dFrom1dTrilinear(tColor, unitPos, uGridDim, uColorTexDim, 0.0).rgb;
         #elif defined(dColorType_vertexInstance)
-            material.rgb = texture3dFrom1dTrilinear(tColor, isoPos, uGridDim, uColorTexDim, vInstance * float(uVertexCount)).rgb;
+            material.rgb = texture3dFrom1dTrilinear(tColor, unitPos, uGridDim, uColorTexDim, vInstance * float(uVertexCount)).rgb;
         #endif
 
         #ifdef dOverpaint
             #if defined(dOverpaintType_groupInstance)
                 overpaint = readFromTexture(tOverpaint, vInstance * float(uGroupCount) + group, uOverpaintTexDim);
             #elif defined(dOverpaintType_vertexInstance)
-                overpaint = texture3dFrom1dTrilinear(tOverpaint, isoPos, uGridDim, uOverpaintTexDim, vInstance * float(uVertexCount));
+                overpaint = texture3dFrom1dTrilinear(tOverpaint, unitPos, uGridDim, uOverpaintTexDim, vInstance * float(uVertexCount));
             #endif
 
             material.rgb = mix(material.rgb, overpaint.rgb, overpaint.a);

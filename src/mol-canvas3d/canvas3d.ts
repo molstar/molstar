@@ -120,6 +120,7 @@ interface Canvas3DContext {
 
 namespace Canvas3DContext {
     export const DefaultAttribs = {
+        powerPreference: 'high-performance' as WebGLContextAttributes['powerPreference'],
         failIfMajorPerformanceCaveat: false,
         /** true by default to avoid issues with Safari (Jan 2021) */
         antialias: true,
@@ -140,8 +141,9 @@ namespace Canvas3DContext {
 
         if (a.enableWboit && a.enableDpoit) throw new Error('Multiple transparency methods not allowed.');
 
-        const { failIfMajorPerformanceCaveat, antialias, preserveDrawingBuffer, pixelScale, preferWebGl1 } = a;
+        const { powerPreference, failIfMajorPerformanceCaveat, antialias, preserveDrawingBuffer, pixelScale, preferWebGl1 } = a;
         const gl = getGLContext(canvas, {
+            powerPreference,
             failIfMajorPerformanceCaveat,
             antialias,
             preserveDrawingBuffer,
