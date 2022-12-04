@@ -102,7 +102,7 @@ function CellStarControls({ plugin, data, setData }: { plugin: PluginContext, da
         <div style={{ padding: 8, maxHeight: 200, overflow: 'hidden', overflowY: 'auto' }}>
             <p style={{ fontWeight: 'bold' }}>{entryData.metadata.annotation?.name ?? 'Unnamed Annotation'}</p>
             {!currentSegment && 'No segment selected'}
-            {currentSegment && `${currentSegment.biological_annotation.name} (${currentSegment.id})`}
+            {currentSegment && `${currentSegment.biological_annotation.name ?? 'Unnamed segment'} (${currentSegment.id})`}
             {currentSegment?.biological_annotation.external_references.map(ref =>
                 <p key={ref.id} style={{ marginTop: 4 }}>
                     <b>{ref.resource}:{ref.accession}</b><br />

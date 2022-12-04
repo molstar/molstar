@@ -34,7 +34,13 @@ export class CellStarLatticeSegmentationData2 {
             const volume: StateObjectSelector<PluginStateObject.Volume.Data> = parsed.volumes?.[0] ?? parsed.volume;
             const volumeData = volume.cell!.obj!.data;
             volumeData._propertyData.ownerId = this.entryData.entryRoot?.ref;
-            const segmentIds: number[] = Array.from(volumeData._propertyData.__segmentation__.segments.keys());
+            const segmentation = Volume.Segmentation.get(volumeData);
+            if (!segmentation) return;
+            segmentation.labels = {};
+            for (const segment of this.entryData.metadata.annotation?.segment_list ?? []) {
+                segmentation.labels[segment.id] = segment.biological_annotation.name;
+            }
+            const segmentIds: number[] = Array.from(segmentation.segments.keys());
             await this.entryData.plugin.build()
                 .to(volume)
                 .apply(StateTransforms.Representation.VolumeRepresentation3D, createVolumeRepresentationParams(this.entryData.plugin, volumeData, {
