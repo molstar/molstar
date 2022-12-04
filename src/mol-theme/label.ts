@@ -67,6 +67,11 @@ export function lociLabel(loci: Loci, options: Partial<LabelOptions> = {}): stri
             }
             return label.join(' | ');
         case 'segment-loci':
+            const segmentLabels = Volume.Segmentation.get(loci.volume)?.labels;
+            if (segmentLabels && loci.segments.length === 1) {
+                const label = segmentLabels[loci.segments[0]];
+                if (label) return label;
+            }
             return [
                 `${loci.volume.label || 'Volume'}`,
                 `${loci.segments.length === 1 ? `Segment ${loci.segments[0]}` : `${loci.segments.length} Segments`}`
