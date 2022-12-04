@@ -26,6 +26,9 @@ export const SpheresSchema = {
     dTransparentBackfaces: DefineSpec('string', ['off', 'on', 'opaque']),
     uBumpFrequency: UniformSpec('f', 'material'),
     uBumpAmplitude: UniformSpec('f', 'material'),
+
+    lodLevels: ValueSpec('unknown'),
+    indexBuffer: ValueSpec('uint32'),
 };
 export type SpheresSchema = typeof SpheresSchema
 export type SpheresValues = Values<SpheresSchema>

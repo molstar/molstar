@@ -23,8 +23,28 @@ export function isWebGL2(gl: any): gl is WebGL2RenderingContext {
  * See https://registry.khronos.org/webgl/extensions/ANGLE_instanced_arrays/
  */
 export interface COMPAT_instanced_arrays {
+    /**
+     * Renders primitives from array data like the `drawArrays` method. In addition, it can execute multiple instances of the range of elements.
+     * @param mode the type primitive to render.
+     * @param first the starting index in the array of vector points.
+     * @param count the number of indices to be rendered.
+     * @param primcount the number of instances of the range of elements to execute.
+     */
     drawArraysInstanced(mode: number, first: number, count: number, primcount: number): void;
+    /**
+     * Renders primitives from array data like the `drawElements` method. In addition, it can execute multiple instances of a set of elements.
+     * @param mode the type primitive to render.
+     * @param count the number of elements to be rendered.
+     * @param type the type of the values in the element array buffer.
+     * @param offset an offset in the element array buffer. Must be a valid multiple of the size of the given `type`.
+     * @param primcount the number of instances of the set of elements to execute.
+     */
     drawElementsInstanced(mode: number, count: number, type: number, offset: number, primcount: number): void;
+    /**
+     * Modifies the rate at which generic vertex attributes advance when rendering multiple instances of primitives with `drawArraysInstanced` and `drawElementsInstanced`
+     * @param index the index of the generic vertex attributes.
+     * @param divisor the number of instances that will pass between updates of the generic attribute.
+     */
     vertexAttribDivisor(index: number, divisor: number): void;
     readonly VERTEX_ATTRIB_ARRAY_DIVISOR: number;
 }
@@ -109,6 +129,9 @@ export function getVertexArrayObject(gl: GLRenderingContext): COMPAT_vertex_arra
     }
 }
 
+/**
+ * See https://registry.khronos.org/webgl/extensions/OES_texture_float/
+ */
 export interface COMPAT_texture_float {
 }
 
@@ -116,6 +139,9 @@ export function getTextureFloat(gl: GLRenderingContext): COMPAT_texture_float | 
     return isWebGL2(gl) ? {} : gl.getExtension('OES_texture_float');
 }
 
+/**
+ * See https://registry.khronos.org/webgl/extensions/OES_texture_float_linear/
+ */
 export interface COMPAT_texture_float_linear {
 }
 
@@ -123,6 +149,9 @@ export function getTextureFloatLinear(gl: GLRenderingContext): COMPAT_texture_fl
     return gl.getExtension('OES_texture_float_linear');
 }
 
+/**
+ * See https://registry.khronos.org/webgl/extensions/OES_texture_half_float/
+ */
 export interface COMPAT_texture_half_float {
     readonly HALF_FLOAT: number
 }
@@ -137,6 +166,9 @@ export function getTextureHalfFloat(gl: GLRenderingContext): COMPAT_texture_half
     }
 }
 
+/**
+ * See https://registry.khronos.org/webgl/extensions/OES_texture_half_float_linear/
+ */
 export interface COMPAT_texture_half_float_linear {
 }
 
@@ -172,6 +204,9 @@ export function getFragDepth(gl: GLRenderingContext): COMPAT_frag_depth | null {
     return isWebGL2(gl) ? {} : gl.getExtension('EXT_frag_depth');
 }
 
+/**
+ * See https://registry.khronos.org/webgl/extensions/EXT_color_buffer_float/
+ */
 export interface COMPAT_color_buffer_float {
     readonly RGBA32F: number;
 }
@@ -193,6 +228,9 @@ export function getColorBufferFloat(gl: GLRenderingContext): COMPAT_color_buffer
     }
 }
 
+/**
+ * See https://registry.khronos.org/webgl/extensions/EXT_color_buffer_half_float/
+ */
 export interface COMPAT_color_buffer_half_float {
     readonly RGBA16F: number;
 }
@@ -495,6 +533,95 @@ export function getDisjointTimerQuery(gl: GLRenderingContext): COMPAT_disjoint_t
             getQuery: ext.getQueryEXT.bind(ext),
             getQueryParameter: ext.getQueryObjectEXT.bind(ext),
         };
+    }
+}
+
+/**
+ * See https://registry.khronos.org/webgl/extensions/WEBGL_multi_draw/
+ */
+export interface COMPAT_multi_draw {
+    /**
+     * Renders multiple primitives from array data. It is identical to multiple calls to the `drawArrays` method.
+     */
+    readonly multiDrawArrays: (mode: number, firstsList: Int32Array, firstsOffset: number, countsList: Int32Array, countsOffset: number, drawcount: number) => void;
+    /**
+     * Renders multiple primitives from array data. It is identical to multiple calls to the `drawElements` method.
+     */
+    readonly multiDrawElements: (mode: number, countsList: Int32Array, countsOffset: number, type: number, offsetsList: Int32Array, offsetsOffset: number, drawcount: number) => void;
+    /**
+     * Renders multiple primitives from array data. It is identical to multiple calls to the `drawArraysInstanced` method.
+     */
+    readonly multiDrawArraysInstanced: (mode: number, firstsList: Int32Array, firstsOffset: number, countsList: Int32Array, countsOffset: number, instanceCountsList: Int32Array, instanceCountsOffset: number, drawcount: number) => void;
+    /**
+     * Renders multiple primitives from array data. It is identical to multiple calls to the `drawElementsInstanced` method.
+     */
+    readonly multiDrawElementsInstanced: (mode: number, countsList: Int32Array, countsOffset: number, type: number, offsetsList: Int32Array, offsetsOffset: number, instanceCountsList: Int32Array, instanceCountsOffset: number, drawcount: number) => void;
+}
+
+export function getMultiDraw(gl: GLRenderingContext): COMPAT_multi_draw | null {
+    const ext = gl.getExtension('WEBGL_multi_draw');
+    if (ext) {
+        return {
+            multiDrawArrays: ext.multiDrawArraysWEBGL.bind(ext),
+            multiDrawElements: ext.multiDrawElementsWEBGL.bind(ext),
+            multiDrawArraysInstanced: ext.multiDrawArraysInstancedWEBGL.bind(ext),
+            multiDrawElementsInstanced: ext.multiDrawElementsInstancedWEBGL.bind(ext),
+        };
+    } else {
+        return null;
+    }
+}
+
+/**
+ * See https://registry.khronos.org/webgl/extensions/WEBGL_draw_instanced_base_vertex_base_instance/
+ */
+export interface COMPAT_draw_instanced_base_vertex_base_instance {
+    /**
+     * Behaves identically to DrawArraysInstanced except that `baseInstance` is passed down to DrawArraysOneInstance instead of zero.
+     */
+    readonly drawArraysInstancedBaseInstance: (mode: number, first: number, count: number,
+        instanceCount: number, baseInstance: number) => void;
+    /**
+     * Behaves identically to DrawElementsInstanced except that `baseVertex` and `baseInstance` are passed down to DrawElementsOneInstance instead of zero.
+     */
+    readonly drawElementsInstancedBaseVertexBaseInstance: (mode: number, count: number, type: number, offset: number, instanceCount: number, baseVertex: number, baseInstance: number) => void;
+}
+
+export function getDrawInstancedBaseVertexBaseInstance(gl: GLRenderingContext): COMPAT_draw_instanced_base_vertex_base_instance | null {
+    const ext = gl.getExtension('WEBGL_draw_instanced_base_vertex_base_instance');
+    if (ext) {
+        return {
+            drawArraysInstancedBaseInstance: ext.drawArraysInstancedBaseInstanceWEBGL.bind(ext),
+            drawElementsInstancedBaseVertexBaseInstance: ext.drawElementsInstancedBaseVertexBaseInstanceWEBGL.bind(ext),
+        };
+    } else {
+        return null;
+    }
+}
+
+/**
+ * See https://registry.khronos.org/webgl/extensions/WEBGL_multi_draw_instanced_base_vertex_base_instance/
+ */
+export interface COMPAT_multi_draw_instanced_base_vertex_base_instance {
+    /**
+     * Behaves identically to DrawArraysInstancedBaseInstance except that a list of arrays is specified instead. The number of lists is specified in the `drawcount` parameter.
+     */
+    readonly multiDrawArraysInstancedBaseInstance: (mode: number, firstsList: Int32Array, firstsOffset: number, countsList: Int32Array, countsOffset: number, instanceCountsList: Int32Array, instanceCountsOffset: number, baseInstancesList: Uint32Array, baseInstancesOffset: number, drawcount: number) => void;
+    /**
+     * Behaves identically to DrawElementsInstancedBaseVertexBaseInstance except that a list of arrays is specified instead. The number of lists is specified in the `drawcount` parameter.
+     */
+    readonly multiDrawElementsInstancedBaseVertexBaseInstance: (mode: number, countsList: Int32Array, countsOffset: number, type: number, offsetsList: Int32Array, offsetsOffset: number, instanceCountsList: Int32Array, instanceCountsOffset: number, baseVerticesList: Int32Array, baseVerticesOffset: number, baseInstancesList: Uint32Array, baseInstancesOffset: number, drawcount: number) => void;
+}
+
+export function getMultiDrawInstancedBaseVertexBaseInstance(gl: GLRenderingContext): COMPAT_multi_draw_instanced_base_vertex_base_instance | null {
+    const ext = gl.getExtension('WEBGL_multi_draw_instanced_base_vertex_base_instance');
+    if (ext) {
+        return {
+            multiDrawArraysInstancedBaseInstance: ext.multiDrawArraysInstancedBaseInstanceWEBGL.bind(ext),
+            multiDrawElementsInstancedBaseVertexBaseInstance: ext.multiDrawElementsInstancedBaseVertexBaseInstanceWEBGL.bind(ext),
+        };
+    } else {
+        return null;
     }
 }
 

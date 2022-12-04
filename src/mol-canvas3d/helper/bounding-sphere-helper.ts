@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -69,6 +69,7 @@ export class BoundingSphereHelper {
                 instanceCount: ro.values.instanceCount,
                 aInstance: ro.values.aInstance,
                 hasReflection: ro.values.hasReflection,
+                instanceGrid: ro.values.instanceGrid,
             });
             if (newInstanceData) this.instancesData.set(ro, newInstanceData);
         });

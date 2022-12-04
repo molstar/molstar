@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -22,6 +22,7 @@ export const ElementSphereParams = {
     ignoreHydrogens: PD.Boolean(false),
     traceOnly: PD.Boolean(false),
     tryUseImpostor: PD.Boolean(true),
+    stride: PD.Numeric(1, { min: 1, max: 100, step: 1 }),
 };
 export type ElementSphereParams = typeof ElementSphereParams
 
@@ -41,7 +42,8 @@ export function ElementSphereImpostorVisual(materialId: number): UnitsVisual<Ele
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<ElementSphereParams>, currentProps: PD.Values<ElementSphereParams>) => {
             state.createGeometry = (
                 newProps.ignoreHydrogens !== currentProps.ignoreHydrogens ||
-                newProps.traceOnly !== currentProps.traceOnly
+                newProps.traceOnly !== currentProps.traceOnly ||
+                newProps.stride !== currentProps.stride
             );
         },
         mustRecreate: (structureGroup: StructureGroup, props: PD.Values<ElementSphereParams>, webgl?: WebGLContext) => {
@@ -62,7 +64,8 @@ export function ElementSphereMeshVisual(materialId: number): UnitsVisual<Element
                 newProps.sizeFactor !== currentProps.sizeFactor ||
                 newProps.detail !== currentProps.detail ||
                 newProps.ignoreHydrogens !== currentProps.ignoreHydrogens ||
-                newProps.traceOnly !== currentProps.traceOnly
+                newProps.traceOnly !== currentProps.traceOnly ||
+                newProps.stride !== currentProps.stride
             );
         },
         mustRecreate: (structureGroup: StructureGroup, props: PD.Values<ElementSphereParams>, webgl?: WebGLContext) => {

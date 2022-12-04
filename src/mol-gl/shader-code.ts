@@ -20,6 +20,8 @@ export interface ShaderExtensions {
     readonly fragDepth?: ShaderExtensionsValue
     readonly drawBuffers?: ShaderExtensionsValue
     readonly shaderTextureLod?: ShaderExtensionsValue
+    /** Needed to enable the `gl_DrawID` built-in */
+    readonly multiDraw?: ShaderExtensionsValue
 }
 
 type FragOutTypes = { [k in number]: 'vec4' | 'ivec4' }
@@ -247,6 +249,14 @@ function getGlsl100VertPrefix(extensions: WebGLExtensions, shaderExtensions: Sha
             throw new Error(`required 'GL_EXT_draw_buffers' extension not available`);
         }
     }
+    if (shaderExtensions.multiDraw) {
+        if (extensions.multiDraw) {
+            prefix.push('#extension GL_ANGLE_multi_draw : require');
+            prefix.push('#define enabledMultiDraw');
+        } else if (shaderExtensions.multiDraw === 'required') {
+            throw new Error(`required 'GL_ANGLE_multi_draw' extension not available`);
+        }
+    }
     return prefix.join('\n') + '\n';
 }
 
@@ -311,6 +321,14 @@ function getGlsl300VertPrefix(extensions: WebGLExtensions, shaderExtensions: Sha
     if (shaderExtensions.drawBuffers) {
         if (extensions.drawBuffers) {
             prefix.push('#define requiredDrawBuffers');
+        }
+    }
+    if (shaderExtensions.multiDraw) {
+        if (extensions.multiDraw) {
+            prefix.push('#extension GL_ANGLE_multi_draw : require');
+            prefix.push('#define enabledMultiDraw');
+        } else if (shaderExtensions.multiDraw === 'required') {
+            throw new Error(`required 'GL_ANGLE_multi_draw' extension not available`);
         }
     }
     if (extensions.noNonInstancedActiveAttribs) {

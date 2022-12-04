@@ -48,6 +48,8 @@ export interface Spheres {
     readonly groupMapping: GroupMapping
 
     setBoundingSphere(boundingSphere: Sphere3D): void
+
+    readonly meta: { [k: string]: unknown }
 }
 
 export namespace Spheres {
@@ -107,7 +109,8 @@ export namespace Spheres {
             setBoundingSphere(sphere: Sphere3D) {
                 Sphere3D.copy(boundingSphere, sphere);
                 currentHash = hashCode(spheres);
-            }
+            },
+            meta: {}
         };
         return spheres;
     }
@@ -123,6 +126,67 @@ export namespace Spheres {
         return spheres;
     }
 
+    function getStrideOrderedElements(elements: Uint32Array, count: number, strides: number[]) {
+        if (strides.length === 0) return;
+
+        const orderedElements = new Uint32Array(count * 6);
+        const offsets = [0];
+
+        let o = 0;
+        for (let i = 0, il = strides.length; i < il; ++i) {
+            const s = strides[i];
+            for (let j = 0; j < count; ++j) {
+                let handled = false;
+                for (let k = 0; k < i; ++k) {
+                    if (j % strides[k] === 0) {
+                        handled = true;
+                        break;
+                    }
+                }
+                if (!handled && j % s === 0) {
+                    for (let l = 0; l < 6; ++l) {
+                        orderedElements[o] = elements[j * 6 + l];
+                        o += 1;
+                    }
+                }
+            }
+            offsets.push(o);
+        }
+
+        return { elements: orderedElements, offsets };
+    }
+
+    type LodLevels = {
+        minDistance: number
+        maxDistance: number
+        overlap: number
+        stride: number
+    }[]
+
+    function areLodLevelsEqual(a: LodLevels, b: LodLevels) {
+        if (a.length !== b.length) return false;
+        for (let i = 0, il = a.length; i < il; ++i) {
+            if (a[i].maxDistance !== b[i].maxDistance) return false;
+            if (a[i].minDistance !== b[i].minDistance) return false;
+            if (a[i].overlap !== b[i].overlap) return false;
+            if (a[i].stride !== b[i].stride) return false;
+        }
+        return true;
+    }
+
+    type LodLevelsValue = [minDistance: number, maxDistance: number, overlap: number, count: number, sizeFactor: number, stride: number][];
+
+    function getLodLevelsValue(prop: LodLevels, offsets: number[]): LodLevelsValue {
+        return prop.map((l, i) => [
+            l.minDistance,
+            l.maxDistance,
+            l.overlap,
+            offsets[offsets.length - 1 - i],
+            Math.cbrt(l.stride),
+            l.stride,
+        ]);
+    }
+
     export const Params = {
         ...BaseGeometry.Params,
         sizeFactor: PD.Numeric(1, { min: 0, max: 10, step: 0.1 }),
@@ -132,6 +196,15 @@ export namespace Spheres {
         transparentBackfaces: PD.Select('off', PD.arrayToOptions(['off', 'on', 'opaque']), BaseGeometry.ShadingCategory),
         bumpFrequency: PD.Numeric(0, { min: 0, max: 10, step: 0.1 }, BaseGeometry.ShadingCategory),
         bumpAmplitude: PD.Numeric(1, { min: 0, max: 5, step: 0.1 }, BaseGeometry.ShadingCategory),
+        lodLevels: PD.ObjectList({
+            minDistance: PD.Numeric(0),
+            maxDistance: PD.Numeric(0),
+            overlap: PD.Numeric(0),
+            stride: PD.Numeric(0),
+        }, o => `${o.stride}`, {
+            ...BaseGeometry.CullingLodCategory,
+            defaultValue: [] as LodLevels
+        })
     };
     export type Params = typeof Params
 
@@ -185,13 +258,17 @@ export namespace Spheres {
         const invariantBoundingSphere = Sphere3D.expand(Sphere3D(), spheres.boundingSphere, padding);
         const boundingSphere = calculateTransformBoundingSphere(invariantBoundingSphere, transform.aTransform.ref.value, instanceCount);
 
+        const strides = props.lodLevels.map(l => l.stride).reverse();
+        const ordered = getStrideOrderedElements(spheres.indexBuffer.ref.value, spheres.sphereCount, strides);
+        const lodLevels = ordered ? getLodLevelsValue(props.lodLevels, ordered.offsets) : [];
+
         return {
             dGeometryType: ValueCell.create('spheres'),
 
             aPosition: spheres.centerBuffer,
             aMapping: spheres.mappingBuffer,
             aGroup: spheres.groupBuffer,
-            elements: spheres.indexBuffer,
+            elements: ValueCell.create(ordered ? ordered.elements : spheres.indexBuffer.ref.value),
             boundingSphere: ValueCell.create(boundingSphere),
             invariantBoundingSphere: ValueCell.create(invariantBoundingSphere),
             uInvariantBoundingSphere: ValueCell.create(Vec4.ofSphere(invariantBoundingSphere)),
@@ -214,6 +291,9 @@ export namespace Spheres {
             dTransparentBackfaces: ValueCell.create(props.transparentBackfaces),
             uBumpFrequency: ValueCell.create(props.bumpFrequency),
             uBumpAmplitude: ValueCell.create(props.bumpAmplitude),
+
+            lodLevels: ValueCell.create(lodLevels),
+            indexBuffer: spheres.indexBuffer,
         };
     }
 
@@ -232,6 +312,21 @@ export namespace Spheres {
         ValueCell.updateIfChanged(values.dTransparentBackfaces, props.transparentBackfaces);
         ValueCell.updateIfChanged(values.uBumpFrequency, props.bumpFrequency);
         ValueCell.updateIfChanged(values.uBumpAmplitude, props.bumpAmplitude);
+
+        const lodLevels: LodLevels = (values.lodLevels.ref.value as LodLevelsValue).map(l => ({
+            minDistance: l[0],
+            maxDistance: l[1],
+            overlap: l[2],
+            stride: l[5],
+        }));
+        if (!areLodLevelsEqual(props.lodLevels, lodLevels)) {
+            const strides = props.lodLevels.map(l => l.stride).reverse();
+            const ordered = getStrideOrderedElements(values.indexBuffer.ref.value, values.uVertexCount.ref.value / 4, strides);
+            const lodLevels = ordered ? getLodLevelsValue(props.lodLevels, ordered.offsets) : [];
+            // console.log(lodLevels);
+            ValueCell.update(values.elements, ordered ? ordered.elements : values.indexBuffer.ref.value);
+            ValueCell.update(values.lodLevels, lodLevels);
+        }
     }
 
     function updateBoundingSphere(values: SpheresValues, spheres: Spheres) {

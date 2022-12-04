@@ -21,6 +21,8 @@ import { Texture, Textures } from './webgl/texture';
 import { arrayMapUpsert } from '../mol-util/array';
 import { clamp } from '../mol-math/interpolate';
 import { isTimingMode } from '../mol-util/debug';
+import { Frustum3D } from '../mol-math/geometry/primitives/frustum3d';
+import { Plane3D } from '../mol-math/geometry/primitives/plane3d';
 
 export interface RendererStats {
     programCount: number
@@ -182,12 +184,17 @@ namespace Renderer {
         const invModelViewProjection = Mat4();
 
         const cameraDir = Vec3();
+        const cameraPosition = Vec3();
+        const cameraPlane = Plane3D();
         const viewOffset = Vec2();
+        const frustum = Frustum3D();
 
         const ambientColor = Vec3();
         Vec3.scale(ambientColor, Color.toArrayNormalized(p.ambientColor, ambientColor, 0), p.ambientIntensity);
 
         const globalUniforms: GlobalUniformValues = {
+            uDrawId: ValueCell.create(0),
+
             uModel: ValueCell.create(Mat4.identity()),
             uView: ValueCell.create(view),
             uInvView: ValueCell.create(invView),
@@ -205,8 +212,9 @@ namespace Renderer {
             uViewport: ValueCell.create(Viewport.toVec4(Vec4(), viewport)),
             uDrawingBufferSize: ValueCell.create(drawingBufferSize),
 
-            uCameraPosition: ValueCell.create(Vec3()),
+            uCameraPosition: ValueCell.create(cameraPosition),
             uCameraDir: ValueCell.create(cameraDir),
+            uCameraPlane: ValueCell.create(Plane3D.toArray(cameraPlane, Vec4(), 0)),
             uNear: ValueCell.create(1),
             uFar: ValueCell.create(10000),
             uFogNear: ValueCell.create(1),
@@ -247,16 +255,35 @@ namespace Renderer {
                 return;
             }
 
-            let definesNeedUpdate = false;
+            // TODO: check what happens if sphere surrounds frustum fully
+            if (!Frustum3D.intersectsSphere3D(frustum, r.values.boundingSphere.ref.value)) {
+                return;
+            }
+
+            const [minDistance, maxDistance] = r.values.uLod.ref.value;
+            if (minDistance !== 0 || maxDistance !== 0) {
+                const { center, radius } = r.values.boundingSphere.ref.value;
+                const d = Plane3D.distanceToPoint(cameraPlane, center);
+                if (d + radius < minDistance) return;
+                if (d - radius > maxDistance) return;
+            }
+
+            if (r.values.instanceGrid.ref.value.cellSize > 1 || r.values.lodLevels) {
+                r.cull(cameraPlane, frustum);
+            } else {
+                r.uncull();
+            }
+
+            let needUpdate = false;
             if (r.values.dLightCount.ref.value !== light.count) {
                 ValueCell.update(r.values.dLightCount, light.count);
-                definesNeedUpdate = true;
+                needUpdate = true;
             }
             if (r.values.dColorMarker.ref.value !== p.colorMarker) {
                 ValueCell.update(r.values.dColorMarker, p.colorMarker);
-                definesNeedUpdate = true;
+                needUpdate = true;
             }
-            if (definesNeedUpdate) r.update();
+            if (needUpdate) r.update();
 
             const program = r.getProgram(variant);
             if (state.currentProgramId !== program.id) {
@@ -338,7 +365,7 @@ namespace Renderer {
             ValueCell.updateIfChanged(globalUniforms.uIsOrtho, camera.state.mode === 'orthographic' ? 1 : 0);
             ValueCell.update(globalUniforms.uViewOffset, camera.viewOffset.enabled ? Vec2.set(viewOffset, camera.viewOffset.offsetX * 16, camera.viewOffset.offsetY * 16) : Vec2.set(viewOffset, 0, 0));
 
-            ValueCell.update(globalUniforms.uCameraPosition, camera.state.position);
+            ValueCell.update(globalUniforms.uCameraPosition, Vec3.copy(cameraPosition, camera.state.position));
             ValueCell.update(globalUniforms.uCameraDir, Vec3.normalize(cameraDir, Vec3.sub(cameraDir, camera.state.target, camera.state.position)));
 
             ValueCell.updateIfChanged(globalUniforms.uFar, camera.far);
@@ -346,6 +373,12 @@ namespace Renderer {
             ValueCell.updateIfChanged(globalUniforms.uFogFar, camera.fogFar);
             ValueCell.updateIfChanged(globalUniforms.uFogNear, camera.fogNear);
             ValueCell.updateIfChanged(globalUniforms.uTransparentBackground, transparentBackground);
+
+            Frustum3D.fromProjectionMatrix(frustum, camera.projectionView);
+
+            Plane3D.copy(cameraPlane, frustum[Frustum3D.PlaneIndex.Near]);
+            cameraPlane.constant -= Plane3D.distanceToPoint(cameraPlane, cameraPosition);
+            ValueCell.update(globalUniforms.uCameraPlane, Plane3D.toArray(cameraPlane, globalUniforms.uCameraPlane.ref.value, 0));
         };
 
         const updateInternal = (group: Scene.Group, camera: ICamera, depthTexture: Texture | null, renderMask: Mask, markingDepthTest: boolean) => {

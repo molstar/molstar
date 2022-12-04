@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { GLRenderingContext, COMPAT_instanced_arrays, COMPAT_standard_derivatives, COMPAT_vertex_array_object, getInstancedArrays, getStandardDerivatives, COMPAT_element_index_uint, getElementIndexUint, COMPAT_texture_float, getTextureFloat, COMPAT_texture_float_linear, getTextureFloatLinear, COMPAT_blend_minmax, getBlendMinMax, getFragDepth, COMPAT_frag_depth, COMPAT_color_buffer_float, getColorBufferFloat, COMPAT_draw_buffers, getDrawBuffers, getShaderTextureLod, COMPAT_shader_texture_lod, getDepthTexture, COMPAT_depth_texture, COMPAT_sRGB, getSRGB, getTextureHalfFloat, getTextureHalfFloatLinear, COMPAT_texture_half_float, COMPAT_texture_half_float_linear, COMPAT_color_buffer_half_float, getColorBufferHalfFloat, getVertexArrayObject, getDisjointTimerQuery, COMPAT_disjoint_timer_query, getNoNonInstancedActiveAttribs, getDrawBuffersIndexed, COMPAT_draw_buffers_indexed, getParallelShaderCompile, COMPAT_parallel_shader_compile, getFboRenderMipmap, COMPAT_fboRenderMipmap } from './compat';
+import { GLRenderingContext, COMPAT_instanced_arrays, COMPAT_standard_derivatives, COMPAT_vertex_array_object, getInstancedArrays, getStandardDerivatives, COMPAT_element_index_uint, getElementIndexUint, COMPAT_texture_float, getTextureFloat, COMPAT_texture_float_linear, getTextureFloatLinear, COMPAT_blend_minmax, getBlendMinMax, getFragDepth, COMPAT_frag_depth, COMPAT_color_buffer_float, getColorBufferFloat, COMPAT_draw_buffers, getDrawBuffers, getShaderTextureLod, COMPAT_shader_texture_lod, getDepthTexture, COMPAT_depth_texture, COMPAT_sRGB, getSRGB, getTextureHalfFloat, getTextureHalfFloatLinear, COMPAT_texture_half_float, COMPAT_texture_half_float_linear, COMPAT_color_buffer_half_float, getColorBufferHalfFloat, getVertexArrayObject, getDisjointTimerQuery, COMPAT_disjoint_timer_query, getNoNonInstancedActiveAttribs, COMPAT_multi_draw, getMultiDraw, getDrawInstancedBaseVertexBaseInstance, getMultiDrawInstancedBaseVertexBaseInstance, COMPAT_draw_instanced_base_vertex_base_instance, COMPAT_multi_draw_instanced_base_vertex_base_instance, getDrawBuffersIndexed, COMPAT_draw_buffers_indexed, getParallelShaderCompile, COMPAT_parallel_shader_compile, getFboRenderMipmap, COMPAT_fboRenderMipmap } from './compat';
 import { isDebugMode } from '../../mol-util/debug';
 
 export type WebGLExtensions = {
@@ -27,6 +27,9 @@ export type WebGLExtensions = {
     shaderTextureLod: COMPAT_shader_texture_lod | null
     sRGB: COMPAT_sRGB | null
     disjointTimerQuery: COMPAT_disjoint_timer_query | null
+    multiDraw: COMPAT_multi_draw | null
+    drawInstancedBaseVertexBaseInstance: COMPAT_draw_instanced_base_vertex_base_instance | null
+    multiDrawInstancedBaseVertexBaseInstance: COMPAT_multi_draw_instanced_base_vertex_base_instance | null
     parallelShaderCompile: COMPAT_parallel_shader_compile | null
     fboRenderMipmap: COMPAT_fboRenderMipmap | null
 
@@ -113,6 +116,18 @@ export function createExtensions(gl: GLRenderingContext): WebGLExtensions {
     if (isDebugMode && disjointTimerQuery === null) {
         console.log('Could not find support for "disjoint_timer_query"');
     }
+    const multiDraw = getMultiDraw(gl);
+    if (isDebugMode && multiDraw === null) {
+        console.log('Could not find support for "multi_draw"');
+    }
+    const drawInstancedBaseVertexBaseInstance = getDrawInstancedBaseVertexBaseInstance(gl);
+    if (isDebugMode && drawInstancedBaseVertexBaseInstance === null) {
+        console.log('Could not find support for "draw_instanced_base_vertex_base_instance"');
+    }
+    const multiDrawInstancedBaseVertexBaseInstance = getMultiDrawInstancedBaseVertexBaseInstance(gl);
+    if (isDebugMode && multiDrawInstancedBaseVertexBaseInstance === null) {
+        console.log('Could not find support for "multi_draw_instanced_base_vertex_base_instance"');
+    }
     const parallelShaderCompile = getParallelShaderCompile(gl);
     if (isDebugMode && parallelShaderCompile === null) {
         console.log('Could not find support for "parallel_shader_compile"');
@@ -144,6 +159,9 @@ export function createExtensions(gl: GLRenderingContext): WebGLExtensions {
         shaderTextureLod,
         sRGB,
         disjointTimerQuery,
+        multiDraw,
+        drawInstancedBaseVertexBaseInstance,
+        multiDrawInstancedBaseVertexBaseInstance,
         parallelShaderCompile,
         fboRenderMipmap,
 

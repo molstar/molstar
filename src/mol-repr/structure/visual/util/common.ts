@@ -14,7 +14,7 @@ import { fillSerial } from '../../../../mol-util/array';
 import { ParamDefinition as PD } from '../../../../mol-util/param-definition';
 import { AssignableArrayLike } from '../../../../mol-util/type-helpers';
 import { getBoundary } from '../../../../mol-math/geometry/boundary';
-import { Box3D } from '../../../../mol-math/geometry';
+import { Box3D, Sphere3D } from '../../../../mol-math/geometry';
 import { SizeTheme } from '../../../../mol-theme/size';
 
 /** Return a Loci for the elements of a whole residue the elementIndex belongs to. */
@@ -73,7 +73,7 @@ export function getAltResidueLociFromId(structure: Structure, unit: Unit.Atomic,
 
 export type StructureGroup = { structure: Structure, group: Unit.SymmetryGroup }
 
-export function createUnitsTransform(structureGroup: StructureGroup, includeParent: boolean, transformData?: TransformData) {
+export function createUnitsTransform(structureGroup: StructureGroup, includeParent: boolean, invariantBoundingSphere: Sphere3D, cellSize: number, transformData?: TransformData) {
     const { child } = structureGroup.structure;
     const units: ReadonlyArray<Unit> = includeParent && child
         ? structureGroup.group.units.filter(u => child.unitMap.has(u.id))
@@ -84,7 +84,7 @@ export function createUnitsTransform(structureGroup: StructureGroup, includePare
     for (let i = 0; i < unitCount; i++) {
         Mat4.toArray(units[i].conformation.operator.matrix, array, i * 16);
     }
-    return createTransform(array, unitCount, transformData);
+    return createTransform(array, unitCount, invariantBoundingSphere, cellSize, transformData);
 }
 
 export const UnitKindInfo = {

@@ -607,20 +607,30 @@ namespace Canvas3D {
         }
 
         function consoleStats() {
-            console.table(scene.renderables.map(r => ({
+            const items = scene.renderables.map(r => ({
                 drawCount: r.values.drawCount.ref.value,
                 instanceCount: r.values.instanceCount.ref.value,
                 materialId: r.materialId,
                 renderItemId: r.id,
-            })));
-            console.log(webgl.stats);
+            }));
+
+            console.groupCollapsed(`${items.length} RenderItems`);
+
+            if (items.length < 50) {
+                console.table(items);
+            } else {
+                console.log(items);
+            }
+            console.log(JSON.stringify(webgl.stats, undefined, 4));
 
             const { texture, attribute, elements } = webgl.resources.getByteCounts();
-            console.log({
+            console.log(JSON.stringify({
                 texture: `${(texture / 1024 / 1024).toFixed(3)} MiB`,
                 attribute: `${(attribute / 1024 / 1024).toFixed(3)} MiB`,
                 elements: `${(elements / 1024 / 1024).toFixed(3)} MiB`,
-            });
+            }, undefined, 4));
+
+            console.groupEnd();
         }
 
         function add(repr: Representation.Any) {

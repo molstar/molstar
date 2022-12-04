@@ -8,6 +8,13 @@ Note that since we don't clearly distinguish between a public and private interf
 - Excluded common protein caps `NME` and `ACE` from the ligand selection query
 
 - Add screen-space shadow post-processing effect
+- Add culling support
+    - Cull per-object and per-instance
+    - Cull based on frustum and camera distance
+- Add LOD support
+    - Visibility based on camera distance
+    - Special mode for spheres with automatic LOD levels
+- Add `Frustum3D` and `Plane3D` math primitives
 
 ## [v3.25.1] - 2022-11-20
 
