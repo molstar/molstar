@@ -6,6 +6,8 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+## [v3.26.0] - 2022-12-04
+
 - Support for ``powerPreference`` webgl attribute. Add ``PluginConfig.General.PowerPreference`` and ``power-preference`` Viewer GET param.
 - Excluded common protein caps `NME` and `ACE` from the ligand selection query
 - Add screen-space shadow post-processing effect
