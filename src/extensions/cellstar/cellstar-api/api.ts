@@ -10,14 +10,15 @@ function getProcess() {
 const PROCESS = getProcess();
 
 /** API hostname used unless running on 'localhost' or set by environment variable (our MetaCentrum machine) */
-const DEFAULT_HOSTNAME = 'http://147.251.21.142';
+const DEFAULT_HOSTNAME = 'https://cellstar.ncbr.muni.cz'; // const DEFAULT_HOSTNAME = 'http://147.251.21.142';
 
 function createApiPrefix() {
+    if (!PROCESS?.env.REACT_APP_API_HOSTNAME && window.location.hostname !== 'localhost') {
+        return DEFAULT_HOSTNAME;
+    }
     const hostname = PROCESS?.env.REACT_APP_API_HOSTNAME
         ? PROCESS?.env.REACT_APP_API_HOSTNAME
-        : window.location.hostname === 'localhost'
-            ? `${window.location.protocol}//${window.location.hostname}`
-            : DEFAULT_HOSTNAME;
+        : `${window.location.protocol}//${window.location.hostname}`;
     const port = PROCESS?.env.REACT_APP_API_PORT
         ? PROCESS?.env.REACT_APP_API_PORT
         : '9000';
