@@ -7,7 +7,7 @@
 
 import { CustomProperty } from '../../mol-model-props/common/custom-property';
 import { QueryContext, Structure, StructureQuery, StructureSelection, StructureProperties, StructureElement } from '../../mol-model/structure';
-import { BondType, NucleicBackboneAtoms, ProteinBackboneAtoms, SecondaryStructureType, AminoAcidNamesL, RnaBaseNames, DnaBaseNames, WaterNames, ElementSymbol, PolymerNames } from '../../mol-model/structure/model/types';
+import { BondType, NucleicBackboneAtoms, ProteinBackboneAtoms, SecondaryStructureType, AminoAcidNamesL, RnaBaseNames, DnaBaseNames, WaterNames, ElementSymbol, PolymerNames, CommonProteinCaps } from '../../mol-model/structure/model/types';
 import { PluginContext } from '../../mol-plugin/context';
 import { MolScriptBuilder as MS } from '../../mol-script/language/builder';
 import { Expression } from '../../mol-script/language/expression';
@@ -350,14 +350,23 @@ const ligand = StructureSelectionQuery('Ligand', MS.struct.modifier.union([
                 ])
             ]),
         ]),
-        by: MS.struct.modifier.union([
+        by: MS.struct.combinator.merge([
+            MS.struct.modifier.union([
+                MS.struct.generator.atomGroups({
+                    'entity-test': MS.core.rel.eq([MS.ammp('entityType'), 'polymer']),
+                    'chain-test': MS.core.rel.eq([MS.ammp('objectPrimitive'), 'atomistic']),
+                    'residue-test': MS.core.set.has([
+                        MS.set(...SetUtils.toArray(PolymerNames)), MS.ammp('label_comp_id')
+                    ])
+                }),
+            ]),
             MS.struct.generator.atomGroups({
-                'entity-test': MS.core.rel.eq([MS.ammp('entityType'), 'polymer']),
                 'chain-test': MS.core.rel.eq([MS.ammp('objectPrimitive'), 'atomistic']),
                 'residue-test': MS.core.set.has([
-                    MS.set(...SetUtils.toArray(PolymerNames)), MS.ammp('label_comp_id')
-                ])
-            })
+                    MS.set(...SetUtils.toArray(CommonProteinCaps)),
+                    MS.ammp('label_comp_id'),
+                ]),
+            }),
         ])
     })
 ]), { category: StructureSelectionCategory.Type });

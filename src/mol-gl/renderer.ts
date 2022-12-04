@@ -56,6 +56,7 @@ export const enum MarkingType {
 interface Renderer {
     readonly stats: RendererStats
     readonly props: Readonly<RendererProps>
+    readonly light: Readonly<Light>
 
     clear: (toBackgroundColor: boolean, ignoreTransparentBackground?: boolean) => void
     clearDepth: (packed?: boolean) => void
@@ -105,13 +106,13 @@ export const RendererParams = {
     xrayEdgeFalloff: PD.Numeric(1, { min: 0.0, max: 3.0, step: 0.1 }),
 
     light: PD.ObjectList({
-        inclination: PD.Numeric(180, { min: 0, max: 180, step: 1 }),
-        azimuth: PD.Numeric(0, { min: 0, max: 360, step: 1 }),
+        inclination: PD.Numeric(150, { min: 0, max: 180, step: 1 }),
+        azimuth: PD.Numeric(320, { min: 0, max: 360, step: 1 }),
         color: PD.Color(Color.fromNormalizedRgb(1.0, 1.0, 1.0)),
         intensity: PD.Numeric(0.6, { min: 0.0, max: 1.0, step: 0.01 }),
     }, o => Color.toHexString(o.color), { defaultValue: [{
-        inclination: 180,
-        azimuth: 0,
+        inclination: 150,
+        azimuth: 320,
         color: Color.fromNormalizedRgb(1.0, 1.0, 1.0),
         intensity: 0.6
     }] }),
@@ -120,7 +121,7 @@ export const RendererParams = {
 };
 export type RendererProps = PD.Values<typeof RendererParams>
 
-type Light = {
+export type Light = {
     count: number
     direction: number[]
     color: number[]
@@ -859,6 +860,9 @@ namespace Renderer {
                     instanceCount: stats.instanceCount,
                     instancedDrawCount: stats.instancedDrawCount,
                 };
+            },
+            get light(): Light {
+                return light;
             },
             dispose: () => {
                 // TODO

@@ -14,6 +14,7 @@ uniform sampler2D tSsaoDepth;
 uniform sampler2D tColor;
 uniform sampler2D tDepthOpaque;
 uniform sampler2D tDepthTransparent;
+uniform sampler2D tShadows;
 uniform sampler2D tOutlines;
 uniform vec2 uTexSize;
 
@@ -120,7 +121,20 @@ void main(void) {
         }
     #endif
 
-    // outline needs to be handled after occlusion to keep them clean
+    #ifdef dShadowEnable
+        if (!isBackground(opaqueDepth)) {
+            viewDist = abs(getViewZ(opaqueDepth));
+            fogFactor = smoothstep(uFogNear, uFogFar, viewDist);
+            vec4 shadow = texture2D(tShadows, coords);
+            if (!uTransparentBackground) {
+                color.rgb = mix(mix(vec3(0), uFogColor, fogFactor), color.rgb, shadow.a);
+            } else {
+                color.rgb = mix(vec3(0) * (1.0 - fogFactor), color.rgb, shadow.a);
+            }
+        }
+    #endif
+
+    // outline needs to be handled after occlusion and shadow to keep them clean
     #ifdef dOutlineEnable
         float closestTexel;
         float outline = getOutline(coords, opaqueDepth, closestTexel);
