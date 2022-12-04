@@ -12,6 +12,7 @@ import { StructureFromPetworld } from './model';
 import { ColorLists } from '../../mol-util/color/lists';
 import { PetworldColorThemeProvider } from './color';
 import { PluginStateObject } from '../../mol-plugin-state/objects';
+import { ColorNames } from '../../mol-util/color/names';
 
 export const PetworldPresetParams = {
     traceOnly: PD.Boolean(false),
@@ -100,9 +101,22 @@ export const PetworldPreset = TrajectoryHierarchyPresetProvider({
                         resolutionScale: 1,
                     }
                 },
+                shadow: {
+                    name: 'on',
+                    params: {
+                        bias: 0.6,
+                        maxDistance: 80,
+                        steps: 3,
+                        tolerance: 1.0,
+                    }
+                },
                 outline: {
-                    name: 'off',
-                    params: {}
+                    name: 'on',
+                    params: {
+                        scale: 1,
+                        threshold: 0.33,
+                        color: ColorNames.black,
+                    }
                 }
             }
         });
