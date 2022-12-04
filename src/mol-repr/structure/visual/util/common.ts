@@ -263,7 +263,7 @@ export function getStructureConformationAndRadius(structure: Structure, sizeThem
                 if (differentRoot) {
                     const idx = childUnit ? SortedArray.indexOf(childUnit.elements, eI) : -1;
                     if (idx === -1) {
-                        _id.push(-2);
+                        _id.push(-2); // mark for filtering/ignoring when not in `elements`
                     } else {
                         _id.push(getSerialIndex(childUnit, eI));
                     }
