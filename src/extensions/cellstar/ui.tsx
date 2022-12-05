@@ -9,6 +9,7 @@ import { isDefined } from './helpers';
 import { ParameterControls } from '../../mol-plugin-ui/controls/parameters';
 import * as Icons from '../../mol-plugin-ui/controls/icons';
 import { Slider } from '../../mol-plugin-ui/controls/slider';
+import { useEffect, useState } from 'react';
 
 
 interface CellStarUIData {
@@ -17,20 +18,13 @@ interface CellStarUIData {
 }
 namespace CellStarUIData {
     export function changeAvailableNodes(data: CellStarUIData, newNodes: CellStarEntry[]): CellStarUIData {
-        if (newNodes.length === data.availableNodes.length) {
-            // No change
-            return data;
-        } else if (newNodes.length > data.availableNodes.length) {
-            // Added
-            return { availableNodes: newNodes, activeNode: newNodes[newNodes.length - 1] };
-        } else {
-            // Removed
-            const newActiveNode = newNodes.find(node => node.id === data.activeNode?.id) ?? newNodes[0];
-            return { availableNodes: newNodes, activeNode: newActiveNode };
-        }
+        const newActiveNode = newNodes.length > data.availableNodes.length ?
+            newNodes[newNodes.length - 1]
+            : newNodes.find(node => node.data.ref === data.activeNode?.data.ref) ?? newNodes[0];
+        return { availableNodes: newNodes, activeNode: newActiveNode };
     }
-    export function changeActiveNode(data: CellStarUIData, newActive: string): CellStarUIData {
-        const newActiveNode = data.availableNodes.find(node => node.id === newActive) ?? data.availableNodes[0];
+    export function changeActiveNode(data: CellStarUIData, newActiveRef: string): CellStarUIData {
+        const newActiveNode = data.availableNodes.find(node => node.data.ref === newActiveRef) ?? data.availableNodes[0];
         return { availableNodes: data.availableNodes, activeNode: newActiveNode };
     }
 }
@@ -58,10 +52,11 @@ export class CellStarUI extends CollapsableControls<{}, { data: CellStarUIData }
         this.subscribe(this.plugin.state.data.events.changed, e => {
             // console.log('changed', e);
             const nodes = e.state.selectQ(q => q.ofType(CellStarEntry)).map(cell => cell?.obj).filter(isDefined);
+            console.log('current nodes', ...this.state.data.availableNodes);
+            console.log('new nodes', ...nodes);
             const isHidden = nodes.length === 0;
-            this.setState({ isHidden: isHidden });
             const newData = CellStarUIData.changeAvailableNodes(this.state.data, nodes);
-            this.setState({ data: newData });
+            this.setState({ data: newData, isHidden: isHidden });
         });
     }
 }
@@ -75,11 +70,12 @@ function CellStarControls({ plugin, data, setData }: { plugin: PluginContext, da
 
     const params = {
         /** Reference to the active CellStarEntry node */
-        entry: ParamDefinition.Select(data.activeNode!.id.toString(), data.availableNodes.map(entry => [entry.id.toString(), entry.data.entryId]))
+        entry: ParamDefinition.Select(data.activeNode!.data.ref, data.availableNodes.map(entry => [entry.data.ref, entry.data.entryId]))
     };
     const values: ParamDefinition.ValuesFor<typeof params> = {
-        entry: data.activeNode!.id.toString(),
+        entry: data.activeNode!.data.ref,
     };
+    const schmooziness = entryData.getSchmooziness();
 
     const allSegments = entryData.metadata.annotation?.segment_list ?? [];
     const currentSegment = useBehavior(entryData.currentSegment);
@@ -115,6 +111,9 @@ function CellStarControls({ plugin, data, setData }: { plugin: PluginContext, da
         </div>
 
         <ControlRow label='Opacity' control={<Slider min={0} max={1} value={opacity} step={0.05} onChange={v => entryData.opacity.next(v)} />} />
+        <ControlRow label='Schmooziness' control={
+            <WaitingSlider plugin={plugin} min={0} max={1} value={schmooziness} step={0.05} onChange={async v => await entryData.setSchmooziness(v)} />
+        } />
 
         {allSegments.length > 0 && <>
             <Button onClick={() => entryData.toggleAllSegments()}
@@ -137,6 +136,26 @@ function CellStarControls({ plugin, data, setData }: { plugin: PluginContext, da
         </>}
     </>;
 }
+
+function WaitingSlider({ plugin, value, min, max, step, onChange }: { plugin: PluginContext, value: number, min: number, max: number, step: number, onChange: (value: number) => any }) {
+    const [sliderValue, setSliderValue] = useState(value);
+    const [changing, setChanging] = useState(false);
+    useEffect(() => setSliderValue(value), [value]);
+
+    return <Slider min={min} max={max} step={step} value={sliderValue} disabled={changing} onChange={async newValue => {
+        setChanging(true);
+        setSliderValue(newValue);
+        try {
+            await onChange(newValue);
+        } catch (err) {
+            setSliderValue(value); // reset original value
+            throw err;
+        } finally {
+            setChanging(false);
+        }
+    }} />;
+}
+
 
 function capitalize(text: string) {
     const first = text.charAt(0);

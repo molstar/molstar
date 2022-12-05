@@ -19,6 +19,7 @@ import { CellStarLatticeSegmentationData } from './entry-segmentation';
 import { CellStarVolumeData } from './entry-volume';
 import * as ExternalAPIs from './external-api';
 import { Choice, createEntryId, NodeManager } from './helpers';
+import { UUID } from '../../mol-util';
 
 
 export const MAX_VOXELS = 10 ** 7;
@@ -35,11 +36,13 @@ export const CellStarEntryParams = {
     serverUrl: ParamDefinition.Text(DEFAULT_VOLUME_SERVER_V2),
     source: SourceChoice.PDSelect(),
     entryNumber: ParamDefinition.Text('1832'),
+    // segmentOpacity: ParamDefinition.Numeric(1, { min: 0, max: 1, step: 0.05 }),
+    schmooziness: ParamDefinition.Numeric(1, { min: 0, max: 1, step: 0.05 }),
 };
 type CellStarEntryParamValues = ParamDefinition.Values<typeof CellStarEntryParams>;
 
 // export class CellStarEntryData extends PluginComponent {
-export class CellStarEntryData extends PluginBehavior.WithSubscribers<CellStarEntryParamValues>{
+export class CellStarEntryData extends PluginBehavior.WithSubscribers<CellStarEntryParamValues> {
     plugin: PluginContext;
     ref: string = '';
     api: VolumeApiV2;
@@ -60,6 +63,7 @@ export class CellStarEntryData extends PluginBehavior.WithSubscribers<CellStarEn
     visibleSegments = new BehaviorSubject<Segment[]>([]);
     opacity = new BehaviorSubject(1);
     private highlightRequest = new Subject<Segment | undefined>();
+    debugid = UUID.create22(); // DEBUG
 
 
     private constructor(plugin: PluginContext, params: CellStarEntryParamValues) {
@@ -71,9 +75,17 @@ export class CellStarEntryData extends PluginBehavior.WithSubscribers<CellStarEn
         this.entryNumber = params.entryNumber;
         this.entryId = createEntryId(params.source, params.entryNumber);
 
-        this.subscribeObservable(plugin.behaviors.interaction.click, e => {
+    }
+
+    async register(ref: string) {
+        this.ref = ref;
+        console.log('register', ref, this.debugid);
+
+        this.subscribeObservable(this.plugin.behaviors.interaction.click, e => {
             const loci = e.current.loci;
             console.log('click', this.ref, e.current.loci, e.current.repr, e.current.repr?.state); // DEBUG
+            console.log('current schmooziness', this.params.schmooziness, this.ref, this.debugid);
+
             if (Volume.Segment.isLoci(loci)) console.log('ownerId', loci.volume._propertyData.ownerId); // DEBUG
             if (Volume.Segment.isLoci(loci) && loci.volume._propertyData.ownerId === this.ref) {
                 const clickedSegmentId = loci.segments.length === 1 ? loci.segments[0] : undefined;
@@ -87,10 +99,17 @@ export class CellStarEntryData extends PluginBehavior.WithSubscribers<CellStarEn
                 }
             }
         });
-        this.subscribeObservable(this.opacity, opacity => {
-            console.log('set opacity', opacity);
+        this.subscribeObservable(this.opacity, async opacity => {
+            // console.log('set opacity', this.params.segmentOpacity, '->', opacity, this.ref);
+            if (this.ref === '') return;
+            // if (opacity === this.params.segmentOpacity) return; // avoid infinite looping?
             this.latticeSegmentationData.updateOpacity(opacity);
             this.meshSegmentationData.updateOpacity(opacity);
+            // this.params.segmentOpacity = opacity;
+            
+            // const state = this.plugin.state.data;
+            // const update = state.build().to(this.ref).update({...this.params, opacity: opacity});
+            // await PluginCommands.State.Update(this.plugin, { state, tree: update, options: { doNotUpdateCurrent: true } });
         });
         this.subscribeObservable(this.highlightRequest.pipe(throttleTime(50, undefined, { leading: true, trailing: true })),
             async segment => {
@@ -103,8 +122,8 @@ export class CellStarEntryData extends PluginBehavior.WithSubscribers<CellStarEn
         );
     }
 
-    async register(ref: string) {
-        this.ref = ref;
+    async unregister() {
+        console.log('unregister', this.ref);
     }
 
     private async initialize() {
@@ -116,6 +135,17 @@ export class CellStarEntryData extends PluginBehavior.WithSubscribers<CellStarEn
         const result = new CellStarEntryData(plugin, params);
         await result.initialize();
         return result;
+    }
+
+    getSchmooziness() {
+        console.log('getting schmooziness', this.params.schmooziness, this.ref, this.debugid);
+        return this.params.schmooziness;
+    }
+    async setSchmooziness(schmooziness: number) {
+        console.log('set schmooziness', this.params.schmooziness, '->', schmooziness, this.ref, this.debugid);
+        const state = this.plugin.state.data;
+        const update = state.build().to(this.ref).update({...this.params, schmooziness: schmooziness});
+        await PluginCommands.State.Update(this.plugin, { state, tree: update, options: { doNotUpdateCurrent: true } });
     }
 
     public newUpdate() {

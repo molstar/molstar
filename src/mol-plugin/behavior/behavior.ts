@@ -159,10 +159,8 @@ namespace PluginBehavior {
             };
         }
         dispose(): void {
-        console.log('behavior dispose before', ...this.subs??[])
-        for (const s of this.subs) s.unsubscribe();
+            for (const s of this.subs) s.unsubscribe();
             this.subs = [];
-            console.log('behavior dispose after', ...this.subs??[])
         }
 
         constructor(protected plugin: PluginContext, protected params: P) {
