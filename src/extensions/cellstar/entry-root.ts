@@ -20,6 +20,7 @@ import { CellStarVolumeData } from './entry-volume';
 import * as ExternalAPIs from './external-api';
 import { Choice, createEntryId, NodeManager } from './helpers';
 import { UUID } from '../../mol-util';
+import { StateTransform, StateTransformer } from '../../mol-state';
 
 
 export const MAX_VOXELS = 10 ** 7;
@@ -61,7 +62,7 @@ export class CellStarEntryData extends PluginBehavior.WithSubscribers<CellStarEn
     public readonly modelData = new CellStarModelData(this);
     currentSegment = new BehaviorSubject<Segment | undefined>(undefined);
     visibleSegments = new BehaviorSubject<Segment[]>([]);
-    opacity = new BehaviorSubject(1);
+    // opacity = new BehaviorSubject(1);
     private highlightRequest = new Subject<Segment | undefined>();
     debugid = UUID.create22(); // DEBUG
 
@@ -99,18 +100,11 @@ export class CellStarEntryData extends PluginBehavior.WithSubscribers<CellStarEn
                 }
             }
         });
-        this.subscribeObservable(this.opacity, async opacity => {
-            // console.log('set opacity', this.params.segmentOpacity, '->', opacity, this.ref);
-            if (this.ref === '') return;
-            // if (opacity === this.params.segmentOpacity) return; // avoid infinite looping?
-            this.latticeSegmentationData.updateOpacity(opacity);
-            this.meshSegmentationData.updateOpacity(opacity);
-            // this.params.segmentOpacity = opacity;
-            
-            // const state = this.plugin.state.data;
-            // const update = state.build().to(this.ref).update({...this.params, opacity: opacity});
-            // await PluginCommands.State.Update(this.plugin, { state, tree: update, options: { doNotUpdateCurrent: true } });
-        });
+        // this.subscribeObservable(this.opacity, async opacity => {
+        //     if (this.ref === '') return;
+        //     this.latticeSegmentationData.updateOpacity(opacity);
+        //     this.meshSegmentationData.updateOpacity(opacity);
+        // });
         this.subscribeObservable(this.highlightRequest.pipe(throttleTime(50, undefined, { leading: true, trailing: true })),
             async segment => {
                 await PluginCommands.Interactivity.ClearHighlights(this.plugin);
@@ -123,12 +117,13 @@ export class CellStarEntryData extends PluginBehavior.WithSubscribers<CellStarEn
     }
 
     async unregister() {
-        console.log('unregister', this.ref);
+        console.log('unregister', this.ref, this.debugid);
     }
 
     private async initialize() {
         this.metadata = await this.api.getMetadata(this.source, this.entryId);
         this.pdbs = await ExternalAPIs.getPdbIdsForEmdbEntry(this.metadata.grid.general.source_db_id ?? this.entryId);
+        // TODO use Asset?
     }
 
     static async create(plugin: PluginContext, params: CellStarEntryParamValues) {
@@ -143,6 +138,8 @@ export class CellStarEntryData extends PluginBehavior.WithSubscribers<CellStarEn
     }
     async setSchmooziness(schmooziness: number) {
         console.log('set schmooziness', this.params.schmooziness, '->', schmooziness, this.ref, this.debugid);
+        // this.latticeSegmentationData.updateOpacity(schmooziness);
+        // this.meshSegmentationData.updateOpacity(schmooziness);
         const state = this.plugin.state.data;
         const update = state.build().to(this.ref).update({...this.params, schmooziness: schmooziness});
         await PluginCommands.State.Update(this.plugin, { state, tree: update, options: { doNotUpdateCurrent: true } });
@@ -189,7 +186,8 @@ export class CellStarEntryData extends PluginBehavior.WithSubscribers<CellStarEn
     }
     public async showSegments(segments: Segment[]) {
         console.log('showSegments', segments.map(seg => seg.id), this.ref);
-        await this.latticeSegmentationData.showSegments(segments, { opacity: this.opacity.value });
+        // await this.latticeSegmentationData.showSegments(segments, { opacity: this.opacity.value });
+        await this.latticeSegmentationData.showSegments(segments, { opacity: this.params.schmooziness });
         await this.meshSegmentationData.showSegments(segments);
         this.visibleSegments.next(segments);
     }
@@ -212,5 +210,14 @@ export const CellStarEntryFromRoot = PluginStateTransform.BuiltIn({
             const data = await CellStarEntryData.create(plugin, params);
             return new CellStarEntry(data, { label: data.entryId, description: 'CellStar Entry' });
         });
-    }
+    },
+    update(params, plugin: PluginContext) {
+        return Task.create('Update CellStar Entry', async () => {
+            if (params.newParams.schmooziness !== params.oldParams.schmooziness) {
+                params.b.data.latticeSegmentationData.updateOpacity(params.newParams.schmooziness);
+                params.b.data.meshSegmentationData.updateOpacity(params.newParams.schmooziness);
+            }
+            return StateTransformer.UpdateResult.Recreate; // TODO Updated
+        });
+    }   
 });
