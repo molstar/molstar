@@ -52,7 +52,11 @@ export class CellStarUI extends CollapsableControls<{}, { data: CellStarUIData }
     }
     componentDidMount(): void {
         this.setState({ isHidden: true, isCollapsed: false });
+        // this.subscribe(this.plugin.state.data.events.cell.stateUpdated, e => console.log('cell.stateUpdated', e.ref, e.cell.obj?.label));
+        // this.subscribe(this.plugin.state.data.events.cell.created, e => console.log('cell.created', e.ref, e.cell.obj?.label));
+        // this.subscribe(this.plugin.state.data.events.cell.removed, e => console.log('cell.removed', e.ref));
         this.subscribe(this.plugin.state.data.events.changed, e => {
+            // console.log('changed', e);
             const nodes = e.state.selectQ(q => q.ofType(CellStarEntry)).map(cell => cell?.obj).filter(isDefined);
             const isHidden = nodes.length === 0;
             this.setState({ isHidden: isHidden });

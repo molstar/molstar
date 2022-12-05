@@ -57,8 +57,8 @@ export const LoadCellStar = StateAction.build({
         ctx.behaviors.layout.leftPanelTabName.next('data');
 
         const entryNode = await state.build().toRoot().apply(CellStarEntryFromRoot, params).commit();
+        console.log('entryNode', entryNode.ref);
         if (entryNode.data) {
-            entryNode.data.entryRoot = entryNode;
             await entryNode.data.volumeData.showVolume();
             await entryNode.data.showSegmentations();
         }

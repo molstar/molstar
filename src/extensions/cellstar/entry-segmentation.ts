@@ -1,4 +1,5 @@
 import { Volume } from '../../mol-model/volume';
+import { SegcifProvider } from '../../mol-plugin-state/formats/volume';
 import { createVolumeRepresentationParams } from '../../mol-plugin-state/helpers/volume-representation-params';
 import { PluginStateObject } from '../../mol-plugin-state/objects';
 import { StateTransforms } from '../../mol-plugin-state/transforms';
@@ -12,7 +13,7 @@ import { BOX, CellStarEntryData, MAX_VOXELS } from './entry-root';
 
 
 const GROUP_NAME = 'LatticeSegmentation';
-const SEGMENT_REPR_TAG = 'lattice-segment';
+const SEGMENT_REPR_TAG = 'lattice-segment-repr';
 const DEFAULT_SEGMENT_COLOR = Color.fromNormalizedRgb(0.8, 0.8, 0.8);
 
 
@@ -32,10 +33,11 @@ export class CellStarLatticeSegmentationData {
                 false);
             const data = await this.entryData.newUpdate().to(group).apply(Download, { url, isBinary: true, label: `Segmentation Data: ${url}` }).commit();
             console.log(this.entryData.plugin.dataFormats.list);
-            const parsed = await this.entryData.plugin.dataFormats.get('segcif')!.parse(this.entryData.plugin, data);
-            const volume: StateObjectSelector<PluginStateObject.Volume.Data> = parsed.volumes?.[0] ?? parsed.volume;
+            const parsed = await SegcifProvider.parse(this.entryData.plugin, data);
+            const volume: StateObjectSelector<PluginStateObject.Volume.Data> = parsed.volumes?.[0];
             const volumeData = volume.cell!.obj!.data;
-            volumeData._propertyData.ownerId = this.entryData.entryRoot?.ref;
+            console.log('showSegmentation', this.entryData.ref);
+            volumeData._propertyData.ownerId = this.entryData.ref;
             const segmentation = Volume.Segmentation.get(volumeData);
             if (!segmentation) return;
             segmentation.labels = {};
@@ -68,10 +70,7 @@ export class CellStarLatticeSegmentationData {
     }
 
     async updateOpacity(opacity: number) {
-        const group = this.entryData.groupNodeMgr.getNode(GROUP_NAME);
-        if (!group) return;
-
-        const reprs = this.entryData.plugin.state.data.selectQ(q => q.byRef(group.ref).subtree().withTag(SEGMENT_REPR_TAG));
+        const reprs = this.entryData.plugin.state.data.selectQ(q => q.byRef(this.entryData.ref).subtree().withTag(SEGMENT_REPR_TAG));
         const update = this.entryData.newUpdate();
         for (const s of reprs) {
             update.to(s).update(StateTransforms.Representation.VolumeRepresentation3D, p => { p.type.params.alpha = opacity; });
@@ -79,11 +78,9 @@ export class CellStarLatticeSegmentationData {
         return await update.commit();
     }
     async highlightSegment(segment: Segment) {
-        const group = this.entryData.groupNodeMgr.getNode(GROUP_NAME);
-        if (!group) return;
-        const vis = this.entryData.plugin.state.data.selectQ(q => q.byRef(group.ref).subtree().ofType(PluginStateObject.Volume.Representation3D))[0];
+        const vis = this.entryData.plugin.state.data.selectQ(q => q.byRef(this.entryData.ref).subtree().withTag(SEGMENT_REPR_TAG))[0];
         const repr = vis.obj?.data.repr;
-        const wholeLoci = vis.obj?.data.repr.getAllLoci()[0];
+        const wholeLoci = repr.getAllLoci()[0];
         if (!wholeLoci || !Volume.Segment.isLoci(wholeLoci)) return;
         const segmentLoci = Volume.Segment.Loci(wholeLoci.volume, [segment.id]);
         this.entryData.plugin.managers.interactivity.lociHighlights.highlight({ loci: segmentLoci, repr }, false);
@@ -91,10 +88,7 @@ export class CellStarLatticeSegmentationData {
 
     /** Make visible the specified set of lattice segments */
     async showSegments(segments: Segment[], options?: { opacity?: number }) {
-        const group = this.entryData.groupNodeMgr.getNode(GROUP_NAME);
-        if (!group) return;
-
-        const reprs = this.entryData.plugin.state.data.selectQ(q => q.byRef(group.ref).subtree().withTag(SEGMENT_REPR_TAG));
+        const reprs = this.entryData.plugin.state.data.selectQ(q => q.byRef(this.entryData.ref).subtree().withTag(SEGMENT_REPR_TAG));
         const update = this.entryData.newUpdate();
         for (const repr of reprs) {
             update.to(repr).update(StateTransforms.Representation.VolumeRepresentation3D, p => { p.type.params.segments = segments.map(seg => seg.id); });

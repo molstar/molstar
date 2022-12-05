@@ -74,7 +74,7 @@ export class CellStarMeshSegmentationData {
                 const detail = MetadataUtils.getSufficientDetail(this.entryData.metadata!, seg.id, DEFAULT_MESH_DETAIL);
                 const color = seg.colour.length >= 3 ? Color.fromNormalizedArray(seg.colour, 0) : ColorNames.gray;
                 return await createMeshFromUrl(this.entryData.plugin, this.entryData.api.meshUrl_Bcif(this.entryData.source, this.entryData.entryId, seg.id, detail), seg.id, detail,
-                    true, false, color, group, BACKGROUND_SEGMENT_VOLUME_THRESHOLD * totalVolume, seg.biological_annotation.name ?? `Segment ${seg.id}`, this.entryData.entryRoot?.ref);
+                    true, false, color, group, BACKGROUND_SEGMENT_VOLUME_THRESHOLD * totalVolume, seg.biological_annotation.name ?? `Segment ${seg.id}`, this.entryData.ref);
             });
         }
     }

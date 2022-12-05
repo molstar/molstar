@@ -2,14 +2,14 @@ import { BehaviorSubject, Subject, throttleTime } from 'rxjs';
 
 import { ShapeGroup } from '../../mol-model/shape';
 import { Volume } from '../../mol-model/volume';
-import { PluginComponent } from '../../mol-plugin-state/component';
+// import { PluginComponent } from '../../mol-plugin-state/component';
 import { PluginStateObject as SO, PluginStateTransform } from '../../mol-plugin-state/objects';
 import { PluginCommands } from '../../mol-plugin/commands';
 import { PluginContext } from '../../mol-plugin/context';
-import { StateObjectSelector } from '../../mol-state';
 import { Task } from '../../mol-task';
 import { ParamDefinition } from '../../mol-util/param-definition';
 import { MeshlistData } from '../meshes/mesh-extension';
+import { PluginBehavior } from '../../mol-plugin/behavior';
 
 import { DEFAULT_VOLUME_SERVER_V2, VolumeApiV2 } from './cellstar-api/api';
 import { Metadata, Segment } from './cellstar-api/data';
@@ -36,10 +36,12 @@ export const CellStarEntryParams = {
     source: SourceChoice.PDSelect(),
     entryNumber: ParamDefinition.Text('1832'),
 };
+type CellStarEntryParamValues = ParamDefinition.Values<typeof CellStarEntryParams>;
 
-export class CellStarEntryData extends PluginComponent {
+// export class CellStarEntryData extends PluginComponent {
+export class CellStarEntryData extends PluginBehavior.WithSubscribers<CellStarEntryParamValues>{
     plugin: PluginContext;
-    entryRoot?: StateObjectSelector;
+    ref: string = '';
     api: VolumeApiV2;
     source: Source;
     /** Number part of entry ID; e.g. '1832' */
@@ -60,34 +62,37 @@ export class CellStarEntryData extends PluginComponent {
     private highlightRequest = new Subject<Segment | undefined>();
 
 
-    private constructor(plugin: PluginContext, serverUrl: string, source: Source, entryNumber: string) {
-        super();
+    private constructor(plugin: PluginContext, params: CellStarEntryParamValues) {
+        super(plugin, params);
 
         this.plugin = plugin;
-        this.api = new VolumeApiV2(serverUrl);
-        this.source = source;
-        this.entryNumber = entryNumber;
-        this.entryId = createEntryId(source, entryNumber);
+        this.api = new VolumeApiV2(params.serverUrl);
+        this.source = params.source;
+        this.entryNumber = params.entryNumber;
+        this.entryId = createEntryId(params.source, params.entryNumber);
 
-        this.subscribe(plugin.behaviors.interaction.click, e => {
+        this.subscribeObservable(plugin.behaviors.interaction.click, e => {
             const loci = e.current.loci;
-            if (Volume.Segment.isLoci(loci) && loci.volume._propertyData.ownerId === this.entryRoot?.ref) {
+            console.log('click', this.ref, e.current.loci, e.current.repr, e.current.repr?.state); // DEBUG
+            if (Volume.Segment.isLoci(loci)) console.log('ownerId', loci.volume._propertyData.ownerId); // DEBUG
+            if (Volume.Segment.isLoci(loci) && loci.volume._propertyData.ownerId === this.ref) {
                 const clickedSegmentId = loci.segments.length === 1 ? loci.segments[0] : undefined;
                 const clickedSegment = this.metadata.annotation?.segment_list.find(seg => seg.id === clickedSegmentId);
                 this.currentSegment.next(clickedSegment);
             }
             if (ShapeGroup.isLoci(loci)) {
                 const meshData = (loci.shape.sourceData ?? {}) as MeshlistData;
-                if (meshData.ownerId === this.entryRoot?.ref && meshData.segmentId !== undefined) {
+                if (meshData.ownerId === this.ref && meshData.segmentId !== undefined) {
                     this.currentSegment.next(this.metadata.annotation?.segment_list.find(segment => segment.id === meshData.segmentId));
                 }
             }
         });
-        this.subscribe(this.opacity, opacity => {
+        this.subscribeObservable(this.opacity, opacity => {
+            console.log('set opacity', opacity);
             this.latticeSegmentationData.updateOpacity(opacity);
             this.meshSegmentationData.updateOpacity(opacity);
         });
-        this.subscribe(this.highlightRequest.pipe(throttleTime(50, undefined, { leading: true, trailing: true })),
+        this.subscribeObservable(this.highlightRequest.pipe(throttleTime(50, undefined, { leading: true, trailing: true })),
             async segment => {
                 await PluginCommands.Interactivity.ClearHighlights(this.plugin);
                 if (segment) {
@@ -98,20 +103,24 @@ export class CellStarEntryData extends PluginComponent {
         );
     }
 
+    async register(ref: string) {
+        this.ref = ref;
+    }
+
     private async initialize() {
         this.metadata = await this.api.getMetadata(this.source, this.entryId);
         this.pdbs = await ExternalAPIs.getPdbIdsForEmdbEntry(this.metadata.grid.general.source_db_id ?? this.entryId);
     }
 
-    static async create(plugin: PluginContext, serverUrl: string, source: Source, entryNumber: string) {
-        const result = new CellStarEntryData(plugin, serverUrl, source, entryNumber);
+    static async create(plugin: PluginContext, params: CellStarEntryParamValues) {
+        const result = new CellStarEntryData(plugin, params);
         await result.initialize();
         return result;
     }
 
     public newUpdate() {
-        if (this.entryRoot) {
-            return this.plugin.build().to(this.entryRoot);
+        if (this.ref !== '') {
+            return this.plugin.build().to(this.ref);
         } else {
             return this.plugin.build().toRoot();
         }
@@ -149,6 +158,7 @@ export class CellStarEntryData extends PluginComponent {
         this.currentSegment.next(segment);
     }
     public async showSegments(segments: Segment[]) {
+        console.log('showSegments', segments.map(seg => seg.id), this.ref);
         await this.latticeSegmentationData.showSegments(segments, { opacity: this.opacity.value });
         await this.meshSegmentationData.showSegments(segments);
         this.visibleSegments.next(segments);
@@ -156,7 +166,8 @@ export class CellStarEntryData extends PluginComponent {
 }
 
 
-export class CellStarEntry extends SO.Create<CellStarEntryData>({ name: 'CellStar Entry', typeClass: 'Object' }) { }
+// export class CellStarEntry extends SO.Create<CellStarEntryData>({ name: 'CellStar Entry', typeClass: 'Object' }) { }
+export class CellStarEntry extends SO.CreateBehavior<CellStarEntryData>({ name: 'CellStar Entry' }) { }
 
 
 export const CellStarEntryFromRoot = PluginStateTransform.BuiltIn({
@@ -168,7 +179,7 @@ export const CellStarEntryFromRoot = PluginStateTransform.BuiltIn({
 })({
     apply({ a, params }, plugin: PluginContext) {
         return Task.create('Load CellStar Entry', async () => {
-            const data = await CellStarEntryData.create(plugin, params.serverUrl, params.source, params.entryNumber);
+            const data = await CellStarEntryData.create(plugin, params);
             return new CellStarEntry(data, { label: data.entryId, description: 'CellStar Entry' });
         });
     }
