@@ -1,15 +1,17 @@
+import { useEffect, useState } from 'react';
+
 import { CollapsableControls, CollapsableState } from '../../mol-plugin-ui/base';
-import { PluginContext } from '../../mol-plugin/context';
 import { Button, ControlRow, IconButton } from '../../mol-plugin-ui/controls/common';
-import { ParamDefinition } from '../../mol-util/param-definition';
+import * as Icons from '../../mol-plugin-ui/controls/icons';
+import { ParameterControls } from '../../mol-plugin-ui/controls/parameters';
+import { Slider } from '../../mol-plugin-ui/controls/slider';
 import { useBehavior } from '../../mol-plugin-ui/hooks/use-behavior';
+import { PluginContext } from '../../mol-plugin/context';
+import { shallowEqualArrays } from '../../mol-util';
+import { ParamDefinition } from '../../mol-util/param-definition';
 
 import { CellStarEntry } from './entry-root';
 import { isDefined } from './helpers';
-import { ParameterControls } from '../../mol-plugin-ui/controls/parameters';
-import * as Icons from '../../mol-plugin-ui/controls/icons';
-import { Slider } from '../../mol-plugin-ui/controls/slider';
-import { useEffect, useState } from 'react';
 
 
 interface CellStarUIData {
@@ -26,6 +28,9 @@ namespace CellStarUIData {
     export function changeActiveNode(data: CellStarUIData, newActiveRef: string): CellStarUIData {
         const newActiveNode = data.availableNodes.find(node => node.data.ref === newActiveRef) ?? data.availableNodes[0];
         return { availableNodes: data.availableNodes, activeNode: newActiveNode };
+    }
+    export function equals(data1: CellStarUIData, data2: CellStarUIData) {
+        return shallowEqualArrays(data1.availableNodes, data2.availableNodes) && data1.activeNode === data2.activeNode;
     }
 }
 
@@ -56,8 +61,9 @@ export class CellStarUI extends CollapsableControls<{}, { data: CellStarUIData }
             // console.log('new nodes', ...nodes);
             const isHidden = nodes.length === 0;
             const newData = CellStarUIData.changeAvailableNodes(this.state.data, nodes);
-            this.setState({ data: newData, isHidden: isHidden });
-            this.forceUpdate();
+            if (!CellStarUIData.equals(this.state.data, newData) || this.state.isHidden !== isHidden) {
+                this.setState({ data: newData, isHidden: isHidden });
+            }
         });
     }
 }
@@ -76,19 +82,19 @@ function CellStarControls({ plugin, data, setData }: { plugin: PluginContext, da
     const values: ParamDefinition.ValuesFor<typeof params> = {
         entry: data.activeNode!.data.ref,
     };
-    const schmooziness = entryData.getSchmooziness();
-    console.log('schmooziness', schmooziness);
+
+    const state = useBehavior(entryData.currentState);
 
     const allSegments = entryData.metadata.annotation?.segment_list ?? [];
     const currentSegment = useBehavior(entryData.currentSegment);
     const visibleSegments = useBehavior(entryData.visibleSegments);
-    const state = useBehavior(entryData.currentState);
-    
+
+
     const allPdbs = entryData.pdbs;
     const currentPdb = useBehavior(entryData.modelData.currentPdb);
-    
+
     console.log('render controls');
-    
+
     return <>
         <ParameterControls params={params} values={values} onChangeValues={next => setData(CellStarUIData.changeActiveNode(data, next.entry))} />
 
@@ -114,12 +120,8 @@ function CellStarControls({ plugin, data, setData }: { plugin: PluginContext, da
                 </p>)}
         </div>
 
-        {/* <ControlRow label='Opacity' control={<Slider min={0} max={1} value={opacity} step={0.05} onChange={v => entryData.opacity.next(v)} />} /> */}
-        <ControlRow label='Schmooziness' control={
-            <WaitingSlider plugin={plugin} min={0} max={1} value={schmooziness} step={0.05} onChange={async v => await entryData.setSchmooziness(v)} />
-        } />        
         <ControlRow label='Opacity' control={
-            <WaitingSlider plugin={plugin} min={0} max={1} value={state.opacity} step={0.05} onChange={async v => await entryData.updateOpacityNew(v)} />
+            <WaitingSlider plugin={plugin} min={0} max={1} value={state.opacity} step={0.05} onChange={async v => await entryData.updateOpacity(v)} />
         } />
 
         {allSegments.length > 0 && <>

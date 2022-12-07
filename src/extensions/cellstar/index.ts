@@ -1,13 +1,13 @@
+import { PluginStateObject as SO } from '../../mol-plugin-state/objects';
 import { PluginBehavior } from '../../mol-plugin/behavior';
 import { PluginContext } from '../../mol-plugin/context';
 import { StateAction } from '../../mol-state';
-import { PluginStateObject as SO } from '../../mol-plugin-state/objects';
 import { Task } from '../../mol-task';
 
 import { CellStarEntryData, CellStarEntryParams } from './entry-root';
 import { createEntryId } from './helpers';
-import { CellStarUI } from './ui';
 import { CellStarEntryFromRoot, CellStarStateFromEntry } from './transformers';
+import { CellStarUI } from './ui';
 
 
 export const CellStar = PluginBehavior.create<{ autoAttach: boolean, showTooltip: boolean }>({
@@ -58,11 +58,7 @@ export const LoadCellStar = StateAction.build({
         ctx.behaviors.layout.leftPanelTabName.next('data');
 
         const entryNode = await state.build().toRoot().apply(CellStarEntryFromRoot, params).commit();
-        // console.log('entryNode commited');
-        // console.log('stateNode', entryNode.data?.getStateNode());
-        const stateNode = await state.build().to(entryNode).apply(CellStarStateFromEntry, {}).commit(); // TODO isGhost
-        // console.log('stateNode', entryNode.data?.getStateNode(), stateNode);
-        // console.log('entryNode', entryNode.ref);
+        await state.build().to(entryNode).apply(CellStarStateFromEntry, {}).commit(); // TODO isGhost
         if (entryNode.data) {
             await entryNode.data.volumeData.showVolume();
             await entryNode.data.showSegmentations();

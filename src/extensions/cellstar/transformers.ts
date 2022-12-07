@@ -20,16 +20,11 @@ export const CellStarEntryFromRoot = PluginStateTransform.BuiltIn({
             return new CellStarEntry(data, { label: data.entryId, description: 'CellStar Entry' });
         });
     },
-    update(params, plugin: PluginContext) {
-        return Task.create('Update CellStar Entry', async () => {
-            // if (params.newParams.schmooziness !== params.oldParams.schmooziness) {
-            //     params.b.data.latticeSegmentationData.updateOpacity(params.newParams.schmooziness);
-            //     params.b.data.meshSegmentationData.updateOpacity(params.newParams.schmooziness);
-            // }
-            await params.b.data.updateParams(params.newParams);
-            return StateTransformer.UpdateResult.Updated; // TODO Updated
-        });
-    }   
+    update({b, oldParams, newParams}){
+        Object.assign(newParams, oldParams);
+        console.error('Changing params of existing CellStarEntry node is not allowed');
+        return StateTransformer.UpdateResult.Unchanged;
+    }
 });
 
 
@@ -44,15 +39,5 @@ export const CellStarStateFromEntry = PluginStateTransform.BuiltIn({
         return Task.create('Create CellStar Entry State', async () => {
             return new CellStarState(params, { label: 'State' });
         });
-    },
-    // update(params, plugin: PluginContext) {
-    //     return Task.create('Update CellStar Entry', async () => {
-    //         // if (params.newParams.schmooziness !== params.oldParams.schmooziness) {
-    //         //     params.b.data.latticeSegmentationData.updateOpacity(params.newParams.schmooziness);
-    //         //     params.b.data.meshSegmentationData.updateOpacity(params.newParams.schmooziness);
-    //         // }
-    //         await params.b.data.updateParams(params.newParams);
-    //         return StateTransformer.UpdateResult.Updated; // TODO Updated
-    //     });
-    // }   
+    }
 });
