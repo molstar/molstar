@@ -6,6 +6,8 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Fix 'once' for animations of systems with many frames
+
 ## [v3.26.0] - 2022-12-04
 
 - Support for ``powerPreference`` webgl attribute. Add ``PluginConfig.General.PowerPreference`` and ``power-preference`` Viewer GET param.
