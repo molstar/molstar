@@ -8,7 +8,6 @@ import { Vec3 } from '../../..//mol-math/linear-algebra/3d/vec3';
 import { PluginContext } from '../../../mol-plugin/context';
 import { CameraFocusOptions } from '../camera';
 import { PrincipalAxes } from '../../../mol-math/linear-algebra/matrix/principal-axes';
-import { Camera } from '../../../mol-canvas3d/camera';
 import { StructureComponentRef } from '../structure/hierarchy-state';
 
 export function getPolymerPositions(polymerStructure: Structure): Float32Array {
@@ -18,9 +17,10 @@ export function getPolymerPositions(polymerStructure: Structure): Float32Array {
     for (let i = 0; i < polymerStructure.units.length; i++) {
         const unit = polymerStructure.units[i];
         const { polymerElements } = unit.props;
+        const readPosition = unit.conformation.position;
         if (polymerElements) {
             for (let j = 0; j < polymerElements.length; j++) {
-                unit.conformation.position(polymerElements[j], tmpMatrix);
+                readPosition(polymerElements[j], tmpMatrix);
                 positions[positionIndex] = tmpMatrix[0];
                 positions[positionIndex + 1] = tmpMatrix[1];
                 positions[positionIndex + 2] = tmpMatrix[2];
@@ -48,9 +48,9 @@ export function getAxesToFlip(position: Vec3, origin: Vec3, up: Vec3, normalDir:
     const toYAxis = calculateDisplacement(position, origin, normalDir);
     const toXAxis = calculateDisplacement(position, origin, up);
     const axes: ('aroundX' | 'aroundY')[] = [];
-    if (toYAxis < 0) Axes.push('aroundY');
-    if (toXAxis < 0) Axes.push('aroundX');
-    return Axes;
+    if (toYAxis < 0) axes.push('aroundY');
+    if (toXAxis < 0) axes.push('aroundX');
+    return axes;
 }
 
 export function getFirstResidueOrAveragePosition(structure: Structure, caPositions: Float32Array): Vec3 {
@@ -62,9 +62,9 @@ export function getFirstResidueOrAveragePosition(structure: Structure, caPositio
         const tmpMatrixPos = Vec3.zero();
         const atomIndices = structure.units[0].props.polymerElements;
         const firstChainPositions = [];
-        if (AtomIndexs) {
-            for (let i = 0; i < AtomIndexs.length; i++) {
-                const coordinates = structure.units[0].conformation.position(AtomIndexs[i], tmpMatrixPos);
+        if (atomIndices) {
+            for (let i = 0; i < atomIndices.length; i++) {
+                const coordinates = structure.units[0].conformation.position(atomIndices[i], tmpMatrixPos);
                 for (let j = 0; j < coordinates.length; j++) {
                     firstChainPositions.push(coordinates[j]);
                 }
@@ -78,9 +78,9 @@ export function getFirstResidueOrAveragePosition(structure: Structure, caPositio
                 sumZ += firstChainPositions[i + 2];
             }
             const averagePosition = Vec3.zero();
-            averagePosition[0] = sumX / AtomIndexs.length;
-            averagePosition[1] = sumY / AtomIndexs.length;
-            averagePosition[2] = sumZ / AtomIndexs.length;
+            averagePosition[0] = sumX / atomIndices.length;
+            averagePosition[1] = sumY / atomIndices.length;
+            averagePosition[2] = sumZ / atomIndices.length;
             return averagePosition;
         } else {
             return Vec3.create(caPositions[0], caPositions[1], caPositions[2]);
@@ -93,8 +93,8 @@ export function pcaFocus(plugin: PluginContext, options: Partial<CameraFocusOpti
     if (options?.principalAxes) {
         const { origin, dirA, dirB, dirC } = options.principalAxes.boxAxes;
         let toFlip: ('aroundX' | 'aroundY')[] = [];
-        if (positionToFlip) {
-            toFlip = getAxesToFlip(positionToFlip, origin, dirA, dirB);
+        if (options.positionToFlip) {
+            toFlip = getAxesToFlip(options.positionToFlip, origin, dirA, dirB);
         }
         toFlip.forEach((axis)=>{
             if (axis === 'aroundY') {
@@ -105,7 +105,6 @@ export function pcaFocus(plugin: PluginContext, options: Partial<CameraFocusOpti
             }
         });
         if (plugin.canvas3d) {
-            plugin.canvas3d.camera.setState(Camera.createDefaultSnapshot());
             const position = Vec3();
             Vec3.scaleAndAdd(position, position, origin, 100);
             plugin.canvas3d.camera.setState({ position }, 0);
@@ -120,7 +119,6 @@ export function pcaFocus(plugin: PluginContext, options: Partial<CameraFocusOpti
             }
         }
         return { origin, dirA, dirB, dirC };
-        return newPrincipalAxes;
     }
     return {
         origin: Vec3.zero(),
@@ -130,15 +128,22 @@ export function pcaFocus(plugin: PluginContext, options: Partial<CameraFocusOpti
     };
 }
 
-export function getPcaTransform(group: StructureComponentRef[]): { principalAxes?: PrincipalAxes, positionsToFlip?: Vec3 } | udnefined {
+export function getPcaTransform(group: StructureComponentRef[]): { principalAxes?: PrincipalAxes, positionToFlip?: Vec3 } | undefined {
     const polymerStructure = group[0].cell.obj?.data;
-    if (!polymerStructure.units[0]?.props.polymerElements?.length) {
+    if (!polymerStructure) {
         return undefined;
     }
-    
-    
+    // if ('_pcaTransformData' in polymerStructure.currentPropertyData) {
+    //     console.log("run the cache")
+    //     console.log(polymerStructure.currentPropertyData._pcaTransformData)
+    //     return polymerStructure.currentPropertyData._pcaTransformData;
+    // }
+    if (!polymerStructure.units[0]?.props.polymerElements?.length) {
+        polymerStructure.currentPropertyData._pcaTransformData = undefined;
+        return undefined;
+    }
     const positions = getPolymerPositions(polymerStructure);
     const positionToFlip = getFirstResidueOrAveragePosition(polymerStructure, positions);
-   
+    polymerStructure.currentPropertyData._pcaTransformData = { principalAxes: PrincipalAxes.ofPositions(positions), positionToFlip };
     return { principalAxes: PrincipalAxes.ofPositions(positions), positionToFlip };
 }

@@ -87,7 +87,7 @@ export class CameraManager {
         }
     }
 
-    focusSpheres<T>(xs: ReadonlyArray<T>, sphere: (t: T) => Sphere3D | undefined, options?: Partial<CameraFocusOptions> & { principalAxes?: PrincipalAxes }, positionToFlip?: Vec3) {
+    focusSpheres<T>(xs: ReadonlyArray<T>, sphere: (t: T) => Sphere3D | undefined, options?: Partial<CameraFocusOptions> & { principalAxes?: PrincipalAxes, positionToFlip?: Vec3 }) {
         const spheres = [];
 
         for (const x of xs) {
@@ -96,7 +96,7 @@ export class CameraManager {
         }
 
         if (spheres.length === 0) return;
-        if (spheres.length === 1) return this.focusSphere(spheres[0], options, positionToFlip);
+        if (spheres.length === 1) return this.focusSphere(spheres[0], options);
 
         this.boundaryHelper.reset();
         for (const s of spheres) {
@@ -106,15 +106,16 @@ export class CameraManager {
         for (const s of spheres) {
             this.boundaryHelper.radiusSphere(s);
         }
-        this.focusSphere(this.boundaryHelper.getSphere(), options, positionToFlip);
+        this.focusSphere(this.boundaryHelper.getSphere(), options);
     }
 
-    focusSphere(sphere: Sphere3D, options?: Partial<CameraFocusOptions> & { principalAxes?: PrincipalAxes }, positionToFlip?: Vec3) {
+    focusSphere(sphere: Sphere3D, options?: Partial<CameraFocusOptions> & { principalAxes?: PrincipalAxes, positionToFlip?: Vec3 }) {
         const { extraRadius, minRadius, durationMs } = { ...DefaultCameraFocusOptions, ...options };
         const radius = Math.max(sphere.radius + extraRadius, minRadius);
 
         if (options?.principalAxes) {
-            const { origin, dirA, dirC } = pcaFocus(this.plugin, options, positionToFlip);
+            this.plugin.canvas3d?.camera.setState(Camera.createDefaultSnapshot());
+            const { origin, dirA, dirC } = pcaFocus(this.plugin, options);
             const snapshot = this.plugin.canvas3d?.camera.getFocus(origin, radius, dirA, dirC);
             this.plugin.canvas3d?.requestCameraReset({ durationMs, snapshot });
             // this.plugin.canvas3d?.camera.focus(origin, radius, durationMs, dirA, dirC);
