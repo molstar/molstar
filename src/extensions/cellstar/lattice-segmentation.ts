@@ -5,6 +5,7 @@ import { volumeFromDensityServerData } from '../../mol-model-formats/volume/dens
 import { CustomProperties } from '../../mol-model/custom-property';
 import { Grid, Volume } from '../../mol-model/volume';
 import { Segment } from './cellstar-api/data';
+import { lazyGetter } from './helpers';
 
 
 export class LatticeSegmentation {
@@ -267,11 +268,3 @@ namespace Box {
     }
 }
 
-
-function lazyGetter<T>(getter: () => T) {
-    let value: T | undefined = undefined;
-    return () => {
-        if (value === undefined) value = getter();
-        return value;
-    };
-}

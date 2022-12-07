@@ -3,7 +3,7 @@ import { BehaviorSubject, Subject, throttleTime } from 'rxjs';
 import { ShapeGroup } from '../../mol-model/shape';
 import { Volume } from '../../mol-model/volume';
 // import { PluginComponent } from '../../mol-plugin-state/component';
-import { PluginStateObject as SO, PluginStateTransform } from '../../mol-plugin-state/objects';
+import { PluginStateObject } from '../../mol-plugin-state/objects';
 import { PluginCommands } from '../../mol-plugin/commands';
 import { PluginContext } from '../../mol-plugin/context';
 import { Task } from '../../mol-task';
@@ -18,9 +18,13 @@ import { CellStarModelData } from './entry-models';
 import { CellStarLatticeSegmentationData } from './entry-segmentation';
 import { CellStarVolumeData } from './entry-volume';
 import * as ExternalAPIs from './external-api';
-import { Choice, createEntryId, NodeManager } from './helpers';
+import { Choice, createEntryId, lazyGetter, NodeManager } from './helpers';
 import { UUID } from '../../mol-util';
 import { StateTransform, StateTransformer } from '../../mol-state';
+import { CellStarState, CellStarStateData, CellStarStateParams, CELLSTAR_STATE_FROM_ENTRY_TRANSFORMER_NAME } from './entry-state';
+import { type CellStarStateFromEntry } from './transformers';
+import { useBehavior } from '../../mol-plugin-ui/hooks/use-behavior';
+import { sleep } from '../../mol-util/sleep';
 
 
 export const MAX_VOXELS = 10 ** 7;
@@ -42,7 +46,10 @@ export const CellStarEntryParams = {
 };
 type CellStarEntryParamValues = ParamDefinition.Values<typeof CellStarEntryParams>;
 
-// export class CellStarEntryData extends PluginComponent {
+
+export class CellStarEntry extends PluginStateObject.CreateBehavior<CellStarEntryData>({ name: 'CellStar Entry' }) { }
+
+
 export class CellStarEntryData extends PluginBehavior.WithSubscribers<CellStarEntryParamValues> {
     plugin: PluginContext;
     ref: string = '';
@@ -66,6 +73,9 @@ export class CellStarEntryData extends PluginBehavior.WithSubscribers<CellStarEn
     private highlightRequest = new Subject<Segment | undefined>();
     debugid = UUID.create22(); // DEBUG
 
+    private getStateNode = lazyGetter(() => this.plugin.state.data.selectQ(q => q.byRef(this.ref).subtree().ofType(CellStarState))[0]?.transform as StateTransform<typeof CellStarStateFromEntry>, 'Missing CellStarState node. Must first create CellStarState for this CellStarEntry.');
+    public currentState = new BehaviorSubject(ParamDefinition.getDefaultValues(CellStarStateParams));
+
 
     private constructor(plugin: PluginContext, params: CellStarEntryParamValues) {
         super(plugin, params);
@@ -75,12 +85,36 @@ export class CellStarEntryData extends PluginBehavior.WithSubscribers<CellStarEn
         this.source = params.source;
         this.entryNumber = params.entryNumber;
         this.entryId = createEntryId(params.source, params.entryNumber);
-
     }
+
 
     async register(ref: string) {
         this.ref = ref;
         console.log('register', ref, this.debugid);
+        try {
+            const params = this.getStateNode().params;
+            if (params) {
+                this.currentState.next(params);
+            }
+        } catch {
+            // do nothing
+        }
+        // const stateNode = this.plugin.state.data.selectQ(q => q.byRef(this.ref).subtree().ofType(CellStarState))[0]?.transform.ref;
+        // console.log('stateNode', stateNode);
+        // if (!stateNode) {
+        //     this.subscribeObservable(this.plugin.state.data.events.cell.created, e => {
+        //         // const isCellStarState = this.plugin.state.data.selectQ(q => q.byRef(this.ref).subtree().ofType(PluginStateObject.Volume.Representation3D));
+        //         // const isCellStarState = this.plugin.state.data.selectQ(q => q.byRef(this.ref).subtree().ofType(CellStarState));
+        //         const isCellStarState = this.plugin.state.data.selectQ(q => q.byRef(e.cell.transform.ref));
+        //         console.log('register: cell.created', this.ref, e.cell.transform.transformer.definition.name === CELLSTAR_STATE_FROM_ENTRY_TRANSFORMER_NAME, e.cell.transform.parent, isCellStarState[0]);
+        //         if (e.cell.transform.transformer.definition.name === CELLSTAR_STATE_FROM_ENTRY_TRANSFORMER_NAME && e.cell.transform.parent === this.ref) {
+        //             console.log('found new stateNode', e.cell.transform.ref, e.cell.obj);
+        //         }
+        //     });
+        //     this.subscribeObservable(this.plugin.state.data.events.changed, e => {
+        //         e.state
+        //     })
+        // }
 
         this.subscribeObservable(this.plugin.behaviors.interaction.click, e => {
             const loci = e.current.loci;
@@ -141,8 +175,35 @@ export class CellStarEntryData extends PluginBehavior.WithSubscribers<CellStarEn
         // this.latticeSegmentationData.updateOpacity(schmooziness);
         // this.meshSegmentationData.updateOpacity(schmooziness);
         const state = this.plugin.state.data;
-        const update = state.build().to(this.ref).update({...this.params, schmooziness: schmooziness});
+        const update = state.build().to(this.ref).update({ ...this.params, schmooziness: schmooziness });
         await PluginCommands.State.Update(this.plugin, { state, tree: update, options: { doNotUpdateCurrent: true } });
+    }
+
+    async updateOpacityNew(opacity: number) {
+        const stateNode = this.getStateNode();
+        console.log('updateOpacityNew', stateNode.params?.opacity, '->', opacity);
+        if (opacity === stateNode.params?.opacity) return;
+        await sleep(1000);
+        this.latticeSegmentationData.updateOpacity(opacity);
+        this.meshSegmentationData.updateOpacity(opacity);
+        await sleep(1000);
+        this.updateState({ opacity: opacity });
+    }
+
+    private async updateState(params: Partial<CellStarStateData>) {
+        const state = this.plugin.state.data;
+        const update = state.build().to(this.getStateNode().ref).update(params);
+        await PluginCommands.State.Update(this.plugin, { state, tree: update, options: { doNotUpdateCurrent: true } });
+        this.currentState.next({ ...this.currentState.value, ...params });
+    }
+
+    async updateParams(newParams: CellStarEntryParamValues) {
+        if (newParams.schmooziness !== this.params.schmooziness) {
+            /*await*/ this.latticeSegmentationData.updateOpacity(newParams.schmooziness);
+            /*await*/ this.meshSegmentationData.updateOpacity(newParams.schmooziness);
+            // TODO solve shit with awaiting update within update
+        }
+        this.params = newParams;
     }
 
     public newUpdate() {
@@ -194,30 +255,4 @@ export class CellStarEntryData extends PluginBehavior.WithSubscribers<CellStarEn
 }
 
 
-// export class CellStarEntry extends SO.Create<CellStarEntryData>({ name: 'CellStar Entry', typeClass: 'Object' }) { }
-export class CellStarEntry extends SO.CreateBehavior<CellStarEntryData>({ name: 'CellStar Entry' }) { }
 
-
-export const CellStarEntryFromRoot = PluginStateTransform.BuiltIn({
-    name: 'cellstar-entry-from-root',
-    display: { name: 'CellStar Entry', description: 'Load CellStar Entry' },
-    from: SO.Root,
-    to: CellStarEntry,
-    params: CellStarEntryParams,
-})({
-    apply({ a, params }, plugin: PluginContext) {
-        return Task.create('Load CellStar Entry', async () => {
-            const data = await CellStarEntryData.create(plugin, params);
-            return new CellStarEntry(data, { label: data.entryId, description: 'CellStar Entry' });
-        });
-    },
-    update(params, plugin: PluginContext) {
-        return Task.create('Update CellStar Entry', async () => {
-            if (params.newParams.schmooziness !== params.oldParams.schmooziness) {
-                params.b.data.latticeSegmentationData.updateOpacity(params.newParams.schmooziness);
-                params.b.data.meshSegmentationData.updateOpacity(params.newParams.schmooziness);
-            }
-            return StateTransformer.UpdateResult.Recreate; // TODO Updated
-        });
-    }   
-});

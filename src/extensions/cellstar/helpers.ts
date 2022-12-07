@@ -176,3 +176,14 @@ export const CreateVolume = CreateTransformer({
         return new PluginStateObject.Volume.Data(params.volume, { label: params.label, description: params.description });
     }
 });
+
+
+
+export function lazyGetter<T>(getter: () => T, errorIfUndefined?: string) {
+    let value: T | undefined = undefined;
+    return () => {
+        if (value === undefined) value = getter();
+        if (errorIfUndefined && value === undefined) throw new Error(errorIfUndefined);
+        return value;
+    };
+}

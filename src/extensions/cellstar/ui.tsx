@@ -46,18 +46,18 @@ export class CellStarUI extends CollapsableControls<{}, { data: CellStarUIData }
     }
     componentDidMount(): void {
         this.setState({ isHidden: true, isCollapsed: false });
-        this.subscribe(this.plugin.state.data.events.cell.stateUpdated, e => console.log('cell.stateUpdated', e.ref, e.cell.obj?.label));
-        this.subscribe(this.plugin.state.data.events.cell.created, e => console.log('cell.created', e.ref, e.cell.obj?.label));
-        this.subscribe(this.plugin.state.data.events.cell.removed, e => console.log('cell.removed', e.ref));
+        // this.subscribe(this.plugin.state.data.events.cell.stateUpdated, e => console.log('cell.stateUpdated', e.ref, e.cell.obj?.label));
+        // this.subscribe(this.plugin.state.data.events.cell.created, e => console.log('cell.created', e.ref, e.cell.obj?.label));
+        // this.subscribe(this.plugin.state.data.events.cell.removed, e => console.log('cell.removed', e.ref));
         this.subscribe(this.plugin.state.data.events.changed, e => {
-            console.log('cell.changed', e);
+            // console.log('cell.changed', e);
             const nodes = e.state.selectQ(q => q.ofType(CellStarEntry)).map(cell => cell?.obj).filter(isDefined);
-            console.log('current nodes', ...this.state.data.availableNodes);
-            console.log('new nodes', ...nodes);
+            // console.log('current nodes', ...this.state.data.availableNodes);
+            // console.log('new nodes', ...nodes);
             const isHidden = nodes.length === 0;
             const newData = CellStarUIData.changeAvailableNodes(this.state.data, nodes);
             this.setState({ data: newData, isHidden: isHidden });
-            // this.forceUpdate();
+            this.forceUpdate();
         });
     }
 }
@@ -77,11 +77,12 @@ function CellStarControls({ plugin, data, setData }: { plugin: PluginContext, da
         entry: data.activeNode!.data.ref,
     };
     const schmooziness = entryData.getSchmooziness();
+    console.log('schmooziness', schmooziness);
 
     const allSegments = entryData.metadata.annotation?.segment_list ?? [];
     const currentSegment = useBehavior(entryData.currentSegment);
     const visibleSegments = useBehavior(entryData.visibleSegments);
-    // const opacity = useBehavior(entryData.opacity);
+    const state = useBehavior(entryData.currentState);
     
     const allPdbs = entryData.pdbs;
     const currentPdb = useBehavior(entryData.modelData.currentPdb);
@@ -116,6 +117,9 @@ function CellStarControls({ plugin, data, setData }: { plugin: PluginContext, da
         {/* <ControlRow label='Opacity' control={<Slider min={0} max={1} value={opacity} step={0.05} onChange={v => entryData.opacity.next(v)} />} /> */}
         <ControlRow label='Schmooziness' control={
             <WaitingSlider plugin={plugin} min={0} max={1} value={schmooziness} step={0.05} onChange={async v => await entryData.setSchmooziness(v)} />
+        } />        
+        <ControlRow label='Opacity' control={
+            <WaitingSlider plugin={plugin} min={0} max={1} value={state.opacity} step={0.05} onChange={async v => await entryData.updateOpacityNew(v)} />
         } />
 
         {allSegments.length > 0 && <>
