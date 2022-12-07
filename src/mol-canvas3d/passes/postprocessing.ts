@@ -637,7 +637,7 @@ export class PostprocessingPass {
             ValueCell.updateIfChanged(this.outlinesRenderable.values.uNear, camera.near);
             ValueCell.updateIfChanged(this.outlinesRenderable.values.uFar, camera.far);
             ValueCell.updateIfChanged(this.outlinesRenderable.values.uMaxPossibleViewZDiff, maxPossibleViewZDiff);
-            if (this.renderable.values.dTransparentOutline.ref.value !== transparentOutline) { needsUpdateOutline = true; }            
+            if (this.renderable.values.dTransparentOutline.ref.value !== transparentOutline) { needsUpdateOutline = true; }
             ValueCell.updateIfChanged(this.outlinesRenderable.values.dTransparentOutline, transparentOutline);
 
             ValueCell.update(this.renderable.values.uOutlineColor, Color.toVec3Normalized(this.renderable.values.uOutlineColor.ref.value, props.outline.params.color));

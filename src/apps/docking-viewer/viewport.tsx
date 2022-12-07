@@ -56,7 +56,7 @@ function occlusionStyle(plugin: PluginContext) {
                 threshold: 0.33,
                 color: Color(0x0000),
                 includeTransparent: true,
-            } }
+            } },
             shadow: { name: 'off', params: {} },
         }
     } });
