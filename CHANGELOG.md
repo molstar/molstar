@@ -7,6 +7,16 @@ Note that since we don't clearly distinguish between a public and private interf
 ## [Unreleased]
 - Add an `includeTransparent` parameter to hide/show outlines of components that are transparent
 
+- Better guard against issue (black fringes) with bumpiness in impostors
+
+## [v3.26.0] - 2022-12-04
+
+- Support for ``powerPreference`` webgl attribute. Add ``PluginConfig.General.PowerPreference`` and ``power-preference`` Viewer GET param.
+- Excluded common protein caps `NME` and `ACE` from the ligand selection query
+- Add screen-space shadow post-processing effect
+- Add "Structure Molecular Surface" visual
+- Add `external-volume` theme (coloring of arbitrary geometries by user-selected volume)
+
 ## [v3.25.1] - 2022-11-20
 
 - Fix edge-case in `Structure.eachUnitPair` with single-element units

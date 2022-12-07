@@ -247,6 +247,7 @@ async function createGaussianSurfaceTextureMesh(ctx: VisualContext, unit: Unit, 
     const boundingSphere = Sphere3D.expand(Sphere3D(), unit.boundary.sphere, densityTextureData.maxRadius);
     const surface = TextureMesh.create(gv.vertexCount, groupCount, gv.vertexTexture, gv.groupTexture, gv.normalTexture, boundingSphere, textureMesh);
     (surface.meta as GaussianSurfaceMeta).resolution = densityTextureData.resolution;
+    surface.meta.webgl = ctx.webgl;
 
     return surface;
 }
@@ -321,6 +322,7 @@ async function createStructureGaussianSurfaceTextureMesh(ctx: VisualContext, str
     const boundingSphere = Sphere3D.expand(Sphere3D(), structure.boundary.sphere, densityTextureData.maxRadius);
     const surface = TextureMesh.create(gv.vertexCount, groupCount, gv.vertexTexture, gv.groupTexture, gv.normalTexture, boundingSphere, textureMesh);
     (surface.meta as GaussianSurfaceMeta).resolution = densityTextureData.resolution;
+    surface.meta.webgl = ctx.webgl;
 
     return surface;
 }

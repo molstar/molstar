@@ -285,6 +285,10 @@ export const AminoAcidNamesD = new Set([
 ]);
 export const AminoAcidNames = SetUtils.unionMany(AminoAcidNamesL, AminoAcidNamesD);
 
+export const CommonProteinCaps = new Set([
+    'NME', 'ACE'
+]);
+
 export const RnaBaseNames = new Set([
     'A', 'C', 'T', 'G', 'I', 'U',
     'N' // unknown RNA base from CCD

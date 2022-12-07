@@ -63,6 +63,7 @@
             var enableDpoit = getParam('enable-dpoit', '[^&]+').trim() === '1';
             var preferWebgl1 = getParam('prefer-webgl1', '[^&]+').trim() === '1' || void 0;
             var allowMajorPerformanceCaveat = getParam('allow-major-performance-caveat', '[^&]+').trim() === '1';
+            var powerPreference = getParam('power-preference', '[^&]+').trim().toLowerCase();
 
             molstar.Viewer.create('app', {
                 layoutShowControls: !hideControls,
@@ -80,6 +81,7 @@
                 enableDpoit: enableDpoit ? true : void 0,
                 preferWebgl1: preferWebgl1,
                 allowMajorPerformanceCaveat: allowMajorPerformanceCaveat,
+                powerPreference: powerPreference || 'high-performance',
             }).then(viewer => {
                 var snapshotId = getParam('snapshot-id', '[^&]+').trim();
                 if (snapshotId) viewer.setRemoteSnapshot(snapshotId);
