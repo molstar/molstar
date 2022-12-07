@@ -80,7 +80,6 @@ interface Renderer {
     setTransparentBackground: (value: boolean) => void
     setDrawingBufferSize: (width: number, height: number) => void
     setPixelRatio: (value: number) => void
-    setOutlineAlphaThreshold: (value: number) => void
 
     dispose: () => void
 }
@@ -186,8 +185,6 @@ namespace Renderer {
 
         const ambientColor = Vec3();
         Vec3.scale(ambientColor, Color.toArrayNormalized(p.ambientColor, ambientColor, 0), p.ambientIntensity);
-
-        let outlineAlphaThreshold = 0.0;
 
         const globalUniforms: GlobalUniformValues = {
             uModel: ValueCell.create(Mat4.identity()),
@@ -435,7 +432,7 @@ namespace Renderer {
             const { renderables } = group;
             for (let i = 0, il = renderables.length; i < il; ++i) {
                 const r = renderables[i];
-                if ((!r.state.opaque && r.values.alpha.ref.value > outlineAlphaThreshold) || r.values.transparencyAverage.ref.value > 0 || r.values.dXrayShaded?.ref.value) {
+                if (!r.state.opaque || r.values.transparencyAverage.ref.value > 0 || r.values.dXrayShaded?.ref.value) {
                     renderObject(r, 'depth', Flag.None);
                 }
             }
@@ -829,9 +826,6 @@ namespace Renderer {
                     instanceCount: stats.instanceCount,
                     instancedDrawCount: stats.instancedDrawCount,
                 };
-            },
-            setOutlineAlphaThreshold: (value: number) => {
-                outlineAlphaThreshold = value;
             },
             dispose: () => {
                 // TODO
