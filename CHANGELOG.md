@@ -6,6 +6,7 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Fix 'once' for animations of systems with many frames
 - Better guard against issue (black fringes) with bumpiness in impostors
 
 ## [v3.26.0] - 2022-12-04
