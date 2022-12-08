@@ -1,10 +1,10 @@
-import { PluginStateObject, PluginStateTransform } from "../../mol-plugin-state/objects";
+import { PluginStateObject, PluginStateTransform } from '../../mol-plugin-state/objects';
 import { PluginContext } from '../../mol-plugin/context';
 import { StateTransformer } from '../../mol-state';
-import { Task } from "../../mol-task";
+import { Task } from '../../mol-task';
 
-import { CellStarEntry, CellStarEntryData, CellStarEntryParams } from "./entry-root";
-import { CellStarState, CellStarStateParams, CELLSTAR_STATE_FROM_ENTRY_TRANSFORMER_NAME } from "./entry-state";
+import { CellStarEntry, CellStarEntryData, CellStarEntryParams } from './entry-root';
+import { CellStarState, CellStarStateParams, CELLSTAR_STATE_FROM_ENTRY_TRANSFORMER_NAME } from './entry-state';
 
 
 export const CellStarEntryFromRoot = PluginStateTransform.BuiltIn({
@@ -20,7 +20,7 @@ export const CellStarEntryFromRoot = PluginStateTransform.BuiltIn({
             return new CellStarEntry(data, { label: data.entryId, description: 'CellStar Entry' });
         });
     },
-    update({b, oldParams, newParams}){
+    update({ b, oldParams, newParams }) {
         Object.assign(newParams, oldParams);
         console.error('Changing params of existing CellStarEntry node is not allowed');
         return StateTransformer.UpdateResult.Unchanged;

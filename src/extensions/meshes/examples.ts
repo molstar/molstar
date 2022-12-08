@@ -62,7 +62,7 @@ export async function runMultimeshExample(plugin: MS.PluginUIContext, segments: 
 
 /** Download data and create state tree hierarchy down to visual representation. */
 export async function createMeshFromUrl(plugin: MS.PluginContext, meshDataUrl: string, segmentId: number, detail: number,
-    collapseTree: boolean, log: boolean, color?: MS.Color, parent?: MS.StateObjectSelector, transparentIfBboxAbove?: number,
+    collapseTree: boolean, log: boolean, color?: MS.Color, parent?: MS.StateObjectSelector | MS.StateObjectRef, transparentIfBboxAbove?: number,
     name?: string, ownerId?: string) {
 
     // PARAMS - Depend on the type of transformer T -> Params<T>
@@ -98,7 +98,7 @@ export async function createMeshFromUrl(plugin: MS.PluginContext, meshDataUrl: s
     const parsedDataNode = await plugin.build().to(cifNode).apply(
         ParseMeshlistTransformer,
         { label: undefined, segmentId: segmentId, segmentName: name ?? `Segment ${segmentId}`, detail: detail }, // params
-        { ref: `ref-parsed-data-node-${segmentId}` } // options
+        { } // options
     ).commit();
     if (ownerId && parsedDataNode.data) parsedDataNode.data.ownerId = ownerId;
     if (log) console.log('parsedDataNode:', parsedDataNode);
@@ -108,7 +108,6 @@ export async function createMeshFromUrl(plugin: MS.PluginContext, meshDataUrl: s
     // MESH SHAPE NODE
     const shapeNode = await plugin.build().to(parsedDataNode).apply(MeshShapeTransformer,
         { color: color }, // options
-        { ref: `ref-shape-node-${segmentId}` }
     ).commit();
     if (log) console.log('shapeNode:', shapeNode);
     if (log) console.log('shapeNode.data:', shapeNode.data);
@@ -123,7 +122,7 @@ export async function createMeshFromUrl(plugin: MS.PluginContext, meshDataUrl: s
     // MESH REPR NODE
     const reprNode = await plugin.build().to(shapeNode).apply(MS.ShapeRepresentation3D,
         { alpha: transparent ? BACKGROUND_OPACITY : FOREROUND_OPACITY },
-        { ref: `ref-repr-nod+e${segmentId}`, tags: ['mesh-segment'] }
+        { tags: ['mesh-segment-visual', `segment-${segmentId}`] }
     ).commit();
     if (log) console.log('reprNode:', reprNode);
     if (log) console.log('reprNode.data:', reprNode.data);

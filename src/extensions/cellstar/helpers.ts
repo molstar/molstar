@@ -4,8 +4,6 @@ import { setSubtreeVisibility } from '../../mol-plugin/behavior/static/state';
 import { StateBuilder, StateObjectSelector, StateTransformer } from '../../mol-state';
 import { ParamDefinition } from '../../mol-util/param-definition';
 
-import { Metadata, Segment } from './cellstar-api/data';
-
 
 /** Split entry ID (e.g. 'emd-1832') into source ('emdb') and number ('1832') */
 export function splitEntryId(entryId: string) {
@@ -111,53 +109,8 @@ export class NodeManager {
         }
         return node;
     }
-
 }
 
-
-export namespace MetadataUtils {
-    export function meshSegments(metadata: Metadata): number[] {
-        const segmentIds = metadata.grid.segmentation_meshes.mesh_component_numbers.segment_ids;
-        if (segmentIds === undefined) return [];
-        return Object.keys(segmentIds).map(s => parseInt(s));
-    }
-    export function meshSegmentDetails(metadata: Metadata, segmentId: number): number[] {
-        const segmentIds = metadata.grid.segmentation_meshes.mesh_component_numbers.segment_ids;
-        if (segmentIds === undefined) return [];
-        const details = segmentIds[segmentId].detail_lvls;
-        return Object.keys(details).map(s => parseInt(s));
-    }
-    /** Get the worst available detail level that is not worse than preferredDetail.
-     * If preferredDetail is null, get the worst detail level overall.
-     * (worse = greater number) */
-    export function getSufficientDetail(metadata: Metadata, segmentId: number, preferredDetail: number | null) {
-        let availDetails = meshSegmentDetails(metadata, segmentId);
-        if (preferredDetail !== null) {
-            availDetails = availDetails.filter(det => det <= preferredDetail);
-        }
-        return Math.max(...availDetails);
-    }
-    export function annotationsBySegment(metadata: Metadata): { [id: number]: Segment } {
-        const result: { [id: number]: Segment } = {};
-        for (const segment of metadata.annotation?.segment_list ?? []) {
-            if (segment.id in result) {
-                throw new Error(`Duplicate segment annotation for segment ${segment.id}`);
-            }
-            result[segment.id] = segment;
-        }
-        return result;
-    }
-    export function dropSegments(metadata: Metadata, segments: number[]): void {
-        if (metadata.grid.segmentation_meshes.mesh_component_numbers.segment_ids === undefined) return;
-        const dropSet = new Set(segments);
-        if (metadata.annotation) {
-            metadata.annotation.segment_list = metadata.annotation.segment_list.filter(seg => !dropSet.has(seg.id));
-        }
-        for (const seg of segments) {
-            delete metadata.grid.segmentation_meshes.mesh_component_numbers.segment_ids[seg];
-        }
-    }
-}
 
 
 const CreateTransformer = StateTransformer.builderFactory('cellstar');

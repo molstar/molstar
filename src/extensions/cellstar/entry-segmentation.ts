@@ -12,7 +12,6 @@ import { Segment } from './cellstar-api/data';
 import { BOX, CellStarEntryData, MAX_VOXELS } from './entry-root';
 
 
-const GROUP_NAME = 'LatticeSegmentation';
 const SEGMENT_REPR_TAG = 'lattice-segment-repr';
 const DEFAULT_SEGMENT_COLOR = Color.fromNormalizedRgb(0.8, 0.8, 0.8);
 
@@ -25,12 +24,14 @@ export class CellStarLatticeSegmentationData {
     }
 
     async showSegmentation() {
-        const hasLattices = this.entryData.metadata.grid.segmentation_lattices.segmentation_lattice_ids.length > 0;
+        const hasLattices = this.entryData.metadata.raw.grid.segmentation_lattices.segmentation_lattice_ids.length > 0;
         if (hasLattices) {
             const url = this.entryData.api.latticeUrl(this.entryData.source, this.entryData.entryId, 0, BOX, MAX_VOXELS);
-            const group = await this.entryData.groupNodeMgr.showNode(GROUP_NAME,
-                async () => await this.entryData.newUpdate().apply(CreateGroup, { label: 'Segmentation', description: 'Lattice' }, { state: { isCollapsed: false } }).commit(),
-                false);
+            let group = this.entryData.findNodesByTags('lattice-segmentation-group')[0]?.transform.ref;
+            if (!group) {
+                const newGroupNode = await this.entryData.newUpdate().apply(CreateGroup, { label: 'Segmentation', description: 'Lattice' }, { tags: ['lattice-segmentation-group'], state: { isCollapsed: true } }).commit();
+                group = newGroupNode.ref;
+            }
             const data = await this.entryData.newUpdate().to(group).apply(Download, { url, isBinary: true, label: `Segmentation Data: ${url}` }).commit();
             console.log(this.entryData.plugin.dataFormats.list);
             const parsed = await SegcifProvider.parse(this.entryData.plugin, data);
@@ -41,7 +42,7 @@ export class CellStarLatticeSegmentationData {
             const segmentation = Volume.Segmentation.get(volumeData);
             if (!segmentation) return;
             segmentation.labels = {};
-            for (const segment of this.entryData.metadata.annotation?.segment_list ?? []) {
+            for (const segment of this.entryData.metadata.allSegments) {
                 segmentation.labels[segment.id] = segment.biological_annotation.name;
             }
             const segmentIds: number[] = Array.from(segmentation.segments.keys());
@@ -57,7 +58,7 @@ export class CellStarLatticeSegmentationData {
 
     private createPalette(segmentIds: number[]) {
         const colorMap = new Map<number, Color>();
-        for (const segment of this.entryData.metadata.annotation?.segment_list ?? []) {
+        for (const segment of this.entryData.metadata.allSegments) {
             const color = Color.fromNormalizedArray(segment.colour, 0);
             colorMap.set(segment.id, color);
         }
@@ -79,6 +80,7 @@ export class CellStarLatticeSegmentationData {
     }
     async highlightSegment(segment: Segment) {
         const vis = this.entryData.plugin.state.data.selectQ(q => q.byRef(this.entryData.ref).subtree().withTag(SEGMENT_REPR_TAG))[0];
+        if (!vis) return;
         const repr = vis.obj?.data.repr;
         const wholeLoci = repr.getAllLoci()[0];
         if (!wholeLoci || !Volume.Segment.isLoci(wholeLoci)) return;
@@ -87,11 +89,11 @@ export class CellStarLatticeSegmentationData {
     }
 
     /** Make visible the specified set of lattice segments */
-    async showSegments(segments: Segment[], options?: { opacity?: number }) {
+    async showSegments(segments: number[], options?: { opacity?: number }) {
         const reprs = this.entryData.plugin.state.data.selectQ(q => q.byRef(this.entryData.ref).subtree().withTag(SEGMENT_REPR_TAG));
         const update = this.entryData.newUpdate();
         for (const repr of reprs) {
-            update.to(repr).update(StateTransforms.Representation.VolumeRepresentation3D, p => { p.type.params.segments = segments.map(seg => seg.id); });
+            update.to(repr).update(StateTransforms.Representation.VolumeRepresentation3D, p => { p.type.params.segments = segments; });
         }
         return await update.commit();
     }

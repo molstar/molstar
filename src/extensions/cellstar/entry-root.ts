@@ -9,18 +9,18 @@ import { PluginContext } from '../../mol-plugin/context';
 import { StateObjectCell, StateTransform } from '../../mol-state';
 import { shallowEqualObjects } from '../../mol-util';
 import { ParamDefinition } from '../../mol-util/param-definition';
-import { sleep } from '../../mol-util/sleep';
 import { MeshlistData } from '../meshes/mesh-extension';
 
 import { DEFAULT_VOLUME_SERVER_V2, VolumeApiV2 } from './cellstar-api/api';
-import { Metadata, Segment } from './cellstar-api/data';
+import { Segment } from './cellstar-api/data';
+import { MetadataWrapper } from './cellstar-api/utils';
 import { CellStarMeshSegmentationData } from './entry-meshes';
 import { CellStarModelData } from './entry-models';
 import { CellStarLatticeSegmentationData } from './entry-segmentation';
 import { CellStarState, CellStarStateData, CellStarStateParams } from './entry-state';
 import { CellStarVolumeData } from './entry-volume';
 import * as ExternalAPIs from './external-api';
-import { Choice, createEntryId, lazyGetter, NodeManager } from './helpers';
+import { Choice, createEntryId, lazyGetter } from './helpers';
 import { type CellStarStateFromEntry } from './transformers';
 
 
@@ -54,16 +54,13 @@ export class CellStarEntryData extends PluginBehavior.WithSubscribers<CellStarEn
     entryNumber: string;
     /** Full entry ID; e.g. 'emd-1832' */
     entryId: string;
-    metadata: Metadata;
+    metadata: MetadataWrapper;
     pdbs: string[];
 
-    public readonly groupNodeMgr = new NodeManager();
     public readonly volumeData = new CellStarVolumeData(this);
-    public readonly latticeSegmentationData = new CellStarLatticeSegmentationData(this);
-    public readonly meshSegmentationData = new CellStarMeshSegmentationData(this);
-    public readonly modelData = new CellStarModelData(this);
-    currentSegment = new BehaviorSubject<Segment | undefined>(undefined);
-    visibleSegments = new BehaviorSubject<Segment[]>([]);
+    private readonly latticeSegmentationData = new CellStarLatticeSegmentationData(this);
+    private readonly meshSegmentationData = new CellStarMeshSegmentationData(this);
+    private readonly modelData = new CellStarModelData(this);
     private highlightRequest = new Subject<Segment | undefined>();
 
     private getStateNode = lazyGetter(() => this.plugin.state.data.selectQ(q => q.byRef(this.ref).subtree().ofType(CellStarState))[0] as StateObjectCell<CellStarState, StateTransform<typeof CellStarStateFromEntry>>, 'Missing CellStarState node. Must first create CellStarState for this CellStarEntry.');
@@ -94,7 +91,7 @@ export class CellStarEntryData extends PluginBehavior.WithSubscribers<CellStarEn
         }
 
         this.subscribeObservable(this.plugin.state.data.events.cell.stateUpdated, e => {
-            try { (this.getStateNode()) } catch { return } // if state not does not exist yet
+            try { (this.getStateNode()); } catch { return; } // if state not does not exist yet
             if (e.cell.transform.ref === this.getStateNode().transform.ref) {
                 const newState = this.getStateNode().obj?.data;
                 if (newState && !shallowEqualObjects(newState, this.currentState.value)) { // avoid repeated update
@@ -102,7 +99,7 @@ export class CellStarEntryData extends PluginBehavior.WithSubscribers<CellStarEn
                     this.currentState.next(newState);
                 }
             }
-        })
+        });
 
         this.subscribeObservable(this.plugin.behaviors.interaction.click, e => {
             const loci = e.current.loci;
@@ -111,13 +108,12 @@ export class CellStarEntryData extends PluginBehavior.WithSubscribers<CellStarEn
             if (Volume.Segment.isLoci(loci)) console.log('ownerId', loci.volume._propertyData.ownerId); // DEBUG
             if (Volume.Segment.isLoci(loci) && loci.volume._propertyData.ownerId === this.ref) {
                 const clickedSegmentId = loci.segments.length === 1 ? loci.segments[0] : undefined;
-                const clickedSegment = this.metadata.annotation?.segment_list.find(seg => seg.id === clickedSegmentId);
-                this.currentSegment.next(clickedSegment);
+                this.selectSegment(clickedSegmentId);
             }
             if (ShapeGroup.isLoci(loci)) {
                 const meshData = (loci.shape.sourceData ?? {}) as MeshlistData;
                 if (meshData.ownerId === this.ref && meshData.segmentId !== undefined) {
-                    this.currentSegment.next(this.metadata.annotation?.segment_list.find(segment => segment.id === meshData.segmentId));
+                    this.selectSegment(meshData.segmentId);
                 }
             }
         });
@@ -137,8 +133,9 @@ export class CellStarEntryData extends PluginBehavior.WithSubscribers<CellStarEn
     }
 
     private async initialize() {
-        this.metadata = await this.api.getMetadata(this.source, this.entryId);
-        this.pdbs = await ExternalAPIs.getPdbIdsForEmdbEntry(this.metadata.grid.general.source_db_id ?? this.entryId);
+        const metadata = await this.api.getMetadata(this.source, this.entryId);
+        this.metadata = new MetadataWrapper(metadata);
+        this.pdbs = await ExternalAPIs.getPdbIdsForEmdbEntry(this.metadata.raw.grid.general.source_db_id ?? this.entryId);
         // TODO use Asset?
     }
 
@@ -153,16 +150,18 @@ export class CellStarEntryData extends PluginBehavior.WithSubscribers<CellStarEn
         console.log('updateOpacity', stateNode?.opacity, '->', opacity);
         if (opacity === stateNode?.opacity) return;
 
-        await sleep(1000); // TODO remove
+        // await sleep(1000); // TODO remove
         this.latticeSegmentationData.updateOpacity(opacity);
         this.meshSegmentationData.updateOpacity(opacity);
 
-        this.updateStateNode({ opacity: opacity });
+        await this.updateStateNode({ opacity: opacity });
     }
 
-    private async updateStateNode(params: Partial<CellStarStateData>) {
+    async updateStateNode(params: Partial<CellStarStateData>) {
+        const oldParams = this.getStateNode().transform.params;
+        const newParams = { ...oldParams, ...params };
         const state = this.plugin.state.data;
-        const update = state.build().to(this.getStateNode().transform.ref).update(params);
+        const update = state.build().to(this.getStateNode().transform.ref).update(newParams);
         await PluginCommands.State.Update(this.plugin, { state, tree: update, options: { doNotUpdateCurrent: true } });
     }
 
@@ -177,39 +176,56 @@ export class CellStarEntryData extends PluginBehavior.WithSubscribers<CellStarEn
     public async showSegmentations() {
         await this.latticeSegmentationData.showSegmentation();
         await this.meshSegmentationData.showSegmentation();
-        this.visibleSegments.next(this.metadata.annotation?.segment_list ?? []);
+        await this.showSegments(this.metadata.allSegmentIds);
     }
 
     highlightSegment(segment?: Segment) {
         this.highlightRequest.next(segment);
     }
 
-    async toggleSegment(segment: Segment) {
-        const current = this.visibleSegments.value;
+    async toggleSegment(segment: number) {
+        // const current = this.visibleSegments.value;
+        const current = this.currentState.value.visibleSegments.map(seg => seg.segmentId);
         if (current.includes(segment)) {
-            this.showSegments(current.filter(s => s !== segment));
+            await this.showSegments(current.filter(s => s !== segment));
         } else {
-            this.showSegments([...current, segment]);
+            await this.showSegments([...current, segment]);
         }
     }
 
-    toggleAllSegments() {
-        const current = this.visibleSegments.value;
-        if (current.length !== (this.metadata.annotation?.segment_list.length ?? 0)) {
-            this.showSegments(this.metadata.annotation?.segment_list ?? []);
+    async toggleAllSegments() {
+        // const current = this.visibleSegments.value;
+        const current = this.currentState.value.visibleSegments.map(seg => seg.segmentId);
+        if (current.length !== this.metadata.allSegments.length) {
+            await this.showSegments(this.metadata.allSegmentIds);
         } else {
-            this.showSegments([]);
+            await this.showSegments([]);
         }
     }
 
-    showAnnotation(segment: Segment) {
-        this.currentSegment.next(segment);
+    async selectSegment(segment?: number) {
+        await this.updateStateNode({ selectedSegment: segment });
     }
-    public async showSegments(segments: Segment[]) {
-        console.log('showSegments', segments.map(seg => seg.id), this.ref);
+
+    async showSegments(segments: number[]) {
+        console.log('showSegments', segments, this.ref);
         await this.latticeSegmentationData.showSegments(segments, { opacity: this.currentState.value.opacity });
         await this.meshSegmentationData.showSegments(segments);
-        this.visibleSegments.next(segments);
+        await this.updateStateNode({ visibleSegments: segments.map(s => ({ segmentId: s })) });
+    }
+
+    async showFittedModel(pdbIds: string[]) {
+        await this.modelData.showPdbs(pdbIds);
+        await this.updateStateNode({ visibleModels: pdbIds.map(pdbId => ({ pdbId: pdbId })) });
+    }
+
+    /** Find the nodes under this entry root which have all of the given tags. */
+    findNodesByTags(...tags: string[]) {
+        return this.plugin.state.data.selectQ(q => {
+            let builder = q.byRef(this.ref).subtree();
+            for (const tag of tags) builder = builder.withTag(tag);
+            return builder;
+        });
     }
 }
 

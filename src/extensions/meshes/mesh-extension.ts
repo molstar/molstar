@@ -48,7 +48,7 @@ export namespace MeshlistData {
     }
     export function getShape(data: MeshlistData, color: MS.Color): MS.Shape<MS.Mesh> {
         const mesh = data.mesh;
-        const meshShape: MS.Shape<MS.Mesh> = MS.Shape.create('MyShape', data, mesh,
+        const meshShape: MS.Shape<MS.Mesh> = MS.Shape.create(data.segmentName, data, mesh,
             () => color,
             () => 1,
             // group => `${data.segmentName} | Segment ${data.segmentId} | Detail ${data.detail} | Mesh ${group}`,

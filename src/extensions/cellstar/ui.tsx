@@ -85,13 +85,12 @@ function CellStarControls({ plugin, data, setData }: { plugin: PluginContext, da
 
     const state = useBehavior(entryData.currentState);
 
-    const allSegments = entryData.metadata.annotation?.segment_list ?? [];
-    const currentSegment = useBehavior(entryData.currentSegment);
-    const visibleSegments = useBehavior(entryData.visibleSegments);
-
+    const allSegments = entryData.metadata.allSegments;
+    const selectedSegment = entryData.metadata.getSegment(state.selectedSegment);
+    const visibleSegments = state.visibleSegments.map(seg => seg.segmentId);
+    const visibleModels = state.visibleModels.map(model => model.pdbId);
 
     const allPdbs = entryData.pdbs;
-    const currentPdb = useBehavior(entryData.modelData.currentPdb);
 
     console.log('render controls');
 
@@ -101,8 +100,8 @@ function CellStarControls({ plugin, data, setData }: { plugin: PluginContext, da
         {allPdbs.length > 0 && <>
             <p style={{ margin: 5 }}><b>Fitted models in PDB:</b></p>
             {allPdbs.map(pdb =>
-                <Button key={pdb} onClick={() => entryData.modelData.showPdb(pdb === currentPdb ? undefined : pdb)}
-                    style={{ fontWeight: pdb === currentPdb ? 'bold' : undefined, textAlign: 'left' }}>
+                <Button key={pdb} onClick={() => entryData.showFittedModel(visibleModels.includes(pdb) ? [] : [pdb])}
+                    style={{ fontWeight: visibleModels.includes(pdb) ? 'bold' : undefined, textAlign: 'left' }}>
                     {pdb}
                 </Button>
             )}
@@ -110,10 +109,10 @@ function CellStarControls({ plugin, data, setData }: { plugin: PluginContext, da
 
 
         <div style={{ padding: 8, maxHeight: 200, overflow: 'hidden', overflowY: 'auto' }}>
-            <p style={{ fontWeight: 'bold' }}>{entryData.metadata.annotation?.name ?? 'Unnamed Annotation'}</p>
-            {!currentSegment && 'No segment selected'}
-            {currentSegment && `${currentSegment.biological_annotation.name ?? 'Unnamed segment'} (${currentSegment.id})`}
-            {currentSegment?.biological_annotation.external_references.map(ref =>
+            <p style={{ fontWeight: 'bold' }}>{entryData.metadata.raw.annotation?.name ?? 'Unnamed Annotation'}</p>
+            {!selectedSegment && 'No segment selected'}
+            {selectedSegment && `${selectedSegment.biological_annotation.name ?? 'Unnamed segment'} (${selectedSegment.id})`}
+            {selectedSegment?.biological_annotation.external_references.map(ref =>
                 <p key={ref.id} style={{ marginTop: 4 }}>
                     <b>{ref.resource}:{ref.accession}</b><br />
                     <i>{capitalize(ref.label)}:</i> {ref.description}
@@ -133,13 +132,14 @@ function CellStarControls({ plugin, data, setData }: { plugin: PluginContext, da
                 <div style={{ display: 'flex', marginTop: 1 }} key={segment.id}
                     onMouseEnter={() => entryData.highlightSegment(segment)}
                     onMouseLeave={() => entryData.highlightSegment()}>
-                    <Button onClick={() => entryData.showAnnotation(segment)}
-                        style={{ fontWeight: segment.id === currentSegment?.id ? 'bold' : undefined, marginRight: 1, flexGrow: 1, textAlign: 'left' }}>
+                    <Button onClick={() => entryData.selectSegment(segment !== selectedSegment ? segment.id : undefined)}
+                        style={{ fontWeight: segment.id === selectedSegment?.id ? 'bold' : undefined, marginRight: 1, flexGrow: 1, textAlign: 'left' }}>
                         <div title={segment.biological_annotation.name ?? 'Unnamed segment'} style={{ maxWidth: 240, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                             {segment.biological_annotation.name ?? 'Unnamed segment'}
                         </div>
                     </Button>
-                    <IconButton svg={visibleSegments.includes(segment) ? Icons.VisibilityOutlinedSvg : Icons.VisibilityOffOutlinedSvg} onClick={() => entryData.toggleSegment(segment)} />
+                    <IconButton svg={visibleSegments.includes(segment.id) ? Icons.VisibilityOutlinedSvg : Icons.VisibilityOffOutlinedSvg}
+                        onClick={() => entryData.toggleSegment(segment.id)} />
                 </div>
             )}
         </>}
