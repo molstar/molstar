@@ -1,7 +1,9 @@
 import { BehaviorSubject, Subject, throttleTime } from 'rxjs';
+import { Loci } from '../../mol-model/loci';
 
 import { ShapeGroup } from '../../mol-model/shape';
 import { Volume } from '../../mol-model/volume';
+import { LociLabelProvider } from '../../mol-plugin-state/manager/loci-label';
 import { PluginStateObject } from '../../mol-plugin-state/objects';
 import { PluginBehavior } from '../../mol-plugin/behavior';
 import { PluginCommands } from '../../mol-plugin/commands';
@@ -20,7 +22,7 @@ import { CellStarLatticeSegmentationData } from './entry-segmentation';
 import { CellStarState, CellStarStateData, CellStarStateParams } from './entry-state';
 import { CellStarVolumeData } from './entry-volume';
 import * as ExternalAPIs from './external-api';
-import { Choice, createEntryId, lazyGetter } from './helpers';
+import { applyEllipsis, Choice, createEntryId, isDefined, lazyGetter } from './helpers';
 import { type CellStarStateFromEntry } from './transformers';
 
 
@@ -28,6 +30,8 @@ export const MAX_VOXELS = 10 ** 7;
 // export const MAX_VOXELS = 10 ** 2; // DEBUG
 export const BOX: [[number, number, number], [number, number, number]] | null = null;
 // export const BOX: [[number, number, number], [number, number, number]] | null = [[-90, -90, -90], [90, 90, 90]]; // DEBUG
+
+const MAX_ANNOTATIONS_IN_LABEL = 6;
 
 
 const SourceChoice = new Choice({ emdb: 'EMDB', empiar: 'EMPIAR' }, 'emdb');
@@ -77,10 +81,11 @@ export class CellStarEntryData extends PluginBehavior.WithSubscribers<CellStarEn
         this.entryId = createEntryId(params.source, params.entryNumber);
     }
 
-
     async register(ref: string) {
         this.ref = ref;
         console.log('register', ref);
+        this.plugin.managers.lociLabels.addProvider(this.labelProvider);
+
         try {
             const params = this.getStateNode().obj?.data;
             if (params) {
@@ -104,19 +109,11 @@ export class CellStarEntryData extends PluginBehavior.WithSubscribers<CellStarEn
         this.subscribeObservable(this.plugin.behaviors.interaction.click, e => {
             const loci = e.current.loci;
             console.log('click', this.ref, e.current.loci, e.current.repr, e.current.repr?.state); // DEBUG
-
             if (Volume.Segment.isLoci(loci)) console.log('ownerId', loci.volume._propertyData.ownerId); // DEBUG
-            if (Volume.Segment.isLoci(loci) && loci.volume._propertyData.ownerId === this.ref) {
-                const clickedSegmentId = loci.segments.length === 1 ? loci.segments[0] : undefined;
-                this.selectSegment(clickedSegmentId);
-            }
-            if (ShapeGroup.isLoci(loci)) {
-                const meshData = (loci.shape.sourceData ?? {}) as MeshlistData;
-                if (meshData.ownerId === this.ref && meshData.segmentId !== undefined) {
-                    this.selectSegment(meshData.segmentId);
-                }
-            }
+            const clickedSegment = this.getSegmentIdFromLoci(loci);
+            if (clickedSegment !== undefined) this.selectSegment(clickedSegment);
         });
+
         this.subscribeObservable(this.highlightRequest.pipe(throttleTime(50, undefined, { leading: true, trailing: true })),
             async segment => {
                 await PluginCommands.Interactivity.ClearHighlights(this.plugin);
@@ -130,6 +127,7 @@ export class CellStarEntryData extends PluginBehavior.WithSubscribers<CellStarEn
 
     async unregister() {
         console.log('unregister', this.ref);
+        this.plugin.managers.lociLabels.removeProvider(this.labelProvider);
     }
 
     private async initialize() {
@@ -227,6 +225,38 @@ export class CellStarEntryData extends PluginBehavior.WithSubscribers<CellStarEn
             return builder;
         });
     }
+
+    private readonly labelProvider: LociLabelProvider = {
+        label: (loci: Loci): string | undefined => {
+            const segmentId = this.getSegmentIdFromLoci(loci);
+            if (segmentId === undefined) return;
+            const segment = this.metadata.getSegment(segmentId);
+            if (!segment) return;
+            const annotLabels = segment.biological_annotation.external_references.map(annot => `${applyEllipsis(annot.label)} [${annot.resource}]`);
+            if (annotLabels.length === 0) return;
+            if (annotLabels.length > MAX_ANNOTATIONS_IN_LABEL + 1) {
+                const nHidden = annotLabels.length - MAX_ANNOTATIONS_IN_LABEL;
+                annotLabels.length = MAX_ANNOTATIONS_IN_LABEL;
+                annotLabels.push(`(${nHidden} more annotations, click on the segment to see all)`)
+            }
+            return '<hr class="msp-highlight-info-hr"/>' + annotLabels.filter(isDefined).join('<br/>');
+        }
+    };
+
+    private getSegmentIdFromLoci(loci: Loci): number | undefined {
+        if (Volume.Segment.isLoci(loci) && loci.volume._propertyData.ownerId === this.ref) {
+            if (loci.segments.length === 1) {
+                return loci.segments[0];
+            }
+        }
+        if (ShapeGroup.isLoci(loci)) {
+            const meshData = (loci.shape.sourceData ?? {}) as MeshlistData;
+            if (meshData.ownerId === this.ref && meshData.segmentId !== undefined) {
+                return meshData.segmentId;
+            }
+        }
+    }
+
 }
 
 

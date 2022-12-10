@@ -169,14 +169,14 @@ const VolumeFromSegmentationCif = PluginStateTransform.BuiltIn({
     from: SO.Format.Cif,
     to: SO.Volume.Data,
     params(a) {
-        if (!a) {
-            return {
-                blockHeader: PD.Optional(PD.Text(void 0, { description: 'Header of the block to parse. If none is specifed, the 1st data block in the file is used.' })),
-            };
-        }
-        const blocks = a.data.blocks.slice(1); // zero block contains query meta-data
+        const blocks = a?.data.blocks.slice(1);
+        const blockHeaderParam = blocks ?
+            PD.Optional(PD.Select(blocks[0] && blocks[0].header, blocks.map(b => [b.header, b.header] as [string, string]), { description: 'Header of the block to parse' }))
+            : PD.Optional(PD.Text(void 0, { description: 'Header of the block to parse. If none is specifed, the 1st data block in the file is used.' }));
         return {
-            blockHeader: PD.Optional(PD.Select(blocks[0] && blocks[0].header, blocks.map(b => [b.header, b.header] as [string, string]), { description: 'Header of the block to parse' })),
+            blockHeader: blockHeaderParam,
+            segmentLabels: PD.ObjectList({ id: PD.Numeric(-1), label: PD.Text('') }, s => `${s.id} = ${s.label}`, { description: 'Mapping of segment IDs to segment labels' }),
+            ownerId: PD.Text('', { isHidden: true, description: 'Reference to the object which manages this volume' }),
         };
     }
 })({
@@ -187,7 +187,9 @@ const VolumeFromSegmentationCif = PluginStateTransform.BuiltIn({
             const block = a.data.blocks.find(b => b.header === header);
             if (!block) throw new Error(`Data block '${[header]}' not found.`);
             const segmentationCif = CIF.schema.segmentation(block);
-            const volume = await volumeFromSegmentationData(segmentationCif, { }).runInContext(ctx);
+            const segmentLabels: { [id: number]: string } = {};
+            for (const segment of params.segmentLabels) segmentLabels[segment.id] = segment.label;
+            const volume = await volumeFromSegmentationData(segmentationCif, { segmentLabels, ownerId: params.ownerId }).runInContext(ctx);
             const [x, y, z] = volume.grid.cells.space.dimensions;
             const props = { label: segmentationCif.volume_data_3d_info.name.value(0), description: `Segmentation ${x}\u00D7${y}\u00D7${z}` };
             return new SO.Volume.Data(volume, props);

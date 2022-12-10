@@ -105,11 +105,14 @@ export const ParseMeshlistTransformer = CellStarTransform({
         segmentId: PD.Numeric(1, {}, { isHidden: true }),
         segmentName: PD.Text('Segment'),
         detail: PD.Numeric(1, {}, { isHidden: true }),
+        /** Reference to the object which manages this meshlist (e.g. `MeshStreaming.Behavior`) */
+        ownerId: PD.Text('', { isHidden: true }),
     }
 })({
     apply({ a, params }, globalCtx) { // `a` is the parent node, params are 2nd argument to To.apply(), `globalCtx` is the plugin
         return MS.Task.create('Create Parsed Meshlist', async ctx => {
             const meshlistData = await MeshlistData.fromCIF(a.data, params.segmentId, params.segmentName, params.detail);
+            meshlistData.ownerId = params.ownerId;
             const es = meshlistData.meshIds.length === 1 ? '' : 'es';
             return new MeshlistStateObject(meshlistData, { label: params.label, description: `${meshlistData.segmentName} (${meshlistData.meshIds.length} mesh${es})` });
         });

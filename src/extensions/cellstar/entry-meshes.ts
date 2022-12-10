@@ -75,8 +75,9 @@ export class CellStarMeshSegmentationData {
             const detail = this.entryData.metadata.getSufficientMeshDetail(seg, DEFAULT_MESH_DETAIL);
             const color = segment.colour.length >= 3 ? Color.fromNormalizedArray(segment.colour, 0) : ColorNames.gray;
             const url = this.entryData.api.meshUrl_Bcif(this.entryData.source, this.entryData.entryId, seg, detail);
-            const meshPromise = createMeshFromUrl(this.entryData.plugin, url, seg, detail, true, false, color, group,
-                BACKGROUND_SEGMENT_VOLUME_THRESHOLD * totalVolume, segment.biological_annotation.name ?? `Segment ${seg}`, this.entryData.ref);
+            const label = segment.biological_annotation.name ?? `Segment ${seg}`;
+            const meshPromise = createMeshFromUrl(this.entryData.plugin, url, seg, detail, true, color, group,
+                BACKGROUND_SEGMENT_VOLUME_THRESHOLD * totalVolume, `<b>${label}</b>`, this.entryData.ref);
             awaiting.push(meshPromise);
         }
         for (const promise of awaiting) await promise;

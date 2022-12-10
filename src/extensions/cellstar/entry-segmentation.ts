@@ -3,8 +3,9 @@ import { SegcifProvider } from '../../mol-plugin-state/formats/volume';
 import { createVolumeRepresentationParams } from '../../mol-plugin-state/helpers/volume-representation-params';
 import { PluginStateObject } from '../../mol-plugin-state/objects';
 import { StateTransforms } from '../../mol-plugin-state/transforms';
-import { Download } from '../../mol-plugin-state/transforms/data';
+import { Download, ParseCif } from '../../mol-plugin-state/transforms/data';
 import { CreateGroup } from '../../mol-plugin-state/transforms/misc';
+import { VolumeFromSegmentationCif } from '../../mol-plugin-state/transforms/volume';
 import { StateObjectSelector } from '../../mol-state';
 import { Color } from '../../mol-util/color';
 
@@ -29,25 +30,20 @@ export class CellStarLatticeSegmentationData {
             const url = this.entryData.api.latticeUrl(this.entryData.source, this.entryData.entryId, 0, BOX, MAX_VOXELS);
             let group = this.entryData.findNodesByTags('lattice-segmentation-group')[0]?.transform.ref;
             if (!group) {
-                const newGroupNode = await this.entryData.newUpdate().apply(CreateGroup, { label: 'Segmentation', description: 'Lattice' }, { tags: ['lattice-segmentation-group'], state: { isCollapsed: true } }).commit();
+                const newGroupNode = await this.entryData.newUpdate().apply(CreateGroup,
+                    { label: 'Segmentation', description: 'Lattice' }, { tags: ['lattice-segmentation-group'], state: { isCollapsed: true } }).commit();
                 group = newGroupNode.ref;
             }
-            const data = await this.entryData.newUpdate().to(group).apply(Download, { url, isBinary: true, label: `Segmentation Data: ${url}` }).commit();
-            console.log(this.entryData.plugin.dataFormats.list);
-            const parsed = await SegcifProvider.parse(this.entryData.plugin, data);
-            const volume: StateObjectSelector<PluginStateObject.Volume.Data> = parsed.volumes?.[0];
-            const volumeData = volume.cell!.obj!.data;
-            console.log('showSegmentation', this.entryData.ref);
-            volumeData._propertyData.ownerId = this.entryData.ref;
+            const segmentLabels = this.entryData.metadata.allSegments.map(seg => ({ id: seg.id, label: `<b>${seg.biological_annotation.name}</b>` }));
+            const volumeNode = await this.entryData.newUpdate().to(group)
+                .apply(Download, { url, isBinary: true, label: `Segmentation Data: ${url}` })
+                .apply(ParseCif)
+                .apply(VolumeFromSegmentationCif, { blockHeader: 'SEGMENTATION_DATA', segmentLabels: segmentLabels, ownerId: this.entryData.ref })
+                .commit();
+            const volumeData = volumeNode.data as Volume;
             const segmentation = Volume.Segmentation.get(volumeData);
-            if (!segmentation) return;
-            segmentation.labels = {};
-            for (const segment of this.entryData.metadata.allSegments) {
-                segmentation.labels[segment.id] = segment.biological_annotation.name;
-            }
-            const segmentIds: number[] = Array.from(segmentation.segments.keys());
-            await this.entryData.plugin.build()
-                .to(volume)
+            const segmentIds: number[] = Array.from(segmentation?.segments.keys() ?? []);
+            await this.entryData.newUpdate().to(volumeNode)
                 .apply(StateTransforms.Representation.VolumeRepresentation3D, createVolumeRepresentationParams(this.entryData.plugin, volumeData, {
                     type: 'segment',
                     color: 'volume-segment',

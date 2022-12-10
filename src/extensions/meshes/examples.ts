@@ -36,7 +36,7 @@ export async function runMeshExample(plugin: MS.PluginUIContext, segments: 'fg' 
         : [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 14, 17]; // segment-13 and segment-15 are quasi background
 
     for (const segmentId of segmentIds) {
-        await createMeshFromUrl(plugin, `${db_url}/empiar-10070-mesh-rounded/segment-${segmentId}/detail-${detail}`, segmentId, detail, true, true, undefined);
+        await createMeshFromUrl(plugin, `${db_url}/empiar-10070-mesh-rounded/segment-${segmentId}/detail-${detail}`, segmentId, detail, true, undefined);
     }
 }
 
@@ -49,7 +49,7 @@ export async function runMeshExample2(plugin: MS.PluginUIContext, segments: 'one
                 : [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 14, 17]; // segment-13 and segment-15 are quasi background
 
     for (const segmentId of segmentIds) {
-        await createMeshFromUrl(plugin, `http://localhost:9000/v2/empiar/empiar-10070/mesh_bcif/${segmentId}/${detail}`, segmentId, detail, false, true, undefined);
+        await createMeshFromUrl(plugin, `http://localhost:9000/v2/empiar/empiar-10070/mesh_bcif/${segmentId}/${detail}`, segmentId, detail, false, undefined);
     }
 }
 
@@ -57,61 +57,26 @@ export async function runMeshExample2(plugin: MS.PluginUIContext, segments: 'one
 export async function runMultimeshExample(plugin: MS.PluginUIContext, segments: 'fg' | 'all', detailChoice: 'best' | 'worst', db_url: string = DB_URL) {
     const urlDetail = (detailChoice === 'best') ? '2' : 'worst';
     const numDetail = (detailChoice === 'best') ? 2 : 1000;
-    await createMeshFromUrl(plugin, `${db_url}/empiar-10070-multimesh-rounded/segments-${segments}/detail-${urlDetail}`, 0, numDetail, false, true, undefined);
+    await createMeshFromUrl(plugin, `${db_url}/empiar-10070-multimesh-rounded/segments-${segments}/detail-${urlDetail}`, 0, numDetail, false, undefined);
 }
 
 /** Download data and create state tree hierarchy down to visual representation. */
 export async function createMeshFromUrl(plugin: MS.PluginContext, meshDataUrl: string, segmentId: number, detail: number,
-    collapseTree: boolean, log: boolean, color?: MS.Color, parent?: MS.StateObjectSelector | MS.StateObjectRef, transparentIfBboxAbove?: number,
+    collapseTree: boolean, color?: MS.Color, parent?: MS.StateObjectSelector | MS.StateObjectRef, transparentIfBboxAbove?: number,
     name?: string, ownerId?: string) {
 
-    // PARAMS - Depend on the type of transformer T -> Params<T>
-    // 1st argument to plugin.builders.data.rawData, 2nd argument to .apply
-
-    // OPTIONS - Same for each type of transformer
-    // Last argument to plugin.builders.data.rawData, plugin.builders.data.download, .apply
-    // interface StateTransform.Options {
-    //     ref?: string,  // State tree node ID (default: auto-generated ID)
-    //     tags?: string | string[],  // I don't know what this is for
-    //     state?: {
-    //         isGhost?: boolean,  // is the cell shown in the UI
-    //         isLocked?: boolean,  // can the corresponding be deleted by the user.
-    //         isHidden?: boolean,  // is the representation associated with the cell hidden
-    //         isCollapsed?: boolean,  // is the tree node collapsed?
-    //     },
-    //     dependsOn?: string[]  // references to other nodes, I think
-    // }
-
     const update = parent ? plugin.build().to(parent) : plugin.build().toRoot();
-
-    // RAW DATA NODE
-    const rawDataNode = await update.apply(MS.Download,
-        { url: meshDataUrl, isBinary: true, label: `Downloaded Data ${segmentId}` }, // params
-        { tags: ['What', 'are', 'tags', 'good', 'for?'], state: { isCollapsed: collapseTree } } // options
-    ).commit();
-    if (log) console.log('rawDataNode:', rawDataNode);
-
-    const cifNode = await plugin.build().to(rawDataNode).apply(MS.StateTransforms.Data.ParseCif).commit();
-    if (log) console.log('cifNode:', rawDataNode);
-
-    // PARSED DATA NODE
-    const parsedDataNode = await plugin.build().to(cifNode).apply(
-        ParseMeshlistTransformer,
-        { label: undefined, segmentId: segmentId, segmentName: name ?? `Segment ${segmentId}`, detail: detail }, // params
-        { } // options
-    ).commit();
-    if (ownerId && parsedDataNode.data) parsedDataNode.data.ownerId = ownerId;
-    if (log) console.log('parsedDataNode:', parsedDataNode);
-    if (log) console.log('parsedDataNode.data:', parsedDataNode.data);
-    if (log) console.log('parsedDataNode mesh list stats:\n', MeshlistData.stats(parsedDataNode.data!));
-
-    // MESH SHAPE NODE
-    const shapeNode = await plugin.build().to(parsedDataNode).apply(MeshShapeTransformer,
-        { color: color }, // options
-    ).commit();
-    if (log) console.log('shapeNode:', shapeNode);
-    if (log) console.log('shapeNode.data:', shapeNode.data);
-
+    const rawDataNodeRef = update.apply(MS.Download,
+        { url: meshDataUrl, isBinary: true, label: `Downloaded Data ${segmentId}` },
+        { state: { isCollapsed: collapseTree } }
+    ).ref;
+    const parsedDataNode = await update.to(rawDataNodeRef)
+        .apply(MS.StateTransforms.Data.ParseCif)
+        .apply(ParseMeshlistTransformer,
+            { label: undefined, segmentId: segmentId, segmentName: name ?? `Segment ${segmentId}`, detail: detail, ownerId: ownerId },
+            {}
+        )
+        .commit();
 
     let transparent = false;
     if (transparentIfBboxAbove !== undefined && parsedDataNode.data) {
@@ -119,16 +84,15 @@ export async function createMeshFromUrl(plugin: MS.PluginContext, meshDataUrl: s
         transparent = MS.Box3D.volume(bbox) > transparentIfBboxAbove;
     }
 
-    // MESH REPR NODE
-    const reprNode = await plugin.build().to(shapeNode).apply(MS.ShapeRepresentation3D,
-        { alpha: transparent ? BACKGROUND_OPACITY : FOREROUND_OPACITY },
-        { tags: ['mesh-segment-visual', `segment-${segmentId}`] }
-    ).commit();
-    if (log) console.log('reprNode:', reprNode);
-    if (log) console.log('reprNode.data:', reprNode.data);
+    await plugin.build().to(parsedDataNode)
+        .apply(MeshShapeTransformer, { color: color },)
+        .apply(MS.ShapeRepresentation3D,
+            { alpha: transparent ? BACKGROUND_OPACITY : FOREROUND_OPACITY },
+            { tags: ['mesh-segment-visual', `segment-${segmentId}`] }
+        )
+        .commit();
 
-    return rawDataNode;
-
+    return rawDataNodeRef;
 }
 
 export async function runMeshStreamingExample(plugin: MS.PluginUIContext, source: MeshServerInfo.MeshSource = 'empiar', entryId: string = 'empiar-10070', serverUrl?: string, parent?: MS.StateObjectSelector) {

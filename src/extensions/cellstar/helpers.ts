@@ -132,6 +132,16 @@ export const CreateVolume = CreateTransformer({
 
 
 
+export function applyEllipsis(name: string, max_chars: number = 60){
+    if (name.length <= max_chars) return name;
+    const beginning = name.substring(0, max_chars);
+    let lastSpace = beginning.lastIndexOf(' ');
+    if (lastSpace === -1) return beginning + '...';
+    if (lastSpace > 0 && ',;.'.includes(name.charAt(lastSpace-1))) lastSpace--;
+    return name.substring(0, lastSpace) + '...';
+}
+
+
 export function lazyGetter<T>(getter: () => T, errorIfUndefined?: string) {
     let value: T | undefined = undefined;
     return () => {

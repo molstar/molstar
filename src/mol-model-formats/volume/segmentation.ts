@@ -14,7 +14,7 @@ import { CustomProperties } from '../../mol-model/custom-property';
 import { Segmentation_Data_Database } from '../../mol-io/reader/cif/schema/segmentation';
 import { objectForEach } from '../../mol-util/object';
 
-export function volumeFromSegmentationData(source: Segmentation_Data_Database, params?: Partial<{ label: string }>): Task<Volume> {
+export function volumeFromSegmentationData(source: Segmentation_Data_Database, params?: Partial<{ label: string, segmentLabels: { [id: number]: string }, ownerId: string }>): Task<Volume> {
     return Task.create<Volume>('Create Segmentation Volume', async ctx => {
         const { volume_data_3d_info: info, segmentation_data_3d: values } = source;
         const cell = SpacegroupCell.create(
@@ -53,7 +53,7 @@ export function volumeFromSegmentationData(source: Segmentation_Data_Database, p
             },
             sourceData: SegcifFormat.create(source),
             customProperties: new CustomProperties(),
-            _propertyData: Object.create(null),
+            _propertyData: { ownerId: params?.ownerId },
         };
 
         Volume.PickingGranularity.set(v, 'object');
@@ -120,8 +120,7 @@ export function volumeFromSegmentationData(source: Segmentation_Data_Database, p
             });
         });
 
-        Volume.Segmentation.set(v, { segments, sets, bounds });
-        // console.log({ segments, sets, bounds })
+        Volume.Segmentation.set(v, { segments, sets, bounds, labels: params?.segmentLabels ?? {} });
 
         return v;
     });

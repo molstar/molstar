@@ -298,7 +298,7 @@ export namespace Volume {
         segments: Map<number, Set<number>>
         sets: Map<number, Set<number>>
         bounds: { [k: number]: Box3D }
-        labels?: { [k: number]: string }
+        labels: { [k: number]: string }
     };
     export const Segmentation = {
         set(volume: Volume, segmentation: Segmentation) {

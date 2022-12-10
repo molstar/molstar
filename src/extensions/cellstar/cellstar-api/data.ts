@@ -67,7 +67,12 @@ export interface Segment {
 
 export interface BiologicalAnnotation {
     name: string,
-    external_references: { id: number, resource: string, accession: string, label: string, description: string }[]
+    external_references: ExternalReference[]
+}
+
+export interface ExternalReference {
+    id: number, resource: string, accession: string, label: string,
+    description: string
 }
 
 type Vector3 = [number, number, number];
