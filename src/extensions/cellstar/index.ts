@@ -1,13 +1,21 @@
 import { PluginStateObject as SO } from '../../mol-plugin-state/objects';
 import { PluginBehavior } from '../../mol-plugin/behavior';
+import { PluginConfigItem } from '../../mol-plugin/config';
 import { PluginContext } from '../../mol-plugin/context';
 import { StateAction } from '../../mol-state';
 import { Task } from '../../mol-task';
+import { DEFAULT_VOLUME_SERVER_V2 } from './cellstar-api/api';
 
-import { CellStarEntryData, CellStarEntryParams } from './entry-root';
+import { CellStarEntryData, createCellStarEntryParams } from './entry-root';
 import { createEntryId } from './helpers';
 import { CellStarEntryFromRoot, CellStarStateFromEntry } from './transformers';
 import { CellStarUI } from './ui';
+
+
+export const CellStarVolumeServerConfig = {
+    // DefaultServer: new PluginConfigItem('cellstar-volume-server', DEFAULT_VOLUME_SERVER_V2),
+    DefaultServer: new PluginConfigItem('cellstar-volume-server', window.location.hostname !== 'localhost' ? DEFAULT_VOLUME_SERVER_V2 : 'http://localhost:9000/v2'), // DEBUG, TODO remove
+};
 
 
 export const CellStar = PluginBehavior.create<{ autoAttach: boolean, showTooltip: boolean }>({
@@ -47,7 +55,7 @@ export const CellStar = PluginBehavior.create<{ autoAttach: boolean, showTooltip
 export const LoadCellStar = StateAction.build({
     display: { name: 'Load Cell*', description: 'Load entry from Cell* volume.' },
     from: SO.Root,
-    params: CellStarEntryParams,
+    params: (a, plugin: PluginContext) => createCellStarEntryParams(plugin),
 })(({ params, state }, ctx: PluginContext) => Task.create('CellStar', taskCtx => {
     return state.transaction(async () => {
         if (params.entryNumber.trim().length === 0) {

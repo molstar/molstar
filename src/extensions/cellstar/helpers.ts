@@ -3,22 +3,24 @@ import { PluginStateObject } from '../../mol-plugin-state/objects';
 import { setSubtreeVisibility } from '../../mol-plugin/behavior/static/state';
 import { StateBuilder, StateObjectSelector, StateTransformer } from '../../mol-state';
 import { ParamDefinition } from '../../mol-util/param-definition';
+import { Source } from './entry-root';
 
 
 /** Split entry ID (e.g. 'emd-1832') into source ('emdb') and number ('1832') */
 export function splitEntryId(entryId: string) {
-    const PREFIX_TO_SOURCE: { [prefix: string]: string } = { 'empiar': 'empiar', 'emd': 'emdb' };
+    const PREFIX_TO_SOURCE: { [prefix: string]: Source } = { 'emd': 'emdb' };
     const [prefix, entry] = entryId.split('-');
     return {
-        source: PREFIX_TO_SOURCE[prefix],
+        source: PREFIX_TO_SOURCE[prefix] ?? prefix,
         entryNumber: entry
     };
 }
 
 /** Create entry ID (e.g. 'emd-1832') for a combination of source ('emdb') and number ('1832') */
-export function createEntryId(source: string, entryNumber: string | number) {
-    const SOURCE_TO_PREFIX: { [prefix: string]: string } = { 'empiar': 'empiar', 'emdb': 'emd' };
-    return `${SOURCE_TO_PREFIX[source]}-${entryNumber}`;
+export function createEntryId(source: Source, entryNumber: string | number) {
+    const SOURCE_TO_PREFIX: { [prefix: string]: string } = { 'emdb': 'emd' };
+    const prefix = SOURCE_TO_PREFIX[source] ?? source;
+    return `${prefix}-${entryNumber}`;
 }
 
 
@@ -132,12 +134,12 @@ export const CreateVolume = CreateTransformer({
 
 
 
-export function applyEllipsis(name: string, max_chars: number = 60){
+export function applyEllipsis(name: string, max_chars: number = 60) {
     if (name.length <= max_chars) return name;
     const beginning = name.substring(0, max_chars);
     let lastSpace = beginning.lastIndexOf(' ');
     if (lastSpace === -1) return beginning + '...';
-    if (lastSpace > 0 && ',;.'.includes(name.charAt(lastSpace-1))) lastSpace--;
+    if (lastSpace > 0 && ',;.'.includes(name.charAt(lastSpace - 1))) lastSpace--;
     return name.substring(0, lastSpace) + '...';
 }
 

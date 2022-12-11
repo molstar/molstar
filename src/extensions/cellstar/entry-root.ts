@@ -1,4 +1,5 @@
 import { BehaviorSubject, Subject, throttleTime } from 'rxjs';
+import { CellStarVolumeServerConfig } from '.';
 import { Loci } from '../../mol-model/loci';
 
 import { ShapeGroup } from '../../mol-model/shape';
@@ -34,16 +35,19 @@ export const BOX: [[number, number, number], [number, number, number]] | null = 
 const MAX_ANNOTATIONS_IN_LABEL = 6;
 
 
-const SourceChoice = new Choice({ emdb: 'EMDB', empiar: 'EMPIAR' }, 'emdb');
-type Source = Choice.Values<typeof SourceChoice>
+const SourceChoice = new Choice({ emdb: 'EMDB', empiar: 'EMPIAR', idr: 'IDR' }, 'emdb');
+export type Source = Choice.Values<typeof SourceChoice>
 
 
-export const CellStarEntryParams = {
-    serverUrl: ParamDefinition.Text(DEFAULT_VOLUME_SERVER_V2),
-    source: SourceChoice.PDSelect(),
-    entryNumber: ParamDefinition.Text('1832'),
-};
-type CellStarEntryParamValues = ParamDefinition.Values<typeof CellStarEntryParams>;
+export function createCellStarEntryParams(plugin?: PluginContext) {
+    const defaultVolumeServer = plugin?.config.get(CellStarVolumeServerConfig.DefaultServer) ?? DEFAULT_VOLUME_SERVER_V2;
+    return {
+        serverUrl: ParamDefinition.Text(defaultVolumeServer),
+        source: SourceChoice.PDSelect(),
+        entryNumber: ParamDefinition.Text('1832'),
+    };
+}
+type CellStarEntryParamValues = ParamDefinition.Values<ReturnType<typeof createCellStarEntryParams>>;
 
 
 export class CellStarEntry extends PluginStateObject.CreateBehavior<CellStarEntryData>({ name: 'CellStar Entry' }) { }
@@ -237,7 +241,7 @@ export class CellStarEntryData extends PluginBehavior.WithSubscribers<CellStarEn
             if (annotLabels.length > MAX_ANNOTATIONS_IN_LABEL + 1) {
                 const nHidden = annotLabels.length - MAX_ANNOTATIONS_IN_LABEL;
                 annotLabels.length = MAX_ANNOTATIONS_IN_LABEL;
-                annotLabels.push(`(${nHidden} more annotations, click on the segment to see all)`)
+                annotLabels.push(`(${nHidden} more annotations, click on the segment to see all)`);
             }
             return '<hr class="msp-highlight-info-hr"/>' + annotLabels.filter(isDefined).join('<br/>');
         }

@@ -1,12 +1,9 @@
 import { Volume } from '../../mol-model/volume';
-import { SegcifProvider } from '../../mol-plugin-state/formats/volume';
 import { createVolumeRepresentationParams } from '../../mol-plugin-state/helpers/volume-representation-params';
-import { PluginStateObject } from '../../mol-plugin-state/objects';
 import { StateTransforms } from '../../mol-plugin-state/transforms';
 import { Download, ParseCif } from '../../mol-plugin-state/transforms/data';
 import { CreateGroup } from '../../mol-plugin-state/transforms/misc';
 import { VolumeFromSegmentationCif } from '../../mol-plugin-state/transforms/volume';
-import { StateObjectSelector } from '../../mol-state';
 import { Color } from '../../mol-util/color';
 
 import { Segment } from './cellstar-api/data';

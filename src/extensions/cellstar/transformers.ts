@@ -3,7 +3,7 @@ import { PluginContext } from '../../mol-plugin/context';
 import { StateTransformer } from '../../mol-state';
 import { Task } from '../../mol-task';
 
-import { CellStarEntry, CellStarEntryData, CellStarEntryParams } from './entry-root';
+import { CellStarEntry, CellStarEntryData, createCellStarEntryParams } from './entry-root';
 import { CellStarState, CellStarStateParams, CELLSTAR_STATE_FROM_ENTRY_TRANSFORMER_NAME } from './entry-state';
 
 
@@ -12,7 +12,7 @@ export const CellStarEntryFromRoot = PluginStateTransform.BuiltIn({
     display: { name: 'CellStar Entry', description: 'CellStar Entry' },
     from: PluginStateObject.Root,
     to: CellStarEntry,
-    params: CellStarEntryParams,
+    params: (a, plugin: PluginContext) => createCellStarEntryParams(plugin),
 })({
     apply({ a, params }, plugin: PluginContext) {
         return Task.create('Load CellStar Entry', async () => {

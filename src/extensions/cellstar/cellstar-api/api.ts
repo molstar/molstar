@@ -1,65 +1,15 @@
 import { type Metadata } from './data';
 
-function getProcess() {
-    try {
-        return process; // `process` is only available in Node
-    } catch {
-        return undefined;
-    }
-}
-const PROCESS = getProcess();
 
-/** API hostname used unless running on 'localhost' or set by environment variable (our MetaCentrum machine) */
-const DEFAULT_HOSTNAME = 'https://cellstar.ncbr.muni.cz'; // const DEFAULT_HOSTNAME = 'http://147.251.21.142';
-
-function createApiPrefix() {
-    if (!PROCESS?.env.REACT_APP_API_HOSTNAME && window.location.hostname !== 'localhost') {
-        return DEFAULT_HOSTNAME;
-    }
-    const hostname = PROCESS?.env.REACT_APP_API_HOSTNAME
-        ? PROCESS?.env.REACT_APP_API_HOSTNAME
-        : `${window.location.protocol}//${window.location.hostname}`;
-    const port = PROCESS?.env.REACT_APP_API_PORT
-        ? PROCESS?.env.REACT_APP_API_PORT
-        : '9000';
-    const prefix = PROCESS?.env.REACT_APP_API_PREFIX
-        ? `/${PROCESS?.env.REACT_APP_API_PREFIX}`
-        : ``;
-
-    return `${hostname}:${port}${prefix}`;
-}
-
-function getGitTag() {
-    return `${PROCESS?.env.REACT_APP_GIT_TAG ?? ''}`;
-}
-
-function getGitSha() {
-    return `${PROCESS?.env.REACT_APP_GIT_SHA ?? ''}`;
-}
-
-const DEFAULT_API_PREFIX = createApiPrefix();
-const GIT_TAG = getGitTag();
-const GIT_SHA = getGitSha();
-export const DEFAULT_VOLUME_SERVER_V2 = `${DEFAULT_API_PREFIX}/v2`;
+export const DEFAULT_VOLUME_SERVER_V2 = 'https://cellstar.ncbr.muni.cz/v2';
 
 
 export class VolumeApiV2 {
     public volumeServerUrl: string;
-    public volumeServerGitTag: string;
-    public volumeServerGitSha: string;
 
-    public constructor(
-        volumeServerUrl: string = DEFAULT_VOLUME_SERVER_V2,
-        volumeServerGitTag: string = GIT_TAG,
-        volumeServerGitSha: string = GIT_SHA
-    ) {
+    public constructor(volumeServerUrl: string = DEFAULT_VOLUME_SERVER_V2) {
         this.volumeServerUrl = volumeServerUrl.replace(/\/$/, ''); // trim trailing slash
-        this.volumeServerGitTag = volumeServerGitTag;
-        this.volumeServerGitSha = volumeServerGitSha;
-
         console.log('API V2', this.volumeServerUrl);
-        console.log(`SHA: ${this.volumeServerGitSha}`);
-        console.log(`GIT TAG: ${this.volumeServerGitTag}`);
     }
 
     public entryListUrl(maxEntries: number, keyword?: string): string {
