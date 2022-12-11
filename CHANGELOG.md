@@ -8,6 +8,10 @@ Note that since we don't clearly distinguish between a public and private interf
 
 - Fix 'once' for animations of systems with many frames
 - Better guard against issue (black fringes) with bumpiness in impostors
+- Improve impostor shaders
+    - Fix sphere near-clipping with orthographic projection
+    - Fix cylinder near-clipping
+    - Add interior cylinder caps
 
 ## [v3.26.0] - 2022-12-04
 

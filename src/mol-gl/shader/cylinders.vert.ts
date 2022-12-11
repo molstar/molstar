@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -68,6 +68,9 @@ void main() {
     vec4 mvPosition = uView * vec4(vModelPosition, 1.0);
     vViewPosition = mvPosition.xyz;
     gl_Position = uProjection * mvPosition;
+
+    mvPosition.z -= 2.0 * (length(vEnd - vStart) + vSize); // avoid clipping
+    gl_Position.z = (uProjection * mvPosition).z;
 
     #include clip_instance
 }
