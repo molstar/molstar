@@ -126,9 +126,9 @@ export const AnimateModelIndex = PluginStateAnimation.create({
 
                     if (params.mode.name === 'once' && t.current >= durationInMs) {
                         isEnd = true;
-                        return { modelIndex: traj.data.frameCount-1 };
+                        return { modelIndex: traj.data.frameCount - 1 };
                     }
-                    
+
                     let phase: number = (t.current % durationInMs) / durationInMs;
                     if (params.mode.name === 'loop') {
                         if (params.mode.params.direction === 'backward') {
