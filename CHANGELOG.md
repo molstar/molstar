@@ -12,6 +12,7 @@ Note that since we don't clearly distinguish between a public and private interf
     - Fix sphere near-clipping with orthographic projection
     - Fix cylinder near-clipping
     - Add interior cylinder caps
+- Fix `QualityAssessment` assignment bug for structures with different auth vs label sequence numbering
 
 ## [v3.26.0] - 2022-12-04
 
