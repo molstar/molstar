@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2021-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -14,14 +14,23 @@ import { CustomPropSymbol } from '../../../mol-script/language/symbol';
 import { Type } from '../../../mol-script/language/type';
 import { CustomPropertyDescriptor } from '../../../mol-model/custom-property';
 import { MmcifFormat } from '../../../mol-model-formats/structure/mmcif';
+import { mmCIF_Schema } from '../../../mol-io/reader/cif/schema/mmcif';
 
 export { QualityAssessment };
 
+type MetricType = mmCIF_Schema['ma_qa_metric']['type']['T']
+type MetricName = 'pLDDT' | 'qmean';
+
 interface QualityAssessment {
-    localMetrics: Map<string, Map<ResidueIndex, number>>
+    localMetrics: Map<MetricType, Map<ResidueIndex, number>>
     pLDDT?: Map<ResidueIndex, number>
     qmean?: Map<ResidueIndex, number>
 }
+
+const NameToType: { [k in MetricName]: MetricType } = {
+    pLDDT: 'pLDDT',
+    qmean: 'pLDDT all-atom in [0,1]',
+};
 
 namespace QualityAssessment {
     const Empty = {
@@ -30,7 +39,7 @@ namespace QualityAssessment {
         }
     };
 
-    export function isApplicable(model?: Model, localMetricName?: 'pLDDT' | 'qmean'): boolean {
+    export function isApplicable(model?: Model, localMetricName?: MetricName): boolean {
         if (!model || !MmcifFormat.is(model.sourceData)) return false;
         const { db } = model.sourceData.data;
         const hasLocalMetric = (
@@ -38,9 +47,10 @@ namespace QualityAssessment {
             db.ma_qa_metric_local.ordinal_id.isDefined
         );
         if (localMetricName && hasLocalMetric) {
+            const type = NameToType[localMetricName];
             for (let i = 0, il = db.ma_qa_metric._rowCount; i < il; i++) {
                 if (db.ma_qa_metric.mode.value(i) !== 'local') continue;
-                if (localMetricName === db.ma_qa_metric.name.value(i)) return true;
+                if (type === db.ma_qa_metric.type.value(i)) return true;
             }
             return false;
         } else {
@@ -55,20 +65,20 @@ namespace QualityAssessment {
         const { index } = model.atomicHierarchy;
 
         // for simplicity we assume names in ma_qa_metric for mode 'local' are unique
-        const localMetrics = new Map<string, Map<ResidueIndex, number>>();
-        const localNames = new Map<number, string>();
+        const localMetrics = new Map<MetricType, Map<ResidueIndex, number>>();
+        const localTypes = new Map<number, MetricType>();
 
         for (let i = 0, il = ma_qa_metric._rowCount; i < il; i++) {
             if (ma_qa_metric.mode.value(i) !== 'local') continue;
 
-            const name = ma_qa_metric.name.value(i);
-            if (localMetrics.has(name)) {
-                console.warn(`local ma_qa_metric with name '${name}' already added`);
+            const type = ma_qa_metric.type.value(i);
+            if (localMetrics.has(type)) {
+                console.warn(`local ma_qa_metric with type '${type}' already added`);
                 continue;
             }
 
-            localMetrics.set(name, new Map());
-            localNames.set(ma_qa_metric.id.value(i), name);
+            localMetrics.set(type, new Map());
+            localTypes.set(ma_qa_metric.id.value(i), type);
         }
 
         for (let i = 0, il = ma_qa_metric_local._rowCount; i < il; i++) {
@@ -77,15 +87,15 @@ namespace QualityAssessment {
             const labelAsymId = label_asym_id.value(i);
             const entityIndex = index.findEntity(labelAsymId);
             const rI = index.findResidue(model.entities.data.id.value(entityIndex), labelAsymId, label_seq_id.value(i));
-            const name = localNames.get(metric_id.value(i))!;
-            localMetrics.get(name)!.set(rI, metric_value.value(i));
+            const type = localTypes.get(metric_id.value(i))!;
+            localMetrics.get(type)!.set(rI, metric_value.value(i));
         }
 
         return {
             value: {
                 localMetrics,
                 pLDDT: localMetrics.get('pLDDT'),
-                qmean: localMetrics.get('qmean'),
+                qmean: localMetrics.get('pLDDT all-atom in [0,1]'),
             }
         };
     }
