@@ -22,7 +22,7 @@ namespace AlignSequences {
         score: number
     }
 
-    function createSeqIdIndicesMap(element: StructureElement.Loci.Element) {
+    export function createSeqIdIndicesMap(element: StructureElement.Loci.Element) {
         const seqIds = new Map<number, StructureElement.UnitIndex[]>();
         if (Unit.isAtomic(element.unit)) {
             const { label_seq_id } = element.unit.model.atomicHierarchy.residues;
@@ -94,7 +94,7 @@ namespace AlignSequences {
     }
 }
 
-function entityKey(unit: Unit) {
+export function entityKey(unit: Unit) {
     switch (unit.kind) {
         case Unit.Kind.Atomic:
             return unit.model.atomicHierarchy.index.getEntityFromChain(unit.chainIndex[unit.elements[0]]);
@@ -105,6 +105,6 @@ function entityKey(unit: Unit) {
     }
 }
 
-function getSequence(unit: Unit) {
+export function getSequence(unit: Unit) {
     return unit.model.sequence.byEntityKey[entityKey(unit)].sequence;
 }
