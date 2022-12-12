@@ -69,7 +69,7 @@ void main(void){
     if (fragmentDepth < 0.0) discard;
     if (fragmentDepth > 1.0) discard;
 
-    if (interior && fragmentDepth >= 0.0) {
+    if (interior) {
         fragmentDepth = 0.0 + (0.0000001 / vRadius);
     }
 
