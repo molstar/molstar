@@ -142,7 +142,7 @@ export class DrawPass {
         }
 
         if (PostprocessingPass.isEnabled(postprocessingProps)) {
-            if (PostprocessingPass.isOutlineEnabled(postprocessingProps)) {
+            if (PostprocessingPass.isTransparentOutlineEnabled(postprocessingProps)) {
                 this.depthTargetTransparent.bind();
                 renderer.clearDepth(true);
                 if (scene.opacityAverage < 1) {
@@ -196,7 +196,7 @@ export class DrawPass {
         }
 
         if (PostprocessingPass.isEnabled(postprocessingProps)) {
-            if (PostprocessingPass.isOutlineEnabled(postprocessingProps)) {
+            if (PostprocessingPass.isTransparentOutlineEnabled(postprocessingProps)) {
                 this.depthTargetTransparent.bind();
                 renderer.clearDepth(true);
                 if (scene.opacityAverage < 1) {
@@ -260,7 +260,7 @@ export class DrawPass {
                     this.colorTarget.depthRenderbuffer?.detachFramebuffer(this.postprocessing.target.framebuffer);
                 }
 
-                if (PostprocessingPass.isOutlineEnabled(postprocessingProps)) {
+                if (PostprocessingPass.isTransparentOutlineEnabled(postprocessingProps)) {
                     this.depthTargetTransparent.bind();
                     renderer.clearDepth(true);
                     if (scene.opacityAverage < 1) {

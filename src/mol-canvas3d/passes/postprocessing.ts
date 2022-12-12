@@ -383,8 +383,8 @@ export class PostprocessingPass {
         return props.occlusion.name === 'on' || props.shadow.name === 'on' || props.outline.name === 'on' || props.background.variant.name !== 'off';
     }
 
-    static isOutlineEnabled(props: PostprocessingProps) {
-        return props.outline.name === 'on';
+    static isTransparentOutlineEnabled(props: PostprocessingProps) {
+        return props.outline.name === 'on' && props.outline.params.includeTransparent;
     }
 
     readonly target: RenderTarget;
