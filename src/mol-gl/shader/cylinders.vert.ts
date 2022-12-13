@@ -55,7 +55,12 @@ void main() {
     vec3 camDir = -mix(normalize(vModelPosition - uCameraPosition), uCameraDir, uIsOrtho);
     vec3 dir = vEnd - vStart;
     // ensure cylinder 'dir' is pointing towards the camera
-    if(dot(camDir, dir) < 0.0) dir = -dir;
+    if(dot(camDir, dir) < 0.0) {
+        dir = -dir;
+        vec3 tmp = vStart;
+        vStart = vEnd;
+        vEnd = tmp;
+    }
 
     vec3 left = cross(camDir, dir);
     vec3 up = cross(left, dir);
