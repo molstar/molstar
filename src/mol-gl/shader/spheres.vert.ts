@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -85,7 +85,6 @@ void main(void){
 
     vec4 position4 = vec4(aPosition, 1.0);
     vec4 mvPosition = uModelView * aTransform * position4;
-    mvPosition.z -= vRadius; // avoid clipping, added again in fragment shader
 
     gl_Position = uProjection * vec4(mvPosition.xyz, 1.0);
     quadraticProjection(size, aPosition);
@@ -96,6 +95,9 @@ void main(void){
     vPointViewPosition = -mvPosition.xyz / mvPosition.w;
 
     vModelPosition = (uModel * aTransform * position4).xyz; // for clipping in frag shader
+
+    mvPosition.z -= 2.0 * vRadius; // avoid clipping
+    gl_Position.z = (uProjection * vec4(mvPosition.xyz, 1.0)).z;
 
     #include clip_instance
 }

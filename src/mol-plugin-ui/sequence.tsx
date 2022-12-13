@@ -29,7 +29,7 @@ const MaxDisplaySequenceLength = 5000;
 const MaxSelectOptionsCount = 1000;
 const MaxSequenceWrappersCount = 30;
 
-function opKey(l: StructureElement.Location) {
+export function opKey(l: StructureElement.Location) {
     const ids = SP.unit.pdbx_struct_oper_list_ids(l);
     const ncs = SP.unit.struct_ncs_oper_id(l);
     const hkl = SP.unit.hkl(l);
@@ -37,12 +37,12 @@ function opKey(l: StructureElement.Location) {
     return `${ids.sort().join(',')}|${ncs}|${hkl}|${spgrOp}`;
 }
 
-function splitModelEntityId(modelEntityId: string) {
+export function splitModelEntityId(modelEntityId: string) {
     const [modelIdx, entityId] = modelEntityId.split('|');
     return [parseInt(modelIdx), entityId];
 }
 
-function getSequenceWrapper(state: { structure: Structure, modelEntityId: string, chainGroupId: number, operatorKey: string }, structureSelection: StructureSelectionManager): SequenceWrapper.Any | string {
+export function getSequenceWrapper(state: { structure: Structure, modelEntityId: string, chainGroupId: number, operatorKey: string }, structureSelection: StructureSelectionManager): SequenceWrapper.Any | string {
     const { structure, modelEntityId, chainGroupId, operatorKey } = state;
     const l = StructureElement.Location.create(structure);
     const [modelIdx, entityId] = splitModelEntityId(modelEntityId);
@@ -97,7 +97,7 @@ function getSequenceWrapper(state: { structure: Structure, modelEntityId: string
     }
 }
 
-function getModelEntityOptions(structure: Structure, polymersOnly = false): [string, string][] {
+export function getModelEntityOptions(structure: Structure, polymersOnly = false): [string, string][] {
     const options: [string, string][] = [];
     const l = StructureElement.Location.create(structure);
     const seen = new Set<string>();
@@ -131,7 +131,7 @@ function getModelEntityOptions(structure: Structure, polymersOnly = false): [str
     return options;
 }
 
-function getChainOptions(structure: Structure, modelEntityId: string): [number, string][] {
+export function getChainOptions(structure: Structure, modelEntityId: string): [number, string][] {
     const options: [number, string][] = [];
     const l = StructureElement.Location.create(structure);
     const seen = new Set<number>();
@@ -161,7 +161,7 @@ function getChainOptions(structure: Structure, modelEntityId: string): [number, 
     return options;
 }
 
-function getOperatorOptions(structure: Structure, modelEntityId: string, chainGroupId: number): [string, string][] {
+export function getOperatorOptions(structure: Structure, modelEntityId: string, chainGroupId: number): [string, string][] {
     const options: [string, string][] = [];
     const l = StructureElement.Location.create(structure);
     const seen = new Set<string>();
@@ -189,7 +189,7 @@ function getOperatorOptions(structure: Structure, modelEntityId: string, chainGr
     return options;
 }
 
-function getStructureOptions(state: State) {
+export function getStructureOptions(state: State) {
     const options: [string, string][] = [];
     const all: Structure[] = [];
 

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Ludovic Autin <autin@scripps.edu>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -7,45 +7,45 @@
 
 export const common_clip = `
 #if dClipObjectCount != 0
-    vec3 quaternionTransform(vec4 q, vec3 v) {
+    vec3 quaternionTransform(const in vec4 q, const in vec3 v) {
         vec3 t = 2.0 * cross(q.xyz, v);
         return v + q.w * t + cross(q.xyz, t);
     }
 
-    vec4 computePlane(vec3 normal, vec3 inPoint) {
+    vec4 computePlane(const in vec3 normal, const in vec3 inPoint) {
         return vec4(normalize(normal), -dot(normal, inPoint));
     }
 
-    float planeSD(vec4 plane, vec3 center) {
+    float planeSD(const in vec4 plane, const in vec3 center) {
         return -dot(plane.xyz, center - plane.xyz * -plane.w);
     }
 
-    float sphereSD(vec3 position, vec4 rotation, vec3 size, vec3 center) {
+    float sphereSD(const in vec3 position, const in vec4 rotation, const in vec3 size, const in vec3 center) {
         return (
             length(quaternionTransform(vec4(-rotation.x, -rotation.y, -rotation.z, rotation.w), center - position) / size) - 1.0
         ) * min(min(size.x, size.y), size.z);
     }
 
-    float cubeSD(vec3 position, vec4 rotation, vec3 size, vec3 center) {
+    float cubeSD(const in vec3 position, const in vec4 rotation, const in vec3 size, const in vec3 center) {
         vec3 d = abs(quaternionTransform(vec4(-rotation.x, -rotation.y, -rotation.z, rotation.w), center - position)) - size;
         return min(max(d.x, max(d.y, d.z)), 0.0) + length(max(d, 0.0));
     }
 
-    float cylinderSD(vec3 position, vec4 rotation, vec3 size, vec3 center) {
+    float cylinderSD(const in vec3 position, const in vec4 rotation, const in vec3 size, const in vec3 center) {
         vec3 t = quaternionTransform(vec4(-rotation.x, -rotation.y, -rotation.z, rotation.w), center - position);
 
         vec2 d = abs(vec2(length(t.xz), t.y)) - size.xy;
         return min(max(d.x, d.y), 0.0) + length(max(d, 0.0));
     }
 
-    float infiniteConeSD(vec3 position, vec4 rotation, vec3 size, vec3 center) {
+    float infiniteConeSD(const in vec3 position, const in vec4 rotation, const in vec3 size, const in vec3 center) {
         vec3 t = quaternionTransform(vec4(-rotation.x, -rotation.y, -rotation.z, rotation.w), center - position);
 
         float q = length(t.xy);
         return dot(size.xy, vec2(q, t.z));
     }
 
-    float getSignedDistance(vec3 center, int type, vec3 position, vec4 rotation, vec3 scale) {
+    float getSignedDistance(const in vec3 center, const in int type, const in vec3 position, const in vec4 rotation, const in vec3 scale) {
         if (type == 1) {
             vec3 normal = quaternionTransform(rotation, vec3(0.0, 1.0, 0.0));
             vec4 plane = computePlane(normal, position);
@@ -65,7 +65,7 @@ export const common_clip = `
 
     #if __VERSION__ == 100
         // 8-bit
-        int bitwiseAnd(int a, int b) {
+        int bitwiseAnd(const in int a, const in int b) {
             int d = 128;
             int result = 0;
             for (int i = 0; i < 8; ++i) {
@@ -78,17 +78,23 @@ export const common_clip = `
             return result;
         }
 
-        bool hasBit(int mask, int bit) {
+        bool hasBit(const in int mask, const in int bit) {
             return bitwiseAnd(mask, bit) == 0;
         }
     #else
-        bool hasBit(int mask, int bit) {
+        bool hasBit(const in int mask, const in int bit) {
             return (mask & bit) == 0;
         }
     #endif
 
-    // flag is a bit-flag for clip-objects to ignore (note, object ids start at 1 not 0)
-    bool clipTest(vec4 sphere, int flag) {
+    bool clipTest(const in vec4 sphere) {
+        // flag is a bit-flag for clip-objects to ignore (note, object ids start at 1 not 0)
+        #if defined(dClipping)
+            int flag = int(floor(vClipping * 255.0 + 0.5));
+        #else
+            int flag = 0;
+        #endif
+
         #pragma unroll_loop_start
         for (int i = 0; i < dClipObjectCount; ++i) {
             if (flag == 0 || hasBit(flag, UNROLLED_LOOP_INDEX + 1)) {
