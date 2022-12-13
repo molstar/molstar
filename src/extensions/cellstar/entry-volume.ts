@@ -19,7 +19,7 @@ export class CellStarVolumeData {
         this.entryData = rootData;
     }
 
-    async showVolume() {
+    async loadVolume() {
         const hasVolumes = this.entryData.metadata.raw.grid.volumes.volume_downsamplings.length > 0;
         if (hasVolumes) {
             let group = this.entryData.findNodesByTags('volume-group')[0]?.transform.ref;

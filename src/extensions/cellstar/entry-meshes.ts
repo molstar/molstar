@@ -5,7 +5,7 @@ import { Color } from '../../mol-util/color';
 import { ColorNames } from '../../mol-util/color/names';
 import { createMeshFromUrl } from '../meshes/examples';
 import { BACKGROUND_SEGMENT_VOLUME_THRESHOLD } from '../meshes/mesh-streaming/behavior';
-import { setSubtreeVisibility } from '../meshes/molstar-lib-imports';
+import { PluginStateObject, setSubtreeVisibility } from '../meshes/molstar-lib-imports';
 
 import { Segment } from './cellstar-api/data';
 import { CellStarEntryData } from './entry-root';
@@ -21,7 +21,7 @@ export class CellStarMeshSegmentationData {
         this.entryData = rootData;
     }
 
-    async showSegmentation() {
+    async loadSegmentation() {
         const hasMeshes = this.entryData.metadata.meshSegmentIds.length > 0;
         if (hasMeshes) {
             await this.showSegments(this.entryData.metadata.allSegmentIds);
@@ -47,11 +47,11 @@ export class CellStarMeshSegmentationData {
     async selectSegment(segment?: number) {
         if (segment === undefined || segment < 0) return;
         const visuals = this.entryData.findNodesByTags('mesh-segment-visual', `segment-${segment}`);
-        console.log('select mesh segment', segment, visuals[0].obj?.data);
-        await PluginCommands.Interactivity.Structure.Select(this.entryData.plugin);
-        // const segmentLoci = this.makeLoci([segment]);
-        // if (!segmentLoci) return;
-        // this.entryData.plugin.managers.interactivity.lociSelects.select(segmentLoci, false);
+        const reprNode: PluginStateObject.Shape.Representation3D | undefined = visuals[0]?.obj;
+        if (!reprNode) return;
+        const loci = reprNode.data.repr.getAllLoci()[0];
+        if (!loci) return;
+        this.entryData.plugin.managers.interactivity.lociSelects.select({ loci: loci, repr: reprNode.data.repr }, false);
     }
 
     /** Make visible the specified set of mesh segments */

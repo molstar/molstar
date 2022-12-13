@@ -21,7 +21,7 @@ export class CellStarLatticeSegmentationData {
         this.entryData = rootData;
     }
 
-    async showSegmentation() {
+    async loadSegmentation() {
         const hasLattices = this.entryData.metadata.raw.grid.segmentation_lattices.segmentation_lattice_ids.length > 0;
         if (hasLattices) {
             const url = this.entryData.api.latticeUrl(this.entryData.source, this.entryData.entryId, 0, BOX, MAX_VOXELS);
@@ -84,7 +84,6 @@ export class CellStarLatticeSegmentationData {
         if (!segmentLoci) return;
         this.entryData.plugin.managers.interactivity.lociHighlights.highlight(segmentLoci, false);
     }
-
     async selectSegment(segment?: number) {
         if (segment === undefined || segment < 0) return;
         const segmentLoci = this.makeLoci([segment]);
@@ -93,12 +92,16 @@ export class CellStarLatticeSegmentationData {
     }
 
     /** Make visible the specified set of lattice segments */
-    async showSegments(segments: number[], options?: { opacity?: number }) {
-        const reprs = this.entryData.findNodesByTags(SEGMENT_REPR_TAG);
+    async showSegments(segments: number[]) {
+        const repr = this.entryData.findNodesByTags(SEGMENT_REPR_TAG)[0];
+        if (!repr) return;
+        const selectedSegment = this.entryData.currentState.value.selectedSegment;
+        let mustReselect = segments.includes(selectedSegment) && !repr.params?.values.type.params.segments.includes(selectedSegment);
         const update = this.entryData.newUpdate();
-        for (const repr of reprs) {
-            update.to(repr).update(StateTransforms.Representation.VolumeRepresentation3D, p => { p.type.params.segments = segments; });
+        update.to(repr).update(StateTransforms.Representation.VolumeRepresentation3D, p => { p.type.params.segments = segments; });
+        await update.commit();
+        if (mustReselect) {
+            await this.selectSegment(this.entryData.currentState.value.selectedSegment);
         }
-        return await update.commit();
     }
 }

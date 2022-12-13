@@ -95,54 +95,67 @@ function CellStarControls({ plugin, data, setData }: { plugin: PluginContext, da
     console.log('render controls');
 
     return <>
+        {/* Entry select */}
         <ParameterControls params={params} values={values} onChangeValues={next => setData(CellStarUIData.changeActiveNode(data, next.entry))} />
 
+        {/* Title */}
+        <div style={{ padding: 8, overflow: 'hidden' }}>
+            <p style={{ fontWeight: 'bold' }}>{entryData.metadata.raw.annotation?.name ?? 'Unnamed Annotation'}</p>
+        </div>
+
+        {/* Fitted models */}
         {allPdbs.length > 0 && <>
             <p style={{ margin: 5 }}><b>Fitted models in PDB:</b></p>
             {allPdbs.map(pdb =>
-                <Button key={pdb} onClick={() => entryData.showFittedModel(visibleModels.includes(pdb) ? [] : [pdb])}
+                <Button key={pdb} onClick={() => entryData.actionShowFittedModel(visibleModels.includes(pdb) ? [] : [pdb])}
                     style={{ fontWeight: visibleModels.includes(pdb) ? 'bold' : undefined, textAlign: 'left' }}>
                     {pdb}
                 </Button>
             )}
         </>}
 
-
-        <div style={{ padding: 8, maxHeight: 200, overflow: 'hidden', overflowY: 'auto' }}>
-            <p style={{ fontWeight: 'bold' }}>{entryData.metadata.raw.annotation?.name ?? 'Unnamed Annotation'}</p>
-            {!selectedSegment && 'No segment selected'}
-            {selectedSegment && `${selectedSegment.biological_annotation.name ?? 'Unnamed segment'} (${selectedSegment.id})`}
-            {selectedSegment?.biological_annotation.external_references.map(ref =>
-                <p key={ref.id} style={{ marginTop: 4 }}>
-                    <b>{ref.resource}:{ref.accession}</b><br />
-                    <i>{capitalize(ref.label)}:</i> {ref.description}
-                </p>)}
-        </div>
-
+        {/* Segment opacity slider */}
         <ControlRow label='Opacity' control={
-            <WaitingSlider plugin={plugin} min={0} max={1} value={state.opacity} step={0.05} onChange={async v => await entryData.updateOpacity(v)} />
+            <WaitingSlider plugin={plugin} min={0} max={1} value={state.opacity} step={0.05} onChange={async v => await entryData.actionSetOpacity(v)} />
         } />
 
+        {/* Segment toggles */}
         {allSegments.length > 0 && <>
-            <Button onClick={() => entryData.toggleAllSegments()}
+            <Button onClick={() => entryData.actionToggleAllSegments()}
                 style={{ marginTop: 1 }}>
                 Toggle All segments
             </Button>
-            {allSegments.map(segment =>
-                <div style={{ display: 'flex', marginTop: 1 }} key={segment.id}
-                    onMouseEnter={() => entryData.highlightSegment(segment)}
-                    onMouseLeave={() => entryData.highlightSegment()}>
-                    <Button onClick={() => entryData.selectSegment(segment !== selectedSegment ? segment.id : undefined)}
-                        style={{ fontWeight: segment.id === selectedSegment?.id ? 'bold' : undefined, marginRight: 1, flexGrow: 1, textAlign: 'left' }}>
-                        <div title={segment.biological_annotation.name ?? 'Unnamed segment'} style={{ maxWidth: 240, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                            {segment.biological_annotation.name ?? 'Unnamed segment'}
-                        </div>
-                    </Button>
-                    <IconButton svg={visibleSegments.includes(segment.id) ? Icons.VisibilityOutlinedSvg : Icons.VisibilityOffOutlinedSvg}
-                        onClick={() => entryData.toggleSegment(segment.id)} />
-                </div>
-            )}
+            <div style={{ maxHeight: 300, overflow: 'hidden', overflowY: 'auto' }}>
+                {allSegments.map(segment =>
+                    <div style={{ display: 'flex', marginTop: 1 }} key={segment.id}
+                        onMouseEnter={() => entryData.actionHighlightSegment(segment)}
+                        onMouseLeave={() => entryData.actionHighlightSegment()}>
+                        <Button onClick={() => entryData.actionSelectSegment(segment !== selectedSegment ? segment.id : undefined)}
+                            style={{ fontWeight: segment.id === selectedSegment?.id ? 'bold' : undefined, marginRight: 1, flexGrow: 1, textAlign: 'left' }}>
+                            <div title={segment.biological_annotation.name ?? 'Unnamed segment'} style={{ maxWidth: 240, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                {segment.biological_annotation.name ?? 'Unnamed segment'}
+                            </div>
+                        </Button>
+                        <IconButton svg={visibleSegments.includes(segment.id) ? Icons.VisibilityOutlinedSvg : Icons.VisibilityOffOutlinedSvg}
+                            onClick={() => entryData.actionToggleSegment(segment.id)} />
+                    </div>
+                )}
+            </div>
         </>}
+
+        {/* Segment annotations */}
+        <div style={{ padding: 8, maxHeight: 300, overflow: 'hidden', overflowY: 'auto' }}>
+            {!selectedSegment && 'No segment selected'}
+            {selectedSegment && <b>Segment {selectedSegment.id}:<br />{selectedSegment.biological_annotation.name ?? 'Unnamed segment'}</b>}
+            {selectedSegment?.biological_annotation.external_references.map(ref =>
+                <p key={ref.id} title={ref.description} style={{ marginTop: 4 }}>
+                    {/* <b>{ref.resource}:{ref.accession}</b><br />
+                    <i>{capitalize(ref.label)}:</i> {ref.description} */}
+                    <small>{ref.resource}:{ref.accession}</small><br />
+                    {capitalize(ref.label)}
+                </p>)}
+        </div>
+
     </>;
 }
 

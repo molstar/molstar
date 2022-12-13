@@ -121,28 +121,30 @@ export class CellStarEntryData extends PluginBehavior.WithSubscribers<CellStarEn
             }
         });
 
-        this.subscribeObservable(this.plugin.behaviors.interaction.click, e => {
+        this.subscribeObservable(this.plugin.behaviors.interaction.click, async e => {
             const loci = e.current.loci;
             const clickedSegment = this.getSegmentIdFromLoci(loci);
-            if (clickedSegment !== undefined) this.selectSegment(clickedSegment);
+            if (clickedSegment === undefined) return;
+            if (clickedSegment === this.currentState.value.selectedSegment) {
+                this.actionSelectSegment(undefined);
+            } else {
+                this.actionSelectSegment(clickedSegment);
+            }
+            await this.highlightSegment();
         });
 
-        this.subscribeObservable(this.highlightRequest.pipe(throttleTime(50, undefined, { leading: true, trailing: true })),
-            async segment => {
-                await PluginCommands.Interactivity.ClearHighlights(this.plugin);
-                if (segment) {
-                    await this.latticeSegmentationData.highlightSegment(segment);
-                    await this.meshSegmentationData.highlightSegment(segment);
-                }
-            }
+        this.subscribeObservable(
+            this.highlightRequest.pipe(throttleTime(50, undefined, { leading: true, trailing: true })),
+            async segment => await this.highlightSegment(segment)
         );
 
-        this.subscribeObservable(this.currentState.pipe(distinctUntilChanged((a, b) => a.selectedSegment === b.selectedSegment)), state => {
-            console.log('Selected segment changed ->', state.selectedSegment);
-            this.plugin.managers.interactivity.lociSelects.deselectAll();
-            this.latticeSegmentationData.selectSegment(state.selectedSegment);
-            this.meshSegmentationData.selectSegment(state.selectedSegment);
-        }); // TODO select segment
+        this.subscribeObservable(
+            this.currentState.pipe(distinctUntilChanged((a, b) => a.selectedSegment === b.selectedSegment)), state => {
+                console.log('Selected segment changed ->', state.selectedSegment);
+                this.plugin.managers.interactivity.lociSelects.deselectAll();
+                this.latticeSegmentationData.selectSegment(state.selectedSegment);
+                this.meshSegmentationData.selectSegment(state.selectedSegment);
+            }); // TODO make visible
     }
 
     async unregister() {
@@ -150,16 +152,70 @@ export class CellStarEntryData extends PluginBehavior.WithSubscribers<CellStarEn
         this.plugin.managers.lociLabels.removeProvider(this.labelProvider);
     }
 
-    async updateOpacity(opacity: number) {
-        const stateNode = this.getStateNode().obj?.data;
-        console.log('updateOpacity', stateNode?.opacity, '->', opacity);
-        if (opacity === stateNode?.opacity) return;
+    async loadSegmentations() {
+        await this.latticeSegmentationData.loadSegmentation();
+        await this.meshSegmentationData.loadSegmentation();
+        await this.showSegments(this.metadata.allSegmentIds);
+    }
 
-        // await sleep(1000); // TODO remove
+
+    actionHighlightSegment(segment?: Segment) {
+        this.highlightRequest.next(segment);
+    }
+
+    async actionToggleSegment(segment: number) {
+        const current = this.currentState.value.visibleSegments.map(seg => seg.segmentId);
+        if (current.includes(segment)) {
+            await this.showSegments(current.filter(s => s !== segment));
+        } else {
+            await this.showSegments([...current, segment]);
+        }
+    }
+
+    async actionToggleAllSegments() {
+        const current = this.currentState.value.visibleSegments.map(seg => seg.segmentId);
+        if (current.length !== this.metadata.allSegments.length) {
+            await this.showSegments(this.metadata.allSegmentIds);
+        } else {
+            await this.showSegments([]);
+        }
+    }
+
+    async actionSelectSegment(segment?: number) {
+        if (segment !== undefined && this.currentState.value.visibleSegments.find(s => s.segmentId === segment) === undefined) {
+            // first make the segment visible if it is not
+            await this.actionToggleSegment(segment);
+        }
+        await this.updateStateNode({ selectedSegment: segment });
+    }
+
+    async actionSetOpacity(opacity: number) {
+        if (opacity === this.getStateNode().obj?.data.opacity) return;
         this.latticeSegmentationData.updateOpacity(opacity);
         this.meshSegmentationData.updateOpacity(opacity);
 
         await this.updateStateNode({ opacity: opacity });
+    }
+
+    async actionShowFittedModel(pdbIds: string[]) {
+        await this.modelData.showPdbs(pdbIds);
+        await this.updateStateNode({ visibleModels: pdbIds.map(pdbId => ({ pdbId: pdbId })) });
+    }
+
+
+    private async showSegments(segments: number[]) {
+        console.log('showSegments', segments, this.ref);
+        await this.latticeSegmentationData.showSegments(segments);
+        await this.meshSegmentationData.showSegments(segments);
+        await this.updateStateNode({ visibleSegments: segments.map(s => ({ segmentId: s })) });
+    }
+
+    private async highlightSegment(segment?: Segment) {
+        await PluginCommands.Interactivity.ClearHighlights(this.plugin);
+        if (segment) {
+            await this.latticeSegmentationData.highlightSegment(segment);
+            await this.meshSegmentationData.highlightSegment(segment);
+        }
     }
 
     private async updateStateNode(params: Partial<CellStarStateData>) {
@@ -170,53 +226,6 @@ export class CellStarEntryData extends PluginBehavior.WithSubscribers<CellStarEn
         await PluginCommands.State.Update(this.plugin, { state, tree: update, options: { doNotUpdateCurrent: true } });
     }
 
-    async showSegmentations() {
-        await this.latticeSegmentationData.showSegmentation();
-        await this.meshSegmentationData.showSegmentation();
-        await this.showSegments(this.metadata.allSegmentIds);
-    }
-
-    highlightSegment(segment?: Segment) {
-        this.highlightRequest.next(segment);
-    }
-
-    async toggleSegment(segment: number) {
-        // const current = this.visibleSegments.value;
-        const current = this.currentState.value.visibleSegments.map(seg => seg.segmentId);
-        if (current.includes(segment)) {
-            await this.showSegments(current.filter(s => s !== segment));
-        } else {
-            await this.showSegments([...current, segment]);
-        }
-    }
-
-    async toggleAllSegments() {
-        // const current = this.visibleSegments.value;
-        const current = this.currentState.value.visibleSegments.map(seg => seg.segmentId);
-        if (current.length !== this.metadata.allSegments.length) {
-            await this.showSegments(this.metadata.allSegmentIds);
-        } else {
-            await this.showSegments([]);
-        }
-    }
-
-    async selectSegment(segment?: number) {
-        // this.plugin.managers.interactivity.lociSelects.deselectAll();
-        // this.latticeSegmentationData.selectSegment(segment);
-        await this.updateStateNode({ selectedSegment: segment });
-    }
-
-    private async showSegments(segments: number[]) {
-        console.log('showSegments', segments, this.ref);
-        await this.latticeSegmentationData.showSegments(segments, { opacity: this.currentState.value.opacity });
-        await this.meshSegmentationData.showSegments(segments);
-        await this.updateStateNode({ visibleSegments: segments.map(s => ({ segmentId: s })) });
-    }
-
-    async showFittedModel(pdbIds: string[]) {
-        await this.modelData.showPdbs(pdbIds);
-        await this.updateStateNode({ visibleModels: pdbIds.map(pdbId => ({ pdbId: pdbId })) });
-    }
 
     /** Find the nodes under this entry root which have all of the given tags. */
     findNodesByTags(...tags: string[]) {
@@ -259,6 +268,7 @@ export class CellStarEntryData extends PluginBehavior.WithSubscribers<CellStarEn
             }
         }
         if (ShapeGroup.isLoci(loci)) {
+            console.log('getSegmentIdFromLoci', loci);
             const meshData = (loci.shape.sourceData ?? {}) as MeshlistData;
             if (meshData.ownerId === this.ref && meshData.segmentId !== undefined) {
                 return meshData.segmentId;
