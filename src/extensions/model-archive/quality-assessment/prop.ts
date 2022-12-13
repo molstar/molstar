@@ -2,6 +2,7 @@
  * Copyright (c) 2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
@@ -14,6 +15,7 @@ import { CustomPropSymbol } from '../../../mol-script/language/symbol';
 import { Type } from '../../../mol-script/language/type';
 import { CustomPropertyDescriptor } from '../../../mol-model/custom-property';
 import { MmcifFormat } from '../../../mol-model-formats/structure/mmcif';
+import { AtomicIndex } from '../../../mol-model/structure/model/properties/atomic';
 
 export { QualityAssessment };
 
@@ -71,14 +73,28 @@ namespace QualityAssessment {
             localNames.set(ma_qa_metric.id.value(i), name);
         }
 
+        const residueKey: AtomicIndex.ResidueLabelKey = {
+            label_entity_id: '',
+            label_asym_id: '',
+            label_seq_id: 0,
+            pdbx_PDB_ins_code: undefined,
+        };
+
         for (let i = 0, il = ma_qa_metric_local._rowCount; i < il; i++) {
             if (model_id.value(i) !== model.modelNum) continue;
 
             const labelAsymId = label_asym_id.value(i);
             const entityIndex = index.findEntity(labelAsymId);
-            const rI = index.findResidue(model.entities.data.id.value(entityIndex), labelAsymId, label_seq_id.value(i));
-            const name = localNames.get(metric_id.value(i))!;
-            localMetrics.get(name)!.set(rI, metric_value.value(i));
+
+            residueKey.label_entity_id = model.entities.data.id.value(entityIndex);
+            residueKey.label_asym_id = labelAsymId;
+            residueKey.label_seq_id = label_seq_id.value(i);
+
+            const rI = index.findResidueLabel(residueKey);
+            if (rI >= 0) {
+                const name = localNames.get(metric_id.value(i))!;
+                localMetrics.get(name)!.set(rI, metric_value.value(i));
+            }
         }
 
         return {
