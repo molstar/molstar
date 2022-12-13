@@ -104,7 +104,10 @@ bool CylinderImpostor(
             modelPosition = rayOrigin + t * rayDir;
             viewPosition = (uView * vec4(modelPosition, 1.0)).xyz;
             fragmentDepth = calcDepth(viewPosition);
-            return true;
+            if (fragmentDepth > 0.0) {
+              if (topCap && bottomCap) fragmentDepth = 0.0 + (0.0000001 / vSize);
+              return true;
+            }
         }
 
         if (topCap && y < 0.0) {
@@ -116,7 +119,10 @@ bool CylinderImpostor(
                 modelPosition = rayOrigin + t * rayDir;
                 viewPosition = (uView * vec4(modelPosition, 1.0)).xyz;
                 fragmentDepth = calcDepth(viewPosition);
-                if (fragmentDepth > 0.0) return true;
+                if (fragmentDepth > 0.0) {
+                  if (bottomCap) fragmentDepth = 0.0 + (0.0000001 / vSize);
+                  return true;
+                }
             }
         } else if(bottomCap && y >= 0.0) {
             // bottom cap
@@ -127,7 +133,10 @@ bool CylinderImpostor(
                 modelPosition = rayOrigin + t * rayDir;
                 viewPosition = (uView * vec4(modelPosition, 1.0)).xyz;
                 fragmentDepth = calcDepth(viewPosition);
-                if (fragmentDepth > 0.0) return true;
+                if (fragmentDepth > 0.0) {
+                  if (topCap) fragmentDepth = 0.0 + (0.0000001 / vSize);
+                  return true;
+                }
             }
         }
     }
