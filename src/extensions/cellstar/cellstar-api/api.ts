@@ -1,7 +1,7 @@
 import { type Metadata } from './data';
 
 
-export const DEFAULT_VOLUME_SERVER_V2 = 'https://cellstar.ncbr.muni.cz/v2';
+export const DEFAULT_VOLUME_SERVER_V2 = 'https://molstarvolseg.ncbr.muni.cz/v2';
 
 
 export class VolumeApiV2 {

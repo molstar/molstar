@@ -50,7 +50,7 @@ export function createCellStarEntryParams(plugin?: PluginContext) {
 type CellStarEntryParamValues = ParamDefinition.Values<ReturnType<typeof createCellStarEntryParams>>;
 
 
-export class CellStarEntry extends PluginStateObject.CreateBehavior<CellStarEntryData>({ name: 'CellStar Entry' }) { }
+export class CellStarEntry extends PluginStateObject.CreateBehavior<CellStarEntryData>({ name: 'Vol & Seg Entry' }) { }
 
 
 export class CellStarEntryData extends PluginBehavior.WithSubscribers<CellStarEntryParamValues> {
@@ -130,7 +130,6 @@ export class CellStarEntryData extends PluginBehavior.WithSubscribers<CellStarEn
             } else {
                 this.actionSelectSegment(clickedSegment);
             }
-            await this.highlightSegment();
         });
 
         this.subscribeObservable(
@@ -139,12 +138,9 @@ export class CellStarEntryData extends PluginBehavior.WithSubscribers<CellStarEn
         );
 
         this.subscribeObservable(
-            this.currentState.pipe(distinctUntilChanged((a, b) => a.selectedSegment === b.selectedSegment)), state => {
-                console.log('Selected segment changed ->', state.selectedSegment);
-                this.plugin.managers.interactivity.lociSelects.deselectAll();
-                this.latticeSegmentationData.selectSegment(state.selectedSegment);
-                this.meshSegmentationData.selectSegment(state.selectedSegment);
-            }); // TODO make visible
+            this.currentState.pipe(distinctUntilChanged((a, b) => a.selectedSegment === b.selectedSegment)),
+            async state => await this.selectSegment(state.selectedSegment)
+        );
     }
 
     async unregister() {
@@ -216,6 +212,14 @@ export class CellStarEntryData extends PluginBehavior.WithSubscribers<CellStarEn
             await this.latticeSegmentationData.highlightSegment(segment);
             await this.meshSegmentationData.highlightSegment(segment);
         }
+    }
+
+    private async selectSegment(segment: number) {
+        console.log('Selected segment changed ->', segment);
+        this.plugin.managers.interactivity.lociSelects.deselectAll();
+        await this.latticeSegmentationData.selectSegment(segment);
+        await this.meshSegmentationData.selectSegment(segment);
+        await this.highlightSegment();
     }
 
     private async updateStateNode(params: Partial<CellStarStateData>) {

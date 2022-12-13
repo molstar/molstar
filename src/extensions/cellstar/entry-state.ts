@@ -9,7 +9,7 @@ export const CellStarStateParams = {
 export type CellStarStateData = ParamDefinition.Values<typeof CellStarStateParams>;
 
 
-export class CellStarState extends PluginStateObject.Create<CellStarStateData>({ name: 'CellStar Entry State', typeClass: 'Data' }) { }
+export class CellStarState extends PluginStateObject.Create<CellStarStateData>({ name: 'Vol & Seg Entry State', typeClass: 'Data' }) { }
 
 
 export const CELLSTAR_STATE_FROM_ENTRY_TRANSFORMER_NAME = 'cellstar-state-from-entry'; // defined here to avoid cyclic dependency

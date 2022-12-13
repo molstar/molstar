@@ -37,7 +37,7 @@ namespace CellStarUIData {
 export class CellStarUI extends CollapsableControls<{}, { data: CellStarUIData }> {
     protected defaultState(): CollapsableState & { data: CellStarUIData } {
         return {
-            header: 'Cell* VolumeServer',
+            header: 'Volume & Segmentation',
             isCollapsed: true,
             brand: { accent: 'orange', svg: Icons.ExtensionSvg },
             data: {
@@ -125,9 +125,9 @@ function CellStarControls({ plugin, data, setData }: { plugin: PluginContext, da
                 style={{ marginTop: 1 }}>
                 Toggle All segments
             </Button>
-            <div style={{ maxHeight: 300, overflow: 'hidden', overflowY: 'auto' }}>
+            <div style={{ maxHeight: 300, overflow: 'hidden', overflowY: 'auto', marginBlock: 1 }}>
                 {allSegments.map(segment =>
-                    <div style={{ display: 'flex', marginTop: 1 }} key={segment.id}
+                    <div style={{ display: 'flex', marginBottom: 1 }} key={segment.id}
                         onMouseEnter={() => entryData.actionHighlightSegment(segment)}
                         onMouseLeave={() => entryData.actionHighlightSegment()}>
                         <Button onClick={() => entryData.actionSelectSegment(segment !== selectedSegment ? segment.id : undefined)}

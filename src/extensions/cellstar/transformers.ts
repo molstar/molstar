@@ -9,15 +9,15 @@ import { CellStarState, CellStarStateParams, CELLSTAR_STATE_FROM_ENTRY_TRANSFORM
 
 export const CellStarEntryFromRoot = PluginStateTransform.BuiltIn({
     name: 'cellstar-entry-from-root',
-    display: { name: 'CellStar Entry', description: 'CellStar Entry' },
+    display: { name: 'Vol & Seg Entry', description: 'Vol & Seg Entry' },
     from: PluginStateObject.Root,
     to: CellStarEntry,
     params: (a, plugin: PluginContext) => createCellStarEntryParams(plugin),
 })({
     apply({ a, params }, plugin: PluginContext) {
-        return Task.create('Load CellStar Entry', async () => {
+        return Task.create('Load Vol & Seg Entry', async () => {
             const data = await CellStarEntryData.create(plugin, params);
-            return new CellStarEntry(data, { label: data.entryId, description: 'CellStar Entry' });
+            return new CellStarEntry(data, { label: data.entryId, description: 'Vol & Seg Entry' });
         });
     },
     update({ b, oldParams, newParams }) {
@@ -30,13 +30,13 @@ export const CellStarEntryFromRoot = PluginStateTransform.BuiltIn({
 
 export const CellStarStateFromEntry = PluginStateTransform.BuiltIn({
     name: CELLSTAR_STATE_FROM_ENTRY_TRANSFORMER_NAME,
-    display: { name: 'CellStar Entry State', description: 'CellStar Entry State' },
+    display: { name: 'Vol & Seg Entry State', description: 'Vol & Seg Entry State' },
     from: CellStarEntry,
     to: CellStarState,
     params: CellStarStateParams,
 })({
     apply({ a, params }, plugin: PluginContext) {
-        return Task.create('Create CellStar Entry State', async () => {
+        return Task.create('Create Vol & Seg Entry State', async () => {
             return new CellStarState(params, { label: 'State' });
         });
     }

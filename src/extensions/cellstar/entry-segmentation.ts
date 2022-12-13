@@ -31,7 +31,7 @@ export class CellStarLatticeSegmentationData {
                     { label: 'Segmentation', description: 'Lattice' }, { tags: ['lattice-segmentation-group'], state: { isCollapsed: true } }).commit();
                 group = newGroupNode.ref;
             }
-            const segmentLabels = this.entryData.metadata.allSegments.map(seg => ({ id: seg.id, label: `<b>${seg.biological_annotation.name}</b>` }));
+            const segmentLabels = this.entryData.metadata.allSegments.map(seg => ({ id: seg.id, label: seg.biological_annotation.name ? `<b>${seg.biological_annotation.name}</b>` : '' }));
             const volumeNode = await this.entryData.newUpdate().to(group)
                 .apply(Download, { url, isBinary: true, label: `Segmentation Data: ${url}` })
                 .apply(ParseCif)

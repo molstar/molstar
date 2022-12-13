@@ -7,7 +7,6 @@ import { Task } from '../../mol-task';
 import { DEFAULT_VOLUME_SERVER_V2 } from './cellstar-api/api';
 
 import { CellStarEntryData, createCellStarEntryParams } from './entry-root';
-import { createEntryId } from './helpers';
 import { CellStarEntryFromRoot, CellStarStateFromEntry } from './transformers';
 import { CellStarUI } from './ui';
 
@@ -27,7 +26,6 @@ export const CellStar = PluginBehavior.create<{ autoAttach: boolean, showTooltip
     },
     ctor: class extends PluginBehavior.Handler<{ autoAttach: boolean, showTooltip: boolean }> {
         register() {
-            console.log('Registering CellStar extension behavior');
             this.ctx.state.data.actions.add(LoadCellStar);
             this.ctx.customStructureControls.set('cellstar', CellStarUI as any);
 
@@ -44,7 +42,6 @@ export const CellStar = PluginBehavior.create<{ autoAttach: boolean, showTooltip
             });
         }
         unregister() {
-            console.log('Unregistering CellStar extension behavior');
             this.ctx.state.data.actions.remove(LoadCellStar);
             this.ctx.customStructureControls.delete('cellstar');
         }
@@ -53,16 +50,14 @@ export const CellStar = PluginBehavior.create<{ autoAttach: boolean, showTooltip
 
 
 export const LoadCellStar = StateAction.build({
-    display: { name: 'Load Cell*', description: 'Load entry from Cell* volume.' },
+    display: { name: 'Load Volume & Segmentation' },
     from: SO.Root,
     params: (a, plugin: PluginContext) => createCellStarEntryParams(plugin),
-})(({ params, state }, ctx: PluginContext) => Task.create('CellStar', taskCtx => {
+})(({ params, state }, ctx: PluginContext) => Task.create('Loading Volume & Segmentation', taskCtx => {
     return state.transaction(async () => {
         if (params.entryNumber.trim().length === 0) {
             throw new Error('Specify Entry ID');
         }
-        console.log('Cell* loading', createEntryId(params.source, params.entryNumber));
-
         ctx.behaviors.layout.leftPanelTabName.next('data');
 
         const entryNode = await state.build().toRoot().apply(CellStarEntryFromRoot, params).commit();
