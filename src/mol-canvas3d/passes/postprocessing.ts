@@ -364,7 +364,7 @@ export const PostprocessingParams = {
             scale: PD.Numeric(1, { min: 1, max: 5, step: 1 }),
             threshold: PD.Numeric(0.33, { min: 0.01, max: 1, step: 0.01 }),
             color: PD.Color(Color(0x000000)),
-            includeTransparent: PD.Boolean(true, { description: 'Whether to show outline for objects with an opacity value less than 1' }),
+            includeTransparent: PD.Boolean(true, { description: 'Whether to show outline for transparent objects' }),
         }),
         off: PD.Group({})
     }, { cycle: true, description: 'Draw outline around 3D objects' }),
@@ -504,7 +504,7 @@ export class PostprocessingPass {
         let needsUpdateMain = false;
         let needsUpdateSsao = false;
         let needsUpdateSsaoBlur = false;
-        let needsUpdateOutline = false;
+        let needsUpdateOutlines = false;
 
         const orthographic = camera.state.mode === 'orthographic' ? 1 : 0;
         const outlinesEnabled = props.outline.name === 'on';
@@ -634,10 +634,11 @@ export class PostprocessingPass {
             // use radiusMax for stable outlines when zooming
             const maxPossibleViewZDiff = factor * camera.state.radiusMax;
             const outlineScale = props.outline.params.scale - 1;
+
             ValueCell.updateIfChanged(this.outlinesRenderable.values.uNear, camera.near);
             ValueCell.updateIfChanged(this.outlinesRenderable.values.uFar, camera.far);
             ValueCell.updateIfChanged(this.outlinesRenderable.values.uMaxPossibleViewZDiff, maxPossibleViewZDiff);
-            if (this.renderable.values.dTransparentOutline.ref.value !== transparentOutline) { needsUpdateOutline = true; }
+            if (this.renderable.values.dTransparentOutline.ref.value !== transparentOutline) { needsUpdateOutlines = true; }
             ValueCell.updateIfChanged(this.outlinesRenderable.values.dTransparentOutline, transparentOutline);
 
             ValueCell.update(this.renderable.values.uOutlineColor, Color.toVec3Normalized(this.renderable.values.uOutlineColor.ref.value, props.outline.params.color));
@@ -665,7 +666,7 @@ export class PostprocessingPass {
         if (this.renderable.values.dOcclusionEnable.ref.value !== occlusionEnabled) { needsUpdateMain = true; }
         ValueCell.updateIfChanged(this.renderable.values.dOcclusionEnable, occlusionEnabled);
 
-        if (needsUpdateOutline) {
+        if (needsUpdateOutlines) {
             this.outlinesRenderable.update();
         }
 

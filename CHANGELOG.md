@@ -5,8 +5,8 @@ Note that since we don't clearly distinguish between a public and private interf
 
 
 ## [Unreleased]
-- Add an `includeTransparent` parameter to hide/show outlines of components that are transparent
 
+- Add an `includeTransparent` parameter to hide/show outlines of components that are transparent
 - Better guard against issue (black fringes) with bumpiness in impostors
 
 ## [v3.26.0] - 2022-12-04
