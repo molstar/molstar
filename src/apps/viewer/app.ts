@@ -57,6 +57,7 @@ const CustomFormats = [
 ];
 
 const Extensions = {
+    'cellstar': PluginSpec.Behavior(CellStar),
     'backgrounds': PluginSpec.Behavior(Backgrounds),
     'cellpack': PluginSpec.Behavior(CellPack),
     'dnatco-confal-pyramids': PluginSpec.Behavior(DnatcoConfalPyramids),
@@ -70,7 +71,6 @@ const Extensions = {
     'geo-export': PluginSpec.Behavior(GeometryExport),
     'ma-quality-assessment': PluginSpec.Behavior(MAQualityAssessment),
     'zenodo-import': PluginSpec.Behavior(ZenodoImport),
-    'cellstar': PluginSpec.Behavior(CellStar),
 };
 
 const DefaultViewerOptions = {

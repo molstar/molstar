@@ -64,26 +64,37 @@ export class CellStarLatticeSegmentationData {
     }
 
     async updateOpacity(opacity: number) {
-        const reprs = this.entryData.plugin.state.data.selectQ(q => q.byRef(this.entryData.ref).subtree().withTag(SEGMENT_REPR_TAG));
+        const reprs = this.entryData.findNodesByTags(SEGMENT_REPR_TAG);
         const update = this.entryData.newUpdate();
         for (const s of reprs) {
             update.to(s).update(StateTransforms.Representation.VolumeRepresentation3D, p => { p.type.params.alpha = opacity; });
         }
         return await update.commit();
     }
-    async highlightSegment(segment: Segment) {
-        const vis = this.entryData.plugin.state.data.selectQ(q => q.byRef(this.entryData.ref).subtree().withTag(SEGMENT_REPR_TAG))[0];
-        if (!vis) return;
+    private makeLoci(segments: number[]) {
+        const vis = this.entryData.findNodesByTags(SEGMENT_REPR_TAG)[0];
+        if (!vis) return undefined;
         const repr = vis.obj?.data.repr;
         const wholeLoci = repr.getAllLoci()[0];
-        if (!wholeLoci || !Volume.Segment.isLoci(wholeLoci)) return;
-        const segmentLoci = Volume.Segment.Loci(wholeLoci.volume, [segment.id]);
-        this.entryData.plugin.managers.interactivity.lociHighlights.highlight({ loci: segmentLoci, repr }, false);
+        if (!wholeLoci || !Volume.Segment.isLoci(wholeLoci)) return undefined;
+        return { loci: Volume.Segment.Loci(wholeLoci.volume, segments), repr: repr };
+    }
+    async highlightSegment(segment: Segment) {
+        const segmentLoci = this.makeLoci([segment.id]);
+        if (!segmentLoci) return;
+        this.entryData.plugin.managers.interactivity.lociHighlights.highlight(segmentLoci, false);
+    }
+
+    async selectSegment(segment?: number) {
+        if (segment === undefined || segment < 0) return;
+        const segmentLoci = this.makeLoci([segment]);
+        if (!segmentLoci) return;
+        this.entryData.plugin.managers.interactivity.lociSelects.select(segmentLoci, false);
     }
 
     /** Make visible the specified set of lattice segments */
     async showSegments(segments: number[], options?: { opacity?: number }) {
-        const reprs = this.entryData.plugin.state.data.selectQ(q => q.byRef(this.entryData.ref).subtree().withTag(SEGMENT_REPR_TAG));
+        const reprs = this.entryData.findNodesByTags(SEGMENT_REPR_TAG);
         const update = this.entryData.newUpdate();
         for (const repr of reprs) {
             update.to(repr).update(StateTransforms.Representation.VolumeRepresentation3D, p => { p.type.params.segments = segments; });

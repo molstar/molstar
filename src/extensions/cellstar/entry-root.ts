@@ -1,4 +1,4 @@
-import { BehaviorSubject, Subject, throttleTime } from 'rxjs';
+import { BehaviorSubject, distinctUntilChanged, Subject, throttleTime } from 'rxjs';
 import { CellStarVolumeServerConfig } from '.';
 import { Loci } from '../../mol-model/loci';
 
@@ -77,12 +77,24 @@ export class CellStarEntryData extends PluginBehavior.WithSubscribers<CellStarEn
 
     private constructor(plugin: PluginContext, params: CellStarEntryParamValues) {
         super(plugin, params);
-
         this.plugin = plugin;
         this.api = new VolumeApiV2(params.serverUrl);
         this.source = params.source;
         this.entryNumber = params.entryNumber;
         this.entryId = createEntryId(params.source, params.entryNumber);
+    }
+
+    private async initialize() {
+        const metadata = await this.api.getMetadata(this.source, this.entryId);
+        this.metadata = new MetadataWrapper(metadata);
+        this.pdbs = await ExternalAPIs.getPdbIdsForEmdbEntry(this.metadata.raw.grid.general.source_db_id ?? this.entryId);
+        // TODO use Asset?
+    }
+
+    static async create(plugin: PluginContext, params: CellStarEntryParamValues) {
+        const result = new CellStarEntryData(plugin, params);
+        await result.initialize();
+        return result;
     }
 
     async register(ref: string) {
@@ -104,7 +116,6 @@ export class CellStarEntryData extends PluginBehavior.WithSubscribers<CellStarEn
             if (e.cell.transform.ref === this.getStateNode().transform.ref) {
                 const newState = this.getStateNode().obj?.data;
                 if (newState && !shallowEqualObjects(newState, this.currentState.value)) { // avoid repeated update
-                    console.log('stateUpdated', this.getStateNode().obj?.id, e.cell.obj?.id, this.getStateNode().obj?.data.opacity, e.cell.obj?.data.opacity);
                     this.currentState.next(newState);
                 }
             }
@@ -112,8 +123,6 @@ export class CellStarEntryData extends PluginBehavior.WithSubscribers<CellStarEn
 
         this.subscribeObservable(this.plugin.behaviors.interaction.click, e => {
             const loci = e.current.loci;
-            console.log('click', this.ref, e.current.loci, e.current.repr, e.current.repr?.state); // DEBUG
-            if (Volume.Segment.isLoci(loci)) console.log('ownerId', loci.volume._propertyData.ownerId); // DEBUG
             const clickedSegment = this.getSegmentIdFromLoci(loci);
             if (clickedSegment !== undefined) this.selectSegment(clickedSegment);
         });
@@ -127,24 +136,18 @@ export class CellStarEntryData extends PluginBehavior.WithSubscribers<CellStarEn
                 }
             }
         );
+
+        this.subscribeObservable(this.currentState.pipe(distinctUntilChanged((a, b) => a.selectedSegment === b.selectedSegment)), state => {
+            console.log('Selected segment changed ->', state.selectedSegment);
+            this.plugin.managers.interactivity.lociSelects.deselectAll();
+            this.latticeSegmentationData.selectSegment(state.selectedSegment);
+            this.meshSegmentationData.selectSegment(state.selectedSegment);
+        }); // TODO select segment
     }
 
     async unregister() {
         console.log('unregister', this.ref);
         this.plugin.managers.lociLabels.removeProvider(this.labelProvider);
-    }
-
-    private async initialize() {
-        const metadata = await this.api.getMetadata(this.source, this.entryId);
-        this.metadata = new MetadataWrapper(metadata);
-        this.pdbs = await ExternalAPIs.getPdbIdsForEmdbEntry(this.metadata.raw.grid.general.source_db_id ?? this.entryId);
-        // TODO use Asset?
-    }
-
-    static async create(plugin: PluginContext, params: CellStarEntryParamValues) {
-        const result = new CellStarEntryData(plugin, params);
-        await result.initialize();
-        return result;
     }
 
     async updateOpacity(opacity: number) {
@@ -159,7 +162,7 @@ export class CellStarEntryData extends PluginBehavior.WithSubscribers<CellStarEn
         await this.updateStateNode({ opacity: opacity });
     }
 
-    async updateStateNode(params: Partial<CellStarStateData>) {
+    private async updateStateNode(params: Partial<CellStarStateData>) {
         const oldParams = this.getStateNode().transform.params;
         const newParams = { ...oldParams, ...params };
         const state = this.plugin.state.data;
@@ -167,15 +170,7 @@ export class CellStarEntryData extends PluginBehavior.WithSubscribers<CellStarEn
         await PluginCommands.State.Update(this.plugin, { state, tree: update, options: { doNotUpdateCurrent: true } });
     }
 
-    public newUpdate() {
-        if (this.ref !== '') {
-            return this.plugin.build().to(this.ref);
-        } else {
-            return this.plugin.build().toRoot();
-        }
-    }
-
-    public async showSegmentations() {
+    async showSegmentations() {
         await this.latticeSegmentationData.showSegmentation();
         await this.meshSegmentationData.showSegmentation();
         await this.showSegments(this.metadata.allSegmentIds);
@@ -206,10 +201,12 @@ export class CellStarEntryData extends PluginBehavior.WithSubscribers<CellStarEn
     }
 
     async selectSegment(segment?: number) {
+        // this.plugin.managers.interactivity.lociSelects.deselectAll();
+        // this.latticeSegmentationData.selectSegment(segment);
         await this.updateStateNode({ selectedSegment: segment });
     }
 
-    async showSegments(segments: number[]) {
+    private async showSegments(segments: number[]) {
         console.log('showSegments', segments, this.ref);
         await this.latticeSegmentationData.showSegments(segments, { opacity: this.currentState.value.opacity });
         await this.meshSegmentationData.showSegments(segments);
@@ -228,6 +225,14 @@ export class CellStarEntryData extends PluginBehavior.WithSubscribers<CellStarEn
             for (const tag of tags) builder = builder.withTag(tag);
             return builder;
         });
+    }
+
+    newUpdate() {
+        if (this.ref !== '') {
+            return this.plugin.build().to(this.ref);
+        } else {
+            return this.plugin.build().toRoot();
+        }
     }
 
     private readonly labelProvider: LociLabelProvider = {

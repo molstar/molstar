@@ -44,6 +44,16 @@ export class CellStarMeshSegmentationData {
         }
     }
 
+    async selectSegment(segment?: number) {
+        if (segment === undefined || segment < 0) return;
+        const visuals = this.entryData.findNodesByTags('mesh-segment-visual', `segment-${segment}`);
+        console.log('select mesh segment', segment, visuals[0].obj?.data);
+        await PluginCommands.Interactivity.Structure.Select(this.entryData.plugin);
+        // const segmentLoci = this.makeLoci([segment]);
+        // if (!segmentLoci) return;
+        // this.entryData.plugin.managers.interactivity.lociSelects.select(segmentLoci, false);
+    }
+
     /** Make visible the specified set of mesh segments */
     async showSegments(segments: number[]) {
         const segmentsToShow = new Set(segments);
