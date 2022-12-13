@@ -38,7 +38,11 @@ float getDepthOpaque(const in vec2 coords) {
 }
 
 float getDepthTransparent(const in vec2 coords) {
-    return unpackRGBAToDepth(texture2D(tDepthTransparent, coords));
+    #ifdef dTransparentOutline
+        return unpackRGBAToDepth(texture2D(tDepthTransparent, coords));
+    #else
+        return 1.0;
+    #endif
 }
 
 bool isBackground(const in float depth) {
