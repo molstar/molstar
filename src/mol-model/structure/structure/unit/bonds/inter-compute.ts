@@ -20,6 +20,7 @@ import { InterUnitGraph } from '../../../../../mol-math/graph/inter-unit-graph';
 import { StructConn } from '../../../../../mol-model-formats/structure/property/bonds/struct_conn';
 import { equalEps } from '../../../../../mol-math/linear-algebra/3d/common';
 import { Model } from '../../../model';
+import { StructureProperties } from '../../properties';
 
 // avoiding namespace lookup improved performance in Chrome (Aug 2020)
 const v3distance = Vec3.distance;
@@ -249,13 +250,27 @@ function computeInterUnitBonds(structure: Structure, props?: Partial<InterBondCo
                 (!Unit.isAtomic(a) || mtA[a.residueIndex[a.elements[0]]] !== MoleculeType.Water) &&
                 (!Unit.isAtomic(b) || mtB[b.residueIndex[b.elements[0]]] !== MoleculeType.Water)
             );
-            const notIon = (
-                (!Unit.isAtomic(a) || mtA[a.residueIndex[a.elements[0]]] !== MoleculeType.Ion) &&
-                (!Unit.isAtomic(b) || mtB[b.residueIndex[b.elements[0]]] !== MoleculeType.Ion)
-            );
+
+            const sameModel = a.model === b.model;
+            const notIonA = (!Unit.isAtomic(a) || mtA[a.residueIndex[a.elements[0]]] !== MoleculeType.Ion) || (sameModel && hasStructConnRecord(a));
+            const notIonB = (!Unit.isAtomic(b) || mtB[b.residueIndex[b.elements[0]]] !== MoleculeType.Ion) || (sameModel && hasStructConnRecord(b));
+            const notIon = notIonA && notIonB;
             return Structure.validUnitPair(s, a, b) && (notWater || !p.ignoreWater) && (notIon || !p.ignoreIon);
         }),
     });
+}
+
+function hasStructConnRecord(unit: Unit) {
+    const elements = unit.elements;
+    const structConn = StructConn.Provider.get(unit.model);
+    if (structConn) {
+        for (let i = 0, _i = elements.length; i < _i; i++) {
+            if (structConn.byAtomIndex.get(elements[i])) {
+                return true;
+            }
+        }
+    }
+    return false;
 }
 
 export { computeInterUnitBonds };
