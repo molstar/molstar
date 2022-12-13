@@ -15,6 +15,7 @@ Note that since we don't clearly distinguish between a public and private interf
     - Add interior cylinder caps
     - Add per-pixel object clipping
 - Fix `QualityAssessment` assignment bug for structures with different auth vs label sequence numbering
+- Refresh `ApplyActionControl`'s param definition when toggling expanded state
 
 ## [v3.26.0] - 2022-12-04
 
