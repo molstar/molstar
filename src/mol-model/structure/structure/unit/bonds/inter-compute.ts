@@ -261,6 +261,8 @@ function computeInterUnitBonds(structure: Structure, props?: Partial<InterBondCo
 }
 
 function hasStructConnRecord(unit: Unit) {
+    if (!Unit.isAtomic(unit)) return false;
+
     const elements = unit.elements;
     const structConn = StructConn.Provider.get(unit.model);
     if (structConn) {
