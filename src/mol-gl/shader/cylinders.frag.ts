@@ -34,7 +34,7 @@ bool CylinderImpostor(
     in vec3 rayOrigin, in vec3 rayDir,
     in vec3 start, in vec3 end, in float radius,
     out vec3 cameraNormal, out bool interior,
-    out vec3 viewPosition, out float fragmentDepth
+    out vec3 modelPosition, out vec3 viewPosition, out float fragmentDepth
 ){
     vec3 ba = end - start;
     vec3 oc = rayOrigin - start;
@@ -60,8 +60,12 @@ bool CylinderImpostor(
     if (y > 0.0 && y < baba) {
         interior = false;
         cameraNormal = (oc + t * rayDir - ba * y / baba) / radius;
-        viewPosition = (uView * vec4(rayOrigin + t * rayDir, 1.0)).xyz;
+        modelPosition = rayOrigin + t * rayDir;
+        viewPosition = (uView * vec4(modelPosition, 1.0)).xyz;
         fragmentDepth = calcDepth(viewPosition);
+        #if defined(dClipVariant_pixel) && dClipObjectCount != 0
+            if (clipTest(vec4(modelPosition, 0.0))) fragmentDepth = -1.0;
+        #endif
         if (fragmentDepth > 0.0) return true;
     }
 
@@ -71,7 +75,8 @@ bool CylinderImpostor(
         if (abs(k1 + k2 * t) < h) {
             interior = false;
             cameraNormal = -ba / baba;
-            viewPosition = (uView * vec4(rayOrigin + t * rayDir, 1.0)).xyz;
+            modelPosition = rayOrigin + t * rayDir;
+            viewPosition = (uView * vec4(modelPosition, 1.0)).xyz;
             fragmentDepth = calcDepth(viewPosition);
             if (fragmentDepth > 0.0) return true;
         }
@@ -81,7 +86,8 @@ bool CylinderImpostor(
         if (abs(k1 + k2 * t) < h) {
             interior = false;
             cameraNormal = ba / baba;
-            viewPosition = (uView * vec4(rayOrigin + t * rayDir, 1.0)).xyz;
+            modelPosition = rayOrigin + t * rayDir;
+            viewPosition = (uView * vec4(modelPosition, 1.0)).xyz;
             fragmentDepth = calcDepth(viewPosition);
             if (fragmentDepth > 0.0) return true;
         }
@@ -95,7 +101,8 @@ bool CylinderImpostor(
         if (y > 0.0 && y < baba) {
             interior = true;
             cameraNormal = -(oc + t * rayDir - ba * y / baba) / radius;
-            viewPosition = (uView * vec4(rayOrigin + t * rayDir, 1.0)).xyz;
+            modelPosition = rayOrigin + t * rayDir;
+            viewPosition = (uView * vec4(modelPosition, 1.0)).xyz;
             fragmentDepth = calcDepth(viewPosition);
             return true;
         }
@@ -106,7 +113,8 @@ bool CylinderImpostor(
             if (abs(k1 + k2 * t) < -h) {
                 interior = true;
                 cameraNormal = ba / baba;
-                viewPosition = (uView * vec4(rayOrigin + t * rayDir, 1.0)).xyz;
+                modelPosition = rayOrigin + t * rayDir;
+                viewPosition = (uView * vec4(modelPosition, 1.0)).xyz;
                 fragmentDepth = calcDepth(viewPosition);
                 if (fragmentDepth > 0.0) return true;
             }
@@ -116,7 +124,8 @@ bool CylinderImpostor(
             if (abs(k1 + k2 * t) < -h) {
                 interior = true;
                 cameraNormal = -ba / baba;
-                viewPosition = (uView * vec4(rayOrigin + t * rayDir, 1.0)).xyz;
+                modelPosition = rayOrigin + t * rayDir;
+                viewPosition = (uView * vec4(modelPosition, 1.0)).xyz;
                 fragmentDepth = calcDepth(viewPosition);
                 if (fragmentDepth > 0.0) return true;
             }
@@ -127,15 +136,14 @@ bool CylinderImpostor(
 }
 
 void main() {
-    #include clip_pixel
-
     vec3 rayOrigin = vModelPosition;
     vec3 rayDir = mix(normalize(vModelPosition - uCameraPosition), uCameraDir, uIsOrtho);
 
     vec3 cameraNormal;
+    vec3 modelPosition;
     vec3 viewPosition;
     float fragmentDepth;
-    bool hit = CylinderImpostor(rayOrigin, rayDir, vStart, vEnd, vSize, cameraNormal, interior, viewPosition, fragmentDepth);
+    bool hit = CylinderImpostor(rayOrigin, rayDir, vStart, vEnd, vSize, cameraNormal, interior, modelPosition, viewPosition, fragmentDepth);
     if (!hit) discard;
 
     if (fragmentDepth < 0.0) discard;
@@ -143,7 +151,10 @@ void main() {
 
     gl_FragDepthEXT = fragmentDepth;
 
-    vec3 vModelPosition = (uInvView * vec4(viewPosition, 1.0)).xyz;
+    vec3 vViewPosition = viewPosition;
+    vec3 vModelPosition = modelPosition;
+
+    #include clip_pixel
     #include assign_material_color
 
     #if defined(dRenderVariant_pick)

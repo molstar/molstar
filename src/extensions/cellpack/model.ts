@@ -621,6 +621,7 @@ export const LoadCellPackModel = StateAction.build({
                         scale: 1,
                         threshold: 0.33,
                         color: ColorNames.black,
+                        includeTransparent: true,
                     }
                 }
             }
