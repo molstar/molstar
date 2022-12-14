@@ -2,6 +2,7 @@
  * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { BondType } from '../../../../mol-model/structure/model/types';
@@ -14,11 +15,13 @@ import { PickingId } from '../../../../mol-geo/geometry/picking';
 import { EmptyLoci, Loci } from '../../../../mol-model/loci';
 import { Interval, OrderedSet, SortedArray } from '../../../../mol-data/int';
 import { isH, isHydrogen, StructureGroup } from './common';
+import { hasPolarNeighbour } from '../../../../mol-model-props/computed/chemistry/functional-group';
 
 export const BondParams = {
     includeTypes: PD.MultiSelect(ObjectKeys(BondType.Names), PD.objectToOptions(BondType.Names)),
     excludeTypes: PD.MultiSelect([] as BondType.Names[], PD.objectToOptions(BondType.Names)),
     ignoreHydrogens: PD.Boolean(false),
+    ignorePolarHydrogens: PD.Boolean(false),
     aromaticBonds: PD.Boolean(true, { description: 'Display aromatic bonds with dashes' }),
     multipleBonds: PD.Select('symmetric', PD.arrayToOptions(['off', 'symmetric', 'offset'] as const)),
 };
@@ -51,7 +54,7 @@ export function makeIntraBondIgnoreTest(structure: Structure, unit: Unit.Atomic,
     const { a, b, edgeProps } = bonds;
     const { flags: _flags } = edgeProps;
 
-    const { ignoreHydrogens, includeTypes, excludeTypes } = props;
+    const { ignoreHydrogens, ignorePolarHydrogens, includeTypes, excludeTypes } = props;
 
     const include = BondType.fromNames(includeTypes);
     const exclude = BondType.fromNames(excludeTypes);
@@ -61,14 +64,33 @@ export function makeIntraBondIgnoreTest(structure: Structure, unit: Unit.Atomic,
     const childUnit = child?.unitMap.get(unit.id);
     if (child && !childUnit) throw new Error('expected childUnit to exist if child exists');
 
-    if (allBondTypes && !ignoreHydrogens && !child) return;
+    if (allBondTypes && !ignorePolarHydrogens && !ignoreHydrogens && !child) return;
 
     return (edgeIndex: number) => {
-        return (
-            (!!childUnit && !SortedArray.has(childUnit.elements, elements[a[edgeIndex]])) ||
-            (ignoreHydrogens && (isH(atomicNumber, elements[a[edgeIndex]]) || isH(atomicNumber, elements[b[edgeIndex]]))) ||
-            (!allBondTypes && ignoreBondType(include, exclude, _flags[edgeIndex]))
-        );
+        const aI = a[edgeIndex];
+        const bI = b[edgeIndex];
+
+        if ((!!childUnit && !SortedArray.has(childUnit.elements, elements[aI]))) {
+            return true;
+        }
+
+        if (!allBondTypes && ignoreBondType(include, exclude, _flags[edgeIndex])) {
+            return true;
+        }
+
+        if (ignoreHydrogens || ignorePolarHydrogens) {
+            if (isH(atomicNumber, elements[aI])) {
+                if (ignoreHydrogens) return true;
+                if (ignorePolarHydrogens && hasPolarNeighbour(structure, unit, aI)) return true;
+            }
+
+            if (isH(atomicNumber, elements[bI])) {
+                if (ignoreHydrogens) return true;
+                if (ignorePolarHydrogens && hasPolarNeighbour(structure, unit, bI)) return true;
+            }
+        }
+
+        return false;
     };
 }
 
@@ -76,7 +98,7 @@ export function makeInterBondIgnoreTest(structure: Structure, props: BondProps):
     const bonds = structure.interUnitBonds;
     const { edges } = bonds;
 
-    const { ignoreHydrogens, includeTypes, excludeTypes } = props;
+    const { ignoreHydrogens, ignorePolarHydrogens, includeTypes, excludeTypes } = props;
 
     const include = BondType.fromNames(includeTypes);
     const exclude = BondType.fromNames(excludeTypes);
@@ -84,7 +106,7 @@ export function makeInterBondIgnoreTest(structure: Structure, props: BondProps):
 
     const { child } = structure;
 
-    if (allBondTypes && !ignoreHydrogens && !child) return;
+    if (allBondTypes && !ignorePolarHydrogens && !ignoreHydrogens && !child) return;
 
     return (edgeIndex: number) => {
         if (child) {
@@ -102,6 +124,18 @@ export function makeInterBondIgnoreTest(structure: Structure, props: BondProps):
             const uA = structure.unitMap.get(b.unitA);
             const uB = structure.unitMap.get(b.unitB);
             if (isHydrogen(uA, uA.elements[b.indexA]) || isHydrogen(uB, uB.elements[b.indexB])) return true;
+        }
+
+        if (ignorePolarHydrogens) {
+            const b = edges[edgeIndex];
+            const uA = structure.unitMap.get(b.unitA);
+            if (isHydrogen(uA, uA.elements[b.indexA]) && hasPolarNeighbour(structure, uA as Unit.Atomic, b.indexA)) {
+                return true;
+            }
+            const uB = structure.unitMap.get(b.unitB);
+            if (isHydrogen(uB, uB.elements[b.indexB]) && hasPolarNeighbour(structure, uB as Unit.Atomic, b.indexB)) {
+                return true;
+            }
         }
 
         if (!allBondTypes) {

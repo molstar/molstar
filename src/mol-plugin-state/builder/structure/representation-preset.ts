@@ -37,6 +37,7 @@ export namespace StructureRepresentationPresetProvider {
 
     export const CommonParams = {
         ignoreHydrogens: PD.Optional(PD.Boolean(false)),
+        ignorePolarHydrogens: PD.Optional(PD.Boolean(false)),
         ignoreLight: PD.Optional(PD.Boolean(false)),
         quality: PD.Optional(PD.Select<VisualQuality>('auto', VisualQualityOptions)),
         theme: PD.Optional(PD.Group({
@@ -70,11 +71,13 @@ export namespace StructureRepresentationPresetProvider {
         const builder = plugin.builders.structure.representation;
         const typeParams = {
             quality: plugin.managers.structure.component.state.options.visualQuality,
-            ignoreHydrogens: !plugin.managers.structure.component.state.options.showHydrogens,
+            ignoreHydrogens: plugin.managers.structure.component.state.options.hydrogens === 'hide-all',
+            ignorePolarHydrogens: plugin.managers.structure.component.state.options.hydrogens === 'hide-polar',
             ignoreLight: plugin.managers.structure.component.state.options.ignoreLight,
         };
         if (params.quality && params.quality !== 'auto') typeParams.quality = params.quality;
         if (params.ignoreHydrogens !== void 0) typeParams.ignoreHydrogens = !!params.ignoreHydrogens;
+        if (params.ignorePolarHydrogens !== void 0) typeParams.ignorePolarHydrogens = !!params.ignorePolarHydrogens;
         if (params.ignoreLight !== void 0) typeParams.ignoreLight = !!params.ignoreLight;
         const color: ColorTheme.BuiltIn | undefined = params.theme?.globalName ? params.theme?.globalName : void 0;
         const ballAndStickColor: ColorTheme.BuiltInParams<'element-symbol'> = params.theme?.carbonColor !== undefined
