@@ -9,7 +9,6 @@ export class VolumeApiV2 {
 
     public constructor(volumeServerUrl: string = DEFAULT_VOLUME_SERVER_V2) {
         this.volumeServerUrl = volumeServerUrl.replace(/\/$/, ''); // trim trailing slash
-        console.log('API V2', this.volumeServerUrl);
     }
 
     public entryListUrl(maxEntries: number, keyword?: string): string {

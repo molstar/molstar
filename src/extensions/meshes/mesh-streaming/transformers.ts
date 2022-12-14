@@ -1,7 +1,7 @@
 import * as MS from '../molstar-lib-imports';
 import PD = MS.ParamDefinition;
 
-import { CellStarTransform, MeshlistData } from '../mesh-extension';
+import { CellstarTransform, MeshlistData } from '../mesh-extension';
 import { MeshServerInfo } from './server-info';
 import { MeshStreaming, NO_SEGMENT } from './behavior';
 
@@ -12,7 +12,7 @@ export const FOREROUND_OPACITY = 1;
 
 // // // // // // // // // // // // // // // // // // // // // // // //
 
-export const MeshServerTransformer = CellStarTransform({
+export const MeshServerTransformer = CellstarTransform({
     name: 'mesh-server-info',
     from: MS.PluginStateObject.Root,
     to: MeshServerInfo,
@@ -27,7 +27,7 @@ export const MeshServerTransformer = CellStarTransform({
 
 // // // // // // // // // // // // // // // // // // // // // // // //
 
-export const MeshStreamingTransformer = CellStarTransform({
+export const MeshStreamingTransformer = CellstarTransform({
     name: 'mesh-streaming-from-server-info',
     display: { name: 'Mesh Streaming' },
     from: MeshServerInfo,
@@ -62,7 +62,7 @@ interface MeshVisualGroupData {
 }
 
 // export type MeshVisualGroupTransformer = typeof MeshVisualGroupTransformer;
-export const MeshVisualGroupTransformer = CellStarTransform({
+export const MeshVisualGroupTransformer = CellstarTransform({
     name: 'mesh-visual-group-from-streaming',
     display: { name: 'Mesh Visuals for a Segment' },
     from: MeshStreaming,
@@ -109,7 +109,7 @@ function trySetAutoOpacity(params: MS.StateTransformer.Params<typeof MeshVisualG
 
 // // // // // // // // // // // // // // // // // // // // // // // //
 
-export const MeshVisualTransformer = CellStarTransform({
+export const MeshVisualTransformer = CellstarTransform({
     name: 'mesh-visual-from-streaming',
     display: { name: 'Mesh Visual from Streaming' },
     from: MeshStreaming,

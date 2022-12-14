@@ -1,7 +1,7 @@
 import * as MS from './molstar-lib-imports';
 
 
-// TODO unify with Metadata in CellStar
+// TODO unify with Metadata in Cellstar
 
 export interface Metadata {
     grid: {

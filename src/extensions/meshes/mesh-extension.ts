@@ -6,7 +6,7 @@ import PD = MS.ParamDefinition;
 import * as MeshUtils from './mesh-utils';
 
 
-export const CellStarTransform: MS.StateTransformer.Builder.Root = MS.StateTransformer.builderFactory('cellstar');
+export const CellstarTransform: MS.StateTransformer.Builder.Root = MS.StateTransformer.builderFactory('cellstar');
 
 
 // // // // // // // // // // // // // // // // // // // // // // // //
@@ -96,7 +96,7 @@ export namespace MeshlistData {
 export class MeshlistStateObject extends MS.PluginStateObject.Create<MeshlistData>({ name: 'Parsed Meshlist', typeClass: 'Object' }) { }
 // QUESTION: is typeClass just for color, or does do something?
 
-export const ParseMeshlistTransformer = CellStarTransform({
+export const ParseMeshlistTransformer = CellstarTransform({
     name: 'meshlist-from-string',
     from: MS.PluginStateObject.Format.Cif,
     to: MeshlistStateObject,
@@ -163,7 +163,7 @@ const meshParamDef: MS.Mesh.Params = {
     // TODO when I change values here, it has effect, but not if I change them in GUI
 };
 
-export const MeshShapeTransformer = CellStarTransform({
+export const MeshShapeTransformer = CellstarTransform({
     name: 'shape-from-meshlist',
     display: { name: 'Shape from Meshlist', description: 'Create Shape from Meshlist data' },
     from: MeshlistStateObject,
@@ -183,7 +183,7 @@ export const MeshShapeTransformer = CellStarTransform({
 
 // type MeshRepr = MS.PluginStateObject.Representation3DData<MS.ShapeRepresentation<MS.ShapeProvider<any,any,any>, MS.Mesh, MS.Mesh.Params>, any>;
 
-// export const CustomMeshReprTransformer = CellStarTransform({
+// export const CustomMeshReprTransformer = CellstarTransform({
 //     name: 'custom-repr',
 //     from: MS.PluginStateObject.Shape.Provider, // later we can change this
 //     to: MS.PluginStateObject.Shape.Representation3D,

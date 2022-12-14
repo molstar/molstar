@@ -10,32 +10,32 @@ import { PluginContext } from '../../mol-plugin/context';
 import { shallowEqualArrays } from '../../mol-util';
 import { ParamDefinition } from '../../mol-util/param-definition';
 
-import { CellStarEntry } from './entry-root';
+import { CellstarEntry } from './entry-root';
 import { isDefined } from './helpers';
 
 
-interface CellStarUIData {
-    availableNodes: CellStarEntry[],
-    activeNode?: CellStarEntry,
+interface CellstarUIData {
+    availableNodes: CellstarEntry[],
+    activeNode?: CellstarEntry,
 }
-namespace CellStarUIData {
-    export function changeAvailableNodes(data: CellStarUIData, newNodes: CellStarEntry[]): CellStarUIData {
+namespace CellstarUIData {
+    export function changeAvailableNodes(data: CellstarUIData, newNodes: CellstarEntry[]): CellstarUIData {
         const newActiveNode = newNodes.length > data.availableNodes.length ?
             newNodes[newNodes.length - 1]
             : newNodes.find(node => node.data.ref === data.activeNode?.data.ref) ?? newNodes[0];
         return { availableNodes: newNodes, activeNode: newActiveNode };
     }
-    export function changeActiveNode(data: CellStarUIData, newActiveRef: string): CellStarUIData {
+    export function changeActiveNode(data: CellstarUIData, newActiveRef: string): CellstarUIData {
         const newActiveNode = data.availableNodes.find(node => node.data.ref === newActiveRef) ?? data.availableNodes[0];
         return { availableNodes: data.availableNodes, activeNode: newActiveNode };
     }
-    export function equals(data1: CellStarUIData, data2: CellStarUIData) {
+    export function equals(data1: CellstarUIData, data2: CellstarUIData) {
         return shallowEqualArrays(data1.availableNodes, data2.availableNodes) && data1.activeNode === data2.activeNode;
     }
 }
 
-export class CellStarUI extends CollapsableControls<{}, { data: CellStarUIData }> {
-    protected defaultState(): CollapsableState & { data: CellStarUIData } {
+export class CellstarUI extends CollapsableControls<{}, { data: CellstarUIData }> {
+    protected defaultState(): CollapsableState & { data: CellstarUIData } {
         return {
             header: 'Volume & Segmentation',
             isCollapsed: true,
@@ -47,7 +47,7 @@ export class CellStarUI extends CollapsableControls<{}, { data: CellStarUIData }
         };
     }
     protected renderControls(): JSX.Element | null {
-        return <CellStarControls plugin={this.plugin} data={this.state.data} setData={d => this.setState({ data: d })} />;
+        return <CellstarControls plugin={this.plugin} data={this.state.data} setData={d => this.setState({ data: d })} />;
     }
     componentDidMount(): void {
         this.setState({ isHidden: true, isCollapsed: false });
@@ -56,12 +56,12 @@ export class CellStarUI extends CollapsableControls<{}, { data: CellStarUIData }
         // this.subscribe(this.plugin.state.data.events.cell.removed, e => console.log('cell.removed', e.ref));
         this.subscribe(this.plugin.state.data.events.changed, e => {
             // console.log('cell.changed', e);
-            const nodes = e.state.selectQ(q => q.ofType(CellStarEntry)).map(cell => cell?.obj).filter(isDefined);
+            const nodes = e.state.selectQ(q => q.ofType(CellstarEntry)).map(cell => cell?.obj).filter(isDefined);
             // console.log('current nodes', ...this.state.data.availableNodes);
             // console.log('new nodes', ...nodes);
             const isHidden = nodes.length === 0;
-            const newData = CellStarUIData.changeAvailableNodes(this.state.data, nodes);
-            if (!CellStarUIData.equals(this.state.data, newData) || this.state.isHidden !== isHidden) {
+            const newData = CellstarUIData.changeAvailableNodes(this.state.data, nodes);
+            if (!CellstarUIData.equals(this.state.data, newData) || this.state.isHidden !== isHidden) {
                 this.setState({ data: newData, isHidden: isHidden });
             }
         });
@@ -69,14 +69,14 @@ export class CellStarUI extends CollapsableControls<{}, { data: CellStarUIData }
 }
 
 
-function CellStarControls({ plugin, data, setData }: { plugin: PluginContext, data: CellStarUIData, setData: (d: CellStarUIData) => void }) {
+function CellstarControls({ plugin, data, setData }: { plugin: PluginContext, data: CellstarUIData, setData: (d: CellstarUIData) => void }) {
     const entryData = data.activeNode?.data;
     if (!entryData) {
         return <p>No data!</p>;
     }
 
     const params = {
-        /** Reference to the active CellStarEntry node */
+        /** Reference to the active CellstarEntry node */
         entry: ParamDefinition.Select(data.activeNode!.data.ref, data.availableNodes.map(entry => [entry.data.ref, entry.data.entryId]))
     };
     const values: ParamDefinition.ValuesFor<typeof params> = {
@@ -92,11 +92,9 @@ function CellStarControls({ plugin, data, setData }: { plugin: PluginContext, da
 
     const allPdbs = entryData.pdbs;
 
-    console.log('render controls');
-
     return <>
         {/* Entry select */}
-        <ParameterControls params={params} values={values} onChangeValues={next => setData(CellStarUIData.changeActiveNode(data, next.entry))} />
+        <ParameterControls params={params} values={values} onChangeValues={next => setData(CellstarUIData.changeActiveNode(data, next.entry))} />
 
         {/* Title */}
         <div style={{ padding: 8, overflow: 'hidden' }}>
@@ -163,8 +161,6 @@ function WaitingSlider({ plugin, value, min, max, step, onChange }: { plugin: Pl
     const [sliderValue, setSliderValue] = useState(value);
     const [changing, setChanging] = useState(false);
     useEffect(() => setSliderValue(value), [value]);
-
-    console.log('render slider');
 
     return <Slider min={min} max={max} step={step} value={sliderValue} disabled={changing} onChange={async newValue => {
         setChanging(true);

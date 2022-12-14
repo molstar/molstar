@@ -9,7 +9,7 @@ import { ANVILMembraneOrientation } from '../../extensions/anvil/behavior';
 import { CellPack } from '../../extensions/cellpack';
 import { DnatcoConfalPyramids } from '../../extensions/dnatco';
 import { G3DFormat, G3dProvider } from '../../extensions/g3d/format';
-import { CellStar } from '../../extensions/cellstar';
+import { Cellstar } from '../../extensions/cellstar';
 import { GeometryExport } from '../../extensions/geo-export';
 import { MAQualityAssessment } from '../../extensions/model-archive/quality-assessment/behavior';
 import { QualityAssessmentPLDDTPreset, QualityAssessmentQmeanPreset } from '../../extensions/model-archive/quality-assessment/behavior';
@@ -57,7 +57,7 @@ const CustomFormats = [
 ];
 
 const Extensions = {
-    'cellstar': PluginSpec.Behavior(CellStar),
+    'cellstar': PluginSpec.Behavior(Cellstar),
     'backgrounds': PluginSpec.Behavior(Backgrounds),
     'cellpack': PluginSpec.Behavior(CellPack),
     'dnatco-confal-pyramids': PluginSpec.Behavior(DnatcoConfalPyramids),

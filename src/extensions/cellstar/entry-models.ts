@@ -4,13 +4,13 @@ import { TrajectoryFromMmCif } from '../../mol-plugin-state/transforms/model';
 import { StateObjectRef, StateObjectSelector } from '../../mol-state';
 import { setSubtreeVisibility } from '../meshes/molstar-lib-imports';
 
-import { CellStarEntryData } from './entry-root';
+import { CellstarEntryData } from './entry-root';
 
 
-export class CellStarModelData {
-    private entryData: CellStarEntryData;
+export class CellstarModelData {
+    private entryData: CellstarEntryData;
 
-    constructor(rootData: CellStarEntryData) {
+    constructor(rootData: CellstarEntryData) {
         this.entryData = rootData;
     }
 

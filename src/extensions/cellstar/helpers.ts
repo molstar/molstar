@@ -47,6 +47,9 @@ export class Choice<T extends string, D extends T> {
     prettyName(value: T): string {
         return this.nameDict[value];
     }
+    get values(): T[] {
+        return this.options.map(([value, pretty]) => value);
+    }
 }
 export namespace Choice {
     export type Values<T extends Choice<any, any>> = T extends Choice<infer R, any> ? R : any;

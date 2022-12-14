@@ -7,15 +7,15 @@ import { CreateGroup } from '../../mol-plugin-state/transforms/misc';
 import { StateObjectSelector } from '../../mol-state';
 import { Color } from '../../mol-util/color';
 
-import { BOX, CellStarEntryData, MAX_VOXELS } from './entry-root';
+import { BOX, CellstarEntryData, MAX_VOXELS } from './entry-root';
 import * as ExternalAPIs from './external-api';
 
 
-export class CellStarVolumeData {
-    private entryData: CellStarEntryData;
+export class CellstarVolumeData {
+    private entryData: CellstarEntryData;
     public volume?: Volume;
 
-    constructor(rootData: CellStarEntryData) {
+    constructor(rootData: CellstarEntryData) {
         this.entryData = rootData;
     }
 

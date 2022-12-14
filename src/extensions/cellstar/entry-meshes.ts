@@ -8,16 +8,16 @@ import { BACKGROUND_SEGMENT_VOLUME_THRESHOLD } from '../meshes/mesh-streaming/be
 import { PluginStateObject, setSubtreeVisibility } from '../meshes/molstar-lib-imports';
 
 import { Segment } from './cellstar-api/data';
-import { CellStarEntryData } from './entry-root';
+import { CellstarEntryData } from './entry-root';
 
 
 const DEFAULT_MESH_DETAIL: number | null = 5; // null means worst
 
 
-export class CellStarMeshSegmentationData {
-    private entryData: CellStarEntryData;
+export class CellstarMeshSegmentationData {
+    private entryData: CellstarEntryData;
 
-    constructor(rootData: CellStarEntryData) {
+    constructor(rootData: CellstarEntryData) {
         this.entryData = rootData;
     }
 

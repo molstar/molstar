@@ -1,6 +1,6 @@
 /** All imports from MolStar */
 
-// In CellStar: molstar/lib/mol-*
+// In Cellstar: molstar/lib/mol-*
 // In MolStar: ../../../mol-*
 
 export { Column, Database } from '../../mol-data/db';

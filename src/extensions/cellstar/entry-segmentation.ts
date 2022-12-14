@@ -7,17 +7,17 @@ import { VolumeFromSegmentationCif } from '../../mol-plugin-state/transforms/vol
 import { Color } from '../../mol-util/color';
 
 import { Segment } from './cellstar-api/data';
-import { BOX, CellStarEntryData, MAX_VOXELS } from './entry-root';
+import { BOX, CellstarEntryData, MAX_VOXELS } from './entry-root';
 
 
 const SEGMENT_REPR_TAG = 'lattice-segment-repr';
 const DEFAULT_SEGMENT_COLOR = Color.fromNormalizedRgb(0.8, 0.8, 0.8);
 
 
-export class CellStarLatticeSegmentationData {
-    private entryData: CellStarEntryData;
+export class CellstarLatticeSegmentationData {
+    private entryData: CellstarEntryData;
 
-    constructor(rootData: CellStarEntryData) {
+    constructor(rootData: CellstarEntryData) {
         this.entryData = rootData;
     }
 
@@ -96,7 +96,7 @@ export class CellStarLatticeSegmentationData {
         const repr = this.entryData.findNodesByTags(SEGMENT_REPR_TAG)[0];
         if (!repr) return;
         const selectedSegment = this.entryData.currentState.value.selectedSegment;
-        let mustReselect = segments.includes(selectedSegment) && !repr.params?.values.type.params.segments.includes(selectedSegment);
+        const mustReselect = segments.includes(selectedSegment) && !repr.params?.values.type.params.segments.includes(selectedSegment);
         const update = this.entryData.newUpdate();
         update.to(repr).update(StateTransforms.Representation.VolumeRepresentation3D, p => { p.type.params.segments = segments; });
         await update.commit();

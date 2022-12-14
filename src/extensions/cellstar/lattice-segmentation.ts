@@ -29,9 +29,7 @@ export class LatticeSegmentation {
 
     public static async fromCifBlock(segmentationDataBlock: CifBlock) {
         const densityServerCif = CIF.schema.densityServer(segmentationDataBlock);
-        // console.log('dscif', densityServerCif);
         const volume = await volumeFromDensityServerData(densityServerCif).run();
-        // console.log('volume', volume);
         const grid = volume.grid;
         return new LatticeSegmentation(segmentationDataBlock, grid);
     }
