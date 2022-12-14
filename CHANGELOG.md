@@ -6,6 +6,26 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Add an `includeTransparent` parameter to hide/show outlines of components that are transparent
+- Fix 'once' for animations of systems with many frames
+- Better guard against issue (black fringes) with bumpiness in impostors
+- Improve impostor shaders
+    - Fix sphere near-clipping with orthographic projection
+    - Fix cylinder near-clipping
+    - Add interior cylinder caps
+    - Add per-pixel object clipping
+- Fix `QualityAssessment` assignment bug for structures with different auth vs label sequence numbering
+- Refresh `ApplyActionControl`'s param definition when toggling expanded state
+- Fix `struct_conn` bond assignment for ions
+
+## [v3.26.0] - 2022-12-04
+
+- Support for ``powerPreference`` webgl attribute. Add ``PluginConfig.General.PowerPreference`` and ``power-preference`` Viewer GET param.
+- Excluded common protein caps `NME` and `ACE` from the ligand selection query
+- Add screen-space shadow post-processing effect
+- Add "Structure Molecular Surface" visual
+- Add `external-volume` theme (coloring of arbitrary geometries by user-selected volume)
+
 ## [v3.25.1] - 2022-11-20
 
 - Fix edge-case in `Structure.eachUnitPair` with single-element units

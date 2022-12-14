@@ -290,9 +290,9 @@ export namespace ParamDefinition {
     // getValue needs to be assigned by a runtime because it might not be serializable
     export interface ValueRef<T = any> extends Base<{ ref: string, getValue: () => T }> {
         type: 'value-ref',
-        resolveRef: (ref: string) => T,
+        resolveRef: (ref: string, getData: (ref: string) => any) => T,
         // a provider because the list changes over time
-        getOptions: () => Select<string>['options'],
+        getOptions: (ctx: any) => Select<string>['options'],
     }
     export function ValueRef<T>(getOptions: ValueRef['getOptions'], resolveRef: ValueRef<T>['resolveRef'], info?: Info & { defaultRef?: string }) {
         return setInfo<ValueRef<T>>({ type: 'value-ref', defaultValue: { ref: info?.defaultRef ?? '', getValue: unsetGetValue as any }, getOptions, resolveRef }, info);
@@ -365,8 +365,8 @@ export namespace ParamDefinition {
         return d as Values<T>;
     }
 
-    function _resolveRef(resolve: (ref: string) => any, ref: string) {
-        return () => resolve(ref);
+    function _resolveRef(resolve: (ref: string, getData: (ref: string) => any) => any, ref: string, getData: (ref: string) => any) {
+        return () => resolve(ref, getData);
     }
 
     function resolveRefValue(p: Any, value: any, getData: (ref: string) => any) {
@@ -375,11 +375,11 @@ export namespace ParamDefinition {
         if (p.type === 'value-ref') {
             const v = value as ValueRef['defaultValue'];
             if (!v.ref) v.getValue = () => { throw new Error('Unset ref in ValueRef value.'); };
-            else v.getValue = _resolveRef(p.resolveRef, v.ref);
+            else v.getValue = _resolveRef(p.resolveRef, v.ref, getData);
         } else if (p.type === 'data-ref') {
             const v = value as ValueRef['defaultValue'];
             if (!v.ref) v.getValue = () => { throw new Error('Unset ref in ValueRef value.'); };
-            else v.getValue = _resolveRef(getData, v.ref);
+            else v.getValue = _resolveRef(getData, v.ref, getData);
         } else if (p.type === 'group') {
             resolveRefs(p.params, value, getData);
         } else if (p.type === 'mapped') {

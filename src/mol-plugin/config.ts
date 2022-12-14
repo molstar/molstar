@@ -37,6 +37,7 @@ export const PluginConfig = {
         // TODO: check back in a few weeks to see if it was fixed
         PreferWebGl1: item('plugin-config.prefer-webgl1', PluginFeatureDetection.preferWebGl1),
         AllowMajorPerformanceCaveat: item('plugin-config.allow-major-performance-caveat', false),
+        PowerPreference: item<WebGLContextAttributes['powerPreference']>('plugin-config.power-preference', 'high-performance'),
     },
     State: {
         DefaultServer: item('plugin-state.server', 'https://webchem.ncbr.muni.cz/molstar-state'),

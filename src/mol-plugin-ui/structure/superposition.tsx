@@ -65,7 +65,7 @@ type SuperpositionControlsState = {
     options: StructureSuperpositionOptions
 }
 
-interface LociEntry {
+export interface LociEntry {
     loci: StructureElement.Loci,
     label: string,
     cell: StateObjectCell<PluginStateObject.Molecule.Structure>

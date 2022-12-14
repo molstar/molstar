@@ -124,6 +124,11 @@ export const AnimateModelIndex = PluginStateAnimation.create({
                         ? params.duration.params.durationInS * 1000
                         : Math.ceil(1000 * traj.data.frameCount / params.duration.params.targetFps);
 
+                    if (params.mode.name === 'once' && t.current >= durationInMs) {
+                        isEnd = true;
+                        return { modelIndex: traj.data.frameCount - 1 };
+                    }
+
                     let phase: number = (t.current % durationInMs) / durationInMs;
                     if (params.mode.name === 'loop') {
                         if (params.mode.params.direction === 'backward') {
@@ -135,7 +140,6 @@ export const AnimateModelIndex = PluginStateAnimation.create({
                     }
 
                     const modelIndex = Math.min(Math.floor(traj.data.frameCount * phase), traj.data.frameCount - 1);
-                    isEnd = isEnd || modelIndex === traj.data.frameCount - 1;
                     return { modelIndex };
                 }
             });

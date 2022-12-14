@@ -606,12 +606,22 @@ export const LoadCellPackModel = StateAction.build({
                         resolutionScale: 1,
                     }
                 },
+                shadow: {
+                    name: 'on',
+                    params: {
+                        bias: 0.6,
+                        maxDistance: 80,
+                        steps: 3,
+                        tolerance: 1.0,
+                    }
+                },
                 outline: {
                     name: 'on',
                     params: {
                         scale: 1,
                         threshold: 0.33,
                         color: ColorNames.black,
+                        includeTransparent: true,
                     }
                 }
             }

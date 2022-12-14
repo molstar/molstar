@@ -202,6 +202,7 @@ async function createVolumeIsosurfaceTextureMesh(ctx: VisualContext, volume: Vol
     const groupCount = volume.grid.cells.data.length;
     const boundingSphere = Volume.getBoundingSphere(volume); // getting isosurface bounding-sphere is too expensive here
     const surface = TextureMesh.create(gv.vertexCount, groupCount, gv.vertexTexture, gv.groupTexture, gv.normalTexture, boundingSphere, textureMesh);
+    surface.meta.webgl = ctx.webgl;
 
     return surface;
 }

@@ -33,7 +33,8 @@ uniform mat4 uInvView;
 bool CylinderImpostor(
     in vec3 rayOrigin, in vec3 rayDir,
     in vec3 start, in vec3 end, in float radius,
-    out vec4 intersection, out bool interior
+    out vec3 cameraNormal, out bool interior,
+    out vec3 modelPosition, out vec3 viewPosition, out float fragmentDepth
 ){
     vec3 ba = end - start;
     vec3 oc = rayOrigin - start;
@@ -42,7 +43,7 @@ bool CylinderImpostor(
     float bard = dot(ba, rayDir);
     float baoc = dot(ba, oc);
 
-    float k2 = baba - bard*bard;
+    float k2 = baba - bard * bard;
     float k1 = baba * dot(oc, rayDir) - baoc * bard;
     float k0 = baba * dot(oc, oc) - baoc * baoc - radius * radius * baba;
 
@@ -58,8 +59,14 @@ bool CylinderImpostor(
     float y = baoc + t * bard;
     if (y > 0.0 && y < baba) {
         interior = false;
-        intersection = vec4(t, (oc + t * rayDir - ba * y / baba) / radius);
-        return true;
+        cameraNormal = (oc + t * rayDir - ba * y / baba) / radius;
+        modelPosition = rayOrigin + t * rayDir;
+        viewPosition = (uView * vec4(modelPosition, 1.0)).xyz;
+        fragmentDepth = calcDepth(viewPosition);
+        #if defined(dClipVariant_pixel) && dClipObjectCount != 0
+            if (clipTest(vec4(modelPosition, 0.0))) fragmentDepth = -1.0;
+        #endif
+        if (fragmentDepth > 0.0) return true;
     }
 
     if (topCap && y < 0.0) {
@@ -67,16 +74,22 @@ bool CylinderImpostor(
         t = -baoc / bard;
         if (abs(k1 + k2 * t) < h) {
             interior = false;
-            intersection = vec4(t, ba * sign(y) / baba);
-            return true;
+            cameraNormal = -ba / baba;
+            modelPosition = rayOrigin + t * rayDir;
+            viewPosition = (uView * vec4(modelPosition, 1.0)).xyz;
+            fragmentDepth = calcDepth(viewPosition);
+            if (fragmentDepth > 0.0) return true;
         }
     } else if(bottomCap && y >= 0.0) {
         // bottom cap
         t = (baba - baoc) / bard;
         if (abs(k1 + k2 * t) < h) {
             interior = false;
-            intersection = vec4(t, ba * sign(y) / baba);
-            return true;
+            cameraNormal = ba / baba;
+            modelPosition = rayOrigin + t * rayDir;
+            viewPosition = (uView * vec4(modelPosition, 1.0)).xyz;
+            fragmentDepth = calcDepth(viewPosition);
+            if (fragmentDepth > 0.0) return true;
         }
     }
 
@@ -87,36 +100,61 @@ bool CylinderImpostor(
         y = baoc + t * bard;
         if (y > 0.0 && y < baba) {
             interior = true;
-            intersection = vec4(t, (oc + t * rayDir - ba * y / baba) / radius);
+            cameraNormal = -(oc + t * rayDir - ba * y / baba) / radius;
+            modelPosition = rayOrigin + t * rayDir;
+            viewPosition = (uView * vec4(modelPosition, 1.0)).xyz;
+            fragmentDepth = calcDepth(viewPosition);
             return true;
         }
 
-        // TODO: handle inside caps???
+        if (topCap && y < 0.0) {
+            // top cap
+            t = -baoc / bard;
+            if (abs(k1 + k2 * t) < -h) {
+                interior = true;
+                cameraNormal = ba / baba;
+                modelPosition = rayOrigin + t * rayDir;
+                viewPosition = (uView * vec4(modelPosition, 1.0)).xyz;
+                fragmentDepth = calcDepth(viewPosition);
+                if (fragmentDepth > 0.0) return true;
+            }
+        } else if(bottomCap && y >= 0.0) {
+            // bottom cap
+            t = (baba - baoc) / bard;
+            if (abs(k1 + k2 * t) < -h) {
+                interior = true;
+                cameraNormal = -ba / baba;
+                modelPosition = rayOrigin + t * rayDir;
+                viewPosition = (uView * vec4(modelPosition, 1.0)).xyz;
+                fragmentDepth = calcDepth(viewPosition);
+                if (fragmentDepth > 0.0) return true;
+            }
+        }
     }
 
     return false;
 }
 
 void main() {
-    #include clip_pixel
-
+    vec3 rayOrigin = vModelPosition;
     vec3 rayDir = mix(normalize(vModelPosition - uCameraPosition), uCameraDir, uIsOrtho);
 
-    vec4 intersection;
-    bool interior;
-    bool hit = CylinderImpostor(vModelPosition, rayDir, vStart, vEnd, vSize, intersection, interior);
+    vec3 cameraNormal;
+    vec3 modelPosition;
+    vec3 viewPosition;
+    float fragmentDepth;
+    bool hit = CylinderImpostor(rayOrigin, rayDir, vStart, vEnd, vSize, cameraNormal, interior, modelPosition, viewPosition, fragmentDepth);
     if (!hit) discard;
-
-    vec3 vViewPosition = vModelPosition + intersection.x * rayDir;
-    vViewPosition = (uView * vec4(vViewPosition, 1.0)).xyz;
-    float fragmentDepth = calcDepth(vViewPosition);
 
     if (fragmentDepth < 0.0) discard;
     if (fragmentDepth > 1.0) discard;
 
     gl_FragDepthEXT = fragmentDepth;
 
-    vec3 vModelPosition = (uInvView * vec4(vViewPosition, 1.0)).xyz;
+    vec3 vViewPosition = viewPosition;
+    vec3 vModelPosition = modelPosition;
+
+    #include clip_pixel
     #include assign_material_color
 
     #if defined(dRenderVariant_pick)
@@ -135,7 +173,7 @@ void main() {
         gl_FragColor = material;
     #elif defined(dRenderVariant_color)
         mat3 normalMatrix = transpose3(inverse3(mat3(uView)));
-        vec3 normal = normalize(normalMatrix * -normalize(intersection.yzw));
+        vec3 normal = normalize(normalMatrix * -normalize(cameraNormal));
         #include apply_light_color
 
         #include apply_interior_color

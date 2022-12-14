@@ -41,6 +41,7 @@ import { Vec3, Vec4 } from '../mol-math/linear-algebra';
 import { ModelIndexColorThemeProvider } from './color/model-index';
 import { StructureIndexColorThemeProvider } from './color/structure-index';
 import { VolumeSegmentColorThemeProvider } from './color/volume-segment';
+import { ExternalVolumeColorThemeProvider } from './color/external-volume';
 
 export type LocationColor = (location: Location, isSecondary: boolean) => Color
 
@@ -154,6 +155,7 @@ namespace ColorTheme {
         'uniform': UniformColorThemeProvider,
         'volume-segment': VolumeSegmentColorThemeProvider,
         'volume-value': VolumeValueColorThemeProvider,
+        'external-volume': ExternalVolumeColorThemeProvider,
     };
     type _BuiltIn = typeof BuiltIn
     export type BuiltIn = keyof _BuiltIn
