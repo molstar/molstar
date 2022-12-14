@@ -81,9 +81,12 @@ void main(void){
     vec3 vViewPosition = cameraPos;
     vec3 vModelPosition = modelPos;
 
-    if (interior && !clipped) {
-        fragmentDepth = 0.0 + (0.0000001 / vRadius);
-    }
+    #ifdef dSolidInterior
+        if (interior && !clipped) {
+            fragmentDepth = 0.0 + (0.0000001 / vRadius);
+            cameraNormal = -mix(normalize(vPoint), vec3(0.0, 0.0, 1.0), uIsOrtho);
+        }
+    #endif
 
     gl_FragDepthEXT = fragmentDepth;
 
