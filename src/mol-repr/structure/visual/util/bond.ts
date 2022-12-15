@@ -78,16 +78,14 @@ export function makeIntraBondIgnoreTest(structure: Structure, unit: Unit.Atomic,
             return true;
         }
 
-        if (ignoreHydrogens || onlyPolarHydrogens) {
-            if (isH(atomicNumber, elements[aI])) {
-                if (ignoreHydrogens) return true;
-                if (onlyPolarHydrogens && !hasPolarNeighbour(structure, unit, aI)) return true;
-            }
-
-            if (isH(atomicNumber, elements[bI])) {
-                if (ignoreHydrogens) return true;
-                if (onlyPolarHydrogens && !hasPolarNeighbour(structure, unit, bI)) return true;
-            }
+        if (!ignoreHydrogens && !onlyPolarHydrogens) return false;
+        if (isH(atomicNumber, elements[aI])) {
+            if (ignoreHydrogens) return true;
+            if (onlyPolarHydrogens && !hasPolarNeighbour(structure, unit, aI)) return true;
+        }
+        if (isH(atomicNumber, elements[bI])) {
+            if (ignoreHydrogens) return true;
+            if (onlyPolarHydrogens && !hasPolarNeighbour(structure, unit, bI)) return true;
         }
 
         return false;

@@ -60,13 +60,10 @@ export function makeElementIgnoreTest(structure: Structure, unit: Unit, props: E
 
         if (isCoarse) return false;
 
-        if ((ignoreHydrogens || onlyPolarHydrogens) && isH(atomicNumber, element)) {
-            if (ignoreHydrogens) {
-                return true;
-            }
-            if (onlyPolarHydrogens) {
-                return !hasPolarNeighbour(structure, unit, SortedArray.indexOf(unit.elements, element) as StructureElement.UnitIndex);
-            }
+        if (!isH(atomicNumber, element)) return false;
+        if (ignoreHydrogens) return true;
+        if (onlyPolarHydrogens) {
+            return !hasPolarNeighbour(structure, unit, SortedArray.indexOf(unit.elements, element) as StructureElement.UnitIndex);
         }
 
         return false;
