@@ -469,7 +469,7 @@ namespace StructureComponentManager {
             { description: 'Determine display of hydrogen atoms in representations' }
         ),
         visualQuality: PD.Select('auto', VisualQualityOptions, { description: 'Control the visual/rendering quality of representations' }),
-        ignoreLight: PD.Boolean(false, { description: 'Ignore light for stylized rendering of representtions' }),
+        ignoreLight: PD.Boolean(false, { description: 'Ignore light for stylized rendering of representations' }),
         materialStyle: Material.getParam(),
         clipObjects: PD.Group(Clip.Params),
         interactions: PD.Group(InteractionsProvider.defaultParams, { label: 'Non-covalent Interactions' }),
