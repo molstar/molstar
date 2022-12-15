@@ -71,7 +71,7 @@ class StructureComponentManager extends StatefulPluginComponent<StructureCompone
             await update.commit();
             await this.plugin.state.updateBehavior(StructureFocusRepresentation, p => {
                 p.ignoreHydrogens = options.hydrogens === 'hide-all';
-                p.ignorePolarHydrogens = options.hydrogens === 'hide-polar';
+                p.onlyPolarHydrogens = options.hydrogens === 'only-polar';
                 p.ignoreLight = options.ignoreLight;
                 p.material = options.materialStyle;
                 p.clip = options.clipObjects;
@@ -83,15 +83,15 @@ class StructureComponentManager extends StatefulPluginComponent<StructureCompone
     private updateReprParams(update: StateBuilder.Root, component: StructureComponentRef) {
         const { hydrogens, visualQuality: quality, ignoreLight, materialStyle: material, clipObjects: clip } = this.state.options;
         const ignoreHydrogens = hydrogens === 'hide-all';
-        const ignorePolarHydrogens = hydrogens === 'hide-polar';
+        const onlyPolarHydrogens = hydrogens === 'only-polar';
         for (const r of component.representations) {
             if (r.cell.transform.transformer !== StructureRepresentation3D) continue;
 
             const params = r.cell.transform.params as StateTransformer.Params<StructureRepresentation3D>;
-            if (!!params.type.params.ignoreHydrogens !== ignoreHydrogens || !!params.type.params.ignorePolarHydrogens !== ignorePolarHydrogens || params.type.params.quality !== quality || params.type.params.ignoreLight !== ignoreLight || !shallowEqual(params.type.params.material, material) || !PD.areEqual(Clip.Params, params.type.params.clip, clip)) {
+            if (!!params.type.params.ignoreHydrogens !== ignoreHydrogens || !!params.type.params.onlyPolarHydrogens !== onlyPolarHydrogens || params.type.params.quality !== quality || params.type.params.ignoreLight !== ignoreLight || !shallowEqual(params.type.params.material, material) || !PD.areEqual(Clip.Params, params.type.params.clip, clip)) {
                 update.to(r.cell).update(old => {
                     old.type.params.ignoreHydrogens = ignoreHydrogens;
-                    old.type.params.ignorePolarHydrogens = ignorePolarHydrogens;
+                    old.type.params.onlyPolarHydrogens = onlyPolarHydrogens;
                     old.type.params.quality = quality;
                     old.type.params.ignoreLight = ignoreLight;
                     old.type.params.material = material;
@@ -316,8 +316,8 @@ class StructureComponentManager extends StatefulPluginComponent<StructureCompone
 
         const { hydrogens, visualQuality: quality, ignoreLight, materialStyle: material, clipObjects: clip } = this.state.options;
         const ignoreHydrogens = hydrogens === 'hide-all';
-        const ignorePolarHydrogens = hydrogens === 'hide-polar';
-        const typeParams = { ignoreHydrogens, ignorePolarHydrogens, quality, ignoreLight, material, clip };
+        const onlyPolarHydrogens = hydrogens === 'only-polar';
+        const typeParams = { ignoreHydrogens, onlyPolarHydrogens, quality, ignoreLight, material, clip };
 
         return this.plugin.dataTransaction(async () => {
             for (const component of components) {
@@ -354,8 +354,8 @@ class StructureComponentManager extends StatefulPluginComponent<StructureCompone
 
             const { hydrogens, visualQuality: quality, ignoreLight, materialStyle: material, clipObjects: clip } = this.state.options;
             const ignoreHydrogens = hydrogens === 'hide-all';
-            const ignorePolarHydrogens = hydrogens === 'hide-polar';
-            const typeParams = { ignoreHydrogens, ignorePolarHydrogens, quality, ignoreLight, material, clip };
+            const onlyPolarHydrogens = hydrogens === 'only-polar';
+            const typeParams = { ignoreHydrogens, onlyPolarHydrogens, quality, ignoreLight, material, clip };
 
             const componentKey = UUID.create22();
             for (const s of xs) {
@@ -465,7 +465,7 @@ namespace StructureComponentManager {
     export const OptionsParams = {
         hydrogens: PD.Select(
             'all',
-            [['all', 'Show All'], ['hide-all', 'Hide All'], ['hide-polar', 'Hide Polar']] as const,
+            [['all', 'Show All'], ['hide-all', 'Hide All'], ['only-polar', 'Only Polar']] as const,
             { description: 'Determine display of hydrogen atoms in representations' }
         ),
         visualQuality: PD.Select('auto', VisualQualityOptions, { description: 'Control the visual/rendering quality of representations' }),

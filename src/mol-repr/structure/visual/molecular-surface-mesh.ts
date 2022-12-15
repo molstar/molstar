@@ -83,7 +83,7 @@ export function MolecularSurfaceMeshVisual(materialId: number): UnitsVisual<Mole
             if (newProps.probeRadius !== currentProps.probeRadius) state.createGeometry = true;
             if (newProps.probePositions !== currentProps.probePositions) state.createGeometry = true;
             if (newProps.ignoreHydrogens !== currentProps.ignoreHydrogens) state.createGeometry = true;
-            if (newProps.ignorePolarHydrogens !== currentProps.ignorePolarHydrogens) state.createGeometry = true;
+            if (newProps.onlyPolarHydrogens !== currentProps.onlyPolarHydrogens) state.createGeometry = true;
             if (newProps.traceOnly !== currentProps.traceOnly) state.createGeometry = true;
             if (newProps.includeParent !== currentProps.includeParent) state.createGeometry = true;
 
@@ -152,7 +152,7 @@ export function StructureMolecularSurfaceMeshVisual(materialId: number): Complex
             if (newProps.probeRadius !== currentProps.probeRadius) state.createGeometry = true;
             if (newProps.probePositions !== currentProps.probePositions) state.createGeometry = true;
             if (newProps.ignoreHydrogens !== currentProps.ignoreHydrogens) state.createGeometry = true;
-            if (newProps.ignorePolarHydrogens !== currentProps.ignorePolarHydrogens) state.createGeometry = true;
+            if (newProps.onlyPolarHydrogens !== currentProps.onlyPolarHydrogens) state.createGeometry = true;
             if (newProps.traceOnly !== currentProps.traceOnly) state.createGeometry = true;
             if (newProps.includeParent !== currentProps.includeParent) state.createGeometry = true;
 

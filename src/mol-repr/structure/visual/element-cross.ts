@@ -27,7 +27,7 @@ export const ElementCrossParams = {
     ...UnitsLinesParams,
     lineSizeAttenuation: PD.Boolean(false),
     ignoreHydrogens: PD.Boolean(false),
-    ignorePolarHydrogens: PD.Boolean(false),
+    onlyPolarHydrogens: PD.Boolean(false),
     traceOnly: PD.Boolean(false),
     crosses: PD.Select('lone', PD.arrayToOptions(['lone', 'all'] as const)),
     crossSize: PD.Numeric(0.35, { min: 0, max: 2, step: 0.01 }),
@@ -86,7 +86,7 @@ export function ElementCrossVisual(materialId: number): UnitsVisual<ElementCross
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<ElementCrossParams>, currentProps: PD.Values<ElementCrossParams>) => {
             state.createGeometry = (
                 newProps.ignoreHydrogens !== currentProps.ignoreHydrogens ||
-                newProps.ignorePolarHydrogens !== currentProps.ignorePolarHydrogens ||
+                newProps.onlyPolarHydrogens !== currentProps.onlyPolarHydrogens ||
                 newProps.traceOnly !== currentProps.traceOnly ||
                 newProps.crosses !== currentProps.crosses ||
                 newProps.crossSize !== currentProps.crossSize

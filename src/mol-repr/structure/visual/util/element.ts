@@ -28,7 +28,7 @@ const v3add = Vec3.add;
 
 type ElementProps = {
     ignoreHydrogens: boolean,
-    ignorePolarHydrogens: boolean,
+    onlyPolarHydrogens: boolean,
     traceOnly: boolean,
 }
 
@@ -38,7 +38,7 @@ export type ElementSphereMeshProps = {
 } & ElementProps
 
 export function makeElementIgnoreTest(structure: Structure, unit: Unit, props: ElementProps): undefined | ((i: ElementIndex) => boolean) {
-    const { ignoreHydrogens, ignorePolarHydrogens, traceOnly } = props;
+    const { ignoreHydrogens, onlyPolarHydrogens, traceOnly } = props;
 
     const { atomicNumber } = unit.model.atomicHierarchy.derived.atom;
     const isCoarse = Unit.isCoarse(unit);
@@ -47,7 +47,7 @@ export function makeElementIgnoreTest(structure: Structure, unit: Unit, props: E
     const childUnit = child?.unitMap.get(unit.id);
     if (child && !childUnit) throw new Error('expected childUnit to exist if child exists');
 
-    if (!child && !ignoreHydrogens && !traceOnly && !ignorePolarHydrogens) return;
+    if (!child && !ignoreHydrogens && !traceOnly && !onlyPolarHydrogens) return;
 
     return (element: ElementIndex) => {
         if (!!childUnit && !SortedArray.has(childUnit.elements, element)) {
@@ -60,12 +60,12 @@ export function makeElementIgnoreTest(structure: Structure, unit: Unit, props: E
 
         if (isCoarse) return false;
 
-        if ((ignoreHydrogens || ignorePolarHydrogens) && isH(atomicNumber, element)) {
+        if ((ignoreHydrogens || onlyPolarHydrogens) && isH(atomicNumber, element)) {
             if (ignoreHydrogens) {
                 return true;
             }
-            if (ignorePolarHydrogens) {
-                return hasPolarNeighbour(structure, unit, SortedArray.indexOf(unit.elements, element) as StructureElement.UnitIndex);
+            if (onlyPolarHydrogens) {
+                return !hasPolarNeighbour(structure, unit, SortedArray.indexOf(unit.elements, element) as StructureElement.UnitIndex);
             }
         }
 
