@@ -82,7 +82,7 @@ export const LoadCellstar = StateAction.build({
         const entryNode = await state.build().toRoot().apply(CellstarEntryFromRoot, entryParams).commit();
         await state.build().to(entryNode).apply(CellstarStateFromEntry, {}).commit(); // TODO isGhost
         if (entryNode.data) {
-            await entryNode.data.volumeData.loadVolume();
+            await entryNode.data.loadVolume();
             await entryNode.data.loadSegmentations();
         }
     }).runInContext(taskCtx);

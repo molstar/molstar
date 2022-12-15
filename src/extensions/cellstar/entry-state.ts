@@ -1,6 +1,14 @@
 import { ParamDefinition, PluginStateObject } from '../meshes/molstar-lib-imports';
+import { Choice } from './helpers';
+
+export const VolumeTypeChoice = new Choice({ 'isosurface': 'Isosurface', 'direct-volume': 'Direct volume', 'off': 'Off' }, 'isosurface');
+export type VolumeType = Choice.Values<typeof VolumeTypeChoice>
+
 
 export const CellstarStateParams = {
+    volumeType: VolumeTypeChoice.PDSelect(),
+    volumeIsovalueKind: ParamDefinition.Select('relative', [['relative', 'Relative'], ['absolute', 'Absolute']]),
+    volumeIsovalueValue: ParamDefinition.Numeric(1),
     opacity: ParamDefinition.Numeric(1, { min: 0, max: 1, step: 0.05 }),
     selectedSegment: ParamDefinition.Numeric(-1, { step: 1 }),
     visibleSegments: ParamDefinition.ObjectList({ segmentId: ParamDefinition.Numeric(0) }, s => s.segmentId.toString()),

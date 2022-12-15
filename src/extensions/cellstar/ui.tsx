@@ -11,6 +11,7 @@ import { shallowEqualArrays } from '../../mol-util';
 import { ParamDefinition } from '../../mol-util/param-definition';
 
 import { CellstarEntry } from './entry-root';
+import { VolumeTypeChoice } from './entry-state';
 import { isDefined } from './helpers';
 
 
@@ -79,7 +80,7 @@ function CellstarControls({ plugin, data, setData }: { plugin: PluginContext, da
         /** Reference to the active CellstarEntry node */
         entry: ParamDefinition.Select(data.activeNode!.data.ref, data.availableNodes.map(entry => [entry.data.ref, entry.data.entryId]))
     };
-    const values: ParamDefinition.ValuesFor<typeof params> = {
+    const values: ParamDefinition.Values<typeof params> = {
         entry: data.activeNode!.data.ref,
     };
 
@@ -91,6 +92,13 @@ function CellstarControls({ plugin, data, setData }: { plugin: PluginContext, da
     const visibleModels = state.visibleModels.map(model => model.pdbId);
 
     const allPdbs = entryData.pdbs;
+
+    const volumeParams = {
+        volumeType: VolumeTypeChoice.PDSelect(),
+    };
+    const volumeValues: ParamDefinition.Values<typeof volumeParams> = {
+        volumeType: state.volumeType,
+    };
 
     return <>
         {/* Entry select */}
@@ -111,6 +119,9 @@ function CellstarControls({ plugin, data, setData }: { plugin: PluginContext, da
                 </Button>
             )}
         </>}
+
+        {/* Volume */}
+        <ParameterControls params={volumeParams} values={volumeValues} onChangeValues={next => entryData.actionSetVolumeVisual(next.volumeType)} />
 
         {/* Segment opacity slider */}
         <ControlRow label='Opacity' control={

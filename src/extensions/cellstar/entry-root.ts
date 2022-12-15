@@ -36,7 +36,7 @@ const MAX_ANNOTATIONS_IN_LABEL = 6;
 
 
 const SourceChoice = new Choice({ emdb: 'EMDB', empiar: 'EMPIAR', idr: 'IDR' }, 'emdb');
-export type Source = Choice.Values<typeof SourceChoice>
+export type Source = Choice.Values<typeof SourceChoice>;
 
 
 export function createLoadCellstarParams(plugin?: PluginContext, entrylists: { [source: string]: string[] } = {}) {
@@ -182,10 +182,18 @@ export class CellstarEntryData extends PluginBehavior.WithSubscribers<CellstarEn
         this.plugin.managers.lociLabels.removeProvider(this.labelProvider);
     }
 
+    async loadVolume() {
+        const result = await this.volumeData.loadVolume();
+        if (result) {
+            const isovalue = result.isovalue.kind === 'relative' ? result.isovalue.relativeValue : result.isovalue.absoluteValue;
+            await this.updateStateNode({ volumeIsovalueKind: result.isovalue.kind, volumeIsovalueValue: isovalue })
+        }
+    }
+
     async loadSegmentations() {
         await this.latticeSegmentationData.loadSegmentation();
         await this.meshSegmentationData.loadSegmentation();
-        await this.showSegments(this.metadata.allSegmentIds);
+        await this.actionShowSegments(this.metadata.allSegmentIds);
     }
 
 
@@ -196,18 +204,18 @@ export class CellstarEntryData extends PluginBehavior.WithSubscribers<CellstarEn
     async actionToggleSegment(segment: number) {
         const current = this.currentState.value.visibleSegments.map(seg => seg.segmentId);
         if (current.includes(segment)) {
-            await this.showSegments(current.filter(s => s !== segment));
+            await this.actionShowSegments(current.filter(s => s !== segment));
         } else {
-            await this.showSegments([...current, segment]);
+            await this.actionShowSegments([...current, segment]);
         }
     }
 
     async actionToggleAllSegments() {
         const current = this.currentState.value.visibleSegments.map(seg => seg.segmentId);
         if (current.length !== this.metadata.allSegments.length) {
-            await this.showSegments(this.metadata.allSegmentIds);
+            await this.actionShowSegments(this.metadata.allSegmentIds);
         } else {
-            await this.showSegments([]);
+            await this.actionShowSegments([]);
         }
     }
 
@@ -232,8 +240,13 @@ export class CellstarEntryData extends PluginBehavior.WithSubscribers<CellstarEn
         await this.updateStateNode({ visibleModels: pdbIds.map(pdbId => ({ pdbId: pdbId })) });
     }
 
+    async actionSetVolumeVisual(type: 'isosurface' | 'direct-volume' | 'off') {
+        await this.volumeData.setVolumeVisual(type);
+        await this.updateStateNode({ volumeType: type });
+    }
 
-    private async showSegments(segments: number[]) {
+
+    private async actionShowSegments(segments: number[]) {
         await this.latticeSegmentationData.showSegments(segments);
         await this.meshSegmentationData.showSegments(segments);
         await this.updateStateNode({ visibleSegments: segments.map(s => ({ segmentId: s })) });
