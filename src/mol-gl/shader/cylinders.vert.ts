@@ -57,10 +57,6 @@ void main() {
     // ensure cylinder 'dir' is pointing towards the camera
     if(dot(camDir, dir) < 0.0) {
         dir = -dir;
-        // TODO: revisit
-        // vec3 tmp = vStart;
-        // vStart = vEnd;
-        // vEnd = tmp;
     }
 
     vec3 left = cross(camDir, dir);

@@ -23,7 +23,13 @@ varying float vRadiusSq;
 varying vec3 vPoint;
 varying vec3 vPointViewPosition;
 
-bool SphereImpostor(out vec3 modelPos, out vec3 cameraPos, out vec3 cameraNormal, out bool interior, out float fragmentDepth, out bool clipped){
+#ifdef dSolidInterior
+    const bool solidInterior = true;
+#else
+    const bool solidInterior = false;
+#endif
+
+bool SphereImpostor(out vec3 modelPos, out vec3 cameraPos, out vec3 cameraNormal, out bool interior, out float fragmentDepth){
     vec3 cameraSpherePos = -vPointViewPosition;
 
     vec3 rayOrigin = mix(vec3(0.0, 0.0, 0.0), vPoint, uIsOrtho);
@@ -43,9 +49,11 @@ bool SphereImpostor(out vec3 modelPos, out vec3 cameraPos, out vec3 cameraNormal
     modelPos = (uInvView * vec4(cameraPos, 1.0)).xyz;
     fragmentDepth = calcDepth(cameraPos);
 
+    bool objectClipped = false;
+
     #if defined(dClipVariant_pixel) && dClipObjectCount != 0
         if (clipTest(vec4(modelPos, 0.0))) {
-            clipped = true;
+            objectClipped = true;
             fragmentDepth = -1.0;
         }
     #endif
@@ -54,12 +62,18 @@ bool SphereImpostor(out vec3 modelPos, out vec3 cameraPos, out vec3 cameraNormal
         cameraNormal = normalize(cameraPos - cameraSpherePos);
         interior = false;
         return true;
-    } else if (uDoubleSided) {
+    } else if (uDoubleSided || solidInterior) {
         cameraPos = rayDirection * posT + rayOrigin;
         modelPos = (uInvView * vec4(cameraPos, 1.0)).xyz;
         fragmentDepth = calcDepth(cameraPos);
         cameraNormal = -normalize(cameraPos - cameraSpherePos);
         interior = true;
+        #ifdef dSolidInterior
+            if (!objectClipped) {
+                fragmentDepth = 0.0 + (0.0000001 / vRadius);
+                cameraNormal = -mix(normalize(vPoint), vec3(0.0, 0.0, 1.0), uIsOrtho);
+            }
+        #endif
         return true;
     }
 
@@ -72,7 +86,7 @@ void main(void){
     vec3 cameraNormal;
     float fragmentDepth;
     bool clipped = false;
-    bool hit = SphereImpostor(modelPos, cameraPos, cameraNormal, interior, fragmentDepth, clipped);
+    bool hit = SphereImpostor(modelPos, cameraPos, cameraNormal, interior, fragmentDepth);
     if (!hit) discard;
 
     if (fragmentDepth < 0.0) discard;
@@ -80,13 +94,6 @@ void main(void){
 
     vec3 vViewPosition = cameraPos;
     vec3 vModelPosition = modelPos;
-
-    #ifdef dSolidInterior
-        if (interior && !clipped) {
-            fragmentDepth = 0.0 + (0.0000001 / vRadius);
-            cameraNormal = -mix(normalize(vPoint), vec3(0.0, 0.0, 1.0), uIsOrtho);
-        }
-    #endif
 
     gl_FragDepthEXT = fragmentDepth;
 

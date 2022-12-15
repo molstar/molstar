@@ -14,6 +14,7 @@ Note that since we don't clearly distinguish between a public and private interf
     - Fix cylinder near-clipping
     - Add interior cylinder caps
     - Add per-pixel object clipping
+    - Add `solidInterior` parameter
 - Fix `QualityAssessment` assignment bug for structures with different auth vs label sequence numbering
 - Refresh `ApplyActionControl`'s param definition when toggling expanded state
 
