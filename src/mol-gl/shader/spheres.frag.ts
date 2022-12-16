@@ -68,13 +68,15 @@ bool SphereImpostor(out vec3 modelPos, out vec3 cameraPos, out vec3 cameraNormal
         fragmentDepth = calcDepth(cameraPos);
         cameraNormal = -normalize(cameraPos - cameraSpherePos);
         interior = true;
-        #ifdef dSolidInterior
-            if (!objectClipped) {
-                fragmentDepth = 0.0 + (0.0000001 / vRadius);
-                cameraNormal = -mix(normalize(vPoint), vec3(0.0, 0.0, 1.0), uIsOrtho);
-            }
-        #endif
-        return true;
+        if (fragmentDepth > 0.0) {
+            #ifdef dSolidInterior
+                if (!objectClipped) {
+                    fragmentDepth = 0.0 + (0.0000001 / vRadius);
+                    cameraNormal = -mix(normalize(vPoint), vec3(0.0, 0.0, 1.0), uIsOrtho);
+                }
+            #endif
+            return true;
+        }
     }
 
     return false;
