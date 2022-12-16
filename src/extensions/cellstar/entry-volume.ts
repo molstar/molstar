@@ -10,15 +10,21 @@ import { Color } from '../../mol-util/color';
 import { PluginCommands, setSubtreeVisibility } from '../meshes/molstar-lib-imports';
 
 import { BOX, CellstarEntryData, MAX_VOXELS } from './entry-root';
+import { CellstarStateParams } from './entry-state';
 import * as ExternalAPIs from './external-api';
 
 
-type VolumeVisualParams = ReturnType<typeof createVolumeRepresentationParams>
+const DIRECT_VOLUME_RELATIVE_PEAK_HALFWIDTH = 1;
+
+
+type VolumeVisualParams = ReturnType<typeof createVolumeRepresentationParams>;
+
+interface VolumeStats { min: number, max: number, mean: number, sigma: number };
+
 
 export class CellstarVolumeData {
     private entryData: CellstarEntryData;
     private visualTypeParamCache: { [type: string]: any } = {};
-    // public volume?: Volume;
 
     constructor(rootData: CellstarEntryData) {
         this.entryData = rootData;
@@ -38,56 +44,43 @@ export class CellstarVolumeData {
             const parsed = await this.entryData.plugin.dataFormats.get('dscif')!.parse(this.entryData.plugin, data);
             const volumeNode: StateObjectSelector<PluginStateObject.Volume.Data> = parsed.volumes?.[0] ?? parsed.volume;
             const volumeData = volumeNode.cell!.obj!.data;
+
+            const volumeType = CellstarStateParams.volumeType.defaultValue;
             const isovalue = await isoLevelPromise;
             const adjustedIsovalue = Volume.adjustedIsoValue(volumeData, isovalue.value, isovalue.kind);
-            // visualParams = this.initVolumeVisualTypeParamCache(volumeData, adjustedIsovalue);
-            let visualParams = this.createVolumeVisualParams(volumeData, 'isosurface', adjustedIsovalue);
-            visualParams = this.changeIsovalueInVolumeVisualParams(visualParams, adjustedIsovalue);
-            console.log('visualParams', visualParams);
+            const visualParams = this.createVolumeVisualParams(volumeData, volumeType);
+            this.changeIsovalueInVolumeVisualParams(visualParams, adjustedIsovalue, volumeData.grid.stats);
+
             await this.entryData.newUpdate()
                 .to(volumeNode)
-                .apply(StateTransforms.Representation.VolumeRepresentation3D, visualParams, { tags: ['volume-visual'] })
+                .apply(StateTransforms.Representation.VolumeRepresentation3D, visualParams, { tags: ['volume-visual'], state: { isHidden: volumeType === 'off' } })
                 .commit();
             return { isovalue: adjustedIsovalue };
         }
     }
 
     async setVolumeVisual(type: 'isosurface' | 'direct-volume' | 'off') {
-        console.log('setVolumeVisual', type);
-        const visual = this.entryData.findNodesByTags('volume-visual')[0]?.transform;
+        const visual = this.entryData.findNodesByTags('volume-visual')[0];
         if (!visual) return;
-        const oldParams: VolumeVisualParams = visual.params;
-        console.log('oldParams:', oldParams);
+        const oldParams: VolumeVisualParams = visual.transform.params;
         this.visualTypeParamCache[oldParams.type.name] = oldParams.type.params;
-        // console.log('param cache', this.visualTypeParamCache);
         if (type === 'off') {
-            setSubtreeVisibility(this.entryData.plugin.state.data, visual.ref, true); // true means hide, ¯\_(ツ)_/¯
+            setSubtreeVisibility(this.entryData.plugin.state.data, visual.transform.ref, true); // true means hide, ¯\_(ツ)_/¯
         } else {
-            setSubtreeVisibility(this.entryData.plugin.state.data, visual.ref, false); // true means hide, ¯\_(ツ)_/¯
+            setSubtreeVisibility(this.entryData.plugin.state.data, visual.transform.ref, false); // true means hide, ¯\_(ツ)_/¯
             if (oldParams.type.name === type) return;
-
-            const newParams = {
+            const newParams: VolumeVisualParams = {
                 ...oldParams,
                 type: {
                     name: type,
                     params: this.visualTypeParamCache[type] ?? oldParams.type.params,
                 }
-            }; // TODO or create params accordingly
-            // newParams = this.changeIsovalueInVolumeVisualParams(newParams, undefined); // TODO uncomment
-            // const newParams = { ...oldParams, type: { name: type, params: oldParams.type.params } };
-            // console.log('volume visual params', visual.params);
-            console.log('newParams:', newParams);
-            let update = this.entryData.newUpdate().to(visual.ref).update(newParams);
+            };
+            const volumeStats = visual.obj?.data.sourceData.grid.stats;
+            if (!volumeStats) throw new Error(`Cannot get volume stats from volume visual ${visual.transform.ref}`);
+            this.changeIsovalueInVolumeVisualParams(newParams, undefined, volumeStats);
+            const update = this.entryData.newUpdate().to(visual.transform.ref).update(newParams);
             await PluginCommands.State.Update(this.entryData.plugin, { state: this.entryData.plugin.state.data, tree: update, options: { doNotUpdateCurrent: true } });
-            let midParams = this.entryData.findNodesByTags('volume-visual')[0]?.transform.params;
-            console.log('really set params:', midParams);
-            midParams = this.changeIsovalueInVolumeVisualParams(midParams, undefined); // TODO uncomment
-
-            update = this.entryData.newUpdate().to(visual.ref).update(midParams);
-            await PluginCommands.State.Update(this.entryData.plugin, { state: this.entryData.plugin.state.data, tree: update, options: { doNotUpdateCurrent: true } });
-            const finParams = this.entryData.findNodesByTags('volume-visual')[0]?.transform.params
-            console.log('really set params:', finParams);
-
         }
     }
 
@@ -98,69 +91,32 @@ export class CellstarVolumeData {
             : Volume.IsoValue.absolute(volumeIsovalueValue);
     }
 
-    // private initVolumeVisualTypeParamCache(volume: Volume, isovalue: Volume.IsoValue) {
-    //     this.visualTypeParamCache = {
-    //         'isosurface':
-    //             this.createVolumeVisualParams(volume, 'isosurface', isovalue).type.params,
-    //         'direct-volume':
-    //             this.createVolumeVisualParams(volume, 'direct-volume', isovalue).type.params,
-    //     };
-    // }
-
-    private createVolumeVisualParams(volume: Volume, type: 'isosurface' | 'direct-volume', isovalue: Volume.IsoValue): VolumeVisualParams {
-        switch (type) {
-            case 'isosurface':
-                return createVolumeRepresentationParams(this.entryData.plugin, volume, {
-                    type: 'isosurface',
-                    typeParams: { alpha: 0.2, isoValue: isovalue },
-                    color: 'uniform',
-                    colorParams: { value: Color(0x121212) },
-                });
-            case 'direct-volume':
-                return createVolumeRepresentationParams(this.entryData.plugin, volume, {
-                    type: 'direct-volume',
-                    typeParams: { alpha: 0.2, controlPoints: [Vec2.create(0.4, 0.0), Vec2.create(0.5, 0.1), Vec2.create(0.6, 0.0)] }, // TODO smart
-                    color: 'uniform',
-                    colorParams: { value: Color(0x121212) },
-                });
-            default:
-                throw new Error(`Invalid value for \`type\`: '${type}'`);
-        }
+    private createVolumeVisualParams(volume: Volume, type: 'isosurface' | 'direct-volume' | 'off'): VolumeVisualParams {
+        if (type === 'off') type = 'isosurface';
+        return createVolumeRepresentationParams(this.entryData.plugin, volume, {
+            type: type,
+            typeParams: { alpha: 0.2 },
+            color: 'uniform',
+            colorParams: { value: Color(0x121212) },
+        });
     }
-    private changeIsovalueInVolumeVisualParams(params: VolumeVisualParams, isovalue?: Volume.IsoValue): VolumeVisualParams {
+
+    private changeIsovalueInVolumeVisualParams(params: VolumeVisualParams, isovalue: Volume.IsoValue | undefined, stats: VolumeStats) {
         isovalue ??= this.getIsovalueFromState();
         switch (params.type.name) {
             case 'isosurface':
-                return {
-                    ...params,
-                    type: {
-                        name: params.type.name,
-                        params: {
-                            ...params.type.params,
-                            isoValue: isovalue,
-                        }
-                    }
-                }
-            // params.type.params.isoValue = isovalue;
-            // break;
+                params.type.params.isoValue = isovalue;
+                break;
             case 'direct-volume':
-                return {
-                    ...params,
-                    type: {
-                        name: params.type.name,
-                        params: {
-                            ...params.type.params,
-                            controlPoints: [Vec2.create(0.4, 0.0), Vec2.create(0.5, 0.1), Vec2.create(0.6, 0.0)],
-                        }
-                    }
-                }
-            // params.type.params.controlPoints.length = 0;
-            // params.type.params.controlPoints.push(Vec2.create(0.4, 0.0), Vec2.create(0.5, 0.1), Vec2.create(0.6, 0.0)); // TODO smart
-            // // params.type.params.controlPoints = [Vec2.create(0.4, 0.0), Vec2.create(0.5, 0.1), Vec2.create(0.6, 0.0)]; // TODO smart
-            // params.type.params.alpha = 0.5; //debug
-            // break;
-            default:
-                return params;
+                const absIso = Volume.IsoValue.toAbsolute(isovalue, stats).absoluteValue;
+                const fractIso = (absIso - stats.min) / (stats.max - stats.min);
+                const peakHalfwidth = DIRECT_VOLUME_RELATIVE_PEAK_HALFWIDTH * stats.sigma / (stats.max - stats.min);
+                params.type.params.controlPoints = [
+                    Vec2.create(Math.max(fractIso - peakHalfwidth, 0), 0),
+                    Vec2.create(fractIso, 1),
+                    Vec2.create(Math.min(fractIso + peakHalfwidth, 1), 0),
+                ];
+                break;
         }
     }
 }
