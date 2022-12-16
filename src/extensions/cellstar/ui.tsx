@@ -105,13 +105,14 @@ function CellstarControls({ plugin, data, setData }: { plugin: PluginContext, da
         <ParameterControls params={params} values={values} onChangeValues={next => setData(CellstarUIData.changeActiveNode(data, next.entry))} />
 
         {/* Title */}
-        <div style={{ padding: 8, overflow: 'hidden' }}>
+        {/* <div style={{ padding: 8, overflow: 'hidden' }}>
             <p style={{ fontWeight: 'bold' }}>{entryData.metadata.raw.annotation?.name ?? 'Unnamed Annotation'}</p>
-        </div>
+        </div> */}
+        <SectionHeading text={entryData.metadata.raw.annotation?.name ?? 'Unnamed Annotation'} />
 
         {/* Fitted models */}
         {allPdbs.length > 0 && <>
-            <p style={{ margin: 5 }}><b>Fitted models in PDB:</b></p>
+            <SectionHeading text='Fitted models in PDB:' />
             {allPdbs.map(pdb =>
                 <Button key={pdb} onClick={() => entryData.actionShowFittedModel(visibleModels.includes(pdb) ? [] : [pdb])}
                     style={{ fontWeight: visibleModels.includes(pdb) ? 'bold' : undefined, textAlign: 'left' }}>
@@ -121,9 +122,11 @@ function CellstarControls({ plugin, data, setData }: { plugin: PluginContext, da
         </>}
 
         {/* Volume */}
+        <SectionHeading text='Volume data:' />
         <ParameterControls params={volumeParams} values={volumeValues} onChangeValues={next => entryData.actionSetVolumeVisual(next.volumeType)} />
 
         {/* Segment opacity slider */}
+        <SectionHeading text='Segmentation data:' />
         <ControlRow label='Opacity' control={
             <WaitingSlider plugin={plugin} min={0} max={1} value={state.opacity} step={0.05} onChange={async v => await entryData.actionSetOpacity(v)} />
         } />
@@ -166,6 +169,12 @@ function CellstarControls({ plugin, data, setData }: { plugin: PluginContext, da
         </div>
 
     </>;
+}
+
+function SectionHeading({ text }: { text: string }) {
+    return <div style={{ padding: 8, paddingTop: 6, paddingBottom: 4, overflow: 'hidden' }}>
+        <b>{text}</b>
+    </div>;
 }
 
 function WaitingSlider({ plugin, value, min, max, step, onChange }: { plugin: PluginContext, value: number, min: number, max: number, step: number, onChange: (value: number) => any }) {

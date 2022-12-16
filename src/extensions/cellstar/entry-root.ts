@@ -186,7 +186,7 @@ export class CellstarEntryData extends PluginBehavior.WithSubscribers<CellstarEn
         const result = await this.volumeData.loadVolume();
         if (result) {
             const isovalue = result.isovalue.kind === 'relative' ? result.isovalue.relativeValue : result.isovalue.absoluteValue;
-            await this.updateStateNode({ volumeIsovalueKind: result.isovalue.kind, volumeIsovalueValue: isovalue })
+            await this.updateStateNode({ volumeIsovalueKind: result.isovalue.kind, volumeIsovalueValue: isovalue });
         }
     }
 
