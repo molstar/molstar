@@ -1,7 +1,17 @@
-import { map, distinctUntilChanged } from 'rxjs';
+import { distinctUntilChanged, map } from 'rxjs';
 
-import * as MS from '../molstar-lib-imports';
-import PD = MS.ParamDefinition;
+import { CIF } from '../../../mol-io/reader/cif';
+import { Box3D } from '../../../mol-math/geometry';
+import { PluginStateObject } from '../../../mol-plugin-state/objects';
+import { PluginBehavior } from '../../../mol-plugin/behavior';
+import { PluginCommand } from '../../../mol-plugin/command';
+import { PluginCommands } from '../../../mol-plugin/commands';
+import { PluginContext } from '../../../mol-plugin/context';
+import { UUID } from '../../../mol-util';
+import { Asset } from '../../../mol-util/assets';
+import { Color } from '../../../mol-util/color';
+import { ColorNames } from '../../../mol-util/color/names';
+import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 
 import { Choice } from '../choice';
 import { MeshlistData } from '../mesh-extension';
@@ -10,7 +20,7 @@ import { MeshServerInfo } from './server-info';
 
 
 const DEFAULT_SEGMENT_NAME = 'Untitled segment';
-const DEFAULT_SEGMENT_COLOR = MS.ColorNames.lightgray;
+const DEFAULT_SEGMENT_COLOR = ColorNames.lightgray;
 export const NO_SEGMENT = -1;
 /** Maximum (worst) detail level available in GUI (TODO set actual maximum possible value) */
 const MAX_DETAIL = 10;
@@ -21,7 +31,7 @@ export const BACKGROUND_SEGMENT_VOLUME_THRESHOLD = 0.5;
 const DEBUG_IGNORED_SEGMENTS = new Set(); // TODO remove
 
 
-export class MeshStreaming extends MS.PluginStateObject.CreateBehavior<MeshStreaming.Behavior>({ name: 'Mesh Streaming' }) { }
+export class MeshStreaming extends PluginStateObject.CreateBehavior<MeshStreaming.Behavior>({ name: 'Mesh Streaming' }) { }
 
 export namespace MeshStreaming {
 
@@ -83,7 +93,7 @@ export namespace MeshStreaming {
         segmentName: string, // ? remove if unused
         detailType: VisualInfo.DetailType, // ? remove if unused
         detail: number, // ? remove if unused
-        color: MS.Color, // move to MeshlistData?
+        color: Color, // move to MeshlistData?
         visible: boolean,
         data?: MeshlistData,
     }
@@ -96,7 +106,7 @@ export namespace MeshStreaming {
     }
 
 
-    export class Behavior extends MS.PluginBehavior.WithSubscribers<Params.Values> {
+    export class Behavior extends PluginBehavior.WithSubscribers<Params.Values> {
         private id: string;
         private ref: string = '';
         public parentData: MeshServerInfo.Data;
@@ -109,12 +119,12 @@ export namespace MeshStreaming {
             map(data => (data?.ownerId === this.id) ? data : null), // do not process shapes created by others
             distinctUntilChanged((old, current) => old?.segmentId === current?.segmentId),
         );
-        private focusSubscription?: MS.PluginCommand.Subscription = undefined;
+        private focusSubscription?: PluginCommand.Subscription = undefined;
         private backgroundSegmentsInitialized = false;
 
-        constructor(plugin: MS.PluginContext, data: MeshServerInfo.Data, params: Params.Values) {
+        constructor(plugin: PluginContext, data: MeshServerInfo.Data, params: Params.Values) {
             super(plugin, params);
-            this.id = MS.UUID.create22();
+            this.id = UUID.create22();
             this.parentData = data;
         }
 
@@ -139,7 +149,7 @@ export namespace MeshStreaming {
                 }
                 const state = this.plugin.state.data;
                 const update = state.build().to(this.ref).update(newParams);
-                MS.PluginCommands.State.Update(this.plugin, { state, tree: update, options: { doNotUpdateCurrent: true } });
+                PluginCommands.State.Update(this.plugin, { state, tree: update, options: { doNotUpdateCurrent: true } });
             }
         }
 
@@ -271,9 +281,9 @@ export namespace MeshStreaming {
             }
             // TODO cache
             const url = this.getMeshUrl(visual.segmentId, visual.detail);
-            const urlAsset = MS.Asset.getUrlAsset(this.plugin.managers.asset, url);
+            const urlAsset = Asset.getUrlAsset(this.plugin.managers.asset, url);
             const asset = await this.plugin.runTask(this.plugin.managers.asset.resolve(urlAsset, 'binary'));
-            const parsed = await this.plugin.runTask(MS.CIF.parseBinary(asset.data));
+            const parsed = await this.plugin.runTask(CIF.parseBinary(asset.data));
             if (parsed.isError) {
                 throw new Error(`Failed parsing CIF file from ${url}`);
             }
@@ -286,7 +296,7 @@ export namespace MeshStreaming {
         }
 
         private async guessBackgroundSegments() {
-            const bboxes: { [segid: number]: MS.Box3D } = {};
+            const bboxes: { [segid: number]: Box3D } = {};
             for (const tag in this.visuals) {
                 const visual = this.visuals[tag];
                 if (visual.detailType === 'low' && visual.data) {
@@ -297,13 +307,13 @@ export namespace MeshStreaming {
                 }
             }
             const totalBbox = MeshlistData.combineBBoxes(Object.values(bboxes));
-            const totalVolume = totalBbox ? MS.Box3D.volume(totalBbox) : 0.0;
+            const totalVolume = totalBbox ? Box3D.volume(totalBbox) : 0.0;
             // console.log(`BBox total: ${Math.round(totalVolume! / 1e6)} M`, totalBbox); // DEBUG
 
             const isBgSegment: { [segid: number]: boolean } = {};
             for (const segid in bboxes) {
                 const bbox = bboxes[segid];
-                const bboxVolume = MS.Box3D.volume(bbox);
+                const bboxVolume = Box3D.volume(bbox);
                 isBgSegment[segid] = (bboxVolume > totalVolume * BACKGROUND_SEGMENT_VOLUME_THRESHOLD);
                 // console.log(`BBox ${segid}: ${Math.round(bboxVolume! / 1e6)} M, ${bboxVolume / totalVolume}`, bbox); // DEBUG
             }

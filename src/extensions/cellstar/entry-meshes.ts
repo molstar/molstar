@@ -1,11 +1,13 @@
+import { PluginStateObject } from '../../mol-plugin-state/objects';
 import { CreateGroup } from '../../mol-plugin-state/transforms/misc';
 import { ShapeRepresentation3D } from '../../mol-plugin-state/transforms/representation';
+import { setSubtreeVisibility } from '../../mol-plugin/behavior/static/state';
 import { PluginCommands } from '../../mol-plugin/commands';
 import { Color } from '../../mol-util/color';
 import { ColorNames } from '../../mol-util/color/names';
+
 import { createMeshFromUrl } from '../meshes/examples';
 import { BACKGROUND_SEGMENT_VOLUME_THRESHOLD } from '../meshes/mesh-streaming/behavior';
-import { PluginStateObject, setSubtreeVisibility } from '../meshes/molstar-lib-imports';
 
 import { Segment } from './cellstar-api/data';
 import { CellstarEntryData } from './entry-root';

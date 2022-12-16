@@ -1,5 +1,8 @@
-import { ParamDefinition, PluginStateObject } from '../meshes/molstar-lib-imports';
+import { PluginStateObject } from '../../mol-plugin-state/objects';
+import { ParamDefinition as PD } from '../../mol-util/param-definition';
+
 import { Choice } from './helpers';
+
 
 export const VolumeTypeChoice = new Choice({ 'isosurface': 'Isosurface', 'direct-volume': 'Direct volume', 'off': 'Off' }, 'isosurface');
 export type VolumeType = Choice.Values<typeof VolumeTypeChoice>
@@ -7,14 +10,14 @@ export type VolumeType = Choice.Values<typeof VolumeTypeChoice>
 
 export const CellstarStateParams = {
     volumeType: VolumeTypeChoice.PDSelect(),
-    volumeIsovalueKind: ParamDefinition.Select('relative', [['relative', 'Relative'], ['absolute', 'Absolute']]),
-    volumeIsovalueValue: ParamDefinition.Numeric(1),
-    opacity: ParamDefinition.Numeric(1, { min: 0, max: 1, step: 0.05 }),
-    selectedSegment: ParamDefinition.Numeric(-1, { step: 1 }),
-    visibleSegments: ParamDefinition.ObjectList({ segmentId: ParamDefinition.Numeric(0) }, s => s.segmentId.toString()),
-    visibleModels: ParamDefinition.ObjectList({ pdbId: ParamDefinition.Text('') }, s => s.pdbId.toString()),
+    volumeIsovalueKind: PD.Select('relative', [['relative', 'Relative'], ['absolute', 'Absolute']]),
+    volumeIsovalueValue: PD.Numeric(1),
+    opacity: PD.Numeric(1, { min: 0, max: 1, step: 0.05 }),
+    selectedSegment: PD.Numeric(-1, { step: 1 }),
+    visibleSegments: PD.ObjectList({ segmentId: PD.Numeric(0) }, s => s.segmentId.toString()),
+    visibleModels: PD.ObjectList({ pdbId: PD.Text('') }, s => s.pdbId.toString()),
 };
-export type CellstarStateData = ParamDefinition.Values<typeof CellstarStateParams>;
+export type CellstarStateData = PD.Values<typeof CellstarStateParams>;
 
 
 export class CellstarState extends PluginStateObject.Create<CellstarStateData>({ name: 'Vol & Seg Entry State', typeClass: 'Data' }) { }

@@ -1,4 +1,4 @@
-import { ParamDefinition as PD } from './molstar-lib-imports';
+import { ParamDefinition as PD } from '../../mol-util/param-definition';
 
 
 /**

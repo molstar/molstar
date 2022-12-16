@@ -5,9 +5,10 @@ import { PluginStateObject } from '../../mol-plugin-state/objects';
 import { StateTransforms } from '../../mol-plugin-state/transforms';
 import { Download } from '../../mol-plugin-state/transforms/data';
 import { CreateGroup } from '../../mol-plugin-state/transforms/misc';
+import { setSubtreeVisibility } from '../../mol-plugin/behavior/static/state';
+import { PluginCommands } from '../../mol-plugin/commands';
 import { StateObjectSelector } from '../../mol-state';
 import { Color } from '../../mol-util/color';
-import { PluginCommands, setSubtreeVisibility } from '../meshes/molstar-lib-imports';
 
 import { BOX, CellstarEntryData, MAX_VOXELS } from './entry-root';
 import { CellstarStateParams } from './entry-state';

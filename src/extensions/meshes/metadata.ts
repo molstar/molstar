@@ -1,4 +1,4 @@
-import * as MS from './molstar-lib-imports';
+import { Color } from '../../mol-util/color';
 
 
 // TODO unify with Metadata in Cellstar
@@ -117,10 +117,10 @@ export namespace Metadata {
         }
     }
     export function namesAndColorsBySegment(metadata: Metadata) {
-        const result: { [id: number]: { name: string, color: MS.Color } } = {};
+        const result: { [id: number]: { name: string, color: Color } } = {};
         for (const segment of metadata.annotation.segment_list) {
             if (segment.id in result) throw new Error(`Duplicate segment annotation for segment ${segment.id}`);
-            result[segment.id] = { name: segment.biological_annotation.name, color: MS.Color.fromNormalizedArray(segment.colour, 0) };
+            result[segment.id] = { name: segment.biological_annotation.name, color: Color.fromNormalizedArray(segment.colour, 0) };
         }
         return result;
 

@@ -1,10 +1,11 @@
-import * as MS from './molstar-lib-imports';
 
-import Schema = MS.Column.Schema
+import { Column, Database } from '../../mol-data/db';
+import { CifFrame } from '../../mol-io/reader/cif';
+import { toDatabase } from '../../mol-io/reader/cif/schema';
 
 
-const int = Schema.int;
-const float = Schema.float;
+const int = Column.Schema.int;
+const float = Column.Schema.float;
 
 
 // TODO in future, move to molstar/src/mol-io/reader/cif/schema/mesh.ts
@@ -27,8 +28,8 @@ export const Mesh_Data_Schema = {
     }
 };
 export type Mesh_Data_Schema = typeof Mesh_Data_Schema;
-export interface Mesh_Data_Database extends MS.Database<Mesh_Data_Schema> {}
+export interface Mesh_Data_Database extends Database<Mesh_Data_Schema> {}
 
 
 // TODO in future, move to molstar/src/mol-io/reader/cif.ts: CIF.schema.mesh
-export const CIF_schema_mesh = (frame: MS.CifFrame) => MS.toDatabase<Mesh_Data_Schema, Mesh_Data_Database>(Mesh_Data_Schema, frame);
+export const CIF_schema_mesh = (frame: CifFrame) => toDatabase<Mesh_Data_Schema, Mesh_Data_Database>(Mesh_Data_Schema, frame);
