@@ -9,6 +9,8 @@ import { PluginContext } from '../../../mol-plugin/context';
 import { CameraFocusOptions } from '../camera';
 import { PrincipalAxes } from '../../../mol-math/linear-algebra/matrix/principal-axes';
 import { StructureComponentRef } from '../structure/hierarchy-state';
+import { deepClone } from '../../../mol-util/object';
+
 
 export function getPolymerPositions(polymerStructure: Structure): Float32Array {
     let positionIndex = 0;
@@ -133,11 +135,9 @@ export function getPcaTransform(group: StructureComponentRef[]): { principalAxes
     if (!polymerStructure) {
         return undefined;
     }
-    // if ('_pcaTransformData' in polymerStructure.currentPropertyData) {
-    //     console.log("run the cache")
-    //     console.log(polymerStructure.currentPropertyData._pcaTransformData)
-    //     return polymerStructure.currentPropertyData._pcaTransformData;
-    // }
+    if ('_pcaTransformData' in polymerStructure.currentPropertyData) {
+        return deepClone(polymerStructure.currentPropertyData._pcaTransformData);
+    }
     if (!polymerStructure.units[0]?.props.polymerElements?.length) {
         polymerStructure.currentPropertyData._pcaTransformData = undefined;
         return undefined;
@@ -145,5 +145,5 @@ export function getPcaTransform(group: StructureComponentRef[]): { principalAxes
     const positions = getPolymerPositions(polymerStructure);
     const positionToFlip = getFirstResidueOrAveragePosition(polymerStructure, positions);
     polymerStructure.currentPropertyData._pcaTransformData = { principalAxes: PrincipalAxes.ofPositions(positions), positionToFlip };
-    return { principalAxes: PrincipalAxes.ofPositions(positions), positionToFlip };
+    return deepClone(polymerStructure.currentPropertyData._pcaTransformData);
 }
