@@ -7,7 +7,7 @@ Note that since we don't clearly distinguish between a public and private interf
 ## [Unreleased]
 
 - Show histogram in direct volume control point settings
-
+- Add `solidInterior` parameter to sphere/cylinder impostors
 
 ## [v3.27.0] - 2022-12-15
 
