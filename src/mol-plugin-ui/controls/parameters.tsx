@@ -7,6 +7,7 @@
 
 import * as React from 'react';
 import { Mat4, Vec2, Vec3 } from '../../mol-math/linear-algebra';
+import { Volume } from '../../mol-model/volume';
 import { Script } from '../../mol-script/script';
 import { Asset } from '../../mol-util/assets';
 import { Color } from '../../mol-util/color';
@@ -306,17 +307,32 @@ export class LineGraphControl extends React.PureComponent<ParamProps<PD.LineGrap
         message: `${this.props.param.defaultValue.length} points`,
     };
 
+
+    private pointToLabel(point?: Vec2) {
+        if (!point) return '';
+
+        const volume = this.props.param.getVolume?.() as Volume;
+        if (volume) {
+            const { min, max, mean, sigma } = volume.grid.stats;
+            const v = min + (max - min) * point[0];
+            const s = (v - mean) / sigma;
+            return `(${v.toFixed(2)} | ${s.toFixed(2)}σ, ${point[1].toFixed(2)})`;
+        } else {
+            return `(${point[0].toFixed(2)}, ${point[1].toFixed(2)})`;
+        }
+    }
+
     onHover = (point?: Vec2) => {
         this.setState({ isOverPoint: !this.state.isOverPoint });
         if (point) {
-            this.setState({ message: `(${point[0].toFixed(2)}, ${point[1].toFixed(2)})` });
-            return;
+            this.setState({ message: this.pointToLabel(point) });
+        } else {
+            this.setState({ message: `${this.props.value.length} points` });
         }
-        this.setState({ message: `${this.props.value.length} points` });
     };
 
     onDrag = (point: Vec2) => {
-        this.setState({ message: `(${point[0].toFixed(2)}, ${point[1].toFixed(2)})` });
+        this.setState({ message: this.pointToLabel(point) });
     };
 
     onChange = (value: PD.LineGraph['defaultValue']) => {
@@ -332,9 +348,10 @@ export class LineGraphControl extends React.PureComponent<ParamProps<PD.LineGrap
         const label = this.props.param.label || camelCaseToWords(this.props.name);
         return <>
             <ControlRow label={label} control={<button onClick={this.toggleExpanded} disabled={this.props.isDisabled}>{`${this.state.message}`}</button>} />
-            <div className='msp-control-offset' style={{ display: this.state.isExpanded ? 'block' : 'none' }}>
+            <div className='msp-control-offset' style={{ display: this.state.isExpanded ? 'block' : 'none', marginTop: 1 }}>
                 <LineGraphComponent
-                    data={this.props.param.defaultValue}
+                    data={this.props.value}
+                    volume={this.props.param.getVolume?.()}
                     onChange={this.onChange}
                     onHover={this.onHover}
                     onDrag={this.onDrag} />

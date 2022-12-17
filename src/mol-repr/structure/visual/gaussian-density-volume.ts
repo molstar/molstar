@@ -43,6 +43,7 @@ export const GaussianDensityVolumeParams = {
     ...ComplexDirectVolumeParams,
     ...GaussianDensityParams,
     ignoreHydrogens: PD.Boolean(false),
+    onlyPolarHydrogens: PD.Boolean(false),
     includeParent: PD.Boolean(false, { isHidden: true }),
 };
 export type GaussianDensityVolumeParams = typeof GaussianDensityVolumeParams
@@ -59,6 +60,7 @@ export function GaussianDensityVolumeVisual(materialId: number): ComplexVisual<G
             if (newProps.radiusOffset !== currentProps.radiusOffset) state.createGeometry = true;
             if (newProps.smoothness !== currentProps.smoothness) state.createGeometry = true;
             if (newProps.ignoreHydrogens !== currentProps.ignoreHydrogens) state.createGeometry = true;
+            if (newProps.onlyPolarHydrogens !== currentProps.onlyPolarHydrogens) state.createGeometry = true;
             if (newProps.traceOnly !== currentProps.traceOnly) state.createGeometry = true;
             if (newProps.includeParent !== currentProps.includeParent) state.createGeometry = true;
         },
@@ -99,6 +101,7 @@ export const UnitsGaussianDensityVolumeParams = {
     ...UnitsDirectVolumeParams,
     ...GaussianDensityParams,
     ignoreHydrogens: PD.Boolean(false),
+    onlyPolarHydrogens: PD.Boolean(false),
     includeParent: PD.Boolean(false, { isHidden: true }),
 };
 export type UnitsGaussianDensityVolumeParams = typeof UnitsGaussianDensityVolumeParams
@@ -115,6 +118,7 @@ export function UnitsGaussianDensityVolumeVisual(materialId: number): UnitsVisua
             if (newProps.radiusOffset !== currentProps.radiusOffset) state.createGeometry = true;
             if (newProps.smoothness !== currentProps.smoothness) state.createGeometry = true;
             if (newProps.ignoreHydrogens !== currentProps.ignoreHydrogens) state.createGeometry = true;
+            if (newProps.onlyPolarHydrogens !== currentProps.onlyPolarHydrogens) state.createGeometry = true;
             if (newProps.traceOnly !== currentProps.traceOnly) state.createGeometry = true;
             if (newProps.includeParent !== currentProps.includeParent) state.createGeometry = true;
         },
