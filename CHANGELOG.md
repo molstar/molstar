@@ -7,7 +7,7 @@ Note that since we don't clearly distinguish between a public and private interf
 ## [Unreleased]
 
 - Show histogram in direct volume control point settings
-
+- Add `solidInterior` parameter to sphere/cylinder impostors
 
 ## [v3.27.0] - 2022-12-15
 
@@ -19,7 +19,6 @@ Note that since we don't clearly distinguish between a public and private interf
     - Fix cylinder near-clipping
     - Add interior cylinder caps
     - Add per-pixel object clipping
-    - Add `solidInterior` parameter
 - Fix `QualityAssessment` assignment bug for structures with different auth vs label sequence numbering
 - Refresh `ApplyActionControl`'s param definition when toggling expanded state
 - Fix `struct_conn` bond assignment for ions
