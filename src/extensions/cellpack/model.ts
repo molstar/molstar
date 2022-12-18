@@ -593,7 +593,11 @@ export const LoadCellPackModel = StateAction.build({
         ctx.canvas3d?.setProps({
             multiSample: { mode: 'off' },
             cameraClipping: { far: false },
-            renderer: { colorMarker: false },
+            renderer: {
+                colorMarker: false,
+                interiorColorFlag: false,
+                interiorDarkening: 0.15,
+            },
             marking: {
                 enabled: false,
                 ghostEdgeStrength: 1,
