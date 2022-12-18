@@ -1,6 +1,6 @@
 {
   "name": "molstar",
-  "version": "3.26.0",
+  "version": "3.27.0",
   "description": "A comprehensive macromolecular library.",
   "homepage": "https://github.com/molstar/molstar#readme",
   "repository": {
@@ -93,7 +93,8 @@
     "Adam Midlik <midlik@gmail.com>",
     "Koya Sakuma <koya.sakuma.work@gmail.com>",
     "Gianluca Tomasello <giagitom@gmail.com>",
-    "Jason Pattle <jpattle@exscientia.co.uk>"
+    "Jason Pattle <jpattle@exscientia.co.uk>",
+    "David Williams <dwilliams@nobiastx.com>"
   ],
   "license": "MIT",
   "devDependencies": {

@@ -93,7 +93,6 @@ void main(void){
     }
 
     vec4 mvPosition = uModelView * aTransform * position4;
-    mvPosition.z -= vRadius; // avoid clipping, added again in fragment shader
 
     gl_Position = uProjection * vec4(mvPosition.xyz, 1.0);
     quadraticProjection(vRadius, aPosition);
@@ -109,6 +108,9 @@ void main(void){
             gl_Position.z = 2.0 * gl_Position.w;
         }
     }
+
+    mvPosition.z -= 2.0 * vRadius; // avoid clipping
+    gl_Position.z = (uProjection * vec4(mvPosition.xyz, 1.0)).z;
 
     #include clip_instance
 }

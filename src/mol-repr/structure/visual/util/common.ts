@@ -2,6 +2,7 @@
  * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { Unit, Structure, ElementIndex, StructureElement, ResidueIndex } from '../../../../mol-model/structure';
@@ -16,6 +17,7 @@ import { AssignableArrayLike } from '../../../../mol-util/type-helpers';
 import { getBoundary } from '../../../../mol-math/geometry/boundary';
 import { Box3D, Sphere3D } from '../../../../mol-math/geometry';
 import { SizeTheme } from '../../../../mol-theme/size';
+import { hasPolarNeighbour } from '../../../../mol-model-props/computed/chemistry/functional-group';
 
 /** Return a Loci for the elements of a whole residue the elementIndex belongs to. */
 export function getResidueLoci(structure: Structure, unit: Unit.Atomic, elementIndex: ElementIndex): Loci {
@@ -139,6 +141,7 @@ export function getConformation(unit: Unit) {
 
 export const CommonSurfaceParams = {
     ignoreHydrogens: PD.Boolean(false, { description: 'Whether or not to include hydrogen atoms in the surface calculation.' }),
+    onlyPolarHydrogens: PD.Boolean(false, { description: 'Whether or not to include polar hydrogen atoms in the surface calculation.' }),
     traceOnly: PD.Boolean(false, { description: 'Whether or not to only use trace atoms in the surface calculation.' }),
     includeParent: PD.Boolean(false, { description: 'Include elements of the parent structure in surface calculation to get a surface patch of the current structure.' }),
 };
@@ -166,7 +169,7 @@ function filterUnitId(id: AssignableArrayLike<number>, elements: SortedArray, in
 }
 
 export function getUnitConformationAndRadius(structure: Structure, unit: Unit, sizeTheme: SizeTheme<any>, props: CommonSurfaceProps) {
-    const { ignoreHydrogens, traceOnly, includeParent } = props;
+    const { ignoreHydrogens, onlyPolarHydrogens, traceOnly, includeParent } = props;
     const rootUnit = includeParent ? structure.root.unitMap.get(unit.id) : unit;
     const differentRoot = includeParent && rootUnit !== unit;
 
@@ -179,12 +182,13 @@ export function getUnitConformationAndRadius(structure: Structure, unit: Unit, s
     let indices: SortedArray<ElementIndex>;
     let id: AssignableArrayLike<number>;
 
-    if (ignoreHydrogens || traceOnly || differentRoot) {
+    if (ignoreHydrogens || onlyPolarHydrogens || traceOnly || differentRoot) {
         const _indices: number[] = [];
         const _id: number[] = [];
         for (let i = 0, il = elements.length; i < il; ++i) {
             const eI = elements[i];
             if (ignoreHydrogens && isHydrogen(rootUnit, eI)) continue;
+            if (onlyPolarHydrogens && isHydrogen(rootUnit, eI) && Unit.isAtomic(rootUnit) && !hasPolarNeighbour(structure, rootUnit, SortedArray.indexOf(rootUnit.elements, eI) as StructureElement.UnitIndex)) continue;
             if (traceOnly && !isTrace(rootUnit, eI)) continue;
             if (differentRoot && squaredDistance(x[eI], y[eI], z[eI], center) > radiusSq) continue;
 
@@ -215,7 +219,7 @@ export function getUnitConformationAndRadius(structure: Structure, unit: Unit, s
 }
 
 export function getStructureConformationAndRadius(structure: Structure, sizeTheme: SizeTheme<any>, props: CommonSurfaceProps) {
-    const { ignoreHydrogens, traceOnly, includeParent } = props;
+    const { ignoreHydrogens, onlyPolarHydrogens, traceOnly, includeParent } = props;
     const differentRoot = includeParent && !!structure.parent;
     const l = StructureElement.Location.create(structure.root);
 
@@ -230,7 +234,7 @@ export function getStructureConformationAndRadius(structure: Structure, sizeThem
     let id: AssignableArrayLike<number>;
     let indices: OrderedSet<number>;
 
-    if (ignoreHydrogens || traceOnly || differentRoot) {
+    if (ignoreHydrogens || onlyPolarHydrogens || traceOnly || differentRoot) {
         const { getSerialIndex } = structure.serialMapping;
         const units = differentRoot ? structure.root.units : structure.units;
 
@@ -249,6 +253,7 @@ export function getStructureConformationAndRadius(structure: Structure, sizeThem
             for (let j = 0, jl = elements.length; j < jl; ++j) {
                 const eI = elements[j];
                 if (ignoreHydrogens && isHydrogen(unit, eI)) continue;
+                if (onlyPolarHydrogens && isHydrogen(unit, eI) && Unit.isAtomic(unit) && !hasPolarNeighbour(structure, unit, SortedArray.indexOf(unit.elements, eI) as StructureElement.UnitIndex)) continue;
                 if (traceOnly && !isTrace(unit, eI)) continue;
 
                 const _x = x(eI), _y = y(eI), _z = z(eI);

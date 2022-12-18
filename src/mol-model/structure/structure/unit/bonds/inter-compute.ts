@@ -249,13 +249,29 @@ function computeInterUnitBonds(structure: Structure, props?: Partial<InterBondCo
                 (!Unit.isAtomic(a) || mtA[a.residueIndex[a.elements[0]]] !== MoleculeType.Water) &&
                 (!Unit.isAtomic(b) || mtB[b.residueIndex[b.elements[0]]] !== MoleculeType.Water)
             );
-            const notIon = (
-                (!Unit.isAtomic(a) || mtA[a.residueIndex[a.elements[0]]] !== MoleculeType.Ion) &&
-                (!Unit.isAtomic(b) || mtB[b.residueIndex[b.elements[0]]] !== MoleculeType.Ion)
-            );
+
+            const sameModel = a.model === b.model;
+            const notIonA = (!Unit.isAtomic(a) || mtA[a.residueIndex[a.elements[0]]] !== MoleculeType.Ion) || (sameModel && hasStructConnRecord(a));
+            const notIonB = (!Unit.isAtomic(b) || mtB[b.residueIndex[b.elements[0]]] !== MoleculeType.Ion) || (sameModel && hasStructConnRecord(b));
+            const notIon = notIonA && notIonB;
             return Structure.validUnitPair(s, a, b) && (notWater || !p.ignoreWater) && (notIon || !p.ignoreIon);
         }),
     });
+}
+
+function hasStructConnRecord(unit: Unit) {
+    if (!Unit.isAtomic(unit)) return false;
+
+    const elements = unit.elements;
+    const structConn = StructConn.Provider.get(unit.model);
+    if (structConn) {
+        for (let i = 0, _i = elements.length; i < _i; i++) {
+            if (structConn.byAtomIndex.get(elements[i])) {
+                return true;
+            }
+        }
+    }
+    return false;
 }
 
 export { computeInterUnitBonds };

@@ -588,7 +588,7 @@ export const LoadCellPackModel = StateAction.build({
             ... ctx.managers.structure.component.state.options,
             visualQuality: 'custom',
             ignoreLight: true,
-            showHydrogens: false,
+            hydrogens: 'hide-all',
         });
         ctx.canvas3d?.setProps({
             multiSample: { mode: 'off' },
@@ -624,6 +624,7 @@ export const LoadCellPackModel = StateAction.build({
                         scale: 1,
                         threshold: 0.33,
                         color: ColorNames.black,
+                        includeTransparent: true,
                     }
                 }
             }

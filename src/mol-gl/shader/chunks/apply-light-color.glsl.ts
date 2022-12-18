@@ -12,7 +12,7 @@ export const apply_light_color = `
     gl_FragColor = material;
 #else
     #ifdef bumpEnabled
-        if (uBumpFrequency > 0.0 && uBumpAmplitude > 0.0) {
+        if (uBumpFrequency > 0.0 && uBumpAmplitude > 0.0 && bumpiness > 0.0) {
             normal = perturbNormal(-vViewPosition, normal, fbm(vModelPosition * uBumpFrequency), (uBumpAmplitude * bumpiness) / uBumpFrequency);
         }
     #endif

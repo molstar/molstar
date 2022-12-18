@@ -55,7 +55,9 @@ void main() {
     vec3 camDir = -mix(normalize(vModelPosition - uCameraPosition), uCameraDir, uIsOrtho);
     vec3 dir = vEnd - vStart;
     // ensure cylinder 'dir' is pointing towards the camera
-    if(dot(camDir, dir) < 0.0) dir = -dir;
+    if(dot(camDir, dir) < 0.0) {
+        dir = -dir;
+    }
 
     float d;
     if (uLod.x != 0.0 && uLod.y != 0.0) {
@@ -76,6 +78,9 @@ void main() {
     vec4 mvPosition = uView * vec4(vModelPosition, 1.0);
     vViewPosition = mvPosition.xyz;
     gl_Position = uProjection * mvPosition;
+
+    mvPosition.z -= 2.0 * (length(vEnd - vStart) + vSize); // avoid clipping
+    gl_Position.z = (uProjection * mvPosition).z;
 
     if (uLod.x != 0.0 && uLod.y != 0.0) {
         if (d < (uLod.x - uLod.z) || d > uLod.y) {

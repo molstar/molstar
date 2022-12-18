@@ -80,7 +80,7 @@ export const PetworldPreset = TrajectoryHierarchyPresetProvider({
             ...plugin.managers.structure.component.state.options,
             visualQuality: 'custom',
             ignoreLight: true,
-            showHydrogens: false,
+            hydrogens: 'hide-all'
         });
         plugin.canvas3d?.setProps({
             multiSample: { mode: 'off' },
@@ -116,6 +116,7 @@ export const PetworldPreset = TrajectoryHierarchyPresetProvider({
                         scale: 1,
                         threshold: 0.33,
                         color: ColorNames.black,
+                        includeTransparent: true,
                     }
                 }
             }

@@ -56,7 +56,7 @@ export class QuickStyles extends PurePluginUIComponent {
                 postprocessing: {
                     outline: {
                         name: 'on',
-                        params: { scale: 1, color: Color(0x000000), threshold: 0.25 }
+                        params: { scale: 1, color: Color(0x000000), threshold: 0.25, includeTransparent: true }
                     },
                     occlusion: {
                         name: 'on',
@@ -79,7 +79,7 @@ export class QuickStyles extends PurePluginUIComponent {
                         name: 'on',
                         params: pp.outline.name === 'on'
                             ? pp.outline.params
-                            : { scale: 1, color: Color(0x000000), threshold: 0.33 }
+                            : { scale: 1, color: Color(0x000000), threshold: 0.33, includeTransparent: true }
                     },
                     occlusion: {
                         name: 'on',
