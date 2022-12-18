@@ -7,8 +7,9 @@ import { Task } from '../../mol-task';
 import { DEFAULT_VOLUME_SERVER_V2, VolumeApiV2 } from './cellstar-api/api';
 
 import { CellstarEntryData, CellstarEntryParamValues, createLoadCellstarParams } from './entry-root';
+import { CellstarGlobalState } from './global-state';
 import { createEntryId } from './helpers';
-import { CellstarEntryFromRoot, CellstarStateFromEntry } from './transformers';
+import { CellstarEntryFromRoot, CellstarGlobalStateFromRoot, CellstarStateFromEntry } from './transformers';
 import { CellstarUI } from './ui';
 
 
@@ -63,7 +64,6 @@ export const LoadCellstar = StateAction.build({
     from: SO.Root,
     params: (a, plugin: PluginContext) => {
         const res = createLoadCellstarParams(plugin, (plugin.customState as any).cellstarAvailableEntries);
-        console.log('default entry id for EMDB:', res.source.map('emdb').defaultValue.entryId);
         return res;
     },
 })(({ params, state }, ctx: PluginContext) => Task.create('Loading Volume & Segmentation', taskCtx => {
@@ -78,6 +78,11 @@ export const LoadCellstar = StateAction.build({
             entryParams.entryId = createEntryId(entryParams.source, entryParams.entryId);
         }
         ctx.behaviors.layout.leftPanelTabName.next('data');
+
+        const globalStateNode = ctx.state.data.selectQ(q => q.ofType(CellstarGlobalState))[0];
+        if (!globalStateNode) {
+            await state.build().toRoot().apply(CellstarGlobalStateFromRoot).commit(); // TODO isGhost
+        }
 
         const entryNode = await state.build().toRoot().apply(CellstarEntryFromRoot, entryParams).commit();
         await state.build().to(entryNode).apply(CellstarStateFromEntry, {}).commit(); // TODO isGhost

@@ -5,6 +5,7 @@ import { Task } from '../../mol-task';
 
 import { CellstarEntry, CellstarEntryData, createCellstarEntryParams } from './entry-root';
 import { CellstarState, CellstarStateParams, CELLSTAR_STATE_FROM_ENTRY_TRANSFORMER_NAME } from './entry-state';
+import { CellstarGlobalState, CellstarGlobalStateData, CellstarGlobalStateParams } from './global-state';
 
 
 export const CellstarEntryFromRoot = PluginStateTransform.BuiltIn({
@@ -39,5 +40,25 @@ export const CellstarStateFromEntry = PluginStateTransform.BuiltIn({
         return Task.create('Create Vol & Seg Entry State', async () => {
             return new CellstarState(params, { label: 'State' });
         });
+    }
+});
+
+
+export const CellstarGlobalStateFromRoot = PluginStateTransform.BuiltIn({
+    name: 'cellstar-global-state-from-root',
+    display: { name: 'Vol & Seg Global State', description: 'Vol & Seg Global State' },
+    from: PluginStateObject.Root,
+    to: CellstarGlobalState,
+    params: CellstarGlobalStateParams,
+})({
+    apply({ a, params }, plugin: PluginContext) {
+        return Task.create('Create Vol & Seg Global State', async () => {
+            const data = new CellstarGlobalStateData(plugin, params);
+            return new CellstarGlobalState(data, { label: 'Global State', description: 'Vol & Seg Global State' });
+        });
+    },
+    update({ b, oldParams, newParams }) {
+        b.data.currentState.next(newParams);
+        return StateTransformer.UpdateResult.Updated;
     }
 });

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 
 import { CollapsableControls, CollapsableState } from '../../mol-plugin-ui/base';
-import { Button, ControlRow, IconButton } from '../../mol-plugin-ui/controls/common';
+import { Button, ControlRow, ExpandGroup, IconButton } from '../../mol-plugin-ui/controls/common';
 import * as Icons from '../../mol-plugin-ui/controls/icons';
 import { ParameterControls } from '../../mol-plugin-ui/controls/parameters';
 import { Slider } from '../../mol-plugin-ui/controls/slider';
@@ -12,10 +12,12 @@ import { ParamDefinition } from '../../mol-util/param-definition';
 
 import { CellstarEntry } from './entry-root';
 import { VolumeTypeChoice } from './entry-state';
+import { CellstarGlobalState, CellstarGlobalStateData, CellstarGlobalStateParams } from './global-state';
 import { isDefined } from './helpers';
 
 
 interface CellstarUIData {
+    globalState?: CellstarGlobalStateData,
     availableNodes: CellstarEntry[],
     activeNode?: CellstarEntry,
 }
@@ -24,14 +26,14 @@ namespace CellstarUIData {
         const newActiveNode = newNodes.length > data.availableNodes.length ?
             newNodes[newNodes.length - 1]
             : newNodes.find(node => node.data.ref === data.activeNode?.data.ref) ?? newNodes[0];
-        return { availableNodes: newNodes, activeNode: newActiveNode };
+        return { ...data, availableNodes: newNodes, activeNode: newActiveNode };
     }
     export function changeActiveNode(data: CellstarUIData, newActiveRef: string): CellstarUIData {
         const newActiveNode = data.availableNodes.find(node => node.data.ref === newActiveRef) ?? data.availableNodes[0];
-        return { availableNodes: data.availableNodes, activeNode: newActiveNode };
+        return { ...data, availableNodes: data.availableNodes, activeNode: newActiveNode };
     }
     export function equals(data1: CellstarUIData, data2: CellstarUIData) {
-        return shallowEqualArrays(data1.availableNodes, data2.availableNodes) && data1.activeNode === data2.activeNode;
+        return shallowEqualArrays(data1.availableNodes, data2.availableNodes) && data1.activeNode === data2.activeNode && data1.globalState === data2.globalState;
     }
 }
 
@@ -42,6 +44,7 @@ export class CellstarUI extends CollapsableControls<{}, { data: CellstarUIData }
             isCollapsed: true,
             brand: { accent: 'orange', svg: Icons.ExtensionSvg },
             data: {
+                globalState: undefined,
                 availableNodes: [],
                 activeNode: undefined,
             }
@@ -52,16 +55,14 @@ export class CellstarUI extends CollapsableControls<{}, { data: CellstarUIData }
     }
     componentDidMount(): void {
         this.setState({ isHidden: true, isCollapsed: false });
-        // this.subscribe(this.plugin.state.data.events.cell.stateUpdated, e => console.log('cell.stateUpdated', e.ref, e.cell.obj?.label));
-        // this.subscribe(this.plugin.state.data.events.cell.created, e => console.log('cell.created', e.ref, e.cell.obj?.label));
-        // this.subscribe(this.plugin.state.data.events.cell.removed, e => console.log('cell.removed', e.ref));
         this.subscribe(this.plugin.state.data.events.changed, e => {
-            // console.log('cell.changed', e);
             const nodes = e.state.selectQ(q => q.ofType(CellstarEntry)).map(cell => cell?.obj).filter(isDefined);
-            // console.log('current nodes', ...this.state.data.availableNodes);
-            // console.log('new nodes', ...nodes);
             const isHidden = nodes.length === 0;
             const newData = CellstarUIData.changeAvailableNodes(this.state.data, nodes);
+            if (!this.state.data.globalState) {
+                const globalState = e.state.selectQ(q => q.ofType(CellstarGlobalState))[0]?.obj?.data;
+                if (globalState) newData.globalState = globalState;
+            }
             if (!CellstarUIData.equals(this.state.data, newData) || this.state.isHidden !== isHidden) {
                 this.setState({ data: newData, isHidden: isHidden });
             }
@@ -75,6 +76,9 @@ function CellstarControls({ plugin, data, setData }: { plugin: PluginContext, da
     if (!entryData) {
         return <p>No data!</p>;
     }
+    if (!data.globalState) {
+        return <p>No global state!</p>;
+    }
 
     const params = {
         /** Reference to the active CellstarEntry node */
@@ -83,6 +87,8 @@ function CellstarControls({ plugin, data, setData }: { plugin: PluginContext, da
     const values: ParamDefinition.Values<typeof params> = {
         entry: data.activeNode!.data.ref,
     };
+
+    const globalState = useBehavior(data.globalState.currentState);
 
     const state = useBehavior(entryData.currentState);
 
@@ -103,11 +109,11 @@ function CellstarControls({ plugin, data, setData }: { plugin: PluginContext, da
     return <>
         {/* Entry select */}
         <ParameterControls params={params} values={values} onChangeValues={next => setData(CellstarUIData.changeActiveNode(data, next.entry))} />
+        <ExpandGroup header='Global options'>
+            <ParameterControls params={CellstarGlobalStateParams} values={globalState} onChangeValues={async next => await data.globalState?.updateState(plugin, next)} />
+        </ExpandGroup>
 
         {/* Title */}
-        {/* <div style={{ padding: 8, overflow: 'hidden' }}>
-            <p style={{ fontWeight: 'bold' }}>{entryData.metadata.raw.annotation?.name ?? 'Unnamed Annotation'}</p>
-        </div> */}
         <SectionHeading text={entryData.metadata.raw.annotation?.name ?? 'Unnamed Annotation'} />
 
         {/* Fitted models */}

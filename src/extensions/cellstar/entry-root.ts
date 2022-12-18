@@ -23,6 +23,7 @@ import { CellstarLatticeSegmentationData } from './entry-segmentation';
 import { CellstarState, CellstarStateData, CellstarStateParams } from './entry-state';
 import { CellstarVolumeData } from './entry-volume';
 import * as ExternalAPIs from './external-api';
+import { CellstarGlobalStateData } from './global-state';
 import { applyEllipsis, Choice, isDefined, lazyGetter, splitEntryId } from './helpers';
 import { type CellstarStateFromEntry } from './transformers';
 
@@ -40,7 +41,6 @@ export type Source = Choice.Values<typeof SourceChoice>;
 
 
 export function createLoadCellstarParams(plugin?: PluginContext, entrylists: { [source: string]: string[] } = {}) {
-    console.log('createLoadCellstarParams', entrylists);
     const defaultVolumeServer = plugin?.config.get(CellstarVolumeServerConfig.DefaultServer) ?? DEFAULT_VOLUME_SERVER_V2;
     return {
         serverUrl: ParamDefinition.Text(defaultVolumeServer),
@@ -112,8 +112,6 @@ export class CellstarEntryData extends PluginBehavior.WithSubscribers<CellstarEn
         this.plugin = plugin;
         this.api = new VolumeApiV2(params.serverUrl);
         this.source = params.source;
-        // this.entryNumber = params.entryNumber;
-        // this.entryId = createEntryId(params.source, params.entryNumber);
         this.entryId = params.entryId;
         this.entryNumber = splitEntryId(this.entryId).entryNumber;
     }
@@ -133,7 +131,6 @@ export class CellstarEntryData extends PluginBehavior.WithSubscribers<CellstarEn
 
     async register(ref: string) {
         this.ref = ref;
-        console.log('register', ref);
         this.plugin.managers.lociLabels.addProvider(this.labelProvider);
 
         try {
@@ -173,12 +170,13 @@ export class CellstarEntryData extends PluginBehavior.WithSubscribers<CellstarEn
 
         this.subscribeObservable(
             this.currentState.pipe(distinctUntilChanged((a, b) => a.selectedSegment === b.selectedSegment)),
-            async state => await this.selectSegment(state.selectedSegment)
+            async state => {
+                if (CellstarGlobalStateData.getGlobalState(this.plugin)?.selectionMode) await this.selectSegment(state.selectedSegment);
+            }
         );
     }
 
     async unregister() {
-        console.log('unregister', this.ref);
         this.plugin.managers.lociLabels.removeProvider(this.labelProvider);
     }
 
@@ -321,6 +319,20 @@ export class CellstarEntryData extends PluginBehavior.WithSubscribers<CellstarEn
             if (meshData.ownerId === this.ref && meshData.segmentId !== undefined) {
                 return meshData.segmentId;
             }
+        }
+    }
+
+    async setTryUseGpu(tryUseGpu: boolean) {
+        await Promise.all([
+            this.volumeData.setTryUseGpu(tryUseGpu),
+            this.latticeSegmentationData.setTryUseGpu(tryUseGpu),
+        ]);
+    }
+    async setSelectionMode(selectSegments: boolean) {
+        if (selectSegments) {
+            await this.selectSegment(this.currentState.value.selectedSegment);
+        } else {
+            this.plugin.managers.interactivity.lociSelects.deselectAll();
         }
     }
 

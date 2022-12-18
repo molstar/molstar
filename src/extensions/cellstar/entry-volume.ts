@@ -13,12 +13,16 @@ import { Color } from '../../mol-util/color';
 import { BOX, CellstarEntryData, MAX_VOXELS } from './entry-root';
 import { CellstarStateParams } from './entry-state';
 import * as ExternalAPIs from './external-api';
+import { CellstarGlobalStateData } from './global-state';
 
+
+const GROUP_TAG = 'volume-group';
+const VOLUME_VISUAL_TAG = 'volume-visual';
 
 const DIRECT_VOLUME_RELATIVE_PEAK_HALFWIDTH = 1;
 
 
-type VolumeVisualParams = ReturnType<typeof createVolumeRepresentationParams>;
+export type VolumeVisualParams = ReturnType<typeof createVolumeRepresentationParams>;
 
 interface VolumeStats { min: number, max: number, mean: number, sigma: number };
 
@@ -35,9 +39,9 @@ export class CellstarVolumeData {
         const hasVolumes = this.entryData.metadata.raw.grid.volumes.volume_downsamplings.length > 0;
         if (hasVolumes) {
             const isoLevelPromise = ExternalAPIs.getIsovalue(this.entryData.metadata.raw.grid.general.source_db_id ?? this.entryData.entryId);
-            let group = this.entryData.findNodesByTags('volume-group')[0]?.transform.ref;
+            let group = this.entryData.findNodesByTags(GROUP_TAG)[0]?.transform.ref;
             if (!group) {
-                const newGroupNode = await this.entryData.newUpdate().apply(CreateGroup, { label: 'Volume' }, { tags: ['volume-group'], state: { isCollapsed: true } }).commit();
+                const newGroupNode = await this.entryData.newUpdate().apply(CreateGroup, { label: 'Volume' }, { tags: [GROUP_TAG], state: { isCollapsed: true } }).commit();
                 group = newGroupNode.ref;
             }
             const url = this.entryData.api.volumeUrl(this.entryData.source, this.entryData.entryId, BOX, MAX_VOXELS);
@@ -54,14 +58,14 @@ export class CellstarVolumeData {
 
             await this.entryData.newUpdate()
                 .to(volumeNode)
-                .apply(StateTransforms.Representation.VolumeRepresentation3D, visualParams, { tags: ['volume-visual'], state: { isHidden: volumeType === 'off' } })
+                .apply(StateTransforms.Representation.VolumeRepresentation3D, visualParams, { tags: [VOLUME_VISUAL_TAG], state: { isHidden: volumeType === 'off' } })
                 .commit();
             return { isovalue: adjustedIsovalue };
         }
     }
 
     async setVolumeVisual(type: 'isosurface' | 'direct-volume' | 'off') {
-        const visual = this.entryData.findNodesByTags('volume-visual')[0];
+        const visual = this.entryData.findNodesByTags(VOLUME_VISUAL_TAG)[0];
         if (!visual) return;
         const oldParams: VolumeVisualParams = visual.transform.params;
         this.visualTypeParamCache[oldParams.type.name] = oldParams.type.params;
@@ -85,6 +89,18 @@ export class CellstarVolumeData {
         }
     }
 
+    async setTryUseGpu(tryUseGpu: boolean) {
+        const visuals = this.entryData.findNodesByTags(VOLUME_VISUAL_TAG);
+        for (const visual of visuals) {
+            const oldParams: VolumeVisualParams = visual.transform.params;
+            if (oldParams.type.params.tryUseGpu === !tryUseGpu) {
+                const newParams = { ...oldParams, type: { ...oldParams.type, params: { ...oldParams.type.params, tryUseGpu: tryUseGpu } } };
+                const update = this.entryData.newUpdate().to(visual.transform.ref).update(newParams);
+                await PluginCommands.State.Update(this.entryData.plugin, { state: this.entryData.plugin.state.data, tree: update, options: { doNotUpdateCurrent: true } });
+            }
+        }
+    }
+
     private getIsovalueFromState(): Volume.IsoValue {
         const { volumeIsovalueKind, volumeIsovalueValue } = this.entryData.currentState.value;
         return volumeIsovalueKind === 'relative'
@@ -96,7 +112,7 @@ export class CellstarVolumeData {
         if (type === 'off') type = 'isosurface';
         return createVolumeRepresentationParams(this.entryData.plugin, volume, {
             type: type,
-            typeParams: { alpha: 0.2 },
+            typeParams: { alpha: 0.2, tryUseGpu: CellstarGlobalStateData.getGlobalState(this.entryData.plugin)?.tryUseGpu },
             color: 'uniform',
             colorParams: { value: Color(0x121212) },
         });
