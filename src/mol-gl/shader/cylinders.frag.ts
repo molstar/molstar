@@ -28,6 +28,12 @@ uniform mat4 uInvView;
 #include light_frag_params
 #include common_clip
 
+#ifdef dSolidInterior
+    const bool solidInterior = true;
+#else
+    const bool solidInterior = false;
+#endif
+
 // adapted from https://www.shadertoy.com/view/4lcSRn
 // The MIT License, Copyright 2016 Inigo Quilez
 bool CylinderImpostor(
@@ -53,6 +59,19 @@ bool CylinderImpostor(
     bool topCap = (vCap > 0.9 && vCap < 1.1) || vCap >= 2.9;
     bool bottomCap = (vCap > 1.9 && vCap < 2.1) || vCap >= 2.9;
 
+    #ifdef dSolidInterior
+        bool topInterior = !topCap;
+        bool bottomInterior = !bottomCap;
+        topCap = true;
+        bottomCap = true;
+    #else
+        bool topInterior = false;
+        bool bottomInterior = false;
+    #endif
+
+    bool clipped = false;
+    bool objectClipped = false;
+
     // body outside
     h = sqrt(h);
     float t = (-k1 - h) / k2;
@@ -64,36 +83,76 @@ bool CylinderImpostor(
         viewPosition = (uView * vec4(modelPosition, 1.0)).xyz;
         fragmentDepth = calcDepth(viewPosition);
         #if defined(dClipVariant_pixel) && dClipObjectCount != 0
-            if (clipTest(vec4(modelPosition, 0.0))) fragmentDepth = -1.0;
+            if (clipTest(vec4(modelPosition, 0.0))) {
+                objectClipped = true;
+                fragmentDepth = -1.0;
+                #ifdef dSolidInterior
+                    topCap = !topInterior;
+                    bottomCap = !bottomInterior;
+                #endif
+            }
         #endif
         if (fragmentDepth > 0.0) return true;
+        clipped = true;
     }
 
-    if (topCap && y < 0.0) {
-        // top cap
-        t = -baoc / bard;
-        if (abs(k1 + k2 * t) < h) {
-            interior = false;
-            cameraNormal = -ba / baba;
-            modelPosition = rayOrigin + t * rayDir;
-            viewPosition = (uView * vec4(modelPosition, 1.0)).xyz;
-            fragmentDepth = calcDepth(viewPosition);
-            if (fragmentDepth > 0.0) return true;
-        }
-    } else if(bottomCap && y >= 0.0) {
-        // bottom cap
-        t = (baba - baoc) / bard;
-        if (abs(k1 + k2 * t) < h) {
-            interior = false;
-            cameraNormal = ba / baba;
-            modelPosition = rayOrigin + t * rayDir;
-            viewPosition = (uView * vec4(modelPosition, 1.0)).xyz;
-            fragmentDepth = calcDepth(viewPosition);
-            if (fragmentDepth > 0.0) return true;
+    if (!clipped) {
+        if (topCap && y < 0.0) {
+            // top cap
+            t = -baoc / bard;
+            if (abs(k1 + k2 * t) < h) {
+                interior = topInterior;
+                cameraNormal = -ba / baba;
+                modelPosition = rayOrigin + t * rayDir;
+                viewPosition = (uView * vec4(modelPosition, 1.0)).xyz;
+                fragmentDepth = calcDepth(viewPosition);
+                #if defined(dClipVariant_pixel) && dClipObjectCount != 0
+                    if (clipTest(vec4(modelPosition, 0.0))) {
+                        objectClipped = true;
+                        fragmentDepth = -1.0;
+                        #ifdef dSolidInterior
+                            topCap = !topInterior;
+                            bottomCap = !bottomInterior;
+                        #endif
+                    }
+                #endif
+                if (fragmentDepth > 0.0) {
+                    #ifdef dSolidInterior
+                        if (interior) cameraNormal = -rayDir;
+                    #endif
+                    return true;
+                }
+            }
+        } else if (bottomCap && y >= 0.0) {
+            // bottom cap
+            t = (baba - baoc) / bard;
+            if (abs(k1 + k2 * t) < h) {
+                interior = bottomInterior;
+                cameraNormal = ba / baba;
+                modelPosition = rayOrigin + t * rayDir;
+                viewPosition = (uView * vec4(modelPosition, 1.0)).xyz;
+                fragmentDepth = calcDepth(viewPosition);
+                #if defined(dClipVariant_pixel) && dClipObjectCount != 0
+                    if (clipTest(vec4(modelPosition, 0.0))) {
+                        objectClipped = true;
+                        fragmentDepth = -1.0;
+                        #ifdef dSolidInterior
+                            topCap = !topInterior;
+                            bottomCap = !bottomInterior;
+                        #endif
+                    }
+                #endif
+                if (fragmentDepth > 0.0) {
+                    #ifdef dSolidInterior
+                        if (interior) cameraNormal = -rayDir;
+                    #endif
+                    return true;
+                }
+            }
         }
     }
 
-    if (uDoubleSided) {
+    if (uDoubleSided || solidInterior) {
         // body inside
         h = -h;
         t = (-k1 - h) / k2;
@@ -104,7 +163,15 @@ bool CylinderImpostor(
             modelPosition = rayOrigin + t * rayDir;
             viewPosition = (uView * vec4(modelPosition, 1.0)).xyz;
             fragmentDepth = calcDepth(viewPosition);
-            return true;
+            if (fragmentDepth > 0.0) {
+                #ifdef dSolidInterior
+                    if (!objectClipped) {
+                        fragmentDepth = 0.0 + (0.0000002 / vSize);
+                        cameraNormal = -rayDir;
+                    }
+                #endif
+                return true;
+            }
         }
 
         if (topCap && y < 0.0) {
@@ -116,9 +183,17 @@ bool CylinderImpostor(
                 modelPosition = rayOrigin + t * rayDir;
                 viewPosition = (uView * vec4(modelPosition, 1.0)).xyz;
                 fragmentDepth = calcDepth(viewPosition);
-                if (fragmentDepth > 0.0) return true;
+                if (fragmentDepth > 0.0) {
+                    #ifdef dSolidInterior
+                        if (!objectClipped) {
+                            fragmentDepth = 0.0 + (0.0000002 / vSize);
+                            cameraNormal = -rayDir;
+                        }
+                    #endif
+                    return true;
+                }
             }
-        } else if(bottomCap && y >= 0.0) {
+        } else if (bottomCap && y >= 0.0) {
             // bottom cap
             t = (baba - baoc) / bard;
             if (abs(k1 + k2 * t) < -h) {
@@ -127,7 +202,15 @@ bool CylinderImpostor(
                 modelPosition = rayOrigin + t * rayDir;
                 viewPosition = (uView * vec4(modelPosition, 1.0)).xyz;
                 fragmentDepth = calcDepth(viewPosition);
-                if (fragmentDepth > 0.0) return true;
+                if (fragmentDepth > 0.0) {
+                    #ifdef dSolidInterior
+                        if (!objectClipped) {
+                            fragmentDepth = 0.0 + (0.0000002 / vSize);
+                            cameraNormal = -rayDir;
+                        }
+                    #endif
+                    return true;
+                }
             }
         }
     }

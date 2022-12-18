@@ -27,6 +27,7 @@ export const CylindersSchema = {
     dIgnoreLight: DefineSpec('boolean'),
     dXrayShaded: DefineSpec('boolean'),
     dTransparentBackfaces: DefineSpec('string', ['off', 'on', 'opaque']),
+    dSolidInterior: DefineSpec('boolean'),
     uBumpFrequency: UniformSpec('f', 'material'),
     uBumpAmplitude: UniformSpec('f', 'material'),
 };

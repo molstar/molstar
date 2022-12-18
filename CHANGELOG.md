@@ -6,6 +6,11 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Show histogram in direct volume control point settings
+- Add `solidInterior` parameter to sphere/cylinder impostors
+
+## [v3.27.0] - 2022-12-15
+
 - Add an `includeTransparent` parameter to hide/show outlines of components that are transparent
 - Fix 'once' for animations of systems with many frames
 - Better guard against issue (black fringes) with bumpiness in impostors
@@ -17,6 +22,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Fix `QualityAssessment` assignment bug for structures with different auth vs label sequence numbering
 - Refresh `ApplyActionControl`'s param definition when toggling expanded state
 - Fix `struct_conn` bond assignment for ions
+- Ability to show only polar hydrogens
 
 ## [v3.26.0] - 2022-12-04
 

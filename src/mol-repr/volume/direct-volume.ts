@@ -129,7 +129,9 @@ export const DirectVolumeParams = {
 };
 export type DirectVolumeParams = typeof DirectVolumeParams
 export function getDirectVolumeParams(ctx: ThemeRegistryContext, volume: Volume) {
-    return PD.clone(DirectVolumeParams);
+    const params = PD.clone(DirectVolumeParams);
+    params.controlPoints.getVolume = () => volume;
+    return params;
 }
 export type DirectVolumeProps = PD.Values<DirectVolumeParams>
 

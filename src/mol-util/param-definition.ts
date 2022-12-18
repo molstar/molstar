@@ -216,10 +216,13 @@ export namespace ParamDefinition {
     }
 
     export interface LineGraph extends Base<Vec2Data[]> {
-        type: 'line-graph'
+        type: 'line-graph',
+        getVolume?: () => unknown
     }
-    export function LineGraph(defaultValue: Vec2Data[], info?: Info): LineGraph {
-        return setInfo<LineGraph>({ type: 'line-graph', defaultValue }, info);
+    export function LineGraph(defaultValue: Vec2Data[], info?: Info & { getVolume?: (binCount?: number) => unknown }): LineGraph {
+        const ret = setInfo<LineGraph>({ type: 'line-graph', defaultValue }, info);
+        if (info?.getVolume) ret.getVolume = info.getVolume;
+        return ret;
     }
 
     export interface Group<T> extends Base<T> {

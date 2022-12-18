@@ -1,12 +1,15 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Paul Luna <paulluna0215@gmail.com>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 import { PointComponent } from './point-component';
 
 import * as React from 'react';
 import { Vec2 } from '../../../mol-math/linear-algebra';
+import { Grid } from '../../../mol-model/volume';
+import { arrayMax } from '../../../mol-util/array';
 
 interface LineGraphComponentState {
     points: Vec2[],
@@ -76,6 +79,7 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
     public render() {
         const points = this.renderPoints();
         const lines = this.renderLines();
+        const histogram = this.renderHistogram();
 
         return ([
             <div key="LineGraph">
@@ -93,6 +97,7 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
                     onDoubleClick={this.handleDoubleClick}>
 
                     <g stroke="black" fill="black">
+                        {histogram}
                         {lines}
                         {points}
                     </g>
@@ -297,11 +302,11 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
     }
 
     private normalizePoint(point: Vec2) {
-        const min = this.padding / 2;
-        const maxX = this.width + min;
-        const maxY = this.height + min;
-        const normalizedX = (point[0] * (maxX - min)) + min;
-        const normalizedY = (point[1] * (maxY - min)) + min;
+        const offset = this.padding / 2;
+        const maxX = this.width + offset;
+        const maxY = this.height + offset;
+        const normalizedX = (point[0] * (maxX - offset)) + offset;
+        const normalizedY = (point[1] * (maxY - offset)) + offset;
         const reverseY = (this.height + this.padding) - normalizedY;
         const newPoint = Vec2.create(normalizedX, reverseY);
         return newPoint;
@@ -323,6 +328,24 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
         if (element) {
             this.myRef = element;
         }
+    }
+
+    private renderHistogram() {
+        if (!this.props.volume) return null;
+
+        const histogram = Grid.getHistogram(this.props.volume.grid, 40);
+        const bars = [];
+        const N = histogram.counts.length;
+        const w = this.width / N;
+        const offset = this.padding / 2;
+        const max = arrayMax(histogram.counts) || 1;
+        for (let i = 0; i < N; i++) {
+            const x = this.width * i / (N - 1) + offset;
+            const y1 = this.height + offset;
+            const y2 = this.height * (1 - histogram.counts[i] / max) + offset;
+            bars.push(<line key={`histogram${i}`} x1={x} x2={x} y1={y1} y2={y2} stroke="#ded9ca" strokeWidth={w} />);
+        }
+        return bars;
     }
 
     private renderPoints() {
@@ -352,19 +375,18 @@ export class LineGraphComponent extends React.Component<any, LineGraphComponentS
     private renderLines() {
         const points: Vec2[] = [];
         const lines = [];
-        let min: number;
         let maxX: number;
         let maxY: number;
         let normalizedX: number;
         let normalizedY: number;
         let reverseY: number;
 
+        const o = this.padding / 2;
         for (const point of this.state.points) {
-            min = this.padding / 2;
-            maxX = this.width + min;
-            maxY = this.height + min;
-            normalizedX = (point[0] * (maxX - min)) + min;
-            normalizedY = (point[1] * (maxY - min)) + min;
+            maxX = this.width + o;
+            maxY = this.height + this.padding;
+            normalizedX = (point[0] * (maxX - o)) + o;
+            normalizedY = (point[1] * (maxY - o)) + o;
             reverseY = this.height + this.padding - normalizedY;
             points.push(Vec2.create(normalizedX, reverseY));
         }
