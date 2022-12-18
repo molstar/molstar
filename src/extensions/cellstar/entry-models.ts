@@ -1,3 +1,9 @@
+/**
+ * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author Adam Midlik <midlik@gmail.com>
+ */
+
 import { Download, ParseCif } from '../../mol-plugin-state/transforms/data';
 import { CreateGroup } from '../../mol-plugin-state/transforms/misc';
 import { TrajectoryFromMmCif } from '../../mol-plugin-state/transforms/model';

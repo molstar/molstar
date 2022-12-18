@@ -1,3 +1,9 @@
+/**
+ * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author Adam Midlik <midlik@gmail.com>
+ */
+
 /** Testing examples for using mesh-extension.ts. */
 
 import { ParseMeshlistTransformer, MeshShapeTransformer, MeshlistData } from './mesh-extension';

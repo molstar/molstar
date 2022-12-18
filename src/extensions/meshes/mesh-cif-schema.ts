@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author Adam Midlik <midlik@gmail.com>
+ */
 
 import { Column, Database } from '../../mol-data/db';
 import { CifFrame } from '../../mol-io/reader/cif';

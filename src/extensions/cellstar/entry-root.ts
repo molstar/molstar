@@ -1,3 +1,9 @@
+/**
+ * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author Adam Midlik <midlik@gmail.com>
+ */
+
 import { BehaviorSubject, distinctUntilChanged, Subject, throttleTime } from 'rxjs';
 import { CellstarVolumeServerConfig } from '.';
 import { Loci } from '../../mol-model/loci';

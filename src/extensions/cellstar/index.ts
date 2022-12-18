@@ -1,3 +1,9 @@
+/**
+ * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author Adam Midlik <midlik@gmail.com>
+ */
+
 import { PluginStateObject as SO } from '../../mol-plugin-state/objects';
 import { PluginBehavior } from '../../mol-plugin/behavior';
 import { PluginConfigItem } from '../../mol-plugin/config';

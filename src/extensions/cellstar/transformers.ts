@@ -1,3 +1,9 @@
+/**
+ * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author Adam Midlik <midlik@gmail.com>
+ */
+
 import { PluginStateObject, PluginStateTransform } from '../../mol-plugin-state/objects';
 import { PluginContext } from '../../mol-plugin/context';
 import { StateTransformer } from '../../mol-state';

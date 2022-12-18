@@ -1,3 +1,9 @@
+/**
+ * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author Adam Midlik <midlik@gmail.com>
+ */
+
 import { CIF, CifBlock } from '../../mol-io/reader/cif';
 import { Box3D } from '../../mol-math/geometry';
 import { Tensor, Vec3 } from '../../mol-math/linear-algebra';

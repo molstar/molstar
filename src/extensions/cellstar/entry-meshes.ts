@@ -1,3 +1,9 @@
+/**
+ * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author Adam Midlik <midlik@gmail.com>
+ */
+
 import { PluginStateObject } from '../../mol-plugin-state/objects';
 import { CreateGroup } from '../../mol-plugin-state/transforms/misc';
 import { ShapeRepresentation3D } from '../../mol-plugin-state/transforms/representation';
