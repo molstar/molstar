@@ -4,7 +4,7 @@
  * @author Adam Midlik <midlik@gmail.com>
  */
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { CollapsableControls, CollapsableState } from '../../mol-plugin-ui/base';
 import { Button, ControlRow, ExpandGroup, IconButton } from '../../mol-plugin-ui/controls/common';
@@ -14,9 +14,10 @@ import { Slider } from '../../mol-plugin-ui/controls/slider';
 import { useBehavior } from '../../mol-plugin-ui/hooks/use-behavior';
 import { PluginContext } from '../../mol-plugin/context';
 import { shallowEqualArrays } from '../../mol-util';
-import { ParamDefinition } from '../../mol-util/param-definition';
+import { ParamDefinition as PD } from '../../mol-util/param-definition';
+import { sleep } from '../../mol-util/sleep';
 
-import { CellstarEntry } from './entry-root';
+import { CellstarEntry, CellstarEntryData } from './entry-root';
 import { VolumeTypeChoice } from './entry-state';
 import { CellstarGlobalState, CellstarGlobalStateData, CellstarGlobalStateParams } from './global-state';
 import { isDefined } from './helpers';
@@ -88,37 +89,42 @@ function CellstarControls({ plugin, data, setData }: { plugin: PluginContext, da
 
     const params = {
         /** Reference to the active CellstarEntry node */
-        entry: ParamDefinition.Select(data.activeNode!.data.ref, data.availableNodes.map(entry => [entry.data.ref, entry.data.entryId]))
+        entry: PD.Select(data.activeNode!.data.ref, data.availableNodes.map(entry => [entry.data.ref, entry.data.entryId]))
     };
-    const values: ParamDefinition.Values<typeof params> = {
+    const values: PD.Values<typeof params> = {
         entry: data.activeNode!.data.ref,
     };
 
     const globalState = useBehavior(data.globalState.currentState);
 
+    return <>
+        <ParameterControls params={params} values={values} onChangeValues={next => setData(CellstarUIData.changeActiveNode(data, next.entry))} />
+
+        <ExpandGroup header='Global options'>
+            <WaitingParameterControls params={CellstarGlobalStateParams} values={globalState} onChangeValues={async next => await data.globalState?.updateState(plugin, next)} />
+        </ExpandGroup>
+
+        <CellstarEntryControls entryData={entryData} key={entryData.ref} />
+    </>;
+}
+
+function CellstarEntryControls({ entryData }: { entryData: CellstarEntryData }) {
     const state = useBehavior(entryData.currentState);
 
     const allSegments = entryData.metadata.allSegments;
     const selectedSegment = entryData.metadata.getSegment(state.selectedSegment);
     const visibleSegments = state.visibleSegments.map(seg => seg.segmentId);
     const visibleModels = state.visibleModels.map(model => model.pdbId);
-
     const allPdbs = entryData.pdbs;
 
     const volumeParams = {
         volumeType: VolumeTypeChoice.PDSelect(),
     };
-    const volumeValues: ParamDefinition.Values<typeof volumeParams> = {
+    const volumeValues: PD.Values<typeof volumeParams> = {
         volumeType: state.volumeType,
     };
 
     return <>
-        {/* Entry select */}
-        <ParameterControls params={params} values={values} onChangeValues={next => setData(CellstarUIData.changeActiveNode(data, next.entry))} />
-        <ExpandGroup header='Global options'>
-            <ParameterControls params={CellstarGlobalStateParams} values={globalState} onChangeValues={async next => await data.globalState?.updateState(plugin, next)} />
-        </ExpandGroup>
-
         {/* Title */}
         <SectionHeading text={entryData.metadata.raw.annotation?.name ?? 'Unnamed Annotation'} />
 
@@ -126,29 +132,28 @@ function CellstarControls({ plugin, data, setData }: { plugin: PluginContext, da
         {allPdbs.length > 0 && <>
             <SectionHeading text='Fitted models in PDB:' />
             {allPdbs.map(pdb =>
-                <Button key={pdb} onClick={() => entryData.actionShowFittedModel(visibleModels.includes(pdb) ? [] : [pdb])}
+                <WaitingButton key={pdb} onClick={() => entryData.actionShowFittedModel(visibleModels.includes(pdb) ? [] : [pdb])}
                     style={{ fontWeight: visibleModels.includes(pdb) ? 'bold' : undefined, textAlign: 'left' }}>
                     {pdb}
-                </Button>
+                </WaitingButton>
             )}
         </>}
 
         {/* Volume */}
         <SectionHeading text='Volume data:' />
-        <ParameterControls params={volumeParams} values={volumeValues} onChangeValues={next => entryData.actionSetVolumeVisual(next.volumeType)} />
+        <WaitingParameterControls params={volumeParams} values={volumeValues} onChangeValues={async next => { await sleep(20); await entryData.actionSetVolumeVisual(next.volumeType); }} />
 
         {/* Segment opacity slider */}
         <SectionHeading text='Segmentation data:' />
         <ControlRow label='Opacity' control={
-            <WaitingSlider plugin={plugin} min={0} max={1} value={state.opacity} step={0.05} onChange={async v => await entryData.actionSetOpacity(v)} />
+            <WaitingSlider min={0} max={1} value={state.opacity} step={0.05} onChange={async v => await entryData.actionSetOpacity(v)} />
         } />
 
         {/* Segment toggles */}
         {allSegments.length > 0 && <>
-            <Button onClick={() => entryData.actionToggleAllSegments()}
-                style={{ marginTop: 1 }}>
+            <WaitingButton onClick={async () => { await sleep(20); await entryData.actionToggleAllSegments(); }} style={{ marginTop: 1 }}>
                 Toggle All segments
-            </Button>
+            </WaitingButton>
             <div style={{ maxHeight: 300, overflow: 'hidden', overflowY: 'auto', marginBlock: 1 }}>
                 {allSegments.map(segment =>
                     <div style={{ display: 'flex', marginBottom: 1 }} key={segment.id}
@@ -173,15 +178,13 @@ function CellstarControls({ plugin, data, setData }: { plugin: PluginContext, da
             {selectedSegment && <b>Segment {selectedSegment.id}:<br />{selectedSegment.biological_annotation.name ?? 'Unnamed segment'}</b>}
             {selectedSegment?.biological_annotation.external_references.map(ref =>
                 <p key={ref.id} title={ref.description} style={{ marginTop: 4 }}>
-                    {/* <b>{ref.resource}:{ref.accession}</b><br />
-                    <i>{capitalize(ref.label)}:</i> {ref.description} */}
                     <small>{ref.resource}:{ref.accession}</small><br />
                     {capitalize(ref.label)}
                 </p>)}
         </div>
-
     </>;
 }
+
 
 function SectionHeading({ text }: { text: string }) {
     return <div style={{ padding: 8, paddingTop: 6, paddingBottom: 4, overflow: 'hidden' }}>
@@ -189,28 +192,66 @@ function SectionHeading({ text }: { text: string }) {
     </div>;
 }
 
-function WaitingSlider({ plugin, value, min, max, step, onChange }: { plugin: PluginContext, value: number, min: number, max: number, step: number, onChange: (value: number) => any }) {
-    const [sliderValue, setSliderValue] = useState(value);
-    const [changing, setChanging] = useState(false);
-    useEffect(() => setSliderValue(value), [value]);
+type ComponentParams<T extends React.Component<any, any, any> | ((props: any) => JSX.Element)> =
+    T extends React.Component<infer P, any, any> ? P : T extends (props: infer P) => JSX.Element ? P : never;
 
-    return <Slider min={min} max={max} step={step} value={sliderValue} disabled={changing} onChange={async newValue => {
-        setChanging(true);
-        setSliderValue(newValue);
-        try {
-            await onChange(newValue);
-        } catch (err) {
-            setSliderValue(value); // reset original value
-            throw err;
-        } finally {
-            setChanging(false);
-        }
-    }} />;
+function WaitingSlider({ value, onChange, ...etc }: { value: number, onChange: (value: number) => any } & ComponentParams<Slider>) {
+    const [changing, sliderValue, execute] = useAsyncChange(value);
+
+    return <Slider value={sliderValue} disabled={changing} onChange={newValue => execute(onChange, newValue)} {...etc} />;
 }
 
+function WaitingButton({ onClick, ...etc }: { onClick: () => any } & ComponentParams<typeof Button>) {
+    const [changing, _, execute] = useAsyncChange(undefined);
+
+    return <Button disabled={changing} onClick={() => execute(onClick, undefined)} {...etc}>
+        {etc.children}
+    </Button>;
+}
+
+function WaitingParameterControls<T extends PD.Params>({ values, onChangeValues, ...etc }: { values: PD.ValuesFor<T>, onChangeValues: (values: PD.ValuesFor<T>) => any } & ComponentParams<ParameterControls<T>>) {
+    const [changing, currentValues, execute] = useAsyncChange(values);
+
+    return <ParameterControls isDisabled={changing} values={currentValues} onChangeValues={newValue => execute(onChangeValues, newValue)} {...etc} />;
+}
 
 function capitalize(text: string) {
     const first = text.charAt(0);
     const rest = text.slice(1);
     return first.toUpperCase() + rest;
+}
+
+function useAsyncChange<T>(initialValue: T) {
+    const [isExecuting, setIsExecuting] = useState(false);
+    const [value, setValue] = useState(initialValue);
+    const isMounted = useRef(false);
+
+    useEffect(() => setValue(initialValue), [initialValue]);
+
+    useEffect(() => {
+        isMounted.current = true;
+        return () => { console.log('unmounting'); isMounted.current = false; };
+    }, []);
+
+    const execute = useCallback(
+        async (func: (val: T) => Promise<any>, val: T) => {
+            setIsExecuting(true);
+            setValue(val);
+            try {
+                await func(val);
+            } catch (err) {
+                if (isMounted.current) {
+                    setValue(initialValue);
+                }
+                throw err;
+            } finally {
+                if (isMounted.current) {
+                    setIsExecuting(false);
+                }
+            }
+        },
+        []
+    );
+
+    return [isExecuting, value, execute] as const;
 }

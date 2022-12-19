@@ -129,6 +129,7 @@ export class CellstarVolumeData {
         switch (params.type.name) {
             case 'isosurface':
                 params.type.params.isoValue = isovalue;
+                params.type.params.tryUseGpu = CellstarGlobalStateData.getGlobalState(this.entryData.plugin)?.tryUseGpu;
                 break;
             case 'direct-volume':
                 const absIso = Volume.IsoValue.toAbsolute(isovalue, stats).absoluteValue;
