@@ -124,72 +124,69 @@ function VolsegEntryControls({ entryData }: { entryData: VolsegEntryData }) {
 
     return <>
         {/* Title */}
-        <div style={{ fontSize: '1.1em', fontWeight: 'bold', padding: 8, paddingTop: 6, paddingBottom: 4, overflow: 'hidden' }}>
+        <div style={{ fontWeight: 'bold', padding: 8, paddingTop: 6, paddingBottom: 4, overflow: 'hidden' }}>
             {entryData.metadata.raw.annotation?.name ?? 'Unnamed Annotation'}
         </div>
 
         {/* Fitted models */}
-        {allPdbs.length > 0 && <>
-            <SectionHeading text='Fitted models in PDB:' />
+        {allPdbs.length > 0 && <ExpandGroup header='Fitted models in PDB' initiallyExpanded>
             {allPdbs.map(pdb =>
                 <WaitingButton key={pdb} onClick={() => entryData.actionShowFittedModel(visibleModels.includes(pdb) ? [] : [pdb])}
-                    style={{ fontWeight: visibleModels.includes(pdb) ? 'bold' : undefined, textAlign: 'left' }}>
+                    style={{ fontWeight: visibleModels.includes(pdb) ? 'bold' : undefined, textAlign: 'left', marginTop: 1 }}>
                     {pdb}
                 </WaitingButton>
             )}
-        </>}
+        </ExpandGroup>}
 
         {/* Volume */}
-        <SectionHeading text='Volume data:' />
-        <WaitingParameterControls params={SimpleVolumeParams} values={volumeValues} onChangeValues={async next => { await sleep(20); await entryData.actionUpdateVolumeVisual(next); }} />
+        <ExpandGroup header='Volume data' initiallyExpanded>
+            <WaitingParameterControls params={SimpleVolumeParams} values={volumeValues} onChangeValues={async next => { await sleep(20); await entryData.actionUpdateVolumeVisual(next); }} />
+        </ExpandGroup>
 
-        {/* Segment opacity slider */}
-        <SectionHeading text='Segmentation data:' />
-        <ControlRow label='Opacity' control={
-            <WaitingSlider min={0} max={1} value={state.segmentOpacity} step={0.05} onChange={async v => await entryData.actionSetOpacity(v)} />
-        } />
+        <ExpandGroup header='Segmentation data' initiallyExpanded>
+            {/* Segment opacity slider */}
+            <ControlRow label='Opacity' control={
+                <WaitingSlider min={0} max={1} value={state.segmentOpacity} step={0.05} onChange={async v => await entryData.actionSetOpacity(v)} />
+            } />
 
-        {/* Segment toggles */}
-        {allSegments.length > 0 && <>
-            <WaitingButton onClick={async () => { await sleep(20); await entryData.actionToggleAllSegments(); }} style={{ marginTop: 1 }}>
-                Toggle All segments
-            </WaitingButton>
-            <div style={{ maxHeight: 300, overflow: 'hidden', overflowY: 'auto', marginBlock: 1 }}>
-                {allSegments.map(segment =>
-                    <div style={{ display: 'flex', marginBottom: 1 }} key={segment.id}
-                        onMouseEnter={() => entryData.actionHighlightSegment(segment)}
-                        onMouseLeave={() => entryData.actionHighlightSegment()}>
-                        <Button onClick={() => entryData.actionSelectSegment(segment !== selectedSegment ? segment.id : undefined)}
-                            style={{ fontWeight: segment.id === selectedSegment?.id ? 'bold' : undefined, marginRight: 1, flexGrow: 1, textAlign: 'left' }}>
-                            <div title={segment.biological_annotation.name ?? 'Unnamed segment'} style={{ maxWidth: 240, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                {segment.biological_annotation.name ?? 'Unnamed segment'}
-                            </div>
-                        </Button>
-                        <IconButton svg={visibleSegments.includes(segment.id) ? Icons.VisibilityOutlinedSvg : Icons.VisibilityOffOutlinedSvg}
-                            onClick={() => entryData.actionToggleSegment(segment.id)} />
-                    </div>
-                )}
-            </div>
-        </>}
+            {/* Segment toggles */}
+            {allSegments.length > 0 && <>
+                <WaitingButton onClick={async () => { await sleep(20); await entryData.actionToggleAllSegments(); }} style={{ marginTop: 1 }}>
+                    Toggle All segments
+                </WaitingButton>
+                <div style={{ maxHeight: 200, overflow: 'hidden', overflowY: 'auto', marginBlock: 1 }}>
+                    {allSegments.map(segment =>
+                        <div style={{ display: 'flex', marginBottom: 1 }} key={segment.id}
+                            onMouseEnter={() => entryData.actionHighlightSegment(segment)}
+                            onMouseLeave={() => entryData.actionHighlightSegment()}>
+                            <Button onClick={() => entryData.actionSelectSegment(segment !== selectedSegment ? segment.id : undefined)}
+                                style={{ fontWeight: segment.id === selectedSegment?.id ? 'bold' : undefined, marginRight: 1, flexGrow: 1, textAlign: 'left' }}>
+                                <div title={segment.biological_annotation.name ?? 'Unnamed segment'} style={{ maxWidth: 240, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                    {segment.biological_annotation.name ?? 'Unnamed segment'} ({segment.id})
+                                </div>
+                            </Button>
+                            <IconButton svg={visibleSegments.includes(segment.id) ? Icons.VisibilityOutlinedSvg : Icons.VisibilityOffOutlinedSvg}
+                                onClick={() => entryData.actionToggleSegment(segment.id)} />
+                        </div>
+                    )}
+                </div>
+            </>}
+        </ExpandGroup>
 
         {/* Segment annotations */}
-        <div style={{ padding: 8, maxHeight: 300, overflow: 'hidden', overflowY: 'auto' }}>
-            {!selectedSegment && 'No segment selected'}
-            {selectedSegment && <b>Segment {selectedSegment.id}:<br />{selectedSegment.biological_annotation.name ?? 'Unnamed segment'}</b>}
-            {selectedSegment?.biological_annotation.external_references.map(ref =>
-                <p key={ref.id} title={ref.description} style={{ marginTop: 4 }}>
-                    <small>{ref.resource}:{ref.accession}</small><br />
-                    {capitalize(ref.label)}
-                </p>)}
-        </div>
+        <ExpandGroup header='Selected segment annotation' initiallyExpanded>
+            <div style={{ paddingTop: 4, paddingRight: 8, maxHeight: 300, overflow: 'hidden', overflowY: 'auto' }}>
+                {!selectedSegment && 'No segment selected'}
+                {selectedSegment && <b>Segment {selectedSegment.id}:<br />{selectedSegment.biological_annotation.name ?? 'Unnamed segment'}</b>}
+                {selectedSegment?.biological_annotation.external_references.map(ref =>
+                    <p key={ref.id} style={{ marginTop: 4 }}>
+                        <small>{ref.resource}:{ref.accession}</small><br />
+                        <b>{capitalize(ref.label)}</b><br />
+                        {ref.description}
+                    </p>)}
+            </div>
+        </ExpandGroup>
     </>;
-}
-
-
-function SectionHeading({ text }: { text: string }) {
-    return <div style={{ fontWeight: 'bold', padding: 8, paddingTop: 6, paddingBottom: 4, overflow: 'hidden' }}>
-        {text}
-    </div>;
 }
 
 type ComponentParams<T extends React.Component<any, any, any> | ((props: any) => JSX.Element)> =

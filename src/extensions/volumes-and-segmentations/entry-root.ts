@@ -311,7 +311,7 @@ export class VolsegEntryData extends PluginBehavior.WithSubscribers<VolsegEntryP
             if (segmentId === undefined) return;
             const segment = this.metadata.getSegment(segmentId);
             if (!segment) return;
-            const annotLabels = segment.biological_annotation.external_references.map(annot => `${applyEllipsis(annot.label)} [${annot.resource}]`);
+            const annotLabels = segment.biological_annotation.external_references.map(annot => `${applyEllipsis(annot.label)} [${annot.resource}:${annot.accession}]`);
             if (annotLabels.length === 0) return;
             if (annotLabels.length > MAX_ANNOTATIONS_IN_LABEL + 1) {
                 const nHidden = annotLabels.length - MAX_ANNOTATIONS_IN_LABEL;
