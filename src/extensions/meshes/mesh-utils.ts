@@ -110,7 +110,7 @@ export function concat(...meshes: Mesh[]): Mesh {
 /** Return Mesh from CIF data and mesh IDs (group IDs).
  * Assume the CIF contains coords in grid space,
  * transform the output mesh to `space` */
-export async function meshFromCif(data: CifFile, invertSides: boolean = true, outSpace: 'grid' | 'fractional' | 'cartesian' = 'cartesian'): Promise<{ mesh: Mesh, meshIds: number[] }> {
+export async function meshFromCif(data: CifFile, invertSides: boolean | undefined = undefined, outSpace: 'grid' | 'fractional' | 'cartesian' = 'cartesian'): Promise<{ mesh: Mesh, meshIds: number[] }> {
     const volumeInfoBlock = data.blocks.find(b => b.header === 'VOLUME_INFO');
     const meshesBlock = data.blocks.find(b => b.header === 'MESHES');
     if (!volumeInfoBlock || !meshesBlock) throw new Error('Missing VOLUME_INFO or MESHES block in mesh CIF file');
@@ -140,6 +140,7 @@ export async function meshFromCif(data: CifFile, invertSides: boolean = true, ou
     const groups = new Float32Array(vertex_meshId);
     const mesh = Mesh.create(vertices, indices, normals, groups, nVertices, nTriangles);
 
+    invertSides ??= isInverted(mesh);
     if (invertSides) {
         modify(mesh, { invertSides: true }); // Vertex orientation convention is opposite in Volseg API and in MolStar
     }
@@ -164,6 +165,43 @@ export async function meshFromCif(data: CifFile, invertSides: boolean = true, ou
     // const cellSize = volumeInfoCif.volume_data_3d_info.spacegroup_cell_size.value(0); const boxMesh = makeMeshFromBox([[0, 0, 0], Array.from(cellSize)] as any, 1);
     // mesh = concat(mesh, boxMesh);  // debug
     return { mesh: mesh, meshIds: Array.from(mesh_id) };
+}
+
+function isInverted(mesh: Mesh): boolean {
+    const vertices = mesh.vertexBuffer.ref.value;
+    const indices = mesh.indexBuffer.ref.value;
+    const center = meshCenter(mesh);
+    const center3 = Vec3.create(3 * center[0], 3 * center[1], 3 * center[2]);
+
+    let dirMetric = 0.0;
+    const [a, b, c, u, v, normal, radius] = [Vec3(), Vec3(), Vec3(), Vec3(), Vec3(), Vec3(), Vec3()];
+    for (let i = 0; i < indices.length; i += 3) {
+        Vec3.fromArray(a, vertices, 3 * indices[i]);
+        Vec3.fromArray(b, vertices, 3 * indices[i + 1]);
+        Vec3.fromArray(c, vertices, 3 * indices[i + 2]);
+        Vec3.sub(u, b, a);
+        Vec3.sub(v, c, b);
+        Vec3.cross(normal, u, v); // direction of the surface
+        Vec3.add(radius, a, b);
+        Vec3.add(radius, radius, c);
+        Vec3.sub(radius, radius, center3); // direction center -> this triangle
+        dirMetric += Vec3.dot(radius, normal);
+    }
+    return dirMetric < 0;
+}
+
+function meshCenter(mesh: Mesh) {
+    const vertices = mesh.vertexBuffer.ref.value;
+    const n = vertices.length;
+    let x = 0.0;
+    let y = 0.0;
+    let z = 0.0;
+    for (let i = 0; i < vertices.length; i += 3) {
+        x += vertices[i];
+        y += vertices[i + 1];
+        z += vertices[i + 2];
+    }
+    return Vec3.create(x / n, y / n, z / n);
 }
 
 function flattenCoords(x: ArrayLike<number>, y: ArrayLike<number>, z: ArrayLike<number>): Float32Array {
