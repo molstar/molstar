@@ -23,7 +23,7 @@ export const ElementPointParams = {
     ...UnitsPointsParams,
     pointSizeAttenuation: PD.Boolean(false),
     ignoreHydrogens: PD.Boolean(false),
-    onlyPolarHydrogens: PD.Boolean(false),
+    ignoreHydrogensVariant: PD.Select('all', PD.arrayToOptions(['all', 'non-polar'] as const)),
     traceOnly: PD.Boolean(false),
 };
 export type ElementPointParams = typeof ElementPointParams
@@ -90,7 +90,7 @@ export function ElementPointVisual(materialId: number): UnitsVisual<ElementPoint
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<ElementPointParams>, currentProps: PD.Values<ElementPointParams>) => {
             state.createGeometry = (
                 newProps.ignoreHydrogens !== currentProps.ignoreHydrogens ||
-                newProps.onlyPolarHydrogens !== currentProps.onlyPolarHydrogens ||
+                newProps.ignoreHydrogensVariant !== currentProps.ignoreHydrogensVariant ||
                 newProps.traceOnly !== currentProps.traceOnly
             );
         }
