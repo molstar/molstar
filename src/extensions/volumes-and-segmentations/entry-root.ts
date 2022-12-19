@@ -151,6 +151,9 @@ export class VolsegEntryData extends PluginBehavior.WithSubscribers<VolsegEntryP
             // do nothing
         }
 
+        const volumeVisual = this.findNodesByTags(VOLUME_VISUAL_TAG)[0];
+        if (volumeVisual) this.currentVolume.next(volumeVisual.transform);
+
         let volumeRef: string | undefined;
         this.subscribeObservable(this.plugin.state.data.events.cell.stateUpdated, e => {
             try { (this.getStateNode()); } catch { return; } // if state not does not exist yet
