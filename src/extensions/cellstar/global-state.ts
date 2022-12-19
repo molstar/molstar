@@ -34,6 +34,12 @@ export class CellstarGlobalStateData extends PluginBehavior.WithSubscribers<Cell
     register(ref: string) {
         this.ref = ref;
     }
+    unregister() {
+        this.ref = '';
+    }
+    isRegistered() {
+        return this.ref !== '';
+    }
     async updateState(plugin: PluginContext, state: Partial<CellstarGlobalStateParamValues>) {
         const oldState = this.currentState.value;
 

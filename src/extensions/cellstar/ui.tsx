@@ -66,7 +66,7 @@ export class CellstarUI extends CollapsableControls<{}, { data: CellstarUIData }
             const nodes = e.state.selectQ(q => q.ofType(CellstarEntry)).map(cell => cell?.obj).filter(isDefined);
             const isHidden = nodes.length === 0;
             const newData = CellstarUIData.changeAvailableNodes(this.state.data, nodes);
-            if (!this.state.data.globalState) {
+            if (!this.state.data.globalState?.isRegistered()) {
                 const globalState = e.state.selectQ(q => q.ofType(CellstarGlobalState))[0]?.obj?.data;
                 if (globalState) newData.globalState = globalState;
             }
@@ -230,7 +230,7 @@ function useAsyncChange<T>(initialValue: T) {
 
     useEffect(() => {
         isMounted.current = true;
-        return () => { console.log('unmounting'); isMounted.current = false; };
+        return () => { isMounted.current = false; };
     }, []);
 
     const execute = useCallback(

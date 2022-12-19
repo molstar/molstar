@@ -19,9 +19,11 @@ import { CellstarEntryFromRoot, CellstarGlobalStateFromRoot, CellstarStateFromEn
 import { CellstarUI } from './ui';
 
 
+const DEBUGGING = window.location.hostname === 'localhost';
+
 export const CellstarVolumeServerConfig = {
     // DefaultServer: new PluginConfigItem('cellstar-volume-server', DEFAULT_VOLUME_SERVER_V2),
-    DefaultServer: new PluginConfigItem('cellstar-volume-server', window.location.hostname !== 'localhost' ? DEFAULT_VOLUME_SERVER_V2 : 'http://localhost:9000/v2'), // DEBUG, TODO remove
+    DefaultServer: new PluginConfigItem('cellstar-volume-server', DEBUGGING ? 'http://localhost:9000/v2' : DEFAULT_VOLUME_SERVER_V2),
 };
 
 
@@ -87,11 +89,11 @@ export const LoadCellstar = StateAction.build({
 
         const globalStateNode = ctx.state.data.selectQ(q => q.ofType(CellstarGlobalState))[0];
         if (!globalStateNode) {
-            await state.build().toRoot().apply(CellstarGlobalStateFromRoot).commit(); // TODO isGhost
+            await state.build().toRoot().apply(CellstarGlobalStateFromRoot, {}, { state: { isGhost: !DEBUGGING } }).commit();
         }
 
         const entryNode = await state.build().toRoot().apply(CellstarEntryFromRoot, entryParams).commit();
-        await state.build().to(entryNode).apply(CellstarStateFromEntry, {}).commit(); // TODO isGhost
+        await state.build().to(entryNode).apply(CellstarStateFromEntry, {}, { state: { isGhost: !DEBUGGING } }).commit();
         if (entryNode.data) {
             await entryNode.data.loadVolume();
             await entryNode.data.loadSegmentations();
