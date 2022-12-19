@@ -52,7 +52,7 @@ export class VolsegVolumeData {
     async loadVolume() {
         const hasVolumes = this.entryData.metadata.raw.grid.volumes.volume_downsamplings.length > 0;
         if (hasVolumes) {
-            const isoLevelPromise = ExternalAPIs.getIsovalue(this.entryData.metadata.raw.grid.general.source_db_id ?? this.entryData.entryId);
+            const isoLevelPromise = ExternalAPIs.tryGetIsovalue(this.entryData.metadata.raw.grid.general.source_db_id ?? this.entryData.entryId);
             let group = this.entryData.findNodesByTags(GROUP_TAG)[0]?.transform.ref;
             if (!group) {
                 const newGroupNode = await this.entryData.newUpdate().apply(CreateGroup, { label: 'Volume' }, { tags: [GROUP_TAG], state: { isCollapsed: true } }).commit();
@@ -65,7 +65,17 @@ export class VolsegVolumeData {
             const volumeData = volumeNode.cell!.obj!.data;
 
             const volumeType = VolsegStateParams.volumeType.defaultValue;
-            const isovalue = await isoLevelPromise;
+            let isovalue = await isoLevelPromise;
+            if (!isovalue) {
+                const stats = volumeData.grid.stats;
+                const maxRelative = (stats.max - stats.mean) / stats.sigma;
+                if (maxRelative > 1) {
+                    isovalue = { kind: 'relative', value: 1.0 };
+                } else {
+                    isovalue = { kind: 'relative', value: maxRelative * 0.5 };
+                }
+            }
+
             const adjustedIsovalue = Volume.adjustedIsoValue(volumeData, isovalue.value, isovalue.kind);
             const visualParams = this.createVolumeVisualParams(volumeData, volumeType);
             this.changeIsovalueInVolumeVisualParams(visualParams, adjustedIsovalue, volumeData.grid.stats);

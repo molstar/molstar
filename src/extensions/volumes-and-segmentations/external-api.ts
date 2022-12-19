@@ -8,7 +8,7 @@ import { splitEntryId } from './helpers';
 
 
 /** Try to get author-defined contour value for isosurface from EMDB API. Return relative value 1.0, if not applicable or fails.  */
-export async function getIsovalue(entryId: string): Promise<{ kind: 'absolute' | 'relative', value: number }> {
+export async function tryGetIsovalue(entryId: string): Promise<{ kind: 'absolute' | 'relative', value: number } | undefined> {
     const split = splitEntryId(entryId);
     if (split.source === 'emdb') {
         try {
@@ -24,7 +24,7 @@ export async function getIsovalue(entryId: string): Promise<{ kind: 'absolute' |
             // do nothing
         }
     }
-    return { kind: 'relative', value: 1.0 };
+    return undefined;
 }
 
 export async function getPdbIdsForEmdbEntry(entryId: string): Promise<string[]> {
