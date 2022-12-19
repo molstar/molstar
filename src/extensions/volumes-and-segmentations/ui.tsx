@@ -12,6 +12,7 @@ import * as Icons from '../../mol-plugin-ui/controls/icons';
 import { ParameterControls } from '../../mol-plugin-ui/controls/parameters';
 import { Slider } from '../../mol-plugin-ui/controls/slider';
 import { useBehavior } from '../../mol-plugin-ui/hooks/use-behavior';
+import { UpdateTransformControl } from '../../mol-plugin-ui/state/update-transform';
 import { PluginContext } from '../../mol-plugin/context';
 import { shallowEqualArrays } from '../../mol-util';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
@@ -117,11 +118,6 @@ function VolsegEntryControls({ entryData }: { entryData: VolsegEntryData }) {
     const visibleModels = state.visibleModels.map(model => model.pdbId);
     const allPdbs = entryData.pdbs;
 
-    const volumeValues: SimpleVolumeParamValues = {
-        volumeType: state.volumeType,
-        opacity: state.volumeOpacity,
-    };
-
     return <>
         {/* Title */}
         <div style={{ fontWeight: 'bold', padding: 8, paddingTop: 6, paddingBottom: 4, overflow: 'hidden' }}>
@@ -139,10 +135,7 @@ function VolsegEntryControls({ entryData }: { entryData: VolsegEntryData }) {
         </ExpandGroup>}
 
         {/* Volume */}
-        <ExpandGroup header='Volume data' initiallyExpanded>
-            <WaitingParameterControls params={SimpleVolumeParams} values={volumeValues} onChangeValues={async next => { await sleep(20); await entryData.actionUpdateVolumeVisual(next); }} />
-        </ExpandGroup>
-
+        <VolumeControls entryData={entryData} />
         <ExpandGroup header='Segmentation data' initiallyExpanded>
             {/* Segment opacity slider */}
             <ControlRow label='Opacity' control={
@@ -187,6 +180,23 @@ function VolsegEntryControls({ entryData }: { entryData: VolsegEntryData }) {
             </div>
         </ExpandGroup>
     </>;
+}
+
+function VolumeControls({ entryData }: { entryData: VolsegEntryData }) {
+    const vol = useBehavior(entryData.currentVolume);
+    if (!vol) return null;
+
+    const volumeValues: SimpleVolumeParamValues = {
+        volumeType: vol.state.isHidden ? 'off' : vol.params?.type.name as any,
+        opacity: vol.params?.type.params.alpha,
+    };
+
+    return <ExpandGroup header='Volume data' initiallyExpanded>
+        <WaitingParameterControls params={SimpleVolumeParams} values={volumeValues} onChangeValues={async next => { await sleep(20); await entryData.actionUpdateVolumeVisual(next); }} />
+        <ExpandGroup header='Detailed Volume Params' headerStyle={{ marginTop: 1 }}>
+            <UpdateTransformControl state={entryData.plugin.state.data} transform={vol} customHeader='none' />
+        </ExpandGroup>
+    </ExpandGroup>;
 }
 
 type ComponentParams<T extends React.Component<any, any, any> | ((props: any) => JSX.Element)> =

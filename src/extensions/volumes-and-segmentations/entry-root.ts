@@ -27,11 +27,12 @@ import { VolsegMeshSegmentationData } from './entry-meshes';
 import { VolsegModelData } from './entry-models';
 import { VolsegLatticeSegmentationData } from './entry-segmentation';
 import { VolsegState, VolsegStateData, VolsegStateParams } from './entry-state';
-import { VolsegVolumeData, SimpleVolumeParamValues } from './entry-volume';
+import { VolsegVolumeData, SimpleVolumeParamValues, VOLUME_VISUAL_TAG } from './entry-volume';
 import * as ExternalAPIs from './external-api';
 import { VolsegGlobalStateData } from './global-state';
 import { applyEllipsis, Choice, isDefined, lazyGetter, splitEntryId } from './helpers';
 import { type VolsegStateFromEntry } from './transformers';
+import { StateTransforms } from '../../mol-plugin-state/transforms';
 
 
 export const MAX_VOXELS = 10 ** 7;
@@ -90,6 +91,7 @@ export namespace VolsegEntryParamValues {
 
 export class VolsegEntry extends PluginStateObject.CreateBehavior<VolsegEntryData>({ name: 'Vol & Seg Entry' }) { }
 
+type VolRepr3DT = typeof StateTransforms.Representation.VolumeRepresentation3D
 
 export class VolsegEntryData extends PluginBehavior.WithSubscribers<VolsegEntryParamValues> {
     plugin: PluginContext;
@@ -111,6 +113,7 @@ export class VolsegEntryData extends PluginBehavior.WithSubscribers<VolsegEntryP
 
     private getStateNode = lazyGetter(() => this.plugin.state.data.selectQ(q => q.byRef(this.ref).subtree().ofType(VolsegState))[0] as StateObjectCell<VolsegState, StateTransform<typeof VolsegStateFromEntry>>, 'Missing VolsegState node. Must first create VolsegState for this VolsegEntry.');
     public currentState = new BehaviorSubject(ParamDefinition.getDefaultValues(VolsegStateParams));
+    public currentVolume = new BehaviorSubject<StateTransform<VolRepr3DT> | undefined>(undefined);
 
 
     private constructor(plugin: PluginContext, params: VolsegEntryParamValues) {
@@ -155,6 +158,14 @@ export class VolsegEntryData extends PluginBehavior.WithSubscribers<VolsegEntryP
                 if (newState && !shallowEqualObjects(newState, this.currentState.value)) { // avoid repeated update
                     this.currentState.next(newState);
                 }
+            }
+        });
+
+        this.subscribeObservable(this.plugin.state.data.events.cell.stateUpdated, e => {
+            // TODO: subscribe cell.removed event as well to set the current volume to undefined
+            if (e.cell.transform.tags?.includes(VOLUME_VISUAL_TAG)) {
+                // TODO: make sure this belongs to the "current entry subtree"
+                this.currentVolume.next(e.cell.transform);
             }
         });
 

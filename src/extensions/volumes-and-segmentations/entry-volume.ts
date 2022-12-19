@@ -24,7 +24,7 @@ import { VolsegGlobalStateData } from './global-state';
 
 
 const GROUP_TAG = 'volume-group';
-const VOLUME_VISUAL_TAG = 'volume-visual';
+export const VOLUME_VISUAL_TAG = 'volume-visual';
 
 const DIRECT_VOLUME_RELATIVE_PEAK_HALFWIDTH = 0.5;
 
