@@ -164,14 +164,14 @@ const meshParamDef: Mesh.Params = {
     // These are basically original MS.Mesh.Params:
     // BaseGeometry.Params
     alpha: PD.Numeric(1, { min: 0, max: 1, step: 0.01 }, { label: 'Opacity', isEssential: true, description: 'How opaque/transparent the representation is rendered.' }),
-    quality: PD.Select<VisualQuality>('auto', VisualQualityOptions, { isEssential: true, description: 'Visual/rendering quality of the representation.' }),
+    quality: PD.Select<VisualQuality>('custom', VisualQualityOptions, { isEssential: true, description: 'Visual/rendering quality of the representation.' }), // use 'custom' when wanting to apply doubleSided
     material: Material.getParam(),
     clip: Mesh.Params.clip, // PD.Group(MS.Clip.Params),
     instanceGranularity: PD.Boolean(false, { description: 'Use instance granularity for marker, transparency, clipping, overpaint, substance data to save memory.' }),
     // Mesh.Params
-    doubleSided: PD.Boolean(false, BaseGeometry.CustomQualityParamInfo),
+    doubleSided: PD.Boolean(true, BaseGeometry.CustomQualityParamInfo), // default: false (set true, to show at least something in weird cases)
     flipSided: PD.Boolean(false, BaseGeometry.ShadingCategory),
-    flatShaded: PD.Boolean(true, BaseGeometry.ShadingCategory), // CHANGED, default: false (set true to see the real mesh vertices and triangles)
+    flatShaded: PD.Boolean(false, BaseGeometry.ShadingCategory), // default: false (set true to see the real mesh vertices and triangles)
     ignoreLight: PD.Boolean(false, BaseGeometry.ShadingCategory),
     xrayShaded: PD.Boolean(false, BaseGeometry.ShadingCategory), // this is like better opacity (angle-dependent), nice
     transparentBackfaces: PD.Select('off', PD.arrayToOptions(['off', 'on', 'opaque']), BaseGeometry.ShadingCategory),
