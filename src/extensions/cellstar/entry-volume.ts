@@ -15,9 +15,10 @@ import { setSubtreeVisibility } from '../../mol-plugin/behavior/static/state';
 import { PluginCommands } from '../../mol-plugin/commands';
 import { StateObjectSelector } from '../../mol-state';
 import { Color } from '../../mol-util/color';
+import { ParamDefinition as PD } from '../../mol-util/param-definition';
 
 import { BOX, CellstarEntryData, MAX_VOXELS } from './entry-root';
-import { CellstarStateParams } from './entry-state';
+import { CellstarStateParams, VolumeTypeChoice } from './entry-state';
 import * as ExternalAPIs from './external-api';
 import { CellstarGlobalStateData } from './global-state';
 
@@ -25,12 +26,19 @@ import { CellstarGlobalStateData } from './global-state';
 const GROUP_TAG = 'volume-group';
 const VOLUME_VISUAL_TAG = 'volume-visual';
 
-const DIRECT_VOLUME_RELATIVE_PEAK_HALFWIDTH = 1;
+const DIRECT_VOLUME_RELATIVE_PEAK_HALFWIDTH = 0.5;
 
 
 export type VolumeVisualParams = ReturnType<typeof createVolumeRepresentationParams>;
 
 interface VolumeStats { min: number, max: number, mean: number, sigma: number };
+
+
+export const SimpleVolumeParams = {
+    volumeType: VolumeTypeChoice.PDSelect(),
+    opacity: PD.Numeric(0.2, { min: 0, max: 1, step: 0.05 }, { hideIf: p => p.volumeType === 'off' }),
+};
+export type SimpleVolumeParamValues = PD.Values<typeof SimpleVolumeParams>;
 
 
 export class CellstarVolumeData {
@@ -91,6 +99,33 @@ export class CellstarVolumeData {
             if (!volumeStats) throw new Error(`Cannot get volume stats from volume visual ${visual.transform.ref}`);
             this.changeIsovalueInVolumeVisualParams(newParams, undefined, volumeStats);
             const update = this.entryData.newUpdate().to(visual.transform.ref).update(newParams);
+            await PluginCommands.State.Update(this.entryData.plugin, { state: this.entryData.plugin.state.data, tree: update, options: { doNotUpdateCurrent: true } });
+        }
+    }
+
+    async updateVolumeVisual(newParams: SimpleVolumeParamValues) {
+        const { volumeType, opacity } = newParams;
+        const visual = this.entryData.findNodesByTags(VOLUME_VISUAL_TAG)[0];
+        if (!visual) return;
+        const oldVisualParams: VolumeVisualParams = visual.transform.params;
+        this.visualTypeParamCache[oldVisualParams.type.name] = oldVisualParams.type.params;
+
+        if (volumeType === 'off') {
+            setSubtreeVisibility(this.entryData.plugin.state.data, visual.transform.ref, true); // true means hide, ¯\_(ツ)_/¯
+        } else {
+            setSubtreeVisibility(this.entryData.plugin.state.data, visual.transform.ref, false); // true means hide, ¯\_(ツ)_/¯
+            const newVisualParams: VolumeVisualParams = {
+                ...oldVisualParams,
+                type: {
+                    name: volumeType,
+                    params: this.visualTypeParamCache[volumeType] ?? oldVisualParams.type.params,
+                }
+            };
+            newVisualParams.type.params.alpha = opacity;
+            const volumeStats = visual.obj?.data.sourceData.grid.stats;
+            if (!volumeStats) throw new Error(`Cannot get volume stats from volume visual ${visual.transform.ref}`);
+            this.changeIsovalueInVolumeVisualParams(newVisualParams, undefined, volumeStats);
+            const update = this.entryData.newUpdate().to(visual.transform.ref).update(newVisualParams);
             await PluginCommands.State.Update(this.entryData.plugin, { state: this.entryData.plugin.state.data, tree: update, options: { doNotUpdateCurrent: true } });
         }
     }

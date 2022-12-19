@@ -18,7 +18,7 @@ import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { sleep } from '../../mol-util/sleep';
 
 import { CellstarEntry, CellstarEntryData } from './entry-root';
-import { VolumeTypeChoice } from './entry-state';
+import { SimpleVolumeParams, SimpleVolumeParamValues } from './entry-volume';
 import { CellstarGlobalState, CellstarGlobalStateData, CellstarGlobalStateParams } from './global-state';
 import { isDefined } from './helpers';
 
@@ -117,16 +117,16 @@ function CellstarEntryControls({ entryData }: { entryData: CellstarEntryData }) 
     const visibleModels = state.visibleModels.map(model => model.pdbId);
     const allPdbs = entryData.pdbs;
 
-    const volumeParams = {
-        volumeType: VolumeTypeChoice.PDSelect(),
-    };
-    const volumeValues: PD.Values<typeof volumeParams> = {
+    const volumeValues: SimpleVolumeParamValues = {
         volumeType: state.volumeType,
+        opacity: state.volumeOpacity,
     };
 
     return <>
         {/* Title */}
-        <SectionHeading text={entryData.metadata.raw.annotation?.name ?? 'Unnamed Annotation'} />
+        <div style={{ fontSize: '1.1em', fontWeight: 'bold', padding: 8, paddingTop: 6, paddingBottom: 4, overflow: 'hidden' }}>
+            {entryData.metadata.raw.annotation?.name ?? 'Unnamed Annotation'}
+        </div>
 
         {/* Fitted models */}
         {allPdbs.length > 0 && <>
@@ -141,12 +141,12 @@ function CellstarEntryControls({ entryData }: { entryData: CellstarEntryData }) 
 
         {/* Volume */}
         <SectionHeading text='Volume data:' />
-        <WaitingParameterControls params={volumeParams} values={volumeValues} onChangeValues={async next => { await sleep(20); await entryData.actionSetVolumeVisual(next.volumeType); }} />
+        <WaitingParameterControls params={SimpleVolumeParams} values={volumeValues} onChangeValues={async next => { await sleep(20); await entryData.actionUpdateVolumeVisual(next); }} />
 
         {/* Segment opacity slider */}
         <SectionHeading text='Segmentation data:' />
         <ControlRow label='Opacity' control={
-            <WaitingSlider min={0} max={1} value={state.opacity} step={0.05} onChange={async v => await entryData.actionSetOpacity(v)} />
+            <WaitingSlider min={0} max={1} value={state.segmentOpacity} step={0.05} onChange={async v => await entryData.actionSetOpacity(v)} />
         } />
 
         {/* Segment toggles */}
@@ -187,8 +187,8 @@ function CellstarEntryControls({ entryData }: { entryData: CellstarEntryData }) 
 
 
 function SectionHeading({ text }: { text: string }) {
-    return <div style={{ padding: 8, paddingTop: 6, paddingBottom: 4, overflow: 'hidden' }}>
-        <b>{text}</b>
+    return <div style={{ fontWeight: 'bold', padding: 8, paddingTop: 6, paddingBottom: 4, overflow: 'hidden' }}>
+        {text}
     </div>;
 }
 

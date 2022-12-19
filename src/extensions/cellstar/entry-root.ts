@@ -27,7 +27,7 @@ import { CellstarMeshSegmentationData } from './entry-meshes';
 import { CellstarModelData } from './entry-models';
 import { CellstarLatticeSegmentationData } from './entry-segmentation';
 import { CellstarState, CellstarStateData, CellstarStateParams } from './entry-state';
-import { CellstarVolumeData } from './entry-volume';
+import { CellstarVolumeData, SimpleVolumeParamValues } from './entry-volume';
 import * as ExternalAPIs from './external-api';
 import { CellstarGlobalStateData } from './global-state';
 import { applyEllipsis, Choice, isDefined, lazyGetter, splitEntryId } from './helpers';
@@ -232,11 +232,11 @@ export class CellstarEntryData extends PluginBehavior.WithSubscribers<CellstarEn
     }
 
     async actionSetOpacity(opacity: number) {
-        if (opacity === this.getStateNode().obj?.data.opacity) return;
+        if (opacity === this.getStateNode().obj?.data.segmentOpacity) return;
         this.latticeSegmentationData.updateOpacity(opacity);
         this.meshSegmentationData.updateOpacity(opacity);
 
-        await this.updateStateNode({ opacity: opacity });
+        await this.updateStateNode({ segmentOpacity: opacity });
     }
 
     async actionShowFittedModel(pdbIds: string[]) {
@@ -247,6 +247,14 @@ export class CellstarEntryData extends PluginBehavior.WithSubscribers<CellstarEn
     async actionSetVolumeVisual(type: 'isosurface' | 'direct-volume' | 'off') {
         await this.volumeData.setVolumeVisual(type);
         await this.updateStateNode({ volumeType: type });
+    }
+
+    async actionUpdateVolumeVisual(params: SimpleVolumeParamValues) {
+        await this.volumeData.updateVolumeVisual(params);
+        await this.updateStateNode({
+            volumeType: params.volumeType,
+            volumeOpacity: params.opacity,
+        });
     }
 
 
