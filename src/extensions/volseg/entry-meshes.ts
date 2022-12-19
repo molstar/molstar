@@ -15,17 +15,17 @@ import { ColorNames } from '../../mol-util/color/names';
 import { createMeshFromUrl } from '../meshes/examples';
 import { BACKGROUND_SEGMENT_VOLUME_THRESHOLD } from '../meshes/mesh-streaming/behavior';
 
-import { Segment } from './cellstar-api/data';
-import { CellstarEntryData } from './entry-root';
+import { Segment } from './volseg-api/data';
+import { VolsegEntryData } from './entry-root';
 
 
 const DEFAULT_MESH_DETAIL: number | null = 5; // null means worst
 
 
-export class CellstarMeshSegmentationData {
-    private entryData: CellstarEntryData;
+export class VolsegMeshSegmentationData {
+    private entryData: VolsegEntryData;
 
-    constructor(rootData: CellstarEntryData) {
+    constructor(rootData: VolsegEntryData) {
         this.entryData = rootData;
     }
 

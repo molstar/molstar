@@ -13,10 +13,10 @@ import { VolumeFromSegmentationCif } from '../../mol-plugin-state/transforms/vol
 import { PluginCommands } from '../../mol-plugin/commands';
 import { Color } from '../../mol-util/color';
 
-import { Segment } from './cellstar-api/data';
-import { BOX, CellstarEntryData, MAX_VOXELS } from './entry-root';
+import { Segment } from './volseg-api/data';
+import { BOX, VolsegEntryData, MAX_VOXELS } from './entry-root';
 import { VolumeVisualParams } from './entry-volume';
-import { CellstarGlobalStateData } from './global-state';
+import { VolsegGlobalStateData } from './global-state';
 
 
 const GROUP_TAG = 'lattice-segmentation-group';
@@ -25,10 +25,10 @@ const SEGMENT_VISUAL_TAG = 'lattice-segment-visual';
 const DEFAULT_SEGMENT_COLOR = Color.fromNormalizedRgb(0.8, 0.8, 0.8);
 
 
-export class CellstarLatticeSegmentationData {
-    private entryData: CellstarEntryData;
+export class VolsegLatticeSegmentationData {
+    private entryData: VolsegEntryData;
 
-    constructor(rootData: CellstarEntryData) {
+    constructor(rootData: VolsegEntryData) {
         this.entryData = rootData;
     }
 
@@ -54,7 +54,7 @@ export class CellstarLatticeSegmentationData {
             await this.entryData.newUpdate().to(volumeNode)
                 .apply(StateTransforms.Representation.VolumeRepresentation3D, createVolumeRepresentationParams(this.entryData.plugin, volumeData, {
                     type: 'segment',
-                    typeParams: { tryUseGpu: CellstarGlobalStateData.getGlobalState(this.entryData.plugin)?.tryUseGpu },
+                    typeParams: { tryUseGpu: VolsegGlobalStateData.getGlobalState(this.entryData.plugin)?.tryUseGpu },
                     color: 'volume-segment',
                     colorParams: { palette: this.createPalette(segmentIds) },
                 }), { tags: [SEGMENT_VISUAL_TAG] }).commit();

@@ -141,7 +141,7 @@ export async function meshFromCif(data: CifFile, invertSides: boolean = true, ou
     const mesh = Mesh.create(vertices, indices, normals, groups, nVertices, nTriangles);
 
     if (invertSides) {
-        modify(mesh, { invertSides: true }); // Vertex orientation convention is opposite in Cellstar API and in MolStar
+        modify(mesh, { invertSides: true }); // Vertex orientation convention is opposite in Volseg API and in MolStar
     }
 
     if (outSpace === 'cartesian') {

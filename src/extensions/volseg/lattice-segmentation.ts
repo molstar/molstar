@@ -10,7 +10,7 @@ import { Tensor, Vec3 } from '../../mol-math/linear-algebra';
 import { volumeFromDensityServerData } from '../../mol-model-formats/volume/density-server';
 import { CustomProperties } from '../../mol-model/custom-property';
 import { Grid, Volume } from '../../mol-model/volume';
-import { Segment } from './cellstar-api/data';
+import { Segment } from './volseg-api/data';
 import { lazyGetter } from './helpers';
 
 

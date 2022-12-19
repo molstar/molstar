@@ -5,7 +5,7 @@
  */
 
 import { BehaviorSubject, distinctUntilChanged, Subject, throttleTime } from 'rxjs';
-import { CellstarVolumeServerConfig } from '.';
+import { VolsegVolumeServerConfig } from '.';
 import { Loci } from '../../mol-model/loci';
 
 import { ShapeGroup } from '../../mol-model/shape';
@@ -20,18 +20,18 @@ import { shallowEqualObjects } from '../../mol-util';
 import { ParamDefinition } from '../../mol-util/param-definition';
 import { MeshlistData } from '../meshes/mesh-extension';
 
-import { DEFAULT_VOLUME_SERVER_V2, VolumeApiV2 } from './cellstar-api/api';
-import { Segment } from './cellstar-api/data';
-import { MetadataWrapper } from './cellstar-api/utils';
-import { CellstarMeshSegmentationData } from './entry-meshes';
-import { CellstarModelData } from './entry-models';
-import { CellstarLatticeSegmentationData } from './entry-segmentation';
-import { CellstarState, CellstarStateData, CellstarStateParams } from './entry-state';
-import { CellstarVolumeData, SimpleVolumeParamValues } from './entry-volume';
+import { DEFAULT_VOLUME_SERVER_V2, VolumeApiV2 } from './volseg-api/api';
+import { Segment } from './volseg-api/data';
+import { MetadataWrapper } from './volseg-api/utils';
+import { VolsegMeshSegmentationData } from './entry-meshes';
+import { VolsegModelData } from './entry-models';
+import { VolsegLatticeSegmentationData } from './entry-segmentation';
+import { VolsegState, VolsegStateData, VolsegStateParams } from './entry-state';
+import { VolsegVolumeData, SimpleVolumeParamValues } from './entry-volume';
 import * as ExternalAPIs from './external-api';
-import { CellstarGlobalStateData } from './global-state';
+import { VolsegGlobalStateData } from './global-state';
 import { applyEllipsis, Choice, isDefined, lazyGetter, splitEntryId } from './helpers';
-import { type CellstarStateFromEntry } from './transformers';
+import { type VolsegStateFromEntry } from './transformers';
 
 
 export const MAX_VOXELS = 10 ** 7;
@@ -46,8 +46,8 @@ const SourceChoice = new Choice({ emdb: 'EMDB', empiar: 'EMPIAR', idr: 'IDR' }, 
 export type Source = Choice.Values<typeof SourceChoice>;
 
 
-export function createLoadCellstarParams(plugin?: PluginContext, entrylists: { [source: string]: string[] } = {}) {
-    const defaultVolumeServer = plugin?.config.get(CellstarVolumeServerConfig.DefaultServer) ?? DEFAULT_VOLUME_SERVER_V2;
+export function createLoadVolsegParams(plugin?: PluginContext, entrylists: { [source: string]: string[] } = {}) {
+    const defaultVolumeServer = plugin?.config.get(VolsegVolumeServerConfig.DefaultServer) ?? DEFAULT_VOLUME_SERVER_V2;
     return {
         serverUrl: ParamDefinition.Text(defaultVolumeServer),
         source: ParamDefinition.Mapped(SourceChoice.values[0], SourceChoice.options, src => entryParam(entrylists[src])),
@@ -61,20 +61,20 @@ function entryParam(entries: string[] = []) {
         customEntryId: ParamDefinition.Text('', { hideIf: p => p.entryId !== '__custom__', description: 'Entry identifier, including the source prefix, e.g. "emd-1832"' }),
     }, { isFlat: true });
 }
-type LoadCellstarParamValues = ParamDefinition.Values<ReturnType<typeof createLoadCellstarParams>>;
+type LoadVolsegParamValues = ParamDefinition.Values<ReturnType<typeof createLoadVolsegParams>>;
 
-export function createCellstarEntryParams(plugin?: PluginContext) {
-    const defaultVolumeServer = plugin?.config.get(CellstarVolumeServerConfig.DefaultServer) ?? DEFAULT_VOLUME_SERVER_V2;
+export function createVolsegEntryParams(plugin?: PluginContext) {
+    const defaultVolumeServer = plugin?.config.get(VolsegVolumeServerConfig.DefaultServer) ?? DEFAULT_VOLUME_SERVER_V2;
     return {
         serverUrl: ParamDefinition.Text(defaultVolumeServer),
         source: SourceChoice.PDSelect(),
         entryId: ParamDefinition.Text('emd-1832', { description: 'Entry identifier, including the source prefix, e.g. "emd-1832"' }),
     };
 }
-type CellstarEntryParamValues = ParamDefinition.Values<ReturnType<typeof createCellstarEntryParams>>;
+type VolsegEntryParamValues = ParamDefinition.Values<ReturnType<typeof createVolsegEntryParams>>;
 
-export namespace CellstarEntryParamValues {
-    export function fromLoadCellstarParamValues(params: LoadCellstarParamValues): CellstarEntryParamValues {
+export namespace VolsegEntryParamValues {
+    export function fromLoadVolsegParamValues(params: LoadVolsegParamValues): VolsegEntryParamValues {
         let entryId = (params.source.params as any).entryId;
         if (entryId === '__custom__') {
             entryId = (params.source.params as any).customEntryId;
@@ -88,10 +88,10 @@ export namespace CellstarEntryParamValues {
 }
 
 
-export class CellstarEntry extends PluginStateObject.CreateBehavior<CellstarEntryData>({ name: 'Vol & Seg Entry' }) { }
+export class VolsegEntry extends PluginStateObject.CreateBehavior<VolsegEntryData>({ name: 'Vol & Seg Entry' }) { }
 
 
-export class CellstarEntryData extends PluginBehavior.WithSubscribers<CellstarEntryParamValues> {
+export class VolsegEntryData extends PluginBehavior.WithSubscribers<VolsegEntryParamValues> {
     plugin: PluginContext;
     ref: string = '';
     api: VolumeApiV2;
@@ -103,17 +103,17 @@ export class CellstarEntryData extends PluginBehavior.WithSubscribers<CellstarEn
     metadata: MetadataWrapper;
     pdbs: string[];
 
-    public readonly volumeData = new CellstarVolumeData(this);
-    private readonly latticeSegmentationData = new CellstarLatticeSegmentationData(this);
-    private readonly meshSegmentationData = new CellstarMeshSegmentationData(this);
-    private readonly modelData = new CellstarModelData(this);
+    public readonly volumeData = new VolsegVolumeData(this);
+    private readonly latticeSegmentationData = new VolsegLatticeSegmentationData(this);
+    private readonly meshSegmentationData = new VolsegMeshSegmentationData(this);
+    private readonly modelData = new VolsegModelData(this);
     private highlightRequest = new Subject<Segment | undefined>();
 
-    private getStateNode = lazyGetter(() => this.plugin.state.data.selectQ(q => q.byRef(this.ref).subtree().ofType(CellstarState))[0] as StateObjectCell<CellstarState, StateTransform<typeof CellstarStateFromEntry>>, 'Missing CellstarState node. Must first create CellstarState for this CellstarEntry.');
-    public currentState = new BehaviorSubject(ParamDefinition.getDefaultValues(CellstarStateParams));
+    private getStateNode = lazyGetter(() => this.plugin.state.data.selectQ(q => q.byRef(this.ref).subtree().ofType(VolsegState))[0] as StateObjectCell<VolsegState, StateTransform<typeof VolsegStateFromEntry>>, 'Missing VolsegState node. Must first create VolsegState for this VolsegEntry.');
+    public currentState = new BehaviorSubject(ParamDefinition.getDefaultValues(VolsegStateParams));
 
 
-    private constructor(plugin: PluginContext, params: CellstarEntryParamValues) {
+    private constructor(plugin: PluginContext, params: VolsegEntryParamValues) {
         super(plugin, params);
         this.plugin = plugin;
         this.api = new VolumeApiV2(params.serverUrl);
@@ -129,8 +129,8 @@ export class CellstarEntryData extends PluginBehavior.WithSubscribers<CellstarEn
         // TODO use Asset?
     }
 
-    static async create(plugin: PluginContext, params: CellstarEntryParamValues) {
-        const result = new CellstarEntryData(plugin, params);
+    static async create(plugin: PluginContext, params: VolsegEntryParamValues) {
+        const result = new VolsegEntryData(plugin, params);
         await result.initialize();
         return result;
     }
@@ -177,7 +177,7 @@ export class CellstarEntryData extends PluginBehavior.WithSubscribers<CellstarEn
         this.subscribeObservable(
             this.currentState.pipe(distinctUntilChanged((a, b) => a.selectedSegment === b.selectedSegment)),
             async state => {
-                if (CellstarGlobalStateData.getGlobalState(this.plugin)?.selectionMode) await this.selectSegment(state.selectedSegment);
+                if (VolsegGlobalStateData.getGlobalState(this.plugin)?.selectionMode) await this.selectSegment(state.selectedSegment);
             }
         );
     }
@@ -279,7 +279,7 @@ export class CellstarEntryData extends PluginBehavior.WithSubscribers<CellstarEn
         await this.highlightSegment();
     }
 
-    private async updateStateNode(params: Partial<CellstarStateData>) {
+    private async updateStateNode(params: Partial<VolsegStateData>) {
         const oldParams = this.getStateNode().transform.params;
         const newParams = { ...oldParams, ...params };
         const state = this.plugin.state.data;

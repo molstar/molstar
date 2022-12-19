@@ -17,10 +17,10 @@ import { StateObjectSelector } from '../../mol-state';
 import { Color } from '../../mol-util/color';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 
-import { BOX, CellstarEntryData, MAX_VOXELS } from './entry-root';
-import { CellstarStateParams, VolumeTypeChoice } from './entry-state';
+import { BOX, VolsegEntryData, MAX_VOXELS } from './entry-root';
+import { VolsegStateParams, VolumeTypeChoice } from './entry-state';
 import * as ExternalAPIs from './external-api';
-import { CellstarGlobalStateData } from './global-state';
+import { VolsegGlobalStateData } from './global-state';
 
 
 const GROUP_TAG = 'volume-group';
@@ -41,11 +41,11 @@ export const SimpleVolumeParams = {
 export type SimpleVolumeParamValues = PD.Values<typeof SimpleVolumeParams>;
 
 
-export class CellstarVolumeData {
-    private entryData: CellstarEntryData;
+export class VolsegVolumeData {
+    private entryData: VolsegEntryData;
     private visualTypeParamCache: { [type: string]: any } = {};
 
-    constructor(rootData: CellstarEntryData) {
+    constructor(rootData: VolsegEntryData) {
         this.entryData = rootData;
     }
 
@@ -64,7 +64,7 @@ export class CellstarVolumeData {
             const volumeNode: StateObjectSelector<PluginStateObject.Volume.Data> = parsed.volumes?.[0] ?? parsed.volume;
             const volumeData = volumeNode.cell!.obj!.data;
 
-            const volumeType = CellstarStateParams.volumeType.defaultValue;
+            const volumeType = VolsegStateParams.volumeType.defaultValue;
             const isovalue = await isoLevelPromise;
             const adjustedIsovalue = Volume.adjustedIsoValue(volumeData, isovalue.value, isovalue.kind);
             const visualParams = this.createVolumeVisualParams(volumeData, volumeType);
@@ -153,7 +153,7 @@ export class CellstarVolumeData {
         if (type === 'off') type = 'isosurface';
         return createVolumeRepresentationParams(this.entryData.plugin, volume, {
             type: type,
-            typeParams: { alpha: 0.2, tryUseGpu: CellstarGlobalStateData.getGlobalState(this.entryData.plugin)?.tryUseGpu },
+            typeParams: { alpha: 0.2, tryUseGpu: VolsegGlobalStateData.getGlobalState(this.entryData.plugin)?.tryUseGpu },
             color: 'uniform',
             colorParams: { value: Color(0x121212) },
         });
@@ -164,7 +164,7 @@ export class CellstarVolumeData {
         switch (params.type.name) {
             case 'isosurface':
                 params.type.params.isoValue = isovalue;
-                params.type.params.tryUseGpu = CellstarGlobalStateData.getGlobalState(this.entryData.plugin)?.tryUseGpu;
+                params.type.params.tryUseGpu = VolsegGlobalStateData.getGlobalState(this.entryData.plugin)?.tryUseGpu;
                 break;
             case 'direct-volume':
                 const absIso = Volume.IsoValue.toAbsolute(isovalue, stats).absoluteValue;

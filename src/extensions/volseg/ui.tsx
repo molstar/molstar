@@ -17,35 +17,35 @@ import { shallowEqualArrays } from '../../mol-util';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { sleep } from '../../mol-util/sleep';
 
-import { CellstarEntry, CellstarEntryData } from './entry-root';
+import { VolsegEntry, VolsegEntryData } from './entry-root';
 import { SimpleVolumeParams, SimpleVolumeParamValues } from './entry-volume';
-import { CellstarGlobalState, CellstarGlobalStateData, CellstarGlobalStateParams } from './global-state';
+import { VolsegGlobalState, VolsegGlobalStateData, VolsegGlobalStateParams } from './global-state';
 import { isDefined } from './helpers';
 
 
-interface CellstarUIData {
-    globalState?: CellstarGlobalStateData,
-    availableNodes: CellstarEntry[],
-    activeNode?: CellstarEntry,
+interface VolsegUIData {
+    globalState?: VolsegGlobalStateData,
+    availableNodes: VolsegEntry[],
+    activeNode?: VolsegEntry,
 }
-namespace CellstarUIData {
-    export function changeAvailableNodes(data: CellstarUIData, newNodes: CellstarEntry[]): CellstarUIData {
+namespace VolsegUIData {
+    export function changeAvailableNodes(data: VolsegUIData, newNodes: VolsegEntry[]): VolsegUIData {
         const newActiveNode = newNodes.length > data.availableNodes.length ?
             newNodes[newNodes.length - 1]
             : newNodes.find(node => node.data.ref === data.activeNode?.data.ref) ?? newNodes[0];
         return { ...data, availableNodes: newNodes, activeNode: newActiveNode };
     }
-    export function changeActiveNode(data: CellstarUIData, newActiveRef: string): CellstarUIData {
+    export function changeActiveNode(data: VolsegUIData, newActiveRef: string): VolsegUIData {
         const newActiveNode = data.availableNodes.find(node => node.data.ref === newActiveRef) ?? data.availableNodes[0];
         return { ...data, availableNodes: data.availableNodes, activeNode: newActiveNode };
     }
-    export function equals(data1: CellstarUIData, data2: CellstarUIData) {
+    export function equals(data1: VolsegUIData, data2: VolsegUIData) {
         return shallowEqualArrays(data1.availableNodes, data2.availableNodes) && data1.activeNode === data2.activeNode && data1.globalState === data2.globalState;
     }
 }
 
-export class CellstarUI extends CollapsableControls<{}, { data: CellstarUIData }> {
-    protected defaultState(): CollapsableState & { data: CellstarUIData } {
+export class VolsegUI extends CollapsableControls<{}, { data: VolsegUIData }> {
+    protected defaultState(): CollapsableState & { data: VolsegUIData } {
         return {
             header: 'Volume & Segmentation',
             isCollapsed: true,
@@ -58,19 +58,19 @@ export class CellstarUI extends CollapsableControls<{}, { data: CellstarUIData }
         };
     }
     protected renderControls(): JSX.Element | null {
-        return <CellstarControls plugin={this.plugin} data={this.state.data} setData={d => this.setState({ data: d })} />;
+        return <VolsegControls plugin={this.plugin} data={this.state.data} setData={d => this.setState({ data: d })} />;
     }
     componentDidMount(): void {
         this.setState({ isHidden: true, isCollapsed: false });
         this.subscribe(this.plugin.state.data.events.changed, e => {
-            const nodes = e.state.selectQ(q => q.ofType(CellstarEntry)).map(cell => cell?.obj).filter(isDefined);
+            const nodes = e.state.selectQ(q => q.ofType(VolsegEntry)).map(cell => cell?.obj).filter(isDefined);
             const isHidden = nodes.length === 0;
-            const newData = CellstarUIData.changeAvailableNodes(this.state.data, nodes);
+            const newData = VolsegUIData.changeAvailableNodes(this.state.data, nodes);
             if (!this.state.data.globalState?.isRegistered()) {
-                const globalState = e.state.selectQ(q => q.ofType(CellstarGlobalState))[0]?.obj?.data;
+                const globalState = e.state.selectQ(q => q.ofType(VolsegGlobalState))[0]?.obj?.data;
                 if (globalState) newData.globalState = globalState;
             }
-            if (!CellstarUIData.equals(this.state.data, newData) || this.state.isHidden !== isHidden) {
+            if (!VolsegUIData.equals(this.state.data, newData) || this.state.isHidden !== isHidden) {
                 this.setState({ data: newData, isHidden: isHidden });
             }
         });
@@ -78,7 +78,7 @@ export class CellstarUI extends CollapsableControls<{}, { data: CellstarUIData }
 }
 
 
-function CellstarControls({ plugin, data, setData }: { plugin: PluginContext, data: CellstarUIData, setData: (d: CellstarUIData) => void }) {
+function VolsegControls({ plugin, data, setData }: { plugin: PluginContext, data: VolsegUIData, setData: (d: VolsegUIData) => void }) {
     const entryData = data.activeNode?.data;
     if (!entryData) {
         return <p>No data!</p>;
@@ -88,7 +88,7 @@ function CellstarControls({ plugin, data, setData }: { plugin: PluginContext, da
     }
 
     const params = {
-        /** Reference to the active CellstarEntry node */
+        /** Reference to the active VolsegEntry node */
         entry: PD.Select(data.activeNode!.data.ref, data.availableNodes.map(entry => [entry.data.ref, entry.data.entryId]))
     };
     const values: PD.Values<typeof params> = {
@@ -98,17 +98,17 @@ function CellstarControls({ plugin, data, setData }: { plugin: PluginContext, da
     const globalState = useBehavior(data.globalState.currentState);
 
     return <>
-        <ParameterControls params={params} values={values} onChangeValues={next => setData(CellstarUIData.changeActiveNode(data, next.entry))} />
+        <ParameterControls params={params} values={values} onChangeValues={next => setData(VolsegUIData.changeActiveNode(data, next.entry))} />
 
         <ExpandGroup header='Global options'>
-            <WaitingParameterControls params={CellstarGlobalStateParams} values={globalState} onChangeValues={async next => await data.globalState?.updateState(plugin, next)} />
+            <WaitingParameterControls params={VolsegGlobalStateParams} values={globalState} onChangeValues={async next => await data.globalState?.updateState(plugin, next)} />
         </ExpandGroup>
 
-        <CellstarEntryControls entryData={entryData} key={entryData.ref} />
+        <VolsegEntryControls entryData={entryData} key={entryData.ref} />
     </>;
 }
 
-function CellstarEntryControls({ entryData }: { entryData: CellstarEntryData }) {
+function VolsegEntryControls({ entryData }: { entryData: VolsegEntryData }) {
     const state = useBehavior(entryData.currentState);
 
     const allSegments = entryData.metadata.allSegments;

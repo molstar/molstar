@@ -13,7 +13,7 @@ import { Task } from '../../../mol-task';
 import { shallowEqualObjects } from '../../../mol-util';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 
-import { CellstarTransform, MeshlistData } from '../mesh-extension';
+import { VolsegTransform, MeshlistData } from '../mesh-extension';
 import { MeshStreaming, NO_SEGMENT } from './behavior';
 import { MeshServerInfo } from './server-info';
 
@@ -24,7 +24,7 @@ export const FOREROUND_OPACITY = 1;
 
 // // // // // // // // // // // // // // // // // // // // // // // //
 
-export const MeshServerTransformer = CellstarTransform({
+export const MeshServerTransformer = VolsegTransform({
     name: 'mesh-server-info',
     from: PluginStateObject.Root,
     to: MeshServerInfo,
@@ -39,7 +39,7 @@ export const MeshServerTransformer = CellstarTransform({
 
 // // // // // // // // // // // // // // // // // // // // // // // //
 
-export const MeshStreamingTransformer = CellstarTransform({
+export const MeshStreamingTransformer = VolsegTransform({
     name: 'mesh-streaming-from-server-info',
     display: { name: 'Mesh Streaming' },
     from: MeshServerInfo,
@@ -74,7 +74,7 @@ interface MeshVisualGroupData {
 }
 
 // export type MeshVisualGroupTransformer = typeof MeshVisualGroupTransformer;
-export const MeshVisualGroupTransformer = CellstarTransform({
+export const MeshVisualGroupTransformer = VolsegTransform({
     name: 'mesh-visual-group-from-streaming',
     display: { name: 'Mesh Visuals for a Segment' },
     from: MeshStreaming,
@@ -121,7 +121,7 @@ function trySetAutoOpacity(params: StateTransformer.Params<typeof MeshVisualGrou
 
 // // // // // // // // // // // // // // // // // // // // // // // //
 
-export const MeshVisualTransformer = CellstarTransform({
+export const MeshVisualTransformer = VolsegTransform({
     name: 'mesh-visual-from-streaming',
     display: { name: 'Mesh Visual from Streaming' },
     from: MeshStreaming,

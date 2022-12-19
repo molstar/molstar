@@ -32,8 +32,8 @@ export function guessCifVariant(info: FileInfo, data: Uint8Array | string): cifV
             //      now it is run twice, here and during file parsing
             const { encoder } = decodeMsgPack(data as Uint8Array);
             if (encoder.startsWith('VolumeServer')) return 'dscif';
-            // TODO: assumes cellstar-volume-server only serves segments
-            if (encoder.startsWith('cellstar-volume-server')) return 'segcif';
+            // TODO: assumes volseg-volume-server only serves segments
+            if (encoder.startsWith('volseg-volume-server')) return 'segcif';
         } catch (e) {
             console.error(e);
         }

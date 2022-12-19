@@ -10,13 +10,13 @@ import { TrajectoryFromMmCif } from '../../mol-plugin-state/transforms/model';
 import { setSubtreeVisibility } from '../../mol-plugin/behavior/static/state';
 import { StateObjectRef, StateObjectSelector } from '../../mol-state';
 
-import { CellstarEntryData } from './entry-root';
+import { VolsegEntryData } from './entry-root';
 
 
-export class CellstarModelData {
-    private entryData: CellstarEntryData;
+export class VolsegModelData {
+    private entryData: VolsegEntryData;
 
-    constructor(rootData: CellstarEntryData) {
+    constructor(rootData: VolsegEntryData) {
         this.entryData = rootData;
     }
 

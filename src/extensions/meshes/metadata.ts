@@ -8,7 +8,7 @@
 import { Color } from '../../mol-util/color';
 
 
-// TODO unify with Metadata in Cellstar
+// TODO unify with Metadata in Volseg
 
 export interface Metadata {
     grid: {

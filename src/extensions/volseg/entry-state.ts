@@ -14,7 +14,7 @@ export const VolumeTypeChoice = new Choice({ 'isosurface': 'Isosurface', 'direct
 export type VolumeType = Choice.Values<typeof VolumeTypeChoice>
 
 
-export const CellstarStateParams = {
+export const VolsegStateParams = {
     volumeType: VolumeTypeChoice.PDSelect(),
     volumeIsovalueKind: PD.Select('relative', [['relative', 'Relative'], ['absolute', 'Absolute']]),
     volumeIsovalueValue: PD.Numeric(1),
@@ -24,10 +24,10 @@ export const CellstarStateParams = {
     visibleSegments: PD.ObjectList({ segmentId: PD.Numeric(0) }, s => s.segmentId.toString()),
     visibleModels: PD.ObjectList({ pdbId: PD.Text('') }, s => s.pdbId.toString()),
 };
-export type CellstarStateData = PD.Values<typeof CellstarStateParams>;
+export type VolsegStateData = PD.Values<typeof VolsegStateParams>;
 
 
-export class CellstarState extends PluginStateObject.Create<CellstarStateData>({ name: 'Vol & Seg Entry State', typeClass: 'Data' }) { }
+export class VolsegState extends PluginStateObject.Create<VolsegStateData>({ name: 'Vol & Seg Entry State', typeClass: 'Data' }) { }
 
 
-export const CELLSTAR_STATE_FROM_ENTRY_TRANSFORMER_NAME = 'cellstar-state-from-entry'; // defined here to avoid cyclic dependency
+export const VOLSEG_STATE_FROM_ENTRY_TRANSFORMER_NAME = 'volseg-state-from-entry'; // defined here to avoid cyclic dependency

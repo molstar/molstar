@@ -9,58 +9,58 @@ import { PluginContext } from '../../mol-plugin/context';
 import { StateTransformer } from '../../mol-state';
 import { Task } from '../../mol-task';
 
-import { CellstarEntry, CellstarEntryData, createCellstarEntryParams } from './entry-root';
-import { CellstarState, CellstarStateParams, CELLSTAR_STATE_FROM_ENTRY_TRANSFORMER_NAME } from './entry-state';
-import { CellstarGlobalState, CellstarGlobalStateData, CellstarGlobalStateParams } from './global-state';
+import { VolsegEntry, VolsegEntryData, createVolsegEntryParams } from './entry-root';
+import { VolsegState, VolsegStateParams, VOLSEG_STATE_FROM_ENTRY_TRANSFORMER_NAME } from './entry-state';
+import { VolsegGlobalState, VolsegGlobalStateData, VolsegGlobalStateParams } from './global-state';
 
 
-export const CellstarEntryFromRoot = PluginStateTransform.BuiltIn({
-    name: 'cellstar-entry-from-root',
+export const VolsegEntryFromRoot = PluginStateTransform.BuiltIn({
+    name: 'volseg-entry-from-root',
     display: { name: 'Vol & Seg Entry', description: 'Vol & Seg Entry' },
     from: PluginStateObject.Root,
-    to: CellstarEntry,
-    params: (a, plugin: PluginContext) => createCellstarEntryParams(plugin),
+    to: VolsegEntry,
+    params: (a, plugin: PluginContext) => createVolsegEntryParams(plugin),
 })({
     apply({ a, params }, plugin: PluginContext) {
         return Task.create('Load Vol & Seg Entry', async () => {
-            const data = await CellstarEntryData.create(plugin, params);
-            return new CellstarEntry(data, { label: data.entryId, description: 'Vol & Seg Entry' });
+            const data = await VolsegEntryData.create(plugin, params);
+            return new VolsegEntry(data, { label: data.entryId, description: 'Vol & Seg Entry' });
         });
     },
     update({ b, oldParams, newParams }) {
         Object.assign(newParams, oldParams);
-        console.error('Changing params of existing CellstarEntry node is not allowed');
+        console.error('Changing params of existing VolsegEntry node is not allowed');
         return StateTransformer.UpdateResult.Unchanged;
     }
 });
 
 
-export const CellstarStateFromEntry = PluginStateTransform.BuiltIn({
-    name: CELLSTAR_STATE_FROM_ENTRY_TRANSFORMER_NAME,
+export const VolsegStateFromEntry = PluginStateTransform.BuiltIn({
+    name: VOLSEG_STATE_FROM_ENTRY_TRANSFORMER_NAME,
     display: { name: 'Vol & Seg Entry State', description: 'Vol & Seg Entry State' },
-    from: CellstarEntry,
-    to: CellstarState,
-    params: CellstarStateParams,
+    from: VolsegEntry,
+    to: VolsegState,
+    params: VolsegStateParams,
 })({
     apply({ a, params }, plugin: PluginContext) {
         return Task.create('Create Vol & Seg Entry State', async () => {
-            return new CellstarState(params, { label: 'State' });
+            return new VolsegState(params, { label: 'State' });
         });
     }
 });
 
 
-export const CellstarGlobalStateFromRoot = PluginStateTransform.BuiltIn({
-    name: 'cellstar-global-state-from-root',
+export const VolsegGlobalStateFromRoot = PluginStateTransform.BuiltIn({
+    name: 'volseg-global-state-from-root',
     display: { name: 'Vol & Seg Global State', description: 'Vol & Seg Global State' },
     from: PluginStateObject.Root,
-    to: CellstarGlobalState,
-    params: CellstarGlobalStateParams,
+    to: VolsegGlobalState,
+    params: VolsegGlobalStateParams,
 })({
     apply({ a, params }, plugin: PluginContext) {
         return Task.create('Create Vol & Seg Global State', async () => {
-            const data = new CellstarGlobalStateData(plugin, params);
-            return new CellstarGlobalState(data, { label: 'Global State', description: 'Vol & Seg Global State' });
+            const data = new VolsegGlobalStateData(plugin, params);
+            return new VolsegGlobalState(data, { label: 'Global State', description: 'Vol & Seg Global State' });
         });
     },
     update({ b, oldParams, newParams }) {

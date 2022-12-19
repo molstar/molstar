@@ -10,39 +10,39 @@ import { PluginConfigItem } from '../../mol-plugin/config';
 import { PluginContext } from '../../mol-plugin/context';
 import { StateAction } from '../../mol-state';
 import { Task } from '../../mol-task';
-import { DEFAULT_VOLUME_SERVER_V2, VolumeApiV2 } from './cellstar-api/api';
+import { DEFAULT_VOLUME_SERVER_V2, VolumeApiV2 } from './volseg-api/api';
 
-import { CellstarEntryData, CellstarEntryParamValues, createLoadCellstarParams } from './entry-root';
-import { CellstarGlobalState } from './global-state';
+import { VolsegEntryData, VolsegEntryParamValues, createLoadVolsegParams } from './entry-root';
+import { VolsegGlobalState } from './global-state';
 import { createEntryId } from './helpers';
-import { CellstarEntryFromRoot, CellstarGlobalStateFromRoot, CellstarStateFromEntry } from './transformers';
-import { CellstarUI } from './ui';
+import { VolsegEntryFromRoot, VolsegGlobalStateFromRoot, VolsegStateFromEntry } from './transformers';
+import { VolsegUI } from './ui';
 
 
 const DEBUGGING = window.location.hostname === 'localhost';
 
-export const CellstarVolumeServerConfig = {
-    // DefaultServer: new PluginConfigItem('cellstar-volume-server', DEFAULT_VOLUME_SERVER_V2),
-    DefaultServer: new PluginConfigItem('cellstar-volume-server', DEBUGGING ? 'http://localhost:9000/v2' : DEFAULT_VOLUME_SERVER_V2),
+export const VolsegVolumeServerConfig = {
+    // DefaultServer: new PluginConfigItem('volseg-volume-server', DEFAULT_VOLUME_SERVER_V2),
+    DefaultServer: new PluginConfigItem('volseg-volume-server', DEBUGGING ? 'http://localhost:9000/v2' : DEFAULT_VOLUME_SERVER_V2),
 };
 
 
-export const Cellstar = PluginBehavior.create<{ autoAttach: boolean, showTooltip: boolean }>({
-    name: 'cellstar',
+export const Volseg = PluginBehavior.create<{ autoAttach: boolean, showTooltip: boolean }>({
+    name: 'volseg',
     category: 'misc',
     display: {
-        name: 'Cellstar',
-        description: 'Cellstar'
+        name: 'Volseg',
+        description: 'Volseg'
     },
     ctor: class extends PluginBehavior.Handler<{ autoAttach: boolean, showTooltip: boolean }> {
         register() {
-            this.ctx.state.data.actions.add(LoadCellstar);
-            this.ctx.customStructureControls.set('cellstar', CellstarUI as any);
+            this.ctx.state.data.actions.add(LoadVolseg);
+            this.ctx.customStructureControls.set('volseg', VolsegUI as any);
             this.initializeEntryLists(); // do not await
 
-            const entries = new Map<string, CellstarEntryData>();
+            const entries = new Map<string, VolsegEntryData>();
             this.subscribeObservable(this.ctx.state.data.events.cell.created, o => {
-                if (o.cell.obj instanceof CellstarEntryData) entries.set(o.ref, o.cell.obj);
+                if (o.cell.obj instanceof VolsegEntryData) entries.set(o.ref, o.cell.obj);
             });
 
             this.subscribeObservable(this.ctx.state.data.events.cell.removed, o => {
@@ -53,30 +53,30 @@ export const Cellstar = PluginBehavior.create<{ autoAttach: boolean, showTooltip
             });
         }
         unregister() {
-            this.ctx.state.data.actions.remove(LoadCellstar);
-            this.ctx.customStructureControls.delete('cellstar');
+            this.ctx.state.data.actions.remove(LoadVolseg);
+            this.ctx.customStructureControls.delete('volseg');
         }
         private async initializeEntryLists() {
-            const apiUrl = this.ctx.config.get(CellstarVolumeServerConfig.DefaultServer) ?? DEFAULT_VOLUME_SERVER_V2;
+            const apiUrl = this.ctx.config.get(VolsegVolumeServerConfig.DefaultServer) ?? DEFAULT_VOLUME_SERVER_V2;
             const api = new VolumeApiV2(apiUrl);
             const entryLists = await api.getEntryList(10 ** 6);
             Object.values(entryLists).forEach(l => l.sort());
-            (this.ctx.customState as any).cellstarAvailableEntries = entryLists;
+            (this.ctx.customState as any).volsegAvailableEntries = entryLists;
         }
     }
 });
 
 
-export const LoadCellstar = StateAction.build({
+export const LoadVolseg = StateAction.build({
     display: { name: 'Load Volume & Segmentation' },
     from: SO.Root,
     params: (a, plugin: PluginContext) => {
-        const res = createLoadCellstarParams(plugin, (plugin.customState as any).cellstarAvailableEntries);
+        const res = createLoadVolsegParams(plugin, (plugin.customState as any).volsegAvailableEntries);
         return res;
     },
 })(({ params, state }, ctx: PluginContext) => Task.create('Loading Volume & Segmentation', taskCtx => {
     return state.transaction(async () => {
-        const entryParams = CellstarEntryParamValues.fromLoadCellstarParamValues(params);
+        const entryParams = VolsegEntryParamValues.fromLoadVolsegParamValues(params);
         if (entryParams.entryId.trim().length === 0) {
             alert('Must specify Entry Id!');
             throw new Error('Specify Entry Id');
@@ -87,13 +87,13 @@ export const LoadCellstar = StateAction.build({
         }
         ctx.behaviors.layout.leftPanelTabName.next('data');
 
-        const globalStateNode = ctx.state.data.selectQ(q => q.ofType(CellstarGlobalState))[0];
+        const globalStateNode = ctx.state.data.selectQ(q => q.ofType(VolsegGlobalState))[0];
         if (!globalStateNode) {
-            await state.build().toRoot().apply(CellstarGlobalStateFromRoot, {}, { state: { isGhost: !DEBUGGING } }).commit();
+            await state.build().toRoot().apply(VolsegGlobalStateFromRoot, {}, { state: { isGhost: !DEBUGGING } }).commit();
         }
 
-        const entryNode = await state.build().toRoot().apply(CellstarEntryFromRoot, entryParams).commit();
-        await state.build().to(entryNode).apply(CellstarStateFromEntry, {}, { state: { isGhost: !DEBUGGING } }).commit();
+        const entryNode = await state.build().toRoot().apply(VolsegEntryFromRoot, entryParams).commit();
+        await state.build().to(entryNode).apply(VolsegStateFromEntry, {}, { state: { isGhost: !DEBUGGING } }).commit();
         if (entryNode.data) {
             await entryNode.data.loadVolume();
             await entryNode.data.loadSegmentations();

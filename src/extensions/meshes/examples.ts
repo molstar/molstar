@@ -28,7 +28,6 @@ import { CIF } from '../../mol-io/reader/cif';
 
 
 export const DB_URL = '/db'; // local
-// DB_URL = 'http://sestra.ncbr.muni.cz/data/cellstar-sample-data/db'; // download
 
 
 export async function runMeshExtensionExamples(plugin: PluginUIContext, db_url: string = DB_URL) {

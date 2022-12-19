@@ -124,7 +124,7 @@ export class NodeManager {
 
 
 
-const CreateTransformer = StateTransformer.builderFactory('cellstar');
+const CreateTransformer = StateTransformer.builderFactory('volseg');
 
 export const CreateVolume = CreateTransformer({
     name: 'create-transformer',
