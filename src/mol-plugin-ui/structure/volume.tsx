@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -294,9 +294,9 @@ class VolumeRepresentationControls extends PurePluginUIComponent<{ representatio
 
     focus = () => {
         const repr = this.props.representation;
-        const objects = this.props.representation.cell.obj?.data.repr.renderObjects;
+        const lociList = repr.cell.obj?.data.repr.getAllLoci();
         if (repr.cell.state.isHidden) this.plugin.managers.volume.hierarchy.toggleVisibility([this.props.representation], 'show');
-        this.plugin.managers.camera.focusRenderObjects(objects, { extraRadius: 1 });
+        if (lociList) this.plugin.managers.camera.focusLoci(lociList, { extraRadius: 1 });
     };
 
     render() {

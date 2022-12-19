@@ -114,11 +114,20 @@
     color: $highlight-info-font-color;
     padding: $info-vertical-padding $control-spacing;
     background: $default-background; //$highlight-info-background;
+    opacity: 90%;
 
     // min-height: $row-height;
     text-align: right;
 
     @include non-selectable;
+}
+
+.msp-highlight-info-hr {
+    margin-inline: 0px;
+    margin-block: 3px;
+    border: none;
+    height: 1px;
+    background-color: $highlight-info-font-color;
 }
 
 .msp-highlight-info-additional {

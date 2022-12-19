@@ -8,6 +8,7 @@ import { StructureElement } from './structure';
 import { Bond } from './structure/structure/unit/bonds';
 import { ShapeGroup } from './shape/shape';
 import { PositionLocation } from '../mol-geo/util/location-iterator';
+import { Volume } from './volume';
 
 /** A null value Location */
 export const NullLocation = { kind: 'null-location' as const };
@@ -30,4 +31,4 @@ export function isDataLocation(x: any): x is DataLocation {
     return !!x && x.kind === 'data-location';
 }
 
-export type Location = StructureElement.Location | Bond.Location | ShapeGroup.Location | PositionLocation | DataLocation | NullLocation
+export type Location = StructureElement.Location | Bond.Location | ShapeGroup.Location | PositionLocation | DataLocation | NullLocation | Volume.Segment.Location
