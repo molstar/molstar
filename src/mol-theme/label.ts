@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -66,6 +66,16 @@ export function lociLabel(loci: Loci, options: Partial<LabelOptions> = {}): stri
                 label.push(`${Volume.IsoValue.toString(absVal)} (${Volume.IsoValue.toString(relVal)})`);
             }
             return label.join(' | ');
+        case 'segment-loci':
+            const segmentLabels = Volume.Segmentation.get(loci.volume)?.labels;
+            if (segmentLabels && loci.segments.length === 1) {
+                const label = segmentLabels[loci.segments[0]];
+                if (label) return label;
+            }
+            return [
+                `${loci.volume.label || 'Volume'}`,
+                `${loci.segments.length === 1 ? `Segment ${loci.segments[0]}` : `${loci.segments.length} Segments`}`
+            ].join(' | ');
     }
 }
 
