@@ -15,7 +15,7 @@ import { PluginStateObject } from '../../mol-plugin-state/objects';
 import { PluginBehavior } from '../../mol-plugin/behavior';
 import { PluginCommands } from '../../mol-plugin/commands';
 import { PluginContext } from '../../mol-plugin/context';
-import { StateObjectCell, StateTransform } from '../../mol-state';
+import { StateObjectCell, StateSelection, StateTransform } from '../../mol-state';
 import { shallowEqualObjects } from '../../mol-util';
 import { ParamDefinition } from '../../mol-util/param-definition';
 import { MeshlistData } from '../meshes/mesh-extension';
@@ -151,6 +151,7 @@ export class VolsegEntryData extends PluginBehavior.WithSubscribers<VolsegEntryP
             // do nothing
         }
 
+        let volumeRef: string | undefined;
         this.subscribeObservable(this.plugin.state.data.events.cell.stateUpdated, e => {
             try { (this.getStateNode()); } catch { return; } // if state not does not exist yet
             if (e.cell.transform.ref === this.getStateNode().transform.ref) {
@@ -158,14 +159,20 @@ export class VolsegEntryData extends PluginBehavior.WithSubscribers<VolsegEntryP
                 if (newState && !shallowEqualObjects(newState, this.currentState.value)) { // avoid repeated update
                     this.currentState.next(newState);
                 }
+            } else if (e.cell.transform.tags?.includes(VOLUME_VISUAL_TAG)) {
+                if (e.ref === volumeRef) {
+                    this.currentVolume.next(e.cell.transform);
+                } else if (StateSelection.findAncestor(this.plugin.state.data.tree, this.plugin.state.data.cells, e.ref, a => a.transform.ref === ref)) {
+                    volumeRef = e.ref;
+                    this.currentVolume.next(e.cell.transform);
+                }
             }
         });
 
-        this.subscribeObservable(this.plugin.state.data.events.cell.stateUpdated, e => {
-            // TODO: subscribe cell.removed event as well to set the current volume to undefined
-            if (e.cell.transform.tags?.includes(VOLUME_VISUAL_TAG)) {
-                // TODO: make sure this belongs to the "current entry subtree"
-                this.currentVolume.next(e.cell.transform);
+        this.subscribeObservable(this.plugin.state.data.events.cell.removed, e => {
+            if (e.ref === volumeRef) {
+                volumeRef = undefined;
+                this.currentVolume.next(undefined);
             }
         });
 
