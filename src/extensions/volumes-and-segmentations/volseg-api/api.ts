@@ -7,13 +7,13 @@
 import { type Metadata } from './data';
 
 
-export const DEFAULT_VOLUME_SERVER_V2 = 'https://molstarvolseg.ncbr.muni.cz/v2';
+export const DEFAULT_VOLSEG_SERVER = 'https://molstarvolseg.ncbr.muni.cz/v2';
 
 
 export class VolumeApiV2 {
     public volumeServerUrl: string;
 
-    public constructor(volumeServerUrl: string = DEFAULT_VOLUME_SERVER_V2) {
+    public constructor(volumeServerUrl: string = DEFAULT_VOLSEG_SERVER) {
         this.volumeServerUrl = volumeServerUrl.replace(/\/$/, ''); // trim trailing slash
     }
 

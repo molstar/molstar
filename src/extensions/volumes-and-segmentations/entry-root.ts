@@ -20,7 +20,7 @@ import { shallowEqualObjects } from '../../mol-util';
 import { ParamDefinition } from '../../mol-util/param-definition';
 import { MeshlistData } from '../meshes/mesh-extension';
 
-import { DEFAULT_VOLUME_SERVER_V2, VolumeApiV2 } from './volseg-api/api';
+import { DEFAULT_VOLSEG_SERVER, VolumeApiV2 } from './volseg-api/api';
 import { Segment } from './volseg-api/data';
 import { MetadataWrapper } from './volseg-api/utils';
 import { VolsegMeshSegmentationData } from './entry-meshes';
@@ -48,7 +48,7 @@ export type Source = Choice.Values<typeof SourceChoice>;
 
 
 export function createLoadVolsegParams(plugin?: PluginContext, entrylists: { [source: string]: string[] } = {}) {
-    const defaultVolumeServer = plugin?.config.get(VolsegVolumeServerConfig.DefaultServer) ?? DEFAULT_VOLUME_SERVER_V2;
+    const defaultVolumeServer = plugin?.config.get(VolsegVolumeServerConfig.DefaultServer) ?? DEFAULT_VOLSEG_SERVER;
     return {
         serverUrl: ParamDefinition.Text(defaultVolumeServer),
         source: ParamDefinition.Mapped(SourceChoice.values[0], SourceChoice.options, src => entryParam(entrylists[src])),
@@ -65,7 +65,7 @@ function entryParam(entries: string[] = []) {
 type LoadVolsegParamValues = ParamDefinition.Values<ReturnType<typeof createLoadVolsegParams>>;
 
 export function createVolsegEntryParams(plugin?: PluginContext) {
-    const defaultVolumeServer = plugin?.config.get(VolsegVolumeServerConfig.DefaultServer) ?? DEFAULT_VOLUME_SERVER_V2;
+    const defaultVolumeServer = plugin?.config.get(VolsegVolumeServerConfig.DefaultServer) ?? DEFAULT_VOLSEG_SERVER;
     return {
         serverUrl: ParamDefinition.Text(defaultVolumeServer),
         source: SourceChoice.PDSelect(),
