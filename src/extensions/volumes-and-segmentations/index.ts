@@ -10,7 +10,7 @@ import { PluginConfigItem } from '../../mol-plugin/config';
 import { PluginContext } from '../../mol-plugin/context';
 import { StateAction } from '../../mol-state';
 import { Task } from '../../mol-task';
-import { DEFAULT_VOLUME_SERVER_V2, VolumeApiV2 } from './volseg-api/api';
+import { DEFAULT_VOLSEG_SERVER, VolumeApiV2 } from './volseg-api/api';
 
 import { VolsegEntryData, VolsegEntryParamValues, createLoadVolsegParams } from './entry-root';
 import { VolsegGlobalState } from './global-state';
@@ -23,7 +23,7 @@ const DEBUGGING = window.location.hostname === 'localhost';
 
 export const VolsegVolumeServerConfig = {
     // DefaultServer: new PluginConfigItem('volseg-volume-server', DEFAULT_VOLUME_SERVER_V2),
-    DefaultServer: new PluginConfigItem('volseg-volume-server', DEBUGGING ? 'http://localhost:9000/v2' : DEFAULT_VOLUME_SERVER_V2),
+    DefaultServer: new PluginConfigItem('volseg-volume-server', DEBUGGING ? 'http://localhost:9000/v2' : DEFAULT_VOLSEG_SERVER),
 };
 
 
@@ -57,7 +57,7 @@ export const Volseg = PluginBehavior.create<{ autoAttach: boolean, showTooltip: 
             this.ctx.customStructureControls.delete('volseg');
         }
         private async initializeEntryLists() {
-            const apiUrl = this.ctx.config.get(VolsegVolumeServerConfig.DefaultServer) ?? DEFAULT_VOLUME_SERVER_V2;
+            const apiUrl = this.ctx.config.get(VolsegVolumeServerConfig.DefaultServer) ?? DEFAULT_VOLSEG_SERVER;
             const api = new VolumeApiV2(apiUrl);
             const entryLists = await api.getEntryList(10 ** 6);
             Object.values(entryLists).forEach(l => l.sort());
