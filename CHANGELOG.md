@@ -18,6 +18,7 @@ Note that since we don't clearly distinguish between a public and private interf
     - Add `Segmentation` custom volume property
     - Add `SegmentRepresentation` representation
     - Add `volume-segment` color theme
+- Fix GPU marching cubes failing for large meshes with webgl2 (due to use of float16)
 
 ## [v3.27.0] - 2022-12-15
 
