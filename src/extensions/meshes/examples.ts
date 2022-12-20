@@ -6,27 +6,28 @@
 
 /** Testing examples for using mesh-extension.ts. */
 
-import { createMeshFromUrl } from './mesh-extension';
-import * as MeshUtils from './mesh-utils';
-import { InitMeshStreaming } from './mesh-streaming/transformers';
-import { MeshServerInfo } from './mesh-streaming/server-info';
-import { PluginUIContext } from '../../mol-plugin-ui/context';
-import { StateObjectSelector } from '../../mol-state';
-import { Color } from '../../mol-util/color';
-import { StateTransforms } from '../../mol-plugin-state/transforms';
-import { ParamDefinition } from '../../mol-util/param-definition';
-import { PluginStateObject } from '../../mol-plugin-state/objects';
-import { createStructureRepresentationParams } from '../../mol-plugin-state/helpers/structure-representation-params';
-import { Volume } from '../../mol-model/volume';
-import { createVolumeRepresentationParams } from '../../mol-plugin-state/helpers/volume-representation-params';
-import { Asset } from '../../mol-util/assets';
 import { CIF } from '../../mol-io/reader/cif';
+import { Volume } from '../../mol-model/volume';
+import { createStructureRepresentationParams } from '../../mol-plugin-state/helpers/structure-representation-params';
+import { createVolumeRepresentationParams } from '../../mol-plugin-state/helpers/volume-representation-params';
+import { PluginStateObject } from '../../mol-plugin-state/objects';
+import { StateTransforms } from '../../mol-plugin-state/transforms';
+import { PluginContext } from '../../mol-plugin/context';
+import { StateObjectSelector } from '../../mol-state';
+import { Asset } from '../../mol-util/assets';
+import { Color } from '../../mol-util/color';
+import { ParamDefinition } from '../../mol-util/param-definition';
+
+import { createMeshFromUrl } from './mesh-extension';
+import { MeshServerInfo } from './mesh-streaming/server-info';
+import { InitMeshStreaming } from './mesh-streaming/transformers';
+import * as MeshUtils from './mesh-utils';
 
 
 export const DB_URL = '/db'; // local
 
 
-export async function runMeshExtensionExamples(plugin: PluginUIContext, db_url: string = DB_URL) {
+export async function runMeshExtensionExamples(plugin: PluginContext, db_url: string = DB_URL) {
     console.time('TIME MESH EXAMPLES');
     // await runIsosurfaceExample(plugin, db_url);
     // await runMolsurfaceExample(plugin);
@@ -43,7 +44,7 @@ export async function runMeshExtensionExamples(plugin: PluginUIContext, db_url: 
 }
 
 /** Example for downloading multiple separate segments, each containing 1 mesh. */
-export async function runMeshExample(plugin: PluginUIContext, segments: 'fg' | 'all', db_url: string = DB_URL) {
+export async function runMeshExample(plugin: PluginContext, segments: 'fg' | 'all', db_url: string = DB_URL) {
     const detail = 2;
     const segmentIds = (segments === 'all') ?
         [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 17] // segment-16 has no detail-2
@@ -55,7 +56,7 @@ export async function runMeshExample(plugin: PluginUIContext, segments: 'fg' | '
 }
 
 /** Example for downloading multiple separate segments, each containing 1 mesh. */
-export async function runMeshExample2(plugin: PluginUIContext, segments: 'one' | 'few' | 'fg' | 'all') {
+export async function runMeshExample2(plugin: PluginContext, segments: 'one' | 'few' | 'fg' | 'all') {
     const detail = 1;
     const segmentIds = (segments === 'one') ? [15]
         : (segments === 'few') ? [1, 4, 7, 10, 16]
@@ -68,13 +69,13 @@ export async function runMeshExample2(plugin: PluginUIContext, segments: 'one' |
 }
 
 /** Example for downloading a single segment containing multiple meshes. */
-export async function runMultimeshExample(plugin: PluginUIContext, segments: 'fg' | 'all', detailChoice: 'best' | 'worst', db_url: string = DB_URL) {
+export async function runMultimeshExample(plugin: PluginContext, segments: 'fg' | 'all', detailChoice: 'best' | 'worst', db_url: string = DB_URL) {
     const urlDetail = (detailChoice === 'best') ? '2' : 'worst';
     const numDetail = (detailChoice === 'best') ? 2 : 1000;
     await createMeshFromUrl(plugin, `${db_url}/empiar-10070-multimesh-rounded/segments-${segments}/detail-${urlDetail}`, 0, numDetail, false, undefined);
 }
 
-export async function runMeshStreamingExample(plugin: PluginUIContext, source: MeshServerInfo.MeshSource = 'empiar', entryId: string = 'empiar-10070', serverUrl?: string, parent?: StateObjectSelector) {
+export async function runMeshStreamingExample(plugin: PluginContext, source: MeshServerInfo.MeshSource = 'empiar', entryId: string = 'empiar-10070', serverUrl?: string, parent?: StateObjectSelector) {
     const params = ParamDefinition.getDefaultValues(MeshServerInfo.Params);
     if (serverUrl) params.serverUrl = serverUrl;
     params.source = source;
@@ -83,7 +84,7 @@ export async function runMeshStreamingExample(plugin: PluginUIContext, source: M
 }
 
 /** Example for downloading a protein structure and visualizing molecular surface. */
-export async function runMolsurfaceExample(plugin: PluginUIContext) {
+export async function runMolsurfaceExample(plugin: PluginContext) {
     const entryId = 'pdb-7etq';
 
     // Node "https://www.ebi.ac.uk/pdbe/entry-files/download/7etq.bcif" ("transformer": "ms-plugin.download") -> var data
@@ -112,7 +113,7 @@ export async function runMolsurfaceExample(plugin: PluginUIContext) {
 }
 
 /** Example for downloading an EMDB density data and visualizing isosurface. */
-export async function runIsosurfaceExample(plugin: PluginUIContext, db_url: string = DB_URL) {
+export async function runIsosurfaceExample(plugin: PluginContext, db_url: string = DB_URL) {
     const entryId = 'emd-1832';
     const isoLevel = 2.73;
 
@@ -164,7 +165,7 @@ export async function runIsosurfaceExample(plugin: PluginUIContext, db_url: stri
 }
 
 
-export async function runCifMeshExample(plugin: PluginUIContext, api: string = 'http://localhost:9000/v2',
+export async function runCifMeshExample(plugin: PluginContext, api: string = 'http://localhost:9000/v2',
     source: MeshServerInfo.MeshSource = 'empiar', entryId: string = 'empiar-10070',
     segmentId: number = 1, detail: number = 10,
 ) {
@@ -172,7 +173,7 @@ export async function runCifMeshExample(plugin: PluginUIContext, api: string = '
     getMeshFromBcif(plugin, url);
 }
 
-async function getMeshFromBcif(plugin: PluginUIContext, url: string) {
+async function getMeshFromBcif(plugin: PluginContext, url: string) {
     const urlAsset = Asset.getUrlAsset(plugin.managers.asset, url);
     const asset = await plugin.runTask(plugin.managers.asset.resolve(urlAsset, 'binary'));
     const parsed = await plugin.runTask(CIF.parseBinary(asset.data));

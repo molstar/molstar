@@ -4,6 +4,7 @@
  * @author Adam Midlik <midlik@gmail.com>
  */
 
+import { Color } from '../../../mol-util/color';
 import { Metadata, Segment } from './data';
 
 
@@ -31,6 +32,11 @@ export class MetadataWrapper {
             }
         }
         return this.segmentMap[segmentId];
+    }
+
+    getSegmentColor(segmentId: number): Color | undefined {
+        const colorArray = this.getSegment(segmentId)?.colour;
+        return colorArray ? Color.fromNormalizedArray(colorArray, 0) : undefined;
     }
 
     /** Get the list of detail levels available for the given mesh segment. */
