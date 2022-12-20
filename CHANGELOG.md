@@ -6,6 +6,8 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+## [v3.28.0] - 2022-12-20
+
 - Show histogram in direct volume control point settings
 - Add `solidInterior` parameter to sphere/cylinder impostors
 - [Breaking] Tweak `ignoreHydrogens` non-polar handling (introduced in 3.27.0)
