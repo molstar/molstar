@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -64,7 +64,7 @@ export function DataLoci<T = unknown, E = unknown>(tag: string, data: T, element
 
 export { Loci };
 
-type Loci = StructureElement.Loci | Structure.Loci | Bond.Loci | EveryLoci | EmptyLoci | DataLoci | Shape.Loci | ShapeGroup.Loci | Volume.Loci | Volume.Isosurface.Loci | Volume.Cell.Loci
+type Loci = StructureElement.Loci | Structure.Loci | Bond.Loci | EveryLoci | EmptyLoci | DataLoci | Shape.Loci | ShapeGroup.Loci | Volume.Loci | Volume.Isosurface.Loci | Volume.Cell.Loci | Volume.Segment.Loci
 
 namespace Loci {
     export interface Bundle<L extends number> { loci: FiniteArray<Loci, L> }
@@ -109,6 +109,9 @@ namespace Loci {
         if (Volume.Cell.isLoci(lociA) && Volume.Cell.isLoci(lociB)) {
             return Volume.Cell.areLociEqual(lociA, lociB);
         }
+        if (Volume.Segment.isLoci(lociA) && Volume.Segment.isLoci(lociB)) {
+            return Volume.Segment.areLociEqual(lociA, lociB);
+        }
         return false;
     }
 
@@ -128,6 +131,7 @@ namespace Loci {
         if (Volume.isLoci(loci)) return Volume.isLociEmpty(loci);
         if (Volume.Isosurface.isLoci(loci)) return Volume.Isosurface.isLociEmpty(loci);
         if (Volume.Cell.isLoci(loci)) return Volume.Cell.isLociEmpty(loci);
+        if (Volume.Segment.isLoci(loci)) return Volume.Segment.isLociEmpty(loci);
         return false;
     }
 
@@ -167,6 +171,8 @@ namespace Loci {
             return Volume.Isosurface.getBoundingSphere(loci.volume, loci.isoValue, boundingSphere);
         } else if (loci.kind === 'cell-loci') {
             return Volume.Cell.getBoundingSphere(loci.volume, loci.indices, boundingSphere);
+        } else if (loci.kind === 'segment-loci') {
+            return Volume.Segment.getBoundingSphere(loci.volume, loci.segments, boundingSphere);
         }
     }
 
@@ -202,6 +208,9 @@ namespace Loci {
             // TODO
             return void 0;
         } else if (loci.kind === 'cell-loci') {
+            // TODO
+            return void 0;
+        } else if (loci.kind === 'segment-loci') {
             // TODO
             return void 0;
         }

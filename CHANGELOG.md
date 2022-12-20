@@ -15,8 +15,21 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+## [v3.28.0] - 2022-12-20
+
 - Show histogram in direct volume control point settings
 - Add `solidInterior` parameter to sphere/cylinder impostors
+- [Breaking] Tweak `ignoreHydrogens` non-polar handling (introduced in 3.27.0)
+- Add `meshes` and `volumes-and-segmentations` extensions
+- Fix missing support for info in `ParamDefinition.Converted`
+- Add support for multi-visual volume representations
+- Improve volume isosurface bounding-sphere
+- Add basic volume segmentation support to core
+    - Add `Volume.Segment` model
+    - Add `Segmentation` custom volume property
+    - Add `SegmentRepresentation` representation
+    - Add `volume-segment` color theme
+- Fix GPU marching cubes failing for large meshes with webgl2 (due to use of float16)
 
 ## [v3.27.0] - 2022-12-15
 

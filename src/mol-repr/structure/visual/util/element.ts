@@ -19,16 +19,15 @@ import { VisualContext } from '../../../../mol-repr/visual';
 import { Theme } from '../../../../mol-theme/theme';
 import { Spheres } from '../../../../mol-geo/geometry/spheres/spheres';
 import { SpheresBuilder } from '../../../../mol-geo/geometry/spheres/spheres-builder';
-import { isTrace, isH, StructureGroup } from './common';
+import { isTrace, StructureGroup, isHydrogen } from './common';
 import { Sphere3D } from '../../../../mol-math/geometry';
-import { hasPolarNeighbour } from '../../../../mol-model-props/computed/chemistry/functional-group';
 
 // avoiding namespace lookup improved performance in Chrome (Aug 2020)
 const v3add = Vec3.add;
 
 type ElementProps = {
     ignoreHydrogens: boolean,
-    onlyPolarHydrogens: boolean,
+    ignoreHydrogensVariant: 'all' | 'non-polar',
     traceOnly: boolean,
     stride?: number
 }
@@ -39,35 +38,22 @@ export type ElementSphereMeshProps = {
 } & ElementProps
 
 export function makeElementIgnoreTest(structure: Structure, unit: Unit, props: ElementProps): undefined | ((i: ElementIndex) => boolean) {
-    const { ignoreHydrogens, onlyPolarHydrogens, traceOnly } = props;
+    const { ignoreHydrogens, ignoreHydrogensVariant, traceOnly } = props;
 
-    const { atomicNumber } = unit.model.atomicHierarchy.derived.atom;
     const isCoarse = Unit.isCoarse(unit);
 
     const { child } = structure;
     const childUnit = child?.unitMap.get(unit.id);
     if (child && !childUnit) throw new Error('expected childUnit to exist if child exists');
 
-    if (!child && !ignoreHydrogens && !traceOnly && !onlyPolarHydrogens) return;
+    if (!child && !ignoreHydrogens && !traceOnly) return;
 
     return (element: ElementIndex) => {
-        if (!!childUnit && !SortedArray.has(childUnit.elements, element)) {
-            return true;
-        }
-
-        if (traceOnly && !isTrace(unit, element)) {
-            return true;
-        }
-
-        if (isCoarse) return false;
-
-        if (!isH(atomicNumber, element)) return false;
-        if (ignoreHydrogens) return true;
-        if (onlyPolarHydrogens) {
-            return !hasPolarNeighbour(structure, unit, SortedArray.indexOf(unit.elements, element) as StructureElement.UnitIndex);
-        }
-
-        return false;
+        return (
+            (!!childUnit && !SortedArray.has(childUnit.elements, element)) ||
+            (!isCoarse && ignoreHydrogens && isHydrogen(structure, unit, element, ignoreHydrogensVariant)) ||
+            (traceOnly && !isTrace(unit, element))
+        );
     };
 }
 

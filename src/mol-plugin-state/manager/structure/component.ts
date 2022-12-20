@@ -70,8 +70,8 @@ class StructureComponentManager extends StatefulPluginComponent<StructureCompone
         return this.plugin.dataTransaction(async () => {
             await update.commit();
             await this.plugin.state.updateBehavior(StructureFocusRepresentation, p => {
-                p.ignoreHydrogens = options.hydrogens === 'hide-all';
-                p.onlyPolarHydrogens = options.hydrogens === 'only-polar';
+                p.ignoreHydrogens = options.hydrogens !== 'all';
+                p.ignoreHydrogensVariant = options.hydrogens === 'only-polar' ? 'non-polar' : 'all';
                 p.ignoreLight = options.ignoreLight;
                 p.material = options.materialStyle;
                 p.clip = options.clipObjects;
@@ -82,16 +82,16 @@ class StructureComponentManager extends StatefulPluginComponent<StructureCompone
 
     private updateReprParams(update: StateBuilder.Root, component: StructureComponentRef) {
         const { hydrogens, visualQuality: quality, ignoreLight, materialStyle: material, clipObjects: clip } = this.state.options;
-        const ignoreHydrogens = hydrogens === 'hide-all';
-        const onlyPolarHydrogens = hydrogens === 'only-polar';
+        const ignoreHydrogens = hydrogens !== 'all';
+        const ignoreHydrogensVariant = hydrogens === 'only-polar' ? 'non-polar' : 'all';
         for (const r of component.representations) {
             if (r.cell.transform.transformer !== StructureRepresentation3D) continue;
 
             const params = r.cell.transform.params as StateTransformer.Params<StructureRepresentation3D>;
-            if (!!params.type.params.ignoreHydrogens !== ignoreHydrogens || !!params.type.params.onlyPolarHydrogens !== onlyPolarHydrogens || params.type.params.quality !== quality || params.type.params.ignoreLight !== ignoreLight || !shallowEqual(params.type.params.material, material) || !PD.areEqual(Clip.Params, params.type.params.clip, clip)) {
+            if (!!params.type.params.ignoreHydrogens !== ignoreHydrogens || params.type.params.ignoreHydrogensVariant !== ignoreHydrogensVariant || params.type.params.quality !== quality || params.type.params.ignoreLight !== ignoreLight || !shallowEqual(params.type.params.material, material) || !PD.areEqual(Clip.Params, params.type.params.clip, clip)) {
                 update.to(r.cell).update(old => {
                     old.type.params.ignoreHydrogens = ignoreHydrogens;
-                    old.type.params.onlyPolarHydrogens = onlyPolarHydrogens;
+                    old.type.params.ignoreHydrogensVariant = ignoreHydrogensVariant;
                     old.type.params.quality = quality;
                     old.type.params.ignoreLight = ignoreLight;
                     old.type.params.material = material;
@@ -315,9 +315,9 @@ class StructureComponentManager extends StatefulPluginComponent<StructureCompone
         if (components.length === 0) return;
 
         const { hydrogens, visualQuality: quality, ignoreLight, materialStyle: material, clipObjects: clip } = this.state.options;
-        const ignoreHydrogens = hydrogens === 'hide-all';
-        const onlyPolarHydrogens = hydrogens === 'only-polar';
-        const typeParams = { ignoreHydrogens, onlyPolarHydrogens, quality, ignoreLight, material, clip };
+        const ignoreHydrogens = hydrogens !== 'all';
+        const ignoreHydrogensVariant = hydrogens === 'only-polar' ? 'non-polar' : 'all';
+        const typeParams = { ignoreHydrogens, ignoreHydrogensVariant, quality, ignoreLight, material, clip };
 
         return this.plugin.dataTransaction(async () => {
             for (const component of components) {
@@ -353,9 +353,9 @@ class StructureComponentManager extends StatefulPluginComponent<StructureCompone
             if (xs.length === 0) return;
 
             const { hydrogens, visualQuality: quality, ignoreLight, materialStyle: material, clipObjects: clip } = this.state.options;
-            const ignoreHydrogens = hydrogens === 'hide-all';
-            const onlyPolarHydrogens = hydrogens === 'only-polar';
-            const typeParams = { ignoreHydrogens, onlyPolarHydrogens, quality, ignoreLight, material, clip };
+            const ignoreHydrogens = hydrogens !== 'all';
+            const ignoreHydrogensVariant = hydrogens === 'only-polar' ? 'non-polar' : 'all';
+            const typeParams = { ignoreHydrogens, ignoreHydrogensVariant, quality, ignoreLight, material, clip };
 
             const componentKey = UUID.create22();
             for (const s of xs) {

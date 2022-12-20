@@ -246,12 +246,64 @@ export const DscifProvider = DataFormatProvider({
     }
 });
 
+export const SegcifProvider = DataFormatProvider({
+    label: 'Segmentation CIF',
+    description: 'Segmentation CIF',
+    category: VolumeFormatCategory,
+    stringExtensions: ['cif'],
+    binaryExtensions: ['bcif'],
+    isApplicable: (info, data) => {
+        return guessCifVariant(info, data) === 'segcif' ? true : false;
+    },
+    parse: async (plugin, data) => {
+        const cifCell = await plugin.build().to(data).apply(StateTransforms.Data.ParseCif).commit();
+        const b = plugin.build().to(cifCell);
+        const blocks = cifCell.obj!.data.blocks;
+
+        if (blocks.length === 0) throw new Error('no data blocks');
+
+        const volumes: StateObjectSelector<PluginStateObject.Volume.Data>[] = [];
+        for (const block of blocks) {
+            // Skip "server" data block.
+            if (block.header.toUpperCase() === 'SERVER') continue;
+
+            if (block.categories['volume_data_3d_info']?.rowCount > 0) {
+                volumes.push(b.apply(StateTransforms.Volume.VolumeFromSegmentationCif, { blockHeader: block.header }).selector);
+            }
+        }
+
+        await b.commit();
+
+        return { volumes };
+    },
+    visuals: async (plugin, data: { volumes: StateObjectSelector<PluginStateObject.Volume.Data>[] }) => {
+        const { volumes } = data;
+        const tree = plugin.build();
+        const visuals: StateObjectSelector<PluginStateObject.Volume.Representation3D>[] = [];
+
+        if (volumes.length > 0) {
+            const segmentation = Volume.Segmentation.get(volumes[0].data!);
+            if (segmentation) {
+                visuals[visuals.length] = tree
+                    .to(volumes[0])
+                    .apply(StateTransforms.Representation.VolumeRepresentation3D, VolumeRepresentation3DHelpers.getDefaultParams(plugin, 'segment', volumes[0].data!, { alpha: 1, instanceGranularity: true }, 'volume-segment', { }))
+                    .selector;
+            }
+        }
+
+        await tree.commit();
+
+        return visuals;
+    }
+});
+
 export const BuiltInVolumeFormats = [
     ['ccp4', Ccp4Provider] as const,
     ['dsn6', Dsn6Provider] as const,
     ['cube', CubeProvider] as const,
     ['dx', DxProvider] as const,
     ['dscif', DscifProvider] as const,
+    ['segcif', SegcifProvider] as const,
 ] as const;
 
 export type BuildInVolumeFormat = (typeof BuiltInVolumeFormats)[number][0]

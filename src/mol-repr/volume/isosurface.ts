@@ -11,7 +11,7 @@ import { VisualContext } from '../visual';
 import { Theme, ThemeRegistryContext } from '../../mol-theme/theme';
 import { Mesh } from '../../mol-geo/geometry/mesh/mesh';
 import { computeMarchingCubesMesh, computeMarchingCubesLines } from '../../mol-geo/util/marching-cubes/algorithm';
-import { VolumeVisual, VolumeRepresentation, VolumeRepresentationProvider } from './representation';
+import { VolumeVisual, VolumeRepresentation, VolumeRepresentationProvider, VolumeKey } from './representation';
 import { LocationIterator } from '../../mol-geo/util/location-iterator';
 import { NullLocation } from '../../mol-model/location';
 import { VisualUpdateState } from '../util';
@@ -53,7 +53,7 @@ function suitableForGpu(volume: Volume, webgl: WebGLContext) {
     return powerOfTwoSize <= webgl.maxTextureSize / 2;
 }
 
-export function IsosurfaceVisual(materialId: number, volume: Volume, props: PD.Values<IsosurfaceMeshParams>, webgl?: WebGLContext) {
+export function IsosurfaceVisual(materialId: number, volume: Volume, key: number, props: PD.Values<IsosurfaceMeshParams>, webgl?: WebGLContext) {
     if (props.tryUseGpu && webgl && gpuSupport(webgl) && suitableForGpu(volume, webgl)) {
         return IsosurfaceTextureMeshVisual(materialId);
     }
@@ -64,7 +64,7 @@ function getLoci(volume: Volume, props: VolumeIsosurfaceProps) {
     return Volume.Isosurface.Loci(volume, props.isoValue);
 }
 
-function getIsosurfaceLoci(pickingId: PickingId, volume: Volume, props: VolumeIsosurfaceProps, id: number) {
+function getIsosurfaceLoci(pickingId: PickingId, volume: Volume, key: number, props: VolumeIsosurfaceProps, id: number) {
     const { objectId, groupId } = pickingId;
 
     if (id === objectId) {
@@ -80,13 +80,13 @@ function getIsosurfaceLoci(pickingId: PickingId, volume: Volume, props: VolumeIs
     return EmptyLoci;
 }
 
-export function eachIsosurface(loci: Loci, volume: Volume, props: VolumeIsosurfaceProps, apply: (interval: Interval) => boolean) {
-    return eachVolumeLoci(loci, volume, props.isoValue, apply);
+export function eachIsosurface(loci: Loci, volume: Volume, key: number, props: VolumeIsosurfaceProps, apply: (interval: Interval) => boolean) {
+    return eachVolumeLoci(loci, volume, { isoValue: props.isoValue }, apply);
 }
 
 //
 
-export async function createVolumeIsosurfaceMesh(ctx: VisualContext, volume: Volume, theme: Theme, props: VolumeIsosurfaceProps, mesh?: Mesh) {
+export async function createVolumeIsosurfaceMesh(ctx: VisualContext, volume: Volume, key: number, theme: Theme, props: VolumeIsosurfaceProps, mesh?: Mesh) {
     ctx.runtime.update({ message: 'Marching cubes...' });
 
     const ids = fillSerial(new Int32Array(volume.grid.cells.data.length));
@@ -108,7 +108,7 @@ export async function createVolumeIsosurfaceMesh(ctx: VisualContext, volume: Vol
         ValueCell.updateIfChanged(surface.varyingGroup, true);
     }
 
-    surface.setBoundingSphere(Volume.getBoundingSphere(volume));
+    surface.setBoundingSphere(Volume.Isosurface.getBoundingSphere(volume, props.isoValue));
 
     return surface;
 }
@@ -133,8 +133,8 @@ export function IsosurfaceMeshVisual(materialId: number): VolumeVisual<Isosurfac
             if (!Volume.IsoValue.areSame(newProps.isoValue, currentProps.isoValue, volume.grid.stats)) state.createGeometry = true;
         },
         geometryUtils: Mesh.Utils,
-        mustRecreate: (volume: Volume, props: PD.Values<IsosurfaceMeshParams>, webgl?: WebGLContext) => {
-            return props.tryUseGpu && !!webgl && suitableForGpu(volume, webgl);
+        mustRecreate: (volumekey: VolumeKey, props: PD.Values<IsosurfaceMeshParams>, webgl?: WebGLContext) => {
+            return props.tryUseGpu && !!webgl && suitableForGpu(volumekey.volume, webgl);
         }
     }, materialId);
 }
@@ -181,7 +181,7 @@ namespace VolumeIsosurfaceTexture {
     }
 }
 
-async function createVolumeIsosurfaceTextureMesh(ctx: VisualContext, volume: Volume, theme: Theme, props: VolumeIsosurfaceProps, textureMesh?: TextureMesh) {
+async function createVolumeIsosurfaceTextureMesh(ctx: VisualContext, volume: Volume, key: number, theme: Theme, props: VolumeIsosurfaceProps, textureMesh?: TextureMesh) {
     if (!ctx.webgl) throw new Error('webgl context required to create volume isosurface texture-mesh');
 
     if (volume.grid.cells.data.length <= 1) {
@@ -200,7 +200,8 @@ async function createVolumeIsosurfaceTextureMesh(ctx: VisualContext, volume: Vol
     const gv = extractIsosurface(ctx.webgl, texture, gridDimension, gridTexDim, gridTexScale, transform, isoLevel, value < 0, false, axisOrder, true, buffer?.vertex, buffer?.group, buffer?.normal);
 
     const groupCount = volume.grid.cells.data.length;
-    const surface = TextureMesh.create(gv.vertexCount, groupCount, gv.vertexTexture, gv.groupTexture, gv.normalTexture, Volume.getBoundingSphere(volume), textureMesh);
+    const boundingSphere = Volume.getBoundingSphere(volume); // getting isosurface bounding-sphere is too expensive here
+    const surface = TextureMesh.create(gv.vertexCount, groupCount, gv.vertexTexture, gv.groupTexture, gv.normalTexture, boundingSphere, textureMesh);
     surface.meta.webgl = ctx.webgl;
 
     return surface;
@@ -217,8 +218,8 @@ export function IsosurfaceTextureMeshVisual(materialId: number): VolumeVisual<Is
             if (!Volume.IsoValue.areSame(newProps.isoValue, currentProps.isoValue, volume.grid.stats)) state.createGeometry = true;
         },
         geometryUtils: TextureMesh.Utils,
-        mustRecreate: (volume: Volume, props: PD.Values<IsosurfaceMeshParams>, webgl?: WebGLContext) => {
-            return !props.tryUseGpu || !webgl || !suitableForGpu(volume, webgl);
+        mustRecreate: (volumeKey: VolumeKey, props: PD.Values<IsosurfaceMeshParams>, webgl?: WebGLContext) => {
+            return !props.tryUseGpu || !webgl || !suitableForGpu(volumeKey.volume, webgl);
         },
         dispose: (geometry: TextureMesh) => {
             geometry.vertexTexture.ref.value.destroy();
@@ -231,7 +232,7 @@ export function IsosurfaceTextureMeshVisual(materialId: number): VolumeVisual<Is
 
 //
 
-export async function createVolumeIsosurfaceWireframe(ctx: VisualContext, volume: Volume, theme: Theme, props: VolumeIsosurfaceProps, lines?: Lines) {
+export async function createVolumeIsosurfaceWireframe(ctx: VisualContext, volume: Volume, key: number, theme: Theme, props: VolumeIsosurfaceProps, lines?: Lines) {
     ctx.runtime.update({ message: 'Marching cubes...' });
 
     const ids = fillSerial(new Int32Array(volume.grid.cells.data.length));
@@ -245,7 +246,7 @@ export async function createVolumeIsosurfaceWireframe(ctx: VisualContext, volume
     const transform = Grid.getGridToCartesianTransform(volume.grid);
     Lines.transform(wireframe, transform);
 
-    wireframe.setBoundingSphere(Volume.getBoundingSphere(volume));
+    wireframe.setBoundingSphere(Volume.Isosurface.getBoundingSphere(volume, props.isoValue));
 
     return wireframe;
 }
@@ -306,5 +307,5 @@ export const IsosurfaceRepresentationProvider = VolumeRepresentationProvider({
     defaultValues: PD.getDefaultValues(IsosurfaceParams),
     defaultColorTheme: { name: 'uniform' },
     defaultSizeTheme: { name: 'uniform' },
-    isApplicable: (volume: Volume) => !Volume.isEmpty(volume)
+    isApplicable: (volume: Volume) => !Volume.isEmpty(volume) && !Volume.Segmentation.get(volume)
 });

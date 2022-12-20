@@ -34,7 +34,7 @@ const SharedParams = {
     ...GaussianDensityParams,
     ...ColorSmoothingParams,
     ignoreHydrogens: PD.Boolean(false),
-    onlyPolarHydrogens: PD.Boolean(false),
+    ignoreHydrogensVariant: PD.Select('all', PD.arrayToOptions(['all', 'non-polar'] as const)),
     tryUseGpu: PD.Boolean(true),
     includeParent: PD.Boolean(false, { isHidden: true }),
 };
@@ -128,7 +128,7 @@ export function GaussianSurfaceMeshVisual(materialId: number): UnitsVisual<Gauss
             if (newProps.radiusOffset !== currentProps.radiusOffset) state.createGeometry = true;
             if (newProps.smoothness !== currentProps.smoothness) state.createGeometry = true;
             if (newProps.ignoreHydrogens !== currentProps.ignoreHydrogens) state.createGeometry = true;
-            if (newProps.onlyPolarHydrogens !== currentProps.onlyPolarHydrogens) state.createGeometry = true;
+            if (newProps.ignoreHydrogensVariant !== currentProps.ignoreHydrogensVariant) state.createGeometry = true;
             if (newProps.traceOnly !== currentProps.traceOnly) state.createGeometry = true;
             if (newProps.includeParent !== currentProps.includeParent) state.createGeometry = true;
             if (newProps.smoothColors.name !== currentProps.smoothColors.name) {
@@ -195,7 +195,7 @@ export function StructureGaussianSurfaceMeshVisual(materialId: number): ComplexV
             if (newProps.radiusOffset !== currentProps.radiusOffset) state.createGeometry = true;
             if (newProps.smoothness !== currentProps.smoothness) state.createGeometry = true;
             if (newProps.ignoreHydrogens !== currentProps.ignoreHydrogens) state.createGeometry = true;
-            if (newProps.onlyPolarHydrogens !== currentProps.onlyPolarHydrogens) state.createGeometry = true;
+            if (newProps.ignoreHydrogensVariant !== currentProps.ignoreHydrogensVariant) state.createGeometry = true;
             if (newProps.traceOnly !== currentProps.traceOnly) state.createGeometry = true;
             if (newProps.smoothColors.name !== currentProps.smoothColors.name) {
                 state.updateColor = true;
@@ -267,7 +267,7 @@ export function GaussianSurfaceTextureMeshVisual(materialId: number): UnitsVisua
             if (newProps.radiusOffset !== currentProps.radiusOffset) state.createGeometry = true;
             if (newProps.smoothness !== currentProps.smoothness) state.createGeometry = true;
             if (newProps.ignoreHydrogens !== currentProps.ignoreHydrogens) state.createGeometry = true;
-            if (newProps.onlyPolarHydrogens !== currentProps.onlyPolarHydrogens) state.createGeometry = true;
+            if (newProps.ignoreHydrogensVariant !== currentProps.ignoreHydrogensVariant) state.createGeometry = true;
             if (newProps.traceOnly !== currentProps.traceOnly) state.createGeometry = true;
             if (newProps.includeParent !== currentProps.includeParent) state.createGeometry = true;
             if (newProps.smoothColors.name !== currentProps.smoothColors.name) {
@@ -343,7 +343,7 @@ export function StructureGaussianSurfaceTextureMeshVisual(materialId: number): C
             if (newProps.radiusOffset !== currentProps.radiusOffset) state.createGeometry = true;
             if (newProps.smoothness !== currentProps.smoothness) state.createGeometry = true;
             if (newProps.ignoreHydrogens !== currentProps.ignoreHydrogens) state.createGeometry = true;
-            if (newProps.onlyPolarHydrogens !== currentProps.onlyPolarHydrogens) state.createGeometry = true;
+            if (newProps.ignoreHydrogensVariant !== currentProps.ignoreHydrogensVariant) state.createGeometry = true;
             if (newProps.traceOnly !== currentProps.traceOnly) state.createGeometry = true;
             if (newProps.includeParent !== currentProps.includeParent) state.createGeometry = true;
             if (newProps.smoothColors.name !== currentProps.smoothColors.name) {
