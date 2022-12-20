@@ -33,8 +33,6 @@ const MAX_DETAIL = 10;
 const DEFAULT_DETAIL = 7; // TODO decide a reasonable default
 /** Segments whose bounding box volume is above this value (relative to the overall bounding box) are considered as background segments */
 export const BACKGROUND_SEGMENT_VOLUME_THRESHOLD = 0.5;
-// const DEBUG_IGNORED_SEGMENTS = new Set([13, 15]); // TODO remove
-const DEBUG_IGNORED_SEGMENTS = new Set(); // TODO remove
 
 
 export class MeshStreaming extends PluginStateObject.CreateBehavior<MeshStreaming.Behavior>({ name: 'Mesh Streaming' }) { }
@@ -213,7 +211,6 @@ export namespace MeshStreaming {
 
             const visuals: { [tag: string]: VisualInfo } = {};
             for (const segid of Metadata.meshSegments(this.metadata!)) {
-                if (DEBUG_IGNORED_SEGMENTS.has(segid)) continue;
                 const name = namesAndColors[segid]?.name ?? DEFAULT_SEGMENT_NAME;
                 const color = namesAndColors[segid]?.color ?? DEFAULT_SEGMENT_COLOR;
                 for (const detailType of VisualInfo.DetailTypes) {

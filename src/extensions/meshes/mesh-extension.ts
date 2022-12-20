@@ -15,13 +15,19 @@ import { Vec3 } from '../../mol-math/linear-algebra';
 import { Shape } from '../../mol-model/shape';
 import { ShapeProvider } from '../../mol-model/shape/provider';
 import { PluginStateObject } from '../../mol-plugin-state/objects';
-import { StateTransformer } from '../../mol-state';
+import { StateTransforms } from '../../mol-plugin-state/transforms';
+import { Download } from '../../mol-plugin-state/transforms/data';
+import { ShapeRepresentation3D } from '../../mol-plugin-state/transforms/representation';
+import { PluginContext } from '../../mol-plugin/context';
+import { StateObjectRef, StateObjectSelector, StateTransformer } from '../../mol-state';
 import { Task } from '../../mol-task';
 import { Color } from '../../mol-util/color';
-import { Material } from '../../mol-util/material';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import * as MeshUtils from './mesh-utils';
 
+
+export const BACKGROUND_OPACITY = 0.2;
+export const FOREROUND_OPACITY = 1;
 
 export const VolsegTransform: StateTransformer.Builder.Root = StateTransformer.builderFactory('volseg');
 
@@ -106,19 +112,17 @@ export namespace MeshlistData {
 }
 
 
-
 // // // // // // // // // // // // // // // // // // // // // // // //
 // Raw Data -> Parsed data
 
 export class MeshlistStateObject extends PluginStateObject.Create<MeshlistData>({ name: 'Parsed Meshlist', typeClass: 'Object' }) { }
-// QUESTION: is typeClass just for color, or does do something?
 
 export const ParseMeshlistTransformer = VolsegTransform({
     name: 'meshlist-from-string',
     from: PluginStateObject.Format.Cif,
     to: MeshlistStateObject,
     params: {
-        label: PD.Text(MeshlistStateObject.type.name, { isHidden: true }), // QUESTION: Is this the right way to pass a value to apply() without exposing it in GUI?
+        label: PD.Text(MeshlistStateObject.type.name, { isHidden: true }),
         segmentId: PD.Numeric(1, {}, { isHidden: true }),
         segmentName: PD.Text('Segment'),
         detail: PD.Numeric(1, {}, { isHidden: true }),
@@ -148,47 +152,32 @@ namespace MeshShapeProvider {
         return {
             label: 'Mesh',
             data: meshlist,
-            params: meshParamDef, // TODO how to pass the real params correctly?
+            params: meshShapeProviderParams,
             geometryUtils: Mesh.Utils,
             getShape: (ctx, data: MeshlistData) => MeshlistData.getShape(data, theColor),
         };
     }
 }
 
-/** Params for MeshShapeTransformer */
-const meshShapeParamDef = {
-    color: PD.Value<Color | undefined>(undefined), // undefined means random color
+const meshShapeProviderParams: Mesh.Params = {
+    ...Mesh.Params,
+    quality: PD.Select<VisualQuality>('custom', VisualQualityOptions, { isEssential: true, description: 'Visual/rendering quality of the representation.' }), // use 'custom' when wanting to apply doubleSided
+    doubleSided: PD.Boolean(true, BaseGeometry.CustomQualityParamInfo),
+    // set `flatShaded`: true to see the real mesh vertices and triangles
+    transparentBackfaces: PD.Select('on', PD.arrayToOptions(['off', 'on', 'opaque']), BaseGeometry.ShadingCategory), // 'on' means: show backfaces with correct opacity, even when opacity < 1 (requires doubleSided) ¯\_(ツ)_/¯
 };
 
-const meshParamDef: Mesh.Params = {
-    // These are basically original MS.Mesh.Params:
-    // BaseGeometry.Params
-    alpha: PD.Numeric(1, { min: 0, max: 1, step: 0.01 }, { label: 'Opacity', isEssential: true, description: 'How opaque/transparent the representation is rendered.' }),
-    quality: PD.Select<VisualQuality>('custom', VisualQualityOptions, { isEssential: true, description: 'Visual/rendering quality of the representation.' }), // use 'custom' when wanting to apply doubleSided
-    material: Material.getParam(),
-    clip: Mesh.Params.clip, // PD.Group(MS.Clip.Params),
-    instanceGranularity: PD.Boolean(false, { description: 'Use instance granularity for marker, transparency, clipping, overpaint, substance data to save memory.' }),
-    // Mesh.Params
-    doubleSided: PD.Boolean(true, BaseGeometry.CustomQualityParamInfo), // default: false (set true, to show at least something in weird cases)
-    flipSided: PD.Boolean(false, BaseGeometry.ShadingCategory),
-    flatShaded: PD.Boolean(false, BaseGeometry.ShadingCategory), // default: false (set true to see the real mesh vertices and triangles)
-    ignoreLight: PD.Boolean(false, BaseGeometry.ShadingCategory),
-    xrayShaded: PD.Boolean(false, BaseGeometry.ShadingCategory), // this is like better opacity (angle-dependent), nice
-    transparentBackfaces: PD.Select('off', PD.arrayToOptions(['off', 'on', 'opaque']), BaseGeometry.ShadingCategory),
-    bumpFrequency: PD.Numeric(0, { min: 0, max: 10, step: 0.1 }, BaseGeometry.ShadingCategory),
-    bumpAmplitude: PD.Numeric(1, { min: 0, max: 5, step: 0.1 }, BaseGeometry.ShadingCategory),
-    // TODO when I change values here, it has effect, but not if I change them in GUI
-};
 
 export const MeshShapeTransformer = VolsegTransform({
     name: 'shape-from-meshlist',
     display: { name: 'Shape from Meshlist', description: 'Create Shape from Meshlist data' },
     from: MeshlistStateObject,
     to: PluginStateObject.Shape.Provider,
-    params: meshShapeParamDef
+    params: {
+        color: PD.Value<Color | undefined>(undefined), // undefined means random color
+    },
 })({
     apply({ a, params }) {
-        // you can look for example at ShapeFromPly in mol-plugin-state/tansforms/model.ts as an example
         const shapeProvider = MeshShapeProvider.fromMeshlistData(a.data, params.color);
         return new PluginStateObject.Shape.Provider(shapeProvider, { label: PluginStateObject.Shape.Provider.type.name, description: a.description });
     }
@@ -196,32 +185,39 @@ export const MeshShapeTransformer = VolsegTransform({
 
 
 // // // // // // // // // // // // // // // // // // // // // // // //
-// Shape -> Repr
 
-// type MeshRepr = MS.PluginStateObject.Representation3DData<MS.ShapeRepresentation<MS.ShapeProvider<any,any,any>, MS.Mesh, MS.Mesh.Params>, any>;
 
-// export const CustomMeshReprTransformer = VolsegTransform({
-//     name: 'custom-repr',
-//     from: MS.PluginStateObject.Shape.Provider, // later we can change this
-//     to: MS.PluginStateObject.Shape.Representation3D,
-// })({
-//     apply({ a }, globalCtx) {
-//         const repr: MeshRepr = createRepr(a.data); // TODO implement createRepr
-//         // have a look at MS.StateTransforms.Representation.ShapeRepresentation3D if you want to try implementing yourself
-//         return new MS.PluginStateObject.Shape.Representation3D(repr)
-//     },
-// })
+/** Download data and create state tree hierarchy down to visual representation. */
+export async function createMeshFromUrl(plugin: PluginContext, meshDataUrl: string, segmentId: number, detail: number,
+    collapseTree: boolean, color?: Color, parent?: StateObjectSelector | StateObjectRef, transparentIfBboxAbove?: number,
+    name?: string, ownerId?: string) {
 
-// export async function createMeshRepr(plugin: MS.PluginContext, data: any) {
-//     await plugin.build()
-//         .toRoot()
-//         .apply(CreateMyShapeTransformer, { data })
-//         .apply(MS.StateTransforms.Representation.ShapeRepresentation3D) // this should work
-//         // or .apply(CustomMeshRepr)
-//         .commit();
-// }
+    const update = parent ? plugin.build().to(parent) : plugin.build().toRoot();
+    const rawDataNodeRef = update.apply(Download,
+        { url: meshDataUrl, isBinary: true, label: `Downloaded Data ${segmentId}` },
+        { state: { isCollapsed: collapseTree } }
+    ).ref;
+    const parsedDataNode = await update.to(rawDataNodeRef)
+        .apply(StateTransforms.Data.ParseCif)
+        .apply(ParseMeshlistTransformer,
+            { label: undefined, segmentId: segmentId, segmentName: name ?? `Segment ${segmentId}`, detail: detail, ownerId: ownerId },
+            {}
+        )
+        .commit();
 
-// export function createRepr(reprData: MS.ShapeProvider<any,any,any>): MeshRepr {
-//     throw new Error('NotImplemented');
-//     return {} as MeshRepr;
-// }
+    let transparent = false;
+    if (transparentIfBboxAbove !== undefined && parsedDataNode.data) {
+        const bbox = MeshlistData.bbox(parsedDataNode.data) || Box3D.zero();
+        transparent = Box3D.volume(bbox) > transparentIfBboxAbove;
+    }
+
+    await plugin.build().to(parsedDataNode)
+        .apply(MeshShapeTransformer, { color: color },)
+        .apply(ShapeRepresentation3D,
+            { alpha: transparent ? BACKGROUND_OPACITY : FOREROUND_OPACITY },
+            { tags: ['mesh-segment-visual', `segment-${segmentId}`] }
+        )
+        .commit();
+
+    return rawDataNodeRef;
+}

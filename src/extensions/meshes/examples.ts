@@ -6,18 +6,14 @@
 
 /** Testing examples for using mesh-extension.ts. */
 
-import { ParseMeshlistTransformer, MeshShapeTransformer, MeshlistData } from './mesh-extension';
+import { createMeshFromUrl } from './mesh-extension';
 import * as MeshUtils from './mesh-utils';
-import { BACKGROUND_OPACITY, FOREROUND_OPACITY, InitMeshStreaming } from './mesh-streaming/transformers';
+import { InitMeshStreaming } from './mesh-streaming/transformers';
 import { MeshServerInfo } from './mesh-streaming/server-info';
 import { PluginUIContext } from '../../mol-plugin-ui/context';
-import { PluginContext } from '../../mol-plugin/context';
-import { StateObjectRef, StateObjectSelector } from '../../mol-state';
+import { StateObjectSelector } from '../../mol-state';
 import { Color } from '../../mol-util/color';
-import { Download } from '../../mol-plugin-state/transforms/data';
 import { StateTransforms } from '../../mol-plugin-state/transforms';
-import { Box3D } from '../../mol-math/geometry';
-import { ShapeRepresentation3D } from '../../mol-plugin-state/transforms/representation';
 import { ParamDefinition } from '../../mol-util/param-definition';
 import { PluginStateObject } from '../../mol-plugin-state/objects';
 import { createStructureRepresentationParams } from '../../mol-plugin-state/helpers/structure-representation-params';
@@ -76,41 +72,6 @@ export async function runMultimeshExample(plugin: PluginUIContext, segments: 'fg
     const urlDetail = (detailChoice === 'best') ? '2' : 'worst';
     const numDetail = (detailChoice === 'best') ? 2 : 1000;
     await createMeshFromUrl(plugin, `${db_url}/empiar-10070-multimesh-rounded/segments-${segments}/detail-${urlDetail}`, 0, numDetail, false, undefined);
-}
-
-/** Download data and create state tree hierarchy down to visual representation. */
-export async function createMeshFromUrl(plugin: PluginContext, meshDataUrl: string, segmentId: number, detail: number,
-    collapseTree: boolean, color?: Color, parent?: StateObjectSelector | StateObjectRef, transparentIfBboxAbove?: number,
-    name?: string, ownerId?: string) {
-
-    const update = parent ? plugin.build().to(parent) : plugin.build().toRoot();
-    const rawDataNodeRef = update.apply(Download,
-        { url: meshDataUrl, isBinary: true, label: `Downloaded Data ${segmentId}` },
-        { state: { isCollapsed: collapseTree } }
-    ).ref;
-    const parsedDataNode = await update.to(rawDataNodeRef)
-        .apply(StateTransforms.Data.ParseCif)
-        .apply(ParseMeshlistTransformer,
-            { label: undefined, segmentId: segmentId, segmentName: name ?? `Segment ${segmentId}`, detail: detail, ownerId: ownerId },
-            {}
-        )
-        .commit();
-
-    let transparent = false;
-    if (transparentIfBboxAbove !== undefined && parsedDataNode.data) {
-        const bbox = MeshlistData.bbox(parsedDataNode.data) || Box3D.zero();
-        transparent = Box3D.volume(bbox) > transparentIfBboxAbove;
-    }
-
-    await plugin.build().to(parsedDataNode)
-        .apply(MeshShapeTransformer, { color: color },)
-        .apply(ShapeRepresentation3D,
-            { alpha: transparent ? BACKGROUND_OPACITY : FOREROUND_OPACITY },
-            { tags: ['mesh-segment-visual', `segment-${segmentId}`] }
-        )
-        .commit();
-
-    return rawDataNodeRef;
 }
 
 export async function runMeshStreamingExample(plugin: PluginUIContext, source: MeshServerInfo.MeshSource = 'empiar', entryId: string = 'empiar-10070', serverUrl?: string, parent?: StateObjectSelector) {
@@ -212,7 +173,7 @@ export async function runCifMeshExample(plugin: PluginUIContext, api: string = '
 }
 
 async function getMeshFromBcif(plugin: PluginUIContext, url: string) {
-    const urlAsset = Asset.getUrlAsset(plugin.managers.asset, url); // QUESTION how is urlAsset better than normal `fetch`
+    const urlAsset = Asset.getUrlAsset(plugin.managers.asset, url);
     const asset = await plugin.runTask(plugin.managers.asset.resolve(urlAsset, 'binary'));
     const parsed = await plugin.runTask(CIF.parseBinary(asset.data));
     if (parsed.isError) {
