@@ -6,6 +6,8 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Fixed a bug in mesh visualization (show backfaces when opacity < 1)
+
 ## [v3.28.0] - 2022-12-20
 
 - Show histogram in direct volume control point settings
