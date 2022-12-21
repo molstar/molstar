@@ -330,7 +330,7 @@ class VolumeRepresentationControls extends PurePluginUIComponent<{ representatio
         const color = this.color;
         return <>
             <div className='msp-flex-row'>
-                {color !== void 0 && <VolumeColorSelect toggle={this.toggleColor} color={this.color} />}
+                {color !== void 0 && <Button style={{ backgroundColor: Color.toStyle(color), minWidth: 32, width: 32 }} onClick={this.toggleColor} />}
                 <Button noOverflow className='msp-control-button-label' title={`${repr.obj?.label}. Click to focus.`} onClick={this.focus} onMouseEnter={this.highlight} onMouseLeave={this.clearHighlight} style={{ textAlign: 'left' }}>
                     {repr.obj?.label}
                     <small className='msp-25-lower-contrast-text' style={{ float: 'right' }}>{repr.obj?.description}</small>
@@ -353,7 +353,3 @@ class VolumeRepresentationControls extends PurePluginUIComponent<{ representatio
 }
 
 const VolumeColorParam = ParamDefinition.Color(Color(0x121212));
-
-function VolumeColorSelect({ color, toggle }: { color: Color, toggle: () => void }) {
-    return <Button style={{ backgroundColor: Color.toStyle(color), minWidth: 32, width: 32 }} onClick={toggle} />;
-}
