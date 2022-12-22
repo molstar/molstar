@@ -599,7 +599,7 @@ export const LoadCellPackModel = StateAction.build({
                 interiorDarkening: 0.15,
             },
             marking: {
-                enabled: false,
+                enabled: true,
                 ghostEdgeStrength: 1,
             },
             postprocessing: {

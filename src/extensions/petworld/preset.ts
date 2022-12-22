@@ -91,7 +91,7 @@ export const PetworldPreset = TrajectoryHierarchyPresetProvider({
                 interiorDarkening: 0.15,
             },
             marking: {
-                enabled: false,
+                enabled: true,
                 ghostEdgeStrength: 1,
             },
             postprocessing: {
@@ -134,7 +134,7 @@ export const PetworldPreset = TrajectoryHierarchyPresetProvider({
         for (let i = 0; i < tr.frameCount; i++) {
             const structure = await state.build()
                 .to(trajectory)
-                .apply(StructureFromPetworld, { modelIndex: i })
+                .apply(StructureFromPetworld, { modelIndex: i }, { tags: 'Entity' })
                 .commit({ revertOnError: true });
 
             structures.push(structure);

@@ -14,7 +14,7 @@ import { IngredientFiles } from './util';
 import { Asset } from '../../mol-util/assets';
 import { PluginContext } from '../../mol-plugin/context';
 import { CellPackInfoProvider } from './property';
-import { Structure, StructureSymmetry, Unit, Model } from '../../mol-model/structure';
+import { Structure, StructureSymmetry, Unit, Model, StructureElement, StructureProperties } from '../../mol-model/structure';
 import { ModelSymmetry } from '../../mol-model-formats/structure/property/symmetry';
 import { Vec3, Quat } from '../../mol-math/linear-algebra';
 import { StateTransformer } from '../../mol-state';
@@ -251,7 +251,7 @@ const StructureFromCellpack = PluginStateTransform.BuiltIn({
 export { StructureFromAssemblies };
 type StructureFromAssemblies = typeof StructureFromAssemblies
 const StructureFromAssemblies = PluginStateTransform.BuiltIn({
-    name: 'Structure from all assemblies',
+    name: 'structure-from-all-assemblies',
     display: { name: 'Structure from all assemblies' },
     from: PSO.Molecule.Model,
     to: PSO.Molecule.Structure,
@@ -303,13 +303,13 @@ const StructureFromAssemblies = PluginStateTransform.BuiltIn({
 const CreateTransformer = StateTransformer.builderFactory('cellPACK');
 export const CreateCompartmentSphere = CreateTransformer({
     name: 'create-compartment-sphere',
-    display: 'CompartmentSphere',
+    display: 'Compartment Sphere',
     from: PSO.Root, // or whatever data source
     to: PSO.Shape.Representation3D,
     params: {
         center: PD.Vec3(Vec3()),
         radius: PD.Numeric(1),
-        label: PD.Text(`Compartment Sphere`)
+        label: PD.Text('Compartment Sphere')
     }
 })({
     canAutoUpdate({ oldParams, newParams }) {
@@ -322,5 +322,45 @@ export const CreateCompartmentSphere = CreateTransformer({
             await repr.createOrUpdate({ ...params, quality: 'custom', xrayShaded: true, doubleSided: true }, data).runInContext(ctx);
             return new PSO.Shape.Representation3D({ repr, sourceData: a }, { label: data.label });
         });
+    }
+});
+
+export { EntityStructure };
+type EntityStructure = typeof EntityStructure
+const EntityStructure = PluginStateTransform.BuiltIn({
+    name: 'entity-structure',
+    display: { name: 'Entity Structure' },
+    from: PSO.Molecule.Structure,
+    to: PSO.Molecule.Structure,
+    params: {
+        entityId: PD.Text('')
+    }
+})({
+    canAutoUpdate({ newParams }) {
+        return true;
+    },
+    apply({ a, params }) {
+        return Task.create('Build Structure', async ctx => {
+            const base = a.data;
+            const builder = Structure.Builder();
+
+            const l = StructureElement.Location.create(base);
+
+            for (const u of base.units) {
+                l.unit = u;
+                l.element = u.elements[0];
+                const entityId = StructureProperties.entity.id(l);
+                if (entityId === params.entityId) {
+                    builder.addUnit(u.kind, u.model, u.conformation.operator, u.elements, u.traits, u.invariantId);
+                }
+            }
+
+            const structure = builder.getStructure();
+
+            return new PSO.Molecule.Structure(structure, { label: a.label, description: `${a.description}` });
+        });
+    },
+    dispose({ b }) {
+        b?.data.customPropertyDescriptors.dispose();
     }
 });

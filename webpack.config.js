@@ -11,6 +11,7 @@ const tests = [
 module.exports = [
     createApp('viewer', 'molstar'),
     createApp('docking-viewer', 'molstar'),
+    createApp('mesoscale-explorer', 'molstar'),
     ...examples.map(createExample),
     ...tests.map(createBrowserTest)
 ];

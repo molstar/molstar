@@ -13,6 +13,8 @@ import { CellPackGenerateColorThemeProvider } from './color/generate';
 import { TrajectoryHierarchyPresetProvider } from '../../mol-plugin-state/builder/structure/hierarchy-preset';
 import { CellPackInfoProvider } from './property';
 import { CellPackColorThemeProvider } from './color/basic';
+import { EntityStructure } from './state';
+import { PluginStateObject } from '../../mol-plugin-state/objects';
 
 export const CellpackPackingPresetParams = {
     traceOnly: PD.Boolean(false),
@@ -159,21 +161,32 @@ export const CellpackPreset = TrajectoryHierarchyPresetProvider({
     },
     async apply(trajectory, params, plugin) {
         const builder = plugin.builders.structure;
+        const state = plugin.state.data;
 
         const model = await builder.createModel(trajectory, { modelIndex: 0 });
         const modelProperties = await builder.insertModelProperties(model);
+        const entities = model.data!.entities.data;
 
-        const structure = await builder.createStructure(modelProperties || model, { name: 'assembly', params: { id: '1' } });
-        const structureProperties = await builder.insertStructureProperties(structure);
+        const base = await builder.createStructure(modelProperties || model, { name: 'assembly', params: { id: '1' } }, undefined, entities._rowCount === 1 ? 'Entity' : undefined);
 
-        const representation = await plugin.builders.structure.representation.applyPreset(structureProperties, CellpackPackingPreset);
+        const structures: StateObjectRef<PluginStateObject.Molecule.Structure>[] = [];
 
-        return {
-            model,
-            modelProperties,
-            structure,
-            structureProperties,
-            representation
-        };
+        if (entities._rowCount > 1) {
+            for (let i = 0; i < entities._rowCount; ++i) {
+                const structure = await state.build()
+                    .to(base)
+                    .apply(EntityStructure, { entityId: entities.id.value(i) }, { tags: 'Entity' })
+                    .commit({ revertOnError: true });
+
+                structures.push(structure);
+
+                await builder.representation.applyPreset(structure, CellpackPackingPreset);
+            }
+        } else {
+            structures.push(base);
+            await builder.representation.applyPreset(base, CellpackPackingPreset);
+        }
+
+        return { structures };
     }
 });

@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+        <link rel="icon" href="./favicon.ico" type="image/x-icon">
+        <title>Mol* Mesoscale Explorer</title>
+        <style>
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+            html, body {
+                width: 100%;
+                height: 100%;
+                overflow: hidden;
+            }
+            hr {
+                margin: 10px;
+            }
+            h1, h2, h3, h4, h5 {
+                margin-top: 5px;
+                margin-bottom: 3px;
+            }
+            button {
+                padding: 2px;
+            }
+            #app {
+                position: absolute;
+                left: 100px;
+                top: 100px;
+                width: 800px;
+                height: 600px;
+            }
+        </style>
+        <link rel="stylesheet" type="text/css" href="molstar.css" />
+    </head>
+    <body>
+        <div id="app"></div>
+        <script type="text/javascript" src="./molstar.js"></script>
+        <script type="text/javascript">
+            function getParam(name, regex) {
+                var r = new RegExp(name + '=' + '(' + regex + ')[&]?', 'i');
+                return decodeURIComponent(((window.location.search || '').match(r) || [])[1] || '');
+            }
+
+            var debugMode = getParam('debug-mode', '[^&]+').trim() === '1';
+            if (debugMode) molstar.setDebugMode(debugMode);
+
+            var timingMode = getParam('timing-mode', '[^&]+').trim() === '1';
+            if (timingMode) molstar.setTimingMode(timingMode);
+
+            var hideControls = getParam('hide-controls', '[^&]+').trim() === '1';
+            var collapseLeftPanel = getParam('collapse-left-panel', '[^&]+').trim() === '1';
+            var pixelScale = getParam('pixel-scale', '[^&]+').trim();
+            var pickScale = getParam('pick-scale', '[^&]+').trim();
+            var pickPadding = getParam('pick-padding', '[^&]+').trim();
+            var disableWboit = getParam('disable-wboit', '[^&]+').trim() === '1';
+            var enableDpoit = getParam('enable-dpoit', '[^&]+').trim() === '1';
+            var preferWebgl1 = getParam('prefer-webgl1', '[^&]+').trim() === '1' || void 0;
+            var allowMajorPerformanceCaveat = getParam('allow-major-performance-caveat', '[^&]+').trim() === '1';
+            var powerPreference = getParam('power-preference', '[^&]+').trim().toLowerCase();
+
+            molstar.Viewer.create('app', {
+                layoutShowControls: !hideControls,
+                viewportShowExpand: false,
+                collapseLeftPanel: collapseLeftPanel,
+                pixelScale: parseFloat(pixelScale) || 1,
+                pickScale: parseFloat(pickScale) || 0.25,
+                pickPadding: isNaN(parseFloat(pickPadding)) ? 1 : parseFloat(pickPadding),
+                enableWboit: (disableWboit || enableDpoit) ? false : void 0, // use default value if disable-wboit is not set
+                enableDpoit: enableDpoit ? true : void 0,
+                preferWebgl1: preferWebgl1,
+                allowMajorPerformanceCaveat: allowMajorPerformanceCaveat,
+                powerPreference: powerPreference || 'high-performance',
+            }).then(viewer => {
+
+            });
+        </script>
+        <!-- __MOLSTAR_ANALYTICS__ -->
+    </body>
+</html>
