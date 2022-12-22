@@ -13,10 +13,9 @@ import { MolScriptBuilder } from '../../mol-script/language/builder';
 const B = MolScriptBuilder;
 import { Expression } from '../language/expression';
 import { KeywordDict, PropertyDict, FunctionDict, OperatorList } from './types';
+import { escapeRegExp } from '../../mol-util/string';
 
-export function escapeRegExp(s: String) {
-    return String(s).replace(/[\\^$*+?.()|[\]{}]/g, '\\$&');
-}
+export { escapeRegExp };
 
 // Takes a parser for the prefix operator, and a parser for the base thing being
 // parsed, and parses as many occurrences as possible of the prefix operator.
