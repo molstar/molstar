@@ -13,13 +13,9 @@ import { Task } from '../../../mol-task';
 import { shallowEqualObjects } from '../../../mol-util';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 
-import { VolsegTransform, MeshlistData } from '../mesh-extension';
+import { BACKGROUND_OPACITY, FOREROUND_OPACITY, MeshlistData, VolsegTransform } from '../mesh-extension';
 import { MeshStreaming, NO_SEGMENT } from './behavior';
 import { MeshServerInfo } from './server-info';
-
-
-export const BACKGROUND_OPACITY = 0.2;
-export const FOREROUND_OPACITY = 1;
 
 
 // // // // // // // // // // // // // // // // // // // // // // // //

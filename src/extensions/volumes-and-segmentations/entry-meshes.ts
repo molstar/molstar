@@ -12,8 +12,8 @@ import { PluginCommands } from '../../mol-plugin/commands';
 import { Color } from '../../mol-util/color';
 import { ColorNames } from '../../mol-util/color/names';
 
-import { createMeshFromUrl } from '../meshes/examples';
 import { BACKGROUND_SEGMENT_VOLUME_THRESHOLD } from '../meshes/mesh-streaming/behavior';
+import { createMeshFromUrl } from '../meshes/mesh-extension';
 
 import { Segment } from './volseg-api/data';
 import { VolsegEntryData } from './entry-root';
