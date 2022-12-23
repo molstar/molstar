@@ -25,9 +25,7 @@ import { AnimateStateInterpolation } from '../mol-plugin-state/animation/built-i
 import { AnimateStructureSpin } from '../mol-plugin-state/animation/built-in/spin-structure';
 import { AnimateCameraRock } from '../mol-plugin-state/animation/built-in/camera-rock';
 
-export { PluginSpec };
-
-interface PluginSpec {
+export interface PluginSpec {
     actions?: PluginSpec.Action[],
     behaviors: PluginSpec.Behavior[],
     animations?: PluginStateAnimation[],
@@ -39,7 +37,7 @@ interface PluginSpec {
     config?: [PluginConfigItem, unknown][]
 }
 
-namespace PluginSpec {
+export namespace PluginSpec {
     export interface Action {
         action: StateAction | StateTransformer,
         /* constructible react component with <action.customControl /> */

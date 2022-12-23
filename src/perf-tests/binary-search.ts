@@ -1,3 +1,4 @@
+export {}; // isolated-modules ts option
 
 function createData(n: number) {
     const data = []; // new Int32Array(n);
@@ -39,17 +40,6 @@ function setSearch(set: Set<number>, val: number) {
 type Mask = { min: number, max: number, mask: ArrayLike<number> }
 function maskSearch({ min, max, mask }: Mask, val: number) {
     return val >= min && val <= max && !!mask[val - min];
-}
-
-function prepare(list: ArrayLike<number>) {
-    const obj = Object.create(null), set = new Set<number>();
-    for (let i = 0; i < list.length; i++) {
-        const v = list[i];
-        obj[v] = i;
-        set.add(v);
-    }
-
-    return { list, obj, set };
 }
 
 function prepareSet(list: ArrayLike<number>) {

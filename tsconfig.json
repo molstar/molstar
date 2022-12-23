@@ -9,6 +9,7 @@
         "noUnusedLocals": true,
         "strictNullChecks": true,
         "strictFunctionTypes": true,
+        "isolatedModules": true,
         "module": "esnext",
         "esModuleInterop": true,
         "moduleResolution": "node",

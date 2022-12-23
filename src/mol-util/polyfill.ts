@@ -4,6 +4,8 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+export {};
+
 if (typeof window !== 'undefined') {
     (function () {
         // Console-polyfill. MIT license.

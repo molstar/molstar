@@ -4,13 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-interface Writer {
+export interface Writer {
     writeString(data: string): boolean,
     writeBinary(data: Uint8Array): boolean
 }
-
-namespace Writer {
-
-}
-
-export { Writer };

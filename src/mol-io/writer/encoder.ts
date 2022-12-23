@@ -6,10 +6,8 @@
 
 import { Writer } from './writer';
 
-interface Encoder {
+export interface Encoder {
     encode(): void,
     writeTo(writer: Writer): void,
     getSize(): number
 }
-
-export { Encoder };

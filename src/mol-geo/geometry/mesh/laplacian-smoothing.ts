@@ -4,6 +4,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+export {};
+
 // TODO
 
 //     function addVertex(src: Float32Array, i: number, dst: Float32Array, j: number) {

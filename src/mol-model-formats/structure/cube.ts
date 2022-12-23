@@ -64,9 +64,7 @@ async function getModels(cube: CubeFile, ctx: RuntimeContext) {
 
 //
 
-export { CubeFormat };
-
-type CubeFormat = ModelFormat<CubeFile>
+export type CubeFormat = ModelFormat<CubeFile>
 
 namespace MolFormat {
     export function is(x?: ModelFormat): x is CubeFormat {

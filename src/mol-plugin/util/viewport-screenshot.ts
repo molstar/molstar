@@ -20,16 +20,14 @@ import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { SetUtils } from '../../mol-util/set';
 import { PluginContext } from '../context';
 
-export { ViewportScreenshotHelper, ViewportScreenshotHelperParams };
-
-namespace ViewportScreenshotHelper {
+export namespace ViewportScreenshotHelper {
     export type ResolutionSettings = PD.Values<ReturnType<ViewportScreenshotHelper['createParams']>>['resolution']
     export type ResolutionTypes = ResolutionSettings['name']
 }
 
-type ViewportScreenshotHelperParams = PD.Values<ReturnType<ViewportScreenshotHelper['createParams']>>
+export type ViewportScreenshotHelperParams = PD.Values<ReturnType<ViewportScreenshotHelper['createParams']>>
 
-class ViewportScreenshotHelper extends PluginComponent {
+export class ViewportScreenshotHelper extends PluginComponent {
     private createParams() {
         const max = Math.min(this.plugin.canvas3d ? this.plugin.canvas3d.webgl.maxRenderbufferSize : 4096, 4096);
         return {

@@ -12,9 +12,7 @@ import { DefaultPluginSpec, PluginSpec } from '../mol-plugin/spec';
 import { StateAction, StateTransformer } from '../mol-state';
 import { VolumeStreamingCustomControls } from './custom/volume';
 
-export { PluginUISpec };
-
-interface PluginUISpec extends PluginSpec {
+export interface PluginUISpec extends PluginSpec {
     customParamEditors?: [StateAction | StateTransformer, StateTransformParameters.Class][],
     components?: {
         controls?: PluginUISpec.LayoutControls
@@ -29,7 +27,7 @@ interface PluginUISpec extends PluginSpec {
     },
 }
 
-namespace PluginUISpec {
+export namespace PluginUISpec {
     export interface LayoutControls {
         top?: React.ComponentClass | 'none',
         left?: React.ComponentClass | 'none',
