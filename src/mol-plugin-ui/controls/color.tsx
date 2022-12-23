@@ -14,9 +14,9 @@ import { ParamProps } from './parameters';
 import { TextInput, Button, ControlRow } from './common';
 import { DefaultColorSwatch } from '../../mol-util/color/swatches';
 
-export class CombinedColorControl extends React.PureComponent<ParamProps<PD.Color>, { isExpanded: boolean, lightness: number }> {
+export class CombinedColorControl extends React.PureComponent<ParamProps<PD.Color> & { hideNameRow?: boolean }, { isExpanded: boolean, lightness: number }> {
     state = {
-        isExpanded: !!this.props.param.isExpanded,
+        isExpanded: !!this.props.param.isExpanded || !!this.props.hideNameRow,
         lightness: 0
     };
 
@@ -72,21 +72,30 @@ export class CombinedColorControl extends React.PureComponent<ParamProps<PD.Colo
     render() {
         const label = this.props.param.label || camelCaseToWords(this.props.name);
         const [r, g, b] = Color.toRgb(this.props.value);
+
+        const inner = <>
+            {this.swatch()}
+            <ControlRow label='RGB' className='msp-control-label-short' control={<div style={{ display: 'flex', textAlignLast: 'center', left: '80px' }}>
+                <TextInput onChange={this.onR} numeric value={r} delayMs={250} style={{ order: 1, flex: '1 1 auto', minWidth: 0 }} className='msp-form-control' onEnter={this.props.onEnter} blurOnEnter={true} blurOnEscape={true} />
+                <TextInput onChange={this.onG} numeric value={g} delayMs={250} style={{ order: 2, flex: '1 1 auto', minWidth: 0 }} className='msp-form-control' onEnter={this.props.onEnter} blurOnEnter={true} blurOnEscape={true} />
+                <TextInput onChange={this.onB} numeric value={b} delayMs={250} style={{ order: 3, flex: '1 1 auto', minWidth: 0 }} className='msp-form-control' onEnter={this.props.onEnter} blurOnEnter={true} blurOnEscape={true} />
+            </div>} />
+            <div style={{ display: 'flex', textAlignLast: 'center' }}>
+                <Button onClick={this.onLighten} style={{ order: 1, flex: '1 1 auto', minWidth: 0 }} className='msp-form-control'>Lighten</Button>
+                <Button onClick={this.onDarken} style={{ order: 1, flex: '1 1 auto', minWidth: 0 }} className='msp-form-control'>Darken</Button>
+            </div>
+        </>;
+
+        if (this.props.hideNameRow) {
+            return inner;
+        }
+
         return <>
             <ControlRow title={this.props.param.description}
                 label={label}
                 control={<Button onClick={this.toggleExpanded} inline className='msp-combined-color-button' style={{ background: Color.toStyle(this.props.value) }} />} />
             {this.state.isExpanded && <div className='msp-control-offset'>
-                {this.swatch()}
-                <ControlRow label='RGB' className='msp-control-label-short' control={<div style={{ display: 'flex', textAlignLast: 'center', left: '80px' }}>
-                    <TextInput onChange={this.onR} numeric value={r} delayMs={250} style={{ order: 1, flex: '1 1 auto', minWidth: 0 }} className='msp-form-control' onEnter={this.props.onEnter} blurOnEnter={true} blurOnEscape={true} />
-                    <TextInput onChange={this.onG} numeric value={g} delayMs={250} style={{ order: 2, flex: '1 1 auto', minWidth: 0 }} className='msp-form-control' onEnter={this.props.onEnter} blurOnEnter={true} blurOnEscape={true} />
-                    <TextInput onChange={this.onB} numeric value={b} delayMs={250} style={{ order: 3, flex: '1 1 auto', minWidth: 0 }} className='msp-form-control' onEnter={this.props.onEnter} blurOnEnter={true} blurOnEscape={true} />
-                </div>}/>
-                <div style={{ display: 'flex', textAlignLast: 'center' }}>
-                    <Button onClick={this.onLighten} style={{ order: 1, flex: '1 1 auto', minWidth: 0 }} className='msp-form-control'>Lighten</Button>
-                    <Button onClick={this.onDarken} style={{ order: 1, flex: '1 1 auto', minWidth: 0 }} className='msp-form-control'>Darken</Button>
-                </div>
+                {inner}
             </div>}
         </>;
     }

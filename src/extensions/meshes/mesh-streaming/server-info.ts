@@ -7,7 +7,7 @@
 import { PluginStateObject } from '../../../mol-plugin-state/objects';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 
-import { Choice } from '../choice';
+import { Choice } from '../../volumes-and-segmentations/helpers';
 
 
 export const DEFAULT_MESH_SERVER = 'http://localhost:9000/v2';

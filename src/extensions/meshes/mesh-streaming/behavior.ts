@@ -19,9 +19,10 @@ import { Color } from '../../../mol-util/color';
 import { ColorNames } from '../../../mol-util/color/names';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 
-import { Choice } from '../choice';
+import { Choice } from '../../volumes-and-segmentations/helpers';
+import { MetadataWrapper } from '../../volumes-and-segmentations/volseg-api/utils';
+
 import { MeshlistData } from '../mesh-extension';
-import { Metadata } from '../metadata';
 import { MeshServerInfo } from './server-info';
 
 
@@ -33,8 +34,6 @@ const MAX_DETAIL = 10;
 const DEFAULT_DETAIL = 7; // TODO decide a reasonable default
 /** Segments whose bounding box volume is above this value (relative to the overall bounding box) are considered as background segments */
 export const BACKGROUND_SEGMENT_VOLUME_THRESHOLD = 0.5;
-// const DEBUG_IGNORED_SEGMENTS = new Set([13, 15]); // TODO remove
-const DEBUG_IGNORED_SEGMENTS = new Set(); // TODO remove
 
 
 export class MeshStreaming extends PluginStateObject.CreateBehavior<MeshStreaming.Behavior>({ name: 'Mesh Streaming' }) { }
@@ -116,7 +115,7 @@ export namespace MeshStreaming {
         private id: string;
         private ref: string = '';
         public parentData: MeshServerInfo.Data;
-        private metadata?: Metadata;
+        private metadata?: MetadataWrapper;
         public visuals?: { [tag: string]: VisualInfo };
         public backgroundSegments: { [segmentId: number]: boolean } = {};
         private focusObservable = this.plugin.behaviors.interaction.click.pipe( // QUESTION is this OK way to get focused segment?
@@ -165,7 +164,8 @@ export namespace MeshStreaming {
 
             if (!this.metadata) {
                 const response = await fetch(this.getMetadataUrl());
-                this.metadata = await response.json();
+                const rawMetadata = await response.json();
+                this.metadata = new MetadataWrapper(rawMetadata);
             }
 
             if (!this.visuals) {
@@ -209,13 +209,10 @@ export namespace MeshStreaming {
         }
 
         private initVisualInfos() {
-            const namesAndColors = Metadata.namesAndColorsBySegment(this.metadata!);
-
             const visuals: { [tag: string]: VisualInfo } = {};
-            for (const segid of Metadata.meshSegments(this.metadata!)) {
-                if (DEBUG_IGNORED_SEGMENTS.has(segid)) continue;
-                const name = namesAndColors[segid]?.name ?? DEFAULT_SEGMENT_NAME;
-                const color = namesAndColors[segid]?.color ?? DEFAULT_SEGMENT_COLOR;
+            for (const segid of this.metadata!.meshSegmentIds) {
+                const name = this.metadata?.getSegment(segid)?.biological_annotation.name ?? DEFAULT_SEGMENT_NAME;
+                const color = this.metadata?.getSegmentColor(segid) ?? DEFAULT_SEGMENT_COLOR;
                 for (const detailType of VisualInfo.DetailTypes) {
                     const visual: VisualInfo = {
                         tag: VisualInfo.tagFor(segid, detailType),
@@ -254,7 +251,7 @@ export namespace MeshStreaming {
                 const visual = this.visuals[tag];
                 const preferredDetail = (visual.detailType === 'high') ? highDetail : lowDetail;
                 if (preferredDetail !== undefined) {
-                    visual.detail = Metadata.getSufficientDetail(this.metadata!, visual.segmentId, preferredDetail);
+                    visual.detail = this.metadata!.getSufficientMeshDetail(visual.segmentId, preferredDetail);
                 }
             }
         }
