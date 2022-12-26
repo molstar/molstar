@@ -38,14 +38,14 @@ export interface RendererStats {
     instancedDrawCount: number
 }
 
-export const enum PickType {
+export enum PickType {
     None = 0,
     Object = 1,
     Instance = 2,
     Group = 3,
 }
 
-export const enum MarkingType {
+export enum MarkingType {
     None = 0,
     Depth = 1,
     Mask = 2,
