@@ -33,7 +33,7 @@ export const SaccharideColors = ColorMap({
     Secondary: 0xf1ece1
 });
 
-export const enum SaccharideType {
+export enum SaccharideType {
     Hexose, HexNAc, Hexosamine, Hexuronate, Deoxyhexose, DeoxyhexNAc, DiDeoxyhexose,
     Pentose, Deoxynonulosonate, DiDeoxynonulosonate, Unknown, Assigned
 }

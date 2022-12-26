@@ -99,7 +99,7 @@ export const NumberType = {
     Float: 1,
     Scientific: 2,
     NaN: 3
-};
+} as const;
 export type NumberType = 0 | 1 | 2 | 3
 
 function isInt(str: string, start: number, end: number) {

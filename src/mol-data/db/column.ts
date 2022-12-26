@@ -112,7 +112,7 @@ namespace Column {
         NotPresent: 1,
         /** Expressed in CIF as `?` (= 2) */
         Unknown: 2
-    };
+    } as const;
     export type ValueKind = 0 | 1 | 2;
 
 
