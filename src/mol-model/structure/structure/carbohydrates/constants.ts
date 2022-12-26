@@ -10,7 +10,7 @@ import { SaccharideNames } from '../../model/types/saccharides';
 
 // follows community standard from https://www.ncbi.nlm.nih.gov/glycans/snfg.html
 
-export const enum SaccharideShape {
+export enum SaccharideShape {
     // standard shapes
     FilledSphere, FilledCube, CrossedCube, DividedDiamond, FilledCone, DevidedCone,
     FlatBox, FilledStar, FilledDiamond, FlatDiamond, FlatHexagon, Pentagon,
