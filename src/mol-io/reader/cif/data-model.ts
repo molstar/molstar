@@ -124,12 +124,12 @@ export namespace CifField {
         const float: CifField['float'] = row => { const v = values[row]; return fastParseFloat(v, 0, v.length) || 0; };
         const valueKind: CifField['valueKind'] = row => {
             const v = values[row], l = v.length;
-            if (l > 1) return Column.ValueKindConst.Present;
-            if (l === 0) return Column.ValueKindConst.NotPresent;
+            if (l > 1) return Column.ValueKinds.Present;
+            if (l === 0) return Column.ValueKinds.NotPresent;
             const c = v.charCodeAt(0);
-            if (c === 46 /* . */) return Column.ValueKindConst.NotPresent;
-            if (c === 63 /* ? */) return Column.ValueKindConst.Unknown;
-            return Column.ValueKindConst.Present;
+            if (c === 46 /* . */) return Column.ValueKinds.NotPresent;
+            if (c === 63 /* ? */) return Column.ValueKinds.Unknown;
+            return Column.ValueKinds.Present;
         };
 
         return {
@@ -152,7 +152,7 @@ export namespace CifField {
         const rowCount = values.length;
         const str: CifField['str'] = row => { return '' + values[row]; };
         const float: CifField['float'] = row => values[row];
-        const valueKind: CifField['valueKind'] = row => Column.ValueKindConst.Present;
+        const valueKind: CifField['valueKind'] = row => Column.ValueKinds.Present;
 
         const toFloatArray = (params: Column.ToArrayParams<number>) => {
             if (!params || params.array && values instanceof params.array) {
@@ -197,12 +197,12 @@ export namespace CifField {
 
         const valueKind: CifField['valueKind'] = row => {
             const s = indices[2 * row], l = indices[2 * row + 1] - s;
-            if (l > 1) return Column.ValueKindConst.Present;
-            if (l === 0) return Column.ValueKindConst.NotPresent;
+            if (l > 1) return Column.ValueKinds.Present;
+            if (l === 0) return Column.ValueKinds.NotPresent;
             const v = data.charCodeAt(s);
-            if (v === 46 /* . */) return Column.ValueKindConst.NotPresent;
-            if (v === 63 /* ? */) return Column.ValueKindConst.Unknown;
-            return Column.ValueKindConst.Present;
+            if (v === 46 /* . */) return Column.ValueKinds.NotPresent;
+            if (v === 63 /* ? */) return Column.ValueKinds.Unknown;
+            return Column.ValueKinds.Present;
         };
 
         return {
@@ -328,7 +328,7 @@ export function getCifFieldType(field: CifField): Column.Schema.Int | Column.Sch
     let floatCount = 0, hasStringOrScientific = false, undefinedCount = 0;
     for (let i = 0, _i = field.rowCount; i < _i; i++) {
         const k = field.valueKind(i);
-        if (k !== Column.ValueKindConst.Present) {
+        if (k !== Column.ValueKinds.Present) {
             undefinedCount++;
             continue;
         }

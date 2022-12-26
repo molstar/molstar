@@ -79,8 +79,8 @@ function addSrc(seqToSrcByModelEntity: Map<string, Int16Array>, srcKeySerialMap:
         const sK = srcKey(modelIndex, entityId, scientific_name.value(j), pdbx_src_id.value(j), plasmid, gene);
 
         // may not be given (= 0) indicating src is for the whole seq
-        const beg = pdbx_beg_seq_num.valueKind(j) === Column.ValueKindConst.Present ? pdbx_beg_seq_num.value(j) : 1;
-        const end = pdbx_end_seq_num.valueKind(j) === Column.ValueKindConst.Present ? pdbx_end_seq_num.value(j) : seqToSrc.length;
+        const beg = pdbx_beg_seq_num.valueKind(j) === Column.ValueKinds.Present ? pdbx_beg_seq_num.value(j) : 1;
+        const end = pdbx_end_seq_num.valueKind(j) === Column.ValueKinds.Present ? pdbx_end_seq_num.value(j) : seqToSrc.length;
 
         let srcIndex: number; // serial no starting from 1
         if (srcKeySerialMap.has(sK)) {
