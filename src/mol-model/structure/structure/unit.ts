@@ -122,7 +122,7 @@ namespace Unit {
     }
 
     export type Traits = BitFlags<Trait>
-    export const enum Trait {
+    export enum Trait {
         None = 0x0,
         MultiChain = 0x1,
         Partitioned = 0x2

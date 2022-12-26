@@ -26,7 +26,7 @@ namespace Clipping {
     export type Groups = BitFlags<Groups.Flag>
     export namespace Groups {
         export const is: (g: Groups, f: Flag) => boolean = BitFlags.has;
-        export const enum Flag {
+        export enum Flag {
             None = 0x0,
             One = 0x1,
             Two = 0x2,

@@ -19,7 +19,7 @@ type HoverEvent = import('../canvas3d').Canvas3D.HoverEvent
 type DragEvent = import('../canvas3d').Canvas3D.DragEvent
 type ClickEvent = import('../canvas3d').Canvas3D.ClickEvent
 
-const enum InputEvent { Move, Click, Drag }
+enum InputEvent { Move, Click, Drag }
 
 const tmpPosA = Vec3();
 const tmpPos = Vec3();

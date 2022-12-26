@@ -118,12 +118,12 @@ namespace InteractionsInterContacts {
     export type Props = { type: InteractionType, flag: InteractionFlag }
 }
 
-export const enum InteractionFlag {
+export enum InteractionFlag {
     None = 0,
     Filtered = 1,
 }
 
-export const enum InteractionType {
+export enum InteractionType {
     Unknown = 0,
     Ionic = 1,
     CationPi = 2,
@@ -158,7 +158,7 @@ export function interactionTypeLabel(type: InteractionType): string {
     }
 }
 
-export const enum FeatureType {
+export enum FeatureType {
     None = 0,
     PositiveCharge = 1,
     NegativeCharge = 2,
@@ -208,7 +208,7 @@ export function featureTypeLabel(type: FeatureType): string {
     }
 }
 
-export const enum FeatureGroup {
+export enum FeatureGroup {
     None = 0,
     QuaternaryAmine = 1,
     TertiaryAmine = 2,
