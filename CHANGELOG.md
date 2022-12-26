@@ -9,6 +9,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - `meshes` extension: Fixed a bug in mesh visualization (show backfaces when opacity < 1) 
 - Add color quick select control to Volume controls
 - Fix `dropFiles` bug
+- Fix some cyclic imports and reduce the use of const enums. This should make it easier to use the library with the `isolatedModules: true` TS config.
 
 ## [v3.28.0] - 2022-12-20
 
