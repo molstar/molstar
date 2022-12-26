@@ -4,13 +4,14 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { ColorTheme } from '../color';
+import type { ColorTheme } from '../color';
 import { Color, ColorScale } from '../../mol-util/color';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { ThemeDataContext } from '../theme';
 import { ColorNames } from '../../mol-util/color/names';
 import { ColorTypeDirect } from '../../mol-geo/geometry/color-data';
 import { Volume } from '../../mol-model/volume/volume';
+import { ColorThemeCategory } from './_categories';
 
 const Description = 'Assign color based on the given value of a volume cell.';
 
@@ -54,7 +55,7 @@ export function VolumeValueColorTheme(ctx: ThemeDataContext, props: PD.Values<Vo
 export const VolumeValueColorThemeProvider: ColorTheme.Provider<VolumeValueColorThemeParams, 'volume-value'> = {
     name: 'volume-value',
     label: 'Volume Value',
-    category: ColorTheme.Category.Misc,
+    category: ColorThemeCategory.Misc,
     factory: VolumeValueColorTheme,
     getParams: getVolumeValueColorThemeParams,
     defaultValues: PD.getDefaultValues(VolumeValueColorThemeParams),

@@ -6,12 +6,13 @@
 
 import { Color } from '../../mol-util/color';
 import { Location } from '../../mol-model/location';
-import { ColorTheme, LocationColor } from '../color';
+import type { ColorTheme, LocationColor } from '../color';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { ThemeDataContext } from '../../mol-theme/theme';
 import { getPaletteParams, getPalette } from '../../mol-util/color/palette';
 import { TableLegend, ScaleLegend } from '../../mol-util/legend';
 import { Volume } from '../../mol-model/volume/volume';
+import { ColorThemeCategory } from './_categories';
 
 const DefaultColor = Color(0xCCCCCC);
 const Description = 'Gives every volume segment a unique color.';
@@ -60,7 +61,7 @@ export function VolumeSegmentColorTheme(ctx: ThemeDataContext, props: PD.Values<
 export const VolumeSegmentColorThemeProvider: ColorTheme.Provider<VolumeSegmentColorThemeParams, 'volume-segment'> = {
     name: 'volume-segment',
     label: 'Volume Segment',
-    category: ColorTheme.Category.Misc,
+    category: ColorThemeCategory.Misc,
     factory: VolumeSegmentColorTheme,
     getParams: getVolumeSegmentColorThemeParams,
     defaultValues: PD.getDefaultValues(VolumeSegmentColorThemeParams),

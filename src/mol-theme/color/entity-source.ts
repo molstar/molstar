@@ -7,7 +7,7 @@
 import { StructureProperties, StructureElement, Bond, Model } from '../../mol-model/structure';
 import { Color } from '../../mol-util/color';
 import { Location } from '../../mol-model/location';
-import { ColorTheme, LocationColor } from '../color';
+import type { ColorTheme, LocationColor } from '../color';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { ThemeDataContext } from '../../mol-theme/theme';
 import { Table, Column } from '../../mol-data/db';
@@ -17,6 +17,7 @@ import { TableLegend, ScaleLegend } from '../../mol-util/legend';
 import { isInteger } from '../../mol-util/number';
 import { ColorLists, getColorListFromName } from '../../mol-util/color/lists';
 import { MmcifFormat } from '../../mol-model-formats/structure/mmcif';
+import { ColorThemeCategory } from './_categories';
 
 const DefaultList = 'dark-2';
 const DefaultColor = Color(0xFAFAFA);
@@ -178,7 +179,7 @@ export function EntitySourceColorTheme(ctx: ThemeDataContext, props: PD.Values<E
 export const EntitySourceColorThemeProvider: ColorTheme.Provider<EntitySourceColorThemeParams, 'entity-source'> = {
     name: 'entity-source',
     label: 'Entity Source',
-    category: ColorTheme.Category.Chain,
+    category: ColorThemeCategory.Chain,
     factory: EntitySourceColorTheme,
     getParams: getEntitySourceColorThemeParams,
     defaultValues: PD.getDefaultValues(EntitySourceColorThemeParams),
