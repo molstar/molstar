@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -30,7 +30,7 @@ export class CombinedColorControl extends React.PureComponent<ParamProps<PD.Colo
     };
 
     onClickSwatch = (e: React.MouseEvent<HTMLButtonElement>) => {
-        const value = Color(+(e.currentTarget.getAttribute('data-color') || '0'));
+        const value = Color.fromHexString(e.currentTarget.getAttribute('data-color') || '0');
         if (value !== this.props.value) {
             if (!this.props.param.isExpanded) this.setState({ isExpanded: false });
             this.update(value);
@@ -52,6 +52,11 @@ export class CombinedColorControl extends React.PureComponent<ParamProps<PD.Colo
     onB = (v: number) => {
         const [r, g] = Color.toRgb(this.props.value);
         const value = Color.fromRgb(r, g, v);
+        if (value !== this.props.value) this.update(value);
+    };
+
+    onRGB = (e: React.MouseEvent<HTMLInputElement>) => {
+        const value = Color.fromHexStyle(e.currentTarget.value || '0');
         if (value !== this.props.value) this.update(value);
     };
 
@@ -79,6 +84,7 @@ export class CombinedColorControl extends React.PureComponent<ParamProps<PD.Colo
                 <TextInput onChange={this.onR} numeric value={r} delayMs={250} style={{ order: 1, flex: '1 1 auto', minWidth: 0 }} className='msp-form-control' onEnter={this.props.onEnter} blurOnEnter={true} blurOnEscape={true} />
                 <TextInput onChange={this.onG} numeric value={g} delayMs={250} style={{ order: 2, flex: '1 1 auto', minWidth: 0 }} className='msp-form-control' onEnter={this.props.onEnter} blurOnEnter={true} blurOnEscape={true} />
                 <TextInput onChange={this.onB} numeric value={b} delayMs={250} style={{ order: 3, flex: '1 1 auto', minWidth: 0 }} className='msp-form-control' onEnter={this.props.onEnter} blurOnEnter={true} blurOnEscape={true} />
+                <input onInput={this.onRGB} type='color' value={Color.toHexStyle(this.props.value)} style={{ order: 4, flex: '1 1 auto', minWidth: '32px', width: '32px', height: '32px', padding: '0 2px 0 2px', background: 'none', border: 'none', cursor: 'pointer' }}></input>
             </div>} />
             <div style={{ display: 'flex', textAlignLast: 'center' }}>
                 <Button onClick={this.onLighten} style={{ order: 1, flex: '1 1 auto', minWidth: 0 }} className='msp-form-control'>Lighten</Button>
