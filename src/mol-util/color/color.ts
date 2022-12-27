@@ -19,6 +19,10 @@ export namespace Color {
         return `rgb(${hexColor >> 16 & 255}, ${hexColor >> 8 & 255}, ${hexColor & 255})`;
     }
 
+    export function toHexStyle(hexColor: Color) {
+        return '#' + ('000000' + hexColor.toString(16)).slice(-6);
+    }
+
     export function toHexString(hexColor: Color) {
         return '0x' + ('000000' + hexColor.toString(16)).slice(-6);
     }
@@ -33,6 +37,14 @@ export namespace Color {
 
     export function toRgbNormalized(hexColor: Color): [number, number, number] {
         return [(hexColor >> 16 & 255) / 255, (hexColor >> 8 & 255) / 255, (hexColor & 255) / 255];
+    }
+
+    export function fromHexStyle(s: string): Color {
+        return parseInt(s.replace('#', '0x')) as Color;
+    }
+
+    export function fromHexString(s: string): Color {
+        return parseInt(s) as Color;
     }
 
     export function fromRgb(r: number, g: number, b: number): Color {
