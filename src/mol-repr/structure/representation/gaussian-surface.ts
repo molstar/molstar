@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -28,7 +28,7 @@ export const GaussianSurfaceParams = {
 };
 export type GaussianSurfaceParams = typeof GaussianSurfaceParams
 export function getGaussianSurfaceParams(ctx: ThemeRegistryContext, structure: Structure) {
-    return PD.clone(GaussianSurfaceParams);
+    return GaussianSurfaceParams;
 }
 
 export type GaussianSurfaceRepresentation = StructureRepresentation<GaussianSurfaceParams>

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -22,7 +22,7 @@ export const LabelParams = {
 };
 export type LabelParams = typeof LabelParams
 export function getLabelParams(ctx: ThemeRegistryContext, structure: Structure) {
-    return PD.clone(LabelParams);
+    return LabelParams;
 }
 
 export type LabelRepresentation = StructureRepresentation<LabelParams>
