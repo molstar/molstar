@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -106,7 +106,11 @@ export class ParameterControls<P extends PD.Params> extends React.PureComponent<
     }
 }
 
-export class ParameterMappingControl<S, T> extends PluginUIComponent<{ mapping: ParamMapping<S, T, PluginUIContext> }> {
+export class ParameterMappingControl<S, T> extends PluginUIComponent<{ mapping: ParamMapping<S, T, PluginUIContext> }, { isDisabled: boolean }> {
+    state = {
+        isDisabled: false,
+    };
+
     setSettings = (p: { param: PD.Base<any>, name: string, value: any }, old: any) => {
         const values = { ...old, [p.name]: p.value };
         const t = this.props.mapping.update(values, this.plugin);
@@ -115,13 +119,17 @@ export class ParameterMappingControl<S, T> extends PluginUIComponent<{ mapping: 
 
     componentDidMount() {
         this.subscribe(this.plugin.events.canvas3d.settingsUpdated, () => this.forceUpdate());
+
+        this.subscribe(this.plugin.state.data.behaviors.isUpdating, v => {
+            this.setState({ isDisabled: v });
+        });
     }
 
     render() {
         const t = this.props.mapping.getTarget(this.plugin);
         const values = this.props.mapping.getValues(t, this.plugin);
         const params = this.props.mapping.params(this.plugin) as any as PD.Params;
-        return <ParameterControls params={params} values={values} onChange={this.setSettings} />;
+        return <ParameterControls params={params} values={values} onChange={this.setSettings} isDisabled={this.state.isDisabled} />;
     }
 }
 
