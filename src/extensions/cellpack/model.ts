@@ -520,6 +520,7 @@ async function loadPackings(plugin: PluginContext, runtime: RuntimeContext, stat
             traceOnly: params.preset.traceOnly,
             ignoreLight: params.preset.adjustStyle,
             representation: params.preset.representation,
+            uniformColor: undefined,
         };
         await CellpackPackingPreset.apply(packing, packingParams, plugin);
         if (packings[i].compartment) {

@@ -9,15 +9,18 @@ import { StateObjectRef } from '../../mol-state';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { TrajectoryHierarchyPresetProvider } from '../../mol-plugin-state/builder/structure/hierarchy-preset';
 import { StructureFromPetworld } from './model';
-import { ColorLists } from '../../mol-util/color/lists';
-import { PetworldColorThemeProvider } from './color';
+import { PetworldColorThemeParams, PetworldColorThemeProvider } from './color';
 import { PluginStateObject } from '../../mol-plugin-state/objects';
 import { ColorNames } from '../../mol-util/color/names';
+import { StateTransforms } from '../../mol-plugin-state/transforms';
+import { distinctColors } from '../../mol-util/color/distinct';
+import { Color } from '../../mol-util/color';
 
 export const PetworldPresetParams = {
     traceOnly: PD.Boolean(false),
     ignoreLight: PD.Boolean(true),
     representation: PD.Select('spacefill', PD.arrayToOptions(['gaussian-surface', 'spacefill', 'point', 'orientation'] as const)),
+    uniformColor: PD.Color(Color(0xFFFFFF)),
 };
 export type PetworldPresetParams = PD.ValuesFor<typeof PetworldPresetParams>
 
@@ -48,10 +51,13 @@ const PetworldStructurePreset = StructureRepresentationPresetProvider({
         };
 
         const color = PetworldColorThemeProvider.name;
+        const colorParams: PD.Values<PetworldColorThemeParams> = {
+            value: params.uniformColor
+        };
 
         const { update, builder, typeParams } = StructureRepresentationPresetProvider.reprBuilder(plugin, {});
         const representations = {
-            all: builder.buildRepresentation<any>(update, components.all, { type: 'spacefill', typeParams: { ...typeParams, ...reprProps }, color, colorParams: { palette: { name: 'colors', params: { list: { colors: ColorLists['many-distinct'].list } } } } }, { tag: 'all' }),
+            all: builder.buildRepresentation<any>(update, components.all, { type: 'spacefill', typeParams: { ...typeParams, ...reprProps }, color, colorParams }, { tag: 'all' }),
         };
 
         await update.commit({ revertOnError: true });
@@ -131,15 +137,33 @@ export const PetworldPreset = TrajectoryHierarchyPresetProvider({
 
         const structures: StateObjectRef<PluginStateObject.Molecule.Structure>[] = [];
 
+        const group = await state.build()
+            .to(trajectory)
+            .group(StateTransforms.Misc.CreateGroup, { label: 'root' }, { tags: 'Entity' })
+            .commit({ revertOnError: true });
+
+        const colors = distinctColors(tr.frameCount, {
+            hue: [1, 360],
+            chroma: [30, 80],
+            luminance: [15, 85],
+            clusteringStepCount: 50,
+            minSampleCount: 800,
+        });
+
         for (let i = 0; i < tr.frameCount; i++) {
             const structure = await state.build()
-                .to(trajectory)
+                .to(group)
                 .apply(StructureFromPetworld, { modelIndex: i }, { tags: 'Entity' })
                 .commit({ revertOnError: true });
 
             structures.push(structure);
 
-            await builder.representation.applyPreset(structure, PetworldStructurePreset);
+            await builder.representation.applyPreset(structure, PetworldStructurePreset, {
+                traceOnly: false,
+                ignoreLight: true,
+                representation: 'spacefill',
+                uniformColor: colors[i],
+            });
         }
 
         return { structures };

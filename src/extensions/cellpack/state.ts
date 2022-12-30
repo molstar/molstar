@@ -357,7 +357,12 @@ const EntityStructure = PluginStateTransform.BuiltIn({
 
             const structure = builder.getStructure();
 
-            return new PSO.Molecule.Structure(structure, { label: a.label, description: `${a.description}` });
+            const { entities } = a.data.model;
+            const idx = entities.getEntityIndex(params.entityId);
+            const description = entities.data.pdbx_description.value(idx)[0] || 'model';
+            const label = description.split('.').at(-1) || a.label;
+
+            return new PSO.Molecule.Structure(structure, { label, description: `${a.description}` });
         });
     },
     dispose({ b }) {

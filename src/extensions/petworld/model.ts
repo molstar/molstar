@@ -43,7 +43,7 @@ const StructureFromPetworld = PluginStateTransform.BuiltIn({
             const s = await buildModelsAssembly(a.data, '1', params.modelIndex).runInContext(ctx);
             if (!s) return StateObject.Null;
 
-            const props = { label: 'PetWorld', description: Structure.elementDescription(s) };
+            const props = { label: s.model.label, description: Structure.elementDescription(s) };
             return new SO.Molecule.Structure(s, props);
         });
     },

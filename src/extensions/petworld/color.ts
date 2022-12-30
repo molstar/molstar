@@ -11,14 +11,13 @@ import { ColorTheme, LocationColor } from '../../mol-theme/color';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { ThemeDataContext } from '../../mol-theme/theme';
 import { ColorNames } from '../../mol-util/color/names';
-import { getPalette, getPaletteParams } from '../../mol-util/color/palette';
 import { MmcifFormat } from '../../mol-model-formats/structure/mmcif';
 
 const DefaultPetworldColor = Color(0xEEEE00);
 const Description = 'Petworld coloring.';
 
 export const PetworldColorThemeParams = {
-    ...getPaletteParams({ type: 'colors', colorList: 'many-distinct' }),
+    value: PD.Color(Color(0xCCCCCC))
 };
 export type PetworldColorThemeParams = typeof PetworldColorThemeParams
 export function getPetworldColorThemeParams(ctx: ThemeDataContext) {
@@ -36,9 +35,6 @@ export function PetworldColorTheme(ctx: ThemeDataContext, props: PD.Values<Petwo
 
     const source = ctx.structure?.model.sourceData;
     if (MmcifFormat.is(source)) {
-        const pdbx_model = source.data.frame.categories.pdbx_model.getField('name')!;
-        const palette = getPalette(pdbx_model.rowCount, props);
-
         color = (location: Location): Color => {
             if (StructureElement.Location.is(location)) {
                 if (Unit.isAtomic(location.unit)) {
@@ -47,7 +43,7 @@ export function PetworldColorTheme(ctx: ThemeDataContext, props: PD.Values<Petwo
                         return ColorNames.lightgrey;
                     }
                 }
-                return palette.color(location.unit.model.modelNum - 1);
+                return props.value;
             } else if (Bond.isLocation(location)) {
                 if (Unit.isAtomic(location.aUnit)) {
                     const compId = getAtomicCompId(location.aUnit, location.aUnit.elements[location.aIndex]);
@@ -55,7 +51,7 @@ export function PetworldColorTheme(ctx: ThemeDataContext, props: PD.Values<Petwo
                         return ColorNames.lightgrey;
                     }
                 }
-                return palette.color(location.aUnit.model.modelNum - 1);
+                return props.value;
             }
             return DefaultPetworldColor;
         };
