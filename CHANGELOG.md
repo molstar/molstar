@@ -6,9 +6,15 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
-- `meshes` extension: Fixed a bug in mesh visualization (show backfaces when opacity < 1) 
+- `meshes` extension: Fixed a bug in mesh visualization (show backfaces when opacity < 1)
 - Add color quick select control to Volume controls
-- Fix `dropFiles` bug
+- Fix `dropFiles` bug (#679)
+- Add `input type='color'` picker to `CombinedColorControl`
+- Set `ParameterMappingControl` disabled when state is updating
+- Performance tweaks
+    - Update clip `defines` only when changed
+    - Check for identity in structure/unit areEqual methods
+    - Avoid cloning of structure representation parameters
 
 ## [v3.28.0] - 2022-12-20
 
