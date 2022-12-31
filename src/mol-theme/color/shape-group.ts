@@ -10,7 +10,7 @@ import { Location } from '../../mol-model/location';
 import { ShapeGroup } from '../../mol-model/shape';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { ThemeDataContext } from '../../mol-theme/theme';
-import { ColorThemeCategory } from './_categories';
+import { ColorThemeCategory } from './categories';
 
 const DefaultColor = Color(0xCCCCCC);
 const Description = 'Assigns colors as defined by the shape object.';

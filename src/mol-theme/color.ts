@@ -42,7 +42,7 @@ import { ModelIndexColorThemeProvider } from './color/model-index';
 import { StructureIndexColorThemeProvider } from './color/structure-index';
 import { VolumeSegmentColorThemeProvider } from './color/volume-segment';
 import { ExternalVolumeColorThemeProvider } from './color/external-volume';
-import { ColorThemeCategory } from './color/_categories';
+import { ColorThemeCategory } from './color/categories';
 
 export type LocationColor = (location: Location, isSecondary: boolean) => Color
 

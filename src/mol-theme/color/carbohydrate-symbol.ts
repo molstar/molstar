@@ -12,7 +12,7 @@ import { Color } from '../../mol-util/color';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { ThemeDataContext } from '../theme';
 import { TableLegend } from '../../mol-util/legend';
-import { ColorThemeCategory } from './_categories';
+import { ColorThemeCategory } from './categories';
 
 const DefaultColor = Color(0xCCCCCC);
 const Description = 'Assigns colors according to the Symbol Nomenclature for Glycans (SNFG).';

@@ -10,7 +10,7 @@ import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { ThemeDataContext } from '../theme';
 import { TableLegend } from '../../mol-util/legend';
 import { defaults } from '../../mol-util';
-import { ColorThemeCategory } from './_categories';
+import { ColorThemeCategory } from './categories';
 
 const DefaultColor = Color(0xCCCCCC);
 const Description = 'Gives everything the same, uniform color.';

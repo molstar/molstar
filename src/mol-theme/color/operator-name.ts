@@ -12,7 +12,7 @@ import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { ThemeDataContext } from '../theme';
 import { getPaletteParams, getPalette } from '../../mol-util/color/palette';
 import { ScaleLegend, TableLegend } from '../../mol-util/legend';
-import { ColorThemeCategory } from './_categories';
+import { ColorThemeCategory } from './categories';
 
 const DefaultList = 'many-distinct';
 const DefaultColor = Color(0xCCCCCC);

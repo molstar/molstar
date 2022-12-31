@@ -12,7 +12,7 @@ import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { ThemeDataContext } from '../../mol-theme/theme';
 import { getPaletteParams, getPalette } from '../../mol-util/color/palette';
 import { TableLegend, ScaleLegend } from '../../mol-util/legend';
-import { ColorThemeCategory } from './_categories';
+import { ColorThemeCategory } from './categories';
 
 const DefaultColor = Color(0xCCCCCC);
 const Description = 'Gives every structure a unique color based on its index.';

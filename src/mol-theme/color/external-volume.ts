@@ -14,7 +14,7 @@ import { type PluginContext } from '../../mol-plugin/context';
 import { isPositionLocation } from '../../mol-geo/util/location-iterator';
 import { Mat4, Vec3 } from '../../mol-math/linear-algebra';
 import { lerp } from '../../mol-math/interpolate';
-import { ColorThemeCategory } from './_categories';
+import { ColorThemeCategory } from './categories';
 
 const Description = `Assigns a color based volume value at a given vertex.`;
 

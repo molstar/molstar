@@ -13,7 +13,7 @@ import { ThemeDataContext } from '../../mol-theme/theme';
 import { TableLegend, ScaleLegend } from '../../mol-util/legend';
 import { getPaletteParams, getPalette } from '../../mol-util/color/palette';
 import { ColorLists, getColorListFromName } from '../../mol-util/color/lists';
-import { ColorThemeCategory } from './_categories';
+import { ColorThemeCategory } from './categories';
 
 const DefaultList = 'dark-2';
 const DefaultColor = Color(0xCCCCCC);

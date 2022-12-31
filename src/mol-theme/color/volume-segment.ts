@@ -12,7 +12,7 @@ import { ThemeDataContext } from '../../mol-theme/theme';
 import { getPaletteParams, getPalette } from '../../mol-util/color/palette';
 import { TableLegend, ScaleLegend } from '../../mol-util/legend';
 import { Volume } from '../../mol-model/volume/volume';
-import { ColorThemeCategory } from './_categories';
+import { ColorThemeCategory } from './categories';
 
 const DefaultColor = Color(0xCCCCCC);
 const Description = 'Gives every volume segment a unique color.';

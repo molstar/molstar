@@ -17,7 +17,7 @@ import { TableLegend, ScaleLegend } from '../../mol-util/legend';
 import { isInteger } from '../../mol-util/number';
 import { ColorLists, getColorListFromName } from '../../mol-util/color/lists';
 import { MmcifFormat } from '../../mol-model-formats/structure/mmcif';
-import { ColorThemeCategory } from './_categories';
+import { ColorThemeCategory } from './categories';
 
 const DefaultList = 'dark-2';
 const DefaultColor = Color(0xFAFAFA);

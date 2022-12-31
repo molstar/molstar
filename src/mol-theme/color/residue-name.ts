@@ -13,7 +13,7 @@ import { ThemeDataContext } from '../theme';
 import { TableLegend } from '../../mol-util/legend';
 import { getAdjustedColorMap } from '../../mol-util/color/color';
 import { getColorMapParams } from '../../mol-util/color/params';
-import { ColorThemeCategory } from './_categories';
+import { ColorThemeCategory } from './categories';
 
 // protein colors from Jmol http://jmol.sourceforge.net/jscolors/
 export const ResidueNameColors = ColorMap({

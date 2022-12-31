@@ -19,7 +19,7 @@ import { MoleculeTypeColorTheme, MoleculeTypeColorThemeParams } from './molecule
 import { EntitySourceColorTheme, EntitySourceColorThemeParams } from './entity-source';
 import { ModelIndexColorTheme, ModelIndexColorThemeParams } from './model-index';
 import { StructureIndexColorTheme, StructureIndexColorThemeParams } from './structure-index';
-import { ColorThemeCategory } from './_categories';
+import { ColorThemeCategory } from './categories';
 
 const DefaultIllustrativeColor = Color(0xEEEEEE);
 const Description = `Assigns an illustrative color that gives every chain a color based on the chosen style but with lighter carbons (inspired by David Goodsell's Molecule of the Month style).`;

@@ -11,7 +11,7 @@ import { ThemeDataContext } from '../theme';
 import { ColorNames } from '../../mol-util/color/names';
 import { ColorTypeDirect } from '../../mol-geo/geometry/color-data';
 import { Volume } from '../../mol-model/volume/volume';
-import { ColorThemeCategory } from './_categories';
+import { ColorThemeCategory } from './categories';
 
 const Description = 'Assign color based on the given value of a volume cell.';
 

@@ -15,7 +15,7 @@ import { getPalette, getPaletteParams } from '../../mol-util/color/palette';
 import { TableLegend, ScaleLegend } from '../../mol-util/legend';
 import { Segmentation } from '../../mol-data/int';
 import { ColorLists, getColorListFromName } from '../../mol-util/color/lists';
-import { ColorThemeCategory } from './_categories';
+import { ColorThemeCategory } from './categories';
 
 const DefaultList = 'dark-2';
 const DefaultColor = Color(0xFAFAFA);

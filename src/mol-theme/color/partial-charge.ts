@@ -11,7 +11,7 @@ import type { ColorTheme } from '../color';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { ThemeDataContext } from '../theme';
 import { AtomPartialCharge } from '../../mol-model-formats/structure/property/partial-charge';
-import { ColorThemeCategory } from './_categories';
+import { ColorThemeCategory } from './categories';
 
 const DefaultPartialChargeColor = Color(0xffff99);
 const Description = `Assigns a color based on the partial charge of an atom.`;

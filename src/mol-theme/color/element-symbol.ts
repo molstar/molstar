@@ -21,7 +21,7 @@ import { assertUnreachable } from '../../mol-util/type-helpers';
 import { EntitySourceColorTheme, EntitySourceColorThemeParams } from './entity-source';
 import { ModelIndexColorTheme, ModelIndexColorThemeParams } from './model-index';
 import { StructureIndexColorTheme, StructureIndexColorThemeParams } from './structure-index';
-import { ColorThemeCategory } from './_categories';
+import { ColorThemeCategory } from './categories';
 
 // from Jmol http://jmol.sourceforge.net/jscolors/ (or 0xFFFFFF)
 export const ElementSymbolColors = ColorMap({
