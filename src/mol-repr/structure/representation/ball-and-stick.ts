@@ -37,7 +37,7 @@ export const BallAndStickParams = {
 };
 export type BallAndStickParams = typeof BallAndStickParams
 export function getBallAndStickParams(ctx: ThemeRegistryContext, structure: Structure) {
-    return PD.clone(BallAndStickParams);
+    return BallAndStickParams;
 }
 
 export type BallAndStickRepresentation = StructureRepresentation<BallAndStickParams>

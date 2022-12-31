@@ -132,8 +132,8 @@ export namespace BaseGeometry {
         ValueCell.updateIfChanged(values.uBumpiness, props.material.bumpiness);
 
         const clip = Clip.getClip(props.clip);
-        ValueCell.update(values.dClipObjectCount, clip.objects.count);
-        ValueCell.update(values.dClipVariant, clip.variant);
+        ValueCell.updateIfChanged(values.dClipObjectCount, clip.objects.count);
+        ValueCell.updateIfChanged(values.dClipVariant, clip.variant);
         ValueCell.update(values.uClipObjectType, clip.objects.type);
         ValueCell.update(values.uClipObjectInvert, clip.objects.invert);
         ValueCell.update(values.uClipObjectPosition, clip.objects.position);

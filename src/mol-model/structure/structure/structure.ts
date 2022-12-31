@@ -1059,6 +1059,7 @@ namespace Structure {
     }
 
     export function areUnitIdsAndIndicesEqual(a: Structure, b: Structure) {
+        if (a === b) return true;
         if (!areUnitIdsEqual(a, b)) return false;
 
         for (let i = 0, il = a.units.length; i < il; i++) {

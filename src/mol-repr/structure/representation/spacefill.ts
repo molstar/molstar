@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -22,12 +22,17 @@ export const SpacefillParams = {
     bumpFrequency: PD.Numeric(1, { min: 0, max: 10, step: 0.1 }, BaseGeometry.ShadingCategory),
 };
 export type SpacefillParams = typeof SpacefillParams
+
+let CoarseGrainedSpacefillParams: SpacefillParams;
 export function getSpacefillParams(ctx: ThemeRegistryContext, structure: Structure) {
-    const params = PD.clone(SpacefillParams);
     if (structure.isCoarseGrained) {
-        params.sizeFactor.defaultValue = 2;
+        if (!CoarseGrainedSpacefillParams) {
+            CoarseGrainedSpacefillParams = PD.clone(SpacefillParams);
+            CoarseGrainedSpacefillParams.sizeFactor.defaultValue = 2;
+        }
+        return CoarseGrainedSpacefillParams;
     }
-    return params;
+    return SpacefillParams;
 }
 
 export type SpacefillRepresentation = StructureRepresentation<SpacefillParams>
