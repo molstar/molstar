@@ -95,12 +95,12 @@ export const enum NumberTypes {
 }
 
 export const NumberType = {
-    Int: 0,
-    Float: 1,
-    Scientific: 2,
-    NaN: 3
+    Int: NumberTypes.Int,
+    Float: NumberTypes.Float,
+    Scientific: NumberTypes.Scientific,
+    NaN: NumberTypes.NaN
 } as const;
-export type NumberType = 0 | 1 | 2 | 3
+export type NumberType = (typeof NumberType)[keyof typeof NumberType];
 
 function isInt(str: string, start: number, end: number) {
     if (str.charCodeAt(start) === 45 /* - */) { start++; }

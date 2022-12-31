@@ -107,13 +107,13 @@ namespace Column {
 
     export const ValueKind = {
         /** Defined value (= 0) */
-        Present: 0,
+        Present: ValueKinds.Present,
         /** Expressed in CIF as `.` (= 1) */
-        NotPresent: 1,
+        NotPresent: ValueKinds.NotPresent,
         /** Expressed in CIF as `?` (= 2) */
-        Unknown: 2
+        Unknown: ValueKinds.Unknown
     } as const;
-    export type ValueKind = 0 | 1 | 2;
+    export type ValueKind = (typeof ValueKind)[keyof typeof ValueKinds];
 
 
     export function Undefined<T extends Schema>(rowCount: number, schema: T): Column<T['T']> {

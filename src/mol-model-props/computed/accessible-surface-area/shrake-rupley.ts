@@ -96,11 +96,11 @@ namespace AccessibleSurfaceArea {
     }
 
     export const Flag = {
-        NA: 0x0,
-        Buried: 0x1,
-        Accessible: 0x2
+        NA: Flags.NA,
+        Buried: Flags.Buried,
+        Accessible: Flags.Accessible
     } as const;
-    export type Flag = 0x0 | 0x1 | 0x2;
+    export type Flag = (typeof Flag)[keyof typeof Flag];
 
     /** Get relative area for a given component id */
     export function normalize(compId: string, asa: number) {
