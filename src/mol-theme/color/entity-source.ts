@@ -7,7 +7,7 @@
 import { StructureProperties, StructureElement, Bond, Model } from '../../mol-model/structure';
 import { Color } from '../../mol-util/color';
 import { Location } from '../../mol-model/location';
-import { ColorTheme, LocationColor } from '../color';
+import type { ColorTheme, LocationColor } from '../color';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { ThemeDataContext } from '../../mol-theme/theme';
 import { Table, Column } from '../../mol-data/db';
@@ -17,6 +17,7 @@ import { TableLegend, ScaleLegend } from '../../mol-util/legend';
 import { isInteger } from '../../mol-util/number';
 import { ColorLists, getColorListFromName } from '../../mol-util/color/lists';
 import { MmcifFormat } from '../../mol-model-formats/structure/mmcif';
+import { ColorThemeCategory } from './categories';
 
 const DefaultList = 'dark-2';
 const DefaultColor = Color(0xFAFAFA);
@@ -78,8 +79,8 @@ function addSrc(seqToSrcByModelEntity: Map<string, Int16Array>, srcKeySerialMap:
         const sK = srcKey(modelIndex, entityId, scientific_name.value(j), pdbx_src_id.value(j), plasmid, gene);
 
         // may not be given (= 0) indicating src is for the whole seq
-        const beg = pdbx_beg_seq_num.valueKind(j) === Column.ValueKind.Present ? pdbx_beg_seq_num.value(j) : 1;
-        const end = pdbx_end_seq_num.valueKind(j) === Column.ValueKind.Present ? pdbx_end_seq_num.value(j) : seqToSrc.length;
+        const beg = pdbx_beg_seq_num.valueKind(j) === Column.ValueKinds.Present ? pdbx_beg_seq_num.value(j) : 1;
+        const end = pdbx_end_seq_num.valueKind(j) === Column.ValueKinds.Present ? pdbx_end_seq_num.value(j) : seqToSrc.length;
 
         let srcIndex: number; // serial no starting from 1
         if (srcKeySerialMap.has(sK)) {
@@ -178,7 +179,7 @@ export function EntitySourceColorTheme(ctx: ThemeDataContext, props: PD.Values<E
 export const EntitySourceColorThemeProvider: ColorTheme.Provider<EntitySourceColorThemeParams, 'entity-source'> = {
     name: 'entity-source',
     label: 'Entity Source',
-    category: ColorTheme.Category.Chain,
+    category: ColorThemeCategory.Chain,
     factory: EntitySourceColorTheme,
     getParams: getEntitySourceColorThemeParams,
     defaultValues: PD.getDefaultValues(EntitySourceColorThemeParams),

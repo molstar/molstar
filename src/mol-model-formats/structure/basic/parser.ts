@@ -65,12 +65,12 @@ function createStandardModel(data: BasicData, atom_site: AtomSite, sourceIndex: 
     const atomicRanges = getAtomicRanges(atomic.hierarchy, entities, atomic.conformation, sequence);
     const structAsymMap = getStructAsymMap(atomic.hierarchy);
 
-    const entry = data.entry.id.valueKind(0) === Column.ValueKind.Present
+    const entry = data.entry.id.valueKind(0) === Column.ValueKinds.Present
         ? data.entry.id.value(0) : format.name;
 
     const label: string[] = [];
     if (entry) label.push(entry);
-    if (data.struct.title.valueKind(0) === Column.ValueKind.Present) label.push(data.struct.title.value(0));
+    if (data.struct.title.valueKind(0) === Column.ValueKinds.Present) label.push(data.struct.title.value(0));
 
     return {
         id: UUID.create22(),
@@ -105,12 +105,12 @@ function createIntegrativeModel(data: BasicData, ihm: CoarseData, properties: Co
     const sequence = getSequence(data, ihm.entities, atomic.hierarchy, coarse.hierarchy);
     const atomicRanges = getAtomicRanges(atomic.hierarchy, ihm.entities, atomic.conformation, sequence);
 
-    const entry = data.entry.id.valueKind(0) === Column.ValueKind.Present
+    const entry = data.entry.id.valueKind(0) === Column.ValueKinds.Present
         ? data.entry.id.value(0) : format.name;
 
     const label: string[] = [];
     if (entry) label.push(entry);
-    if (data.struct.title.valueKind(0) === Column.ValueKind.Present) label.push(data.struct.title.value(0));
+    if (data.struct.title.valueKind(0) === Column.ValueKinds.Present) label.push(data.struct.title.value(0));
     if (ihm.model_name) label.push(ihm.model_name);
     if (ihm.model_group_name) label.push(ihm.model_group_name);
 

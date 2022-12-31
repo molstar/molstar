@@ -23,7 +23,7 @@ export function getModelGroupName(model_id: number, data: BasicData) {
 
 function hasPresentValues(column: Column<any>) {
     for (let i = 0, il = column.rowCount; i < il; i++) {
-        if (column.valueKind(i) === Column.ValueKind.Present) return true;
+        if (column.valueKind(i) === Column.ValueKinds.Present) return true;
     }
     return false;
 }

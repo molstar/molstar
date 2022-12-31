@@ -47,7 +47,7 @@ export function getElementFromAtomicNumber(n: number) {
 }
 
 /** Entity types as defined in the mmCIF dictionary */
-export const enum EntityType {
+export enum EntityType {
     'unknown', 'polymer', 'non-polymer', 'macrolide', 'water', 'branched'
 }
 

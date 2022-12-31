@@ -57,7 +57,7 @@ export interface EncodedData {
 
 export namespace Encoding {
 
-    export const enum IntDataType {
+    export enum IntDataType {
         Int8 = 1,
         Int16 = 2,
         Int32 = 3,
@@ -66,7 +66,7 @@ export namespace Encoding {
         Uint32 = 6,
     }
 
-    export const enum FloatDataType {
+    export enum FloatDataType {
         Float32 = 32,
         Float64 = 33
     }

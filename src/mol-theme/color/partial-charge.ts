@@ -7,10 +7,11 @@
 import { Color, ColorScale } from '../../mol-util/color';
 import { StructureElement, Unit, Bond, ElementIndex } from '../../mol-model/structure';
 import { Location } from '../../mol-model/location';
-import { ColorTheme } from '../color';
+import type { ColorTheme } from '../color';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { ThemeDataContext } from '../theme';
 import { AtomPartialCharge } from '../../mol-model-formats/structure/property/partial-charge';
+import { ColorThemeCategory } from './categories';
 
 const DefaultPartialChargeColor = Color(0xffff99);
 const Description = `Assigns a color based on the partial charge of an atom.`;
@@ -59,7 +60,7 @@ export function PartialChargeColorTheme(ctx: ThemeDataContext, props: PD.Values<
 export const PartialChargeColorThemeProvider: ColorTheme.Provider<PartialChargeColorThemeParams, 'partial-charge'> = {
     name: 'partial-charge',
     label: 'Partial Charge',
-    category: ColorTheme.Category.Atom,
+    category: ColorThemeCategory.Atom,
     factory: PartialChargeColorTheme,
     getParams: getPartialChargeColorThemeParams,
     defaultValues: PD.getDefaultValues(PartialChargeColorThemeParams),

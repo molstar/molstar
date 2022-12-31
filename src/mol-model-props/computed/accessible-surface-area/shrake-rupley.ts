@@ -89,11 +89,18 @@ namespace AccessibleSurfaceArea {
         return points;
     }
 
-    export const enum Flag {
+    export const enum Flags {
         NA = 0x0,
         Buried = 0x1,
         Accessible = 0x2
     }
+
+    export const Flag = {
+        NA: Flags.NA,
+        Buried: Flags.Buried,
+        Accessible: Flags.Accessible
+    } as const;
+    export type Flag = (typeof Flag)[keyof typeof Flag];
 
     /** Get relative area for a given component id */
     export function normalize(compId: string, asa: number) {
@@ -115,8 +122,8 @@ namespace AccessibleSurfaceArea {
 
     export function getFlag(location: StructureElement.Location, accessibleSurfaceArea: AccessibleSurfaceArea) {
         const value = getNormalizedValue(location, accessibleSurfaceArea);
-        return value === -1 ? Flag.NA :
-            value < 0.16 ? Flag.Buried :
-                Flag.Accessible;
+        return value === -1 ? Flags.NA :
+            value < 0.16 ? Flags.Buried :
+                Flags.Accessible;
     }
 }

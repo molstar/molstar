@@ -7,11 +7,12 @@
 import { Unit, StructureProperties, StructureElement, Bond, Structure, Model } from '../../mol-model/structure';
 import { Color } from '../../mol-util/color';
 import { Location } from '../../mol-model/location';
-import { ColorTheme, LocationColor } from '../color';
+import type { ColorTheme, LocationColor } from '../color';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { ThemeDataContext } from '../../mol-theme/theme';
 import { getPaletteParams, getPalette } from '../../mol-util/color/palette';
 import { TableLegend, ScaleLegend } from '../../mol-util/legend';
+import { ColorThemeCategory } from './categories';
 
 const DefaultList = 'many-distinct';
 const DefaultColor = Color(0xFAFAFA);
@@ -119,7 +120,7 @@ export function ChainIdColorTheme(ctx: ThemeDataContext, props: PD.Values<ChainI
 export const ChainIdColorThemeProvider: ColorTheme.Provider<ChainIdColorThemeParams, 'chain-id'> = {
     name: 'chain-id',
     label: 'Chain Id',
-    category: ColorTheme.Category.Chain,
+    category: ColorThemeCategory.Chain,
     factory: ChainIdColorTheme,
     getParams: getChainIdColorThemeParams,
     defaultValues: PD.getDefaultValues(ChainIdColorThemeParams),

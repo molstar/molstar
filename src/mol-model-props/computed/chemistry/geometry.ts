@@ -15,7 +15,7 @@ import { Elements } from '../../../mol-model/structure/model/properties/atomic/t
  * Numbering mostly inline with coordination number from VSEPR,
  * breaks with `SquarePlanar = 7`
  */
-export const enum AtomGeometry {
+export enum AtomGeometry {
     Spherical = 0,
     Terminal = 1,
     Linear = 2,

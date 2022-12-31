@@ -26,7 +26,7 @@ export async function sortAtomSite(ctx: RuntimeContext, atom_site: AtomSite, sta
         for (let cI = 0, _cI = chainBuckets.length - 1; cI < _cI; cI++) {
             const aI = chainBuckets[cI];
             // are we in HETATM territory?
-            if (label_seq_id.valueKind(aI) !== Column.ValueKind.Present) continue;
+            if (label_seq_id.valueKind(aI) !== Column.ValueKinds.Present) continue;
 
             makeBuckets(indices, label_seq_id.value, { sort: true, start: aI, end: chainBuckets[cI + 1] });
             if (ctx.shouldUpdate) await ctx.update();

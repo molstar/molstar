@@ -7,9 +7,10 @@
 import { Color, ColorScale } from '../../mol-util/color';
 import { StructureElement, Unit, Bond, ElementIndex } from '../../mol-model/structure';
 import { Location } from '../../mol-model/location';
-import { ColorTheme } from '../color';
+import type { ColorTheme } from '../color';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { ThemeDataContext } from '../theme';
+import { ColorThemeCategory } from './categories';
 
 const DefaultOccupancyColor = Color(0xCCCCCC);
 const Description = `Assigns a color based on the occupancy of an atom.`;
@@ -61,7 +62,7 @@ export function OccupancyColorTheme(ctx: ThemeDataContext, props: PD.Values<Occu
 export const OccupancyColorThemeProvider: ColorTheme.Provider<OccupancyColorThemeParams, 'occupancy'> = {
     name: 'occupancy',
     label: 'Occupancy',
-    category: ColorTheme.Category.Atom,
+    category: ColorThemeCategory.Atom,
     factory: OccupancyColorTheme,
     getParams: getOccupancyColorThemeParams,
     defaultValues: PD.getDefaultValues(OccupancyColorThemeParams),

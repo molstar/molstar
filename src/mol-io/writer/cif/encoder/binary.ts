@@ -184,8 +184,8 @@ function getFieldData(field: Field<any, any>, arrayCtor: ArrayCtor<string | numb
         const keys = data[_d].keys();
         while (keys.hasNext) {
             const key = keys.move();
-            const p = valueKind ? valueKind(key, d) : Column.ValueKind.Present;
-            if (p !== Column.ValueKind.Present) {
+            const p = valueKind ? valueKind(key, d) : Column.ValueKinds.Present;
+            if (p !== Column.ValueKinds.Present) {
                 mask[offset] = p;
                 if (isStr)
                     array[offset] = '';
@@ -193,10 +193,10 @@ function getFieldData(field: Field<any, any>, arrayCtor: ArrayCtor<string | numb
             } else {
                 const value = getter(key, d, offset);
                 if (typeof value === 'string' && !value) {
-                    mask[offset] = Column.ValueKind.NotPresent;
+                    mask[offset] = Column.ValueKinds.NotPresent;
                     allPresent = false;
                 } else {
-                    mask[offset] = Column.ValueKind.Present;
+                    mask[offset] = Column.ValueKinds.Present;
                 }
                 array[offset] = value;
             }

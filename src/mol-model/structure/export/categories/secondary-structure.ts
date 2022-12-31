@@ -49,7 +49,7 @@ const struct_conf_fields = (): CifField[] => [
     ...residueIdFields<number, SSElement<SecondaryStructure.Helix>[]>((i, e) => e[i].end, { prefix: 'end' }),
     CifField.str<number, SSElement<SecondaryStructure.Helix>[]>('pdbx_PDB_helix_class', (i, data) => data[i].element.helix_class),
     CifField.str<number, SSElement<SecondaryStructure.Helix>[]>('details', (i, data) => data[i].element.details || '', {
-        valueKind: (i, d) => !!d[i].element.details ? Column.ValueKind.Present : Column.ValueKind.Unknown
+        valueKind: (i, d) => !!d[i].element.details ? Column.ValueKinds.Present : Column.ValueKinds.Unknown
     }),
     CifField.int<number, SSElement<SecondaryStructure.Helix>[]>('pdbx_PDB_helix_length', (i, data) => data[i].length)
 ];
@@ -59,7 +59,7 @@ const struct_sheet_range_fields = (): CifField[] => [
     CifField.index('id'),
     ...residueIdFields<number, SSElement<SecondaryStructure.Sheet>[]>((i, e) => e[i].start, { prefix: 'beg' }),
     ...residueIdFields<number, SSElement<SecondaryStructure.Sheet>[]>((i, e) => e[i].end, { prefix: 'end' }),
-    CifField.str('symmetry', (i, data) => '', { valueKind: (i, d) => Column.ValueKind.Unknown })
+    CifField.str('symmetry', (i, data) => '', { valueKind: (i, d) => Column.ValueKinds.Unknown })
 ];
 
 interface SSElement<T extends SecondaryStructure.Element> {

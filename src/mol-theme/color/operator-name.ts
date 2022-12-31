@@ -7,11 +7,12 @@
 import { Color } from '../../mol-util/color';
 import { StructureElement, Bond, Structure } from '../../mol-model/structure';
 import { Location } from '../../mol-model/location';
-import { ColorTheme, LocationColor } from '../color';
+import type { ColorTheme, LocationColor } from '../color';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { ThemeDataContext } from '../theme';
 import { getPaletteParams, getPalette } from '../../mol-util/color/palette';
 import { ScaleLegend, TableLegend } from '../../mol-util/legend';
+import { ColorThemeCategory } from './categories';
 
 const DefaultList = 'many-distinct';
 const DefaultColor = Color(0xCCCCCC);
@@ -76,7 +77,7 @@ export function OperatorNameColorTheme(ctx: ThemeDataContext, props: PD.Values<O
 export const OperatorNameColorThemeProvider: ColorTheme.Provider<OperatorNameColorThemeParams, 'operator-name'> = {
     name: 'operator-name',
     label: 'Operator Name',
-    category: ColorTheme.Category.Symmetry,
+    category: ColorThemeCategory.Symmetry,
     factory: OperatorNameColorTheme,
     getParams: getOperatorNameColorThemeParams,
     defaultValues: PD.getDefaultValues(OperatorNameColorThemeParams),

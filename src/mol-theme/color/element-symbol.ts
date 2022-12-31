@@ -8,7 +8,7 @@ import { ElementSymbol } from '../../mol-model/structure/model/types';
 import { Color, ColorMap } from '../../mol-util/color';
 import { StructureElement, Unit, Bond } from '../../mol-model/structure';
 import { Location } from '../../mol-model/location';
-import { ColorTheme } from '../color';
+import type { ColorTheme } from '../color';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { ThemeDataContext } from '../theme';
 import { TableLegend } from '../../mol-util/legend';
@@ -21,6 +21,7 @@ import { assertUnreachable } from '../../mol-util/type-helpers';
 import { EntitySourceColorTheme, EntitySourceColorThemeParams } from './entity-source';
 import { ModelIndexColorTheme, ModelIndexColorThemeParams } from './model-index';
 import { StructureIndexColorTheme, StructureIndexColorThemeParams } from './structure-index';
+import { ColorThemeCategory } from './categories';
 
 // from Jmol http://jmol.sourceforge.net/jscolors/ (or 0xFFFFFF)
 export const ElementSymbolColors = ColorMap({
@@ -112,7 +113,7 @@ export function ElementSymbolColorTheme(ctx: ThemeDataContext, props: PD.Values<
 export const ElementSymbolColorThemeProvider: ColorTheme.Provider<ElementSymbolColorThemeParams, 'element-symbol'> = {
     name: 'element-symbol',
     label: 'Element Symbol',
-    category: ColorTheme.Category.Atom,
+    category: ColorThemeCategory.Atom,
     factory: ElementSymbolColorTheme,
     getParams: getElementSymbolColorThemeParams,
     defaultValues: PD.getDefaultValues(ElementSymbolColorThemeParams),

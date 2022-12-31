@@ -27,7 +27,7 @@ export const AccessibleSurfaceAreaSymbols = {
             if (!Unit.isAtomic(ctx.element.unit)) return false;
             const accessibleSurfaceArea = AccessibleSurfaceAreaProvider.get(ctx.element.structure).value;
             if (!accessibleSurfaceArea) return false;
-            return AccessibleSurfaceArea.getFlag(ctx.element, accessibleSurfaceArea) === AccessibleSurfaceArea.Flag.Buried;
+            return AccessibleSurfaceArea.getFlag(ctx.element, accessibleSurfaceArea) === AccessibleSurfaceArea.Flags.Buried;
         }
     ),
     isAccessible: QuerySymbolRuntime.Dynamic(CustomPropSymbol('computed', 'accessible-surface-area.is-accessible', Type.Bool),
@@ -35,7 +35,7 @@ export const AccessibleSurfaceAreaSymbols = {
             if (!Unit.isAtomic(ctx.element.unit)) return false;
             const accessibleSurfaceArea = AccessibleSurfaceAreaProvider.get(ctx.element.structure).value;
             if (!accessibleSurfaceArea) return false;
-            return AccessibleSurfaceArea.getFlag(ctx.element, accessibleSurfaceArea) === AccessibleSurfaceArea.Flag.Accessible;
+            return AccessibleSurfaceArea.getFlag(ctx.element, accessibleSurfaceArea) === AccessibleSurfaceArea.Flags.Accessible;
         }
     ),
 };

@@ -8,11 +8,12 @@ import { Color } from '../../mol-util/color';
 import { Location } from '../../mol-model/location';
 import { StructureElement, Bond } from '../../mol-model/structure';
 import { OrderedSet } from '../../mol-data/int';
-import { ColorTheme, LocationColor } from '../color';
+import type { ColorTheme, LocationColor } from '../color';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { ThemeDataContext } from '../../mol-theme/theme';
 import { getPaletteParams, getPalette } from '../../mol-util/color/palette';
 import { TableLegend, ScaleLegend } from '../../mol-util/legend';
+import { ColorThemeCategory } from './categories';
 
 const DefaultColor = Color(0xCCCCCC);
 const Description = 'Gives every element (atom or coarse sphere/gaussian) a unique color based on the position (index) of the element in the list of elements in the structure.';
@@ -75,7 +76,7 @@ export function ElementIndexColorTheme(ctx: ThemeDataContext, props: PD.Values<E
 export const ElementIndexColorThemeProvider: ColorTheme.Provider<ElementIndexColorThemeParams, 'element-index'> = {
     name: 'element-index',
     label: 'Element Index',
-    category: ColorTheme.Category.Atom,
+    category: ColorThemeCategory.Atom,
     factory: ElementIndexColorTheme,
     getParams: getElementIndexColorThemeParams,
     defaultValues: PD.getDefaultValues(ElementIndexColorThemeParams),

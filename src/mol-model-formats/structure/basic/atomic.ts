@@ -111,13 +111,13 @@ function createChainOperatorMappingAndSubstituteNames(hierarchy: AtomicData, for
     const authMap = new Map<string, string>();
 
     for (let i = 0; i < entries._rowCount; i++) {
-        const assembly: SymmetryOperator['assembly'] = entries.assembly_operator_id.valueKind(i) === Column.ValueKind.Present
+        const assembly: SymmetryOperator['assembly'] = entries.assembly_operator_id.valueKind(i) === Column.ValueKinds.Present
             ? { id: entries.assembly_id.value(i), operList: [], operId: entries.assembly_operator_id.value(i) }
             : void 0;
 
         const operator = SymmetryOperator.create(entries.operator_name.value(i), Mat4.identity(), {
             assembly,
-            spgrOp: entries.symmetry_operator_index.valueKind(i) === Column.ValueKind.Present ? entries.symmetry_operator_index.value(i) : void 0,
+            spgrOp: entries.symmetry_operator_index.valueKind(i) === Column.ValueKinds.Present ? entries.symmetry_operator_index.value(i) : void 0,
             hkl: Vec3.ofArray(entries.symmetry_hkl.value(i)),
             ncsId: entries.ncs_id.value(i)
         });
