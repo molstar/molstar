@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -30,7 +30,7 @@ export const CarbohydrateParams = {
 };
 export type CarbohydrateParams = typeof CarbohydrateParams
 export function getCarbohydrateParams(ctx: ThemeRegistryContext, structure: Structure) {
-    return PD.clone(CarbohydrateParams);
+    return CarbohydrateParams;
 }
 
 export type CarbohydrateRepresentation = StructureRepresentation<CarbohydrateParams>

@@ -28,7 +28,7 @@ export const MolecularSurfaceParams = {
 };
 export type MolecularSurfaceParams = typeof MolecularSurfaceParams
 export function getMolecularSurfaceParams(ctx: ThemeRegistryContext, structure: Structure) {
-    return PD.clone(MolecularSurfaceParams);
+    return MolecularSurfaceParams;
 }
 
 export type MolecularSurfaceRepresentation = StructureRepresentation<MolecularSurfaceParams>

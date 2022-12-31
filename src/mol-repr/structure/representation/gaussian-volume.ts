@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -18,13 +18,12 @@ const GaussianVolumeVisuals = {
 
 export const GaussianVolumeParams = {
     ...GaussianDensityVolumeParams,
+    jumpLength: PD.Numeric(4, { min: 0, max: 20, step: 0.1 }),
     visuals: PD.MultiSelect(['gaussian-volume'], PD.objectToOptions(GaussianVolumeVisuals)),
 };
 export type GaussianVolumeParams = typeof GaussianVolumeParams
 export function getGaussianVolumeParams(ctx: ThemeRegistryContext, structure: Structure) {
-    const p = PD.clone(GaussianVolumeParams);
-    p.jumpLength = PD.Numeric(4, { min: 0, max: 20, step: 0.1 });
-    return p;
+    return GaussianVolumeParams;
 }
 
 export type GaussianVolumeRepresentation = StructureRepresentation<GaussianVolumeParams>

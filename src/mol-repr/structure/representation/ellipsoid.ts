@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -37,7 +37,7 @@ export const EllipsoidParams = {
 };
 export type EllipsoidParams = typeof EllipsoidParams
 export function getEllipsoidParams(ctx: ThemeRegistryContext, structure: Structure) {
-    return PD.clone(EllipsoidParams);
+    return EllipsoidParams;
 }
 
 export type EllipsoidRepresentation = StructureRepresentation<EllipsoidParams>

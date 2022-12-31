@@ -493,6 +493,7 @@ namespace Unit {
     }
 
     export function areConformationsEqual(a: Unit, b: Unit) {
+        if (a === b) return true;
         if (!SortedArray.areEqual(a.elements, b.elements)) return false;
         return isSameConformation(a, b.model);
     }

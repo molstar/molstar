@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -24,7 +24,7 @@ export const OrientationParams = {
 };
 export type OrientationParams = typeof OrientationParams
 export function getOrientationParams(ctx: ThemeRegistryContext, structure: Structure) {
-    return PD.clone(OrientationParams);
+    return OrientationParams;
 }
 
 export type OrientationRepresentation = StructureRepresentation<OrientationParams>
