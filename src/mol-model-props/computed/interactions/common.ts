@@ -158,7 +158,7 @@ export function interactionTypeLabel(type: InteractionType): string {
     }
 }
 
-export enum FeatureType {
+export const enum FeatureType {
     None = 0,
     PositiveCharge = 1,
     NegativeCharge = 2,
@@ -173,6 +173,24 @@ export enum FeatureType {
     DativeBondPartner = 11,
     TransitionMetal = 12,
     IonicTypeMetal = 13
+}
+
+// to use with isolatedModules
+export enum FeatureTypes {
+    None = FeatureType.None,
+    PositiveCharge = FeatureType.PositiveCharge,
+    NegativeCharge = FeatureType.NegativeCharge,
+    AromaticRing = FeatureType.AromaticRing,
+    HydrogenDonor = FeatureType.HydrogenDonor,
+    HydrogenAcceptor = FeatureType.HydrogenAcceptor,
+    HalogenDonor = FeatureType.HalogenDonor,
+    HalogenAcceptor = FeatureType.HalogenAcceptor,
+    HydrophobicAtom = FeatureType.HydrophobicAtom,
+    WeakHydrogenDonor = FeatureType.WeakHydrogenDonor,
+    IonicTypePartner = FeatureType.IonicTypePartner,
+    DativeBondPartner = FeatureType.DativeBondPartner,
+    TransitionMetal = FeatureType.TransitionMetal,
+    IonicTypeMetal = FeatureType.IonicTypeMetal
 }
 
 export function featureTypeLabel(type: FeatureType): string {
