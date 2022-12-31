@@ -6,7 +6,7 @@
 
 import { Color, ColorScale } from '../../mol-util/color';
 import { Location } from '../../mol-model/location';
-import { ColorTheme } from '../color';
+import type { ColorTheme } from '../color';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { ThemeDataContext } from '../theme';
 import { Grid, Volume } from '../../mol-model/volume';
@@ -14,6 +14,7 @@ import { type PluginContext } from '../../mol-plugin/context';
 import { isPositionLocation } from '../../mol-geo/util/location-iterator';
 import { Mat4, Vec3 } from '../../mol-math/linear-algebra';
 import { lerp } from '../../mol-math/interpolate';
+import { ColorThemeCategory } from './categories';
 
 const Description = `Assigns a color based volume value at a given vertex.`;
 
@@ -151,7 +152,7 @@ export function ExternalVolumeColorTheme(ctx: ThemeDataContext, props: PD.Values
 export const ExternalVolumeColorThemeProvider: ColorTheme.Provider<ExternalVolumeColorThemeParams, 'external-volume'> = {
     name: 'external-volume',
     label: 'External Volume',
-    category: ColorTheme.Category.Misc,
+    category: ColorThemeCategory.Misc,
     factory: ExternalVolumeColorTheme,
     getParams: () => ExternalVolumeColorThemeParams,
     defaultValues: PD.getDefaultValues(ExternalVolumeColorThemeParams),

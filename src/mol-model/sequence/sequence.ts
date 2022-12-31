@@ -14,7 +14,7 @@ import { assertUnreachable } from '../../mol-util/type-helpers';
 type Sequence = Sequence.Protein | Sequence.DNA | Sequence.RNA | Sequence.Generic
 
 namespace Sequence {
-    export const enum Kind {
+    export enum Kind {
         Protein = 'protein',
         RNA = 'RNA',
         DNA = 'DNA',

@@ -7,11 +7,12 @@
 import { StructureProperties, StructureElement, Bond, Structure } from '../../mol-model/structure';
 import { Color } from '../../mol-util/color';
 import { Location } from '../../mol-model/location';
-import { ColorTheme, LocationColor } from '../color';
+import type { ColorTheme, LocationColor } from '../color';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { ThemeDataContext } from '../../mol-theme/theme';
 import { getPaletteParams, getPalette } from '../../mol-util/color/palette';
 import { TableLegend, ScaleLegend } from '../../mol-util/legend';
+import { ColorThemeCategory } from './categories';
 
 const DefaultList = 'many-distinct';
 const DefaultColor = Color(0xFAFAFA);
@@ -83,7 +84,7 @@ export function AtomIdColorTheme(ctx: ThemeDataContext, props: PD.Values<AtomIdC
 export const AtomIdColorThemeProvider: ColorTheme.Provider<AtomIdColorThemeParams, 'atom-id'> = {
     name: 'atom-id',
     label: 'Atom Id',
-    category: ColorTheme.Category.Atom,
+    category: ColorThemeCategory.Atom,
     factory: AtomIdColorTheme,
     getParams: getAtomIdColorThemeParams,
     defaultValues: PD.getDefaultValues(AtomIdColorThemeParams),

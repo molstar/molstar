@@ -106,7 +106,7 @@ export namespace ButtonsType {
     export const has: (btn: ButtonsType, f: Flag) => boolean = BitFlags.has;
     export const create: (fs: Flag) => ButtonsType = BitFlags.create;
 
-    export const enum Flag {
+    export enum Flag {
         /** No button or un-initialized */
         None = 0x0,
         /** Primary button (usually left) */
@@ -191,7 +191,7 @@ export type ResizeInput = {
 
 }
 
-const enum DraggingState {
+enum DraggingState {
     Stopped = 0,
     Started = 1,
     Moving = 2

@@ -41,8 +41,8 @@ export const AtomSiteOperatorMappingSchema = {
     }
 };
 
-const asmValueKind = (i: number, xs: Entry[]) => typeof xs[i].operator.assembly === 'undefined' ? Column.ValueKind.NotPresent : Column.ValueKind.Present;
-const symmetryValueKind = (i: number, xs: Entry[]) => xs[i].operator.spgrOp === -1 ? Column.ValueKind.NotPresent : Column.ValueKind.Present;
+const asmValueKind = (i: number, xs: Entry[]) => typeof xs[i].operator.assembly === 'undefined' ? Column.ValueKinds.NotPresent : Column.ValueKinds.Present;
+const symmetryValueKind = (i: number, xs: Entry[]) => xs[i].operator.spgrOp === -1 ? Column.ValueKinds.NotPresent : Column.ValueKinds.Present;
 
 const Fields = CifWriter.fields<number, Entry[], keyof (typeof AtomSiteOperatorMappingSchema)['molstar_atom_site_operator_mapping']>()
     .str('label_asym_id', (i, xs) => xs[i].label_asym_id)

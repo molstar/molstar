@@ -7,11 +7,12 @@
 import { StructureElement, Bond, ElementIndex, Unit, Model } from '../../mol-model/structure';
 import { SaccharideColors, MonosaccharidesColorTable } from '../../mol-model/structure/structure/carbohydrates/constants';
 import { Location } from '../../mol-model/location';
-import { ColorTheme, LocationColor } from '../color';
+import type { ColorTheme, LocationColor } from '../color';
 import { Color } from '../../mol-util/color';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { ThemeDataContext } from '../theme';
 import { TableLegend } from '../../mol-util/legend';
+import { ColorThemeCategory } from './categories';
 
 const DefaultColor = Color(0xCCCCCC);
 const Description = 'Assigns colors according to the Symbol Nomenclature for Glycans (SNFG).';
@@ -63,7 +64,7 @@ export function CarbohydrateSymbolColorTheme(ctx: ThemeDataContext, props: PD.Va
 export const CarbohydrateSymbolColorThemeProvider: ColorTheme.Provider<CarbohydrateSymbolColorThemeParams, 'carbohydrate-symbol'> = {
     name: 'carbohydrate-symbol',
     label: 'Carbohydrate Symbol',
-    category: ColorTheme.Category.Residue,
+    category: ColorThemeCategory.Residue,
     factory: CarbohydrateSymbolColorTheme,
     getParams: getCarbohydrateSymbolColorThemeParams,
     defaultValues: PD.getDefaultValues(CarbohydrateSymbolColorThemeParams),

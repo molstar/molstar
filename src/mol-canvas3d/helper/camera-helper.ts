@@ -135,7 +135,7 @@ export class CameraHelper {
     }
 }
 
-export const enum CameraHelperAxis {
+export enum CameraHelperAxis {
     None = 0,
     X,
     Y,

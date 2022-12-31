@@ -289,7 +289,7 @@ export function abortingObserver(p: Progress) {
 
 function string<T>(name: string, str: (data: T, i: number) => string, isSpecified?: (data: T) => boolean): CifField<number, T> {
     if (isSpecified) {
-        return CifField.str(name, (i, d) => str(d, i), { valueKind: (i, d) => isSpecified(d) ? Column.ValueKind.Present : Column.ValueKind.NotPresent });
+        return CifField.str(name, (i, d) => str(d, i), { valueKind: (i, d) => isSpecified(d) ? Column.ValueKinds.Present : Column.ValueKinds.NotPresent });
     }
     return CifField.str(name, (i, d) => str(d, i));
 }

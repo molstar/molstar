@@ -7,10 +7,11 @@
 import { Color, ColorScale } from '../../mol-util/color';
 import { StructureElement, Unit, Bond, ElementIndex } from '../../mol-model/structure';
 import { Location } from '../../mol-model/location';
-import { ColorTheme } from '../color';
+import type { ColorTheme } from '../color';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { ThemeDataContext } from '../theme';
 import { ResidueHydrophobicity } from '../../mol-model/structure/model/types';
+import { ColorThemeCategory } from './categories';
 
 const Description = 'Assigns a color to every amino acid according to the "Experimentally determined hydrophobicity scale for proteins at membrane interfaces" by Wimely and White (doi:10.1038/nsb1096-842).';
 
@@ -95,7 +96,7 @@ export function HydrophobicityColorTheme(ctx: ThemeDataContext, props: PD.Values
 export const HydrophobicityColorThemeProvider: ColorTheme.Provider<HydrophobicityColorThemeParams, 'hydrophobicity'> = {
     name: 'hydrophobicity',
     label: 'Hydrophobicity',
-    category: ColorTheme.Category.Residue,
+    category: ColorThemeCategory.Residue,
     factory: HydrophobicityColorTheme,
     getParams: getHydrophobicityColorThemeParams,
     defaultValues: PD.getDefaultValues(HydrophobicityColorThemeParams),

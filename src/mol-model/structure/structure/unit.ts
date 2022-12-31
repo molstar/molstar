@@ -36,6 +36,9 @@ type Unit = Unit.Atomic | Unit.Spheres | Unit.Gaussians
 namespace Unit {
     export const enum Kind { Atomic, Spheres, Gaussians }
 
+    // To use with isolatedModules
+    export enum Kinds { Atomic = Kind.Atomic, Spheres = Kind.Spheres, Gaussians = Kind.Gaussians }
+
     export function isAtomic(u: Unit): u is Atomic { return u.kind === Kind.Atomic; }
     export function isCoarse(u: Unit): u is Spheres | Gaussians { return u.kind === Kind.Spheres || u.kind === Kind.Gaussians; }
     export function isSpheres(u: Unit): u is Spheres { return u.kind === Kind.Spheres; }
@@ -122,7 +125,7 @@ namespace Unit {
     }
 
     export type Traits = BitFlags<Trait>
-    export const enum Trait {
+    export enum Trait {
         None = 0x0,
         MultiChain = 0x1,
         Partitioned = 0x2
