@@ -1,6 +1,6 @@
 [![License](http://img.shields.io/badge/license-MIT-blue.svg?style=flat)](./LICENSE)
 [![npm version](https://badge.fury.io/js/molstar.svg)](https://www.npmjs.com/package/molstar)
-[![Build Status](https://travis-ci.org/molstar/molstar.svg?branch=master)](https://travis-ci.org/molstar/molstar)
+[![Build](https://github.com/molstar/molstar/actions/workflows/node.yml/badge.svg)](https://github.com/molstar/molstar/actions/workflows/node.yml)
 [![Gitter](https://badges.gitter.im/molstar/Lobby.svg)](https://gitter.im/molstar/Lobby)
 
 # Mol*
