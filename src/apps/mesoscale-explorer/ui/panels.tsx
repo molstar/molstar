@@ -1,17 +1,18 @@
 /**
- * Copyright (c) 2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2022-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { PluginUIComponent } from '../../../mol-plugin-ui/base';
 import { EntityControls } from './entities';
-import { LoaderControls } from './states';
+import { LoaderControls, StateControls } from './states';
 
 export class LeftPanel extends PluginUIComponent {
     render() {
         return <div className='msp-scrollable-container'>
             <LoaderControls />
+            <StateControls />
         </div>;
     }
 }
