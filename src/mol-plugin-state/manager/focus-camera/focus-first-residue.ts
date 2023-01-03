@@ -10,12 +10,13 @@ import { CameraFocusOptions } from '../camera';
 import { PrincipalAxes } from '../../../mol-math/linear-algebra/matrix/principal-axes';
 import { StructureComponentRef } from '../structure/hierarchy-state';
 import { deepClone } from '../../../mol-util/object';
+import { ChunkedArray } from '../../../mol-data/util/chunked-array';
 
 
 export function getPolymerPositions(polymerStructure: Structure): Float32Array {
-    let positionIndex = 0;
     const tmpMatrix = Vec3.zero();
-    const positions = new Float32Array(polymerStructure.atomicResidueCount * 3);
+    const cAdd3 = ChunkedArray.add3;
+    const positions = ChunkedArray.create(Float32Array, 3, 1024, polymerStructure.atomicResidueCount);
     for (let i = 0; i < polymerStructure.units.length; i++) {
         const unit = polymerStructure.units[i];
         const { polymerElements } = unit.props;
@@ -23,14 +24,11 @@ export function getPolymerPositions(polymerStructure: Structure): Float32Array {
         if (polymerElements) {
             for (let j = 0; j < polymerElements.length; j++) {
                 readPosition(polymerElements[j], tmpMatrix);
-                positions[positionIndex] = tmpMatrix[0];
-                positions[positionIndex + 1] = tmpMatrix[1];
-                positions[positionIndex + 2] = tmpMatrix[2];
-                positionIndex += 3;
+                cAdd3(positions, tmpMatrix[0], tmpMatrix[1], tmpMatrix[2]);
             }
         }
     }
-    return positions;
+    return ChunkedArray.compact(positions) as Float32Array;
 }
 export function calculateDisplacement(position: Vec3, origin: Vec3, normalDir: Vec3) {
     const A = normalDir[0];
