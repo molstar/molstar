@@ -143,6 +143,26 @@ export namespace Loci {
         return Structure.create(units, { parent: loci.structure.parent });
     }
 
+    /**
+     * Iterates over all locations.
+     * The loc argument of the callback is mutable, use Location.clone() if you intend to keep
+     * the value around.
+     */
+    export function forEachLocation(loci: Loci, f: (loc: Location) => any) {
+        if (Loci.isEmpty(loci)) return;
+
+        const location = Location.create(loci.structure);
+        for (const e of loci.elements) {
+            const { unit, indices } = e;
+            location.unit = unit;
+            const { elements } = e.unit;
+            for (let i = 0, _i = OrderedSet.size(indices); i < _i; i++) {
+                location.element = elements[OrderedSet.getAt(indices, i)];
+                f(location);
+            }
+        }
+    }
+
     // TODO: there should be a version that properly supports partitioned units
     export function remap(loci: Loci, structure: Structure): Loci {
         if (structure === loci.structure) return loci;
