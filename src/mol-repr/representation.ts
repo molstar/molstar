@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -134,6 +134,12 @@ export class RepresentationRegistry<D, S extends Representation.State> {
 
     getApplicableTypes(data: D) {
         return getTypes(this.getApplicableList(data));
+    }
+
+    clear() {
+        this._list.length = 0;
+        this._map.clear();
+        this._name.clear();
     }
 }
 

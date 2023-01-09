@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -155,5 +155,11 @@ export class ThemeRegistry<T extends ColorTheme<any, any> | SizeTheme<any>> {
 
     getApplicableTypes(ctx: ThemeDataContext) {
         return getTypes(this.getApplicableList(ctx));
+    }
+
+    clear() {
+        this._list.length = 0;
+        this._map.clear();
+        this._name.clear();
     }
 }
