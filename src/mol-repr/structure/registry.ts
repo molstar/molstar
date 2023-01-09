@@ -41,7 +41,7 @@ export namespace StructureRepresentationRegistry {
         'carbohydrate': CarbohydrateRepresentationProvider,
         'ellipsoid': EllipsoidRepresentationProvider,
         'gaussian-surface': GaussianSurfaceRepresentationProvider,
-        'gaussian-volume': GaussianVolumeRepresentationProvider, // TODO disabled for now, needs more work
+        'gaussian-volume': GaussianVolumeRepresentationProvider,
         'label': LabelRepresentationProvider,
         'line': LineRepresentationProvider,
         'molecular-surface': MolecularSurfaceRepresentationProvider,
