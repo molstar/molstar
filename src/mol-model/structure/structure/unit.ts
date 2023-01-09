@@ -46,7 +46,7 @@ namespace Unit {
 
     export function create<K extends Kind>(id: number, invariantId: number, chainGroupId: number, traits: Traits, kind: Kind, model: Model, operator: SymmetryOperator, elements: StructureElement.Set, props?: K extends Kind.Atomic ? AtomicProperties : CoarseProperties): Unit {
         switch (kind) {
-            case Kind.Atomic: return new Atomic(id, invariantId, chainGroupId, traits, model, elements, SymmetryOperator.createMapping(operator, model.atomicConformation, void 0), props ?? AtomicProperties());
+            case Kind.Atomic: return new Atomic(id, invariantId, chainGroupId, traits, model, elements, SymmetryOperator.createMappingZeroRadius(operator, model.atomicConformation), props ?? AtomicProperties());
             case Kind.Spheres: return createCoarse(id, invariantId, chainGroupId, traits, model, Kind.Spheres, elements, SymmetryOperator.createMapping(operator, model.coarseConformation.spheres, getSphereRadiusFunc(model)), props ?? CoarseProperties());
             case Kind.Gaussians: return createCoarse(id, invariantId, chainGroupId, traits, model, Kind.Gaussians, elements, SymmetryOperator.createMapping(operator, model.coarseConformation.gaussians, getGaussianRadiusFunc(model)), props ?? CoarseProperties());
         }
@@ -247,7 +247,7 @@ namespace Unit {
             }
 
             const conformation = (this.model.atomicConformation !== model.atomicConformation || operator !== this.conformation.operator)
-                ? SymmetryOperator.createMapping(operator, model.atomicConformation)
+                ? SymmetryOperator.createMappingZeroRadius(operator, model.atomicConformation)
                 : this.conformation;
             return new Atomic(this.id, this.invariantId, this.chainGroupId, this.traits, model, this.elements, conformation, props);
         }
@@ -408,7 +408,7 @@ namespace Unit {
             }
 
             const conformation = coarseConformation !== modelCoarseConformation
-                ? SymmetryOperator.createMapping(this.conformation.operator, modelCoarseConformation)
+                ? SymmetryOperator.createMappingZeroRadius(this.conformation.operator, modelCoarseConformation)
                 : this.conformation;
             return new Coarse(this.id, this.invariantId, this.chainGroupId, this.traits, model, this.kind, this.elements, conformation, props) as Unit.Spheres | Unit.Gaussians; // TODO get rid of casting
         }
