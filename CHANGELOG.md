@@ -26,6 +26,7 @@ Note that since we don't clearly distinguish between a public and private interf
     - Update clip `defines` only when changed
     - Check for identity in structure/unit areEqual methods
     - Avoid cloning of structure representation parameters
+- Add StructureElement.Loci.forEachLocation
 
 ## [v3.28.0] - 2022-12-20
 
