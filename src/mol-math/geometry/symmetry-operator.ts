@@ -177,11 +177,15 @@ namespace SymmetryOperator {
 
     export interface Coordinates { x: ArrayLike<number>, y: ArrayLike<number>, z: ArrayLike<number> }
 
-    export function createMapping<T extends number>(operator: SymmetryOperator, coords: Coordinates, radius?: ((index: T) => number)): ArrayMapping<T> {
-        const invariantPosition = SymmetryOperator.createCoordinateMapper(SymmetryOperator.Default, coords);
-        const position = operator.isIdentity ? invariantPosition : SymmetryOperator.createCoordinateMapper(operator, coords);
+    export function createMapping<T extends number>(operator: SymmetryOperator, coords: Coordinates, radius: ((index: T) => number)): ArrayMapping<T> {
+        const invariantPosition = createCoordinateMapper(SymmetryOperator.Default, coords);
+        const position = operator.isIdentity ? invariantPosition : createCoordinateMapper(operator, coords);
         const { x, y, z } = createProjections(operator, coords);
-        return { operator, coordinates: coords, invariantPosition, position, x, y, z, r: radius ? radius : _zeroRadius };
+        return { operator, coordinates: coords, invariantPosition, position, x, y, z, r: radius };
+    }
+
+    export function createMappingZeroRadius<T extends number>(operator: SymmetryOperator, coords: Coordinates): ArrayMapping<T> {
+        return createMapping(operator, coords, _zeroRadius);
     }
 
     export function createCoordinateMapper<T extends number>(t: SymmetryOperator, coords: Coordinates): CoordinateMapper<T> {
