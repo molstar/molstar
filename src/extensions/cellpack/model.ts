@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Ludovic Autin <ludovic.autin@gmail.com>
@@ -551,7 +551,7 @@ async function loadPackings(plugin: PluginContext, runtime: RuntimeContext, stat
     }
 }
 
-const LoadCellPackModelParams = {
+export const LoadCellPackModelParams = {
     source: PD.MappedStatic('cif', {
         id: PD.Select('InfluenzaModel2.json', [
             ['blood_hiv_immature_inside.json', 'Blood HIV immature'],

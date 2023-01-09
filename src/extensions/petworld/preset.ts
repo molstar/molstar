@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2022-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -150,21 +150,32 @@ export const PetworldPreset = TrajectoryHierarchyPresetProvider({
             minSampleCount: 800,
         });
 
-        for (let i = 0; i < tr.frameCount; i++) {
-            const structure = await state.build()
-                .to(group)
-                .apply(StructureFromPetworld, { modelIndex: i }, { tags: 'Entity' })
-                .commit({ revertOnError: true });
+        await state.transaction(async () => {
+            try {
+                plugin.animationLoop.stop({ noDraw: true });
 
-            structures.push(structure);
+                for (let i = 0; i < tr.frameCount; i++) {
+                    const structure = await state.build()
+                        .to(group)
+                        .apply(StructureFromPetworld, { modelIndex: i }, { tags: 'Entity', state: { isCollapsed: true } })
+                        .commit({ revertOnError: true });
 
-            await builder.representation.applyPreset(structure, PetworldStructurePreset, {
-                traceOnly: false,
-                ignoreLight: true,
-                representation: 'spacefill',
-                uniformColor: colors[i],
-            });
-        }
+                    structures.push(structure);
+
+                    await builder.representation.applyPreset(structure, PetworldStructurePreset, {
+                        traceOnly: false,
+                        ignoreLight: true,
+                        representation: 'spacefill',
+                        uniformColor: colors[i],
+                    });
+                }
+            } catch (e) {
+                console.error(e);
+                plugin.log.error(e);
+            } finally {
+                plugin.animationLoop.start();
+            }
+        }).run();
 
         return { structures };
     }

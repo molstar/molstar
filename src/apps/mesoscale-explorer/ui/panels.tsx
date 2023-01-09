@@ -5,14 +5,21 @@
  */
 
 import { PluginUIComponent } from '../../../mol-plugin-ui/base';
+import { SectionHeader } from '../../../mol-plugin-ui/controls/common';
 import { EntityControls } from './entities';
-import { LoaderControls, StateControls } from './states';
+import { LoaderControls, SessionControls, SnapshotControls } from './states';
 
 export class LeftPanel extends PluginUIComponent {
     render() {
         return <div className='msp-scrollable-container'>
+            <SectionHeader title='Model' />
             <LoaderControls />
-            <StateControls />
+
+            <SectionHeader title='Session' />
+            <SessionControls />
+
+            <SectionHeader title='Snapshots' />
+            <SnapshotControls />
         </div>;
     }
 }
@@ -20,6 +27,7 @@ export class LeftPanel extends PluginUIComponent {
 export class RightPanel extends PluginUIComponent {
     render() {
         return <div className='msp-scrollable-container'>
+            <SectionHeader title='Entities' />
             <EntityControls />
         </div>;
     }

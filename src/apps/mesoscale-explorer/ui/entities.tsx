@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2022-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -53,7 +53,7 @@ export class EntityControls extends PluginUIComponent<{}, { filter: string, isDi
         const roots = this.plugin.state.data.select(StateSelection.Generators.rootsOfType(PSO.Group).withTag('Entity'));
 
         return <>
-            <div className={`msp-flex-row msp-control-row`} style={{ margin: '5px' }}>
+            <div className={`msp-flex-row msp-control-row`} style={{ margin: '5px', marginBottom: '10px' }}>
                 <input type='text'
                     value={this.state.filter}
                     placeholder='Search'
@@ -118,6 +118,7 @@ function getEntities(plugin: PluginContext, cell: StateObjectCell, ref: string) 
     return children.toArray().filter(r => {
         const c = plugin.state.data.cells.get(r);
         if (c?.obj?.type !== PSO.Molecule.Structure.type) return false;
+        if (c.obj.data.elementCount === 0) return false;
         if (!c.transform.tags?.includes('Entity')) return false;
         return true;
     }).map(r => plugin.state.data.cells.get(r)!);
@@ -379,7 +380,7 @@ export class GroupNode extends Node<{ filter: string }, { isCollapsed: boolean, 
         const visibility = <IconButton svg={cellState.isHidden ? VisibilityOffOutlinedSvg : VisibilityOutlinedSvg} toggleState={false} disabled={disabled} small onClick={this.toggleVisible} />;
 
         return <>
-            <div className={`msp-flex-row`} style={{ margin: '5px', marginLeft: `${depth * 10 + 5}px` }} onMouseEnter={this.highlight} onMouseLeave={this.clearHighlight}>
+            <div className={`msp-flex-row`} style={{ margin: `1px 5px 1px ${depth * 10 + 5}px` }} onMouseEnter={this.highlight} onMouseLeave={this.clearHighlight}>
                 {expand}
                 {label}
                 {color}
@@ -426,10 +427,15 @@ export class EntityNode extends Node<{}, { action?: 'color' | 'clip' }> {
     };
 
     get entityLabel() {
-        const s = this.props.cell.obj!.data;
-        const l = StructureElement.Location.create(s, s.units[0], s.units[0].elements[0]);
-        const d = StructureProperties.entity.pdbx_description(l)[0] || 'model';
-        return d.split('.').at(-1);
+        try {
+            const s = this.props.cell.obj!.data;
+            const l = StructureElement.Location.create(s, s.units[0], s.units[0].elements[0]);
+            const d = StructureProperties.entity.pdbx_description(l)[0] || 'model';
+            return d.split('.').at(-1);
+        } catch (e) {
+            console.log(e, this.props.cell.obj!.data);
+            return 'Entity';
+        }
     }
 
     get repr(): StateObjectCell | undefined {
@@ -487,7 +493,7 @@ export class EntityNode extends Node<{}, { action?: 'color' | 'clip' }> {
         const visibility = <IconButton svg={cellState.isHidden ? VisibilityOffOutlinedSvg : VisibilityOutlinedSvg} toggleState={false} disabled={disabled} small onClick={this.toggleVisible} />;
 
         return <>
-            <div className={`msp-flex-row`} style={{ margin: '5px', marginLeft: `${depth * 10 + 5}px` }} onMouseEnter={this.highlight} onMouseLeave={this.clearHighlight}>
+            <div className={`msp-flex-row`} style={{ margin: `1px 5px 1px ${depth * 10 + 5}px` }} onMouseEnter={this.highlight} onMouseLeave={this.clearHighlight}>
                 {label}
                 {color}
                 {clip}

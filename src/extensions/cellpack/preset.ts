@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Ludovic Autin <ludovic.autin@gmail.com>
@@ -194,7 +194,7 @@ export const CellpackPreset = TrajectoryHierarchyPresetProvider({
                         const parent = groups.get(p) ?? base;
                         const group = await state.build()
                             .to(parent)
-                            .group(StateTransforms.Misc.CreateGroup, { label: nodes[j] }, { tags: 'Entity' })
+                            .group(StateTransforms.Misc.CreateGroup, { label: nodes[j] }, { tags: 'Entity', state: { isCollapsed: true } })
                             .commit({ revertOnError: true });
                         groups.set(n, group);
                     }
@@ -238,33 +238,45 @@ export const CellpackPreset = TrajectoryHierarchyPresetProvider({
                 colors.set(n, groupColors);
             }
 
-            for (let i = 0; i < entities._rowCount; i++) {
-                const description = entities.pdbx_description.value(i)[0] || 'model';
-                const d = description.split('.');
-                const n = d.slice(0, -1).join('.');
-                const l = d.at(-1)!;
+            await state.transaction(async () => {
+                try {
+                    plugin.animationLoop.stop({ noDraw: true });
 
-                const parent = groups.get(n) || base;
-                const structure = await state.build()
-                    .to(parent)
-                    .apply(EntityStructure, { entityId: entities.id.value(i) }, { tags: 'Entity' })
-                    .commit({ revertOnError: true });
+                    for (let i = 0; i < entities._rowCount; i++) {
+                        const description = entities.pdbx_description.value(i)[0] || 'model';
+                        const d = description.split('.');
+                        const n = d.slice(0, -1).join('.');
+                        const l = d.at(-1)!;
 
-                structures.push(structure);
+                        const parent = groups.get(n) || base;
+                        const structure = await state.build()
+                            .to(parent)
+                            .apply(EntityStructure, { entityId: entities.id.value(i) }, { tags: 'Entity' })
+                            .commit({ revertOnError: true });
 
-                await builder.representation.applyPreset(structure, CellpackPackingPreset, {
-                    traceOnly: false,
-                    ignoreLight: true,
-                    representation: 'spacefill',
-                    uniformColor: colors.get(n)![ids.get(n)!.get(l)!],
-                });
-            }
+                        structures.push(structure);
+
+                        await builder.representation.applyPreset(structure, CellpackPackingPreset, {
+                            traceOnly: false,
+                            ignoreLight: true,
+                            representation: 'spacefill',
+                            uniformColor: colors.get(n)![ids.get(n)!.get(l)!],
+                        });
+                    }
+                } catch (e) {
+                    console.error(e);
+                    plugin.log.error(e);
+                } finally {
+                    plugin.animationLoop.start();
+                }
+            }).run();
         } else {
             const structure = await state.build()
                 .to(base)
-                .group(StateTransforms.Misc.CreateGroup, { label: model.obj?.data.label || 'Model' }, { tags: 'Entity' })
+                .group(StateTransforms.Misc.CreateGroup, { label: model.obj?.data.label || 'Model' }, { tags: 'Entity', state: { isCollapsed: true } })
                 .apply(EntityStructure, { entityId: entities.id.value(0) }, { tags: 'Entity' })
                 .commit({ revertOnError: true });
+
             structures.push(structure);
             await builder.representation.applyPreset(structure, CellpackPackingPreset, {
                 traceOnly: false,

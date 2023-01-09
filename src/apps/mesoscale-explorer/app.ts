@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2022-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -20,6 +20,7 @@ import { SaccharideCompIdMapType } from '../../mol-model/structure/structure/car
 import { Backgrounds } from '../../extensions/backgrounds';
 import { LeftPanel, RightPanel } from './ui/panels';
 import { Color } from '../../mol-util/color';
+import { SpacefillRepresentationProvider } from '../../mol-repr/structure/representation/spacefill';
 
 export { PLUGIN_VERSION as version } from '../../mol-plugin/version';
 export { setDebugMode, setProductionMode, setTimingMode } from '../../mol-util/debug';
@@ -146,16 +147,22 @@ export class Viewer {
             ? document.getElementById(elementOrId)
             : elementOrId;
         if (!element) throw new Error(`Could not get element with id '${elementOrId}'`);
+
         const plugin = await createPluginUI(element, spec, {
             onBeforeUIRender: plugin => {
 
             }
         });
+
         plugin.canvas3d?.setProps({
             renderer: {
                 backgroundColor: Color(0x101010),
             }
         });
+
+        plugin.representation.structure.registry.clear();
+        plugin.representation.structure.registry.add(SpacefillRepresentationProvider);
+
         return new Viewer(plugin);
     }
 
