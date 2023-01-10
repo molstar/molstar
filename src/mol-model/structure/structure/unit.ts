@@ -247,7 +247,7 @@ namespace Unit {
             }
 
             const conformation = (this.model.atomicConformation !== model.atomicConformation || operator !== this.conformation.operator)
-                ? SymmetryOperator.createMappingZeroRadius(operator, model.atomicConformation)
+                ? SymmetryOperator.createMapping(operator, model.atomicConformation)
                 : this.conformation;
             return new Atomic(this.id, this.invariantId, this.chainGroupId, this.traits, model, this.elements, conformation, props);
         }
@@ -408,7 +408,7 @@ namespace Unit {
             }
 
             const conformation = coarseConformation !== modelCoarseConformation
-                ? SymmetryOperator.createMappingZeroRadius(this.conformation.operator, modelCoarseConformation)
+                ? SymmetryOperator.createMapping(this.conformation.operator, modelCoarseConformation)
                 : this.conformation;
             return new Coarse(this.id, this.invariantId, this.chainGroupId, this.traits, model, this.kind, this.elements, conformation, props) as Unit.Spheres | Unit.Gaussians; // TODO get rid of casting
         }
