@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -232,12 +232,16 @@ export function UnitsRepresentation<P extends StructureParams>(label: string, ct
         if (substance !== undefined) visual.setSubstance(substance, webgl);
         if (clipping !== undefined) visual.setClipping(clipping);
         if (themeStrength !== undefined) visual.setThemeStrength(themeStrength);
-        if (transform !== undefined) visual.setTransform(transform);
+        if (transform !== undefined) {
+            if (transform !== _state.transform || !Mat4.areEqual(transform, _state.transform, EPSILON)) {
+                visual.setTransform(transform);
+            }
+        }
         if (unitTransforms !== undefined) {
             if (unitTransforms) {
                 // console.log(group.hashCode, unitTransforms.getSymmetryGroupTransforms(group))
                 visual.setTransform(undefined, unitTransforms.getSymmetryGroupTransforms(group));
-            } else {
+            } else if (unitTransforms !== _state.unitTransforms) {
                 visual.setTransform(undefined, null);
             }
         }

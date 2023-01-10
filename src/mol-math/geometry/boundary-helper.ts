@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -13,6 +13,7 @@ import { Box3D } from './primitives/box3d';
 
 export class BoundaryHelper {
     private dir: Vec3[];
+    private dirLength: number;
 
     private minDist: number[] = [];
     private maxDist: number[] = [];
@@ -56,13 +57,13 @@ export class BoundaryHelper {
     }
 
     includePosition(p: Vec3) {
-        for (let i = 0, il = this.dir.length; i < il; ++i) {
+        for (let i = 0; i < this.dirLength; ++i) {
             this.computeExtrema(i, p);
         }
     }
 
     includePositionRadius(center: Vec3, radius: number) {
-        for (let i = 0, il = this.dir.length; i < il; ++i) {
+        for (let i = 0; i < this.dirLength; ++i) {
             this.computeSphereExtrema(i, center, radius);
         }
     }
@@ -101,7 +102,7 @@ export class BoundaryHelper {
     }
 
     reset() {
-        for (let i = 0, il = this.dir.length; i < il; ++i) {
+        for (let i = 0; i < this.dirLength; ++i) {
             this.minDist[i] = Infinity;
             this.maxDist[i] = -Infinity;
             this.extrema[i * 2] = Vec3();
@@ -112,6 +113,7 @@ export class BoundaryHelper {
 
     constructor(quality: EposQuality) {
         this.dir = getEposDir(quality);
+        this.dirLength = this.dir.length;
         this.reset();
     }
 }
