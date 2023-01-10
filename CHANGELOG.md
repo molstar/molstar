@@ -26,7 +26,12 @@ Note that since we don't clearly distinguish between a public and private interf
     - Update clip `defines` only when changed
     - Check for identity in structure/unit areEqual methods
     - Avoid cloning of structure representation parameters
+    - Make SymmetryOperator.createMapping monomorphic
+    - Improve bonding-sphere calculation
+    - Defer Scene properties calculation (markerAverage, opacityAverage, hasOpaque)
+    - Improve checks in in UnitsRepresentation setVisualState
 - Add StructureElement.Loci.forEachLocation
+- Add RepresentationRegistry.clear and ThemeRegistry.clear
 
 ## [v3.28.0] - 2022-12-20
 

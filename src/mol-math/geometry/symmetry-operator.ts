@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -177,15 +177,15 @@ namespace SymmetryOperator {
 
     export interface Coordinates { x: ArrayLike<number>, y: ArrayLike<number>, z: ArrayLike<number> }
 
-    export function createMapping<T extends number>(operator: SymmetryOperator, coords: Coordinates, radius: ((index: T) => number)): ArrayMapping<T> {
+    function _createMapping<T extends number>(operator: SymmetryOperator, coords: Coordinates, radius: ((index: T) => number)): ArrayMapping<T> {
         const invariantPosition = createCoordinateMapper(SymmetryOperator.Default, coords);
         const position = operator.isIdentity ? invariantPosition : createCoordinateMapper(operator, coords);
         const { x, y, z } = createProjections(operator, coords);
         return { operator, coordinates: coords, invariantPosition, position, x, y, z, r: radius };
     }
 
-    export function createMappingZeroRadius<T extends number>(operator: SymmetryOperator, coords: Coordinates): ArrayMapping<T> {
-        return createMapping(operator, coords, _zeroRadius);
+    export function createMapping<T extends number>(operator: SymmetryOperator, coords: Coordinates, radius: ((index: T) => number) = _zeroRadius) {
+        return _createMapping(operator, coords, radius);
     }
 
     export function createCoordinateMapper<T extends number>(t: SymmetryOperator, coords: Coordinates): CoordinateMapper<T> {
