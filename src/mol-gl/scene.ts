@@ -317,21 +317,21 @@ namespace Scene {
             get markerAverage() {
                 if (markerAverageDirty) {
                     markerAverage = calculateMarkerAverage();
-                    markerAverageDirty = true;
+                    markerAverageDirty = false;
                 }
                 return markerAverage;
             },
             get opacityAverage() {
                 if (opacityAverageDirty) {
                     opacityAverage = calculateOpacityAverage();
-                    opacityAverageDirty = true;
+                    opacityAverageDirty = false;
                 }
                 return opacityAverage;
             },
             get hasOpaque() {
                 if (hasOpaqueDirty) {
                     hasOpaque = calculateHasOpaque();
-                    hasOpaqueDirty = true;
+                    hasOpaqueDirty = false;
                 }
                 return hasOpaque;
             },
