@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -344,7 +344,7 @@ export namespace ParamDefinition {
         | ColorList | Group<any> | Mapped<any> | Converted<any, any> | Conditioned<any, any, any> | Script | ObjectList | ValueRef | DataRef
 
     export type Params = { [k: string]: Any }
-    export type Values<T extends Params> = { [k in keyof T]: T[k]['defaultValue'] }
+    export type Values<T extends Params = Params> = { [k in keyof T]: T[k]['defaultValue'] }
     /** This is required for params with optional values */
     export type ValuesFor<T extends For<any>> = Normalize<{ [k in keyof T]: T[k]['defaultValue'] }>
 
