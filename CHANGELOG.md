@@ -23,6 +23,7 @@ Note that since we don't clearly distinguish between a public and private interf
     - Improve checks in in UnitsRepresentation setVisualState
 - Add StructureElement.Loci.forEachLocation
 - Add RepresentationRegistry.clear and ThemeRegistry.clear
+- Add generic Loci support for overpaint, substance, clipping themes
 
 ## [v3.28.0] - 2022-12-20
 
