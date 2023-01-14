@@ -24,6 +24,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Add StructureElement.Loci.forEachLocation
 - Add RepresentationRegistry.clear and ThemeRegistry.clear
 - Add generic Loci support for overpaint, substance, clipping themes
+- Add `.getCenter` and `.center` to `Camera`
 
 ## [v3.28.0] - 2022-12-20
 
