@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2021-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -27,6 +27,8 @@ export const MarkingParams = {
     highlightEdgeColor: PD.Color(Color.darken(Color.fromNormalizedRgb(1.0, 0.4, 0.6), 1.0)),
     selectEdgeColor: PD.Color(Color.darken(Color.fromNormalizedRgb(0.2, 1.0, 0.1), 1.0)),
     edgeScale: PD.Numeric(1, { min: 1, max: 3, step: 1 }, { description: 'Thickness of the edge.' }),
+    highlightEdgeStrength: PD.Numeric(1.0, { min: 0, max: 1, step: 0.1 }),
+    selectEdgeStrength: PD.Numeric(1.0, { min: 0, max: 1, step: 0.1 }),
     ghostEdgeStrength: PD.Numeric(0.3, { min: 0, max: 1, step: 0.1 }, { description: 'Opacity of the hidden edges that are covered by other geometry. When set to 1, one less geometry render pass is done.' }),
     innerEdgeFactor: PD.Numeric(1.5, { min: 0, max: 3, step: 0.1 }, { description: 'Factor to multiply the inner edge color with - for added contrast.' }),
 };
@@ -101,7 +103,7 @@ export class MarkingPass {
     }
 
     update(props: MarkingProps) {
-        const { highlightEdgeColor, selectEdgeColor, edgeScale, innerEdgeFactor, ghostEdgeStrength } = props;
+        const { highlightEdgeColor, selectEdgeColor, edgeScale, innerEdgeFactor, ghostEdgeStrength, highlightEdgeStrength, selectEdgeStrength } = props;
 
         const { values: edgeValues } = this.edge;
         const _edgeScale = Math.round(edgeScale * this.webgl.pixelRatio);
@@ -113,8 +115,10 @@ export class MarkingPass {
         const { values: overlayValues } = this.overlay;
         ValueCell.update(overlayValues.uHighlightEdgeColor, Color.toVec3Normalized(overlayValues.uHighlightEdgeColor.ref.value, highlightEdgeColor));
         ValueCell.update(overlayValues.uSelectEdgeColor, Color.toVec3Normalized(overlayValues.uSelectEdgeColor.ref.value, selectEdgeColor));
-        ValueCell.update(overlayValues.uInnerEdgeFactor, innerEdgeFactor);
-        ValueCell.update(overlayValues.uGhostEdgeStrength, ghostEdgeStrength);
+        ValueCell.updateIfChanged(overlayValues.uInnerEdgeFactor, innerEdgeFactor);
+        ValueCell.updateIfChanged(overlayValues.uGhostEdgeStrength, ghostEdgeStrength);
+        ValueCell.updateIfChanged(overlayValues.uHighlightEdgeStrength, highlightEdgeStrength);
+        ValueCell.updateIfChanged(overlayValues.uSelectEdgeStrength, selectEdgeStrength);
     }
 
     render(viewport: Viewport, target: RenderTarget | undefined) {
@@ -170,6 +174,8 @@ const OverlaySchema = {
     uTexSizeInv: UniformSpec('v2'),
     uHighlightEdgeColor: UniformSpec('v3'),
     uSelectEdgeColor: UniformSpec('v3'),
+    uHighlightEdgeStrength: UniformSpec('f'),
+    uSelectEdgeStrength: UniformSpec('f'),
     uGhostEdgeStrength: UniformSpec('f'),
     uInnerEdgeFactor: UniformSpec('f'),
 };
@@ -186,6 +192,8 @@ function getOverlayRenderable(ctx: WebGLContext, edgeTexture: Texture): OverlayR
         uTexSizeInv: ValueCell.create(Vec2.create(1 / width, 1 / height)),
         uHighlightEdgeColor: ValueCell.create(Vec3()),
         uSelectEdgeColor: ValueCell.create(Vec3()),
+        uHighlightEdgeStrength: ValueCell.create(1),
+        uSelectEdgeStrength: ValueCell.create(1),
         uGhostEdgeStrength: ValueCell.create(0),
         uInnerEdgeFactor: ValueCell.create(0),
     };
