@@ -595,13 +595,22 @@ export const LoadCellPackModel = StateAction.build({
             multiSample: { mode: 'off' },
             cameraClipping: { far: false },
             renderer: {
-                colorMarker: false,
+                colorMarker: true,
+                highlightColor: Color(0xffffff),
+                highlightStrength: 0,
+                selectStrength: 0,
+                dimColor: Color(0xffffff),
+                dimStrength: 1.0,
+                markerPriority: 2,
                 interiorColorFlag: false,
                 interiorDarkening: 0.15,
             },
             marking: {
-                enabled: true,
+                enabled: false,
+                highlightEdgeColor: Color(0x394e65),
+                selectEdgeStrength: 0,
                 ghostEdgeStrength: 1,
+                innerEdgeFactor: 2.5,
             },
             postprocessing: {
                 occlusion: {

@@ -61,8 +61,12 @@ export const CellpackPackingPreset = StructureRepresentationPresetProvider({
             let color: string = (structureCell.obj && CellPackInfoProvider.get(structureCell.obj.data).value) ? CellPackGenerateColorThemeProvider.name : CellPackColorThemeProvider.name;
             let colorParams = {};
             if (params.uniformColor !== undefined) {
-                color = 'uniform';
-                colorParams = { value: params.uniformColor };
+                color = 'cellpack-uniform';
+                colorParams = {
+                    value: params.uniformColor,
+                    saturation: 0,
+                    lightness: 0,
+                };
             }
 
             const { update, builder, typeParams } = StructureRepresentationPresetProvider.reprBuilder(plugin, {});

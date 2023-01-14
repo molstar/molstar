@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2022-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -12,12 +12,15 @@ import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { ThemeDataContext } from '../../mol-theme/theme';
 import { ColorNames } from '../../mol-util/color/names';
 import { MmcifFormat } from '../../mol-model-formats/structure/mmcif';
+import { defaults } from '../../mol-util';
 
 const DefaultPetworldColor = Color(0xEEEE00);
 const Description = 'Petworld coloring.';
 
 export const PetworldColorThemeParams = {
-    value: PD.Color(Color(0xCCCCCC))
+    value: PD.Color(Color(0xCCCCCC)),
+    saturation: PD.Numeric(0, { min: -6, max: 6, step: 0.1 }),
+    lightness: PD.Numeric(0, { min: -6, max: 6, step: 0.1 }),
 };
 export type PetworldColorThemeParams = typeof PetworldColorThemeParams
 export function getPetworldColorThemeParams(ctx: ThemeDataContext) {
@@ -31,6 +34,14 @@ function getAtomicCompId(unit: Unit.Atomic, element: ElementIndex) {
 const lipids = ['PEA', 'PSE', 'CLR', 'PCH'];
 
 export function PetworldColorTheme(ctx: ThemeDataContext, props: PD.Values<PetworldColorThemeParams>): ColorTheme<PetworldColorThemeParams> {
+    let value = defaults(props.value, DefaultPetworldColor);
+    value = Color.saturate(value, props.saturation);
+    value = Color.lighten(value, props.lightness);
+
+    let lipid = ColorNames.lightgrey;
+    lipid = Color.saturate(lipid, props.saturation);
+    lipid = Color.lighten(lipid, props.lightness);
+
     let color: LocationColor;
 
     const source = ctx.structure?.model.sourceData;
@@ -40,18 +51,18 @@ export function PetworldColorTheme(ctx: ThemeDataContext, props: PD.Values<Petwo
                 if (Unit.isAtomic(location.unit)) {
                     const compId = getAtomicCompId(location.unit, location.element);
                     if (lipids.includes(compId)) {
-                        return ColorNames.lightgrey;
+                        return lipid;
                     }
                 }
-                return props.value;
+                return value;
             } else if (Bond.isLocation(location)) {
                 if (Unit.isAtomic(location.aUnit)) {
                     const compId = getAtomicCompId(location.aUnit, location.aUnit.elements[location.aIndex]);
                     if (lipids.includes(compId)) {
-                        return ColorNames.lightgrey;
+                        return lipid;
                     }
                 }
-                return props.value;
+                return value;
             }
             return DefaultPetworldColor;
         };

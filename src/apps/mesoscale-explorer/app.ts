@@ -21,6 +21,8 @@ import { Backgrounds } from '../../extensions/backgrounds';
 import { LeftPanel, RightPanel } from './ui/panels';
 import { Color } from '../../mol-util/color';
 import { SpacefillRepresentationProvider } from '../../mol-repr/structure/representation/spacefill';
+import { PluginBehaviors } from '../../mol-plugin/behavior';
+import { MesoFocusLoci } from './behavior/camera';
 
 export { PLUGIN_VERSION as version } from '../../mol-plugin/version';
 export { setDebugMode, setProductionMode, setTimingMode } from '../../mol-util/debug';
@@ -57,9 +59,9 @@ const DefaultViewerOptions = {
     viewportShowExpand: PluginConfig.Viewport.ShowExpand.defaultValue,
     viewportShowControls: PluginConfig.Viewport.ShowControls.defaultValue,
     viewportShowSettings: PluginConfig.Viewport.ShowSettings.defaultValue,
-    viewportShowSelectionMode: PluginConfig.Viewport.ShowSelectionMode.defaultValue,
-    viewportShowAnimation: PluginConfig.Viewport.ShowAnimation.defaultValue,
-    viewportShowTrajectoryControls: PluginConfig.Viewport.ShowTrajectoryControls.defaultValue,
+    viewportShowSelectionMode: false,
+    viewportShowAnimation: false,
+    viewportShowTrajectoryControls: false,
     pluginStateServer: PluginConfig.State.DefaultServer.defaultValue,
     volumeStreamingServer: PluginConfig.VolumeStreaming.DefaultServer.defaultValue,
     volumeStreamingDisabled: !PluginConfig.VolumeStreaming.Enabled.defaultValue,
@@ -87,7 +89,12 @@ export class Viewer {
         const spec: PluginUISpec = {
             actions: defaultSpec.actions,
             behaviors: [
-                ...defaultSpec.behaviors,
+                PluginSpec.Behavior(PluginBehaviors.Representation.HighlightLoci, { mark: false }),
+                PluginSpec.Behavior(PluginBehaviors.Representation.DefaultLociLabelProvider),
+                PluginSpec.Behavior(PluginBehaviors.Camera.CameraAxisHelper),
+
+                PluginSpec.Behavior(MesoFocusLoci),
+
                 ...o.extensions.map(e => Extensions[e]),
             ],
             animations: [...defaultSpec.animations || []],
@@ -115,7 +122,7 @@ export class Viewer {
                     left: LeftPanel,
                     right: RightPanel,
                 },
-                remoteState: o.layoutShowRemoteState ? 'default' : 'none',
+                remoteState: 'none',
             },
             config: [
                 [PluginConfig.General.DisableAntialiasing, o.disableAntialiasing],

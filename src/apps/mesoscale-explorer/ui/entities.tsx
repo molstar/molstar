@@ -12,8 +12,8 @@ import { PluginCommands } from '../../../mol-plugin/commands';
 import { State, StateObjectCell, StateSelection, StateTransformer } from '../../../mol-state';
 import { debounceTime, filter } from 'rxjs/operators';
 import { escapeRegExp, stringToWords } from '../../../mol-util/string';
-import { Structure, StructureElement, StructureProperties } from '../../../mol-model/structure';
-import { ParameterMappingControl, ParamOnChange } from '../../../mol-plugin-ui/controls/parameters';
+import { StructureElement, StructureProperties } from '../../../mol-model/structure';
+import { ParameterControls, ParameterMappingControl, ParamOnChange } from '../../../mol-plugin-ui/controls/parameters';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { Clip } from '../../../mol-util/clip';
 import { StructureRepresentation3D } from '../../../mol-plugin-state/transforms/representation';
@@ -89,18 +89,6 @@ class Node<P extends {} = {}, S = {}, SS = {}> extends PluginUIComponent<P & { c
         PluginCommands.State.ToggleVisibility(this.plugin, { state: this.props.cell.parent!, ref: this.ref });
         e.currentTarget.blur();
     };
-
-    highlight = (e: React.MouseEvent<HTMLElement>) => {
-        e.preventDefault();
-        PluginCommands.Interactivity.Object.Highlight(this.plugin, { state: this.props.cell.parent!, ref: this.ref });
-        e.currentTarget.blur();
-    };
-
-    clearHighlight = (e: React.MouseEvent<HTMLElement>) => {
-        e.preventDefault();
-        PluginCommands.Interactivity.ClearHighlights(this.plugin);
-        e.currentTarget.blur();
-    };
 }
 
 function getGroups(plugin: PluginContext, cell: StateObjectCell, ref: string) {
@@ -133,6 +121,15 @@ function getAllEntities(plugin: PluginContext, cell: StateObjectCell, ref: strin
 }
 
 const ColorParam = PD.Color(Color(0xFFFFFF));
+
+const LightnessParams = {
+    lightness: PD.Numeric(0, { min: -6, max: 6, step: 0.1 }),
+};
+const DimLightness = 6;
+
+const OpacityParams = {
+    alpha: PD.Numeric(1, { min: 0, max: 1, step: 0.01 }),
+};
 
 const SimpleClipParams = {
     type: PD.Select('plane', PD.objectToOptions(Clip.Type, t => stringToWords(t))),
@@ -237,8 +234,13 @@ export class GroupNode extends Node<{ filter: string }, { isCollapsed: boolean, 
         e.currentTarget.blur();
     };
 
-    toggleColor = () => {
-        this.setState({ action: this.state.action === 'color' ? undefined : 'color' });
+    toggleColor = (e?: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
+        if (e?.ctrlKey) {
+            this.updateLightness({ lightness: this.lightnessValue?.lightness ? 0 : DimLightness });
+            e.preventDefault();
+        } else {
+            this.setState({ action: this.state.action === 'color' ? undefined : 'color' });
+        }
     };
 
     toggleClip = () => {
@@ -247,12 +249,15 @@ export class GroupNode extends Node<{ filter: string }, { isCollapsed: boolean, 
 
     highlight = (e: React.MouseEvent<HTMLElement>) => {
         e.preventDefault();
-        this.plugin.managers.interactivity.lociHighlights.clearHighlights(true);
+        this.plugin.canvas3d?.setProps({
+            renderer: { dimStrength: e?.shiftKey ? 1.0 : 0.0 },
+            marking: { enabled: !e?.shiftKey },
+        });
+        this.plugin.canvas3d?.mark({ loci: EveryLoci }, MarkerAction.RemoveHighlight);
         for (const e of this.allEntities) {
-            const cell = this.plugin.state.data.cells.get(e.transform.ref);
-            if (cell?.obj) {
-                const loci = Structure.Loci(cell.obj.data);
-                this.plugin.canvas3d?.mark({ loci }, MarkerAction.Highlight);
+            const repr = this.plugin.state.data.select(StateSelection.Generators.ofTransformer(StructureRepresentation3D, e.transform.ref))[0]?.obj?.data.repr;
+            if (repr) {
+                this.plugin.canvas3d?.mark({ repr, loci: EveryLoci }, MarkerAction.Highlight);
             }
         }
         e.currentTarget.blur();
@@ -307,6 +312,24 @@ export class GroupNode extends Node<{ filter: string }, { isCollapsed: boolean, 
         return repr.transform.params?.colorTheme.params.value;
     }
 
+    get lightnessValue(): { lightness: number } | undefined {
+        const repr = this.pivotRepr;
+        const hasLightness = repr?.transform.params?.colorTheme.params.lightness !== undefined;
+        if (!hasLightness) return;
+        return {
+            lightness: repr.transform.params?.colorTheme.params.lightness
+        };
+    }
+
+    get opacityValue(): { alpha: number } | undefined {
+        const repr = this.pivotRepr;
+        const hasOpacity = repr?.transform.params?.type.params.alpha !== undefined;
+        if (!hasOpacity) return;
+        return {
+            alpha: repr.transform.params?.type.params.alpha
+        };
+    }
+
     get clipValue(): Clip.Props | undefined {
         return this.pivotRepr?.transform.params.type.params.clip;
     }
@@ -342,6 +365,39 @@ export class GroupNode extends Node<{ filter: string }, { isCollapsed: boolean, 
         update.commit();
     };
 
+    updateLightness = (values: PD.Values) => {
+        const update = this.plugin.state.data.build();
+        const reprCells = this.plugin.state.data.select(StateSelection.Generators.ofTransformer(StructureRepresentation3D, this.ref));
+
+        for (let i = 0; i < reprCells.length; ++i) {
+            const cell = reprCells[i];
+            const params = cell.transform.params as StateTransformer.Params<StructureRepresentation3D>;
+            if (params.colorTheme.params.lightness !== values.lightness) {
+                update.to(cell).update(old => {
+                    old.colorTheme.params.lightness = values.lightness;
+                });
+            }
+        }
+        update.commit();
+    };
+
+    updateOpacity = (values: PD.Values) => {
+        const update = this.plugin.state.data.build();
+        const reprCells = this.plugin.state.data.select(StateSelection.Generators.ofTransformer(StructureRepresentation3D, this.ref));
+
+        for (let i = 0; i < reprCells.length; ++i) {
+            const cell = reprCells[i];
+            const params = cell.transform.params as StateTransformer.Params<StructureRepresentation3D>;
+            if (params.type.params.alpha !== values.alpha) {
+                update.to(cell).update(old => {
+                    old.type.params.alpha = values.alpha;
+                    old.type.params.xrayShaded = values.alpha < 1;
+                });
+            }
+        }
+        update.commit();
+    };
+
     updateClip = async (props: Clip.Props) => {
         const update = this.plugin.state.data.build();
         this.plugin.state.data.select(StateSelection.Generators.ofTransformer(StructureRepresentation3D, this.ref)).forEach(cell => {
@@ -365,6 +421,8 @@ export class GroupNode extends Node<{ filter: string }, { isCollapsed: boolean, 
         const disabled = cell.status !== 'error' && cell.status !== 'ok';
         const depth = this.props.depth;
         const colorValue = this.colorValue;
+        const lightnessValue = this.lightnessValue;
+        const opacityValue = this.opacityValue;
         const hasEntities = this.hasEntities;
 
         const groups = this.groups;
@@ -375,7 +433,7 @@ export class GroupNode extends Node<{ filter: string }, { isCollapsed: boolean, 
         </Button>;
 
         const expand = <IconButton svg={cellState.isCollapsed ? ArrowRightSvg : ArrowDropDownSvg} flex='20px' disabled={disabled} onClick={this.toggleExpanded} transparent className='msp-no-hover-outline' style={{ visibility: groups.length > 0 || entities.length > 0 ? 'visible' : 'hidden' }} />;
-        const color = hasEntities && colorValue !== undefined && <Button style={{ backgroundColor: Color.toStyle(colorValue), minWidth: 32, width: 32 }} onClick={this.toggleColor} />;
+        const color = hasEntities && colorValue !== undefined && <Button style={{ backgroundColor: Color.toStyle(colorValue), minWidth: 32, width: 32, borderRight: `6px solid ${Color.toStyle(Color.lighten(colorValue, lightnessValue?.lightness || 0))}` }} onClick={this.toggleColor} />;
         const clip = <IconButton svg={ContentCutSvg} toggleState={false} disabled={disabled} small onClick={this.toggleClip} />;
         const visibility = <IconButton svg={cellState.isHidden ? VisibilityOffOutlinedSvg : VisibilityOutlinedSvg} toggleState={false} disabled={disabled} small onClick={this.toggleVisible} />;
 
@@ -391,6 +449,8 @@ export class GroupNode extends Node<{ filter: string }, { isCollapsed: boolean, 
                 <ControlGroup header='Color' initialExpanded={true} hideExpander={true} hideOffset={true} onHeaderClick={this.toggleColor}
                     topRightIcon={CloseSvg} noTopMargin childrenClassName='msp-viewport-controls-panel-controls'>
                     <CombinedColorControl param={ColorParam} value={colorValue ?? Color(0xFFFFFF)} onChange={this.updateColor} name='color' hideNameRow />
+                    <ParameterControls params={LightnessParams} values={lightnessValue} onChangeValues={this.updateLightness} />
+                    <ParameterControls params={OpacityParams} values={opacityValue} onChangeValues={this.updateOpacity} />
                 </ControlGroup>
             </div>}
             {this.state.action === 'clip' && <div style={{ marginRight: 5 }} className='msp-accent-offset'>
@@ -418,12 +478,37 @@ export class EntityNode extends Node<{}, { action?: 'color' | 'clip' }> {
 
     clipMapping = createClipMapping(this);
 
-    toggleColor = () => {
-        this.setState({ action: this.state.action === 'color' ? undefined : 'color' });
+    toggleColor = (e?: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
+        if (e?.ctrlKey) {
+            this.updateLightness({ lightness: this.lightnessValue?.lightness ? 0 : DimLightness });
+            e.preventDefault();
+        } else {
+            this.setState({ action: this.state.action === 'color' ? undefined : 'color' });
+        }
     };
 
     toggleClip = () => {
         this.setState({ action: this.state.action === 'clip' ? undefined : 'clip' });
+    };
+
+    highlight = (e: React.MouseEvent<HTMLElement>) => {
+        e.preventDefault();
+        this.plugin.canvas3d?.setProps({
+            renderer: { dimStrength: e?.shiftKey ? 1.0 : 0.0 },
+            marking: { enabled: !e?.shiftKey },
+        });
+        this.plugin.canvas3d?.mark({ loci: EveryLoci }, MarkerAction.RemoveHighlight);
+        const repr = this.repr?.obj?.data.repr;
+        if (repr) {
+            this.plugin.canvas3d?.mark({ repr, loci: EveryLoci }, MarkerAction.Highlight);
+        }
+        e.currentTarget.blur();
+    };
+
+    clearHighlight = (e: React.MouseEvent<HTMLElement>) => {
+        e.preventDefault();
+        this.plugin.canvas3d?.mark({ loci: EveryLoci }, MarkerAction.RemoveHighlight);
+        e.currentTarget.blur();
     };
 
     get entityLabel() {
@@ -449,6 +534,24 @@ export class EntityNode extends Node<{}, { action?: 'color' | 'clip' }> {
         return repr.transform.params?.colorTheme.params.value;
     }
 
+    get lightnessValue(): { lightness: number } | undefined {
+        const repr = this.repr;
+        const hasLightness = repr?.transform.params?.colorTheme.params.value !== undefined;
+        if (!hasLightness) return;
+        return {
+            lightness: repr.transform.params?.colorTheme.params.lightness
+        };
+    }
+
+    get opacityValue(): { alpha: number } | undefined {
+        const repr = this.repr;
+        const hasOpacity = repr?.transform.params?.type.params.alpha !== undefined;
+        if (!hasOpacity) return;
+        return {
+            alpha: repr.transform.params?.type.params.alpha
+        };
+    }
+
     get clipValue(): Clip.Props | undefined {
         return this.repr?.transform.params.type.params.clip;
     }
@@ -459,6 +562,25 @@ export class EntityNode extends Node<{}, { action?: 'color' | 'clip' }> {
 
         return this.plugin.build().to(t.ref).update(old => {
             old.colorTheme.params.value = value;
+        }).commit();
+    };
+
+    updateLightness = (values: PD.Values) => {
+        const t = this.repr?.transform;
+        if (!t) return;
+
+        return this.plugin.build().to(t.ref).update(old => {
+            old.colorTheme.params.lightness = values.lightness;
+        }).commit();
+    };
+
+    updateOpacity = (values: PD.Values) => {
+        const t = this.repr?.transform;
+        if (!t) return;
+
+        return this.plugin.build().to(t.ref).update(old => {
+            old.type.params.alpha = values.alpha;
+            old.type.params.xrayShaded = values.alpha < 1;
         }).commit();
     };
 
@@ -483,12 +605,14 @@ export class EntityNode extends Node<{}, { action?: 'color' | 'clip' }> {
         const disabled = cell.status !== 'error' && cell.status !== 'ok';
         const depth = this.props.depth;
         const colorValue = this.colorValue;
+        const lightnessValue = this.lightnessValue;
+        const opacityValue = this.opacityValue;
 
         const label = <Button className={`msp-btn-tree-label msp-type-class-${obj.type.typeClass}`} noOverflow disabled={disabled}>
             <span>{this.entityLabel}</span>
         </Button>;
 
-        const color = colorValue !== undefined && <Button style={{ backgroundColor: Color.toStyle(colorValue), minWidth: 32, width: 32 }} onClick={this.toggleColor} />;
+        const color = colorValue !== undefined && <Button style={{ backgroundColor: Color.toStyle(colorValue), minWidth: 32, width: 32, borderRight: `6px solid ${Color.toStyle(Color.lighten(colorValue, lightnessValue?.lightness || 0))}` }} onClick={this.toggleColor} />;
         const clip = <IconButton svg={ContentCutSvg} toggleState={false} disabled={disabled} small onClick={this.toggleClip} />;
         const visibility = <IconButton svg={cellState.isHidden ? VisibilityOffOutlinedSvg : VisibilityOutlinedSvg} toggleState={false} disabled={disabled} small onClick={this.toggleVisible} />;
 
@@ -503,6 +627,8 @@ export class EntityNode extends Node<{}, { action?: 'color' | 'clip' }> {
                 <ControlGroup header='Color' initialExpanded={true} hideExpander={true} hideOffset={true} onHeaderClick={this.toggleColor}
                     topRightIcon={CloseSvg} noTopMargin childrenClassName='msp-viewport-controls-panel-controls'>
                     <CombinedColorControl param={ColorParam} value={colorValue ?? Color(0xFFFFFF)} onChange={this.updateColor} name='color' hideNameRow />
+                    <ParameterControls params={LightnessParams} values={lightnessValue} onChangeValues={this.updateLightness} />
+                    <ParameterControls params={OpacityParams} values={opacityValue} onChangeValues={this.updateOpacity} />
                 </ControlGroup>
             </div>}
             {this.state.action === 'clip' && <div style={{ marginRight: 5 }} className='msp-accent-offset'>

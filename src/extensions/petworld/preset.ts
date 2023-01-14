@@ -52,7 +52,9 @@ const PetworldStructurePreset = StructureRepresentationPresetProvider({
 
         const color = PetworldColorThemeProvider.name;
         const colorParams: PD.Values<PetworldColorThemeParams> = {
-            value: params.uniformColor
+            value: params.uniformColor,
+            saturation: 0,
+            lightness: 0,
         };
 
         const { update, builder, typeParams } = StructureRepresentationPresetProvider.reprBuilder(plugin, {});
@@ -92,13 +94,22 @@ export const PetworldPreset = TrajectoryHierarchyPresetProvider({
             multiSample: { mode: 'off' },
             cameraClipping: { far: false },
             renderer: {
-                colorMarker: false,
+                colorMarker: true,
+                highlightColor: Color(0xffffff),
+                highlightStrength: 0,
+                selectStrength: 0,
+                dimColor: Color(0xffffff),
+                dimStrength: 1.0,
+                markerPriority: 2,
                 interiorColorFlag: false,
                 interiorDarkening: 0.15,
             },
             marking: {
-                enabled: true,
+                enabled: false,
+                highlightEdgeColor: Color(0x394e65),
+                selectEdgeStrength: 0,
                 ghostEdgeStrength: 1,
+                innerEdgeFactor: 2.5,
             },
             postprocessing: {
                 occlusion: {
@@ -139,7 +150,7 @@ export const PetworldPreset = TrajectoryHierarchyPresetProvider({
 
         const group = await state.build()
             .to(trajectory)
-            .group(StateTransforms.Misc.CreateGroup, { label: 'root' }, { tags: 'Entity' })
+            .group(StateTransforms.Misc.CreateGroup, { label: 'root' }, { tags: 'Entity', state: { isCollapsed: true } })
             .commit({ revertOnError: true });
 
         const colors = distinctColors(tr.frameCount, {
@@ -157,7 +168,7 @@ export const PetworldPreset = TrajectoryHierarchyPresetProvider({
                 for (let i = 0; i < tr.frameCount; i++) {
                     const structure = await state.build()
                         .to(group)
-                        .apply(StructureFromPetworld, { modelIndex: i }, { tags: 'Entity', state: { isCollapsed: true } })
+                        .apply(StructureFromPetworld, { modelIndex: i }, { tags: 'Entity' })
                         .commit({ revertOnError: true });
 
                     structures.push(structure);

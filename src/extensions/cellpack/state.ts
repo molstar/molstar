@@ -341,23 +341,21 @@ const EntityStructure = PluginStateTransform.BuiltIn({
     },
     apply({ a, params }) {
         return Task.create('Build Structure', async ctx => {
-            const base = a.data;
-            const builder = Structure.Builder();
+            const parent = a.data;
+            const units: Unit[] = [];
 
-            const l = StructureElement.Location.create(base);
-
-            for (const u of base.units) {
+            const l = StructureElement.Location.create(parent);
+            for (const u of parent.units) {
                 l.unit = u;
                 l.element = u.elements[0];
                 const entityId = StructureProperties.entity.id(l);
                 if (entityId === params.entityId) {
-                    builder.addUnit(u.kind, u.model, u.conformation.operator, u.elements, u.traits, u.invariantId);
+                    units.push(u);
                 }
             }
+            const structure = Structure.create(units, { parent });
 
-            const structure = builder.getStructure();
-
-            const { entities } = a.data.model;
+            const { entities } = parent.model;
             const idx = entities.getEntityIndex(params.entityId);
             const description = entities.data.pdbx_description.value(idx)[0] || 'model';
             const label = description.split('.').at(-1) || a.label;
