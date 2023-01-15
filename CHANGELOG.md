@@ -25,6 +25,8 @@ Note that since we don't clearly distinguish between a public and private interf
 - Add RepresentationRegistry.clear and ThemeRegistry.clear
 - Add generic Loci support for overpaint, substance, clipping themes
 - Add `.getCenter` and `.center` to `Camera`
+- Add support to dim unmarked groups
+- Add support for marker edge strength
 
 ## [v3.28.0] - 2022-12-20
 

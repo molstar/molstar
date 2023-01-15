@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Gianluca Tomasello <giagitom@gmail.com>
@@ -152,9 +152,12 @@ export const GlobalUniformSchema = {
 
     uHighlightColor: UniformSpec('v3'),
     uSelectColor: UniformSpec('v3'),
+    uDimColor: UniformSpec('v3'),
     uHighlightStrength: UniformSpec('f'),
     uSelectStrength: UniformSpec('f'),
+    uDimStrength: UniformSpec('f'),
     uMarkerPriority: UniformSpec('i'),
+    uMarkerAverage: UniformSpec('f'),
 
     uXrayEdgeFalloff: UniformSpec('f'),
 
