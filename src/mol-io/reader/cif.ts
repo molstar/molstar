@@ -18,7 +18,7 @@ import { CifCore_Database, CifCore_Schema, CifCore_Aliases } from './cif/schema/
 import { Segmentation_Data_Database, Segmentation_Data_Schema } from './cif/schema/segmentation';
 
 export const CIF = {
-    parse: (data: string|Uint8Array) => typeof data === 'string' ? parseCifText(data) : parseCifBinary(data),
+    parse: (data: string | Uint8Array) => typeof data === 'string' ? parseCifText(data) : parseCifBinary(data),
     parseText: parseCifText,
     parseBinary: parseCifBinary,
     toDatabaseCollection,

@@ -70,7 +70,7 @@ canvas3d.input.move.pipe(throttleTime(100)).subscribe(({ x, y }) => {
     info.innerHTML = label;
 });
 
-async function parseCif(data: string|Uint8Array) {
+async function parseCif(data: string | Uint8Array) {
     const comp = CIF.parse(data);
     const parsed = await comp.run();
     if (parsed.isError) throw parsed;

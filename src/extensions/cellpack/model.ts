@@ -236,7 +236,7 @@ async function getIngredientStructure(plugin: PluginContext, ingredient: Ingredi
         structure = await getCurve(name, getCurveTransforms(ingredient), model);
     } else {
         if ((!results || results.length === 0)) return;
-        let bu: string|undefined = source.bu ? source.bu : undefined;
+        let bu: string | undefined = source.bu ? source.bu : undefined;
         if (bu) {
             if (bu === 'AU') {
                 bu = undefined;
