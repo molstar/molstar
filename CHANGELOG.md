@@ -15,6 +15,11 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Improve `Dnatco` extension
+    - Factor out common code in `Dnatco` extension
+    - Add `NtC tube` visual. Applicable for structures with NtC annotation
+    - [Breaking] Rename `DnatcoConfalPyramids` to `DnatcoNtCs`
+
 ## [v3.29.0] - 2023-01-15
 
 - `meshes` extension: Fixed a bug in mesh visualization (show backfaces when opacity < 1)

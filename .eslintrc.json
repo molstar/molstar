@@ -18,7 +18,7 @@
         ],
         "brace-style": "off",
         "comma-spacing": "off",
-        "space-infix-ops": "error",
+        "space-infix-ops": "off",
         "comma-dangle": "off",
         "eqeqeq": [
             "error",
@@ -107,6 +107,7 @@
                     "1tbs", { "allowSingleLine": true }
                 ],
                 "@typescript-eslint/comma-spacing": "error",
+                "@typescript-eslint/space-infix-ops": "error",
                 "@typescript-eslint/space-before-function-paren": ["error", {
                     "anonymous": "always",
                     "named": "never",
