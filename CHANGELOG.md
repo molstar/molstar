@@ -15,6 +15,8 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+## [v3.29.0] - 2023-01-15
+
 - `meshes` extension: Fixed a bug in mesh visualization (show backfaces when opacity < 1)
 - Add color quick select control to Volume controls
 - Fix `dropFiles` bug
