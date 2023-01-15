@@ -5,9 +5,10 @@
  * @author Jiří Černý <jiri.cerny@ibt.cas.cz>
  */
 
-import { ConfalPyramids, ConfalPyramidsProvider } from './property';
+import { ConfalPyramidsProvider } from './property';
 import { ConfalPyramidsIterator } from './util';
 import { ConfalPyramidsTypes as CPT } from './types';
+import { Dnatco } from '../property';
 import { Interval } from '../../../mol-data/int';
 import { Mesh } from '../../../mol-geo/geometry/mesh/mesh';
 import { MeshBuilder } from '../../../mol-geo/geometry/mesh/mesh-builder';
@@ -150,9 +151,7 @@ function getConfalPyramidLoci(pickingId: PickingId, structureGroup: StructureGro
     if (halfPyramidsCount <= groupId) return EmptyLoci;
 
     const idx = Math.floor(groupId / 2); // Map groupIndex to a step, see createConfalPyramidsMesh() for full explanation
-    const step = data.steps[idx];
-
-    return CPT.Loci({ step, isLower: groupId % 2 === 1 }, [{}]);
+    return CPT.Loci(data.steps, [idx]);
 }
 
 function eachConfalPyramid(loci: Loci, structureGroup: StructureGroup, apply: (interval: Interval) => boolean) {
@@ -197,7 +196,7 @@ export const ConfalPyramidsRepresentationProvider = StructureRepresentationProvi
     defaultValues: PD.getDefaultValues(ConfalPyramidsParams),
     defaultColorTheme: { name: 'confal-pyramids' },
     defaultSizeTheme: { name: 'uniform' },
-    isApplicable: (structure: Structure) => structure.models.some(m => ConfalPyramids.isApplicable(m)),
+    isApplicable: (structure: Structure) => structure.models.some(m => Dnatco.isApplicable(m)),
     ensureCustomProperties: {
         attach: (ctx: CustomProperty.Context, structure: Structure) => ConfalPyramidsProvider.attach(ctx, structure.model, void 0, true),
         detach: (data) => ConfalPyramidsProvider.ref(data.model, false),
