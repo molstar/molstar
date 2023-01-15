@@ -1,7 +1,7 @@
 /**
  * Copyright (c) 2017-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
- * Code-generated 'mmCIF' schema file. Dictionary versions: mmCIF 5.363, IHM 1.17, MA 1.4.3.
+ * Code-generated 'mmCIF' schema file. Dictionary versions: mmCIF 5.365, IHM 1.18, MA 1.4.4.
  *
  * @author molstar/ciftools package
  */
@@ -3470,7 +3470,7 @@ export const mmCIF_Schema = {
         /**
          * The clustering method used to obtain the ensemble, if applicable.
          */
-        ensemble_clustering_method: Aliased<'Hierarchical' | 'Partitioning (k-means)' | 'Other'>(str),
+        ensemble_clustering_method: Aliased<'Hierarchical' | 'Partitioning (k-means)' | 'Density based threshold-clustering' | 'Other'>(str),
         /**
          * The parameter/feature used for clustering the models, if applicable.
          */
@@ -3628,7 +3628,7 @@ export const mmCIF_Schema = {
         /**
          * The type of data held in the dataset.
          */
-        data_type: Aliased<'NMR data' | '3DEM volume' | '2DEM class average' | 'EM raw micrographs' | 'X-ray diffraction data' | 'SAS data' | 'CX-MS data' | 'Mass Spectrometry data' | 'EPR data' | 'H/D exchange data' | 'Single molecule FRET data' | 'Experimental model' | 'Comparative model' | 'Integrative model' | 'De Novo model' | 'Predicted contacts' | 'Mutagenesis data' | 'DNA footprinting data' | 'Hydroxyl radical footprinting data' | 'Yeast two-hybrid screening data' | 'Quantitative measurements of genetic interactions' | 'Other'>(str),
+        data_type: Aliased<'NMR data' | '3DEM volume' | '2DEM class average' | 'EM raw micrographs' | 'X-ray diffraction data' | 'SAS data' | 'CX-MS data' | 'Mass Spectrometry data' | 'EPR data' | 'H/D exchange data' | 'Single molecule FRET data' | 'Ensemble FRET data' | 'Experimental model' | 'Comparative model' | 'Integrative model' | 'De Novo model' | 'Predicted contacts' | 'Mutagenesis data' | 'DNA footprinting data' | 'Hydroxyl radical footprinting data' | 'Yeast two-hybrid screening data' | 'Quantitative measurements of genetic interactions' | 'Other'>(str),
         /**
          * A flag that indicates whether the dataset is archived in
          * an IHM related database or elsewhere.

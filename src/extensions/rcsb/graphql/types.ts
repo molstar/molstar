@@ -4,7 +4,7 @@ export type InputMaybe<T> = Maybe<T>;
 export type Exact<T extends { [key: string]: unknown }> = { [K in keyof T]: T[K] };
 export type MakeOptional<T, K extends keyof T> = Omit<T, K> & { [SubKey in K]?: Maybe<T[SubKey]> };
 export type MakeMaybe<T, K extends keyof T> = Omit<T, K> & { [SubKey in K]: Maybe<T[SubKey]> };
-// Generated on 2022-12-03T21:55:37-08:00
+// Generated on 2023-01-15T10:00:07-08:00
 
 /** All built-in and custom scalars, mapped to their actual values */
 export type Scalars = {
@@ -8487,6 +8487,8 @@ export type RcsbCompModelProvenance = {
   readonly source_db?: Maybe<Scalars['String']>;
   /** Source filename for the computed structure model. */
   readonly source_filename?: Maybe<Scalars['String']>;
+  /** Source URL for computed structure model predicted aligned error (PAE) json file. */
+  readonly source_pae_url?: Maybe<Scalars['String']>;
   /** Source URL for computed structure model file. */
   readonly source_url?: Maybe<Scalars['String']>;
 };
