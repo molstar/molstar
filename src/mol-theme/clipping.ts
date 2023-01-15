@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -11,17 +11,18 @@ import { BitFlags } from '../mol-util/bit-flags';
 
 export { Clipping };
 
-type Clipping = {
-    readonly layers: ReadonlyArray<Clipping.Layer>
+type Clipping<T extends Loci = Loci> = {
+    readonly kind: T['kind']
+    readonly layers: ReadonlyArray<Clipping.Layer<T>>
 }
 
-function Clipping(layers: Clipping['layers']): Clipping {
-    return { layers };
+function Clipping<T extends Loci>(kind: T['kind'], layers: ReadonlyArray<Clipping.Layer<T>>): Clipping<T> {
+    return { kind, layers };
 }
 
 namespace Clipping {
-    export type Layer = { readonly loci: StructureElement.Loci, readonly groups: Groups }
-    export const Empty: Clipping = { layers: [] };
+    export type Layer<T extends Loci = Loci> = { readonly loci: T, readonly groups: Groups }
+    export const Empty: Clipping = { kind: 'empty-loci', layers: [] };
 
     export type Groups = BitFlags<Groups.Flag>
     export namespace Groups {
@@ -101,57 +102,69 @@ namespace Clipping {
 
     /** Remap layers */
     export function remap(clipping: Clipping, structure: Structure): Clipping {
-        const layers: Clipping.Layer[] = [];
-        for (const layer of clipping.layers) {
-            let { loci, groups } = layer;
-            loci = StructureElement.Loci.remap(loci, structure);
-            if (!StructureElement.Loci.isEmpty(loci)) {
-                layers.push({ loci, groups });
+        if (clipping.kind === 'element-loci') {
+            const layers: Clipping.Layer[] = [];
+            for (const layer of clipping.layers) {
+                let { loci, groups } = layer;
+                loci = StructureElement.Loci.remap(loci as StructureElement.Loci, structure);
+                if (!StructureElement.Loci.isEmpty(loci)) {
+                    layers.push({ loci, groups });
+                }
             }
+            return { kind: 'element-loci', layers };
+        } else {
+            return clipping;
         }
-        return { layers };
     }
 
     /** Merge layers */
     export function merge(clipping: Clipping): Clipping {
         if (isEmpty(clipping)) return clipping;
-        const { structure } = clipping.layers[0].loci;
-        const map = new Map<Groups, StructureElement.Loci>();
-        let shadowed = StructureElement.Loci.none(structure);
-        for (let i = 0, il = clipping.layers.length; i < il; ++i) {
-            let { loci, groups } = clipping.layers[il - i - 1]; // process from end
-            loci = StructureElement.Loci.subtract(loci, shadowed);
-            shadowed = StructureElement.Loci.union(loci, shadowed);
-            if (!StructureElement.Loci.isEmpty(loci)) {
-                if (map.has(groups)) {
-                    loci = StructureElement.Loci.union(loci, map.get(groups)!);
+        if (clipping.kind === 'element-loci') {
+            const { structure } = clipping.layers[0].loci as StructureElement.Loci;
+            const map = new Map<Groups, StructureElement.Loci>();
+            let shadowed = StructureElement.Loci.none(structure);
+            for (let i = 0, il = clipping.layers.length; i < il; ++i) {
+                let { loci, groups } = clipping.layers[il - i - 1]; // process from end
+                loci = StructureElement.Loci.subtract(loci as StructureElement.Loci, shadowed);
+                shadowed = StructureElement.Loci.union(loci, shadowed);
+                if (!StructureElement.Loci.isEmpty(loci)) {
+                    if (map.has(groups)) {
+                        loci = StructureElement.Loci.union(loci, map.get(groups)!);
+                    }
+                    map.set(groups, loci);
                 }
-                map.set(groups, loci);
             }
+            const layers: Clipping.Layer[] = [];
+            map.forEach((loci, groups) => {
+                layers.push({ loci, groups });
+            });
+            return { kind: 'element-loci', layers };
+        } else {
+            return clipping;
         }
-        const layers: Clipping.Layer[] = [];
-        map.forEach((loci, groups) => {
-            layers.push({ loci, groups });
-        });
-        return { layers };
     }
 
     /** Filter layers */
     export function filter(clipping: Clipping, filter: Structure): Clipping {
         if (isEmpty(clipping)) return clipping;
-        const { structure } = clipping.layers[0].loci;
-        const layers: Clipping.Layer[] = [];
-        for (const layer of clipping.layers) {
-            let { loci, groups } = layer;
-            // filter by first map to the `filter` structure and
-            // then map back to the original structure of the clipping loci
-            const filtered = StructureElement.Loci.remap(loci, filter);
-            loci = StructureElement.Loci.remap(filtered, structure);
-            if (!StructureElement.Loci.isEmpty(loci)) {
-                layers.push({ loci, groups });
+        if (clipping.kind === 'element-loci') {
+            const { structure } = clipping.layers[0].loci as StructureElement.Loci;
+            const layers: Clipping.Layer[] = [];
+            for (const layer of clipping.layers) {
+                let { loci, groups } = layer;
+                // filter by first map to the `filter` structure and
+                // then map back to the original structure of the clipping loci
+                const filtered = StructureElement.Loci.remap(loci as StructureElement.Loci, filter);
+                loci = StructureElement.Loci.remap(filtered, structure);
+                if (!StructureElement.Loci.isEmpty(loci)) {
+                    layers.push({ loci, groups });
+                }
             }
+            return { kind: 'element-loci', layers };
+        } else {
+            return clipping;
         }
-        return { layers };
     }
 
     export type ScriptLayer = { script: Script, groups: Groups }
@@ -164,7 +177,7 @@ namespace Clipping {
                 layers.push({ loci, groups });
             }
         }
-        return { layers };
+        return { kind: 'element-loci', layers };
     }
 
     export type BundleLayer = { bundle: StructureElement.Bundle, groups: Groups }
@@ -175,16 +188,16 @@ namespace Clipping {
             const loci = StructureElement.Bundle.toLoci(bundle, structure.root);
             layers.push({ loci, groups });
         }
-        return { layers };
+        return { kind: 'element-loci', layers };
     }
 
-    export function toBundle(clipping: Clipping) {
+    export function toBundle(clipping: Clipping<StructureElement.Loci>) {
         const layers: BundleLayer[] = [];
         for (let i = 0, il = clipping.layers.length; i < il; ++i) {
             const { loci, groups } = clipping.layers[i];
             const bundle = StructureElement.Bundle.fromLoci(loci);
             layers.push({ bundle, groups });
         }
-        return { layers };
+        return { kind: 'element-loci', layers };
     }
 }

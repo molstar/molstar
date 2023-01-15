@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2021-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -72,5 +72,5 @@ async function eachRepr(plugin: PluginContext, components: StructureComponentRef
 function getFilteredBundle(layers: Substance.BundleLayer[], structure: Structure) {
     const substance = Substance.ofBundle(layers, structure.root);
     const merged = Substance.merge(substance);
-    return Substance.filter(merged, structure);
+    return Substance.filter(merged, structure) as Substance<StructureElement.Loci>;
 }
