@@ -84,6 +84,8 @@ export interface LinkBuilderProps {
     stub?: (edgeIndex: number) => boolean
 }
 
+/** For internal use only */
+// eslint-disable-next-line no-restricted-syntax
 export const enum LinkStyle {
     Solid = 0,
     Dashed = 1,
