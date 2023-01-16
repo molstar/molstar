@@ -600,7 +600,7 @@ export const LoadCellPackModel = StateAction.build({
                 highlightStrength: 0,
                 selectStrength: 0,
                 dimColor: Color(0xffffff),
-                dimStrength: 1.0,
+                dimStrength: 0,
                 markerPriority: 2,
                 interiorColorFlag: false,
                 interiorDarkening: 0.15,
