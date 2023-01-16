@@ -170,6 +170,10 @@ export class Viewer {
         plugin.representation.structure.registry.clear();
         plugin.representation.structure.registry.add(SpacefillRepresentationProvider);
 
+        plugin.state.setSnapshotParams({
+            image: true
+        });
+
         return new Viewer(plugin);
     }
 
