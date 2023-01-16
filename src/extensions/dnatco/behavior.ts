@@ -39,11 +39,15 @@ export const DnatcoNtCs = PluginBehavior.create<{ autoAttach: boolean, showToolT
         }
 
         unregister() {
+            this.ctx.customModelProperties.unregister(ConfalPyramidsProvider.descriptor.name);
             this.ctx.customModelProperties.unregister(NtCTubeProvider.descriptor.name);
 
+            this.ctx.representation.structure.registry.remove(ConfalPyramidsRepresentationProvider);
+            this.ctx.representation.structure.themes.colorThemeRegistry.remove(ConfalPyramidsColorThemeProvider);
             this.ctx.representation.structure.registry.remove(NtCTubeRepresentationProvider);
             this.ctx.representation.structure.themes.colorThemeRegistry.remove(NtCTubeColorThemeProvider);
 
+            this.ctx.builders.structure.representation.unregisterPreset(ConfalPyramidsPreset);
             this.ctx.builders.structure.representation.unregisterPreset(NtCTubePreset);
         }
     },
