@@ -1,19 +1,20 @@
 /**
- * Copyright (c) 2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2022-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { OrderedSet } from '../../mol-data/int/ordered-set';
 import { calculateTransformBoundingSphere } from '../../mol-gl/renderable/util';
+import { Box3D } from '../geometry';
 import { Vec3 } from '../linear-algebra/3d/vec3';
-import { getBoundary } from './boundary';
 import { PositionData } from './common';
 import { GridLookup3D } from './lookup3d/grid';
 import { Sphere3D } from './primitives/sphere3d';
 
 // avoiding namespace lookup improved performance in Chrome (Aug 2020)
 const v3transformMat4Offset = Vec3.transformMat4Offset;
+const b3add = Box3D.add;
 
 export type InstanceGrid = {
     readonly cellSize: number
@@ -31,7 +32,7 @@ export type InstanceData = {
     invariantBoundingSphere: Sphere3D
 }
 
-export function createEmptyInstanceGrid() {
+export function createEmptyInstanceGrid(): InstanceGrid {
     return {
         cellSize: 0,
         cellCount: 0,
@@ -42,6 +43,8 @@ export function createEmptyInstanceGrid() {
     };
 }
 
+const IBS = Sphere3D();
+
 export function calcInstanceGrid(instanceData: InstanceData, cellSize: number): InstanceGrid {
     const { instanceCount, instance, transform, invariantBoundingSphere } = instanceData;
     // console.time('calcInstanceGrid grid');
@@ -50,6 +53,8 @@ export function calcInstanceGrid(instanceData: InstanceData, cellSize: number): 
     const z = new Float32Array(instanceCount);
     const indices = OrderedSet.ofBounds(0, instanceCount);
 
+    const box = Box3D.setEmpty(Box3D());
+
     const { center } = invariantBoundingSphere;
     const v = Vec3();
     for (let i = 0; i < instanceCount; ++i) {
@@ -57,10 +62,11 @@ export function calcInstanceGrid(instanceData: InstanceData, cellSize: number): 
         x[i] = v[0];
         y[i] = v[1];
         z[i] = v[2];
+        b3add(box, v);
     }
 
     const positionData: PositionData = { x, y, z, indices };
-    const boundary = getBoundary(positionData);
+    const boundary = { box, sphere: Sphere3D.fromBox3D(Sphere3D(), box) };
     const lookup = GridLookup3D(positionData, boundary, Vec3.create(cellSize, cellSize, cellSize));
     // console.timeEnd('calcInstanceGrid grid');
 
@@ -71,6 +77,13 @@ export function calcInstanceGrid(instanceData: InstanceData, cellSize: number): 
     const cellSpheres = new Float32Array(cellCount * 4);
     const cellTransform = new Float32Array(instanceCount * 16);
     const cellInstance = new Float32Array(instanceCount);
+
+    if (invariantBoundingSphere.extrema && invariantBoundingSphere.extrema.length < 98) {
+        Vec3.copy(IBS.center, center);
+        IBS.radius = invariantBoundingSphere.radius;
+    } else {
+        Sphere3D.copy(IBS, invariantBoundingSphere);
+    }
 
     let k = 0;
     for (let i = 0; i < cellCount; ++i) {
@@ -86,7 +99,7 @@ export function calcInstanceGrid(instanceData: InstanceData, cellSize: number): 
             }
             k += 1;
         }
-        const s = calculateTransformBoundingSphere(invariantBoundingSphere, cellTransform.subarray(kStart * 16, (kStart + size) * 16), size);
+        const s = calculateTransformBoundingSphere(IBS, cellTransform, size, kStart * 16);
         Sphere3D.toArray(s, cellSpheres, i * 4);
     }
     cellOffsets[cellCount] = offset[cellCount - 1] + count[cellCount - 1];
