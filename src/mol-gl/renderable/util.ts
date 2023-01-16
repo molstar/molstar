@@ -165,9 +165,9 @@ export function calculateInvariantBoundingSphere(position: Float32Array, positio
 
 const _mat4 = Mat4();
 
-export function calculateTransformBoundingSphere(invariantBoundingSphere: Sphere3D, transform: Float32Array, transformCount: number): Sphere3D {
+export function calculateTransformBoundingSphere(invariantBoundingSphere: Sphere3D, transform: Float32Array, transformCount: number, transformOffset: number): Sphere3D {
     if (transformCount === 1) {
-        Mat4.fromArray(_mat4, transform, 0);
+        Mat4.fromArray(_mat4, transform, transformOffset);
         const s = Sphere3D.clone(invariantBoundingSphere);
         return Mat4.isIdentity(_mat4) ? s : Sphere3D.transform(s, s, _mat4);
     }
@@ -181,25 +181,25 @@ export function calculateTransformBoundingSphere(invariantBoundingSphere: Sphere
     if (extrema && transformCount <= 14) {
         for (let i = 0, _i = transformCount; i < _i; ++i) {
             for (const e of extrema) {
-                v3transformMat4Offset(v, e, transform, 0, 0, i * 16);
+                v3transformMat4Offset(v, e, transform, 0, 0, i * 16 + transformOffset);
                 boundaryHelper.includePosition(v);
             }
         }
         boundaryHelper.finishedIncludeStep();
         for (let i = 0, _i = transformCount; i < _i; ++i) {
             for (const e of extrema) {
-                v3transformMat4Offset(v, e, transform, 0, 0, i * 16);
+                v3transformMat4Offset(v, e, transform, 0, 0, i * 16 + transformOffset);
                 boundaryHelper.radiusPosition(v);
             }
         }
     } else {
         for (let i = 0, _i = transformCount; i < _i; ++i) {
-            v3transformMat4Offset(v, center, transform, 0, 0, i * 16);
+            v3transformMat4Offset(v, center, transform, 0, 0, i * 16 + transformOffset);
             boundaryHelper.includePositionRadius(v, radius);
         }
         boundaryHelper.finishedIncludeStep();
         for (let i = 0, _i = transformCount; i < _i; ++i) {
-            v3transformMat4Offset(v, center, transform, 0, 0, i * 16);
+            v3transformMat4Offset(v, center, transform, 0, 0, i * 16 + transformOffset);
             boundaryHelper.radiusPositionRadius(v, radius);
         }
     }
@@ -209,7 +209,7 @@ export function calculateTransformBoundingSphere(invariantBoundingSphere: Sphere
 
 export function calculateBoundingSphere(position: Float32Array, positionCount: number, transform: Float32Array, transformCount: number, padding = 0, stepFactor = 1): { boundingSphere: Sphere3D, invariantBoundingSphere: Sphere3D } {
     const invariantBoundingSphere = calculateInvariantBoundingSphere(position, positionCount, stepFactor);
-    const boundingSphere = calculateTransformBoundingSphere(invariantBoundingSphere, transform, transformCount);
+    const boundingSphere = calculateTransformBoundingSphere(invariantBoundingSphere, transform, transformCount, 0);
     Sphere3D.expand(boundingSphere, boundingSphere, padding);
     Sphere3D.expand(invariantBoundingSphere, invariantBoundingSphere, padding);
     return { boundingSphere, invariantBoundingSphere };
