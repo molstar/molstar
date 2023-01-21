@@ -11,6 +11,8 @@ Note that since we don't clearly distinguish between a public and private interf
     - Add `NtC tube` visual. Applicable for structures with NtC annotation
     - [Breaking] Rename `DnatcoConfalPyramids` to `DnatcoNtCs`
 - Improve boundary calculation performance
+- Add `HeadlessPluginContext` and `Canvas3DRenderer` to be used in Node.js
+- Add example `image-renderer`
 
 ## [v3.29.0] - 2023-01-15
 
