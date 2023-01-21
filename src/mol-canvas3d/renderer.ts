@@ -9,7 +9,7 @@
  */
 
 import * as fs from 'fs';
-import { default as createGLContext } from 'gl';
+import type glType from 'gl'; // Only import type! Actual import is done via `require`. Because installing `gl` on Mac takes years :'(
 import * as JPEG from 'jpeg-js';
 import path from 'path';
 import { PNG } from 'pngjs';
@@ -24,6 +24,19 @@ import { Canvas3D, Canvas3DContext, Canvas3DProps, DefaultCanvas3DParams } from 
 import { ImagePass, ImageProps } from './passes/image';
 import { Passes } from './passes/passes';
 import { PostprocessingParams, PostprocessingProps } from './passes/postprocessing';
+
+
+let _gl: typeof glType | undefined = undefined;
+function getGL() {
+    if (!_gl) {
+        try {
+            _gl = require('gl');
+        } catch {
+            throw new Error('GL is not installed (`gl` is not listed in the `molstar` package dependencies for performance reasons. If you want to use `Canvas3DRenderer`, you must add `gl` dependency to your project.)');
+        }
+    }
+    return _gl!;
+}
 
 
 export type ImageRendererOptions = {
@@ -48,6 +61,7 @@ export class Canvas3DRenderer {
         if (canvas3d) {
             this.canvas3d = canvas3d;
         } else {
+            const createGLContext = getGL();
             const glContext = createGLContext(this.canvasSize.width, this.canvasSize.height, options?.webgl ?? defaultWebGLAttributes());
             const webgl = createContext(glContext);
             const input = InputObserver.create();

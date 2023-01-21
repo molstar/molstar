@@ -153,7 +153,6 @@
     "compression": "^1.7.4",
     "cors": "^2.8.5",
     "express": "^4.18.2",
-    "gl": "^6.0.2",
     "h264-mp4-encoder": "^1.0.12",
     "immer": "^9.0.17",
     "immutable": "^4.2.2",

@@ -4,8 +4,9 @@
  * @author Adam Midlik <midlik@gmail.com>
  *
  * Example command-line application generating images of PDB structures
- * Build: npm run build
- * Run:   node lib/commonjs/examples/image-renderer 1cbs ../outputs_1cbs
+ * Build: npm install --no-save gl  // `gl` not listed in dependencies for performance reasons
+ *        npm run build
+ * Run:   node lib/commonjs/examples/image-renderer 1cbs ../outputs_1cbs/
  */
 
 import { ArgumentParser } from 'argparse';
@@ -21,13 +22,13 @@ import { DefaultPluginSpec } from '../../mol-plugin/spec';
 
 
 interface Args {
-    pdbid: string,
+    pdbId: string,
     outDirectory: string
 }
 
 function parseArguments(): Args {
     const parser = new ArgumentParser({ description: 'Example command-line application generating images of PDB structures' });
-    parser.add_argument('pdbid', { help: 'PDB identifier' });
+    parser.add_argument('pdbId', { help: 'PDB identifier' });
     parser.add_argument('outDirectory', { help: 'Directory for outputs' });
     const args = parser.parse_args();
     return { ...args };
@@ -35,8 +36,8 @@ function parseArguments(): Args {
 
 async function main() {
     const args = parseArguments();
-    const url = `https://www.ebi.ac.uk/pdbe/entry-files/download/${args.pdbid}.bcif`;
-    console.log('PDB ID:', args.pdbid);
+    const url = `https://www.ebi.ac.uk/pdbe/entry-files/download/${args.pdbId}.bcif`;
+    console.log('PDB ID:', args.pdbId);
     console.log('Source URL:', url);
     console.log('Outputs:', args.outDirectory);
 
