@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Michal Malý <michal.maly@ibt.cas.cz>
  * @author Jiří Černý <jiri.cerny@ibt.cas.cz>
@@ -47,6 +47,10 @@ export class ConfalPyramidsIterator {
     private moveStep() {
         this.residueOne = DnatcoUtil.copyResidue(this.residueTwo);
         this.residueTwo = DnatcoUtil.copyResidue(this.residueIt.move())!;
+
+        // Check for discontinuity
+        if (this.residueTwo.index !== (this.residueOne!.index + 1))
+            return void 0;
 
         return this.toPyramids(this.residueOne!, this.residueTwo);
     }
