@@ -13,6 +13,7 @@ import { Box3D } from './primitives/box3d';
 const v3dot = Vec3.dot;
 const v3copy = Vec3.copy;
 const v3scaleAndSub = Vec3.scaleAndSub;
+const v3scaleAndAdd = Vec3.scaleAndAdd;
 
 // implementing http://www.ep.liu.se/ecp/034/009/ecp083409.pdf
 
@@ -48,7 +49,7 @@ export class BoundaryHelper {
         }
         if (d + radius > this.maxDist[i]) {
             this.maxDist[i] = d + radius;
-            v3scaleAndSub(this.extrema[i * 2 + 1], center, di, radius);
+            v3scaleAndAdd(this.extrema[i * 2 + 1], center, di, radius);
         }
     }
 
