@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Áron Samuel Kovács <aron.kovacs@mail.muni.cz>
@@ -29,7 +29,9 @@ uniform bool uTransparentBackground;
 uniform vec2 uOcclusionOffset;
 
 uniform float uMaxPossibleViewZDiff;
+uniform mat4 uInvProjection;
 
+const float outlineDistanceFactor = 5.0;
 const vec3 occlusionColor = vec3(0.0);
 
 #include common
@@ -62,12 +64,19 @@ bool isBackground(const in float depth) {
     return depth == 1.0;
 }
 
+float getPixelSize(const in vec2 coords, const in float depth) {
+    vec3 viewPos0 = screenSpaceToViewSpace(vec3(coords, depth), uInvProjection);
+    vec3 viewPos1 = screenSpaceToViewSpace(vec3(coords + vec2(1.0, 0.0) / uTexSize, depth), uInvProjection);
+    return distance(viewPos0, viewPos1);
+}
+
 float getOutline(const in vec2 coords, const in float opaqueDepth, out float closestTexel) {
     float backgroundViewZ = uFar + 3.0 * uMaxPossibleViewZDiff;
     vec2 invTexSize = 1.0 / uTexSize;
 
     float selfDepth = min(opaqueDepth, getDepthTransparent(coords));
     float selfViewZ = isBackground(selfDepth) ? backgroundViewZ : getViewZ(selfDepth);
+    float pixelSize = getPixelSize(coords, selfDepth);
 
     float outline = 1.0;
     closestTexel = 1.0;
@@ -84,7 +93,7 @@ float getOutline(const in vec2 coords, const in float opaqueDepth, out float clo
             float sampleOutlineDepth = unpackRGToUnitInterval(sampleOutlineCombined.gb);
             float sampleOutlineViewZ = isBackground(sampleOutlineDepth) ? backgroundViewZ : getViewZ(sampleOutlineDepth);
 
-            if (sampleOutline == 0.0 && sampleOutlineDepth < closestTexel && abs(selfViewZ - sampleOutlineViewZ) > uMaxPossibleViewZDiff) {
+            if (sampleOutline == 0.0 && sampleOutlineDepth < closestTexel && abs(selfViewZ - sampleOutlineViewZ) > uMaxPossibleViewZDiff + (pixelSize * outlineDistanceFactor)) {
                 outline = 0.0;
                 closestTexel = sampleOutlineDepth;
             }

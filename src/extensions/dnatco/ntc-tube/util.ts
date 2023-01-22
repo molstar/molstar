@@ -74,23 +74,59 @@ export type NtCTubeSegment = {
 export class NtCTubeSegmentsIterator {
     private chainIt: Segmentation.SegmentIterator<ChainIndex>;
     private residueIt: Segmentation.SegmentIterator<ResidueIndex>;
+
+    /* Second residue of the previous step, may be undefined
+     * if we are at the beginning of a chain or right after a discontinuity */
     private residuePrev?: DnatcoUtil.Residue;
+    /* First residue of the current step */
     private residueOne?: DnatcoUtil.Residue;
+    /* Second residue of the current step */
     private residueTwo: DnatcoUtil.Residue;
+    /* First residue of the next step, may be undefined
+     * if we are at the end of a chain.
+     * Undefined value indicates that the iterator has reached the end.*/
+    private residueNext?: DnatcoUtil.Residue;
+
     private data?: NTT.Data;
     private altIdOne = '';
     private insCodeOne = '';
     private loc: StructureElement.Location;
 
     private moveStep() {
-        this.residuePrev = DnatcoUtil.copyResidue(this.residueOne);
-        this.residueOne = DnatcoUtil.copyResidue(this.residueTwo);
-        this.residueTwo = DnatcoUtil.copyResidue(this.residueIt.move())!;
+        if (!this.residueNext)
+            return void 0;
 
-        return this.toSegment(this.residuePrev, this.residueOne!, this.residueTwo);
+        /* Assume discontinuity of the ResidueIndex of the residue that would become residue one (= first residue of the corresponding step)
+         * does not equal to ResidueIndex of what would be residue two (= second residue of the corresponding step). */
+        if (this.residueTwo.index + 1 === this.residueNext.index) {
+            this.residuePrev = DnatcoUtil.copyResidue(this.residueOne);
+            this.residueOne = DnatcoUtil.copyResidue(this.residueTwo);
+            this.residueTwo = DnatcoUtil.copyResidue(this.residueNext)!;
+            this.residueNext = this.residueIt.hasNext ? DnatcoUtil.copyResidue(this.residueIt.move())! : void 0;
+        } else {
+            if (!this.residueIt.hasNext) {
+                this.residueNext = void 0;
+                return void 0;
+            }
+
+            // There is discontinuity, act as if we were at the beginning of a chain
+            this.residuePrev = void 0;
+            this.residueOne = DnatcoUtil.copyResidue(this.residueNext);
+            this.residueTwo = DnatcoUtil.copyResidue(this.residueIt.move())!;
+            this.residueNext = this.residueIt.hasNext ? DnatcoUtil.copyResidue(this.residueIt.move())! : void 0;
+        }
+
+        return this.toSegment(this.residuePrev, this.residueOne!, this.residueTwo, this.residueNext);
     }
 
-    private toSegment(r0: DnatcoUtil.Residue | undefined, r1: DnatcoUtil.Residue, r2: DnatcoUtil.Residue): NtCTubeSegment | undefined {
+    private prime() {
+        if (this.residueIt.hasNext)
+            this.residueTwo = DnatcoUtil.copyResidue(this.residueIt.move())!;
+        if (this.residueIt.hasNext)
+            this.residueNext = this.residueIt.move();
+    }
+
+    private toSegment(r0: DnatcoUtil.Residue | undefined, r1: DnatcoUtil.Residue, r2: DnatcoUtil.Residue, r3: DnatcoUtil.Residue | undefined): NtCTubeSegment | undefined {
         const indices = DnatcoUtil.getStepIndices(this.data!.data, this.loc, r1);
         if (indices.length === 0)
             return void 0;
@@ -105,13 +141,14 @@ export class NtCTubeSegmentsIterator {
         const altIdTwo = step.label_alt_id_2;
         const insCodeTwo = step.PDB_ins_code_2;
         const followsGap = !!r0 && hasGapElements(r0, this.loc.unit) && hasGapElements(r1, this.loc.unit);
+        const precedesDiscontinuity = r3 ? r3.index !== r2.index + 1 : false;
 
         return {
             ...getPoints(this.loc, r0, r1, r2, altIdPrev, this.altIdOne, altIdTwo, insCodePrev, this.insCodeOne, insCodeTwo),
             stepIdx,
             followsGap,
             firstInChain: !r0,
-            capEnd: !this.residueIt.hasNext || hasGapElements(r2, this.loc.unit),
+            capEnd: !this.residueNext || precedesDiscontinuity || hasGapElements(r2, this.loc.unit),
         };
     }
 
@@ -124,8 +161,7 @@ export class NtCTubeSegmentsIterator {
 
         if (this.chainIt.hasNext) {
             this.residueIt.setSegment(this.chainIt.move());
-            if (this.residueIt.hasNext)
-                this.residueTwo = this.residueIt.move();
+            this.prime();
         }
 
         this.loc = StructureElement.Location.create(structure, unit, -1 as ElementIndex);
@@ -134,19 +170,21 @@ export class NtCTubeSegmentsIterator {
     get hasNext() {
         if (!this.data)
             return false;
-        return this.residueIt.hasNext
+        return !!this.residueNext
             ? true
             : this.chainIt.hasNext;
     }
 
     move() {
-        if (this.residueIt.hasNext) {
+        if (!!this.residueNext) {
             return this.moveStep();
         } else {
             this.residuePrev = void 0; // Assume discontinuity when we switch chains
+            this.residueNext = void 0;
+
             this.residueIt.setSegment(this.chainIt.move());
-            if (this.residueIt.hasNext)
-                this.residueTwo = this.residueIt.move();
+            this.prime();
+
             return this.moveStep();
         }
     }

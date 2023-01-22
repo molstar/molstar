@@ -22,6 +22,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Improve boundary calculation performance
 - Add option to create & include images in state snapshots
 - Fix SSAO artefacts with high bias values
+- Improve outlines, visually more stable at different view distances
 
 ## [v3.29.0] - 2023-01-15
 
