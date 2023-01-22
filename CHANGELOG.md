@@ -11,6 +11,7 @@ Note that since we don't clearly distinguish between a public and private interf
     - Add `NtC tube` visual. Applicable for structures with NtC annotation
     - [Breaking] Rename `DnatcoConfalPyramids` to `DnatcoNtCs`
 - Improve boundary calculation performance
+- Add option to create & include images in state snapshots
 
 ## [v3.29.0] - 2023-01-15
 

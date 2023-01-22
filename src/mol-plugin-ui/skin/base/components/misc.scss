@@ -324,6 +324,26 @@
     }
 }
 
+.msp-state-image-row {
+    @extend .msp-flex-row;
+
+    height: $state-image-height;
+    margin-top: 0px;
+
+    > button {
+        height: $state-image-height;
+        padding: 0px;
+
+        > img {
+            min-height: $state-image-height;
+            width: inherit;
+            transform: translateY(-50%);
+            top: 50%;
+            position: relative;
+        }
+    }
+}
+
 .msp-tree-row {
     position: relative;
     margin-top: 0;
