@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Áron Samuel Kovács <aron.kovacs@mail.muni.cz>
@@ -283,6 +283,7 @@ const PostprocessingSchema = {
     uTransparentBackground: UniformSpec('b'),
 
     uMaxPossibleViewZDiff: UniformSpec('f'),
+    uInvProjection: UniformSpec('m4'),
 
     dOcclusionEnable: DefineSpec('boolean'),
     uOcclusionOffset: UniformSpec('v2'),
@@ -319,6 +320,7 @@ function getPostprocessingRenderable(ctx: WebGLContext, colorTexture: Texture, d
         uTransparentBackground: ValueCell.create(false),
 
         uMaxPossibleViewZDiff: ValueCell.create(0.5),
+        uInvProjection: ValueCell.create(Mat4.identity()),
 
         dOcclusionEnable: ValueCell.create(true),
         uOcclusionOffset: ValueCell.create(Vec2.create(0, 0)),
@@ -630,7 +632,7 @@ export class PostprocessingPass {
             const transparentOutline = includeTransparent ?? true;
             // orthographic needs lower threshold
             if (camera.state.mode === 'orthographic') threshold /= 5;
-            const factor = Math.pow(1000, threshold) / 1000;
+            const factor = Math.pow(1000, threshold / 10) / 1000;
             // use radiusMax for stable outlines when zooming
             const maxPossibleViewZDiff = factor * camera.state.radiusMax;
             const outlineScale = props.outline.params.scale - 1;
@@ -644,6 +646,8 @@ export class PostprocessingPass {
             ValueCell.update(this.renderable.values.uOutlineColor, Color.toVec3Normalized(this.renderable.values.uOutlineColor.ref.value, props.outline.params.color));
 
             ValueCell.updateIfChanged(this.renderable.values.uMaxPossibleViewZDiff, maxPossibleViewZDiff);
+            ValueCell.update(this.renderable.values.uInvProjection, invProjection);
+
             if (this.renderable.values.dOutlineScale.ref.value !== outlineScale) { needsUpdateMain = true; }
             ValueCell.updateIfChanged(this.renderable.values.dOutlineScale, outlineScale);
             if (this.renderable.values.dTransparentOutline.ref.value !== transparentOutline) { needsUpdateMain = true; }
