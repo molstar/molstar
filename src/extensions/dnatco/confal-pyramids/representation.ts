@@ -88,6 +88,8 @@ function createConfalPyramidsMesh(ctx: VisualContext, unit: Unit, structure: Str
     const it = new ConfalPyramidsIterator(structure, unit);
     while (it.hasNext) {
         const allPoints = it.move();
+        if (!allPoints)
+            continue;
 
         for (const points of allPoints) {
             const { O3, P, OP1, OP2, O5, confalScore } = points;

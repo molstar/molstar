@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { OrderedMap } from 'immutable';
@@ -160,6 +161,7 @@ export class LocalStateSnapshotList extends PluginUIComponent<{}, {}> {
     };
 
     replace = (e: React.MouseEvent<HTMLElement>) => {
+        // TODO: add option change name/description
         const id = e.currentTarget.getAttribute('data-id');
         if (!id) return;
         PluginCommands.State.Snapshots.Replace(this.plugin, { id });
@@ -167,8 +169,9 @@ export class LocalStateSnapshotList extends PluginUIComponent<{}, {}> {
 
     render() {
         const current = this.plugin.managers.snapshot.state.current;
-        return <ul style={{ listStyle: 'none', marginTop: '10px' }} className='msp-state-list'>
-            {this.plugin.managers.snapshot.state.entries.map(e => <li key={e!.snapshot.id} className='msp-flex-row'>
+        const items: JSX.Element[] = [];
+        this.plugin.managers.snapshot.state.entries.forEach(e => {
+            items.push(<li key={e!.snapshot.id} className='msp-flex-row'>
                 <Button data-id={e!.snapshot.id} onClick={this.apply} className='msp-no-overflow'>
                     <span style={{ fontWeight: e!.snapshot.id === current ? 'bold' : void 0 }}>
                         {e!.name || new Date(e!.timestamp).toLocaleString()}</span> <small>
@@ -179,8 +182,21 @@ export class LocalStateSnapshotList extends PluginUIComponent<{}, {}> {
                 <IconButton svg={ArrowDownwardSvg} data-id={e!.snapshot.id} title='Move Down' onClick={this.moveDown} flex='20px' />
                 <IconButton svg={SwapHorizSvg} data-id={e!.snapshot.id} title='Replace' onClick={this.replace} flex='20px' />
                 <IconButton svg={DeleteOutlinedSvg} data-id={e!.snapshot.id} title='Remove' onClick={this.remove} flex='20px' />
-            </li>)}
-        </ul>;
+            </li>);
+            const image = e.image && this.plugin.managers.asset.get(e.image)?.file;
+            if (image) {
+                items.push(<li key={`${e!.snapshot.id}-image`} className='msp-state-image-row'>
+                    <Button data-id={e!.snapshot.id} onClick={this.apply}>
+                        <img src={URL.createObjectURL(image)}/>
+                    </Button>
+                </li>);
+            }
+        });
+        return <>
+            <ul style={{ listStyle: 'none', marginTop: '10px' }} className='msp-state-list'>
+                {items}
+            </ul>
+        </>;
     }
 }
 

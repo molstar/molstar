@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  */
@@ -157,7 +157,8 @@ namespace PluginState {
                 durationInMs: PD.Numeric(250, { min: 100, max: 5000, step: 500 }, { label: 'Duration in ms' }),
             }),
             instant: PD.Group({ })
-        }, { options: [['animate', 'Animate'], ['instant', 'Instant']] })
+        }, { options: [['animate', 'Animate'], ['instant', 'Instant']] }),
+        image: PD.Boolean(false),
     };
     export type SnapshotParams = Partial<PD.Values<typeof SnapshotParams>>
     export const DefaultSnapshotParams = PD.getDefaultValues(SnapshotParams);
