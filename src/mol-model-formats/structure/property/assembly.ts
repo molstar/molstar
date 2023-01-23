@@ -63,7 +63,7 @@ export function operatorGroupsProvider(generators: Generator[], matrices: Matric
                 Q.pred.eq(ctx => StructureProperties.unit.operator_name(ctx.element), SymmetryOperator.DefaultName),
                 Q.pred.inSet(ctx => StructureProperties.chain.label_asym_id(ctx.element), gen.asymIds)
             ) });
-            groups[groups.length] = { selector, operators };
+            groups[groups.length] = { selector, operators, asymIds: gen.asymIds };
             operatorOffset += operators.length;
         }
 

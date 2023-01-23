@@ -24,13 +24,18 @@ function getBoundaryHelper(count: number) {
 
 const p = Vec3();
 
+
+export function getBoundaryFast(data: PositionData): Boundary {
+    const box = Box3D.computeBounding(data);
+    return { box, sphere: Sphere3D.fromBox3D(Sphere3D(), box) };
+}
+
 export function getBoundary(data: PositionData): Boundary {
     const { x, y, z, radius, indices } = data;
     const n = OrderedSet.size(indices);
 
     if (n > 250_000) {
-        const box = Box3D.computeBounding(data);
-        return { box, sphere: Sphere3D.fromBox3D(Sphere3D(), box) };
+        return getBoundaryFast(data);
     }
 
     const boundaryHelper = getBoundaryHelper(n);

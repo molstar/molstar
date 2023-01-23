@@ -20,7 +20,7 @@ import { getAtomicPolymerElements, getCoarsePolymerElements, getAtomicGapElement
 import { mmCIF_Schema } from '../../../mol-io/reader/cif/schema/mmcif';
 import { PrincipalAxes } from '../../../mol-math/linear-algebra/matrix/principal-axes';
 import { getPrincipalAxes } from './util/principal-axes';
-import { Boundary, getBoundary } from '../../../mol-math/geometry/boundary';
+import { Boundary, getBoundary, getBoundaryFast } from '../../../mol-math/geometry/boundary';
 import { Mat4, Vec3 } from '../../../mol-math/linear-algebra';
 import { IndexPairBonds } from '../../../mol-model-formats/structure/property/bonds/index-pair';
 import { ElementSetIntraBondCache } from './unit/bonds/element-set-intra-bond-cache';
@@ -128,7 +128,9 @@ namespace Unit {
     export enum Trait {
         None = 0x0,
         MultiChain = 0x1,
-        Partitioned = 0x2
+        Partitioned = 0x2,
+        // TODO: is this the best place to store this?
+        FastBoundary = 0x4,
     }
     export namespace Traits {
         export const is: (t: Traits, f: Trait) => boolean = BitFlags.has;
@@ -255,7 +257,9 @@ namespace Unit {
         get boundary() {
             if (this.props.boundary) return this.props.boundary;
             const { x, y, z } = this.model.atomicConformation;
-            this.props.boundary = getBoundary({ x, y, z, indices: this.elements });
+            this.props.boundary = Traits.is(this.traits, Trait.FastBoundary)
+                ? getBoundaryFast({ x, y, z, indices: this.elements })
+                : getBoundary({ x, y, z, indices: this.elements });
             return this.props.boundary;
         }
 

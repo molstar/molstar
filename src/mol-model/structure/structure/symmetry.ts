@@ -10,7 +10,7 @@ import { EquivalenceClasses } from '../../../mol-data/util';
 import { Spacegroup, SpacegroupCell, SymmetryOperator } from '../../../mol-math/geometry';
 import { Vec3, Mat4 } from '../../../mol-math/linear-algebra';
 import { RuntimeContext, Task } from '../../../mol-task';
-import { Symmetry, Model } from '../model';
+import { Symmetry, Model, ElementIndex } from '../model';
 import { QueryContext, StructureSelection, Queries as Q } from '../query';
 import { Structure } from './structure';
 import { Unit } from './unit';
@@ -18,8 +18,9 @@ import { ModelSymmetry } from '../../../mol-model-formats/structure/property/sym
 import { StructureProperties } from './properties';
 
 namespace StructureSymmetry {
-    export function buildAssembly(structure: Structure, asmName: string) {
+    export function buildAssemblyOld(structure: Structure, asmName: string) {
         return Task.create('Build Assembly', async ctx => {
+            console.time('build-asm-1');
             const models = structure.models;
             if (models.length !== 1) throw new Error('Can only build assemblies from structures based on 1 model.');
 
@@ -48,6 +49,75 @@ namespace StructureSymmetry {
                     }
                 }
             }
+            console.timeEnd('build-asm-1');
+
+            return assembler.getStructure();
+        });
+    }
+
+    function createModelChainMap(model: Model) {
+        const atomRanges = new Map<string, [number, number]>();
+
+        const { label_asym_id, _rowCount } = model.atomicHierarchy.chains;
+        const { offsets } = model.atomicHierarchy.chainAtomSegments;
+
+        for (let i = 0; i < _rowCount; i++) {
+            atomRanges.set(label_asym_id.value(i), [offsets[i], offsets[i + 1]]);
+        }
+
+        return atomRanges;
+    }
+
+    function getAssemblyUnits(builder: Structure.StructureBuilder, model: Model, asymIds: string[], ranges: Map<string, [number, number]>) {
+        // TODO: have a better log "fast boundary" units?
+        if (asymIds.length === 1) {
+            const [start, end] = ranges.get(asymIds[0])!;
+            const elements = SortedArray.ofBounds(start as ElementIndex, end as ElementIndex);
+            return [builder.addUnit(Unit.Kind.Atomic, model, SymmetryOperator.Default, elements, Unit.Trait.FastBoundary)];
+        }
+
+        const elements: number[] = [];
+        const elementRanges = asymIds.map(id => ranges.get(id)!);
+        elementRanges.sort((a, b) => a[0] - b[0]);
+
+        // const units: Unit[] = [];
+        for (const [start, end] of elementRanges) {
+            // const elements = SortedArray.ofBounds(start as ElementIndex, end as ElementIndex);
+            // units.push(builder.addUnit(Unit.Kind.Atomic, model, SymmetryOperator.Default, elements, Unit.Trait.None))
+            for (let i = start; i < end; i++) elements.push(i);
+        }
+        return [builder.addUnit(Unit.Kind.Atomic, model, SymmetryOperator.Default, SortedArray.ofSortedArray(elements), Unit.Trait.MultiChain | Unit.Trait.FastBoundary)];
+    }
+
+    export function buildAssembly(structure: Structure, asmName: string) {
+        return Task.create('Build Assembly', async ctx => {
+            console.time('build-asm-2');
+            const models = structure.models;
+            if (models.length !== 1) throw new Error('Can only build assemblies from structures based on 1 model.');
+
+            const assembly = Symmetry.findAssembly(models[0], asmName);
+            if (!assembly) throw new Error(`Assembly '${asmName}' is not defined.`);
+
+            const coordinateSystem = SymmetryOperator.create(assembly.id, Mat4.identity(), { assembly: { id: assembly.id, operId: 0, operList: [] } });
+            const assembler = Structure.Builder({
+                coordinateSystem,
+                label: structure.label,
+                // dynamicBonds: structure.dynamicBonds
+            });
+
+            const chainMap = createModelChainMap(structure.models[0]);
+            const baseAssembler = new Structure.StructureBuilder();
+
+            for (const g of assembly.operatorGroups) {
+                const units = getAssemblyUnits(baseAssembler, structure.model, g.asymIds!, chainMap);
+                for (const oper of g.operators) {
+                    for (const unit of units) {
+                        assembler.addWithOperator(unit, oper);
+                    }
+                }
+            }
+
+            console.timeEnd('build-asm-2');
 
             return assembler.getStructure();
         });
