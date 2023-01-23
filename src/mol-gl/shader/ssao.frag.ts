@@ -21,8 +21,8 @@ uniform vec3 uSamples[dNSamples];
 uniform mat4 uProjection;
 uniform mat4 uInvProjection;
 
-uniform float uRadius;
-uniform float uBias;
+uniform float uRadius[dLevels];
+uniform float uBias[dLevels];
 
 float smootherstep(float edge0, float edge1, float x) {
     x = clamp((x - edge0) / (edge1 - edge0), 0.0, 1.0);
@@ -72,6 +72,12 @@ vec3 normalFromDepth(const in float depth, const in float depth1, const in float
     return normalize(normal);
 }
 
+float getPixelSize(const in vec2 coords, const in float depth) {
+    vec3 viewPos0 = screenSpaceToViewSpace(vec3(coords, depth), uInvProjection);
+    vec3 viewPos1 = screenSpaceToViewSpace(vec3(coords + vec2(1.0, 0.0) / uTexSize, depth), uInvProjection);
+    return distance(viewPos0, viewPos1);
+}
+
 // StarCraft II Ambient Occlusion by [Filion and McNaughton 2008]
 void main(void) {
     vec2 invTexSize = 1.0 / uTexSize;
@@ -95,25 +101,31 @@ void main(void) {
     vec3 selfViewPos = screenSpaceToViewSpace(vec3(selfCoords, selfDepth), uInvProjection);
 
     vec3 randomVec = normalize(vec3(getNoiseVec2(selfCoords) * 2.0 - 1.0, 0.0));
+    float pixelSize = getPixelSize(selfCoords, selfDepth);
 
     vec3 tangent = normalize(randomVec - selfViewNormal * dot(randomVec, selfViewNormal));
     vec3 bitangent = cross(selfViewNormal, tangent);
     mat3 TBN = mat3(tangent, bitangent, selfViewNormal);
 
     float occlusion = 0.0;
-    for(int i = 0; i < dNSamples; i++){
-        vec3 sampleViewPos = TBN * uSamples[i];
-        sampleViewPos = selfViewPos + sampleViewPos * uRadius;
+    for(int l = 0; l < dLevels; l++) {
+        // TODO: smooth transition
+        if (pixelSize * 10.0 > uRadius[l]) continue;
 
-        vec4 offset = vec4(sampleViewPos, 1.0);
-        offset = uProjection * offset;
-        offset.xyz = (offset.xyz / offset.w) * 0.5 + 0.5;
+        for(int i = 0; i < dNSamples; i++) {
+            vec3 sampleViewPos = TBN * uSamples[i];
+            sampleViewPos = selfViewPos + sampleViewPos * uRadius[l];
 
-        float sampleViewZ = screenSpaceToViewSpace(vec3(offset.xy, getDepth(offset.xy)), uInvProjection).z;
+            vec4 offset = vec4(sampleViewPos, 1.0);
+            offset = uProjection * offset;
+            offset.xyz = (offset.xyz / offset.w) * 0.5 + 0.5;
 
-        occlusion += step(sampleViewPos.z + 0.025, sampleViewZ) * smootherstep(0.0, 1.0, uRadius / abs(selfViewPos.z - sampleViewZ));
+            float sampleViewZ = screenSpaceToViewSpace(vec3(offset.xy, getDepth(offset.xy)), uInvProjection).z;
+
+            occlusion += step(sampleViewPos.z + 0.025, sampleViewZ) * smootherstep(0.0, 1.0, uRadius[l] / abs(selfViewPos.z - sampleViewZ)) * uBias[l];
+        }
     }
-    occlusion = 1.0 - (uBias * occlusion / float(dNSamples));
+    occlusion = 1.0 - (occlusion / float(dNSamples));
 
     vec2 packedOcclusion = packUnitIntervalToRG(clamp(occlusion, 0.01, 1.0));
 

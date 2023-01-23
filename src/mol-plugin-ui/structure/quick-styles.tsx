@@ -60,7 +60,7 @@ export class QuickStyles extends PurePluginUIComponent {
                     },
                     occlusion: {
                         name: 'on',
-                        params: { bias: 0.8, blurKernelSize: 15, radius: 5, samples: 32, resolutionScale: 1 }
+                        params: { levels: [{ bias: 0.8, radius: 5 }], distanceFactor: 10, blurKernelSize: 15, samples: 32, resolutionScale: 1 }
                     },
                     shadow: { name: 'off', params: {} },
                 }
@@ -85,7 +85,7 @@ export class QuickStyles extends PurePluginUIComponent {
                         name: 'on',
                         params: pp.occlusion.name === 'on'
                             ? pp.occlusion.params
-                            : { bias: 0.8, blurKernelSize: 15, radius: 5, samples: 32, resolutionScale: 1 }
+                            : { levels: [{ bias: 0.8, radius: 5 }], distanceFactor: 10, blurKernelSize: 15, samples: 32, resolutionScale: 1 }
                     },
                     shadow: { name: 'off', params: {} },
                 }

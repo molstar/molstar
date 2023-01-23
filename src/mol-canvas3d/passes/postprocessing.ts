@@ -11,7 +11,7 @@ import { TextureSpec, Values, UniformSpec, DefineSpec } from '../../mol-gl/rende
 import { ShaderCode } from '../../mol-gl/shader-code';
 import { WebGLContext } from '../../mol-gl/webgl/context';
 import { Texture } from '../../mol-gl/webgl/texture';
-import { ValueCell } from '../../mol-util';
+import { deepEqual, ValueCell } from '../../mol-util';
 import { createComputeRenderItem } from '../../mol-gl/webgl/render-item';
 import { createComputeRenderable, ComputeRenderable } from '../../mol-gl/renderable';
 import { Mat4, Vec2, Vec3, Vec4 } from '../../mol-math/linear-algebra';
@@ -147,8 +147,10 @@ const SsaoSchema = {
 
     uTexSize: UniformSpec('v2'),
 
-    uRadius: UniformSpec('f'),
-    uBias: UniformSpec('f'),
+    dLevels: DefineSpec('number'),
+    uRadius: UniformSpec('f[]'),
+    uBias: UniformSpec('f[]'),
+    uDistanceFactor: UniformSpec('f'),
 };
 
 type SsaoRenderable = ComputeRenderable<Values<typeof SsaoSchema>>
@@ -167,8 +169,10 @@ function getSsaoRenderable(ctx: WebGLContext, depthTexture: Texture): SsaoRender
 
         uTexSize: ValueCell.create(Vec2.create(ctx.gl.drawingBufferWidth, ctx.gl.drawingBufferHeight)),
 
-        uRadius: ValueCell.create(8.0),
-        uBias: ValueCell.create(0.025),
+        dLevels: ValueCell.create(1),
+        uRadius: ValueCell.create([Math.pow(2, 5)]),
+        uBias: ValueCell.create([0.8]),
+        uDistanceFactor: ValueCell.create(10.0),
     };
 
     const schema = { ...SsaoSchema };
@@ -345,8 +349,14 @@ export const PostprocessingParams = {
     occlusion: PD.MappedStatic('on', {
         on: PD.Group({
             samples: PD.Numeric(32, { min: 1, max: 256, step: 1 }),
-            radius: PD.Numeric(5, { min: 0, max: 10, step: 0.1 }, { description: 'Final occlusion radius is 2^x' }),
-            bias: PD.Numeric(0.8, { min: 0, max: 3, step: 0.1 }),
+            levels: PD.ObjectList({
+                radius: PD.Numeric(5, { min: 0, max: 10, step: 0.1 }, { description: 'Final occlusion radius is 2^x' }),
+                bias: PD.Numeric(0.8, { min: 0, max: 3, step: 0.1 }),
+            }, o => `${o.radius}, ${o.bias}`, { defaultValue: [{
+                radius: 5,
+                bias: 0.8
+            }] }),
+            distanceFactor: PD.Numeric(10, { min: 0, max: 50, step: 1 }),
             blurKernelSize: PD.Numeric(15, { min: 1, max: 25, step: 2 }),
             resolutionScale: PD.Numeric(1, { min: 0.1, max: 1, step: 0.05 }, { description: 'Adjust resolution of occlusion calculation' }),
         }),
@@ -379,6 +389,25 @@ export const PostprocessingParams = {
 };
 
 export type PostprocessingProps = PD.Values<typeof PostprocessingParams>
+
+type Levels = {
+    count: number
+    radius: number[]
+    bias: number[]
+}
+
+function getLevels(props: { radius: number, bias: number }[], levels?: Levels): Levels {
+    const { radius, bias } = levels || {
+        radius: (new Array(5 * 3)).fill(0),
+        bias: (new Array(5 * 3)).fill(0),
+    };
+    for (let i = 0, il = props.length; i < il; ++i) {
+        const p = props[i];
+        radius[i] = Math.pow(2, p.radius);
+        bias[i] = p.bias;
+    }
+    return { count: props.length, radius, bias };
+}
 
 export class PostprocessingPass {
     static isEnabled(props: PostprocessingProps) {
@@ -423,6 +452,8 @@ export class PostprocessingPass {
         return Math.min(1, 1 / this.webgl.pixelRatio) * this.downsampleFactor;
     }
 
+    private levels: { radius: number, bias: number }[];
+
     private readonly bgColor = Vec3();
     readonly background: BackgroundPass;
 
@@ -435,6 +466,7 @@ export class PostprocessingPass {
         this.blurKernelSize = 1;
         this.downsampleFactor = 1;
         this.ssaoScale = this.calcSsaoScale();
+        this.levels = [];
 
         // needs to be linear for anti-aliasing pass
         this.target = webgl.createRenderTarget(width, height, false, 'uint8', 'linear');
@@ -554,8 +586,18 @@ export class PostprocessingPass {
                 ValueCell.update(this.ssaoRenderable.values.uSamples, getSamples(this.nSamples));
                 ValueCell.updateIfChanged(this.ssaoRenderable.values.dNSamples, this.nSamples);
             }
-            ValueCell.updateIfChanged(this.ssaoRenderable.values.uRadius, Math.pow(2, props.occlusion.params.radius));
-            ValueCell.updateIfChanged(this.ssaoRenderable.values.uBias, props.occlusion.params.bias);
+
+            if (!deepEqual(this.levels, props.occlusion.params.levels)) {
+                needsUpdateSsao = true;
+
+                this.levels = props.occlusion.params.levels;
+                const levels = getLevels(props.occlusion.params.levels);
+                ValueCell.updateIfChanged(this.ssaoRenderable.values.dLevels, levels.count);
+
+                ValueCell.update(this.ssaoRenderable.values.uRadius, levels.radius);
+                ValueCell.update(this.ssaoRenderable.values.uBias, levels.bias);
+            }
+            ValueCell.updateIfChanged(this.ssaoRenderable.values.uDistanceFactor, props.occlusion.params.distanceFactor);
 
             if (this.blurKernelSize !== props.occlusion.params.blurKernelSize) {
                 needsUpdateSsaoBlur = true;

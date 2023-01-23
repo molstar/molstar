@@ -116,9 +116,13 @@ export const PetworldPreset = TrajectoryHierarchyPresetProvider({
                     name: 'on',
                     params: {
                         samples: 32,
-                        radius: 8.5,
-                        bias: 1.3,
-                        blurKernelSize: 15,
+                        levels: [
+                            { radius: 1, bias: 0.4 },
+                            { radius: 5, bias: 0.6 },
+                            { radius: 8, bias: 1.0 },
+                        ],
+                        distanceFactor: 10,
+                        blurKernelSize: 9,
                         resolutionScale: 1,
                     }
                 },
