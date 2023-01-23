@@ -13,7 +13,7 @@ import { Task, RuntimeContext } from '../mol-task';
 import { unzip, ungzip } from './zip/zip';
 import { utf8Read } from '../mol-io/common/utf8';
 import { AssetManager, Asset } from './assets';
-import { RUNNING_IN_NODEJS, File_ as File, XMLHttpRequest_ as XMLHttpRequest } from './nodejs-workarounds';
+import { RUNNING_IN_NODEJS, File_ as File, XMLHttpRequest_ as XMLHttpRequest } from './nodejs-browser-io';
 
 
 export enum DataCompressionMethod {

@@ -9,16 +9,17 @@
  */
 
 import * as fs from 'fs';
-import type glType from 'gl'; // Only import type! Actual import is done via `require`. Because installing `gl` on Mac takes years :'(
-import * as JPEG from 'jpeg-js';
 import path from 'path';
-import { PNG } from 'pngjs';
+
+import { type BufferRet as JpegBufferRet } from 'jpeg-js'; // Only import type here, the actual import is done by LazyImports
+import { type PNG } from 'pngjs'; // Only import type here, the actual import is done by LazyImports
 
 import { createContext } from '../mol-gl/webgl/context';
 import { AssetManager } from '../mol-util/assets';
 import { ColorNames } from '../mol-util/color/names';
 import { PixelData } from '../mol-util/image';
 import { InputObserver } from '../mol-util/input/input-observer';
+import { LazyImports } from '../mol-util/lazy-imports';
 import { ParamDefinition } from '../mol-util/param-definition';
 import { Canvas3D, Canvas3DContext, Canvas3DProps, DefaultCanvas3DParams } from './canvas3d';
 import { ImagePass, ImageProps } from './passes/image';
@@ -26,17 +27,11 @@ import { Passes } from './passes/passes';
 import { PostprocessingParams, PostprocessingProps } from './passes/postprocessing';
 
 
-let _gl: typeof glType | undefined = undefined;
-function getGL() {
-    if (!_gl) {
-        try {
-            _gl = require('gl');
-        } catch {
-            throw new Error('GL is not installed (`gl` is not listed in the `molstar` package dependencies for performance reasons. If you want to use `Canvas3DRenderer`, you must add `gl` dependency to your project.)');
-        }
-    }
-    return _gl!;
-}
+const lazyImports = LazyImports.create('gl', 'jpeg-js', 'pngjs') as {
+    'gl': typeof import('gl'),
+    'jpeg-js': typeof import('jpeg-js'),
+    'pngjs': typeof import('pngjs'),
+};
 
 
 export type ImageRendererOptions = {
@@ -61,8 +56,7 @@ export class Canvas3DRenderer {
         if (canvas3d) {
             this.canvas3d = canvas3d;
         } else {
-            const createGLContext = getGL();
-            const glContext = createGLContext(this.canvasSize.width, this.canvasSize.height, options?.webgl ?? defaultWebGLAttributes());
+            const glContext = lazyImports.gl(this.canvasSize.width, this.canvasSize.height, options?.webgl ?? defaultWebGLAttributes());
             const webgl = createContext(glContext);
             const input = InputObserver.create();
             const attribs = { ...Canvas3DContext.DefaultAttribs };
@@ -100,14 +94,14 @@ export class Canvas3DRenderer {
 
     async getImagePng(imageSize?: { width: number, height: number }, postprocessing?: Partial<PostprocessingProps>): Promise<PNG> {
         const imageData = await this.getImageRaw(imageSize, postprocessing);
-        const generatedPng = new PNG({ width: imageData.width, height: imageData.height });
+        const generatedPng = new lazyImports.pngjs.PNG({ width: imageData.width, height: imageData.height });
         generatedPng.data = Buffer.from(imageData.data.buffer);
         return generatedPng;
     }
 
-    async getImageJpeg(imageSize?: { width: number, height: number }, postprocessing?: Partial<PostprocessingProps>, jpegQuality: number = 90): Promise<JPEG.BufferRet> {
+    async getImageJpeg(imageSize?: { width: number, height: number }, postprocessing?: Partial<PostprocessingProps>, jpegQuality: number = 90): Promise<JpegBufferRet> {
         const imageData = await this.getImageRaw(imageSize, postprocessing);
-        const generatedJpeg = JPEG.encode(imageData, jpegQuality);
+        const generatedJpeg = lazyImports['jpeg-js'].encode(imageData, jpegQuality);
         return generatedJpeg;
     }
 
@@ -135,7 +129,7 @@ async function writePngFile(png: PNG, outPath: string) {
         png.pack().pipe(fs.createWriteStream(outPath)).on('finish', resolve);
     });
 }
-async function writeJpegFile(jpeg: JPEG.BufferRet, outPath: string) {
+async function writeJpegFile(jpeg: JpegBufferRet, outPath: string) {
     await new Promise<void>(resolve => {
         fs.writeFile(outPath, jpeg.data, () => resolve());
     });
