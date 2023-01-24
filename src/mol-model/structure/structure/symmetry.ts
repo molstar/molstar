@@ -50,44 +50,51 @@ namespace StructureSymmetry {
                 }
             }
             console.timeEnd('build-asm-1');
+            const ret = assembler.getStructure();
+            console.log(ret.unitSymmetryGroups);
 
-            return assembler.getStructure();
+            return ret;
         });
     }
 
     function createModelChainMap(model: Model) {
+        const builder = new Structure.StructureBuilder();
         const atomRanges = new Map<string, [number, number]>();
+        const units = new Map<string, Unit>();
 
         const { label_asym_id, _rowCount } = model.atomicHierarchy.chains;
         const { offsets } = model.atomicHierarchy.chainAtomSegments;
 
         for (let i = 0; i < _rowCount; i++) {
             atomRanges.set(label_asym_id.value(i), [offsets[i], offsets[i + 1]]);
+            const elements = SortedArray.ofBounds(offsets[i] as ElementIndex, offsets[i + 1] as ElementIndex);
+            const unit = builder.addUnit(Unit.Kind.Atomic, model, SymmetryOperator.Default, elements, Unit.Trait.FastBoundary);
+            units.set(label_asym_id.value(i), unit);
         }
 
-        return atomRanges;
+        return [atomRanges, units] as const;
     }
 
-    function getAssemblyUnits(builder: Structure.StructureBuilder, model: Model, asymIds: string[], ranges: Map<string, [number, number]>) {
-        // TODO: have a better log "fast boundary" units?
-        if (asymIds.length === 1) {
-            const [start, end] = ranges.get(asymIds[0])!;
-            const elements = SortedArray.ofBounds(start as ElementIndex, end as ElementIndex);
-            return [builder.addUnit(Unit.Kind.Atomic, model, SymmetryOperator.Default, elements, Unit.Trait.FastBoundary)];
-        }
+    // function getAssemblyUnits(builder: Structure.StructureBuilder, model: Model, asymIds: string[], ranges: Map<string, [number, number]>) {
+    //     // TODO: have a better log "fast boundary" units?
+    //     if (asymIds.length === 1) {
+    //         const [start, end] = ranges.get(asymIds[0])!;
+    //         const elements = SortedArray.ofBounds(start as ElementIndex, end as ElementIndex);
+    //         return [builder.addUnit(Unit.Kind.Atomic, model, SymmetryOperator.Default, elements, Unit.Trait.FastBoundary)];
+    //     }
 
-        const elements: number[] = [];
-        const elementRanges = asymIds.map(id => ranges.get(id)!);
-        elementRanges.sort((a, b) => a[0] - b[0]);
+    //     const elements: number[] = [];
+    //     const elementRanges = asymIds.map(id => ranges.get(id)!);
+    //     elementRanges.sort((a, b) => a[0] - b[0]);
 
-        // const units: Unit[] = [];
-        for (const [start, end] of elementRanges) {
-            // const elements = SortedArray.ofBounds(start as ElementIndex, end as ElementIndex);
-            // units.push(builder.addUnit(Unit.Kind.Atomic, model, SymmetryOperator.Default, elements, Unit.Trait.None))
-            for (let i = start; i < end; i++) elements.push(i);
-        }
-        return [builder.addUnit(Unit.Kind.Atomic, model, SymmetryOperator.Default, SortedArray.ofSortedArray(elements), Unit.Trait.MultiChain | Unit.Trait.FastBoundary)];
-    }
+    //     // const units: Unit[] = [];
+    //     for (const [start, end] of elementRanges) {
+    //         // const elements = SortedArray.ofBounds(start as ElementIndex, end as ElementIndex);
+    //         // units.push(builder.addUnit(Unit.Kind.Atomic, model, SymmetryOperator.Default, elements, Unit.Trait.None))
+    //         for (let i = start; i < end; i++) elements.push(i);
+    //     }
+    //     return [builder.addUnit(Unit.Kind.Atomic, model, SymmetryOperator.Default, SortedArray.ofSortedArray(elements), Unit.Trait.MultiChain | Unit.Trait.FastBoundary)];
+    // }
 
     export function buildAssembly(structure: Structure, asmName: string) {
         return Task.create('Build Assembly', async ctx => {
@@ -105,21 +112,28 @@ namespace StructureSymmetry {
                 // dynamicBonds: structure.dynamicBonds
             });
 
-            const chainMap = createModelChainMap(structure.models[0]);
-            const baseAssembler = new Structure.StructureBuilder();
+            const [_, units] = createModelChainMap(structure.models[0]);
+            // const baseAssembler = new Structure.StructureBuilder();
 
             for (const g of assembly.operatorGroups) {
-                const units = getAssemblyUnits(baseAssembler, structure.model, g.asymIds!, chainMap);
+                // const key = g.asymIds!.join(':');
+                // const units = uniqueGroups.get(key)!;
                 for (const oper of g.operators) {
-                    for (const unit of units) {
-                        assembler.addWithOperator(unit, oper);
+                    // for (const unit of units) {
+                    //     assembler.addWithOperator(unit, oper);
+                    // }
+                    for (const id of g.asymIds!) {
+                        assembler.addWithOperator(units.get(id)!, oper);
                     }
                 }
             }
 
             console.timeEnd('build-asm-2');
 
-            return assembler.getStructure();
+            const ret = assembler.getStructure();
+            console.log(ret.unitSymmetryGroups);
+
+            return ret; // assembler.getStructure();
         });
     }
 
