@@ -167,5 +167,10 @@
   "peerDependencies": {
     "react": "^18.1.0 || ^17.0.2 || ^16.14.0",
     "react-dom": "^18.1.0 || ^17.0.2 || ^16.14.0"
+  },
+  "optionalDependencies": {
+    "gl": "^6.0.2",
+    "jpeg-js": "^0.4.4",
+    "pngjs": "^6.0.0"
   }
 }
