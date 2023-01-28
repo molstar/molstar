@@ -623,7 +623,7 @@ export const LoadCellPackModel = StateAction.build({
                             { radius: 8, bias: 1.0 },
                         ],
                         distanceFactor: 10,
-                        blurKernelSize: 9,
+                        blurKernelSize: 11,
                         resolutionScale: 1,
                     }
                 },

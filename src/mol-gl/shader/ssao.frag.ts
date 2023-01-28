@@ -23,6 +23,7 @@ uniform mat4 uInvProjection;
 
 uniform float uRadius[dLevels];
 uniform float uBias[dLevels];
+uniform float uDistanceFactor;
 
 float smootherstep(float edge0, float edge1, float x) {
     x = clamp((x - edge0) / (edge1 - edge0), 0.0, 1.0);
@@ -110,7 +111,7 @@ void main(void) {
     float occlusion = 0.0;
     for(int l = 0; l < dLevels; l++) {
         // TODO: smooth transition
-        if (pixelSize * 10.0 > uRadius[l]) continue;
+        if (pixelSize * uDistanceFactor > uRadius[l]) continue;
 
         for(int i = 0; i < dNSamples; i++) {
             vec3 sampleViewPos = TBN * uSamples[i];
