@@ -6,7 +6,7 @@
 
 import { Mat4 } from '../../mol-math/linear-algebra/3d/mat4';
 import { getMatrices, operatorGroupsProvider } from '../../mol-model-formats/structure/property/assembly';
-import { Structure, Trajectory } from '../../mol-model/structure';
+import { Structure, Trajectory, Unit } from '../../mol-model/structure';
 import { Assembly } from '../../mol-model/structure/model/properties/symmetry';
 import { PluginStateObject as SO, PluginStateTransform } from '../../mol-plugin-state/objects';
 import { Task } from '../../mol-task';
@@ -92,7 +92,7 @@ function buildModelsAssembly(trajectory: Trajectory, asmName: string, modelIndex
 
         for (const oper of g.operators) {
             for (const unit of units) {
-                assembler.addWithOperator(unit, oper);
+                assembler.addUnit(unit.kind, unit.model, oper, unit.elements, unit.traits | Unit.Trait.FastBoundary, unit.invariantId);
             }
         }
 
