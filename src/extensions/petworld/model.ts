@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2022-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -19,7 +19,7 @@ import { CifField } from '../../mol-io/reader/cif';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { PluginContext } from '../../mol-plugin/context';
 import { getFileInfo } from '../../mol-util/file-info';
-import { PetworldPreset } from './preset';
+import { createPetworldHierarchy } from './preset';
 import { MmcifProvider } from '../../mol-plugin-state/formats/trajectory';
 
 const plus1 = (v: number) => v + 1, minus1 = (v: number) => v - 1;
@@ -162,5 +162,5 @@ export const LoadPetworldModel = StateAction.build({
     const isBinary = ctx.dataFormats.binaryExtensions.has(info.ext);
     const { data } = await ctx.builders.data.readFile({ file, isBinary });
     const parsed = await MmcifProvider.parse(ctx, data);
-    await ctx.builders.structure.hierarchy.applyPreset(parsed.trajectory, PetworldPreset);
+    await createPetworldHierarchy(ctx, parsed.trajectory);
 }));
