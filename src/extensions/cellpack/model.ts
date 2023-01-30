@@ -22,7 +22,7 @@ import { ParseCellPack, StructureFromCellpack, DefaultCellPackBaseUrl, Structure
 import { MolScriptBuilder as MS } from '../../mol-script/language/builder';
 import { getMatFromResamplePoints } from './curve';
 import { compile } from '../../mol-script/runtime/query/compiler';
-import { CellpackPackingPreset, CellpackMembranePreset, CellpackPreset } from './preset';
+import { CellpackPackingPreset, CellpackMembranePreset, createCellpackHierarchy } from './preset';
 import { Asset } from '../../mol-util/assets';
 import { Color } from '../../mol-util/color';
 import { objectForEach } from '../../mol-util/object';
@@ -659,7 +659,7 @@ export const LoadCellPackModel = StateAction.build({
         const isBinary = ctx.dataFormats.binaryExtensions.has(info.ext);
         const { data } = await ctx.builders.data.readFile({ file, isBinary });
         const parsed = await MmcifProvider.parse(ctx, data);
-        await ctx.builders.structure.hierarchy.applyPreset(parsed.trajectory, CellpackPreset);
+        await createCellpackHierarchy(ctx, parsed.trajectory);
     } else {
         await loadPackings(ctx, taskCtx, state, params);
     }

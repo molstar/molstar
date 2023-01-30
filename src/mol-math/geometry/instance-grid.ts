@@ -5,7 +5,6 @@
  */
 
 import { OrderedSet } from '../../mol-data/int/ordered-set';
-import { calculateTransformBoundingSphere } from '../../mol-gl/renderable/util';
 import { Box3D } from '../geometry';
 import { Vec3 } from '../linear-algebra/3d/vec3';
 import { PositionData } from './common';
@@ -43,8 +42,6 @@ export function createEmptyInstanceGrid(): InstanceGrid {
     };
 }
 
-const IBS = Sphere3D();
-
 export function calcInstanceGrid(instanceData: InstanceData, cellSize: number): InstanceGrid {
     const { instanceCount, instance, transform, invariantBoundingSphere } = instanceData;
     // console.time('calcInstanceGrid grid');
@@ -55,7 +52,9 @@ export function calcInstanceGrid(instanceData: InstanceData, cellSize: number): 
 
     const box = Box3D.setEmpty(Box3D());
 
-    const { center } = invariantBoundingSphere;
+    const { center, radius } = invariantBoundingSphere;
+    const rv = Vec3.create(radius, radius, radius);
+
     const v = Vec3();
     for (let i = 0; i < instanceCount; ++i) {
         v3transformMat4Offset(v, center, transform, 0, 0, i * 16);
@@ -64,6 +63,7 @@ export function calcInstanceGrid(instanceData: InstanceData, cellSize: number): 
         z[i] = v[2];
         b3add(box, v);
     }
+    Box3D.expand(box, box, rv);
 
     const positionData: PositionData = { x, y, z, indices };
     const boundary = { box, sphere: Sphere3D.fromBox3D(Sphere3D(), box) };
@@ -78,12 +78,8 @@ export function calcInstanceGrid(instanceData: InstanceData, cellSize: number): 
     const cellTransform = new Float32Array(instanceCount * 16);
     const cellInstance = new Float32Array(instanceCount);
 
-    if (invariantBoundingSphere.extrema && invariantBoundingSphere.extrema.length < 98) {
-        Vec3.copy(IBS.center, center);
-        IBS.radius = invariantBoundingSphere.radius;
-    } else {
-        Sphere3D.copy(IBS, invariantBoundingSphere);
-    }
+    const b = Box3D();
+    const s = Sphere3D();
 
     let k = 0;
     for (let i = 0; i < cellCount; ++i) {
@@ -99,8 +95,21 @@ export function calcInstanceGrid(instanceData: InstanceData, cellSize: number): 
             }
             k += 1;
         }
-        const s = calculateTransformBoundingSphere(IBS, cellTransform, size, kStart * 16);
-        Sphere3D.toArray(s, cellSpheres, i * 4);
+
+        if (size === 1) {
+            v3transformMat4Offset(cellSpheres, center, cellTransform, i * 4, 0, kStart * 16);
+            cellSpheres[i * 4 + 3] = radius;
+        } else {
+            Box3D.setEmpty(b);
+            const o = kStart * 16;
+            for (let l = 0; l < size; ++l) {
+                v3transformMat4Offset(v, center, cellTransform, 0, 0, l * 16 + o);
+                b3add(b, v);
+            }
+            Box3D.expand(b, b, rv);
+            Sphere3D.fromBox3D(s, b);
+            Sphere3D.toArray(s, cellSpheres, i * 4);
+        }
     }
     cellOffsets[cellCount] = offset[cellCount - 1] + count[cellCount - 1];
 
