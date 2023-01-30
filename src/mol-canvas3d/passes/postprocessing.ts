@@ -452,7 +452,9 @@ export class PostprocessingPass {
         const sw = Math.floor(width * this.ssaoScale);
         const sh = Math.floor(height * this.ssaoScale);
 
-        this.downsampledDepthTarget = webgl.createRenderTarget(sw, sh, false, drawPass.packedDepth ? 'uint8' : 'float32', 'linear');
+        this.downsampledDepthTarget = drawPass.packedDepth
+            ? webgl.createRenderTarget(sw, sh, false, 'uint8', 'linear', 'rgba')
+            : webgl.createRenderTarget(sw, sh, false, 'float32', 'linear', webgl.isWebGL2 ? 'alpha' : 'rgba');
         this.downsampleDepthRenderable = createCopyRenderable(webgl, depthTextureOpaque);
 
         this.ssaoDepthTexture = webgl.resources.texture('image-uint8', 'rgba', 'ubyte', 'linear');

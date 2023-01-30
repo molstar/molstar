@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -208,7 +208,7 @@ export interface WebGLContext {
     /** Cache for textures, managed by consumers */
     readonly namedTextures: { [name: string]: Texture }
 
-    createRenderTarget: (width: number, height: number, depth?: boolean, type?: 'uint8' | 'float32' | 'fp16', filter?: TextureFilter) => RenderTarget
+    createRenderTarget: (width: number, height: number, depth?: boolean, type?: 'uint8' | 'float32' | 'fp16', filter?: TextureFilter, format?: 'rgba' | 'alpha') => RenderTarget
     unbindFramebuffer: () => void
     readPixels: (x: number, y: number, width: number, height: number, buffer: Uint8Array | Float32Array | Int32Array) => void
     readPixelsAsync: (x: number, y: number, width: number, height: number, buffer: Uint8Array) => Promise<void>
@@ -328,8 +328,8 @@ export function createContext(gl: GLRenderingContext, props: Partial<{ pixelScal
             contextRestored.next(now());
         },
 
-        createRenderTarget: (width: number, height: number, depth?: boolean, type?: 'uint8' | 'float32' | 'fp16', filter?: TextureFilter) => {
-            const renderTarget = createRenderTarget(gl, resources, width, height, depth, type, filter);
+        createRenderTarget: (width: number, height: number, depth?: boolean, type?: 'uint8' | 'float32' | 'fp16', filter?: TextureFilter, format?: 'rgba' | 'alpha') => {
+            const renderTarget = createRenderTarget(gl, resources, width, height, depth, type, filter, format);
             renderTargets.add(renderTarget);
             return {
                 ...renderTarget,
