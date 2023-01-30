@@ -6,6 +6,8 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+## [v3.30.0] - 2023-01-29
+
 - Improve `Dnatco` extension
     - Factor out common code in `Dnatco` extension
     - Add `NtC tube` visual. Applicable for structures with NtC annotation
