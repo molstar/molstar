@@ -452,7 +452,9 @@ export class PostprocessingPass {
         const sw = Math.floor(width * this.ssaoScale);
         const sh = Math.floor(height * this.ssaoScale);
 
-        this.downsampledDepthTarget = webgl.createRenderTarget(sw, sh, false, 'uint8', 'linear');
+        this.downsampledDepthTarget = drawPass.packedDepth
+            ? webgl.createRenderTarget(sw, sh, false, 'uint8', 'linear', 'rgba')
+            : webgl.createRenderTarget(sw, sh, false, 'float32', 'linear', webgl.isWebGL2 ? 'alpha' : 'rgba');
         this.downsampleDepthRenderable = createCopyRenderable(webgl, depthTextureOpaque);
 
         this.ssaoDepthTexture = webgl.resources.texture('image-uint8', 'rgba', 'ubyte', 'linear');
@@ -465,7 +467,7 @@ export class PostprocessingPass {
 
         this.ssaoDepthTexture.attachFramebuffer(this.ssaoBlurSecondPassFramebuffer, 'color0');
 
-        this.ssaoRenderable = getSsaoRenderable(webgl, this.downsampleFactor === 1 ? depthTextureOpaque : this.downsampledDepthTarget.texture);
+        this.ssaoRenderable = getSsaoRenderable(webgl, this.ssaoScale === 1 ? depthTextureOpaque : this.downsampledDepthTarget.texture);
         this.ssaoBlurFirstPassRenderable = getSsaoBlurRenderable(webgl, this.ssaoDepthTexture, 'horizontal');
         this.ssaoBlurSecondPassRenderable = getSsaoBlurRenderable(webgl, this.ssaoDepthBlurProxyTexture, 'vertical');
         this.renderable = getPostprocessingRenderable(webgl, colorTarget.texture, depthTextureOpaque, depthTextureTransparent, this.shadowsTarget.texture, this.outlinesTarget.texture, this.ssaoDepthTexture, true);
@@ -583,7 +585,7 @@ export class PostprocessingPass {
                 this.ssaoDepthBlurProxyTexture.define(sw, sh);
 
                 if (this.ssaoScale === 1) {
-                    ValueCell.update(this.ssaoRenderable.values.tDepth, this.drawPass.depthTextureTransparent);
+                    ValueCell.update(this.ssaoRenderable.values.tDepth, this.drawPass.depthTextureOpaque);
                 } else {
                     ValueCell.update(this.ssaoRenderable.values.tDepth, this.downsampledDepthTarget.texture);
                 }
