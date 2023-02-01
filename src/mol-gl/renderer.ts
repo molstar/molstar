@@ -359,7 +359,7 @@ namespace Renderer {
             arrayMapUpsert(sharedTexturesList, 'tDepth', depthTexture || emptyDepthTexture);
 
             ValueCell.update(globalUniforms.uModel, group.view);
-            ValueCell.update(globalUniforms.uModelView, Mat4.mul(modelView, group.view, camera.view));
+            ValueCell.update(globalUniforms.uModelView, Mat4.mul(modelView, camera.view, group.view));
             ValueCell.update(globalUniforms.uInvModelView, Mat4.invert(invModelView, modelView));
             ValueCell.update(globalUniforms.uModelViewProjection, Mat4.mul(modelViewProjection, modelView, camera.projection));
             ValueCell.update(globalUniforms.uInvModelViewProjection, Mat4.invert(invModelViewProjection, modelViewProjection));
