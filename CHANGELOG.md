@@ -8,6 +8,7 @@ Note that since we don't clearly distinguish between a public and private interf
 
 - Fix wrong offset when rendering text with orthographic projection
 - Update camera/handle helper when `devicePixelRatio` changes
+- Add various options to customize the axes camera-helper
 
 ## [v3.30.0] - 2023-01-29
 
