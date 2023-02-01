@@ -107,6 +107,8 @@
     "@graphql-codegen/typescript-operations": "^2.5.12",
     "@types/cors": "^2.8.13",
     "@types/gl": "^6.0.2",
+    "@types/jpeg-js": "^0.3.7",
+    "@types/pngjs": "^6.0.1",
     "@types/jest": "^29.4.0",
     "@types/react": "^18.0.27",
     "@types/react-dom": "^18.0.10",
@@ -165,5 +167,10 @@
   "peerDependencies": {
     "react": "^18.1.0 || ^17.0.2 || ^16.14.0",
     "react-dom": "^18.1.0 || ^17.0.2 || ^16.14.0"
+  },
+  "optionalDependencies": {
+    "gl": "^6.0.2",
+    "jpeg-js": "^0.4.4",
+    "pngjs": "^6.0.0"
   }
 }
