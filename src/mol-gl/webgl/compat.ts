@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -521,6 +521,31 @@ export interface COMPAT_fboRenderMipmap {
 
 export function getFboRenderMipmap(gl: GLRenderingContext): COMPAT_fboRenderMipmap | null {
     return isWebGL2(gl) ? {} : gl.getExtension('OES_fbo_render_mipmap');
+}
+
+/**
+ * See https://registry.khronos.org/webgl/extensions/WEBGL_provoking_vertex/
+ */
+export interface COMPAT_provoking_vertex {
+    readonly FIRST_VERTEX_CONVENTION: number;
+    readonly LAST_VERTEX_CONVENTION: number;
+    readonly PROVOKING_VERTEX: number;
+    provokingVertex(provokeMode: number): void;
+}
+
+export function getProvokingVertex(gl: GLRenderingContext): COMPAT_provoking_vertex | null {
+    if (isWebGL2(gl)) {
+        const ext = gl.getExtension('WEBGL_provoking_vertex');
+        if (ext) {
+            return {
+                FIRST_VERTEX_CONVENTION: ext.FIRST_VERTEX_CONVENTION_WEBGL,
+                LAST_VERTEX_CONVENTION: ext.LAST_VERTEX_CONVENTION_WEBGL,
+                PROVOKING_VERTEX: ext.PROVOKING_VERTEX_WEBGL,
+                provokingVertex: ext.provokingVertexWEBGL.bind(gl)
+            };
+        }
+    }
+    return null;
 }
 
 export function getNoNonInstancedActiveAttribs(gl: GLRenderingContext): boolean {
