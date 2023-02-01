@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -57,6 +57,7 @@ export class CameraHelper {
     };
 
     private renderObject: GraphicsRenderObject | undefined;
+    private pixelRatio = 1;
 
     constructor(private webgl: WebGLContext, props: Partial<CameraHelperProps> = {}) {
         this.scene = Scene.create(webgl, GraphicsRenderVariantsBlended);
@@ -74,7 +75,11 @@ export class CameraHelper {
                 p.axes.name = props.axes.name;
                 if (props.axes.name === 'on') {
                     this.scene.clear();
-                    const params = { ...props.axes.params, scale: props.axes.params.scale * this.webgl.pixelRatio };
+                    this.pixelRatio = this.webgl.pixelRatio;
+                    const params = {
+                        ...props.axes.params,
+                        scale: props.axes.params.scale * this.webgl.pixelRatio
+                    };
                     this.renderObject = createAxesRenderObject(params);
                     this.scene.add(this.renderObject);
                     this.scene.commit();
@@ -122,6 +127,10 @@ export class CameraHelper {
 
     update(camera: ICamera) {
         if (!this.renderObject) return;
+
+        if (this.pixelRatio !== this.webgl.pixelRatio) {
+            this.setProps(this.props);
+        }
 
         updateCamera(this.camera, camera.viewport, camera.viewOffset);
         Mat4.extractRotation(this.scene.view, camera.view);
