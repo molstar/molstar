@@ -239,6 +239,11 @@ export function createContext(gl: GLRenderingContext, props: Partial<{ pixelScal
         throw new Error('Need "MAX_VERTEX_TEXTURE_IMAGE_UNITS" >= 8');
     }
 
+    // optimize assuming flats first and last data are same or differences don't matter
+    // extension is only available when `FIRST_VERTEX_CONVENTION` is more efficient
+    const epv = extensions.provokingVertex;
+    epv?.provokingVertex(epv.FIRST_VERTEX_CONVENTION);
+
     let isContextLost = false;
     const contextRestored = new BehaviorSubject<now.Timestamp>(0 as now.Timestamp);
 
