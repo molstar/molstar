@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Adam Midlik <midlik@gmail.com>
  *
@@ -8,8 +8,8 @@
  */
 
 
-/** Determines whether the current code is running in Node.js or in a browser */
-export const RUNNING_IN_NODEJS = typeof document === 'undefined';
+/** Determines whether the current code is running in Node.js */
+export const RUNNING_IN_NODEJS = typeof process !== 'undefined' && process.versions != null && process.versions.node != null;
 
 /** Like `XMLHttpRequest` but works also in Node.js */
 export const XMLHttpRequest_ = getXMLHttpRequest();

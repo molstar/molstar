@@ -7,13 +7,17 @@
  * Adapted from LiteMol
  */
 
-import * as fs from 'fs';
-
-import { Task, RuntimeContext } from '../mol-task';
-import { unzip, ungzip } from './zip/zip';
 import { utf8Read } from '../mol-io/common/utf8';
-import { AssetManager, Asset } from './assets';
-import { RUNNING_IN_NODEJS, File_ as File, XMLHttpRequest_ as XMLHttpRequest } from './nodejs-browser-io';
+import { RuntimeContext, Task } from '../mol-task';
+import { Asset, AssetManager } from './assets';
+import { LazyImports } from './lazy-imports';
+import { File_ as File, RUNNING_IN_NODEJS, XMLHttpRequest_ as XMLHttpRequest } from './nodejs-shims';
+import { ungzip, unzip } from './zip/zip';
+
+
+const lazyImports = LazyImports.create('fs') as {
+    'fs': typeof import ('fs'),
+};
 
 
 export enum DataCompressionMethod {
@@ -306,7 +310,7 @@ function ajaxGetInternal_file_NodeJS<T extends DataType>(title: string | undefin
     if (!RUNNING_IN_NODEJS) throw new Error('This function should only be used when running in Node.js');
     if (!url.startsWith('file://')) throw new Error('This function is only for URLs with protocol file://');
     const filename = url.substring('file://'.length);
-    const data = fs.readFileSync(filename);
+    const data = lazyImports.fs.readFileSync(filename);
     const file = new File([data], 'raw-data');
     return readFromFile(file, type);
 }

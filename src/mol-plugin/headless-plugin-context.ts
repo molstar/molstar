@@ -1,25 +1,29 @@
 /**
- * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Adam Midlik <midlik@gmail.com>
  */
 
-import * as fs from 'fs';
-
 import { Canvas3D } from '../mol-canvas3d/canvas3d';
 import { PostprocessingProps } from '../mol-canvas3d/passes/postprocessing';
-import { Canvas3DRenderer, ImageRendererOptions } from '../mol-canvas3d/renderer';
+import { LazyImports } from '../mol-util/lazy-imports';
 import { PluginContext } from './context';
 import { PluginSpec } from './spec';
+import { HeadlessScreenshotHelper, HeadlessScreenshotHelperOptions } from './util/headless-screenshot';
+
+
+const lazyImports = LazyImports.create('fs') as {
+    'fs': typeof import ('fs'),
+};
 
 
 /** PluginContext that can be used in Node.js (without DOM) */
 export class HeadlessPluginContext extends PluginContext {
-    renderer: Canvas3DRenderer;
+    renderer: HeadlessScreenshotHelper;
 
-    constructor(spec: PluginSpec, canvasSize: { width: number, height: number } = { width: 640, height: 480 }, rendererOptions?: ImageRendererOptions) {
+    constructor(spec: PluginSpec, canvasSize: { width: number, height: number } = { width: 640, height: 480 }, rendererOptions?: HeadlessScreenshotHelperOptions) {
         super(spec);
-        this.renderer = new Canvas3DRenderer(canvasSize, undefined, rendererOptions);
+        this.renderer = new HeadlessScreenshotHelper(canvasSize, undefined, rendererOptions);
         (this.canvas3d as Canvas3D) = this.renderer.canvas3d;
     }
 
@@ -40,7 +44,7 @@ export class HeadlessPluginContext extends PluginContext {
         const snapshot = this.getStateSnapshot();
         const snapshot_json = JSON.stringify(snapshot, null, 2);
         await new Promise<void>(resolve => {
-            fs.writeFile(outPath, snapshot_json, () => resolve());
+            lazyImports.fs.writeFile(outPath, snapshot_json, () => resolve());
         });
     }
 }

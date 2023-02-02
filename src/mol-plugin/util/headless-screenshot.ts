@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Jesse Liang <jesse.liang@rcsb.org>
@@ -8,33 +8,32 @@
  * @author Adam Midlik <midlik@gmail.com>
  */
 
-import * as fs from 'fs';
-import path from 'path';
-
 import { type BufferRet as JpegBufferRet } from 'jpeg-js'; // Only import type here, the actual import is done by LazyImports
 import { type PNG } from 'pngjs'; // Only import type here, the actual import is done by LazyImports
 
-import { createContext } from '../mol-gl/webgl/context';
-import { AssetManager } from '../mol-util/assets';
-import { ColorNames } from '../mol-util/color/names';
-import { PixelData } from '../mol-util/image';
-import { InputObserver } from '../mol-util/input/input-observer';
-import { LazyImports } from '../mol-util/lazy-imports';
-import { ParamDefinition } from '../mol-util/param-definition';
-import { Canvas3D, Canvas3DContext, Canvas3DProps, DefaultCanvas3DParams } from './canvas3d';
-import { ImagePass, ImageProps } from './passes/image';
-import { Passes } from './passes/passes';
-import { PostprocessingParams, PostprocessingProps } from './passes/postprocessing';
+import { Canvas3D, Canvas3DContext, Canvas3DProps, DefaultCanvas3DParams } from '../../mol-canvas3d/canvas3d';
+import { ImagePass, ImageProps } from '../../mol-canvas3d/passes/image';
+import { Passes } from '../../mol-canvas3d/passes/passes';
+import { PostprocessingParams, PostprocessingProps } from '../../mol-canvas3d/passes/postprocessing';
+import { createContext } from '../../mol-gl/webgl/context';
+import { AssetManager } from '../../mol-util/assets';
+import { ColorNames } from '../../mol-util/color/names';
+import { PixelData } from '../../mol-util/image';
+import { InputObserver } from '../../mol-util/input/input-observer';
+import { LazyImports } from '../../mol-util/lazy-imports';
+import { ParamDefinition } from '../../mol-util/param-definition';
 
 
-const lazyImports = LazyImports.create('gl', 'jpeg-js', 'pngjs') as {
+const lazyImports = LazyImports.create('fs', 'gl', 'jpeg-js', 'path', 'pngjs') as {
+    'fs': typeof import('fs'),
     'gl': typeof import('gl'),
     'jpeg-js': typeof import('jpeg-js'),
+    'path': typeof import('path'),
     'pngjs': typeof import('pngjs'),
 };
 
 
-export type ImageRendererOptions = {
+export type HeadlessScreenshotHelperOptions = {
     webgl?: WebGLContextAttributes,
     canvas?: Partial<Canvas3DProps>,
     imagePass?: Partial<ImageProps>,
@@ -48,11 +47,11 @@ export type RawImageData = {
 
 
 /** To render Canvas3D when running in Node.js (without DOM) */
-export class Canvas3DRenderer {
+export class HeadlessScreenshotHelper {
     readonly canvas3d: Canvas3D;
     readonly imagePass: ImagePass;
 
-    constructor(readonly canvasSize: { width: number, height: number }, canvas3d?: Canvas3D, options?: ImageRendererOptions) {
+    constructor(readonly canvasSize: { width: number, height: number }, canvas3d?: Canvas3D, options?: HeadlessScreenshotHelperOptions) {
         if (canvas3d) {
             this.canvas3d = canvas3d;
         } else {
@@ -107,7 +106,7 @@ export class Canvas3DRenderer {
 
     async saveImage(outPath: string, imageSize?: { width: number, height: number }, postprocessing?: Partial<PostprocessingProps>, format?: 'png' | 'jpeg', jpegQuality = 90) {
         if (!format) {
-            const extension = path.extname(outPath).toLowerCase();
+            const extension = lazyImports.path.extname(outPath).toLowerCase();
             if (extension === '.png') format = 'png';
             else if (extension === '.jpg' || extension === '.jpeg') format = 'jpeg';
             else throw new Error(`Cannot guess image format from file path '${outPath}'. Specify format explicitly or use path with one of these extensions: .png, .jpg, .jpeg`);
@@ -126,12 +125,12 @@ export class Canvas3DRenderer {
 
 async function writePngFile(png: PNG, outPath: string) {
     await new Promise<void>(resolve => {
-        png.pack().pipe(fs.createWriteStream(outPath)).on('finish', resolve);
+        png.pack().pipe(lazyImports.fs.createWriteStream(outPath)).on('finish', resolve);
     });
 }
 async function writeJpegFile(jpeg: JpegBufferRet, outPath: string) {
     await new Promise<void>(resolve => {
-        fs.writeFile(outPath, jpeg.data, () => resolve());
+        lazyImports.fs.writeFile(outPath, jpeg.data, () => resolve());
     });
 }
 
