@@ -38,6 +38,8 @@ const AxesParams = {
     colorZ: PD.Color(ColorNames.blue, { isEssential: true }),
     scale: PD.Numeric(0.33, { min: 0.1, max: 2, step: 0.1 }, { isEssential: true }),
     location: PD.Select('bottom-left', PD.arrayToOptions(['bottom-left', 'bottom-right', 'top-left', 'top-right'] as const)),
+    locationOffsetX: PD.Numeric(0),
+    locationOffsetY: PD.Numeric(0),
     originColor: PD.Color(ColorNames.grey),
     radiusScale: PD.Numeric(0.075, { min: 0.01, max: 0.3, step: 0.001 }),
     showPlanes: PD.Boolean(true),
@@ -96,7 +98,8 @@ export class CameraHelper {
                     this.pixelRatio = this.webgl.pixelRatio;
                     const params = {
                         ...props.axes.params,
-                        scale: props.axes.params.scale * this.webgl.pixelRatio
+                        scale: props.axes.params.scale * this.pixelRatio,
+                        labelScale: props.axes.params.labelScale * this.pixelRatio,
                     };
                     this.meshRenderObject = createMeshRenderObject(params);
                     this.scene.add(this.meshRenderObject);
@@ -176,28 +179,30 @@ export class CameraHelper {
             ? this.textRenderObject.values.boundingSphere.ref.value.radius
             : this.meshRenderObject.values.boundingSphere.ref.value.radius;
         const l = this.props.axes.params.location;
+        const ox = this.props.axes.params.locationOffsetX * this.pixelRatio;
+        const oy = this.props.axes.params.locationOffsetY * this.pixelRatio;
         if (l === 'bottom-left') {
             Mat4.setTranslation(this.scene.view, Vec3.create(
-                -camera.viewport.width / 2 + r,
-                -camera.viewport.height / 2 + r,
+                -camera.viewport.width / 2 + r + ox,
+                -camera.viewport.height / 2 + r + oy,
                 0
             ));
         } else if (l === 'bottom-right') {
             Mat4.setTranslation(this.scene.view, Vec3.create(
-                camera.viewport.width / 2 - r,
-                -camera.viewport.height / 2 + r,
+                camera.viewport.width / 2 - r - ox,
+                -camera.viewport.height / 2 + r + oy,
                 0
             ));
         } else if (l === 'top-left') {
             Mat4.setTranslation(this.scene.view, Vec3.create(
-                -camera.viewport.width / 2 + r,
-                camera.viewport.height / 2 - r,
+                -camera.viewport.width / 2 + r + ox,
+                camera.viewport.height / 2 - r - oy,
                 0
             ));
         } else if (l === 'top-right') {
             Mat4.setTranslation(this.scene.view, Vec3.create(
-                camera.viewport.width / 2 - r,
-                camera.viewport.height / 2 - r,
+                camera.viewport.width / 2 - r - ox,
+                camera.viewport.height / 2 - r - oy,
                 0
             ));
         } else {
