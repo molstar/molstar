@@ -8,6 +8,8 @@
  * @author Adam Midlik <midlik@gmail.com>
  */
 
+import fs from 'fs';
+import path from 'path';
 import { type BufferRet as JpegBufferRet } from 'jpeg-js'; // Only import type here, the actual import is done by LazyImports
 import { type PNG } from 'pngjs'; // Only import type here, the actual import is done by LazyImports
 
@@ -24,11 +26,9 @@ import { LazyImports } from '../../mol-util/lazy-imports';
 import { ParamDefinition } from '../../mol-util/param-definition';
 
 
-const lazyImports = LazyImports.create('fs', 'gl', 'jpeg-js', 'path', 'pngjs') as {
-    'fs': typeof import('fs'),
+const lazyImports = LazyImports.create('gl', 'jpeg-js', 'pngjs') as {
     'gl': typeof import('gl'),
     'jpeg-js': typeof import('jpeg-js'),
-    'path': typeof import('path'),
     'pngjs': typeof import('pngjs'),
 };
 
@@ -106,7 +106,7 @@ export class HeadlessScreenshotHelper {
 
     async saveImage(outPath: string, imageSize?: { width: number, height: number }, postprocessing?: Partial<PostprocessingProps>, format?: 'png' | 'jpeg', jpegQuality = 90) {
         if (!format) {
-            const extension = lazyImports.path.extname(outPath).toLowerCase();
+            const extension = path.extname(outPath).toLowerCase();
             if (extension === '.png') format = 'png';
             else if (extension === '.jpg' || extension === '.jpeg') format = 'jpeg';
             else throw new Error(`Cannot guess image format from file path '${outPath}'. Specify format explicitly or use path with one of these extensions: .png, .jpg, .jpeg`);
@@ -125,12 +125,12 @@ export class HeadlessScreenshotHelper {
 
 async function writePngFile(png: PNG, outPath: string) {
     await new Promise<void>(resolve => {
-        png.pack().pipe(lazyImports.fs.createWriteStream(outPath)).on('finish', resolve);
+        png.pack().pipe(fs.createWriteStream(outPath)).on('finish', resolve);
     });
 }
 async function writeJpegFile(jpeg: JpegBufferRet, outPath: string) {
     await new Promise<void>(resolve => {
-        lazyImports.fs.writeFile(outPath, jpeg.data, () => resolve());
+        fs.writeFile(outPath, jpeg.data, () => resolve());
     });
 }
 

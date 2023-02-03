@@ -1,20 +1,15 @@
 /**
- * Copyright (c) 2019-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Adam Midlik <midlik@gmail.com>
  */
 
+import fs from 'fs';
 import { Canvas3D } from '../mol-canvas3d/canvas3d';
 import { PostprocessingProps } from '../mol-canvas3d/passes/postprocessing';
-import { LazyImports } from '../mol-util/lazy-imports';
 import { PluginContext } from './context';
 import { PluginSpec } from './spec';
 import { HeadlessScreenshotHelper, HeadlessScreenshotHelperOptions } from './util/headless-screenshot';
-
-
-const lazyImports = LazyImports.create('fs') as {
-    'fs': typeof import ('fs'),
-};
 
 
 /** PluginContext that can be used in Node.js (without DOM) */
@@ -44,7 +39,7 @@ export class HeadlessPluginContext extends PluginContext {
         const snapshot = this.getStateSnapshot();
         const snapshot_json = JSON.stringify(snapshot, null, 2);
         await new Promise<void>(resolve => {
-            lazyImports.fs.writeFile(outPath, snapshot_json, () => resolve());
+            fs.writeFile(outPath, snapshot_json, () => resolve());
         });
     }
 }
