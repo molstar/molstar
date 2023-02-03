@@ -6,7 +6,7 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
-- Add `HeadlessPluginContext` and `Canvas3DRenderer` to be used in Node.js
+- Add `HeadlessPluginContext` and `HeadlessScreenshotHelper` to be used in Node.js
 - Add example `image-renderer`
 - Fix wrong offset when rendering text with orthographic projection
 - Update camera/handle helper when `devicePixelRatio` changes

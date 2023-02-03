@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Jesse Liang <jesse.liang@rcsb.org>
@@ -8,23 +8,22 @@
  * @author Adam Midlik <midlik@gmail.com>
  */
 
-import * as fs from 'fs';
+import fs from 'fs';
 import path from 'path';
-
 import { type BufferRet as JpegBufferRet } from 'jpeg-js'; // Only import type here, the actual import is done by LazyImports
 import { type PNG } from 'pngjs'; // Only import type here, the actual import is done by LazyImports
 
-import { createContext } from '../mol-gl/webgl/context';
-import { AssetManager } from '../mol-util/assets';
-import { ColorNames } from '../mol-util/color/names';
-import { PixelData } from '../mol-util/image';
-import { InputObserver } from '../mol-util/input/input-observer';
-import { LazyImports } from '../mol-util/lazy-imports';
-import { ParamDefinition } from '../mol-util/param-definition';
-import { Canvas3D, Canvas3DContext, Canvas3DProps, DefaultCanvas3DParams } from './canvas3d';
-import { ImagePass, ImageProps } from './passes/image';
-import { Passes } from './passes/passes';
-import { PostprocessingParams, PostprocessingProps } from './passes/postprocessing';
+import { Canvas3D, Canvas3DContext, Canvas3DProps, DefaultCanvas3DParams } from '../../mol-canvas3d/canvas3d';
+import { ImagePass, ImageProps } from '../../mol-canvas3d/passes/image';
+import { Passes } from '../../mol-canvas3d/passes/passes';
+import { PostprocessingParams, PostprocessingProps } from '../../mol-canvas3d/passes/postprocessing';
+import { createContext } from '../../mol-gl/webgl/context';
+import { AssetManager } from '../../mol-util/assets';
+import { ColorNames } from '../../mol-util/color/names';
+import { PixelData } from '../../mol-util/image';
+import { InputObserver } from '../../mol-util/input/input-observer';
+import { LazyImports } from '../../mol-util/lazy-imports';
+import { ParamDefinition } from '../../mol-util/param-definition';
 
 
 const lazyImports = LazyImports.create('gl', 'jpeg-js', 'pngjs') as {
@@ -34,7 +33,7 @@ const lazyImports = LazyImports.create('gl', 'jpeg-js', 'pngjs') as {
 };
 
 
-export type ImageRendererOptions = {
+export type HeadlessScreenshotHelperOptions = {
     webgl?: WebGLContextAttributes,
     canvas?: Partial<Canvas3DProps>,
     imagePass?: Partial<ImageProps>,
@@ -48,11 +47,11 @@ export type RawImageData = {
 
 
 /** To render Canvas3D when running in Node.js (without DOM) */
-export class Canvas3DRenderer {
+export class HeadlessScreenshotHelper {
     readonly canvas3d: Canvas3D;
     readonly imagePass: ImagePass;
 
-    constructor(readonly canvasSize: { width: number, height: number }, canvas3d?: Canvas3D, options?: ImageRendererOptions) {
+    constructor(readonly canvasSize: { width: number, height: number }, canvas3d?: Canvas3D, options?: HeadlessScreenshotHelperOptions) {
         if (canvas3d) {
             this.canvas3d = canvas3d;
         } else {

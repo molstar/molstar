@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2021-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Adam Midlik <midlik@gmail.com>
  *
@@ -10,15 +10,15 @@
  */
 
 import { ArgumentParser } from 'argparse';
-import * as fs from 'fs';
+import fs from 'fs';
 import path from 'path';
 
-import { STYLIZED_POSTPROCESSING } from '../../mol-canvas3d/renderer';
 import { Download, ParseCif } from '../../mol-plugin-state/transforms/data';
 import { ModelFromTrajectory, StructureComponent, StructureFromModel, TrajectoryFromMmCif } from '../../mol-plugin-state/transforms/model';
 import { StructureRepresentation3D } from '../../mol-plugin-state/transforms/representation';
 import { HeadlessPluginContext } from '../../mol-plugin/headless-plugin-context';
 import { DefaultPluginSpec } from '../../mol-plugin/spec';
+import { STYLIZED_POSTPROCESSING } from '../../mol-plugin/util/headless-screenshot';
 
 
 interface Args {
