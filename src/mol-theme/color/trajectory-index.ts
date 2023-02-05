@@ -7,11 +7,12 @@
 import { Color } from '../../mol-util/color';
 import { Location } from '../../mol-model/location';
 import { StructureElement, Bond, Model } from '../../mol-model/structure';
-import { ColorTheme, LocationColor } from '../color';
+import type { ColorTheme, LocationColor } from '../color';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { ThemeDataContext } from '../theme';
 import { getPaletteParams, getPalette } from '../../mol-util/color/palette';
 import { TableLegend, ScaleLegend } from '../../mol-util/legend';
+import { ColorThemeCategory } from './categories';
 
 const DefaultColor = Color(0xCCCCCC);
 const Description = 'Gives every model (frame) a unique color based on the index in its trajectory.';
@@ -67,7 +68,7 @@ export function TrajectoryIndexColorTheme(ctx: ThemeDataContext, props: PD.Value
 export const TrajectoryIndexColorThemeProvider: ColorTheme.Provider<TrajectoryIndexColorThemeParams, 'trajectory-index'> = {
     name: 'trajectory-index',
     label: 'Trajectory Index',
-    category: ColorTheme.Category.Chain,
+    category: ColorThemeCategory.Chain,
     factory: TrajectoryIndexColorTheme,
     getParams: getTrajectoryIndexColorThemeParams,
     defaultValues: PD.getDefaultValues(TrajectoryIndexColorThemeParams),

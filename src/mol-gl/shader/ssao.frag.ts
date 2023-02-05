@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Áron Samuel Kovács <aron.kovacs@mail.muni.cz>
@@ -115,7 +115,7 @@ void main(void) {
     }
     occlusion = 1.0 - (uBias * occlusion / float(dNSamples));
 
-    vec2 packedOcclusion = packUnitIntervalToRG(occlusion);
+    vec2 packedOcclusion = packUnitIntervalToRG(clamp(occlusion, 0.01, 1.0));
 
     gl_FragColor = vec4(packedOcclusion, selfPackedDepth);
 }

@@ -113,7 +113,7 @@ export namespace StructConn {
 
         const entityIds = Array.from(model.entities.data.id.toArray());
         const _p = (row: number, ps: typeof p1) => {
-            if (ps.label_asym_id.valueKind(row) !== Column.ValueKind.Present) return void 0;
+            if (ps.label_asym_id.valueKind(row) !== Column.ValueKinds.Present) return void 0;
             const asymId = ps.label_asym_id.value(row);
             const atomName = ps.label_atom_id.value(row);
             // turns out "mismat" records might not have atom name value

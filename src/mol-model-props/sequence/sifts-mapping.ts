@@ -90,7 +90,7 @@ namespace SIFTSMapping {
         for (let i = 0; i < count; i++) {
             const row = atomSourceIndex.value(residueOffsets[i]);
 
-            if (db_name.valueKind(row) !== Column.ValueKind.Present) {
+            if (db_name.valueKind(row) !== Column.ValueKinds.Present) {
                 dbName[i] = '';
                 accession[i] = '';
                 num[i] = '';

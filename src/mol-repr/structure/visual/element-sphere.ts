@@ -20,6 +20,7 @@ export const ElementSphereParams = {
     sizeFactor: PD.Numeric(1, { min: 0, max: 10, step: 0.1 }),
     detail: PD.Numeric(0, { min: 0, max: 3, step: 1 }, BaseGeometry.CustomQualityParamInfo),
     ignoreHydrogens: PD.Boolean(false),
+    ignoreHydrogensVariant: PD.Select('all', PD.arrayToOptions(['all', 'non-polar'] as const)),
     traceOnly: PD.Boolean(false),
     tryUseImpostor: PD.Boolean(true),
 };
@@ -41,6 +42,7 @@ export function ElementSphereImpostorVisual(materialId: number): UnitsVisual<Ele
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<ElementSphereParams>, currentProps: PD.Values<ElementSphereParams>) => {
             state.createGeometry = (
                 newProps.ignoreHydrogens !== currentProps.ignoreHydrogens ||
+                newProps.ignoreHydrogensVariant !== currentProps.ignoreHydrogensVariant ||
                 newProps.traceOnly !== currentProps.traceOnly
             );
         },
@@ -62,6 +64,7 @@ export function ElementSphereMeshVisual(materialId: number): UnitsVisual<Element
                 newProps.sizeFactor !== currentProps.sizeFactor ||
                 newProps.detail !== currentProps.detail ||
                 newProps.ignoreHydrogens !== currentProps.ignoreHydrogens ||
+                newProps.ignoreHydrogensVariant !== currentProps.ignoreHydrogensVariant ||
                 newProps.traceOnly !== currentProps.traceOnly
             );
         },

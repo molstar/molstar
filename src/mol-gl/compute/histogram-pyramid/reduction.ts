@@ -204,8 +204,7 @@ export function createHistogramPyramid(ctx: WebGLContext, inputTexture: Texture,
     // return at least a count of one to avoid issues downstram
     const count = Math.max(1, getHistopyramidSum(ctx, levelTexturesFramebuffers[0].texture));
     const height = Math.ceil(count / Math.pow(2, levels));
-    // const scale = Vec2.create(maxSize / inputTexture.width, maxSize / inputTexture.height);
-    // console.log('height', height, 'finalCount', count, 'scale', scale);
+    // console.log({ height, count, scale });
 
     return { pyramidTex, count, height, levels, scale };
 }

@@ -25,9 +25,12 @@ uniform int uMarkingType;
 #if defined(dColorMarker)
     uniform vec3 uHighlightColor;
     uniform vec3 uSelectColor;
+    uniform vec3 uDimColor;
     uniform float uHighlightStrength;
     uniform float uSelectStrength;
+    uniform float uDimStrength;
     uniform int uMarkerPriority;
+    uniform float uMarkerAverage;
 #endif
 
 #if defined(dNeedsMarker)

@@ -108,7 +108,7 @@ class Layout extends PluginUIComponent {
             }
         } else {
             for (let i = 0; i < ev.dataTransfer.files.length; i++) {
-                const file = ev.dataTransfer.files[0];
+                const file = ev.dataTransfer.files[i];
                 if (file) files.push(file);
             }
         }
@@ -172,7 +172,7 @@ function dropFiles(ev: React.DragEvent<HTMLDivElement>, plugin: PluginUIContext,
         }
     } else {
         for (let i = 0; i < ev.dataTransfer.files.length; i++) {
-            const file = ev.dataTransfer.files[0];
+            const file = ev.dataTransfer.files[i];
             if (file) files.push(file);
         }
     }

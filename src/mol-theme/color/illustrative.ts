@@ -8,7 +8,7 @@ import { ElementSymbol } from '../../mol-model/structure/model/types';
 import { Color } from '../../mol-util/color';
 import { StructureElement, Unit, Bond } from '../../mol-model/structure';
 import { Location } from '../../mol-model/location';
-import { ColorTheme } from '../color';
+import type { ColorTheme } from '../color';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { ThemeDataContext } from '../theme';
 import { ChainIdColorTheme, ChainIdColorThemeParams } from './chain-id';
@@ -19,6 +19,7 @@ import { MoleculeTypeColorTheme, MoleculeTypeColorThemeParams } from './molecule
 import { EntitySourceColorTheme, EntitySourceColorThemeParams } from './entity-source';
 import { ModelIndexColorTheme, ModelIndexColorThemeParams } from './model-index';
 import { StructureIndexColorTheme, StructureIndexColorThemeParams } from './structure-index';
+import { ColorThemeCategory } from './categories';
 
 const DefaultIllustrativeColor = Color(0xEEEEEE);
 const Description = `Assigns an illustrative color that gives every chain a color based on the chosen style but with lighter carbons (inspired by David Goodsell's Molecule of the Month style).`;
@@ -83,7 +84,7 @@ export function IllustrativeColorTheme(ctx: ThemeDataContext, props: PD.Values<I
 export const IllustrativeColorThemeProvider: ColorTheme.Provider<IllustrativeColorThemeParams, 'illustrative'> = {
     name: 'illustrative',
     label: 'Illustrative',
-    category: ColorTheme.Category.Misc,
+    category: ColorThemeCategory.Misc,
     factory: IllustrativeColorTheme,
     getParams: getIllustrativeColorThemeParams,
     defaultValues: PD.getDefaultValues(IllustrativeColorThemeParams),

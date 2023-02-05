@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2021-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2021-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -7,7 +7,7 @@
 import { ValueCell } from '../../../mol-util';
 import { createComputeRenderable, ComputeRenderable } from '../../../mol-gl/renderable';
 import { WebGLContext } from '../../../mol-gl/webgl/context';
-import { Texture } from '../../../mol-gl/webgl/texture';
+import { isNullTexture, Texture } from '../../../mol-gl/webgl/texture';
 import { ShaderCode } from '../../../mol-gl/shader-code';
 import { createComputeRenderItem } from '../../../mol-gl/webgl/render-item';
 import { ValueSpec, AttributeSpec, UniformSpec, TextureSpec, Values, DefineSpec } from '../../../mol-gl/renderable/schema';
@@ -267,7 +267,7 @@ export function calcTextureMeshColorSmoothing(input: ColorSmoothingInput, resolu
 
     const [dx, dy, dz] = gridDim;
     const { texDimX: width, texDimY: height, texCols } = getTexture2dSize(gridDim);
-    // console.log({ width, height, texCols, dim, resolution });
+    // console.log({ width, height, texCols, gridDim, resolution });
 
     if (!webgl.namedFramebuffers[ColorAccumulateName]) {
         webgl.namedFramebuffers[ColorAccumulateName] = webgl.resources.framebuffer();
@@ -363,7 +363,9 @@ export function calcTextureMeshColorSmoothing(input: ColorSmoothingInput, resolu
     // normalize
 
     if (isTimingMode) webgl.timer.mark('ColorNormalize.render');
-    if (!texture) texture = resources.texture('image-uint8', 'rgba', 'ubyte', 'linear');
+    if (!texture || isNullTexture(texture)) {
+        texture = resources.texture('image-uint8', 'rgba', 'ubyte', 'linear');
+    }
     texture.define(width, height);
 
     const normalizeRenderable = getNormalizeRenderable(webgl, accumulateTexture, countTexture);

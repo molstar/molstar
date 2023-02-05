@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -7,6 +7,7 @@
 
 import * as React from 'react';
 import { Mat4, Vec2, Vec3 } from '../../mol-math/linear-algebra';
+import { Volume } from '../../mol-model/volume';
 import { Script } from '../../mol-script/script';
 import { Asset } from '../../mol-util/assets';
 import { Color } from '../../mol-util/color';
@@ -18,7 +19,7 @@ import { getPrecision } from '../../mol-util/number';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { ParamMapping } from '../../mol-util/param-mapping';
 import { camelCaseToWords } from '../../mol-util/string';
-import { PluginUIComponent } from '../base';
+import { PluginReactContext, PluginUIComponent } from '../base';
 import { PluginUIContext } from '../context';
 import { ActionMenu } from './action-menu';
 import { ColorOptions, ColorValueOption, CombinedColorControl } from './color';
@@ -105,7 +106,11 @@ export class ParameterControls<P extends PD.Params> extends React.PureComponent<
     }
 }
 
-export class ParameterMappingControl<S, T> extends PluginUIComponent<{ mapping: ParamMapping<S, T, PluginUIContext> }> {
+export class ParameterMappingControl<S, T> extends PluginUIComponent<{ mapping: ParamMapping<S, T, PluginUIContext> }, { isDisabled: boolean }> {
+    state = {
+        isDisabled: false,
+    };
+
     setSettings = (p: { param: PD.Base<any>, name: string, value: any }, old: any) => {
         const values = { ...old, [p.name]: p.value };
         const t = this.props.mapping.update(values, this.plugin);
@@ -114,13 +119,17 @@ export class ParameterMappingControl<S, T> extends PluginUIComponent<{ mapping: 
 
     componentDidMount() {
         this.subscribe(this.plugin.events.canvas3d.settingsUpdated, () => this.forceUpdate());
+
+        this.subscribe(this.plugin.state.data.behaviors.isUpdating, v => {
+            this.setState({ isDisabled: v });
+        });
     }
 
     render() {
         const t = this.props.mapping.getTarget(this.plugin);
         const values = this.props.mapping.getValues(t, this.plugin);
         const params = this.props.mapping.params(this.plugin) as any as PD.Params;
-        return <ParameterControls params={params} values={values} onChange={this.setSettings} />;
+        return <ParameterControls params={params} values={values} onChange={this.setSettings} isDisabled={this.state.isDisabled} />;
     }
 }
 
@@ -306,17 +315,32 @@ export class LineGraphControl extends React.PureComponent<ParamProps<PD.LineGrap
         message: `${this.props.param.defaultValue.length} points`,
     };
 
+
+    private pointToLabel(point?: Vec2) {
+        if (!point) return '';
+
+        const volume = this.props.param.getVolume?.() as Volume;
+        if (volume) {
+            const { min, max, mean, sigma } = volume.grid.stats;
+            const v = min + (max - min) * point[0];
+            const s = (v - mean) / sigma;
+            return `(${v.toFixed(2)} | ${s.toFixed(2)}σ, ${point[1].toFixed(2)})`;
+        } else {
+            return `(${point[0].toFixed(2)}, ${point[1].toFixed(2)})`;
+        }
+    }
+
     onHover = (point?: Vec2) => {
         this.setState({ isOverPoint: !this.state.isOverPoint });
         if (point) {
-            this.setState({ message: `(${point[0].toFixed(2)}, ${point[1].toFixed(2)})` });
-            return;
+            this.setState({ message: this.pointToLabel(point) });
+        } else {
+            this.setState({ message: `${this.props.value.length} points` });
         }
-        this.setState({ message: `${this.props.value.length} points` });
     };
 
     onDrag = (point: Vec2) => {
-        this.setState({ message: `(${point[0].toFixed(2)}, ${point[1].toFixed(2)})` });
+        this.setState({ message: this.pointToLabel(point) });
     };
 
     onChange = (value: PD.LineGraph['defaultValue']) => {
@@ -332,9 +356,10 @@ export class LineGraphControl extends React.PureComponent<ParamProps<PD.LineGrap
         const label = this.props.param.label || camelCaseToWords(this.props.name);
         return <>
             <ControlRow label={label} control={<button onClick={this.toggleExpanded} disabled={this.props.isDisabled}>{`${this.state.message}`}</button>} />
-            <div className='msp-control-offset' style={{ display: this.state.isExpanded ? 'block' : 'none' }}>
+            <div className='msp-control-offset' style={{ display: this.state.isExpanded ? 'block' : 'none', marginTop: 1 }}>
                 <LineGraphComponent
-                    data={this.props.param.defaultValue}
+                    data={this.props.value}
+                    volume={this.props.param.getVolume?.()}
                     onChange={this.onChange}
                     onHover={this.onHover}
                     onDrag={this.onDrag} />
@@ -505,10 +530,12 @@ export class ValueRefControl extends React.PureComponent<ParamProps<PD.ValueRef<
 
     toggle = () => this.setState({ showOptions: !this.state.showOptions });
 
-    items = memoizeLatest((param: PD.ValueRef) => ActionMenu.createItemsFromSelectOptions(param.getOptions()));
+    private get items() {
+        return ActionMenu.createItemsFromSelectOptions(this.props.param.getOptions(this.context));
+    }
 
     renderControl() {
-        const items = this.items(this.props.param);
+        const items = this.items;
         const current = this.props.value.ref ? ActionMenu.findItem(items, this.props.value.ref) : void 0;
         const label = current
             ? current.label
@@ -521,7 +548,7 @@ export class ValueRefControl extends React.PureComponent<ParamProps<PD.ValueRef<
     renderAddOn() {
         if (!this.state.showOptions) return null;
 
-        const items = this.items(this.props.param);
+        const items = this.items;
         const current = ActionMenu.findItem(items, this.props.value.ref);
 
         return <ActionMenu items={items} current={current} onSelect={this.onSelect} />;
@@ -539,6 +566,7 @@ export class ValueRefControl extends React.PureComponent<ParamProps<PD.ValueRef<
         });
     }
 }
+ValueRefControl.contextType = PluginReactContext;
 
 export class IntervalControl extends React.PureComponent<ParamProps<PD.Interval>, { isExpanded: boolean }> {
     state = { isExpanded: false };

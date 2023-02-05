@@ -64,7 +64,7 @@ export function alignAndSuperpose(xs: StructureElement.Loci[]): AlignAndSuperpos
     return ret;
 }
 
-function getPositionTable(xs: StructureElement.Loci, n: number): MinimizeRmsd.Positions {
+export function getPositionTable(xs: StructureElement.Loci, n: number): MinimizeRmsd.Positions {
     const ret = MinimizeRmsd.Positions.empty(n);
     let o = 0;
     for (const u of xs.elements) {

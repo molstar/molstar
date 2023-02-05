@@ -52,6 +52,7 @@ const StructureFocusRepresentationParams = (plugin: PluginContext) => {
         components: PD.MultiSelect(FocusComponents, PD.arrayToOptions(FocusComponents)),
         excludeTargetFromSurroundings: PD.Boolean(false, { label: 'Exclude Target', description: 'Exclude the focus "target" from the surroudings component.' }),
         ignoreHydrogens: PD.Boolean(false),
+        ignoreHydrogensVariant: PD.Select('all', PD.arrayToOptions(['all', 'non-polar'] as const)),
         ignoreLight: PD.Boolean(false),
         material: Material.getParam(),
         clip: PD.Group(Clip.Params),
@@ -80,7 +81,7 @@ class StructureFocusRepresentationBehavior extends PluginBehavior.WithSubscriber
             ...reprParams,
             type: {
                 name: reprParams.type.name,
-                params: { ...reprParams.type.params, ignoreHydrogens: this.params.ignoreHydrogens, ignoreLight: this.params.ignoreLight, material: this.params.material, clip: this.params.clip }
+                params: { ...reprParams.type.params, ignoreHydrogens: this.params.ignoreHydrogens, ignoreHydrogensVariant: this.params.ignoreHydrogensVariant, ignoreLight: this.params.ignoreLight, material: this.params.material, clip: this.params.clip }
             }
         };
     }

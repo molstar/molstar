@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -29,7 +29,7 @@ uniform float uOffsetX;
 uniform float uOffsetY;
 uniform float uOffsetZ;
 
-// uniform bool ortho;
+uniform float uIsOrtho;
 uniform float uPixelRatio;
 uniform vec4 uViewport;
 
@@ -77,13 +77,11 @@ void main(void){
     mvCorner.x += offsetX;
     mvCorner.y += offsetY;
 
-    // TODO
-    // if(ortho){
-    //     mvCorner.xyz += normalize(-uCameraPosition) * offsetZ;
-    // } else {
-    //     mvCorner.xyz += normalize(-mvCorner.xyz) * offsetZ;
-    // }
-    mvCorner.xyz += normalize(-mvCorner.xyz) * offsetZ;
+    if (uIsOrtho == 1.0) {
+        mvCorner.z += offsetZ;
+    } else {
+        mvCorner.xyz += normalize(-mvCorner.xyz) * offsetZ;
+    }
 
     gl_Position = uProjection * mvCorner;
 

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -55,7 +55,9 @@ void main() {
     vec3 camDir = -mix(normalize(vModelPosition - uCameraPosition), uCameraDir, uIsOrtho);
     vec3 dir = vEnd - vStart;
     // ensure cylinder 'dir' is pointing towards the camera
-    if(dot(camDir, dir) < 0.0) dir = -dir;
+    if(dot(camDir, dir) < 0.0) {
+        dir = -dir;
+    }
 
     vec3 left = cross(camDir, dir);
     vec3 up = cross(left, dir);
@@ -68,6 +70,9 @@ void main() {
     vec4 mvPosition = uView * vec4(vModelPosition, 1.0);
     vViewPosition = mvPosition.xyz;
     gl_Position = uProjection * mvPosition;
+
+    mvPosition.z -= 2.0 * (length(vEnd - vStart) + vSize); // avoid clipping
+    gl_Position.z = (uProjection * mvPosition).z;
 
     #include clip_instance
 }

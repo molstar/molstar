@@ -93,20 +93,35 @@ namespace Column {
         return !!v && !!(v as Column<any>).schema && !!(v as Column<any>).value;
     }
 
-    export const enum ValueKind {
+    // Value kinds are accessed very of often
+    // Using a const enum is an internal optimization and is defined separately to better support
+    // compiling with isolatedModules flag in 3rd party use-cases of Mol*.
+    export const enum ValueKinds {
+        /** Defined value (= 0) */
         Present = 0,
-        /** Expressed in CIF as `.` */
+        /** Expressed in CIF as `.` (= 1) */
         NotPresent = 1,
-        /** Expressed in CIF as `?` */
+        /** Expressed in CIF as `?` (= 2) */
         Unknown = 2
     }
 
+    export const ValueKind = {
+        /** Defined value (= 0) */
+        Present: ValueKinds.Present,
+        /** Expressed in CIF as `.` (= 1) */
+        NotPresent: ValueKinds.NotPresent,
+        /** Expressed in CIF as `?` (= 2) */
+        Unknown: ValueKinds.Unknown
+    } as const;
+    export type ValueKind = (typeof ValueKind)[keyof typeof ValueKinds];
+
+
     export function Undefined<T extends Schema>(rowCount: number, schema: T): Column<T['T']> {
-        return constColumn(schema['T'], rowCount, schema, ValueKind.NotPresent);
+        return constColumn(schema['T'], rowCount, schema, ValueKinds.NotPresent);
     }
 
     export function ofConst<T extends Schema>(v: T['T'], rowCount: number, type: T): Column<T['T']> {
-        return constColumn(v, rowCount, type, ValueKind.Present);
+        return constColumn(v, rowCount, type, ValueKinds.Present);
     }
 
     export function ofLambda<T extends Schema>(spec: LambdaSpec<T>): Column<T['T']> {
@@ -256,7 +271,7 @@ function constColumn<T extends Column.Schema>(v: T['T'], rowCount: number, schem
     return {
         schema: schema,
         __array: void 0,
-        isDefined: valueKind === Column.ValueKind.Present,
+        isDefined: valueKind === Column.ValueKinds.Present,
         rowCount,
         value,
         valueKind: row => valueKind,
@@ -276,7 +291,7 @@ function lambdaColumn<T extends Column.Schema>({ value, valueKind, areValuesEqua
         isDefined: true,
         rowCount,
         value,
-        valueKind: valueKind ? valueKind : row => Column.ValueKind.Present,
+        valueKind: valueKind ? valueKind : row => Column.ValueKinds.Present,
         toArray: params => {
             const { array, start } = ColumnHelpers.createArray(rowCount, params);
             for (let i = 0, _i = array.length; i < _i; i++) array[i] = value(i + start);
@@ -304,7 +319,7 @@ function arrayColumn<T extends Column.Schema>({ array, schema, valueKind }: Colu
         isDefined: true,
         rowCount,
         value,
-        valueKind: valueKind ? valueKind : row => Column.ValueKind.Present,
+        valueKind: valueKind ? valueKind : row => Column.ValueKinds.Present,
         toArray: schema.valueType === 'str'
             ? (schema as Column.Schema.Str).transform === 'lowercase'
                 ? params => {

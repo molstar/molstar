@@ -17,10 +17,10 @@ export function Field(column: EncodedColumn): Data.CifField {
 
     const str: Data.CifField['str'] = isNumeric
         ? mask
-            ? row => mask[row] === Column.ValueKind.Present ? '' + data[row] : ''
+            ? row => mask[row] === Column.ValueKinds.Present ? '' + data[row] : ''
             : row => '' + data[row]
         : mask
-            ? row => mask[row] === Column.ValueKind.Present ? data[row] : ''
+            ? row => mask[row] === Column.ValueKinds.Present ? data[row] : ''
             : row => data[row];
 
     const int: Data.CifField['int'] = isNumeric
@@ -32,8 +32,8 @@ export function Field(column: EncodedColumn): Data.CifField {
         : row => { const v = data[row]; return fastParseFloat(v, 0, v.length); };
 
     const valueKind: Data.CifField['valueKind'] = mask
-        ? row => mask[row]
-        : row => Column.ValueKind.Present;
+        ? row => mask[row] as Column.ValueKind
+        : row => Column.ValueKinds.Present;
 
     const rowCount = data.length;
 

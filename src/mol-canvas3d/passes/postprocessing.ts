@@ -1,8 +1,9 @@
 /**
- * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Áron Samuel Kovács <aron.kovacs@mail.muni.cz>
+ * @author Ludovic Autin <ludovic.autin@gmail.com>
  */
 
 import { CopyRenderable, createCopyRenderable, QuadSchema, QuadValues } from '../../mol-gl/compute/util';
@@ -30,6 +31,8 @@ import { SmaaParams, SmaaPass } from './smaa';
 import { isTimingMode } from '../../mol-util/debug';
 import { BackgroundParams, BackgroundPass } from './background';
 import { AssetManager } from '../../mol-util/assets';
+import { Light } from '../../mol-gl/renderer';
+import { shadows_frag } from '../../mol-gl/shader/shadows.frag';
 
 const OutlinesSchema = {
     ...QuadSchema,
@@ -42,10 +45,12 @@ const OutlinesSchema = {
     uFar: UniformSpec('f'),
 
     uMaxPossibleViewZDiff: UniformSpec('f'),
+
+    dTransparentOutline: DefineSpec('boolean'),
 };
 type OutlinesRenderable = ComputeRenderable<Values<typeof OutlinesSchema>>
 
-function getOutlinesRenderable(ctx: WebGLContext, depthTextureOpaque: Texture, depthTextureTransparent: Texture): OutlinesRenderable {
+function getOutlinesRenderable(ctx: WebGLContext, depthTextureOpaque: Texture, depthTextureTransparent: Texture, transparentOutline: boolean): OutlinesRenderable {
     const width = depthTextureOpaque.getWidth();
     const height = depthTextureOpaque.getHeight();
 
@@ -60,10 +65,70 @@ function getOutlinesRenderable(ctx: WebGLContext, depthTextureOpaque: Texture, d
         uFar: ValueCell.create(10000),
 
         uMaxPossibleViewZDiff: ValueCell.create(0.5),
+
+        dTransparentOutline: ValueCell.create(transparentOutline),
     };
 
     const schema = { ...OutlinesSchema };
     const shaderCode = ShaderCode('outlines', quad_vert, outlines_frag);
+    const renderItem = createComputeRenderItem(ctx, 'triangles', shaderCode, schema, values);
+
+    return createComputeRenderable(renderItem, values);
+}
+
+const ShadowsSchema = {
+    ...QuadSchema,
+    tDepth: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
+    uTexSize: UniformSpec('v2'),
+
+    uProjection: UniformSpec('m4'),
+    uInvProjection: UniformSpec('m4'),
+    uBounds: UniformSpec('v4'),
+
+    dOrthographic: DefineSpec('number'),
+    uNear: UniformSpec('f'),
+    uFar: UniformSpec('f'),
+
+    dSteps: DefineSpec('number'),
+    uMaxDistance: UniformSpec('f'),
+    uTolerance: UniformSpec('f'),
+    uBias: UniformSpec('f'),
+
+    uLightDirection: UniformSpec('v3[]'),
+    uLightColor: UniformSpec('v3[]'),
+    dLightCount: DefineSpec('number'),
+};
+type ShadowsRenderable = ComputeRenderable<Values<typeof ShadowsSchema>>
+
+function getShadowsRenderable(ctx: WebGLContext, depthTexture: Texture): ShadowsRenderable {
+    const width = depthTexture.getWidth();
+    const height = depthTexture.getHeight();
+
+    const values: Values<typeof ShadowsSchema> = {
+        ...QuadValues,
+        tDepth: ValueCell.create(depthTexture),
+        uTexSize: ValueCell.create(Vec2.create(width, height)),
+
+        uProjection: ValueCell.create(Mat4.identity()),
+        uInvProjection: ValueCell.create(Mat4.identity()),
+        uBounds: ValueCell.create(Vec4()),
+
+        dOrthographic: ValueCell.create(0),
+        uNear: ValueCell.create(1),
+        uFar: ValueCell.create(10000),
+
+        dSteps: ValueCell.create(1),
+        uMaxDistance: ValueCell.create(3.0),
+        uTolerance: ValueCell.create(1.0),
+        uBias: ValueCell.create(0.6),
+
+        uLightDirection: ValueCell.create([]),
+        uLightColor: ValueCell.create([]),
+        dLightCount: ValueCell.create(0),
+    };
+
+    const schema = { ...ShadowsSchema };
+    const shaderCode = ShaderCode('shadows', quad_vert, shadows_frag);
     const renderItem = createComputeRenderItem(ctx, 'triangles', shaderCode, schema, values);
 
     return createComputeRenderable(renderItem, values);
@@ -204,6 +269,7 @@ const PostprocessingSchema = {
     tColor: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
     tDepthOpaque: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
     tDepthTransparent: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
+    tShadows: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
     tOutlines: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
     uTexSize: UniformSpec('v2'),
 
@@ -217,23 +283,30 @@ const PostprocessingSchema = {
     uTransparentBackground: UniformSpec('b'),
 
     uMaxPossibleViewZDiff: UniformSpec('f'),
+    uInvProjection: UniformSpec('m4'),
 
     dOcclusionEnable: DefineSpec('boolean'),
     uOcclusionOffset: UniformSpec('v2'),
 
+    dShadowEnable: DefineSpec('boolean'),
+
     dOutlineEnable: DefineSpec('boolean'),
     dOutlineScale: DefineSpec('number'),
     uOutlineThreshold: UniformSpec('f'),
+
+    dTransparentOutline: DefineSpec('boolean'),
 };
 type PostprocessingRenderable = ComputeRenderable<Values<typeof PostprocessingSchema>>
 
-function getPostprocessingRenderable(ctx: WebGLContext, colorTexture: Texture, depthTextureOpaque: Texture, depthTextureTransparent: Texture, outlinesTexture: Texture, ssaoDepthTexture: Texture): PostprocessingRenderable {
+
+function getPostprocessingRenderable(ctx: WebGLContext, colorTexture: Texture, depthTextureOpaque: Texture, depthTextureTransparent: Texture, shadowsTexture: Texture, outlinesTexture: Texture, ssaoDepthTexture: Texture, transparentOutline: boolean): PostprocessingRenderable {
     const values: Values<typeof PostprocessingSchema> = {
         ...QuadValues,
         tSsaoDepth: ValueCell.create(ssaoDepthTexture),
         tColor: ValueCell.create(colorTexture),
         tDepthOpaque: ValueCell.create(depthTextureOpaque),
         tDepthTransparent: ValueCell.create(depthTextureTransparent),
+        tShadows: ValueCell.create(shadowsTexture),
         tOutlines: ValueCell.create(outlinesTexture),
         uTexSize: ValueCell.create(Vec2.create(colorTexture.getWidth(), colorTexture.getHeight())),
 
@@ -247,13 +320,18 @@ function getPostprocessingRenderable(ctx: WebGLContext, colorTexture: Texture, d
         uTransparentBackground: ValueCell.create(false),
 
         uMaxPossibleViewZDiff: ValueCell.create(0.5),
+        uInvProjection: ValueCell.create(Mat4.identity()),
 
         dOcclusionEnable: ValueCell.create(true),
         uOcclusionOffset: ValueCell.create(Vec2.create(0, 0)),
 
+        dShadowEnable: ValueCell.create(false),
+
         dOutlineEnable: ValueCell.create(false),
         dOutlineScale: ValueCell.create(1),
         uOutlineThreshold: ValueCell.create(0.33),
+
+        dTransparentOutline: ValueCell.create(transparentOutline),
     };
 
     const schema = { ...PostprocessingSchema };
@@ -274,11 +352,21 @@ export const PostprocessingParams = {
         }),
         off: PD.Group({})
     }, { cycle: true, description: 'Darken occluded crevices with the ambient occlusion effect' }),
+    shadow: PD.MappedStatic('off', {
+        on: PD.Group({
+            steps: PD.Numeric(1, { min: 1, max: 64, step: 1 }),
+            bias: PD.Numeric(0.6, { min: 0.0, max: 1.0, step: 0.01 }),
+            maxDistance: PD.Numeric(3, { min: 0, max: 256, step: 1 }),
+            tolerance: PD.Numeric(1.0, { min: 0.0, max: 10.0, step: 0.1 }),
+        }),
+        off: PD.Group({})
+    }, { cycle: true, description: 'Simplistic shadows' }),
     outline: PD.MappedStatic('off', {
         on: PD.Group({
             scale: PD.Numeric(1, { min: 1, max: 5, step: 1 }),
             threshold: PD.Numeric(0.33, { min: 0.01, max: 1, step: 0.01 }),
             color: PD.Color(Color(0x000000)),
+            includeTransparent: PD.Boolean(true, { description: 'Whether to show outline for transparent objects' }),
         }),
         off: PD.Group({})
     }, { cycle: true, description: 'Draw outline around 3D objects' }),
@@ -289,21 +377,25 @@ export const PostprocessingParams = {
     }, { options: [['fxaa', 'FXAA'], ['smaa', 'SMAA'], ['off', 'Off']], description: 'Smooth pixel edges' }),
     background: PD.Group(BackgroundParams, { isFlat: true }),
 };
+
 export type PostprocessingProps = PD.Values<typeof PostprocessingParams>
 
 export class PostprocessingPass {
     static isEnabled(props: PostprocessingProps) {
-        return props.occlusion.name === 'on' || props.outline.name === 'on' || props.background.variant.name !== 'off';
+        return props.occlusion.name === 'on' || props.shadow.name === 'on' || props.outline.name === 'on' || props.background.variant.name !== 'off';
     }
 
-    static isOutlineEnabled(props: PostprocessingProps) {
-        return props.outline.name === 'on';
+    static isTransparentOutlineEnabled(props: PostprocessingProps) {
+        return props.outline.name === 'on' && props.outline.params.includeTransparent;
     }
 
     readonly target: RenderTarget;
 
     private readonly outlinesTarget: RenderTarget;
     private readonly outlinesRenderable: OutlinesRenderable;
+
+    private readonly shadowsTarget: RenderTarget;
+    private readonly shadowsRenderable: ShadowsRenderable;
 
     private readonly ssaoFramebuffer: Framebuffer;
     private readonly ssaoBlurFirstPassFramebuffer: Framebuffer;
@@ -348,7 +440,10 @@ export class PostprocessingPass {
         this.target = webgl.createRenderTarget(width, height, false, 'uint8', 'linear');
 
         this.outlinesTarget = webgl.createRenderTarget(width, height, false);
-        this.outlinesRenderable = getOutlinesRenderable(webgl, depthTextureOpaque, depthTextureTransparent);
+        this.outlinesRenderable = getOutlinesRenderable(webgl, depthTextureOpaque, depthTextureTransparent, true);
+
+        this.shadowsTarget = webgl.createRenderTarget(width, height, false);
+        this.shadowsRenderable = getShadowsRenderable(webgl, depthTextureOpaque);
 
         this.ssaoFramebuffer = webgl.resources.framebuffer();
         this.ssaoBlurFirstPassFramebuffer = webgl.resources.framebuffer();
@@ -357,7 +452,9 @@ export class PostprocessingPass {
         const sw = Math.floor(width * this.ssaoScale);
         const sh = Math.floor(height * this.ssaoScale);
 
-        this.downsampledDepthTarget = webgl.createRenderTarget(sw, sh, false, 'uint8', 'linear');
+        this.downsampledDepthTarget = drawPass.packedDepth
+            ? webgl.createRenderTarget(sw, sh, false, 'uint8', 'linear', 'rgba')
+            : webgl.createRenderTarget(sw, sh, false, 'float32', 'linear', webgl.isWebGL2 ? 'alpha' : 'rgba');
         this.downsampleDepthRenderable = createCopyRenderable(webgl, depthTextureOpaque);
 
         this.ssaoDepthTexture = webgl.resources.texture('image-uint8', 'rgba', 'ubyte', 'linear');
@@ -370,10 +467,10 @@ export class PostprocessingPass {
 
         this.ssaoDepthTexture.attachFramebuffer(this.ssaoBlurSecondPassFramebuffer, 'color0');
 
-        this.ssaoRenderable = getSsaoRenderable(webgl, this.downsampleFactor === 1 ? depthTextureOpaque : this.downsampledDepthTarget.texture);
+        this.ssaoRenderable = getSsaoRenderable(webgl, this.ssaoScale === 1 ? depthTextureOpaque : this.downsampledDepthTarget.texture);
         this.ssaoBlurFirstPassRenderable = getSsaoBlurRenderable(webgl, this.ssaoDepthTexture, 'horizontal');
         this.ssaoBlurSecondPassRenderable = getSsaoBlurRenderable(webgl, this.ssaoDepthBlurProxyTexture, 'vertical');
-        this.renderable = getPostprocessingRenderable(webgl, colorTarget.texture, depthTextureOpaque, depthTextureTransparent, this.outlinesTarget.texture, this.ssaoDepthTexture);
+        this.renderable = getPostprocessingRenderable(webgl, colorTarget.texture, depthTextureOpaque, depthTextureTransparent, this.shadowsTarget.texture, this.outlinesTarget.texture, this.ssaoDepthTexture, true);
 
         this.background = new BackgroundPass(webgl, assetManager, width, height);
     }
@@ -389,12 +486,14 @@ export class PostprocessingPass {
             const sh = Math.floor(height * this.ssaoScale);
             this.target.setSize(width, height);
             this.outlinesTarget.setSize(width, height);
+            this.shadowsTarget.setSize(width, height);
             this.downsampledDepthTarget.setSize(sw, sh);
             this.ssaoDepthTexture.define(sw, sh);
             this.ssaoDepthBlurProxyTexture.define(sw, sh);
 
             ValueCell.update(this.renderable.values.uTexSize, Vec2.set(this.renderable.values.uTexSize.ref.value, width, height));
             ValueCell.update(this.outlinesRenderable.values.uTexSize, Vec2.set(this.outlinesRenderable.values.uTexSize.ref.value, width, height));
+            ValueCell.update(this.shadowsRenderable.values.uTexSize, Vec2.set(this.shadowsRenderable.values.uTexSize.ref.value, width, height));
             ValueCell.update(this.downsampleDepthRenderable.values.uTexSize, Vec2.set(this.downsampleDepthRenderable.values.uTexSize.ref.value, sw, sh));
             ValueCell.update(this.ssaoRenderable.values.uTexSize, Vec2.set(this.ssaoRenderable.values.uTexSize.ref.value, sw, sh));
             ValueCell.update(this.ssaoBlurFirstPassRenderable.values.uTexSize, Vec2.set(this.ssaoBlurFirstPassRenderable.values.uTexSize.ref.value, sw, sh));
@@ -404,25 +503,29 @@ export class PostprocessingPass {
         }
     }
 
-    private updateState(camera: ICamera, transparentBackground: boolean, backgroundColor: Color, props: PostprocessingProps) {
+    private updateState(camera: ICamera, transparentBackground: boolean, backgroundColor: Color, props: PostprocessingProps, light: Light) {
+        let needsUpdateShadows = false;
         let needsUpdateMain = false;
         let needsUpdateSsao = false;
         let needsUpdateSsaoBlur = false;
+        let needsUpdateOutlines = false;
 
         const orthographic = camera.state.mode === 'orthographic' ? 1 : 0;
         const outlinesEnabled = props.outline.name === 'on';
+        const shadowsEnabled = props.shadow.name === 'on';
         const occlusionEnabled = props.occlusion.name === 'on';
 
         const invProjection = Mat4.identity();
         Mat4.invert(invProjection, camera.projection);
 
+        const [w, h] = this.renderable.values.uTexSize.ref.value;
+        const v = camera.viewport;
+
         if (props.occlusion.name === 'on') {
             ValueCell.update(this.ssaoRenderable.values.uProjection, camera.projection);
             ValueCell.update(this.ssaoRenderable.values.uInvProjection, invProjection);
 
-            const [w, h] = this.renderable.values.uTexSize.ref.value;
             const b = this.ssaoRenderable.values.uBounds;
-            const v = camera.viewport;
             const s = this.ssaoScale;
             Vec4.set(b.ref.value,
                 Math.floor(v.x * s) / (w * s),
@@ -482,7 +585,7 @@ export class PostprocessingPass {
                 this.ssaoDepthBlurProxyTexture.define(sw, sh);
 
                 if (this.ssaoScale === 1) {
-                    ValueCell.update(this.ssaoRenderable.values.tDepth, this.drawPass.depthTextureTransparent);
+                    ValueCell.update(this.ssaoRenderable.values.tDepth, this.drawPass.depthTextureOpaque);
                 } else {
                     ValueCell.update(this.ssaoRenderable.values.tDepth, this.downsampledDepthTarget.texture);
                 }
@@ -494,11 +597,44 @@ export class PostprocessingPass {
             }
         }
 
+        if (props.shadow.name === 'on') {
+            ValueCell.update(this.shadowsRenderable.values.uProjection, camera.projection);
+            ValueCell.update(this.shadowsRenderable.values.uInvProjection, invProjection);
+
+            Vec4.set(this.shadowsRenderable.values.uBounds.ref.value,
+                v.x / w,
+                v.y / h,
+                (v.x + v.width) / w,
+                (v.y + v.height) / h
+            );
+            ValueCell.update(this.shadowsRenderable.values.uBounds, this.shadowsRenderable.values.uBounds.ref.value);
+
+            ValueCell.updateIfChanged(this.shadowsRenderable.values.uNear, camera.near);
+            ValueCell.updateIfChanged(this.shadowsRenderable.values.uFar, camera.far);
+            ValueCell.updateIfChanged(this.shadowsRenderable.values.dOrthographic, orthographic);
+
+            ValueCell.updateIfChanged(this.shadowsRenderable.values.uMaxDistance, props.shadow.params.maxDistance);
+            ValueCell.updateIfChanged(this.shadowsRenderable.values.uTolerance, props.shadow.params.tolerance);
+            ValueCell.updateIfChanged(this.shadowsRenderable.values.uBias, props.shadow.params.bias);
+            if (this.shadowsRenderable.values.dSteps.ref.value !== props.shadow.params.steps) {
+                ValueCell.update(this.shadowsRenderable.values.dSteps, props.shadow.params.steps);
+                needsUpdateShadows = true;
+            }
+
+            ValueCell.update(this.shadowsRenderable.values.uLightDirection, light.direction);
+            ValueCell.update(this.shadowsRenderable.values.uLightColor, light.color);
+            if (this.shadowsRenderable.values.dLightCount.ref.value !== light.count) {
+                ValueCell.update(this.shadowsRenderable.values.dLightCount, light.count);
+                needsUpdateShadows = true;
+            }
+        }
+
         if (props.outline.name === 'on') {
-            let { threshold } = props.outline.params;
+            let { threshold, includeTransparent } = props.outline.params;
+            const transparentOutline = includeTransparent ?? true;
             // orthographic needs lower threshold
             if (camera.state.mode === 'orthographic') threshold /= 5;
-            const factor = Math.pow(1000, threshold) / 1000;
+            const factor = Math.pow(1000, threshold / 10) / 1000;
             // use radiusMax for stable outlines when zooming
             const maxPossibleViewZDiff = factor * camera.state.radiusMax;
             const outlineScale = props.outline.params.scale - 1;
@@ -506,12 +642,18 @@ export class PostprocessingPass {
             ValueCell.updateIfChanged(this.outlinesRenderable.values.uNear, camera.near);
             ValueCell.updateIfChanged(this.outlinesRenderable.values.uFar, camera.far);
             ValueCell.updateIfChanged(this.outlinesRenderable.values.uMaxPossibleViewZDiff, maxPossibleViewZDiff);
+            if (this.renderable.values.dTransparentOutline.ref.value !== transparentOutline) { needsUpdateOutlines = true; }
+            ValueCell.updateIfChanged(this.outlinesRenderable.values.dTransparentOutline, transparentOutline);
 
             ValueCell.update(this.renderable.values.uOutlineColor, Color.toVec3Normalized(this.renderable.values.uOutlineColor.ref.value, props.outline.params.color));
 
             ValueCell.updateIfChanged(this.renderable.values.uMaxPossibleViewZDiff, maxPossibleViewZDiff);
+            ValueCell.update(this.renderable.values.uInvProjection, invProjection);
+
             if (this.renderable.values.dOutlineScale.ref.value !== outlineScale) { needsUpdateMain = true; }
             ValueCell.updateIfChanged(this.renderable.values.dOutlineScale, outlineScale);
+            if (this.renderable.values.dTransparentOutline.ref.value !== transparentOutline) { needsUpdateMain = true; }
+            ValueCell.updateIfChanged(this.renderable.values.dTransparentOutline, transparentOutline);
         }
 
         ValueCell.updateIfChanged(this.renderable.values.uFar, camera.far);
@@ -522,10 +664,21 @@ export class PostprocessingPass {
         ValueCell.updateIfChanged(this.renderable.values.uTransparentBackground, transparentBackground);
         if (this.renderable.values.dOrthographic.ref.value !== orthographic) { needsUpdateMain = true; }
         ValueCell.updateIfChanged(this.renderable.values.dOrthographic, orthographic);
+
         if (this.renderable.values.dOutlineEnable.ref.value !== outlinesEnabled) { needsUpdateMain = true; }
         ValueCell.updateIfChanged(this.renderable.values.dOutlineEnable, outlinesEnabled);
+        if (this.renderable.values.dShadowEnable.ref.value !== shadowsEnabled) { needsUpdateMain = true; }
+        ValueCell.updateIfChanged(this.renderable.values.dShadowEnable, shadowsEnabled);
         if (this.renderable.values.dOcclusionEnable.ref.value !== occlusionEnabled) { needsUpdateMain = true; }
         ValueCell.updateIfChanged(this.renderable.values.dOcclusionEnable, occlusionEnabled);
+
+        if (needsUpdateOutlines) {
+            this.outlinesRenderable.update();
+        }
+
+        if (needsUpdateShadows) {
+            this.shadowsRenderable.update();
+        }
 
         if (needsUpdateSsao) {
             this.ssaoRenderable.update();
@@ -564,13 +717,18 @@ export class PostprocessingPass {
         this.transparentBackground = value;
     }
 
-    render(camera: ICamera, toDrawingBuffer: boolean, transparentBackground: boolean, backgroundColor: Color, props: PostprocessingProps) {
+    render(camera: ICamera, toDrawingBuffer: boolean, transparentBackground: boolean, backgroundColor: Color, props: PostprocessingProps, light: Light) {
         if (isTimingMode) this.webgl.timer.mark('PostprocessingPass.render');
-        this.updateState(camera, transparentBackground, backgroundColor, props);
+        this.updateState(camera, transparentBackground, backgroundColor, props, light);
 
         if (props.outline.name === 'on') {
             this.outlinesTarget.bind();
             this.outlinesRenderable.render();
+        }
+
+        if (props.shadow.name === 'on') {
+            this.shadowsTarget.bind();
+            this.shadowsRenderable.render();
         }
 
         // don't render occlusion if offset is given,

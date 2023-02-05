@@ -6,23 +6,22 @@
  */
 
 import { ConfalPyramidsColorThemeProvider } from './color';
-import { ConfalPyramids, ConfalPyramidsProvider } from './property';
+import { ConfalPyramidsProvider } from './property';
 import { ConfalPyramidsRepresentationProvider } from './representation';
-import { ConfalPyramidsTypes } from './types';
-import { PluginBehavior } from '../../../mol-plugin/behavior/behavior';
+import { Dnatco } from '../property';
+import { DnatcoTypes } from '../types';
 import { StructureRepresentationPresetProvider, PresetStructureRepresentations } from '../../../mol-plugin-state/builder/structure/representation-preset';
 import { StateObjectRef } from '../../../mol-state';
 import { Task } from '../../../mol-task';
-import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 
-export const DnatcoConfalPyramidsPreset = StructureRepresentationPresetProvider({
+export const ConfalPyramidsPreset = StructureRepresentationPresetProvider({
     id: 'preset-structure-representation-confal-pyramids',
     display: {
         name: 'Confal Pyramids', group: 'Annotation',
         description: 'Schematic depiction of conformer class and confal value.',
     },
     isApplicable(a) {
-        return a.data.models.length >= 1 && a.data.models.some(m => ConfalPyramids.isApplicable(m));
+        return a.data.models.length >= 1 && a.data.models.some(m => Dnatco.isApplicable(m));
     },
     params: () => StructureRepresentationPresetProvider.CommonParams,
     async apply(ref, params, plugin) {
@@ -48,50 +47,7 @@ export const DnatcoConfalPyramidsPreset = StructureRepresentationPresetProvider(
     }
 });
 
-export const DnatcoConfalPyramids = PluginBehavior.create<{ autoAttach: boolean, showToolTip: boolean }>({
-    name: 'dnatco-confal-pyramids-prop',
-    category: 'custom-props',
-    display: {
-        name: 'Confal Pyramids',
-        description: 'Schematic depiction of conformer class and confal value.',
-    },
-    ctor: class extends PluginBehavior.Handler<{ autoAttach: boolean, showToolTip: boolean }> {
-        private provider = ConfalPyramidsProvider;
-
-        register(): void {
-            this.ctx.customModelProperties.register(this.provider, this.params.autoAttach);
-
-            this.ctx.representation.structure.themes.colorThemeRegistry.add(ConfalPyramidsColorThemeProvider);
-            this.ctx.representation.structure.registry.add(ConfalPyramidsRepresentationProvider);
-
-            this.ctx.builders.structure.representation.registerPreset(DnatcoConfalPyramidsPreset);
-        }
-
-        update(p: { autoAttach: boolean, showToolTip: boolean }) {
-            const updated = this.params.autoAttach !== p.autoAttach;
-            this.params.autoAttach = p.autoAttach;
-            this.params.showToolTip = p.showToolTip;
-            this.ctx.customModelProperties.setDefaultAutoAttach(this.provider.descriptor.name, this.params.autoAttach);
-            return updated;
-        }
-
-        unregister() {
-            this.ctx.customModelProperties.unregister(ConfalPyramidsProvider.descriptor.name);
-
-            this.ctx.representation.structure.registry.remove(ConfalPyramidsRepresentationProvider);
-            this.ctx.representation.structure.themes.colorThemeRegistry.remove(ConfalPyramidsColorThemeProvider);
-
-            this.ctx.builders.structure.representation.unregisterPreset(DnatcoConfalPyramidsPreset);
-        }
-    },
-    params: () => ({
-        autoAttach: PD.Boolean(true),
-        showToolTip: PD.Boolean(true)
-    })
-});
-
-export function confalPyramidLabel(halfPyramid: ConfalPyramidsTypes.HalfPyramid) {
-    const { step } = halfPyramid;
+export function confalPyramidLabel(step: DnatcoTypes.Step) {
     return `
         <b>${step.auth_asym_id_1}</b> |
         <b>${step.label_comp_id_1} ${step.auth_seq_id_1}${step.PDB_ins_code_1}${step.label_alt_id_1.length > 0 ? ` (alt ${step.label_alt_id_1})` : ''}

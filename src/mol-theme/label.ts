@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -66,6 +66,16 @@ export function lociLabel(loci: Loci, options: Partial<LabelOptions> = {}): stri
                 label.push(`${Volume.IsoValue.toString(absVal)} (${Volume.IsoValue.toString(relVal)})`);
             }
             return label.join(' | ');
+        case 'segment-loci':
+            const segmentLabels = Volume.Segmentation.get(loci.volume)?.labels;
+            if (segmentLabels && loci.segments.length === 1) {
+                const label = segmentLabels[loci.segments[0]];
+                if (label) return label;
+            }
+            return [
+                `${loci.volume.label || 'Volume'}`,
+                `${loci.segments.length === 1 ? `Segment ${loci.segments[0]}` : `${loci.segments.length} Segments`}`
+            ].join(' | ');
     }
 }
 
@@ -244,7 +254,7 @@ function _atomicElementLabel(location: StructureElement.Location<Unit.Atomic>, g
 
     const label_asym_id = Props.chain.label_asym_id(location);
     const auth_asym_id = Props.chain.auth_asym_id(location);
-    const has_label_seq_id = location.unit.model.atomicHierarchy.residues.label_seq_id.valueKind(rI) === Column.ValueKind.Present;
+    const has_label_seq_id = location.unit.model.atomicHierarchy.residues.label_seq_id.valueKind(rI) === Column.ValueKinds.Present;
     const label_seq_id = Props.residue.label_seq_id(location);
     const auth_seq_id = Props.residue.auth_seq_id(location);
     const ins_code = Props.residue.pdbx_PDB_ins_code(location);

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -72,5 +72,5 @@ async function eachRepr(plugin: PluginContext, components: StructureComponentRef
 function getFilteredBundle(layers: Overpaint.BundleLayer[], structure: Structure) {
     const overpaint = Overpaint.ofBundle(layers, structure.root);
     const merged = Overpaint.merge(overpaint);
-    return Overpaint.filter(merged, structure);
+    return Overpaint.filter(merged, structure) as Overpaint<StructureElement.Loci>;
 }

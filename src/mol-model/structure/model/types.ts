@@ -47,7 +47,7 @@ export function getElementFromAtomicNumber(n: number) {
 }
 
 /** Entity types as defined in the mmCIF dictionary */
-export const enum EntityType {
+export enum EntityType {
     'unknown', 'polymer', 'non-polymer', 'macrolide', 'water', 'branched'
 }
 
@@ -284,6 +284,10 @@ export const AminoAcidNamesD = new Set([
     // ???  // D-SELENOCYSTEINE
 ]);
 export const AminoAcidNames = SetUtils.unionMany(AminoAcidNamesL, AminoAcidNamesD);
+
+export const CommonProteinCaps = new Set([
+    'NME', 'ACE'
+]);
 
 export const RnaBaseNames = new Set([
     'A', 'C', 'T', 'G', 'I', 'U',

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -172,7 +172,7 @@ export class PickPass {
 
     private renderVariant(renderer: Renderer, camera: ICamera, scene: Scene, helper: Helper, variant: 'pick' | 'depth', pickType: number) {
         renderer.clear(false);
-        renderer.update(camera);
+        renderer.update(camera, scene);
         renderer.renderPick(scene.primitives, camera, variant, null, pickType);
 
         if (helper.handle.isEnabled) {
@@ -181,7 +181,7 @@ export class PickPass {
 
         if (helper.camera.isEnabled) {
             helper.camera.update(camera);
-            renderer.update(helper.camera.camera);
+            renderer.update(helper.camera.camera, helper.camera.scene);
             renderer.renderPick(helper.camera.scene, helper.camera.camera, variant, null, pickType);
         }
     }

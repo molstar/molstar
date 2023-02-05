@@ -118,12 +118,12 @@ namespace InteractionsInterContacts {
     export type Props = { type: InteractionType, flag: InteractionFlag }
 }
 
-export const enum InteractionFlag {
+export enum InteractionFlag {
     None = 0,
     Filtered = 1,
 }
 
-export const enum InteractionType {
+export enum InteractionType {
     Unknown = 0,
     Ionic = 1,
     CationPi = 2,
@@ -175,6 +175,24 @@ export const enum FeatureType {
     IonicTypeMetal = 13
 }
 
+// to use with isolatedModules
+export enum FeatureTypes {
+    None = FeatureType.None,
+    PositiveCharge = FeatureType.PositiveCharge,
+    NegativeCharge = FeatureType.NegativeCharge,
+    AromaticRing = FeatureType.AromaticRing,
+    HydrogenDonor = FeatureType.HydrogenDonor,
+    HydrogenAcceptor = FeatureType.HydrogenAcceptor,
+    HalogenDonor = FeatureType.HalogenDonor,
+    HalogenAcceptor = FeatureType.HalogenAcceptor,
+    HydrophobicAtom = FeatureType.HydrophobicAtom,
+    WeakHydrogenDonor = FeatureType.WeakHydrogenDonor,
+    IonicTypePartner = FeatureType.IonicTypePartner,
+    DativeBondPartner = FeatureType.DativeBondPartner,
+    TransitionMetal = FeatureType.TransitionMetal,
+    IonicTypeMetal = FeatureType.IonicTypeMetal
+}
+
 export function featureTypeLabel(type: FeatureType): string {
     switch (type) {
         case FeatureType.None:
@@ -208,7 +226,7 @@ export function featureTypeLabel(type: FeatureType): string {
     }
 }
 
-export const enum FeatureGroup {
+export enum FeatureGroup {
     None = 0,
     QuaternaryAmine = 1,
     TertiaryAmine = 2,

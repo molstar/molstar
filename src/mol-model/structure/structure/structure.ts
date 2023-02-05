@@ -1059,6 +1059,7 @@ namespace Structure {
     }
 
     export function areUnitIdsAndIndicesEqual(a: Structure, b: Structure) {
+        if (a === b) return true;
         if (!areUnitIdsEqual(a, b)) return false;
 
         for (let i = 0, il = a.units.length; i < il; i++) {
@@ -1224,7 +1225,7 @@ namespace Structure {
             const closeUnits = lookup.findUnitIndices(imageCenter[0], imageCenter[1], imageCenter[2], bs.radius + maxRadius);
             for (let i = 0; i < closeUnits.count; i++) {
                 const other = structure.units[closeUnits.indices[i]];
-                if (!Box3D.overlaps(bbox, other.boundary.box)) continue;
+                if (other.elements.length > 3 && !Box3D.overlaps(bbox, other.boundary.box)) continue;
                 if (!validUnit(other) || unit.id >= other.id || !validUnitPair(unit, other)) continue;
 
                 if (other.elements.length >= unit.elements.length) callback(unit, other);

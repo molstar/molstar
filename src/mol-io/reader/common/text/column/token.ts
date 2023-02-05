@@ -32,7 +32,7 @@ export function TokenColumn<T extends Column.Schema>(tokens: Tokens, schema: T):
         isDefined: true,
         rowCount,
         value,
-        valueKind: row => Column.ValueKind.Present,
+        valueKind: row => Column.ValueKinds.Present,
         toArray: params => ColumnHelpers.createAndFillArray(rowCount, value, params),
         areValuesEqual: areValuesEqualProvider(tokens)
     };

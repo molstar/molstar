@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -7,6 +7,11 @@
 
 import { Vec3 } from '../../mol-math/linear-algebra/3d/vec3';
 import { Sphere3D } from './primitives/sphere3d';
+
+// avoiding namespace lookup improved performance in Chrome (Aug 2020)
+const v3add = Vec3.add;
+const v3squaredDistance = Vec3.squaredDistance;
+const v3distance = Vec3.distance;
 
 export { CentroidHelper };
 
@@ -23,7 +28,7 @@ class CentroidHelper {
     }
 
     includeStep(p: Vec3) {
-        Vec3.add(this.center, this.center, p);
+        v3add(this.center, this.center, p);
         this.count++;
     }
 
@@ -33,12 +38,12 @@ class CentroidHelper {
     }
 
     radiusStep(p: Vec3) {
-        const d = Vec3.squaredDistance(p, this.center);
+        const d = v3squaredDistance(p, this.center);
         if (d > this.radiusSq) this.radiusSq = d;
     }
 
     radiusSphereStep(center: Vec3, radius: number) {
-        const _d = Vec3.distance(center, this.center) + radius;
+        const _d = v3distance(center, this.center) + radius;
         const d = _d * _d;
         if (d > this.radiusSq) this.radiusSq = d;
     }

@@ -85,7 +85,7 @@ namespace Table {
                 rowCount,
                 schema: schema[k],
                 value: r => rows[r][k],
-                valueKind: r => typeof rows[r][k] === 'undefined' ? Column.ValueKind.NotPresent : Column.ValueKind.Present
+                valueKind: r => typeof rows[r][k] === 'undefined' ? Column.ValueKinds.NotPresent : Column.ValueKinds.Present
             });
         }
         return ret as R;
@@ -267,7 +267,7 @@ namespace Table {
             StringBuilder.write(sb, '|');
             for (let i = 0; i < cols.length; i++) {
                 const c = table[cols[i]];
-                if (c.valueKind(r) === Column.ValueKind.Present) {
+                if (c.valueKind(r) === Column.ValueKinds.Present) {
                     StringBuilder.write(sb, c.value(r));
                     StringBuilder.write(sb, '|');
                 } else {

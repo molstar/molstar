@@ -29,7 +29,7 @@ export { StructureQualityReport };
 type StructureQualityReport = PropertyWrapper<{
     issues: IndexedCustomProperty.Residue<string[]>,
     issueTypes: string[]
-}| undefined>
+} | undefined>
 
 namespace StructureQualityReport {
     export const DefaultServerUrl = 'https://www.ebi.ac.uk/pdbe/api/validation/residuewise_outlier_summary/entry/';

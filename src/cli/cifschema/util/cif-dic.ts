@@ -152,7 +152,7 @@ function getImportFrames(d: Data.CifFrame, imports: Imports) {
 }
 
 /** get field from given or linked category */
-function getField(category: string, field: string, d: Data.CifFrame, imports: Imports, ctx: FrameData): Data.CifField|undefined {
+function getField(category: string, field: string, d: Data.CifFrame, imports: Imports, ctx: FrameData): Data.CifField | undefined {
     const { categories, links } = ctx;
     const cat = d.categories[category];
     if (cat) {

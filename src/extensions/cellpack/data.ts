@@ -52,7 +52,7 @@ export interface Compartment {
 }
 
 // Primitives discribing a compartment
-export const enum CompartmentPrimitiveType {
+export enum CompartmentPrimitiveType {
     MetaBall = 0,
     Sphere = 1,
     Cube = 2,

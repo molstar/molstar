@@ -87,12 +87,20 @@ export function parseFloat(str: string, start: number, end: number) {
     return neg * ret;
 }
 
-export const enum NumberType {
-    Int,
-    Float,
-    Scientific,
-    NaN
+export const enum NumberTypes {
+    Int = 0,
+    Float = 1,
+    Scientific = 2,
+    NaN = 3
 }
+
+export const NumberType = {
+    Int: NumberTypes.Int,
+    Float: NumberTypes.Float,
+    Scientific: NumberTypes.Scientific,
+    NaN: NumberTypes.NaN
+} as const;
+export type NumberType = (typeof NumberType)[keyof typeof NumberType];
 
 function isInt(str: string, start: number, end: number) {
     if (str.charCodeAt(start) === 45 /* - */) { start++; }
@@ -107,7 +115,7 @@ function isInt(str: string, start: number, end: number) {
 function getNumberTypeScientific(str: string, start: number, end: number) {
     // handle + in '1e+1' separately.
     if (str.charCodeAt(start) === 43 /* + */) start++;
-    return isInt(str, start, end) ? NumberType.Scientific : NumberType.NaN;
+    return isInt(str, start, end) ? NumberTypes.Scientific : NumberTypes.NaN;
 }
 
 /** The whole range must match, otherwise returns NaN */
@@ -121,7 +129,7 @@ export function getNumberType(str: string): NumberType {
 
     // string is . or -.
     if (str.charCodeAt(start) === 46 && end - start === 1) {
-        return NumberType.NaN;
+        return NumberTypes.NaN;
     }
 
     while (start < end) {
@@ -139,18 +147,18 @@ export function getNumberType(str: string): NumberType {
                 } else if (c === 53 || c === 21) { // 'e'/'E'
                     return getNumberTypeScientific(str, start + 1, end);
                 } else {
-                    return NumberType.NaN;
+                    return NumberTypes.NaN;
                 }
             }
-            return hasDigit ? NumberType.Float : NumberType.Int;
+            return hasDigit ? NumberTypes.Float : NumberTypes.Int;
         } else if (c === 53 || c === 21) { // 'e'/'E'
             if (start === 0 || start === 1 && str.charCodeAt(0) === 45) {
-                return NumberType.NaN; // string starts with e/E or -e/-E
+                return NumberTypes.NaN; // string starts with e/E or -e/-E
             }
             return getNumberTypeScientific(str, start + 1, end);
         } else {
             break;
         }
     }
-    return start === end ? NumberType.Int : NumberType.NaN;
+    return start === end ? NumberTypes.Int : NumberTypes.NaN;
 }

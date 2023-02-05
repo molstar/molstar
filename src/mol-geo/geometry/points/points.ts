@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -181,7 +181,7 @@ export namespace Points {
         const counts = { drawCount: points.pointCount, vertexCount: points.pointCount, groupCount, instanceCount };
 
         const invariantBoundingSphere = Sphere3D.clone(points.boundingSphere);
-        const boundingSphere = calculateTransformBoundingSphere(invariantBoundingSphere, transform.aTransform.ref.value, instanceCount);
+        const boundingSphere = calculateTransformBoundingSphere(invariantBoundingSphere, transform.aTransform.ref.value, instanceCount, 0);
 
         return {
             dGeometryType: ValueCell.create('points'),
@@ -222,7 +222,7 @@ export namespace Points {
 
     function updateBoundingSphere(values: PointsValues, points: Points) {
         const invariantBoundingSphere = Sphere3D.clone(points.boundingSphere);
-        const boundingSphere = calculateTransformBoundingSphere(invariantBoundingSphere, values.aTransform.ref.value, values.instanceCount.ref.value);
+        const boundingSphere = calculateTransformBoundingSphere(invariantBoundingSphere, values.aTransform.ref.value, values.instanceCount.ref.value, 0);
 
         if (!Sphere3D.equals(boundingSphere, values.boundingSphere.ref.value)) {
             ValueCell.update(values.boundingSphere, boundingSphere);

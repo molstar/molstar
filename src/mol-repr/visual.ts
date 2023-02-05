@@ -374,7 +374,7 @@ namespace Visual {
             ValueCell.update(values.extraTransform, values.extraTransform.ref.value);
         }
         updateTransformData(values);
-        const boundingSphere = calculateTransformBoundingSphere(values.invariantBoundingSphere.ref.value, values.aTransform.ref.value, values.instanceCount.ref.value);
+        const boundingSphere = calculateTransformBoundingSphere(values.invariantBoundingSphere.ref.value, values.aTransform.ref.value, values.instanceCount.ref.value, 0);
         ValueCell.update(values.boundingSphere, boundingSphere);
     }
 }

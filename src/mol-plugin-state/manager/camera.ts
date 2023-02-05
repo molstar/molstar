@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -21,7 +21,7 @@ import { pcaFocus } from './focus-camera/focus-first-residue';
 const DefaultCameraFocusOptions = {
     minRadius: 5,
     extraRadius: 4,
-    durationMs: 250
+    durationMs: 250,
 };
 
 export type CameraFocusOptions = typeof DefaultCameraFocusOptions
@@ -110,6 +110,9 @@ export class CameraManager {
     }
 
     focusSphere(sphere: Sphere3D, options?: Partial<CameraFocusOptions> & { principalAxes?: PrincipalAxes, positionToFlip?: Vec3 }) {
+        const { canvas3d } = this.plugin;
+        if (!canvas3d) return;
+
         const { extraRadius, minRadius, durationMs } = { ...DefaultCameraFocusOptions, ...options };
         const radius = Math.max(sphere.radius + extraRadius, minRadius);
 
@@ -118,12 +121,9 @@ export class CameraManager {
             const { origin, dirA, dirC } = pcaFocus(this.plugin, options);
             const snapshot = this.plugin.canvas3d?.camera.getFocus(origin, radius, dirA, dirC);
             this.plugin.canvas3d?.requestCameraReset({ durationMs, snapshot });
-            // this.plugin.canvas3d?.camera.focus(origin, radius, durationMs, dirA, dirC);
         } else {
-            const snapshot = this.plugin.canvas3d?.camera.getFocus(sphere.center, radius);
-            this.plugin.canvas3d?.requestCameraReset({ durationMs, snapshot });
-
-            // this.plugin.canvas3d?.camera.focus(sphere.center, radius, durationMs);
+            const snapshot = canvas3d.camera.getFocus(sphere.center, radius);
+            canvas3d.requestCameraReset({ durationMs, snapshot });
         }
     }
 

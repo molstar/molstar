@@ -27,21 +27,21 @@ const MaxSequenceNumberSize = 5;
 
 // TODO: this is somewhat inefficient and should be done using a canvas.
 export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
-    private parentDiv = React.createRef<HTMLDivElement>();
-    private lastMouseOverSeqIdx = -1;
-    private highlightQueue = new Subject<{ seqIdx: number, buttons: number, button: number, modifiers: ModifiersKeys }>();
+    protected parentDiv = React.createRef<HTMLDivElement>();
+    protected lastMouseOverSeqIdx = -1;
+    protected highlightQueue = new Subject<{ seqIdx: number, buttons: number, button: number, modifiers: ModifiersKeys }>();
 
-    private lociHighlightProvider = (loci: Representation.Loci, action: MarkerAction) => {
+    protected lociHighlightProvider = (loci: Representation.Loci, action: MarkerAction) => {
         const changed = this.props.sequenceWrapper.markResidue(loci.loci, action);
         if (changed) this.updateMarker();
     };
 
-    private lociSelectionProvider = (loci: Representation.Loci, action: MarkerAction) => {
+    protected lociSelectionProvider = (loci: Representation.Loci, action: MarkerAction) => {
         const changed = this.props.sequenceWrapper.markResidue(loci.loci, action);
         if (changed) this.updateMarker();
     };
 
-    private get sequenceNumberPeriod() {
+    protected get sequenceNumberPeriod() {
         if (this.props.sequenceNumberPeriod !== undefined) {
             return this.props.sequenceNumberPeriod as number;
         }
@@ -104,7 +104,7 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
         e.preventDefault();
     };
 
-    private mouseDownLoci: StructureElement.Loci | undefined = undefined;
+    protected mouseDownLoci: StructureElement.Loci | undefined = undefined;
 
     mouseDown = (e: React.MouseEvent) => {
         e.stopPropagation();
@@ -148,7 +148,7 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
         this.mouseDownLoci = undefined;
     };
 
-    private getBackgroundColor(marker: number) {
+    protected getBackgroundColor(marker: number) {
         // TODO: make marker color configurable
         if (typeof marker === 'undefined') console.error('unexpected marker value');
         return marker === 0
@@ -158,17 +158,17 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
                 : 'rgb(255, 102, 153)'; // highlighted
     }
 
-    private getResidueClass(seqIdx: number, label: string) {
+    protected getResidueClass(seqIdx: number, label: string) {
         return label.length > 1
             ? this.props.sequenceWrapper.residueClass(seqIdx) + (seqIdx === 0 ? ' msp-sequence-residue-long-begin' : ' msp-sequence-residue-long')
             : this.props.sequenceWrapper.residueClass(seqIdx);
     }
 
-    private residue(seqIdx: number, label: string, marker: number) {
+    protected residue(seqIdx: number, label: string, marker: number) {
         return <span key={seqIdx} data-seqid={seqIdx} style={{ backgroundColor: this.getBackgroundColor(marker) }} className={this.getResidueClass(seqIdx, label)}>{`\u200b${label}\u200b`}</span>;
     }
 
-    private getSequenceNumberClass(seqIdx: number, seqNum: string, label: string) {
+    protected getSequenceNumberClass(seqIdx: number, seqNum: string, label: string) {
         const classList = ['msp-sequence-number'];
         if (seqNum.startsWith('-')) {
             if (label.length > 1 && seqIdx > 0) classList.push('msp-sequence-number-long-negative');
@@ -179,8 +179,8 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
         return classList.join(' ');
     }
 
-    private location = StructureElement.Location.create(void 0);
-    private getSequenceNumber(seqIdx: number) {
+    protected location = StructureElement.Location.create(void 0);
+    protected getSequenceNumber(seqIdx: number) {
         let seqNum = '';
         const loci = this.props.sequenceWrapper.getLoci(seqIdx);
         const l = StructureElement.Loci.getFirstLocation(loci, this.location);
@@ -196,16 +196,16 @@ export class Sequence<P extends SequenceProps> extends PluginUIComponent<P> {
         return seqNum;
     }
 
-    private padSeqNum(n: string) {
+    protected padSeqNum(n: string) {
         if (n.length < MaxSequenceNumberSize) return n + new Array(MaxSequenceNumberSize - n.length + 1).join('\u00A0');
         return n;
     }
-    private getSequenceNumberSpan(seqIdx: number, label: string) {
+    protected getSequenceNumberSpan(seqIdx: number, label: string) {
         const seqNum = this.getSequenceNumber(seqIdx);
         return <span key={`marker-${seqIdx}`} className={this.getSequenceNumberClass(seqIdx, seqNum, label)}>{this.padSeqNum(seqNum)}</span>;
     }
 
-    private updateMarker() {
+    protected updateMarker() {
         if (!this.parentDiv.current) return;
         const xs = this.parentDiv.current.children;
         const { markerArray } = this.props.sequenceWrapper;

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -158,6 +158,7 @@ export namespace Cylinders {
         ignoreLight: PD.Boolean(false, BaseGeometry.ShadingCategory),
         xrayShaded: PD.Boolean(false, BaseGeometry.ShadingCategory),
         transparentBackfaces: PD.Select('off', PD.arrayToOptions(['off', 'on', 'opaque']), BaseGeometry.ShadingCategory),
+        solidInterior: PD.Boolean(true, BaseGeometry.ShadingCategory),
         bumpFrequency: PD.Numeric(0, { min: 0, max: 10, step: 0.1 }, BaseGeometry.ShadingCategory),
         bumpAmplitude: PD.Numeric(1, { min: 0, max: 5, step: 0.1 }, BaseGeometry.ShadingCategory),
     };
@@ -213,7 +214,7 @@ export namespace Cylinders {
 
         const padding = getMaxSize(size) * props.sizeFactor;
         const invariantBoundingSphere = Sphere3D.clone(cylinders.boundingSphere);
-        const boundingSphere = calculateTransformBoundingSphere(invariantBoundingSphere, transform.aTransform.ref.value, instanceCount);
+        const boundingSphere = calculateTransformBoundingSphere(invariantBoundingSphere, transform.aTransform.ref.value, instanceCount, 0);
 
         return {
             dGeometryType: ValueCell.create('cylinders'),
@@ -245,6 +246,7 @@ export namespace Cylinders {
             dIgnoreLight: ValueCell.create(props.ignoreLight),
             dXrayShaded: ValueCell.create(props.xrayShaded),
             dTransparentBackfaces: ValueCell.create(props.transparentBackfaces),
+            dSolidInterior: ValueCell.create(props.solidInterior),
             uBumpFrequency: ValueCell.create(props.bumpFrequency),
             uBumpAmplitude: ValueCell.create(props.bumpAmplitude),
         };
@@ -263,13 +265,14 @@ export namespace Cylinders {
         ValueCell.updateIfChanged(values.dIgnoreLight, props.ignoreLight);
         ValueCell.updateIfChanged(values.dXrayShaded, props.xrayShaded);
         ValueCell.updateIfChanged(values.dTransparentBackfaces, props.transparentBackfaces);
+        ValueCell.updateIfChanged(values.dSolidInterior, props.solidInterior);
         ValueCell.updateIfChanged(values.uBumpFrequency, props.bumpFrequency);
         ValueCell.updateIfChanged(values.uBumpAmplitude, props.bumpAmplitude);
     }
 
     function updateBoundingSphere(values: CylindersValues, cylinders: Cylinders) {
         const invariantBoundingSphere = Sphere3D.clone(cylinders.boundingSphere);
-        const boundingSphere = calculateTransformBoundingSphere(invariantBoundingSphere, values.aTransform.ref.value, values.instanceCount.ref.value);
+        const boundingSphere = calculateTransformBoundingSphere(invariantBoundingSphere, values.aTransform.ref.value, values.instanceCount.ref.value, 0);
 
         if (!Sphere3D.equals(boundingSphere, values.boundingSphere.ref.value)) {
             ValueCell.update(values.boundingSphere, boundingSphere);

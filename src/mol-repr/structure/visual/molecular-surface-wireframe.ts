@@ -57,6 +57,7 @@ export function MolecularSurfaceWireframeVisual(materialId: number): UnitsVisual
             if (newProps.probeRadius !== currentProps.probeRadius) state.createGeometry = true;
             if (newProps.probePositions !== currentProps.probePositions) state.createGeometry = true;
             if (newProps.ignoreHydrogens !== currentProps.ignoreHydrogens) state.createGeometry = true;
+            if (newProps.ignoreHydrogensVariant !== currentProps.ignoreHydrogensVariant) state.createGeometry = true;
             if (newProps.includeParent !== currentProps.includeParent) state.createGeometry = true;
         }
     }, materialId);

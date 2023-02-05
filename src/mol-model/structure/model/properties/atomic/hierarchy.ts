@@ -166,6 +166,14 @@ export interface AtomicIndex {
     findResidue(key: AtomicIndex.ResidueKey): ResidueIndex,
     findResidue(label_entity_id: string, label_asym_id: string, auth_seq_id: number, pdbx_PDB_ins_code?: string): ResidueIndex,
 
+
+    /**
+     * Index of the 1st occurence of this residue using "all-label" address.
+     * Doesn't work for "ligands" as they don't have a label seq id assigned.
+     * @returns index or -1 if not present.
+     */
+    findResidueLabel(key: AtomicIndex.ResidueLabelKey): ResidueIndex,
+
     /**
      * Index of the 1st occurence of this residue.
      * @param key.pdbx_PDB_ins_code Empty string for undefined

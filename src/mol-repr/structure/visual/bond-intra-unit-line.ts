@@ -164,6 +164,7 @@ export function IntraUnitBondLineVisual(materialId: number): UnitsVisual<IntraUn
                 newProps.aromaticDashCount !== currentProps.aromaticDashCount ||
                 newProps.dashCount !== currentProps.dashCount ||
                 newProps.ignoreHydrogens !== currentProps.ignoreHydrogens ||
+                newProps.ignoreHydrogensVariant !== currentProps.ignoreHydrogensVariant ||
                 !arrayEqual(newProps.includeTypes, currentProps.includeTypes) ||
                 !arrayEqual(newProps.excludeTypes, currentProps.excludeTypes) ||
                 newProps.aromaticBonds !== currentProps.aromaticBonds ||

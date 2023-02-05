@@ -25,7 +25,7 @@ async function readFile(path: string) {
     }
 }
 
-async function parseCif(data: string|Uint8Array) {
+async function parseCif(data: string | Uint8Array) {
     const comp = CIF.parse(data);
     const parsed = await comp.run(p => console.log(Progress.format(p)), 250);
     if (parsed.isError) throw parsed;

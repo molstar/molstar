@@ -7,7 +7,7 @@
 import { Color } from '../../mol-util/color';
 import { StructureElement, Bond, Structure } from '../../mol-model/structure';
 import { Location } from '../../mol-model/location';
-import { ColorTheme, LocationColor } from '../color';
+import type { ColorTheme, LocationColor } from '../color';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { ThemeDataContext } from '../theme';
 import { getPaletteParams, getPalette } from '../../mol-util/color/palette';
@@ -15,6 +15,7 @@ import { ScaleLegend, TableLegend } from '../../mol-util/legend';
 import { Vec3 } from '../../mol-math/linear-algebra';
 import { integerDigitCount } from '../../mol-util/number';
 import { ColorLists, getColorListFromName } from '../../mol-util/color/lists';
+import { ColorThemeCategory } from './categories';
 
 const DefaultList = 'dark-2';
 const DefaultColor = Color(0xCCCCCC);
@@ -122,7 +123,7 @@ export function OperatorHklColorTheme(ctx: ThemeDataContext, props: PD.Values<Op
 export const OperatorHklColorThemeProvider: ColorTheme.Provider<OperatorHklColorThemeParams, 'operator-hkl'> = {
     name: 'operator-hkl',
     label: 'Operator HKL',
-    category: ColorTheme.Category.Symmetry,
+    category: ColorThemeCategory.Symmetry,
     factory: OperatorHklColorTheme,
     getParams: getOperatorHklColorThemeParams,
     defaultValues: PD.getDefaultValues(OperatorHklColorThemeParams),

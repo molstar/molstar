@@ -7,7 +7,7 @@
 import { Color, ColorMap } from '../../mol-util/color';
 import { StructureElement, Unit, Bond, ElementIndex } from '../../mol-model/structure';
 import { Location } from '../../mol-model/location';
-import { ColorTheme } from '../color';
+import type { ColorTheme } from '../color';
 import { SecondaryStructureType, MoleculeType } from '../../mol-model/structure/model/types';
 import { getElementMoleculeType } from '../../mol-model/structure/util';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
@@ -18,6 +18,7 @@ import { getAdjustedColorMap } from '../../mol-util/color/color';
 import { getColorMapParams } from '../../mol-util/color/params';
 import { CustomProperty } from '../../mol-model-props/common/custom-property';
 import { hash2 } from '../../mol-data/util';
+import { ColorThemeCategory } from './categories';
 
 // from Jmol http://jmol.sourceforge.net/jscolors/ (shapely)
 const SecondaryStructureColors = ColorMap({
@@ -121,7 +122,7 @@ export function SecondaryStructureColorTheme(ctx: ThemeDataContext, props: PD.Va
 export const SecondaryStructureColorThemeProvider: ColorTheme.Provider<SecondaryStructureColorThemeParams, 'secondary-structure'> = {
     name: 'secondary-structure',
     label: 'Secondary Structure',
-    category: ColorTheme.Category.Residue,
+    category: ColorThemeCategory.Residue,
     factory: SecondaryStructureColorTheme,
     getParams: getSecondaryStructureColorThemeParams,
     defaultValues: PD.getDefaultValues(SecondaryStructureColorThemeParams),

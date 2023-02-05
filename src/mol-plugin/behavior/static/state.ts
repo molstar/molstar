@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -151,13 +151,17 @@ export function Snapshots(ctx: PluginContext) {
         ctx.managers.snapshot.remove(id);
     });
 
-    PluginCommands.State.Snapshots.Add.subscribe(ctx, ({ name, description, params }) => {
-        const entry = PluginStateSnapshotManager.Entry(ctx.state.getSnapshot(params), { name, description });
+    PluginCommands.State.Snapshots.Add.subscribe(ctx, async ({ name, description, params }) => {
+        const snapshot = ctx.state.getSnapshot(params);
+        const image = (params?.image ?? ctx.state.snapshotParams.value.image) ? await PluginStateSnapshotManager.getCanvasImageAsset(ctx, `${snapshot.id}-image.png`) : undefined;
+        const entry = PluginStateSnapshotManager.Entry(snapshot, { name, description, image });
         ctx.managers.snapshot.add(entry);
     });
 
-    PluginCommands.State.Snapshots.Replace.subscribe(ctx, ({ id, params }) => {
-        ctx.managers.snapshot.replace(id, ctx.state.getSnapshot(params));
+    PluginCommands.State.Snapshots.Replace.subscribe(ctx, async ({ id, params }) => {
+        const snapshot = ctx.state.getSnapshot(params);
+        const image = (params?.image ?? ctx.state.snapshotParams.value.image) ? await PluginStateSnapshotManager.getCanvasImageAsset(ctx, `${snapshot.id}-image.png`) : undefined;
+        ctx.managers.snapshot.replace(id, ctx.state.getSnapshot(params), { image });
     });
 
     PluginCommands.State.Snapshots.Move.subscribe(ctx, ({ id, dir }) => {
@@ -170,14 +174,14 @@ export function Snapshots(ctx: PluginContext) {
         return ctx.state.setSnapshot(snapshot);
     });
 
-    PluginCommands.State.Snapshots.Upload.subscribe(ctx, ({ name, description, playOnLoad, serverUrl, params }) => {
+    PluginCommands.State.Snapshots.Upload.subscribe(ctx, async ({ name, description, playOnLoad, serverUrl, params }) => {
         return fetch(urlCombine(serverUrl, `set?name=${encodeURIComponent(name || '')}&description=${encodeURIComponent(description || '')}`), {
             method: 'POST',
             mode: 'cors',
             referrer: 'no-referrer',
             headers: { 'Content-Type': 'application/json; charset=utf-8' },
-            body: JSON.stringify(ctx.managers.snapshot.getStateSnapshot({ name, description, playOnLoad }))
-        }) as any as Promise<void>;
+            body: JSON.stringify(await ctx.managers.snapshot.getStateSnapshot({ name, description, playOnLoad }))
+        }) as unknown as Promise<void>;
     });
 
     PluginCommands.State.Snapshots.Fetch.subscribe(ctx, async ({ url }) => {

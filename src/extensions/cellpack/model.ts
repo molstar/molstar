@@ -236,7 +236,7 @@ async function getIngredientStructure(plugin: PluginContext, ingredient: Ingredi
         structure = await getCurve(name, getCurveTransforms(ingredient), model);
     } else {
         if ((!results || results.length === 0)) return;
-        let bu: string|undefined = source.bu ? source.bu : undefined;
+        let bu: string | undefined = source.bu ? source.bu : undefined;
         if (bu) {
             if (bu === 'AU') {
                 bu = undefined;
@@ -585,7 +585,7 @@ export const LoadCellPackModel = StateAction.build({
             ... ctx.managers.structure.component.state.options,
             visualQuality: 'custom',
             ignoreLight: true,
-            showHydrogens: false,
+            hydrogens: 'hide-all',
         });
         ctx.canvas3d?.setProps({
             multiSample: { mode: 'off' },
@@ -606,12 +606,22 @@ export const LoadCellPackModel = StateAction.build({
                         resolutionScale: 1,
                     }
                 },
+                shadow: {
+                    name: 'on',
+                    params: {
+                        bias: 0.6,
+                        maxDistance: 80,
+                        steps: 3,
+                        tolerance: 1.0,
+                    }
+                },
                 outline: {
                     name: 'on',
                     params: {
                         scale: 1,
                         threshold: 0.33,
                         color: ColorNames.black,
+                        includeTransparent: true,
                     }
                 }
             }

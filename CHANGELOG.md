@@ -7,13 +7,104 @@ Note that since we don't clearly distinguish between a public and private interf
 ## [Unreleased]
 
 - Change the position of the camera based on the PCA of the structure and the following rules.
-- The first residue should be in first quadrant if there is only one chain
-- The average position of the residues of the first chain should be in the first residue if there are more than one chain.
+    - The first residue should be in first quadrant if there is only one chain
+    - The average position of the residues of the first chain should be in the first residue if there are more than one chain.
+- Add `HeadlessPluginContext` and `HeadlessScreenshotHelper` to be used in Node.js
+- Add example `image-renderer`
+- Fix wrong offset when rendering text with orthographic projection
+- Update camera/handle helper when `devicePixelRatio` changes
+- Add various options to customize the axes camera-helper
+- Fix issue with texture-mesh color smoothing when changing themes
+
+## [v3.30.0] - 2023-01-29
+
+- Improve `Dnatco` extension
+    - Factor out common code in `Dnatco` extension
+    - Add `NtC tube` visual. Applicable for structures with NtC annotation
+    - [Breaking] Rename `DnatcoConfalPyramids` to `DnatcoNtCs`
+- Improve boundary calculation performance
+- Add option to create & include images in state snapshots
+- Fix SSAO artefacts with high bias values
+- Fix SSAO resolution scale parameter handling
+- Improve outlines, visually more stable at different view distances
+
+## [v3.29.0] - 2023-01-15
+
+- `meshes` extension: Fixed a bug in mesh visualization (show backfaces when opacity < 1)
+- Add color quick select control to Volume controls
+- Fix `dropFiles` bug
+- Fix some cyclic imports and reduce the use of const enums. This should make it easier to use the library with the `isolatedModules: true` TS config.
+- Fix `dropFiles` bug (#679)
+- Add `input type='color'` picker to `CombinedColorControl`
+- Set `ParameterMappingControl` disabled when state is updating
+- Performance tweaks
+    - Update clip `defines` only when changed
+    - Check for identity in structure/unit areEqual methods
+    - Avoid cloning of structure representation parameters
+    - Make SymmetryOperator.createMapping monomorphic
+    - Improve bonding-sphere calculation
+    - Defer Scene properties calculation (markerAverage, opacityAverage, hasOpaque)
+    - Improve checks in in UnitsRepresentation setVisualState
+- Add StructureElement.Loci.forEachLocation
+- Add RepresentationRegistry.clear and ThemeRegistry.clear
+- Add generic Loci support for overpaint, substance, clipping themes
+- Add `.getCenter` and `.center` to `Camera`
+- Add support to dim unmarked groups
+- Add support for marker edge strength
+
+## [v3.28.0] - 2022-12-20
+
+- Show histogram in direct volume control point settings
+- Add `solidInterior` parameter to sphere/cylinder impostors
+- [Breaking] Tweak `ignoreHydrogens` non-polar handling (introduced in 3.27.0)
+- Add `meshes` and `volumes-and-segmentations` extensions
+    - See https://molstarvolseg.ncbr.muni.cz/ for more info
+- Fix missing support for info in `ParamDefinition.Converted`
+- Add support for multi-visual volume representations
+- Improve volume isosurface bounding-sphere
+- Add basic volume segmentation support to core
+    - Add `Volume.Segment` model
+    - Add `Segmentation` custom volume property
+    - Add `SegmentRepresentation` representation
+    - Add `volume-segment` color theme
+- Fix GPU marching cubes failing for large meshes with webgl2 (due to use of float16)
+
+## [v3.27.0] - 2022-12-15
+
+- Add an `includeTransparent` parameter to hide/show outlines of components that are transparent
+- Fix 'once' for animations of systems with many frames
+- Better guard against issue (black fringes) with bumpiness in impostors
+- Improve impostor shaders
+    - Fix sphere near-clipping with orthographic projection
+    - Fix cylinder near-clipping
+    - Add interior cylinder caps
+    - Add per-pixel object clipping
+- Fix `QualityAssessment` assignment bug for structures with different auth vs label sequence numbering
+- Refresh `ApplyActionControl`'s param definition when toggling expanded state
+- Fix `struct_conn` bond assignment for ions
+- Ability to show only polar hydrogens
+
+## [v3.26.0] - 2022-12-04
+
+- Support for ``powerPreference`` webgl attribute. Add ``PluginConfig.General.PowerPreference`` and ``power-preference`` Viewer GET param.
+- Excluded common protein caps `NME` and `ACE` from the ligand selection query
+- Add screen-space shadow post-processing effect
+- Add "Structure Molecular Surface" visual
+- Add `external-volume` theme (coloring of arbitrary geometries by user-selected volume)
+
+## [v3.25.1] - 2022-11-20
+
+- Fix edge-case in `Structure.eachUnitPair` with single-element units
+- Fix 'auto' structure-quality for coarse models
+
+## [v3.25.0] - 2022-11-16
+
+- Fix handling of gzipped assets (reverts #615)
 
 ## [v3.24.0] - 2022-11-13
 
 - Make `PluginContext.initContainer` checkered canvas background optional
-- Store URL of downloaded assets to detect zip/gzip based on extension
+- Store URL of downloaded assets to detect zip/gzip based on extension (#615)
 - Add optional `operator.key`; can be referenced in `IndexPairBonds`
 - Add overpaint/transparency/substance theme strength to representations
 - Fix viewport color for transparent background
