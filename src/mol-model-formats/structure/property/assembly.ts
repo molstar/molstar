@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  */
@@ -63,7 +63,7 @@ function operatorGroupsProvider(generators: Generator[], matrices: Matrices): ()
                 Q.pred.eq(ctx => StructureProperties.unit.operator_name(ctx.element), SymmetryOperator.DefaultName),
                 Q.pred.inSet(ctx => StructureProperties.chain.label_asym_id(ctx.element), gen.asymIds)
             ) });
-            groups[groups.length] = { selector, operators };
+            groups[groups.length] = { selector, operators, asymIds: gen.asymIds };
             operatorOffset += operators.length;
         }
 
