@@ -11,14 +11,8 @@
 import { utf8Read } from '../mol-io/common/utf8';
 import { RuntimeContext, Task } from '../mol-task';
 import { Asset, AssetManager } from './assets';
-import { LazyImports } from './lazy-imports';
 import { File_ as File, RUNNING_IN_NODEJS, XMLHttpRequest_ as XMLHttpRequest } from './nodejs-shims';
 import { ungzip, unzip } from './zip/zip';
-
-
-const lazyImports = LazyImports.create('fs') as {
-    'fs': typeof import ('fs'),
-};
 
 
 export enum DataCompressionMethod {
@@ -306,12 +300,21 @@ function ajaxGetInternal<T extends DataType>(title: string | undefined, url: str
     });
 }
 
+// NOTE: lazy imports cannot be used here because WebPack complains since this
+// is part of the "browser" build.
+let _fs: (typeof import ('fs')) | undefined = undefined;
+function getFS() {
+    if (_fs) return _fs!;
+    _fs = require('fs');
+    return _fs!;
+}
+
 /** Alternative implementation of ajaxGetInternal (because xhr2 does not support file:// protocol) */
 function ajaxGetInternal_file_NodeJS<T extends DataType>(title: string | undefined, url: string, type: T, body?: string, headers?: [string, string][]): Task<DataResponse<T>> {
     if (!RUNNING_IN_NODEJS) throw new Error('This function should only be used when running in Node.js');
     if (!url.startsWith('file://')) throw new Error('This function is only for URLs with protocol file://');
     const filename = url.substring('file://'.length);
-    const data = lazyImports.fs.readFileSync(filename);
+    const data = getFS().readFileSync(filename);
     const file = new File([data], 'raw-data');
     return readFromFile(file, type);
 }
