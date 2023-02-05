@@ -1,16 +1,54 @@
 /**
- * Copyright (c) 2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2022-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+import { now } from '../../mol-util/now';
 import { GLRenderingContext } from './compat';
+import { WebGLStats } from './context';
 import { WebGLExtensions } from './extensions';
+
+function movingAverage(avg: number, sample: number, count: number) {
+    avg -= avg / count;
+    avg += sample / count;
+    return avg;
+}
+
+class MovingAverage {
+    private readonly avgs = new Map<string, number>();
+
+    add(label: string, sample: number) {
+        let avg = this.avgs.get(label) || sample;
+        avg = movingAverage(avg, sample, this.count);
+        this.avgs.set(label, avg);
+        return avg;
+    }
+
+    get(label: string) {
+        return this.avgs.get(label);
+    }
+
+    stats() {
+        return Object.fromEntries(this.avgs.entries());
+    }
+
+    constructor(private count: number) { }
+}
+
+function clearStatsCalls(stats: WebGLStats) {
+    stats.calls.drawInstanced = 0;
+    stats.calls.counts = 0;
+}
 
 export type TimerResult = {
     readonly label: string
-    readonly timeElapsed: number
+    readonly gpuElapsed: number
+    readonly gpuAvg: number
+    readonly cpuElapsed: number
+    readonly cpuAvg: number
     readonly children: TimerResult[]
+    readonly calls?: Calls
 }
 
 function getQuery(extensions: WebGLExtensions) {
@@ -20,24 +58,45 @@ function getQuery(extensions: WebGLExtensions) {
 export type WebGLTimer = {
     /** Check with GPU for finished timers. */
     resolve: () => TimerResult[]
-    mark: (label: string) => void
+    mark: (label: string, captureCalls?: boolean) => void
     markEnd: (label: string) => void
+    stats: () => { gpu: Record<string, number>, cpu: Record<string, number> }
+    formatedStats: () => Record<string, string>
     clear: () => void
     destroy: () => void
 }
 
-type Measure = { label: string, queries: WebGLQuery[], children: Measure[], root: boolean, timeElapsed?: number };
+type Calls = {
+    drawInstanced: number,
+    counts: number,
+}
+
+type Measure = {
+    label: string,
+    queries: WebGLQuery[],
+    children: Measure[],
+    root: boolean,
+    cpu: { start: number, end: number },
+    captureCalls: boolean,
+    timeElapsed?: number,
+    calls?: Calls,
+};
+
 type QueryResult = { timeElapsed?: number, refCount: number };
 
-export function createTimer(gl: GLRenderingContext, extensions: WebGLExtensions): WebGLTimer {
+export function createTimer(gl: GLRenderingContext, extensions: WebGLExtensions, stats: WebGLStats, options?: { avgCount: number }): WebGLTimer {
     const dtq = extensions.disjointTimerQuery;
+    const avgCount = options?.avgCount ?? 30;
 
     const queries = new Map<WebGLQuery, QueryResult>();
     const pending = new Map<string, Measure>();
     const stack: Measure[] = [];
+    const gpuAvgs = new MovingAverage(avgCount);
+    const cpuAvgs = new MovingAverage(avgCount);
 
     let measures: Measure[] = [];
     let current: WebGLQuery | null = null;
+    let capturingCalls = false;
 
     const clear = () => {
         if (!dtq) return;
@@ -100,17 +159,32 @@ export function createTimer(gl: GLRenderingContext, extensions: WebGLExtensions)
                         const children: TimerResult[] = [];
                         const add = (measures: Measure[], children: TimerResult[]) => {
                             for (const measure of measures) {
+                                const timeElapsed = measure.timeElapsed!;
+                                const cpuElapsed = measure.cpu.end - measure.cpu.start;
                                 const result: TimerResult = {
                                     label: measure.label,
-                                    timeElapsed: measure.timeElapsed!,
-                                    children: []
+                                    gpuElapsed: timeElapsed,
+                                    gpuAvg: gpuAvgs.add(measure.label, timeElapsed),
+                                    cpuElapsed,
+                                    cpuAvg: cpuAvgs.add(measure.label, cpuElapsed),
+                                    children: [],
+                                    calls: measure.calls,
                                 };
                                 children.push(result);
                                 add(measure.children, result.children);
                             }
                         };
                         add(measure.children, children);
-                        results.push({ label: measure.label, timeElapsed, children });
+                        const cpuElapsed = measure.cpu.end - measure.cpu.start;
+                        results.push({
+                            label: measure.label,
+                            gpuElapsed: timeElapsed,
+                            gpuAvg: gpuAvgs.add(measure.label, timeElapsed),
+                            cpuElapsed,
+                            cpuAvg: cpuAvgs.add(measure.label, cpuElapsed),
+                            children,
+                            calls: measure.calls,
+                        });
                     }
                 } else {
                     unresolved.push(measure);
@@ -126,7 +200,7 @@ export function createTimer(gl: GLRenderingContext, extensions: WebGLExtensions)
 
             return results;
         },
-        mark: (label: string) => {
+        mark: (label: string, captureCalls = false) => {
             if (!dtq) return;
 
             if (pending.has(label)) {
@@ -136,13 +210,28 @@ export function createTimer(gl: GLRenderingContext, extensions: WebGLExtensions)
             if (current !== null) {
                 dtq.endQuery(dtq.TIME_ELAPSED);
             }
-            const measure: Measure = { label, queries: [], children: [], root: current === null };
+            const measure: Measure = {
+                label,
+                queries: [],
+                children: [],
+                root: current === null,
+                cpu: { start: now(), end: -1 },
+                captureCalls,
+            };
             pending.set(label, measure);
 
             if (stack.length) {
                 stack[stack.length - 1].children.push(measure);
             }
             stack.push(measure);
+
+            if (captureCalls) {
+                if (capturingCalls) {
+                    throw new Error('Already capturing calls');
+                }
+                clearStatsCalls(stats);
+                capturingCalls = true;
+            }
 
             add();
         },
@@ -160,6 +249,16 @@ export function createTimer(gl: GLRenderingContext, extensions: WebGLExtensions)
 
             dtq.endQuery(dtq.TIME_ELAPSED);
             pending.delete(label);
+
+            measure.cpu.end = now();
+            if (measure.captureCalls) {
+                measure.calls = {
+                    drawInstanced: stats.calls.drawInstanced,
+                    counts: stats.calls.counts,
+                };
+                capturingCalls = false;
+            }
+
             measures.push(measure);
 
             if (pending.size > 0) {
@@ -167,6 +266,23 @@ export function createTimer(gl: GLRenderingContext, extensions: WebGLExtensions)
             } else {
                 current = null;
             }
+        },
+        stats: () => {
+            return {
+                gpu: gpuAvgs.stats(),
+                cpu: cpuAvgs.stats(),
+            };
+        },
+        formatedStats: () => {
+            const stats: Record<string, string> = {};
+            const gpu = gpuAvgs.stats();
+            const cpu = cpuAvgs.stats();
+            for (const l of Object.keys(gpu)) {
+                const g = `${(gpu[l] / 1000 / 1000).toFixed(2)}`;
+                const c = `${cpu[l].toFixed(2)}`;
+                stats[l] = `${g} ms | CPU: ${c} ms`;
+            }
+            return stats;
         },
         clear,
         destroy: () => {
@@ -176,15 +292,19 @@ export function createTimer(gl: GLRenderingContext, extensions: WebGLExtensions)
 }
 
 function formatTimerResult(result: TimerResult) {
-    const timeElapsed = result.timeElapsed / 1000 / 1000;
-    return `${result.label} ${timeElapsed.toFixed(2)}ms`;
+    const gpu = `${(result.gpuElapsed / 1000 / 1000).toFixed(2)}`;
+    const gpuAvg = `${(result.gpuAvg / 1000 / 1000).toFixed(2)}`;
+    const cpu = `${result.cpuElapsed.toFixed(2)}`;
+    const cpuAvg = `${result.cpuAvg.toFixed(2)}`;
+    return `${result.label} ${gpu} ms (avg. ${gpuAvg} ms) | CPU: ${cpu} ms (avg. ${cpuAvg} ms)`;
 }
 
 export function printTimerResults(results: TimerResult[]) {
-    return results.map(r => {
+    results.map(r => {
         const f = formatTimerResult(r);
-        if (r.children.length) {
+        if (r.children.length || r.calls) {
             console.groupCollapsed(f);
+            if (r.calls) console.log(r.calls);
             printTimerResults(r.children);
             console.groupEnd();
         } else {

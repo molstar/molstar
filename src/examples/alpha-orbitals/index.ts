@@ -25,7 +25,7 @@ import { DemoMoleculeSDF, DemoOrbitals } from './example-data';
 import './index.html';
 require('mol-plugin-ui/skin/light.scss');
 
-import { setDebugMode, setTimingMode } from '../../mol-util/debug';
+import { setDebugMode, setTimingMode, consoleStats } from '../../mol-util/debug';
 
 interface DemoInput {
     moleculeSdf: string,
@@ -223,3 +223,4 @@ export class AlphaOrbitalsExample {
 (window as any).AlphaOrbitalsExample = new AlphaOrbitalsExample();
 (window as any).AlphaOrbitalsExample.setDebugMode = setDebugMode;
 (window as any).AlphaOrbitalsExample.setTimingMode = setTimingMode;
+(window as any).AlphaOrbitalsExample.consoleStats = consoleStats;
