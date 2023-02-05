@@ -29,12 +29,6 @@ export function getFastBoundary(data: PositionData): Boundary {
 
 const p = Vec3();
 
-
-export function getBoundaryFast(data: PositionData): Boundary {
-    const box = Box3D.computeBounding(data);
-    return { box, sphere: Sphere3D.fromBox3D(Sphere3D(), box) };
-}
-
 export function getBoundary(data: PositionData): Boundary {
     const { x, y, z, radius, indices } = data;
     const n = OrderedSet.size(indices);
