@@ -9,20 +9,21 @@ import { SortedArray } from '../../mol-data/int';
 import { flipByteOrder, IsNativeEndianLittle } from '../../mol-io/common/binary';
 import { SymmetryOperator } from '../../mol-math/geometry';
 import { Mat4, Quat, Vec3 } from '../../mol-math/linear-algebra';
-import { ModelSymmetry } from '../../mol-model-formats/structure/property/symmetry';
-import { ElementIndex, Model, Structure, StructureElement, StructureProperties, Unit } from '../../mol-model/structure';
-import { Assembly } from '../../mol-model/structure/model/properties/symmetry';
 import { PluginStateObject as PSO, PluginStateTransform } from '../../mol-plugin-state/objects';
+import { ParamDefinition as PD } from '../../mol-util/param-definition';
+import { CellPack as _CellPack, Cell, CellPacking } from './data';
+import { createStructureFromCellPack } from './model';
+import { getFloatValue, IngredientFiles } from './util';
+import { Asset } from '../../mol-util/assets';
 import { PluginContext } from '../../mol-plugin/context';
+import { CellPackInfoProvider } from './property';
+import { ModelSymmetry } from '../../mol-model-formats/structure/property/symmetry';
+import { ElementIndex, EntityIndex, Model, Structure, Unit } from '../../mol-model/structure';
+import { Assembly } from '../../mol-model/structure/model/properties/symmetry';
 import { StateTransformer } from '../../mol-state';
 import { Task } from '../../mol-task';
-import { Asset } from '../../mol-util/assets';
-import { ParamDefinition as PD } from '../../mol-util/param-definition';
-import { Cell, CellPack as _CellPack, CellPacking } from './data';
-import { createStructureFromCellPack } from './model';
-import { CellPackInfoProvider } from './property';
+import { CustomStructureProperty } from '../../mol-model-props/common/custom-structure-property';
 import { MBParams, MBRepresentation } from './representation';
-import { getFloatValue, IngredientFiles } from './util';
 
 export const DefaultCellPackBaseUrl = 'https://raw.githubusercontent.com/mesoscope/cellPACK_data/master/cellPACK_database_1.1.0';
 export class CellPack extends PSO.Create<_CellPack>({ name: 'CellPack', typeClass: 'Object' }) { }
@@ -364,6 +365,33 @@ export const CreateCompartmentSphere = CreateTransformer({
     }
 });
 
+type UnitsByEntity = Map<EntityIndex, Unit[]>;
+const UnitsByEntity = CustomStructureProperty.createSimple<UnitsByEntity>('units_by_entity', 'local');
+
+function getUnitsByEntity(structure: Structure): UnitsByEntity {
+    if (UnitsByEntity.get(structure).value) {
+        return UnitsByEntity.get(structure).value!;
+    }
+
+    const atomicIndex = structure.model.atomicHierarchy.index;
+    const map: UnitsByEntity = new Map();
+    for (const ug of structure.unitSymmetryGroups) {
+        const u = ug.units[0] as Unit.Atomic;
+        const e = atomicIndex.getEntityFromChain(u.chainIndex[u.elements[0]]);
+
+        if (!map.has(e)) map.set(e, []);
+        const entityUnits = map.get(e)!;
+
+        for (let i = 0, il = ug.units.length; i < il; ++i) {
+            entityUnits.push(ug.units[i]);
+        }
+    }
+
+    UnitsByEntity.set(structure, { value: map });
+
+    return map;
+}
+
 type EntityStructure = typeof EntityStructure
 const EntityStructure = PluginStateTransform.BuiltIn({
     name: 'entity-structure',
@@ -380,21 +408,16 @@ const EntityStructure = PluginStateTransform.BuiltIn({
     apply({ a, params }) {
         return Task.create('Build Structure', async ctx => {
             const parent = a.data;
-            const units: Unit[] = [];
-
-            const l = StructureElement.Location.create(parent);
-            for (const u of parent.units) {
-                l.unit = u;
-                l.element = u.elements[0];
-                const entityId = StructureProperties.entity.id(l);
-                if (entityId === params.entityId) {
-                    units.push(u);
-                }
-            }
-            const structure = Structure.create(units, { parent });
-
             const { entities } = parent.model;
             const idx = entities.getEntityIndex(params.entityId);
+
+            const unitsByEntity = getUnitsByEntity(parent);
+            const units = unitsByEntity.get(idx) || [];
+            // if (!unitsByEntity.get(idx)) {
+            //     console.log(entities.data.pdbx_description.value(idx));
+            // }
+            const structure = Structure.create(units, { parent });
+
             const description = entities.data.pdbx_description.value(idx)[0] || 'model';
             const label = description.split('.').at(-1) || a.label;
 

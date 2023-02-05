@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -28,14 +28,18 @@ export interface RenderTarget {
     destroy: () => void
 }
 
-export function createRenderTarget(gl: GLRenderingContext, resources: WebGLResources, _width: number, _height: number, depth = true, type: 'uint8' | 'float32' | 'fp16' = 'uint8', filter: TextureFilter = 'nearest'): RenderTarget {
+export function createRenderTarget(gl: GLRenderingContext, resources: WebGLResources, _width: number, _height: number, depth = true, type: 'uint8' | 'float32' | 'fp16' = 'uint8', filter: TextureFilter = 'nearest', format: 'rgba' | 'alpha' = 'rgba'): RenderTarget {
+
+    if (format === 'alpha' && !isWebGL2(gl)) {
+        throw new Error('cannot render to alpha format in webgl1');
+    }
 
     const framebuffer = resources.framebuffer();
     const targetTexture = type === 'fp16'
-        ? resources.texture('image-float16', 'rgba', 'fp16', filter)
+        ? resources.texture('image-float16', format, 'fp16', filter)
         : type === 'float32'
-            ? resources.texture('image-float32', 'rgba', 'float', filter)
-            : resources.texture('image-uint8', 'rgba', 'ubyte', filter);
+            ? resources.texture('image-float32', format, 'float', filter)
+            : resources.texture('image-uint8', format, 'ubyte', filter);
     // make a depth renderbuffer of the same size as the targetTexture
     const depthRenderbuffer = !depth
         ? null

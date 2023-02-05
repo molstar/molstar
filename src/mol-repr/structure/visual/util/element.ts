@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -82,15 +82,15 @@ export function createElementSphereMesh(ctx: VisualContext, unit: Unit, structur
         if (stride && i % stride !== 0) continue;
         if (ignore && ignore(elements[i])) continue;
 
-        l.element = elements[i];
         pos(elements[i], v);
         v3add(center, center, v);
         count += 1;
 
-        builderState.currentGroup = i;
+        l.element = elements[i];
         const size = themeSize(l);
         if (size > maxSize) maxSize = size;
 
+        builderState.currentGroup = i;
         addSphere(builderState, v, size * sizeFactor, detail);
     }
 
@@ -136,18 +136,28 @@ export function createElementSphereImpostor(ctx: VisualContext, unit: Unit, stru
     let maxSize = 0;
     let count = 0;
 
-    for (let i = 0; i < elementCount; i++) {
-        if (stride && i % stride !== 0) continue;
-        if (ignore?.(elements[i])) continue;
+    if ((stride && stride > 1) || ignore || theme.size.granularity !== 'uniform') {
+        for (let i = 0; i < elementCount; i++) {
+            if (stride && i % stride !== 0) continue;
+            if (ignore && ignore(elements[i])) continue;
 
-        pos(elements[i], v);
-        builder.add(v[0], v[1], v[2], i);
-        v3add(center, center, v);
-        count += 1;
+            pos(elements[i], v);
+            builder.add(v[0], v[1], v[2], i);
+            v3add(center, center, v);
+            count += 1;
 
-        l.element = elements[i];
-        const size = themeSize(l);
-        if (size > maxSize) maxSize = size;
+            l.element = elements[i];
+            const size = themeSize(l);
+            if (size > maxSize) maxSize = size;
+        }
+    } else {
+        for (let i = 0; i < elementCount; i++) {
+            pos(elements[i], v);
+            builder.add(v[0], v[1], v[2], i);
+            v3add(center, center, v);
+        }
+        count = elementCount;
+        maxSize = themeSize(l);
     }
 
     const oldBoundingSphere = spheres ? Sphere3D.clone(spheres.boundingSphere) : undefined;
