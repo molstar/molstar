@@ -12,7 +12,7 @@ import { ColorNames } from '../../mol-util/color/names';
 import { CellPackGenerateColorThemeProvider } from './color/generate';
 import { CellPackInfoProvider } from './property';
 import { CellPackColorThemeProvider } from './color/basic';
-import { EntityStructure } from './state';
+import { EntityStructure, CellpackAssembly } from './state';
 import { StateTransforms } from '../../mol-plugin-state/transforms';
 import { Color } from '../../mol-util/color';
 import { distinctColors } from '../../mol-util/color/distinct';
@@ -208,7 +208,11 @@ export async function createCellpackHierarchy(plugin: PluginContext, trajectory:
     const groups = new Map<string, StateObjectSelector>();
     const ids = new Map<string, Map<string, number>>();
     const colors = new Map<string, Color[]>();
-    const base = await builder.createStructure(model, { name: 'assembly', params: { id: '1' } });
+
+    const base = await state.build()
+        .to(model)
+        .apply(CellpackAssembly, { id: '' })
+        .commit();
 
     if (entities._rowCount > 1) {
         for (let i = 0; i < entities._rowCount; i++) {

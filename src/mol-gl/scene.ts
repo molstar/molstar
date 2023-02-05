@@ -77,6 +77,7 @@ interface Scene extends Object3D {
     remove: (o: GraphicsRenderObject) => void
     commit: (maxTimeMs?: number) => boolean
     readonly needsCommit: boolean
+    readonly commitQueueSize: number
     has: (o: GraphicsRenderObject) => boolean
     clear: () => void
     forEach: (callbackFn: (value: GraphicsRenderable, key: GraphicsRenderObject) => void) => void
@@ -277,6 +278,7 @@ namespace Scene {
             add: (o: GraphicsRenderObject) => commitQueue.add(o),
             remove: (o: GraphicsRenderObject) => commitQueue.remove(o),
             commit: (maxTime = Number.MAX_VALUE) => commit(maxTime),
+            get commitQueueSize() { return commitQueue.size; },
             get needsCommit() { return !commitQueue.isEmpty; },
             has: (o: GraphicsRenderObject) => {
                 return renderableMap.has(o);
