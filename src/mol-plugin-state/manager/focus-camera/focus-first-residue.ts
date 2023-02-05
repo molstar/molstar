@@ -1,36 +1,51 @@
 /**
- * Copyright (c) 2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2022-23 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Ke Ma <mark.ma@rcsb.org>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 import { Structure } from '../../../mol-model/structure';
 import { Vec3 } from '../../..//mol-math/linear-algebra/3d/vec3';
 import { PluginContext } from '../../../mol-plugin/context';
-import { CameraFocusOptions } from '../camera';
 import { PrincipalAxes } from '../../../mol-math/linear-algebra/matrix/principal-axes';
 import { StructureComponentRef } from '../structure/hierarchy-state';
-import { deepClone } from '../../../mol-util/object';
-import { ChunkedArray } from '../../../mol-data/util/chunked-array';
+import { Camera } from '../../../mol-canvas3d/camera';
 
 
-export function getPolymerPositions(polymerStructure: Structure): Float32Array {
-    const tmpMatrix = Vec3.zero();
-    const cAdd3 = ChunkedArray.add3;
-    const positions = ChunkedArray.create(Float32Array, 3, 1024, polymerStructure.atomicResidueCount);
-    for (let i = 0; i < polymerStructure.units.length; i++) {
-        const unit = polymerStructure.units[i];
+function getPolymerPositions(structure: Structure): Float32Array | undefined {
+    if (structure.atomicResidueCount === 1) return undefined;
+
+    let polymerElementCount = 0;
+    for (const unit of structure.units) {
+        polymerElementCount += unit.props.polymerElements?.length ?? 0;
+    }
+
+    if (polymerElementCount <= 1) return undefined;
+
+    const stride = 2 ** Math.max(Math.ceil(Math.log10(polymerElementCount / 1000)), 0);
+    const size = stride === 1
+        ? polymerElementCount
+        : Math.ceil(polymerElementCount / stride) + structure.units.length;
+
+    const tmpPos = Vec3.zero();
+    const positions = new Float32Array(3 * size);
+    let o = 0;
+    for (const unit of structure.units) {
         const { polymerElements } = unit.props;
-        const readPosition = unit.conformation.position;
+        const { position } = unit.conformation;
         if (polymerElements) {
-            for (let j = 0; j < polymerElements.length; j++) {
-                readPosition(polymerElements[j], tmpMatrix);
-                cAdd3(positions, tmpMatrix[0], tmpMatrix[1], tmpMatrix[2]);
+            for (let i = 0; i < polymerElements.length; i += stride) {
+                position(polymerElements[i], tmpPos);
+                Vec3.toArray(tmpPos, positions, 3 * o);
+                o++;
             }
         }
     }
-    return ChunkedArray.compact(positions) as Float32Array;
+    if (positions.length !== o) return positions.slice(0, 3 * o);
+    return positions;
 }
-export function calculateDisplacement(position: Vec3, origin: Vec3, normalDir: Vec3) {
+
+function calculateDisplacement(position: Vec3, origin: Vec3, normalDir: Vec3) {
     const A = normalDir[0];
     const B = normalDir[1];
     const C = normalDir[2];
@@ -44,104 +59,98 @@ export function calculateDisplacement(position: Vec3, origin: Vec3, normalDir: V
     return displacement;
 }
 
-export function getAxesToFlip(position: Vec3, origin: Vec3, up: Vec3, normalDir: Vec3) {
+function getAxesToFlip(position: Vec3, origin: Vec3, up: Vec3, normalDir: Vec3) {
     const toYAxis = calculateDisplacement(position, origin, normalDir);
     const toXAxis = calculateDisplacement(position, origin, up);
-    const axes: ('aroundX' | 'aroundY')[] = [];
-    if (toYAxis < 0) axes.push('aroundY');
-    if (toXAxis < 0) axes.push('aroundX');
-    return axes;
-}
-
-export function getFirstResidueOrAveragePosition(structure: Structure, caPositions: Float32Array): Vec3 {
-    if (structure.units.length === 1) {
-        // if only one chain => first residue coordinates
-        return Vec3.create(caPositions[0], caPositions[1], caPositions[2]);
-    } else {
-        // if more than one chain => average of coordinates of the first chain
-        const tmpMatrixPos = Vec3.zero();
-        const atomIndices = structure.units[0].props.polymerElements;
-        const firstChainPositions = [];
-        if (atomIndices) {
-            for (let i = 0; i < atomIndices.length; i++) {
-                const coordinates = structure.units[0].conformation.position(atomIndices[i], tmpMatrixPos);
-                for (let j = 0; j < coordinates.length; j++) {
-                    firstChainPositions.push(coordinates[j]);
-                }
-            }
-            let sumX = 0;
-            let sumY = 0;
-            let sumZ = 0;
-            for (let i = 0; i < firstChainPositions.length; i += 3) {
-                sumX += firstChainPositions[i];
-                sumY += firstChainPositions[i + 1];
-                sumZ += firstChainPositions[i + 2];
-            }
-            const averagePosition = Vec3.zero();
-            averagePosition[0] = sumX / atomIndices.length;
-            averagePosition[1] = sumY / atomIndices.length;
-            averagePosition[2] = sumZ / atomIndices.length;
-            return averagePosition;
-        } else {
-            return Vec3.create(caPositions[0], caPositions[1], caPositions[2]);
-        }
-    }
-
-}
-
-export function pcaFocus(plugin: PluginContext, options: Partial<CameraFocusOptions> & { principalAxes?: PrincipalAxes, positionToFlip?: Vec3 }) {
-    if (options?.principalAxes) {
-        const { origin, dirA, dirB, dirC } = options.principalAxes.boxAxes;
-        let toFlip: ('aroundX' | 'aroundY')[] = [];
-        if (options.positionToFlip) {
-            toFlip = getAxesToFlip(options.positionToFlip, origin, dirA, dirB);
-        }
-        toFlip.forEach((axis)=>{
-            if (axis === 'aroundY') {
-                Vec3.negate(dirC, dirC);
-            } else if (axis === 'aroundX') {
-                Vec3.negate(dirA, dirA);
-                Vec3.negate(dirC, dirC);
-            }
-        });
-        if (plugin.canvas3d) {
-            const position = Vec3();
-            Vec3.scaleAndAdd(position, position, origin, 100);
-            plugin.canvas3d.camera.setState({ position }, 0);
-            const deltaDistance = Vec3();
-            Vec3.negate(deltaDistance, position);
-            if (Vec3.dot(deltaDistance, dirC) <= 0) {
-                Vec3.negate(plugin.canvas3d.camera.position, position);
-            }
-            const up = Vec3.create(0, 1, 0);
-            if (Vec3.dot(up, dirA) <= 0) {
-                Vec3.negate(plugin.canvas3d?.camera.up, plugin.canvas3d.camera.up);
-            }
-        }
-        return { origin, dirA, dirB, dirC };
-    }
     return {
-        origin: Vec3.zero(),
-        dirA: Vec3.zero(),
-        dirB: Vec3.zero(),
-        dirC: Vec3.zero()
+        aroundX: toXAxis < 0,
+        aroundY: toYAxis < 0,
     };
 }
 
-export function getPcaTransform(group: StructureComponentRef[]): { principalAxes?: PrincipalAxes, positionToFlip?: Vec3 } | undefined {
-    const polymerStructure = group[0].cell.obj?.data;
-    if (!polymerStructure) {
+function getFirstResidueOrAveragePosition(structure: Structure, polymerPositions: Float32Array): Vec3 {
+    if (structure.units.length === 1) {
+        // if only one chain => first residue coordinates
+        return Vec3.create(polymerPositions[0], polymerPositions[1], polymerPositions[2]);
+    } else {
+        // if more than one chain => average of coordinates of the first chain
+        const polymerElements = structure.units.find(u => u.props.polymerElements)?.props.polymerElements;
+        if (polymerElements?.length) {
+            const pos = Vec3.zero();
+            const center = Vec3.zero();
+            const { position } = structure.units[0].conformation;
+            for (let i = 0; i < polymerElements.length; i++) {
+                position(polymerElements[i], pos);
+                Vec3.add(center, center, pos);
+            }
+            Vec3.scale(center, center, 1 / polymerElements.length);
+            return center;
+        } else {
+            return Vec3.create(polymerPositions[0], polymerPositions[1], polymerPositions[2]);
+        }
+    }
+}
+
+export function pcaFocus(plugin: PluginContext, radius: number, options: { principalAxes: PrincipalAxes, positionToFlip?: Vec3 }) {
+    const { origin, dirB } = options.principalAxes.boxAxes;
+    let { dirA: up, dirC: dir } = options.principalAxes.boxAxes;
+
+    if (options.positionToFlip) {
+        const { aroundX, aroundY } = getAxesToFlip(options.positionToFlip, origin, up, dirB);
+
+        // Clone the up and dir since we will be mutating them below
+        up = Vec3.clone(up);
+        dir = Vec3.clone(dir);
+
+        if (aroundX) {
+            Vec3.negate(dir, dir);
+            Vec3.negate(up, up);
+        }
+        if (aroundY) {
+            Vec3.negate(dir, dir);
+        }
+    }
+
+    if (plugin.canvas3d) {
+        const position = Vec3();
+        // NOTE: the below Vec3.scale is simplification of
+        //   Vec3.scaleAndAdd(position, position, origin, 100);
+        //   plugin.canvas3d.camera.setState({ position }, 0);
+        //   const deltaDistance = Vec3();
+        //   Vec3.negate(deltaDistance, position);
+        // from the original code.
+        Vec3.scale(position, origin, -100);
+        if (Vec3.dot(position, up) <= 0) {
+            Vec3.negate(dir, dir);
+        }
+        const upY = Vec3.create(0, 1, 0);
+        if (Vec3.dot(upY, dir) <= 0) {
+            Vec3.negate(up, up);
+        }
+    }
+
+    return plugin.canvas3d?.camera.getFocus(origin, radius, up, dir, Camera.createDefaultSnapshot());
+}
+
+export interface PCAFocusInfo {
+    principalAxes: PrincipalAxes;
+    positionToFlip: Vec3;
+}
+
+export function getPcaTransform(group: StructureComponentRef[]): PCAFocusInfo | undefined {
+    const structure = group[0].cell.obj?.data;
+    if (!structure) {
         return undefined;
     }
-    if ('_pcaTransformData' in polymerStructure.currentPropertyData) {
-        return deepClone(polymerStructure.currentPropertyData._pcaTransformData);
+    if ('_pcaTransformData' in structure.currentPropertyData) {
+        return structure.currentPropertyData._pcaTransformData;
     }
-    if (!polymerStructure.units[0]?.props.polymerElements?.length) {
-        polymerStructure.currentPropertyData._pcaTransformData = undefined;
+    const positions = getPolymerPositions(structure);
+    if (!positions) {
+        structure.currentPropertyData._pcaTransformData = undefined;
         return undefined;
     }
-    const positions = getPolymerPositions(polymerStructure);
-    const positionToFlip = getFirstResidueOrAveragePosition(polymerStructure, positions);
-    polymerStructure.currentPropertyData._pcaTransformData = { principalAxes: PrincipalAxes.ofPositions(positions), positionToFlip };
-    return deepClone(polymerStructure.currentPropertyData._pcaTransformData);
+    const positionToFlip = getFirstResidueOrAveragePosition(structure, positions);
+    structure.currentPropertyData._pcaTransformData = { principalAxes: PrincipalAxes.ofPositions(positions), positionToFlip } as PCAFocusInfo;
+    return structure.currentPropertyData._pcaTransformData;
 }
