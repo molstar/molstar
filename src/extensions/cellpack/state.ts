@@ -3,6 +3,7 @@
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Ludovic Autin <ludovic.autin@gmail.com>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { SortedArray } from '../../mol-data/int';
@@ -19,7 +20,7 @@ import { PluginContext } from '../../mol-plugin/context';
 import { CellPackInfoProvider } from './property';
 import { ModelSymmetry } from '../../mol-model-formats/structure/property/symmetry';
 import { ElementIndex, EntityIndex, Model, Structure, Unit } from '../../mol-model/structure';
-import { Assembly } from '../../mol-model/structure/model/properties/symmetry';
+import { Assembly, Symmetry } from '../../mol-model/structure/model/properties/symmetry';
 import { StateTransformer } from '../../mol-state';
 import { Task } from '../../mol-task';
 import { CustomStructureProperty } from '../../mol-model-props/common/custom-structure-property';
@@ -30,7 +31,7 @@ export class CellPack extends PSO.Create<_CellPack>({ name: 'CellPack', typeClas
 
 export { ParseCellPack };
 export { StructureFromCellpack };
-export { StructureFromAssemblies };
+export { CellpackAssembly };
 export { EntityStructure };
 type ParseCellPack = typeof ParseCellPack
 const ParseCellPack = PluginStateTransform.BuiltIn({
@@ -289,50 +290,51 @@ function buildCellpackAssembly(model: Model, assembly: Assembly) {
     return assembler.getStructure();
 }
 
-type StructureFromAssemblies = typeof StructureFromAssemblies
-const StructureFromAssemblies = PluginStateTransform.BuiltIn({
-    name: 'structure-from-all-assemblies',
-    display: { name: 'Structure from all assemblies' },
+type CellpackAssembly = typeof CellpackAssembly
+const CellpackAssembly = PluginStateTransform.BuiltIn({
+    name: 'cellpack-assembly',
+    display: { name: 'Cellpack Assembly' },
     from: PSO.Molecule.Model,
     to: PSO.Molecule.Structure,
     params: {
+        id: PD.Text('', { label: 'Asm Id', description: 'Assembly Id (use empty for the 1st assembly)' }),
     }
 })({
     canAutoUpdate({ newParams }) {
         return true;
     },
-    apply({ a, params }) {
+    apply({ a, params }, plugin: PluginContext) {
         return Task.create('Build Structure', async ctx => {
-            // TODO: optimze
-            // TODO: think of ways how to fast-track changes to this for animations
             const model = a.data;
-            const initial_structure = Structure.ofModel(model);
-            const structures: Structure[] = [];
-            let structure: Structure = initial_structure;
-            // the list of asambly *?
+
+            let id = params.id;
+            let asm: Assembly | undefined = void 0;
             const symmetry = ModelSymmetry.Provider.get(model);
-            if (symmetry && symmetry.assemblies.length !== 0) {
-                for (const a of symmetry.assemblies) {
-                    const s = buildCellpackAssembly(model, a);
-                    structures.push(s);
-                }
-                const builder = Structure.Builder({ label: 'Membrane' });
-                let offsetInvariantId = 0;
-                for (const s of structures) {
-                    let maxInvariantId = 0;
-                    for (const u of s.units) {
-                        const invariantId = u.invariantId + offsetInvariantId;
-                        if (u.invariantId > maxInvariantId) maxInvariantId = u.invariantId;
-                        builder.addUnit(u.kind, u.model, u.conformation.operator, u.elements, Unit.Trait.None, invariantId);
-                    }
-                    offsetInvariantId += maxInvariantId + 1;
-                }
-                structure = builder.getStructure();
-                for (let i = 0, il = structure.models.length; i < il; ++i) {
-                    Model.TrajectoryInfo.set(structure.models[i], { size: il, index: i });
+
+            // if no id is specified, use the 1st assembly.
+            if (!id && symmetry && symmetry.assemblies.length !== 0) {
+                id = symmetry.assemblies[0].id;
+            }
+
+            if (!symmetry || symmetry.assemblies.length === 0) {
+                plugin.log.warn(`Model '${model.entryId}' has no assembly, returning model structure.`);
+            } else {
+                asm = Symmetry.findAssembly(model, id || '');
+                if (!asm) {
+                    plugin.log.warn(`Model '${model.entryId}' has no assembly called '${id}', returning model structure.`);
                 }
             }
-            return new PSO.Molecule.Structure(structure, { label: a.label, description: `${a.description}` });
+
+            const base = Structure.ofModel(model);
+            if (!asm) {
+                const label = { label: 'Model', description: Structure.elementDescription(base) };
+                return new PSO.Molecule.Structure(base, label);
+            }
+
+            const s = buildCellpackAssembly(model, asm);
+
+            const objProps = { label: `Assembly ${id}`, description: Structure.elementDescription(s) };
+            return new PSO.Molecule.Structure(s, objProps);
         });
     },
     dispose({ b }) {
