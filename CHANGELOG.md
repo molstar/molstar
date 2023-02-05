@@ -6,7 +6,7 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
-- Change the position of the camera based on the PCA of the structure and the following rules:
+- Improve Component camera focus based on the PCA of the structure and the following rules:
     - The first residue should be in first quadrant if there is only one chain
     - The average position of the residues of the first chain should be in the first quadrant if there is more than one chain
 - Add `HeadlessPluginContext` and `HeadlessScreenshotHelper` to be used in Node.js
