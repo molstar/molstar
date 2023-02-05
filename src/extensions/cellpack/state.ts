@@ -5,27 +5,32 @@
  * @author Ludovic Autin <ludovic.autin@gmail.com>
  */
 
-import { PluginStateObject as PSO, PluginStateTransform } from '../../mol-plugin-state/objects';
-import { ParamDefinition as PD } from '../../mol-util/param-definition';
-import { Task } from '../../mol-task';
-import { CellPack as _CellPack, Cell, CellPacking } from './data';
-import { createStructureFromCellPack } from './model';
-import { IngredientFiles } from './util';
-import { Asset } from '../../mol-util/assets';
-import { PluginContext } from '../../mol-plugin/context';
-import { CellPackInfoProvider } from './property';
-import { Structure, StructureSymmetry, Unit, Model, StructureElement, StructureProperties } from '../../mol-model/structure';
+import { SortedArray } from '../../mol-data/int';
+import { flipByteOrder, IsNativeEndianLittle } from '../../mol-io/common/binary';
+import { SymmetryOperator } from '../../mol-math/geometry';
+import { Mat4, Quat, Vec3 } from '../../mol-math/linear-algebra';
 import { ModelSymmetry } from '../../mol-model-formats/structure/property/symmetry';
-import { Vec3, Quat } from '../../mol-math/linear-algebra';
+import { ElementIndex, Model, Structure, StructureElement, StructureProperties, Unit } from '../../mol-model/structure';
+import { Assembly } from '../../mol-model/structure/model/properties/symmetry';
+import { PluginStateObject as PSO, PluginStateTransform } from '../../mol-plugin-state/objects';
+import { PluginContext } from '../../mol-plugin/context';
 import { StateTransformer } from '../../mol-state';
-import { MBRepresentation, MBParams } from './representation';
-import { IsNativeEndianLittle, flipByteOrder } from '../../mol-io/common/binary';
-import { getFloatValue } from './util';
+import { Task } from '../../mol-task';
+import { Asset } from '../../mol-util/assets';
+import { ParamDefinition as PD } from '../../mol-util/param-definition';
+import { Cell, CellPack as _CellPack, CellPacking } from './data';
+import { createStructureFromCellPack } from './model';
+import { CellPackInfoProvider } from './property';
+import { MBParams, MBRepresentation } from './representation';
+import { getFloatValue, IngredientFiles } from './util';
 
 export const DefaultCellPackBaseUrl = 'https://raw.githubusercontent.com/mesoscope/cellPACK_data/master/cellPACK_database_1.1.0';
 export class CellPack extends PSO.Create<_CellPack>({ name: 'CellPack', typeClass: 'Object' }) { }
 
 export { ParseCellPack };
+export { StructureFromCellpack };
+export { StructureFromAssemblies };
+export { EntityStructure };
 type ParseCellPack = typeof ParseCellPack
 const ParseCellPack = PluginStateTransform.BuiltIn({
     name: 'parse-cellpack',
@@ -200,7 +205,6 @@ const ParseCellPack = PluginStateTransform.BuiltIn({
     },
 });
 
-export { StructureFromCellpack };
 type StructureFromCellpack = typeof ParseCellPack
 const StructureFromCellpack = PluginStateTransform.BuiltIn({
     name: 'structure-from-cellpack',
@@ -248,7 +252,42 @@ const StructureFromCellpack = PluginStateTransform.BuiltIn({
     }
 });
 
-export { StructureFromAssemblies };
+function createModelChainMap(model: Model) {
+    const builder = new Structure.StructureBuilder();
+    const units = new Map<string, Unit>();
+
+    const { label_asym_id, _rowCount } = model.atomicHierarchy.chains;
+    const { offsets } = model.atomicHierarchy.chainAtomSegments;
+
+    for (let i = 0; i < _rowCount; i++) {
+        const elements = SortedArray.ofBounds(offsets[i] as ElementIndex, offsets[i + 1] as ElementIndex);
+        const unit = builder.addUnit(Unit.Kind.Atomic, model, SymmetryOperator.Default, elements, Unit.Trait.FastBoundary);
+        units.set(label_asym_id.value(i), unit);
+    }
+
+    return units;
+}
+
+function buildCellpackAssembly(model: Model, assembly: Assembly) {
+    const coordinateSystem = SymmetryOperator.create(assembly.id, Mat4.identity(), { assembly: { id: assembly.id, operId: 0, operList: [] } });
+    const assembler = Structure.Builder({
+        coordinateSystem,
+        label: model.label,
+    });
+
+    const units = createModelChainMap(model);
+
+    for (const g of assembly.operatorGroups) {
+        for (const oper of g.operators) {
+            for (const id of g.asymIds!) {
+                assembler.addWithOperator(units.get(id)!, oper);
+            }
+        }
+    }
+
+    return assembler.getStructure();
+}
+
 type StructureFromAssemblies = typeof StructureFromAssemblies
 const StructureFromAssemblies = PluginStateTransform.BuiltIn({
     name: 'structure-from-all-assemblies',
@@ -273,7 +312,7 @@ const StructureFromAssemblies = PluginStateTransform.BuiltIn({
             const symmetry = ModelSymmetry.Provider.get(model);
             if (symmetry && symmetry.assemblies.length !== 0) {
                 for (const a of symmetry.assemblies) {
-                    const s = await StructureSymmetry.buildAssembly(initial_structure, a.id).runInContext(ctx);
+                    const s = buildCellpackAssembly(model, a);
                     structures.push(s);
                 }
                 const builder = Structure.Builder({ label: 'Membrane' });
@@ -325,7 +364,6 @@ export const CreateCompartmentSphere = CreateTransformer({
     }
 });
 
-export { EntityStructure };
 type EntityStructure = typeof EntityStructure
 const EntityStructure = PluginStateTransform.BuiltIn({
     name: 'entity-structure',
