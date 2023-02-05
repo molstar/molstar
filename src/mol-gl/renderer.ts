@@ -109,7 +109,7 @@ export const RendererParams = {
         inclination: PD.Numeric(150, { min: 0, max: 180, step: 1 }),
         azimuth: PD.Numeric(320, { min: 0, max: 360, step: 1 }),
         color: PD.Color(Color.fromNormalizedRgb(1.0, 1.0, 1.0)),
-        intensity: PD.Numeric(0.6, { min: 0.0, max: 1.0, step: 0.01 }),
+        intensity: PD.Numeric(0.6, { min: 0.0, max: 5.0, step: 0.01 }),
     }, o => Color.toHexString(o.color), { defaultValue: [{
         inclination: 150,
         azimuth: 320,
@@ -117,7 +117,7 @@ export const RendererParams = {
         intensity: 0.6
     }] }),
     ambientColor: PD.Color(Color.fromNormalizedRgb(1.0, 1.0, 1.0)),
-    ambientIntensity: PD.Numeric(0.4, { min: 0.0, max: 1.0, step: 0.01 }),
+    ambientIntensity: PD.Numeric(0.4, { min: 0.0, max: 2.0, step: 0.01 }),
 };
 export type RendererProps = PD.Values<typeof RendererParams>
 
