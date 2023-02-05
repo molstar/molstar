@@ -265,6 +265,18 @@ export function createRenderItem<T extends string>(ctx: WebGLContext, drawMode: 
                             }
                         }
                     }
+                    if (isTimingMode) {
+                        if (multiDrawInstancedBaseVertexBaseInstance) {
+                            stats.calls.multiDrawInstancedBase += 1;
+                        } else if (drawInstancedBaseVertexBaseInstance) {
+                            stats.calls.drawInstancedBase += mdbData.count;
+                        } else {
+                            stats.calls.drawInstanced += mdbData.count;
+                        }
+                        for (let i = 0; i < mdbData.count; ++i) {
+                            stats.calls.counts += mdbData.instanceCounts[i];
+                        }
+                    }
                 }
             } else {
                 if (elementsBuffer) {
@@ -272,10 +284,10 @@ export function createRenderItem<T extends string>(ctx: WebGLContext, drawMode: 
                 } else {
                     instancedArrays.drawArraysInstanced(glDrawMode, 0, drawCount, instanceCount);
                 }
-            }
-            if (isTimingMode) {
-                stats.calls.drawInstanced += 1;
-                stats.calls.counts += instanceCount;
+                if (isTimingMode) {
+                    stats.calls.drawInstanced += 1;
+                    stats.calls.counts += instanceCount;
+                }
             }
             if (isDebugMode) {
                 try {

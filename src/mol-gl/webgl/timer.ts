@@ -38,6 +38,8 @@ class MovingAverage {
 
 function clearStatsCalls(stats: WebGLStats) {
     stats.calls.drawInstanced = 0;
+    stats.calls.drawInstancedBase = 0;
+    stats.calls.multiDrawInstancedBase = 0;
     stats.calls.counts = 0;
 }
 
@@ -252,10 +254,7 @@ export function createTimer(gl: GLRenderingContext, extensions: WebGLExtensions,
 
             measure.cpu.end = now();
             if (measure.captureCalls) {
-                measure.calls = {
-                    drawInstanced: stats.calls.drawInstanced,
-                    counts: stats.calls.counts,
-                };
+                measure.calls = { ...stats.calls };
                 capturingCalls = false;
             }
 

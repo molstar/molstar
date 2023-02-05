@@ -174,6 +174,8 @@ function createStats() {
 
         calls: {
             drawInstanced: 0,
+            drawInstancedBase: 0,
+            multiDrawInstancedBase: 0,
             counts: 0,
         },
     };
