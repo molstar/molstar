@@ -6,6 +6,9 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Change the position of the camera based on the PCA of the structure and the following rules.
+    - The first residue should be in first quadrant if there is only one chain
+    - The average position of the residues of the first chain should be in the first residue if there are more than one chain.
 - Add `HeadlessPluginContext` and `HeadlessScreenshotHelper` to be used in Node.js
 - Add example `image-renderer`
 - Fix wrong offset when rendering text with orthographic projection

@@ -3,6 +3,7 @@
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Ke Ma <mark.ma@rcsb.org>
  */
 
 import { Sphere3D } from '../../mol-math/geometry';
@@ -13,6 +14,8 @@ import { Loci } from '../../mol-model/loci';
 import { BoundaryHelper } from '../../mol-math/geometry/boundary-helper';
 import { GraphicsRenderObject } from '../../mol-gl/render-object';
 import { StructureElement } from '../../mol-model/structure';
+import { Vec3 } from '../../mol-math/linear-algebra/3d/vec3';
+import { pcaFocus } from './focus-camera/focus-first-residue';
 
 // TODO: make this customizable somewhere?
 const DefaultCameraFocusOptions = {
@@ -84,7 +87,7 @@ export class CameraManager {
         }
     }
 
-    focusSpheres<T>(xs: ReadonlyArray<T>, sphere: (t: T) => Sphere3D | undefined, options?: Partial<CameraFocusOptions>) {
+    focusSpheres<T>(xs: ReadonlyArray<T>, sphere: (t: T) => Sphere3D | undefined, options?: Partial<CameraFocusOptions> & { principalAxes?: PrincipalAxes, positionToFlip?: Vec3 }) {
         const spheres = [];
 
         for (const x of xs) {
@@ -106,7 +109,7 @@ export class CameraManager {
         this.focusSphere(this.boundaryHelper.getSphere(), options);
     }
 
-    focusSphere(sphere: Sphere3D, options?: Partial<CameraFocusOptions> & { principalAxes?: PrincipalAxes }) {
+    focusSphere(sphere: Sphere3D, options?: Partial<CameraFocusOptions> & { principalAxes?: PrincipalAxes, positionToFlip?: Vec3 }) {
         const { canvas3d } = this.plugin;
         if (!canvas3d) return;
 
@@ -114,9 +117,10 @@ export class CameraManager {
         const radius = Math.max(sphere.radius + extraRadius, minRadius);
 
         if (options?.principalAxes) {
-            const { origin, dirA, dirC } = options?.principalAxes.boxAxes;
-            const snapshot = canvas3d.camera.getFocus(origin, radius, dirA, dirC);
-            canvas3d.requestCameraReset({ durationMs, snapshot });
+            this.plugin.canvas3d?.camera.setState(Camera.createDefaultSnapshot());
+            const { origin, dirA, dirC } = pcaFocus(this.plugin, options);
+            const snapshot = this.plugin.canvas3d?.camera.getFocus(origin, radius, dirA, dirC);
+            this.plugin.canvas3d?.requestCameraReset({ durationMs, snapshot });
         } else {
             const snapshot = canvas3d.camera.getFocus(sphere.center, radius);
             canvas3d.requestCameraReset({ durationMs, snapshot });
