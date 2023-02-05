@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Gianluca Tomasello <giagitom@gmail.com>
@@ -554,12 +554,18 @@ export function createCubeTexture(gl: GLRenderingContext, faces: CubeFaces, mipm
 
 //
 
+const NullTextureFormat = -1;
+
+export function isNullTexture(texture: Texture) {
+    return texture.format === NullTextureFormat;
+}
+
 export function createNullTexture(gl?: GLRenderingContext): Texture {
     const target = gl?.TEXTURE_2D ?? 3553;
     return {
         id: getNextTextureId(),
         target,
-        format: 0,
+        format: NullTextureFormat,
         internalFormat: 0,
         type: 0,
         filter: 0,
@@ -583,8 +589,12 @@ export function createNullTexture(gl?: GLRenderingContext): Texture {
                 gl.bindTexture(target, null);
             }
         },
-        attachFramebuffer: () => {},
-        detachFramebuffer: () => {},
+        attachFramebuffer: () => {
+            throw new Error('cannot attach null-texture to a framebuffer');
+        },
+        detachFramebuffer: () => {
+            throw new Error('cannot detach null-texture from a framebuffer');
+        },
 
         reset: () => {},
         destroy: () => {},

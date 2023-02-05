@@ -15,6 +15,19 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Improve Component camera focus based on the PCA of the structure and the following rules:
+    - The first residue should be in first quadrant if there is only one chain
+    - The average position of the residues of the first chain should be in the first quadrant if there is more than one chain
+- Add `HeadlessPluginContext` and `HeadlessScreenshotHelper` to be used in Node.js
+- Add example `image-renderer`
+- Fix wrong offset when rendering text with orthographic projectio
+n
+- Update camera/handle helper when `devicePixelRatio` changes
+- Add various options to customize the axes camera-helper
+- Fix issue with texture-mesh color smoothing when changing themes
+- Add fast boundary helper and corresponding unit trait
+- Add Observable for Canvas3D commits
+
 ## [v3.30.0] - 2023-01-29
 
 - Improve `Dnatco` extension
