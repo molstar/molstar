@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -50,7 +50,7 @@ import { SaccharideCompIdMapType } from '../../mol-model/structure/structure/car
 import { Backgrounds } from '../../extensions/backgrounds';
 
 export { PLUGIN_VERSION as version } from '../../mol-plugin/version';
-export { setDebugMode, setProductionMode, setTimingMode } from '../../mol-util/debug';
+export { setDebugMode, setProductionMode, setTimingMode, consoleStats } from '../../mol-util/debug';
 
 const CustomFormats = [
     ['g3d', G3dProvider] as const

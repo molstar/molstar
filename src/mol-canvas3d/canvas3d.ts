@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -31,7 +31,7 @@ import { PickData } from './passes/pick';
 import { PickHelper } from './passes/pick';
 import { ImagePass, ImageProps } from './passes/image';
 import { Sphere3D } from '../mol-math/geometry';
-import { isDebugMode, isTimingMode } from '../mol-util/debug';
+import { addConsoleStatsProvider, isDebugMode, isTimingMode, removeConsoleStatsProvider } from '../mol-util/debug';
 import { CameraHelperParams } from './helper/camera-helper';
 import { produce } from 'immer';
 import { HandleHelperParams } from './helper/handle-helper';
@@ -440,7 +440,7 @@ namespace Canvas3D {
                     cam = stereoCamera;
                 }
 
-                if (isTimingMode) webgl.timer.mark('Canvas3D.render');
+                if (isTimingMode) webgl.timer.mark('Canvas3D.render', true);
                 const ctx = { renderer, camera: cam, scene, helper };
                 if (MultiSamplePass.isEnabled(p.multiSample)) {
                     const forceOn = !cameraChanged && markingUpdated && !controls.isAnimating;
@@ -623,6 +623,8 @@ namespace Canvas3D {
                 attribute: `${(attribute / 1024 / 1024).toFixed(3)} MiB`,
                 elements: `${(elements / 1024 / 1024).toFixed(3)} MiB`,
             });
+
+            console.log(webgl.timer.formatedStats());
         }
 
         function add(repr: Representation.Any) {
@@ -727,6 +729,8 @@ namespace Canvas3D {
             if (draw) requestDraw();
             resized.next(+new Date());
         }
+
+        addConsoleStatsProvider(consoleStats);
 
         return {
             webgl,
@@ -905,6 +909,8 @@ namespace Canvas3D {
                 controls.dispose();
                 renderer.dispose();
                 interactionHelper.dispose();
+
+                removeConsoleStatsProvider(consoleStats);
             }
         };
 

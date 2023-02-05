@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Gianluca Tomasello <giagitom@gmail.com>
@@ -15,7 +15,7 @@ import { idFactory } from '../../mol-util/id-factory';
 import { ValueCell } from '../../mol-util';
 import { TextureImage, TextureVolume } from '../../mol-gl/renderable/util';
 import { checkFramebufferStatus } from './framebuffer';
-import { isDebugMode } from '../../mol-util/debug';
+import { isDebugMode, isTimingMode } from '../../mol-util/debug';
 import { VertexArray } from './vertex-array';
 import { fillSerial } from '../../mol-util/array';
 import { deepClone } from '../../mol-util/object';
@@ -211,6 +211,10 @@ export function createRenderItem<T extends string>(ctx: WebGLContext, drawMode: 
                 instancedArrays.drawElementsInstanced(glDrawMode, drawCount, elementsBuffer._dataType, 0, instanceCount);
             } else {
                 instancedArrays.drawArraysInstanced(glDrawMode, 0, drawCount, instanceCount);
+            }
+            if (isTimingMode) {
+                stats.calls.drawInstanced += 1;
+                stats.calls.counts += instanceCount;
             }
             if (isDebugMode) {
                 try {
