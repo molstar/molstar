@@ -17,6 +17,7 @@ n
 - Add various options to customize the axes camera-helper
 - Fix issue with texture-mesh color smoothing when changing themes
 - Add fast boundary helper and corresponding unit trait
+- Add Observable for Canvas3D commits
 
 ## [v3.30.0] - 2023-01-29
 

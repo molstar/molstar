@@ -19,6 +19,10 @@ export class CommitQueue {
         return this.removeList.count === 0 && this.addList.count === 0;
     }
 
+    get size() {
+        return this.removeMap.size + this.addMap.size;
+    }
+
     add(o: GraphicsRenderObject) {
         if (this.removeMap.has(o)) {
             const a = this.removeMap.get(o)!;

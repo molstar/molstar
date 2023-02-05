@@ -260,6 +260,7 @@ interface Canvas3D {
     notifyDidDraw: boolean,
     readonly didDraw: BehaviorSubject<now.Timestamp>
     readonly commited: BehaviorSubject<now.Timestamp>
+    readonly commitQueueSize: BehaviorSubject<number>
     readonly reprCount: BehaviorSubject<number>
     readonly resized: BehaviorSubject<any>
 
@@ -306,6 +307,7 @@ namespace Canvas3D {
         let startTime = now();
         const didDraw = new BehaviorSubject<now.Timestamp>(0 as now.Timestamp);
         const commited = new BehaviorSubject<now.Timestamp>(0 as now.Timestamp);
+        const commitQueueSize = new BehaviorSubject<number>(0);
 
         const { gl, contextRestored } = webgl;
 
@@ -593,7 +595,11 @@ namespace Canvas3D {
             // snapshot the current bounding sphere of visible objects
             Sphere3D.copy(oldBoundingSphereVisible, scene.boundingSphereVisible);
 
-            if (!scene.commit(isSynchronous ? void 0 : sceneCommitTimeoutMs)) return false;
+            if (!scene.commit(isSynchronous ? void 0 : sceneCommitTimeoutMs)) {
+                commitQueueSize.next(scene.commitQueueSize);
+                return false;
+            }
+            commitQueueSize.next(0);
 
             if (helper.debug.isEnabled) helper.debug.update();
             if (!p.camera.manualReset && (reprCount.value === 0 || shouldResetCamera())) {
@@ -790,6 +796,7 @@ namespace Canvas3D {
             set notifyDidDraw(v: boolean) { notifyDidDraw = v; },
             didDraw,
             commited,
+            commitQueueSize,
             reprCount,
             resized,
             setProps: (properties, doNotRequestDraw = false) => {
