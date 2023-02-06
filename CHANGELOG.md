@@ -6,6 +6,8 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+## [v3.31.1] - 2023-02-05
+
 - Improve Component camera focus based on the PCA of the structure and the following rules:
     - The first residue should be in first quadrant if there is only one chain
     - The average position of the residues of the first chain should be in the first quadrant if there is more than one chain
