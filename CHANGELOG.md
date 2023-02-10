@@ -6,6 +6,8 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Fix exit code of volume pack executable (pack.ts). Now exits with non-0 status when an error happens
+
 ## [v3.31.1] - 2023-02-05
 
 - Improve Component camera focus based on the PCA of the structure and the following rules:
