@@ -74,8 +74,10 @@ float getOutline(const in vec2 coords, const in float opaqueDepth, out float clo
     float backgroundViewZ = uFar + 3.0 * uMaxPossibleViewZDiff;
     vec2 invTexSize = 1.0 / uTexSize;
 
-    float selfDepth = min(opaqueDepth, getDepthTransparent(coords));
-    float selfViewZ = isBackground(selfDepth) ? backgroundViewZ : getViewZ(selfDepth);
+    float transparentDepth = getDepthTransparent(coords);
+    float opaqueSelfViewZ = isBackground(opaqueDepth) ? backgroundViewZ : getViewZ(opaqueDepth);
+    float transparentSelfViewZ = isBackground(transparentDepth) ? backgroundViewZ : getViewZ(transparentDepth);
+    float selfDepth = min(opaqueDepth, transparentDepth);
     float pixelSize = getPixelSize(coords, selfDepth);
 
     float outline = 1.0;
@@ -93,6 +95,7 @@ float getOutline(const in vec2 coords, const in float opaqueDepth, out float clo
             float sampleOutlineDepth = unpackRGToUnitInterval(sampleOutlineCombined.gb);
             float sampleOutlineViewZ = isBackground(sampleOutlineDepth) ? backgroundViewZ : getViewZ(sampleOutlineDepth);
 
+            float selfViewZ = sampleOutlineCombined.a == 0.0 ? opaqueSelfViewZ : transparentSelfViewZ;
             if (sampleOutline == 0.0 && sampleOutlineDepth < closestTexel && abs(selfViewZ - sampleOutlineViewZ) > uMaxPossibleViewZDiff + (pixelSize * outlineDistanceFactor)) {
                 outline = 0.0;
                 closestTexel = sampleOutlineDepth;
