@@ -161,6 +161,7 @@ export namespace Spheres {
         maxDistance: number
         overlap: number
         stride: number
+        scaleBias: number
     }[]
 
     function areLodLevelsEqual(a: LodLevels, b: LodLevels) {
@@ -170,20 +171,22 @@ export namespace Spheres {
             if (a[i].minDistance !== b[i].minDistance) return false;
             if (a[i].overlap !== b[i].overlap) return false;
             if (a[i].stride !== b[i].stride) return false;
+            if (a[i].scaleBias !== b[i].scaleBias) return false;
         }
         return true;
     }
 
-    type LodLevelsValue = [minDistance: number, maxDistance: number, overlap: number, count: number, sizeFactor: number, stride: number][];
+    type LodLevelsValue = [minDistance: number, maxDistance: number, overlap: number, count: number, scale: number, stride: number, scaleBias: number][];
 
-    function getLodLevelsValue(prop: LodLevels, offsets: number[]): LodLevelsValue {
+    function getLodLevelsValue(prop: LodLevels, offsets: number[], count: number): LodLevelsValue {
         return prop.map((l, i) => [
             l.minDistance,
             l.maxDistance,
             l.overlap,
             offsets[offsets.length - 1 - i],
-            Math.cbrt(l.stride),
+            Math.pow(Math.min(count, l.stride), 1 / l.scaleBias),
             l.stride,
+            l.scaleBias,
         ]);
     }
 
@@ -202,6 +205,7 @@ export namespace Spheres {
             maxDistance: PD.Numeric(0),
             overlap: PD.Numeric(0),
             stride: PD.Numeric(0),
+            scaleBias: PD.Numeric(3, { min: 0.1, max: 10, step: 0.1 }),
         }, o => `${o.stride}`, {
             ...BaseGeometry.CullingLodCategory,
             defaultValue: [] as LodLevels
@@ -261,7 +265,7 @@ export namespace Spheres {
 
         const strides = props.lodLevels.map(l => l.stride).reverse();
         const ordered = getStrideOrderedElements(spheres.indexBuffer.ref.value, spheres.sphereCount, strides);
-        const lodLevels = ordered ? getLodLevelsValue(props.lodLevels, ordered.offsets) : [];
+        const lodLevels = ordered ? getLodLevelsValue(props.lodLevels, ordered.offsets, spheres.sphereCount) : [];
 
         return {
             dGeometryType: ValueCell.create('spheres'),
@@ -321,11 +325,12 @@ export namespace Spheres {
             maxDistance: l[1],
             overlap: l[2],
             stride: l[5],
+            scaleBias: l[6],
         }));
         if (!areLodLevelsEqual(props.lodLevels, lodLevels)) {
             const strides = props.lodLevels.map(l => l.stride).reverse();
             const ordered = getStrideOrderedElements(values.indexBuffer.ref.value, values.uVertexCount.ref.value / 4, strides);
-            const lodLevels = ordered ? getLodLevelsValue(props.lodLevels, ordered.offsets) : [];
+            const lodLevels = ordered ? getLodLevelsValue(props.lodLevels, ordered.offsets, values.uGroupCount.ref.value) : [];
             // console.log(lodLevels);
             ValueCell.update(values.elements, ordered ? ordered.elements : values.indexBuffer.ref.value);
             ValueCell.update(values.lodLevels, lodLevels);
