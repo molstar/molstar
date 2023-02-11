@@ -7,6 +7,7 @@ Note that since we don't clearly distinguish between a public and private interf
 ## [Unreleased]
 
 - Remove pca transform from components ui focus (too distracting)
+- Fix artefacts with opaque outlines behind transparent objects
 
 ## [v3.31.1] - 2023-02-05
 

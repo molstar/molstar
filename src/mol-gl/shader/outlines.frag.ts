@@ -1,8 +1,8 @@
 /**
- * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Áron Samuel Kovács <aron.kovacs@mail.muni.cz>
- @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 export const outlines_frag = `
@@ -63,6 +63,7 @@ void main(void) {
 
     float outline = 1.0;
     float bestDepth = 1.0;
+    float transparentFlag = 0.0;
 
     for (int y = -1; y <= 1; y++) {
         for (int x = -1; x <= 1; x++) {
@@ -82,11 +83,12 @@ void main(void) {
                 if (abs(selfViewZTransparent - sampleViewZTransparent) > uMaxPossibleViewZDiff && selfDepthTransparent > sampleDepthTransparent && sampleDepthTransparent <= bestDepth) {
                     outline = 0.0;
                     bestDepth = sampleDepthTransparent;
+                    transparentFlag = 1.0;
                 }
             }
         }
     }
 
-    gl_FragColor = vec4(outline, packUnitIntervalToRG(bestDepth), 0.0);
+    gl_FragColor = vec4(outline, packUnitIntervalToRG(bestDepth), transparentFlag);
 }
 `;
