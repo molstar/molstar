@@ -6,6 +6,8 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Remove pca transform from components ui focus (too distracting)
+
 ## [v3.31.1] - 2023-02-05
 
 - Improve Component camera focus based on the PCA of the structure and the following rules:
