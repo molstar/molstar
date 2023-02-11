@@ -368,7 +368,7 @@ export const CreateCompartmentSphere = CreateTransformer({
 });
 
 type UnitsByEntity = Map<EntityIndex, Unit[]>;
-const UnitsByEntity = CustomStructureProperty.createSimple<UnitsByEntity>('units_by_entity', 'local');
+const UnitsByEntity = CustomStructureProperty.createSimple<UnitsByEntity>('units_by_entity', 'root');
 
 function getUnitsByEntity(structure: Structure): UnitsByEntity {
     if (UnitsByEntity.get(structure).value) {
@@ -389,8 +389,7 @@ function getUnitsByEntity(structure: Structure): UnitsByEntity {
         }
     }
 
-    UnitsByEntity.set(structure, { value: map });
-
+    UnitsByEntity.set(structure, { value: map }, map);
     return map;
 }
 
