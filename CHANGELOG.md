@@ -8,6 +8,7 @@ Note that since we don't clearly distinguish between a public and private interf
 
 - Remove pca transform from components ui focus (too distracting)
 - Fix artefacts with opaque outlines behind transparent objects
+- Fix polymer trace visual not updating
 
 ## [v3.31.1] - 2023-02-05
 
