@@ -6,9 +6,11 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Fix exit code of volume pack executable (pack.ts). Now exits with non-0 status when an error happens
 - Remove pca transform from components ui focus (too distracting)
 - Fix artefacts with opaque outlines behind transparent objects
 - Fix polymer trace visual not updating
+
 
 ## [v3.31.1] - 2023-02-05
 
