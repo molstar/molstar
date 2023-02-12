@@ -1,14 +1,12 @@
 /**
- * Copyright (c) 2020-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
- * @author Ke Ma <mark.ma@rcsb.org>
  */
 
 import * as React from 'react';
 import { getStructureThemeTypes } from '../../mol-plugin-state/helpers/structure-representation-params';
-import { getPcaTransform } from '../../mol-plugin-state/manager/focus-camera/focus-first-residue';
 import { StructureComponentManager } from '../../mol-plugin-state/manager/structure/component';
 import { StructureHierarchyManager } from '../../mol-plugin-state/manager/structure/hierarchy';
 import { StructureComponentRef, StructureRepresentationRef } from '../../mol-plugin-state/manager/structure/hierarchy-state';
@@ -317,7 +315,7 @@ class StructureComponentGroup extends PurePluginUIComponent<{ group: StructureCo
         this.plugin.managers.camera.focusSpheres(this.props.group, e => {
             if (e.cell.state.isHidden) return;
             return e.cell.obj?.data.boundary.sphere;
-        }, getPcaTransform(this.props.group));
+        });
     };
 
     get reprLabel() {
