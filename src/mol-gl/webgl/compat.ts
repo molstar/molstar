@@ -541,7 +541,7 @@ export function getProvokingVertex(gl: GLRenderingContext): COMPAT_provoking_ver
                 FIRST_VERTEX_CONVENTION: ext.FIRST_VERTEX_CONVENTION_WEBGL,
                 LAST_VERTEX_CONVENTION: ext.LAST_VERTEX_CONVENTION_WEBGL,
                 PROVOKING_VERTEX: ext.PROVOKING_VERTEX_WEBGL,
-                provokingVertex: ext.provokingVertexWEBGL.bind(gl)
+                provokingVertex: ext.provokingVertexWEBGL.bind(ext)
             };
         }
     }
