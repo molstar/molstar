@@ -57,7 +57,7 @@ export async function createPetworldHierarchy(plugin: PluginContext, trajectory:
     plugin.managers.interactivity.setProps({ granularity: 'chain' });
     plugin.canvas3d?.setProps({
         multiSample: { mode: 'off' },
-        cameraClipping: { far: false },
+        cameraClipping: { far: false, minNear: 50 },
         renderer: {
             colorMarker: true,
             highlightColor: Color(0xffffff),
