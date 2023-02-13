@@ -79,8 +79,10 @@ void main() {
     vViewPosition = mvPosition.xyz;
     gl_Position = uProjection * mvPosition;
 
-    mvPosition.z -= 2.0 * (length(vEnd - vStart) + vSize); // avoid clipping
-    gl_Position.z = (uProjection * mvPosition).z;
+    if (gl_Position.z < -gl_Position.w) {
+        mvPosition.z -= 2.0 * (length(vEnd - vStart) + vSize); // avoid clipping
+        gl_Position.z = (uProjection * mvPosition).z;
+    }
 
     if (uLod.x != 0.0 && uLod.y != 0.0) {
         if (d < (uLod.x - uLod.z) || d > uLod.y) {
