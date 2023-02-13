@@ -6,6 +6,8 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+Fix impostor bond visuals not correctly updating on `sizeFactor` changes
+
 ## [v3.31.2] - 2023-02-12
 
 - Fix exit code of volume pack executable (pack.ts). Now exits with non-0 status when an error happens
