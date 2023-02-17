@@ -7,6 +7,7 @@ Note that since we don't clearly distinguish between a public and private interf
 ## [Unreleased]
 
 Fix impostor bond visuals not correctly updating on `sizeFactor` changes
+Fix degenerate case in PCA
 
 ## [v3.31.2] - 2023-02-12
 
