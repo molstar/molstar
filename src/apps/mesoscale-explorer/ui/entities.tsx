@@ -135,6 +135,7 @@ const OpacityParams = {
 
 const LodParams = {
     lodLevels: Spheres.Params.lodLevels,
+    cellSize: Spheres.Params.cellSize,
 };
 
 const SimpleClipParams = {
@@ -342,10 +343,11 @@ export class GroupNode extends Node<{ filter: string }, { isCollapsed: boolean, 
 
     get lodValue(): PD.Values<typeof LodParams> | undefined {
         const repr = this.pivotRepr;
-        const hasLod = repr?.transform.params?.type.params.lodLevels !== undefined;
+        const hasLod = repr?.transform.params?.type.params.lodLevels !== undefined && repr?.transform.params?.type.params.cellSize !== undefined;
         if (!hasLod) return;
         return {
-            lodLevels: repr.transform.params.type.params.lodLevels
+            lodLevels: repr.transform.params.type.params.lodLevels,
+            cellSize: repr.transform.params.type.params.cellSize,
         };
     }
 
@@ -434,9 +436,10 @@ export class GroupNode extends Node<{ filter: string }, { isCollapsed: boolean, 
         for (let i = 0; i < reprCells.length; ++i) {
             const cell = reprCells[i];
             const params = cell.transform.params as StateTransformer.Params<StructureRepresentation3D>;
-            if (!deepEqual(params.type.params.lodLevels, values.lodLevels)) {
+            if (!deepEqual(params.type.params.lodLevels, values.lodLevels) || params.type.params.cellSize !== values.cellSize) {
                 update.to(cell).update(old => {
                     old.type.params.lodLevels = values.lodLevels;
+                    old.type.params.cellSize = values.cellSize;
                 });
             }
         }
@@ -591,10 +594,11 @@ export class EntityNode extends Node<{}, { action?: 'color' | 'clip' }> {
 
     get lodValue(): PD.Values<typeof LodParams> | undefined {
         const repr = this.repr;
-        const hasLod = repr?.transform.params?.type.params.lodLevels !== undefined;
+        const hasLod = repr?.transform.params?.type.params.lodLevels !== undefined && repr?.transform.params?.type.params.cellSize !== undefined;
         if (!hasLod) return;
         return {
-            lodLevels: repr.transform.params.type.params.lodLevels
+            lodLevels: repr.transform.params.type.params.lodLevels,
+            cellSize: repr.transform.params.type.params.cellSize,
         };
     }
 
@@ -643,9 +647,10 @@ export class EntityNode extends Node<{}, { action?: 'color' | 'clip' }> {
         if (!t) return;
 
         const params = t.params as StateTransformer.Params<StructureRepresentation3D>;
-        if (!PD.areEqual(Clip.Params, params.type.params.lodLevels, values.lodLevels)) {
+        if (!deepEqual(params.type.params.lodLevels, values.lodLevels) || params.type.params.cellSize !== values.cellSize) {
             this.plugin.build().to(t.ref).update(old => {
                 old.type.params.lodLevels = values.lodLevels;
+                old.type.params.cellSize = values.cellSize;
             }).commit();
         }
     };
