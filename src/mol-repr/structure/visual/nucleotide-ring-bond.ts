@@ -1,24 +1,24 @@
-import { ParamDefinition as PD } from '../../mol-util/param-definition';
-import { Vec3 } from '../../mol-math/linear-algebra';
-import { VisualContext } from '../visual';
-import { Unit, Structure, ElementIndex } from '../../mol-model/structure';
-import { Theme } from '../../mol-theme/theme';
-import { Mesh } from '../../mol-geo/geometry/mesh/mesh';
-import { MeshBuilder } from '../../mol-geo/geometry/mesh/mesh-builder';
-import { Segmentation } from '../../mol-data/int';
-import { CylinderProps } from '../../mol-geo/primitive/cylinder';
-import { isNucleic, isPurineBase, isPyrimidineBase } from '../../mol-model/structure/model/types';
-import { addCylinder } from '../../mol-geo/geometry/mesh/builder/cylinder';
-import { UnitsMeshParams, UnitsVisual, UnitsMeshVisual, UnitsCylindersParams, UnitsCylindersVisual } from '../structure/units-visual';
-import { NucleotideLocationIterator, getNucleotideElementLoci, eachNucleotideElement } from '../structure/visual/util/nucleotide';
-import { VisualUpdateState } from '../util';
-import { BaseGeometry } from '../../mol-geo/geometry/base';
-import { Sphere3D } from '../../mol-math/geometry';
+import { ParamDefinition as PD } from '../../../mol-util/param-definition';
+import { Vec3 } from '../../../mol-math/linear-algebra';
+import { VisualContext } from '../../visual';
+import { Unit, Structure, ElementIndex } from '../../../mol-model/structure';
+import { Theme } from '../../../mol-theme/theme';
+import { Mesh } from '../../../mol-geo/geometry/mesh/mesh';
+import { MeshBuilder } from '../../../mol-geo/geometry/mesh/mesh-builder';
+import { Segmentation } from '../../../mol-data/int';
+import { CylinderProps } from '../../../mol-geo/primitive/cylinder';
+import { isNucleic, isPurineBase, isPyrimidineBase } from '../../../mol-model/structure/model/types';
+import { addCylinder } from '../../../mol-geo/geometry/mesh/builder/cylinder';
+import { UnitsMeshParams, UnitsVisual, UnitsMeshVisual, UnitsCylindersParams, UnitsCylindersVisual } from '../units-visual';
+import { NucleotideLocationIterator, getNucleotideElementLoci, eachNucleotideElement } from './util/nucleotide';
+import { VisualUpdateState } from '../../util';
+import { BaseGeometry } from '../../../mol-geo/geometry/base';
+import { Sphere3D } from '../../../mol-math/geometry';
 
-import { WebGLContext } from '../../mol-gl/webgl/context';
+import { WebGLContext } from '../../../mol-gl/webgl/context';
 
-import { Cylinders } from '../../mol-geo/geometry/cylinders/cylinders';
-import { CylindersBuilder } from '../../mol-geo/geometry/cylinders/cylinders-builder';
+import { Cylinders } from '../../../mol-geo/geometry/cylinders/cylinders';
+import { CylindersBuilder } from '../../../mol-geo/geometry/cylinders/cylinders-builder';
 import { StructureGroup } from './util/common';
 
 

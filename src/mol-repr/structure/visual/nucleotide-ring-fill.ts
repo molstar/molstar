@@ -1,17 +1,17 @@
-import { ParamDefinition as PD } from '../../mol-util/param-definition';
-import { Vec3 } from '../../mol-math/linear-algebra';
-import { NumberArray } from '../../mol-util/type-helpers';
-import { VisualContext } from '../../../../mol-repr/visual';
-import { Unit, Structure, ElementIndex } from '../structure';
-import { Theme } from '../../mol-theme/theme';
-import { Mesh } from '../../mol-geo/geometry/mesh/mesh';
-import { MeshBuilder } from '../../mol-geo/geometry/mesh/mesh-builder';
-import { Segmentation } from '../../mol-data/int';
-import { isNucleic, isPurineBase, isPyrimidineBase } from '../../mol-model/structure/model/types';
-import { UnitsMeshParams, UnitsVisual, UnitsMeshVisual } from '../structure/units-visual';
+import { ParamDefinition as PD } from '../../../mol-util/param-definition';
+import { Vec3 } from '../../../mol-math/linear-algebra';
+import { NumberArray } from '../../../mol-util/type-helpers';
+import { VisualContext } from '../../visual';
+import { Unit, Structure, ElementIndex } from '../../../mol-model/structure';
+import { Theme } from '../../../mol-theme/theme';
+import { Mesh } from '../../../mol-geo/geometry/mesh/mesh';
+import { MeshBuilder } from '../../../mol-geo/geometry/mesh/mesh-builder';
+import { Segmentation } from '../../../mol-data/int';
+import { isNucleic, isPurineBase, isPyrimidineBase } from '../../../mol-model/structure/model/types';
+import { UnitsMeshParams, UnitsVisual, UnitsMeshVisual } from '../units-visual';
 import { NucleotideLocationIterator, getNucleotideElementLoci, eachNucleotideElement } from './util/nucleotide';
-import { VisualUpdateState } from '../util';
-import { Sphere3D } from '../../mol-math/geometry';
+import { VisualUpdateState } from '../../util';
+import { Sphere3D } from '../../../mol-math/geometry';
 
 // TODO support rings for multiple locations (including from microheterogeneity)
 
