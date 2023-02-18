@@ -208,6 +208,10 @@ export function UnitsVisual<G extends Geometry, P extends StructureParams & Geom
             if (updateState.updateMatrix) {
                 // console.log('update matrix');
                 createUnitsTransform(newStructureGroup, newProps.includeParent, renderObject.values.invariantBoundingSphere.ref.value, newProps.cellSize, renderObject.values);
+                if ('lodLevels' in renderObject.values) {
+                    // to trigger `uLod` update in `renderable.cull`
+                    ValueCell.update(renderObject.values.lodLevels, renderObject.values.lodLevels.ref.value);
+                }
             }
 
             if (updateState.createGeometry) {
