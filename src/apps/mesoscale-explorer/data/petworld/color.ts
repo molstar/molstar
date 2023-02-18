@@ -4,15 +4,15 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Color } from '../../mol-util/color';
-import { StructureElement, Unit, ElementIndex, Bond } from '../../mol-model/structure';
-import { Location } from '../../mol-model/location';
-import { ColorTheme, LocationColor } from '../../mol-theme/color';
-import { ParamDefinition as PD } from '../../mol-util/param-definition';
-import { ThemeDataContext } from '../../mol-theme/theme';
-import { ColorNames } from '../../mol-util/color/names';
-import { MmcifFormat } from '../../mol-model-formats/structure/mmcif';
-import { defaults } from '../../mol-util';
+import { Color } from '../../../../mol-util/color';
+import { StructureElement, Unit, ElementIndex, Bond } from '../../../../mol-model/structure';
+import { Location } from '../../../../mol-model/location';
+import { ColorTheme, LocationColor } from '../../../../mol-theme/color';
+import { ParamDefinition as PD } from '../../../../mol-util/param-definition';
+import { ThemeDataContext } from '../../../../mol-theme/theme';
+import { ColorNames } from '../../../../mol-util/color/names';
+import { MmcifFormat } from '../../../../mol-model-formats/structure/mmcif';
+import { defaults } from '../../../../mol-util';
 
 const DefaultPetworldColor = Color(0xEEEE00);
 const Description = 'Petworld coloring.';

@@ -4,8 +4,8 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { LoadCellPackModel, LoadCellPackModelParams } from '../../../extensions/cellpack/model';
-import { LoadPetworldModel } from '../../../extensions/petworld/model';
+import { MmcifFormat } from '../../../mol-model-formats/structure/mmcif';
+import { MmcifProvider } from '../../../mol-plugin-state/formats/trajectory';
 import { PluginStateObject } from '../../../mol-plugin-state/objects';
 import { PluginUIComponent } from '../../../mol-plugin-ui/base';
 import { Button, ExpandGroup } from '../../../mol-plugin-ui/controls/common';
@@ -14,14 +14,74 @@ import { ApplyActionControl } from '../../../mol-plugin-ui/state/apply-action';
 import { LocalStateSnapshotList, LocalStateSnapshotParams, LocalStateSnapshots } from '../../../mol-plugin-ui/state/snapshots';
 import { PluginCommands } from '../../../mol-plugin/commands';
 import { PluginContext } from '../../../mol-plugin/context';
-import { StateAction, StateTransform } from '../../../mol-state';
+import { StateAction, StateObjectRef, StateTransform } from '../../../mol-state';
 import { Task } from '../../../mol-task';
+import { Color } from '../../../mol-util/color/color';
+import { ColorNames } from '../../../mol-util/color/names';
+import { getFileInfo } from '../../../mol-util/file-info';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
+import { createCellpackHierarchy } from '../data/cellpack/preset';
+import { createPetworldHierarchy } from '../data/petworld/preset';
+
+function adjustPluginProps(ctx: PluginContext) {
+    ctx.managers.interactivity.setProps({ granularity: 'chain' });
+    ctx.canvas3d?.setProps({
+        multiSample: { mode: 'off' },
+        cameraClipping: { far: false },
+        renderer: {
+            colorMarker: true,
+            highlightColor: Color(0xffffff),
+            highlightStrength: 0,
+            selectStrength: 0,
+            dimColor: Color(0xffffff),
+            dimStrength: 0,
+            markerPriority: 2,
+            interiorColorFlag: false,
+            interiorDarkening: 0.15,
+        },
+        marking: {
+            enabled: false,
+            highlightEdgeColor: Color(0x394e65),
+            selectEdgeStrength: 0,
+            ghostEdgeStrength: 1,
+            innerEdgeFactor: 2.5,
+        },
+        postprocessing: {
+            occlusion: {
+                name: 'on',
+                params: {
+                    samples: 32,
+                    radius: 8.5,
+                    bias: 1.3,
+                    blurKernelSize: 15,
+                    resolutionScale: 1,
+                }
+            },
+            shadow: {
+                name: 'on',
+                params: {
+                    bias: 0.6,
+                    maxDistance: 80,
+                    steps: 3,
+                    tolerance: 1.0,
+                }
+            },
+            outline: {
+                name: 'on',
+                params: {
+                    scale: 1,
+                    threshold: 0.33,
+                    color: ColorNames.black,
+                    includeTransparent: true,
+                }
+            }
+        }
+    });
+}
 
 export const LoadModel = StateAction.build({
     display: { name: 'Load', description: 'Open or download a model' },
     params: {
-        type: PD.Select('cellpack', PD.arrayToOptions(['cellpack', 'petworld'] as const), { label: 'Type' }),
         files: PD.FileList({ accept: '.cif,.bcif', multiple: true, description: 'Cellpack- or Petworld-style cif file.', label: 'File(s)' }),
     },
     from: PluginStateObject.Root
@@ -33,42 +93,32 @@ export const LoadModel = StateAction.build({
 
     PluginCommands.State.RemoveObject(ctx, { state: ctx.state.data, ref: StateTransform.RootRef });
 
-    if (params.type === 'cellpack') {
-        for (const file of params.files) {
-            try {
-                await PluginCommands.State.ApplyAction(ctx, {
-                    state: ctx.state.data,
-                    action: LoadCellPackModel.create({
-                        ...PD.getDefaultValues(LoadCellPackModelParams),
-                        source: {
-                            name: 'cif',
-                            params: file
-                        },
-                    }),
-                    ref: ctx.state.data.tree.root.ref
-                });
-            } catch (e) {
-                console.error(e);
-                ctx.log.error(`Error opening file '${file.name}'`);
+    adjustPluginProps(ctx);
+
+    for (const file of params.files) {
+        try {
+            const info = getFileInfo(file.file!);
+            const isBinary = ctx.dataFormats.binaryExtensions.has(info.ext);
+            const { data } = await ctx.builders.data.readFile({ file, isBinary });
+            const parsed = await MmcifProvider.parse(ctx, data);
+
+            const tr = StateObjectRef.resolveAndCheck(ctx.state.data, parsed.trajectory)?.obj?.data;
+            if (!tr) throw new Error('no trajectory');
+
+            if (!MmcifFormat.is(tr.representative.sourceData)) {
+                throw new Error('not mmcif');
             }
-        }
-    } else if (params.type === 'petworld') {
-        for (const file of params.files) {
-            try {
-                await PluginCommands.State.ApplyAction(ctx, {
-                    state: ctx.state.data,
-                    action: LoadPetworldModel.create({
-                        cif: file
-                    }),
-                    ref: ctx.state.data.tree.root.ref
-                });
-            } catch (e) {
-                console.error(e);
-                ctx.log.error(`Error opening file '${file.name}'`);
+
+            const { frame } = tr.representative.sourceData.data;
+            if (frame.categories.pdbx_model) {
+                await createPetworldHierarchy(ctx, parsed.trajectory);
+            } else {
+                await createCellpackHierarchy(ctx, parsed.trajectory);
             }
+        } catch (e) {
+            console.error(e);
+            ctx.log.error(`Error opening file '${file.name}'`);
         }
-    } else {
-        ctx.log.error('Unsupported type');
     }
 }));
 
