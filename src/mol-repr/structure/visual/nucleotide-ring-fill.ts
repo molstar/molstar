@@ -33,6 +33,7 @@ const pO4_1 = Vec3.zero();
 
 const mid = Vec3.zero();
 const normal = Vec3.zero();
+const shift = Vec3.zero();
 
 export const NucleotideRingFillMeshParams = {
     nucleicRingThickness: PD.Numeric(0.5, { min: 0, max: 2, step: 0.01 }),
@@ -55,17 +56,12 @@ const stripIndicesRing6 = new Uint32Array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,
 const fanIndicesTopRing6 = new Uint32Array([0, 10, 8, 6, 4, 2]);
 const fanIndicesBottomRing6 = new Uint32Array([1, 3, 5, 7, 9, 11]);
 
-const midScaleFactor = 1.25;
-
 const tmpShiftV = Vec3.zero();
-function shiftPositions(out: NumberArray, dir: Vec3, midScale: boolean, ...positions: Vec3[]) {
+function shiftPositions(out: NumberArray, dir: Vec3, ...positions: Vec3[]) {
     for (let i = 0, il = positions.length; i < il; ++i) {
         const v = positions[i];
         Vec3.toArray(Vec3.add(tmpShiftV, v, dir), out, (i * 2) * 3);
         Vec3.toArray(Vec3.sub(tmpShiftV, v, dir), out, (i * 2 + 1) * 3);
-        if (i === 0 && midScale) {
-            Vec3.scale(dir, dir, 1 / midScaleFactor);
-        }
     }
 }
 
@@ -115,15 +111,16 @@ function createNucleotideRingFillMesh(ctx: VisualContext, unit: Unit, structure:
                     pos(idxC1_1, pC1_1); pos(idxC2_1, pC2_1); pos(idxC3_1, pC3_1); pos(idxC4_1, pC4_1); pos(idxO4_1, pO4_1);
 
                     // sugar ring
-                    Vec3.scale(mid, Vec3.add(mid, pO4_1, Vec3.add(mid, pC4_1, Vec3.add(mid, pC3_1, Vec3.add(mid, pC1_1, pC2_1)))), 0.2/* 1 / 5 */);
-
                     Vec3.triangleNormal(normal, pC3_1, pC4_1, pC1_1);
-                    Vec3.scale(normal, normal, thickness);
-                    shiftPositions(positionsRing5, normal, true, mid, pC3_1, pC4_1, pO4_1, pC1_1, pC2_1);
+                    Vec3.scaleAndAdd(mid,Vec3.scale(mid, Vec3.add(mid, pO4_1, Vec3.add(mid, pC4_1, Vec3.add(mid, pC3_1, Vec3.add(mid, pC1_1, pC2_1)))), 0.2/* 1 / 5 */),normal, 0.5);
+
+                    Vec3.scale(shift, normal, thickness);
+                    shiftPositions(positionsRing5, shift, mid, pC3_1, pC4_1, pO4_1, pC1_1, pC2_1);
 
                     MeshBuilder.addTriangleStrip(builderState, positionsRing5, stripIndicesRing5);
-                    MeshBuilder.addTriangleFan(builderState, positionsRing5, fanIndicesTopRing5);
-                    MeshBuilder.addTriangleFan(builderState, positionsRing5, fanIndicesBottomRing5);
+                    MeshBuilder.addTriangleFanWithNormal(builderState, positionsRing5, fanIndicesTopRing5,normal);
+                    Vec3.negate(normal,normal)
+                    MeshBuilder.addTriangleFanWithNormal(builderState, positionsRing5, fanIndicesBottomRing5,normal);
                 }
 
                 let isPurine = isPurineBase(compId);
@@ -164,12 +161,13 @@ function createNucleotideRingFillMesh(ctx: VisualContext, unit: Unit, structure:
 
                         // base ring
                         Vec3.triangleNormal(normal, pN1, pC4, pC5);
-                        Vec3.scale(normal, normal, thickness);
-                        shiftPositions(positionsRing5_6, normal, false, pN1, pC2, pN3, pC4, pC5, pC6, pN7, pC8, pN9);
+                        Vec3.scale(shift, normal, thickness);
+                        shiftPositions(positionsRing5_6, shift, pN1, pC2, pN3, pC4, pC5, pC6, pN7, pC8, pN9);
 
                         MeshBuilder.addTriangleStrip(builderState, positionsRing5_6, stripIndicesRing5_6);
-                        MeshBuilder.addTriangleFan(builderState, positionsRing5_6, fanIndicesTopRing5_6);
-                        MeshBuilder.addTriangleFan(builderState, positionsRing5_6, fanIndicesBottomRing5_6);
+                        MeshBuilder.addTriangleFanWithNormal(builderState, positionsRing5_6, fanIndicesTopRing5_6,normal);
+                        Vec3.negate(normal,normal)
+                        MeshBuilder.addTriangleFanWithNormal(builderState, positionsRing5_6, fanIndicesBottomRing5_6,normal);
                     }
                 } else if (isPyrimidine) {
                     idxN1 = atomicIndex.findAtomOnResidue(residueIndex, 'N1');
@@ -188,12 +186,13 @@ function createNucleotideRingFillMesh(ctx: VisualContext, unit: Unit, structure:
 
                         // base ring
                         Vec3.triangleNormal(normal, pN1, pC4, pC5);
-                        Vec3.scale(normal, normal, thickness);
-                        shiftPositions(positionsRing6, normal, false, pN1, pC2, pN3, pC4, pC5, pC6);
+                        Vec3.scale(shift, normal, thickness);
+                        shiftPositions(positionsRing6, shift, pN1, pC2, pN3, pC4, pC5, pC6);
 
                         MeshBuilder.addTriangleStrip(builderState, positionsRing6, stripIndicesRing6);
-                        MeshBuilder.addTriangleFan(builderState, positionsRing6, fanIndicesTopRing6);
-                        MeshBuilder.addTriangleFan(builderState, positionsRing6, fanIndicesBottomRing6);
+                        MeshBuilder.addTriangleFanWithNormal(builderState, positionsRing6, fanIndicesTopRing6,normal);
+                        Vec3.negate(normal,normal)
+                        MeshBuilder.addTriangleFanWithNormal(builderState, positionsRing6, fanIndicesBottomRing6,normal);
                     }
                 }
 
