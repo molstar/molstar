@@ -6,6 +6,7 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+Add new cartoon visuals to support nucleotide base with sugar
 Fix impostor bond visuals not correctly updating on `sizeFactor` changes
 Fix degenerate case in PCA
 

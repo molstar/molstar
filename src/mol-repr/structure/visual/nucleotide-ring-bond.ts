@@ -1,3 +1,9 @@
+/**
+ * Copyright (c) 2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author Gianluca Tomasello <giagitom@gmail.com>
+ */
+
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { Vec3 } from '../../../mol-math/linear-algebra';
 import { VisualContext } from '../../visual';
