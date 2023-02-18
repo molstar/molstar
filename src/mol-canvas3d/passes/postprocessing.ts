@@ -776,6 +776,7 @@ export class PostprocessingPass {
         // don't render occlusion if offset is given,
         // which will reuse the existing occlusion
         if (props.occlusion.name === 'on' && this.occlusionOffset[0] === 0 && this.occlusionOffset[1] === 0) {
+            if (isTimingMode) this.webgl.timer.mark('SSAO.render');
             if (this.ssaoScale < 1) {
                 this.downsampledDepthTarget.bind();
                 this.downsampleDepthRenderable.render();
@@ -789,6 +790,7 @@ export class PostprocessingPass {
 
             this.ssaoBlurSecondPassFramebuffer.bind();
             this.ssaoBlurSecondPassRenderable.render();
+            if (isTimingMode) this.webgl.timer.markEnd('SSAO.render');
         }
 
         if (toDrawingBuffer) {

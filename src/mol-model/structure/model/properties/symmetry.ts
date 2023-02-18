@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  */
@@ -15,6 +15,7 @@ import { radToDeg } from '../../../../mol-math/misc';
 
 /** Determine an atom set and a list of operators that should be applied to that set  */
 export interface OperatorGroup {
+    readonly asymIds?: string[],
     readonly selector: StructureQuery,
     readonly operators: ReadonlyArray<SymmetryOperator>
 }

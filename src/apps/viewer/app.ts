@@ -1,13 +1,11 @@
 /**
- * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { ANVILMembraneOrientation } from '../../extensions/anvil/behavior';
-import { CellPack } from '../../extensions/cellpack';
-import { PetWorld } from '../../extensions/petworld';
 import { DnatcoNtCs } from '../../extensions/dnatco';
 import { G3DFormat, G3dProvider } from '../../extensions/g3d/format';
 import { Volseg, VolsegVolumeServerConfig } from '../../extensions/volumes-and-segmentations';
@@ -51,7 +49,7 @@ import { SaccharideCompIdMapType } from '../../mol-model/structure/structure/car
 import { Backgrounds } from '../../extensions/backgrounds';
 
 export { PLUGIN_VERSION as version } from '../../mol-plugin/version';
-export { setDebugMode, setProductionMode, setTimingMode } from '../../mol-util/debug';
+export { setDebugMode, setProductionMode, setTimingMode, consoleStats } from '../../mol-util/debug';
 
 const CustomFormats = [
     ['g3d', G3dProvider] as const
@@ -60,8 +58,6 @@ const CustomFormats = [
 const Extensions = {
     'volseg': PluginSpec.Behavior(Volseg),
     'backgrounds': PluginSpec.Behavior(Backgrounds),
-    'cellpack': PluginSpec.Behavior(CellPack),
-    'petworld': PluginSpec.Behavior(PetWorld),
     'dnatco-ntcs': PluginSpec.Behavior(DnatcoNtCs),
     'pdbe-structure-quality-report': PluginSpec.Behavior(PDBeStructureQualityReport),
     'rcsb-assembly-symmetry': PluginSpec.Behavior(RCSBAssemblySymmetry),

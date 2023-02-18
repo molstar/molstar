@@ -4,8 +4,6 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { CellPack } from '../../extensions/cellpack';
-import { PetWorld } from '../../extensions/petworld';
 import { Mp4Export } from '../../extensions/mp4-export';
 import { DataFormatProvider } from '../../mol-plugin-state/formats/provider';
 import { createPluginUI } from '../../mol-plugin-ui/react18';
@@ -23,14 +21,14 @@ import { Color } from '../../mol-util/color';
 import { SpacefillRepresentationProvider } from '../../mol-repr/structure/representation/spacefill';
 import { PluginBehaviors } from '../../mol-plugin/behavior';
 import { MesoFocusLoci } from './behavior/camera';
+import { PetworldColorThemeProvider } from './data/petworld/color';
+import { CellpackUniformColorThemeProvider } from './data/cellpack/color';
 
 export { PLUGIN_VERSION as version } from '../../mol-plugin/version';
 export { setDebugMode, setProductionMode, setTimingMode } from '../../mol-util/debug';
 
 const Extensions = {
     'backgrounds': PluginSpec.Behavior(Backgrounds),
-    'cellpack': PluginSpec.Behavior(CellPack),
-    'petworld': PluginSpec.Behavior(PetWorld),
     'mp4-export': PluginSpec.Behavior(Mp4Export),
 };
 
@@ -169,6 +167,9 @@ export class Viewer {
 
         plugin.representation.structure.registry.clear();
         plugin.representation.structure.registry.add(SpacefillRepresentationProvider);
+
+        plugin.representation.structure.themes.colorThemeRegistry.add(CellpackUniformColorThemeProvider);
+        plugin.representation.structure.themes.colorThemeRegistry.add(PetworldColorThemeProvider);
 
         plugin.state.setSnapshotParams({
             image: true

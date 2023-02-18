@@ -4,23 +4,19 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Mat4 } from '../../mol-math/linear-algebra/3d/mat4';
-import { getMatrices, operatorGroupsProvider } from '../../mol-model-formats/structure/property/assembly';
-import { Structure, Trajectory, Unit } from '../../mol-model/structure';
-import { Assembly } from '../../mol-model/structure/model/properties/symmetry';
-import { PluginStateObject as SO, PluginStateTransform } from '../../mol-plugin-state/objects';
-import { Task } from '../../mol-task';
-import { Column, Table } from '../../mol-data/db';
-import { mmCIF_Schema } from '../../mol-io/reader/cif/schema/mmcif';
-import { MmcifFormat } from '../../mol-model-formats/structure/mmcif';
-import { arrayFind } from '../../mol-data/util';
-import { StateAction, StateObject } from '../../mol-state';
-import { CifField } from '../../mol-io/reader/cif';
-import { ParamDefinition as PD } from '../../mol-util/param-definition';
-import { PluginContext } from '../../mol-plugin/context';
-import { getFileInfo } from '../../mol-util/file-info';
-import { createPetworldHierarchy } from './preset';
-import { MmcifProvider } from '../../mol-plugin-state/formats/trajectory';
+import { Mat4 } from '../../../../mol-math/linear-algebra/3d/mat4';
+import { getMatrices, operatorGroupsProvider } from '../../../../mol-model-formats/structure/property/assembly';
+import { Structure, Trajectory, Unit } from '../../../../mol-model/structure';
+import { Assembly } from '../../../../mol-model/structure/model/properties/symmetry';
+import { PluginStateObject as SO, PluginStateTransform } from '../../../../mol-plugin-state/objects';
+import { Task } from '../../../../mol-task';
+import { Column, Table } from '../../../../mol-data/db';
+import { mmCIF_Schema } from '../../../../mol-io/reader/cif/schema/mmcif';
+import { MmcifFormat } from '../../../../mol-model-formats/structure/mmcif';
+import { arrayFind } from '../../../../mol-data/util';
+import { StateObject } from '../../../../mol-state';
+import { CifField } from '../../../../mol-io/reader/cif';
+import { ParamDefinition as PD } from '../../../../mol-util/param-definition';
 
 const plus1 = (v: number) => v + 1, minus1 = (v: number) => v - 1;
 
@@ -144,23 +140,3 @@ function createModelsAssembly(pdbx_struct_assembly: StructAssembly, pdbx_struct_
 
     return { assembly, modelNums };
 }
-
-export const LoadPetworldModel = StateAction.build({
-    display: { name: 'Load Petworld', description: 'Open or download a model' },
-    params: {
-        cif: PD.File({ accept: '.cif,.bcif', description: 'Petworld-style cif file.', label: 'Petworld CIF' }),
-    },
-    from: SO.Root
-})(({ params }, ctx: PluginContext) => Task.create('Petworld Loader', async taskCtx => {
-    if (params.cif === null) {
-        ctx.log.error('No file selected');
-        return;
-    }
-    const file = params.cif;
-
-    const info = getFileInfo(file.file!);
-    const isBinary = ctx.dataFormats.binaryExtensions.has(info.ext);
-    const { data } = await ctx.builders.data.readFile({ file, isBinary });
-    const parsed = await MmcifProvider.parse(ctx, data);
-    await createPetworldHierarchy(ctx, parsed.trajectory);
-}));

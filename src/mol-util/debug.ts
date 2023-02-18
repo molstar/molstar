@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -47,4 +47,24 @@ export function setDebugMode(value?: boolean) {
 
 export function setTimingMode(value?: boolean) {
     if (typeof value !== 'undefined') isTimingMode = value;
+}
+
+//
+
+type ConsoleStatsProvider = () => void
+const consoleStatsProviders: ConsoleStatsProvider[] = [];
+
+export function addConsoleStatsProvider(p: ConsoleStatsProvider) {
+    if (!consoleStatsProviders.includes(p)) consoleStatsProviders.push(p);
+}
+
+export function removeConsoleStatsProvider(p: ConsoleStatsProvider) {
+    const idx = consoleStatsProviders.indexOf(p);
+    if (idx !== -1) consoleStatsProviders.splice(idx, 1);
+}
+
+export function consoleStats() {
+    for (const p of consoleStatsProviders) {
+        p();
+    }
 }

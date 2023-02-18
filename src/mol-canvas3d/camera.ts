@@ -119,11 +119,11 @@ class Camera implements ICamera {
         return Camera.targetDistance(radius, this.state.fov, this.viewport.width, this.viewport.height);
     }
 
-    getFocus(target: Vec3, radius: number, up?: Vec3, dir?: Vec3): Partial<Camera.Snapshot> {
+    getFocus(target: Vec3, radius: number, up?: Vec3, dir?: Vec3, snapshot?: Partial<Camera.Snapshot>): Partial<Camera.Snapshot> {
         const r = Math.max(radius, 0.01);
         const targetDistance = this.getTargetDistance(r);
 
-        Vec3.sub(this.deltaDirection, this.target, this.position);
+        Vec3.sub(this.deltaDirection, snapshot?.target ?? this.target, snapshot?.position ?? this.position);
         if (dir) Vec3.matchDirection(this.deltaDirection, dir, this.deltaDirection);
         Vec3.setMagnitude(this.deltaDirection, this.deltaDirection, targetDistance);
         Vec3.sub(this.newPosition, target, this.deltaDirection);

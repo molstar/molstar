@@ -155,7 +155,7 @@ function getDrawingBufferPixelData(gl: GLRenderingContext, state: WebGLState) {
 //
 
 function createStats() {
-    return {
+    const stats = {
         resourceCounts: {
             attribute: 0,
             elements: 0,
@@ -171,7 +171,15 @@ function createStats() {
         drawCount: 0,
         instanceCount: 0,
         instancedDrawCount: 0,
+
+        calls: {
+            drawInstanced: 0,
+            drawInstancedBase: 0,
+            multiDrawInstancedBase: 0,
+            counts: 0,
+        },
     };
+    return stats;
 }
 
 export type WebGLStats = ReturnType<typeof createStats>
@@ -224,7 +232,7 @@ export function createContext(gl: GLRenderingContext, props: Partial<{ pixelScal
     const state = createState(gl);
     const stats = createStats();
     const resources = createResources(gl, state, stats, extensions);
-    const timer = createTimer(gl, extensions);
+    const timer = createTimer(gl, extensions, stats);
 
     const parameters = {
         maxTextureSize: gl.getParameter(gl.MAX_TEXTURE_SIZE) as number,
@@ -238,6 +246,11 @@ export function createContext(gl: GLRenderingContext, props: Partial<{ pixelScal
     if (parameters.maxVertexTextureImageUnits < 8) {
         throw new Error('Need "MAX_VERTEX_TEXTURE_IMAGE_UNITS" >= 8');
     }
+
+    // optimize assuming flats first and last data are same or differences don't matter
+    // extension is only available when `FIRST_VERTEX_CONVENTION` is more efficient
+    const epv = extensions.provokingVertex;
+    epv?.provokingVertex(epv.FIRST_VERTEX_CONVENTION);
 
     let isContextLost = false;
     const contextRestored = new BehaviorSubject<now.Timestamp>(0 as now.Timestamp);

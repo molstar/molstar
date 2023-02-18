@@ -11,6 +11,7 @@ import { Progress } from '../mol-task';
 import { IconButton } from './controls/common';
 import { CancelSvg } from './controls/icons';
 import { useContext, useEffect, useState } from 'react';
+import { useBehavior } from './hooks/use-behavior';
 
 export function BackgroundTaskProgress() {
     const plugin = useContext(PluginReactContext);
@@ -36,6 +37,22 @@ export function BackgroundTaskProgress() {
 
     return <div className='msp-background-tasks'>
         {tracked.valueSeq().map(e => <ProgressEntry key={e!.id} event={e!} />)}
+        <CanvasCommitState />
+    </div>;
+}
+
+function CanvasCommitState() {
+    const plugin = useContext(PluginReactContext);
+    const queueSize = useBehavior(plugin.canvas3d?.commitQueueSize);
+
+    if (!queueSize) return null;
+
+    return <div className='msp-task-state'>
+        <div>
+            <div>
+                Commiting renderables... {queueSize} remaining
+            </div>
+        </div>
     </div>;
 }
 
