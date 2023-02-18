@@ -44,7 +44,7 @@ export const CartoonParams = {
     ...NucleotideRingFillParams,
     ...PolymerDirectionParams,
     sizeFactor: PD.Numeric(0.2, { min: 0, max: 10, step: 0.01 }),
-    visuals: PD.MultiSelect(['polymer-trace', 'polymer-gap', 'nucleotide-ring','nucleotide-ring-fill','nucleotide-ring-bond','nucleotide-ring-element'], PD.objectToOptions(CartoonVisuals)),
+    visuals: PD.MultiSelect(['polymer-trace', 'polymer-gap', 'nucleotide-ring', 'nucleotide-ring-fill', 'nucleotide-ring-bond', 'nucleotide-ring-element'], PD.objectToOptions(CartoonVisuals)),
     bumpFrequency: PD.Numeric(2, { min: 0, max: 10, step: 0.1 }, BaseGeometry.ShadingCategory),
 };
 
