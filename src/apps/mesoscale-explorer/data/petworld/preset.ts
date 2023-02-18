@@ -4,17 +4,16 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { StateBuilder, StateObjectRef } from '../../mol-state';
+import { StateBuilder, StateObjectRef } from '../../../../mol-state';
 import { StructureFromPetworld } from './model';
 import { PetworldColorThemeProvider } from './color';
-import { ColorNames } from '../../mol-util/color/names';
-import { StateTransforms } from '../../mol-plugin-state/transforms';
-import { distinctColors } from '../../mol-util/color/distinct';
-import { Color } from '../../mol-util/color';
-import { SpacefillRepresentationProvider } from '../../mol-repr/structure/representation/spacefill';
-import { StructureRepresentation3D } from '../../mol-plugin-state/transforms/representation';
-import { PluginContext } from '../../mol-plugin/context';
-import { PluginStateObject } from '../../mol-plugin-state/objects';
+import { StateTransforms } from '../../../../mol-plugin-state/transforms';
+import { distinctColors } from '../../../../mol-util/color/distinct';
+import { Color } from '../../../../mol-util/color';
+import { SpacefillRepresentationProvider } from '../../../../mol-repr/structure/representation/spacefill';
+import { StructureRepresentation3D } from '../../../../mol-plugin-state/transforms/representation';
+import { PluginContext } from '../../../../mol-plugin/context';
+import { PluginStateObject } from '../../../../mol-plugin-state/objects';
 
 function getSpacefillParams(color: Color) {
     return {
@@ -53,60 +52,6 @@ function getSpacefillParams(color: Color) {
 export async function createPetworldHierarchy(plugin: PluginContext, trajectory: StateObjectRef<PluginStateObject.Molecule.Trajectory>) {
     const tr = StateObjectRef.resolveAndCheck(plugin.state.data, trajectory)?.obj?.data;
     if (!tr) return;
-
-    plugin.managers.interactivity.setProps({ granularity: 'chain' });
-    plugin.canvas3d?.setProps({
-        multiSample: { mode: 'off' },
-        cameraClipping: { far: false, minNear: 50 },
-        renderer: {
-            colorMarker: true,
-            highlightColor: Color(0xffffff),
-            highlightStrength: 0,
-            selectStrength: 0,
-            dimColor: Color(0xffffff),
-            dimStrength: 0,
-            markerPriority: 2,
-            interiorColorFlag: false,
-            interiorDarkening: 0.15,
-        },
-        marking: {
-            enabled: false,
-            highlightEdgeColor: Color(0x394e65),
-            selectEdgeStrength: 0,
-            ghostEdgeStrength: 1,
-            innerEdgeFactor: 2.5,
-        },
-        postprocessing: {
-            occlusion: {
-                name: 'on',
-                params: {
-                    samples: 32,
-                    radius: 8.5,
-                    bias: 1.3,
-                    blurKernelSize: 15,
-                    resolutionScale: 1,
-                }
-            },
-            shadow: {
-                name: 'on',
-                params: {
-                    bias: 0.6,
-                    maxDistance: 80,
-                    steps: 3,
-                    tolerance: 1.0,
-                }
-            },
-            outline: {
-                name: 'on',
-                params: {
-                    scale: 1,
-                    threshold: 0.33,
-                    color: ColorNames.black,
-                    includeTransparent: true,
-                }
-            }
-        }
-    });
 
     const state = plugin.state.data;
 

@@ -4,13 +4,13 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Color } from '../../../mol-util/color';
-import { ParamDefinition as PD } from '../../../mol-util/param-definition';
-import { ThemeDataContext } from '../../../mol-theme/theme';
-import { TableLegend } from '../../../mol-util/legend';
-import { defaults } from '../../../mol-util';
-import { ColorThemeCategory } from '../../../mol-theme/color/categories';
-import { ColorTheme } from '../../../mol-theme/color';
+import { Color } from '../../../../mol-util/color';
+import { ParamDefinition as PD } from '../../../../mol-util/param-definition';
+import { ThemeDataContext } from '../../../../mol-theme/theme';
+import { TableLegend } from '../../../../mol-util/legend';
+import { defaults } from '../../../../mol-util';
+import { ColorThemeCategory } from '../../../../mol-theme/color/categories';
+import { ColorTheme } from '../../../../mol-theme/color';
 
 const DefaultColor = Color(0xCCCCCC);
 const Description = 'Gives everything the same, uniform color.';
