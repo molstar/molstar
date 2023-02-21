@@ -6,20 +6,26 @@
  */
 
 import { Model } from '../../mol-model/structure/model/model';
-import { Task } from '../../mol-task';
+import { RuntimeContext, Task } from '../../mol-task';
 import { ModelFormat } from '../format';
 import { CifFrame, CIF } from '../../mol-io/reader/cif';
 import { mmCIF_Database } from '../../mol-io/reader/cif/schema/mmcif';
 import { createModels } from './basic/parser';
 import { ModelSymmetry } from './property/symmetry';
 import { ModelSecondaryStructure } from './property/secondary-structure';
-import { Table } from '../../mol-data/db';
+import { Column, Table } from '../../mol-data/db';
 import { AtomSiteAnisotrop } from './property/anisotropic';
 import { ComponentBond } from './property/bonds/chem_comp';
 import { StructConn } from './property/bonds/struct_conn';
-import { Trajectory } from '../../mol-model/structure';
+import { ArrayTrajectory, Trajectory } from '../../mol-model/structure';
 import { GlobalModelTransformInfo } from '../../mol-model/structure/model/properties/global-transform';
-import { createBasic } from './basic/schema';
+import { BasicSchema, createBasic } from './basic/schema';
+import { CCD_Database, CCD_Schema } from '../../mol-io/reader/cif/schema/ccd';
+import { EntityBuilder } from './common/entity';
+import { BondType, MoleculeType } from '../../mol-model/structure/model/types';
+import { ComponentBuilder } from './common/component';
+import { cantorPairing } from '../../mol-data/util';
+import { IndexPairBonds } from './property/bonds/index-pair';
 
 function modelSymmetryFromMmcif(model: Model) {
     if (!MmcifFormat.is(model.sourceData)) return;
@@ -103,4 +109,150 @@ export function trajectoryFromMmCIF(frame: CifFrame): Task<Trajectory> {
     const format = MmcifFormat.fromFrame(frame);
     const basic = createBasic(format.data.db, true);
     return Task.create('Create mmCIF Model', ctx => createModels(basic, format, ctx));
+}
+
+export { CCDFormat };
+
+type CCDFormat = ModelFormat<CCDFormat.Data>
+
+namespace CCDFormat {
+    export type Data = {
+        db: CCD_Database,
+        frame: CifFrame
+    }
+    export function is(x?: ModelFormat): x is CCDFormat {
+        return x?.kind === 'CCD';
+    }
+
+    export function fromFrame(frame: CifFrame, db?: CCD_Database): CCDFormat {
+        if (!db) db = CIF.schema.CCD(frame);
+        return { kind: 'CCD', name: db._name, data: { db, frame } };
+    }
+}
+
+export function trajectoryFromCCD(frame: CifFrame): Task<Trajectory> {
+    const format = CCDFormat.fromFrame(frame);
+    return Task.create('Create CCD Models', ctx => createCcdModels(format.data.db, CCDFormat.fromFrame(frame), ctx));
+}
+
+async function createCcdModels(data: CCD_Database, format: CCDFormat, ctx: RuntimeContext) {
+    const model = await createCcdModel(data, format, '(model)', 'model_Cartn_x', 'model_Cartn_y', 'model_Cartn_z', ctx);
+    const ideal = await createCcdModel(data, format, '(ideal)', 'pdbx_model_Cartn_x_ideal', 'pdbx_model_Cartn_y_ideal', 'pdbx_model_Cartn_z_ideal', ctx);
+
+    const models = [model.representative, ideal.representative];
+    Model.TrajectoryInfo.set(models[0], { index: 0, size: models.length });
+    Model.TrajectoryInfo.set(models[1], { index: 1, size: models.length });
+
+    return new ArrayTrajectory(models);
+}
+
+type x = keyof Pick<CCD_Schema['chem_comp_atom'], 'model_Cartn_x'> | keyof Pick<CCD_Schema['chem_comp_atom'], 'pdbx_model_Cartn_x_ideal'>;
+type y = keyof Pick<CCD_Schema['chem_comp_atom'], 'model_Cartn_y'> | keyof Pick<CCD_Schema['chem_comp_atom'], 'pdbx_model_Cartn_y_ideal'>;
+type z = keyof Pick<CCD_Schema['chem_comp_atom'], 'model_Cartn_z'> | keyof Pick<CCD_Schema['chem_comp_atom'], 'pdbx_model_Cartn_z_ideal'>;
+async function createCcdModel(data: CCD_Database, format: CCDFormat, suffix: string, cartn_x: x, cartn_y: y, cartn_z: z, ctx: RuntimeContext) {
+    const { chem_comp, chem_comp_atom, chem_comp_bond } = data;
+
+    const name = chem_comp.name.value(0);
+
+    const atomCount = chem_comp_atom._rowCount;
+    const A = Column.ofConst('A', atomCount, Column.Schema.str);
+    const comp_id = Column.asArrayColumn(chem_comp_atom.comp_id);
+    const seq_id = Column.ofConst(1, atomCount, Column.Schema.int);
+    const entity_id = Column.ofConst('1', atomCount, Column.Schema.str);
+    const type_symbol = Column.asArrayColumn(chem_comp_atom.type_symbol);
+    const occupancy = Column.ofConst(1, atomCount, Column.Schema.float);
+    const model_num = Column.ofConst(1, atomCount, Column.Schema.int);
+
+    const model_atom_site = Table.ofPartialColumns(BasicSchema.atom_site, {
+        auth_asym_id: A,
+        auth_atom_id: chem_comp_atom.atom_id,
+        auth_comp_id: comp_id,
+        auth_seq_id: seq_id,
+        Cartn_x: chem_comp_atom[cartn_x],
+        Cartn_y: chem_comp_atom[cartn_y],
+        Cartn_z: chem_comp_atom[cartn_z],
+        id: chem_comp_atom.pdbx_ordinal,
+
+        label_asym_id: A,
+        label_atom_id: type_symbol,
+        label_comp_id: comp_id,
+        label_seq_id: seq_id,
+        label_entity_id: entity_id,
+
+        occupancy,
+        type_symbol,
+
+        pdbx_PDB_model_num: model_num,
+        pdbx_formal_charge: chem_comp_atom.charge
+    }, atomCount);
+
+    const entityBuilder = new EntityBuilder();
+    entityBuilder.setNames([['MOL', `${(name || 'Unknown Entity')} ${suffix}`]]);
+    entityBuilder.getEntityId('MOL', MoleculeType.Unknown, 'A');
+
+    const componentBuilder = new ComponentBuilder(seq_id, type_symbol);
+    componentBuilder.setNames([['MOL', `${(name || 'Unknown Molecule')} ${suffix}`]]);
+    componentBuilder.add('MOL', 0);
+
+    const basicModel = createBasic({
+        entity: entityBuilder.getEntityTable(),
+        atom_site: model_atom_site
+    });
+    const modelsModel = await createModels(basicModel, format, ctx);
+
+    if (modelsModel.frameCount > 0) {
+        const first = modelsModel.representative;
+
+        const bondCount = chem_comp_bond._rowCount;
+        if (bondCount > 0) {
+            const labelIndexMap: { [label: string]: number } = {};
+            const { atom_id } = chem_comp_atom;
+            for (let i = 0, il = atom_id.rowCount; i < il; ++i) {
+                labelIndexMap[atom_id.value(i)] = i;
+            }
+
+            const indexA: number[] = [];
+            const indexB: number[] = [];
+            const order: number[] = [];
+            const flag: number[] = [];
+
+            const included = new Set<number>();
+            let j = 0;
+
+            const { atom_id_1, atom_id_2, pdbx_aromatic_flag, value_order } = chem_comp_bond;
+            for (let i = 0; i < bondCount; ++i) {
+                const iA = labelIndexMap[atom_id_1.value(i)];
+                const iB = labelIndexMap[atom_id_2.value(i)];
+                const id = iA < iB ? cantorPairing(iA, iB) : cantorPairing(iB, iA);
+                if (included.has(id)) continue;
+                included.add(id);
+
+                indexA[j] = iA;
+                indexB[j] = iB;
+
+                let flags: number = BondType.Flag.Covalent;
+                let ord = 1;
+                if (pdbx_aromatic_flag.value(i) === 'y') flags |= BondType.Flag.Aromatic;
+                switch (value_order.value(i)) {
+                    case 'delo': flags |= BondType.Flag.Aromatic; break;
+                    case 'doub': ord = 2; break;
+                    case 'trip': ord = 3; break;
+                    case 'quad': ord = 4; break;
+                }
+                order[j] = ord;
+                flag[j] = flags;
+
+                j += 1;
+            }
+
+            IndexPairBonds.Provider.set(first, IndexPairBonds.fromData({ pairs: {
+                indexA: Column.ofIntArray(indexA),
+                indexB: Column.ofIntArray(indexB),
+                order: Column.ofIntArray(order),
+                flag: Column.ofIntArray(flag)
+            }, count: atomCount }));
+        }
+    }
+
+    return modelsModel;
 }
