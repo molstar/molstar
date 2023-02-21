@@ -136,8 +136,8 @@ export function trajectoryFromCCD(frame: CifFrame): Task<Trajectory> {
 }
 
 async function createCcdModels(data: CCD_Database, format: CCDFormat, ctx: RuntimeContext) {
-    const model = await createCcdModel(data, format, '(model)', 'model_Cartn_x', 'model_Cartn_y', 'model_Cartn_z', ctx);
-    const ideal = await createCcdModel(data, format, '(ideal)', 'pdbx_model_Cartn_x_ideal', 'pdbx_model_Cartn_y_ideal', 'pdbx_model_Cartn_z_ideal', ctx);
+    const model = await createCcdModel(data, format, { suffix: '(model)', cartn_x: 'model_Cartn_x', cartn_y: 'model_Cartn_y', cartn_z: 'model_Cartn_z' }, ctx);
+    const ideal = await createCcdModel(data, format, { suffix: '(ideal)', cartn_x: 'pdbx_model_Cartn_x_ideal', cartn_y: 'pdbx_model_Cartn_y_ideal', cartn_z: 'pdbx_model_Cartn_z_ideal' }, ctx);
 
     const models = [model.representative, ideal.representative];
     Model.TrajectoryInfo.set(models[0], { index: 0, size: models.length });
@@ -149,29 +149,30 @@ async function createCcdModels(data: CCD_Database, format: CCDFormat, ctx: Runti
 type x = keyof Pick<CCD_Schema['chem_comp_atom'], 'model_Cartn_x'> | keyof Pick<CCD_Schema['chem_comp_atom'], 'pdbx_model_Cartn_x_ideal'>;
 type y = keyof Pick<CCD_Schema['chem_comp_atom'], 'model_Cartn_y'> | keyof Pick<CCD_Schema['chem_comp_atom'], 'pdbx_model_Cartn_y_ideal'>;
 type z = keyof Pick<CCD_Schema['chem_comp_atom'], 'model_Cartn_z'> | keyof Pick<CCD_Schema['chem_comp_atom'], 'pdbx_model_Cartn_z_ideal'>;
-async function createCcdModel(data: CCD_Database, format: CCDFormat, suffix: string, cartn_x: x, cartn_y: y, cartn_z: z, ctx: RuntimeContext) {
+type CCDProps = { suffix: string, cartn_x: x, cartn_y: y, cartn_z: z };
+async function createCcdModel(data: CCD_Database, format: CCDFormat, props: CCDProps, ctx: RuntimeContext) {
     const { chem_comp, chem_comp_atom, chem_comp_bond } = data;
+    const { suffix, cartn_x, cartn_y, cartn_z } = props;
 
     const name = chem_comp.name.value(0);
 
+    const { atom_id, charge, comp_id, pdbx_ordinal, type_symbol } = chem_comp_atom;
     const atomCount = chem_comp_atom._rowCount;
     const A = Column.ofConst('A', atomCount, Column.Schema.str);
-    const comp_id = Column.asArrayColumn(chem_comp_atom.comp_id);
     const seq_id = Column.ofConst(1, atomCount, Column.Schema.int);
     const entity_id = Column.ofConst('1', atomCount, Column.Schema.str);
-    const type_symbol = Column.asArrayColumn(chem_comp_atom.type_symbol);
     const occupancy = Column.ofConst(1, atomCount, Column.Schema.float);
     const model_num = Column.ofConst(1, atomCount, Column.Schema.int);
 
     const model_atom_site = Table.ofPartialColumns(BasicSchema.atom_site, {
         auth_asym_id: A,
-        auth_atom_id: chem_comp_atom.atom_id,
+        auth_atom_id: atom_id,
         auth_comp_id: comp_id,
         auth_seq_id: seq_id,
         Cartn_x: chem_comp_atom[cartn_x],
         Cartn_y: chem_comp_atom[cartn_y],
         Cartn_z: chem_comp_atom[cartn_z],
-        id: chem_comp_atom.pdbx_ordinal,
+        id: pdbx_ordinal,
 
         label_asym_id: A,
         label_atom_id: type_symbol,
@@ -183,7 +184,7 @@ async function createCcdModel(data: CCD_Database, format: CCDFormat, suffix: str
         type_symbol,
 
         pdbx_PDB_model_num: model_num,
-        pdbx_formal_charge: chem_comp_atom.charge
+        pdbx_formal_charge: charge
     }, atomCount);
 
     const entityBuilder = new EntityBuilder();
