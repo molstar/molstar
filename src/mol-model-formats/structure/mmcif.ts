@@ -155,6 +155,7 @@ async function createCcdModel(data: CCD_Database, format: CCDFormat, props: CCDP
     const { suffix, cartn_x, cartn_y, cartn_z } = props;
 
     const name = chem_comp.name.value(0);
+    const id = chem_comp.id.value(0);
 
     const { atom_id, charge, comp_id, pdbx_ordinal, type_symbol } = chem_comp_atom;
     const atomCount = chem_comp_atom._rowCount;
@@ -188,21 +189,21 @@ async function createCcdModel(data: CCD_Database, format: CCDFormat, props: CCDP
     }, atomCount);
 
     const entityBuilder = new EntityBuilder();
-    entityBuilder.setNames([['MOL', `${(name || 'Unknown Entity')} ${suffix}`]]);
-    entityBuilder.getEntityId('MOL', MoleculeType.Unknown, 'A');
+    entityBuilder.setNames([[id, `${name} ${suffix}`]]);
+    entityBuilder.getEntityId(id, MoleculeType.Unknown, 'A');
 
     const componentBuilder = new ComponentBuilder(seq_id, type_symbol);
-    componentBuilder.setNames([['MOL', `${(name || 'Unknown Molecule')} ${suffix}`]]);
-    componentBuilder.add('MOL', 0);
+    componentBuilder.setNames([[id, `${name} ${suffix}`]]);
+    componentBuilder.add(id, 0);
 
     const basicModel = createBasic({
         entity: entityBuilder.getEntityTable(),
         atom_site: model_atom_site
     });
-    const modelsModel = await createModels(basicModel, format, ctx);
+    const models = await createModels(basicModel, format, ctx);
 
-    if (modelsModel.frameCount > 0) {
-        const first = modelsModel.representative;
+    if (models.frameCount > 0) {
+        const first = models.representative;
 
         const bondCount = chem_comp_bond._rowCount;
         if (bondCount > 0) {
@@ -255,5 +256,5 @@ async function createCcdModel(data: CCD_Database, format: CCDFormat, props: CCDP
         }
     }
 
-    return modelsModel;
+    return models;
 }
