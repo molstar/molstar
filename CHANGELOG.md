@@ -6,9 +6,12 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
-Fix impostor bond visuals not correctly updating on `sizeFactor` changes
-Fix degenerate case in PCA
-Fix near clipping avoidance in impostor shaders
+## [v3.31.3] - 2023-02-22
+
+- Fix impostor bond visuals not correctly updating on `sizeFactor` changes
+- Fix degenerate case in PCA
+- Fix near clipping avoidance in impostor shaders
+- Update `fs` import in `data-source.ts`
 
 ## [v3.31.2] - 2023-02-12
 

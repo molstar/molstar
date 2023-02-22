@@ -305,7 +305,8 @@ function ajaxGetInternal<T extends DataType>(title: string | undefined, url: str
 let _fs: (typeof import ('fs')) | undefined = undefined;
 function getFS() {
     if (_fs) return _fs!;
-    _fs = require('fs');
+    const req = require; // To fool webpack
+    _fs = req('fs');
     return _fs!;
 }
 
