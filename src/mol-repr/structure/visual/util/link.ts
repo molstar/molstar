@@ -2,6 +2,7 @@
  * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Zhenyu Zhang <jump2cn@gmail.com>
  */
 
 import { Vec3 } from '../../../../mol-math/linear-algebra';
@@ -25,7 +26,7 @@ export const LinkCylinderParams = {
     aromaticScale: PD.Numeric(0.3, { min: 0, max: 1, step: 0.01 }),
     aromaticSpacing: PD.Numeric(1.5, { min: 0, max: 3, step: 0.01 }),
     aromaticDashCount: PD.Numeric(2, { min: 2, max: 6, step: 2 }),
-    dashCount: PD.Numeric(4, { min: 2, max: 10, step: 2 }),
+    dashCount: PD.Numeric(4, { min: 0, max: 10, step: 2 }),
     dashScale: PD.Numeric(0.8, { min: 0, max: 2, step: 0.1 }),
     dashCap: PD.Boolean(true),
     stubCap: PD.Boolean(true),
@@ -38,7 +39,7 @@ export const LinkLineParams = {
     linkScale: PD.Numeric(0.5, { min: 0, max: 1, step: 0.1 }),
     linkSpacing: PD.Numeric(0.1, { min: 0, max: 2, step: 0.01 }),
     aromaticDashCount: PD.Numeric(2, { min: 2, max: 6, step: 2 }),
-    dashCount: PD.Numeric(4, { min: 2, max: 10, step: 2 }),
+    dashCount: PD.Numeric(4, { min: 0, max: 10, step: 2 }),
 };
 export const DefaultLinkLineProps = PD.getDefaultValues(LinkLineParams);
 export type LinkLineProps = typeof DefaultLinkLineProps
@@ -164,7 +165,11 @@ export function createLinkCylinderMesh(ctx: VisualContext, linkBuilder: LinkBuil
             cylinderProps.radiusTop = cylinderProps.radiusBottom = linkRadius * dashScale;
             cylinderProps.topCap = cylinderProps.bottomCap = dashCap;
 
-            addFixedCountDashedCylinder(builderState, va, vb, 0.5, segmentCount, cylinderProps);
+            if (segmentCount > 1) {
+                addFixedCountDashedCylinder(builderState, va, vb, 0.5, segmentCount, cylinderProps);
+            } else {
+                addCylinder(builderState, va, vb, 0.5, cylinderProps);
+            }
         } else if (linkStyle === LinkStyle.Double || linkStyle === LinkStyle.OffsetDouble || linkStyle === LinkStyle.Triple || linkStyle === LinkStyle.OffsetTriple || linkStyle === LinkStyle.Aromatic || linkStyle === LinkStyle.MirroredAromatic) {
             const order = (linkStyle === LinkStyle.Double || linkStyle === LinkStyle.OffsetDouble) ? 2 :
                 (linkStyle === LinkStyle.Triple || linkStyle === LinkStyle.OffsetTriple) ? 3 : 1.5;
@@ -303,9 +308,14 @@ export function createLinkCylinderImpostors(ctx: VisualContext, linkBuilder: Lin
             v3scale(vm, v3add(vm, va, vb), 0.5);
             builder.add(va[0], va[1], va[2], vm[0], vm[1], vm[2], 1, linkCap, linkStub, edgeIndex);
         } else if (linkStyle === LinkStyle.Dashed) {
-            v3scale(tmpV12, v3sub(tmpV12, vb, va), lengthScale);
-            v3sub(vb, vb, tmpV12);
-            builder.addFixedCountDashes(va, vb, segmentCount, dashScale, dashCap, dashCap, edgeIndex);
+            if (segmentCount > 1) {
+                v3scale(tmpV12, v3sub(tmpV12, vb, va), lengthScale);
+                v3sub(vb, vb, tmpV12);
+                builder.addFixedCountDashes(va, vb, segmentCount, dashScale, dashCap, dashCap, edgeIndex);
+            } else {
+                v3scale(vm, v3add(vm, va, vb), 0.5);
+                builder.add(va[0], va[1], va[2], vm[0], vm[1], vm[2], dashScale, dashCap, dashCap, edgeIndex);
+            }
         } else if (linkStyle === LinkStyle.Double || linkStyle === LinkStyle.OffsetDouble || linkStyle === LinkStyle.Triple || linkStyle === LinkStyle.OffsetTriple || linkStyle === LinkStyle.Aromatic || linkStyle === LinkStyle.MirroredAromatic) {
             const order = (linkStyle === LinkStyle.Double || linkStyle === LinkStyle.OffsetDouble) ? 2 :
                 (linkStyle === LinkStyle.Triple || linkStyle === LinkStyle.OffsetTriple) ? 3 : 1.5;
@@ -423,9 +433,14 @@ export function createLinkLines(ctx: VisualContext, linkBuilder: LinkBuilderProp
             v3scale(vm, v3add(vm, va, vb), 0.5);
             builder.add(va[0], va[1], va[2], vm[0], vm[1], vm[2], edgeIndex);
         } else if (linkStyle === LinkStyle.Dashed) {
-            v3scale(tmpV12, v3sub(tmpV12, vb, va), lengthScale);
-            v3sub(vb, vb, tmpV12);
-            builder.addFixedCountDashes(va, vb, segmentCount, edgeIndex);
+            if (segmentCount > 1) {
+                v3scale(tmpV12, v3sub(tmpV12, vb, va), lengthScale);
+                v3sub(vb, vb, tmpV12);
+                builder.addFixedCountDashes(va, vb, segmentCount, edgeIndex);
+            } else {
+                v3scale(vm, v3add(vm, va, vb), 0.5);
+                builder.add(va[0], va[1], va[2], vm[0], vm[1], vm[2], edgeIndex);
+            }
         } else if (linkStyle === LinkStyle.Double || linkStyle === LinkStyle.OffsetDouble || linkStyle === LinkStyle.Triple || linkStyle === LinkStyle.OffsetTriple || linkStyle === LinkStyle.Aromatic || linkStyle === LinkStyle.MirroredAromatic) {
             const order = linkStyle === LinkStyle.Double || linkStyle === LinkStyle.OffsetDouble ? 2 :
                 linkStyle === LinkStyle.Triple || linkStyle === LinkStyle.OffsetTriple ? 3 : 1.5;
