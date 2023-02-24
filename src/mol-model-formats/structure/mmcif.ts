@@ -22,10 +22,8 @@ import { GlobalModelTransformInfo } from '../../mol-model/structure/model/proper
 import { BasicSchema, createBasic } from './basic/schema';
 import { CCD_Database, CCD_Schema } from '../../mol-io/reader/cif/schema/ccd';
 import { EntityBuilder } from './common/entity';
-import { BondType, MoleculeType } from '../../mol-model/structure/model/types';
+import { MoleculeType } from '../../mol-model/structure/model/types';
 import { ComponentBuilder } from './common/component';
-import { cantorPairing } from '../../mol-data/util';
-import { IndexPairBonds } from './property/bonds/index-pair';
 
 function modelSymmetryFromMmcif(model: Model) {
     if (!MmcifFormat.is(model.sourceData)) return;
@@ -176,7 +174,7 @@ async function createCcdModel(data: CCD_Database, format: CCDFormat, props: CCDP
         id: pdbx_ordinal,
 
         label_asym_id: A,
-        label_atom_id: type_symbol,
+        label_atom_id: atom_id,
         label_comp_id: comp_id,
         label_seq_id: seq_id,
         label_entity_id: entity_id,
@@ -198,63 +196,14 @@ async function createCcdModel(data: CCD_Database, format: CCDFormat, props: CCDP
 
     const basicModel = createBasic({
         entity: entityBuilder.getEntityTable(),
+        chem_comp: componentBuilder.getChemCompTable(),
         atom_site: model_atom_site
     });
     const models = await createModels(basicModel, format, ctx);
 
-    if (models.frameCount > 0) {
-        const first = models.representative;
-
-        const bondCount = chem_comp_bond._rowCount;
-        if (bondCount > 0) {
-            const labelIndexMap: { [label: string]: number } = {};
-            const { atom_id } = chem_comp_atom;
-            for (let i = 0, il = atom_id.rowCount; i < il; ++i) {
-                labelIndexMap[atom_id.value(i)] = i;
-            }
-
-            const indexA: number[] = [];
-            const indexB: number[] = [];
-            const order: number[] = [];
-            const flag: number[] = [];
-
-            const included = new Set<number>();
-            let j = 0;
-
-            const { atom_id_1, atom_id_2, pdbx_aromatic_flag, value_order } = chem_comp_bond;
-            for (let i = 0; i < bondCount; ++i) {
-                const iA = labelIndexMap[atom_id_1.value(i)];
-                const iB = labelIndexMap[atom_id_2.value(i)];
-                const id = iA < iB ? cantorPairing(iA, iB) : cantorPairing(iB, iA);
-                if (included.has(id)) continue;
-                included.add(id);
-
-                indexA[j] = iA;
-                indexB[j] = iB;
-
-                let flags: number = BondType.Flag.Covalent;
-                let ord = 1;
-                if (pdbx_aromatic_flag.value(i) === 'y') flags |= BondType.Flag.Aromatic;
-                switch (value_order.value(i)) {
-                    case 'delo': flags |= BondType.Flag.Aromatic; break;
-                    case 'doub': ord = 2; break;
-                    case 'trip': ord = 3; break;
-                    case 'quad': ord = 4; break;
-                }
-                order[j] = ord;
-                flag[j] = flags;
-
-                j += 1;
-            }
-
-            IndexPairBonds.Provider.set(first, IndexPairBonds.fromData({ pairs: {
-                indexA: Column.ofIntArray(indexA),
-                indexB: Column.ofIntArray(indexB),
-                order: Column.ofIntArray(order),
-                flag: Column.ofIntArray(flag)
-            }, count: atomCount }));
-        }
-    }
+    const first = models.representative;
+    const entries = ComponentBond.getEntriesFromChemCompBond(chem_comp_bond);
+    ComponentBond.Provider.set(first, { data: chem_comp_bond, entries });
 
     return models;
 }
