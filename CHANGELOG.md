@@ -6,7 +6,10 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
-- allow link cylinder/line `dashCount` set to '0'
+## [v3.31.4] - 2023-02-24
+
+- Allow link cylinder/line `dashCount` set to '0'
+- Stop animation loop when disposing `PluginContext` (thanks @gfrn for identifying the issue)
 
 ## [v3.31.3] - 2023-02-22
 
