@@ -362,6 +362,7 @@ export class PluginContext {
         }
         this.subs = [];
 
+        this.animationLoop.stop();
         this.commands.dispose();
         this.canvas3d?.dispose();
         this.canvas3dContext?.dispose(options);

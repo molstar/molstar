@@ -1,6 +1,6 @@
 {
   "name": "molstar",
-  "version": "3.31.2",
+  "version": "3.31.4",
   "description": "A comprehensive macromolecular library.",
   "homepage": "https://github.com/molstar/molstar#readme",
   "repository": {
@@ -95,7 +95,8 @@
     "Gianluca Tomasello <giagitom@gmail.com>",
     "Ke Ma <mark.ma@rcsb.org>",
     "Jason Pattle <jpattle@exscientia.co.uk>",
-    "David Williams <dwilliams@nobiastx.com>"
+    "David Williams <dwilliams@nobiastx.com>",
+    "Zhenyu Zhang <jump2cn@gmail.com>"
   ],
   "license": "MIT",
   "devDependencies": {
