@@ -17,7 +17,6 @@ import { PluginContext } from '../../../mol-plugin/context';
 import { StateAction, StateObjectRef, StateTransform } from '../../../mol-state';
 import { Task } from '../../../mol-task';
 import { Color } from '../../../mol-util/color/color';
-import { ColorNames } from '../../../mol-util/color/names';
 import { getFileInfo } from '../../../mol-util/file-info';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { createCellpackHierarchy } from '../data/cellpack/preset';
@@ -55,6 +54,7 @@ function adjustPluginProps(ctx: PluginContext) {
                     bias: 1.3,
                     blurKernelSize: 15,
                     resolutionScale: 1,
+                    color: Color(0x000000),
                 }
             },
             shadow: {
@@ -71,7 +71,7 @@ function adjustPluginProps(ctx: PluginContext) {
                 params: {
                     scale: 1,
                     threshold: 0.33,
-                    color: ColorNames.black,
+                    color: Color(0x000000),
                     includeTransparent: true,
                 }
             }
