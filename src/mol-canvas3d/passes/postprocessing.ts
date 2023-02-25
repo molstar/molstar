@@ -280,6 +280,7 @@ const PostprocessingSchema = {
     uFogFar: UniformSpec('f'),
     uFogColor: UniformSpec('v3'),
     uOutlineColor: UniformSpec('v3'),
+    uOcclusionColor: UniformSpec('v3'),
     uTransparentBackground: UniformSpec('b'),
 
     uMaxPossibleViewZDiff: UniformSpec('f'),
@@ -317,6 +318,7 @@ function getPostprocessingRenderable(ctx: WebGLContext, colorTexture: Texture, d
         uFogFar: ValueCell.create(10000),
         uFogColor: ValueCell.create(Vec3.create(1, 1, 1)),
         uOutlineColor: ValueCell.create(Vec3.create(0, 0, 0)),
+        uOcclusionColor: ValueCell.create(Vec3.create(0, 0, 0)),
         uTransparentBackground: ValueCell.create(false),
 
         uMaxPossibleViewZDiff: ValueCell.create(0.5),
@@ -349,6 +351,7 @@ export const PostprocessingParams = {
             bias: PD.Numeric(0.8, { min: 0, max: 3, step: 0.1 }),
             blurKernelSize: PD.Numeric(15, { min: 1, max: 25, step: 2 }),
             resolutionScale: PD.Numeric(1, { min: 0.1, max: 1, step: 0.05 }, { description: 'Adjust resolution of occlusion calculation' }),
+            color: PD.Color(Color(0x000000)),
         }),
         off: PD.Group({})
     }, { cycle: true, description: 'Darken occluded crevices with the ambient occlusion effect' }),
@@ -595,6 +598,8 @@ export class PostprocessingPass {
                 ValueCell.update(this.ssaoBlurFirstPassRenderable.values.uTexSize, Vec2.set(this.ssaoBlurFirstPassRenderable.values.uTexSize.ref.value, sw, sh));
                 ValueCell.update(this.ssaoBlurSecondPassRenderable.values.uTexSize, Vec2.set(this.ssaoBlurSecondPassRenderable.values.uTexSize.ref.value, sw, sh));
             }
+
+            ValueCell.update(this.renderable.values.uOcclusionColor, Color.toVec3Normalized(this.renderable.values.uOcclusionColor.ref.value, props.occlusion.params.color));
         }
 
         if (props.shadow.name === 'on') {

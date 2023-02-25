@@ -24,6 +24,7 @@ uniform float uFogNear;
 uniform float uFogFar;
 uniform vec3 uFogColor;
 uniform vec3 uOutlineColor;
+uniform vec3 uOcclusionColor;
 uniform bool uTransparentBackground;
 
 uniform vec2 uOcclusionOffset;
@@ -32,8 +33,6 @@ uniform float uMaxPossibleViewZDiff;
 uniform mat4 uInvProjection;
 
 const float outlineDistanceFactor = 5.0;
-const vec3 occlusionColor = vec3(0.0);
-
 #include common
 
 float getViewZ(const in float depth) {
@@ -130,9 +129,9 @@ void main(void) {
             fogFactor = smoothstep(uFogNear, uFogFar, viewDist);
             float occlusionFactor = getSsao(coords + uOcclusionOffset);
             if (!uTransparentBackground) {
-                color.rgb = mix(mix(occlusionColor, uFogColor, fogFactor), color.rgb, occlusionFactor);
+                color.rgb = mix(mix(uOcclusionColor, uFogColor, fogFactor), color.rgb, occlusionFactor);
             } else {
-                color.rgb = mix(occlusionColor * (1.0 - fogFactor), color.rgb, occlusionFactor);
+                color.rgb = mix(uOcclusionColor * (1.0 - fogFactor), color.rgb, occlusionFactor);
             }
         }
     #endif
