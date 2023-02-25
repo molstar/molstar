@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -85,6 +85,7 @@ export function ShapeRepresentation<D, G extends Geometry, P extends Geometry.Pa
         if (updateState.updateTransform) {
             updateState.updateColor = true;
             updateState.updateSize = true;
+            updateState.updateMatrix = true;
         }
 
         if (updateState.createGeometry) {
@@ -126,13 +127,21 @@ export function ShapeRepresentation<D, G extends Geometry, P extends Geometry.Pa
 
                 if (updateState.updateTransform) {
                     // console.log('update transform')
-                    Shape.createTransform(_shape.transforms, _shape.geometry.boundingSphere, newProps.cellSize, _renderObject.values);
                     locationIt = Shape.groupIterator(_shape);
                     const { instanceCount, groupCount } = locationIt;
                     if (props.instanceGranularity) {
                         createMarkers(instanceCount, 'instance', _renderObject.values);
                     } else {
                         createMarkers(instanceCount * groupCount, 'groupInstance', _renderObject.values);
+                    }
+                }
+
+                if (updateState.updateMatrix) {
+                    // console.log('update matrix');
+                    Shape.createTransform(_shape.transforms, _shape.geometry.boundingSphere, newProps.cellSize, _renderObject.values);
+                    if ('lodLevels' in _renderObject.values) {
+                        // to trigger `uLod` update in `renderable.cull`
+                        ValueCell.update(_renderObject.values.lodLevels, _renderObject.values.lodLevels.ref.value);
                     }
                 }
 

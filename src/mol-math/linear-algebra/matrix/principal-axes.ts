@@ -27,7 +27,7 @@ namespace PrincipalAxes {
 
     export function calculateMomentsAxes(positions: NumberArray): Axes3D {
         if (positions.length === 3) {
-            return Axes3D.create(Vec3.fromArray(Vec3(), positions, 0), Vec3.create(1, 0, 0), Vec3.create(0, 1, 0), Vec3.create(0, 1, 0));
+            return Axes3D.create(Vec3.fromArray(Vec3(), positions, 0), Vec3.create(1, 0, 0), Vec3.create(0, 1, 0), Vec3.create(0, 0, 1));
         }
 
         const points = Matrix.fromArray(positions, 3, positions.length / 3);

@@ -142,7 +142,7 @@ export function createRenderable<T extends GraphicsRenderableValues>(renderItem:
                         }
                     }
                 }
-                // console.log(mdiDataList)
+                // console.log(mdbDataList)
             } else {
                 mdbData = getMdbData(cellCount, mdbData);
                 const { baseInstances, instanceCounts, counts } = mdbData;

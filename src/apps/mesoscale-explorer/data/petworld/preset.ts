@@ -25,9 +25,9 @@ function getSpacefillParams(color: Color) {
                 instanceGranularity: true,
                 ignoreLight: true,
                 lodLevels: [
-                    { minDistance: 1, maxDistance: 1000, overlap: 0, stride: 1 },
-                    { minDistance: 1000, maxDistance: 4000, overlap: 500, stride: 10 },
-                    { minDistance: 4000, maxDistance: 10000000, overlap: 500, stride: 50 },
+                    { minDistance: 1, maxDistance: 1153, overlap: 0, stride: 1, scaleBias: 1 },
+                    { minDistance: 1153, maxDistance: 2307, overlap: 100, stride: 10, scaleBias: 3 },
+                    { minDistance: 2307, maxDistance: 10000000, overlap: 300, stride: 50, scaleBias: 2.5 },
                 ],
                 quality: 'lowest', // avoid 'auto', triggers boundary calc
             },

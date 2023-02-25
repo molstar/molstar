@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -102,15 +102,17 @@ void main(void){
     vPoint = vPoint4.xyz / vPoint4.w;
     vPointViewPosition = -mvPosition.xyz / mvPosition.w;
 
+    if (gl_Position.z < -gl_Position.w) {
+        mvPosition.z -= 2.0 * vRadius; // avoid clipping
+        gl_Position.z = (uProjection * vec4(mvPosition.xyz, 1.0)).z;
+    }
+
     if (uLod.x != 0.0 || uLod.y != 0.0) {
         if (d < (uLod.x - uLod.z) || d > uLod.y) {
             // move out of [ -w, +w ] to 'discard' in vert shader
             gl_Position.z = 2.0 * gl_Position.w;
         }
     }
-
-    mvPosition.z -= 2.0 * vRadius; // avoid clipping
-    gl_Position.z = (uProjection * vec4(mvPosition.xyz, 1.0)).z;
 
     #include clip_instance
 }
