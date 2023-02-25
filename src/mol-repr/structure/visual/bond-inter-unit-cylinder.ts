@@ -218,6 +218,7 @@ export function InterUnitBondCylinderImpostorVisual(materialId: number): Complex
         eachLocation: eachInterBond,
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<InterUnitBondCylinderParams>, currentProps: PD.Values<InterUnitBondCylinderParams>, newTheme: Theme, currentTheme: Theme, newStructure: Structure, currentStructure: Structure) => {
             state.createGeometry = (
+                newProps.sizeFactor !== currentProps.sizeFactor ||
                 newProps.sizeAspectRatio !== currentProps.sizeAspectRatio ||
                 newProps.linkScale !== currentProps.linkScale ||
                 newProps.linkSpacing !== currentProps.linkSpacing ||

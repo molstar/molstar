@@ -210,6 +210,7 @@ export const STYLIZED_POSTPROCESSING: Partial<PostprocessingProps> = {
             bias: 0.8,
             blurKernelSize: 15,
             resolutionScale: 1,
+            color: ColorNames.black,
         }
     }, outline: {
         name: 'on' as const, params: {

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -24,7 +24,7 @@ const Canvas3DPresets = {
     illustrative: {
         canvas3d: <Preset>{
             postprocessing: {
-                occlusion: { name: 'on', params: { samples: 32, radius: 6, bias: 1.4, blurKernelSize: 15, resolutionScale: 1 } },
+                occlusion: { name: 'on', params: { samples: 32, radius: 6, bias: 1.4, blurKernelSize: 15, resolutionScale: 1, color: Color(0x000000) } },
                 outline: { name: 'on', params: { scale: 1, threshold: 0.33, color: Color(0x000000), includeTransparent: true, } },
                 shadow: { name: 'off', params: {} },
             },

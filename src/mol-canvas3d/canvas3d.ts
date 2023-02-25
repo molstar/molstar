@@ -918,6 +918,7 @@ namespace Canvas3D {
             },
             dispose: () => {
                 contextRestoredSub.unsubscribe();
+                cancelAnimationFrame(animationFrameHandle);
 
                 markBuffer = [];
 
