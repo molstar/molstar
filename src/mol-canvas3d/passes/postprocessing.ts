@@ -43,9 +43,9 @@ const OutlinesSchema = {
     dOrthographic: DefineSpec('number'),
     uNear: UniformSpec('f'),
     uFar: UniformSpec('f'),
+    uInvProjection: UniformSpec('m4'),
 
-    uMaxPossibleViewZDiff: UniformSpec('f'),
-
+    uOutlineThreshold: UniformSpec('f'),
     dTransparentOutline: DefineSpec('boolean'),
 };
 type OutlinesRenderable = ComputeRenderable<Values<typeof OutlinesSchema>>
@@ -63,9 +63,9 @@ function getOutlinesRenderable(ctx: WebGLContext, depthTextureOpaque: Texture, d
         dOrthographic: ValueCell.create(0),
         uNear: ValueCell.create(1),
         uFar: ValueCell.create(10000),
+        uInvProjection: ValueCell.create(Mat4.identity()),
 
-        uMaxPossibleViewZDiff: ValueCell.create(0.5),
-
+        uOutlineThreshold: ValueCell.create(0.33),
         dTransparentOutline: ValueCell.create(transparentOutline),
     };
 
@@ -189,8 +189,7 @@ const SsaoBlurSchema = {
     uBlurDirectionX: UniformSpec('f'),
     uBlurDirectionY: UniformSpec('f'),
 
-    uMaxPossibleViewZDiff: UniformSpec('f'),
-
+    uInvProjection: UniformSpec('m4'),
     uNear: UniformSpec('f'),
     uFar: UniformSpec('f'),
     uBounds: UniformSpec('v4'),
@@ -211,8 +210,7 @@ function getSsaoBlurRenderable(ctx: WebGLContext, ssaoDepthTexture: Texture, dir
         uBlurDirectionX: ValueCell.create(direction === 'horizontal' ? 1 : 0),
         uBlurDirectionY: ValueCell.create(direction === 'vertical' ? 1 : 0),
 
-        uMaxPossibleViewZDiff: ValueCell.create(0.5),
-
+        uInvProjection: ValueCell.create(Mat4.identity()),
         uNear: ValueCell.create(0.0),
         uFar: ValueCell.create(10000.0),
         uBounds: ValueCell.create(Vec4()),
@@ -280,10 +278,8 @@ const PostprocessingSchema = {
     uFogFar: UniformSpec('f'),
     uFogColor: UniformSpec('v3'),
     uOutlineColor: UniformSpec('v3'),
+    uOcclusionColor: UniformSpec('v3'),
     uTransparentBackground: UniformSpec('b'),
-
-    uMaxPossibleViewZDiff: UniformSpec('f'),
-    uInvProjection: UniformSpec('m4'),
 
     dOcclusionEnable: DefineSpec('boolean'),
     uOcclusionOffset: UniformSpec('v2'),
@@ -292,8 +288,6 @@ const PostprocessingSchema = {
 
     dOutlineEnable: DefineSpec('boolean'),
     dOutlineScale: DefineSpec('number'),
-    uOutlineThreshold: UniformSpec('f'),
-
     dTransparentOutline: DefineSpec('boolean'),
 };
 type PostprocessingRenderable = ComputeRenderable<Values<typeof PostprocessingSchema>>
@@ -317,10 +311,8 @@ function getPostprocessingRenderable(ctx: WebGLContext, colorTexture: Texture, d
         uFogFar: ValueCell.create(10000),
         uFogColor: ValueCell.create(Vec3.create(1, 1, 1)),
         uOutlineColor: ValueCell.create(Vec3.create(0, 0, 0)),
+        uOcclusionColor: ValueCell.create(Vec3.create(0, 0, 0)),
         uTransparentBackground: ValueCell.create(false),
-
-        uMaxPossibleViewZDiff: ValueCell.create(0.5),
-        uInvProjection: ValueCell.create(Mat4.identity()),
 
         dOcclusionEnable: ValueCell.create(true),
         uOcclusionOffset: ValueCell.create(Vec2.create(0, 0)),
@@ -329,8 +321,6 @@ function getPostprocessingRenderable(ctx: WebGLContext, colorTexture: Texture, d
 
         dOutlineEnable: ValueCell.create(false),
         dOutlineScale: ValueCell.create(1),
-        uOutlineThreshold: ValueCell.create(0.33),
-
         dTransparentOutline: ValueCell.create(transparentOutline),
     };
 
@@ -349,6 +339,7 @@ export const PostprocessingParams = {
             bias: PD.Numeric(0.8, { min: 0, max: 3, step: 0.1 }),
             blurKernelSize: PD.Numeric(15, { min: 1, max: 25, step: 2 }),
             resolutionScale: PD.Numeric(1, { min: 0.1, max: 1, step: 0.05 }, { description: 'Adjust resolution of occlusion calculation' }),
+            color: PD.Color(Color(0x000000)),
         }),
         off: PD.Group({})
     }, { cycle: true, description: 'Darken occluded crevices with the ambient occlusion effect' }),
@@ -543,11 +534,14 @@ export class PostprocessingPass {
             ValueCell.updateIfChanged(this.ssaoBlurFirstPassRenderable.values.uFar, camera.far);
             ValueCell.updateIfChanged(this.ssaoBlurSecondPassRenderable.values.uFar, camera.far);
 
+            ValueCell.update(this.ssaoBlurFirstPassRenderable.values.uInvProjection, invProjection);
+            ValueCell.update(this.ssaoBlurSecondPassRenderable.values.uInvProjection, invProjection);
+
             if (this.ssaoBlurFirstPassRenderable.values.dOrthographic.ref.value !== orthographic) {
                 needsUpdateSsaoBlur = true;
+                ValueCell.update(this.ssaoBlurFirstPassRenderable.values.dOrthographic, orthographic);
+                ValueCell.update(this.ssaoBlurSecondPassRenderable.values.dOrthographic, orthographic);
             }
-            ValueCell.updateIfChanged(this.ssaoBlurFirstPassRenderable.values.dOrthographic, orthographic);
-            ValueCell.updateIfChanged(this.ssaoBlurSecondPassRenderable.values.dOrthographic, orthographic);
 
             if (this.nSamples !== props.occlusion.params.samples) {
                 needsUpdateSsao = true;
@@ -567,8 +561,8 @@ export class PostprocessingPass {
 
                 ValueCell.update(this.ssaoBlurFirstPassRenderable.values.uKernel, kernel);
                 ValueCell.update(this.ssaoBlurSecondPassRenderable.values.uKernel, kernel);
-                ValueCell.updateIfChanged(this.ssaoBlurFirstPassRenderable.values.dOcclusionKernelSize, this.blurKernelSize);
-                ValueCell.updateIfChanged(this.ssaoBlurSecondPassRenderable.values.dOcclusionKernelSize, this.blurKernelSize);
+                ValueCell.update(this.ssaoBlurFirstPassRenderable.values.dOcclusionKernelSize, this.blurKernelSize);
+                ValueCell.update(this.ssaoBlurSecondPassRenderable.values.dOcclusionKernelSize, this.blurKernelSize);
             }
 
             if (this.downsampleFactor !== props.occlusion.params.resolutionScale) {
@@ -595,6 +589,8 @@ export class PostprocessingPass {
                 ValueCell.update(this.ssaoBlurFirstPassRenderable.values.uTexSize, Vec2.set(this.ssaoBlurFirstPassRenderable.values.uTexSize.ref.value, sw, sh));
                 ValueCell.update(this.ssaoBlurSecondPassRenderable.values.uTexSize, Vec2.set(this.ssaoBlurSecondPassRenderable.values.uTexSize.ref.value, sw, sh));
             }
+
+            ValueCell.update(this.renderable.values.uOcclusionColor, Color.toVec3Normalized(this.renderable.values.uOcclusionColor.ref.value, props.occlusion.params.color));
         }
 
         if (props.shadow.name === 'on') {
@@ -611,7 +607,10 @@ export class PostprocessingPass {
 
             ValueCell.updateIfChanged(this.shadowsRenderable.values.uNear, camera.near);
             ValueCell.updateIfChanged(this.shadowsRenderable.values.uFar, camera.far);
-            ValueCell.updateIfChanged(this.shadowsRenderable.values.dOrthographic, orthographic);
+            if (this.shadowsRenderable.values.dOrthographic.ref.value !== orthographic) {
+                ValueCell.update(this.shadowsRenderable.values.dOrthographic, orthographic);
+                needsUpdateShadows = true;
+            }
 
             ValueCell.updateIfChanged(this.shadowsRenderable.values.uMaxDistance, props.shadow.params.maxDistance);
             ValueCell.updateIfChanged(this.shadowsRenderable.values.uTolerance, props.shadow.params.tolerance);
@@ -630,30 +629,33 @@ export class PostprocessingPass {
         }
 
         if (props.outline.name === 'on') {
-            let { threshold, includeTransparent } = props.outline.params;
-            const transparentOutline = includeTransparent ?? true;
-            // orthographic needs lower threshold
-            if (camera.state.mode === 'orthographic') threshold /= 5;
-            const factor = Math.pow(1000, threshold / 10) / 1000;
-            // use radiusMax for stable outlines when zooming
-            const maxPossibleViewZDiff = factor * camera.state.radiusMax;
+            const transparentOutline = props.outline.params.includeTransparent ?? true;
             const outlineScale = props.outline.params.scale - 1;
+            const outlineThreshold = 50 * props.outline.params.threshold;
 
             ValueCell.updateIfChanged(this.outlinesRenderable.values.uNear, camera.near);
             ValueCell.updateIfChanged(this.outlinesRenderable.values.uFar, camera.far);
-            ValueCell.updateIfChanged(this.outlinesRenderable.values.uMaxPossibleViewZDiff, maxPossibleViewZDiff);
-            if (this.renderable.values.dTransparentOutline.ref.value !== transparentOutline) { needsUpdateOutlines = true; }
-            ValueCell.updateIfChanged(this.outlinesRenderable.values.dTransparentOutline, transparentOutline);
+            ValueCell.update(this.outlinesRenderable.values.uInvProjection, invProjection);
+            if (this.outlinesRenderable.values.dTransparentOutline.ref.value !== transparentOutline) {
+                needsUpdateOutlines = true;
+                ValueCell.update(this.outlinesRenderable.values.dTransparentOutline, transparentOutline);
+            }
+            if (this.outlinesRenderable.values.dOrthographic.ref.value !== orthographic) {
+                needsUpdateOutlines = true;
+                ValueCell.update(this.outlinesRenderable.values.dOrthographic, orthographic);
+            }
+            ValueCell.updateIfChanged(this.outlinesRenderable.values.uOutlineThreshold, outlineThreshold);
 
             ValueCell.update(this.renderable.values.uOutlineColor, Color.toVec3Normalized(this.renderable.values.uOutlineColor.ref.value, props.outline.params.color));
 
-            ValueCell.updateIfChanged(this.renderable.values.uMaxPossibleViewZDiff, maxPossibleViewZDiff);
-            ValueCell.update(this.renderable.values.uInvProjection, invProjection);
-
-            if (this.renderable.values.dOutlineScale.ref.value !== outlineScale) { needsUpdateMain = true; }
-            ValueCell.updateIfChanged(this.renderable.values.dOutlineScale, outlineScale);
-            if (this.renderable.values.dTransparentOutline.ref.value !== transparentOutline) { needsUpdateMain = true; }
-            ValueCell.updateIfChanged(this.renderable.values.dTransparentOutline, transparentOutline);
+            if (this.renderable.values.dOutlineScale.ref.value !== outlineScale) {
+                needsUpdateMain = true;
+                ValueCell.update(this.renderable.values.dOutlineScale, outlineScale);
+            }
+            if (this.renderable.values.dTransparentOutline.ref.value !== transparentOutline) {
+                needsUpdateMain = true;
+                ValueCell.update(this.renderable.values.dTransparentOutline, transparentOutline);
+            }
         }
 
         ValueCell.updateIfChanged(this.renderable.values.uFar, camera.far);
@@ -662,15 +664,23 @@ export class PostprocessingPass {
         ValueCell.updateIfChanged(this.renderable.values.uFogNear, camera.fogNear);
         ValueCell.update(this.renderable.values.uFogColor, Color.toVec3Normalized(this.renderable.values.uFogColor.ref.value, backgroundColor));
         ValueCell.updateIfChanged(this.renderable.values.uTransparentBackground, transparentBackground);
-        if (this.renderable.values.dOrthographic.ref.value !== orthographic) { needsUpdateMain = true; }
-        ValueCell.updateIfChanged(this.renderable.values.dOrthographic, orthographic);
+        if (this.renderable.values.dOrthographic.ref.value !== orthographic) {
+            needsUpdateMain = true;
+            ValueCell.update(this.renderable.values.dOrthographic, orthographic);
+        }
 
-        if (this.renderable.values.dOutlineEnable.ref.value !== outlinesEnabled) { needsUpdateMain = true; }
-        ValueCell.updateIfChanged(this.renderable.values.dOutlineEnable, outlinesEnabled);
-        if (this.renderable.values.dShadowEnable.ref.value !== shadowsEnabled) { needsUpdateMain = true; }
-        ValueCell.updateIfChanged(this.renderable.values.dShadowEnable, shadowsEnabled);
-        if (this.renderable.values.dOcclusionEnable.ref.value !== occlusionEnabled) { needsUpdateMain = true; }
-        ValueCell.updateIfChanged(this.renderable.values.dOcclusionEnable, occlusionEnabled);
+        if (this.renderable.values.dOutlineEnable.ref.value !== outlinesEnabled) {
+            needsUpdateMain = true;
+            ValueCell.update(this.renderable.values.dOutlineEnable, outlinesEnabled);
+        }
+        if (this.renderable.values.dShadowEnable.ref.value !== shadowsEnabled) {
+            needsUpdateMain = true;
+            ValueCell.update(this.renderable.values.dShadowEnable, shadowsEnabled);
+        }
+        if (this.renderable.values.dOcclusionEnable.ref.value !== occlusionEnabled) {
+            needsUpdateMain = true;
+            ValueCell.update(this.renderable.values.dOcclusionEnable, occlusionEnabled);
+        }
 
         if (needsUpdateOutlines) {
             this.outlinesRenderable.update();
