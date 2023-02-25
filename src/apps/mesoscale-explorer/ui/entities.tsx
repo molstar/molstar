@@ -27,6 +27,8 @@ import { distinctColors } from '../../../mol-util/color/distinct';
 import { ParamMapping } from '../../../mol-util/param-mapping';
 import { PluginUIContext } from '../../../mol-plugin-ui/context';
 import { Vec3 } from '../../../mol-math/linear-algebra';
+import { Spheres } from '../../../mol-geo/geometry/spheres/spheres';
+import { deepEqual } from '../../../mol-util';
 
 export class EntityControls extends PluginUIComponent<{}, { filter: string, isDisabled: boolean }> {
     state = {
@@ -129,6 +131,11 @@ const DimLightness = 6;
 
 const OpacityParams = {
     alpha: PD.Numeric(1, { min: 0, max: 1, step: 0.01 }),
+};
+
+const LodParams = {
+    lodLevels: Spheres.Params.lodLevels,
+    cellSize: Spheres.Params.cellSize,
 };
 
 const SimpleClipParams = {
@@ -334,6 +341,16 @@ export class GroupNode extends Node<{ filter: string }, { isCollapsed: boolean, 
         return this.pivotRepr?.transform.params.type.params.clip;
     }
 
+    get lodValue(): PD.Values<typeof LodParams> | undefined {
+        const repr = this.pivotRepr;
+        const hasLod = repr?.transform.params?.type.params.lodLevels !== undefined && repr?.transform.params?.type.params.cellSize !== undefined;
+        if (!hasLod) return;
+        return {
+            lodLevels: repr.transform.params.type.params.lodLevels,
+            cellSize: repr.transform.params.type.params.cellSize,
+        };
+    }
+
     updateColor: ParamOnChange = ({ value }) => {
         const update = this.plugin.state.data.build();
         const reprCells = this.plugin.state.data.select(StateSelection.Generators.ofTransformer(StructureRepresentation3D, this.ref));
@@ -412,6 +429,23 @@ export class GroupNode extends Node<{ filter: string }, { isCollapsed: boolean, 
         await update.commit();
     };
 
+    updateLod = (values: PD.Values) => {
+        const update = this.plugin.state.data.build();
+        const reprCells = this.plugin.state.data.select(StateSelection.Generators.ofTransformer(StructureRepresentation3D, this.ref));
+
+        for (let i = 0; i < reprCells.length; ++i) {
+            const cell = reprCells[i];
+            const params = cell.transform.params as StateTransformer.Params<StructureRepresentation3D>;
+            if (!deepEqual(params.type.params.lodLevels, values.lodLevels) || params.type.params.cellSize !== values.cellSize) {
+                update.to(cell).update(old => {
+                    old.type.params.lodLevels = values.lodLevels;
+                    old.type.params.cellSize = values.cellSize;
+                });
+            }
+        }
+        update.commit();
+    };
+
     render() {
         const { cell } = this.props;
         const { obj } = cell;
@@ -423,6 +457,7 @@ export class GroupNode extends Node<{ filter: string }, { isCollapsed: boolean, 
         const colorValue = this.colorValue;
         const lightnessValue = this.lightnessValue;
         const opacityValue = this.opacityValue;
+        const lodValue = this.lodValue;
         const hasEntities = this.hasEntities;
 
         const groups = this.groups;
@@ -457,6 +492,7 @@ export class GroupNode extends Node<{ filter: string }, { isCollapsed: boolean, 
                 <ControlGroup header='Clip' initialExpanded={true} hideExpander={true} hideOffset={true} onHeaderClick={this.toggleClip}
                     topRightIcon={CloseSvg} noTopMargin childrenClassName='msp-viewport-controls-panel-controls'>
                     <ParameterMappingControl mapping={this.clipMapping} />
+                    <ParameterControls params={LodParams} values={lodValue} onChangeValues={this.updateLod} />
                 </ControlGroup>
             </div>}
             {!cellState.isCollapsed && <>
@@ -556,6 +592,16 @@ export class EntityNode extends Node<{}, { action?: 'color' | 'clip' }> {
         return this.repr?.transform.params.type.params.clip;
     }
 
+    get lodValue(): PD.Values<typeof LodParams> | undefined {
+        const repr = this.repr;
+        const hasLod = repr?.transform.params?.type.params.lodLevels !== undefined && repr?.transform.params?.type.params.cellSize !== undefined;
+        if (!hasLod) return;
+        return {
+            lodLevels: repr.transform.params.type.params.lodLevels,
+            cellSize: repr.transform.params.type.params.cellSize,
+        };
+    }
+
     updateColor: ParamOnChange = ({ value }) => {
         const t = this.repr?.transform;
         if (!t) return;
@@ -596,6 +642,19 @@ export class EntityNode extends Node<{}, { action?: 'color' | 'clip' }> {
         }
     };
 
+    updateLod = (values: PD.Values) => {
+        const t = this.repr?.transform;
+        if (!t) return;
+
+        const params = t.params as StateTransformer.Params<StructureRepresentation3D>;
+        if (!deepEqual(params.type.params.lodLevels, values.lodLevels) || params.type.params.cellSize !== values.cellSize) {
+            this.plugin.build().to(t.ref).update(old => {
+                old.type.params.lodLevels = values.lodLevels;
+                old.type.params.cellSize = values.cellSize;
+            }).commit();
+        }
+    };
+
     render() {
         const { cell } = this.props;
         const { obj } = cell;
@@ -607,6 +666,7 @@ export class EntityNode extends Node<{}, { action?: 'color' | 'clip' }> {
         const colorValue = this.colorValue;
         const lightnessValue = this.lightnessValue;
         const opacityValue = this.opacityValue;
+        const lodValue = this.lodValue;
 
         const label = <Button className={`msp-btn-tree-label msp-type-class-${obj.type.typeClass}`} noOverflow disabled={disabled}>
             <span>{this.entityLabel}</span>
@@ -635,6 +695,7 @@ export class EntityNode extends Node<{}, { action?: 'color' | 'clip' }> {
                 <ControlGroup header='Clip' initialExpanded={true} hideExpander={true} hideOffset={true} onHeaderClick={this.toggleClip}
                     topRightIcon={CloseSvg} noTopMargin childrenClassName='msp-viewport-controls-panel-controls'>
                     <ParameterMappingControl mapping={this.clipMapping} />
+                    <ParameterControls params={LodParams} values={lodValue} onChangeValues={this.updateLod} />
                 </ControlGroup>
             </div>}
         </>;

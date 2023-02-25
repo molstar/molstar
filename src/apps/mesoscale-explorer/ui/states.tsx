@@ -27,7 +27,7 @@ function adjustPluginProps(ctx: PluginContext) {
     ctx.managers.interactivity.setProps({ granularity: 'chain' });
     ctx.canvas3d?.setProps({
         multiSample: { mode: 'off' },
-        cameraClipping: { far: false },
+        cameraClipping: { far: false, minNear: 50 },
         renderer: {
             colorMarker: true,
             highlightColor: Color(0xffffff),
