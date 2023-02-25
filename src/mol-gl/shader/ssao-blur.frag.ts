@@ -74,6 +74,8 @@ void main(void) {
     float kernelSum = 0.0;
     // only if kernelSize is odd
     for (int i = -dOcclusionKernelSize / 2; i <= dOcclusionKernelSize / 2; i++) {
+        if (abs(i) > 1 && abs(float(i)) * pixelSize > 0.5) continue;
+
         vec2 sampleCoords = coords + float(i) * offset;
         if (outsideBounds(sampleCoords)) {
             continue;
