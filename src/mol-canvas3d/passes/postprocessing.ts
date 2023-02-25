@@ -548,9 +548,9 @@ export class PostprocessingPass {
 
             if (this.ssaoBlurFirstPassRenderable.values.dOrthographic.ref.value !== orthographic) {
                 needsUpdateSsaoBlur = true;
+                ValueCell.update(this.ssaoBlurFirstPassRenderable.values.dOrthographic, orthographic);
+                ValueCell.update(this.ssaoBlurSecondPassRenderable.values.dOrthographic, orthographic);
             }
-            ValueCell.updateIfChanged(this.ssaoBlurFirstPassRenderable.values.dOrthographic, orthographic);
-            ValueCell.updateIfChanged(this.ssaoBlurSecondPassRenderable.values.dOrthographic, orthographic);
 
             if (this.nSamples !== props.occlusion.params.samples) {
                 needsUpdateSsao = true;
@@ -570,8 +570,8 @@ export class PostprocessingPass {
 
                 ValueCell.update(this.ssaoBlurFirstPassRenderable.values.uKernel, kernel);
                 ValueCell.update(this.ssaoBlurSecondPassRenderable.values.uKernel, kernel);
-                ValueCell.updateIfChanged(this.ssaoBlurFirstPassRenderable.values.dOcclusionKernelSize, this.blurKernelSize);
-                ValueCell.updateIfChanged(this.ssaoBlurSecondPassRenderable.values.dOcclusionKernelSize, this.blurKernelSize);
+                ValueCell.update(this.ssaoBlurFirstPassRenderable.values.dOcclusionKernelSize, this.blurKernelSize);
+                ValueCell.update(this.ssaoBlurSecondPassRenderable.values.dOcclusionKernelSize, this.blurKernelSize);
             }
 
             if (this.downsampleFactor !== props.occlusion.params.resolutionScale) {
@@ -616,7 +616,10 @@ export class PostprocessingPass {
 
             ValueCell.updateIfChanged(this.shadowsRenderable.values.uNear, camera.near);
             ValueCell.updateIfChanged(this.shadowsRenderable.values.uFar, camera.far);
-            ValueCell.updateIfChanged(this.shadowsRenderable.values.dOrthographic, orthographic);
+            if (this.shadowsRenderable.values.dOrthographic.ref.value !== orthographic) {
+                ValueCell.update(this.shadowsRenderable.values.dOrthographic, orthographic);
+                needsUpdateShadows = true;
+            }
 
             ValueCell.updateIfChanged(this.shadowsRenderable.values.uMaxDistance, props.shadow.params.maxDistance);
             ValueCell.updateIfChanged(this.shadowsRenderable.values.uTolerance, props.shadow.params.tolerance);
@@ -646,19 +649,28 @@ export class PostprocessingPass {
 
             ValueCell.updateIfChanged(this.outlinesRenderable.values.uNear, camera.near);
             ValueCell.updateIfChanged(this.outlinesRenderable.values.uFar, camera.far);
-            ValueCell.updateIfChanged(this.outlinesRenderable.values.uMaxPossibleViewZDiff, maxPossibleViewZDiff);
-            if (this.renderable.values.dTransparentOutline.ref.value !== transparentOutline) { needsUpdateOutlines = true; }
-            ValueCell.updateIfChanged(this.outlinesRenderable.values.dTransparentOutline, transparentOutline);
+            if (this.outlinesRenderable.values.dTransparentOutline.ref.value !== transparentOutline) {
+                needsUpdateOutlines = true;
+                ValueCell.update(this.outlinesRenderable.values.dTransparentOutline, transparentOutline);
+            }
+            if (this.outlinesRenderable.values.dOrthographic.ref.value !== orthographic) {
+                needsUpdateOutlines = true;
+                ValueCell.update(this.outlinesRenderable.values.dOrthographic, orthographic);
+            }
 
             ValueCell.update(this.renderable.values.uOutlineColor, Color.toVec3Normalized(this.renderable.values.uOutlineColor.ref.value, props.outline.params.color));
 
             ValueCell.updateIfChanged(this.renderable.values.uMaxPossibleViewZDiff, maxPossibleViewZDiff);
             ValueCell.update(this.renderable.values.uInvProjection, invProjection);
 
-            if (this.renderable.values.dOutlineScale.ref.value !== outlineScale) { needsUpdateMain = true; }
-            ValueCell.updateIfChanged(this.renderable.values.dOutlineScale, outlineScale);
-            if (this.renderable.values.dTransparentOutline.ref.value !== transparentOutline) { needsUpdateMain = true; }
-            ValueCell.updateIfChanged(this.renderable.values.dTransparentOutline, transparentOutline);
+            if (this.renderable.values.dOutlineScale.ref.value !== outlineScale) {
+                needsUpdateMain = true;
+                ValueCell.update(this.renderable.values.dOutlineScale, outlineScale);
+            }
+            if (this.renderable.values.dTransparentOutline.ref.value !== transparentOutline) {
+                needsUpdateMain = true;
+                ValueCell.update(this.renderable.values.dTransparentOutline, transparentOutline);
+            }
         }
 
         ValueCell.updateIfChanged(this.renderable.values.uFar, camera.far);
@@ -667,15 +679,23 @@ export class PostprocessingPass {
         ValueCell.updateIfChanged(this.renderable.values.uFogNear, camera.fogNear);
         ValueCell.update(this.renderable.values.uFogColor, Color.toVec3Normalized(this.renderable.values.uFogColor.ref.value, backgroundColor));
         ValueCell.updateIfChanged(this.renderable.values.uTransparentBackground, transparentBackground);
-        if (this.renderable.values.dOrthographic.ref.value !== orthographic) { needsUpdateMain = true; }
-        ValueCell.updateIfChanged(this.renderable.values.dOrthographic, orthographic);
+        if (this.renderable.values.dOrthographic.ref.value !== orthographic) {
+            needsUpdateMain = true;
+            ValueCell.update(this.renderable.values.dOrthographic, orthographic);
+        }
 
-        if (this.renderable.values.dOutlineEnable.ref.value !== outlinesEnabled) { needsUpdateMain = true; }
-        ValueCell.updateIfChanged(this.renderable.values.dOutlineEnable, outlinesEnabled);
-        if (this.renderable.values.dShadowEnable.ref.value !== shadowsEnabled) { needsUpdateMain = true; }
-        ValueCell.updateIfChanged(this.renderable.values.dShadowEnable, shadowsEnabled);
-        if (this.renderable.values.dOcclusionEnable.ref.value !== occlusionEnabled) { needsUpdateMain = true; }
-        ValueCell.updateIfChanged(this.renderable.values.dOcclusionEnable, occlusionEnabled);
+        if (this.renderable.values.dOutlineEnable.ref.value !== outlinesEnabled) {
+            needsUpdateMain = true;
+            ValueCell.update(this.renderable.values.dOutlineEnable, outlinesEnabled);
+        }
+        if (this.renderable.values.dShadowEnable.ref.value !== shadowsEnabled) {
+            needsUpdateMain = true;
+            ValueCell.update(this.renderable.values.dShadowEnable, shadowsEnabled);
+        }
+        if (this.renderable.values.dOcclusionEnable.ref.value !== occlusionEnabled) {
+            needsUpdateMain = true;
+            ValueCell.update(this.renderable.values.dOcclusionEnable, occlusionEnabled);
+        }
 
         if (needsUpdateOutlines) {
             this.outlinesRenderable.update();
