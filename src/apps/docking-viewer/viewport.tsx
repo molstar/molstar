@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -50,6 +50,7 @@ function occlusionStyle(plugin: PluginContext) {
                 radius: 5,
                 samples: 32,
                 resolutionScale: 1,
+                color: Color(0x000000),
             } },
             outline: { name: 'on', params: {
                 scale: 1.0,

@@ -6,6 +6,10 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Add occlusion color parameter
+- Fix issue with outlines and orthographic camera
+- Reduce over-blurring occlusion at larger view distances
+
 ## [v3.31.4] - 2023-02-24
 
 - Allow link cylinder/line `dashCount` set to '0'
