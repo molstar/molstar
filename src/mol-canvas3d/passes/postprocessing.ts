@@ -43,9 +43,9 @@ const OutlinesSchema = {
     dOrthographic: DefineSpec('number'),
     uNear: UniformSpec('f'),
     uFar: UniformSpec('f'),
+    uInvProjection: UniformSpec('m4'),
 
-    uMaxPossibleViewZDiff: UniformSpec('f'),
-
+    uOutlineThreshold: UniformSpec('f'),
     dTransparentOutline: DefineSpec('boolean'),
 };
 type OutlinesRenderable = ComputeRenderable<Values<typeof OutlinesSchema>>
@@ -63,9 +63,9 @@ function getOutlinesRenderable(ctx: WebGLContext, depthTextureOpaque: Texture, d
         dOrthographic: ValueCell.create(0),
         uNear: ValueCell.create(1),
         uFar: ValueCell.create(10000),
+        uInvProjection: ValueCell.create(Mat4.identity()),
 
-        uMaxPossibleViewZDiff: ValueCell.create(0.5),
-
+        uOutlineThreshold: ValueCell.create(0.33),
         dTransparentOutline: ValueCell.create(transparentOutline),
     };
 
@@ -189,8 +189,7 @@ const SsaoBlurSchema = {
     uBlurDirectionX: UniformSpec('f'),
     uBlurDirectionY: UniformSpec('f'),
 
-    uMaxPossibleViewZDiff: UniformSpec('f'),
-
+    uInvProjection: UniformSpec('m4'),
     uNear: UniformSpec('f'),
     uFar: UniformSpec('f'),
     uBounds: UniformSpec('v4'),
@@ -211,8 +210,7 @@ function getSsaoBlurRenderable(ctx: WebGLContext, ssaoDepthTexture: Texture, dir
         uBlurDirectionX: ValueCell.create(direction === 'horizontal' ? 1 : 0),
         uBlurDirectionY: ValueCell.create(direction === 'vertical' ? 1 : 0),
 
-        uMaxPossibleViewZDiff: ValueCell.create(0.5),
-
+        uInvProjection: ValueCell.create(Mat4.identity()),
         uNear: ValueCell.create(0.0),
         uFar: ValueCell.create(10000.0),
         uBounds: ValueCell.create(Vec4()),
@@ -283,9 +281,6 @@ const PostprocessingSchema = {
     uOcclusionColor: UniformSpec('v3'),
     uTransparentBackground: UniformSpec('b'),
 
-    uMaxPossibleViewZDiff: UniformSpec('f'),
-    uInvProjection: UniformSpec('m4'),
-
     dOcclusionEnable: DefineSpec('boolean'),
     uOcclusionOffset: UniformSpec('v2'),
 
@@ -293,8 +288,6 @@ const PostprocessingSchema = {
 
     dOutlineEnable: DefineSpec('boolean'),
     dOutlineScale: DefineSpec('number'),
-    uOutlineThreshold: UniformSpec('f'),
-
     dTransparentOutline: DefineSpec('boolean'),
 };
 type PostprocessingRenderable = ComputeRenderable<Values<typeof PostprocessingSchema>>
@@ -321,9 +314,6 @@ function getPostprocessingRenderable(ctx: WebGLContext, colorTexture: Texture, d
         uOcclusionColor: ValueCell.create(Vec3.create(0, 0, 0)),
         uTransparentBackground: ValueCell.create(false),
 
-        uMaxPossibleViewZDiff: ValueCell.create(0.5),
-        uInvProjection: ValueCell.create(Mat4.identity()),
-
         dOcclusionEnable: ValueCell.create(true),
         uOcclusionOffset: ValueCell.create(Vec2.create(0, 0)),
 
@@ -331,8 +321,6 @@ function getPostprocessingRenderable(ctx: WebGLContext, colorTexture: Texture, d
 
         dOutlineEnable: ValueCell.create(false),
         dOutlineScale: ValueCell.create(1),
-        uOutlineThreshold: ValueCell.create(0.33),
-
         dTransparentOutline: ValueCell.create(transparentOutline),
     };
 
@@ -546,6 +534,9 @@ export class PostprocessingPass {
             ValueCell.updateIfChanged(this.ssaoBlurFirstPassRenderable.values.uFar, camera.far);
             ValueCell.updateIfChanged(this.ssaoBlurSecondPassRenderable.values.uFar, camera.far);
 
+            ValueCell.update(this.ssaoBlurFirstPassRenderable.values.uInvProjection, invProjection);
+            ValueCell.update(this.ssaoBlurSecondPassRenderable.values.uInvProjection, invProjection);
+
             if (this.ssaoBlurFirstPassRenderable.values.dOrthographic.ref.value !== orthographic) {
                 needsUpdateSsaoBlur = true;
                 ValueCell.update(this.ssaoBlurFirstPassRenderable.values.dOrthographic, orthographic);
@@ -638,17 +629,13 @@ export class PostprocessingPass {
         }
 
         if (props.outline.name === 'on') {
-            let { threshold, includeTransparent } = props.outline.params;
-            const transparentOutline = includeTransparent ?? true;
-            // orthographic needs lower threshold
-            if (camera.state.mode === 'orthographic') threshold /= 5;
-            const factor = Math.pow(1000, threshold / 10) / 1000;
-            // use radiusMax for stable outlines when zooming
-            const maxPossibleViewZDiff = factor * camera.state.radiusMax;
+            const transparentOutline = props.outline.params.includeTransparent ?? true;
             const outlineScale = props.outline.params.scale - 1;
+            const outlineThreshold = 50 * props.outline.params.threshold;
 
             ValueCell.updateIfChanged(this.outlinesRenderable.values.uNear, camera.near);
             ValueCell.updateIfChanged(this.outlinesRenderable.values.uFar, camera.far);
+            ValueCell.update(this.outlinesRenderable.values.uInvProjection, invProjection);
             if (this.outlinesRenderable.values.dTransparentOutline.ref.value !== transparentOutline) {
                 needsUpdateOutlines = true;
                 ValueCell.update(this.outlinesRenderable.values.dTransparentOutline, transparentOutline);
@@ -657,11 +644,9 @@ export class PostprocessingPass {
                 needsUpdateOutlines = true;
                 ValueCell.update(this.outlinesRenderable.values.dOrthographic, orthographic);
             }
+            ValueCell.updateIfChanged(this.outlinesRenderable.values.uOutlineThreshold, outlineThreshold);
 
             ValueCell.update(this.renderable.values.uOutlineColor, Color.toVec3Normalized(this.renderable.values.uOutlineColor.ref.value, props.outline.params.color));
-
-            ValueCell.updateIfChanged(this.renderable.values.uMaxPossibleViewZDiff, maxPossibleViewZDiff);
-            ValueCell.update(this.renderable.values.uInvProjection, invProjection);
 
             if (this.renderable.values.dOutlineScale.ref.value !== outlineScale) {
                 needsUpdateMain = true;
