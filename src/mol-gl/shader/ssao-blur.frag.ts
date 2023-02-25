@@ -74,7 +74,7 @@ void main(void) {
     float kernelSum = 0.0;
     // only if kernelSize is odd
     for (int i = -dOcclusionKernelSize / 2; i <= dOcclusionKernelSize / 2; i++) {
-        if (abs(i) > 1 && abs(float(i)) * pixelSize > 0.5) continue;
+        if (abs(float(i)) > 1.0 && abs(float(i)) * pixelSize > 0.5) continue;
 
         vec2 sampleCoords = coords + float(i) * offset;
         if (outsideBounds(sampleCoords)) {
@@ -88,7 +88,7 @@ void main(void) {
             continue;
         }
 
-        if (abs(float(i)) > 1.0) { // abs is not defined for int in webgl1
+        if (abs(float(i)) > 1.0) {
             float sampleViewZ = getViewZ(sampleDepth);
             if (abs(selfViewZ - sampleViewZ) > maxDiffViewZ) {
                 continue;
