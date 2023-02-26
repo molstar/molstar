@@ -51,14 +51,15 @@ function adjustPluginProps(ctx: PluginContext) {
                 params: {
                     samples: 32,
                     levels: [
-                        { radius: 1, bias: 0.4 },
-                        { radius: 5, bias: 0.6 },
+                        { radius: 2, bias: 1.0 },
+                        { radius: 5, bias: 1.0 },
                         { radius: 8, bias: 1.0 },
                     ],
                     distanceFactor: 10,
                     blurKernelSize: 11,
                     resolutionScale: 1,
                     color: Color(0x000000),
+                    solidBackground: false,
                 }
             },
             shadow: {
@@ -74,7 +75,7 @@ function adjustPluginProps(ctx: PluginContext) {
                 name: 'on',
                 params: {
                     scale: 1,
-                    threshold: 0.33,
+                    threshold: 0.15,
                     color: Color(0x000000),
                     includeTransparent: true,
                 }

@@ -151,6 +151,7 @@ const SsaoSchema = {
     uRadius: UniformSpec('f[]'),
     uBias: UniformSpec('f[]'),
     uDistanceFactor: UniformSpec('f'),
+    uSolidBackground: UniformSpec('b'),
 };
 
 type SsaoRenderable = ComputeRenderable<Values<typeof SsaoSchema>>
@@ -173,6 +174,7 @@ function getSsaoRenderable(ctx: WebGLContext, depthTexture: Texture): SsaoRender
         uRadius: ValueCell.create([Math.pow(2, 5)]),
         uBias: ValueCell.create([0.8]),
         uDistanceFactor: ValueCell.create(10.0),
+        uSolidBackground: ValueCell.create(false),
     };
 
     const schema = { ...SsaoSchema };
@@ -340,7 +342,7 @@ export const PostprocessingParams = {
         on: PD.Group({
             samples: PD.Numeric(32, { min: 1, max: 256, step: 1 }),
             levels: PD.ObjectList({
-                radius: PD.Numeric(5, { min: 0, max: 10, step: 0.1 }, { description: 'Final occlusion radius is 2^x' }),
+                radius: PD.Numeric(5, { min: 0, max: 20, step: 0.1 }, { description: 'Final occlusion radius is 2^x' }),
                 bias: PD.Numeric(0.8, { min: 0, max: 3, step: 0.1 }),
             }, o => `${o.radius}, ${o.bias}`, { defaultValue: [{
                 radius: 5,
@@ -349,6 +351,7 @@ export const PostprocessingParams = {
             distanceFactor: PD.Numeric(10, { min: 0, max: 50, step: 1 }),
             blurKernelSize: PD.Numeric(15, { min: 1, max: 25, step: 2 }),
             resolutionScale: PD.Numeric(1, { min: 0.1, max: 1, step: 0.05 }, { description: 'Adjust resolution of occlusion calculation' }),
+            solidBackground: PD.Boolean(false),
             color: PD.Color(Color(0x000000)),
         }),
         off: PD.Group({})
@@ -574,6 +577,8 @@ export class PostprocessingPass {
                 ValueCell.update(this.ssaoBlurFirstPassRenderable.values.dOrthographic, orthographic);
                 ValueCell.update(this.ssaoBlurSecondPassRenderable.values.dOrthographic, orthographic);
             }
+
+            ValueCell.updateIfChanged(this.ssaoRenderable.values.uSolidBackground, props.occlusion.params.solidBackground);
 
             if (this.nSamples !== props.occlusion.params.samples) {
                 needsUpdateSsao = true;

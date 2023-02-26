@@ -24,6 +24,7 @@ uniform mat4 uInvProjection;
 uniform float uRadius[dLevels];
 uniform float uBias[dLevels];
 uniform float uDistanceFactor;
+uniform bool uSolidBackground;
 
 float smootherstep(float edge0, float edge1, float x) {
     x = clamp((x - edge0) / (edge1 - edge0), 0.0, 1.0);
@@ -47,20 +48,13 @@ bool isBackground(const in float depth) {
     return depth == 1.0;
 }
 
-bool outsideBounds(const in vec2 p) {
-    return p.x < uBounds.x || p.y < uBounds.y || p.x > uBounds.z || p.y > uBounds.w;
-}
-
 float getDepth(const in vec2 coords) {
-    if (outsideBounds(coords)) {
-        return 1.0;
-    } else {
-        #ifdef depthTextureSupport
-            return texture2D(tDepth, coords).r;
-        #else
-            return unpackRGBAToDepth(texture2D(tDepth, coords));
-        #endif
-    }
+    vec2 c = vec2(clamp(coords.x, uBounds.x, uBounds.z), clamp(coords.y, uBounds.y, uBounds.w));
+    #ifdef depthTextureSupport
+        return texture2D(tDepth, c).r;
+    #else
+        return unpackRGBAToDepth(texture2D(tDepth, c));
+    #endif
 }
 
 vec3 normalFromDepth(const in float depth, const in float depth1, const in float depth2, vec2 offset1, vec2 offset2) {
@@ -113,6 +107,7 @@ void main(void) {
         // TODO: smooth transition
         if (pixelSize * uDistanceFactor > uRadius[l]) continue;
 
+        float levelOcclusion = 0.0;
         for(int i = 0; i < dNSamples; i++) {
             vec3 sampleViewPos = TBN * uSamples[i];
             sampleViewPos = selfViewPos + sampleViewPos * uRadius[l];
@@ -121,10 +116,27 @@ void main(void) {
             offset = uProjection * offset;
             offset.xyz = (offset.xyz / offset.w) * 0.5 + 0.5;
 
-            float sampleViewZ = screenSpaceToViewSpace(vec3(offset.xy, getDepth(offset.xy)), uInvProjection).z;
+            float sampleDepth = getDepth(offset.xy);
+            if (uSolidBackground && sampleDepth == 1.0) {
+                // sampleDepth = 0.0;
+                sampleViewPos = TBN * uSamples[i];
+                sampleViewPos = selfViewPos + sampleViewPos * uRadius[l] * 0.5;
 
-            occlusion += step(sampleViewPos.z + 0.025, sampleViewZ) * smootherstep(0.0, 1.0, uRadius[l] / abs(selfViewPos.z - sampleViewZ)) * uBias[l];
+                offset = vec4(sampleViewPos, 1.0);
+                offset = uProjection * offset;
+                offset.xyz = (offset.xyz / offset.w) * 0.5 + 0.5;
+                sampleDepth = getDepth(offset.xy);
+            }
+            float sampleViewZ = screenSpaceToViewSpace(vec3(offset.xy, sampleDepth), uInvProjection).z;
+
+            float depth_difference = selfViewPos.z - sampleViewZ;
+            float rho = clamp((depth_difference - uRadius[l]) / depth_difference, 0.0, 1.0);
+            // float rho = (depth_difference <= 0.0 || depth_difference > uRadius[l]) ? 1.0 : 0.0;
+            levelOcclusion += step(sampleViewPos.z + pixelSize, sampleViewZ) * rho * uBias[l];
+
+            // levelOcclusion += step(sampleViewPos.z + 0.025, sampleViewZ) * smootherstep(0.0, 1.0, uRadius[l] / abs(selfViewPos.z - sampleViewZ)) * uBias[l];
         }
+        occlusion = max(occlusion, levelOcclusion);
     }
     occlusion = 1.0 - (occlusion / float(dNSamples));
 

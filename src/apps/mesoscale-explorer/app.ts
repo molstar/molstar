@@ -25,7 +25,7 @@ import { PetworldColorThemeProvider } from './data/petworld/color';
 import { CellpackUniformColorThemeProvider } from './data/cellpack/color';
 
 export { PLUGIN_VERSION as version } from '../../mol-plugin/version';
-export { setDebugMode, setProductionMode, setTimingMode } from '../../mol-util/debug';
+export { setDebugMode, setProductionMode, setTimingMode, consoleStats } from '../../mol-util/debug';
 
 const Extensions = {
     'backgrounds': PluginSpec.Behavior(Backgrounds),

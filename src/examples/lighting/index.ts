@@ -24,7 +24,7 @@ const Canvas3DPresets = {
     illustrative: {
         canvas3d: <Preset>{
             postprocessing: {
-                occlusion: { name: 'on', params: { samples: 32, levels: [{ radius: 6, bias: 1.4 }], distanceFactor: 10, blurKernelSize: 15, resolutionScale: 1, color: Color(0x000000) } },
+                occlusion: { name: 'on', params: { samples: 32, levels: [{ radius: 6, bias: 1.4 }], distanceFactor: 10, blurKernelSize: 15, resolutionScale: 1, color: Color(0x000000), solidBackground: false, } },
                 outline: { name: 'on', params: { scale: 1, threshold: 0.33, color: Color(0x000000), includeTransparent: true, } },
                 shadow: { name: 'off', params: {} },
             },

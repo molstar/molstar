@@ -51,6 +51,7 @@ function occlusionStyle(plugin: PluginContext) {
                 samples: 32,
                 resolutionScale: 1,
                 color: Color(0x000000),
+                solidBackground: false,
             } },
             outline: { name: 'on', params: {
                 scale: 1.0,
