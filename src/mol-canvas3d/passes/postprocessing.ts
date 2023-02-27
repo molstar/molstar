@@ -153,6 +153,7 @@ const SsaoSchema = {
     uRadius: UniformSpec('f[]'),
     uBias: UniformSpec('f[]'),
     uDistanceFactor: UniformSpec('f'),
+    uMinDistanceFactor: UniformSpec('f'),
     uSolidBackground: UniformSpec('b'),
 };
 
@@ -178,6 +179,7 @@ function getSsaoRenderable(ctx: WebGLContext, depthTexture: Texture, depthHalfTe
         uRadius: ValueCell.create([Math.pow(2, 5)]),
         uBias: ValueCell.create([0.8]),
         uDistanceFactor: ValueCell.create(10.0),
+        uMinDistanceFactor: ValueCell.create(100.0),
         uSolidBackground: ValueCell.create(false),
     };
 
@@ -348,11 +350,13 @@ export const PostprocessingParams = {
             levels: PD.ObjectList({
                 radius: PD.Numeric(5, { min: 0, max: 20, step: 0.1 }, { description: 'Final occlusion radius is 2^x' }),
                 bias: PD.Numeric(0.8, { min: 0, max: 3, step: 0.1 }),
-            }, o => `${o.radius}, ${o.bias}`, { defaultValue: [{
-                radius: 5,
-                bias: 0.8
-            }] }),
+            }, o => `${o.radius}, ${o.bias}`, { defaultValue: [
+                { radius: 2, bias: 1.0 },
+                { radius: 5, bias: 1.0 },
+                { radius: 8, bias: 1.0 },
+            ] }),
             distanceFactor: PD.Numeric(10, { min: 0, max: 50, step: 1 }),
+            minDistanceFactor: PD.Numeric(1500, { min: 0, max: 5000, step: 100 }),
             blurKernelSize: PD.Numeric(15, { min: 1, max: 25, step: 2 }),
             resolutionScale: PD.Numeric(1, { min: 0.1, max: 1, step: 0.05 }, { description: 'Adjust resolution of occlusion calculation' }),
             solidBackground: PD.Boolean(false),
@@ -636,6 +640,7 @@ export class PostprocessingPass {
                 ValueCell.update(this.ssaoRenderable.values.uBias, levels.bias);
             }
             ValueCell.updateIfChanged(this.ssaoRenderable.values.uDistanceFactor, props.occlusion.params.distanceFactor);
+            ValueCell.updateIfChanged(this.ssaoRenderable.values.uMinDistanceFactor, props.occlusion.params.minDistanceFactor);
 
             if (this.blurKernelSize !== props.occlusion.params.blurKernelSize) {
                 needsUpdateSsaoBlur = true;

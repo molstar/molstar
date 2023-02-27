@@ -56,11 +56,29 @@ export class QuickStyles extends PurePluginUIComponent {
                 postprocessing: {
                     outline: {
                         name: 'on',
-                        params: { scale: 1, color: Color(0x000000), threshold: 0.25, includeTransparent: true }
+                        params: {
+                            scale: 1,
+                            color: Color(0x000000),
+                            threshold: 0.25,
+                            includeTransparent: true,
+                        }
                     },
                     occlusion: {
                         name: 'on',
-                        params: { levels: [{ bias: 0.8, radius: 5 }], distanceFactor: 10, blurKernelSize: 15, samples: 32, resolutionScale: 1, color: Color(0x000000), solidBackground: false, }
+                        params: {
+                            levels: [
+                                { radius: 2, bias: 1.0 },
+                                { radius: 5, bias: 1.0 },
+                                { radius: 8, bias: 1.0 },
+                            ],
+                            distanceFactor: 10,
+                            minDistanceFactor: 1500,
+                            blurKernelSize: 15,
+                            samples: 32,
+                            resolutionScale: 1,
+                            color: Color(0x000000),
+                            solidBackground: false,
+                        }
                     },
                     shadow: { name: 'off', params: {} },
                 }
@@ -79,13 +97,31 @@ export class QuickStyles extends PurePluginUIComponent {
                         name: 'on',
                         params: pp.outline.name === 'on'
                             ? pp.outline.params
-                            : { scale: 1, color: Color(0x000000), threshold: 0.33, includeTransparent: true }
+                            : {
+                                scale: 1,
+                                color: Color(0x000000),
+                                threshold: 0.33,
+                                includeTransparent: true,
+                            }
                     },
                     occlusion: {
                         name: 'on',
                         params: pp.occlusion.name === 'on'
                             ? pp.occlusion.params
-                            : { levels: [{ bias: 0.8, radius: 5 }], distanceFactor: 10, blurKernelSize: 15, samples: 32, resolutionScale: 1, color: Color(0x000000), solidBackground: false, }
+                            : {
+                                levels: [
+                                    { radius: 2, bias: 1.0 },
+                                    { radius: 5, bias: 1.0 },
+                                    { radius: 8, bias: 1.0 },
+                                ],
+                                distanceFactor: 10,
+                                minDistanceFactor: 1500,
+                                blurKernelSize: 15,
+                                samples: 32,
+                                resolutionScale: 1,
+                                color: Color(0x000000),
+                                solidBackground: false,
+                            }
                     },
                     shadow: { name: 'off', params: {} },
                 }

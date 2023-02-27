@@ -26,6 +26,7 @@ uniform mat4 uInvProjection;
 uniform float uRadius[dLevels];
 uniform float uBias[dLevels];
 uniform float uDistanceFactor;
+uniform float uMinDistanceFactor;
 uniform bool uSolidBackground;
 
 float smootherstep(float edge0, float edge1, float x) {
@@ -132,6 +133,7 @@ void main(void) {
     for(int l = 0; l < dLevels; l++) {
         // TODO: smooth transition
         if (pixelSize * uDistanceFactor > uRadius[l]) continue;
+        if (pixelSize * uMinDistanceFactor < uRadius[l]) continue;
 
         float levelOcclusion = 0.0;
         for(int i = 0; i < dNSamples; i++) {

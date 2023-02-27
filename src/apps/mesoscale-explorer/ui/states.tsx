@@ -56,6 +56,7 @@ function adjustPluginProps(ctx: PluginContext) {
                         { radius: 8, bias: 1.0 },
                     ],
                     distanceFactor: 10,
+                    minDistanceFactor: 1500,
                     blurKernelSize: 11,
                     resolutionScale: 1,
                     color: Color(0x000000),

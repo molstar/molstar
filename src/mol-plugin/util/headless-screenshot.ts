@@ -210,6 +210,7 @@ export const STYLIZED_POSTPROCESSING: Partial<PostprocessingProps> = {
                 { radius: 5, bias: 0.8 },
             ],
             distanceFactor: 10,
+            minDistanceFactor: 1500,
             blurKernelSize: 15,
             resolutionScale: 1,
             color: ColorNames.black,
