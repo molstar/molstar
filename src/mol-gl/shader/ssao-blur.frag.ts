@@ -66,7 +66,7 @@ void main(void) {
 
     float selfViewZ = getViewZ(selfDepth);
     float pixelSize = getPixelSize(coords, selfDepth);
-    float maxDiffViewZ = pixelSize * 5.0;
+    float maxDiffViewZ = pixelSize * 10.0;
 
     vec2 offset = vec2(uBlurDirectionX, uBlurDirectionY) / uTexSize;
 
@@ -74,7 +74,7 @@ void main(void) {
     float kernelSum = 0.0;
     // only if kernelSize is odd
     for (int i = -dOcclusionKernelSize / 2; i <= dOcclusionKernelSize / 2; i++) {
-        if (abs(float(i)) > 1.0 && abs(float(i)) * pixelSize > 0.5) continue;
+        if (abs(float(i)) > 1.0 && abs(float(i)) * pixelSize > 0.8) continue;
 
         vec2 sampleCoords = coords + float(i) * offset;
         if (outsideBounds(sampleCoords)) {
