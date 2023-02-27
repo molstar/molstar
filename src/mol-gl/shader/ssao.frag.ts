@@ -13,6 +13,8 @@ precision highp sampler2D;
 #include common
 
 uniform sampler2D tDepth;
+uniform sampler2D tDepthHalf;
+uniform sampler2D tDepthQuarter;
 uniform vec2 uTexSize;
 uniform vec4 uBounds;
 
@@ -53,6 +55,30 @@ float getDepth(const in vec2 coords) {
     #ifdef depthTextureSupport
         return texture2D(tDepth, c).r;
     #else
+        return unpackRGBAToDepth(texture2D(tDepth, c));
+    #endif
+}
+
+float getMappedDepth(const in vec2 coords, const in vec2 selfCoords) {
+    vec2 c = vec2(clamp(coords.x, uBounds.x, uBounds.z), clamp(coords.y, uBounds.y, uBounds.w));
+    float d = distance(coords, selfCoords);
+    #ifdef depthTextureSupport
+        if (d > 0.1) {
+            return texture2D(tDepthQuarter, c).r;
+        } else if (d > 0.05) {
+            return texture2D(tDepthHalf, c).r;
+        } else {
+            return texture2D(tDepth, c).r;
+        }
+        return texture2D(tDepth, c).r;
+    #else
+        if (d > 0.0.1) {
+            return unpackRGBAToDepth(texture2D(tDepthQuarter, c));
+        } else if (d > 0.05) {
+            return unpackRGBAToDepth(texture2D(tDepthHalf, c));
+        } else {
+            return unpackRGBAToDepth(texture2D(tDepth, c));
+        }
         return unpackRGBAToDepth(texture2D(tDepth, c));
     #endif
 }
@@ -116,25 +142,24 @@ void main(void) {
             offset = uProjection * offset;
             offset.xyz = (offset.xyz / offset.w) * 0.5 + 0.5;
 
-            float sampleDepth = getDepth(offset.xy);
+            float sampleDepth = getMappedDepth(offset.xy, selfCoords);
             if (uSolidBackground && sampleDepth == 1.0) {
-                // sampleDepth = 0.0;
                 sampleViewPos = TBN * uSamples[i];
                 sampleViewPos = selfViewPos + sampleViewPos * uRadius[l] * 0.5;
 
                 offset = vec4(sampleViewPos, 1.0);
                 offset = uProjection * offset;
                 offset.xyz = (offset.xyz / offset.w) * 0.5 + 0.5;
-                sampleDepth = getDepth(offset.xy);
+                sampleDepth = getMappedDepth(offset.xy, selfCoords);
             }
             float sampleViewZ = screenSpaceToViewSpace(vec3(offset.xy, sampleDepth), uInvProjection).z;
 
-            float depth_difference = selfViewPos.z - sampleViewZ;
-            float rho = clamp((depth_difference - uRadius[l]) / depth_difference, 0.0, 1.0);
+            // float depth_difference = selfViewPos.z - sampleViewZ;
+            // float rho = clamp((depth_difference - uRadius[l]) / depth_difference, 0.0, 1.0);
             // float rho = (depth_difference <= 0.0 || depth_difference > uRadius[l]) ? 1.0 : 0.0;
-            levelOcclusion += step(sampleViewPos.z + pixelSize, sampleViewZ) * rho * uBias[l];
+            // levelOcclusion += step(sampleViewPos.z + pixelSize, sampleViewZ) * rho * uBias[l];
 
-            // levelOcclusion += step(sampleViewPos.z + 0.025, sampleViewZ) * smootherstep(0.0, 1.0, uRadius[l] / abs(selfViewPos.z - sampleViewZ)) * uBias[l];
+            levelOcclusion += step(sampleViewPos.z + 0.025, sampleViewZ) * smootherstep(0.0, 1.0, uRadius[l] / abs(selfViewPos.z - sampleViewZ)) * uBias[l];
         }
         occlusion = max(occlusion, levelOcclusion);
     }
