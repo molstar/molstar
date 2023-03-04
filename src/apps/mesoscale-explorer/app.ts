@@ -27,6 +27,14 @@ import { CellpackUniformColorThemeProvider } from './data/cellpack/color';
 export { PLUGIN_VERSION as version } from '../../mol-plugin/version';
 export { setDebugMode, setProductionMode, setTimingMode, consoleStats } from '../../mol-util/debug';
 
+export type MesoscaleExplorerState = {
+    examples?: {
+        label: string,
+        url: string,
+        type: 'molx' | 'molj' | 'cif' | 'bcif',
+    }[]
+}
+
 const Extensions = {
     'backgrounds': PluginSpec.Behavior(Backgrounds),
     'mp4-export': PluginSpec.Behavior(Mp4Export),
@@ -154,8 +162,17 @@ export class Viewer {
         if (!element) throw new Error(`Could not get element with id '${elementOrId}'`);
 
         const plugin = await createPluginUI(element, spec, {
-            onBeforeUIRender: plugin => {
+            onBeforeUIRender: async plugin => {
+                let examples: MesoscaleExplorerState['examples'] = undefined;
+                try {
+                    examples = await plugin.fetch({ url: './examples/list.json', type: 'json' }).run();
+                } catch (e) {
+                    console.log(e);
+                }
 
+                (plugin.customState as MesoscaleExplorerState) = {
+                    examples
+                };
             }
         });
 
