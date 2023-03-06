@@ -14,8 +14,11 @@ import { SpacefillRepresentationProvider } from '../../../../mol-repr/structure/
 import { StructureRepresentation3D } from '../../../../mol-plugin-state/transforms/representation';
 import { PluginContext } from '../../../../mol-plugin/context';
 import { PluginStateObject } from '../../../../mol-plugin-state/objects';
+import { MesoscaleExplorerState } from '../../app';
 
-function getSpacefillParams(color: Color) {
+type LodLevels = typeof SpacefillRepresentationProvider.defaultValues['lodLevels']
+
+function getSpacefillParams(color: Color, lodLevels: LodLevels) {
     return {
         type: {
             name: 'spacefill',
@@ -24,11 +27,7 @@ function getSpacefillParams(color: Color) {
                 ignoreHydrogens: true,
                 instanceGranularity: true,
                 ignoreLight: true,
-                lodLevels: [
-                    { minDistance: 1, maxDistance: 1000, overlap: 0, stride: 1, scaleBias: 1 },
-                    { minDistance: 1000, maxDistance: 4000, overlap: 500, stride: 10, scaleBias: 3 },
-                    { minDistance: 4000, maxDistance: 10000000, overlap: 500, stride: 50, scaleBias: 2.5 },
-                ],
+                lodLevels,
                 quality: 'lowest', // avoid 'auto', triggers boundary calc
             },
         },
@@ -54,6 +53,7 @@ export async function createPetworldHierarchy(plugin: PluginContext, trajectory:
     if (!tr) return;
 
     const state = plugin.state.data;
+    const customState = plugin.customState as MesoscaleExplorerState;
 
     const group = await state.build()
         .to(trajectory)
@@ -76,7 +76,7 @@ export async function createPetworldHierarchy(plugin: PluginContext, trajectory:
                 build = build
                     .to(group)
                     .apply(StructureFromPetworld, { modelIndex: i }, { tags: 'Entity' })
-                    .apply(StructureRepresentation3D, getSpacefillParams(colors[i]));
+                    .apply(StructureRepresentation3D, getSpacefillParams(colors[i], customState.lodLevels));
             }
             await build.commit();
         } catch (e) {
