@@ -709,10 +709,6 @@ export class PostprocessingPass {
         state.disable(gl.BLEND);
         state.disable(gl.DEPTH_TEST);
         state.depthMask(false);
-
-        const { x, y, width, height } = camera.viewport;
-        state.viewport(x, y, width, height);
-        state.scissor(x, y, width, height);
     }
 
     private occlusionOffset: [x: number, y: number] = [0, 0];
@@ -731,20 +727,21 @@ export class PostprocessingPass {
         if (isTimingMode) this.webgl.timer.mark('PostprocessingPass.render');
         this.updateState(camera, transparentBackground, backgroundColor, props, light);
 
-        if (props.outline.name === 'on') {
-            this.outlinesTarget.bind();
-            this.outlinesRenderable.render();
-        }
-
-        if (props.shadow.name === 'on') {
-            this.shadowsTarget.bind();
-            this.shadowsRenderable.render();
-        }
+        const { gl, state } = this.webgl;
+        const { x, y, width, height } = camera.viewport;
 
         // don't render occlusion if offset is given,
         // which will reuse the existing occlusion
         if (props.occlusion.name === 'on' && this.occlusionOffset[0] === 0 && this.occlusionOffset[1] === 0) {
             if (isTimingMode) this.webgl.timer.mark('SSAO.render');
+            const sx = Math.floor(x * this.ssaoScale);
+            const sy = Math.floor(y * this.ssaoScale);
+            const sw = Math.ceil(width * this.ssaoScale);
+            const sh = Math.ceil(height * this.ssaoScale);
+
+            state.viewport(sx, sy, sw, sh);
+            state.scissor(sx, sy, sw, sh);
+
             if (this.ssaoScale < 1) {
                 this.downsampledDepthTarget.bind();
                 this.downsampleDepthRenderable.render();
@@ -761,13 +758,24 @@ export class PostprocessingPass {
             if (isTimingMode) this.webgl.timer.markEnd('SSAO.render');
         }
 
+        state.viewport(x, y, width, height);
+        state.scissor(x, y, width, height);
+
+        if (props.outline.name === 'on') {
+            this.outlinesTarget.bind();
+            this.outlinesRenderable.render();
+        }
+
+        if (props.shadow.name === 'on') {
+            this.shadowsTarget.bind();
+            this.shadowsRenderable.render();
+        }
+
         if (toDrawingBuffer) {
             this.webgl.unbindFramebuffer();
         } else {
             this.target.bind();
         }
-
-        const { gl, state } = this.webgl;
 
         this.background.update(camera, props.background);
         if (this.background.isEnabled(props.background)) {
