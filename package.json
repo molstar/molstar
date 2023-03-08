@@ -96,7 +96,8 @@
     "Ke Ma <mark.ma@rcsb.org>",
     "Jason Pattle <jpattle@exscientia.co.uk>",
     "David Williams <dwilliams@nobiastx.com>",
-    "Zhenyu Zhang <jump2cn@gmail.com>"
+    "Zhenyu Zhang <jump2cn@gmail.com>",
+    "Russell Parker <russell@benchling.com>"
   ],
   "license": "MIT",
   "devDependencies": {
