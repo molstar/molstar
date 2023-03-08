@@ -10,6 +10,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Fix issue with outlines and orthographic camera
 - Reduce over-blurring occlusion at larger view distances
 - Fix occlusion artefact with non-canvas viewport and pixel-ratio > 1
+- Update nodejs-shims conditionals to handle polyfilled document object in NodeJS environment.
 
 ## [v3.31.4] - 2023-02-24
 
