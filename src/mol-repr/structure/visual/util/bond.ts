@@ -19,8 +19,8 @@ import { isHydrogen, StructureGroup } from './common';
 export const BondParams = {
     includeTypes: PD.MultiSelect(ObjectKeys(BondType.Names), PD.objectToOptions(BondType.Names)),
     excludeTypes: PD.MultiSelect([] as BondType.Names[], PD.objectToOptions(BondType.Names)),
-    ignoreHydrogens: PD.Boolean(false),
-    ignoreHydrogensVariant: PD.Select('all', PD.arrayToOptions(['all', 'non-polar'] as const)),
+    ignoreHydrogens: PD.Boolean(true),
+    ignoreHydrogensVariant: PD.Select('non-polar', PD.arrayToOptions(['all', 'non-polar'] as const)),
     aromaticBonds: PD.Boolean(true, { description: 'Display aromatic bonds with dashes' }),
     multipleBonds: PD.Select('symmetric', PD.arrayToOptions(['off', 'symmetric', 'offset'] as const)),
 };

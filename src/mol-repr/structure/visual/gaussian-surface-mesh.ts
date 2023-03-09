@@ -33,8 +33,8 @@ import { ValueCell } from '../../../mol-util/value-cell';
 const SharedParams = {
     ...GaussianDensityParams,
     ...ColorSmoothingParams,
-    ignoreHydrogens: PD.Boolean(false),
-    ignoreHydrogensVariant: PD.Select('all', PD.arrayToOptions(['all', 'non-polar'] as const)),
+    ignoreHydrogens: PD.Boolean(true),
+    ignoreHydrogensVariant: PD.Select('non-polar', PD.arrayToOptions(['all', 'non-polar'] as const)),
     tryUseGpu: PD.Boolean(true),
     includeParent: PD.Boolean(false, { isHidden: true }),
 };

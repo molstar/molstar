@@ -22,8 +22,8 @@ const v3add = Vec3.add;
 export const ElementPointParams = {
     ...UnitsPointsParams,
     pointSizeAttenuation: PD.Boolean(false),
-    ignoreHydrogens: PD.Boolean(false),
-    ignoreHydrogensVariant: PD.Select('all', PD.arrayToOptions(['all', 'non-polar'] as const)),
+    ignoreHydrogens: PD.Boolean(true),
+    ignoreHydrogensVariant: PD.Select('non-polar', PD.arrayToOptions(['all', 'non-polar'] as const)),
     traceOnly: PD.Boolean(false),
 };
 export type ElementPointParams = typeof ElementPointParams

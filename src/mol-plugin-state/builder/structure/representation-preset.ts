@@ -36,8 +36,8 @@ export namespace StructureRepresentationPresetProvider {
     }
 
     export const CommonParams = {
-        ignoreHydrogens: PD.Optional(PD.Boolean(false)),
-        ignoreHydrogensVariant: PD.Optional(PD.Select('all', PD.arrayToOptions(['all', 'non-polar'] as const))),
+        ignoreHydrogens: PD.Optional(PD.Boolean(true)),
+        ignoreHydrogensVariant: PD.Optional(PD.Select('non-polar', PD.arrayToOptions(['all', 'non-polar'] as const))),
         ignoreLight: PD.Optional(PD.Boolean(false)),
         quality: PD.Optional(PD.Select<VisualQuality>('auto', VisualQualityOptions)),
         theme: PD.Optional(PD.Group({

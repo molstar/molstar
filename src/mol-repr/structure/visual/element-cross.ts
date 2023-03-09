@@ -26,8 +26,8 @@ const v3unitZ = Vec3.unitZ;
 export const ElementCrossParams = {
     ...UnitsLinesParams,
     lineSizeAttenuation: PD.Boolean(false),
-    ignoreHydrogens: PD.Boolean(false),
-    ignoreHydrogensVariant: PD.Select('all', PD.arrayToOptions(['all', 'non-polar'] as const)),
+    ignoreHydrogens: PD.Boolean(true),
+    ignoreHydrogensVariant: PD.Select('non-polar', PD.arrayToOptions(['all', 'non-polar'] as const)),
     traceOnly: PD.Boolean(false),
     crosses: PD.Select('lone', PD.arrayToOptions(['lone', 'all'] as const)),
     crossSize: PD.Numeric(0.35, { min: 0, max: 2, step: 0.01 }),

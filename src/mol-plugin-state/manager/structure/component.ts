@@ -464,7 +464,7 @@ class StructureComponentManager extends StatefulPluginComponent<StructureCompone
 namespace StructureComponentManager {
     export const OptionsParams = {
         hydrogens: PD.Select(
-            'all',
+            'only-polar',
             [['all', 'Show All'], ['hide-all', 'Hide All'], ['only-polar', 'Only Polar']] as const,
             { description: 'Determine display of hydrogen atoms in representations' }
         ),

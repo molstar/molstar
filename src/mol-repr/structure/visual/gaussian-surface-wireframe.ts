@@ -40,8 +40,8 @@ export const GaussianWireframeParams = {
     ...GaussianDensityParams,
     sizeFactor: PD.Numeric(3, { min: 0, max: 10, step: 0.1 }),
     lineSizeAttenuation: PD.Boolean(false),
-    ignoreHydrogens: PD.Boolean(false),
-    ignoreHydrogensVariant: PD.Select('all', PD.arrayToOptions(['all', 'non-polar'] as const)),
+    ignoreHydrogens: PD.Boolean(true),
+    ignoreHydrogensVariant: PD.Select('non-polar', PD.arrayToOptions(['all', 'non-polar'] as const)),
     includeParent: PD.Boolean(false, { isHidden: true }),
 };
 export type GaussianWireframeParams = typeof GaussianWireframeParams
