@@ -92,7 +92,7 @@ export const HighlightLoci = PluginBehavior.create({
 
 //
 
-const DefaultSelectLociBindings = {
+export const DefaultSelectLociBindings = {
     clickSelect: Binding.Empty,
     clickToggleExtend: Binding([Trigger(B.Flag.Primary, M.create({ shift: true }))], 'Toggle extended selection', '${triggers} to extend selection along polymer'),
     clickSelectOnly: Binding.Empty,
@@ -236,7 +236,7 @@ export const DefaultLociLabelProvider = PluginBehavior.create({
 
 //
 
-const DefaultFocusLociBindings = {
+export const DefaultFocusLociBindings = {
     clickFocus: Binding([
         Trigger(B.Flag.Primary, M.create()),
     ], 'Representation Focus', 'Click element using ${triggers}'),

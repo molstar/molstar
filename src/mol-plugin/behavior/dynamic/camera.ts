@@ -18,7 +18,7 @@ const B = ButtonsType;
 const M = ModifiersKeys;
 const Trigger = Binding.Trigger;
 
-const DefaultFocusLociBindings = {
+export const DefaultFocusLociBindings = {
     clickCenterFocus: Binding([
         Trigger(B.Flag.Primary, M.create()),
         Trigger(B.Flag.Secondary, M.create()),
