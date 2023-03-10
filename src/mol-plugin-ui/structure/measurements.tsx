@@ -3,6 +3,7 @@
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Jason Pattle <jpattle.exscientia.co.uk>
  */
 
 import * as React from 'react';

@@ -3,6 +3,7 @@
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Jason Pattle <jpattle.exscientia.co.uk>
  */
 
 import { MarkerAction } from '../../../mol-util/marker-action';
