@@ -211,7 +211,7 @@ export class MeasurementControls extends PurePluginUIComponent<{}, { isBusy: boo
         }
 
         const shouldShowToggleHint = this.plugin.config.get(PluginConfig.Viewport.ShowSelectionMode);
-        const toggleHint = shouldShowToggleHint ? (<> (toggle <ToggleSelectionModeButton inline /> mode)</>) : null;
+        const toggleHint = shouldShowToggleHint ? (<>{' '}(toggle <ToggleSelectionModeButton inline /> mode)</>) : null;
 
         return <>
             <ActionMenu items={this.actions} onSelect={this.selectAction} />
