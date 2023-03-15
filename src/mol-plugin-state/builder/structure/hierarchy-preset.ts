@@ -13,11 +13,12 @@ import { StateTransforms } from '../../transforms';
 import { RootStructureDefinition } from '../../helpers/root-structure';
 import { PresetStructureRepresentations, StructureRepresentationPresetProvider } from './representation-preset';
 import { PluginContext } from '../../../mol-plugin/context';
-import { Vec3 } from '../../../mol-math/linear-algebra';
-import { Model } from '../../../mol-model/structure';
+import { Mat4, Vec3 } from '../../../mol-math/linear-algebra';
+import { Model, StructureElement } from '../../../mol-model/structure';
 import { getStructureQuality } from '../../../mol-repr/util';
 import { OperatorNameColorThemeProvider } from '../../../mol-theme/color/operator-name';
 import { PluginConfig } from '../../../mol-plugin/config';
+import { superpose } from '../../../mol-model/structure/structure/util/superposition';
 
 export interface TrajectoryHierarchyPresetProvider<P = any, S = {}> extends PresetProvider<PluginStateObject.Molecule.Trajectory, P, S> { }
 export function TrajectoryHierarchyPresetProvider<P, S>(preset: TrajectoryHierarchyPresetProvider<P, S>) { return preset; }
@@ -121,6 +122,66 @@ const allModels = TrajectoryHierarchyPresetProvider({
         return { models, structures };
     }
 });
+
+const CCDParams = (a: PluginStateObject.Molecule.Trajectory | undefined, plugin: PluginContext) => ({
+    representationPresetParams: PD.Optional(PD.Group(StructureRepresentationPresetProvider.CommonParams)),
+    showOriginalCoordinates: PD.Optional(PD.Boolean(true, { description: `Show original coordinates for 'model' and 'ideal' structure and do not align them.` })),
+    // TODO option to select what to view
+    ...CommonParams(a, plugin)
+});
+
+const ccd = TrajectoryHierarchyPresetProvider({
+    id: 'preset-trajectory-ccd',
+    display: {
+        name: 'Chemical Component', group: 'Preset',
+        description: 'Shows molecules from the Chemical Component Dictionary.'
+    },
+    isApplicable: o => {
+        return o.data.representative.sourceData.kind === 'CCD' && o.data.frameCount === 2;
+    },
+    params: CCDParams,
+    async apply(trajectory, params, plugin) {
+        const tr = StateObjectRef.resolveAndCheck(plugin.state.data, trajectory)?.obj?.data;
+        if (!tr) return {};
+
+        const builder = plugin.builders.structure;
+
+        const idealModel = await builder.createModel(trajectory, { modelIndex: 0 });
+        const idealModelProperties = await builder.insertModelProperties(idealModel, params.modelProperties, { isCollapsed: true });
+
+        const idealStructure = await builder.createStructure(idealModelProperties || idealModel, { name: 'model', params: {} });
+        const idealStructureProperties = await builder.insertStructureProperties(idealStructure, params.structureProperties);
+
+        const modelModel = await builder.createModel(trajectory, { modelIndex: 1 });
+        const modelModelProperties = await builder.insertModelProperties(modelModel, params.modelProperties, { isCollapsed: true });
+
+        const modelStructure = await builder.createStructure(modelModelProperties || modelModel, { name: 'model', params: {} });
+        const modelStructureProperties = await builder.insertStructureProperties(modelStructure, params.structureProperties);
+
+        // align ideal and model coordinates
+        if (!params.showOriginalCoordinates) {
+            const locis = [idealStructure, modelStructure].map(s => {
+                const structure = s.obj!.data;
+                return StructureElement.Loci.all(structure);
+            });
+            const { bTransform, rmsd } = superpose(locis)[0];
+            await transform(plugin, modelStructure.cell!, bTransform);
+            plugin.log.info(`Superposed [model] and [ideal] with RMSD ${rmsd.toFixed(2)}.`);
+        }
+
+        const representationPreset = params.representationPreset || plugin.config.get(PluginConfig.Structure.DefaultRepresentationPreset) || PresetStructureRepresentations.auto.id;
+        await builder.representation.applyPreset(idealStructureProperties, representationPreset, params.representationPresetParams);
+        await builder.representation.applyPreset(modelStructureProperties, representationPreset, params.representationPresetParams);
+
+        return { models: [idealModel, modelModel], structures: [idealStructure, modelStructure] };
+    }
+});
+
+function transform(plugin: PluginContext, s: StateObjectRef<PluginStateObject.Molecule.Structure>, matrix: Mat4) {
+    const b = plugin.state.data.build().to(s)
+        .insert(StateTransforms.Model.TransformStructureConformation, { transform: { name: 'matrix', params: { data: matrix, transpose: false } } });
+    return plugin.runTask(plugin.state.data.updateTree(b));
+}
 
 const CrystalSymmetryParams = (a: PluginStateObject.Molecule.Trajectory | undefined, plugin: PluginContext) => ({
     model: PD.Optional(PD.Group(StateTransformer.getParamDefinition(StateTransforms.Model.ModelFromTrajectory, a, plugin))),
@@ -228,6 +289,7 @@ const crystalContacts = TrajectoryHierarchyPresetProvider({
 export const PresetTrajectoryHierarchy = {
     'default': defaultPreset,
     'all-models': allModels,
+    ccd,
     unitcell,
     supercell,
     crystalContacts,
