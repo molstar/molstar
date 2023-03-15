@@ -19,6 +19,7 @@ import { getStructureQuality } from '../../../mol-repr/util';
 import { OperatorNameColorThemeProvider } from '../../../mol-theme/color/operator-name';
 import { PluginConfig } from '../../../mol-plugin/config';
 import { superpose } from '../../../mol-model/structure/structure/util/superposition';
+import { CCDFormat } from '../../../mol-model-formats/structure/mmcif';
 
 export interface TrajectoryHierarchyPresetProvider<P = any, S = {}> extends PresetProvider<PluginStateObject.Molecule.Trajectory, P, S> { }
 export function TrajectoryHierarchyPresetProvider<P, S>(preset: TrajectoryHierarchyPresetProvider<P, S>) { return preset; }
@@ -137,7 +138,7 @@ const ccd = TrajectoryHierarchyPresetProvider({
         description: 'Shows molecules from the Chemical Component Dictionary.'
     },
     isApplicable: o => {
-        return o.data.representative.sourceData.kind === 'CCD' && o.data.frameCount === 2;
+        return CCDFormat.is(o.data.representative.sourceData) && o.data.frameCount === 2;
     },
     params: CCDParams,
     async apply(trajectory, params, plugin) {
