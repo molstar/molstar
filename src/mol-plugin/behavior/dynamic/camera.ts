@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -17,6 +17,7 @@ import { Vec3 } from '../../../mol-math/linear-algebra';
 const B = ButtonsType;
 const M = ModifiersKeys;
 const Trigger = Binding.Trigger;
+const Key = Binding.TriggerKey;
 
 const DefaultFocusLociBindings = {
     clickCenterFocus: Binding([
@@ -28,6 +29,8 @@ const DefaultFocusLociBindings = {
         Trigger(B.Flag.Secondary, M.create()),
         Trigger(B.Flag.Primary, M.create({ control: true }))
     ], 'Camera center and focus', 'Click element using ${triggers}'),
+    keySpinAnimation: Binding([Key('KeyI')], 'Spin Animation', 'Press ${triggers}'),
+    keyRockAnimation: Binding([Key('KeyO')], 'Rock Animation', 'Press ${triggers}'),
 };
 const FocusLociParams = {
     minRadius: PD.Numeric(8, { min: 1, max: 50, step: 1 }),
@@ -58,6 +61,42 @@ export const FocusLoci = PluginBehavior.create<FocusLociProps>({
 
                     const loci = Loci.normalize(current.loci, this.ctx.managers.interactivity.props.granularity);
                     this.ctx.managers.camera.focusLoci(loci, this.params);
+                }
+            });
+
+            this.subscribeObservable(this.ctx.behaviors.interaction.key, ({ code, modifiers }) => {
+                if (!this.ctx.canvas3d) return;
+
+                // include defaults for backwards state compatibility
+                const b = { ...DefaultFocusLociBindings, ...this.params.bindings };
+                const p = this.ctx.canvas3d.props.trackball;
+
+                if (Binding.matchKey(b.keySpinAnimation, code, modifiers)) {
+                    const name = p.animate.name !== 'spin' ? 'spin' : 'off';
+                    if (name === 'off') {
+                        this.ctx.canvas3d.setProps({
+                            trackball: { animate: { name, params: {} } }
+                        });
+                    } else {
+                        this.ctx.canvas3d.setProps({
+                            trackball: { animate: {
+                                name, params: { speed: 1 } }
+                            }
+                        });
+                    }
+                } else if (Binding.matchKey(b.keyRockAnimation, code, modifiers)) {
+                    const name = p.animate.name !== 'rock' ? 'rock' : 'off';
+                    if (name === 'off') {
+                        this.ctx.canvas3d.setProps({
+                            trackball: { animate: { name, params: {} } }
+                        });
+                    } else {
+                        this.ctx.canvas3d.setProps({
+                            trackball: { animate: {
+                                name, params: { speed: 0.3, angle: 10 } }
+                            }
+                        });
+                    }
                 }
             });
         }

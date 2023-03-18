@@ -12,6 +12,10 @@ Note that since we don't clearly distinguish between a public and private interf
 - Fix occlusion artefact with non-canvas viewport and pixel-ratio > 1
 - Update nodejs-shims conditionals to handle polyfilled document object in NodeJS environment.
 - Ensure marking edges are at least one pixel wide
+- Input/controls improvements
+    - Move or fly around the scene using keys
+    - Pointer lock to look around scene
+    - Toggle spin/rock animation using keys
 
 ## [v3.31.4] - 2023-02-24
 
