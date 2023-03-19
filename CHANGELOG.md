@@ -6,9 +6,26 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
-Add new cartoon visuals to support nucleotide base with sugar
-Fix impostor bond visuals not correctly updating on `sizeFactor` changes
-Fix degenerate case in PCA
+- Add new cartoon visuals to support nucleotide base with sugar
+- Add occlusion color parameter
+- Fix issue with outlines and orthographic camera
+- Reduce over-blurring occlusion at larger view distances
+- Fix occlusion artefact with non-canvas viewport and pixel-ratio > 1
+- Update nodejs-shims conditionals to handle polyfilled document object in NodeJS environment.
+- Ensure marking edges are at least one pixel wide
+- Fix blurry occlusion in screenshots
+
+## [v3.31.4] - 2023-02-24
+
+- Allow link cylinder/line `dashCount` set to '0'
+- Stop animation loop when disposing `PluginContext` (thanks @gfrn for identifying the issue)
+
+## [v3.31.3] - 2023-02-22
+
+- Fix impostor bond visuals not correctly updating on `sizeFactor` changes
+- Fix degenerate case in PCA
+- Fix near clipping avoidance in impostor shaders
+- Update `fs` import in `data-source.ts`
 
 ## [v3.31.2] - 2023-02-12
 

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -96,8 +96,10 @@ void main(void){
 
     vModelPosition = (uModel * aTransform * position4).xyz; // for clipping in frag shader
 
-    mvPosition.z -= 2.0 * vRadius; // avoid clipping
-    gl_Position.z = (uProjection * vec4(mvPosition.xyz, 1.0)).z;
+    if (gl_Position.z < -gl_Position.w) {
+        mvPosition.z -= 2.0 * vRadius; // avoid clipping
+        gl_Position.z = (uProjection * vec4(mvPosition.xyz, 1.0)).z;
+    }
 
     #include clip_instance
 }
