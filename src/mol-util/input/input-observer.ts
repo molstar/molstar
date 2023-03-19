@@ -205,7 +205,7 @@ type PointerEvent = {
     clientY: number
     pageX: number
     pageY: number
-    target: any
+    target: EventTarget | null
 
     preventDefault?: () => void
 }
