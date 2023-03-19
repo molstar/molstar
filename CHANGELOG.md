@@ -6,6 +6,7 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Avoid rendering of fully transparent renderables
 - Add occlusion color parameter
 - Fix issue with outlines and orthographic camera
 - Reduce over-blurring occlusion at larger view distances
