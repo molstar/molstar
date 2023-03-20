@@ -6,6 +6,7 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Avoid rendering of fully transparent renderables
 - Add occlusion color parameter
 - Fix issue with outlines and orthographic camera
 - Reduce over-blurring occlusion at larger view distances
@@ -13,6 +14,8 @@ Note that since we don't clearly distinguish between a public and private interf
 - Update nodejs-shims conditionals to handle polyfilled document object in NodeJS environment.
 - Ensure marking edges are at least one pixel wide
 - Add exposure parameter to renderer
+- Only trigger marking when mouse is directly over canvas
+- Fix blurry occlusion in screenshots
 
 ## [v3.31.4] - 2023-02-24
 
