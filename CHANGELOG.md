@@ -5,6 +5,10 @@ Note that since we don't clearly distinguish between a public and private interf
 
 
 ## [Unreleased]
+- Selection toggle buttons hidden if selection mode is off
+- Camera focus loci bindings allow reset on click-away to be overridden
+
+## [v3.32.0] - 2023-03-20
 
 - Avoid rendering of fully transparent renderables
 - Add occlusion color parameter
@@ -13,9 +17,10 @@ Note that since we don't clearly distinguish between a public and private interf
 - Fix occlusion artefact with non-canvas viewport and pixel-ratio > 1
 - Update nodejs-shims conditionals to handle polyfilled document object in NodeJS environment.
 - Ensure marking edges are at least one pixel wide
+- Add exposure parameter to renderer
+- Only trigger marking when mouse is directly over canvas
 - Fix blurry occlusion in screenshots
-- Selection toggle buttons hidden if selection mode is off
-- Camera focus loci bindings allow reset on click-away to be overridden
+- [Breaking] Add `setFSModule` to `mol-util/data-source` instead of trying to trick WebPack
 
 ## [v3.31.4] - 2023-02-24
 
