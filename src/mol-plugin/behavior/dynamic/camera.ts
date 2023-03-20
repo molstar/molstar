@@ -23,11 +23,11 @@ export const DefaultClickResetCameraOnEmpty = Binding([
     Trigger(B.Flag.Primary, M.create()),
     Trigger(B.Flag.Secondary, M.create()),
     Trigger(B.Flag.Primary, M.create({ control: true }))
-], 'Reset camera focus', 'Click on nothing using ${triggers}')
+], 'Reset camera focus', 'Click on nothing using ${triggers}');
 export const DefaultClickResetCameraOnEmptySelectMode = Binding([
     Trigger(B.Flag.Secondary, M.create()),
     Trigger(B.Flag.Primary, M.create({ control: true }))
-], 'Reset camera focus', 'Click on nothing using ${triggers}')
+], 'Reset camera focus', 'Click on nothing using ${triggers}');
 
 type FocusLociBindings = {
     clickCenterFocus: Binding
