@@ -118,7 +118,7 @@ function createNucleotideRingFillMesh(ctx: VisualContext, unit: Unit, structure:
 
                     // sugar ring
                     Vec3.triangleNormal(normal, pC3_1, pC4_1, pC1_1);
-                    Vec3.scaleAndAdd(mid, Vec3.scale(mid, Vec3.add(mid, pO4_1, Vec3.add(mid, pC4_1, Vec3.add(mid, pC3_1, Vec3.add(mid, pC1_1, pC2_1)))), 0.2/* 1 / 5 */), normal, 0.5);
+                    Vec3.scale(mid, Vec3.add(mid, pO4_1, Vec3.add(mid, pC4_1, Vec3.add(mid, pC3_1, Vec3.add(mid, pC1_1, pC2_1)))), 0.2/* 1 / 5 */);
 
                     Vec3.scale(shift, normal, thickness);
                     shiftPositions(positionsRing5, shift, mid, pC3_1, pC4_1, pO4_1, pC1_1, pC2_1);
