@@ -6,6 +6,8 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+## [v3.32.0] - 2023-03-20
+
 - Avoid rendering of fully transparent renderables
 - Add occlusion color parameter
 - Fix issue with outlines and orthographic camera
@@ -16,7 +18,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Add exposure parameter to renderer
 - Only trigger marking when mouse is directly over canvas
 - Fix blurry occlusion in screenshots
-- [breaking] Add `setFSModule` to `mol-util/data-source` instead of trying to trick WebPack
+- [Breaking] Add `setFSModule` to `mol-util/data-source` instead of trying to trick WebPack
 
 ## [v3.31.4] - 2023-02-24
 
