@@ -6,12 +6,14 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Avoid rendering of fully transparent renderables
 - Add occlusion color parameter
 - Fix issue with outlines and orthographic camera
 - Reduce over-blurring occlusion at larger view distances
 - Fix occlusion artefact with non-canvas viewport and pixel-ratio > 1
 - Update nodejs-shims conditionals to handle polyfilled document object in NodeJS environment.
 - Ensure marking edges are at least one pixel wide
+- Fix blurry occlusion in screenshots
 - Selection toggle buttons hidden if selection mode is off
 - Camera focus loci bindings allow reset on click-away to be overridden
 
