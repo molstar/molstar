@@ -160,6 +160,7 @@ export const GlobalUniformSchema = {
     uMarkerAverage: UniformSpec('f'),
 
     uXrayEdgeFalloff: UniformSpec('f'),
+    uExposure: UniformSpec('f'),
 
     uRenderMask: UniformSpec('i'),
     uMarkingDepthTest: UniformSpec('b'),

@@ -13,6 +13,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Fix occlusion artefact with non-canvas viewport and pixel-ratio > 1
 - Update nodejs-shims conditionals to handle polyfilled document object in NodeJS environment.
 - Ensure marking edges are at least one pixel wide
+- Add exposure parameter to renderer
 - Only trigger marking when mouse is directly over canvas
 - Fix blurry occlusion in screenshots
 

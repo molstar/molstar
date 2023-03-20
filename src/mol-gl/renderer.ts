@@ -104,6 +104,7 @@ export const RendererParams = {
     markerPriority: PD.Select(1, [[1, 'Highlight'], [2, 'Select']]),
 
     xrayEdgeFalloff: PD.Numeric(1, { min: 0.0, max: 3.0, step: 0.1 }),
+    exposure: PD.Numeric(1, { min: 0.0, max: 3.0, step: 0.01 }),
 
     light: PD.ObjectList({
         inclination: PD.Numeric(150, { min: 0, max: 180, step: 1 }),
@@ -242,6 +243,7 @@ namespace Renderer {
             uMarkerAverage: ValueCell.create(0),
 
             uXrayEdgeFalloff: ValueCell.create(p.xrayEdgeFalloff),
+            uExposure: ValueCell.create(p.exposure),
         };
         const globalUniformList = Object.entries(globalUniforms);
 
@@ -786,6 +788,10 @@ namespace Renderer {
                 if (props.xrayEdgeFalloff !== undefined && props.xrayEdgeFalloff !== p.xrayEdgeFalloff) {
                     p.xrayEdgeFalloff = props.xrayEdgeFalloff;
                     ValueCell.update(globalUniforms.uXrayEdgeFalloff, p.xrayEdgeFalloff);
+                }
+                if (props.exposure !== undefined && props.exposure !== p.exposure) {
+                    p.exposure = props.exposure;
+                    ValueCell.update(globalUniforms.uExposure, p.exposure);
                 }
 
                 if (props.light !== undefined && !deepEqual(props.light, p.light)) {
