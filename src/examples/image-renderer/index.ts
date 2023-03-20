@@ -19,7 +19,10 @@ import { StructureRepresentation3D } from '../../mol-plugin-state/transforms/rep
 import { HeadlessPluginContext } from '../../mol-plugin/headless-plugin-context';
 import { DefaultPluginSpec } from '../../mol-plugin/spec';
 import { STYLIZED_POSTPROCESSING } from '../../mol-plugin/util/headless-screenshot';
+import { setFSModule } from '../../mol-util/data-source';
 
+
+setFSModule(fs);
 
 interface Args {
     pdbId: string,
