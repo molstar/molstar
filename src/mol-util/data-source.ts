@@ -300,14 +300,17 @@ function ajaxGetInternal<T extends DataType>(title: string | undefined, url: str
     });
 }
 
-// NOTE: lazy imports cannot be used here because WebPack complains since this
-// is part of the "browser" build.
+// NOTE: a workaround for using this in Node.js
 let _fs: (typeof import ('fs')) | undefined = undefined;
 function getFS() {
-    if (_fs) return _fs!;
-    const req = require; // To fool webpack
-    _fs = req('fs');
-    return _fs!;
+    if (!_fs) {
+        throw new Error('When running in Node.js and reading from files, call mol-util/data-source\'s setFSModule function first.');
+    }
+    return _fs;
+}
+
+export function setFSModule(fs: typeof import ('fs')) {
+    _fs = fs;
 }
 
 /** Alternative implementation of ajaxGetInternal (because xhr2 does not support file:// protocol) */
