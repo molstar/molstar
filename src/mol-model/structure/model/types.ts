@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -87,6 +87,7 @@ export const enum PolymerType {
 
 export type AtomRole = 'trace' | 'directionFrom' | 'directionTo' | 'backboneStart' | 'backboneEnd' | 'coarseBackbone'
 
+// note that the trace atom should be a carbon to play nicely with color themes
 export const PolymerTypeAtomRoleId: { [k in PolymerType]: { [k in AtomRole]: Set<string> } } = {
     [PolymerType.NA]: {
         trace: new Set(),
@@ -123,7 +124,7 @@ export const PolymerTypeAtomRoleId: { [k in PolymerType]: { [k in AtomRole]: Set
         coarseBackbone: new Set(['CA'])
     },
     [PolymerType.RNA]: {
-        trace: new Set(['O3\'', 'O3*']),
+        trace: new Set(['C4\'', 'C4*']),
         directionFrom: new Set(['C4\'', 'C4*']),
         directionTo: new Set(['C3\'', 'C3*']),
         backboneStart: new Set(['P']),
@@ -131,7 +132,7 @@ export const PolymerTypeAtomRoleId: { [k in PolymerType]: { [k in AtomRole]: Set
         coarseBackbone: new Set(['P'])
     },
     [PolymerType.DNA]: {
-        trace: new Set(['O3\'', 'O3*']),
+        trace: new Set(['C3\'', 'C3*']),
         directionFrom: new Set(['C3\'', 'C3*']),
         directionTo: new Set(['C1\'', 'C1*']),
         backboneStart: new Set(['P']),
@@ -139,7 +140,7 @@ export const PolymerTypeAtomRoleId: { [k in PolymerType]: { [k in AtomRole]: Set
         coarseBackbone: new Set(['P'])
     },
     [PolymerType.PNA]: {
-        trace: new Set(['N4\'', 'N4*']),
+        trace: new Set(['C3\'', 'C3*']),
         directionFrom: new Set(['N4\'', 'N4*']),
         directionTo: new Set(['C7\'', 'C7*']),
         backboneStart: new Set(['N1\'', 'N1*']),
