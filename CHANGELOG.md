@@ -6,6 +6,8 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Fix polymer trace shift for PNA
+
 ## [v3.32.0] - 2023-03-20
 
 - Avoid rendering of fully transparent renderables

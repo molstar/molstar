@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -11,7 +11,7 @@ import { Theme } from '../../../mol-theme/theme';
 import { Mesh } from '../../../mol-geo/geometry/mesh/mesh';
 import { MeshBuilder } from '../../../mol-geo/geometry/mesh/mesh-builder';
 import { createCurveSegmentState, PolymerTraceIterator, interpolateCurveSegment, interpolateSizes, PolymerLocationIterator, getPolymerElementLoci, eachPolymerElement, StandardTension, StandardShift, NucleicShift, OverhangFactor } from './util/polymer';
-import { isNucleic } from '../../../mol-model/structure/model/types';
+import { MoleculeType, isNucleic } from '../../../mol-model/structure/model/types';
 import { addTube } from '../../../mol-geo/geometry/mesh/builder/tube';
 import { UnitsMeshParams, UnitsVisual, UnitsMeshVisual } from '../units-visual';
 import { VisualUpdateState } from '../../util';
@@ -52,7 +52,7 @@ function createPolymerTubeMesh(ctx: VisualContext, unit: Unit, structure: Struct
         builderState.currentGroup = i;
 
         const isNucleicType = isNucleic(v.moleculeType);
-        const shift = isNucleicType ? NucleicShift : StandardShift;
+        const shift = (isNucleicType && v.moleculeType !== MoleculeType.PNA) ? NucleicShift : StandardShift;
 
         interpolateCurveSegment(state, v, StandardTension, shift);
 

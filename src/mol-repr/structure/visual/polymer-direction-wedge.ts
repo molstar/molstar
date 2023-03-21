@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -12,8 +12,8 @@ import { Unit, Structure } from '../../../mol-model/structure';
 import { Theme } from '../../../mol-theme/theme';
 import { Mesh } from '../../../mol-geo/geometry/mesh/mesh';
 import { MeshBuilder } from '../../../mol-geo/geometry/mesh/mesh-builder';
-import { createCurveSegmentState, PolymerTraceIterator, interpolateCurveSegment, PolymerLocationIterator, getPolymerElementLoci, eachPolymerElement } from './util/polymer';
-import { isNucleic, SecondaryStructureType } from '../../../mol-model/structure/model/types';
+import { createCurveSegmentState, PolymerTraceIterator, interpolateCurveSegment, PolymerLocationIterator, getPolymerElementLoci, eachPolymerElement, NucleicShift, StandardShift } from './util/polymer';
+import { isNucleic, MoleculeType, SecondaryStructureType } from '../../../mol-model/structure/model/types';
 import { UnitsMeshParams, UnitsVisual, UnitsMeshVisual } from '../units-visual';
 import { VisualUpdateState } from '../../util';
 import { Sphere3D } from '../../../mol-math/geometry';
@@ -58,7 +58,7 @@ function createPolymerDirectionWedgeMesh(ctx: VisualContext, unit: Unit, structu
         const isNucleicType = isNucleic(v.moleculeType);
         const isSheet = SecondaryStructureType.is(v.secStrucType, SecondaryStructureType.Flag.Beta);
         const tension = (isNucleicType || isSheet) ? 0.5 : 0.9;
-        const shift = isNucleicType ? 0.3 : 0.5;
+        const shift = (isNucleicType && v.moleculeType !== MoleculeType.PNA) ? NucleicShift : StandardShift;
 
         interpolateCurveSegment(state, v, tension, shift);
 

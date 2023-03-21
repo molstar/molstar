@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -67,7 +67,7 @@ function createPolymerBackboneCylinderImpostor(ctx: VisualContext, unit: Unit, s
         pos(indexB, pB);
 
         const isNucleicType = isNucleic(moleculeType);
-        const shift = isNucleicType ? NucleicShift : StandardShift;
+        const shift = (isNucleicType && moleculeType !== MoleculeType.PNA) ? NucleicShift : StandardShift;
 
         v3add(pM, pA, v3scale(pM, v3sub(pM, pB, pA), shift));
         builder.add(pA[0], pA[1], pA[2], pM[0], pM[1], pM[2], 1, false, false, groupA);
@@ -123,7 +123,7 @@ function createPolymerBackboneCylinderMesh(ctx: VisualContext, unit: Unit, struc
         pos(centerB.element, pB);
 
         const isNucleicType = isNucleic(moleculeType);
-        const shift = isNucleicType ? NucleicShift : StandardShift;
+        const shift = (isNucleicType && moleculeType !== MoleculeType.PNA) ? NucleicShift : StandardShift;
 
         cylinderProps.radiusTop = cylinderProps.radiusBottom = theme.size.size(centerA) * sizeFactor;
         builderState.currentGroup = groupA;

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -11,7 +11,7 @@ import { Theme } from '../../../mol-theme/theme';
 import { Mesh } from '../../../mol-geo/geometry/mesh/mesh';
 import { MeshBuilder } from '../../../mol-geo/geometry/mesh/mesh-builder';
 import { createCurveSegmentState, PolymerTraceIterator, interpolateCurveSegment, interpolateSizes, PolymerLocationIterator, getPolymerElementLoci, eachPolymerElement, HelixTension, NucleicShift, StandardShift, StandardTension, OverhangFactor } from './util/polymer';
-import { isNucleic, SecondaryStructureType } from '../../../mol-model/structure/model/types';
+import { isNucleic, MoleculeType, SecondaryStructureType } from '../../../mol-model/structure/model/types';
 import { addSheet } from '../../../mol-geo/geometry/mesh/builder/sheet';
 import { addTube } from '../../../mol-geo/geometry/mesh/builder/tube';
 import { UnitsMeshParams, UnitsVisual, UnitsMeshVisual } from '../units-visual';
@@ -62,7 +62,7 @@ function createPolymerTraceMesh(ctx: VisualContext, unit: Unit, structure: Struc
         const isSheet = SecondaryStructureType.is(v.secStrucType, SecondaryStructureType.Flag.Beta);
         const isHelix = SecondaryStructureType.is(v.secStrucType, SecondaryStructureType.Flag.Helix);
         const tension = isHelix && !tubularHelices ? HelixTension : StandardTension;
-        const shift = isNucleicType ? NucleicShift : StandardShift;
+        const shift = (isNucleicType && v.moleculeType !== MoleculeType.PNA) ? NucleicShift : StandardShift;
 
         interpolateCurveSegment(state, v, tension, shift);
 
