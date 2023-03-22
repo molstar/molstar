@@ -149,12 +149,15 @@ const SsaoSchema = {
 
     uTexSize: UniformSpec('v2'),
 
+    uRadius: UniformSpec('f'),
+    uBias: UniformSpec('f'),
+
+    dMultiScale: DefineSpec('boolean'),
     dLevels: DefineSpec('number'),
-    uRadius: UniformSpec('f[]'),
-    uBias: UniformSpec('f[]'),
-    uDistanceFactor: UniformSpec('f'),
-    uMinDistanceFactor: UniformSpec('f'),
-    uSolidBackground: UniformSpec('b'),
+    uLevelRadius: UniformSpec('f[]'),
+    uLevelBias: UniformSpec('f[]'),
+    uNearThreshold: UniformSpec('f'),
+    uFarThreshold: UniformSpec('f'),
 };
 
 type SsaoRenderable = ComputeRenderable<Values<typeof SsaoSchema>>
@@ -175,12 +178,15 @@ function getSsaoRenderable(ctx: WebGLContext, depthTexture: Texture, depthHalfTe
 
         uTexSize: ValueCell.create(Vec2.create(ctx.gl.drawingBufferWidth, ctx.gl.drawingBufferHeight)),
 
-        dLevels: ValueCell.create(1),
-        uRadius: ValueCell.create([Math.pow(2, 5)]),
-        uBias: ValueCell.create([0.8]),
-        uDistanceFactor: ValueCell.create(10.0),
-        uMinDistanceFactor: ValueCell.create(100.0),
-        uSolidBackground: ValueCell.create(false),
+        uRadius: ValueCell.create(Math.pow(2, 5)),
+        uBias: ValueCell.create(0.8),
+
+        dMultiScale: ValueCell.create(false),
+        dLevels: ValueCell.create(3),
+        uLevelRadius: ValueCell.create([Math.pow(2, 2), Math.pow(2, 5), Math.pow(2, 8)]),
+        uLevelBias: ValueCell.create([0.8, 0.8, 0.8]),
+        uNearThreshold: ValueCell.create(10.0),
+        uFarThreshold: ValueCell.create(1500.0),
     };
 
     const schema = { ...SsaoSchema };
@@ -347,19 +353,25 @@ export const PostprocessingParams = {
     occlusion: PD.MappedStatic('on', {
         on: PD.Group({
             samples: PD.Numeric(32, { min: 1, max: 256, step: 1 }),
-            levels: PD.ObjectList({
-                radius: PD.Numeric(5, { min: 0, max: 20, step: 0.1 }, { description: 'Final occlusion radius is 2^x' }),
-                bias: PD.Numeric(0.8, { min: 0, max: 3, step: 0.1 }),
-            }, o => `${o.radius}, ${o.bias}`, { defaultValue: [
-                { radius: 2, bias: 1.0 },
-                { radius: 5, bias: 1.0 },
-                { radius: 8, bias: 1.0 },
-            ] }),
-            distanceFactor: PD.Numeric(10, { min: 0, max: 50, step: 1 }),
-            minDistanceFactor: PD.Numeric(1500, { min: 0, max: 5000, step: 100 }),
+            multiScale: PD.MappedStatic('off', {
+                on: PD.Group({
+                    levels: PD.ObjectList({
+                        radius: PD.Numeric(5, { min: 0, max: 20, step: 0.1 }, { description: 'Final occlusion radius is 2^x' }),
+                        bias: PD.Numeric(0.8, { min: 0, max: 3, step: 0.1 }),
+                    }, o => `${o.radius}, ${o.bias}`, { defaultValue: [
+                        { radius: 2, bias: 0.8 },
+                        { radius: 5, bias: 0.8 },
+                        { radius: 8, bias: 0.8 },
+                    ] }),
+                    nearThreshold: PD.Numeric(10, { min: 0, max: 50, step: 1 }),
+                    farThreshold: PD.Numeric(1500, { min: 0, max: 5000, step: 100 }),
+                }),
+                off: PD.Group({})
+            }, { cycle: true }),
+            radius: PD.Numeric(5, { min: 0, max: 20, step: 0.1 }, { description: 'Final occlusion radius is 2^x', hideIf: p => p?.multiScale.name === 'on' }),
+            bias: PD.Numeric(0.8, { min: 0, max: 3, step: 0.1 }, { hideIf: p => p?.multiScale.name === 'on' }),
             blurKernelSize: PD.Numeric(15, { min: 1, max: 25, step: 2 }),
             resolutionScale: PD.Numeric(1, { min: 0.1, max: 1, step: 0.05 }, { description: 'Adjust resolution of occlusion calculation' }),
-            solidBackground: PD.Boolean(false),
             color: PD.Color(Color(0x000000)),
         }),
         off: PD.Group({})
@@ -619,8 +631,6 @@ export class PostprocessingPass {
                 ValueCell.update(this.ssaoBlurSecondPassRenderable.values.dOrthographic, orthographic);
             }
 
-            ValueCell.updateIfChanged(this.ssaoRenderable.values.uSolidBackground, props.occlusion.params.solidBackground);
-
             if (this.nSamples !== props.occlusion.params.samples) {
                 needsUpdateSsao = true;
 
@@ -629,18 +639,30 @@ export class PostprocessingPass {
                 ValueCell.updateIfChanged(this.ssaoRenderable.values.dNSamples, this.nSamples);
             }
 
-            if (!deepEqual(this.levels, props.occlusion.params.levels)) {
+            const multiScale = props.occlusion.params.multiScale.name === 'on';
+            if (this.ssaoRenderable.values.dMultiScale.ref.value !== multiScale) {
                 needsUpdateSsao = true;
-
-                this.levels = props.occlusion.params.levels;
-                const levels = getLevels(props.occlusion.params.levels);
-                ValueCell.updateIfChanged(this.ssaoRenderable.values.dLevels, levels.count);
-
-                ValueCell.update(this.ssaoRenderable.values.uRadius, levels.radius);
-                ValueCell.update(this.ssaoRenderable.values.uBias, levels.bias);
+                ValueCell.update(this.ssaoRenderable.values.dMultiScale, multiScale);
             }
-            ValueCell.updateIfChanged(this.ssaoRenderable.values.uDistanceFactor, props.occlusion.params.distanceFactor);
-            ValueCell.updateIfChanged(this.ssaoRenderable.values.uMinDistanceFactor, props.occlusion.params.minDistanceFactor);
+
+            if (props.occlusion.params.multiScale.name === 'on') {
+                const mp = props.occlusion.params.multiScale.params;
+                if (!deepEqual(this.levels, mp.levels)) {
+                    needsUpdateSsao = true;
+
+                    this.levels = mp.levels;
+                    const levels = getLevels(mp.levels);
+                    ValueCell.updateIfChanged(this.ssaoRenderable.values.dLevels, levels.count);
+
+                    ValueCell.update(this.ssaoRenderable.values.uLevelRadius, levels.radius);
+                    ValueCell.update(this.ssaoRenderable.values.uLevelBias, levels.bias);
+                }
+                ValueCell.updateIfChanged(this.ssaoRenderable.values.uNearThreshold, mp.nearThreshold);
+                ValueCell.updateIfChanged(this.ssaoRenderable.values.uFarThreshold, mp.farThreshold);
+            } else {
+                ValueCell.update(this.ssaoRenderable.values.uRadius, Math.pow(2, props.occlusion.params.radius));
+                ValueCell.update(this.ssaoRenderable.values.uBias, props.occlusion.params.bias);
+            }
 
             if (this.blurKernelSize !== props.occlusion.params.blurKernelSize) {
                 needsUpdateSsaoBlur = true;

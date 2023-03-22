@@ -28,15 +28,12 @@ const Canvas3DPresets = {
                     name: 'on',
                     params: {
                         samples: 32,
-                        levels: [
-                            { radius: 6, bias: 1.4 },
-                        ],
-                        distanceFactor: 10,
-                        minDistanceFactor: 1500,
+                        multiScale: { name: 'off', params: {} },
+                        radius: 5,
+                        bias: 0.8,
                         blurKernelSize: 15,
                         resolutionScale: 1,
                         color: Color(0x000000),
-                        solidBackground: false,
                     }
                 },
                 outline: {
@@ -66,9 +63,9 @@ const Canvas3DPresets = {
                     name: 'on',
                     params: {
                         samples: 32,
-                        levels: [
-                            { radius: 6, bias: 1.4 },
-                        ],
+                        multiScale: { name: 'off', params: {} },
+                        radius: 5,
+                        bias: 0.8,
                         blurKernelSize: 15,
                         resolutionScale: 1,
                     }
@@ -135,10 +132,8 @@ class LightingDemo {
     setPreset(preset: Canvas3DPreset) {
         const props = Canvas3DPresets[preset];
         if (props.canvas3d.postprocessing.occlusion?.name === 'on') {
-            props.canvas3d.postprocessing.occlusion.params.levels = [{
-                radius: this.radius,
-                bias: this.bias,
-            }];
+            props.canvas3d.postprocessing.occlusion.params.radius = this.radius;
+            props.canvas3d.postprocessing.occlusion.params.bias = this.bias;
         }
         PluginCommands.Canvas3D.SetSettings(this.plugin, {
             settings: {

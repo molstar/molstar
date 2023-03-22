@@ -23,11 +23,15 @@ uniform vec3 uSamples[dNSamples];
 uniform mat4 uProjection;
 uniform mat4 uInvProjection;
 
-uniform float uRadius[dLevels];
-uniform float uBias[dLevels];
-uniform float uDistanceFactor;
-uniform float uMinDistanceFactor;
-uniform bool uSolidBackground;
+#ifdef dMultiScale
+    uniform float uLevelRadius[dLevels];
+    uniform float uLevelBias[dLevels];
+    uniform float uNearThreshold;
+    uniform float uFarThreshold;
+#else
+    uniform float uRadius;
+    uniform float uBias;
+#endif
 
 float smootherstep(float edge0, float edge1, float x) {
     x = clamp((x - edge0) / (edge1 - edge0), 0.0, 1.0);
@@ -60,27 +64,28 @@ float getDepth(const in vec2 coords) {
     #endif
 }
 
+#define dQuarterThreshold 0.1
+#define dHalfThreshold 0.05
+
 float getMappedDepth(const in vec2 coords, const in vec2 selfCoords) {
     vec2 c = vec2(clamp(coords.x, uBounds.x, uBounds.z), clamp(coords.y, uBounds.y, uBounds.w));
     float d = distance(coords, selfCoords);
     #ifdef depthTextureSupport
-        if (d > 0.1) {
+        if (d > dQuarterThreshold) {
             return texture2D(tDepthQuarter, c).r;
-        } else if (d > 0.05) {
+        } else if (d > dHalfThreshold) {
             return texture2D(tDepthHalf, c).r;
         } else {
             return texture2D(tDepth, c).r;
         }
-        return texture2D(tDepth, c).r;
     #else
-        if (d > 0.0.1) {
+        if (d > dQuarterThreshold) {
             return unpackRGBAToDepth(texture2D(tDepthQuarter, c));
-        } else if (d > 0.05) {
+        } else if (d > dHalfThreshold) {
             return unpackRGBAToDepth(texture2D(tDepthHalf, c));
         } else {
             return unpackRGBAToDepth(texture2D(tDepth, c));
         }
-        return unpackRGBAToDepth(texture2D(tDepth, c));
     #endif
 }
 
@@ -123,48 +128,50 @@ void main(void) {
     vec3 selfViewPos = screenSpaceToViewSpace(vec3(selfCoords, selfDepth), uInvProjection);
 
     vec3 randomVec = normalize(vec3(getNoiseVec2(selfCoords) * 2.0 - 1.0, 0.0));
-    float pixelSize = getPixelSize(selfCoords, selfDepth);
-
     vec3 tangent = normalize(randomVec - selfViewNormal * dot(randomVec, selfViewNormal));
     vec3 bitangent = cross(selfViewNormal, tangent);
     mat3 TBN = mat3(tangent, bitangent, selfViewNormal);
 
     float occlusion = 0.0;
-    for(int l = 0; l < dLevels; l++) {
-        // TODO: smooth transition
-        if (pixelSize * uDistanceFactor > uRadius[l]) continue;
-        if (pixelSize * uMinDistanceFactor < uRadius[l]) continue;
+    #ifdef dMultiScale
+        float pixelSize = getPixelSize(selfCoords, selfDepth);
 
-        float levelOcclusion = 0.0;
+        for(int l = 0; l < dLevels; l++) {
+            // TODO: smooth transition
+            if (pixelSize * uNearThreshold > uLevelRadius[l]) continue;
+            if (pixelSize * uFarThreshold < uLevelRadius[l]) continue;
+
+            float levelOcclusion = 0.0;
+            for(int i = 0; i < dNSamples; i++) {
+                vec3 sampleViewPos = TBN * uSamples[i];
+                sampleViewPos = selfViewPos + sampleViewPos * uLevelRadius[l];
+
+                vec4 offset = vec4(sampleViewPos, 1.0);
+                offset = uProjection * offset;
+                offset.xyz = (offset.xyz / offset.w) * 0.5 + 0.5;
+
+                float sampleDepth = getMappedDepth(offset.xy, selfCoords);
+                float sampleViewZ = screenSpaceToViewSpace(vec3(offset.xy, sampleDepth), uInvProjection).z;
+
+                levelOcclusion += step(sampleViewPos.z + 0.025, sampleViewZ) * smootherstep(0.0, 1.0, uLevelRadius[l] / abs(selfViewPos.z - sampleViewZ)) * uLevelBias[l];
+            }
+            occlusion = max(occlusion, levelOcclusion);
+        }
+    #else
         for(int i = 0; i < dNSamples; i++) {
             vec3 sampleViewPos = TBN * uSamples[i];
-            sampleViewPos = selfViewPos + sampleViewPos * uRadius[l];
+            sampleViewPos = selfViewPos + sampleViewPos * uRadius;
 
             vec4 offset = vec4(sampleViewPos, 1.0);
             offset = uProjection * offset;
             offset.xyz = (offset.xyz / offset.w) * 0.5 + 0.5;
 
             float sampleDepth = getMappedDepth(offset.xy, selfCoords);
-            if (uSolidBackground && sampleDepth == 1.0) {
-                sampleViewPos = TBN * uSamples[i];
-                sampleViewPos = selfViewPos + sampleViewPos * uRadius[l] * 0.5;
-
-                offset = vec4(sampleViewPos, 1.0);
-                offset = uProjection * offset;
-                offset.xyz = (offset.xyz / offset.w) * 0.5 + 0.5;
-                sampleDepth = getMappedDepth(offset.xy, selfCoords);
-            }
             float sampleViewZ = screenSpaceToViewSpace(vec3(offset.xy, sampleDepth), uInvProjection).z;
 
-            // float depth_difference = selfViewPos.z - sampleViewZ;
-            // float rho = clamp((depth_difference - uRadius[l]) / depth_difference, 0.0, 1.0);
-            // float rho = (depth_difference <= 0.0 || depth_difference > uRadius[l]) ? 1.0 : 0.0;
-            // levelOcclusion += step(sampleViewPos.z + pixelSize, sampleViewZ) * rho * uBias[l];
-
-            levelOcclusion += step(sampleViewPos.z + 0.025, sampleViewZ) * smootherstep(0.0, 1.0, uRadius[l] / abs(selfViewPos.z - sampleViewZ)) * uBias[l];
+            occlusion += step(sampleViewPos.z + 0.025, sampleViewZ) * smootherstep(0.0, 1.0, uRadius / abs(selfViewPos.z - sampleViewZ)) * uBias;
         }
-        occlusion = max(occlusion, levelOcclusion);
-    }
+    #endif
     occlusion = 1.0 - (occlusion / float(dNSamples));
 
     vec2 packedOcclusion = packUnitIntervalToRG(clamp(occlusion, 0.01, 1.0));

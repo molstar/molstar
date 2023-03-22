@@ -51,17 +51,23 @@ function adjustPluginProps(ctx: PluginContext) {
                 name: 'on',
                 params: {
                     samples: 32,
-                    levels: [
-                        { radius: 2, bias: 1.0 },
-                        { radius: 5, bias: 1.0 },
-                        { radius: 8, bias: 1.0 },
-                    ],
-                    distanceFactor: 10,
-                    minDistanceFactor: 1500,
+                    multiScale: {
+                        name: 'on',
+                        params: {
+                            levels: [
+                                { radius: 2, bias: 1.0 },
+                                { radius: 5, bias: 1.0 },
+                                { radius: 8, bias: 1.0 },
+                            ],
+                            nearThreshold: 10,
+                            farThreshold: 1500,
+                        }
+                    },
+                    radius: 5,
+                    bias: 0.8,
                     blurKernelSize: 11,
                     resolutionScale: 1,
                     color: Color(0x000000),
-                    solidBackground: false,
                 }
             },
             shadow: {

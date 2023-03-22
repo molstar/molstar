@@ -66,18 +66,13 @@ export class QuickStyles extends PurePluginUIComponent {
                     occlusion: {
                         name: 'on',
                         params: {
-                            levels: [
-                                { radius: 2, bias: 1.0 },
-                                { radius: 5, bias: 1.0 },
-                                { radius: 8, bias: 1.0 },
-                            ],
-                            distanceFactor: 10,
-                            minDistanceFactor: 1500,
+                            multiScale: { name: 'off', params: {} },
+                            radius: 5,
+                            bias: 0.8,
                             blurKernelSize: 15,
                             samples: 32,
                             resolutionScale: 1,
                             color: Color(0x000000),
-                            solidBackground: false,
                         }
                     },
                     shadow: { name: 'off', params: {} },
@@ -109,18 +104,13 @@ export class QuickStyles extends PurePluginUIComponent {
                         params: pp.occlusion.name === 'on'
                             ? pp.occlusion.params
                             : {
-                                levels: [
-                                    { radius: 2, bias: 1.0 },
-                                    { radius: 5, bias: 1.0 },
-                                    { radius: 8, bias: 1.0 },
-                                ],
-                                distanceFactor: 10,
-                                minDistanceFactor: 1500,
+                                multiScale: { name: 'off', params: {} },
+                                radius: 5,
+                                bias: 0.8,
                                 blurKernelSize: 15,
                                 samples: 32,
                                 resolutionScale: 1,
                                 color: Color(0x000000),
-                                solidBackground: false,
                             }
                     },
                     shadow: { name: 'off', params: {} },

@@ -206,15 +206,12 @@ export const STYLIZED_POSTPROCESSING: Partial<PostprocessingProps> = {
     occlusion: {
         name: 'on' as const, params: {
             samples: 32,
-            levels: [
-                { radius: 5, bias: 0.8 },
-            ],
-            distanceFactor: 10,
-            minDistanceFactor: 1500,
+            multiScale: { name: 'off', params: {} },
+            radius: 5,
+            bias: 0.8,
             blurKernelSize: 15,
             resolutionScale: 1,
             color: ColorNames.black,
-            solidBackground: false,
         }
     }, outline: {
         name: 'on' as const, params: {
