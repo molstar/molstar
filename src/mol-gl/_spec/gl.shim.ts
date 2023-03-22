@@ -16,7 +16,7 @@ const c = {
 
     MAX_TEXTURE_MAX_ANISOTROPY_EXT: 0x84FF,
     MAX_TEXTURE_IMAGE_UNITS_NV: 0x8872
-};
+} as const;
 
 const gl = {
     ACTIVE_ATTRIBUTES: 35721,
@@ -316,7 +316,7 @@ const gl = {
     VERTEX_SHADER: 35633,
     VIEWPORT: 2978,
     ZERO: 0
-};
+} as const;
 type gl = typeof gl
 
 export function createGl(width: number, height: number, contextAttributes: WebGLContextAttributes): WebGLRenderingContext {
@@ -371,66 +371,66 @@ export function createGl(width: number, height: number, contextAttributes: WebGL
                 case 'EXT_blend_minmax': return {
                     MAX_EXT: 0,
                     MIN_EXT: 0
-                } as EXT_blend_minmax;
+                } as unknown as EXT_blend_minmax;
                 case 'EXT_texture_filter_anisotropic': return {
                     MAX_TEXTURE_MAX_ANISOTROPY_EXT: 0,
                     TEXTURE_MAX_ANISOTROPY_EXT: 0
-                } as EXT_texture_filter_anisotropic;
+                } as unknown as EXT_texture_filter_anisotropic;
                 case 'EXT_frag_depth': return {} as EXT_frag_depth;
-                case 'EXT_shader_texture_lod': return {} as EXT_shader_texture_lod;
+                case 'EXT_shader_texture_lod': return {} as unknown as EXT_shader_texture_lod;
                 case 'EXT_sRGB': return {
                     FRAMEBUFFER_ATTACHMENT_COLOR_ENCODING_EXT: 0,
                     SRGB8_ALPHA8_EXT: 0,
                     SRGB_ALPHA_EXT: 0,
                     SRGB_EXT: 0
-                } as EXT_sRGB;
+                } as unknown as EXT_sRGB;
                 case 'OES_vertex_array_object': return {
                     VERTEX_ARRAY_BINDING_OES: 0,
                     bindVertexArrayOES: function (arrayObject: WebGLVertexArrayObjectOES) { },
                     createVertexArrayOES: function (): WebGLVertexArrayObjectOES { return {}; },
                     deleteVertexArrayOES: function (arrayObject: WebGLVertexArrayObjectOES) { },
                     isVertexArrayOES: function (value: any) { return true; }
-                } as OES_vertex_array_object;
+                } as unknown as OES_vertex_array_object;
                 case 'WEBGL_color_buffer_float': return {
                     FRAMEBUFFER_ATTACHMENT_COMPONENT_TYPE_EXT: 0,
                     RGB32F_EXT: 0,
                     RGBA32F_EXT: 0,
                     UNSIGNED_NORMALIZED_EXT: 0
-                } as WEBGL_color_buffer_float;
+                } as unknown as WEBGL_color_buffer_float;
                 case 'WEBGL_compressed_texture_astc': return null;
                 case 'WEBGL_compressed_texture_s3tc_srgb': return null;
                 case 'WEBGL_debug_shaders': return {
                     getTranslatedShaderSource(shader: WebGLShader) { return ''; }
-                } as WEBGL_debug_shaders;
+                } as unknown as WEBGL_debug_shaders;
                 case 'WEBGL_draw_buffers': return null;
                 case 'WEBGL_lose_context': return {
                     loseContext: function () { },
                     restoreContext: function () { },
-                } as WEBGL_lose_context;
+                } as unknown as WEBGL_lose_context;
                 case 'WEBGL_depth_texture': return {
                     UNSIGNED_INT_24_8_WEBGL: 0
-                } as WEBGL_depth_texture;
+                } as unknown as WEBGL_depth_texture;
                 case 'WEBGL_debug_renderer_info': return {
                     UNMASKED_RENDERER_WEBGL: 0,
                     UNMASKED_VENDOR_WEBGL: 0
-                } as WEBGL_debug_renderer_info;
+                } as unknown as WEBGL_debug_renderer_info;
                 case 'WEBGL_compressed_texture_s3tc': return null;
-                case 'OES_texture_half_float_linear': return {} as OES_texture_half_float_linear;
+                case 'OES_texture_half_float_linear': return {} as unknown as OES_texture_half_float_linear;
                 case 'OES_texture_half_float': return {
                     HALF_FLOAT_OES: 0
-                } as OES_texture_half_float;
-                case 'OES_texture_float_linear': return {} as OES_texture_float_linear;
-                case 'OES_texture_float': return {} as OES_texture_float;
+                } as unknown as OES_texture_half_float;
+                case 'OES_texture_float_linear': return {} as unknown as OES_texture_float_linear;
+                case 'OES_texture_float': return {} as unknown as OES_texture_float;
                 case 'OES_standard_derivatives': return {
                     FRAGMENT_SHADER_DERIVATIVE_HINT_OES: 0
-                } as OES_standard_derivatives;
-                case 'OES_element_index_uint': return {} as OES_element_index_uint;
+                } as unknown as OES_standard_derivatives;
+                case 'OES_element_index_uint': return {} as unknown as OES_element_index_uint;
                 case 'ANGLE_instanced_arrays': return {
                     drawArraysInstancedANGLE: function (mode: number, first: number, count: number, primcount: number) {},
                     drawElementsInstancedANGLE: function (mode: number, count: number, type: number, offset: number, primcount: number) {},
                     vertexAttribDivisorANGLE: function (index: number, divisor: number) {},
                     VERTEX_ATTRIB_ARRAY_DIVISOR_ANGLE: 0
-                } as ANGLE_instanced_arrays;
+                } as unknown as ANGLE_instanced_arrays;
             }
             return null;
         },

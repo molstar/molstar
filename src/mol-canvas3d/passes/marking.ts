@@ -106,7 +106,7 @@ export class MarkingPass {
         const { highlightEdgeColor, selectEdgeColor, edgeScale, innerEdgeFactor, ghostEdgeStrength, highlightEdgeStrength, selectEdgeStrength } = props;
 
         const { values: edgeValues } = this.edge;
-        const _edgeScale = Math.round(edgeScale * this.webgl.pixelRatio);
+        const _edgeScale = Math.max(1, Math.round(edgeScale * this.webgl.pixelRatio));
         if (edgeValues.dEdgeScale.ref.value !== _edgeScale) {
             ValueCell.update(edgeValues.dEdgeScale, _edgeScale);
             this.edge.update();

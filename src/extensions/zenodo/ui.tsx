@@ -202,7 +202,7 @@ export class ZenodoImportUI extends CollapsableControls<{}, State> {
                 }));
             } else if (t.name === 'trajectory') {
                 const [topologyUrl, topologyFormat, topologyIsBinary] = t.params.topology.split('|');
-                const [coordinatesUrl, coordinatesFormat, coordinatesIsBinary] = t.params.coordinates.split('|');
+                const [coordinatesUrl, coordinatesFormat] = t.params.coordinates.split('|');
 
                 await this.plugin.runTask(this.plugin.state.data.applyAction(LoadTrajectory, {
                     source: {
@@ -216,7 +216,6 @@ export class ZenodoImportUI extends CollapsableControls<{}, State> {
                             coordinates: {
                                 url: coordinatesUrl,
                                 format: coordinatesFormat as any,
-                                isBinary: coordinatesIsBinary === 'true',
                             },
                         }
                     }
