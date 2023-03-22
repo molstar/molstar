@@ -46,7 +46,12 @@ function buildCellpackAssembly(model: Model, assembly: Assembly) {
     for (const g of assembly.operatorGroups) {
         for (const oper of g.operators) {
             for (const id of g.asymIds!) {
-                assembler.addWithOperator(units.get(id)!, oper);
+                const u = units.get(id);
+                if (u) {
+                    assembler.addWithOperator(u, oper);
+                } else {
+                    console.log(`missing asymid '${id}'`);
+                }
             }
         }
     }

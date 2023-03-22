@@ -626,9 +626,9 @@ export class SliderBase extends React.Component<SliderBaseProps, SliderBaseState
         const value = bounds[handle];
 
         let direction = 0;
-        if (bounds[handle + 1] - value < threshold!) {
+        if (bounds[handle + 1] - value < +threshold!) {
             direction = +1;
-        } else if (value - bounds[handle - 1] < threshold!) {
+        } else if (value - bounds[handle - 1] < +threshold!) {
             direction = -1;
         }
 

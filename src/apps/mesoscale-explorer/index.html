@@ -61,6 +61,7 @@
             var preferWebgl1 = getParam('prefer-webgl1', '[^&]+').trim() === '1' || void 0;
             var allowMajorPerformanceCaveat = getParam('allow-major-performance-caveat', '[^&]+').trim() === '1';
             var powerPreference = getParam('power-preference', '[^&]+').trim().toLowerCase();
+            var lodLevelsPreset = getParam('lod-levels-preset', '[^&]+').trim().toLowerCase();
 
             molstar.Viewer.create('app', {
                 layoutShowControls: !hideControls,
@@ -74,6 +75,7 @@
                 preferWebgl1: preferWebgl1,
                 allowMajorPerformanceCaveat: allowMajorPerformanceCaveat,
                 powerPreference: powerPreference || 'high-performance',
+                lodLevelsPreset: ['low', 'medium', 'high'].includes(lodLevelsPreset) ? lodLevelsPreset : 'high'
             }).then(viewer => {
 
             });

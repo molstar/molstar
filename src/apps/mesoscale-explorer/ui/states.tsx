@@ -19,6 +19,7 @@ import { Task } from '../../../mol-task';
 import { Color } from '../../../mol-util/color/color';
 import { getFileInfo } from '../../../mol-util/file-info';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
+import { MesoscaleExplorerState } from '../app';
 import { createCellpackHierarchy } from '../data/cellpack/preset';
 import { createPetworldHierarchy } from '../data/petworld/preset';
 
@@ -50,9 +51,21 @@ function adjustPluginProps(ctx: PluginContext) {
                 name: 'on',
                 params: {
                     samples: 32,
-                    radius: 8.5,
-                    bias: 1.3,
-                    blurKernelSize: 15,
+                    multiScale: {
+                        name: 'on',
+                        params: {
+                            levels: [
+                                { radius: 2, bias: 1.0 },
+                                { radius: 5, bias: 1.0 },
+                                { radius: 8, bias: 1.0 },
+                            ],
+                            nearThreshold: 10,
+                            farThreshold: 1500,
+                        }
+                    },
+                    radius: 5,
+                    bias: 0.8,
+                    blurKernelSize: 11,
                     resolutionScale: 1,
                     color: Color(0x000000),
                 }
@@ -70,7 +83,7 @@ function adjustPluginProps(ctx: PluginContext) {
                 name: 'on',
                 params: {
                     scale: 1,
-                    threshold: 0.33,
+                    threshold: 0.15,
                     color: Color(0x000000),
                     includeTransparent: true,
                 }
@@ -79,20 +92,64 @@ function adjustPluginProps(ctx: PluginContext) {
     });
 }
 
-export const LoadModel = StateAction.build({
-    display: { name: 'Load', description: 'Open or download a model' },
-    params: {
-        files: PD.FileList({ accept: '.cif,.bcif', multiple: true, description: 'Cellpack- or Petworld-style cif file.', label: 'File(s)' }),
+async function createHierarchy(ctx: PluginContext, ref: string) {
+    const parsed = await MmcifProvider.parse(ctx, ref);
+
+    const tr = StateObjectRef.resolveAndCheck(ctx.state.data, parsed.trajectory)?.obj?.data;
+    if (!tr) throw new Error('no trajectory');
+
+    if (!MmcifFormat.is(tr.representative.sourceData)) {
+        throw new Error('not mmcif');
+    }
+
+    const { frame } = tr.representative.sourceData.data;
+    if (frame.categories.pdbx_model) {
+        await createPetworldHierarchy(ctx, parsed.trajectory);
+    } else {
+        await createCellpackHierarchy(ctx, parsed.trajectory);
+    }
+}
+
+export const LoadExample = StateAction.build({
+    display: { name: 'Load', description: 'Load an example' },
+    params: (a, ctx: PluginContext) => {
+        const entries = (ctx.customState as MesoscaleExplorerState).examples || [];
+        return {
+            entry: PD.Select(0, entries.map((s, i) => [i, s.label])),
+        };
     },
     from: PluginStateObject.Root
-})(({ params }, ctx: PluginContext) => Task.create('Model Loader', async taskCtx => {
+})(({ params }, ctx: PluginContext) => Task.create('Loading example...', async taskCtx => {
+    const entries = (ctx.customState as MesoscaleExplorerState).examples || [];
+    const { url, type } = entries[params.entry];
+    console.time('LoadExample');
+    if (type === 'molx' || type === 'molj') {
+        await PluginCommands.State.Snapshots.OpenUrl(ctx, { url, type });
+    } else {
+        PluginCommands.State.RemoveObject(ctx, { state: ctx.state.data, ref: StateTransform.RootRef });
+        adjustPluginProps(ctx);
+
+        const isBinary = type === 'bcif';
+        const data = await ctx.builders.data.download({ url, isBinary });
+        await createHierarchy(ctx, data.ref);
+    }
+    console.timeEnd('LoadExample');
+}));
+
+export const LoadModel = StateAction.build({
+    display: { name: 'Load', description: 'Load a model' },
+    params: {
+        files: PD.FileList({ accept: '.cif,.bcif,.cif.gz,.bcif.gz,.cif.zip,.bcif.zip', multiple: true, description: 'Cellpack- or Petworld-style cif file.', label: 'File(s)' }),
+    },
+    from: PluginStateObject.Root
+})(({ params }, ctx: PluginContext) => Task.create('Loading model...', async taskCtx => {
     if (params.files === null) {
         ctx.log.error('No file(s) selected');
         return;
     }
 
+    console.time('LoadModel');
     PluginCommands.State.RemoveObject(ctx, { state: ctx.state.data, ref: StateTransform.RootRef });
-
     adjustPluginProps(ctx);
 
     for (const file of params.files) {
@@ -100,26 +157,13 @@ export const LoadModel = StateAction.build({
             const info = getFileInfo(file.file!);
             const isBinary = ctx.dataFormats.binaryExtensions.has(info.ext);
             const { data } = await ctx.builders.data.readFile({ file, isBinary });
-            const parsed = await MmcifProvider.parse(ctx, data);
-
-            const tr = StateObjectRef.resolveAndCheck(ctx.state.data, parsed.trajectory)?.obj?.data;
-            if (!tr) throw new Error('no trajectory');
-
-            if (!MmcifFormat.is(tr.representative.sourceData)) {
-                throw new Error('not mmcif');
-            }
-
-            const { frame } = tr.representative.sourceData.data;
-            if (frame.categories.pdbx_model) {
-                await createPetworldHierarchy(ctx, parsed.trajectory);
-            } else {
-                await createCellpackHierarchy(ctx, parsed.trajectory);
-            }
+            await createHierarchy(ctx, data.ref);
         } catch (e) {
             console.error(e);
             ctx.log.error(`Error opening file '${file.name}'`);
         }
     }
+    console.timeEnd('LoadModel');
 }));
 
 export class LoaderControls extends PluginUIComponent {
@@ -130,6 +174,18 @@ export class LoaderControls extends PluginUIComponent {
     render() {
         return <div style={{ margin: '5px' }}>
             <ApplyActionControl state={this.plugin.state.data} action={LoadModel} nodeRef={this.plugin.state.data.tree.root.ref} applyLabel={'Load'} hideHeader />
+        </div>;
+    }
+}
+
+export class ExampleControls extends PluginUIComponent {
+    componentDidMount() {
+
+    }
+
+    render() {
+        return <div style={{ margin: '5px' }}>
+            <ApplyActionControl state={this.plugin.state.data} action={LoadExample} nodeRef={this.plugin.state.data.tree.root.ref} applyLabel={'Load'} hideHeader />
         </div>;
     }
 }
@@ -150,8 +206,8 @@ export class SessionControls extends PluginUIComponent {
     render() {
         return <div style={{ margin: '5px' }}>
             <div className='msp-flex-row'>
-                <Button icon={GetAppSvg} onClick={this.downloadToFileZip} title='Save the state.'>
-                    Save
+                <Button icon={GetAppSvg} onClick={this.downloadToFileZip} title='Download the state.'>
+                    Download
                 </Button>
                 <div className='msp-btn msp-btn-block msp-btn-action msp-loader-msp-btn-file'>
                     <Icon svg={OpenInBrowserSvg} inline /> Open <input onChange={this.open} type='file' multiple={false} accept='.molx,.molj' />

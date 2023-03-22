@@ -6,14 +6,22 @@
 
 import { PluginUIComponent } from '../../../mol-plugin-ui/base';
 import { SectionHeader } from '../../../mol-plugin-ui/controls/common';
+import { MesoscaleExplorerState } from '../app';
 import { EntityControls } from './entities';
-import { LoaderControls, SessionControls, SnapshotControls } from './states';
+import { LoaderControls, ExampleControls, SessionControls, SnapshotControls } from './states';
 
 export class LeftPanel extends PluginUIComponent {
     render() {
+        const customState = this.plugin.customState as MesoscaleExplorerState;
+
         return <div className='msp-scrollable-container'>
             <SectionHeader title='Model' />
             <LoaderControls />
+
+            {customState.examples?.length && <>
+                <SectionHeader title='Example' />
+                <ExampleControls />
+            </>}
 
             <SectionHeader title='Session' />
             <SessionControls />

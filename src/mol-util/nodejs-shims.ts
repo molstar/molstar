@@ -2,6 +2,7 @@
  * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Adam Midlik <midlik@gmail.com>
+ * @author Russell Parker <russell@benchling.com>
  *
  * Implements some browser-only global variables for Node.js environment.
  * These workarounds will also work in browsers as usual.
@@ -19,7 +20,7 @@ export const File_ = getFile();
 
 
 function getXMLHttpRequest(): typeof XMLHttpRequest {
-    if (typeof document === 'undefined') {
+    if (typeof XMLHttpRequest === 'undefined' || RUNNING_IN_NODEJS) {
         return require('xhr2');
     } else {
         return XMLHttpRequest;
@@ -27,7 +28,7 @@ function getXMLHttpRequest(): typeof XMLHttpRequest {
 }
 
 function getFile(): typeof File {
-    if (typeof document === 'undefined') {
+    if (typeof File === 'undefined' || RUNNING_IN_NODEJS) {
         class File_NodeJs implements File {
             private readonly blob: Blob;
             // Blob fields

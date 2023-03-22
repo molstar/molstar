@@ -25,7 +25,42 @@ import { PetworldColorThemeProvider } from './data/petworld/color';
 import { CellpackUniformColorThemeProvider } from './data/cellpack/color';
 
 export { PLUGIN_VERSION as version } from '../../mol-plugin/version';
-export { setDebugMode, setProductionMode, setTimingMode } from '../../mol-util/debug';
+export { setDebugMode, setProductionMode, setTimingMode, consoleStats } from '../../mol-util/debug';
+
+type LodLevels = typeof SpacefillRepresentationProvider.defaultValues['lodLevels']
+type LodLevelsPreset = 'low' | 'medium' | 'high'
+
+function getLodLevels(preset: LodLevelsPreset) {
+    switch (preset) {
+        case 'low':
+            return [
+                { minDistance: 1, maxDistance: 200, overlap: 0, stride: 1, scaleBias: 1 },
+                { minDistance: 200, maxDistance: 500, overlap: 20, stride: 20, scaleBias: 3 },
+                { minDistance: 500, maxDistance: 10000000, overlap: 50, stride: 100, scaleBias: 2.5 },
+            ];
+        case 'medium':
+            return [
+                { minDistance: 1, maxDistance: 500, overlap: 0, stride: 1, scaleBias: 1 },
+                { minDistance: 500, maxDistance: 2000, overlap: 50, stride: 15, scaleBias: 3 },
+                { minDistance: 2000, maxDistance: 10000000, overlap: 200, stride: 70, scaleBias: 2.5 },
+            ];
+        case 'high':
+            return [
+                { minDistance: 1, maxDistance: 1000, overlap: 0, stride: 1, scaleBias: 1 },
+                { minDistance: 1000, maxDistance: 4000, overlap: 500, stride: 10, scaleBias: 3 },
+                { minDistance: 4000, maxDistance: 10000000, overlap: 500, stride: 50, scaleBias: 2.5 },
+            ];
+    }
+}
+
+export type MesoscaleExplorerState = {
+    examples?: {
+        label: string,
+        url: string,
+        type: 'molx' | 'molj' | 'cif' | 'bcif',
+    }[]
+    lodLevels: LodLevels
+}
 
 const Extensions = {
     'backgrounds': PluginSpec.Behavior(Backgrounds),
@@ -66,6 +101,8 @@ const DefaultViewerOptions = {
     pdbProvider: PluginConfig.Download.DefaultPdbProvider.defaultValue,
     emdbProvider: PluginConfig.Download.DefaultEmdbProvider.defaultValue,
     saccharideCompIdMapType: 'default' as SaccharideCompIdMapType,
+
+    lodLevelsPreset: 'high' as LodLevelsPreset
 };
 type ViewerOptions = typeof DefaultViewerOptions;
 
@@ -154,8 +191,20 @@ export class Viewer {
         if (!element) throw new Error(`Could not get element with id '${elementOrId}'`);
 
         const plugin = await createPluginUI(element, spec, {
-            onBeforeUIRender: plugin => {
+            onBeforeUIRender: async plugin => {
+                let examples: MesoscaleExplorerState['examples'] = undefined;
+                try {
+                    examples = await plugin.fetch({ url: './examples/list.json', type: 'json' }).run();
+                } catch (e) {
+                    console.log(e);
+                }
 
+                const lodLevels = getLodLevels(o.lodLevelsPreset);
+
+                (plugin.customState as MesoscaleExplorerState) = {
+                    examples,
+                    lodLevels,
+                };
             }
         });
 

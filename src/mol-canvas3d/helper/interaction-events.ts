@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -197,8 +197,12 @@ export class Canvas3dInteractionHelper {
             this.drag(x, y, buttons, button, modifiers);
         });
 
-        input.move.subscribe(({ x, y, inside, buttons, button, modifiers }) => {
+        input.move.subscribe(({ x, y, inside, buttons, button, modifiers, onElement }) => {
             if (!inside || this.isInteracting) return;
+            if (!onElement) {
+                this.leave();
+                return;
+            }
             // console.log('move');
             this.move(x, y, buttons, button, modifiers);
         });
