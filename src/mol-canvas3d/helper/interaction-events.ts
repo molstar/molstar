@@ -197,8 +197,12 @@ export class Canvas3dInteractionHelper {
             this.drag(x, y, buttons, button, modifiers);
         });
 
-        input.move.subscribe(({ x, y, inside, buttons, button, modifiers }) => {
+        input.move.subscribe(({ x, y, inside, buttons, button, modifiers, onElement }) => {
             if (!inside || this.isInteracting) return;
+            if (!onElement) {
+                this.leave();
+                return;
+            }
             // console.log('move');
             this.move(x, y, buttons, button, modifiers);
         });

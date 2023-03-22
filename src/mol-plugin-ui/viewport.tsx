@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -76,13 +76,8 @@ export class ViewportControls extends PluginUIComponent<ViewportControlsProps, V
         return <IconButton svg={icon} toggleState={isOn} onClick={onClick} title={title} style={{ background: 'transparent' }} />;
     }
 
-    onMouseMove = (e: React.MouseEvent) => {
-        // ignore mouse moves when no button is held
-        if (e.buttons === 0) e.stopPropagation();
-    };
-
     render() {
-        return <div className={'msp-viewport-controls'} onMouseMove={this.onMouseMove}>
+        return <div className={'msp-viewport-controls'}>
             <div className='msp-viewport-controls-buttons'>
                 <div>
                     <div className='msp-semi-transparent-background' />

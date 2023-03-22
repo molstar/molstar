@@ -72,6 +72,7 @@ uniform vec3 uInteriorColor;
 bool interior;
 
 uniform float uXrayEdgeFalloff;
+uniform float uExposure;
 
 uniform mat4 uProjection;
 

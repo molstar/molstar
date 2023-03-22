@@ -168,6 +168,9 @@ export type MoveInput = {
     movementX?: number,
     movementY?: number,
     inside: boolean,
+    // Move is subscribed to window element
+    // This indicates that the event originated from the element the InputObserver was created on
+    onElement: boolean
 } & BaseInput
 
 export type PinchInput = {
@@ -220,6 +223,7 @@ type PointerEvent = {
     pageY: number
     movementX?: number
     movementY?: number
+    target: EventTarget | null
 
     preventDefault?: () => void
 }
@@ -503,7 +507,8 @@ namespace InputObserver {
                 clientX: (t0.clientX + t1.clientX) / 2,
                 clientY: (t0.clientY + t1.clientY) / 2,
                 pageX: (t0.pageX + t1.pageX) / 2,
-                pageY: (t0.pageY + t1.pageY) / 2
+                pageY: (t0.pageY + t1.pageY) / 2,
+                target: ev.target
             };
         }
 
@@ -658,7 +663,7 @@ namespace InputObserver {
             }
             isInside = inside;
 
-            move.next({ x, y, pageX, pageY, movementX, movementY, buttons, button, modifiers: getModifierKeys(), inside });
+            move.next({ x, y, pageX, pageY, movementX, movementY, buttons, button, modifiers: getModifierKeys(), inside, onElement: ev.target === element });
 
             if (dragging === DraggingState.Stopped) return;
 
