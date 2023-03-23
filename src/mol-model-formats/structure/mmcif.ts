@@ -20,7 +20,7 @@ import { StructConn } from './property/bonds/struct_conn';
 import { ArrayTrajectory, Trajectory } from '../../mol-model/structure';
 import { GlobalModelTransformInfo } from '../../mol-model/structure/model/properties/global-transform';
 import { BasicSchema, createBasic } from './basic/schema';
-import { CCD_Database, CCD_Schema } from '../../mol-io/reader/cif/schema/ccd';
+import { CCD_Database } from '../../mol-io/reader/cif/schema/ccd';
 import { EntityBuilder } from './common/entity';
 import { MoleculeType } from '../../mol-model/structure/model/types';
 import { ComponentBuilder } from './common/component';
@@ -144,10 +144,7 @@ async function createCcdModels(data: CCD_Database, format: CCDFormat, ctx: Runti
     return new ArrayTrajectory(models);
 }
 
-type x = keyof Pick<CCD_Schema['chem_comp_atom'], 'model_Cartn_x'> | keyof Pick<CCD_Schema['chem_comp_atom'], 'pdbx_model_Cartn_x_ideal'>;
-type y = keyof Pick<CCD_Schema['chem_comp_atom'], 'model_Cartn_y'> | keyof Pick<CCD_Schema['chem_comp_atom'], 'pdbx_model_Cartn_y_ideal'>;
-type z = keyof Pick<CCD_Schema['chem_comp_atom'], 'model_Cartn_z'> | keyof Pick<CCD_Schema['chem_comp_atom'], 'pdbx_model_Cartn_z_ideal'>;
-type CCDProps = { suffix: string, cartn_x: x, cartn_y: y, cartn_z: z };
+type CCDProps = { suffix: string, cartn_x: 'model_Cartn_x' | 'pdbx_model_Cartn_x_ideal', cartn_y: 'model_Cartn_y' | 'pdbx_model_Cartn_y_ideal', cartn_z: 'model_Cartn_z' | 'pdbx_model_Cartn_z_ideal' };
 async function createCcdModel(data: CCD_Database, format: CCDFormat, props: CCDProps, ctx: RuntimeContext) {
     const { chem_comp, chem_comp_atom, chem_comp_bond } = data;
     const { suffix, cartn_x, cartn_y, cartn_z } = props;
