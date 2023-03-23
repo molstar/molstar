@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -15,7 +15,7 @@ const deployDir = path.resolve(buildDir, 'deploy/');
 const localPath = path.resolve(deployDir, 'molstar.github.io/');
 
 const analyticsTag = /<!-- __MOLSTAR_ANALYTICS__ -->/g;
-const analyticsCode = `<!-- Cloudflare Web Analytics --><script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "c414cbae2d284ea995171a81e4a3e721"}'></script><!-- End Cloudflare Web Analytics -->`;
+const analyticsCode = `<!-- Cloudflare Web Analytics --><script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "c414cbae2d284ea995171a81e4a3e721"}'></script><!-- End Cloudflare Web Analytics --><script defer src="https://web3dsurvey.com/collector.js"></script>`;
 
 function log(command, stdout, stderr) {
     if (command) {
