@@ -38,6 +38,7 @@ function adjustPluginProps(ctx: PluginContext) {
             markerPriority: 2,
             interiorColorFlag: false,
             interiorDarkening: 0.15,
+            exposure: 1.1,
         },
         marking: {
             enabled: false,
@@ -58,13 +59,14 @@ function adjustPluginProps(ctx: PluginContext) {
                                 { radius: 2, bias: 1.0 },
                                 { radius: 5, bias: 1.0 },
                                 { radius: 8, bias: 1.0 },
+                                { radius: 11, bias: 1.0 },
                             ],
                             nearThreshold: 10,
                             farThreshold: 1500,
                         }
                     },
                     radius: 5,
-                    bias: 0.8,
+                    bias: 1,
                     blurKernelSize: 11,
                     resolutionScale: 1,
                     color: Color(0x000000),

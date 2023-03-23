@@ -310,7 +310,6 @@ const PostprocessingSchema = {
 };
 type PostprocessingRenderable = ComputeRenderable<Values<typeof PostprocessingSchema>>
 
-
 function getPostprocessingRenderable(ctx: WebGLContext, colorTexture: Texture, depthTextureOpaque: Texture, depthTextureTransparent: Texture, shadowsTexture: Texture, outlinesTexture: Texture, ssaoDepthTexture: Texture, transparentOutline: boolean): PostprocessingRenderable {
     const values: Values<typeof PostprocessingSchema> = {
         ...QuadValues,
@@ -357,11 +356,12 @@ export const PostprocessingParams = {
                 on: PD.Group({
                     levels: PD.ObjectList({
                         radius: PD.Numeric(5, { min: 0, max: 20, step: 0.1 }, { description: 'Final occlusion radius is 2^x' }),
-                        bias: PD.Numeric(0.8, { min: 0, max: 3, step: 0.1 }),
+                        bias: PD.Numeric(1, { min: 0, max: 3, step: 0.1 }),
                     }, o => `${o.radius}, ${o.bias}`, { defaultValue: [
-                        { radius: 2, bias: 0.8 },
-                        { radius: 5, bias: 0.8 },
-                        { radius: 8, bias: 0.8 },
+                        { radius: 2, bias: 1 },
+                        { radius: 5, bias: 1 },
+                        { radius: 8, bias: 1 },
+                        { radius: 11, bias: 1 },
                     ] }),
                     nearThreshold: PD.Numeric(10, { min: 0, max: 50, step: 1 }),
                     farThreshold: PD.Numeric(1500, { min: 0, max: 5000, step: 100 }),
@@ -369,7 +369,7 @@ export const PostprocessingParams = {
                 off: PD.Group({})
             }, { cycle: true }),
             radius: PD.Numeric(5, { min: 0, max: 20, step: 0.1 }, { description: 'Final occlusion radius is 2^x', hideIf: p => p?.multiScale.name === 'on' }),
-            bias: PD.Numeric(0.8, { min: 0, max: 3, step: 0.1 }, { hideIf: p => p?.multiScale.name === 'on' }),
+            bias: PD.Numeric(0.8, { min: 0, max: 3, step: 0.1 }),
             blurKernelSize: PD.Numeric(15, { min: 1, max: 25, step: 2 }),
             resolutionScale: PD.Numeric(1, { min: 0.1, max: 1, step: 0.05 }, { description: 'Adjust resolution of occlusion calculation' }),
             color: PD.Color(Color(0x000000)),
@@ -415,6 +415,7 @@ function getLevels(props: { radius: number, bias: number }[], levels?: Levels): 
         radius: (new Array(5 * 3)).fill(0),
         bias: (new Array(5 * 3)).fill(0),
     };
+    props = props.slice().sort((a, b) => a.radius - b.radius);
     for (let i = 0, il = props.length; i < il; ++i) {
         const p = props[i];
         radius[i] = Math.pow(2, p.radius);
@@ -660,9 +661,9 @@ export class PostprocessingPass {
                 ValueCell.updateIfChanged(this.ssaoRenderable.values.uNearThreshold, mp.nearThreshold);
                 ValueCell.updateIfChanged(this.ssaoRenderable.values.uFarThreshold, mp.farThreshold);
             } else {
-                ValueCell.update(this.ssaoRenderable.values.uRadius, Math.pow(2, props.occlusion.params.radius));
-                ValueCell.update(this.ssaoRenderable.values.uBias, props.occlusion.params.bias);
+                ValueCell.updateIfChanged(this.ssaoRenderable.values.uRadius, Math.pow(2, props.occlusion.params.radius));
             }
+            ValueCell.updateIfChanged(this.ssaoRenderable.values.uBias, props.occlusion.params.bias);
 
             if (this.blurKernelSize !== props.occlusion.params.blurKernelSize) {
                 needsUpdateSsaoBlur = true;

@@ -30,8 +30,8 @@ uniform mat4 uInvProjection;
     uniform float uFarThreshold;
 #else
     uniform float uRadius;
-    uniform float uBias;
 #endif
+uniform float uBias;
 
 float smootherstep(float edge0, float edge1, float x) {
     x = clamp((x - edge0) / (edge1 - edge0), 0.0, 1.0);
@@ -169,10 +169,10 @@ void main(void) {
             float sampleDepth = getMappedDepth(offset.xy, selfCoords);
             float sampleViewZ = screenSpaceToViewSpace(vec3(offset.xy, sampleDepth), uInvProjection).z;
 
-            occlusion += step(sampleViewPos.z + 0.025, sampleViewZ) * smootherstep(0.0, 1.0, uRadius / abs(selfViewPos.z - sampleViewZ)) * uBias;
+            occlusion += step(sampleViewPos.z + 0.025, sampleViewZ) * smootherstep(0.0, 1.0, uRadius / abs(selfViewPos.z - sampleViewZ));
         }
     #endif
-    occlusion = 1.0 - (occlusion / float(dNSamples));
+    occlusion = 1.0 - (uBias * occlusion / float(dNSamples));
 
     vec2 packedOcclusion = packUnitIntervalToRG(clamp(occlusion, 0.01, 1.0));
 
