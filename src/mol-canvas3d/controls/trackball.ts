@@ -371,11 +371,11 @@ namespace TrackballControls {
         const moveDir = Vec3();
         const moveEye = Vec3();
 
-        function moveCamera() {
+        function moveCamera(deltaT: number) {
             Vec3.sub(moveEye, camera.position, camera.target);
             Vec3.setMagnitude(moveEye, moveEye, camera.state.minNear);
 
-            const moveSpeed = p.moveSpeed * (keyState.boostMove === 1 ? p.boostMoveFactor : 1);
+            const moveSpeed = deltaT * (60 / 1000) * p.moveSpeed * (keyState.boostMove === 1 ? p.boostMoveFactor : 1);
 
             if (keyState.moveForward === 1) {
                 Vec3.normalize(moveDir, moveEye);
@@ -483,9 +483,11 @@ namespace TrackballControls {
         /** Update the object's position, direction and up vectors */
         function update(t: number) {
             if (lastUpdated === t) return;
+
+            const deltaT = t - lastUpdated;
             if (lastUpdated > 0) {
-                if (p.animate.name === 'spin') spin(t - lastUpdated);
-                else if (p.animate.name === 'rock') rock(t - lastUpdated);
+                if (p.animate.name === 'spin') spin(deltaT);
+                else if (p.animate.name === 'rock') rock(deltaT);
             }
 
             Vec3.sub(_eye, camera.position, camera.target);
@@ -501,7 +503,9 @@ namespace TrackballControls {
             Vec3.add(camera.position, camera.target, _eye);
             checkDistances();
 
-            moveCamera();
+            if (lastUpdated > 0 && deltaT < 1000) {
+                moveCamera(deltaT);
+            }
 
             Vec3.sub(_eye, camera.position, camera.target);
             checkDistances();
