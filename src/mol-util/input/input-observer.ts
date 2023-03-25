@@ -805,13 +805,14 @@ namespace InputObserver {
             const t = '10%';
             const c = `#000 ${b}, #0000 0 calc(100% - ${b}), #000 0`;
             Object.assign(cross.style, {
-
                 width: `${crossWidth}px`,
                 aspectRatio: 1,
                 background: `linear-gradient(0deg, ${c}) 50%/${t} 100% no-repeat, linear-gradient(90deg, ${c}) 50%/100% ${t} no-repeat`,
                 display: 'none',
                 zIndex: 1000,
                 position: 'absolute',
+                mixBlendMode: 'difference',
+                filter: 'invert(1)',
             });
 
             element.parentElement?.appendChild(cross);
