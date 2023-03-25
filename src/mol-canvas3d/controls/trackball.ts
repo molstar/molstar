@@ -24,7 +24,7 @@ const Key = Binding.TriggerKey;
 
 export const DefaultTrackballBindings = {
     dragRotate: Binding([Trigger(B.Flag.Primary, M.create())], 'Rotate', 'Drag using ${triggers}'),
-    dragRotateZ: Binding([Trigger(B.Flag.Primary, M.create({ shift: true }))], 'Rotate around z-axis (roll)', 'Drag using ${triggers}'),
+    dragRotateZ: Binding([Trigger(B.Flag.Primary, M.create({ alt: true }))], 'Rotate around z-axis (roll)', 'Drag using ${triggers}'),
     dragPan: Binding([Trigger(B.Flag.Secondary, M.create()), Trigger(B.Flag.Primary, M.create({ control: true }))], 'Pan', 'Drag using ${triggers}'),
     dragZoom: Binding.Empty,
     dragFocus: Binding([Trigger(B.Flag.Forth, M.create())], 'Focus', 'Drag using ${triggers}'),
