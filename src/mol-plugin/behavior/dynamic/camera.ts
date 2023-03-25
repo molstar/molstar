@@ -29,8 +29,6 @@ const DefaultFocusLociBindings = {
         Trigger(B.Flag.Secondary, M.create()),
         Trigger(B.Flag.Primary, M.create({ control: true }))
     ], 'Camera center and focus', 'Click element using ${triggers}'),
-    keySpinAnimation: Binding([Key('KeyI')], 'Spin Animation', 'Press ${triggers}'),
-    keyRockAnimation: Binding([Key('KeyO')], 'Rock Animation', 'Press ${triggers}'),
 };
 const FocusLociParams = {
     minRadius: PD.Numeric(8, { min: 1, max: 50, step: 1 }),
@@ -61,42 +59,6 @@ export const FocusLoci = PluginBehavior.create<FocusLociProps>({
 
                     const loci = Loci.normalize(current.loci, this.ctx.managers.interactivity.props.granularity);
                     this.ctx.managers.camera.focusLoci(loci, this.params);
-                }
-            });
-
-            this.subscribeObservable(this.ctx.behaviors.interaction.key, ({ code, modifiers }) => {
-                if (!this.ctx.canvas3d) return;
-
-                // include defaults for backwards state compatibility
-                const b = { ...DefaultFocusLociBindings, ...this.params.bindings };
-                const p = this.ctx.canvas3d.props.trackball;
-
-                if (Binding.matchKey(b.keySpinAnimation, code, modifiers)) {
-                    const name = p.animate.name !== 'spin' ? 'spin' : 'off';
-                    if (name === 'off') {
-                        this.ctx.canvas3d.setProps({
-                            trackball: { animate: { name, params: {} } }
-                        });
-                    } else {
-                        this.ctx.canvas3d.setProps({
-                            trackball: { animate: {
-                                name, params: { speed: 1 } }
-                            }
-                        });
-                    }
-                } else if (Binding.matchKey(b.keyRockAnimation, code, modifiers)) {
-                    const name = p.animate.name !== 'rock' ? 'rock' : 'off';
-                    if (name === 'off') {
-                        this.ctx.canvas3d.setProps({
-                            trackball: { animate: { name, params: {} } }
-                        });
-                    } else {
-                        this.ctx.canvas3d.setProps({
-                            trackball: { animate: {
-                                name, params: { speed: 0.3, angle: 10 } }
-                            }
-                        });
-                    }
                 }
             });
         }
@@ -166,4 +128,79 @@ export const CameraAxisHelper = PluginBehavior.create<{}>({
     },
     params: () => ({}),
     display: { name: 'Camera Axis Helper' }
+});
+
+const DefaultCameraControlsBindings = {
+    keySpinAnimation: Binding([Key('KeyI')], 'Spin Animation', 'Press ${triggers}'),
+    keyRockAnimation: Binding([Key('KeyO')], 'Rock Animation', 'Press ${triggers}'),
+    keyToggleFlyMode: Binding([Key('Space', M.create({ shift: true }))], 'Toggle Fly Mode', 'Press ${triggers}'),
+    keyResetView: Binding([Key('KeyT')], 'Reset View', 'Press ${triggers}'),
+};
+const CameraControlsParams = {
+    bindings: PD.Value(DefaultCameraControlsBindings, { isHidden: true }),
+};
+type CameraControlsProps = PD.Values<typeof CameraControlsParams>
+
+export const CameraControls = PluginBehavior.create<CameraControlsProps>({
+    name: 'camera-controls',
+    category: 'interaction',
+    ctor: class extends PluginBehavior.Handler<CameraControlsProps> {
+        register(): void {
+            this.subscribeObservable(this.ctx.behaviors.interaction.key, ({ code, modifiers }) => {
+                if (!this.ctx.canvas3d) return;
+
+                // include defaults for backwards state compatibility
+                const b = { ...DefaultCameraControlsBindings, ...this.params.bindings };
+                const p = this.ctx.canvas3d.props.trackball;
+
+                if (Binding.matchKey(b.keySpinAnimation, code, modifiers)) {
+                    const name = p.animate.name !== 'spin' ? 'spin' : 'off';
+                    if (name === 'off') {
+                        this.ctx.canvas3d.setProps({
+                            trackball: { animate: { name, params: {} } }
+                        });
+                    } else {
+                        this.ctx.canvas3d.setProps({
+                            trackball: { animate: {
+                                name, params: { speed: 1 } }
+                            }
+                        });
+                    }
+                }
+
+                if (Binding.matchKey(b.keyRockAnimation, code, modifiers)) {
+                    const name = p.animate.name !== 'rock' ? 'rock' : 'off';
+                    if (name === 'off') {
+                        this.ctx.canvas3d.setProps({
+                            trackball: { animate: { name, params: {} } }
+                        });
+                    } else {
+                        this.ctx.canvas3d.setProps({
+                            trackball: { animate: {
+                                name, params: { speed: 0.3, angle: 10 } }
+                            }
+                        });
+                    }
+                }
+
+                if (Binding.matchKey(b.keyToggleFlyMode, code, modifiers)) {
+                    const flyMode = !p.flyMode;
+
+                    this.ctx.canvas3d.setProps({
+                        trackball: { flyMode }
+                    });
+
+                    if (this.ctx.canvas3dContext) {
+                        this.ctx.canvas3dContext.canvas.style.cursor = flyMode ? 'crosshair' : 'unset';
+                    }
+                }
+
+                if (Binding.matchKey(b.keyResetView, code, modifiers)) {
+                    PluginCommands.Camera.Reset(this.ctx, {});
+                }
+            });
+        }
+    },
+    params: () => CameraControlsParams,
+    display: { name: 'Camera Controls on Canvas' }
 });
