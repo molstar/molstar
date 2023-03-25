@@ -503,8 +503,10 @@ namespace TrackballControls {
             Vec3.add(camera.position, camera.target, _eye);
             checkDistances();
 
-            if (lastUpdated > 0 && deltaT < 1000) {
-                moveCamera(deltaT);
+            if (lastUpdated > 0) {
+                // clamp the maximum step size at 15 frames to avoid too big jumps
+                // TODO: make this a parameter?
+                moveCamera(Math.min(deltaT, 15 * 1000 / 60));
             }
 
             Vec3.sub(_eye, camera.position, camera.target);
