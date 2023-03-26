@@ -45,9 +45,10 @@ function occlusionStyle(plugin: PluginContext) {
         postprocessing: {
             ...plugin.canvas3d!.props.postprocessing,
             occlusion: { name: 'on', params: {
-                bias: 0.8,
                 blurKernelSize: 15,
+                multiScale: { name: 'off', params: {} },
                 radius: 5,
+                bias: 0.8,
                 samples: 32,
                 resolutionScale: 1,
                 color: Color(0x000000),
