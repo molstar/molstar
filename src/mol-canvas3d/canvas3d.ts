@@ -332,7 +332,7 @@ namespace Canvas3D {
         }, { x, y, width, height }, { pixelScale: attribs.pixelScale });
         const stereoCamera = new StereoCamera(camera, p.camera.stereo.params);
 
-        const controls = TrackballControls.create(input, camera, p.trackball);
+        const controls = TrackballControls.create(input, camera, scene, p.trackball);
         const renderer = Renderer.create(webgl, p.renderer);
         const helper = new Helper(webgl, scene, p);
 

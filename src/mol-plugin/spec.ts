@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -120,6 +120,7 @@ export const DefaultPluginSpec = (): PluginSpec => ({
         PluginSpec.Behavior(PluginBehaviors.Representation.FocusLoci),
         PluginSpec.Behavior(PluginBehaviors.Camera.FocusLoci),
         PluginSpec.Behavior(PluginBehaviors.Camera.CameraAxisHelper),
+        PluginSpec.Behavior(PluginBehaviors.Camera.CameraControls),
         PluginSpec.Behavior(StructureFocusRepresentation),
 
         PluginSpec.Behavior(PluginBehaviors.CustomProps.StructureInfo),

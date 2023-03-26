@@ -6,6 +6,11 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Input/controls improvements
+    - Move or fly around the scene using keys
+    - Pointer lock to look around scene
+    - Toggle spin/rock animation using keys
+
 ## [v3.32.0] - 2023-03-20
 
 - Avoid rendering of fully transparent renderables

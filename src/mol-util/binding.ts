@@ -1,11 +1,11 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { ButtonsType, ModifiersKeys } from './input/input-observer';
-import { interpolate, stringToWords } from './string';
+import { ButtonsType, KeyCode, ModifiersKeys } from './input/input-observer';
+import { camelCaseToWords, interpolate, stringToWords } from './string';
 
 export { Binding };
 
@@ -31,11 +31,15 @@ namespace Binding {
     export const Empty: Binding = { triggers: [], action: '', description: '' };
     export function isEmpty(binding: Binding) {
         return binding.triggers.length === 0 ||
-            binding.triggers.every(t => t.buttons === undefined && t.modifiers === undefined);
+            binding.triggers.every(t => t.buttons === undefined && t.modifiers === undefined && !t.code);
     }
 
     export function match(binding: Binding, buttons: ButtonsType, modifiers: ModifiersKeys) {
         return binding.triggers.some(t => Trigger.match(t, buttons, modifiers));
+    }
+
+    export function matchKey(binding: Binding, code: KeyCode, modifiers: ModifiersKeys) {
+        return binding.triggers.some(t => Trigger.matchKey(t, code, modifiers));
     }
 
     export function formatTriggers(binding: Binding) {
@@ -50,15 +54,20 @@ namespace Binding {
     export interface Trigger {
         buttons?: ButtonsType,
         modifiers?: ModifiersKeys
+        code?: KeyCode
     }
 
     export function Trigger(buttons?: ButtonsType, modifiers?: ModifiersKeys) {
         return Trigger.create(buttons, modifiers);
     }
 
+    export function TriggerKey(code?: KeyCode, modifiers?: ModifiersKeys) {
+        return Trigger.create(undefined, modifiers, code);
+    }
+
     export namespace Trigger {
-        export function create(buttons?: ButtonsType, modifiers?: ModifiersKeys): Trigger {
-            return { buttons, modifiers };
+        export function create(buttons?: ButtonsType, modifiers?: ModifiersKeys, code?: KeyCode): Trigger {
+            return { buttons, modifiers, code };
         }
         export const Empty: Trigger = {};
 
@@ -69,10 +78,19 @@ namespace Binding {
                 (!m || ModifiersKeys.areEqual(m, modifiers));
         }
 
+        export function matchKey(trigger: Trigger, code: KeyCode, modifiers: ModifiersKeys): boolean {
+            const { modifiers: m, code: c } = trigger;
+            return c !== undefined &&
+                (c === code) &&
+                (!m || ModifiersKeys.areEqual(m, modifiers));
+        }
+
         export function format(trigger: Trigger) {
             const s: string[] = [];
-            const b = formatButtons(trigger.buttons);
+            const b = formatButtons(trigger.buttons, trigger.code);
             if (b) s.push(b);
+            const c = formatCode(trigger.code);
+            if (c) s.push(c);
             const m = formatModifiers(trigger.modifiers);
             if (m) s.push(m);
             return s.join(' + ');
@@ -82,13 +100,13 @@ namespace Binding {
 
 const B = ButtonsType;
 
-function formatButtons(buttons?: ButtonsType) {
+function formatButtons(buttons?: ButtonsType, code?: KeyCode) {
     const s: string[] = [];
-    if (buttons === undefined) {
+    if (buttons === undefined && !code) {
         s.push('any mouse button');
     } else if (buttons === 0) {
         s.push('mouse hover');
-    } else {
+    } else if (buttons !== undefined) {
         if (B.has(buttons, B.Flag.Primary)) s.push('left mouse button');
         if (B.has(buttons, B.Flag.Secondary)) s.push('right mouse button');
         if (B.has(buttons, B.Flag.Auxilary)) s.push('wheel/middle mouse button');
@@ -110,4 +128,9 @@ function formatModifiers(modifiers?: ModifiersKeys, verbose?: boolean) {
         if (verbose) s.push('any key');
     }
     return s.join(' + ');
+}
+
+function formatCode(code?: KeyCode) {
+    if (code?.startsWith('Key')) code = code.substring(3);
+    return code && camelCaseToWords(code).toLowerCase();
 }

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -43,7 +43,7 @@ import { AssetManager } from '../mol-util/assets';
 import { Color } from '../mol-util/color';
 import { ajaxGet } from '../mol-util/data-source';
 import { isDebugMode, isProductionMode } from '../mol-util/debug';
-import { ModifiersKeys } from '../mol-util/input/input-observer';
+import { EmptyKeyInput, KeyInput, ModifiersKeys } from '../mol-util/input/input-observer';
 import { LogEntry } from '../mol-util/log-entry';
 import { objectForEach } from '../mol-util/object';
 import { RxEventHelper } from '../mol-util/rx-event-helper';
@@ -95,7 +95,8 @@ export class PluginContext {
             hover: this.ev.behavior<InteractivityManager.HoverEvent>({ current: Representation.Loci.Empty, modifiers: ModifiersKeys.None, buttons: 0, button: 0 }),
             click: this.ev.behavior<InteractivityManager.ClickEvent>({ current: Representation.Loci.Empty, modifiers: ModifiersKeys.None, buttons: 0, button: 0 }),
             drag: this.ev.behavior<InteractivityManager.DragEvent>({ current: Representation.Loci.Empty, modifiers: ModifiersKeys.None, buttons: 0, button: 0, pageStart: Vec2(), pageEnd: Vec2() }),
-            selectionMode: this.ev.behavior<boolean>(false)
+            key: this.ev.behavior<KeyInput>(EmptyKeyInput),
+            selectionMode: this.ev.behavior<boolean>(false),
         },
         labels: {
             highlight: this.ev.behavior<{ labels: ReadonlyArray<LociLabel> }>({ labels: [] })
@@ -293,6 +294,7 @@ export class PluginContext {
             this.subs.push(this.canvas3d!.interaction.drag.subscribe(e => this.behaviors.interaction.drag.next(e)));
             this.subs.push(this.canvas3d!.interaction.hover.subscribe(e => this.behaviors.interaction.hover.next(e)));
             this.subs.push(this.canvas3d!.input.resize.subscribe(() => this.handleResize()));
+            this.subs.push(this.canvas3d!.input.keyDown.subscribe(e => this.behaviors.interaction.key.next(e)));
             this.subs.push(this.layout.events.updated.subscribe(() => requestAnimationFrame(() => this.handleResize())));
 
             this.handleResize();

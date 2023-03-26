@@ -1,11 +1,12 @@
 /**
- * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { Subject, Observable } from 'rxjs';
+import { Viewport } from '../../mol-canvas3d/camera/util';
 
 import { Vec2, EPSILON } from '../../mol-math/linear-algebra';
 
@@ -122,6 +123,8 @@ export namespace ButtonsType {
     }
 }
 
+export type KeyCode = string
+
 type BaseInput = {
     buttons: ButtonsType
     button: ButtonsType.Flag
@@ -162,6 +165,8 @@ export type MoveInput = {
     y: number,
     pageX: number,
     pageY: number,
+    movementX?: number,
+    movementY?: number,
     inside: boolean,
     // Move is subscribed to window element
     // This indicates that the event originated from the element the InputObserver was created on
@@ -187,8 +192,19 @@ export type GestureInput = {
 
 export type KeyInput = {
     key: string,
+    code: string,
     modifiers: ModifiersKeys
+
+    /** for overwriting browser shortcuts like `ctrl+s` as needed */
+    preventDefault: () => void
 }
+
+export const EmptyKeyInput: KeyInput = {
+    key: '',
+    code: '',
+    modifiers: ModifiersKeys.None,
+    preventDefault: noop,
+};
 
 export type ResizeInput = {
 
@@ -205,6 +221,8 @@ type PointerEvent = {
     clientY: number
     pageX: number
     pageY: number
+    movementX?: number
+    movementY?: number
     target: EventTarget | null
 
     preventDefault?: () => void
@@ -222,6 +240,7 @@ interface InputObserver {
     readonly width: number
     readonly height: number
     readonly pixelRatio: number
+    readonly pointerLock: boolean
 
     readonly drag: Observable<DragInput>,
     // Equivalent to mouseUp and touchEnd
@@ -236,7 +255,12 @@ interface InputObserver {
     readonly resize: Observable<ResizeInput>,
     readonly modifiers: Observable<ModifiersKeys>
     readonly key: Observable<KeyInput>
+    readonly keyUp: Observable<KeyInput>
+    readonly keyDown: Observable<KeyInput>
+    readonly lock: Observable<boolean>
 
+    requestPointerLock: (viewport: Viewport) => void
+    exitPointerLock: () => void
     dispose: () => void
 }
 
@@ -254,6 +278,9 @@ function createEvents() {
         enter: new Subject<undefined>(),
         modifiers: new Subject<ModifiersKeys>(),
         key: new Subject<KeyInput>(),
+        keyUp: new Subject<KeyInput>(),
+        keyDown: new Subject<KeyInput>(),
+        lock: new Subject<boolean>(),
     };
 }
 
@@ -265,6 +292,7 @@ namespace InputObserver {
         return {
             noScroll,
             noContextMenu,
+            pointerLock: false,
 
             width: 0,
             height: 0,
@@ -272,6 +300,8 @@ namespace InputObserver {
 
             ...createEvents(),
 
+            requestPointerLock: noop,
+            exitPointerLock: noop,
             dispose: noop
         };
     }
@@ -281,6 +311,9 @@ namespace InputObserver {
 
         let width = element.clientWidth * pixelRatio();
         let height = element.clientHeight * pixelRatio();
+
+        let isLocked = false;
+        let lockedViewport = Viewport();
 
         let lastTouchDistance = 0, lastTouchFraction = 0;
         const pointerDown = Vec2();
@@ -311,24 +344,9 @@ namespace InputObserver {
         let hasMoved = false;
 
         const events = createEvents();
-        const { drag, interactionEnd, wheel, pinch, gesture, click, move, leave, enter, resize, modifiers, key } = events;
+        const { drag, interactionEnd, wheel, pinch, gesture, click, move, leave, enter, resize, modifiers, key, keyUp, keyDown, lock } = events;
 
         attach();
-
-        return {
-            get noScroll() { return noScroll; },
-            set noScroll(value: boolean) { noScroll = value; },
-            get noContextMenu() { return noContextMenu; },
-            set noContextMenu(value: boolean) { noContextMenu = value; },
-
-            get width() { return width; },
-            get height() { return height; },
-            get pixelRatio() { return pixelRatio(); },
-
-            ...events,
-
-            dispose
-        };
 
         function attach() {
             element.addEventListener('contextmenu', onContextMenu as any, false);
@@ -340,9 +358,6 @@ namespace InputObserver {
             // mouse move/up events have to be added to a parent, i.e. window
             window.addEventListener('mousemove', onMouseMove as any, false);
             window.addEventListener('mouseup', onMouseUp as any, false);
-
-            element.addEventListener('mouseenter', onMouseEnter as any, false);
-            element.addEventListener('mouseleave', onMouseLeave as any, false);
 
             element.addEventListener('touchstart', onTouchStart as any, false);
             element.addEventListener('touchmove', onTouchMove as any, false);
@@ -358,6 +373,9 @@ namespace InputObserver {
             window.addEventListener('keydown', handleKeyDown as EventListener, false);
             window.addEventListener('keypress', handleKeyPress as EventListener, false);
 
+            document.addEventListener('pointerlockchange', onPointerLockChange, false);
+            document.addEventListener('pointerlockerror', onPointerLockError, false);
+
             window.addEventListener('resize', onResize, false);
         }
 
@@ -372,9 +390,6 @@ namespace InputObserver {
             window.removeEventListener('mousemove', onMouseMove as any, false);
             window.removeEventListener('mouseup', onMouseUp as any, false);
 
-            element.removeEventListener('mouseenter', onMouseEnter as any, false);
-            element.removeEventListener('mouseleave', onMouseLeave as any, false);
-
             element.removeEventListener('touchstart', onTouchStart as any, false);
             element.removeEventListener('touchmove', onTouchMove as any, false);
             element.removeEventListener('touchend', onTouchEnd as any, false);
@@ -388,7 +403,27 @@ namespace InputObserver {
             window.removeEventListener('keydown', handleKeyDown as EventListener, false);
             window.removeEventListener('keypress', handleKeyPress as EventListener, false);
 
+            document.removeEventListener('pointerlockchange', onPointerLockChange, false);
+            document.removeEventListener('pointerlockerror', onPointerLockError, false);
+
             window.removeEventListener('resize', onResize, false);
+        }
+
+        function onPointerLockChange() {
+            if (element.ownerDocument.pointerLockElement === element) {
+                isLocked = true;
+            } else {
+                isLocked = false;
+            }
+            toggleCross(isLocked);
+            lock.next(isLocked);
+        }
+
+        function onPointerLockError() {
+            console.error('Unable to use Pointer Lock API');
+            isLocked = false;
+            toggleCross(isLocked);
+            lock.next(isLocked);
         }
 
         function onContextMenu(event: MouseEvent) {
@@ -421,6 +456,15 @@ namespace InputObserver {
             if (!modifierKeys.meta && event.metaKey) { changed = true; modifierKeys.meta = true; }
 
             if (changed && isInside) modifiers.next(getModifierKeys());
+
+            if (event.target === document.body && isInside) {
+                keyDown.next({
+                    key: event.key,
+                    code: event.code,
+                    modifiers: getModifierKeys(),
+                    preventDefault: () => event.preventDefault(),
+                });
+            }
         }
 
         function handleKeyUp(event: KeyboardEvent) {
@@ -434,12 +478,25 @@ namespace InputObserver {
             if (changed && isInside) modifiers.next(getModifierKeys());
 
             if (AllowedNonPrintableKeys.includes(event.key)) handleKeyPress(event);
+
+            if (event.target === document.body && isInside) {
+                keyUp.next({
+                    key: event.key,
+                    code: event.code,
+                    modifiers: getModifierKeys(),
+                    preventDefault: () => event.preventDefault(),
+                });
+            }
         }
 
         function handleKeyPress(event: KeyboardEvent) {
+            if (event.target !== document.body || !isInside) return;
+
             key.next({
                 key: event.key,
-                modifiers: getModifierKeys()
+                code: event.code,
+                modifiers: getModifierKeys(),
+                preventDefault: () => event.preventDefault(),
             });
         }
 
@@ -584,7 +641,7 @@ namespace InputObserver {
 
             eventOffset(pointerEnd, ev);
             if (!hasMoved && Vec2.distance(pointerEnd, pointerDown) < 4) {
-                const { pageX, pageY } = ev;
+                const { pageX, pageY } = getPagePosition(ev);
                 const [x, y] = pointerEnd;
 
                 click.next({ x, y, pageX, pageY, buttons, button, modifiers: getModifierKeys() });
@@ -594,10 +651,19 @@ namespace InputObserver {
 
         function onPointerMove(ev: PointerEvent) {
             eventOffset(pointerEnd, ev);
-            const { pageX, pageY } = ev;
+            const { pageX, pageY } = getPagePosition(ev);
             const [x, y] = pointerEnd;
-            const inside = insideBounds(pointerEnd);
-            move.next({ x, y, pageX, pageY, buttons, button, modifiers: getModifierKeys(), inside, onElement: ev.target === element });
+            const { movementX, movementY } = ev;
+
+            const inside = insideBounds(pointerEnd) && mask(ev.clientX, ev.clientY);
+            if (isInside && !inside) {
+                leave.next(void 0);
+            } else if (!isInside && inside) {
+                enter.next(void 0);
+            }
+            isInside = inside;
+
+            move.next({ x, y, pageX, pageY, movementX, movementY, buttons, button, modifiers: getModifierKeys(), inside, onElement: ev.target === element });
 
             if (dragging === DraggingState.Stopped) return;
 
@@ -626,7 +692,7 @@ namespace InputObserver {
             if (!mask(ev.clientX, ev.clientY)) return;
 
             eventOffset(pointerEnd, ev);
-            const { pageX, pageY } = ev;
+            const { pageX, pageY } = getPagePosition(ev);
             const [x, y] = pointerEnd;
 
             if (noScroll) {
@@ -680,16 +746,6 @@ namespace InputObserver {
             gestureDelta(ev, true);
         }
 
-        function onMouseEnter(ev: Event) {
-            isInside = true;
-            enter.next(void 0);
-        }
-
-        function onMouseLeave(ev: Event) {
-            isInside = false;
-            leave.next(void 0);
-        }
-
         function onResize(ev: Event) {
             resize.next({});
         }
@@ -713,13 +769,95 @@ namespace InputObserver {
             width = element.clientWidth * pixelRatio();
             height = element.clientHeight * pixelRatio();
 
-            const cx = ev.clientX || 0;
-            const cy = ev.clientY || 0;
-            const rect = element.getBoundingClientRect();
-            out[0] = cx - rect.left;
-            out[1] = cy - rect.top;
+            if (isLocked) {
+                const pr = pixelRatio();
+                out[0] = (lockedViewport.x + lockedViewport.width / 2) / pr;
+                out[1] = (height - (lockedViewport.y + lockedViewport.height / 2)) / pr;
+            } else {
+                const rect = element.getBoundingClientRect();
+                out[0] = (ev.clientX || 0) - rect.left;
+                out[1] = (ev.clientY || 0) - rect.top;
+            }
             return out;
         }
+
+        function getPagePosition(ev: PointerEvent) {
+            if (isLocked) {
+                return {
+                    pageX: Math.round(window.innerWidth / 2) + lockedViewport.x,
+                    pageY: Math.round(window.innerHeight / 2) + lockedViewport.y
+                };
+            } else {
+                return {
+                    pageX: ev.pageX,
+                    pageY: ev.pageY
+                };
+            }
+        }
+
+        const cross = addCross();
+        const crossWidth = 30;
+
+        function addCross() {
+            const cross = document.createElement('div');
+
+            const b = '30%';
+            const t = '10%';
+            const c = `#000 ${b}, #0000 0 calc(100% - ${b}), #000 0`;
+            Object.assign(cross.style, {
+                width: `${crossWidth}px`,
+                aspectRatio: 1,
+                background: `linear-gradient(0deg, ${c}) 50%/${t} 100% no-repeat, linear-gradient(90deg, ${c}) 50%/100% ${t} no-repeat`,
+                display: 'none',
+                zIndex: 1000,
+                position: 'absolute',
+                mixBlendMode: 'difference',
+                filter: 'invert(1)',
+            });
+
+            element.parentElement?.appendChild(cross);
+
+            return cross;
+        }
+
+        function toggleCross(value: boolean) {
+            cross.style.display = value ? 'block' : 'none';
+            if (value) {
+                const pr = pixelRatio();
+                const offsetX = (lockedViewport.x + lockedViewport.width / 2) / pr;
+                const offsetY = (lockedViewport.y + lockedViewport.height / 2) / pr;
+                cross.style.width = `${crossWidth}px`;
+                cross.style.left = `calc(${offsetX}px - ${crossWidth / 2}px)`;
+                cross.style.bottom = `calc(${offsetY}px - ${crossWidth / 2}px)`;
+            }
+        }
+
+        return {
+            get noScroll() { return noScroll; },
+            set noScroll(value: boolean) { noScroll = value; },
+            get noContextMenu() { return noContextMenu; },
+            set noContextMenu(value: boolean) { noContextMenu = value; },
+
+            get width() { return width; },
+            get height() { return height; },
+            get pixelRatio() { return pixelRatio(); },
+            get pointerLock() { return isLocked; },
+
+            ...events,
+
+            requestPointerLock: (viewport: Viewport) => {
+                lockedViewport = viewport;
+                if (!isLocked) {
+                    element.requestPointerLock();
+                }
+            },
+            exitPointerLock: () => {
+                if (isLocked) {
+                    element.ownerDocument.exitPointerLock();
+                }
+            },
+            dispose
+        };
     }
 }
 

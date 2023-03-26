@@ -68,7 +68,7 @@ export class Canvas3dInteractionHelper {
     }
 
     private identify(e: InputEvent, t: number) {
-        const xyChanged = this.startX !== this.endX || this.startY !== this.endY;
+        const xyChanged = this.startX !== this.endX || this.startY !== this.endY || this.input.pointerLock;
 
         if (e === InputEvent.Drag) {
             if (xyChanged && !this.outsideViewport(this.startX, this.startY)) {
