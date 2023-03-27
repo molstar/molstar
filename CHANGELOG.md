@@ -5,6 +5,7 @@ Note that since we don't clearly distinguish between a public and private interf
 
 
 ## [Unreleased]
+- Handle resizes of viewer element even when window remains the same size
 
 - Input/controls improvements
     - Move or fly around the scene using keys
