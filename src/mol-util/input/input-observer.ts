@@ -776,16 +776,6 @@ namespace InputObserver {
             gestureDelta(ev, true);
         }
 
-        function onMouseEnter(ev: Event) {
-            isInside = true;
-            enter.next(void 0);
-        }
-
-        function onMouseLeave(ev: Event) {
-            isInside = false;
-            leave.next(void 0);
-        }
-
         function onResize() {
             resize.next({});
         }
