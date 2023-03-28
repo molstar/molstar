@@ -336,6 +336,10 @@ namespace InputObserver {
             return { ...modifierKeys };
         }
 
+        function getKeyOnElement(event: Event): boolean {
+            return event.target === document.body || event.target === element;
+        }
+
         let dragging: DraggingState = DraggingState.Stopped;
         let disposed = false;
         let buttons = ButtonsType.create(ButtonsType.Flag.None);
@@ -407,6 +411,8 @@ namespace InputObserver {
             document.removeEventListener('pointerlockerror', onPointerLockError, false);
 
             window.removeEventListener('resize', onResize, false);
+
+            cross.remove();
         }
 
         function onPointerLockChange() {
@@ -457,7 +463,7 @@ namespace InputObserver {
 
             if (changed && isInside) modifiers.next(getModifierKeys());
 
-            if (event.target === document.body && isInside) {
+            if (getKeyOnElement(event) && isInside) {
                 keyDown.next({
                     key: event.key,
                     code: event.code,
@@ -479,7 +485,7 @@ namespace InputObserver {
 
             if (AllowedNonPrintableKeys.includes(event.key)) handleKeyPress(event);
 
-            if (event.target === document.body && isInside) {
+            if (getKeyOnElement(event) && isInside) {
                 keyUp.next({
                     key: event.key,
                     code: event.code,
@@ -490,7 +496,7 @@ namespace InputObserver {
         }
 
         function handleKeyPress(event: KeyboardEvent) {
-            if (event.target !== document.body || !isInside) return;
+            if (!getKeyOnElement(event) || !isInside) return;
 
             key.next({
                 key: event.key,
@@ -804,10 +810,13 @@ namespace InputObserver {
             const b = '30%';
             const t = '10%';
             const c = `#000 ${b}, #0000 0 calc(100% - ${b}), #000 0`;
+            const vline = `linear-gradient(0deg, ${c}) 50%/${t} 100% no-repeat`;
+            const hline = `linear-gradient(90deg, ${c}) 50%/100% ${t} no-repeat`;
+            const cdot = 'radial-gradient(circle at 50%, #000 5%, #0000 5%)';
             Object.assign(cross.style, {
                 width: `${crossWidth}px`,
                 aspectRatio: 1,
-                background: `linear-gradient(0deg, ${c}) 50%/${t} 100% no-repeat, linear-gradient(90deg, ${c}) 50%/100% ${t} no-repeat`,
+                background: `${vline}, ${hline}, ${cdot}`,
                 display: 'none',
                 zIndex: 1000,
                 position: 'absolute',

@@ -117,9 +117,13 @@ interface TrackballControls {
 }
 namespace TrackballControls {
     export function create(input: InputObserver, camera: Camera, scene: Scene, props: Partial<TrackballControlsProps> = {}): TrackballControls {
-        const p = { ...PD.getDefaultValues(TrackballControlsParams), ...props };
-        // include defaults for backwards state compatibility
-        const b = { ...DefaultTrackballBindings, ...p.bindings };
+        const p: TrackballControlsProps = {
+            ...PD.getDefaultValues(TrackballControlsParams),
+            ...props,
+            // include default bindings for backwards state compatibility
+            bindings: { ...DefaultTrackballBindings, ...props.bindings }
+        };
+        const b = p.bindings;
 
         const viewport = Viewport.clone(camera.viewport);
 
@@ -787,6 +791,7 @@ namespace TrackballControls {
                     resetRock(); // start rocking from the center
                 }
                 Object.assign(p, props);
+                Object.assign(b, props.bindings);
             },
 
             start,
