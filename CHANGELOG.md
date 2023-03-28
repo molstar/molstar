@@ -11,6 +11,7 @@ Note that since we don't clearly distinguish between a public and private interf
     - Pointer lock to look around scene
     - Toggle spin/rock animation using keys
 - Apply bumpiness as lightness variation with `ignoreLight`
+- Remove `JSX` reference from `loci-labels.ts`
 
 ## [v3.32.0] - 2023-03-20
 
