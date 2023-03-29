@@ -361,7 +361,11 @@ namespace InputObserver {
         let isInside = false;
         let hasMoved = false;
 
-        const resizeObserver: ResizeObserver = new window.ResizeObserver(onResize);
+        let resizeObserver: ResizeObserver | undefined;
+        if (typeof window.ResizeObserver !== 'undefined') {
+            resizeObserver = new window.ResizeObserver(onResize);
+        }
+
         const events = createEvents();
         const { drag, interactionEnd, wheel, pinch, gesture, click, move, leave, enter, resize, modifiers, key, keyUp, keyDown, lock } = events;
 
@@ -395,7 +399,11 @@ namespace InputObserver {
             document.addEventListener('pointerlockchange', onPointerLockChange, false);
             document.addEventListener('pointerlockerror', onPointerLockError, false);
 
-            resizeObserver.observe(element.parentElement!);
+            if (resizeObserver != null) {
+                resizeObserver.observe(element.parentElement!);
+            } else {
+                window.addEventListener('resize', onResize, false);
+            }
         }
 
         function dispose() {
@@ -427,8 +435,12 @@ namespace InputObserver {
 
             cross.remove();
 
-            resizeObserver.unobserve(element.parentElement!);
-            resizeObserver.disconnect();
+            if (resizeObserver != null) {
+                resizeObserver.unobserve(element.parentElement!);
+                resizeObserver.disconnect();
+            } else {
+                window.removeEventListener('resize', onResize, false);
+            }
         }
 
         function onPointerLockChange() {
