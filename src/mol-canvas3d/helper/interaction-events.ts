@@ -13,6 +13,7 @@ import { Vec2, Vec3 } from '../../mol-math/linear-algebra';
 import { Camera } from '../camera';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { Bond } from '../../mol-model/structure';
+import { TrackballControls } from '../controls/trackball';
 
 type Canvas3D = import('../canvas3d').Canvas3D
 type HoverEvent = import('../canvas3d').Canvas3D.HoverEvent
@@ -68,7 +69,7 @@ export class Canvas3dInteractionHelper {
     }
 
     private identify(e: InputEvent, t: number) {
-        const xyChanged = this.startX !== this.endX || this.startY !== this.endY || this.input.pointerLock;
+        const xyChanged = this.startX !== this.endX || this.startY !== this.endY || (this.input.pointerLock && !this.controls.isMoving);
 
         if (e === InputEvent.Drag) {
             if (xyChanged && !this.outsideViewport(this.startX, this.startY)) {
@@ -188,7 +189,7 @@ export class Canvas3dInteractionHelper {
         this.ev.dispose();
     }
 
-    constructor(private canvasIdentify: Canvas3D['identify'], private lociGetter: Canvas3D['getLoci'], private input: InputObserver, private camera: Camera, props: Partial<Canvas3dInteractionHelperProps> = {}) {
+    constructor(private canvasIdentify: Canvas3D['identify'], private lociGetter: Canvas3D['getLoci'], private input: InputObserver, private camera: Camera, private controls: TrackballControls, props: Partial<Canvas3dInteractionHelperProps> = {}) {
         this.props = { ...PD.getDefaultValues(Canvas3dInteractionHelperParams), ...props };
 
         input.drag.subscribe(({ x, y, buttons, button, modifiers }) => {

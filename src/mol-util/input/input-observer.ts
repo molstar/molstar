@@ -194,7 +194,10 @@ export type KeyInput = {
     key: string,
     code: string,
     modifiers: ModifiersKeys
-
+    x: number,
+    y: number,
+    pageX: number,
+    pageY: number,
     /** for overwriting browser shortcuts like `ctrl+s` as needed */
     preventDefault: () => void
 }
@@ -203,6 +206,10 @@ export const EmptyKeyInput: KeyInput = {
     key: '',
     code: '',
     modifiers: ModifiersKeys.None,
+    x: -1,
+    y: -1,
+    pageX: -1,
+    pageY: -1,
     preventDefault: noop,
 };
 
@@ -326,6 +333,12 @@ namespace InputObserver {
             alt: false,
             control: false,
             meta: false
+        };
+        const position = {
+            x: -1,
+            y: -1,
+            pageX: -1,
+            pageY: -1,
         };
 
         function pixelRatio() {
@@ -468,6 +481,7 @@ namespace InputObserver {
                     key: event.key,
                     code: event.code,
                     modifiers: getModifierKeys(),
+                    ...position,
                     preventDefault: () => event.preventDefault(),
                 });
             }
@@ -490,6 +504,7 @@ namespace InputObserver {
                     key: event.key,
                     code: event.code,
                     modifiers: getModifierKeys(),
+                    ...position,
                     preventDefault: () => event.preventDefault(),
                 });
             }
@@ -502,6 +517,7 @@ namespace InputObserver {
                 key: event.key,
                 code: event.code,
                 modifiers: getModifierKeys(),
+                ...position,
                 preventDefault: () => event.preventDefault(),
             });
         }
@@ -668,6 +684,11 @@ namespace InputObserver {
                 enter.next(void 0);
             }
             isInside = inside;
+
+            position.x = x;
+            position.y = y;
+            position.pageX = pageX;
+            position.pageY = pageY;
 
             move.next({ x, y, pageX, pageY, movementX, movementY, buttons, button, modifiers: getModifierKeys(), inside, onElement: ev.target === element });
 

@@ -106,6 +106,7 @@ export { TrackballControls };
 interface TrackballControls {
     readonly viewport: Viewport
     readonly isAnimating: boolean
+    readonly isMoving: boolean
 
     readonly props: Readonly<TrackballControlsProps>
     setProps: (props: Partial<TrackballControlsProps>) => void
@@ -379,8 +380,9 @@ namespace TrackballControls {
         const moveEye = Vec3();
 
         function moveCamera(deltaT: number) {
+            const minDistance = Math.max(camera.state.minNear, p.minDistance);
             Vec3.sub(moveEye, camera.position, camera.target);
-            Vec3.setMagnitude(moveEye, moveEye, camera.state.minNear);
+            Vec3.setMagnitude(moveEye, moveEye, minDistance);
 
             const moveSpeed = deltaT * (60 / 1000) * p.moveSpeed * (keyState.boostMove === 1 ? p.boostMoveFactor : 1);
 
@@ -389,7 +391,7 @@ namespace TrackballControls {
                 Vec3.scaleAndSub(camera.position, camera.position, moveDir, moveSpeed);
                 const dt = Vec3.distance(camera.target, camera.position);
                 const ds = Vec3.distance(scene.boundingSphereVisible.center, camera.position);
-                if (p.flyMode || input.pointerLock || (dt < camera.state.minNear && ds < camera.state.radiusMax)) {
+                if (p.flyMode || input.pointerLock || (dt < minDistance && ds < camera.state.radiusMax)) {
                     Vec3.sub(camera.target, camera.position, moveEye);
                 }
             }
@@ -636,7 +638,9 @@ namespace TrackballControls {
             Vec2.copy(_rotCurr, getMouseOnCircle(movementX + cx, movementY + cy));
         }
 
-        function onKeyDown({ modifiers, code }: KeyInput) {
+        function onKeyDown({ modifiers, code, x, y }: KeyInput) {
+            if (outsideViewport(x, y)) return;
+
             if (Binding.matchKey(b.keyMoveForward, code, modifiers)) {
                 keyState.moveForward = 1;
             } else if (Binding.matchKey(b.keyMoveBack, code, modifiers)) {
@@ -672,7 +676,9 @@ namespace TrackballControls {
             }
         }
 
-        function onKeyUp({ modifiers, code }: KeyInput) {
+        function onKeyUp({ modifiers, code, x, y }: KeyInput) {
+            if (outsideViewport(x, y)) return;
+
             if (Binding.matchKey(b.keyMoveForward, code, modifiers)) {
                 keyState.moveForward = 0;
             } else if (Binding.matchKey(b.keyMoveBack, code, modifiers)) {
@@ -784,6 +790,16 @@ namespace TrackballControls {
         return {
             viewport,
             get isAnimating() { return p.animate.name !== 'off'; },
+            get isMoving() {
+                return (
+                    keyState.moveForward === 1 || keyState.moveBack === 1 ||
+                    keyState.moveLeft === 1 || keyState.moveRight === 1 ||
+                    keyState.moveUp === 1 || keyState.moveDown === 1 ||
+                    keyState.rollLeft === 1 || keyState.rollRight === 1 ||
+                    keyState.pitchUp === 1 || keyState.pitchDown === 1 ||
+                    keyState.yawLeft === 1 || keyState.yawRight === 1
+                );
+            },
 
             get props() { return p as Readonly<TrackballControlsProps>; },
             setProps: (props: Partial<TrackballControlsProps>) => {
