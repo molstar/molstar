@@ -46,8 +46,8 @@ export const DefaultFocusLociBindings: FocusLociBindings = {
         Trigger(B.Flag.Secondary, M.create()),
         Trigger(B.Flag.Primary, M.create({ control: true }))
     ], 'Camera center and focus', 'Click element using ${triggers}'),
-    clickResetCameraOnEmpty: undefined,
-    clickResetCameraOnEmptySelectMode: undefined,
+    clickResetCameraOnEmpty: DefaultClickResetCameraOnEmpty,
+    clickResetCameraOnEmptySelectMode: DefaultClickResetCameraOnEmptySelectMode,
 };
 const FocusLociParams = {
     minRadius: PD.Numeric(8, { min: 1, max: 50, step: 1 }),
