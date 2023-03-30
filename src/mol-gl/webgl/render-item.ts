@@ -9,7 +9,7 @@ import { createAttributeBuffers, ElementsBuffer, AttributeKind } from './buffer'
 import { createTextures, Texture } from './texture';
 import { WebGLContext, checkError } from './context';
 import { ShaderCode, DefineValues } from '../shader-code';
-import { Program } from './program';
+import { Program, Programs } from './program';
 import { RenderableSchema, RenderableValues, AttributeSpec, getValueVersions, splitValues, DefineSpec } from '../renderable/schema';
 import { idFactory } from '../../mol-util/id-factory';
 import { ValueCell } from '../../mol-util';
@@ -44,7 +44,7 @@ export interface RenderItem<T extends string> {
     getProgram: (variant: T) => Program
 
     render: (variant: T, sharedTexturesCount: number) => void
-    update: () => Readonly<ValueChanges>
+    update: () => void
     destroy: () => void
 }
 
@@ -70,9 +70,6 @@ function createProgramVariant(ctx: WebGLContext, variant: string, defineValues: 
 }
 
 //
-
-type ProgramVariants = Record<string, Program>
-type VertexArrayVariants = Record<string, VertexArray | null>
 
 function createValueChanges() {
     return {
@@ -132,7 +129,7 @@ export function createRenderItem<T extends string>(ctx: WebGLContext, drawMode: 
 
     const glDrawMode = getDrawMode(ctx, drawMode);
 
-    const programs: ProgramVariants = {};
+    const programs: Programs = {};
     for (const k of renderVariants) {
         programs[k] = createProgramVariant(ctx, k, defineValues, shaderCode, schema);
     }
@@ -147,10 +144,7 @@ export function createRenderItem<T extends string>(ctx: WebGLContext, drawMode: 
         elementsBuffer = resources.elements(elements.ref.value);
     }
 
-    const vertexArrays: VertexArrayVariants = {};
-    for (const k of renderVariants) {
-        vertexArrays[k] = vertexArrayObject ? resources.vertexArray(programs[k], attributeBuffers, elementsBuffer) : null;
-    }
+    let vertexArray: VertexArray | null = vertexArrayObject ? resources.vertexArray(programs, attributeBuffers, elementsBuffer) : null;
 
     let drawCount: number = values.drawCount.ref.value;
     let instanceCount: number = values.instanceCount.ref.value;
@@ -176,7 +170,6 @@ export function createRenderItem<T extends string>(ctx: WebGLContext, drawMode: 
                 program.setUniforms(uniformValueEntries);
                 program.bindTextures(textures, sharedTexturesCount);
             } else {
-                const vertexArray = vertexArrays[variant];
                 if (program.id !== state.currentProgramId || program.id !== currentProgramId ||
                     materialId === -1 || materialId !== state.currentMaterialId
                 ) {
@@ -298,12 +291,9 @@ export function createRenderItem<T extends string>(ctx: WebGLContext, drawMode: 
             }
 
             if (valueChanges.attributes || valueChanges.defines || valueChanges.elements) {
-                // console.log('program/defines or buffers changed, update vaos');
-                for (const k of renderVariants) {
-                    const vertexArray = vertexArrays[k];
-                    if (vertexArray) vertexArray.destroy();
-                    vertexArrays[k] = vertexArrayObject ? resources.vertexArray(programs[k], attributeBuffers, elementsBuffer) : null;
-                }
+                // console.log('program/defines or buffers changed, update vao');
+                if (vertexArray) vertexArray.destroy();
+                vertexArray = vertexArrayObject ? resources.vertexArray(programs, attributeBuffers, elementsBuffer) : null;
             }
 
             for (let i = 0, il = textures.length; i < il; ++i) {
@@ -328,7 +318,7 @@ export function createRenderItem<T extends string>(ctx: WebGLContext, drawMode: 
                 if (value.ref.version !== versions[k]) {
                     // update of textures with kind 'texture' is done externally
                     if (schema[k].kind !== 'texture') {
-                        // console.log('texture version changed, uploading image', k);
+                        // console.log('materialTexture version changed, uploading image', k);
                         texture.load(value.ref.value as TextureImage<any> | TextureVolume<any>);
                         valueChanges.textures = true;
                     } else {
@@ -346,21 +336,20 @@ export function createRenderItem<T extends string>(ctx: WebGLContext, drawMode: 
                     versions[k] = uniform.ref.version;
                 }
             }
-
-            return valueChanges;
         },
         destroy: () => {
             if (!destroyed) {
                 for (const k of renderVariants) {
                     programs[k].destroy();
-                    const vertexArray = vertexArrays[k];
-                    if (vertexArray) vertexArray.destroy();
                 }
+                if (vertexArray) vertexArray.destroy();
                 textures.forEach(([k, texture]) => {
                     // lifetime of textures with kind 'texture' is defined externally
-                    if (schema[k].kind !== 'texture') {
-                        texture.destroy();
-                    }
+                    if (schema[k].kind !== 'texture') texture.destroy();
+                });
+                materialTextures.forEach(([k, texture]) => {
+                    // lifetime of textures with kind 'texture' is defined externally
+                    if (schema[k].kind !== 'texture') texture.destroy();
                 });
                 attributeBuffers.forEach(([_, buffer]) => buffer.destroy());
                 if (elementsBuffer) elementsBuffer.destroy();
