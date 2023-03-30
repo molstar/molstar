@@ -8,7 +8,7 @@
 import produce, { setAutoFreeze } from 'immer';
 import { List } from 'immutable';
 import { merge, Subscription } from 'rxjs';
-import { filter, take } from 'rxjs/operators';
+import { debounceTime, filter, take, throttleTime } from 'rxjs/operators';
 import { Canvas3D, Canvas3DContext, DefaultCanvas3DParams } from '../mol-canvas3d/canvas3d';
 import { resizeCanvas } from '../mol-canvas3d/util';
 import { Vec2 } from '../mol-math/linear-algebra';
@@ -293,7 +293,7 @@ export class PluginContext {
             this.subs.push(this.canvas3d!.interaction.click.subscribe(e => this.behaviors.interaction.click.next(e)));
             this.subs.push(this.canvas3d!.interaction.drag.subscribe(e => this.behaviors.interaction.drag.next(e)));
             this.subs.push(this.canvas3d!.interaction.hover.subscribe(e => this.behaviors.interaction.hover.next(e)));
-            this.subs.push(this.canvas3d!.input.resize.subscribe(() => this.handleResize()));
+            this.subs.push(this.canvas3d!.input.resize.pipe(debounceTime(50), throttleTime(100, undefined, { leading: false, trailing: true })).subscribe(() => this.handleResize()));
             this.subs.push(this.canvas3d!.input.keyDown.subscribe(e => this.behaviors.interaction.key.next(e)));
             this.subs.push(this.layout.events.updated.subscribe(() => requestAnimationFrame(() => this.handleResize())));
 

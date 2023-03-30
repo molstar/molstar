@@ -6,6 +6,7 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 - Handle resizes of viewer element even when window remains the same size
+- Throttle canvas resize events
 - Selection toggle buttons hidden if selection mode is off
 - Camera focus loci bindings allow reset on click-away to be overridden
 - Input/controls improvements
