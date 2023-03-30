@@ -411,17 +411,18 @@ type Levels = {
 }
 
 function getLevels(props: { radius: number, bias: number }[], levels?: Levels): Levels {
+    const count = props.length;
     const { radius, bias } = levels || {
-        radius: (new Array(5 * 3)).fill(0),
-        bias: (new Array(5 * 3)).fill(0),
+        radius: (new Array(count * 3)).fill(0),
+        bias: (new Array(count * 3)).fill(0),
     };
     props = props.slice().sort((a, b) => a.radius - b.radius);
-    for (let i = 0, il = props.length; i < il; ++i) {
+    for (let i = 0; i < count; ++i) {
         const p = props[i];
         radius[i] = Math.pow(2, p.radius);
         bias[i] = p.bias;
     }
-    return { count: props.length, radius, bias };
+    return { count, radius, bias };
 }
 
 export class PostprocessingPass {
