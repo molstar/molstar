@@ -12,6 +12,7 @@ Note that since we don't clearly distinguish between a public and private interf
     - Toggle spin/rock animation using keys
 - Apply bumpiness as lightness variation with `ignoreLight`
 - Remove `JSX` reference from `loci-labels.ts`
+- Fix overpaint/transparency/substance smoothing not updated when geometry changes
 
 ## [v3.32.0] - 2023-03-20
 
