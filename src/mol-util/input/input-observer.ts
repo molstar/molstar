@@ -3,6 +3,7 @@
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Russell Parker <russell@benchling.com>
  */
 
 import { Subject, Observable } from 'rxjs';
@@ -360,6 +361,11 @@ namespace InputObserver {
         let isInside = false;
         let hasMoved = false;
 
+        let resizeObserver: ResizeObserver | undefined;
+        if (typeof window.ResizeObserver !== 'undefined') {
+            resizeObserver = new window.ResizeObserver(onResize);
+        }
+
         const events = createEvents();
         const { drag, interactionEnd, wheel, pinch, gesture, click, move, leave, enter, resize, modifiers, key, keyUp, keyDown, lock } = events;
 
@@ -393,7 +399,11 @@ namespace InputObserver {
             document.addEventListener('pointerlockchange', onPointerLockChange, false);
             document.addEventListener('pointerlockerror', onPointerLockError, false);
 
-            window.addEventListener('resize', onResize, false);
+            if (resizeObserver != null) {
+                resizeObserver.observe(element.parentElement!);
+            } else {
+                window.addEventListener('resize', onResize, false);
+            }
         }
 
         function dispose() {
@@ -423,9 +433,14 @@ namespace InputObserver {
             document.removeEventListener('pointerlockchange', onPointerLockChange, false);
             document.removeEventListener('pointerlockerror', onPointerLockError, false);
 
-            window.removeEventListener('resize', onResize, false);
-
             cross.remove();
+
+            if (resizeObserver != null) {
+                resizeObserver.unobserve(element.parentElement!);
+                resizeObserver.disconnect();
+            } else {
+                window.removeEventListener('resize', onResize, false);
+            }
         }
 
         function onPointerLockChange() {
@@ -773,7 +788,7 @@ namespace InputObserver {
             gestureDelta(ev, true);
         }
 
-        function onResize(ev: Event) {
+        function onResize() {
             resize.next({});
         }
 
