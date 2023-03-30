@@ -3,6 +3,7 @@
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Jason Pattle <jpattle.exscientia.co.uk>
  */
 
 import { Loci } from '../../../mol-model/loci';
@@ -19,7 +20,23 @@ const M = ModifiersKeys;
 const Trigger = Binding.Trigger;
 const Key = Binding.TriggerKey;
 
-const DefaultFocusLociBindings = {
+export const DefaultClickResetCameraOnEmpty = Binding([
+    Trigger(B.Flag.Primary, M.create()),
+    Trigger(B.Flag.Secondary, M.create()),
+    Trigger(B.Flag.Primary, M.create({ control: true }))
+], 'Reset camera focus', 'Click on nothing using ${triggers}');
+export const DefaultClickResetCameraOnEmptySelectMode = Binding([
+    Trigger(B.Flag.Secondary, M.create()),
+    Trigger(B.Flag.Primary, M.create({ control: true }))
+], 'Reset camera focus', 'Click on nothing using ${triggers}');
+
+type FocusLociBindings = {
+    clickCenterFocus: Binding
+    clickCenterFocusSelectMode: Binding
+    clickResetCameraOnEmpty?: Binding
+    clickResetCameraOnEmptySelectMode?: Binding
+}
+export const DefaultFocusLociBindings: FocusLociBindings = {
     clickCenterFocus: Binding([
         Trigger(B.Flag.Primary, M.create()),
         Trigger(B.Flag.Secondary, M.create()),
@@ -29,6 +46,8 @@ const DefaultFocusLociBindings = {
         Trigger(B.Flag.Secondary, M.create()),
         Trigger(B.Flag.Primary, M.create({ control: true }))
     ], 'Camera center and focus', 'Click element using ${triggers}'),
+    clickResetCameraOnEmpty: DefaultClickResetCameraOnEmpty,
+    clickResetCameraOnEmptySelectMode: DefaultClickResetCameraOnEmptySelectMode,
 };
 const FocusLociParams = {
     minRadius: PD.Numeric(8, { min: 1, max: 50, step: 1 }),
@@ -51,12 +70,16 @@ export const FocusLoci = PluginBehavior.create<FocusLociProps>({
                     ? this.params.bindings.clickCenterFocusSelectMode
                     : this.params.bindings.clickCenterFocus;
 
-                if (Binding.match(binding, button, modifiers)) {
-                    if (Loci.isEmpty(current.loci)) {
-                        PluginCommands.Camera.Reset(this.ctx, { });
-                        return;
-                    }
+                const resetBinding = this.ctx.selectionMode
+                    ? (this.params.bindings.clickResetCameraOnEmptySelectMode ?? DefaultClickResetCameraOnEmptySelectMode)
+                    : (this.params.bindings.clickResetCameraOnEmpty ?? DefaultClickResetCameraOnEmpty);
 
+                if (Loci.isEmpty(current.loci) && Binding.match(resetBinding, button, modifiers)) {
+                    PluginCommands.Camera.Reset(this.ctx, { });
+                    return;
+                }
+
+                if (Binding.match(binding, button, modifiers)) {
                     const loci = Loci.normalize(current.loci, this.ctx.managers.interactivity.props.granularity);
                     this.ctx.managers.camera.focusLoci(loci, this.params);
                 }

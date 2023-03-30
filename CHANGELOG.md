@@ -6,13 +6,15 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 - Handle resizes of viewer element even when window remains the same size
-
+- Selection toggle buttons hidden if selection mode is off
+- Camera focus loci bindings allow reset on click-away to be overridden
 - Input/controls improvements
     - Move or fly around the scene using keys
     - Pointer lock to look around scene
     - Toggle spin/rock animation using keys
 - Apply bumpiness as lightness variation with `ignoreLight`
 - Remove `JSX` reference from `loci-labels.ts`
+- Fix overpaint/transparency/substance smoothing not updated when geometry changes
 
 ## [v3.32.0] - 2023-03-20
 

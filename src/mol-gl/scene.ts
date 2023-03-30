@@ -8,7 +8,7 @@
 import { WebGLContext } from './webgl/context';
 import { GraphicsRenderObject, createRenderable } from './render-object';
 import { Object3D } from './object3d';
-import { Sphere3D } from '../mol-math/geometry';
+import { Sphere3D } from '../mol-math/geometry/primitives/sphere3d';
 import { CommitQueue } from './commit-queue';
 import { now } from '../mol-util/now';
 import { arraySetRemove } from '../mol-util/array';
@@ -129,10 +129,8 @@ namespace Scene {
                 renderableMap.set(o, renderable);
                 boundingSphereDirty = true;
                 boundingSphereVisibleDirty = true;
-                return renderable;
             } else {
                 console.warn(`RenderObject with id '${o.id}' already present`);
-                return renderableMap.get(o)!;
             }
         }
 

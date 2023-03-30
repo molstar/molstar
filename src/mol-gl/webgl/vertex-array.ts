@@ -1,10 +1,10 @@
 /**
- * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Program } from './program';
+import { Programs } from './program';
 import { ElementsBuffer, AttributeBuffers } from './buffer';
 import { WebGLExtensions } from './extensions';
 import { idFactory } from '../../mol-util/id-factory';
@@ -41,7 +41,7 @@ export interface VertexArray {
     destroy: () => void
 }
 
-export function createVertexArray(gl: GLRenderingContext, extensions: WebGLExtensions, program: Program, attributeBuffers: AttributeBuffers, elementsBuffer?: ElementsBuffer): VertexArray {
+export function createVertexArray(gl: GLRenderingContext, extensions: WebGLExtensions, programs: Programs, attributeBuffers: AttributeBuffers, elementsBuffer?: ElementsBuffer): VertexArray {
     const id = getNextVertexArrayId();
     let vertexArray = getVertexArray(extensions);
     let vertexArrayObject = getVertexArrayObject(extensions);
@@ -49,7 +49,7 @@ export function createVertexArray(gl: GLRenderingContext, extensions: WebGLExten
     function update() {
         vertexArrayObject.bindVertexArray(vertexArray);
         if (elementsBuffer) elementsBuffer.bind();
-        program.bindAttributes(attributeBuffers);
+        for (const p of Object.values(programs)) p.bindAttributes(attributeBuffers);
         vertexArrayObject.bindVertexArray(null);
     }
 

@@ -3,6 +3,7 @@
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Jason Pattle <jpattle.exscientia.co.uk>
  */
 
 import { MarkerAction } from '../../../mol-util/marker-action';
@@ -92,7 +93,7 @@ export const HighlightLoci = PluginBehavior.create({
 
 //
 
-const DefaultSelectLociBindings = {
+export const DefaultSelectLociBindings = {
     clickSelect: Binding.Empty,
     clickToggleExtend: Binding([Trigger(B.Flag.Primary, M.create({ shift: true }))], 'Toggle extended selection', 'Click on element using ${triggers} to extend selection along polymer'),
     clickSelectOnly: Binding.Empty,
@@ -236,7 +237,7 @@ export const DefaultLociLabelProvider = PluginBehavior.create({
 
 //
 
-const DefaultFocusLociBindings = {
+export const DefaultFocusLociBindings = {
     clickFocus: Binding([
         Trigger(B.Flag.Primary, M.create()),
     ], 'Representation Focus', 'Click element using ${triggers}'),
