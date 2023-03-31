@@ -23,8 +23,28 @@ export function isWebGL2(gl: any): gl is WebGL2RenderingContext {
  * See https://registry.khronos.org/webgl/extensions/ANGLE_instanced_arrays/
  */
 export interface COMPAT_instanced_arrays {
+    /**
+     * Renders primitives from array data like the `drawArrays` method. In addition, it can execute multiple instances of the range of elements.
+     * @param mode the type primitive to render.
+     * @param first the starting index in the array of vector points.
+     * @param count the number of indices to be rendered.
+     * @param primcount the number of instances of the range of elements to execute.
+     */
     drawArraysInstanced(mode: number, first: number, count: number, primcount: number): void;
+    /**
+     * Renders primitives from array data like the `drawElements` method. In addition, it can execute multiple instances of a set of elements.
+     * @param mode the type primitive to render.
+     * @param count the number of elements to be rendered.
+     * @param type the type of the values in the element array buffer.
+     * @param offset an offset in the element array buffer. Must be a valid multiple of the size of the given `type`.
+     * @param primcount the number of instances of the set of elements to execute.
+     */
     drawElementsInstanced(mode: number, count: number, type: number, offset: number, primcount: number): void;
+    /**
+     * Modifies the rate at which generic vertex attributes advance when rendering multiple instances of primitives with `drawArraysInstanced` and `drawElementsInstanced`
+     * @param index the index of the generic vertex attributes.
+     * @param divisor the number of instances that will pass between updates of the generic attribute.
+     */
     vertexAttribDivisor(index: number, divisor: number): void;
     readonly VERTEX_ATTRIB_ARRAY_DIVISOR: number;
 }
@@ -109,6 +129,9 @@ export function getVertexArrayObject(gl: GLRenderingContext): COMPAT_vertex_arra
     }
 }
 
+/**
+ * See https://registry.khronos.org/webgl/extensions/OES_texture_float/
+ */
 export interface COMPAT_texture_float {
 }
 
@@ -116,6 +139,9 @@ export function getTextureFloat(gl: GLRenderingContext): COMPAT_texture_float | 
     return isWebGL2(gl) ? {} : gl.getExtension('OES_texture_float');
 }
 
+/**
+ * See https://registry.khronos.org/webgl/extensions/OES_texture_float_linear/
+ */
 export interface COMPAT_texture_float_linear {
 }
 
@@ -123,6 +149,9 @@ export function getTextureFloatLinear(gl: GLRenderingContext): COMPAT_texture_fl
     return gl.getExtension('OES_texture_float_linear');
 }
 
+/**
+ * See https://registry.khronos.org/webgl/extensions/OES_texture_half_float/
+ */
 export interface COMPAT_texture_half_float {
     readonly HALF_FLOAT: number
 }
@@ -137,6 +166,9 @@ export function getTextureHalfFloat(gl: GLRenderingContext): COMPAT_texture_half
     }
 }
 
+/**
+ * See https://registry.khronos.org/webgl/extensions/OES_texture_half_float_linear/
+ */
 export interface COMPAT_texture_half_float_linear {
 }
 
@@ -172,6 +204,9 @@ export function getFragDepth(gl: GLRenderingContext): COMPAT_frag_depth | null {
     return isWebGL2(gl) ? {} : gl.getExtension('EXT_frag_depth');
 }
 
+/**
+ * See https://registry.khronos.org/webgl/extensions/EXT_color_buffer_float/
+ */
 export interface COMPAT_color_buffer_float {
     readonly RGBA32F: number;
 }
@@ -193,6 +228,9 @@ export function getColorBufferFloat(gl: GLRenderingContext): COMPAT_color_buffer
     }
 }
 
+/**
+ * See https://registry.khronos.org/webgl/extensions/EXT_color_buffer_half_float/
+ */
 export interface COMPAT_color_buffer_half_float {
     readonly RGBA16F: number;
 }
