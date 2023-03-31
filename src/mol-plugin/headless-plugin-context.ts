@@ -5,11 +5,14 @@
  */
 
 import fs from 'fs';
+import { type PNG } from 'pngjs'; // Only import type here, the actual import must be provided by the caller
+import { type BufferRet as JpegBufferRet } from 'jpeg-js'; // Only import type here, the actual import must be provided by the caller
+
 import { Canvas3D } from '../mol-canvas3d/canvas3d';
 import { PostprocessingProps } from '../mol-canvas3d/passes/postprocessing';
 import { PluginContext } from './context';
 import { PluginSpec } from './spec';
-import { HeadlessScreenshotHelper, HeadlessScreenshotHelperOptions, ExternalModules } from './util/headless-screenshot';
+import { HeadlessScreenshotHelper, HeadlessScreenshotHelperOptions, ExternalModules, RawImageData } from './util/headless-screenshot';
 
 
 /** PluginContext that can be used in Node.js (without DOM) */
@@ -23,16 +26,34 @@ export class HeadlessPluginContext extends PluginContext {
         (this.canvas3d as Canvas3D) = this.renderer.canvas3d;
     }
 
-    /** Render the current plugin state to a PNG or JPEG file */
+    /** Render the current plugin state and save to a PNG or JPEG file */
     async saveImage(outPath: string, imageSize?: { width: number, height: number }, props?: Partial<PostprocessingProps>, format?: 'png' | 'jpeg', jpegQuality = 90) {
         this.canvas3d!.commit(true);
         return await this.renderer.saveImage(outPath, imageSize, props, format, jpegQuality);
     }
 
-    /** Get the current plugin state */
-    getStateSnapshot() {
+    /** Render the current plugin state and return as raw image data */
+    async getImageRaw(imageSize?: { width: number, height: number }, props?: Partial<PostprocessingProps>): Promise<RawImageData> {
         this.canvas3d!.commit(true);
-        return this.managers.snapshot.getStateSnapshot({ params: {} });
+        return await this.renderer.getImageRaw(imageSize, props);
+    }
+
+    /** Render the current plugin state and return as a PNG object */
+    async getImagePng(imageSize?: { width: number, height: number }, props?: Partial<PostprocessingProps>): Promise<PNG> {
+        this.canvas3d!.commit(true);
+        return await this.renderer.getImagePng(imageSize, props);
+    }
+
+    /** Render the current plugin state and return as a JPEG object */
+    async getImageJpeg(imageSize?: { width: number, height: number }, props?: Partial<PostprocessingProps>, jpegQuality: number = 90): Promise<JpegBufferRet> {
+        this.canvas3d!.commit(true);
+        return await this.renderer.getImageJpeg(imageSize, props);
+    }
+
+    /** Get the current plugin state */
+    async getStateSnapshot() {
+        this.canvas3d!.commit(true);
+        return await this.managers.snapshot.getStateSnapshot({ params: {} });
     }
 
     /** Save the current plugin state to a MOLJ file */
