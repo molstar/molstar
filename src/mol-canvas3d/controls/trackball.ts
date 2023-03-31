@@ -380,8 +380,8 @@ namespace TrackballControls {
         const moveEye = Vec3();
 
         function moveCamera(deltaT: number) {
-            const minDistance = Math.max(camera.state.minNear, p.minDistance);
             Vec3.sub(moveEye, camera.position, camera.target);
+            const minDistance = Math.max(camera.state.minNear, p.minDistance);
             Vec3.setMagnitude(moveEye, moveEye, minDistance);
 
             const moveSpeed = deltaT * (60 / 1000) * p.moveSpeed * (keyState.boostMove === 1 ? p.boostMoveFactor : 1);
@@ -710,11 +710,16 @@ namespace TrackballControls {
             }
         }
 
+        function initCameraMove() {
+            Vec3.sub(moveEye, camera.position, camera.target);
+            const minDistance = Math.max(camera.state.minNear, p.minDistance);
+            Vec3.setMagnitude(moveEye, moveEye, minDistance);
+            Vec3.sub(camera.target, camera.position, moveEye);
+        }
+
         function onLock(isLocked: boolean) {
             if (isLocked) {
-                Vec3.sub(moveEye, camera.position, camera.target);
-                Vec3.setMagnitude(moveEye, moveEye, camera.state.minNear);
-                Vec3.sub(camera.target, camera.position, moveEye);
+                initCameraMove();
             }
         }
 
@@ -805,6 +810,9 @@ namespace TrackballControls {
             setProps: (props: Partial<TrackballControlsProps>) => {
                 if (props.animate?.name === 'rock' && p.animate.name !== 'rock') {
                     resetRock(); // start rocking from the center
+                }
+                if (props.flyMode && !p.flyMode) {
+                    initCameraMove();
                 }
                 Object.assign(p, props);
                 Object.assign(b, props.bindings);
