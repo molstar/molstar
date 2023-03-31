@@ -24,9 +24,31 @@ const Canvas3DPresets = {
     illustrative: {
         canvas3d: <Preset>{
             postprocessing: {
-                occlusion: { name: 'on', params: { samples: 32, radius: 6, bias: 1.4, blurKernelSize: 15, resolutionScale: 1, color: Color(0x000000) } },
-                outline: { name: 'on', params: { scale: 1, threshold: 0.33, color: Color(0x000000), includeTransparent: true, } },
-                shadow: { name: 'off', params: {} },
+                occlusion: {
+                    name: 'on',
+                    params: {
+                        samples: 32,
+                        multiScale: { name: 'off', params: {} },
+                        radius: 5,
+                        bias: 0.8,
+                        blurKernelSize: 15,
+                        resolutionScale: 1,
+                        color: Color(0x000000),
+                    }
+                },
+                outline: {
+                    name: 'on',
+                    params: {
+                        scale: 1,
+                        threshold: 0.33,
+                        color: Color(0x000000),
+                        includeTransparent: true,
+                    }
+                },
+                shadow: {
+                    name: 'off',
+                    params: {}
+                },
             },
             renderer: {
                 ambientIntensity: 1.0,
@@ -37,9 +59,25 @@ const Canvas3DPresets = {
     occlusion: {
         canvas3d: <Preset>{
             postprocessing: {
-                occlusion: { name: 'on', params: { samples: 32, radius: 6, bias: 1.4, blurKernelSize: 15, resolutionScale: 1 } },
-                outline: { name: 'off', params: {} },
-                shadow: { name: 'off', params: {} },
+                occlusion: {
+                    name: 'on',
+                    params: {
+                        samples: 32,
+                        multiScale: { name: 'off', params: {} },
+                        radius: 5,
+                        bias: 0.8,
+                        blurKernelSize: 15,
+                        resolutionScale: 1,
+                    }
+                },
+                outline: {
+                    name: 'off',
+                    params: {}
+                },
+                shadow: {
+                    name: 'off',
+                    params: {}
+                },
             },
             renderer: {
                 ambientIntensity: 0.4,

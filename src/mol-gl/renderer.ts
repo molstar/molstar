@@ -131,18 +131,19 @@ export type Light = {
 const tmpDir = Vec3();
 const tmpColor = Vec3();
 function getLight(props: RendererProps['light'], light?: Light): Light {
+    const count = props.length;
     const { direction, color } = light || {
-        direction: (new Array(5 * 3)).fill(0),
-        color: (new Array(5 * 3)).fill(0),
+        direction: (new Array(count * 3)).fill(0),
+        color: (new Array(count * 3)).fill(0),
     };
-    for (let i = 0, il = props.length; i < il; ++i) {
+    for (let i = 0; i < count; ++i) {
         const p = props[i];
         Vec3.directionFromSpherical(tmpDir, degToRad(p.inclination), degToRad(p.azimuth), 1);
         Vec3.toArray(tmpDir, direction, i * 3);
         Vec3.scale(tmpColor, Color.toVec3Normalized(tmpColor, p.color), p.intensity);
         Vec3.toArray(tmpColor, color, i * 3);
     }
-    return { count: props.length, direction, color };
+    return { count, direction, color };
 }
 
 namespace Renderer {
