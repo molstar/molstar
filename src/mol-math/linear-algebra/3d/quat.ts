@@ -314,7 +314,7 @@ namespace Quat {
         return out;
     }
 
-    export function toArray(a: Quat, out: NumberArray, offset: number) {
+    export function toArray<T extends NumberArray>(a: Quat, out: T, offset: number) {
         out[offset + 0] = a[0];
         out[offset + 1] = a[1];
         out[offset + 2] = a[2];

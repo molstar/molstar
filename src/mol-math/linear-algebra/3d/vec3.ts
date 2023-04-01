@@ -74,7 +74,7 @@ namespace Vec3 {
         return v;
     }
 
-    export function toArray(v: Vec3, out: NumberArray, offset: number) {
+    export function toArray<T extends NumberArray>(v: Vec3, out: T, offset: number) {
         out[offset + 0] = v[0];
         out[offset + 1] = v[1];
         out[offset + 2] = v[2];
