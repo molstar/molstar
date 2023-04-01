@@ -77,7 +77,7 @@ export function cameraProject(out: Vec4, point: Vec3, viewport: Viewport, projec
 
     // transform into window coordinates, set fourth component to 1 / clip.w as in gl_FragCoord.w
     out[0] = (tmpVec4[0] + 1) * width * 0.5 + x;
-    out[1] = (1 - tmpVec4[1]) * height * 0.5 + y; // flip Y
+    out[1] = (tmpVec4[1] + 1) * height * 0.5 + y;
     out[2] = (tmpVec4[2] + 1) * 0.5;
     out[3] = w === 0 ? 0 : 1 / w;
     return out;
@@ -92,7 +92,7 @@ export function cameraUnproject(out: Vec3, point: Vec3 | Vec4, viewport: Viewpor
     const { x, y, width, height } = viewport;
 
     const px = point[0] - x;
-    const py = (height - point[1] - 1) - y;
+    const py = point[1] - y;
     const pz = point[2];
 
     out[0] = (2 * px) / width - 1;

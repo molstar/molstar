@@ -5,10 +5,11 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Vec3, Mat4 } from '../../linear-algebra';
 import { PositionData } from '../common';
 import { OrderedSet } from '../../../mol-data/int';
 import { Sphere3D } from './sphere3d';
+import { Vec3 } from '../../linear-algebra/3d/vec3';
+import { Mat4 } from '../../linear-algebra/3d/mat4';
 
 interface Box3D { min: Vec3, max: Vec3 }
 
@@ -30,24 +31,46 @@ namespace Box3D {
         return copy(zero(), a);
     }
 
+    const tmpV = Vec3();
+
     /** Get box from sphere, uses extrema if available */
     export function fromSphere3D(out: Box3D, sphere: Sphere3D): Box3D {
         if (Sphere3D.hasExtrema(sphere) && sphere.extrema.length >= 14) { // 14 extrema with coarse boundary helper
             return fromVec3Array(out, sphere.extrema);
         }
-        const r = Vec3.create(sphere.radius, sphere.radius, sphere.radius);
-        Vec3.sub(out.min, sphere.center, r);
-        Vec3.add(out.max, sphere.center, r);
+        Vec3.set(tmpV, sphere.radius, sphere.radius, sphere.radius);
+        Vec3.sub(out.min, sphere.center, tmpV);
+        Vec3.add(out.max, sphere.center, tmpV);
         return out;
     }
 
-    /** Get box from sphere, uses extrema if available */
-    export function fromVec3Array(out: Box3D, array: Vec3[]): Box3D {
-        Box3D.setEmpty(out);
+    export function addVec3Array(out: Box3D, array: Vec3[]): Box3D {
         for (let i = 0, il = array.length; i < il; i++) {
-            Box3D.add(out, array[i]);
+            add(out, array[i]);
         }
         return out;
+    }
+
+    export function fromVec3Array(out: Box3D, array: Vec3[]): Box3D {
+        setEmpty(out);
+        addVec3Array(out, array);
+        return out;
+    }
+
+    export function addSphere3D(out: Box3D, sphere: Sphere3D): Box3D {
+        if (Sphere3D.hasExtrema(sphere) && sphere.extrema.length >= 14) { // 14 extrema with coarse boundary helper
+            return addVec3Array(out, sphere.extrema);
+        }
+        add(out, Vec3.subScalar(tmpV, sphere.center, sphere.radius));
+        add(out, Vec3.addScalar(tmpV, sphere.center, sphere.radius));
+        return out;
+    }
+
+    export function intersectsSphere3D(box: Box3D, sphere: Sphere3D) {
+        // Find the point on the AABB closest to the sphere center.
+        Vec3.clamp(tmpV, sphere.center, box.min, box.max);
+        // If that point is inside the sphere, the AABB and sphere intersect.
+        return Vec3.squaredDistance(tmpV, sphere.center) <= (sphere.radius * sphere.radius);
     }
 
     export function computeBounding(data: PositionData): Box3D {
@@ -139,7 +162,16 @@ namespace Box3D {
         );
     }
 
-    // const tmpTransformV = Vec3();
+    export function containsSphere3D(box: Box3D, s: Sphere3D) {
+        const c = s.center;
+        const r = s.radius;
+        return (
+            c[0] - r < box.min[0] || c[0] + r > box.max[0] ||
+            c[1] - r < box.min[1] || c[1] + r > box.max[1] ||
+            c[2] - r < box.min[2] || c[2] + r > box.max[2]
+        ) ? false : true;
+    }
+
     export function nearestIntersectionWithRay(out: Vec3, box: Box3D, origin: Vec3, dir: Vec3): Vec3 {
         const [minX, minY, minZ] = box.min;
         const [maxX, maxY, maxZ] = box.max;
