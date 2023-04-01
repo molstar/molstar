@@ -91,7 +91,7 @@ export class HeadlessScreenshotHelper {
 
     async getImagePng(imageSize?: { width: number, height: number }, postprocessing?: Partial<PostprocessingProps>): Promise<PNG> {
         const imageData = await this.getImageRaw(imageSize, postprocessing);
-        if (!this.externalModules.pngjs){
+        if (!this.externalModules.pngjs) {
             throw new Error("External module 'pngjs' was not provided. If you want to use getImagePng, you must import 'pngjs' and provide it to the HeadlessPluginContext/HeadlessScreenshotHelper constructor.");
         }
         const generatedPng = new this.externalModules.pngjs.PNG({ width: imageData.width, height: imageData.height });
@@ -101,7 +101,7 @@ export class HeadlessScreenshotHelper {
 
     async getImageJpeg(imageSize?: { width: number, height: number }, postprocessing?: Partial<PostprocessingProps>, jpegQuality: number = 90): Promise<JpegBufferRet> {
         const imageData = await this.getImageRaw(imageSize, postprocessing);
-        if (!this.externalModules['jpeg-js']){
+        if (!this.externalModules['jpeg-js']) {
             throw new Error("External module 'jpeg-js' was not provided. If you want to use getImageJpeg, you must import 'jpeg-js' and provide it to the HeadlessPluginContext/HeadlessScreenshotHelper constructor.");
         }
         const generatedJpeg = this.externalModules['jpeg-js'].encode(imageData, jpegQuality);
