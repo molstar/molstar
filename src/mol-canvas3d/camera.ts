@@ -194,7 +194,7 @@ class Camera implements ICamera {
     getPixelSize(point: Vec3) {
         // project -> unproject of `point` does not exactly return the same
         // to get a sufficiently accurate measure we unproject the original
-        // clip position in addition to the one shifted bey one pixel
+        // clip position in addition to the one shifted by one pixel
         this.project(tmpClip, point);
         this.unproject(tmpPos1, tmpClip);
         tmpClip[0] += 1;

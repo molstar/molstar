@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -10,20 +10,25 @@
 
 import { Quat, Vec2, Vec3, EPSILON } from '../../mol-math/linear-algebra';
 import { Viewport } from '../camera/util';
-import { InputObserver, DragInput, WheelInput, PinchInput, ButtonsType, ModifiersKeys, GestureInput } from '../../mol-util/input/input-observer';
+import { InputObserver, DragInput, WheelInput, PinchInput, ButtonsType, ModifiersKeys, GestureInput, KeyInput, MoveInput } from '../../mol-util/input/input-observer';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { Camera } from '../camera';
 import { absMax, degToRad } from '../../mol-math/misc';
 import { Binding } from '../../mol-util/binding';
+import { Scene } from '../../mol-gl/scene';
 
 const B = ButtonsType;
 const M = ModifiersKeys;
 const Trigger = Binding.Trigger;
+const Key = Binding.TriggerKey;
 
 export const DefaultTrackballBindings = {
     dragRotate: Binding([Trigger(B.Flag.Primary, M.create())], 'Rotate', 'Drag using ${triggers}'),
-    dragRotateZ: Binding([Trigger(B.Flag.Primary, M.create({ shift: true }))], 'Rotate around z-axis', 'Drag using ${triggers}'),
-    dragPan: Binding([Trigger(B.Flag.Secondary, M.create()), Trigger(B.Flag.Primary, M.create({ control: true }))], 'Pan', 'Drag using ${triggers}'),
+    dragRotateZ: Binding([Trigger(B.Flag.Primary, M.create({ shift: true, control: true }))], 'Rotate around z-axis (roll)', 'Drag using ${triggers}'),
+    dragPan: Binding([
+        Trigger(B.Flag.Secondary, M.create()),
+        Trigger(B.Flag.Primary, M.create({ control: true }))
+    ], 'Pan', 'Drag using ${triggers}'),
     dragZoom: Binding.Empty,
     dragFocus: Binding([Trigger(B.Flag.Forth, M.create())], 'Focus', 'Drag using ${triggers}'),
     dragFocusZoom: Binding([Trigger(B.Flag.Auxilary, M.create())], 'Focus and zoom', 'Drag using ${triggers}'),
@@ -31,6 +36,22 @@ export const DefaultTrackballBindings = {
     scrollZoom: Binding([Trigger(B.Flag.Auxilary, M.create())], 'Zoom', 'Scroll using ${triggers}'),
     scrollFocus: Binding([Trigger(B.Flag.Auxilary, M.create({ shift: true }))], 'Clip', 'Scroll using ${triggers}'),
     scrollFocusZoom: Binding.Empty,
+
+    keyMoveForward: Binding([Key('KeyW')], 'Move forward', 'Press ${triggers}'),
+    keyMoveBack: Binding([Key('KeyS')], 'Move back', 'Press ${triggers}'),
+    keyMoveLeft: Binding([Key('KeyA')], 'Move left', 'Press ${triggers}'),
+    keyMoveRight: Binding([Key('KeyD')], 'Move right', 'Press ${triggers}'),
+    keyMoveUp: Binding([Key('KeyR')], 'Move up', 'Press ${triggers}'),
+    keyMoveDown: Binding([Key('KeyF')], 'Move down', 'Press ${triggers}'),
+    keyRollLeft: Binding([Key('KeyQ')], 'Roll left', 'Press ${triggers}'),
+    keyRollRight: Binding([Key('KeyE')], 'Roll right', 'Press ${triggers}'),
+    keyPitchUp: Binding([Key('ArrowUp')], 'Pitch up', 'Press ${triggers}'),
+    keyPitchDown: Binding([Key('ArrowDown')], 'Pitch down', 'Press ${triggers}'),
+    keyYawLeft: Binding([Key('ArrowLeft')], 'Yaw left', 'Press ${triggers}'),
+    keyYawRight: Binding([Key('ArrowRight')], 'Yaw right', 'Press ${triggers}'),
+
+    boostMove: Binding([Key('ShiftLeft')], 'Boost move', 'Press ${triggers}'),
+    enablePointerLock: Binding([Key('Space', M.create({ control: true }))], 'Enable pointer lock', 'Press ${triggers}'),
 };
 
 export const TrackballControlsParams = {
@@ -39,6 +60,9 @@ export const TrackballControlsParams = {
     rotateSpeed: PD.Numeric(5.0, { min: 1, max: 10, step: 1 }),
     zoomSpeed: PD.Numeric(7.0, { min: 1, max: 15, step: 1 }),
     panSpeed: PD.Numeric(1.0, { min: 0.1, max: 5, step: 0.1 }),
+    moveSpeed: PD.Numeric(0.75, { min: 0.1, max: 3, step: 0.1 }),
+    boostMoveFactor: PD.Numeric(5.0, { min: 0.1, max: 10, step: 0.1 }),
+    flyMode: PD.Boolean(false),
 
     animate: PD.MappedStatic('off', {
         off: PD.EmptyGroup(),
@@ -82,6 +106,7 @@ export { TrackballControls };
 interface TrackballControls {
     readonly viewport: Viewport
     readonly isAnimating: boolean
+    readonly isMoving: boolean
 
     readonly props: Readonly<TrackballControlsProps>
     setProps: (props: Partial<TrackballControlsProps>) => void
@@ -92,8 +117,14 @@ interface TrackballControls {
     dispose: () => void
 }
 namespace TrackballControls {
-    export function create(input: InputObserver, camera: Camera, props: Partial<TrackballControlsProps> = {}): TrackballControls {
-        const p = { ...PD.getDefaultValues(TrackballControlsParams), ...props };
+    export function create(input: InputObserver, camera: Camera, scene: Scene, props: Partial<TrackballControlsProps> = {}): TrackballControls {
+        const p: TrackballControlsProps = {
+            ...PD.getDefaultValues(TrackballControlsParams),
+            ...props,
+            // include default bindings for backwards state compatibility
+            bindings: { ...DefaultTrackballBindings, ...props.bindings }
+        };
+        const b = p.bindings;
 
         const viewport = Viewport.clone(camera.viewport);
 
@@ -104,6 +135,11 @@ namespace TrackballControls {
         const wheelSub = input.wheel.subscribe(onWheel);
         const pinchSub = input.pinch.subscribe(onPinch);
         const gestureSub = input.gesture.subscribe(onGesture);
+        const keyDownSub = input.keyDown.subscribe(onKeyDown);
+        const keyUpSub = input.keyUp.subscribe(onKeyUp);
+        const moveSub = input.move.subscribe(onMove);
+        const lockSub = input.lock.subscribe(onLock);
+        const leaveSub = input.leave.subscribe(onLeave);
 
         let _isInteracting = false;
 
@@ -117,9 +153,12 @@ namespace TrackballControls {
         const _rotLastAxis = Vec3();
         let _rotLastAngle = 0;
 
-        const _zRotPrev = Vec2();
-        const _zRotCurr = Vec2();
-        let _zRotLastAngle = 0;
+        const _rollPrev = Vec2();
+        const _rollCurr = Vec2();
+        let _rollLastAngle = 0;
+
+        let _pitchLastAngle = 0;
+        let _yawLastAngle = 0;
 
         const _zoomStart = Vec2();
         const _zoomEnd = Vec2();
@@ -149,7 +188,7 @@ namespace TrackballControls {
             return Vec2.set(
                 mouseOnCircleVec2,
                 (pageX - viewport.width * 0.5 - viewport.x) / (viewport.width * 0.5),
-                (viewport.height + 2 * (viewport.y - pageY)) / viewport.width // screen.width intentional
+                (viewport.height + 2 * (viewport.y - pageY)) / viewport.width // viewport.width intentional
             );
         }
 
@@ -203,26 +242,74 @@ namespace TrackballControls {
             Vec2.copy(_rotPrev, _rotCurr);
         }
 
-        const zRotQuat = Quat();
+        const rollQuat = Quat();
+        const rollDir = Vec3();
 
-        function zRotateCamera() {
-            const dx = _zRotCurr[0] - _zRotPrev[0];
-            const dy = _zRotCurr[1] - _zRotPrev[1];
-            const angle = p.rotateSpeed * (-dx + dy) * -0.05;
+        function rollCamera() {
+            const k = (keyState.rollRight - keyState.rollLeft) / 45;
+            const dx = (_rollCurr[0] - _rollPrev[0]) * -Math.sign(_rollCurr[1]);
+            const dy = (_rollCurr[1] - _rollPrev[1]) * -Math.sign(_rollCurr[0]);
+            const angle = -p.rotateSpeed * (-dx + dy) + k;
 
             if (angle) {
-                Vec3.sub(_eye, camera.position, camera.target);
-                Quat.setAxisAngle(zRotQuat, _eye, angle);
-                Vec3.transformQuat(camera.up, camera.up, zRotQuat);
-                _zRotLastAngle = angle;
-            } else if (!p.staticMoving && _zRotLastAngle) {
-                _zRotLastAngle *= Math.sqrt(1.0 - p.dynamicDampingFactor);
-                Vec3.sub(_eye, camera.position, camera.target);
-                Quat.setAxisAngle(zRotQuat, _eye, _zRotLastAngle);
-                Vec3.transformQuat(camera.up, camera.up, zRotQuat);
+                Vec3.normalize(rollDir, _eye);
+                Quat.setAxisAngle(rollQuat, rollDir, angle);
+                Vec3.transformQuat(camera.up, camera.up, rollQuat);
+                _rollLastAngle = angle;
+            } else if (!p.staticMoving && _rollLastAngle) {
+                _rollLastAngle *= Math.sqrt(1.0 - p.dynamicDampingFactor);
+                Vec3.normalize(rollDir, _eye);
+                Quat.setAxisAngle(rollQuat, rollDir, _rollLastAngle);
+                Vec3.transformQuat(camera.up, camera.up, rollQuat);
             }
 
-            Vec2.copy(_zRotPrev, _zRotCurr);
+            Vec2.copy(_rollPrev, _rollCurr);
+        }
+
+        const pitchQuat = Quat();
+        const pitchDir = Vec3();
+
+        function pitchCamera() {
+            const m = (keyState.pitchUp - keyState.pitchDown) / (p.flyMode ? 360 : 90);
+            const angle = -p.rotateSpeed * m;
+
+            if (angle) {
+                Vec3.cross(pitchDir, _eye, camera.up);
+                Vec3.normalize(pitchDir, pitchDir);
+                Quat.setAxisAngle(pitchQuat, pitchDir, angle);
+                Vec3.transformQuat(_eye, _eye, pitchQuat);
+                Vec3.transformQuat(camera.up, camera.up, pitchQuat);
+                _pitchLastAngle = angle;
+            } else if (!p.staticMoving && _pitchLastAngle) {
+                _pitchLastAngle *= Math.sqrt(1.0 - p.dynamicDampingFactor);
+                Vec3.cross(pitchDir, _eye, camera.up);
+                Vec3.normalize(pitchDir, pitchDir);
+                Quat.setAxisAngle(pitchQuat, pitchDir, _pitchLastAngle);
+                Vec3.transformQuat(_eye, _eye, pitchQuat);
+                Vec3.transformQuat(camera.up, camera.up, pitchQuat);
+            }
+        }
+
+        const yawQuat = Quat();
+        const yawDir = Vec3();
+
+        function yawCamera() {
+            const m = (keyState.yawRight - keyState.yawLeft) / (p.flyMode ? 360 : 90);
+            const angle = -p.rotateSpeed * m;
+
+            if (angle) {
+                Vec3.normalize(yawDir, camera.up);
+                Quat.setAxisAngle(yawQuat, yawDir, angle);
+                Vec3.transformQuat(_eye, _eye, yawQuat);
+                Vec3.transformQuat(camera.up, camera.up, yawQuat);
+                _yawLastAngle = angle;
+            } else if (!p.staticMoving && _yawLastAngle) {
+                _yawLastAngle *= Math.sqrt(1.0 - p.dynamicDampingFactor);
+                Vec3.normalize(yawDir, camera.up);
+                Quat.setAxisAngle(yawQuat, yawDir, _yawLastAngle);
+                Vec3.transformQuat(_eye, _eye, yawQuat);
+                Vec3.transformQuat(camera.up, camera.up, yawQuat);
+            }
         }
 
         function zoomCamera() {
@@ -283,6 +370,92 @@ namespace TrackballControls {
             }
         }
 
+        const keyState = {
+            moveUp: 0, moveDown: 0, moveLeft: 0, moveRight: 0, moveForward: 0, moveBack: 0,
+            pitchUp: 0, pitchDown: 0, yawLeft: 0, yawRight: 0, rollLeft: 0, rollRight: 0,
+            boostMove: 0,
+        };
+
+        const moveDir = Vec3();
+        const moveEye = Vec3();
+
+        function moveCamera(deltaT: number) {
+            Vec3.sub(moveEye, camera.position, camera.target);
+            const minDistance = Math.max(camera.state.minNear, p.minDistance);
+            Vec3.setMagnitude(moveEye, moveEye, minDistance);
+
+            const moveSpeed = deltaT * (60 / 1000) * p.moveSpeed * (keyState.boostMove === 1 ? p.boostMoveFactor : 1);
+
+            if (keyState.moveForward === 1) {
+                Vec3.normalize(moveDir, moveEye);
+                Vec3.scaleAndSub(camera.position, camera.position, moveDir, moveSpeed);
+                const dt = Vec3.distance(camera.target, camera.position);
+                const ds = Vec3.distance(scene.boundingSphereVisible.center, camera.position);
+                if (p.flyMode || input.pointerLock || (dt < minDistance && ds < camera.state.radiusMax)) {
+                    Vec3.sub(camera.target, camera.position, moveEye);
+                }
+            }
+
+            if (keyState.moveBack === 1) {
+                Vec3.normalize(moveDir, moveEye);
+                Vec3.scaleAndAdd(camera.position, camera.position, moveDir, moveSpeed);
+                if (p.flyMode || input.pointerLock) {
+                    Vec3.sub(camera.target, camera.position, moveEye);
+                }
+            }
+
+            if (keyState.moveLeft === 1) {
+                Vec3.cross(moveDir, moveEye, camera.up);
+                Vec3.normalize(moveDir, moveDir);
+                if (p.flyMode || input.pointerLock) {
+                    Vec3.scaleAndAdd(camera.position, camera.position, moveDir, moveSpeed);
+                    Vec3.sub(camera.target, camera.position, moveEye);
+                } else {
+                    Vec3.scaleAndSub(camera.position, camera.position, moveDir, moveSpeed);
+                    Vec3.sub(camera.target, camera.position, _eye);
+                }
+            }
+
+            if (keyState.moveRight === 1) {
+                Vec3.cross(moveDir, moveEye, camera.up);
+                Vec3.normalize(moveDir, moveDir);
+                if (p.flyMode || input.pointerLock) {
+                    Vec3.scaleAndSub(camera.position, camera.position, moveDir, moveSpeed);
+                    Vec3.sub(camera.target, camera.position, moveEye);
+                } else {
+                    Vec3.scaleAndAdd(camera.position, camera.position, moveDir, moveSpeed);
+                    Vec3.sub(camera.target, camera.position, _eye);
+                }
+            }
+
+            if (keyState.moveUp === 1) {
+                Vec3.normalize(moveDir, camera.up);
+                if (p.flyMode || input.pointerLock) {
+                    Vec3.scaleAndAdd(camera.position, camera.position, moveDir, moveSpeed);
+                    Vec3.sub(camera.target, camera.position, moveEye);
+                } else {
+                    Vec3.scaleAndSub(camera.position, camera.position, moveDir, moveSpeed);
+                    Vec3.sub(camera.target, camera.position, _eye);
+                }
+            }
+
+            if (keyState.moveDown === 1) {
+                Vec3.normalize(moveDir, camera.up);
+                if (p.flyMode || input.pointerLock) {
+                    Vec3.scaleAndSub(camera.position, camera.position, moveDir, moveSpeed);
+                    Vec3.sub(camera.target, camera.position, moveEye);
+                } else {
+                    Vec3.scaleAndAdd(camera.position, camera.position, moveDir, moveSpeed);
+                    Vec3.sub(camera.target, camera.position, _eye);
+                }
+            }
+
+            if (p.flyMode || input.pointerLock) {
+                const ds = Vec3.distance(scene.boundingSphereVisible.center, camera.position);
+                camera.setState({ radius: Math.max(ds, camera.state.radius) });
+            }
+        }
+
         /**
          * Ensure the distance between object and target is within the min/max distance
          * and not too large compared to `camera.state.radiusMax`
@@ -319,20 +492,33 @@ namespace TrackballControls {
         /** Update the object's position, direction and up vectors */
         function update(t: number) {
             if (lastUpdated === t) return;
+
+            const deltaT = t - lastUpdated;
             if (lastUpdated > 0) {
-                if (p.animate.name === 'spin') spin(t - lastUpdated);
-                else if (p.animate.name === 'rock') rock(t - lastUpdated);
+                if (p.animate.name === 'spin') spin(deltaT);
+                else if (p.animate.name === 'rock') rock(deltaT);
             }
 
             Vec3.sub(_eye, camera.position, camera.target);
 
             rotateCamera();
-            zRotateCamera();
+            rollCamera();
+            pitchCamera();
+            yawCamera();
             zoomCamera();
             focusCamera();
             panCamera();
 
             Vec3.add(camera.position, camera.target, _eye);
+            checkDistances();
+
+            if (lastUpdated > 0) {
+                // clamp the maximum step size at 15 frames to avoid too big jumps
+                // TODO: make this a parameter?
+                moveCamera(Math.min(deltaT, 15 * 1000 / 60));
+            }
+
+            Vec3.sub(_eye, camera.position, camera.target);
             checkDistances();
 
             if (Vec3.squaredDistance(lastPosition, camera.position) > EPSILON) {
@@ -363,15 +549,19 @@ namespace TrackballControls {
             _isInteracting = true;
             resetRock(); // start rocking from the center after interactions
 
-            const dragRotate = Binding.match(p.bindings.dragRotate, buttons, modifiers);
-            const dragRotateZ = Binding.match(p.bindings.dragRotateZ, buttons, modifiers);
-            const dragPan = Binding.match(p.bindings.dragPan, buttons, modifiers);
-            const dragZoom = Binding.match(p.bindings.dragZoom, buttons, modifiers);
-            const dragFocus = Binding.match(p.bindings.dragFocus, buttons, modifiers);
-            const dragFocusZoom = Binding.match(p.bindings.dragFocusZoom, buttons, modifiers);
+            const dragRotate = Binding.match(b.dragRotate, buttons, modifiers);
+            const dragRotateZ = Binding.match(b.dragRotateZ, buttons, modifiers);
+            const dragPan = Binding.match(b.dragPan, buttons, modifiers);
+            const dragZoom = Binding.match(b.dragZoom, buttons, modifiers);
+            const dragFocus = Binding.match(b.dragFocus, buttons, modifiers);
+            const dragFocusZoom = Binding.match(b.dragFocusZoom, buttons, modifiers);
 
             getMouseOnCircle(pageX, pageY);
             getMouseOnScreen(pageX, pageY);
+
+            const pr = input.pixelRatio;
+            const vx = (x * pr - viewport.width / 2 - viewport.x) / viewport.width;
+            const vy = -(input.height - y * pr - viewport.height / 2 - viewport.y) / viewport.height;
 
             if (isStart) {
                 if (dragRotate) {
@@ -379,8 +569,8 @@ namespace TrackballControls {
                     Vec2.copy(_rotPrev, _rotCurr);
                 }
                 if (dragRotateZ) {
-                    Vec2.copy(_zRotCurr, mouseOnCircleVec2);
-                    Vec2.copy(_zRotPrev, _zRotCurr);
+                    Vec2.set(_rollCurr, vx, vy);
+                    Vec2.copy(_rollPrev, _rollCurr);
                 }
                 if (dragZoom || dragFocusZoom) {
                     Vec2.copy(_zoomStart, mouseOnScreenVec2);
@@ -397,7 +587,7 @@ namespace TrackballControls {
             }
 
             if (dragRotate) Vec2.copy(_rotCurr, mouseOnCircleVec2);
-            if (dragRotateZ) Vec2.copy(_zRotCurr, mouseOnCircleVec2);
+            if (dragRotateZ) Vec2.set(_rollCurr, vx, vy);
             if (dragZoom || dragFocusZoom) Vec2.copy(_zoomEnd, mouseOnScreenVec2);
             if (dragFocus) Vec2.copy(_focusEnd, mouseOnScreenVec2);
             if (dragFocusZoom) {
@@ -418,16 +608,16 @@ namespace TrackballControls {
             if (delta < -p.maxWheelDelta) delta = -p.maxWheelDelta;
             else if (delta > p.maxWheelDelta) delta = p.maxWheelDelta;
 
-            if (Binding.match(p.bindings.scrollZoom, buttons, modifiers)) {
+            if (Binding.match(b.scrollZoom, buttons, modifiers)) {
                 _zoomEnd[1] += delta;
             }
-            if (Binding.match(p.bindings.scrollFocus, buttons, modifiers)) {
+            if (Binding.match(b.scrollFocus, buttons, modifiers)) {
                 _focusEnd[1] += delta;
             }
         }
 
         function onPinch({ fractionDelta, buttons, modifiers }: PinchInput) {
-            if (Binding.match(p.bindings.scrollZoom, buttons, modifiers)) {
+            if (Binding.match(b.scrollZoom, buttons, modifiers)) {
                 _isInteracting = true;
                 _zoomEnd[1] += p.gestureScaleFactor * fractionDelta;
             }
@@ -436,6 +626,117 @@ namespace TrackballControls {
         function onGesture({ deltaScale }: GestureInput) {
             _isInteracting = true;
             _zoomEnd[1] += p.gestureScaleFactor * deltaScale;
+        }
+
+        function onMove({ movementX, movementY }: MoveInput) {
+            if (!input.pointerLock || movementX === undefined || movementY === undefined) return;
+
+            const cx = viewport.width * 0.5 - viewport.x;
+            const cy = viewport.height * 0.5 - viewport.y;
+
+            Vec2.copy(_rotPrev, getMouseOnCircle(cx, cy));
+            Vec2.copy(_rotCurr, getMouseOnCircle(movementX + cx, movementY + cy));
+        }
+
+        function onKeyDown({ modifiers, code, x, y }: KeyInput) {
+            if (outsideViewport(x, y)) return;
+
+            if (Binding.matchKey(b.keyMoveForward, code, modifiers)) {
+                keyState.moveForward = 1;
+            } else if (Binding.matchKey(b.keyMoveBack, code, modifiers)) {
+                keyState.moveBack = 1;
+            } else if (Binding.matchKey(b.keyMoveLeft, code, modifiers)) {
+                keyState.moveLeft = 1;
+            } else if (Binding.matchKey(b.keyMoveRight, code, modifiers)) {
+                keyState.moveRight = 1;
+            } else if (Binding.matchKey(b.keyMoveUp, code, modifiers)) {
+                keyState.moveUp = 1;
+            } else if (Binding.matchKey(b.keyMoveDown, code, modifiers)) {
+                keyState.moveDown = 1;
+            } else if (Binding.matchKey(b.keyRollLeft, code, modifiers)) {
+                keyState.rollLeft = 1;
+            } else if (Binding.matchKey(b.keyRollRight, code, modifiers)) {
+                keyState.rollRight = 1;
+            } else if (Binding.matchKey(b.keyPitchUp, code, modifiers)) {
+                keyState.pitchUp = 1;
+            } else if (Binding.matchKey(b.keyPitchDown, code, modifiers)) {
+                keyState.pitchDown = 1;
+            } else if (Binding.matchKey(b.keyYawLeft, code, modifiers)) {
+                keyState.yawLeft = 1;
+            } else if (Binding.matchKey(b.keyYawRight, code, modifiers)) {
+                keyState.yawRight = 1;
+            }
+
+            if (Binding.matchKey(b.boostMove, code, modifiers)) {
+                keyState.boostMove = 1;
+            }
+
+            if (Binding.matchKey(b.enablePointerLock, code, modifiers)) {
+                input.requestPointerLock(viewport);
+            }
+        }
+
+        function onKeyUp({ modifiers, code, x, y }: KeyInput) {
+            if (outsideViewport(x, y)) return;
+
+            if (Binding.matchKey(b.keyMoveForward, code, modifiers)) {
+                keyState.moveForward = 0;
+            } else if (Binding.matchKey(b.keyMoveBack, code, modifiers)) {
+                keyState.moveBack = 0;
+            } else if (Binding.matchKey(b.keyMoveLeft, code, modifiers)) {
+                keyState.moveLeft = 0;
+            } else if (Binding.matchKey(b.keyMoveRight, code, modifiers)) {
+                keyState.moveRight = 0;
+            } else if (Binding.matchKey(b.keyMoveUp, code, modifiers)) {
+                keyState.moveUp = 0;
+            } else if (Binding.matchKey(b.keyMoveDown, code, modifiers)) {
+                keyState.moveDown = 0;
+            } else if (Binding.matchKey(b.keyRollLeft, code, modifiers)) {
+                keyState.rollLeft = 0;
+            } else if (Binding.matchKey(b.keyRollRight, code, modifiers)) {
+                keyState.rollRight = 0;
+            } else if (Binding.matchKey(b.keyPitchUp, code, modifiers)) {
+                keyState.pitchUp = 0;
+            } else if (Binding.matchKey(b.keyPitchDown, code, modifiers)) {
+                keyState.pitchDown = 0;
+            } else if (Binding.matchKey(b.keyYawLeft, code, modifiers)) {
+                keyState.yawLeft = 0;
+            } else if (Binding.matchKey(b.keyYawRight, code, modifiers)) {
+                keyState.yawRight = 0;
+            }
+
+            if (Binding.matchKey(b.boostMove, code, modifiers)) {
+                keyState.boostMove = 0;
+            }
+        }
+
+        function initCameraMove() {
+            Vec3.sub(moveEye, camera.position, camera.target);
+            const minDistance = Math.max(camera.state.minNear, p.minDistance);
+            Vec3.setMagnitude(moveEye, moveEye, minDistance);
+            Vec3.sub(camera.target, camera.position, moveEye);
+        }
+
+        function onLock(isLocked: boolean) {
+            if (isLocked) {
+                initCameraMove();
+            }
+        }
+
+        function onLeave() {
+            keyState.moveForward = 0;
+            keyState.moveBack = 0;
+            keyState.moveLeft = 0;
+            keyState.moveRight = 0;
+            keyState.moveUp = 0;
+            keyState.moveDown = 0;
+            keyState.rollLeft = 0;
+            keyState.rollRight = 0;
+            keyState.pitchUp = 0;
+            keyState.pitchDown = 0;
+            keyState.yawLeft = 0;
+            keyState.yawRight = 0;
+            keyState.boostMove = 0;
         }
 
         function dispose() {
@@ -447,6 +748,11 @@ namespace TrackballControls {
             pinchSub.unsubscribe();
             gestureSub.unsubscribe();
             interactionEndSub.unsubscribe();
+            keyDownSub.unsubscribe();
+            keyUpSub.unsubscribe();
+            moveSub.unsubscribe();
+            lockSub.unsubscribe();
+            leaveSub.unsubscribe();
         }
 
         const _spinSpeed = Vec2.create(0.005, 0);
@@ -489,13 +795,27 @@ namespace TrackballControls {
         return {
             viewport,
             get isAnimating() { return p.animate.name !== 'off'; },
+            get isMoving() {
+                return (
+                    keyState.moveForward === 1 || keyState.moveBack === 1 ||
+                    keyState.moveLeft === 1 || keyState.moveRight === 1 ||
+                    keyState.moveUp === 1 || keyState.moveDown === 1 ||
+                    keyState.rollLeft === 1 || keyState.rollRight === 1 ||
+                    keyState.pitchUp === 1 || keyState.pitchDown === 1 ||
+                    keyState.yawLeft === 1 || keyState.yawRight === 1
+                );
+            },
 
             get props() { return p as Readonly<TrackballControlsProps>; },
             setProps: (props: Partial<TrackballControlsProps>) => {
                 if (props.animate?.name === 'rock' && p.animate.name !== 'rock') {
                     resetRock(); // start rocking from the center
                 }
+                if (props.flyMode && !p.flyMode) {
+                    initCameraMove();
+                }
                 Object.assign(p, props);
+                Object.assign(b, props.bindings);
             },
 
             start,

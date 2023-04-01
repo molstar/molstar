@@ -371,7 +371,7 @@ export function createRenderItem<T extends string>(ctx: WebGLContext, drawMode: 
             }
 
             if (valueChanges.attributes || valueChanges.defines || valueChanges.elements) {
-                // console.log('program/defines or buffers changed, update vaos');
+                // console.log('program/defines or buffers changed, update vao');
                 if (vertexArray) vertexArray.destroy();
                 vertexArray = vertexArrayObject ? resources.vertexArray(programs, attributeBuffers, elementsBuffer) : null;
             }

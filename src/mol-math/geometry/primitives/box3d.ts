@@ -172,7 +172,6 @@ namespace Box3D {
         ) ? false : true;
     }
 
-    // const tmpTransformV = Vec3();
     export function nearestIntersectionWithRay(out: Vec3, box: Box3D, origin: Vec3, dir: Vec3): Vec3 {
         const [minX, minY, minZ] = box.min;
         const [maxX, maxY, maxZ] = box.max;

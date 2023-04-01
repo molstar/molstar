@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2022-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  *
@@ -30,6 +30,20 @@ namespace Plane3D {
         return copy(Plane3D(), p);
     }
 
+    export function normalize(out: Plane3D, p: Plane3D): Plane3D {
+        // Note: will lead to a divide by zero if the plane is invalid.
+        const inverseNormalLength = 1.0 / Vec3.magnitude(p.normal);
+        Vec3.scale(out.normal, p.normal, inverseNormalLength);
+        out.constant = p.constant * inverseNormalLength;
+        return out;
+    }
+
+    export function negate(out: Plane3D, p: Plane3D): Plane3D {
+        Vec3.negate(out.normal, p.normal);
+        out.constant = -p.constant;
+        return out;
+    }
+
     export function toArray<T extends NumberArray>(p: Plane3D, out: T, offset: number) {
         Vec3.toArray(p.normal, out, offset);
         out[offset + 3] = p.constant;
@@ -44,7 +58,7 @@ namespace Plane3D {
 
     export function fromNormalAndCoplanarPoint(out: Plane3D, normal: Vec3, point: Vec3) {
         Vec3.copy(out.normal, normal);
-        out.constant = Vec3.dot(out.normal, point);
+        out.constant = -Vec3.dot(out.normal, point);
         return out;
     }
 
@@ -69,6 +83,10 @@ namespace Plane3D {
 
     export function distanceToSpher3D(plane: Plane3D, sphere: Sphere3D) {
         return distanceToPoint(plane, sphere.center) - sphere.radius;
+    }
+
+    export function projectPoint(out: Vec3, plane: Plane3D, point: Vec3) {
+        return Vec3.scaleAndAdd(out, out, plane.normal, -distanceToPoint(plane, point));
     }
 }
 

@@ -3,6 +3,7 @@
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Jason Pattle <jpattle.exscientia.co.uk>
  */
 
 import * as React from 'react';
@@ -12,6 +13,7 @@ import { InteractivityManager } from '../../mol-plugin-state/manager/interactivi
 import { StructureComponentManager } from '../../mol-plugin-state/manager/structure/component';
 import { StructureComponentRef, StructureRef } from '../../mol-plugin-state/manager/structure/hierarchy-state';
 import { StructureSelectionModifier } from '../../mol-plugin-state/manager/structure/selection';
+import { PluginConfig } from '../../mol-plugin/config';
 import { PluginContext } from '../../mol-plugin/context';
 import { compileIdListSelection } from '../../mol-script/util/id-list';
 import { memoizeLatest } from '../../mol-util/memoize';
@@ -272,7 +274,7 @@ export class StructureSelectionActionsControls extends PluginUIComponent<{}, Str
                 <IconButton svg={RestoreSvg} onClick={this.undo} disabled={!this.state.canUndo || this.isDisabled} title={undoTitle} />
 
                 <ToggleButton icon={HelpOutlineSvg} title='Show/hide help' toggle={this.toggleHelp} style={{ marginLeft: '10px' }} isSelected={this.state.action === 'help'} />
-                <IconButton svg={CancelOutlinedSvg} title='Turn selection mode off' onClick={this.turnOff} />
+                {this.plugin.config.get(PluginConfig.Viewport.ShowSelectionMode) && (<IconButton svg={CancelOutlinedSvg} title='Turn selection mode off' onClick={this.turnOff} />)}
             </div>
             {children}
         </>;

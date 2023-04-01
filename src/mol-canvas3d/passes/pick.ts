@@ -358,7 +358,7 @@ export class PickHelper {
 
         const z = this.getDepth(xp, yp);
         // console.log('z', z);
-        const position = Vec3.create(x, viewport.height - y, z);
+        const position = Vec3.create(x, y, z);
         if (StereoCamera.is(camera)) {
             const halfWidth = Math.floor(viewport.width / 2);
             if (x > viewport.x + halfWidth) {

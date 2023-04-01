@@ -1,8 +1,9 @@
 /**
- * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Jason Pattle <jpattle.exscientia.co.uk>
  */
 
 import { MarkerAction } from '../../../mol-util/marker-action';
@@ -92,11 +93,11 @@ export const HighlightLoci = PluginBehavior.create({
 
 //
 
-const DefaultSelectLociBindings = {
+export const DefaultSelectLociBindings = {
     clickSelect: Binding.Empty,
-    clickToggleExtend: Binding([Trigger(B.Flag.Primary, M.create({ shift: true }))], 'Toggle extended selection', '${triggers} to extend selection along polymer'),
+    clickToggleExtend: Binding([Trigger(B.Flag.Primary, M.create({ shift: true }))], 'Toggle extended selection', 'Click on element using ${triggers} to extend selection along polymer'),
     clickSelectOnly: Binding.Empty,
-    clickToggle: Binding([Trigger(B.Flag.Primary, M.create())], 'Toggle selection', '${triggers} on element'),
+    clickToggle: Binding([Trigger(B.Flag.Primary, M.create())], 'Toggle selection', 'Click on element using ${triggers}'),
     clickDeselect: Binding.Empty,
     clickDeselectAllOnEmpty: Binding([Trigger(B.Flag.Primary, M.create())], 'Deselect all', 'Click on nothing using ${triggers}'),
 };
@@ -236,7 +237,7 @@ export const DefaultLociLabelProvider = PluginBehavior.create({
 
 //
 
-const DefaultFocusLociBindings = {
+export const DefaultFocusLociBindings = {
     clickFocus: Binding([
         Trigger(B.Flag.Primary, M.create()),
     ], 'Representation Focus', 'Click element using ${triggers}'),
