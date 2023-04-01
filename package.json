@@ -110,6 +110,7 @@
     "@graphql-codegen/typescript-operations": "^3.0.2",
     "@types/cors": "^2.8.13",
     "@types/gl": "^6.0.2",
+    "@types/jpeg-js": "^0.3.7",
     "@types/pngjs": "^6.0.1",
     "@types/jest": "^29.5.0",
     "@types/react": "^18.0.28",
