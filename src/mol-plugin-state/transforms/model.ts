@@ -272,14 +272,14 @@ const TrajectoryFromMmCif = PluginStateTransform.BuiltIn({
     params(a) {
         if (!a) {
             return {
-                blockHeader: PD.Optional(PD.Text(void 0, { description: 'Header of the block to parse. If none is specifed, the 1st data block in the file is used.' })),
                 loadAllBlocks: PD.Optional(PD.Boolean(false, { description: 'If True, ignore Block Header parameter and parse all datablocks into a single trajectory.' })),
+                blockHeader: PD.Optional(PD.Text(void 0, { description: 'Header of the block to parse. If none is specifed, the 1st data block in the file is used.', hideIf: p => p.loadAllBlocks === true })),
             };
         }
         const { blocks } = a.data;
         return {
-            blockHeader: PD.Optional(PD.Select(blocks[0] && blocks[0].header, blocks.map(b => [b.header, b.header] as [string, string]), { description: 'Header of the block to parse' })),
             loadAllBlocks: PD.Optional(PD.Boolean(false, { description: 'If True, ignore Block Header parameter and parse all data blocks into a single trajectory.' })),
+            blockHeader: PD.Optional(PD.Select(blocks[0] && blocks[0].header, blocks.map(b => [b.header, b.header] as [string, string]), { description: 'Header of the block to parse', hideIf: p => p.loadAllBlocks === true })),
         };
     }
 })({
