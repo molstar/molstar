@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -18,7 +18,7 @@
  */
 
 import { Mat4 } from './mat4';
-import { spline as _spline, quadraticBezier as _quadraticBezier, clamp } from '../../interpolate';
+import { spline as _spline, quadraticBezier as _quadraticBezier, clamp as _clamp } from '../../interpolate';
 import { NumberArray } from '../../../mol-util/type-helpers';
 import { Mat3 } from './mat3';
 import { Quat } from './quat';
@@ -246,6 +246,16 @@ namespace Vec3 {
         return out;
     }
 
+    /**
+     * Assumes min < max, componentwise
+     */
+    export function clamp(out: Vec3, a: Vec3, min: Vec3, max: Vec3) {
+        out[0] = Math.max(min[0], Math.min(max[0], a[0]));
+        out[1] = Math.max(min[1], Math.min(max[1], a[1]));
+        out[2] = Math.max(min[2], Math.min(max[2], a[2]));
+        return out;
+    }
+
     export function distance(a: Vec3, b: Vec3) {
         const x = b[0] - a[0],
             y = b[1] - a[1],
@@ -341,7 +351,7 @@ namespace Vec3 {
 
     const slerpRelVec = zero();
     export function slerp(out: Vec3, a: Vec3, b: Vec3, t: number) {
-        const d = clamp(dot(a, b), -1, 1);
+        const d = _clamp(dot(a, b), -1, 1);
         const theta = Math.acos(d) * t;
         scaleAndAdd(slerpRelVec, b, a, -d);
         normalize(slerpRelVec, slerpRelVec);
@@ -429,6 +439,14 @@ namespace Vec3 {
         return out;
     }
 
+    export function transformDirection(out: Vec3, a: Vec3, m: Mat4) {
+        const x = a[0], y = a[1], z = a[2];
+        out[0] = m[0] * x + m[4] * y + m[8] * z;
+        out[1] = m[1] * x + m[5] * y + m[9] * z;
+        out[2] = m[2] * x + m[6] * y + m[10] * z;
+        return normalize(out, out);
+    }
+
     /**
      * Like `transformMat4` but with offsets into arrays
      */
@@ -477,7 +495,7 @@ namespace Vec3 {
         const denominator = Math.sqrt(squaredMagnitude(a) * squaredMagnitude(b));
         if (denominator === 0) return Math.PI / 2;
         const theta = dot(a, b) / denominator;
-        return Math.acos(clamp(theta, -1, 1)); // clamp to avoid numerical problems
+        return Math.acos(_clamp(theta, -1, 1)); // clamp to avoid numerical problems
     }
 
     const tmp_dh_ab = zero();

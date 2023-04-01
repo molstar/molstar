@@ -18,6 +18,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Remove `JSX` reference from `loci-labels.ts`
 - Fix overpaint/transparency/substance smoothing not updated when geometry changes
 - Fix camera project/unproject when using offset viewport
+- Add `Frustum3D` and `Plane3D` math primitives
 
 ## [v3.32.0] - 2023-03-20
 
