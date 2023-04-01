@@ -109,9 +109,10 @@ namespace Sphere3D {
         return out;
     }
 
-    export function toArray(s: Sphere3D, out: NumberArray, offset: number) {
+    export function toArray<T extends NumberArray>(s: Sphere3D, out: T, offset: number) {
         Vec3.toArray(s.center, out, offset);
         out[offset + 3] = s.radius;
+        return out;
     }
 
     export function fromArray(out: Sphere3D, array: NumberArray, offset: number) {

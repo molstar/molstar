@@ -23,7 +23,7 @@ export function Material(values?: Partial<Material>) {
 export namespace Material {
     export const Zero: Material = { metalness: 0, roughness: 0, bumpiness: 0 };
 
-    export function toArray(material: Material, array: NumberArray, offset: number) {
+    export function toArray<T extends NumberArray>(material: Material, array: T, offset: number) {
         array[offset] = material.metalness * 255;
         array[offset + 1] = material.roughness * 255;
         array[offset + 2] = material.bumpiness * 255;
