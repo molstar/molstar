@@ -451,8 +451,8 @@ namespace TrackballControls {
             }
 
             if (p.flyMode || input.pointerLock) {
-                const ds = Vec3.distance(scene.boundingSphereVisible.center, camera.position);
-                camera.setState({ radius: Math.max(ds, camera.state.radius) });
+                const cameraDistance = Vec3.distance(camera.position, scene.boundingSphereVisible.center);
+                camera.setState({ minFar: cameraDistance + scene.boundingSphereVisible.radius });
             }
         }
 
@@ -715,11 +715,30 @@ namespace TrackballControls {
             const minDistance = Math.max(camera.state.minNear, p.minDistance);
             Vec3.setMagnitude(moveEye, moveEye, minDistance);
             Vec3.sub(camera.target, camera.position, moveEye);
+
+            const cameraDistance = Vec3.distance(camera.position, scene.boundingSphereVisible.center);
+            camera.setState({ minFar: cameraDistance + scene.boundingSphereVisible.radius });
+        }
+
+        function resetCameraMove() {
+            const { center, radius } = scene.boundingSphereVisible;
+            const cameraDistance = Vec3.distance(camera.position, center);
+            if (cameraDistance > radius) {
+                const focus = camera.getFocus(center, radius);
+                camera.setState({ ...focus, minFar: 0 });
+            } else {
+                camera.setState({
+                    minFar: 0,
+                    radius: scene.boundingSphereVisible.radius,
+                });
+            }
         }
 
         function onLock(isLocked: boolean) {
             if (isLocked) {
                 initCameraMove();
+            } else {
+                resetCameraMove();
             }
         }
 
@@ -811,8 +830,12 @@ namespace TrackballControls {
                 if (props.animate?.name === 'rock' && p.animate.name !== 'rock') {
                     resetRock(); // start rocking from the center
                 }
-                if (props.flyMode && !p.flyMode) {
-                    initCameraMove();
+                if (props.flyMode !== undefined && props.flyMode !== p.flyMode) {
+                    if (props.flyMode) {
+                        initCameraMove();
+                    } else {
+                        resetCameraMove();
+                    }
                 }
                 Object.assign(p, props);
                 Object.assign(b, props.bindings);
