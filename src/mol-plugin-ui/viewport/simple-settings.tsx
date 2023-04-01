@@ -59,6 +59,7 @@ const SimpleSettingsParams = {
     }, { pivot: 'color' }),
     lighting: PD.Group({
         occlusion: Canvas3DParams.postprocessing.params.occlusion,
+        shadow: Canvas3DParams.postprocessing.params.shadow,
         outline: Canvas3DParams.postprocessing.params.outline,
         fog: Canvas3DParams.cameraFog,
     }, { isFlat: true }),
@@ -114,6 +115,7 @@ const SimpleSettingsMapping = ParamMapping({
             },
             lighting: {
                 occlusion: canvas.postprocessing.occlusion,
+                shadow: canvas.postprocessing.shadow,
                 outline: canvas.postprocessing.outline,
                 fog: canvas.cameraFog,
             },
@@ -129,6 +131,7 @@ const SimpleSettingsMapping = ParamMapping({
         canvas.transparentBackground = s.background.transparent;
         canvas.renderer.backgroundColor = s.background.color;
         canvas.postprocessing.occlusion = s.lighting.occlusion;
+        canvas.postprocessing.shadow = s.lighting.shadow;
         canvas.postprocessing.outline = s.lighting.outline;
         canvas.postprocessing.background = s.background.style;
         canvas.cameraFog = s.lighting.fog;

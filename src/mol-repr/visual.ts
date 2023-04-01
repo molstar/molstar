@@ -55,6 +55,7 @@ interface Visual<D, P extends PD.Params> {
     setTransparency: (transparency: Transparency, webgl?: WebGLContext) => void
     setSubstance: (substance: Substance, webgl?: WebGLContext) => void
     setClipping: (clipping: Clipping) => void
+    setThemeStrength: (strength: { overpaint: number, transparency: number, substance: number }) => void
     destroy: () => void
     mustRecreate?: (data: D, props: PD.Values<P>, webgl?: WebGLContext) => boolean
 }
@@ -349,6 +350,14 @@ namespace Visual {
         ValueCell.updateIfChanged(dClipping, clipping.layers.length > 0);
     }
 
+    export function setThemeStrength(renderObject: GraphicsRenderObject | undefined, strength: { overpaint: number, transparency: number, substance: number }) {
+        if (renderObject) {
+            ValueCell.updateIfChanged(renderObject.values.uOverpaintStrength, strength.overpaint);
+            ValueCell.updateIfChanged(renderObject.values.uTransparencyStrength, strength.transparency);
+            ValueCell.updateIfChanged(renderObject.values.uSubstanceStrength, strength.substance);
+        }
+    }
+
     export function setTransform(renderObject: GraphicsRenderObject | undefined, transform?: Mat4, instanceTransforms?: Float32Array | null) {
         if (!renderObject || (!transform && !instanceTransforms)) return;
 
@@ -365,7 +374,7 @@ namespace Visual {
             ValueCell.update(values.extraTransform, values.extraTransform.ref.value);
         }
         updateTransformData(values);
-        const boundingSphere = calculateTransformBoundingSphere(values.invariantBoundingSphere.ref.value, values.aTransform.ref.value, values.instanceCount.ref.value);
+        const boundingSphere = calculateTransformBoundingSphere(values.invariantBoundingSphere.ref.value, values.aTransform.ref.value, values.instanceCount.ref.value, 0);
         ValueCell.update(values.boundingSphere, boundingSphere);
     }
 }

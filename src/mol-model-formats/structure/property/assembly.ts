@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  */
@@ -63,7 +63,7 @@ function operatorGroupsProvider(generators: Generator[], matrices: Matrices): ()
                 Q.pred.eq(ctx => StructureProperties.unit.operator_name(ctx.element), SymmetryOperator.DefaultName),
                 Q.pred.inSet(ctx => StructureProperties.chain.label_asym_id(ctx.element), gen.asymIds)
             ) });
-            groups[groups.length] = { selector, operators };
+            groups[groups.length] = { selector, operators, asymIds: gen.asymIds };
             operatorOffset += operators.length;
         }
 
@@ -74,10 +74,11 @@ function operatorGroupsProvider(generators: Generator[], matrices: Matrices): ()
 function getMatrices(pdbx_struct_oper_list: StructOperList): Matrices {
     const { id, matrix, vector, _schema } = pdbx_struct_oper_list;
     const matrices = new Map<string, Mat4>();
+    const t = Vec3();
 
     for (let i = 0, _i = pdbx_struct_oper_list._rowCount; i < _i; i++) {
         const m = Tensor.toMat4(Mat4(), _schema.matrix.space, matrix.value(i));
-        const t = Tensor.toVec3(Vec3(), _schema.vector.space, vector.value(i));
+        Tensor.toVec3(t, _schema.vector.space, vector.value(i));
         Mat4.setTranslation(m, t);
         Mat4.setValue(m, 3, 3, 1);
         matrices.set(id.value(i), m);

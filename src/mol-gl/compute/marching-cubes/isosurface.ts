@@ -142,9 +142,7 @@ export function createIsosurfaceBuffers(ctx: WebGLContext, activeVoxelsBase: Tex
 
     if (isWebGL2(gl)) {
         if (!vertexTexture) {
-            vertexTexture = extensions.colorBufferHalfFloat && extensions.textureHalfFloat
-                ? resources.texture('image-float16', 'rgba', 'fp16', 'nearest')
-                : resources.texture('image-float32', 'rgba', 'float', 'nearest');
+            vertexTexture = resources.texture('image-float32', 'rgba', 'float', 'nearest');
         }
 
         if (!groupTexture) {
@@ -199,9 +197,9 @@ export function createIsosurfaceBuffers(ctx: WebGLContext, activeVoxelsBase: Tex
     gl.finish();
     if (isTimingMode) ctx.timer.markEnd('createIsosurfaceBuffers');
 
-    // printTextureImage(readTexture(ctx, vertexTexture, new Float32Array(width * height * 4)), { scale: 0.75 });
-    // printTextureImage(readTexture(ctx, groupTexture, new Uint8Array(width * height * 4)), { scale: 0.75 });
-    // printTextureImage(readTexture(ctx, normalTexture, new Float32Array(width * height * 4)), { scale: 0.75 });
+    // printTextureImage(readTexture(ctx, vertexTexture, new Float32Array(width * height * 4)), { scale: 0.75, normalize: true });
+    // printTextureImage(readTexture(ctx, groupTexture, new Uint8Array(width * height * 4)), { scale: 0.75, normalize: true });
+    // printTextureImage(readTexture(ctx, normalTexture, new Float32Array(width * height * 4)), { scale: 0.75, normalize: true });
 
     return { vertexTexture, groupTexture, normalTexture, vertexCount: count };
 }

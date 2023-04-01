@@ -7,12 +7,13 @@
 import { Color } from '../../mol-util/color';
 import { Location } from '../../mol-model/location';
 import { StructureElement, Bond, Structure } from '../../mol-model/structure';
-import { ColorTheme, LocationColor } from '../color';
+import type { ColorTheme, LocationColor } from '../color';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { ThemeDataContext } from '../../mol-theme/theme';
 import { TableLegend, ScaleLegend } from '../../mol-util/legend';
 import { getPaletteParams, getPalette } from '../../mol-util/color/palette';
 import { ColorLists, getColorListFromName } from '../../mol-util/color/lists';
+import { ColorThemeCategory } from './categories';
 
 const DefaultList = 'dark-2';
 const DefaultColor = Color(0xCCCCCC);
@@ -89,7 +90,7 @@ export function PolymerIndexColorTheme(ctx: ThemeDataContext, props: PD.Values<P
 export const PolymerIndexColorThemeProvider: ColorTheme.Provider<PolymerIndexColorThemeParams, 'polymer-index'> = {
     name: 'polymer-index',
     label: 'Polymer Chain Instance',
-    category: ColorTheme.Category.Chain,
+    category: ColorThemeCategory.Chain,
     factory: PolymerIndexColorTheme,
     getParams: getPolymerIndexColorThemeParams,
     defaultValues: PD.getDefaultValues(PolymerIndexColorThemeParams),

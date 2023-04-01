@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -216,10 +216,13 @@ export namespace ParamDefinition {
     }
 
     export interface LineGraph extends Base<Vec2Data[]> {
-        type: 'line-graph'
+        type: 'line-graph',
+        getVolume?: () => unknown
     }
-    export function LineGraph(defaultValue: Vec2Data[], info?: Info): LineGraph {
-        return setInfo<LineGraph>({ type: 'line-graph', defaultValue }, info);
+    export function LineGraph(defaultValue: Vec2Data[], info?: Info & { getVolume?: (binCount?: number) => unknown }): LineGraph {
+        const ret = setInfo<LineGraph>({ type: 'line-graph', defaultValue }, info);
+        if (info?.getVolume) ret.getVolume = info.getVolume;
+        return ret;
     }
 
     export interface Group<T> extends Base<T> {
@@ -290,9 +293,9 @@ export namespace ParamDefinition {
     // getValue needs to be assigned by a runtime because it might not be serializable
     export interface ValueRef<T = any> extends Base<{ ref: string, getValue: () => T }> {
         type: 'value-ref',
-        resolveRef: (ref: string) => T,
+        resolveRef: (ref: string, getData: (ref: string) => any) => T,
         // a provider because the list changes over time
-        getOptions: () => Select<string>['options'],
+        getOptions: (ctx: any) => Select<string>['options'],
     }
     export function ValueRef<T>(getOptions: ValueRef['getOptions'], resolveRef: ValueRef<T>['resolveRef'], info?: Info & { defaultRef?: string }) {
         return setInfo<ValueRef<T>>({ type: 'value-ref', defaultValue: { ref: info?.defaultRef ?? '', getValue: unsetGetValue as any }, getOptions, resolveRef }, info);
@@ -314,7 +317,7 @@ export namespace ParamDefinition {
         toValue(v: C): T
     }
     export function Converted<T, C extends Any>(fromValue: (v: T) => C['defaultValue'], toValue: (v: C['defaultValue']) => T, converted: C): Converted<T, C['defaultValue']> {
-        return { type: 'converted', defaultValue: toValue(converted.defaultValue), converted, fromValue, toValue };
+        return setInfo({ type: 'converted', defaultValue: toValue(converted.defaultValue), converted, fromValue, toValue }, converted);
     }
 
     export interface Conditioned<T, P extends Base<T>, C = { [k: string]: P }> extends Base<T> {
@@ -341,7 +344,7 @@ export namespace ParamDefinition {
         | ColorList | Group<any> | Mapped<any> | Converted<any, any> | Conditioned<any, any, any> | Script | ObjectList | ValueRef | DataRef
 
     export type Params = { [k: string]: Any }
-    export type Values<T extends Params> = { [k in keyof T]: T[k]['defaultValue'] }
+    export type Values<T extends Params = Params> = { [k in keyof T]: T[k]['defaultValue'] }
     /** This is required for params with optional values */
     export type ValuesFor<T extends For<any>> = Normalize<{ [k in keyof T]: T[k]['defaultValue'] }>
 
@@ -365,8 +368,8 @@ export namespace ParamDefinition {
         return d as Values<T>;
     }
 
-    function _resolveRef(resolve: (ref: string) => any, ref: string) {
-        return () => resolve(ref);
+    function _resolveRef(resolve: (ref: string, getData: (ref: string) => any) => any, ref: string, getData: (ref: string) => any) {
+        return () => resolve(ref, getData);
     }
 
     function resolveRefValue(p: Any, value: any, getData: (ref: string) => any) {
@@ -375,11 +378,11 @@ export namespace ParamDefinition {
         if (p.type === 'value-ref') {
             const v = value as ValueRef['defaultValue'];
             if (!v.ref) v.getValue = () => { throw new Error('Unset ref in ValueRef value.'); };
-            else v.getValue = _resolveRef(p.resolveRef, v.ref);
+            else v.getValue = _resolveRef(p.resolveRef, v.ref, getData);
         } else if (p.type === 'data-ref') {
             const v = value as ValueRef['defaultValue'];
             if (!v.ref) v.getValue = () => { throw new Error('Unset ref in ValueRef value.'); };
-            else v.getValue = _resolveRef(getData, v.ref);
+            else v.getValue = _resolveRef(getData, v.ref, getData);
         } else if (p.type === 'group') {
             resolveRefs(p.params, value, getData);
         } else if (p.type === 'mapped') {

@@ -8,7 +8,7 @@ import { ElementSymbol } from '../../mol-model/structure/model/types';
 import { Color, ColorMap } from '../../mol-util/color';
 import { StructureElement, Unit, Bond } from '../../mol-model/structure';
 import { Location } from '../../mol-model/location';
-import { ColorTheme } from '../color';
+import type { ColorTheme } from '../color';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { ThemeDataContext } from '../theme';
 import { TableLegend } from '../../mol-util/legend';
@@ -19,6 +19,9 @@ import { OperatorNameColorThemeParams, OperatorNameColorTheme } from './operator
 import { EntityIdColorTheme, EntityIdColorThemeParams } from './entity-id';
 import { assertUnreachable } from '../../mol-util/type-helpers';
 import { EntitySourceColorTheme, EntitySourceColorThemeParams } from './entity-source';
+import { ModelIndexColorTheme, ModelIndexColorThemeParams } from './model-index';
+import { StructureIndexColorTheme, StructureIndexColorThemeParams } from './structure-index';
+import { ColorThemeCategory } from './categories';
 
 // from Jmol http://jmol.sourceforge.net/jscolors/ (or 0xFFFFFF)
 export const ElementSymbolColors = ColorMap({
@@ -35,6 +38,8 @@ export const ElementSymbolColorThemeParams = {
         'entity-id': PD.Group(EntityIdColorThemeParams),
         'entity-source': PD.Group(EntitySourceColorThemeParams),
         'operator-name': PD.Group(OperatorNameColorThemeParams),
+        'model-index': PD.Group(ModelIndexColorThemeParams),
+        'structure-index': PD.Group(StructureIndexColorThemeParams),
         'element-symbol': PD.EmptyGroup()
     }, { description: 'Use chain-id coloring for carbon atoms.' }),
     saturation: PD.Numeric(0, { min: -6, max: 6, step: 0.1 }),
@@ -46,7 +51,7 @@ export const ElementSymbolColorThemeParams = {
 };
 export type ElementSymbolColorThemeParams = typeof ElementSymbolColorThemeParams
 export function getElementSymbolColorThemeParams(ctx: ThemeDataContext) {
-    return ElementSymbolColorThemeParams; // TODO return copy
+    return PD.clone(ElementSymbolColorThemeParams);
 }
 
 export function elementSymbolColor(colorMap: ElementSymbolColors, element: ElementSymbol): Color {
@@ -63,8 +68,10 @@ export function ElementSymbolColorTheme(ctx: ThemeDataContext, props: PD.Values<
             pcc.name === 'entity-id' ? EntityIdColorTheme(ctx, pcc.params).color :
                 pcc.name === 'entity-source' ? EntitySourceColorTheme(ctx, pcc.params).color :
                     pcc.name === 'operator-name' ? OperatorNameColorTheme(ctx, pcc.params).color :
-                        pcc.name === 'element-symbol' ? undefined :
-                            assertUnreachable(pcc);
+                        pcc.name === 'model-index' ? ModelIndexColorTheme(ctx, pcc.params).color :
+                            pcc.name === 'structure-index' ? StructureIndexColorTheme(ctx, pcc.params).color :
+                                pcc.name === 'element-symbol' ? undefined :
+                                    assertUnreachable(pcc);
 
     function elementColor(element: ElementSymbol, location: Location) {
         return (carbonColor && element === 'C')
@@ -106,7 +113,7 @@ export function ElementSymbolColorTheme(ctx: ThemeDataContext, props: PD.Values<
 export const ElementSymbolColorThemeProvider: ColorTheme.Provider<ElementSymbolColorThemeParams, 'element-symbol'> = {
     name: 'element-symbol',
     label: 'Element Symbol',
-    category: ColorTheme.Category.Atom,
+    category: ColorThemeCategory.Atom,
     factory: ElementSymbolColorTheme,
     getParams: getElementSymbolColorThemeParams,
     defaultValues: PD.getDefaultValues(ElementSymbolColorThemeParams),

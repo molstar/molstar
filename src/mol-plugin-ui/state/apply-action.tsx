@@ -28,7 +28,8 @@ namespace ApplyActionControl {
         params: any,
         error?: string,
         busy: boolean,
-        isInitial: boolean
+        isInitial: boolean,
+        isCollapsed?: boolean,
     }
 }
 
@@ -40,7 +41,7 @@ class ApplyActionControl extends TransformControlBase<ApplyActionControl.Props, 
             ref: this.props.nodeRef
         });
     }
-    getInfo() { return this._getInfo(this.props.nodeRef, this.props.state.transforms.get(this.props.nodeRef).version); }
+    getInfo() { return this._getInfo(this.props.nodeRef, this.props.state.transforms.get(this.props.nodeRef).version, this.state?.isCollapsed); }
     getTransformerId() { return this.props.state.transforms.get(this.props.nodeRef).transformer.id; }
     getHeader() { return this.props.hideHeader ? 'none' : this.props.action.definition.display; }
     canApply() { return !this.state.error && !this.state.busy; }
@@ -49,9 +50,9 @@ class ApplyActionControl extends TransformControlBase<ApplyActionControl.Props, 
     isUpdate() { return false; }
     getSourceAndTarget() { return { a: this.props.state.cells.get(this.props.nodeRef)!.obj }; }
 
-    private _getInfo = memoizeLatest((t: StateTransform.Ref, v: string) => StateTransformParameters.infoFromAction(this.plugin, this.props.state, this.props.action, this.props.nodeRef));
+    private _getInfo = memoizeLatest((t: StateTransform.Ref, v: string, collapsed?: boolean) => StateTransformParameters.infoFromAction(this.plugin, this.props.state, this.props.action, this.props.nodeRef));
 
-    state = { plugin: this.plugin, ref: this.props.nodeRef, version: this.props.state.transforms.get(this.props.nodeRef).version, error: void 0, isInitial: true, params: this.getInfo().initialValues, busy: false, isCollapsed: this.props.initiallyCollapsed };
+    state: ApplyActionControl.ComponentState = { plugin: this.plugin, ref: this.props.nodeRef, version: this.props.state.transforms.get(this.props.nodeRef).version, error: void 0, isInitial: true, params: this.getInfo().initialValues, busy: false, isCollapsed: this.props.initiallyCollapsed };
 
     static getDerivedStateFromProps(props: ApplyActionControl.Props, state: ApplyActionControl.ComponentState) {
         const version = props.state.transforms.get(props.nodeRef).version;

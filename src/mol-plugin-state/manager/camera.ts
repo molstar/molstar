@@ -1,8 +1,9 @@
 /**
- * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Ke Ma <mark.ma@rcsb.org>
  */
 
 import { Sphere3D } from '../../mol-math/geometry';
@@ -13,12 +14,14 @@ import { Loci } from '../../mol-model/loci';
 import { BoundaryHelper } from '../../mol-math/geometry/boundary-helper';
 import { GraphicsRenderObject } from '../../mol-gl/render-object';
 import { StructureElement } from '../../mol-model/structure';
+import { Vec3 } from '../../mol-math/linear-algebra/3d/vec3';
+import { pcaFocus } from './focus-camera/focus-first-residue';
 
 // TODO: make this customizable somewhere?
 const DefaultCameraFocusOptions = {
     minRadius: 5,
     extraRadius: 4,
-    durationMs: 250
+    durationMs: 250,
 };
 
 export type CameraFocusOptions = typeof DefaultCameraFocusOptions
@@ -84,7 +87,7 @@ export class CameraManager {
         }
     }
 
-    focusSpheres<T>(xs: ReadonlyArray<T>, sphere: (t: T) => Sphere3D | undefined, options?: Partial<CameraFocusOptions>) {
+    focusSpheres<T>(xs: ReadonlyArray<T>, sphere: (t: T) => Sphere3D | undefined, options?: Partial<CameraFocusOptions> & { principalAxes?: PrincipalAxes, positionToFlip?: Vec3 }) {
         const spheres = [];
 
         for (const x of xs) {
@@ -106,20 +109,19 @@ export class CameraManager {
         this.focusSphere(this.boundaryHelper.getSphere(), options);
     }
 
-    focusSphere(sphere: Sphere3D, options?: Partial<CameraFocusOptions> & { principalAxes?: PrincipalAxes }) {
+    focusSphere(sphere: Sphere3D, options?: Partial<CameraFocusOptions> & { principalAxes?: PrincipalAxes, positionToFlip?: Vec3 }) {
+        const { canvas3d } = this.plugin;
+        if (!canvas3d) return;
+
         const { extraRadius, minRadius, durationMs } = { ...DefaultCameraFocusOptions, ...options };
         const radius = Math.max(sphere.radius + extraRadius, minRadius);
 
         if (options?.principalAxes) {
-            const { origin, dirA, dirC } = options?.principalAxes.boxAxes;
-            const snapshot = this.plugin.canvas3d?.camera.getFocus(origin, radius, dirA, dirC);
+            const snapshot = pcaFocus(this.plugin, radius, options as { principalAxes: PrincipalAxes, positionToFlip?: Vec3 });
             this.plugin.canvas3d?.requestCameraReset({ durationMs, snapshot });
-            // this.plugin.canvas3d?.camera.focus(origin, radius, durationMs, dirA, dirC);
         } else {
-            const snapshot = this.plugin.canvas3d?.camera.getFocus(sphere.center, radius);
-            this.plugin.canvas3d?.requestCameraReset({ durationMs, snapshot });
-
-            // this.plugin.canvas3d?.camera.focus(sphere.center, radius, durationMs);
+            const snapshot = canvas3d.camera.getFocus(sphere.center, radius);
+            canvas3d.requestCameraReset({ durationMs, snapshot });
         }
     }
 

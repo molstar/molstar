@@ -8,7 +8,7 @@ import { ElementSymbol } from '../../mol-model/structure/model/types';
 import { Color } from '../../mol-util/color';
 import { StructureElement, Unit, Bond } from '../../mol-model/structure';
 import { Location } from '../../mol-model/location';
-import { ColorTheme } from '../color';
+import type { ColorTheme } from '../color';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { ThemeDataContext } from '../theme';
 import { ChainIdColorTheme, ChainIdColorThemeParams } from './chain-id';
@@ -17,9 +17,12 @@ import { assertUnreachable } from '../../mol-util/type-helpers';
 import { EntityIdColorTheme, EntityIdColorThemeParams } from './entity-id';
 import { MoleculeTypeColorTheme, MoleculeTypeColorThemeParams } from './molecule-type';
 import { EntitySourceColorTheme, EntitySourceColorThemeParams } from './entity-source';
+import { ModelIndexColorTheme, ModelIndexColorThemeParams } from './model-index';
+import { StructureIndexColorTheme, StructureIndexColorThemeParams } from './structure-index';
+import { ColorThemeCategory } from './categories';
 
 const DefaultIllustrativeColor = Color(0xEEEEEE);
-const Description = `Assigns an illustrative color that gives every chain a color based on the choosen style but with lighter carbons (inspired by David Goodsell's Molecule of the Month style).`;
+const Description = `Assigns an illustrative color that gives every chain a color based on the chosen style but with lighter carbons (inspired by David Goodsell's Molecule of the Month style).`;
 
 export const IllustrativeColorThemeParams = {
     style: PD.MappedStatic('entity-id', {
@@ -28,6 +31,8 @@ export const IllustrativeColorThemeParams = {
         'entity-id': PD.Group(EntityIdColorThemeParams),
         'entity-source': PD.Group(EntitySourceColorThemeParams),
         'molecule-type': PD.Group(MoleculeTypeColorThemeParams),
+        'model-index': PD.Group(ModelIndexColorThemeParams),
+        'structure-index': PD.Group(StructureIndexColorThemeParams),
     }),
     carbonLightness: PD.Numeric(0.8, { min: -6, max: 6, step: 0.1 })
 };
@@ -44,7 +49,9 @@ export function IllustrativeColorTheme(ctx: ThemeDataContext, props: PD.Values<I
                 props.style.name === 'entity-id' ? EntityIdColorTheme(ctx, props.style.params) :
                     props.style.name === 'entity-source' ? EntitySourceColorTheme(ctx, props.style.params) :
                         props.style.name === 'molecule-type' ? MoleculeTypeColorTheme(ctx, props.style.params) :
-                            assertUnreachable(props.style);
+                            props.style.name === 'model-index' ? ModelIndexColorTheme(ctx, props.style.params) :
+                                props.style.name === 'structure-index' ? StructureIndexColorTheme(ctx, props.style.params) :
+                                    assertUnreachable(props.style);
 
     function illustrativeColor(location: Location, typeSymbol: ElementSymbol) {
         const baseColor = styleColor(location, false);
@@ -77,7 +84,7 @@ export function IllustrativeColorTheme(ctx: ThemeDataContext, props: PD.Values<I
 export const IllustrativeColorThemeProvider: ColorTheme.Provider<IllustrativeColorThemeParams, 'illustrative'> = {
     name: 'illustrative',
     label: 'Illustrative',
-    category: ColorTheme.Category.Misc,
+    category: ColorThemeCategory.Misc,
     factory: IllustrativeColorTheme,
     getParams: getIllustrativeColorThemeParams,
     defaultValues: PD.getDefaultValues(IllustrativeColorThemeParams),

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -31,7 +31,8 @@ function shinyStyle(plugin: PluginContext) {
         postprocessing: {
             ...plugin.canvas3d!.props.postprocessing,
             occlusion: { name: 'off', params: {} },
-            outline: { name: 'off', params: {} }
+            shadow: { name: 'off', params: {} },
+            outline: { name: 'off', params: {} },
         }
     } });
 }
@@ -44,17 +45,21 @@ function occlusionStyle(plugin: PluginContext) {
         postprocessing: {
             ...plugin.canvas3d!.props.postprocessing,
             occlusion: { name: 'on', params: {
-                bias: 0.8,
                 blurKernelSize: 15,
+                multiScale: { name: 'off', params: {} },
                 radius: 5,
+                bias: 0.8,
                 samples: 32,
-                resolutionScale: 1
+                resolutionScale: 1,
+                color: Color(0x000000),
             } },
             outline: { name: 'on', params: {
                 scale: 1.0,
                 threshold: 0.33,
                 color: Color(0x0000),
-            } }
+                includeTransparent: true,
+            } },
+            shadow: { name: 'off', params: {} },
         }
     } });
 }

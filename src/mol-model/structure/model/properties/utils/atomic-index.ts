@@ -124,6 +124,14 @@ class Index implements AtomicIndex {
         return rm.has(id) ? rm.get(id)! : -1 as ResidueIndex;
     }
 
+    findResidueLabel(key: AtomicIndex.ResidueLabelKey): ResidueIndex {
+        const cI = this.findChainLabel(key);
+        if (cI < 0) return -1 as ResidueIndex;
+        const rm = this.map.chain_index_label_seq_id.get(cI)!;
+        const id = getResidueId(key.label_seq_id, key.pdbx_PDB_ins_code || '');
+        return rm.has(id) ? rm.get(id)! : -1 as ResidueIndex;
+    }
+
     findResidueAuth(key: AtomicIndex.ResidueAuthKey): ResidueIndex {
         const cI = this.findChainAuth(key);
         if (cI < 0) return -1 as ResidueIndex;

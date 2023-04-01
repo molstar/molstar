@@ -71,6 +71,7 @@ export function getFieldType(type: string, description: string, values?: string[
         case 'ec-type':
         case 'ucode-alphanum-csv':
         case 'id_list':
+        case 'entity_id_list':
             return ListCol('str', ',', description);
         case 'id_list_spc':
             return ListCol('str', ' ', description);
@@ -151,7 +152,7 @@ function getImportFrames(d: Data.CifFrame, imports: Imports) {
 }
 
 /** get field from given or linked category */
-function getField(category: string, field: string, d: Data.CifFrame, imports: Imports, ctx: FrameData): Data.CifField|undefined {
+function getField(category: string, field: string, d: Data.CifFrame, imports: Imports, ctx: FrameData): Data.CifField | undefined {
     const { categories, links } = ctx;
     const cat = d.categories[category];
     if (cat) {

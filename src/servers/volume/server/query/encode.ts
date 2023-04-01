@@ -29,7 +29,7 @@ interface ResultContext {
 
 function string<T>(name: string, str: (data: T) => string, isSpecified?: (data: T) => boolean): CifWriter.Field<number, T> {
     if (isSpecified) {
-        return CifWriter.Field.str(name, (i, d) => str(d), { valueKind: (i, d) => isSpecified(d) ? Column.ValueKind.Present : Column.ValueKind.NotPresent });
+        return CifWriter.Field.str(name, (i, d) => str(d), { valueKind: (i, d) => isSpecified(d) ? Column.ValueKinds.Present : Column.ValueKinds.NotPresent });
     }
     return CifWriter.Field.str(name, (i, d) => str(d));
 }

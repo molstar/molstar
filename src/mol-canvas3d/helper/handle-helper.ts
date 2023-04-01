@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -54,6 +54,7 @@ export class HandleHelper {
     };
 
     private renderObject: GraphicsRenderObject | undefined;
+    private pixelRatio = 1;
 
     private _transform = Mat4();
     getBoundingSphere(out: Sphere3D, instanceId: number) {
@@ -71,7 +72,11 @@ export class HandleHelper {
                 p.handle.name = props.handle.name;
                 if (props.handle.name === 'on') {
                     this.scene.clear();
-                    const params = { ...props.handle.params, scale: props.handle.params.scale * this.webgl.pixelRatio };
+                    this.pixelRatio = this.webgl.pixelRatio;
+                    const params = {
+                        ...props.handle.params,
+                        scale: props.handle.params.scale * this.webgl.pixelRatio
+                    };
                     this.renderObject = createHandleRenderObject(params);
                     this.scene.add(this.renderObject);
                     this.scene.commit();
@@ -90,6 +95,10 @@ export class HandleHelper {
     //      they would be distingishable by their instanceId
     update(camera: Camera, position: Vec3, rotation: Mat3) {
         if (!this.renderObject) return;
+
+        if (this.pixelRatio !== this.webgl.pixelRatio) {
+            this.setProps(this.props);
+        }
 
         Mat4.setTranslation(this.renderObject.values.aTransform.ref.value as unknown as Mat4, position);
         Mat4.fromMat3(this.renderObject.values.aTransform.ref.value as unknown as Mat4, rotation);

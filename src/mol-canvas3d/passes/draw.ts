@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Áron Samuel Kovács <aron.kovacs@mail.muni.cz>
@@ -142,7 +142,7 @@ export class DrawPass {
         }
 
         if (PostprocessingPass.isEnabled(postprocessingProps)) {
-            if (PostprocessingPass.isOutlineEnabled(postprocessingProps)) {
+            if (PostprocessingPass.isTransparentOutlineEnabled(postprocessingProps)) {
                 this.depthTargetTransparent.bind();
                 renderer.clearDepth(true);
                 if (scene.opacityAverage < 1) {
@@ -150,7 +150,7 @@ export class DrawPass {
                 }
             }
 
-            this.postprocessing.render(camera, false, transparentBackground, renderer.props.backgroundColor, postprocessingProps);
+            this.postprocessing.render(camera, false, transparentBackground, renderer.props.backgroundColor, postprocessingProps, renderer.light);
         }
 
         this.depthTextureOpaque.detachFramebuffer(this.colorTarget.framebuffer, 'depth');
@@ -196,7 +196,7 @@ export class DrawPass {
         }
 
         if (PostprocessingPass.isEnabled(postprocessingProps)) {
-            if (PostprocessingPass.isOutlineEnabled(postprocessingProps)) {
+            if (PostprocessingPass.isTransparentOutlineEnabled(postprocessingProps)) {
                 this.depthTargetTransparent.bind();
                 renderer.clearDepth(true);
                 if (scene.opacityAverage < 1) {
@@ -204,7 +204,7 @@ export class DrawPass {
                 }
             }
 
-            this.postprocessing.render(camera, false, transparentBackground, renderer.props.backgroundColor, postprocessingProps);
+            this.postprocessing.render(camera, false, transparentBackground, renderer.props.backgroundColor, postprocessingProps, renderer.light);
         }
 
         // render transparent primitives and volumes
@@ -260,7 +260,7 @@ export class DrawPass {
                     this.colorTarget.depthRenderbuffer?.detachFramebuffer(this.postprocessing.target.framebuffer);
                 }
 
-                if (PostprocessingPass.isOutlineEnabled(postprocessingProps)) {
+                if (PostprocessingPass.isTransparentOutlineEnabled(postprocessingProps)) {
                     this.depthTargetTransparent.bind();
                     renderer.clearDepth(true);
                     if (scene.opacityAverage < 1) {
@@ -268,7 +268,7 @@ export class DrawPass {
                     }
                 }
 
-                this.postprocessing.render(camera, false, transparentBackground, renderer.props.backgroundColor, postprocessingProps);
+                this.postprocessing.render(camera, false, transparentBackground, renderer.props.backgroundColor, postprocessingProps, renderer.light);
 
                 if (!this.packedDepth) {
                     this.depthTextureOpaque.attachFramebuffer(this.postprocessing.target.framebuffer, 'depth');
@@ -312,7 +312,7 @@ export class DrawPass {
 
         const { x, y, width, height } = camera.viewport;
         renderer.setViewport(x, y, width, height);
-        renderer.update(camera);
+        renderer.update(camera, scene);
 
         if (transparentBackground && !antialiasingEnabled && toDrawingBuffer) {
             this.drawTarget.bind();
@@ -360,7 +360,7 @@ export class DrawPass {
         }
         if (helper.camera.isEnabled) {
             helper.camera.update(camera);
-            renderer.update(helper.camera.camera);
+            renderer.update(helper.camera.camera, helper.camera.scene);
             renderer.renderBlended(helper.camera.scene, helper.camera.camera);
         }
 

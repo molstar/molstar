@@ -213,6 +213,9 @@ export namespace Model {
     export type Index = number;
     export const Index = CustomModelProperty.createSimple<Index>('index', 'static');
 
+    export type MaxIndex = number;
+    export const MaxIndex = CustomModelProperty.createSimple<MaxIndex>('max_index', 'static');
+
     export function getRoot(model: Model) {
         return model.parent || model;
     }
@@ -412,7 +415,7 @@ export namespace Model {
                 !db.exptl.method.isDefined ||
                 (isFromXray(model) && (
                     !db.pdbx_database_status.status_code_sf.isDefined ||
-                    db.pdbx_database_status.status_code_sf.valueKind(0) === Column.ValueKind.Unknown
+                    db.pdbx_database_status.status_code_sf.valueKind(0) === Column.ValueKinds.Unknown
                 )) ||
                 (isFromEm(model) && (
                     !db.pdbx_database_related.db_name.isDefined

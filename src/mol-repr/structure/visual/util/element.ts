@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -19,7 +19,7 @@ import { VisualContext } from '../../../../mol-repr/visual';
 import { Theme } from '../../../../mol-theme/theme';
 import { Spheres } from '../../../../mol-geo/geometry/spheres/spheres';
 import { SpheresBuilder } from '../../../../mol-geo/geometry/spheres/spheres-builder';
-import { isTrace, isH, StructureGroup } from './common';
+import { isTrace, StructureGroup, isHydrogen } from './common';
 import { Sphere3D } from '../../../../mol-math/geometry';
 
 // avoiding namespace lookup improved performance in Chrome (Aug 2020)
@@ -27,6 +27,7 @@ const v3add = Vec3.add;
 
 type ElementProps = {
     ignoreHydrogens: boolean,
+    ignoreHydrogensVariant: 'all' | 'non-polar',
     traceOnly: boolean,
 }
 
@@ -36,9 +37,8 @@ export type ElementSphereMeshProps = {
 } & ElementProps
 
 export function makeElementIgnoreTest(structure: Structure, unit: Unit, props: ElementProps): undefined | ((i: ElementIndex) => boolean) {
-    const { ignoreHydrogens, traceOnly } = props;
+    const { ignoreHydrogens, ignoreHydrogensVariant, traceOnly } = props;
 
-    const { atomicNumber } = unit.model.atomicHierarchy.derived.atom;
     const isCoarse = Unit.isCoarse(unit);
 
     const { child } = structure;
@@ -50,7 +50,7 @@ export function makeElementIgnoreTest(structure: Structure, unit: Unit, props: E
     return (element: ElementIndex) => {
         return (
             (!!childUnit && !SortedArray.has(childUnit.elements, element)) ||
-            (!isCoarse && ignoreHydrogens && isH(atomicNumber, element)) ||
+            (!isCoarse && ignoreHydrogens && isHydrogen(structure, unit, element, ignoreHydrogensVariant)) ||
             (traceOnly && !isTrace(unit, element))
         );
     };
@@ -80,15 +80,15 @@ export function createElementSphereMesh(ctx: VisualContext, unit: Unit, structur
     for (let i = 0; i < elementCount; i++) {
         if (ignore && ignore(elements[i])) continue;
 
-        l.element = elements[i];
         pos(elements[i], v);
         v3add(center, center, v);
         count += 1;
 
-        builderState.currentGroup = i;
+        l.element = elements[i];
         const size = themeSize(l);
         if (size > maxSize) maxSize = size;
 
+        builderState.currentGroup = i;
         addSphere(builderState, v, size * sizeFactor, detail);
     }
 
@@ -132,17 +132,27 @@ export function createElementSphereImpostor(ctx: VisualContext, unit: Unit, stru
     let maxSize = 0;
     let count = 0;
 
-    for (let i = 0; i < elementCount; i++) {
-        if (ignore?.(elements[i])) continue;
+    if (ignore || theme.size.granularity !== 'uniform') {
+        for (let i = 0; i < elementCount; i++) {
+            if (ignore && ignore(elements[i])) continue;
 
-        pos(elements[i], v);
-        builder.add(v[0], v[1], v[2], i);
-        v3add(center, center, v);
-        count += 1;
+            pos(elements[i], v);
+            builder.add(v[0], v[1], v[2], i);
+            v3add(center, center, v);
+            count += 1;
 
-        l.element = elements[i];
-        const size = themeSize(l);
-        if (size > maxSize) maxSize = size;
+            l.element = elements[i];
+            const size = themeSize(l);
+            if (size > maxSize) maxSize = size;
+        }
+    } else {
+        for (let i = 0; i < elementCount; i++) {
+            pos(elements[i], v);
+            builder.add(v[0], v[1], v[2], i);
+            v3add(center, center, v);
+        }
+        count = elementCount;
+        maxSize = themeSize(l);
     }
 
     const oldBoundingSphere = spheres ? Sphere3D.clone(spheres.boundingSphere) : undefined;

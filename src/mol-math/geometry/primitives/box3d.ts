@@ -138,6 +138,48 @@ namespace Box3D {
             a.max[2] < b.min[2] || a.min[2] > b.max[2]
         );
     }
+
+    // const tmpTransformV = Vec3();
+    export function nearestIntersectionWithRay(out: Vec3, box: Box3D, origin: Vec3, dir: Vec3): Vec3 {
+        const [minX, minY, minZ] = box.min;
+        const [maxX, maxY, maxZ] = box.max;
+        const [x, y, z] = origin;
+        const invDirX = 1.0 / dir[0];
+        const invDirY = 1.0 / dir[1];
+        const invDirZ = 1.0 / dir[2];
+        let tmin, tmax, tymin, tymax, tzmin, tzmax;
+        if (invDirX >= 0) {
+            tmin = (minX - x) * invDirX;
+            tmax = (maxX - x) * invDirX;
+        } else {
+            tmin = (maxX - x) * invDirX;
+            tmax = (minX - x) * invDirX;
+        }
+        if (invDirY >= 0) {
+            tymin = (minY - y) * invDirY;
+            tymax = (maxY - y) * invDirY;
+        } else {
+            tymin = (maxY - y) * invDirY;
+            tymax = (minY - y) * invDirY;
+        }
+        if (invDirZ >= 0) {
+            tzmin = (minZ - z) * invDirZ;
+            tzmax = (maxZ - z) * invDirZ;
+        } else {
+            tzmin = (maxZ - z) * invDirZ;
+            tzmax = (minZ - z) * invDirZ;
+        }
+        if (tymin > tmin)
+            tmin = tymin;
+        if (tymax < tmax)
+            tmax = tymax;
+        if (tzmin > tmin)
+            tmin = tzmin;
+        if (tzmax < tmax)
+            tmax = tzmax;
+        Vec3.scale(out, dir, tmin);
+        return Vec3.set(out, out[0] + x, out[1] + y, out[2] + z);
+    }
 }
 
 export { Box3D };

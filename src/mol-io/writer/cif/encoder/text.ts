@@ -82,9 +82,9 @@ export class TextEncoder implements Encoder<string> {
 
 function writeValue(builder: StringBuilder, data: any, key: any, f: Field<any, any>, floatPrecision: number, index: number): boolean {
     const kind = f.valueKind;
-    const p = kind ? kind(key, data) : Column.ValueKind.Present;
-    if (p !== Column.ValueKind.Present) {
-        if (p === Column.ValueKind.NotPresent) writeNotPresent(builder);
+    const p = kind ? kind(key, data) : Column.ValueKinds.Present;
+    if (p !== Column.ValueKinds.Present) {
+        if (p === Column.ValueKinds.NotPresent) writeNotPresent(builder);
         else writeUnknown(builder);
     } else {
         const val = f.value(key, data, index);

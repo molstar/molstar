@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -15,15 +15,19 @@ import { InitVolumeStreaming } from '../../mol-plugin/behavior/dynamic/volume-st
 import { State, StateObjectCell, StateObjectSelector, StateSelection, StateTransform } from '../../mol-state';
 import { CollapsableControls, CollapsableState, PurePluginUIComponent } from '../base';
 import { ActionMenu } from '../controls/action-menu';
-import { Button, ExpandGroup, IconButton } from '../controls/common';
+import { Button, ControlGroup, ExpandGroup, IconButton } from '../controls/common';
 import { ApplyActionControl } from '../state/apply-action';
 import { UpdateTransformControl } from '../state/update-transform';
 import { BindingsHelp } from '../viewport/help';
 import { PluginCommands } from '../../mol-plugin/commands';
-import { BlurOnSvg, ErrorSvg, CheckSvg, AddSvg, VisibilityOffOutlinedSvg, VisibilityOutlinedSvg, DeleteOutlinedSvg, MoreHorizSvg } from '../controls/icons';
+import { BlurOnSvg, ErrorSvg, CheckSvg, AddSvg, VisibilityOffOutlinedSvg, VisibilityOutlinedSvg, DeleteOutlinedSvg, MoreHorizSvg, CloseSvg } from '../controls/icons';
 import { PluginStateObject } from '../../mol-plugin-state/objects';
 import { StateTransforms } from '../../mol-plugin-state/transforms';
 import { createVolumeRepresentationParams } from '../../mol-plugin-state/helpers/volume-representation-params';
+import { Color } from '../../mol-util/color';
+import { ParamDefinition } from '../../mol-util/param-definition';
+import { CombinedColorControl } from '../controls/color';
+import { ParamOnChange } from '../controls/parameters';
 
 interface VolumeStreamingControlState extends CollapsableState {
     isBusy: boolean
@@ -260,7 +264,7 @@ export class VolumeSourceControls extends CollapsableControls<{}, VolumeSourceCo
     }
 }
 
-type VolumeRepresentationEntryActions = 'update'
+type VolumeRepresentationEntryActions = 'update' | 'select-color'
 
 class VolumeRepresentationControls extends PurePluginUIComponent<{ representation: VolumeRepresentationRef }, { action?: VolumeRepresentationEntryActions }> {
     state = { action: void 0 as VolumeRepresentationEntryActions | undefined };
@@ -279,6 +283,10 @@ class VolumeRepresentationControls extends PurePluginUIComponent<{ representatio
         this.plugin.managers.volume.hierarchy.toggleVisibility([this.props.representation]);
     };
 
+    toggleColor = () => {
+        this.setState({ action: this.state.action === 'select-color' ? undefined : 'select-color' });
+    };
+
     toggleUpdate = () => this.setState({ action: this.state.action === 'update' ? void 0 : 'update' });
 
     highlight = (e: React.MouseEvent<HTMLElement>) => {
@@ -294,15 +302,35 @@ class VolumeRepresentationControls extends PurePluginUIComponent<{ representatio
 
     focus = () => {
         const repr = this.props.representation;
-        const objects = this.props.representation.cell.obj?.data.repr.renderObjects;
+        const lociList = repr.cell.obj?.data.repr.getAllLoci();
         if (repr.cell.state.isHidden) this.plugin.managers.volume.hierarchy.toggleVisibility([this.props.representation], 'show');
-        this.plugin.managers.camera.focusRenderObjects(objects, { extraRadius: 1 });
+        if (lociList) this.plugin.managers.camera.focusLoci(lociList, { extraRadius: 1 });
+    };
+
+    private get color() {
+        const repr = this.props.representation.cell;
+        const isUniform = repr.transform.params?.colorTheme.name === 'uniform';
+        if (!isUniform) return void 0;
+        return repr.transform.params?.colorTheme.params.value;
+    }
+
+    updateColor: ParamOnChange = ({ value }) => {
+        const t = this.props.representation.cell.transform;
+        return this.plugin.build().to(t.ref).update({
+            ...t.params,
+            colorTheme: {
+                name: 'uniform',
+                params: { value }
+            },
+        }).commit();
     };
 
     render() {
         const repr = this.props.representation.cell;
+        const color = this.color;
         return <>
             <div className='msp-flex-row'>
+                {color !== void 0 && <Button style={{ backgroundColor: Color.toStyle(color), minWidth: 32, width: 32 }} onClick={this.toggleColor} />}
                 <Button noOverflow className='msp-control-button-label' title={`${repr.obj?.label}. Click to focus.`} onClick={this.focus} onMouseEnter={this.highlight} onMouseLeave={this.clearHighlight} style={{ textAlign: 'left' }}>
                     {repr.obj?.label}
                     <small className='msp-25-lower-contrast-text' style={{ float: 'right' }}>{repr.obj?.description}</small>
@@ -314,6 +342,14 @@ class VolumeRepresentationControls extends PurePluginUIComponent<{ representatio
             {this.state.action === 'update' && !!repr.parent && <div style={{ marginBottom: '6px' }} className='msp-accent-offset'>
                 <UpdateTransformControl state={repr.parent} transform={repr.transform} customHeader='none' noMargin />
             </div>}
+            {this.state.action === 'select-color' && color !== void 0 && <div style={{ marginBottom: '6px', marginTop: 1 }} className='msp-accent-offset'>
+                <ControlGroup header='Select Color' initialExpanded={true} hideExpander={true} hideOffset={true} onHeaderClick={this.toggleColor}
+                    topRightIcon={CloseSvg} noTopMargin childrenClassName='msp-viewport-controls-panel-controls'>
+                    <CombinedColorControl param={VolumeColorParam} value={this.color} onChange={this.updateColor} name='color' hideNameRow />
+                </ControlGroup>
+            </div>}
         </>;
     }
 }
+
+const VolumeColorParam = ParamDefinition.Color(Color(0x121212));

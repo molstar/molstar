@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -9,7 +9,6 @@ import { Structure, StructureElement } from '../../mol-model/structure';
 import { Volume } from '../../mol-model/volume';
 import { PluginContext } from '../../mol-plugin/context';
 import { VolumeRepresentationRegistry } from '../../mol-repr/volume/registry';
-import { VolumeParams } from '../../mol-repr/volume/representation';
 import { StateTransformer, StateObject } from '../../mol-state';
 import { Task } from '../../mol-task';
 import { ColorTheme } from '../../mol-theme/color';
@@ -43,6 +42,7 @@ import { Box3D } from '../../mol-math/geometry';
 import { PlaneParams, PlaneRepresentation } from '../../mol-repr/shape/loci/plane';
 import { Substance } from '../../mol-theme/substance';
 import { Material } from '../../mol-util/material';
+import { lerp } from '../../mol-math/interpolate';
 
 export { StructureRepresentation3D };
 export { ExplodeStructureRepresentation3D };
@@ -56,6 +56,7 @@ export { SubstanceStructureRepresentation3DFromScript };
 export { SubstanceStructureRepresentation3DFromBundle };
 export { ClippingStructureRepresentation3DFromScript };
 export { ClippingStructureRepresentation3DFromBundle };
+export { ThemeStrengthRepresentation3D };
 export { VolumeRepresentation3D };
 
 type StructureRepresentation3D = typeof StructureRepresentation3D
@@ -350,7 +351,7 @@ const OverpaintStructureRepresentation3DFromScript = PluginStateTransform.BuiltI
 
         const newGeometryVersion = a.data.repr.geometryVersion;
         // smoothing needs to be re-calculated when geometry changes
-        if (newGeometryVersion !== info.geometryVersion && hasColorSmoothingProp(a.data.repr.props)) return StateTransformer.UpdateResult.Unchanged;
+        if (newGeometryVersion !== info.geometryVersion && hasColorSmoothingProp(a.data.repr.props)) return StateTransformer.UpdateResult.Recreate;
 
         const oldOverpaint = b.data.state.overpaint!;
         const newOverpaint = Overpaint.ofScript(newParams.layers, newStructure);
@@ -408,7 +409,7 @@ const OverpaintStructureRepresentation3DFromBundle = PluginStateTransform.BuiltI
 
         const newGeometryVersion = a.data.repr.geometryVersion;
         // smoothing needs to be re-calculated when geometry changes
-        if (newGeometryVersion !== info.geometryVersion && hasColorSmoothingProp(a.data.repr.props)) return StateTransformer.UpdateResult.Unchanged;
+        if (newGeometryVersion !== info.geometryVersion && hasColorSmoothingProp(a.data.repr.props)) return StateTransformer.UpdateResult.Recreate;
 
         const oldOverpaint = b.data.state.overpaint!;
         const newOverpaint = Overpaint.ofBundle(newParams.layers, newStructure);
@@ -463,7 +464,7 @@ const TransparencyStructureRepresentation3DFromScript = PluginStateTransform.Bui
 
         const newGeometryVersion = a.data.repr.geometryVersion;
         // smoothing needs to be re-calculated when geometry changes
-        if (newGeometryVersion !== info.geometryVersion && hasColorSmoothingProp(a.data.repr.props)) return StateTransformer.UpdateResult.Unchanged;
+        if (newGeometryVersion !== info.geometryVersion && hasColorSmoothingProp(a.data.repr.props)) return StateTransformer.UpdateResult.Recreate;
 
         const oldTransparency = b.data.state.transparency!;
         const newTransparency = Transparency.ofScript(newParams.layers, newStructure);
@@ -519,7 +520,7 @@ const TransparencyStructureRepresentation3DFromBundle = PluginStateTransform.Bui
 
         const newGeometryVersion = a.data.repr.geometryVersion;
         // smoothing needs to be re-calculated when geometry changes
-        if (newGeometryVersion !== info.geometryVersion && hasColorSmoothingProp(a.data.repr.props)) return StateTransformer.UpdateResult.Unchanged;
+        if (newGeometryVersion !== info.geometryVersion && hasColorSmoothingProp(a.data.repr.props)) return StateTransformer.UpdateResult.Recreate;
 
         const oldTransparency = b.data.state.transparency!;
         const newTransparency = Transparency.ofBundle(newParams.layers, newStructure);
@@ -576,7 +577,7 @@ const SubstanceStructureRepresentation3DFromScript = PluginStateTransform.BuiltI
 
         const newGeometryVersion = a.data.repr.geometryVersion;
         // smoothing needs to be re-calculated when geometry changes
-        if (newGeometryVersion !== info.geometryVersion && hasColorSmoothingProp(a.data.repr.props)) return StateTransformer.UpdateResult.Unchanged;
+        if (newGeometryVersion !== info.geometryVersion && hasColorSmoothingProp(a.data.repr.props)) return StateTransformer.UpdateResult.Recreate;
 
         const oldSubstance = b.data.state.substance!;
         const newSubstance = Substance.ofScript(newParams.layers, newStructure);
@@ -634,7 +635,7 @@ const SubstanceStructureRepresentation3DFromBundle = PluginStateTransform.BuiltI
 
         const newGeometryVersion = a.data.repr.geometryVersion;
         // smoothing needs to be re-calculated when geometry changes
-        if (newGeometryVersion !== info.geometryVersion && hasColorSmoothingProp(a.data.repr.props)) return StateTransformer.UpdateResult.Unchanged;
+        if (newGeometryVersion !== info.geometryVersion && hasColorSmoothingProp(a.data.repr.props)) return StateTransformer.UpdateResult.Recreate;
 
         const oldSubstance = b.data.state.substance!;
         const newSubstance = Substance.ofBundle(newParams.layers, newStructure);
@@ -745,20 +746,75 @@ const ClippingStructureRepresentation3DFromBundle = PluginStateTransform.BuiltIn
     }
 });
 
+type ThemeStrengthRepresentation3D = typeof ThemeStrengthRepresentation3D
+const ThemeStrengthRepresentation3D = PluginStateTransform.BuiltIn({
+    name: 'theme-strength-representation-3d',
+    display: 'Theme Strength 3D Representation',
+    from: SO.Molecule.Structure.Representation3D,
+    to: SO.Molecule.Structure.Representation3DState,
+    params: () => ({
+        overpaintStrength: PD.Numeric(1, { min: 0, max: 1, step: 0.01 }),
+        transparencyStrength: PD.Numeric(1, { min: 0, max: 1, step: 0.01 }),
+        substanceStrength: PD.Numeric(1, { min: 0, max: 1, step: 0.01 }),
+    })
+})({
+    canAutoUpdate() {
+        return true;
+    },
+    apply({ a, params }) {
+        return new SO.Molecule.Structure.Representation3DState({
+            state: {
+                themeStrength: {
+                    overpaint: params.overpaintStrength,
+                    transparency: params.transparencyStrength,
+                    substance: params.substanceStrength
+                },
+            },
+            initialState: {
+                themeStrength: { overpaint: 1, transparency: 1, substance: 1 },
+            },
+            info: { },
+            repr: a.data.repr
+        }, { label: 'Theme Strength', description: `${params.overpaintStrength.toFixed(2)}, ${params.transparencyStrength.toFixed(2)}, ${params.substanceStrength.toFixed(2)}` });
+    },
+    update({ a, b, newParams, oldParams }) {
+        if (newParams.overpaintStrength === b.data.state.themeStrength?.overpaint &&
+            newParams.transparencyStrength === b.data.state.themeStrength?.transparency &&
+            newParams.substanceStrength === b.data.state.themeStrength?.substance
+        ) return StateTransformer.UpdateResult.Unchanged;
+
+        b.data.state.themeStrength = {
+            overpaint: newParams.overpaintStrength,
+            transparency: newParams.transparencyStrength,
+            substance: newParams.substanceStrength,
+        };
+        b.data.repr = a.data.repr;
+        b.label = 'Theme Strength';
+        b.description = `${newParams.overpaintStrength.toFixed(2)}, ${newParams.transparencyStrength.toFixed(2)}, ${newParams.substanceStrength.toFixed(2)}`;
+        return StateTransformer.UpdateResult.Updated;
+    },
+    interpolate(src, tar, t) {
+        return {
+            overpaintStrength: lerp(src.overpaintStrength, tar.overpaintStrength, t),
+            transparencyStrength: lerp(src.transparencyStrength, tar.transparencyStrength, t),
+            substanceStrength: lerp(src.substanceStrength, tar.substanceStrength, t),
+        };
+    }
+});
+
 //
 
 export namespace VolumeRepresentation3DHelpers {
-    export function getDefaultParams(ctx: PluginContext, name: VolumeRepresentationRegistry.BuiltIn, volume: Volume, volumeParams?: Partial<PD.Values<VolumeParams>>): StateTransformer.Params<VolumeRepresentation3D> {
+    export function getDefaultParams(ctx: PluginContext, name: VolumeRepresentationRegistry.BuiltIn, volume: Volume, volumeParams?: Partial<PD.Values<PD.Params>>, colorName?: ColorTheme.BuiltIn, colorParams?: Partial<ColorTheme.Props>, sizeName?: SizeTheme.BuiltIn, sizeParams?: Partial<SizeTheme.Props>): StateTransformer.Params<VolumeRepresentation3D> {
         const type = ctx.representation.volume.registry.get(name);
 
-        const themeDataCtx = { volume };
-        const colorParams = ctx.representation.volume.themes.colorThemeRegistry.get(type.defaultColorTheme.name).getParams(themeDataCtx);
-        const sizeParams = ctx.representation.volume.themes.sizeThemeRegistry.get(type.defaultSizeTheme.name).getParams(themeDataCtx);
+        const colorType = ctx.representation.volume.themes.colorThemeRegistry.get(colorName || type.defaultColorTheme.name);
+        const sizeType = ctx.representation.volume.themes.sizeThemeRegistry.get(sizeName || type.defaultSizeTheme.name);
         const volumeDefaultParams = PD.getDefaultValues(type.getParams(ctx.representation.volume.themes, volume));
         return ({
             type: { name, params: volumeParams ? { ...volumeDefaultParams, ...volumeParams } : volumeDefaultParams },
-            colorTheme: { name: type.defaultColorTheme.name, params: PD.getDefaultValues(colorParams) },
-            sizeTheme: { name: type.defaultSizeTheme.name, params: PD.getDefaultValues(sizeParams) }
+            colorTheme: { name: colorType.name, params: colorParams ? { ...colorType.defaultValues, ...colorParams } : colorType.defaultValues },
+            sizeTheme: { name: sizeType.name, params: sizeParams ? { ...sizeType.defaultValues, ...sizeParams } : sizeType.defaultValues }
         });
     }
 

@@ -2,6 +2,7 @@
  * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { BondType } from '../../../../mol-model/structure/model/types';
@@ -13,12 +14,13 @@ import { ObjectKeys } from '../../../../mol-util/type-helpers';
 import { PickingId } from '../../../../mol-geo/geometry/picking';
 import { EmptyLoci, Loci } from '../../../../mol-model/loci';
 import { Interval, OrderedSet, SortedArray } from '../../../../mol-data/int';
-import { isH, isHydrogen, StructureGroup } from './common';
+import { isHydrogen, StructureGroup } from './common';
 
 export const BondParams = {
     includeTypes: PD.MultiSelect(ObjectKeys(BondType.Names), PD.objectToOptions(BondType.Names)),
     excludeTypes: PD.MultiSelect([] as BondType.Names[], PD.objectToOptions(BondType.Names)),
     ignoreHydrogens: PD.Boolean(false),
+    ignoreHydrogensVariant: PD.Select('all', PD.arrayToOptions(['all', 'non-polar'] as const)),
     aromaticBonds: PD.Boolean(true, { description: 'Display aromatic bonds with dashes' }),
     multipleBonds: PD.Select('symmetric', PD.arrayToOptions(['off', 'symmetric', 'offset'] as const)),
 };
@@ -46,12 +48,11 @@ export function ignoreBondType(include: BondType.Flag, exclude: BondType.Flag, f
 
 export function makeIntraBondIgnoreTest(structure: Structure, unit: Unit.Atomic, props: BondProps): undefined | ((edgeIndex: number) => boolean) {
     const elements = unit.elements;
-    const { atomicNumber } = unit.model.atomicHierarchy.derived.atom;
     const bonds = unit.bonds;
     const { a, b, edgeProps } = bonds;
     const { flags: _flags } = edgeProps;
 
-    const { ignoreHydrogens, includeTypes, excludeTypes } = props;
+    const { ignoreHydrogens, ignoreHydrogensVariant, includeTypes, excludeTypes } = props;
 
     const include = BondType.fromNames(includeTypes);
     const exclude = BondType.fromNames(excludeTypes);
@@ -64,11 +65,22 @@ export function makeIntraBondIgnoreTest(structure: Structure, unit: Unit.Atomic,
     if (allBondTypes && !ignoreHydrogens && !child) return;
 
     return (edgeIndex: number) => {
-        return (
-            (!!childUnit && !SortedArray.has(childUnit.elements, elements[a[edgeIndex]])) ||
-            (ignoreHydrogens && (isH(atomicNumber, elements[a[edgeIndex]]) || isH(atomicNumber, elements[b[edgeIndex]]))) ||
-            (!allBondTypes && ignoreBondType(include, exclude, _flags[edgeIndex]))
-        );
+        const aI = a[edgeIndex];
+        const bI = b[edgeIndex];
+
+        if ((!!childUnit && !SortedArray.has(childUnit.elements, elements[aI]))) {
+            return true;
+        }
+
+        if (!allBondTypes && ignoreBondType(include, exclude, _flags[edgeIndex])) {
+            return true;
+        }
+
+        if (!ignoreHydrogens) return false;
+
+        if (isHydrogen(structure, unit, elements[aI], ignoreHydrogensVariant) || isHydrogen(structure, unit, elements[bI], ignoreHydrogensVariant)) return true;
+
+        return false;
     };
 }
 
@@ -76,7 +88,7 @@ export function makeInterBondIgnoreTest(structure: Structure, props: BondProps):
     const bonds = structure.interUnitBonds;
     const { edges } = bonds;
 
-    const { ignoreHydrogens, includeTypes, excludeTypes } = props;
+    const { ignoreHydrogens, ignoreHydrogensVariant, includeTypes, excludeTypes } = props;
 
     const include = BondType.fromNames(includeTypes);
     const exclude = BondType.fromNames(excludeTypes);
@@ -101,7 +113,7 @@ export function makeInterBondIgnoreTest(structure: Structure, props: BondProps):
             const b = edges[edgeIndex];
             const uA = structure.unitMap.get(b.unitA);
             const uB = structure.unitMap.get(b.unitB);
-            if (isHydrogen(uA, uA.elements[b.indexA]) || isHydrogen(uB, uB.elements[b.indexB])) return true;
+            if (isHydrogen(structure, uA, uA.elements[b.indexA], ignoreHydrogensVariant) || isHydrogen(structure, uB, uB.elements[b.indexB], ignoreHydrogensVariant)) return true;
         }
 
         if (!allBondTypes) {

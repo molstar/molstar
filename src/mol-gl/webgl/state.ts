@@ -65,6 +65,19 @@ export type WebGLState = {
     /** specifies the source and destination blending factors, clamped to [0, 1] */
     blendColor: (red: number, green: number, blue: number, alpha: number) => void
 
+    /** sets the front and back function and reference value for stencil testing */
+    stencilFunc: (func: number, ref: number, mask: number) => void
+    /** sets the front and/or back function and reference value for stencil testing */
+    stencilFuncSeparate: (face: number, func: number, ref: number, mask: number) => void
+    /** controls enabling and disabling of both the front and back writing of individual bits in the stencil planes */
+    stencilMask: (mask: number) => void
+    /** controls enabling and disabling of both the front and back writing of individual bits in the stencil planes */
+    stencilMaskSeparate: (face: number, mask: number) => void
+    /** sets both the front and back-facing stencil test actions */
+    stencilOp: (fail: number, zfail: number, zpass: number) => void
+    /** sets the front and/or back-facing stencil test actions */
+    stencilOpSeparate: (face: number, fail: number, zfail: number, zpass: number) => void
+
     enableVertexAttrib: (index: number) => void
     clearVertexAttribsState: () => void
     disableUnusedVertexAttribs: () => void
@@ -91,9 +104,23 @@ export function createState(gl: GLRenderingContext): WebGLState {
     let currentBlendSrcAlpha = gl.getParameter(gl.BLEND_SRC_ALPHA);
     let currentBlendDstAlpha = gl.getParameter(gl.BLEND_DST_ALPHA);
     let currentBlendColor = gl.getParameter(gl.BLEND_COLOR);
-
     let currentBlendEqRGB = gl.getParameter(gl.BLEND_EQUATION_RGB);
     let currentBlendEqAlpha = gl.getParameter(gl.BLEND_EQUATION_ALPHA);
+
+    let currentStencilFunc = gl.getParameter(gl.STENCIL_FUNC);
+    let currentStencilValueMask = gl.getParameter(gl.STENCIL_VALUE_MASK);
+    let currentStencilRef = gl.getParameter(gl.STENCIL_REF);
+    let currentStencilBackFunc = gl.getParameter(gl.STENCIL_BACK_FUNC);
+    let currentStencilBackValueMask = gl.getParameter(gl.STENCIL_BACK_VALUE_MASK);
+    let currentStencilBackRef = gl.getParameter(gl.STENCIL_BACK_REF);
+    let currentStencilWriteMask = gl.getParameter(gl.STENCIL_WRITEMASK);
+    let currentStencilBackWriteMask = gl.getParameter(gl.STENCIL_BACK_WRITEMASK);
+    let currentStencilFail = gl.getParameter(gl.STENCIL_FAIL);
+    let currentStencilPassDepthPass = gl.getParameter(gl.STENCIL_PASS_DEPTH_PASS);
+    let currentStencilPassDepthFail = gl.getParameter(gl.STENCIL_PASS_DEPTH_FAIL);
+    let currentStencilBackFail = gl.getParameter(gl.STENCIL_BACK_FAIL);
+    let currentStencilBackPassDepthPass = gl.getParameter(gl.STENCIL_BACK_PASS_DEPTH_PASS);
+    let currentStencilBackPassDepthFail = gl.getParameter(gl.STENCIL_BACK_PASS_DEPTH_FAIL);
 
     let maxVertexAttribs = gl.getParameter(gl.MAX_VERTEX_ATTRIBS);
     const vertexAttribsState: number[] = [];
@@ -217,6 +244,109 @@ export function createState(gl: GLRenderingContext): WebGLState {
             }
         },
 
+        stencilFunc: (func: number, ref: number, mask: number) => {
+            if (func !== currentStencilFunc || ref !== currentStencilRef || mask !== currentStencilValueMask || func !== currentStencilBackFunc || ref !== currentStencilBackRef || mask !== currentStencilBackValueMask) {
+                gl.stencilFunc(func, ref, mask);
+                currentStencilFunc = func;
+                currentStencilRef = ref;
+                currentStencilValueMask = mask;
+                currentStencilBackFunc = func;
+                currentStencilBackRef = ref;
+                currentStencilBackValueMask = mask;
+            }
+        },
+        stencilFuncSeparate: (face: number, func: number, ref: number, mask: number) => {
+            if (face === gl.FRONT) {
+                if (func !== currentStencilFunc || ref !== currentStencilRef || mask !== currentStencilValueMask) {
+                    gl.stencilFuncSeparate(face, func, ref, mask);
+                    currentStencilFunc = func;
+                    currentStencilRef = ref;
+                    currentStencilValueMask = mask;
+                }
+            } else if (face === gl.BACK) {
+                if (func !== currentStencilBackFunc || ref !== currentStencilBackRef || mask !== currentStencilBackValueMask) {
+                    gl.stencilFuncSeparate(face, func, ref, mask);
+                    currentStencilBackFunc = func;
+                    currentStencilBackRef = ref;
+                    currentStencilBackValueMask = mask;
+                }
+            } else if (face === gl.FRONT_AND_BACK) {
+                if (func !== currentStencilFunc || ref !== currentStencilRef || mask !== currentStencilValueMask || func !== currentStencilBackFunc || ref !== currentStencilBackRef || mask !== currentStencilBackValueMask) {
+                    gl.stencilFuncSeparate(face, func, ref, mask);
+                    currentStencilFunc = func;
+                    currentStencilRef = ref;
+                    currentStencilValueMask = mask;
+                    currentStencilBackFunc = func;
+                    currentStencilBackRef = ref;
+                    currentStencilBackValueMask = mask;
+                }
+            }
+        },
+        stencilMask: (mask: number) => {
+            if (mask !== currentStencilWriteMask || mask !== currentStencilBackWriteMask) {
+                gl.stencilMask(mask);
+                currentStencilWriteMask = mask;
+                currentStencilBackWriteMask = mask;
+            }
+        },
+        stencilMaskSeparate: (face: number, mask: number) => {
+            if (face === gl.FRONT) {
+                if (mask !== currentStencilWriteMask) {
+                    gl.stencilMaskSeparate(face, mask);
+                    currentStencilWriteMask = mask;
+                }
+            } else if (face === gl.BACK) {
+                if (mask !== currentStencilBackWriteMask) {
+                    gl.stencilMaskSeparate(face, mask);
+                    currentStencilBackWriteMask = mask;
+                }
+            } else if (face === gl.FRONT_AND_BACK) {
+                if (mask !== currentStencilWriteMask || mask !== currentStencilBackWriteMask) {
+                    gl.stencilMaskSeparate(face, mask);
+                    currentStencilWriteMask = mask;
+                    currentStencilBackWriteMask = mask;
+                }
+            }
+        },
+        stencilOp: (fail: number, zfail: number, zpass: number) => {
+            if (fail !== currentStencilFail || zfail !== currentStencilPassDepthFail || zpass !== currentStencilPassDepthPass || fail !== currentStencilBackFail || zfail !== currentStencilBackPassDepthFail || zpass !== currentStencilBackPassDepthPass) {
+                gl.stencilOp(fail, zfail, zpass);
+                currentStencilFail = fail;
+                currentStencilPassDepthFail = zfail;
+                currentStencilPassDepthPass = zpass;
+                currentStencilBackFail = fail;
+                currentStencilBackPassDepthFail = zfail;
+                currentStencilBackPassDepthPass = zpass;
+            }
+        },
+        stencilOpSeparate: (face: number, fail: number, zfail: number, zpass: number) => {
+            if (face === gl.FRONT) {
+                if (fail !== currentStencilFail || zfail !== currentStencilPassDepthFail || zpass !== currentStencilPassDepthPass) {
+                    gl.stencilOpSeparate(face, fail, zfail, zpass);
+                    currentStencilFail = fail;
+                    currentStencilPassDepthFail = zfail;
+                    currentStencilPassDepthPass = zpass;
+                }
+            } else if (face === gl.BACK) {
+                if (fail !== currentStencilBackFail || zfail !== currentStencilBackPassDepthFail || zpass !== currentStencilBackPassDepthPass) {
+                    gl.stencilOpSeparate(face, fail, zfail, zpass);
+                    currentStencilBackFail = fail;
+                    currentStencilBackPassDepthFail = zfail;
+                    currentStencilBackPassDepthPass = zpass;
+                }
+            } else if (face === gl.FRONT_AND_BACK) {
+                if (fail !== currentStencilFail || zfail !== currentStencilPassDepthFail || zpass !== currentStencilPassDepthPass || fail !== currentStencilBackFail || zfail !== currentStencilBackPassDepthFail || zpass !== currentStencilBackPassDepthPass) {
+                    gl.stencilOpSeparate(face, fail, zfail, zpass);
+                    currentStencilFail = fail;
+                    currentStencilPassDepthFail = zfail;
+                    currentStencilPassDepthPass = zpass;
+                    currentStencilBackFail = fail;
+                    currentStencilBackPassDepthFail = zfail;
+                    currentStencilBackPassDepthPass = zpass;
+                }
+            }
+        },
+
         enableVertexAttrib: (index: number) => {
             gl.enableVertexAttribArray(index);
             vertexAttribsState[index] = 1;
@@ -264,9 +394,23 @@ export function createState(gl: GLRenderingContext): WebGLState {
             currentBlendSrcAlpha = gl.getParameter(gl.BLEND_SRC_ALPHA);
             currentBlendDstAlpha = gl.getParameter(gl.BLEND_DST_ALPHA);
             currentBlendColor = gl.getParameter(gl.BLEND_COLOR);
-
             currentBlendEqRGB = gl.getParameter(gl.BLEND_EQUATION_RGB);
             currentBlendEqAlpha = gl.getParameter(gl.BLEND_EQUATION_ALPHA);
+
+            currentStencilFunc = gl.getParameter(gl.STENCIL_FUNC);
+            currentStencilValueMask = gl.getParameter(gl.STENCIL_VALUE_MASK);
+            currentStencilRef = gl.getParameter(gl.STENCIL_REF);
+            currentStencilBackFunc = gl.getParameter(gl.STENCIL_BACK_FUNC);
+            currentStencilBackValueMask = gl.getParameter(gl.STENCIL_BACK_VALUE_MASK);
+            currentStencilBackRef = gl.getParameter(gl.STENCIL_BACK_REF);
+            currentStencilWriteMask = gl.getParameter(gl.STENCIL_WRITEMASK);
+            currentStencilBackWriteMask = gl.getParameter(gl.STENCIL_BACK_WRITEMASK);
+            currentStencilFail = gl.getParameter(gl.STENCIL_FAIL);
+            currentStencilPassDepthPass = gl.getParameter(gl.STENCIL_PASS_DEPTH_PASS);
+            currentStencilPassDepthFail = gl.getParameter(gl.STENCIL_PASS_DEPTH_FAIL);
+            currentStencilBackFail = gl.getParameter(gl.STENCIL_BACK_FAIL);
+            currentStencilBackPassDepthPass = gl.getParameter(gl.STENCIL_BACK_PASS_DEPTH_PASS);
+            currentStencilBackPassDepthFail = gl.getParameter(gl.STENCIL_BACK_PASS_DEPTH_FAIL);
 
             maxVertexAttribs = gl.getParameter(gl.MAX_VERTEX_ATTRIBS);
             vertexAttribsState.length = 0;

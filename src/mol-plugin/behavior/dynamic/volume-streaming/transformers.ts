@@ -43,7 +43,7 @@ export const InitVolumeStreaming = StateAction.build({
         return {
             method: PD.Select<VolumeServerInfo.Kind>(method, [['em', 'EM'], ['x-ray', 'X-Ray']]),
             entries: PD.ObjectList({ id: PD.Text(ids[0] || '') }, ({ id }) => id, { defaultValue: ids.map(id => ({ id })) }),
-            defaultView: PD.Select<VolumeStreaming.ViewTypes>(method === 'em' ? 'cell' : 'selection-box', VolumeStreaming.ViewTypeOptions as any),
+            defaultView: PD.Select<VolumeStreaming.ViewTypes>(method === 'em' ? 'auto' : 'selection-box', VolumeStreaming.ViewTypeOptions as any),
             options: PD.Group({
                 serverUrl: PD.Text(plugin.config.get(PluginConfig.VolumeStreaming.DefaultServer) || 'https://ds.litemol.org'),
                 behaviorRef: PD.Text('', { isHidden: true }),

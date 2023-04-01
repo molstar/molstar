@@ -11,7 +11,8 @@ import { Representation } from '../../mol-repr/representation';
 import { MarkerAction } from '../../mol-util/marker-action';
 import { arrayRemoveAtInPlace } from '../../mol-util/array';
 
-export type LociLabel = JSX.Element | string
+// any represents React element. For compatibility to including the type
+export type LociLabel = string | any
 export type LociLabelProvider = {
     label: (loci: Loci, repr?: Representation<any>) => LociLabel | undefined
     group?: (entry: LociLabel) => string

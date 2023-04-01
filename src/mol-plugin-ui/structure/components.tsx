@@ -280,7 +280,6 @@ class StructureComponentGroup extends PurePluginUIComponent<{ group: StructureCo
 
     selectAction: ActionMenu.OnSelect = item => {
         if (!item) return;
-        this.setState({ action: void 0 });
         (item?.value as any)();
     };
 

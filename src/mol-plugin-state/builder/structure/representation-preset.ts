@@ -37,6 +37,7 @@ export namespace StructureRepresentationPresetProvider {
 
     export const CommonParams = {
         ignoreHydrogens: PD.Optional(PD.Boolean(false)),
+        ignoreHydrogensVariant: PD.Optional(PD.Select('all', PD.arrayToOptions(['all', 'non-polar'] as const))),
         ignoreLight: PD.Optional(PD.Boolean(false)),
         quality: PD.Optional(PD.Select<VisualQuality>('auto', VisualQualityOptions)),
         theme: PD.Optional(PD.Group({
@@ -68,13 +69,16 @@ export namespace StructureRepresentationPresetProvider {
     export function reprBuilder(plugin: PluginContext, params: CommonParams, structure?: Structure) {
         const update = plugin.state.data.build();
         const builder = plugin.builders.structure.representation;
+        const h = plugin.managers.structure.component.state.options.hydrogens;
         const typeParams = {
             quality: plugin.managers.structure.component.state.options.visualQuality,
-            ignoreHydrogens: !plugin.managers.structure.component.state.options.showHydrogens,
+            ignoreHydrogens: h !== 'all',
+            ignoreHydrogensVariant: (h === 'only-polar' ? 'non-polar' : 'all') as 'all' | 'non-polar',
             ignoreLight: plugin.managers.structure.component.state.options.ignoreLight,
         };
         if (params.quality && params.quality !== 'auto') typeParams.quality = params.quality;
         if (params.ignoreHydrogens !== void 0) typeParams.ignoreHydrogens = !!params.ignoreHydrogens;
+        if (params.ignoreHydrogensVariant !== void 0) typeParams.ignoreHydrogensVariant = params.ignoreHydrogensVariant;
         if (params.ignoreLight !== void 0) typeParams.ignoreLight = !!params.ignoreLight;
         const color: ColorTheme.BuiltIn | undefined = params.theme?.globalName ? params.theme?.globalName : void 0;
         const ballAndStickColor: ColorTheme.BuiltInParams<'element-symbol'> = params.theme?.carbonColor !== undefined

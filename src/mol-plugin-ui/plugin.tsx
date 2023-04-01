@@ -24,14 +24,6 @@ import { BehaviorSubject } from 'rxjs';
 import { useBehavior } from './hooks/use-behavior';
 
 export class Plugin extends React.Component<{ plugin: PluginUIContext, children?: any }, {}> {
-    region(kind: 'left' | 'right' | 'bottom' | 'main', element: JSX.Element) {
-        return <div className={`msp-layout-region msp-layout-${kind}`}>
-            <div className='msp-layout-static'>
-                {element}
-            </div>
-        </div>;
-    }
-
     render() {
         return <PluginReactContext.Provider value={this.props.plugin}>
             <Layout />
@@ -116,7 +108,7 @@ class Layout extends PluginUIComponent {
             }
         } else {
             for (let i = 0; i < ev.dataTransfer.files.length; i++) {
-                const file = ev.dataTransfer.files[0];
+                const file = ev.dataTransfer.files[i];
                 if (file) files.push(file);
             }
         }
@@ -180,7 +172,7 @@ function dropFiles(ev: React.DragEvent<HTMLDivElement>, plugin: PluginUIContext,
         }
     } else {
         for (let i = 0; i < ev.dataTransfer.files.length; i++) {
-            const file = ev.dataTransfer.files[0];
+            const file = ev.dataTransfer.files[i];
             if (file) files.push(file);
         }
     }

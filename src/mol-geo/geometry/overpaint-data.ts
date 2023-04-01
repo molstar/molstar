@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -21,6 +21,7 @@ export type OverpaintData = {
     uOverpaintGridDim: ValueCell<Vec3>,
     uOverpaintGridTransform: ValueCell<Vec4>,
     dOverpaintType: ValueCell<string>,
+    uOverpaintStrength: ValueCell<number>,
 }
 
 export function applyOverpaintColor(array: Uint8Array, start: number, end: number, color: Color) {
@@ -54,6 +55,7 @@ export function createOverpaint(count: number, type: OverpaintType, overpaintDat
             uOverpaintGridDim: ValueCell.create(Vec3.create(1, 1, 1)),
             uOverpaintGridTransform: ValueCell.create(Vec4.create(0, 0, 0, 1)),
             dOverpaintType: ValueCell.create(type),
+            uOverpaintStrength: ValueCell.create(1),
         };
     }
 }
@@ -74,6 +76,7 @@ export function createEmptyOverpaint(overpaintData?: OverpaintData): OverpaintDa
             uOverpaintGridDim: ValueCell.create(Vec3.create(1, 1, 1)),
             uOverpaintGridTransform: ValueCell.create(Vec4.create(0, 0, 0, 1)),
             dOverpaintType: ValueCell.create('groupInstance'),
+            uOverpaintStrength: ValueCell.create(1),
         };
     }
 }

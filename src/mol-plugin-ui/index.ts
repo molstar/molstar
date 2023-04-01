@@ -18,5 +18,10 @@ export async function createPluginUI(target: HTMLElement, spec?: PluginUISpec, o
         await options.onBeforeUIRender(ctx);
     }
     ReactDOM.render(React.createElement(Plugin, { plugin: ctx }), target);
+    try {
+        await ctx.canvas3dInitialized;
+    } catch {
+        // Error reported in UI/console elsewhere.
+    }
     return ctx;
 }

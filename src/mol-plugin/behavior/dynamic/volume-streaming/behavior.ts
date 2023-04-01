@@ -80,7 +80,7 @@ export namespace VolumeStreaming {
         const box = (structure && structure.boundary.box) || Box3D();
 
         return {
-            view: PD.MappedStatic(defaultView || (info.kind === 'em' ? 'cell' : 'selection-box'), {
+            view: PD.MappedStatic(defaultView || (info.kind === 'em' ? 'auto' : 'selection-box'), {
                 'off': PD.Group<{}>({}),
                 'box': PD.Group({
                     bottomLeft: PD.Vec3(box.min),

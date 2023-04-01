@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -96,7 +96,7 @@ export function createDirectVolume3d(ctx: RuntimeContext, webgl: WebGLContext, v
 
 //
 
-export async function createDirectVolume(ctx: VisualContext, volume: Volume, theme: Theme, props: PD.Values<DirectVolumeParams>, directVolume?: DirectVolume) {
+export async function createDirectVolume(ctx: VisualContext, volume: Volume, key: number, theme: Theme, props: PD.Values<DirectVolumeParams>, directVolume?: DirectVolume) {
     const { runtime, webgl } = ctx;
     if (webgl === undefined) throw new Error('DirectVolumeVisual requires `webgl` in props');
 
@@ -109,7 +109,7 @@ function getLoci(volume: Volume, props: PD.Values<DirectVolumeParams>) {
     return Volume.Loci(volume);
 }
 
-export function getDirectVolumeLoci(pickingId: PickingId, volume: Volume, props: DirectVolumeProps, id: number) {
+export function getDirectVolumeLoci(pickingId: PickingId, volume: Volume, key: number, props: DirectVolumeProps, id: number) {
     const { objectId, groupId } = pickingId;
     if (id === objectId) {
         return Volume.Cell.Loci(volume, Interval.ofSingleton(groupId as Volume.CellIndex));
@@ -117,7 +117,7 @@ export function getDirectVolumeLoci(pickingId: PickingId, volume: Volume, props:
     return EmptyLoci;
 }
 
-export function eachDirectVolume(loci: Loci, volume: Volume, props: DirectVolumeProps, apply: (interval: Interval) => boolean) {
+export function eachDirectVolume(loci: Loci, volume: Volume, key: number, props: DirectVolumeProps, apply: (interval: Interval) => boolean) {
     return eachVolumeLoci(loci, volume, undefined, apply);
 }
 
@@ -129,7 +129,9 @@ export const DirectVolumeParams = {
 };
 export type DirectVolumeParams = typeof DirectVolumeParams
 export function getDirectVolumeParams(ctx: ThemeRegistryContext, volume: Volume) {
-    return PD.clone(DirectVolumeParams);
+    const params = PD.clone(DirectVolumeParams);
+    params.controlPoints.getVolume = () => volume;
+    return params;
 }
 export type DirectVolumeProps = PD.Values<DirectVolumeParams>
 
@@ -162,5 +164,5 @@ export const DirectVolumeRepresentationProvider = VolumeRepresentationProvider({
     defaultValues: PD.getDefaultValues(DirectVolumeParams),
     defaultColorTheme: { name: 'volume-value' },
     defaultSizeTheme: { name: 'uniform' },
-    isApplicable: (volume: Volume) => !Volume.isEmpty(volume)
+    isApplicable: (volume: Volume) => !Volume.isEmpty(volume) && !Volume.Segmentation.get(volume)
 });

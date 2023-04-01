@@ -101,7 +101,7 @@ function createListColumn<T extends number | string>(schema: Column.Schema.List<
         isDefined: !!f,
         rowCount: category.rowCount,
         value,
-        valueKind: f ? f.valueKind : () => Column.ValueKind.NotPresent,
+        valueKind: f ? f.valueKind : () => Column.ValueKinds.NotPresent,
         areValuesEqual: (rowA, rowB) => arrayEqual(value(rowA), value(rowB)),
         toArray
     };

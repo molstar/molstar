@@ -39,7 +39,7 @@ export function FixedColumn<T extends Column.Schema>(lines: Tokens, offset: numb
         isDefined: true,
         rowCount,
         value,
-        valueKind: row => Column.ValueKind.Present,
+        valueKind: row => Column.ValueKinds.Present,
         toArray: params => ColumnHelpers.createAndFillArray(rowCount, value, params),
         areValuesEqual: (rowA, rowB) => value(rowA) === value(rowB)
     };

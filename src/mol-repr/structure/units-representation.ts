@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -222,7 +222,7 @@ export function UnitsRepresentation<P extends StructureParams>(label: string, ct
     }
 
     function setVisualState(visual: UnitsVisual<P>, group: Unit.SymmetryGroup, state: Partial<StructureRepresentationState>) {
-        const { visible, alphaFactor, pickable, overpaint, transparency, substance, clipping, transform, unitTransforms } = state;
+        const { visible, alphaFactor, pickable, overpaint, transparency, substance, clipping, themeStrength, transform, unitTransforms } = state;
 
         if (visible !== undefined) visual.setVisibility(visible);
         if (alphaFactor !== undefined) visual.setAlphaFactor(alphaFactor);
@@ -231,19 +231,24 @@ export function UnitsRepresentation<P extends StructureParams>(label: string, ct
         if (transparency !== undefined) visual.setTransparency(transparency, webgl);
         if (substance !== undefined) visual.setSubstance(substance, webgl);
         if (clipping !== undefined) visual.setClipping(clipping);
-        if (transform !== undefined) visual.setTransform(transform);
+        if (themeStrength !== undefined) visual.setThemeStrength(themeStrength);
+        if (transform !== undefined) {
+            if (transform !== _state.transform || !Mat4.areEqual(transform, _state.transform, EPSILON)) {
+                visual.setTransform(transform);
+            }
+        }
         if (unitTransforms !== undefined) {
             if (unitTransforms) {
                 // console.log(group.hashCode, unitTransforms.getSymmetryGroupTransforms(group))
                 visual.setTransform(undefined, unitTransforms.getSymmetryGroupTransforms(group));
-            } else {
+            } else if (unitTransforms !== _state.unitTransforms) {
                 visual.setTransform(undefined, null);
             }
         }
     }
 
     function setState(state: Partial<StructureRepresentationState>) {
-        const { visible, alphaFactor, pickable, overpaint, transparency, substance, clipping, transform, unitTransforms, syncManually, markerActions } = state;
+        const { visible, alphaFactor, pickable, overpaint, transparency, substance, clipping, themeStrength, transform, unitTransforms, syncManually, markerActions } = state;
         const newState: Partial<StructureRepresentationState> = {};
 
         if (visible !== _state.visible) newState.visible = visible;
@@ -261,6 +266,7 @@ export function UnitsRepresentation<P extends StructureParams>(label: string, ct
         if (clipping !== undefined && _structure) {
             newState.clipping = Clipping.remap(clipping, _structure);
         }
+        if (themeStrength !== undefined) newState.themeStrength = themeStrength;
         if (transform !== undefined && !Mat4.areEqual(transform, _state.transform, EPSILON)) {
             newState.transform = transform;
         }

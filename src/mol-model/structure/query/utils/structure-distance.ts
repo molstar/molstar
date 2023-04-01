@@ -23,7 +23,7 @@ export function checkStructureMaxRadiusDistance(ctx: QueryContext, a: Structure,
 }
 
 namespace MinMaxDist {
-    export const enum Result {
+    const enum Result {
         BelowMin,
         WithinMax,
         Miss
@@ -44,7 +44,7 @@ namespace MinMaxDist {
         return withinRange ? Result.WithinMax : Result.Miss;
     }
 
-    export function toPoint(ctx: QueryContext, s: Structure, point: Vec3, radius: number, minDist: number, maxDist: number, elementRadius: QueryFn<number>) {
+    function toPoint(ctx: QueryContext, s: Structure, point: Vec3, radius: number, minDist: number, maxDist: number, elementRadius: QueryFn<number>) {
         const { units } = s;
         let withinRange = false;
         for (let i = 0, _i = units.length; i < _i; i++) {
@@ -70,7 +70,7 @@ namespace MinMaxDist {
                 const e = elements[i];
                 ctx.element.element = e;
                 const tp = toPoint(ctx, b, position(e, distPivot), elementRadius(ctx), minDist, maxDist, elementRadius);
-                if (tp === Result.BelowMin) return Result.BelowMin;
+                if (tp === Result.BelowMin) return false;
                 if (tp === Result.WithinMax) withinRange = true;
             }
         }
@@ -91,7 +91,7 @@ namespace MaxRadiusDist {
         return false;
     }
 
-    export function toPoint(ctx: QueryContext, s: Structure, point: Vec3, radius: number, maxDist: number, elementRadius: QueryFn<number>) {
+    function toPoint(ctx: QueryContext, s: Structure, point: Vec3, radius: number, maxDist: number, elementRadius: QueryFn<number>) {
         const { units } = s;
         for (let i = 0, _i = units.length; i < _i; i++) {
             if (inUnit(ctx, units[i], point, radius, maxDist, elementRadius)) return true;

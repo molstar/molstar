@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -16,6 +16,7 @@ import { Zip } from '../../mol-util/zip/zip';
 import { readFromFile } from '../../mol-util/data-source';
 import { objectForEach } from '../../mol-util/object';
 import { PLUGIN_VERSION } from '../../mol-plugin/version';
+import { canvasToBlob } from '../../mol-canvas3d/util';
 
 export { PluginStateSnapshotManager };
 
@@ -46,6 +47,7 @@ class PluginStateSnapshotManager extends StatefulPluginComponent<{
         const e = this.entryMap.get(id);
         if (!e) return;
 
+        if (e?.image) this.plugin.managers.asset.delete(e.image);
         this.entryMap.delete(id);
         this.updateState({
             current: this.state.current === id ? void 0 : this.state.current,
@@ -60,15 +62,17 @@ class PluginStateSnapshotManager extends StatefulPluginComponent<{
         this.events.changed.next(void 0);
     }
 
-    replace(id: string, snapshot: PluginState.Snapshot) {
+    replace(id: string, snapshot: PluginState.Snapshot, params?: PluginStateSnapshotManager.EntryParams) {
         const old = this.getEntry(id);
         if (!old) return;
 
+        if (old?.image) this.plugin.managers.asset.delete(old.image);
         const idx = this.getIndex(old);
         // The id changes here!
         const e = PluginStateSnapshotManager.Entry(snapshot, {
-            name: old.name,
-            description: old.description
+            name: params?.name ?? old.name,
+            description: params?.description ?? old.description,
+            image: params?.image,
         });
         this.entryMap.set(snapshot.id, e);
         this.updateState({ current: e.snapshot.id, entries: this.state.entries.set(idx, e) });
@@ -96,6 +100,10 @@ class PluginStateSnapshotManager extends StatefulPluginComponent<{
 
     clear() {
         if (this.state.entries.size === 0) return;
+
+        this.entryMap.forEach(e => {
+            if (e?.image) this.plugin.managers.asset.delete(e.image);
+        });
         this.entryMap.clear();
         this.updateState({ current: void 0, entries: List<PluginStateSnapshotManager.Entry>() });
         this.events.changed.next(void 0);
@@ -162,18 +170,22 @@ class PluginStateSnapshotManager extends StatefulPluginComponent<{
         return next;
     }
 
-    private syncCurrent(options?: { name?: string, description?: string, params?: PluginState.SnapshotParams }) {
+    private async syncCurrent(options?: { name?: string, description?: string, params?: PluginState.SnapshotParams }) {
         const snapshot = this.plugin.state.getSnapshot(options?.params);
         if (this.state.entries.size === 0 || !this.state.current) {
             this.add(PluginStateSnapshotManager.Entry(snapshot, { name: options?.name, description: options?.description }));
         } else {
-            this.replace(this.state.current, snapshot);
+            const current = this.getEntry(this.state.current);
+            if (current?.image) this.plugin.managers.asset.delete(current.image);
+            const image = (options?.params?.image ?? this.plugin.state.snapshotParams.value.image) ? await PluginStateSnapshotManager.getCanvasImageAsset(this.plugin, `${snapshot.id}-image.png`) : undefined;
+            // TODO: this replaces the current snapshot which is not always intended
+            this.replace(this.state.current, snapshot, { image });
         }
     }
 
-    getStateSnapshot(options?: { name?: string, description?: string, playOnLoad?: boolean, params?: PluginState.SnapshotParams }): PluginStateSnapshotManager.StateSnapshot {
+    async getStateSnapshot(options?: { name?: string, description?: string, playOnLoad?: boolean, params?: PluginState.SnapshotParams }): Promise<PluginStateSnapshotManager.StateSnapshot> {
         // TODO: diffing and all that fancy stuff
-        this.syncCurrent(options);
+        await this.syncCurrent(options);
 
         return {
             timestamp: +new Date(),
@@ -190,7 +202,7 @@ class PluginStateSnapshotManager extends StatefulPluginComponent<{
     }
 
     async serialize(options?: { type: 'json' | 'molj' | 'zip' | 'molx', params?: PluginState.SnapshotParams }) {
-        const json = JSON.stringify(this.getStateSnapshot({ params: options?.params }), null, 2);
+        const json = JSON.stringify(await this.getStateSnapshot({ params: options?.params }), null, 2);
 
         if (!options?.type || options.type === 'json' || options.type === 'molj') {
             return new Blob([json], { type: 'application/json;charset=utf-8' });
@@ -326,14 +338,18 @@ class PluginStateSnapshotManager extends StatefulPluginComponent<{
 }
 
 namespace PluginStateSnapshotManager {
-    export interface Entry {
-        timestamp: number,
+    export interface EntryParams {
         name?: string,
         description?: string,
+        image?: Asset
+    }
+
+    export interface Entry extends EntryParams {
+        timestamp: number,
         snapshot: PluginState.Snapshot
     }
 
-    export function Entry(snapshot: PluginState.Snapshot, params: { name?: string, description?: string }): Entry {
+    export function Entry(snapshot: PluginState.Snapshot, params: EntryParams): Entry {
         return { timestamp: +new Date(), snapshot, ...params };
     }
 
@@ -353,5 +369,18 @@ namespace PluginStateSnapshotManager {
             nextSnapshotDelayInMs: number,
         },
         entries: Entry[]
+    }
+
+    export async function getCanvasImageAsset(ctx: PluginContext, name: string): Promise<Asset | undefined> {
+        if (!ctx.helpers.viewportScreenshot) return;
+
+        const p = ctx.helpers.viewportScreenshot.getPreview(512);
+        if (!p) return;
+
+        const blob = await canvasToBlob(p.canvas, 'png');
+        const file = new File([blob], name);
+        const image: Asset = { kind: 'file', id: UUID.create22(), name };
+        ctx.managers.asset.set(image, file);
+        return image;
     }
 }

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -52,17 +52,43 @@ export const StructureInfo = PluginBehavior.create({
             return { auth, label };
         }
 
+        private setModelMaxIndex() {
+            const value = this.maxModelIndex;
+            const cells = this.ctx.state.data.select(StateSelection.Generators.rootsOfType(PluginStateObject.Molecule.Model));
+            for (const c of cells) {
+                const m = c.obj?.data;
+                if (m) {
+                    if (Model.MaxIndex.get(m).value !== value) {
+                        Model.MaxIndex.set(m, { value }, value);
+                    }
+                }
+            }
+        }
+
+        private setStructureMaxIndex() {
+            const value = this.maxModelIndex;
+            const cells = this.ctx.state.data.select(StateSelection.Generators.rootsOfType(PluginStateObject.Molecule.Structure));
+            for (const c of cells) {
+                const s = c.obj?.data;
+                if (s) {
+                    if (Structure.MaxIndex.get(s).value !== value) {
+                        Structure.MaxIndex.set(s, { value }, value);
+                    }
+                }
+            }
+        }
+
         private handleModel(model: Model, oldModel?: Model) {
             if (Model.Index.get(model).value === undefined) {
                 const oldIndex = oldModel && Model.Index.get(oldModel).value;
                 const value = oldIndex ?? (this.maxModelIndex + 1);
-                Model.Index.set(model, { value });
+                Model.Index.set(model, { value }, value);
             }
 
             if (Model.AsymIdOffset.get(model).value === undefined) {
                 const oldOffset = oldModel && Model.AsymIdOffset.get(oldModel).value;
                 const value = oldOffset ?? { ...this.asymIdOffset };
-                Model.AsymIdOffset.set(model, { value });
+                Model.AsymIdOffset.set(model, { value }, value);
             }
         }
 
@@ -72,7 +98,7 @@ export const StructureInfo = PluginBehavior.create({
 
             const oldIndex = oldStructure && Structure.Index.get(oldStructure).value;
             const value = oldIndex ?? (this.maxStructureIndex + 1);
-            Structure.Index.set(structure, { value });
+            Structure.Index.set(structure, { value }, value);
         }
 
         private handle(ref: string, obj: StateObject<any, StateObject.Type<any>>, oldObj?: StateObject<any, StateObject.Type<any>>) {
@@ -92,10 +118,14 @@ export const StructureInfo = PluginBehavior.create({
         register(): void {
             this.ctx.customModelProperties.register(Model.AsymIdOffset, true);
             this.ctx.customModelProperties.register(Model.Index, true);
+            this.ctx.customModelProperties.register(Model.MaxIndex, true);
             this.ctx.customStructureProperties.register(Structure.Index, true);
+            this.ctx.customStructureProperties.register(Structure.MaxIndex, true);
 
             this.subscribeObservable(this.ctx.state.data.events.object.created, o => {
                 this.handle(o.ref, o.obj);
+                this.setModelMaxIndex();
+                this.setStructureMaxIndex();
             });
 
             this.subscribeObservable(this.ctx.state.data.events.object.updated, o => {
@@ -106,7 +136,9 @@ export const StructureInfo = PluginBehavior.create({
         unregister() {
             this.ctx.customModelProperties.unregister(Model.AsymIdOffset.descriptor.name);
             this.ctx.customModelProperties.unregister(Model.Index.descriptor.name);
+            this.ctx.customModelProperties.unregister(Model.MaxIndex.descriptor.name);
             this.ctx.customStructureProperties.unregister(Structure.Index.descriptor.name);
+            this.ctx.customStructureProperties.unregister(Structure.MaxIndex.descriptor.name);
         }
     }
 });

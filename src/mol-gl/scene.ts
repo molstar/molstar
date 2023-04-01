@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -8,7 +8,7 @@
 import { WebGLContext } from './webgl/context';
 import { GraphicsRenderObject, createRenderable } from './render-object';
 import { Object3D } from './object3d';
-import { Sphere3D } from '../mol-math/geometry';
+import { Sphere3D } from '../mol-math/geometry/primitives/sphere3d';
 import { CommitQueue } from './commit-queue';
 import { now } from '../mol-util/now';
 import { arraySetRemove } from '../mol-util/array';
@@ -77,6 +77,7 @@ interface Scene extends Object3D {
     remove: (o: GraphicsRenderObject) => void
     commit: (maxTimeMs?: number) => boolean
     readonly needsCommit: boolean
+    readonly commitQueueSize: number
     has: (o: GraphicsRenderObject) => boolean
     clear: () => void
     forEach: (callbackFn: (value: GraphicsRenderable, key: GraphicsRenderObject) => void) => void
@@ -105,6 +106,10 @@ namespace Scene {
         let boundingSphereDirty = true;
         let boundingSphereVisibleDirty = true;
 
+        let markerAverageDirty = true;
+        let opacityAverageDirty = true;
+        let hasOpaqueDirty = true;
+
         let markerAverage = 0;
         let opacityAverage = 0;
         let hasOpaque = false;
@@ -124,10 +129,8 @@ namespace Scene {
                 renderableMap.set(o, renderable);
                 boundingSphereDirty = true;
                 boundingSphereVisibleDirty = true;
-                return renderable;
             } else {
                 console.warn(`RenderObject with id '${o.id}' already present`);
-                return renderableMap.get(o)!;
             }
         }
 
@@ -165,9 +168,9 @@ namespace Scene {
             }
 
             renderables.sort(renderableSort);
-            markerAverage = calculateMarkerAverage();
-            opacityAverage = calculateOpacityAverage();
-            hasOpaque = calculateHasOpaque();
+            markerAverageDirty = true;
+            opacityAverageDirty = true;
+            hasOpaqueDirty = true;
             return true;
         }
 
@@ -189,9 +192,9 @@ namespace Scene {
             const newVisibleHash = computeVisibleHash();
             if (newVisibleHash !== visibleHash) {
                 boundingSphereVisibleDirty = true;
-                markerAverage = calculateMarkerAverage();
-                opacityAverage = calculateOpacityAverage();
-                hasOpaque = calculateHasOpaque();
+                markerAverageDirty = true;
+                opacityAverageDirty = true;
+                hasOpaqueDirty = true;
                 visibleHash = newVisibleHash;
                 return true;
             } else {
@@ -268,13 +271,14 @@ namespace Scene {
                 } else {
                     syncVisibility();
                 }
-                markerAverage = calculateMarkerAverage();
-                opacityAverage = calculateOpacityAverage();
-                hasOpaque = calculateHasOpaque();
+                markerAverageDirty = true;
+                opacityAverageDirty = true;
+                hasOpaqueDirty = true;
             },
             add: (o: GraphicsRenderObject) => commitQueue.add(o),
             remove: (o: GraphicsRenderObject) => commitQueue.remove(o),
             commit: (maxTime = Number.MAX_VALUE) => commit(maxTime),
+            get commitQueueSize() { return commitQueue.size; },
             get needsCommit() { return !commitQueue.isEmpty; },
             has: (o: GraphicsRenderObject) => {
                 return renderableMap.has(o);
@@ -311,12 +315,24 @@ namespace Scene {
                 return boundingSphereVisible;
             },
             get markerAverage() {
+                if (markerAverageDirty) {
+                    markerAverage = calculateMarkerAverage();
+                    markerAverageDirty = false;
+                }
                 return markerAverage;
             },
             get opacityAverage() {
+                if (opacityAverageDirty) {
+                    opacityAverage = calculateOpacityAverage();
+                    opacityAverageDirty = false;
+                }
                 return opacityAverage;
             },
             get hasOpaque() {
+                if (hasOpaqueDirty) {
+                    hasOpaque = calculateHasOpaque();
+                    hasOpaqueDirty = false;
+                }
                 return hasOpaque;
             },
         };

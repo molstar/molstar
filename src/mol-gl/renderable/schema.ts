@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Gianluca Tomasello <giagitom@gmail.com>
@@ -76,13 +76,15 @@ export function AttributeSpec<K extends AttributeKind>(kind: K, itemSize: Attrib
     return { type: 'attribute', kind, itemSize, divisor };
 }
 
-export type UniformSpec<K extends UniformKind> = { type: 'uniform', kind: K, variant?: 'material' | 'buffered' }
-export function UniformSpec<K extends UniformKind>(kind: K, variant?: 'material' | 'buffered'): UniformSpec<K> {
+type UniformVariant = 'material' | 'buffered'
+export type UniformSpec<K extends UniformKind> = { type: 'uniform', kind: K, variant?: UniformVariant }
+export function UniformSpec<K extends UniformKind>(kind: K, variant?: UniformVariant): UniformSpec<K> {
     return { type: 'uniform', kind, variant };
 }
 
-export type TextureSpec<K extends TextureKind> = { type: 'texture', kind: K, format: TextureFormat, dataType: TextureType, filter: TextureFilter, variant?: 'material' }
-export function TextureSpec<K extends TextureKind>(kind: K, format: TextureFormat, dataType: TextureType, filter: TextureFilter, variant?: 'material'): TextureSpec<K> {
+type TextureVariant = 'material'
+export type TextureSpec<K extends TextureKind> = { type: 'texture', kind: K, format: TextureFormat, dataType: TextureType, filter: TextureFilter, variant?: TextureVariant }
+export function TextureSpec<K extends TextureKind>(kind: K, format: TextureFormat, dataType: TextureType, filter: TextureFilter, variant?: TextureVariant): TextureSpec<K> {
     return { type: 'texture', kind, format, dataType, filter, variant };
 }
 
@@ -152,11 +154,15 @@ export const GlobalUniformSchema = {
 
     uHighlightColor: UniformSpec('v3'),
     uSelectColor: UniformSpec('v3'),
+    uDimColor: UniformSpec('v3'),
     uHighlightStrength: UniformSpec('f'),
     uSelectStrength: UniformSpec('f'),
+    uDimStrength: UniformSpec('f'),
     uMarkerPriority: UniformSpec('i'),
+    uMarkerAverage: UniformSpec('f'),
 
     uXrayEdgeFalloff: UniformSpec('f'),
+    uExposure: UniformSpec('f'),
 
     uRenderMask: UniformSpec('i'),
     uMarkingDepthTest: UniformSpec('b'),
@@ -229,6 +235,7 @@ export const OverpaintSchema = {
     uOverpaintGridTransform: UniformSpec('v4'),
     tOverpaintGrid: TextureSpec('texture', 'rgba', 'ubyte', 'linear'),
     dOverpaintType: DefineSpec('string', ['instance', 'groupInstance', 'volumeInstance']),
+    uOverpaintStrength: UniformSpec('f', 'material'),
 } as const;
 export type OverpaintSchema = typeof OverpaintSchema
 export type OverpaintValues = Values<OverpaintSchema>
@@ -242,7 +249,8 @@ export const TransparencySchema = {
     uTransparencyGridDim: UniformSpec('v3'),
     uTransparencyGridTransform: UniformSpec('v4'),
     tTransparencyGrid: TextureSpec('texture', 'alpha', 'ubyte', 'linear'),
-    dTransparencyType: DefineSpec('string', ['instance', 'groupInstance', 'volumeInstance'])
+    dTransparencyType: DefineSpec('string', ['instance', 'groupInstance', 'volumeInstance']),
+    uTransparencyStrength: UniformSpec('f', 'material'),
 } as const;
 export type TransparencySchema = typeof TransparencySchema
 export type TransparencyValues = Values<TransparencySchema>
@@ -256,6 +264,7 @@ export const SubstanceSchema = {
     uSubstanceGridTransform: UniformSpec('v4'),
     tSubstanceGrid: TextureSpec('texture', 'rgba', 'ubyte', 'linear'),
     dSubstanceType: DefineSpec('string', ['instance', 'groupInstance', 'volumeInstance']),
+    uSubstanceStrength: UniformSpec('f', 'material'),
 } as const;
 export type SubstanceSchema = typeof SubstanceSchema
 export type SubstanceValues = Values<SubstanceSchema>

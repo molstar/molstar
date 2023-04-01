@@ -83,7 +83,7 @@ export class StructureBuilder {
         return unitcell.commit({ revertOnError: true });
     }
 
-    createStructure(modelRef: StateObjectRef<SO.Molecule.Model>, params?: RootStructureDefinition.Params, initialState?: Partial<StateTransform.State>) {
+    createStructure(modelRef: StateObjectRef<SO.Molecule.Model>, params?: RootStructureDefinition.Params, initialState?: Partial<StateTransform.State>, tags?: string | string[]) {
         const state = this.dataState;
 
         if (!params) {
@@ -95,7 +95,7 @@ export class StructureBuilder {
         }
 
         const structure = state.build().to(modelRef)
-            .apply(StateTransforms.Model.StructureFromModel, { type: params || { name: 'assembly', params: { } } }, { state: initialState });
+            .apply(StateTransforms.Model.StructureFromModel, { type: params || { name: 'assembly', params: { } } }, { state: initialState, tags });
 
         return structure.commit({ revertOnError: true });
     }

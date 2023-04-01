@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -20,7 +20,7 @@ import { getAtomicPolymerElements, getCoarsePolymerElements, getAtomicGapElement
 import { mmCIF_Schema } from '../../../mol-io/reader/cif/schema/mmcif';
 import { PrincipalAxes } from '../../../mol-math/linear-algebra/matrix/principal-axes';
 import { getPrincipalAxes } from './util/principal-axes';
-import { Boundary, getBoundary } from '../../../mol-math/geometry/boundary';
+import { Boundary, getBoundary, getFastBoundary } from '../../../mol-math/geometry/boundary';
 import { Mat4, Vec3 } from '../../../mol-math/linear-algebra';
 import { IndexPairBonds } from '../../../mol-model-formats/structure/property/bonds/index-pair';
 import { ElementSetIntraBondCache } from './unit/bonds/element-set-intra-bond-cache';
@@ -36,6 +36,9 @@ type Unit = Unit.Atomic | Unit.Spheres | Unit.Gaussians
 namespace Unit {
     export const enum Kind { Atomic, Spheres, Gaussians }
 
+    // To use with isolatedModules
+    export enum Kinds { Atomic = Kind.Atomic, Spheres = Kind.Spheres, Gaussians = Kind.Gaussians }
+
     export function isAtomic(u: Unit): u is Atomic { return u.kind === Kind.Atomic; }
     export function isCoarse(u: Unit): u is Spheres | Gaussians { return u.kind === Kind.Spheres || u.kind === Kind.Gaussians; }
     export function isSpheres(u: Unit): u is Spheres { return u.kind === Kind.Spheres; }
@@ -43,7 +46,7 @@ namespace Unit {
 
     export function create<K extends Kind>(id: number, invariantId: number, chainGroupId: number, traits: Traits, kind: Kind, model: Model, operator: SymmetryOperator, elements: StructureElement.Set, props?: K extends Kind.Atomic ? AtomicProperties : CoarseProperties): Unit {
         switch (kind) {
-            case Kind.Atomic: return new Atomic(id, invariantId, chainGroupId, traits, model, elements, SymmetryOperator.createMapping(operator, model.atomicConformation, void 0), props ?? AtomicProperties());
+            case Kind.Atomic: return new Atomic(id, invariantId, chainGroupId, traits, model, elements, SymmetryOperator.createMapping(operator, model.atomicConformation), props ?? AtomicProperties());
             case Kind.Spheres: return createCoarse(id, invariantId, chainGroupId, traits, model, Kind.Spheres, elements, SymmetryOperator.createMapping(operator, model.coarseConformation.spheres, getSphereRadiusFunc(model)), props ?? CoarseProperties());
             case Kind.Gaussians: return createCoarse(id, invariantId, chainGroupId, traits, model, Kind.Gaussians, elements, SymmetryOperator.createMapping(operator, model.coarseConformation.gaussians, getGaussianRadiusFunc(model)), props ?? CoarseProperties());
         }
@@ -122,10 +125,11 @@ namespace Unit {
     }
 
     export type Traits = BitFlags<Trait>
-    export const enum Trait {
+    export enum Trait {
         None = 0x0,
         MultiChain = 0x1,
-        Partitioned = 0x2
+        Partitioned = 0x2,
+        FastBoundary = 0x4,
     }
     export namespace Traits {
         export const is: (t: Traits, f: Trait) => boolean = BitFlags.has;
@@ -252,7 +256,9 @@ namespace Unit {
         get boundary() {
             if (this.props.boundary) return this.props.boundary;
             const { x, y, z } = this.model.atomicConformation;
-            this.props.boundary = getBoundary({ x, y, z, indices: this.elements });
+            this.props.boundary = Traits.is(this.traits, Trait.FastBoundary)
+                ? getFastBoundary({ x, y, z, indices: this.elements })
+                : getBoundary({ x, y, z, indices: this.elements });
             return this.props.boundary;
         }
 
@@ -414,7 +420,9 @@ namespace Unit {
             if (this.props.boundary) return this.props.boundary;
             // TODO: support sphere radius?
             const { x, y, z } = this.getCoarseConformation();
-            this.props.boundary = getBoundary({ x, y, z, indices: this.elements });
+            this.props.boundary = Traits.is(this.traits, Trait.FastBoundary)
+                ? getFastBoundary({ x, y, z, indices: this.elements })
+                : getBoundary({ x, y, z, indices: this.elements });
             return this.props.boundary;
         }
 
@@ -490,6 +498,7 @@ namespace Unit {
     }
 
     export function areConformationsEqual(a: Unit, b: Unit) {
+        if (a === b) return true;
         if (!SortedArray.areEqual(a.elements, b.elements)) return false;
         return isSameConformation(a, b.model);
     }

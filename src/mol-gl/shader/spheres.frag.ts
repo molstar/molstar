@@ -23,12 +23,14 @@ varying float vRadiusSq;
 varying vec3 vPoint;
 varying vec3 vPointViewPosition;
 
-vec3 cameraPos;
-vec3 cameraNormal;
+#ifdef dSolidInterior
+    const bool solidInterior = true;
+#else
+    const bool solidInterior = false;
+#endif
 
-bool Impostor(out vec3 cameraPos, out vec3 cameraNormal){
+bool SphereImpostor(out vec3 modelPos, out vec3 cameraPos, out vec3 cameraNormal, out bool interior, out float fragmentDepth){
     vec3 cameraSpherePos = -vPointViewPosition;
-    cameraSpherePos.z += vRadius;
 
     vec3 rayOrigin = mix(vec3(0.0, 0.0, 0.0), vPoint, uIsOrtho);
     vec3 rayDirection = mix(normalize(vPoint), vec3(0.0, 0.0, 1.0), uIsOrtho);
@@ -37,50 +39,67 @@ bool Impostor(out vec3 cameraPos, out vec3 cameraNormal){
     float B = dot(rayDirection, cameraSphereDir);
     float det = B * B + vRadiusSq - dot(cameraSphereDir, cameraSphereDir);
 
-    if (det < 0.0){
-        discard;
-        return false;
-    }
+    if (det < 0.0) return false;
 
     float sqrtDet = sqrt(det);
-    float posT = mix(B + sqrtDet, B + sqrtDet, uIsOrtho);
-    float negT = mix(B - sqrtDet, sqrtDet - B, uIsOrtho);
+    float posT = mix(B + sqrtDet, B - sqrtDet, uIsOrtho);
+    float negT = mix(B - sqrtDet, B + sqrtDet, uIsOrtho);
 
     cameraPos = rayDirection * negT + rayOrigin;
+    modelPos = (uInvView * vec4(cameraPos, 1.0)).xyz;
+    fragmentDepth = calcDepth(cameraPos);
 
-    if (calcDepth(cameraPos) <= 0.0) {
-        cameraPos = rayDirection * posT + rayOrigin;
-        interior = true;
-    } else {
+    bool objectClipped = false;
+
+    #if defined(dClipVariant_pixel) && dClipObjectCount != 0
+        if (clipTest(vec4(modelPos, 0.0))) {
+            objectClipped = true;
+            fragmentDepth = -1.0;
+        }
+    #endif
+
+    if (fragmentDepth > 0.0) {
+        cameraNormal = normalize(cameraPos - cameraSpherePos);
         interior = false;
+        return true;
+    } else if (uDoubleSided || solidInterior) {
+        cameraPos = rayDirection * posT + rayOrigin;
+        modelPos = (uInvView * vec4(cameraPos, 1.0)).xyz;
+        fragmentDepth = calcDepth(cameraPos);
+        cameraNormal = -normalize(cameraPos - cameraSpherePos);
+        interior = true;
+        if (fragmentDepth > 0.0) {
+            #ifdef dSolidInterior
+                if (!objectClipped) {
+                    fragmentDepth = 0.0 + (0.0000001 / vRadius);
+                    cameraNormal = -mix(normalize(vPoint), vec3(0.0, 0.0, 1.0), uIsOrtho);
+                }
+            #endif
+            return true;
+        }
     }
 
-    cameraNormal = normalize(cameraPos - cameraSpherePos);
-    cameraNormal *= float(!interior) * 2.0 - 1.0;
-
-    return !interior;
+    return false;
 }
 
 void main(void){
-    #include clip_pixel
-
-    bool flag = Impostor(cameraPos, cameraNormal);
-    if (!uDoubleSided) {
-        if (interior) discard;
-    }
-
-    vec3 vViewPosition = cameraPos;
-    float fragmentDepth = calcDepth(vViewPosition);
-    if (!flag && fragmentDepth >= 0.0) {
-        fragmentDepth = 0.0 + (0.0000001 / vRadius);
-    }
+    vec3 modelPos;
+    vec3 cameraPos;
+    vec3 cameraNormal;
+    float fragmentDepth;
+    bool clipped = false;
+    bool hit = SphereImpostor(modelPos, cameraPos, cameraNormal, interior, fragmentDepth);
+    if (!hit) discard;
 
     if (fragmentDepth < 0.0) discard;
     if (fragmentDepth > 1.0) discard;
 
+    vec3 vViewPosition = cameraPos;
+    vec3 vModelPosition = modelPos;
+
     gl_FragDepthEXT = fragmentDepth;
 
-    vec3 vModelPosition = (uInvView * vec4(vViewPosition, 1.0)).xyz;
+    #include clip_pixel
     #include assign_material_color
 
     #if defined(dRenderVariant_pick)

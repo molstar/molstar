@@ -7,12 +7,13 @@
 import { Color } from '../../mol-util/color';
 import { Location } from '../../mol-model/location';
 import { StructureElement, Bond } from '../../mol-model/structure';
-import { ColorTheme, LocationColor } from '../color';
+import type { ColorTheme, LocationColor } from '../color';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { ThemeDataContext } from '../../mol-theme/theme';
 import { getPaletteParams, getPalette } from '../../mol-util/color/palette';
 import { TableLegend, ScaleLegend } from '../../mol-util/legend';
 import { ColorLists, getColorListFromName } from '../../mol-util/color/lists';
+import { ColorThemeCategory } from './categories';
 
 const DefaultList = 'dark-2';
 const DefaultColor = Color(0xCCCCCC);
@@ -74,7 +75,7 @@ export function UnitIndexColorTheme(ctx: ThemeDataContext, props: PD.Values<Unit
 export const UnitIndexColorThemeProvider: ColorTheme.Provider<UnitIndexColorThemeParams, 'unit-index'> = {
     name: 'unit-index',
     label: 'Chain Instance',
-    category: ColorTheme.Category.Chain,
+    category: ColorThemeCategory.Chain,
     factory: UnitIndexColorTheme,
     getParams: getUnitIndexColorThemeParams,
     defaultValues: PD.getDefaultValues(UnitIndexColorThemeParams),

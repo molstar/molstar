@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -135,12 +135,18 @@ export class RepresentationRegistry<D, S extends Representation.State> {
     getApplicableTypes(data: D) {
         return getTypes(this.getApplicableList(data));
     }
+
+    clear() {
+        this._list.length = 0;
+        this._map.clear();
+        this._name.clear();
+    }
 }
 
 //
 
 export { Representation };
-interface Representation<D, P extends PD.Params = {}, S extends Representation.State = Representation.State> {
+interface Representation<D, P extends PD.Params = PD.Params, S extends Representation.State = Representation.State> {
     readonly label: string
     readonly updated: Subject<number>
     /** Number of addressable groups in all visuals of the representation */
@@ -191,6 +197,8 @@ namespace Representation {
         substance: Substance
         /** Bit mask of per group clipping applied to the representation's renderobjects */
         clipping: Clipping
+        /** Strength of the representations overpaint, transparency, substance*/
+        themeStrength: { overpaint: number, transparency: number, substance: number }
         /** Controls if the representation's renderobjects are synced automatically with GPU or not */
         syncManually: boolean
         /** A transformation applied to the representation's renderobjects */
@@ -199,7 +207,20 @@ namespace Representation {
         markerActions: MarkerActions
     }
     export function createState(): State {
-        return { visible: true, alphaFactor: 1, pickable: true, colorOnly: false, syncManually: false, transform: Mat4.identity(), overpaint: Overpaint.Empty, transparency: Transparency.Empty, substance: Substance.Empty, clipping: Clipping.Empty, markerActions: MarkerActions.All };
+        return {
+            visible: true,
+            alphaFactor: 1,
+            pickable: true,
+            colorOnly: false,
+            syncManually: false,
+            transform: Mat4.identity(),
+            overpaint: Overpaint.Empty,
+            transparency: Transparency.Empty,
+            substance: Substance.Empty,
+            clipping: Clipping.Empty,
+            themeStrength: { overpaint: 1, transparency: 1, substance: 1 },
+            markerActions: MarkerActions.All
+        };
     }
     export function updateState(state: State, update: Partial<State>) {
         if (update.visible !== undefined) state.visible = update.visible;
@@ -210,6 +231,7 @@ namespace Representation {
         if (update.transparency !== undefined) state.transparency = update.transparency;
         if (update.substance !== undefined) state.substance = update.substance;
         if (update.clipping !== undefined) state.clipping = update.clipping;
+        if (update.themeStrength !== undefined) state.themeStrength = update.themeStrength;
         if (update.syncManually !== undefined) state.syncManually = update.syncManually;
         if (update.transform !== undefined) Mat4.copy(state.transform, update.transform);
         if (update.markerActions !== undefined) state.markerActions = update.markerActions;
@@ -220,7 +242,7 @@ namespace Representation {
     }
     export const StateBuilder: StateBuilder<State> = { create: createState, update: updateState };
 
-    export type Any = Representation<any, any, any>
+    export type Any<P extends PD.Params = PD.Params, S extends State = State> = Representation<any, P, S>
     export const Empty: Any = {
         label: '', groupCount: 0, renderObjects: [], geometryVersion: -1, props: {}, params: {}, updated: new Subject(), state: createState(), theme: Theme.createEmpty(),
         createOrUpdate: () => Task.constant('', undefined),
@@ -232,7 +254,7 @@ namespace Representation {
         destroy: () => {}
     };
 
-    export type Def<D, P extends PD.Params = {}, S extends State = State> = { [k: string]: RepresentationFactory<D, P, S> }
+    export type Def<D, P extends PD.Params = PD.Params, S extends State = State> = { [k: string]: RepresentationFactory<D, P, S> }
 
     export class GeometryState {
         private curr = new Set<number>();
@@ -256,7 +278,7 @@ namespace Representation {
         }
     }
 
-    export function createMulti<D, P extends PD.Params = {}, S extends State = State>(label: string, ctx: RepresentationContext, getParams: RepresentationParamsGetter<D, P>, stateBuilder: StateBuilder<S>, reprDefs: Def<D, P>): Representation<D, P, S> {
+    export function createMulti<D, P extends PD.Params = PD.Params, S extends State = State>(label: string, ctx: RepresentationContext, getParams: RepresentationParamsGetter<D, P>, stateBuilder: StateBuilder<S>, reprDefs: Def<D, P>): Representation<D, P, S> {
         let version = 0;
         const updated = new Subject<number>();
         const geometryState = new GeometryState();
@@ -432,6 +454,7 @@ namespace Representation {
                 if (state.substance !== undefined) {
                     // TODO
                 }
+                if (state.themeStrength !== undefined) Visual.setThemeStrength(renderObject, state.themeStrength);
                 if (state.transform !== undefined) Visual.setTransform(renderObject, state.transform);
 
                 Representation.updateState(currentState, state);

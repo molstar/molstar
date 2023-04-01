@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  *
@@ -9,10 +9,17 @@
 
 export const apply_light_color = `
 #ifdef dIgnoreLight
+    #ifdef bumpEnabled
+        if (uBumpFrequency > 0.0 && uBumpAmplitude > 0.0 && bumpiness > 0.0) {
+            material.rgb += fbm(vModelPosition * uBumpFrequency) * (uBumpAmplitude * bumpiness) / uBumpFrequency;
+            material.rgb -= bumpiness / (2.0 * uBumpFrequency);
+        }
+    #endif
+
     gl_FragColor = material;
 #else
     #ifdef bumpEnabled
-        if (uBumpFrequency > 0.0 && uBumpAmplitude > 0.0) {
+        if (uBumpFrequency > 0.0 && uBumpAmplitude > 0.0 && bumpiness > 0.0) {
             normal = perturbNormal(-vViewPosition, normal, fbm(vModelPosition * uBumpFrequency), (uBumpAmplitude * bumpiness) / uBumpFrequency);
         }
     #endif
@@ -57,7 +64,7 @@ export const apply_light_color = `
     RE_IndirectSpecular_Physical(radiance, iblIrradiance, clearcoatRadiance, geometry, physicalMaterial, reflectedLight);
 
     vec3 outgoingLight = reflectedLight.directDiffuse + reflectedLight.indirectDiffuse + reflectedLight.directSpecular + reflectedLight.indirectSpecular;
-    outgoingLight = clamp(outgoingLight, 0.0, 1.0); // prevents black artifacts on specular highlight with transparent background
+    outgoingLight = clamp(outgoingLight, 0.01, 0.99); // prevents black artifacts on specular highlight with transparent background
 
     gl_FragColor = vec4(outgoingLight, color.a);
 #endif
@@ -65,4 +72,6 @@ export const apply_light_color = `
 #ifdef dXrayShaded
     gl_FragColor.a *= 1.0 - pow(abs(dot(normal, vec3(0.0, 0.0, 1.0))), uXrayEdgeFalloff);
 #endif
+
+gl_FragColor.rgb *= uExposure;
 `;

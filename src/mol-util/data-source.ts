@@ -1,27 +1,19 @@
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Adam Midlik <midlik@gmail.com>
  *
  * Adapted from LiteMol
  */
 
-import { Task, RuntimeContext } from '../mol-task';
-import { unzip, ungzip } from './zip/zip';
 import { utf8Read } from '../mol-io/common/utf8';
-import { AssetManager, Asset } from './assets';
+import { RuntimeContext, Task } from '../mol-task';
+import { Asset, AssetManager } from './assets';
+import { File_ as File, RUNNING_IN_NODEJS, XMLHttpRequest_ as XMLHttpRequest } from './nodejs-shims';
+import { ungzip, unzip } from './zip/zip';
 
-// polyfill XMLHttpRequest in node.js
-const XHR = typeof document === 'undefined' ? require('xhr2') as {
-    prototype: XMLHttpRequest;
-    new(): XMLHttpRequest;
-    readonly DONE: number;
-    readonly HEADERS_RECEIVED: number;
-    readonly LOADING: number;
-    readonly OPENED: number;
-    readonly UNSENT: number;
-} : XMLHttpRequest;
 
 export enum DataCompressionMethod {
     None,
@@ -68,7 +60,7 @@ export function ajaxGet<T extends DataType>(params: AjaxGetParams<T> | string) {
 export type AjaxTask = typeof ajaxGet
 
 function isDone(data: XMLHttpRequest | FileReader) {
-    if (data instanceof FileReader) {
+    if (!RUNNING_IN_NODEJS && data instanceof FileReader) { // FileReader is not available in Node.js
         return data.readyState === FileReader.DONE;
     } else if (data instanceof XMLHttpRequest) {
         return data.readyState === XMLHttpRequest.DONE;
@@ -144,10 +136,8 @@ async function decompress(ctx: RuntimeContext, data: Uint8Array, compression: Da
     }
 }
 
-async function processFile<T extends DataType>(ctx: RuntimeContext, reader: FileReader, type: T, compression: DataCompressionMethod): Promise<DataResponse<T>> {
-    const { result } = reader;
-
-    let data = result instanceof ArrayBuffer ? new Uint8Array(result) : result;
+async function processFile<T extends DataType>(ctx: RuntimeContext, fileContent: string | ArrayBuffer | null, type: T, compression: DataCompressionMethod): Promise<DataResponse<T>> {
+    let data = fileContent instanceof ArrayBuffer ? new Uint8Array(fileContent) : fileContent;
     if (data === null) throw new Error('no data given');
 
     if (compression !== DataCompressionMethod.None) {
@@ -177,6 +167,9 @@ async function processFile<T extends DataType>(ctx: RuntimeContext, reader: File
 }
 
 function readFromFileInternal<T extends DataType>(file: File, type: T): Task<DataResponse<T>> {
+    if (RUNNING_IN_NODEJS) {
+        return readFromFileInternal_NodeJS(file, type);
+    }
     let reader: FileReader | undefined = void 0;
     return Task.create('Read File', async ctx => {
         try {
@@ -194,12 +187,28 @@ function readFromFileInternal<T extends DataType>(file: File, type: T): Task<Dat
             const fileReader = await readData(ctx, 'Reading...', reader);
 
             await ctx.update({ message: 'Processing file...', canAbort: false });
-            return await processFile(ctx, fileReader, type, compression);
+            return await processFile(ctx, fileReader.result, type, compression);
         } finally {
             reader = void 0;
         }
     }, () => {
         if (reader) reader.abort();
+    });
+}
+function readFromFileInternal_NodeJS<T extends DataType>(file: File, type: T): Task<DataResponse<T>> {
+    return Task.create('Read File', async ctx => {
+        // unzipping for type 'zip' handled explicitly in `processFile`
+        const compression = type === 'zip' ? DataCompressionMethod.None : getCompression(file.name);
+
+        await ctx.update({ message: 'Opening file...', canAbort: false });
+        let content: ArrayBuffer | string;
+        if (type === 'binary' || type === 'zip' || compression !== DataCompressionMethod.None) {
+            content = await file.arrayBuffer();
+        } else {
+            content = await file.text();
+        }
+        await ctx.update({ message: 'Processing file...', canAbort: false });
+        return await processFile(ctx, content, type, compression);
     });
 }
 
@@ -211,7 +220,7 @@ class RequestPool {
         if (this.pool.length) {
             return this.pool.pop()!;
         }
-        return new XHR();
+        return new XMLHttpRequest();
     }
 
     static emptyFunc() { }
@@ -259,6 +268,9 @@ function getRequestResponseType(type: DataType): XMLHttpRequestResponseType {
 }
 
 function ajaxGetInternal<T extends DataType>(title: string | undefined, url: string, type: T, body?: string, headers?: [string, string][]): Task<DataResponse<T>> {
+    if (RUNNING_IN_NODEJS && url.startsWith('file://')) {
+        return ajaxGetInternal_file_NodeJS(title, url, type, body, headers);
+    }
     let xhttp: XMLHttpRequest | undefined = void 0;
     return Task.create(title ? title : 'Download', async ctx => {
         xhttp = RequestPool.get();
@@ -286,6 +298,29 @@ function ajaxGetInternal<T extends DataType>(title: string | undefined, url: str
             xhttp = void 0; // guard against reuse, help garbage collector
         }
     });
+}
+
+// NOTE: a workaround for using this in Node.js
+let _fs: (typeof import ('fs')) | undefined = undefined;
+function getFS() {
+    if (!_fs) {
+        throw new Error('When running in Node.js and reading from files, call mol-util/data-source\'s setFSModule function first.');
+    }
+    return _fs;
+}
+
+export function setFSModule(fs: typeof import ('fs')) {
+    _fs = fs;
+}
+
+/** Alternative implementation of ajaxGetInternal (because xhr2 does not support file:// protocol) */
+function ajaxGetInternal_file_NodeJS<T extends DataType>(title: string | undefined, url: string, type: T, body?: string, headers?: [string, string][]): Task<DataResponse<T>> {
+    if (!RUNNING_IN_NODEJS) throw new Error('This function should only be used when running in Node.js');
+    if (!url.startsWith('file://')) throw new Error('This function is only for URLs with protocol file://');
+    const filename = url.substring('file://'.length);
+    const data = getFS().readFileSync(filename);
+    const file = new File([data], 'raw-data');
+    return readFromFile(file, type);
 }
 
 export type AjaxGetManyEntry = { kind: 'ok', id: string, result: Asset.Wrapper<'string' | 'binary'> } | { kind: 'error', id: string, error: any }

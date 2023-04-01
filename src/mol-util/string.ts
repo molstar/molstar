@@ -94,3 +94,12 @@ export function trimCharEnd(str: string, char: string) {
 export function stripTags(str: string) {
     return str.replace(/<\/?[^>]+>/g, '');
 }
+
+/**
+ * Escape string for use in Javascript regex
+ *
+ * From https://stackoverflow.com/questions/3446170/escape-string-for-use-in-javascript-regex/6969486#6969486
+ */
+export function escapeRegExp(str: string) {
+    return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); // $& means the whole matched string
+}

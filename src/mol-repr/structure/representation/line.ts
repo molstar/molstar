@@ -16,6 +16,7 @@ import { Structure } from '../../../mol-model/structure';
 import { getUnitKindsParam } from '../params';
 import { ElementPointParams, ElementPointVisual } from '../visual/element-point';
 import { ElementCrossParams, ElementCrossVisual } from '../visual/element-cross';
+import { Points } from '../../../mol-geo/geometry/points/points';
 
 const LineVisuals = {
     'intra-bond': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, IntraUnitBondLineParams>) => UnitsRepresentation('Intra-unit bond line', ctx, getParams, IntraUnitBondLineVisual),
@@ -29,6 +30,7 @@ export const LineParams = {
     ...InterUnitBondLineParams,
     ...ElementPointParams,
     ...ElementCrossParams,
+    pointStyle: PD.Select('circle', PD.objectToOptions(Points.StyleTypes)),
     multipleBonds: PD.Select('offset', PD.arrayToOptions(['off', 'symmetric', 'offset'] as const)),
     includeParent: PD.Boolean(false),
     sizeFactor: PD.Numeric(2, { min: 0.01, max: 10, step: 0.01 }),
@@ -37,9 +39,7 @@ export const LineParams = {
 };
 export type LineParams = typeof LineParams
 export function getLineParams(ctx: ThemeRegistryContext, structure: Structure) {
-    const params = PD.clone(LineParams);
-    params.pointStyle.defaultValue = 'circle';
-    return params;
+    return LineParams;
 }
 
 export type LineRepresentation = StructureRepresentation<LineParams>

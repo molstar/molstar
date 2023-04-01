@@ -53,9 +53,12 @@ uniform int uGroupCount;
 #if defined(dColorMarker)
     uniform vec3 uHighlightColor;
     uniform vec3 uSelectColor;
+    uniform vec3 uDimColor;
     uniform float uHighlightStrength;
     uniform float uSelectStrength;
+    uniform float uDimStrength;
     uniform int uMarkerPriority;
+    uniform float uMarkerAverage;
 
     uniform float uMarker;
     uniform vec2 uMarkerTexDim;
@@ -72,6 +75,7 @@ uniform vec3 uFogColor;
 uniform float uAlpha;
 uniform bool uTransparentBackground;
 uniform float uXrayEdgeFalloff;
+uniform float uExposure;
 
 uniform int uRenderMask;
 
@@ -229,7 +233,7 @@ vec4 raymarch(vec3 startLoc, vec3 step, vec3 rayDir) {
 
         #if defined(dClipVariant_pixel) && dClipObjectCount != 0
             vec3 vModelPosition = v3m4(unitPos * uGridDim, modelTransform);
-            if (clipTest(vec4(vModelPosition, 0.0), 0)) {
+            if (clipTest(vec4(vModelPosition, 0.0))) {
                 prevValue = value;
                 pos += step;
                 continue;
@@ -270,16 +274,16 @@ vec4 raymarch(vec3 startLoc, vec3 step, vec3 rayDir) {
         #elif defined(dColorType_groupInstance)
             material.rgb = readFromTexture(tColor, vInstance * float(uGroupCount) + group, uColorTexDim).rgb;
         #elif defined(dColorType_vertex)
-            material.rgb = texture3dFrom1dTrilinear(tColor, isoPos, uGridDim, uColorTexDim, 0.0).rgb;
+            material.rgb = texture3dFrom1dTrilinear(tColor, unitPos, uGridDim, uColorTexDim, 0.0).rgb;
         #elif defined(dColorType_vertexInstance)
-            material.rgb = texture3dFrom1dTrilinear(tColor, isoPos, uGridDim, uColorTexDim, vInstance * float(uVertexCount)).rgb;
+            material.rgb = texture3dFrom1dTrilinear(tColor, unitPos, uGridDim, uColorTexDim, vInstance * float(uVertexCount)).rgb;
         #endif
 
         #ifdef dOverpaint
             #if defined(dOverpaintType_groupInstance)
                 overpaint = readFromTexture(tOverpaint, vInstance * float(uGroupCount) + group, uOverpaintTexDim);
             #elif defined(dOverpaintType_vertexInstance)
-                overpaint = texture3dFrom1dTrilinear(tOverpaint, isoPos, uGridDim, uOverpaintTexDim, vInstance * float(uVertexCount));
+                overpaint = texture3dFrom1dTrilinear(tOverpaint, unitPos, uGridDim, uOverpaintTexDim, vInstance * float(uVertexCount));
             #endif
 
             material.rgb = mix(material.rgb, overpaint.rgb, overpaint.a);

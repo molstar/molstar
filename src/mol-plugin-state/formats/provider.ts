@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -24,17 +24,23 @@ export interface DataFormatProvider<P = any, R = any, V = any> {
 
 export function DataFormatProvider<P extends DataFormatProvider>(provider: P): P { return provider; }
 
-type cifVariants = 'dscif' | 'coreCif' | -1
+type cifVariants = 'dscif' | 'segcif' | 'coreCif' | -1
 export function guessCifVariant(info: FileInfo, data: Uint8Array | string): cifVariants {
     if (info.ext === 'bcif') {
         try {
             // TODO: find a way to run msgpackDecode only once
             //      now it is run twice, here and during file parsing
-            if (decodeMsgPack(data as Uint8Array).encoder.startsWith('VolumeServer')) return 'dscif';
-        } catch { }
+            const { encoder } = decodeMsgPack(data as Uint8Array);
+            if (encoder.startsWith('VolumeServer')) return 'dscif';
+            // TODO: assumes volseg-volume-server only serves segments
+            if (encoder.startsWith('volseg-volume-server')) return 'segcif';
+        } catch (e) {
+            console.error(e);
+        }
     } else if (info.ext === 'cif') {
         const str = data as string;
         if (str.startsWith('data_SERVER\n#\n_density_server_result')) return 'dscif';
+        if (str.startsWith('data_SERVER\n#\ndata_SEGMENTATION_DATA')) return 'segcif';
         if (str.includes('atom_site_fract_x') || str.includes('atom_site.fract_x')) return 'coreCif';
     }
     return -1;

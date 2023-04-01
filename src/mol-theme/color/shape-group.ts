@@ -4,12 +4,13 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { ColorTheme } from '../color';
+import type { ColorTheme } from '../color';
 import { Color } from '../../mol-util/color';
 import { Location } from '../../mol-model/location';
 import { ShapeGroup } from '../../mol-model/shape';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { ThemeDataContext } from '../../mol-theme/theme';
+import { ColorThemeCategory } from './categories';
 
 const DefaultColor = Color(0xCCCCCC);
 const Description = 'Assigns colors as defined by the shape object.';
@@ -38,7 +39,7 @@ export function ShapeGroupColorTheme(ctx: ThemeDataContext, props: PD.Values<Sha
 export const ShapeGroupColorThemeProvider: ColorTheme.Provider<ShapeGroupColorThemeParams, 'shape-group'> = {
     name: 'shape-group',
     label: 'Shape Group',
-    category: ColorTheme.Category.Misc,
+    category: ColorThemeCategory.Misc,
     factory: ShapeGroupColorTheme,
     getParams: getShapeGroupColorThemeParams,
     defaultValues: PD.getDefaultValues(ShapeGroupColorThemeParams),
