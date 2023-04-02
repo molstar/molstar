@@ -11,7 +11,6 @@ Note that since we don't clearly distinguish between a public and private interf
 - Add LOD support
     - Visibility based on camera distance
     - Special mode for spheres with automatic LOD levels
-- Add `Frustum3D` and `Plane3D` math primitives
 
 ## [Unreleased]
 
