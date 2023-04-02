@@ -18,8 +18,10 @@ Note that since we don't clearly distinguish between a public and private interf
 - Remove `JSX` reference from `loci-labels.ts`
 - Fix overpaint/transparency/substance smoothing not updated when geometry changes
 - Fix camera project/unproject when using offset viewport
+- Add support for loading all blocks from a mmcif file as a trajectory
 - Add `Frustum3D` and `Plane3D` math primitives
 - Include `occupancy` and `B_iso_or_equiv` when creating `Conformation` from `Model`
+- Remove LazyImports (introduced in v3.31.1)
 
 ## [v3.32.0] - 2023-03-20
 
