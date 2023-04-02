@@ -14,6 +14,8 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+## [v3.33.0] - 2023-04-02
+
 - Handle resizes of viewer element even when window remains the same size
 - Throttle canvas resize events
 - Selection toggle buttons hidden if selection mode is off
@@ -28,6 +30,8 @@ Note that since we don't clearly distinguish between a public and private interf
 - Fix camera project/unproject when using offset viewport
 - Add support for loading all blocks from a mmcif file as a trajectory
 - Add `Frustum3D` and `Plane3D` math primitives
+- Include `occupancy` and `B_iso_or_equiv` when creating `Conformation` from `Model`
+- Remove LazyImports (introduced in v3.31.1)
 
 ## [v3.32.0] - 2023-03-20
 

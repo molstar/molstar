@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -99,7 +99,7 @@ namespace Coordinates {
     /**
      * Only use ordering if it's not identity.
      */
-    export function getAtomicConformation(frame: Frame, atomId: Column<number>, ordering?: ArrayLike<number>): AtomicConformation {
+    export function getAtomicConformation(frame: Frame, fields: { atomId: Column<number>, occupancy?: Column<number>, B_iso_or_equiv?: Column<number> }, ordering?: ArrayLike<number>): AtomicConformation {
         let { x, y, z } = frame;
 
         if (frame.xyzOrdering.frozen) {
@@ -143,9 +143,9 @@ namespace Coordinates {
 
         return {
             id: UUID.create22(),
-            atomId,
-            occupancy: Column.ofConst(1, frame.elementCount, Column.Schema.int),
-            B_iso_or_equiv: Column.ofConst(0, frame.elementCount, Column.Schema.float),
+            atomId: fields.atomId,
+            occupancy: fields.occupancy ?? Column.ofConst(1, frame.elementCount, Column.Schema.int),
+            B_iso_or_equiv: fields.B_iso_or_equiv ?? Column.ofConst(0, frame.elementCount, Column.Schema.float),
             xyzDefined: true,
             x,
             y,
