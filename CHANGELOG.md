@@ -19,6 +19,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Fix overpaint/transparency/substance smoothing not updated when geometry changes
 - Fix camera project/unproject when using offset viewport
 - Add `Frustum3D` and `Plane3D` math primitives
+- Include `occupancy` and `B_iso_or_equiv` when creating `Conformation` from `Model`
 
 ## [v3.32.0] - 2023-03-20
 
