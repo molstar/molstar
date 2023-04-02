@@ -127,6 +127,7 @@ export class Viewer {
                 PluginSpec.Behavior(PluginBehaviors.Representation.HighlightLoci, { mark: false }),
                 PluginSpec.Behavior(PluginBehaviors.Representation.DefaultLociLabelProvider),
                 PluginSpec.Behavior(PluginBehaviors.Camera.CameraAxisHelper),
+                PluginSpec.Behavior(PluginBehaviors.Camera.CameraControls),
 
                 PluginSpec.Behavior(MesoFocusLoci),
 
