@@ -5,6 +5,7 @@ Note that since we don't clearly distinguish between a public and private interf
 
 
 ## [Unreleased]
+  - Avoid rendering of fully transparent renderables (on renderMarkingDepth)
 
 ## [v3.33.0] - 2023-04-02
 
