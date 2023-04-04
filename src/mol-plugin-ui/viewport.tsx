@@ -16,6 +16,7 @@ import { ToggleSelectionModeButton } from './structure/selection';
 import { ViewportCanvas } from './viewport/canvas';
 import { DownloadScreenshotControls } from './viewport/screenshot';
 import { SimpleSettingsControl } from './viewport/simple-settings';
+import { orientAxes, resetAxes } from '../mol-plugin-state/manager/focus-camera/orient-axes';
 
 interface ViewportControlsState {
     isSettingsExpanded: boolean,
@@ -85,7 +86,10 @@ export class ViewportControls extends PluginUIComponent<ViewportControlsProps, V
                     <div className='msp-hover-box-body'>
                         <div className='msp-flex-column'>
                             <div className='msp-flex-row'>
-                                <Button onClick={()=>console.log('Reset Axes clicked')} /*disabled={this.state.isDisabled}*/>Reset Axes</Button>
+                                <Button onClick={()=>resetAxes(this.plugin)} /*disabled={this.state.isDisabled}*/>Reset Axes</Button>
+                            </div>
+                            <div className='msp-flex-row'>
+                                <Button onClick={()=>orientAxes(this.plugin)} /*disabled={this.state.isDisabled}*/>Orient Axes</Button>
                             </div>
                         </div>
                     </div>
