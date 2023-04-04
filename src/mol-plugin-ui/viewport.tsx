@@ -10,7 +10,7 @@ import { PluginCommands } from '../mol-plugin/commands';
 import { PluginConfig } from '../mol-plugin/config';
 import { ParamDefinition as PD } from '../mol-util/param-definition';
 import { PluginUIComponent } from './base';
-import { ControlGroup, IconButton } from './controls/common';
+import { Button, ControlGroup, IconButton } from './controls/common';
 import { AutorenewSvg, BuildOutlinedSvg, CameraOutlinedSvg, CloseSvg, FullscreenSvg, TuneSvg } from './controls/icons';
 import { ToggleSelectionModeButton } from './structure/selection';
 import { ViewportCanvas } from './viewport/canvas';
@@ -79,10 +79,22 @@ export class ViewportControls extends PluginUIComponent<ViewportControlsProps, V
     render() {
         return <div className={'msp-viewport-controls'}>
             <div className='msp-viewport-controls-buttons'>
-                <div>
+                <div className='msp-hover-box-wrapper'>
                     <div className='msp-semi-transparent-background' />
                     {this.icon(AutorenewSvg, this.resetCamera, 'Reset Camera')}
+                    <div className='msp-hover-box-body'>
+                        <div className='msp-flex-column'>
+                            <div className='msp-flex-row'>
+                                <Button onClick={()=>console.log('Reset Axes clicked')} /*disabled={this.state.isDisabled}*/>Reset Axes</Button>
+                            </div>
+                        </div>
+                    </div>
+                    <div className='msp-hover-box-spacer'></div>
                 </div>
+                {/* <div>
+                    <div className='msp-semi-transparent-background' />
+                    {this.icon(AutorenewSvg, this.resetCamera, 'Reset Camera')}
+                </div> */}
                 <div>
                     <div className='msp-semi-transparent-background' />
                     {this.icon(CameraOutlinedSvg, this.toggleScreenshotExpanded, 'Screenshot / State Snapshot', this.state.isScreenshotExpanded)}
