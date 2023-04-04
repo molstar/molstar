@@ -6,6 +6,8 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Remove `camera.far` doubeling workaround
+
 ## [v3.33.0] - 2023-04-02
 
 - Handle resizes of viewer element even when window remains the same size
