@@ -3,6 +3,7 @@
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Adam Midlik <midlik@gmail.com>
  */
 
 import * as React from 'react';
@@ -16,23 +17,26 @@ import { ToggleSelectionModeButton } from './structure/selection';
 import { ViewportCanvas } from './viewport/canvas';
 import { DownloadScreenshotControls } from './viewport/screenshot';
 import { SimpleSettingsControl } from './viewport/simple-settings';
-import { orientAxes, resetAxes } from '../mol-plugin-state/manager/focus-camera/orient-axes';
 
 interface ViewportControlsState {
     isSettingsExpanded: boolean,
-    isScreenshotExpanded: boolean
+    isScreenshotExpanded: boolean,
+    isCameraResetEnabled: boolean
 }
 
 interface ViewportControlsProps {
 }
 
 export class ViewportControls extends PluginUIComponent<ViewportControlsProps, ViewportControlsState> {
-    private allCollapsedState: ViewportControlsState = {
+    private allCollapsedState = {
         isSettingsExpanded: false,
-        isScreenshotExpanded: false
+        isScreenshotExpanded: false,
     };
 
-    state = { ...this.allCollapsedState } as ViewportControlsState;
+    state: ViewportControlsState = {
+        ...this.allCollapsedState,
+        isCameraResetEnabled: true,
+    };
 
     resetCamera = () => {
         PluginCommands.Camera.Reset(this.plugin, {});
@@ -40,7 +44,7 @@ export class ViewportControls extends PluginUIComponent<ViewportControlsProps, V
 
     private toggle(panel: keyof ViewportControlsState) {
         return (e?: React.MouseEvent<HTMLButtonElement>) => {
-            this.setState({ ...this.allCollapsedState, [panel]: !this.state[panel] });
+            this.setState(old => ({ ...old, ...this.allCollapsedState, [panel]: !this.state[panel] }));
             e?.currentTarget.blur();
         };
     }
@@ -68,9 +72,17 @@ export class ViewportControls extends PluginUIComponent<ViewportControlsProps, V
         this.plugin.helpers.viewportScreenshot?.download();
     };
 
+    enableCameraReset = (enable: boolean) => {
+        this.setState(old => ({ ...old, isCameraResetEnabled: enable }));
+    };
+
     componentDidMount() {
         this.subscribe(this.plugin.events.canvas3d.settingsUpdated, () => this.forceUpdate());
         this.subscribe(this.plugin.layout.events.updated, () => this.forceUpdate());
+        if (this.plugin.canvas3d) {
+            this.subscribe(this.plugin.canvas3d.camera.stateChanged, snapshot => this.enableCameraReset(snapshot.radius !== 0 && snapshot.radiusMax !== 0));
+            // I have no idea what radius and radiusMax mean, but this is the combination that seems to works
+        }
     }
 
     icon(icon: React.FC, onClick: (e: React.MouseEvent<HTMLButtonElement>) => void, title: string, isOn = true) {
@@ -86,19 +98,18 @@ export class ViewportControls extends PluginUIComponent<ViewportControlsProps, V
                     <div className='msp-hover-box-body'>
                         <div className='msp-flex-column'>
                             <div className='msp-flex-row'>
-                                <Button onClick={()=>resetAxes(this.plugin)} /*disabled={this.state.isDisabled}*/>Reset Axes</Button>
+                                <Button onClick={() => this.resetCamera()} disabled={!this.state.isCameraResetEnabled} title='Set camera zoom to fit the visible scene into view'>Zoom All</Button>
                             </div>
                             <div className='msp-flex-row'>
-                                <Button onClick={()=>orientAxes(this.plugin)} /*disabled={this.state.isDisabled}*/>Orient Axes</Button>
+                                <Button onClick={() => PluginCommands.Camera.OrientAxes(this.plugin)} disabled={!this.state.isCameraResetEnabled} title='Align principal component axes of the loaded structures to the screen axes'>Orient Axes</Button>
+                            </div>
+                            <div className='msp-flex-row'>
+                                <Button onClick={() => PluginCommands.Camera.ResetAxes(this.plugin)} disabled={!this.state.isCameraResetEnabled} title='Align Cartesian axes to the screen axes'>Reset Axes</Button>
                             </div>
                         </div>
                     </div>
                     <div className='msp-hover-box-spacer'></div>
                 </div>
-                {/* <div>
-                    <div className='msp-semi-transparent-background' />
-                    {this.icon(AutorenewSvg, this.resetCamera, 'Reset Camera')}
-                </div> */}
                 <div>
                     <div className='msp-semi-transparent-background' />
                     {this.icon(CameraOutlinedSvg, this.toggleScreenshotExpanded, 'Screenshot / State Snapshot', this.state.isScreenshotExpanded)}
