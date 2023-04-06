@@ -145,7 +145,7 @@ export class CameraManager {
     /** Align Cartesian axes to the screen axes (X right, Y up). */
     resetAxes(durationMs?: number) {
         if (!this.plugin.canvas3d) return;
-        const newSnapshot = changeCameraRotation(this.plugin.canvas3d.camera.getSnapshot(), Mat3.identity());
+        const newSnapshot = changeCameraRotation(this.plugin.canvas3d.camera.getSnapshot(), Mat3.Identity);
         this.setSnapshot(newSnapshot, durationMs);
     }
 

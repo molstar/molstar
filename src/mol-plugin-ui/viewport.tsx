@@ -7,6 +7,7 @@
  */
 
 import * as React from 'react';
+import { throttleTime } from 'rxjs';
 import { PluginCommands } from '../mol-plugin/commands';
 import { PluginConfig } from '../mol-plugin/config';
 import { ParamDefinition as PD } from '../mol-util/param-definition';
@@ -80,8 +81,10 @@ export class ViewportControls extends PluginUIComponent<ViewportControlsProps, V
         this.subscribe(this.plugin.events.canvas3d.settingsUpdated, () => this.forceUpdate());
         this.subscribe(this.plugin.layout.events.updated, () => this.forceUpdate());
         if (this.plugin.canvas3d) {
-            this.subscribe(this.plugin.canvas3d.camera.stateChanged, snapshot => this.enableCameraReset(snapshot.radius !== 0 && snapshot.radiusMax !== 0));
-            // I have no idea what radius and radiusMax mean, but this is the combination that seems to works
+            this.subscribe(
+                this.plugin.canvas3d.camera.stateChanged.pipe(throttleTime(500, undefined, { leading: true, trailing: true })),
+                snapshot => this.enableCameraReset(snapshot.radius !== 0 && snapshot.radiusMax !== 0)
+            );
         }
     }
 
@@ -94,17 +97,23 @@ export class ViewportControls extends PluginUIComponent<ViewportControlsProps, V
             <div className='msp-viewport-controls-buttons'>
                 <div className='msp-hover-box-wrapper'>
                     <div className='msp-semi-transparent-background' />
-                    {this.icon(AutorenewSvg, this.resetCamera, 'Reset Camera')}
+                    {this.icon(AutorenewSvg, this.resetCamera, 'Reset Zoom')}
                     <div className='msp-hover-box-body'>
                         <div className='msp-flex-column'>
                             <div className='msp-flex-row'>
-                                <Button onClick={() => this.resetCamera()} disabled={!this.state.isCameraResetEnabled} title='Set camera zoom to fit the visible scene into view'>Zoom All</Button>
+                                <Button onClick={() => this.resetCamera()} disabled={!this.state.isCameraResetEnabled} title='Set camera zoom to fit the visible scene into view'>
+                                    Reset Zoom
+                                </Button>
                             </div>
                             <div className='msp-flex-row'>
-                                <Button onClick={() => PluginCommands.Camera.OrientAxes(this.plugin)} disabled={!this.state.isCameraResetEnabled} title='Align principal component axes of the loaded structures to the screen axes'>Orient Axes</Button>
+                                <Button onClick={() => PluginCommands.Camera.OrientAxes(this.plugin)} disabled={!this.state.isCameraResetEnabled} title='Align principal component axes of the loaded structures to the screen axes (“lay flat”)'>
+                                    Orient Axes
+                                </Button>
                             </div>
                             <div className='msp-flex-row'>
-                                <Button onClick={() => PluginCommands.Camera.ResetAxes(this.plugin)} disabled={!this.state.isCameraResetEnabled} title='Align Cartesian axes to the screen axes'>Reset Axes</Button>
+                                <Button onClick={() => PluginCommands.Camera.ResetAxes(this.plugin)} disabled={!this.state.isCameraResetEnabled} title='Align Cartesian axes to the screen axes'>
+                                    Reset Axes
+                                </Button>
                             </div>
                         </div>
                     </div>
