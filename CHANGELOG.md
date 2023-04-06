@@ -9,6 +9,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Avoid `renderMarkingDepth` for fully transparent renderables
 - Remove `camera.far` doubeling workaround
 - Add `ModifiersKeys.areNone` helper function
+- Fix broken rendering caused by vertex array reuse
 
 ## [v3.33.0] - 2023-04-02
 
