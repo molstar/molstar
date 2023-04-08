@@ -14,6 +14,14 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Avoid `renderMarkingDepth` for fully transparent renderables
+- Remove `camera.far` doubling workaround
+- Add `ModifiersKeys.areNone` helper function
+- Do not render NtC tube segments unless all required atoms are present in the structure
+- Fix rendering issues caused by VAO reuse
+- Add "Zoom All", "Orient Axes", "Reset Axes" buttons to the "Reset Camera" button
+- Improve trackball move-state handling when key bindings use modifiers
+
 ## [v3.33.0] - 2023-04-02
 
 - Handle resizes of viewer element even when window remains the same size

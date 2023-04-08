@@ -76,10 +76,14 @@ export type ModifiersKeys = {
     meta: boolean
 }
 export namespace ModifiersKeys {
-    export const None = create();
+    export const None: Readonly<ModifiersKeys> = create();
 
     export function areEqual(a: ModifiersKeys, b: ModifiersKeys) {
         return a.shift === b.shift && a.alt === b.alt && a.control === b.control && a.meta === b.meta;
+    }
+
+    export function areNone(a: ModifiersKeys) {
+        return areEqual(a, None);
     }
 
     export function size(a?: ModifiersKeys) {
