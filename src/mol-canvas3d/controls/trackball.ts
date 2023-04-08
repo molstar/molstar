@@ -45,10 +45,10 @@ export const DefaultTrackballBindings = {
     keyMoveDown: Binding([Key('KeyF')], 'Move down', 'Press ${triggers}'),
     keyRollLeft: Binding([Key('KeyQ')], 'Roll left', 'Press ${triggers}'),
     keyRollRight: Binding([Key('KeyE')], 'Roll right', 'Press ${triggers}'),
-    keyPitchUp: Binding([Key('ArrowUp')], 'Pitch up', 'Press ${triggers}'),
-    keyPitchDown: Binding([Key('ArrowDown')], 'Pitch down', 'Press ${triggers}'),
-    keyYawLeft: Binding([Key('ArrowLeft')], 'Yaw left', 'Press ${triggers}'),
-    keyYawRight: Binding([Key('ArrowRight')], 'Yaw right', 'Press ${triggers}'),
+    keyPitchUp: Binding([Key('ArrowUp', M.create({ shift: true }))], 'Pitch up', 'Press ${triggers}'),
+    keyPitchDown: Binding([Key('ArrowDown', M.create({ shift: true }))], 'Pitch down', 'Press ${triggers}'),
+    keyYawLeft: Binding([Key('ArrowLeft', M.create({ shift: true }))], 'Yaw left', 'Press ${triggers}'),
+    keyYawRight: Binding([Key('ArrowRight', M.create({ shift: true }))], 'Yaw right', 'Press ${triggers}'),
 
     boostMove: Binding([Key('ShiftLeft')], 'Boost move', 'Press ${triggers}'),
     enablePointerLock: Binding([Key('Space', M.create({ control: true }))], 'Enable pointer lock', 'Press ${triggers}'),
@@ -679,30 +679,67 @@ namespace TrackballControls {
         function onKeyUp({ modifiers, code, x, y }: KeyInput) {
             if (outsideViewport(x, y)) return;
 
-            if (Binding.matchKey(b.keyMoveForward, code, modifiers)) {
-                keyState.moveForward = 0;
-            } else if (Binding.matchKey(b.keyMoveBack, code, modifiers)) {
-                keyState.moveBack = 0;
-            } else if (Binding.matchKey(b.keyMoveLeft, code, modifiers)) {
-                keyState.moveLeft = 0;
-            } else if (Binding.matchKey(b.keyMoveRight, code, modifiers)) {
-                keyState.moveRight = 0;
-            } else if (Binding.matchKey(b.keyMoveUp, code, modifiers)) {
-                keyState.moveUp = 0;
-            } else if (Binding.matchKey(b.keyMoveDown, code, modifiers)) {
-                keyState.moveDown = 0;
-            } else if (Binding.matchKey(b.keyRollLeft, code, modifiers)) {
-                keyState.rollLeft = 0;
-            } else if (Binding.matchKey(b.keyRollRight, code, modifiers)) {
-                keyState.rollRight = 0;
-            } else if (Binding.matchKey(b.keyPitchUp, code, modifiers)) {
-                keyState.pitchUp = 0;
-            } else if (Binding.matchKey(b.keyPitchDown, code, modifiers)) {
-                keyState.pitchDown = 0;
-            } else if (Binding.matchKey(b.keyYawLeft, code, modifiers)) {
-                keyState.yawLeft = 0;
-            } else if (Binding.matchKey(b.keyYawRight, code, modifiers)) {
-                keyState.yawRight = 0;
+            let isModifierCode = false;
+
+            if (code.startsWith('Alt')) {
+                isModifierCode = true;
+                modifiers.alt = true;
+            } else if (code.startsWith('Shift')) {
+                isModifierCode = true;
+                modifiers.shift = true;
+            } else if (code.startsWith('Control')) {
+                isModifierCode = true;
+                modifiers.control = true;
+            } else if (code.startsWith('Meta')) {
+                isModifierCode = true;
+                modifiers.meta = true;
+            }
+
+            const codes = [];
+
+            if (isModifierCode) {
+                if (keyState.moveForward) codes.push(b.keyMoveForward.triggers[0]?.code || '');
+                if (keyState.moveBack) codes.push(b.keyMoveBack.triggers[0]?.code || '');
+                if (keyState.moveLeft) codes.push(b.keyMoveLeft.triggers[0]?.code || '');
+                if (keyState.moveRight) codes.push(b.keyMoveRight.triggers[0]?.code || '');
+                if (keyState.moveUp) codes.push(b.keyMoveUp.triggers[0]?.code || '');
+                if (keyState.moveDown) codes.push(b.keyMoveDown.triggers[0]?.code || '');
+                if (keyState.rollLeft) codes.push(b.keyRollLeft.triggers[0]?.code || '');
+                if (keyState.rollRight) codes.push(b.keyRollRight.triggers[0]?.code || '');
+                if (keyState.pitchUp) codes.push(b.keyPitchUp.triggers[0]?.code || '');
+                if (keyState.pitchDown) codes.push(b.keyPitchDown.triggers[0]?.code || '');
+                if (keyState.yawLeft) codes.push(b.keyYawLeft.triggers[0]?.code || '');
+                if (keyState.yawRight) codes.push(b.keyYawRight.triggers[0]?.code || '');
+            } else {
+                codes.push(code);
+            }
+
+            for (const code of codes) {
+                if (Binding.matchKey(b.keyMoveForward, code, modifiers)) {
+                    keyState.moveForward = 0;
+                } else if (Binding.matchKey(b.keyMoveBack, code, modifiers)) {
+                    keyState.moveBack = 0;
+                } else if (Binding.matchKey(b.keyMoveLeft, code, modifiers)) {
+                    keyState.moveLeft = 0;
+                } else if (Binding.matchKey(b.keyMoveRight, code, modifiers)) {
+                    keyState.moveRight = 0;
+                } else if (Binding.matchKey(b.keyMoveUp, code, modifiers)) {
+                    keyState.moveUp = 0;
+                } else if (Binding.matchKey(b.keyMoveDown, code, modifiers)) {
+                    keyState.moveDown = 0;
+                } else if (Binding.matchKey(b.keyRollLeft, code, modifiers)) {
+                    keyState.rollLeft = 0;
+                } else if (Binding.matchKey(b.keyRollRight, code, modifiers)) {
+                    keyState.rollRight = 0;
+                } else if (Binding.matchKey(b.keyPitchUp, code, modifiers)) {
+                    keyState.pitchUp = 0;
+                } else if (Binding.matchKey(b.keyPitchDown, code, modifiers)) {
+                    keyState.pitchDown = 0;
+                } else if (Binding.matchKey(b.keyYawLeft, code, modifiers)) {
+                    keyState.yawLeft = 0;
+                } else if (Binding.matchKey(b.keyYawRight, code, modifiers)) {
+                    keyState.yawRight = 0;
+                }
             }
 
             if (Binding.matchKey(b.boostMove, code, modifiers)) {
@@ -742,7 +779,7 @@ namespace TrackballControls {
             }
         }
 
-        function onLeave() {
+        function unsetKeyState() {
             keyState.moveForward = 0;
             keyState.moveBack = 0;
             keyState.moveLeft = 0;
@@ -756,6 +793,10 @@ namespace TrackballControls {
             keyState.yawLeft = 0;
             keyState.yawRight = 0;
             keyState.boostMove = 0;
+        }
+
+        function onLeave() {
+            unsetKeyState();
         }
 
         function dispose() {
