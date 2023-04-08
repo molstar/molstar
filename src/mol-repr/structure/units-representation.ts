@@ -26,6 +26,7 @@ import { Clipping } from '../../mol-theme/clipping';
 import { WebGLContext } from '../../mol-gl/webgl/context';
 import { StructureGroup } from './visual/util/common';
 import { Substance } from '../../mol-theme/substance';
+import { LocationCallback } from '../util';
 
 export interface UnitsVisual<P extends StructureParams> extends Visual<StructureGroup, P> { }
 
@@ -194,6 +195,12 @@ export function UnitsRepresentation<P extends StructureParams>(label: string, ct
         return loci;
     }
 
+    function eachLocation(cb: LocationCallback) {
+        visuals.forEach(({ visual }) => {
+            visual.eachLocation(cb);
+        });
+    }
+
     function getAllLoci() {
         return [Structure.Loci(_structure.target)];
     }
@@ -312,6 +319,7 @@ export function UnitsRepresentation<P extends StructureParams>(label: string, ct
         setTheme,
         getLoci,
         getAllLoci,
+        eachLocation,
         mark,
         destroy
     };
