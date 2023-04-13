@@ -173,7 +173,7 @@ namespace Tokenizer {
         await chunkedSubtask(ctx, chunkSize, state, (chunkSize, state) => {
             readLinesChunkChecked(state, chunkSize, tokens);
             return state.position < state.length ? chunkSize : 0;
-        }, (ctx, state) => ctx.update({ message: 'Parsing...', current: state.position, max: length }));
+        }, (ctx, state) => ctx.update({ message: 'Parsing...', current: state.position, max: state.length }));
 
         return tokens;
     }
