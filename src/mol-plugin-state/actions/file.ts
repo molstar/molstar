@@ -8,13 +8,13 @@ import { PluginContext } from '../../mol-plugin/context';
 import { StateAction } from '../../mol-state';
 import { Task } from '../../mol-task';
 import { Asset } from '../../mol-util/assets';
-import { getFileInfo } from '../../mol-util/file-info';
+import { getFileNameInfo } from '../../mol-util/file-info';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { unzip } from '../../mol-util/zip/zip';
 import { PluginStateObject } from '../objects';
 
 async function processFile(file: Asset.File, plugin: PluginContext, format: string, visuals: boolean) {
-    const info = getFileInfo(file.file!);
+    const info = getFileNameInfo(file.file?.name ?? '');
     const isBinary = plugin.dataFormats.binaryExtensions.has(info.ext);
     const { data } = await plugin.builders.data.readFile({ file, isBinary });
     const provider = format === 'auto'
@@ -111,8 +111,8 @@ export const DownloadFile = StateAction.build({
                     }
                 } else {
                     const url = Asset.getUrl(params.url);
-                    const info = getFileInfo(url);
-                    await processFile(Asset.File(new File([data.obj?.data as Uint8Array], info.name)), plugin, 'auto', params.visuals);
+                    const fileName = getFileNameInfo(url).name;
+                    await processFile(Asset.File(new File([data.obj?.data as Uint8Array], fileName)), plugin, 'auto', params.visuals);
                 }
             } else {
                 const provider = plugin.dataFormats.get(params.format);
