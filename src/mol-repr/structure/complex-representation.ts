@@ -77,7 +77,7 @@ export function ComplexRepresentation<P extends StructureParams>(label: string, 
     }
 
     function getAllLoci() {
-        return [Structure.Loci(_structure.target)];
+        return [Structure.Loci(_structure.child ?? _structure)];
     }
 
     function mark(loci: Loci, action: MarkerAction) {

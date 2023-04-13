@@ -14,6 +14,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Add "Zoom All", "Orient Axes", "Reset Axes" buttons to the "Reset Camera" button
 - Improve trackball move-state handling when key bindings use modifiers
 - Fix rendering with very small viewport and SSAO enabled
+- Fix `.getAllLoci` for structure representations with `structure.child`
 
 ## [v3.33.0] - 2023-04-02
 

@@ -195,7 +195,7 @@ export function UnitsRepresentation<P extends StructureParams>(label: string, ct
     }
 
     function getAllLoci() {
-        return [Structure.Loci(_structure.target)];
+        return [Structure.Loci(_structure.child ?? _structure)];
     }
 
     function mark(loci: Loci, action: MarkerAction) {
