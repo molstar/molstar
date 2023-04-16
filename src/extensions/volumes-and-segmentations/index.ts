@@ -19,7 +19,7 @@ import { VolsegEntryFromRoot, VolsegGlobalStateFromRoot, VolsegStateFromEntry } 
 import { VolsegUI } from './ui';
 
 
-const DEBUGGING = window.location.hostname === 'localhost';
+const DEBUGGING = typeof window !== 'undefined' ? window?.location?.hostname === 'localhost' : false;
 
 export const VolsegVolumeServerConfig = {
     // DefaultServer: new PluginConfigItem('volseg-volume-server', DEFAULT_VOLUME_SERVER_V2),

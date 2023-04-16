@@ -5,7 +5,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { FileInfo } from '../../mol-util/file-info';
+import { FileNameInfo } from '../../mol-util/file-info';
 import { PluginStateObject } from '../objects';
 import { DataFormatProvider } from './provider';
 import { BuiltInTrajectoryFormats } from './trajectory';
@@ -78,7 +78,7 @@ export class DataFormatRegistry {
         this._map.delete(name);
     }
 
-    auto(info: FileInfo, dataStateObject: PluginStateObject.Data.Binary | PluginStateObject.Data.String) {
+    auto(info: FileNameInfo, dataStateObject: PluginStateObject.Data.Binary | PluginStateObject.Data.String) {
         for (let i = 0, il = this.list.length; i < il; ++i) {
             const p = this._list[i].provider;
 

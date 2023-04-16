@@ -8,7 +8,7 @@
 import { PluginContext } from '../../mol-plugin/context';
 import { StateAction, StateTransformer, StateSelection } from '../../mol-state';
 import { Task } from '../../mol-task';
-import { getFileInfo } from '../../mol-util/file-info';
+import { getFileNameInfo } from '../../mol-util/file-info';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { PluginStateObject } from '../objects';
 import { Download } from '../transforms/data';
@@ -119,7 +119,7 @@ const DownloadDensity = StateAction.build({
     switch (src.name) {
         case 'url':
             downloadParams = src.params;
-            provider = src.params.format === 'auto' ? plugin.dataFormats.auto(getFileInfo(Asset.getUrl(downloadParams.url)), data.cell?.obj!) : plugin.dataFormats.get(src.params.format);
+            provider = src.params.format === 'auto' ? plugin.dataFormats.auto(getFileNameInfo(Asset.getUrl(downloadParams.url)), data.cell?.obj!) : plugin.dataFormats.get(src.params.format);
             break;
         case 'pdb-xray':
             entryId = src.params.provider.id;

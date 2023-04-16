@@ -16,7 +16,7 @@ import { createRenderObject, GraphicsRenderObject, RenderObjectValues } from '..
 import { PickingId } from '../../mol-geo/geometry/picking';
 import { Loci, isEveryLoci, EmptyLoci } from '../../mol-model/loci';
 import { Interval } from '../../mol-data/int';
-import { VisualUpdateState } from '../util';
+import { LocationCallback, VisualUpdateState } from '../util';
 import { ColorTheme } from '../../mol-theme/color';
 import { createMarkers } from '../../mol-geo/geometry/marker-data';
 import { MarkerAction } from '../../mol-util/marker-action';
@@ -340,6 +340,13 @@ export function UnitsVisual<G extends Geometry, P extends StructureParams & Geom
         },
         getLoci(pickingId: PickingId) {
             return renderObject ? getLoci(pickingId, currentStructureGroup, renderObject.id) : EmptyLoci;
+        },
+        eachLocation(cb: LocationCallback) {
+            locationIt.reset();
+            while (locationIt.hasNext) {
+                const { location, isSecondary } = locationIt.move();
+                cb(location, isSecondary);
+            }
         },
         mark(loci: Loci, action: MarkerAction) {
             let hasInvariantId = true;

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -31,6 +31,7 @@ import { applyMeshOverpaintSmoothing, applyMeshSubstanceSmoothing, applyMeshTran
 import { applyTextureMeshOverpaintSmoothing, applyTextureMeshSubstanceSmoothing, applyTextureMeshTransparencySmoothing } from '../mol-geo/geometry/texture-mesh/color-smoothing';
 import { Substance } from '../mol-theme/substance';
 import { applySubstanceMaterial, clearSubstance, createSubstance } from '../mol-geo/geometry/substance-data';
+import { LocationCallback } from './util';
 
 export interface VisualContext {
     readonly runtime: RuntimeContext
@@ -45,6 +46,7 @@ interface Visual<D, P extends PD.Params> {
     readonly geometryVersion: number
     createOrUpdate: (ctx: VisualContext, theme: Theme, props: PD.Values<P>, data?: D) => Promise<void> | void
     getLoci: (pickingId: PickingId) => Loci
+    eachLocation: (cb: LocationCallback) => void
     mark: (loci: Loci, action: MarkerAction) => boolean
     setVisibility: (visible: boolean) => void
     setAlphaFactor: (alphaFactor: number) => void

@@ -148,7 +148,7 @@ export namespace Loci {
      * The loc argument of the callback is mutable, use Location.clone() if you intend to keep
      * the value around.
      */
-    export function forEachLocation(loci: Loci, f: (loc: Location) => any) {
+    export function forEachLocation(loci: Loci, f: (loc: Location) => void) {
         if (Loci.isEmpty(loci)) return;
 
         const location = Location.create(loci.structure);

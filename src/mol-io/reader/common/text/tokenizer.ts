@@ -134,7 +134,6 @@ namespace Tokenizer {
 
     /** Advance the state by the given number of lines and return line starts/ends as tokens. */
     export async function readLinesAsync(state: Tokenizer, count: number, ctx: RuntimeContext, initialLineCount = 100000): Promise<Tokens> {
-        const { length } = state;
         const lineTokens = TokenBuilder.create(state.data, count * 2);
 
         let linesAlreadyRead = 0;
@@ -143,7 +142,7 @@ namespace Tokenizer {
             readLinesChunk(state, linesToRead, lineTokens);
             linesAlreadyRead += linesToRead;
             return linesToRead;
-        }, (ctx, state) => ctx.update({ message: 'Parsing...', current: state.position, max: length }));
+        }, (ctx, state) => ctx.update({ message: 'Parsing...', current: state.position, max: state.length }));
 
         return lineTokens;
     }
@@ -174,7 +173,7 @@ namespace Tokenizer {
         await chunkedSubtask(ctx, chunkSize, state, (chunkSize, state) => {
             readLinesChunkChecked(state, chunkSize, tokens);
             return state.position < state.length ? chunkSize : 0;
-        }, (ctx, state) => ctx.update({ message: 'Parsing...', current: state.position, max: length }));
+        }, (ctx, state) => ctx.update({ message: 'Parsing...', current: state.position, max: state.length }));
 
         return tokens;
     }
