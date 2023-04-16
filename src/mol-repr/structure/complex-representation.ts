@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -22,6 +22,7 @@ import { Clipping } from '../../mol-theme/clipping';
 import { Transparency } from '../../mol-theme/transparency';
 import { WebGLContext } from '../../mol-gl/webgl/context';
 import { Substance } from '../../mol-theme/substance';
+import { LocationCallback } from '../util';
 
 export function ComplexRepresentation<P extends StructureParams>(label: string, ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, P>, visualCtor: (materialId: number, structure: Structure, props: PD.Values<P>, webgl?: WebGLContext) => ComplexVisual<P>): StructureRepresentation<P> {
     let version = 0;
@@ -78,6 +79,10 @@ export function ComplexRepresentation<P extends StructureParams>(label: string, 
 
     function getAllLoci() {
         return [Structure.Loci(_structure.child ?? _structure)];
+    }
+
+    function eachLocation(cb: LocationCallback) {
+        visual?.eachLocation(cb);
     }
 
     function mark(loci: Loci, action: MarkerAction) {
@@ -162,6 +167,7 @@ export function ComplexRepresentation<P extends StructureParams>(label: string, 
         setTheme,
         getLoci,
         getAllLoci,
+        eachLocation,
         mark,
         destroy
     };
