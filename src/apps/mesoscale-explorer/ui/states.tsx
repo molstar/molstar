@@ -17,7 +17,7 @@ import { PluginContext } from '../../../mol-plugin/context';
 import { StateAction, StateObjectRef, StateTransform } from '../../../mol-state';
 import { Task } from '../../../mol-task';
 import { Color } from '../../../mol-util/color/color';
-import { getFileInfo } from '../../../mol-util/file-info';
+import { getFileNameInfo } from '../../../mol-util/file-info';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { MesoscaleExplorerState } from '../app';
 import { createCellpackHierarchy } from '../data/cellpack/preset';
@@ -156,7 +156,7 @@ export const LoadModel = StateAction.build({
 
     for (const file of params.files) {
         try {
-            const info = getFileInfo(file.file!);
+            const info = getFileNameInfo(file.file!.name);
             const isBinary = ctx.dataFormats.binaryExtensions.has(info.ext);
             const { data } = await ctx.builders.data.readFile({ file, isBinary });
             await createHierarchy(ctx, data.ref);
