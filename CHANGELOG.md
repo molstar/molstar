@@ -19,6 +19,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Fix `.getAllLoci` for structure representations with `structure.child`
 - Fix `readAllLinesAsync` refering to dom length property
 - Make mol-util/file-info node compatible
+- Add `eachLocation` to representation/visual interface
 
 ## [v3.33.0] - 2023-04-02
 
