@@ -15,6 +15,8 @@ Note that since we don't clearly distinguish between a public and private interf
 - Improve trackball move-state handling when key bindings use modifiers
 - Fix rendering with very small viewport and SSAO enabled
 - Fix `.getAllLoci` for structure representations with `structure.child`
+- Fix `readAllLinesAsync` refering to dom length property
+- Make mol-util/file-info node compatible
 
 ## [v3.33.0] - 2023-04-02
 
