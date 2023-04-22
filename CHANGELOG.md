@@ -6,6 +6,8 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Support `ignoreHydrogens` in interactions representation
+
 ## [v3.34.0] - 2023-04-16
 
 - Avoid `renderMarkingDepth` for fully transparent renderables
