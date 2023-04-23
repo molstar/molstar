@@ -128,6 +128,7 @@ export const LoadExample = StateAction.build({
     if (type === 'molx' || type === 'molj') {
         await PluginCommands.State.Snapshots.OpenUrl(ctx, { url, type });
     } else {
+        PluginCommands.State.Snapshots.Clear(ctx);
         PluginCommands.State.RemoveObject(ctx, { state: ctx.state.data, ref: StateTransform.RootRef });
         adjustPluginProps(ctx);
 
@@ -151,6 +152,7 @@ export const LoadModel = StateAction.build({
     }
 
     console.time('LoadModel');
+    PluginCommands.State.Snapshots.Clear(ctx);
     PluginCommands.State.RemoveObject(ctx, { state: ctx.state.data, ref: StateTransform.RootRef });
     adjustPluginProps(ctx);
 

@@ -8,13 +8,15 @@ import { StateBuilder, StateObjectRef } from '../../../../mol-state';
 import { StructureFromPetworld } from './model';
 import { PetworldColorThemeProvider } from './color';
 import { StateTransforms } from '../../../../mol-plugin-state/transforms';
-import { distinctColors } from '../../../../mol-util/color/distinct';
 import { Color } from '../../../../mol-util/color';
 import { SpacefillRepresentationProvider } from '../../../../mol-repr/structure/representation/spacefill';
 import { StructureRepresentation3D } from '../../../../mol-plugin-state/transforms/representation';
 import { PluginContext } from '../../../../mol-plugin/context';
 import { PluginStateObject } from '../../../../mol-plugin-state/objects';
 import { MesoscaleExplorerState } from '../../app';
+import { MesoscaleGroup, MesoscaleGroupParams, MesoscaleGroupProps, getDistinctBaseColors } from '../state';
+import { ParamDefinition as PD } from '../../../../mol-util/param-definition';
+import { ColorNames } from '../../../../mol-util/color/names';
 
 type LodLevels = typeof SpacefillRepresentationProvider.defaultValues['lodLevels']
 
@@ -55,18 +57,22 @@ export async function createPetworldHierarchy(plugin: PluginContext, trajectory:
     const state = plugin.state.data;
     const customState = plugin.customState as MesoscaleExplorerState;
 
+    const _groupParams = PD.getDefaultValues(MesoscaleGroupParams);
+    const groupParams: MesoscaleGroupProps = {
+        ..._groupParams,
+        lod: {
+            ..._groupParams.lod,
+            lodLevels: customState.lodLevels,
+        }
+    };
+
     const group = await state.build()
         .to(trajectory)
         .group(StateTransforms.Misc.CreateGroup, { label: 'root' }, { tags: 'Entity', state: { isCollapsed: true } })
+        .apply(MesoscaleGroup, { ...groupParams, root: true, index: -1, tag: `ent:`, label: 'entity', color: { type: 'generate', value: ColorNames.white, lightness: 0, alpha: 1 } }, { tags: '', state: { isCollapsed: false, isHidden: groupParams.hidden } })
         .commit({ revertOnError: true });
 
-    const colors = distinctColors(tr.frameCount, {
-        hue: [1, 360],
-        chroma: [30, 80],
-        luminance: [15, 85],
-        clusteringStepCount: 50,
-        minSampleCount: 800,
-    });
+    const colors = getDistinctBaseColors(tr.frameCount);
 
     await state.transaction(async () => {
         try {
@@ -76,7 +82,7 @@ export async function createPetworldHierarchy(plugin: PluginContext, trajectory:
                 build = build
                     .to(group)
                     .apply(StructureFromPetworld, { modelIndex: i }, { tags: 'Entity' })
-                    .apply(StructureRepresentation3D, getSpacefillParams(colors[i], customState.lodLevels));
+                    .apply(StructureRepresentation3D, getSpacefillParams(colors[i], customState.lodLevels), { tags: [`ent:`] });
             }
             await build.commit();
         } catch (e) {
