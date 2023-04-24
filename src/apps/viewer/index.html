@@ -109,6 +109,8 @@
 
                 var modelArchive = getParam('model-archive', '[^&]+').trim();
                 if (modelArchive) viewer.loadModelArchive(modelArchive);
+
+                molstar.ExtensionData['struct-conn'].foo(viewer.plugin);
             });
         </script>
         <!-- __MOLSTAR_ANALYTICS__ -->

@@ -48,6 +48,7 @@ import '../../mol-util/polyfill';
 import { ObjectKeys } from '../../mol-util/type-helpers';
 import { SaccharideCompIdMapType } from '../../mol-model/structure/structure/carbohydrates/constants';
 import { Backgrounds } from '../../extensions/backgrounds';
+import { StructConnExtensionFunctions } from '../../extensions/struct-conn';
 
 export { PLUGIN_VERSION as version } from '../../mol-plugin/version';
 export { setDebugMode, setProductionMode, setTimingMode, consoleStats } from '../../mol-util/debug';
@@ -508,3 +509,7 @@ export const ViewerAutoPreset = StructureRepresentationPresetProvider({
         }
     }
 });
+
+export const ExtensionData = {
+    'struct-conn': StructConnExtensionFunctions,
+};
