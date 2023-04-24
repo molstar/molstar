@@ -511,5 +511,5 @@ export const ViewerAutoPreset = StructureRepresentationPresetProvider({
 });
 
 export const ExtensionData = {
-    'struct-conn': StructConnExtensionFunctions,
+    StructConn: StructConnExtensionFunctions,
 };
