@@ -222,7 +222,8 @@ export class Viewer {
         plugin.representation.structure.themes.colorThemeRegistry.add(PetworldColorThemeProvider);
 
         plugin.state.setSnapshotParams({
-            image: true
+            image: true,
+            componentManager: false,
         });
 
         return new Viewer(plugin);
