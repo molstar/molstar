@@ -21,7 +21,7 @@ import { CellpackAssembly, EntityStructure } from './model';
 
 type LodLevels = typeof SpacefillRepresentationProvider.defaultValues['lodLevels']
 
-function getSpacefillParams(color: Color, lodLevels: LodLevels) {
+function getSpacefillParams(color: Color, sizeFactor: number, lodLevels: LodLevels) {
     return {
         type: {
             name: 'spacefill',
@@ -30,8 +30,14 @@ function getSpacefillParams(color: Color, lodLevels: LodLevels) {
                 ignoreHydrogens: false,
                 instanceGranularity: true,
                 ignoreLight: true,
-                lodLevels,
+                lodLevels: lodLevels.map(l => {
+                    return {
+                        ...l,
+                        stride: Math.max(1, Math.round(l.stride / Math.pow(sizeFactor, l.scaleBias)))
+                    };
+                }),
                 quality: 'lowest', // avoid 'auto', triggers boundary calc
+                sizeFactor,
             },
         },
         colorTheme: {
@@ -49,6 +55,20 @@ function getSpacefillParams(color: Color, lodLevels: LodLevels) {
             }
         },
     };
+}
+
+function getSizeFactor(name: string): number {
+    switch (name) {
+        case 'dLDL':
+            return 2.5;
+        case 'iLDL':
+            return 5;
+        case 'FactorH1':
+        case 'iIgM_Antibody_5mer':
+        // case 'MG_271_272_273_274_192MER': // has a coarse and an atomic part
+            return 2;
+        default: return 1;
+    }
 }
 
 export async function createCellpackHierarchy(plugin: PluginContext, trajectory: StateObjectRef<PluginStateObject.Molecule.Trajectory>) {
@@ -179,10 +199,13 @@ export async function createCellpackHierarchy(plugin: PluginContext, trajectory:
 
                     const f = entities.details.value(i) || 'unknown function';
 
+                    const color = compColors.get(n)![compIds.get(n)!.members.get(l)!];
+                    const sizeFactor = getSizeFactor(l);
+
                     build = build
                         .to(base)
                         .apply(EntityStructure, { entityId: entities.id.value(i) }, { tags: 'Entity' })
-                        .apply(StructureRepresentation3D, getSpacefillParams(compColors.get(n)![compIds.get(n)!.members.get(l)!], customState.lodLevels), { tags: [`comp:${n}`, `func:${f}`] });
+                        .apply(StructureRepresentation3D, getSpacefillParams(color, sizeFactor, customState.lodLevels), { tags: [`comp:${n}`, `func:${f}`] });
                 }
                 await build.commit();
             } catch (e) {
@@ -197,7 +220,7 @@ export async function createCellpackHierarchy(plugin: PluginContext, trajectory:
             .to(base)
             .group(StateTransforms.Misc.CreateGroup, { label: model.obj?.data.label || 'Model' }, { tags: 'Entity', state: { isCollapsed: true } })
             .apply(EntityStructure, { entityId: entities.id.value(0) }, { tags: 'Entity' })
-            .apply(StructureRepresentation3D, getSpacefillParams(ColorNames.lightgray, customState.lodLevels))
+            .apply(StructureRepresentation3D, getSpacefillParams(ColorNames.lightgray, 1, customState.lodLevels))
             .commit();
     }
 }
