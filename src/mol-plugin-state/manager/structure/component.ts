@@ -54,6 +54,12 @@ class StructureComponentManager extends StatefulPluginComponent<StructureCompone
         return this.currentStructures[0];
     }
 
+    // To be user only from PluginState.setSnapshot
+    _setSnapshotState(options: StructureComponentManager.Options) {
+        this.updateState({ options });
+        this.events.optionsUpdated.next(void 0);
+    }
+
     async setOptions(options: StructureComponentManager.Options) {
         const interactionChanged = options.interactions !== this.state.options.interactions;
         this.updateState({ options });
