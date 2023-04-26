@@ -39,12 +39,16 @@
     <body>
         <div id="app"></div>
         <div style="position: absolute; left: 100px; top: 5px; width: 120px; height: 100px;">
-            <button onclick="molstarViewer?.plugin && molstar.ExtensionData.StructConn.inspectStructConn(molstarViewer.plugin, '1tqn', 'metalc1');">metalc1</button>
-            <button onclick="molstarViewer?.plugin && molstar.ExtensionData.StructConn.inspectStructConn(molstarViewer.plugin, '1tqn', 'metalc2');">metalc2</button>
+            <button onclick="molstarViewer?.plugin && molstar.ExtensionData.StructConn.inspectStructConn(molstarViewer.plugin, undefined, 'metalc1');">metalc1</button>
+            <button onclick="molstarViewer?.plugin && molstar.ExtensionData.StructConn.inspectStructConn(molstarViewer.plugin, undefined, 'metalc2');">metalc2</button>
             <button onclick="molstarViewer?.plugin && molstar.ExtensionData.StructConn.inspectStructConn(molstarViewer.plugin, undefined, 'covale3');">covale3</button>
             <button onclick="molstarViewer?.plugin && molstar.ExtensionData.StructConn.inspectStructConn(molstarViewer.plugin, undefined, 'covale4');">covale4</button>
             <button onclick="molstarViewer?.plugin && molstar.ExtensionData.StructConn.inspectStructConn(molstarViewer.plugin, undefined, 'covale5');">covale5</button>
             <button onclick="molstarViewer?.plugin && molstar.ExtensionData.StructConn.inspectStructConn(molstarViewer.plugin, undefined, 'covale6');">covale6</button>
+            <button onclick="molstarViewer?.plugin && molstar.ExtensionData.StructConn.inspectStructConn(molstarViewer.plugin, undefined, 'disulf1');">disulf1</button>
+            <button onclick="molstarViewer?.plugin && molstar.ExtensionData.StructConn.inspectStructConn(molstarViewer.plugin, undefined, 'disulf4');">disulf4</button>
+            <button onclick="molstarViewer?.plugin && molstar.ExtensionData.StructConn.inspectStructConn(molstarViewer.plugin, undefined, 'disulf6');">disulf6</button>
+            <button onclick="molstarViewer?.plugin && molstar.ExtensionData.StructConn.inspectStructConn(molstarViewer.plugin, undefined, 'disulf9');">disulf9</button>
             <button onclick="molstarViewer?.plugin && molstar.ExtensionData.StructConn.clearStructConnInspections(molstarViewer.plugin);">Clear</button>
         </div>
         <script type="text/javascript" src="./molstar.js"></script>

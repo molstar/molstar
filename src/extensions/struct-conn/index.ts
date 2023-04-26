@@ -5,15 +5,16 @@
  */
 
 import { Column } from '../../mol-data/db';
+import { SymmetryOperator } from '../../mol-math/geometry';
 import { MmcifFormat } from '../../mol-model-formats/structure/mmcif';
-import { Structure } from '../../mol-model/structure';
+import { Structure, StructureElement, StructureProperties } from '../../mol-model/structure';
 import { PluginStateObject } from '../../mol-plugin-state/objects';
 import { StructureComponent } from '../../mol-plugin-state/transforms/model';
 import { StructureRepresentation3D } from '../../mol-plugin-state/transforms/representation';
-import { StructureFocusRepresentation } from '../../mol-plugin/behavior/dynamic/selection/structure-focus-representation';
 import { setSubtreeVisibility } from '../../mol-plugin/behavior/static/state';
 import { PluginContext } from '../../mol-plugin/context';
 import { MolScriptBuilder } from '../../mol-script/language/builder';
+import { formatMolScript } from '../../mol-script/language/expression-formatter';
 import { ColorNames } from '../../mol-util/color/names';
 
 
@@ -27,6 +28,22 @@ const TAGS = {
     RESIDUE_REPR: 'structconn-focus-residue-repr',
     RESIDUE_NCI_REPR: 'structconn-focus-residue-nci-repr',
     ATOM_REPR: 'structconn-focus-atom-repr',
+} as const;
+
+type VisualParams = ReturnType<typeof StructureRepresentation3D.createDefaultParams>
+
+/** Parameters for 3D representation of atoms involved in struct_conn (pink bubbles) */
+const ATOMS_VISUAL_PARAMS: VisualParams = {
+    type: { name: 'ball-and-stick', params: { sizeFactor: 0.25, sizeAspectRatio: 0.73, adjustCylinderLength: true, xrayShaded: true, aromaticBonds: false, multipleBonds: 'off', dashCount: 1, dashCap: false } },
+    colorTheme: { name: 'uniform', params: { value: ColorNames.magenta } },
+    sizeTheme: { name: 'physical', params: {} },
+} as const;
+
+/** Parameters for 3D representation of residues involved in struct_conn (normal ball-and-stick) */
+const RESIDUES_VISUAL_PARAMS: VisualParams = {
+    type: { name: 'ball-and-stick', params: { sizeFactor: 0.16 } },
+    colorTheme: { name: 'element-symbol', params: {} },
+    sizeTheme: { name: 'physical', params: {} },
 } as const;
 
 
@@ -62,6 +79,20 @@ export const StructConnExtensionFunctions = {
             console.error('Structure not found');
             return;
         }
+
+        // DEBUG
+        const struct = structNode.obj!.data;
+        for (const unit of struct.units) {
+            const loc = StructureElement.Location.create(struct);
+            loc.unit = unit;
+            const opKey = StructureProperties.unit.operator_key(loc);
+            const opName = StructureProperties.unit.operator_name(loc);
+            const opList = StructureProperties.unit.pdbx_struct_oper_list_ids(loc);
+            const opHkl = StructureProperties.unit.hkl(loc);
+            console.log('unit', unit.id, unit.chainGroupId, 'operator:', opKey, opName, opList, opHkl);
+            SymmetryOperator.Default.assembly?.operList
+        }
+
         const conns = extractStructConns(structure); // TODO cache somewhere
         const conn = conns[structConnId];
         if (!conn) {
@@ -177,12 +208,14 @@ function extractStructConns(structure: Structure) {
     return result;
 }
 
+/** Return MolScript expression for atoms or residues involved in a struct_conn */
 function structConnExpression(conn: StructConnRecord, by: 'atoms' | 'residues') {
     const { core, struct } = MolScriptBuilder;
     const partnerExpressions = [];
     for (const partner of [conn.partner1, conn.partner2]) {
         const propTests: Parameters<typeof struct.generator.atomGroups>[0] = {
             'chain-test': core.rel.eq([struct.atomProperty.macromolecular.label_asym_id(), partner.asymId]),
+            'group-by': struct.atomProperty.core.operatorName(),
         };
         if (partner.seqId !== undefined) {
             propTests['residue-test'] = core.rel.eq([struct.atomProperty.macromolecular.label_seq_id(), partner.seqId]);
@@ -201,16 +234,21 @@ function structConnExpression(conn: StructConnRecord, by: 'atoms' | 'residues') 
                 core.rel.eq([struct.atomProperty.macromolecular.label_alt_id(), partner.altId]),
             ]);
         }
-        partnerExpressions.push(struct.generator.atomGroups(propTests));
+        partnerExpressions.push(struct.filter.first([struct.generator.atomGroups(propTests)]));
+        MolScriptBuilder
     }
-    return struct.combinator.merge(partnerExpressions.map(e => struct.modifier.union([e]))); // Not sure why merging two selections is so complicated but I saw it in existed code.
+    return struct.combinator.merge(partnerExpressions.map(e => struct.modifier.union([e])));
 }
 
+
+/** Create visuals for residues and atoms involved in a struct_conn and zoom on them  */
 async function addStructConnInspection(plugin: PluginContext, structNode: StructNode, conn: StructConnRecord) {
     if (!structNode) return;
 
     const expressionByResidues = structConnExpression(conn, 'residues');
     const expressionByAtoms = structConnExpression(conn, 'atoms');
+    console.log(formatMolScript(expressionByResidues));
+
 
     const selectionByResidues = await plugin.build().to(structNode).apply(
         StructureComponent,
@@ -223,32 +261,22 @@ async function addStructConnInspection(plugin: PluginContext, structNode: Struct
         { tags: [TAGS.ATOM_SEL] }
     ).commit();
 
-    const visualParams = StructureFocusRepresentation.createDefaultParams(undefined as any, plugin);
-    visualParams.targetParams.colorTheme = { name: 'uniform', params: { value: ColorNames.magenta } };
-    visualParams.targetParams.type.params.excludeTypes = [];
-    visualParams.surroundingsParams.type.params.excludeTypes = [];
-
+    console.log('selections OK:', selectionByResidues.isOk, selectionByAtom.isOk);
     if (selectionByResidues.isOk) {
         await plugin.build().to(selectionByResidues).apply(
             StructureRepresentation3D,
-            visualParams.surroundingsParams,
+            RESIDUES_VISUAL_PARAMS,
             { tags: [TAGS.RESIDUE_REPR] }
-        ).commit();
-        await plugin.build().to(selectionByResidues).apply(
-            StructureRepresentation3D,
-            visualParams.nciParams,
-            { tags: [TAGS.RESIDUE_NCI_REPR] }
         ).commit();
     }
     if (selectionByAtom.isOk) {
         const atomBalls = await plugin.build().to(selectionByAtom).apply(
             StructureRepresentation3D,
-            visualParams.targetParams,
+            ATOMS_VISUAL_PARAMS,
             { tags: [TAGS.ATOM_REPR] }
         ).commit();
         plugin.managers.camera.focusRenderObjects(atomBalls.data?.repr.renderObjects, { extraRadius: EXTRA_RADIUS });
     }
-    // TODO treat symmetry!
     // TODO ask if we want this for close contacts as well (would by cheap now)
 }
 
