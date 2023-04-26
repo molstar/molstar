@@ -11,6 +11,7 @@ import { Color } from '../../mol-util/color';
 import { Vec2, Vec3, Vec4 } from '../../mol-math/linear-algebra';
 import { LocationIterator } from '../util/location-iterator';
 import { NullLocation } from '../../mol-model/location';
+import { StructureElement, Bond } from '../../mol-model/structure';
 import { LocationColor, ColorTheme, ColorVolume } from '../../mol-theme/color';
 import { createNullTexture, Texture } from '../../mol-gl/webgl/texture';
 
@@ -156,11 +157,19 @@ function createInstanceColor(locationIt: LocationIterator, color: LocationColor,
 /** Creates color texture with color for each group (i.e. shared across instances) */
 function createGroupColor(locationIt: LocationIterator, color: LocationColor, colorData?: ColorData): ColorData {
     const { groupCount } = locationIt;
-    const colors = createTextureImage(Math.max(1, groupCount), 3, Uint8Array, colorData && colorData.tColor.ref.value.array);
+    const colors = createTextureImage(Math.max(1, groupCount * 2), 3, Uint8Array, colorData && colorData.tColor.ref.value.array);
     locationIt.reset();
+    const bLoc = StructureElement.Location.create();
     while (locationIt.hasNext && !locationIt.isNextNewInstance) {
         const { location, isSecondary, groupIndex } = locationIt.move();
-        Color.toArray(color(location, isSecondary), colors.array, groupIndex * 3);
+        Color.toArray(color(location, isSecondary), colors.array, groupIndex * 3 * 2);
+        if (Bond.isLocation(location)) {
+            const { bStructure, bUnit, bIndex } = location;
+            bLoc.structure = bStructure;
+            bLoc.unit = bUnit;
+            bLoc.element = bUnit.elements[bIndex];
+            Color.toArray(color(bLoc, isSecondary), colors.array, groupIndex * 3 * 2 + 3);
+        }
     }
     return createTextureColor(colors, 'group', colorData);
 }

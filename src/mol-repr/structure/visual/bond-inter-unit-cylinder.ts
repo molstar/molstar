@@ -235,7 +235,8 @@ export function InterUnitBondCylinderImpostorVisual(materialId: number): Complex
                 !arrayEqual(newProps.includeTypes, currentProps.includeTypes) ||
                 !arrayEqual(newProps.excludeTypes, currentProps.excludeTypes) ||
                 newProps.adjustCylinderLength !== currentProps.adjustCylinderLength ||
-                newProps.multipleBonds !== currentProps.multipleBonds
+                newProps.multipleBonds !== currentProps.multipleBonds ||
+                newProps.colorMode !== currentProps.colorMode
             );
 
             if (newStructure.interUnitBonds !== currentStructure.interUnitBonds) {

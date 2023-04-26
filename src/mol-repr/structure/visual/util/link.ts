@@ -31,6 +31,7 @@ export const LinkCylinderParams = {
     dashCap: PD.Boolean(true),
     stubCap: PD.Boolean(true),
     radialSegments: PD.Numeric(16, { min: 2, max: 56, step: 2 }, BaseGeometry.CustomQualityParamInfo),
+    colorMode: PD.Select('default', PD.arrayToOptions(['default', 'interpolate']), BaseGeometry.ShadingCategory)
 };
 export const DefaultLinkCylinderProps = PD.getDefaultValues(LinkCylinderParams);
 export type LinkCylinderProps = typeof DefaultLinkCylinderProps
@@ -271,7 +272,9 @@ export function createLinkCylinderImpostors(ctx: VisualContext, linkBuilder: Lin
 
     if (!linkCount) return { cylinders: Cylinders.createEmpty(cylinders) };
 
-    const { linkScale, linkSpacing, linkCap, aromaticScale, aromaticSpacing, aromaticDashCount, dashCount, dashScale, dashCap, stubCap } = props;
+    const { linkScale, linkSpacing, linkCap, aromaticScale, aromaticSpacing, aromaticDashCount, dashCount, dashScale, dashCap, stubCap, colorMode } = props;
+    const interpolate = colorMode === 'interpolate';
+    const colorModeFlag = interpolate === true ? 3 : 2;
 
     const cylindersCountEstimate = linkCount * 2;
     const builder = CylindersBuilder.create(cylindersCountEstimate, cylindersCountEstimate / 4, cylinders);
@@ -306,15 +309,15 @@ export function createLinkCylinderImpostors(ctx: VisualContext, linkBuilder: Lin
 
         if (linkStyle === LinkStyle.Solid) {
             v3scale(vm, v3add(vm, va, vb), 0.5);
-            builder.add(va[0], va[1], va[2], vm[0], vm[1], vm[2], 1, linkCap, linkStub, edgeIndex);
+            builder.add(va[0], va[1], va[2], vm[0], vm[1], vm[2], 1, linkCap, linkStub, colorModeFlag, edgeIndex);
         } else if (linkStyle === LinkStyle.Dashed) {
             if (segmentCount > 1) {
                 v3scale(tmpV12, v3sub(tmpV12, vb, va), lengthScale);
                 v3sub(vb, vb, tmpV12);
-                builder.addFixedCountDashes(va, vb, segmentCount, dashScale, dashCap, dashCap, edgeIndex);
+                builder.addFixedCountDashes(va, vb, segmentCount, dashScale, dashCap, dashCap, interpolate, edgeIndex);
             } else {
                 v3scale(vm, v3add(vm, va, vb), 0.5);
-                builder.add(va[0], va[1], va[2], vm[0], vm[1], vm[2], dashScale, dashCap, dashCap, edgeIndex);
+                builder.add(va[0], va[1], va[2], vm[0], vm[1], vm[2], dashScale, dashCap, dashCap, colorModeFlag, edgeIndex);
             }
         } else if (linkStyle === LinkStyle.Double || linkStyle === LinkStyle.OffsetDouble || linkStyle === LinkStyle.Triple || linkStyle === LinkStyle.OffsetTriple || linkStyle === LinkStyle.Aromatic || linkStyle === LinkStyle.MirroredAromatic) {
             const order = (linkStyle === LinkStyle.Double || linkStyle === LinkStyle.OffsetDouble) ? 2 :
@@ -326,7 +329,7 @@ export function createLinkCylinderImpostors(ctx: VisualContext, linkBuilder: Lin
             calculateShiftDir(vShift, va, vb, referencePosition ? referencePosition(edgeIndex) : null);
 
             if (linkStyle === LinkStyle.Aromatic || linkStyle === LinkStyle.MirroredAromatic) {
-                builder.add(va[0], va[1], va[2], vm[0], vm[1], vm[2], 1, linkCap, linkStub, edgeIndex);
+                builder.add(va[0], va[1], va[2], vm[0], vm[1], vm[2], 1, linkCap, linkStub, colorModeFlag, edgeIndex);
 
                 const aromaticOffset = linkRadius + aromaticScale * linkRadius + aromaticScale * linkRadius * aromaticSpacing;
 
@@ -339,38 +342,38 @@ export function createLinkCylinderImpostors(ctx: VisualContext, linkBuilder: Lin
                 v3setMagnitude(vShift, vShift, aromaticOffset);
                 v3sub(va, va, vShift);
                 v3sub(vb, vb, vShift);
-                builder.addFixedCountDashes(va, vb, aromaticSegmentCount, aromaticScale, dashCap, dashCap, edgeIndex);
+                builder.addFixedCountDashes(va, vb, aromaticSegmentCount, aromaticScale, dashCap, dashCap, interpolate, edgeIndex);
 
                 if (linkStyle === LinkStyle.MirroredAromatic) {
                     v3setMagnitude(vShift, vShift, aromaticOffset * 2);
                     v3add(va, va, vShift);
                     v3add(vb, vb, vShift);
-                    builder.addFixedCountDashes(va, vb, aromaticSegmentCount, aromaticScale, dashCap, dashCap, edgeIndex);
+                    builder.addFixedCountDashes(va, vb, aromaticSegmentCount, aromaticScale, dashCap, dashCap, interpolate, edgeIndex);
                 }
             } else if (linkStyle === LinkStyle.OffsetDouble || linkStyle === LinkStyle.OffsetTriple) {
                 const multipleOffset = linkRadius + multiScale * linkRadius + linkScale * linkRadius * linkSpacing;
                 v3setMagnitude(vShift, vShift, multipleOffset);
 
-                builder.add(va[0], va[1], va[2], vm[0], vm[1], vm[2], 1, linkCap, linkStub, edgeIndex);
+                builder.add(va[0], va[1], va[2], vm[0], vm[1], vm[2], 1, linkCap, linkStub, colorModeFlag, edgeIndex);
 
                 v3setMagnitude(tmpV12, v3sub(tmpV12, va, vb), linkRadius / 1.5);
                 v3sub(va, va, tmpV12);
 
-                if (order === 3) builder.add(va[0] + vShift[0], va[1] + vShift[1], va[2] + vShift[2], vm[0] + vShift[0], vm[1] + vShift[1], vm[2] + vShift[2], multiScale, linkCap, linkStub, edgeIndex);
-                builder.add(va[0] - vShift[0], va[1] - vShift[1], va[2] - vShift[2], vm[0] - vShift[0], vm[1] - vShift[1], vm[2] - vShift[2], multiScale, dashCap, linkStub, edgeIndex);
+                if (order === 3) builder.add(va[0] + vShift[0], va[1] + vShift[1], va[2] + vShift[2], vm[0] + vShift[0], vm[1] + vShift[1], vm[2] + vShift[2], multiScale, linkCap, linkStub, colorModeFlag, edgeIndex);
+                builder.add(va[0] - vShift[0], va[1] - vShift[1], va[2] - vShift[2], vm[0] - vShift[0], vm[1] - vShift[1], vm[2] - vShift[2], multiScale, dashCap, linkStub, colorModeFlag, edgeIndex);
             } else {
                 v3setMagnitude(vShift, vShift, absOffset);
 
-                if (order === 3) builder.add(va[0], va[1], va[2], vm[0], vm[1], vm[2], multiScale, linkCap, linkStub, edgeIndex);
-                builder.add(va[0] + vShift[0], va[1] + vShift[1], va[2] + vShift[2], vm[0] + vShift[0], vm[1] + vShift[1], vm[2] + vShift[2], multiScale, linkCap, linkStub, edgeIndex);
-                builder.add(va[0] - vShift[0], va[1] - vShift[1], va[2] - vShift[2], vm[0] - vShift[0], vm[1] - vShift[1], vm[2] - vShift[2], multiScale, linkCap, linkStub, edgeIndex);
+                if (order === 3) builder.add(va[0], va[1], va[2], vm[0], vm[1], vm[2], multiScale, linkCap, linkStub, colorModeFlag, edgeIndex);
+                builder.add(va[0] + vShift[0], va[1] + vShift[1], va[2] + vShift[2], vm[0] + vShift[0], vm[1] + vShift[1], vm[2] + vShift[2], multiScale, linkCap, linkStub, colorModeFlag, edgeIndex);
+                builder.add(va[0] - vShift[0], va[1] - vShift[1], va[2] - vShift[2], vm[0] - vShift[0], vm[1] - vShift[1], vm[2] - vShift[2], multiScale, linkCap, linkStub, colorModeFlag, edgeIndex);
             }
         } else if (linkStyle === LinkStyle.Disk) {
             v3scale(tmpV12, v3sub(tmpV12, vb, va), 0.475);
             v3add(va, va, tmpV12);
             v3sub(vb, vb, tmpV12);
 
-            builder.add(va[0], va[1], va[2], vb[0], vb[1], vb[2], 1, linkCap, linkStub, edgeIndex);
+            builder.add(va[0], va[1], va[2], vb[0], vb[1], vb[2], 1, linkCap, linkStub, colorModeFlag, edgeIndex);
         }
     }
 

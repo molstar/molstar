@@ -70,8 +70,8 @@ function createPolymerBackboneCylinderImpostor(ctx: VisualContext, unit: Unit, s
         const shift = isNucleicType ? NucleicShift : StandardShift;
 
         v3add(pM, pA, v3scale(pM, v3sub(pM, pB, pA), shift));
-        builder.add(pA[0], pA[1], pA[2], pM[0], pM[1], pM[2], 1, false, false, groupA);
-        builder.add(pM[0], pM[1], pM[2], pB[0], pB[1], pB[2], 1, false, false, groupB);
+        builder.add(pA[0], pA[1], pA[2], pM[0], pM[1], pM[2], 1, false, false, 2, groupA);
+        builder.add(pM[0], pM[1], pM[2], pB[0], pB[1], pB[2], 1, false, false, 2, groupB);
     };
 
     eachPolymerBackboneLink(unit, add);

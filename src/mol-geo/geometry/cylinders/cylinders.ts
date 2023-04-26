@@ -47,6 +47,8 @@ export interface Cylinders {
     readonly scaleBuffer: ValueCell<Float32Array>,
     /** Cylinder cap buffer as array of cap flags wrapped in a value cell */
     readonly capBuffer: ValueCell<Float32Array>,
+    /** Cylinder colorMode buffer as array of coloring modes flags wrapped in a value cell */
+    readonly colorModeBuffer: ValueCell<Float32Array>,
 
     /** Bounding sphere of the cylinders */
     readonly boundingSphere: Sphere3D
@@ -57,10 +59,10 @@ export interface Cylinders {
 }
 
 export namespace Cylinders {
-    export function create(mappings: Float32Array, indices: Uint32Array, groups: Float32Array, starts: Float32Array, ends: Float32Array, scales: Float32Array, caps: Float32Array, cylinderCount: number, cylinders?: Cylinders): Cylinders {
+    export function create(mappings: Float32Array, indices: Uint32Array, groups: Float32Array, starts: Float32Array, ends: Float32Array, scales: Float32Array, caps: Float32Array, colorModes: Float32Array, cylinderCount: number, cylinders?: Cylinders): Cylinders {
         return cylinders ?
-            update(mappings, indices, groups, starts, ends, scales, caps, cylinderCount, cylinders) :
-            fromArrays(mappings, indices, groups, starts, ends, scales, caps, cylinderCount);
+            update(mappings, indices, groups, starts, ends, scales, caps, colorModes, cylinderCount, cylinders) :
+            fromArrays(mappings, indices, groups, starts, ends, scales, caps, colorModes, cylinderCount);
     }
 
     export function createEmpty(cylinders?: Cylinders): Cylinders {
@@ -71,17 +73,18 @@ export namespace Cylinders {
         const eb = cylinders ? cylinders.endBuffer.ref.value : new Float32Array(0);
         const ab = cylinders ? cylinders.scaleBuffer.ref.value : new Float32Array(0);
         const cb = cylinders ? cylinders.capBuffer.ref.value : new Float32Array(0);
-        return create(mb, ib, gb, sb, eb, ab, cb, 0, cylinders);
+        const cmb = cylinders ? cylinders.colorModeBuffer.ref.value : new Float32Array(0);
+        return create(mb, ib, gb, sb, eb, ab, cb, cmb, 0, cylinders);
     }
 
     function hashCode(cylinders: Cylinders) {
         return hashFnv32a([
             cylinders.cylinderCount, cylinders.mappingBuffer.ref.version, cylinders.indexBuffer.ref.version,
-            cylinders.groupBuffer.ref.version, cylinders.startBuffer.ref.version, cylinders.endBuffer.ref.version, cylinders.scaleBuffer.ref.version, cylinders.capBuffer.ref.version
+            cylinders.groupBuffer.ref.version, cylinders.startBuffer.ref.version, cylinders.endBuffer.ref.version, cylinders.scaleBuffer.ref.version, cylinders.capBuffer.ref.version, cylinders.colorModeBuffer.ref.version
         ]);
     }
 
-    function fromArrays(mappings: Float32Array, indices: Uint32Array, groups: Float32Array, starts: Float32Array, ends: Float32Array, scales: Float32Array, caps: Float32Array, cylinderCount: number): Cylinders {
+    function fromArrays(mappings: Float32Array, indices: Uint32Array, groups: Float32Array, starts: Float32Array, ends: Float32Array, scales: Float32Array, caps: Float32Array, colorModes: Float32Array, cylinderCount: number): Cylinders {
 
         const boundingSphere = Sphere3D();
         let groupMapping: GroupMapping;
@@ -99,6 +102,7 @@ export namespace Cylinders {
             endBuffer: ValueCell.create(ends),
             scaleBuffer: ValueCell.create(scales),
             capBuffer: ValueCell.create(caps),
+            colorModeBuffer: ValueCell.create(colorModes),
             get boundingSphere() {
                 const newHash = hashCode(cylinders);
                 if (newHash !== currentHash) {
@@ -125,7 +129,7 @@ export namespace Cylinders {
         return cylinders;
     }
 
-    function update(mappings: Float32Array, indices: Uint32Array, groups: Float32Array, starts: Float32Array, ends: Float32Array, scales: Float32Array, caps: Float32Array, cylinderCount: number, cylinders: Cylinders) {
+    function update(mappings: Float32Array, indices: Uint32Array, groups: Float32Array, starts: Float32Array, ends: Float32Array, scales: Float32Array, caps: Float32Array, colorModes: Float32Array, cylinderCount: number, cylinders: Cylinders) {
         if (cylinderCount > cylinders.cylinderCount) {
             ValueCell.update(cylinders.mappingBuffer, mappings);
             ValueCell.update(cylinders.indexBuffer, indices);
@@ -136,6 +140,7 @@ export namespace Cylinders {
         ValueCell.update(cylinders.endBuffer, ends);
         ValueCell.update(cylinders.scaleBuffer, scales);
         ValueCell.update(cylinders.capBuffer, caps);
+        ValueCell.update(cylinders.colorModeBuffer, colorModes);
         return cylinders;
     }
 
@@ -225,6 +230,7 @@ export namespace Cylinders {
             aEnd: cylinders.endBuffer,
             aScale: cylinders.scaleBuffer,
             aCap: cylinders.capBuffer,
+            aColorMode: cylinders.colorModeBuffer,
             elements: cylinders.indexBuffer,
             boundingSphere: ValueCell.create(boundingSphere),
             invariantBoundingSphere: ValueCell.create(invariantBoundingSphere),

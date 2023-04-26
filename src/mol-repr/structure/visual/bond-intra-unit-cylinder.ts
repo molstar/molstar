@@ -253,7 +253,8 @@ export function IntraUnitBondCylinderImpostorVisual(materialId: number): UnitsVi
                 !arrayEqual(newProps.excludeTypes, currentProps.excludeTypes) ||
                 newProps.adjustCylinderLength !== currentProps.adjustCylinderLength ||
                 newProps.aromaticBonds !== currentProps.aromaticBonds ||
-                newProps.multipleBonds !== currentProps.multipleBonds
+                newProps.multipleBonds !== currentProps.multipleBonds ||
+                newProps.colorMode !== currentProps.colorMode
             );
 
             const newUnit = newStructureGroup.group.units[0];

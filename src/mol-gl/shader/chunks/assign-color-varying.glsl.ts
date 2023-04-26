@@ -5,7 +5,10 @@ export const assign_color_varying = `
     #elif defined(dColorType_instance)
         vColor.rgb = readFromTexture(tColor, aInstance, uColorTexDim).rgb;
     #elif defined(dColorType_group)
-        vColor.rgb = readFromTexture(tColor, group, uColorTexDim).rgb;
+        vColor.rgb = readFromTexture(tColor, group * 2.0, uColorTexDim).rgb;
+        #if defined(multiColor)
+            vColor2.rgb = readFromTexture(tColor, group * 2.0 + 1.0, uColorTexDim).rgb;
+        #endif
     #elif defined(dColorType_groupInstance)
         vColor.rgb = readFromTexture(tColor, aInstance * float(uGroupCount) + group, uColorTexDim).rgb;
     #elif defined(dColorType_vertex)

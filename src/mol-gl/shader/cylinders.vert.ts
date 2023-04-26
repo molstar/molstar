@@ -8,6 +8,8 @@ export const cylinders_vert = `
 precision highp float;
 precision highp int;
 
+#define multiColor
+
 #include common
 #include read_from_texture
 #include common_vert_params
@@ -26,12 +28,14 @@ attribute vec3 aStart;
 attribute vec3 aEnd;
 attribute float aScale;
 attribute float aCap;
+attribute float aColorMode;
 
 varying mat4 vTransform;
 varying vec3 vStart;
 varying vec3 vEnd;
 varying float vSize;
 varying float vCap;
+varying float vColorMode;
 
 uniform float uIsOrtho;
 uniform vec3 uCameraDir;
@@ -50,6 +54,7 @@ void main() {
     vEnd = (modelTransform * vec4(aEnd, 1.0)).xyz;
     vSize = size * aScale;
     vCap = aCap;
+    vColorMode = aColorMode;
 
     vModelPosition = (vStart + vEnd) * 0.5;
     vec3 camDir = -mix(normalize(vModelPosition - uCameraPosition), uCameraDir, uIsOrtho);
