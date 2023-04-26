@@ -5,16 +5,16 @@
  */
 
 import { Column } from '../../mol-data/db';
-import { SymmetryOperator } from '../../mol-math/geometry';
 import { MmcifFormat } from '../../mol-model-formats/structure/mmcif';
-import { Structure, StructureElement, StructureProperties } from '../../mol-model/structure';
+import { Structure } from '../../mol-model/structure';
 import { PluginStateObject } from '../../mol-plugin-state/objects';
 import { StructureComponent } from '../../mol-plugin-state/transforms/model';
 import { StructureRepresentation3D } from '../../mol-plugin-state/transforms/representation';
+import { PluginBehavior } from '../../mol-plugin/behavior';
 import { setSubtreeVisibility } from '../../mol-plugin/behavior/static/state';
+import { PluginCommand } from '../../mol-plugin/command';
 import { PluginContext } from '../../mol-plugin/context';
 import { MolScriptBuilder } from '../../mol-script/language/builder';
-import { formatMolScript } from '../../mol-script/language/expression-formatter';
 import { ColorNames } from '../../mol-util/color/names';
 
 
@@ -60,17 +60,9 @@ export const StructConnExtensionFunctions = {
         else return {};
     },
 
-    /** Remove anything created by `inspectStructConn` and
-     * make visible any carbohydrate SNFG visuals that have been hidden by `inspectStructConn`.
-     */
-    async clearStructConnInspections(plugin: PluginContext) {
-        await removeAllStructConnInspections(plugin);
-        unhideSnfgNodes(plugin);
-    },
-
     /** Create visuals for residues and atoms involved in a struct_conn with ID `structConnId`
      * and zoom on them. If `keepExisting` is false (default), remove any such visuals created by previous calls to this function.
-     * Also hide all carbohydrate SNFG visuals.
+     * Also hide all carbohydrate SNFG visuals (as they would occlude our residues of interest).
      */
     async inspectStructConn(plugin: PluginContext, entry: string | undefined, structConnId: string, keepExisting: boolean = false) {
         const structNode = selectStructureNode(plugin, entry);
@@ -80,41 +72,44 @@ export const StructConnExtensionFunctions = {
             return;
         }
 
-        // DEBUG
-        const struct = structNode.obj!.data;
-        for (const unit of struct.units) {
-            const loc = StructureElement.Location.create(struct);
-            loc.unit = unit;
-            const opKey = StructureProperties.unit.operator_key(loc);
-            const opName = StructureProperties.unit.operator_name(loc);
-            const opList = StructureProperties.unit.pdbx_struct_oper_list_ids(loc);
-            const opHkl = StructureProperties.unit.hkl(loc);
-            console.log('unit', unit.id, unit.chainGroupId, 'operator:', opKey, opName, opList, opHkl);
-            SymmetryOperator.Default.assembly?.operList
+        const structNodeRef = structNode.transform.ref;
+        const structConnCache = getExtensionState(plugin).structConnCache;
+        if (!structConnCache.has(structNodeRef)) {
+            structConnCache.set(structNodeRef, extractStructConns(structure));
         }
-
-        const conns = extractStructConns(structure); // TODO cache somewhere
+        const conns = structConnCache.get(structNodeRef)!;
         const conn = conns[structConnId];
         if (!conn) {
             console.error(`The structure does not contain struct_conn "${structConnId}"`);
             return;
         }
-        console.log(conn);
 
-        if (!keepExisting) await removeAllStructConnInspections(plugin);
+        if (!keepExisting) {
+            await removeAllStructConnInspections(plugin);
+        }
         await addStructConnInspection(plugin, structNode, conn);
         hideSnfgNodes(plugin);
+    },
+
+    /** Remove anything created by `inspectStructConn` and
+     * make visible any carbohydrate SNFG visuals that have been hidden by `inspectStructConn`.
+     */
+    async clearStructConnInspections(plugin: PluginContext) {
+        await removeAllStructConnInspections(plugin);
+        unhideSnfgNodes(plugin);
     },
 };
 
 
 type StructNode = ReturnType<typeof selectStructureNode>
 
+/** Return the first structure node belonging to `entry` (e.g. '1tqn'),
+ * or to the first loaded structure node overall if `entry` is `undefined`.
+ * Includes only "root" structures, not structure components. */
 function selectStructureNode(plugin: PluginContext, entry: string | undefined) {
     const structNodes = plugin.state.data
         .selectQ(q => q.ofType(PluginStateObject.Molecule.Structure))
         .filter(node => node.obj && !node.obj.data.parent && !node.transform.transformer.definition.isDecorator);
-    // TODO first try getting .model for each struct, as that might throw error
     if (entry) {
         const result = structNodes.find(node => node.obj && node.obj.data.model.entry.toLowerCase() === entry.toLowerCase());
         if (!result) {
@@ -132,6 +127,8 @@ function selectStructureNode(plugin: PluginContext, entry: string | undefined) {
     }
 }
 
+
+/** Represents one partner (i.e. atom) of a struct_conn */
 interface StructConnPartner {
     asymId: string,
     seqId: number | undefined,
@@ -141,9 +138,9 @@ interface StructConnPartner {
     atomId: string,
     /** Alternative location (use empty string if not given) */
     altId: string,
-    symmetry: string,
 }
 
+/** Represents a struct_conn (interaction between two partners) */
 export interface StructConnRecord {
     id: string,
     distance: number,
@@ -151,7 +148,11 @@ export interface StructConnRecord {
     partner2: StructConnPartner,
 }
 
-function extractStructConns(structure: Structure) {
+
+/** Return an object with all struct_conn records read from mmCIF.
+ * Return {} if structure comes from another format than mmCIF.
+ */
+function extractStructConns(structure: Structure): { [id: string]: StructConnRecord } {
     if (!MmcifFormat.is(structure.model.sourceData)) {
         console.error('Cannot get struct_conn because source data are not mmCIF.');
         return {};
@@ -166,7 +167,6 @@ function extractStructConns(structure: Structure) {
         ptnr1_label_comp_id: comp1,
         ptnr1_label_atom_id: atom1,
         pdbx_ptnr1_label_alt_id: alt1,
-        ptnr1_symmetry: symmetry1,
         ptnr2_label_asym_id: asym2,
         ptnr2_label_seq_id: seq2,
         ptnr2_auth_seq_id: authSeq2,
@@ -174,7 +174,6 @@ function extractStructConns(structure: Structure) {
         ptnr2_label_comp_id: comp2,
         ptnr2_label_atom_id: atom2,
         pdbx_ptnr2_label_alt_id: alt2,
-        ptnr2_symmetry: symmetry2,
         pdbx_dist_value: distance } = mmcifData.db.struct_conn;
     const n = id.rowCount;
     const result: { [id: string]: StructConnRecord } = {};
@@ -190,7 +189,6 @@ function extractStructConns(structure: Structure) {
                 compId: comp1.value(i),
                 atomId: atom1.value(i),
                 altId: alt1.value(i),
-                symmetry: symmetry1.value(i),
             },
             partner2: {
                 asymId: asym2.value(i),
@@ -200,7 +198,6 @@ function extractStructConns(structure: Structure) {
                 compId: comp2.value(i),
                 atomId: atom2.value(i),
                 altId: alt2.value(i),
-                symmetry: symmetry2.value(i),
             },
         };
         result[conn.id] = conn;
@@ -235,20 +232,16 @@ function structConnExpression(conn: StructConnRecord, by: 'atoms' | 'residues') 
             ]);
         }
         partnerExpressions.push(struct.filter.first([struct.generator.atomGroups(propTests)]));
-        MolScriptBuilder
     }
     return struct.combinator.merge(partnerExpressions.map(e => struct.modifier.union([e])));
 }
 
-
-/** Create visuals for residues and atoms involved in a struct_conn and zoom on them  */
+/** Create visuals for residues and atoms involved in a struct_conn and zoom on them */
 async function addStructConnInspection(plugin: PluginContext, structNode: StructNode, conn: StructConnRecord) {
     if (!structNode) return;
 
     const expressionByResidues = structConnExpression(conn, 'residues');
     const expressionByAtoms = structConnExpression(conn, 'atoms');
-    console.log(formatMolScript(expressionByResidues));
-
 
     const selectionByResidues = await plugin.build().to(structNode).apply(
         StructureComponent,
@@ -261,7 +254,6 @@ async function addStructConnInspection(plugin: PluginContext, structNode: Struct
         { tags: [TAGS.ATOM_SEL] }
     ).commit();
 
-    console.log('selections OK:', selectionByResidues.isOk, selectionByAtom.isOk);
     if (selectionByResidues.isOk) {
         await plugin.build().to(selectionByResidues).apply(
             StructureRepresentation3D,
@@ -277,9 +269,9 @@ async function addStructConnInspection(plugin: PluginContext, structNode: Struct
         ).commit();
         plugin.managers.camera.focusRenderObjects(atomBalls.data?.repr.renderObjects, { extraRadius: EXTRA_RADIUS });
     }
-    // TODO ask if we want this for close contacts as well (would by cheap now)
 }
 
+/** Remove anything created by `addStructConnInspection` */
 async function removeAllStructConnInspections(plugin: PluginContext) {
     const selNodes = [
         ...plugin.state.data.selectQ(q => q.root.subtree().withTag(TAGS.RESIDUE_SEL)),
@@ -290,37 +282,84 @@ async function removeAllStructConnInspections(plugin: PluginContext) {
     }
 }
 
+/** Hide all carbohydrate SNFG visuals */
 function hideSnfgNodes(plugin: PluginContext) {
     const hiddenNodes = getExtensionState(plugin).hiddenNodes;
     const snfgNodes = plugin.state.data.selectQ(q => q.root.subtree().withTag('branched-snfg-3d'));
     for (const node of snfgNodes) {
         if (!node.state.isHidden) {
             setSubtreeVisibility(plugin.state.data, node.transform.ref, true); // true means hidden
-            hiddenNodes.push(node.transform.ref);
+            hiddenNodes.set(node.transform.ref, true);
         }
     }
 }
 
+/** Make visible all carbohydrate SNFG visuals that have been hidden by `hideSnfgNodes` */
 function unhideSnfgNodes(plugin: PluginContext) {
     const hiddenNodes = getExtensionState(plugin).hiddenNodes;
-    for (const nodeRef of hiddenNodes) {
+    for (const nodeRef of Array.from(hiddenNodes.keys())) {
         try {
             setSubtreeVisibility(plugin.state.data, nodeRef, false); // false means visible
         } catch {
             // this is OK, the node has been removed
         }
     }
-    hiddenNodes.length = 0;
+    hiddenNodes.clear();
 }
 
+
 interface ExtensionState {
-    hiddenNodes: string[],
+    structConnCache: NodeMap<{ [id: string]: StructConnRecord }>,
+    hiddenNodes: NodeMap<boolean>,
 }
-function createExtensionState(): ExtensionState {
+function createExtensionState(plugin: PluginContext): ExtensionState {
     return {
-        hiddenNodes: [],
+        structConnCache: new NodeMap<{ [id: string]: StructConnRecord }>(plugin),
+        hiddenNodes: new NodeMap<boolean>(plugin),
     };
 }
 function getExtensionState(plugin: PluginContext): ExtensionState {
-    return (plugin.customState as any).StructConn ??= createExtensionState();
+    return (plugin.customState as any).StructConn ??= createExtensionState(plugin);
+}
+
+
+/** Map in which keys are refs of plugin state tree nodes,
+ * and they get automatically deleted from the map
+ * when the node is deleted from the tree. */
+class NodeMap<T> extends PluginBehavior.WithSubscribers<undefined> {
+    private readonly map = new Map<string, T>();
+    private sub?: PluginCommand.Subscription = undefined;
+
+    constructor(plugin: PluginContext) {
+        super(plugin, undefined);
+    }
+    register(): void { }
+    keys() {
+        return this.map.keys();
+    }
+    has(key: string) {
+        return this.map.has(key);
+    }
+    get(key: string) {
+        return this.map.get(key);
+    }
+    set(key: string, value: T) {
+        this.sub ??= this.subscribeObservable(this.plugin.state.data.events.cell.removed, o => this.delete(o.ref));
+        this.map.set(key, value);
+    }
+    delete(key: string) {
+        const deleted = this.map.delete(key);
+        if (this.map.size === 0 && this.sub) {
+            this.sub.unsubscribe();
+            this.sub = undefined;
+        }
+        return deleted;
+    }
+    clear() {
+        this.map.clear();
+        if (this.sub) {
+            this.sub.unsubscribe();
+            this.sub = undefined;
+        }
+    }
 }
