@@ -9,6 +9,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Add a uniform color theme for NtC tube that still paints residue and segment dividers in a different color
 - Fix bond assignments `struct_conn` records referencing waters
 - Fix `PluginState.setSnapshot` triggering unnecessary state updates
+- Fix an edge case in the `mol-state`'s `State` when trying to apply a transform to an existing Null object
 
 ## [v3.34.0] - 2023-04-16
 
