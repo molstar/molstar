@@ -54,7 +54,7 @@ class StructureComponentManager extends StatefulPluginComponent<StructureCompone
         return this.currentStructures[0];
     }
 
-    // To be user only from PluginState.setSnapshot
+    // To be used only from PluginState.setSnapshot
     _setSnapshotState(options: StructureComponentManager.Options) {
         this.updateState({ options });
         this.events.optionsUpdated.next(void 0);
