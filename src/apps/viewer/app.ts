@@ -48,6 +48,9 @@ import '../../mol-util/polyfill';
 import { ObjectKeys } from '../../mol-util/type-helpers';
 import { SaccharideCompIdMapType } from '../../mol-model/structure/structure/carbohydrates/constants';
 import { Backgrounds } from '../../extensions/backgrounds';
+import { SbNcbrPartialCharges } from '../../extensions/sb-ncbr';
+import { SbNcbrPartialChargesPreset } from '../../extensions/sb-ncbr/partial-charges/preset';
+import { SbNcbrPartialChargesPropertyProvider } from '../../extensions/sb-ncbr/partial-charges/property';
 
 export { PLUGIN_VERSION as version } from '../../mol-plugin/version';
 export { setDebugMode, setProductionMode, setTimingMode, consoleStats } from '../../mol-util/debug';
@@ -71,6 +74,7 @@ const Extensions = {
     'geo-export': PluginSpec.Behavior(GeometryExport),
     'ma-quality-assessment': PluginSpec.Behavior(MAQualityAssessment),
     'zenodo-import': PluginSpec.Behavior(ZenodoImport),
+    'sb-ncbr-partial-charges': PluginSpec.Behavior(SbNcbrPartialCharges),
 };
 
 const DefaultViewerOptions = {
@@ -503,6 +507,8 @@ export const ViewerAutoPreset = StructureRepresentationPresetProvider({
             return await QualityAssessmentPLDDTPreset.apply(ref, params, plugin);
         } else if (!!structure.models.some(m => QualityAssessment.isApplicable(m, 'qmean'))) {
             return await QualityAssessmentQmeanPreset.apply(ref, params, plugin);
+        } else if (!!structure.models.some(m => SbNcbrPartialChargesPropertyProvider.isApplicable(m))) {
+            return await SbNcbrPartialChargesPreset.apply(ref, params, plugin);
         } else {
             return await PresetStructureRepresentations.auto.apply(ref, params, plugin);
         }
