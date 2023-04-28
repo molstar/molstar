@@ -60,7 +60,7 @@ export const wwPDBStructConnExtensionFunctions = {
 
     /** Create visuals for residues and atoms involved in a struct_conn with ID `structConnId`
      * and zoom on them. If `keepExisting` is false (default), remove any such visuals created by previous calls to this function.
-     * Also hide all carbohydrate SNFG visuals (as they would occlude our residues of interest).
+     * Also hide all carbohydrate SNFG visuals within the structure (as they would occlude our residues of interest).
      */
     async inspectStructConn(plugin: PluginContext, entry: string | undefined, structConnId: string, keepExisting: boolean = false) {
         const structNode = selectStructureNode(plugin, entry);
@@ -84,7 +84,7 @@ export const wwPDBStructConnExtensionFunctions = {
         hideSnfgNodes(plugin, structNode);
     },
 
-    /** Remove anything created by `inspectStructConn` and
+    /** Remove anything created by `inspectStructConn` within the structure and
      * make visible any carbohydrate SNFG visuals that have been hidden by `inspectStructConn`.
      */
     async clearStructConnInspections(plugin: PluginContext, entry: string | undefined) {
@@ -103,8 +103,7 @@ type StructNode = Exclude<ReturnType<typeof selectStructureNode>, undefined>
  * Includes only "root" structures, not structure components. */
 function selectStructureNode(plugin: PluginContext, entry: string | undefined) {
     const structNodes = plugin.state.data
-        .selectQ(q => q.ofType(PluginStateObject.Molecule.Structure))
-        .filter(node => node.obj && !node.obj.data.parent && !node.transform.transformer.definition.isDecorator);
+        .selectQ(q => q.rootsOfType(PluginStateObject.Molecule.Structure));
     if (entry) {
         const result = structNodes.find(node => node.obj && node.obj.data.model.entry.toLowerCase() === entry.toLowerCase());
         if (!result) {
