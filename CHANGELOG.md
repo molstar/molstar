@@ -9,6 +9,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Add a uniform color theme for NtC tube that still paints residue and segment dividers in a different color
 - Fix bond assignments `struct_conn` records referencing waters
 - Fix `PluginState.setSnapshot` triggering unnecessary state updates
+- Add coloring and labeling atoms and residues according to their partial atomic charges
 
 ## [v3.34.0] - 2023-04-16
 
