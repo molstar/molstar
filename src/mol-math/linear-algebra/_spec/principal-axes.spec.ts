@@ -9,11 +9,11 @@ import { PrincipalAxes } from '../matrix/principal-axes';
 
 describe('PrincipalAxes', () => {
     it('same-cartesian-plane', () => {
-        const positions : NumberArray = [ //same y coordinate
+        const positions: NumberArray = [ // same y coordinate
             0.1945, -0.0219, -0.0416,
-            -0.0219,-0.0219, -0.0119,
+            -0.0219, -0.0219, -0.0119,
         ];
-        const { origin, dirA, dirB, dirC } = PrincipalAxes.ofPositions(positions).boxAxes;
-        expect( origin[0] !== Infinity && origin[1] !== Infinity && origin[2] !== Infinity ).toBe(true);
+        const { origin } = PrincipalAxes.ofPositions(positions).boxAxes;
+        expect(origin[0] !== Infinity && origin[1] !== Infinity && origin[2] !== Infinity).toBe(true);
     });
 });
