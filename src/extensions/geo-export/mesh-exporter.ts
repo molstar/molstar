@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2021-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Sukolsak Sakshuwong <sukolsak@stanford.edu>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -34,10 +34,12 @@ const GeoExportName = 'geo-export';
 // avoiding namespace lookup improved performance in Chrome (Aug 2020)
 const v3fromArray = Vec3.fromArray;
 
+type MeshMode = 'points' | 'lines' | 'triangles'
+
 export interface AddMeshInput {
     mesh: {
         vertices: Float32Array
-        normals: Float32Array
+        normals: Float32Array | undefined
         indices: Uint32Array | undefined
         groups: Float32Array | Uint8Array
         vertexCount: number
@@ -46,6 +48,7 @@ export interface AddMeshInput {
     meshes: Mesh[] | undefined
     values: BaseValues
     isGeoTexture: boolean
+    mode: MeshMode
     webgl: WebGLContext | undefined
     ctx: RuntimeContext
 }
@@ -55,7 +58,8 @@ export type MeshGeoData = {
     groups: Float32Array | Uint8Array,
     vertexCount: number,
     instanceIndex: number,
-    isGeoTexture: boolean
+    isGeoTexture: boolean,
+    mode: MeshMode
 }
 
 export abstract class MeshExporter<D extends RenderObjectExportData> implements RenderObjectExporter<D> {
@@ -222,7 +226,7 @@ export abstract class MeshExporter<D extends RenderObjectExportData> implements 
     }
 
     protected static getColor(vertexIndex: number, geoData: MeshGeoData, interpolatedColors?: Uint8Array, interpolatedOverpaint?: Uint8Array): Color {
-        const { values, instanceIndex, isGeoTexture, groups, vertexCount } = geoData;
+        const { values, instanceIndex, isGeoTexture, mode, groups } = geoData;
         const groupCount = values.uGroupCount.ref.value;
         const colorType = values.dColorType.ref.value;
         const uColor = values.uColor.ref.value;
@@ -230,6 +234,12 @@ export abstract class MeshExporter<D extends RenderObjectExportData> implements 
         const overpaintType = values.dOverpaintType.ref.value;
         const dOverpaint = values.dOverpaint.ref.value;
         const tOverpaint = values.tOverpaint.ref.value.array;
+
+        let vertexCount = geoData.vertexCount;
+        if (mode === 'lines') {
+            vertexIndex *= 2;
+            vertexCount *= 2;
+        }
 
         let color: Color;
         switch (colorType) {
@@ -298,11 +308,17 @@ export abstract class MeshExporter<D extends RenderObjectExportData> implements 
     }
 
     protected static getTransparency(vertexIndex: number, geoData: MeshGeoData, interpolatedTransparency?: Uint8Array): number {
-        const { values, instanceIndex, isGeoTexture, groups, vertexCount } = geoData;
+        const { values, instanceIndex, isGeoTexture, mode, groups } = geoData;
         const groupCount = values.uGroupCount.ref.value;
         const dTransparency = values.dTransparency.ref.value;
         const tTransparency = values.tTransparency.ref.value.array;
         const transparencyType = values.dTransparencyType.ref.value;
+
+        let vertexCount = geoData.vertexCount;
+        if (mode === 'lines') {
+            vertexIndex *= 2;
+            vertexCount *= 2;
+        }
 
         let transparency: number = 0;
         if (dTransparency) {
@@ -329,7 +345,7 @@ export abstract class MeshExporter<D extends RenderObjectExportData> implements 
         return transparency;
     }
 
-    protected abstract addMeshWithColors(input: AddMeshInput): void;
+    protected abstract addMeshWithColors(input: AddMeshInput): Promise<void>;
 
     private async addMesh(values: MeshValues, webgl: WebGLContext, ctx: RuntimeContext) {
         const aPosition = values.aPosition.ref.value;
@@ -349,15 +365,38 @@ export abstract class MeshExporter<D extends RenderObjectExportData> implements 
             drawCount = values.drawCount.ref.value;
         }
 
-        await this.addMeshWithColors({ mesh: { vertices: aPosition, normals: aNormal, indices, groups: aGroup, vertexCount, drawCount }, meshes: undefined, values, isGeoTexture: false, webgl, ctx });
+        await this.addMeshWithColors({ mesh: { vertices: aPosition, normals: aNormal, indices, groups: aGroup, vertexCount, drawCount }, meshes: undefined, values, isGeoTexture: false, mode: 'triangles', webgl, ctx });
     }
 
     private async addLines(values: LinesValues, webgl: WebGLContext, ctx: RuntimeContext) {
-        // TODO
+        const aStart = values.aStart.ref.value;
+        const aEnd = values.aEnd.ref.value;
+        const aGroup = values.aGroup.ref.value;
+        const vertexCount = (values.uVertexCount.ref.value / 4) * 2;
+        const drawCount = values.drawCount.ref.value / (2 * 3);
+
+        const n = (vertexCount / 2);
+        const vertices = new Float32Array(n * 2 * 3);
+        for (let i = 0; i < n; ++i) {
+            vertices[i * 6] = aStart[i * 4 * 3];
+            vertices[i * 6 + 1] = aStart[i * 4 * 3 + 1];
+            vertices[i * 6 + 2] = aStart[i * 4 * 3 + 2];
+
+            vertices[i * 6 + 3] = aEnd[i * 4 * 3];
+            vertices[i * 6 + 4] = aEnd[i * 4 * 3 + 1];
+            vertices[i * 6 + 5] = aEnd[i * 4 * 3 + 2];
+        }
+
+        await this.addMeshWithColors({ mesh: { vertices, normals: undefined, indices: undefined, groups: aGroup, vertexCount, drawCount }, meshes: undefined, values, isGeoTexture: false, mode: 'lines', webgl, ctx });
     }
 
     private async addPoints(values: PointsValues, webgl: WebGLContext, ctx: RuntimeContext) {
-        // TODO
+        const aPosition = values.aPosition.ref.value;
+        const aGroup = values.aGroup.ref.value;
+        const vertexCount = values.uVertexCount.ref.value;
+        const drawCount = values.drawCount.ref.value;
+
+        await this.addMeshWithColors({ mesh: { vertices: aPosition, normals: undefined, indices: undefined, groups: aGroup, vertexCount, drawCount }, meshes: undefined, values, isGeoTexture: false, mode: 'points', webgl, ctx });
     }
 
     private async addSpheres(values: SpheresValues, webgl: WebGLContext, ctx: RuntimeContext) {
@@ -390,7 +429,7 @@ export abstract class MeshExporter<D extends RenderObjectExportData> implements 
             meshes.push(MeshBuilder.getMesh(state));
         }
 
-        await this.addMeshWithColors({ mesh: undefined, meshes, values, isGeoTexture: false, webgl, ctx });
+        await this.addMeshWithColors({ mesh: undefined, meshes, values, isGeoTexture: false, mode: 'triangles', webgl, ctx });
     }
 
     private async addCylinders(values: CylindersValues, webgl: WebGLContext, ctx: RuntimeContext) {
@@ -432,7 +471,7 @@ export abstract class MeshExporter<D extends RenderObjectExportData> implements 
             meshes.push(MeshBuilder.getMesh(state));
         }
 
-        await this.addMeshWithColors({ mesh: undefined, meshes, values, isGeoTexture: false, webgl, ctx });
+        await this.addMeshWithColors({ mesh: undefined, meshes, values, isGeoTexture: false, mode: 'triangles', webgl, ctx });
     }
 
     private async addTextureMesh(values: TextureMeshValues, webgl: WebGLContext, ctx: RuntimeContext) {
@@ -457,11 +496,13 @@ export abstract class MeshExporter<D extends RenderObjectExportData> implements 
         const vertexCount = values.uVertexCount.ref.value;
         const drawCount = values.drawCount.ref.value;
 
-        await this.addMeshWithColors({ mesh: { vertices, normals, indices: undefined, groups, vertexCount, drawCount }, meshes: undefined, values, isGeoTexture: true, webgl, ctx });
+        await this.addMeshWithColors({ mesh: { vertices, normals, indices: undefined, groups, vertexCount, drawCount }, meshes: undefined, values, isGeoTexture: true, mode: 'triangles', webgl, ctx });
     }
 
     add(renderObject: GraphicsRenderObject, webgl: WebGLContext, ctx: RuntimeContext) {
         if (!renderObject.state.visible) return;
+        if (renderObject.values.drawCount.ref.value === 0) return;
+        if (renderObject.values.instanceCount.ref.value === 0) return;
 
         switch (renderObject.type) {
             case 'mesh':
