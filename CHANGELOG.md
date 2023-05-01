@@ -9,7 +9,17 @@ Note that since we don't clearly distinguish between a public and private interf
 - Add a uniform color theme for NtC tube that still paints residue and segment dividers in a different color
 - Fix bond assignments `struct_conn` records referencing waters
 - Fix `PluginState.setSnapshot` triggering unnecessary state updates
-- Add coloring and labeling atoms and residues according to their partial atomic charges
+- Add `SbNcbrPartialCharges` extensing for coloring and labeling atoms and residues by partial atomic charges
+  - mmcif category description:
+    ```
+    _sb_ncbr_partial_atomic_charges_meta.id         # id of the charges (e.g. 1)
+    _sb_ncbr_partial_atomic_charges_meta.type       # type of the charges (optional, e.g. 'empirical')
+    _sb_ncbr_partial_atomic_charges_meta.method     # calculation method name (e.g. 'QEq', 'SQE+qp/Schindler 2021 (PUB_pept)')
+
+    _sb_ncbr_partial_atomic_charges.type_id         # id of the charges (pointer to _sb_ncbr_partial_atomic_charges_meta.id)
+    _sb_ncbr_partial_atomic_charges.atom_id         # atom id (pointer to _atom_site.id)
+    _sb_ncbr_partial_atomic_charges.charge          # partial atomic charge 
+    ```
 
 ## [v3.34.0] - 2023-04-16
 

@@ -10,6 +10,10 @@ export function SbNcbrPartialChargesLociLabelProvider(ctx: PluginContext): LociL
         label: (loci: Loci) => {
             if (!StructureElement.Loci.is(loci)) return;
 
+            const model = loci.structure.model;
+            const data = SbNcbrPartialChargesPropertyProvider.get(model).value?.data;
+            if (!data) return;
+
             const loc = StructureElement.Loci.getFirstLocation(loci);
             if (!loc) return;
 
@@ -19,12 +23,9 @@ export function SbNcbrPartialChargesLociLabelProvider(ctx: PluginContext): LociL
             }
 
             const atomId = StructureProperties.atom.id(loc);
-            const model = loci.structure.model;
-            const data = SbNcbrPartialChargesPropertyProvider.get(model).value?.data;
-            if (data === undefined) return;
             const { typeIdToAtomIdToCharge, typeIdToResidueToCharge } = data;
 
-            const typeId = SbNcbrPartialChargesPropertyProvider.getParams(model).typeId.defaultValue;
+            const typeId = SbNcbrPartialChargesPropertyProvider.props(model).typeId;
             const showResidueCharge = granularity === 'residue';
             const charge = showResidueCharge
                 ? typeIdToResidueToCharge.get(typeId)?.get(atomId)
@@ -34,6 +35,5 @@ export function SbNcbrPartialChargesLociLabelProvider(ctx: PluginContext): LociL
             return `<strong>${label}: ${charge?.toFixed(4) || 'undefined'}</strong>`;
         },
         group: (label: LociLabel): string => (label as string).toString().replace(/Model [0-9]+/g, 'Models'),
-        priority: 0,
     };
 }
