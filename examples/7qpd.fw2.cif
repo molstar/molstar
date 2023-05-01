@@ -17510,9 +17510,9 @@ _reflns.pdbx_netI_over_sigmaI
 7QPD 1 . ? ? ? ? ? ? ? ?
 
 loop_
-_partial_atomic_charges_meta.id
-_partial_atomic_charges_meta.type
-_partial_atomic_charges_meta.method
+_sb_ncbr_partial_atomic_charges_meta.id
+_sb_ncbr_partial_atomic_charges_meta.type
+_sb_ncbr_partial_atomic_charges_meta.method
 1 'empirical' 'SQE+qp/Schindler 2021 (CCD_gen)'
 2 'empirical' 'EEM/Racek 2016 (ccd2016_npa)'
 3 'empirical' 'QEq/Rappe 1991'
@@ -17520,9 +17520,9 @@ _partial_atomic_charges_meta.method
 5 'empirical' 'GDAC/Cho 2001'
 
 loop_
-_partial_atomic_charges.type_id
-_partial_atomic_charges.atom_id
-_partial_atomic_charges.charge
+_sb_ncbr_partial_atomic_charges.type_id
+_sb_ncbr_partial_atomic_charges.atom_id
+_sb_ncbr_partial_atomic_charges.charge
 1 1 -0.1761
 1 2  0.1376
 1 3  0.5502
