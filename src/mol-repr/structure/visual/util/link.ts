@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Zhenyu Zhang <jump2cn@gmail.com>
@@ -27,7 +27,7 @@ export const LinkCylinderParams = {
     aromaticScale: PD.Numeric(0.3, { min: 0, max: 1, step: 0.01 }),
     aromaticSpacing: PD.Numeric(1.5, { min: 0, max: 3, step: 0.01 }),
     aromaticDashCount: PD.Numeric(2, { min: 1, max: 6, step: 1 }),
-    dashCount: PD.Numeric(4, { min: 0, max: 10, step: 2 }),
+    dashCount: PD.Numeric(4, { min: 0, max: 10, step: 1 }),
     dashScale: PD.Numeric(0.8, { min: 0, max: 2, step: 0.1 }),
     dashCap: PD.Boolean(true),
     stubCap: PD.Boolean(true),
@@ -39,8 +39,8 @@ export type LinkCylinderProps = typeof DefaultLinkCylinderProps
 export const LinkLineParams = {
     linkScale: PD.Numeric(0.5, { min: 0, max: 1, step: 0.1 }),
     linkSpacing: PD.Numeric(0.1, { min: 0, max: 2, step: 0.01 }),
-    aromaticDashCount: PD.Numeric(2, { min: 2, max: 6, step: 2 }),
-    dashCount: PD.Numeric(4, { min: 0, max: 10, step: 2 }),
+    aromaticDashCount: PD.Numeric(2, { min: 1, max: 6, step: 1 }),
+    dashCount: PD.Numeric(4, { min: 0, max: 10, step: 1 }),
 };
 export const DefaultLinkLineProps = PD.getDefaultValues(LinkLineParams);
 export type LinkLineProps = typeof DefaultLinkLineProps
@@ -134,8 +134,6 @@ export function createLinkCylinderMesh(ctx: VisualContext, linkBuilder: LinkBuil
         bottomCap: linkCap
     };
 
-    const segmentCount = dashCount + 1;
-
     for (let edgeIndex = 0, _eI = linkCount; edgeIndex < _eI; ++edgeIndex) {
         if (ignore && ignore(edgeIndex)) continue;
 
@@ -154,8 +152,6 @@ export function createLinkCylinderMesh(ctx: VisualContext, linkBuilder: LinkBuil
         const [topCap, bottomCap] = dirFlag ? [linkStub, linkCap] : [linkCap, linkStub];
         builderState.currentGroup = edgeIndex;
 
-        const aromaticSegmentCount = aromaticDashCount + 1;
-
         if (linkStyle === LinkStyle.Solid) {
             cylinderProps.radiusTop = cylinderProps.radiusBottom = linkRadius;
             cylinderProps.topCap = topCap;
@@ -165,12 +161,7 @@ export function createLinkCylinderMesh(ctx: VisualContext, linkBuilder: LinkBuil
         } else if (linkStyle === LinkStyle.Dashed) {
             cylinderProps.radiusTop = cylinderProps.radiusBottom = linkRadius * dashScale;
             cylinderProps.topCap = cylinderProps.bottomCap = dashCap;
-
-            if (segmentCount > 1) {
-                addFixedCountDashedCylinder(builderState, va, vb, 0.5, segmentCount, cylinderProps);
-            } else {
-                addCylinder(builderState, va, vb, 0.5, cylinderProps);
-            }
+            addFixedCountDashedCylinder(builderState, va, vb, 0.5, dashCount, linkStub, cylinderProps);
         } else if (linkStyle === LinkStyle.Double || linkStyle === LinkStyle.OffsetDouble || linkStyle === LinkStyle.Triple || linkStyle === LinkStyle.OffsetTriple || linkStyle === LinkStyle.Aromatic || linkStyle === LinkStyle.MirroredAromatic) {
             const order = (linkStyle === LinkStyle.Double || linkStyle === LinkStyle.OffsetDouble) ? 2 :
                 (linkStyle === LinkStyle.Triple || linkStyle === LinkStyle.OffsetTriple) ? 3 : 1.5;
@@ -197,13 +188,13 @@ export function createLinkCylinderMesh(ctx: VisualContext, linkBuilder: LinkBuil
                 v3setMagnitude(vShift, vShift, aromaticOffset);
                 v3sub(va, va, vShift);
                 v3sub(vb, vb, vShift);
-                addFixedCountDashedCylinder(builderState, va, vb, 0.5, aromaticSegmentCount, cylinderProps);
+                addFixedCountDashedCylinder(builderState, va, vb, 0.5, aromaticDashCount, linkStub, cylinderProps);
 
                 if (linkStyle === LinkStyle.MirroredAromatic) {
                     v3setMagnitude(vShift, vShift, aromaticOffset * 2);
                     v3add(va, va, vShift);
                     v3add(vb, vb, vShift);
-                    addFixedCountDashedCylinder(builderState, va, vb, 0.5, aromaticSegmentCount, cylinderProps);
+                    addFixedCountDashedCylinder(builderState, va, vb, 0.5, aromaticDashCount, linkStub, cylinderProps);
                 }
             } else if (linkStyle === LinkStyle.OffsetDouble || linkStyle === LinkStyle.OffsetTriple) {
                 const multipleOffset = linkRadius + multiRadius + linkScale * linkRadius * linkSpacing;
@@ -285,9 +276,6 @@ export function createLinkCylinderImpostors(ctx: VisualContext, linkBuilder: Lin
     const center = Vec3();
     let count = 0;
 
-    // automatically adjust length for evenly spaced dashed cylinders
-    const segmentCount = dashCount % 2 === 1 ? dashCount : dashCount + 1;
-
     for (let edgeIndex = 0, _eI = linkCount; edgeIndex < _eI; ++edgeIndex) {
         if (ignore && ignore(edgeIndex)) continue;
 
@@ -306,11 +294,7 @@ export function createLinkCylinderImpostors(ctx: VisualContext, linkBuilder: Lin
             builder.add(va[0], va[1], va[2], vm[0], vm[1], vm[2], 1, linkCap, linkStub, edgeIndex);
         } else if (linkStyle === LinkStyle.Dashed) {
             v3scale(vm, v3add(vm, va, vb), 0.5);
-            if (segmentCount > 1) {
-                builder.addFixedCountDashes(va, vm, segmentCount, dashScale, dashCap, dashCap, edgeIndex);
-            } else {
-                builder.add(va[0], va[1], va[2], vm[0], vm[1], vm[2], dashScale, dashCap, dashCap, edgeIndex);
-            }
+            builder.addFixedCountDashes(va, vm, dashCount, dashScale, dashCap, dashCap, linkStub, edgeIndex);
         } else if (linkStyle === LinkStyle.Double || linkStyle === LinkStyle.OffsetDouble || linkStyle === LinkStyle.Triple || linkStyle === LinkStyle.OffsetTriple || linkStyle === LinkStyle.Aromatic || linkStyle === LinkStyle.MirroredAromatic) {
             const order = (linkStyle === LinkStyle.Double || linkStyle === LinkStyle.OffsetDouble) ? 2 :
                 (linkStyle === LinkStyle.Triple || linkStyle === LinkStyle.OffsetTriple) ? 3 : 1.5;
@@ -325,19 +309,16 @@ export function createLinkCylinderImpostors(ctx: VisualContext, linkBuilder: Lin
 
                 const aromaticOffset = linkRadius + aromaticScale * linkRadius + aromaticScale * linkRadius * aromaticSpacing;
 
-                v3setMagnitude(tmpV12, v3sub(tmpV12, vm, va), linkRadius * 0.5);
-                v3add(va, va, tmpV12);
-
                 v3setMagnitude(vShift, vShift, aromaticOffset);
                 v3sub(va, va, vShift);
                 v3sub(vm, vm, vShift);
-                builder.addFixedCountDashes(va, vm, aromaticDashCount, aromaticScale, dashCap, dashCap, edgeIndex);
+                builder.addFixedCountDashes(va, vm, aromaticDashCount, aromaticScale, dashCap, dashCap, linkStub, edgeIndex);
 
                 if (linkStyle === LinkStyle.MirroredAromatic) {
                     v3setMagnitude(vShift, vShift, aromaticOffset * 2);
                     v3add(va, va, vShift);
                     v3add(vm, vm, vShift);
-                    builder.addFixedCountDashes(va, vm, aromaticDashCount, aromaticScale, dashCap, dashCap, edgeIndex);
+                    builder.addFixedCountDashes(va, vm, aromaticDashCount, aromaticScale, dashCap, dashCap, linkStub, edgeIndex);
                 }
             } else if (linkStyle === LinkStyle.OffsetDouble || linkStyle === LinkStyle.OffsetTriple) {
                 const multipleOffset = linkRadius + multiScale * linkRadius + linkScale * linkRadius * linkSpacing;
@@ -401,12 +382,6 @@ export function createLinkLines(ctx: VisualContext, linkBuilder: LinkBuilderProp
     const center = Vec3();
     let count = 0;
 
-    // automatically adjust length for evenly spaced dashed lines
-    const segmentCount = dashCount % 2 === 1 ? dashCount : dashCount + 1;
-    const lengthScale = 0.5 - (0.5 / 2 / segmentCount);
-
-    const aromaticSegmentCount = aromaticDashCount + 1;
-    const aromaticLengthScale = 0.5 - (0.5 / 2 / aromaticSegmentCount);
     const aromaticOffsetFactor = 4.5;
     const multipleOffsetFactor = 3;
 
@@ -425,14 +400,8 @@ export function createLinkLines(ctx: VisualContext, linkBuilder: LinkBuilderProp
             v3scale(vm, v3add(vm, va, vb), 0.5);
             builder.add(va[0], va[1], va[2], vm[0], vm[1], vm[2], edgeIndex);
         } else if (linkStyle === LinkStyle.Dashed) {
-            if (segmentCount > 1) {
-                v3scale(tmpV12, v3sub(tmpV12, vb, va), lengthScale);
-                v3sub(vb, vb, tmpV12);
-                builder.addFixedCountDashes(va, vb, segmentCount, edgeIndex);
-            } else {
-                v3scale(vm, v3add(vm, va, vb), 0.5);
-                builder.add(va[0], va[1], va[2], vm[0], vm[1], vm[2], edgeIndex);
-            }
+            v3scale(vm, v3add(vm, va, vb), 0.5);
+            builder.addFixedCountDashes(va, vm, dashCount, edgeIndex);
         } else if (linkStyle === LinkStyle.Double || linkStyle === LinkStyle.OffsetDouble || linkStyle === LinkStyle.Triple || linkStyle === LinkStyle.OffsetTriple || linkStyle === LinkStyle.Aromatic || linkStyle === LinkStyle.MirroredAromatic) {
             const order = linkStyle === LinkStyle.Double || linkStyle === LinkStyle.OffsetDouble ? 2 :
                 linkStyle === LinkStyle.Triple || linkStyle === LinkStyle.OffsetTriple ? 3 : 1.5;
@@ -445,26 +414,23 @@ export function createLinkLines(ctx: VisualContext, linkBuilder: LinkBuilderProp
             if (linkStyle === LinkStyle.Aromatic || linkStyle === LinkStyle.MirroredAromatic) {
                 builder.add(va[0], va[1], va[2], vm[0], vm[1], vm[2], edgeIndex);
 
-                v3scale(tmpV12, v3sub(tmpV12, vb, va), aromaticLengthScale);
-                v3sub(vb, vb, tmpV12);
-
                 v3setMagnitude(vShift, vShift, absOffset * aromaticOffsetFactor);
                 v3sub(va, va, vShift);
-                v3sub(vb, vb, vShift);
-                builder.addFixedCountDashes(va, vb, aromaticSegmentCount, edgeIndex);
+                v3sub(vm, vm, vShift);
+                builder.addFixedCountDashes(va, vm, aromaticDashCount, edgeIndex);
 
                 if (linkStyle === LinkStyle.MirroredAromatic) {
                     v3setMagnitude(vShift, vShift, absOffset * aromaticOffsetFactor * 2);
                     v3add(va, va, vShift);
-                    v3add(vb, vb, vShift);
-                    builder.addFixedCountDashes(va, vb, aromaticSegmentCount, edgeIndex);
+                    v3add(vm, vm, vShift);
+                    builder.addFixedCountDashes(va, vm, aromaticDashCount, edgeIndex);
                 }
             } else if (linkStyle === LinkStyle.OffsetDouble || linkStyle === LinkStyle.OffsetTriple) {
                 v3setMagnitude(vShift, vShift, absOffset * multipleOffsetFactor);
 
                 builder.add(va[0], va[1], va[2], vm[0], vm[1], vm[2], edgeIndex);
 
-                v3scale(tmpV12, v3sub(tmpV12, va, vb), linkSpacing * linkScale);
+                v3scale(tmpV12, v3sub(tmpV12, va, vm), linkSpacing * linkScale);
                 v3sub(va, va, tmpV12);
 
                 if (order === 3) builder.add(va[0] + vShift[0], va[1] + vShift[1], va[2] + vShift[2], vm[0] + vShift[0], vm[1] + vShift[1], vm[2] + vShift[2], edgeIndex);
@@ -477,12 +443,12 @@ export function createLinkLines(ctx: VisualContext, linkBuilder: LinkBuilderProp
                 builder.add(va[0] - vShift[0], va[1] - vShift[1], va[2] - vShift[2], vm[0] - vShift[0], vm[1] - vShift[1], vm[2] - vShift[2], edgeIndex);
             }
         } else if (linkStyle === LinkStyle.Disk) {
-            v3scale(tmpV12, v3sub(tmpV12, vb, va), 0.475);
+            v3scale(tmpV12, v3sub(tmpV12, vm, va), 0.475);
             v3add(va, va, tmpV12);
-            v3sub(vb, vb, tmpV12);
+            v3sub(vm, vm, tmpV12);
 
             // TODO what to do here? Line as disk doesn't work well.
-            builder.add(va[0], va[1], va[2], vb[0], vb[1], vb[2], edgeIndex);
+            builder.add(va[0], va[1], va[2], vm[0], vm[1], vm[2], edgeIndex);
         }
     }
 

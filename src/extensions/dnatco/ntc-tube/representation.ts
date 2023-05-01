@@ -316,7 +316,7 @@ function createNtCTubeMesh(ctx: VisualContext, unit: Unit, structure: Structure,
                 radiusTop: diameter / 2, radiusBottom: diameter / 2, topCap: true, bottomCap: true, radialSegments: segCount.radial,
             };
             mb.currentGroup = FirstBlockId;
-            addFixedCountDashedCylinder(mb, p_1, p1, 1, 2 * segCount.linear, cylinderProps);
+            addFixedCountDashedCylinder(mb, p_1, p1, 1, 2 * segCount.linear, false, cylinderProps);
         }
     }
 
