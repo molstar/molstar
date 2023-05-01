@@ -1,5 +1,5 @@
 import { Bond, StructureElement, StructureProperties, Unit } from '../../../mol-model/structure';
-import { ColorTheme } from '../../../mol-theme/color';
+import { ColorTheme, LocationColor } from '../../../mol-theme/color';
 import { ThemeDataContext } from '../../../mol-theme/theme';
 import { Color } from '../../../mol-util/color';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
@@ -83,29 +83,37 @@ export function PartialChargesColorTheme(
     // forces coloring updates
     const contextHash = SbNcbrPartialChargesPropertyProvider.get(model)?.version;
 
-    function color(location: Location): Color {
-        let id = -1;
-        if (StructureElement.Location.is(location)) {
-            if (Unit.isAtomic(location.unit)) {
-                id = StructureProperties.atom.id(location);
+    const chargeMap = chargeType === 'atom' ? atomToCharge : residueToCharge;
+
+    let color: LocationColor;
+
+    if (!chargeMap) {
+        color = (_: Location): Color => Colors.MissingCharge;
+    } else {
+        color = (location: Location): Color => {
+            let id = -1;
+            if (StructureElement.Location.is(location)) {
+                if (Unit.isAtomic(location.unit)) {
+                    id = StructureProperties.atom.id(location);
+                }
+            } else if (Bond.isLocation(location)) {
+                if (Unit.isAtomic(location.aUnit)) {
+                    const l = StructureElement.Location.create(ctx.structure?.root);
+                    l.unit = location.aUnit;
+                    l.element = location.aUnit.elements[location.aIndex];
+                    id = StructureProperties.atom.id(l);
+                }
             }
-        } else if (Bond.isLocation(location)) {
-            if (Unit.isAtomic(location.aUnit)) {
-                const l = StructureElement.Location.create(ctx.structure?.root);
-                l.unit = location.aUnit;
-                l.element = location.aUnit.elements[location.aIndex];
-                id = StructureProperties.atom.id(l);
+
+            const charge = chargeMap.get(id);
+
+            if (charge === undefined) {
+                console.warn('No charge found for id', id);
+                return Colors.MissingCharge;
             }
-        }
 
-        const charge = chargeType === 'atom' ? atomToCharge?.get(id) : residueToCharge?.get(id);
-
-        if (charge === undefined) {
-            console.warn('No charge found for id', id);
-            return Colors.MissingCharge;
-        }
-
-        return Colors.getColor(charge, maxCharge);
+            return Colors.getColor(charge, maxCharge);
+        };
     }
 
     return {

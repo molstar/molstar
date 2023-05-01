@@ -107,25 +107,22 @@ function getTypeIdToAtomIdToCharge(model: Model): ChargesData['typeIdToAtomIdToC
 
 function getTypeIdToResidueIdToCharge(model: Model, typeIdToAtomIdToCharge: ChargesData['typeIdToAtomIdToCharge']) {
     const { offsets, count } = model.atomicHierarchy.residueAtomSegments;
-    const { atomSourceIndex } = model.atomicHierarchy;
-    const sourceData = model.sourceData as MmcifFormat;
-    const atomIds = sourceData.data.frame.categories.atom_site.getField('id');
+    const { atomId: atomIds } = model.atomicConformation;
 
     const residueToCharge: ChargesData['typeIdToResidueToCharge'] = new Map();
 
-    if (!atomIds) return residueToCharge;
-
     typeIdToAtomIdToCharge.forEach((atomIdToCharge, typeId: number) => {
         if (!residueToCharge.has(typeId)) residueToCharge.set(typeId, new Map());
+        const residueCharges = residueToCharge.get(typeId)!;
         for (let rI = 0; rI < count; rI++) {
             let charge = 0;
             for (let aI = offsets[rI], _aI = offsets[rI + 1]; aI < _aI; aI++) {
-                const atom_id = atomIds.int(atomSourceIndex.value(aI));
+                const atom_id = atomIds.value(aI);
                 charge += atomIdToCharge.get(atom_id) || 0;
             }
             for (let aI = offsets[rI], _aI = offsets[rI + 1]; aI < _aI; aI++) {
-                const atom_id = atomIds.int(atomSourceIndex.value(aI));
-                residueToCharge.get(typeId)?.set(atom_id, Number(charge.toFixed(4)));
+                const atom_id = atomIds.value(aI);
+                residueCharges.set(atom_id, Number(charge.toFixed(4)));
             }
         }
     });
