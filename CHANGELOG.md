@@ -9,6 +9,8 @@ Note that since we don't clearly distinguish between a public and private interf
 - Add a uniform color theme for NtC tube that still paints residue and segment dividers in a different color
 - Fix bond assignments `struct_conn` records referencing waters
 - Fix `PluginState.setSnapshot` triggering unnecessary state updates
+- Add `SbNcbrPartialCharges` extension for coloring and labeling atoms and residues by partial atomic charges
+  - uses custom mmcif categories `_sb_ncbr_partial_atomic_charges_meta` and `_sb_ncbr_partial_atomic_charges` (more info in [README.md](./src/extensions/sb-ncbr/README.md))
 
 ## [v3.34.0] - 2023-04-16
 
