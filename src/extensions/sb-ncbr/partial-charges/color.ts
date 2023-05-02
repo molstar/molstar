@@ -60,7 +60,7 @@ export function PartialChargesColorTheme(
     if (!model) {
         throw new Error('No model found');
     }
-    const data = SbNcbrPartialChargesPropertyProvider.get(model).value?.data;
+    const data = SbNcbrPartialChargesPropertyProvider.get(model).value;
     if (!data) {
         throw new Error('No partial charges data found');
     }

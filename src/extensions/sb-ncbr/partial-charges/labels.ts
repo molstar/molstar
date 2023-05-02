@@ -11,7 +11,7 @@ export function SbNcbrPartialChargesLociLabelProvider(ctx: PluginContext): LociL
             if (!StructureElement.Loci.is(loci)) return;
 
             const model = loci.structure.model;
-            const data = SbNcbrPartialChargesPropertyProvider.get(model).value?.data;
+            const data = SbNcbrPartialChargesPropertyProvider.get(model).value;
             if (!data) return;
 
             const loc = StructureElement.Loci.getFirstLocation(loci);
