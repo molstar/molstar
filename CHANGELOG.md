@@ -10,6 +10,8 @@ Note that since we don't clearly distinguish between a public and private interf
 - Fix bond assignments `struct_conn` records referencing waters
 - Fix `PluginState.setSnapshot` triggering unnecessary state updates
 - Fix an edge case in the `mol-state`'s `State` when trying to apply a transform to an existing Null object
+- Add `SbNcbrPartialCharges` extension for coloring and labeling atoms and residues by partial atomic charges
+  - uses custom mmcif categories `_sb_ncbr_partial_atomic_charges_meta` and `_sb_ncbr_partial_atomic_charges` (more info in [README.md](./src/extensions/sb-ncbr/README.md))
 
 ## [v3.34.0] - 2023-04-16
 
