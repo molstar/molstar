@@ -38,19 +38,6 @@
     </head>
     <body>
         <div id="app"></div>
-        <div style="position: absolute; left: 100px; top: 5px; width: 120px; height: 100px;">
-            <button onclick="molstarViewer?.plugin && molstar.ExtensionData.wwPDBStructConn.inspectStructConn(molstarViewer.plugin, '1tqn', 'metalc1');">metalc1</button>
-            <button onclick="molstarViewer?.plugin && molstar.ExtensionData.wwPDBStructConn.inspectStructConn(molstarViewer.plugin, '1tqn', 'metalc2');">metalc2</button>
-            <button onclick="molstarViewer?.plugin && molstar.ExtensionData.wwPDBStructConn.inspectStructConn(molstarViewer.plugin, '5elb', 'covale3');">covale3</button>
-            <button onclick="molstarViewer?.plugin && molstar.ExtensionData.wwPDBStructConn.inspectStructConn(molstarViewer.plugin, undefined, 'covale4');">covale4</button>
-            <button onclick="molstarViewer?.plugin && molstar.ExtensionData.wwPDBStructConn.inspectStructConn(molstarViewer.plugin, undefined, 'covale5');">covale5</button>
-            <button onclick="molstarViewer?.plugin && molstar.ExtensionData.wwPDBStructConn.inspectStructConn(molstarViewer.plugin, undefined, 'covale6');">covale6</button>
-            <button onclick="molstarViewer?.plugin && molstar.ExtensionData.wwPDBStructConn.inspectStructConn(molstarViewer.plugin, undefined, 'disulf1');">disulf1</button>
-            <button onclick="molstarViewer?.plugin && molstar.ExtensionData.wwPDBStructConn.inspectStructConn(molstarViewer.plugin, undefined, 'disulf4');">disulf4</button>
-            <button onclick="molstarViewer?.plugin && molstar.ExtensionData.wwPDBStructConn.inspectStructConn(molstarViewer.plugin, undefined, 'disulf6');">disulf6</button>
-            <button onclick="molstarViewer?.plugin && molstar.ExtensionData.wwPDBStructConn.inspectStructConn(molstarViewer.plugin, undefined, 'disulf9');">disulf9</button>
-            <button onclick="molstarViewer?.plugin && molstar.ExtensionData.wwPDBStructConn.clearStructConnInspections(molstarViewer.plugin, undefined);">Clear</button>
-        </div>
         <script type="text/javascript" src="./molstar.js"></script>
         <script type="text/javascript">
             function getParam(name, regex) {
@@ -77,7 +64,6 @@
             var preferWebgl1 = getParam('prefer-webgl1', '[^&]+').trim() === '1' || void 0;
             var allowMajorPerformanceCaveat = getParam('allow-major-performance-caveat', '[^&]+').trim() === '1';
             var powerPreference = getParam('power-preference', '[^&]+').trim().toLowerCase();
-            var molstarViewer = undefined;
 
             molstar.Viewer.create('app', {
                 layoutShowControls: !hideControls,
@@ -97,8 +83,6 @@
                 allowMajorPerformanceCaveat: allowMajorPerformanceCaveat,
                 powerPreference: powerPreference || 'high-performance',
             }).then(viewer => {
-                molstarViewer = viewer;
-                
                 var snapshotId = getParam('snapshot-id', '[^&]+').trim();
                 if (snapshotId) viewer.setRemoteSnapshot(snapshotId);
 

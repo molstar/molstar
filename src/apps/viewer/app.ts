@@ -510,6 +510,6 @@ export const ViewerAutoPreset = StructureRepresentationPresetProvider({
     }
 });
 
-export const ExtensionData = {
+export const PluginExtensions = {
     wwPDBStructConn: wwPDBStructConnExtensionFunctions,
 };

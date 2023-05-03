@@ -61,27 +61,29 @@ export const wwPDBStructConnExtensionFunctions = {
     /** Create visuals for residues and atoms involved in a struct_conn with ID `structConnId`
      * and zoom on them. If `keepExisting` is false (default), remove any such visuals created by previous calls to this function.
      * Also hide all carbohydrate SNFG visuals within the structure (as they would occlude our residues of interest).
+     * Return a promise that resolves to the number of involved atoms which were successfully selected (2, 1, or 0).
      */
-    async inspectStructConn(plugin: PluginContext, entry: string | undefined, structConnId: string, keepExisting: boolean = false) {
+    async inspectStructConn(plugin: PluginContext, entry: string | undefined, structConnId: string, keepExisting: boolean = false): Promise<number> {
         const structNode = selectStructureNode(plugin, entry);
         const structure = structNode?.obj?.data;
         if (!structure) {
             console.error('Structure not found');
-            return;
+            return 0;
         }
 
         const conns: { [id: string]: StructConnRecord } = structure.model._staticPropertyData['wwpdb-struct-conn-extension-data'] ??= extractStructConns(structure.model);
         const conn = conns[structConnId];
         if (!conn) {
             console.error(`The structure does not contain struct_conn "${structConnId}"`);
-            return;
+            return 0;
         }
 
         if (!keepExisting) {
             await removeAllStructConnInspections(plugin, structNode);
         }
-        await addStructConnInspection(plugin, structNode, conn);
+        const nSelectedAtoms = await addStructConnInspection(plugin, structNode, conn);
         hideSnfgNodes(plugin, structNode);
+        return nSelectedAtoms;
     },
 
     /** Remove anything created by `inspectStructConn` within the structure and
@@ -230,8 +232,10 @@ function structConnExpression(conn: StructConnRecord, by: 'atoms' | 'residues') 
     return struct.combinator.merge(partnerExpressions.map(e => struct.modifier.union([e])));
 }
 
-/** Create visuals for residues and atoms involved in a struct_conn and zoom on them */
-async function addStructConnInspection(plugin: PluginContext, structNode: StructNode, conn: StructConnRecord) {
+/** Create visuals for residues and atoms involved in a struct_conn and zoom on them.
+ * Return a promise that resolves to the number of involved atoms which were successfully selected (2, 1, or 0).
+ */
+async function addStructConnInspection(plugin: PluginContext, structNode: StructNode, conn: StructConnRecord): Promise<number> {
     const expressionByResidues = structConnExpression(conn, 'residues');
     const expressionByAtoms = structConnExpression(conn, 'atoms');
 
@@ -246,19 +250,21 @@ async function addStructConnInspection(plugin: PluginContext, structNode: Struct
         { tags: [TAGS.RESIDUE_REPR] }
     );
 
-    const atomsVisRef = update.to(structNode).apply(
+    const atomsSelection = update.to(structNode).apply(
         StructureComponent,
         { label: `${conn.id} (atoms)`, type: { name: 'expression', params: expressionByAtoms } },
         { tags: [TAGS.ATOM_SEL] }
-    ).apply(
+    );
+    const atomsVisual = update.to(atomsSelection.ref).apply(
         StructureRepresentation3D,
         ATOMS_VISUAL_PARAMS,
         { tags: [TAGS.ATOM_REPR] }
-    ).ref;
+    );
     await update.commit();
 
-    const atomsVisual = plugin.state.data.select(atomsVisRef)[0]?.obj;
-    plugin.managers.camera.focusRenderObjects(atomsVisual?.data.repr.renderObjects, { extraRadius: EXTRA_RADIUS });
+    plugin.managers.camera.focusRenderObjects(atomsVisual.selector.data?.repr.renderObjects, { extraRadius: EXTRA_RADIUS });
+    const nSelectedAtoms = atomsSelection.selector.obj?.data?.elementCount ?? 0;
+    return nSelectedAtoms;
 }
 
 /** Remove anything created by `addStructConnInspection` */
