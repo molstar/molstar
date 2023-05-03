@@ -45,24 +45,21 @@ export namespace CylindersBuilder {
         const addFixedCountDashes = (start: Vec3, end: Vec3, segmentCount: number, radiusScale: number, topCap: boolean, bottomCap: boolean, stubCap: boolean, group: number) => {
             const d = Vec3.distance(start, end);
             const isOdd = segmentCount % 2 !== 0;
-            segmentCount++;
-            const s = Math.floor(segmentCount / 2);
-            const step = 1 / segmentCount;
-            const offset = step / 2;
+            const s = Math.floor((segmentCount + 1) / 2);
+            const step = d / (segmentCount + 0.5);
 
-            Vec3.sub(tmpDir, end, start);
+            Vec3.setMagnitude(tmpDir, Vec3.sub(tmpDir, end, start), step);
+            Vec3.copy(tmpVecA, start);
             for (let j = 0; j < s; ++j) {
-                const f = step * (j * 2 + 1) + offset;
-                Vec3.setMagnitude(tmpDir, tmpDir, d * f);
-                Vec3.add(tmpVecA, start, tmpDir);
+                Vec3.add(tmpVecA, tmpVecA, tmpDir);
                 if (isOdd && j === s - 1) {
                     Vec3.copy(tmpVecB, end);
                     if (!stubCap) bottomCap = false;
                 } else {
-                    Vec3.setMagnitude(tmpDir, tmpDir, d * (step * ((j + 1) * 2) + offset));
-                    Vec3.add(tmpVecB, start, tmpDir);
+                    Vec3.add(tmpVecB, tmpVecA, tmpDir);
                 }
                 add(tmpVecA[0], tmpVecA[1], tmpVecA[2], tmpVecB[0], tmpVecB[1], tmpVecB[2], radiusScale, topCap, bottomCap, group);
+                Vec3.add(tmpVecA, tmpVecA, tmpDir);
             }
         };
 

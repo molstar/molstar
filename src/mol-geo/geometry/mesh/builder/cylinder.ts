@@ -101,28 +101,24 @@ export function addDoubleCylinder(state: MeshBuilder.State, start: Vec3, end: Ve
 export function addFixedCountDashedCylinder(state: MeshBuilder.State, start: Vec3, end: Vec3, lengthScale: number, segmentCount: number, stubCap: boolean, props: BasicCylinderProps) {
     const d = Vec3.distance(start, end) * lengthScale;
     const isOdd = segmentCount % 2 !== 0;
-    segmentCount++;
-    const s = Math.floor(segmentCount / 2);
-    const step = 1 / segmentCount;
-    const offset = step / 2;
+    const s = Math.floor((segmentCount + 1) / 2);
+    let step = d / (segmentCount + 0.5);
 
     let cylinder = getCylinder(props);
-    Vec3.sub(tmpCylinderDir, end, start);
-
+    Vec3.setMagnitude(tmpCylinderDir, Vec3.sub(tmpCylinderDir, end, start), step);
+    Vec3.copy(tmpCylinderStart, start);
     for (let j = 0; j < s; ++j) {
-        const f = step * (j * 2 + 1) + offset;
-        let len = d * step;
-        Vec3.setMagnitude(tmpCylinderDir, tmpCylinderDir, d * f);
-        Vec3.add(tmpCylinderStart, start, tmpCylinderDir);
-
+        Vec3.add(tmpCylinderStart, tmpCylinderStart, tmpCylinderDir);
         if (isOdd && j === s - 1) {
             if (!stubCap && props.topCap) {
                 props.topCap = false;
                 cylinder = getCylinder(props);
             }
-            len /= 2;
+            step /= 2;
         }
-        setCylinderMat(tmpCylinderMat, tmpCylinderStart, tmpCylinderDir, len, false);
+        setCylinderMat(tmpCylinderMat, tmpCylinderStart, tmpCylinderDir, step, false);
         MeshBuilder.addPrimitive(state, tmpCylinderMat, cylinder);
+
+        Vec3.add(tmpCylinderStart, tmpCylinderStart, tmpCylinderDir);
     }
 }
