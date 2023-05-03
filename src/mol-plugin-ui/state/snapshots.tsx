@@ -187,7 +187,7 @@ export class LocalStateSnapshotList extends PluginUIComponent<{}, {}> {
             if (image) {
                 items.push(<li key={`${e!.snapshot.id}-image`} className='msp-state-image-row'>
                     <Button data-id={e!.snapshot.id} onClick={this.apply}>
-                        <img src={URL.createObjectURL(image)}/>
+                        <img draggable={false} src={URL.createObjectURL(image)}/>
                     </Button>
                 </li>);
             }
