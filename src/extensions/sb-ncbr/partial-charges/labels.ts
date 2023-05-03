@@ -1,6 +1,6 @@
 import { StructureElement, StructureProperties } from '../../../mol-model/structure';
 import { LociLabel } from '../../../mol-plugin-state/manager/loci-label';
-import { SbNcbrPartialChargesPropertyProvider } from './property';
+import { SbNcbrPartialChargesPropertyProvider, hasPartialChargesCategories } from './property';
 import { Loci } from '../../../mol-model/loci';
 import { PluginContext } from '../../../mol-plugin/context';
 import { LociLabelProvider } from '../../../mol-plugin-state/manager/loci-label';
@@ -11,6 +11,7 @@ export function SbNcbrPartialChargesLociLabelProvider(ctx: PluginContext): LociL
             if (!StructureElement.Loci.is(loci)) return;
 
             const model = loci.structure.model;
+            if (!hasPartialChargesCategories(model)) return;
             const data = SbNcbrPartialChargesPropertyProvider.get(model).value;
             if (!data) return;
 
