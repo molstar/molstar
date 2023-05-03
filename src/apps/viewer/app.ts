@@ -49,6 +49,7 @@ import { ObjectKeys } from '../../mol-util/type-helpers';
 import { SaccharideCompIdMapType } from '../../mol-model/structure/structure/carbohydrates/constants';
 import { Backgrounds } from '../../extensions/backgrounds';
 import { SbNcbrPartialCharges, SbNcbrPartialChargesPreset, SbNcbrPartialChargesPropertyProvider } from '../../extensions/sb-ncbr';
+import { wwPDBStructConnExtensionFunctions } from '../../extensions/wwpdb/struct-conn';
 
 export { PLUGIN_VERSION as version } from '../../mol-plugin/version';
 export { setDebugMode, setProductionMode, setTimingMode, consoleStats } from '../../mol-util/debug';
@@ -512,3 +513,7 @@ export const ViewerAutoPreset = StructureRepresentationPresetProvider({
         }
     }
 });
+
+export const PluginExtensions = {
+    wwPDBStructConn: wwPDBStructConnExtensionFunctions,
+};
