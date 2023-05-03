@@ -15,44 +15,60 @@ export interface SBNcbrPartialChargeData {
     maxAbsoluteAtomCharges: IdToCharge;
     maxAbsoluteResidueCharges: IdToCharge;
     maxAbsoluteAtomChargeAll: number;
+    params: PartialChargesPropertyParams;
 }
 
 const PartialChargesPropertyParams = {
     typeId: PD.Select<number>(0, [[0, '0']]),
 };
 type PartialChargesPropertyParams = typeof PartialChargesPropertyParams;
-const defaultPartialChargesPropertyParams = PD.clone(PartialChargesPropertyParams);
+const DefaultPartialChargesPropertyParams = PD.clone(PartialChargesPropertyParams);
 
 function getParams(model: Model) {
-    const typeIdToMethod = getTypeIdToMethod(model);
-    const options = Array.from(typeIdToMethod.entries()).map(
-        ([typeId, method]) => [typeId, method] as [number, string]
-    );
-    return {
-        typeId: PD.Select<number>(1, options),
-    };
+    return getData(model).value?.params ?? DefaultPartialChargesPropertyParams;
 }
 
-async function getData(model: Model): Promise<CustomProperty.Data<SBNcbrPartialChargeData | undefined>> {
-    if (!SbNcbrPartialChargesPropertyProvider.isApplicable(model)) return { value: undefined };
+const PropertyKey = 'sb-ncbr-partial-charges-property-data';
 
-    const typeIdToMethod = getTypeIdToMethod(model);
-    const typeIdToAtomIdToCharge = getTypeIdToAtomIdToCharge(model);
-    const typeIdToResidueToCharge = getTypeIdToResidueIdToCharge(model, typeIdToAtomIdToCharge);
-    const maxAbsoluteAtomCharges = getMaxAbsoluteCharges(typeIdToAtomIdToCharge);
-    const maxAbsoluteResidueCharges = getMaxAbsoluteCharges(typeIdToResidueToCharge);
-    const maxAbsoluteAtomChargeAll = getMaxAbsoluteAtomChargeAll(maxAbsoluteAtomCharges, maxAbsoluteResidueCharges);
+function getData(model: Model): CustomProperty.Data<SBNcbrPartialChargeData | undefined> {
+    if (PropertyKey in model._staticPropertyData) {
+        return model._staticPropertyData[PropertyKey];
+    }
 
-    return {
-        value: {
-            typeIdToMethod,
-            typeIdToAtomIdToCharge,
-            typeIdToResidueToCharge,
-            maxAbsoluteAtomCharges,
-            maxAbsoluteResidueCharges,
-            maxAbsoluteAtomChargeAll,
-        },
-    };
+    let data: CustomProperty.Data<SBNcbrPartialChargeData | undefined>;
+
+    if (!SbNcbrPartialChargesPropertyProvider.isApplicable(model)) {
+        data = { value: undefined };
+    } else {
+        const typeIdToMethod = getTypeIdToMethod(model);
+        const typeIdToAtomIdToCharge = getTypeIdToAtomIdToCharge(model);
+        const typeIdToResidueToCharge = getTypeIdToResidueIdToCharge(model, typeIdToAtomIdToCharge);
+        const maxAbsoluteAtomCharges = getMaxAbsoluteCharges(typeIdToAtomIdToCharge);
+        const maxAbsoluteResidueCharges = getMaxAbsoluteCharges(typeIdToResidueToCharge);
+        const maxAbsoluteAtomChargeAll = getMaxAbsoluteAtomChargeAll(maxAbsoluteAtomCharges, maxAbsoluteResidueCharges);
+
+        const options = Array.from(typeIdToMethod.entries()).map(
+            ([typeId, method]) => [typeId, method] as [number, string]
+        );
+        const params = {
+            typeId: PD.Select<number>(1, options),
+        };
+
+        data = {
+            value: {
+                typeIdToMethod,
+                typeIdToAtomIdToCharge,
+                typeIdToResidueToCharge,
+                maxAbsoluteAtomCharges,
+                maxAbsoluteResidueCharges,
+                maxAbsoluteAtomChargeAll,
+                params,
+            },
+        };
+    }
+
+    model._staticPropertyData[PropertyKey] = data;
+    return data;
 }
 
 function getTypeIdToMethod(model: Model) {
@@ -164,11 +180,11 @@ function getMaxAbsoluteAtomChargeAll(
 
 export function hasPartialChargesCategories(model: Model): boolean {
     if (!model || !MmcifFormat.is(model.sourceData)) return false;
-    const names = model.sourceData.data.frame.categoryNames;
+    const { categories } = model.sourceData.data.frame;
     return (
-        names.includes('atom_site') &&
-        names.includes('sb_ncbr_partial_atomic_charges') &&
-        names.includes('sb_ncbr_partial_atomic_charges_meta')
+        'atom_site' in categories &&
+        'sb_ncbr_partial_atomic_charges' in categories &&
+        'sb_ncbr_partial_atomic_charges_meta' in categories
     );
 }
 
@@ -178,11 +194,11 @@ SBNcbrPartialChargeData | undefined
 > = CustomModelProperty.createProvider({
     label: 'SB NCBR Partial Charges Property Provider',
     descriptor: CustomPropertyDescriptor({
-        name: 'sb-ncbr-property-provider',
+        name: 'sb-ncbr-partial-charges-property-provider',
     }),
     type: 'static',
-    defaultParams: defaultPartialChargesPropertyParams,
+    defaultParams: DefaultPartialChargesPropertyParams,
     getParams: (data: Model) => getParams(data),
     isApplicable: (model: Model) => hasPartialChargesCategories(model),
-    obtain: (_ctx: CustomProperty.Context, model: Model) => getData(model),
+    obtain: (_ctx: CustomProperty.Context, model: Model) => Promise.resolve(getData(model)),
 });
