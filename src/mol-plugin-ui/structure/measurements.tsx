@@ -3,6 +3,7 @@
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Jason Pattle <jpattle.exscientia.co.uk>
  */
 
 import * as React from 'react';
@@ -11,6 +12,7 @@ import { StructureElement } from '../../mol-model/structure';
 import { StructureMeasurementCell, StructureMeasurementOptions, StructureMeasurementParams } from '../../mol-plugin-state/manager/structure/measurement';
 import { StructureSelectionHistoryEntry } from '../../mol-plugin-state/manager/structure/selection';
 import { PluginCommands } from '../../mol-plugin/commands';
+import { PluginConfig } from '../../mol-plugin/config';
 import { AngleData } from '../../mol-repr/shape/loci/angle';
 import { DihedralData } from '../../mol-repr/shape/loci/dihedral';
 import { DistanceData } from '../../mol-repr/shape/loci/distance';
@@ -208,13 +210,16 @@ export class MeasurementControls extends PurePluginUIComponent<{}, { isBusy: boo
             entries.push(this.historyEntry(history[i], i + 1));
         }
 
+        const shouldShowToggleHint = this.plugin.config.get(PluginConfig.Viewport.ShowSelectionMode);
+        const toggleHint = shouldShowToggleHint ? (<>{' '}(toggle <ToggleSelectionModeButton inline /> mode)</>) : null;
+
         return <>
             <ActionMenu items={this.actions} onSelect={this.selectAction} />
             {entries.length > 0 && <div className='msp-control-offset'>
                 {entries}
             </div>}
             {entries.length === 0 && <div className='msp-control-offset msp-help-text'>
-                <div className='msp-help-description'><Icon svg={HelpOutlineSvg} inline />Add one or more selections (toggle <ToggleSelectionModeButton inline /> mode)</div>
+                <div className='msp-help-description'><Icon svg={HelpOutlineSvg} inline />Add one or more selections{toggleHint}</div>
             </div>}
         </>;
     }

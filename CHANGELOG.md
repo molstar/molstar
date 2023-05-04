@@ -6,6 +6,58 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Add a uniform color theme for NtC tube that still paints residue and segment dividers in a different color
+- Fix bond assignments `struct_conn` records referencing waters
+- Fix `PluginState.setSnapshot` triggering unnecessary state updates
+
+## [v3.34.0] - 2023-04-16
+
+- Avoid `renderMarkingDepth` for fully transparent renderables
+- Remove `camera.far` doubling workaround
+- Add `ModifiersKeys.areNone` helper function
+- Do not render NtC tube segments unless all required atoms are present in the structure
+- Fix rendering issues caused by VAO reuse
+- Add "Zoom All", "Orient Axes", "Reset Axes" buttons to the "Reset Camera" button
+- Improve trackball move-state handling when key bindings use modifiers
+- Fix rendering with very small viewport and SSAO enabled
+- Fix `.getAllLoci` for structure representations with `structure.child`
+- Fix `readAllLinesAsync` refering to dom length property
+- Make mol-util/file-info node compatible
+- Add `eachLocation` to representation/visual interface
+
+## [v3.33.0] - 2023-04-02
+
+- Handle resizes of viewer element even when window remains the same size
+- Throttle canvas resize events
+- Selection toggle buttons hidden if selection mode is off
+- Camera focus loci bindings allow reset on click-away to be overridden
+- Input/controls improvements
+    - Move or fly around the scene using keys
+    - Pointer lock to look around scene
+    - Toggle spin/rock animation using keys
+- Apply bumpiness as lightness variation with `ignoreLight`
+- Remove `JSX` reference from `loci-labels.ts`
+- Fix overpaint/transparency/substance smoothing not updated when geometry changes
+- Fix camera project/unproject when using offset viewport
+- Add support for loading all blocks from a mmcif file as a trajectory
+- Add `Frustum3D` and `Plane3D` math primitives
+- Include `occupancy` and `B_iso_or_equiv` when creating `Conformation` from `Model`
+- Remove LazyImports (introduced in v3.31.1)
+
+## [v3.32.0] - 2023-03-20
+
+- Avoid rendering of fully transparent renderables
+- Add occlusion color parameter
+- Fix issue with outlines and orthographic camera
+- Reduce over-blurring occlusion at larger view distances
+- Fix occlusion artefact with non-canvas viewport and pixel-ratio > 1
+- Update nodejs-shims conditionals to handle polyfilled document object in NodeJS environment.
+- Ensure marking edges are at least one pixel wide
+- Add exposure parameter to renderer
+- Only trigger marking when mouse is directly over canvas
+- Fix blurry occlusion in screenshots
+- [Breaking] Add `setFSModule` to `mol-util/data-source` instead of trying to trick WebPack
+
 ## [v3.31.4] - 2023-02-24
 
 - Allow link cylinder/line `dashCount` set to '0'

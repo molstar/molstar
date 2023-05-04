@@ -170,9 +170,9 @@ const ccd = TrajectoryHierarchyPresetProvider({
             plugin.log.info(`Superposed [model] and [ideal] with RMSD ${rmsd.toFixed(2)}.`);
         }
 
-        const representationPreset = params.representationPreset || plugin.config.get(PluginConfig.Structure.DefaultRepresentationPreset) || PresetStructureRepresentations.auto.id;
-        await builder.representation.applyPreset(idealStructureProperties, representationPreset, params.representationPresetParams);
-        await builder.representation.applyPreset(modelStructureProperties, representationPreset, params.representationPresetParams);
+        const representationPreset = params.representationPreset || PresetStructureRepresentations['chemical-component'].id;
+        await builder.representation.applyPreset(idealStructureProperties, representationPreset, { ...params.representationPresetParams, coordinateType: 'Ideal' });
+        await builder.representation.applyPreset(modelStructureProperties, representationPreset, { ...params.representationPresetParams, coordinateType: 'Model' });
 
         return { models: [idealModel, modelModel], structures: [idealStructure, modelStructure] };
     }

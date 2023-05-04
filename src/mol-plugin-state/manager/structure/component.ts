@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -52,6 +52,12 @@ class StructureComponentManager extends StatefulPluginComponent<StructureCompone
 
     get pivotStructure(): StructureRef | undefined {
         return this.currentStructures[0];
+    }
+
+    // To be used only from PluginState.setSnapshot
+    _setSnapshotState(options: StructureComponentManager.Options) {
+        this.updateState({ options });
+        this.events.optionsUpdated.next(void 0);
     }
 
     async setOptions(options: StructureComponentManager.Options) {

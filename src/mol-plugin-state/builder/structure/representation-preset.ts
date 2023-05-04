@@ -24,6 +24,7 @@ import { IndexPairBonds } from '../../../mol-model-formats/structure/property/bo
 import { StructConn } from '../../../mol-model-formats/structure/property/bonds/struct_conn';
 import { StructureRepresentationRegistry } from '../../../mol-repr/structure/registry';
 import { assertUnreachable } from '../../../mol-util/type-helpers';
+import { CCDFormat } from '../../../mol-model-formats/structure/mmcif';
 
 export interface StructureRepresentationPresetProvider<P = any, S extends _Result = _Result> extends PresetProvider<PluginStateObject.Molecule.Structure, P, S> { }
 export function StructureRepresentationPresetProvider<P, S extends _Result>(repr: StructureRepresentationPresetProvider<P, S>) { return repr; }
@@ -429,6 +430,42 @@ const illustrative = StructureRepresentationPresetProvider({
     }
 });
 
+const chemicalComponent = StructureRepresentationPresetProvider({
+    id: 'preset-structure-representation-chemical-component',
+    display: {
+        name: 'Chemical Component', group: 'Miscellaneous',
+        description: `Show 'ideal' and 'model' coordinates of chemical components.`
+    },
+    isApplicable: o => {
+        return CCDFormat.is(o.data.model.sourceData);
+    },
+    params: () => ({
+        ...CommonParams,
+        coordinateType: PD.Select('Ideal', PD.arrayToOptions(['Ideal', 'Model'] as const))
+    }),
+    async apply(ref, params, plugin) {
+        const structureCell = StateObjectRef.resolveAndCheck(plugin.state.data, ref);
+        if (!structureCell) return {};
+
+        const { coordinateType } = params;
+        const components = {
+            [coordinateType]: await presetStaticComponent(plugin, structureCell, 'all', { label: coordinateType, tags: [coordinateType] })
+        };
+
+        const structure = structureCell.obj!.data;
+        const { update, builder } = reprBuilder(plugin, params);
+
+        const representations = {
+            [coordinateType]: builder.buildRepresentation(update, components[coordinateType], { type: 'ball-and-stick' }),
+        };
+
+        await update.commit({ revertOnError: true });
+        await updateFocusRepr(plugin, structure, params.theme?.focus?.name, params.theme?.focus?.params);
+
+        return { components, representations };
+    }
+});
+
 export function presetStaticComponent(plugin: PluginContext, structure: StateObjectRef<PluginStateObject.Molecule.Structure>, type: StaticStructureComponentType, params?: { label?: string, tags?: string[] }) {
     return plugin.builders.structure.tryCreateComponentStatic(structure, type, params);
 }
@@ -446,5 +483,6 @@ export const PresetStructureRepresentations = {
     'protein-and-nucleic': proteinAndNucleic,
     'coarse-surface': coarseSurface,
     illustrative,
+    'chemical-component': chemicalComponent
 };
 export type PresetStructureRepresentations = typeof PresetStructureRepresentations;

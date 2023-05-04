@@ -70,7 +70,7 @@ namespace Vec4 {
         return isNaN(a[0]) || isNaN(a[1]) || isNaN(a[2]) || isNaN(a[3]);
     }
 
-    export function toArray(a: Vec4, out: NumberArray, offset: number) {
+    export function toArray<T extends NumberArray>(a: Vec4, out: T, offset: number) {
         out[offset + 0] = a[0];
         out[offset + 1] = a[1];
         out[offset + 2] = a[2];

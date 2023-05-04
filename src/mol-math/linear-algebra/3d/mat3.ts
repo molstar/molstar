@@ -64,7 +64,7 @@ namespace Mat3 {
         return mat;
     }
 
-    export function toArray(a: Mat3, out: NumberArray, offset: number) {
+    export function toArray<T extends NumberArray>(a: Mat3, out: T, offset: number) {
         out[offset + 0] = a[0];
         out[offset + 1] = a[1];
         out[offset + 2] = a[2];
@@ -454,6 +454,14 @@ namespace Mat3 {
     }
 
     export const Identity: ReadonlyMat3 = identity();
+
+    /** Return the Frobenius inner product of two matrices (= dot product of the flattened matrices).
+     * Can be used as a measure of similarity between two rotation matrices. */
+    export function innerProduct(a: Mat3, b: Mat3) {
+        return a[0] * b[0] + a[1] * b[1] + a[2] * b[2]
+            + a[3] * b[3] + a[4] * b[4] + a[5] * b[5]
+            + a[6] * b[6] + a[7] * b[7] + a[8] * b[8];
+    }
 }
 
 export { Mat3 };

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -29,6 +29,8 @@ export interface Program {
     reset: () => void
     destroy: () => void
 }
+
+export type Programs = { [k: string]: Program }
 
 type Locations = { [k: string]: number }
 

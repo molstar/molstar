@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  *
@@ -9,6 +9,13 @@
 
 export const apply_light_color = `
 #ifdef dIgnoreLight
+    #ifdef bumpEnabled
+        if (uBumpFrequency > 0.0 && uBumpAmplitude > 0.0 && bumpiness > 0.0) {
+            material.rgb += fbm(vModelPosition * uBumpFrequency) * (uBumpAmplitude * bumpiness) / uBumpFrequency;
+            material.rgb -= bumpiness / (2.0 * uBumpFrequency);
+        }
+    #endif
+
     gl_FragColor = material;
 #else
     #ifdef bumpEnabled
@@ -65,4 +72,6 @@ export const apply_light_color = `
 #ifdef dXrayShaded
     gl_FragColor.a *= 1.0 - pow(abs(dot(normal, vec3(0.0, 0.0, 1.0))), uXrayEdgeFalloff);
 #endif
+
+gl_FragColor.rgb *= uExposure;
 `;

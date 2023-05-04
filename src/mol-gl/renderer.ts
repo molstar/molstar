@@ -104,6 +104,7 @@ export const RendererParams = {
     markerPriority: PD.Select(1, [[1, 'Highlight'], [2, 'Select']]),
 
     xrayEdgeFalloff: PD.Numeric(1, { min: 0.0, max: 3.0, step: 0.1 }),
+    exposure: PD.Numeric(1, { min: 0.0, max: 3.0, step: 0.01 }),
 
     light: PD.ObjectList({
         inclination: PD.Numeric(150, { min: 0, max: 180, step: 1 }),
@@ -130,18 +131,19 @@ export type Light = {
 const tmpDir = Vec3();
 const tmpColor = Vec3();
 function getLight(props: RendererProps['light'], light?: Light): Light {
+    const count = props.length;
     const { direction, color } = light || {
-        direction: (new Array(5 * 3)).fill(0),
-        color: (new Array(5 * 3)).fill(0),
+        direction: (new Array(count * 3)).fill(0),
+        color: (new Array(count * 3)).fill(0),
     };
-    for (let i = 0, il = props.length; i < il; ++i) {
+    for (let i = 0; i < count; ++i) {
         const p = props[i];
         Vec3.directionFromSpherical(tmpDir, degToRad(p.inclination), degToRad(p.azimuth), 1);
         Vec3.toArray(tmpDir, direction, i * 3);
         Vec3.scale(tmpColor, Color.toVec3Normalized(tmpColor, p.color), p.intensity);
         Vec3.toArray(tmpColor, color, i * 3);
     }
-    return { count: props.length, direction, color };
+    return { count, direction, color };
 }
 
 namespace Renderer {
@@ -242,6 +244,7 @@ namespace Renderer {
             uMarkerAverage: ValueCell.create(0),
 
             uXrayEdgeFalloff: ValueCell.create(p.xrayEdgeFalloff),
+            uExposure: ValueCell.create(p.exposure),
         };
         const globalUniformList = Object.entries(globalUniforms);
 
@@ -460,7 +463,8 @@ namespace Renderer {
             for (let i = 0, il = renderables.length; i < il; ++i) {
                 const r = renderables[i];
 
-                if (r.values.markerAverage.ref.value !== 1) {
+                const alpha = clamp(r.values.alpha.ref.value * r.state.alphaFactor, 0, 1);
+                if (alpha !== 0 && r.values.markerAverage.ref.value !== 1) {
                     renderObject(renderables[i], 'marking', Flag.None);
                 }
             }
@@ -607,7 +611,7 @@ namespace Renderer {
                 // TODO: simplify, handle in renderable.state???
                 // uAlpha is updated in "render" so we need to recompute it here
                 const alpha = clamp(r.values.alpha.ref.value * r.state.alphaFactor, 0, 1);
-                if (alpha < 1 || r.values.transparencyAverage.ref.value > 0 || r.values.dGeometryType.ref.value === 'directVolume' || r.values.dPointStyle?.ref.value === 'fuzzy' || r.values.dGeometryType.ref.value === 'text' || r.values.dXrayShaded?.ref.value) {
+                if ((alpha < 1 && alpha !== 0) || r.values.transparencyAverage.ref.value > 0 || r.values.dGeometryType.ref.value === 'directVolume' || r.values.dPointStyle?.ref.value === 'fuzzy' || r.values.dGeometryType.ref.value === 'text' || r.values.dXrayShaded?.ref.value) {
                     renderObject(r, 'colorWboit', Flag.None);
                 }
             }
@@ -655,7 +659,7 @@ namespace Renderer {
                 // TODO: simplify, handle in renderable.state???
                 // uAlpha is updated in "render" so we need to recompute it here
                 const alpha = clamp(r.values.alpha.ref.value * r.state.alphaFactor, 0, 1);
-                if (alpha < 1 || r.values.transparencyAverage.ref.value > 0 || r.values.dPointStyle?.ref.value === 'fuzzy' || !!r.values.uBackgroundColor || r.values.dXrayShaded?.ref.value) {
+                if ((alpha < 1 && alpha !== 0) || r.values.transparencyAverage.ref.value > 0 || r.values.dPointStyle?.ref.value === 'fuzzy' || r.values.dGeometryType.ref.value === 'text' || r.values.dXrayShaded?.ref.value) {
                     renderObject(r, 'colorDpoit', Flag.None);
                 }
             }
@@ -786,6 +790,10 @@ namespace Renderer {
                 if (props.xrayEdgeFalloff !== undefined && props.xrayEdgeFalloff !== p.xrayEdgeFalloff) {
                     p.xrayEdgeFalloff = props.xrayEdgeFalloff;
                     ValueCell.update(globalUniforms.uXrayEdgeFalloff, p.xrayEdgeFalloff);
+                }
+                if (props.exposure !== undefined && props.exposure !== p.exposure) {
+                    p.exposure = props.exposure;
+                    ValueCell.update(globalUniforms.uExposure, p.exposure);
                 }
 
                 if (props.light !== undefined && !deepEqual(props.light, p.light)) {

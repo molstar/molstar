@@ -332,12 +332,12 @@ namespace Canvas3D {
         }, { x, y, width, height }, { pixelScale: attribs.pixelScale });
         const stereoCamera = new StereoCamera(camera, p.camera.stereo.params);
 
-        const controls = TrackballControls.create(input, camera, p.trackball);
+        const controls = TrackballControls.create(input, camera, scene, p.trackball);
         const renderer = Renderer.create(webgl, p.renderer);
         const helper = new Helper(webgl, scene, p);
 
         const pickHelper = new PickHelper(webgl, renderer, scene, helper, passes.pick, { x, y, width, height }, attribs.pickPadding);
-        const interactionHelper = new Canvas3dInteractionHelper(identify, getLoci, input, camera, p.interaction);
+        const interactionHelper = new Canvas3dInteractionHelper(identify, getLoci, input, camera, controls, p.interaction);
         const multiSampleHelper = new MultiSampleHelper(passes.multiSample);
 
         passes.draw.postprocessing.background.update(camera, p.postprocessing.background, changed => {
@@ -615,22 +615,32 @@ namespace Canvas3D {
         }
 
         function consoleStats() {
-            console.table(scene.renderables.map(r => ({
+            const items = scene.renderables.map(r => ({
                 drawCount: r.values.drawCount.ref.value,
                 instanceCount: r.values.instanceCount.ref.value,
                 materialId: r.materialId,
                 renderItemId: r.id,
-            })));
-            console.log(webgl.stats);
+            }));
+
+            console.groupCollapsed(`${items.length} RenderItems`);
+
+            if (items.length < 50) {
+                console.table(items);
+            } else {
+                console.log(items);
+            }
+            console.log(JSON.stringify(webgl.stats, undefined, 4));
 
             const { texture, attribute, elements } = webgl.resources.getByteCounts();
-            console.log({
+            console.log(JSON.stringify({
                 texture: `${(texture / 1024 / 1024).toFixed(3)} MiB`,
                 attribute: `${(attribute / 1024 / 1024).toFixed(3)} MiB`,
                 elements: `${(elements / 1024 / 1024).toFixed(3)} MiB`,
-            });
+            }, undefined, 4));
 
-            console.log(webgl.timer.formatedStats());
+            console.log(JSON.stringify(webgl.timer.formatedStats(), undefined, 4));
+
+            console.groupEnd();
         }
 
         function add(repr: Representation.Any) {
