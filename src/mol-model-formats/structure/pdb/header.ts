@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) 2019-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author Yana Rose <yana.v.rose@gmail.com>
+ */
 export type PdbHeaderData = {
     id_code?: string,
     dep_date?: string,

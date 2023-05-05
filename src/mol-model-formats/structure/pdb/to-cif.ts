@@ -3,6 +3,7 @@
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Yana Rose <yana.v.rose@gmail.com>
  */
 
 import { substringStartsWith } from '../../../mol-util/string';
