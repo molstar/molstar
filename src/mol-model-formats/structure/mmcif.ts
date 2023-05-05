@@ -118,6 +118,10 @@ namespace CCDFormat {
         db: CCD_Database,
         frame: CifFrame
     }
+    export enum CoordinateType {
+        Ideal = 'Ideal',
+        Model = 'Model'
+    }
     export function is(x?: ModelFormat): x is CCDFormat {
         return x?.kind === 'CCD';
     }
@@ -134,8 +138,8 @@ export function trajectoryFromCCD(frame: CifFrame): Task<Trajectory> {
 }
 
 async function createCcdModels(data: CCD_Database, format: CCDFormat, ctx: RuntimeContext) {
-    const model = await createCcdModel(data, format, { suffix: '(model)', cartn_x: 'model_Cartn_x', cartn_y: 'model_Cartn_y', cartn_z: 'model_Cartn_z' }, ctx);
-    const ideal = await createCcdModel(data, format, { suffix: '(ideal)', cartn_x: 'pdbx_model_Cartn_x_ideal', cartn_y: 'pdbx_model_Cartn_y_ideal', cartn_z: 'pdbx_model_Cartn_z_ideal' }, ctx);
+    const model = await createCcdModel(data, format, { coordinateType: CCDFormat.CoordinateType.Model, cartn_x: 'model_Cartn_x', cartn_y: 'model_Cartn_y', cartn_z: 'model_Cartn_z' }, ctx);
+    const ideal = await createCcdModel(data, format, { coordinateType: CCDFormat.CoordinateType.Ideal, cartn_x: 'pdbx_model_Cartn_x_ideal', cartn_y: 'pdbx_model_Cartn_y_ideal', cartn_z: 'pdbx_model_Cartn_z_ideal' }, ctx);
 
     const models = [model.representative, ideal.representative];
     Model.TrajectoryInfo.set(models[0], { index: 0, size: models.length });
@@ -144,10 +148,10 @@ async function createCcdModels(data: CCD_Database, format: CCDFormat, ctx: Runti
     return new ArrayTrajectory(models);
 }
 
-type CCDProps = { suffix: string, cartn_x: 'model_Cartn_x' | 'pdbx_model_Cartn_x_ideal', cartn_y: 'model_Cartn_y' | 'pdbx_model_Cartn_y_ideal', cartn_z: 'model_Cartn_z' | 'pdbx_model_Cartn_z_ideal' };
+type CCDProps = { coordinateType: CCDFormat.CoordinateType, cartn_x: 'model_Cartn_x' | 'pdbx_model_Cartn_x_ideal', cartn_y: 'model_Cartn_y' | 'pdbx_model_Cartn_y_ideal', cartn_z: 'model_Cartn_z' | 'pdbx_model_Cartn_z_ideal' };
 async function createCcdModel(data: CCD_Database, format: CCDFormat, props: CCDProps, ctx: RuntimeContext) {
     const { chem_comp, chem_comp_atom, chem_comp_bond } = data;
-    const { suffix, cartn_x, cartn_y, cartn_z } = props;
+    const { coordinateType, cartn_x, cartn_y, cartn_z } = props;
 
     const name = chem_comp.name.value(0);
     const id = chem_comp.id.value(0);
@@ -184,11 +188,11 @@ async function createCcdModel(data: CCD_Database, format: CCDFormat, props: CCDP
     }, atomCount);
 
     const entityBuilder = new EntityBuilder();
-    entityBuilder.setNames([[id, `${name} ${suffix}`]]);
+    entityBuilder.setNames([[id, `${name} (${coordinateType})`]]);
     entityBuilder.getEntityId(id, MoleculeType.Unknown, 'A');
 
     const componentBuilder = new ComponentBuilder(seq_id, type_symbol);
-    componentBuilder.setNames([[id, `${name} ${suffix}`]]);
+    componentBuilder.setNames([[id, `${name} (${coordinateType})`]]);
     componentBuilder.add(id, 0);
 
     const basicModel = createBasic({

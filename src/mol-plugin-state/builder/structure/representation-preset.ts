@@ -434,14 +434,14 @@ const chemicalComponent = StructureRepresentationPresetProvider({
     id: 'preset-structure-representation-chemical-component',
     display: {
         name: 'Chemical Component', group: 'Miscellaneous',
-        description: `Show 'ideal' and 'model' coordinates of chemical components.`
+        description: `Show 'Ideal' and 'Model' coordinates of chemical components.`
     },
     isApplicable: o => {
         return CCDFormat.is(o.data.model.sourceData);
     },
     params: () => ({
         ...CommonParams,
-        coordinateType: PD.Select('Ideal', PD.arrayToOptions(['Ideal', 'Model'] as const))
+        coordinateType: PD.Select<CCDFormat.CoordinateType>(CCDFormat.CoordinateType.Ideal, PD.arrayToOptions(Object.keys(CCDFormat.CoordinateType) as CCDFormat.CoordinateType[]))
     }),
     async apply(ref, params, plugin) {
         const structureCell = StateObjectRef.resolveAndCheck(plugin.state.data, ref);

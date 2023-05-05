@@ -171,8 +171,8 @@ const ccd = TrajectoryHierarchyPresetProvider({
         }
 
         const representationPreset = params.representationPreset || PresetStructureRepresentations['chemical-component'].id;
-        await builder.representation.applyPreset(idealStructureProperties, representationPreset, { ...params.representationPresetParams, coordinateType: 'Ideal' });
-        await builder.representation.applyPreset(modelStructureProperties, representationPreset, { ...params.representationPresetParams, coordinateType: 'Model' });
+        await builder.representation.applyPreset(idealStructureProperties, representationPreset, { ...params.representationPresetParams, coordinateType: CCDFormat.CoordinateType.Ideal });
+        await builder.representation.applyPreset(modelStructureProperties, representationPreset, { ...params.representationPresetParams, coordinateType: CCDFormat.CoordinateType.Model });
 
         return { models: [idealModel, modelModel], structures: [idealStructure, modelStructure] };
     }
