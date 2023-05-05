@@ -6,7 +6,7 @@
  */
 
 import { substringStartsWith } from '../../../mol-util/string';
-import { CifCategory, CifFrame } from '../../../mol-io/reader/cif';
+import { CifCategory, CifField, CifFrame } from '../../../mol-io/reader/cif';
 import { Tokenizer } from '../../../mol-io/reader/common/text/tokenizer';
 import { PdbFile } from '../../../mol-io/reader/pdb/schema';
 import { parseCryst1, parseRemark350, parseMtrix } from './assembly';
@@ -20,6 +20,8 @@ import { getAtomSiteTemplate, addAtom, getAtomSite } from './atom-site';
 import { addAnisotropic, getAnisotropicTemplate, getAnisotropic } from './anisotropic';
 import { parseConect } from './conect';
 import { isDebugMode } from '../../../mol-util/debug';
+import { PdbHeaderData, addHeader } from './header';
+import { mmCIF_Schema } from '../../../mol-io/reader/cif/schema/mmcif';
 
 export async function pdbToMmCif(pdb: PdbFile): Promise<CifFrame> {
     const { lines } = pdb;
@@ -42,7 +44,7 @@ export async function pdbToMmCif(pdb: PdbFile): Promise<CifFrame> {
                 break;
         }
     }
-
+    const header: PdbHeaderData = {};
     const atomSite = getAtomSiteTemplate(data, atomCount);
     const anisotropic = getAnisotropicTemplate(data, anisotropicCount);
     const entityBuilder = new EntityBuilder();
@@ -94,7 +96,9 @@ export async function pdbToMmCif(pdb: PdbFile): Promise<CifFrame> {
                 }
                 break;
             case 'H':
-                if (substringStartsWith(data, s, e, 'HETATM')) {
+                if (substringStartsWith(data, s, e, 'HEADER')) {
+                    addHeader(data, s, e, header);
+                } else if (substringStartsWith(data, s, e, 'HETATM')) {
                     if (!modelNum) { modelNum++; modelStr = '' + modelNum; }
                     addAtom(atomSite, modelStr, tokenizer, s, e, isPdbqt);
                 } else if (substringStartsWith(data, s, e, 'HELIX')) {
@@ -167,6 +171,26 @@ export async function pdbToMmCif(pdb: PdbFile): Promise<CifFrame> {
                     terIndices.add(atomSite.index);
                 }
         }
+    }
+
+    // build entry, struct_keywords and pdbx_database_status
+    if (header.id_code) {
+        const entry: CifCategory.SomeFields<mmCIF_Schema['entry']> = {
+            id: CifField.ofString(header.id_code)
+        };
+        helperCategories.push(CifCategory.ofFields('entry', entry));
+    }
+    if (header.classification) {
+        const struct_keywords: CifCategory.SomeFields<mmCIF_Schema['struct_keywords']> = {
+            pdbx_keywords: CifField.ofString(header.classification)
+        };
+        helperCategories.push(CifCategory.ofFields('struct_keywords', struct_keywords));
+    }
+    if (header.dep_date) {
+        const pdbx_database_status: CifCategory.SomeFields<mmCIF_Schema['pdbx_database_status']> = {
+            recvd_initial_deposition_date: CifField.ofString(header.dep_date)
+        };
+        helperCategories.push(CifCategory.ofFields('pdbx_database_status', pdbx_database_status));
     }
 
     // build entity and chem_comp categories
