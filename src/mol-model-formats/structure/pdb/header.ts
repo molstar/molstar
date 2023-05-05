@@ -25,7 +25,7 @@ export function addHeader(data: string, s: number, e: number, header: PdbHeaderD
     // idCode  	          _entry.id
 
     const line = data.substring(s, e);
-    header.id_code = line.substring(62, 66);
-    header.dep_date = line.substring(50, 59);
-    header.classification = line.substring(10, 50).trim();
+    header.id_code = line.substring(62, 66).trim() || undefined;
+    header.dep_date = line.substring(50, 59).trim() || undefined;
+    header.classification = line.substring(10, 50).trim() || undefined;
 }
