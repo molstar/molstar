@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2021-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Sukolsak Sakshuwong <sukolsak@stanford.edu>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -13,7 +13,7 @@ import { PLUGIN_VERSION } from '../../mol-plugin/version';
 import { RuntimeContext } from '../../mol-task';
 import { Color } from '../../mol-util/color/color';
 import { fillSerial } from '../../mol-util/array';
-import { NumberArray } from '../../mol-util/type-helpers';
+import { NumberArray, assertUnreachable } from '../../mol-util/type-helpers';
 import { MeshExporter, AddMeshInput, MeshGeoData } from './mesh-exporter';
 
 // avoiding namespace lookup improved performance in Chrome (Aug 2020)
@@ -34,6 +34,15 @@ const JSON_CHUNK_TYPE = 0x4E4F534A;
 const BIN_CHUNK_TYPE = 0x004E4942;
 const JSON_PAD_CHAR = 0x20;
 const BIN_PAD_CHAR = 0x00;
+
+function getPrimitiveMode(mode: 'points' | 'lines' | 'triangles'): number {
+    switch (mode) {
+        case 'points': return 0;
+        case 'lines': return 1;
+        case 'triangles': return 4;
+        default: assertUnreachable(mode);
+    }
+}
 
 export type GlbData = {
     glb: Uint8Array
@@ -89,12 +98,12 @@ export class GlbExporter extends MeshExporter<GlbData> {
         return accessorOffset;
     }
 
-    private addGeometryBuffers(vertices: Float32Array, normals: Float32Array, indices: Uint32Array | undefined, vertexCount: number, drawCount: number, isGeoTexture: boolean) {
+    private addGeometryBuffers(vertices: Float32Array, normals: Float32Array | undefined, indices: Uint32Array | undefined, vertexCount: number, drawCount: number, isGeoTexture: boolean) {
         const tmpV = Vec3();
         const stride = isGeoTexture ? 4 : 3;
 
         const vertexArray = new Float32Array(vertexCount * 3);
-        const normalArray = new Float32Array(vertexCount * 3);
+        let normalArray: Float32Array | undefined;
         let indexArray: Uint32Array | undefined;
 
         // position
@@ -104,32 +113,35 @@ export class GlbExporter extends MeshExporter<GlbData> {
         }
 
         // normal
-        for (let i = 0; i < vertexCount; ++i) {
-            v3fromArray(tmpV, normals, i * stride);
-            v3normalize(tmpV, tmpV);
-            v3toArray(tmpV, normalArray, i * 3);
+        if (normals) {
+            normalArray = new Float32Array(vertexCount * 3);
+            for (let i = 0; i < vertexCount; ++i) {
+                v3fromArray(tmpV, normals, i * stride);
+                v3normalize(tmpV, tmpV);
+                v3toArray(tmpV, normalArray, i * 3);
+            }
         }
 
         // face
-        if (!isGeoTexture) {
-            indexArray = indices!.slice(0, drawCount);
+        if (!isGeoTexture && indices) {
+            indexArray = indices.slice(0, drawCount);
         }
 
         const [vertexMin, vertexMax] = GlbExporter.vec3MinMax(vertexArray);
 
         let vertexBuffer = vertexArray.buffer;
-        let normalBuffer = normalArray.buffer;
-        let indexBuffer = isGeoTexture ? undefined : indexArray!.buffer;
+        let normalBuffer = normalArray?.buffer;
+        let indexBuffer = (isGeoTexture || !indexArray) ? undefined : indexArray.buffer;
         if (!IsNativeEndianLittle) {
             vertexBuffer = flipByteOrder(new Uint8Array(vertexBuffer), 4);
-            normalBuffer = flipByteOrder(new Uint8Array(normalBuffer), 4);
+            if (normalBuffer) normalBuffer = flipByteOrder(new Uint8Array(normalBuffer), 4);
             if (!isGeoTexture) indexBuffer = flipByteOrder(new Uint8Array(indexBuffer!), 4);
         }
 
         return {
             vertexAccessorIndex: this.addBuffer(vertexBuffer, FLOAT, 'VEC3', vertexCount, ARRAY_BUFFER, vertexMin, vertexMax),
-            normalAccessorIndex: this.addBuffer(normalBuffer, FLOAT, 'VEC3', vertexCount, ARRAY_BUFFER),
-            indexAccessorIndex: isGeoTexture ? undefined : this.addBuffer(indexBuffer!, UNSIGNED_INT, 'SCALAR', drawCount, ELEMENT_ARRAY_BUFFER)
+            normalAccessorIndex: normalBuffer ? this.addBuffer(normalBuffer, FLOAT, 'VEC3', vertexCount, ARRAY_BUFFER) : undefined,
+            indexAccessorIndex: (isGeoTexture || !indexBuffer) ? undefined : this.addBuffer(indexBuffer, UNSIGNED_INT, 'SCALAR', drawCount, ELEMENT_ARRAY_BUFFER)
         };
     }
 
@@ -174,7 +186,7 @@ export class GlbExporter extends MeshExporter<GlbData> {
     }
 
     protected async addMeshWithColors(input: AddMeshInput) {
-        const { mesh, values, isGeoTexture, webgl, ctx } = input;
+        const { mesh, values, isGeoTexture, mode, webgl, ctx } = input;
 
         const t = Mat4();
 
@@ -190,28 +202,28 @@ export class GlbExporter extends MeshExporter<GlbData> {
         const material = this.addMaterial(metalness, roughness);
 
         let interpolatedColors: Uint8Array | undefined;
-        if (colorType === 'volume' || colorType === 'volumeInstance') {
+        if (webgl && mesh && (colorType === 'volume' || colorType === 'volumeInstance')) {
             const stride = isGeoTexture ? 4 : 3;
-            interpolatedColors = GlbExporter.getInterpolatedColors(webgl!, { vertices: mesh!.vertices, vertexCount: mesh!.vertexCount, values, stride, colorType });
+            interpolatedColors = GlbExporter.getInterpolatedColors(webgl, { vertices: mesh.vertices, vertexCount: mesh.vertexCount, values, stride, colorType });
         }
 
         let interpolatedOverpaint: Uint8Array | undefined;
-        if (overpaintType === 'volumeInstance') {
+        if (webgl && mesh && overpaintType === 'volumeInstance') {
             const stride = isGeoTexture ? 4 : 3;
-            interpolatedOverpaint = GlbExporter.getInterpolatedOverpaint(webgl!, { vertices: mesh!.vertices, vertexCount: mesh!.vertexCount, values, stride, colorType: overpaintType });
+            interpolatedOverpaint = GlbExporter.getInterpolatedOverpaint(webgl, { vertices: mesh.vertices, vertexCount: mesh.vertexCount, values, stride, colorType: overpaintType });
         }
 
         let interpolatedTransparency: Uint8Array | undefined;
-        if (transparencyType === 'volumeInstance') {
+        if (webgl && mesh && transparencyType === 'volumeInstance') {
             const stride = isGeoTexture ? 4 : 3;
-            interpolatedTransparency = GlbExporter.getInterpolatedTransparency(webgl!, { vertices: mesh!.vertices, vertexCount: mesh!.vertexCount, values, stride, colorType: transparencyType });
+            interpolatedTransparency = GlbExporter.getInterpolatedTransparency(webgl, { vertices: mesh.vertices, vertexCount: mesh.vertexCount, values, stride, colorType: transparencyType });
         }
 
         // instancing
         const sameGeometryBuffers = mesh !== undefined;
         const sameColorBuffer = sameGeometryBuffers && colorType !== 'instance' && !colorType.endsWith('Instance') && !dTransparency;
         let vertexAccessorIndex: number;
-        let normalAccessorIndex: number;
+        let normalAccessorIndex: number | undefined;
         let indexAccessorIndex: number | undefined;
         let colorAccessorIndex: number;
         let meshIndex: number;
@@ -235,7 +247,7 @@ export class GlbExporter extends MeshExporter<GlbData> {
 
                 // create a color buffer if needed
                 if (instanceIndex === 0 || !sameColorBuffer) {
-                    colorAccessorIndex = this.addColorBuffer({ values, groups, vertexCount, instanceIndex, isGeoTexture }, interpolatedColors, interpolatedOverpaint, interpolatedTransparency);
+                    colorAccessorIndex = this.addColorBuffer({ values, groups, vertexCount, instanceIndex, isGeoTexture, mode }, interpolatedColors, interpolatedOverpaint, interpolatedTransparency);
                 }
 
                 // glTF mesh
@@ -248,7 +260,8 @@ export class GlbExporter extends MeshExporter<GlbData> {
                             COLOR_0: colorAccessorIndex!
                         },
                         indices: indexAccessorIndex,
-                        material
+                        material,
+                        mode: getPrimitiveMode(mode),
                     }]
                 });
             }

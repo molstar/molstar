@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -314,12 +314,14 @@ export function getStructureConformationAndRadius(structure: Structure, sizeThem
 }
 
 const _H = AtomicNumbers['H'];
-export function isHydrogen(structure: Structure, unit: Unit, element: ElementIndex, variant: 'all' | 'non-polar') {
+export function isHydrogen(structure: Structure, unit: Unit, element: ElementIndex, variant: 'all' | 'non-polar' | 'polar') {
     if (Unit.isCoarse(unit)) return false;
-    return (
-        unit.model.atomicHierarchy.derived.atom.atomicNumber[element] === _H &&
-        (variant === 'all' || !hasPolarNeighbour(structure, unit, SortedArray.indexOf(unit.elements, element) as StructureElement.UnitIndex))
-    );
+    if (unit.model.atomicHierarchy.derived.atom.atomicNumber[element] !== _H) return false;
+    if (variant === 'all') return true;
+    const polar = hasPolarNeighbour(structure, unit, SortedArray.indexOf(unit.elements, element) as StructureElement.UnitIndex);
+    if (polar && variant === 'polar') return true;
+    if (!polar && variant === 'non-polar') return true;
+    return false;
 }
 export function isH(atomicNumber: ArrayLike<number>, element: ElementIndex) {
     return atomicNumber[element] === _H;
