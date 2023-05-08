@@ -15,6 +15,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Add `SbNcbrPartialCharges` extension for coloring and labeling atoms and residues by partial atomic charges
   - uses custom mmcif categories `_sb_ncbr_partial_atomic_charges_meta` and `_sb_ncbr_partial_atomic_charges` (more info in [README.md](./src/extensions/sb-ncbr/README.md))
 - Parse HEADER record when reading PDB file
+- Support `ignoreHydrogens` in interactions representation
 
 ## [v3.34.0] - 2023-04-16
 
