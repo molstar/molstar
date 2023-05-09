@@ -158,34 +158,51 @@ async function createCcdModel(data: CCD_Database, format: CCDFormat, props: CCDP
 
     const { atom_id, charge, comp_id, pdbx_ordinal, type_symbol } = chem_comp_atom;
     const atomCount = chem_comp_atom._rowCount;
-    const A = Column.ofConst('A', atomCount, Column.Schema.str);
-    const seq_id = Column.ofConst(1, atomCount, Column.Schema.int);
-    const entity_id = Column.ofConst('1', atomCount, Column.Schema.str);
-    const occupancy = Column.ofConst(1, atomCount, Column.Schema.float);
-    const model_num = Column.ofConst(1, atomCount, Column.Schema.int);
+
+    const filteredRows: number[] = [];
+    for (let i = 0; i < atomCount; i++) {
+        if (chem_comp_atom[cartn_x].valueKind(i) > 0) continue;
+        filteredRows[filteredRows.length] = i;
+    }
+    const filteredRowCount = filteredRows.length;
+
+    const A = Column.ofConst('A', filteredRowCount, Column.Schema.str);
+    const seq_id = Column.ofConst(1, filteredRowCount, Column.Schema.int);
+    const entity_id = Column.ofConst('1', filteredRowCount, Column.Schema.str);
+    const occupancy = Column.ofConst(1, filteredRowCount, Column.Schema.float);
+    const model_num = Column.ofConst(1, filteredRowCount, Column.Schema.int);
+
+    const filteredAtomId = Column.view(atom_id, filteredRows);
+    const filteredCompId = Column.view(comp_id, filteredRows);
+    const filteredX = Column.view(chem_comp_atom[cartn_x], filteredRows);
+    const filteredY = Column.view(chem_comp_atom[cartn_y], filteredRows);
+    const filteredZ = Column.view(chem_comp_atom[cartn_z], filteredRows);
+    const filteredId = Column.view(pdbx_ordinal, filteredRows);
+    const filteredTypeSymbol = Column.view(type_symbol, filteredRows);
+    const filteredCharge = Column.view(charge, filteredRows);
 
     const model_atom_site = Table.ofPartialColumns(BasicSchema.atom_site, {
         auth_asym_id: A,
-        auth_atom_id: atom_id,
-        auth_comp_id: comp_id,
+        auth_atom_id: filteredAtomId,
+        auth_comp_id: filteredCompId,
         auth_seq_id: seq_id,
-        Cartn_x: chem_comp_atom[cartn_x],
-        Cartn_y: chem_comp_atom[cartn_y],
-        Cartn_z: chem_comp_atom[cartn_z],
-        id: pdbx_ordinal,
+        Cartn_x: filteredX,
+        Cartn_y: filteredY,
+        Cartn_z: filteredZ,
+        id: filteredId,
 
         label_asym_id: A,
-        label_atom_id: atom_id,
-        label_comp_id: comp_id,
+        label_atom_id: filteredAtomId,
+        label_comp_id: filteredCompId,
         label_seq_id: seq_id,
         label_entity_id: entity_id,
 
         occupancy,
-        type_symbol,
+        type_symbol: filteredTypeSymbol,
 
         pdbx_PDB_model_num: model_num,
-        pdbx_formal_charge: charge
-    }, atomCount);
+        pdbx_formal_charge: filteredCharge
+    }, filteredRowCount);
 
     const entityBuilder = new EntityBuilder();
     entityBuilder.setNames([[id, `${name} (${coordinateType})`]]);
