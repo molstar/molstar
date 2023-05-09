@@ -28,6 +28,7 @@ import { Color } from '../../mol-util/color/color';
 import { unpackRGBToInt } from '../../mol-util/number-packing';
 import { RenderObjectExporter, RenderObjectExportData } from './render-object-exporter';
 import { readAlphaTexture, readTexture } from '../../mol-gl/compute/util';
+import { assertUnreachable } from '../../mol-util/type-helpers';
 
 const GeoExportName = 'geo-export';
 
@@ -375,19 +376,51 @@ export abstract class MeshExporter<D extends RenderObjectExportData> implements 
         const vertexCount = (values.uVertexCount.ref.value / 4) * 2;
         const drawCount = values.drawCount.ref.value / (2 * 3);
 
-        const n = (vertexCount / 2);
-        const vertices = new Float32Array(n * 2 * 3);
-        for (let i = 0; i < n; ++i) {
-            vertices[i * 6] = aStart[i * 4 * 3];
-            vertices[i * 6 + 1] = aStart[i * 4 * 3 + 1];
-            vertices[i * 6 + 2] = aStart[i * 4 * 3 + 2];
+        if (this.options.linesAsTriangles) {
+            const start = Vec3();
+            const end = Vec3();
 
-            vertices[i * 6 + 3] = aEnd[i * 4 * 3];
-            vertices[i * 6 + 4] = aEnd[i * 4 * 3 + 1];
-            vertices[i * 6 + 5] = aEnd[i * 4 * 3 + 2];
+            const instanceCount = values.instanceCount.ref.value;
+            const meshes: Mesh[] = [];
+
+            const radialSegments = 6;
+            const topCap = true;
+            const bottomCap = true;
+
+            for (let instanceIndex = 0; instanceIndex < instanceCount; ++instanceIndex) {
+                const state = MeshBuilder.createState(512, 256);
+
+                for (let i = 0, il = vertexCount * 2; i < il; i += 4) {
+                    v3fromArray(start, aStart, i * 3);
+                    v3fromArray(end, aEnd, i * 3);
+
+                    const group = aGroup[i];
+                    const radius = MeshExporter.getSize(values, instanceIndex, group) * 0.03;
+
+                    const cylinderProps = { radiusTop: radius, radiusBottom: radius, topCap, bottomCap, radialSegments };
+                    state.currentGroup = aGroup[i];
+                    addCylinder(state, start, end, 1, cylinderProps);
+                }
+
+                meshes.push(MeshBuilder.getMesh(state));
+            }
+
+            await this.addMeshWithColors({ mesh: undefined, meshes, values, isGeoTexture: false, mode: 'triangles', webgl, ctx });
+        } else {
+            const n = vertexCount / 2;
+            const vertices = new Float32Array(n * 2 * 3);
+            for (let i = 0; i < n; ++i) {
+                vertices[i * 6] = aStart[i * 4 * 3];
+                vertices[i * 6 + 1] = aStart[i * 4 * 3 + 1];
+                vertices[i * 6 + 2] = aStart[i * 4 * 3 + 2];
+
+                vertices[i * 6 + 3] = aEnd[i * 4 * 3];
+                vertices[i * 6 + 4] = aEnd[i * 4 * 3 + 1];
+                vertices[i * 6 + 5] = aEnd[i * 4 * 3 + 2];
+            }
+
+            await this.addMeshWithColors({ mesh: { vertices, normals: undefined, indices: undefined, groups: aGroup, vertexCount, drawCount }, meshes: undefined, values, isGeoTexture: false, mode: 'lines', webgl, ctx });
         }
-
-        await this.addMeshWithColors({ mesh: { vertices, normals: undefined, indices: undefined, groups: aGroup, vertexCount, drawCount }, meshes: undefined, values, isGeoTexture: false, mode: 'lines', webgl, ctx });
     }
 
     private async addPoints(values: PointsValues, webgl: WebGLContext, ctx: RuntimeContext) {
@@ -396,7 +429,33 @@ export abstract class MeshExporter<D extends RenderObjectExportData> implements 
         const vertexCount = values.uVertexCount.ref.value;
         const drawCount = values.drawCount.ref.value;
 
-        await this.addMeshWithColors({ mesh: { vertices: aPosition, normals: undefined, indices: undefined, groups: aGroup, vertexCount, drawCount }, meshes: undefined, values, isGeoTexture: false, mode: 'points', webgl, ctx });
+        if (this.options.pointsAsTriangles) {
+            const center = Vec3();
+
+            const instanceCount = values.instanceCount.ref.value;
+            const meshes: Mesh[] = [];
+
+            const detail = 0;
+
+            for (let instanceIndex = 0; instanceIndex < instanceCount; ++instanceIndex) {
+                const state = MeshBuilder.createState(512, 256);
+
+                for (let i = 0; i < vertexCount; ++i) {
+                    v3fromArray(center, aPosition, i * 3);
+
+                    const group = aGroup[i];
+                    const radius = MeshExporter.getSize(values, instanceIndex, group) * 0.03;
+                    state.currentGroup = group;
+                    addSphere(state, center, radius, detail);
+                }
+
+                meshes.push(MeshBuilder.getMesh(state));
+            }
+
+            await this.addMeshWithColors({ mesh: undefined, meshes, values, isGeoTexture: false, mode: 'triangles', webgl, ctx });
+        } else {
+            await this.addMeshWithColors({ mesh: { vertices: aPosition, normals: undefined, indices: undefined, groups: aGroup, vertexCount, drawCount }, meshes: undefined, values, isGeoTexture: false, mode: 'points', webgl, ctx });
+        }
     }
 
     private async addSpheres(values: SpheresValues, webgl: WebGLContext, ctx: RuntimeContext) {
@@ -410,9 +469,24 @@ export abstract class MeshExporter<D extends RenderObjectExportData> implements 
 
         const sphereCount = vertexCount / 4 * instanceCount;
         let detail: number;
-        if (sphereCount < 2000) detail = 3;
-        else if (sphereCount < 20000) detail = 2;
-        else detail = 1;
+        switch (this.options.primitivesQuality) {
+            case 'auto':
+                if (sphereCount < 2000) detail = 3;
+                else if (sphereCount < 20000) detail = 2;
+                else detail = 1;
+                break;
+            case 'high':
+                detail = 3;
+                break;
+            case 'medium':
+                detail = 2;
+                break;
+            case 'low':
+                detail = 1;
+                break;
+            default:
+                assertUnreachable(this.options.primitivesQuality);
+        }
 
         for (let instanceIndex = 0; instanceIndex < instanceCount; ++instanceIndex) {
             const state = MeshBuilder.createState(512, 256);
@@ -447,9 +521,24 @@ export abstract class MeshExporter<D extends RenderObjectExportData> implements 
 
         const cylinderCount = vertexCount / 6 * instanceCount;
         let radialSegments: number;
-        if (cylinderCount < 2000) radialSegments = 36;
-        else if (cylinderCount < 20000) radialSegments = 24;
-        else radialSegments = 12;
+        switch (this.options.primitivesQuality) {
+            case 'auto':
+                if (cylinderCount < 2000) radialSegments = 36;
+                else if (cylinderCount < 20000) radialSegments = 24;
+                else radialSegments = 12;
+                break;
+            case 'high':
+                radialSegments = 36;
+                break;
+            case 'medium':
+                radialSegments = 24;
+                break;
+            case 'low':
+                radialSegments = 12;
+                break;
+            default:
+                assertUnreachable(this.options.primitivesQuality);
+        }
 
         for (let instanceIndex = 0; instanceIndex < instanceCount; ++instanceIndex) {
             const state = MeshBuilder.createState(512, 256);
@@ -463,7 +552,7 @@ export abstract class MeshExporter<D extends RenderObjectExportData> implements 
                 const cap = aCap[i];
                 const topCap = cap === 1 || cap === 3;
                 const bottomCap = cap >= 2;
-                const cylinderProps = { radiusTop: radius, radiusBottom: radius, topCap, bottomCap, radialSegments };
+                const cylinderProps = { radiusTop: radius, radiusBottom: radius, topCap, bottomCap, radialSegments };
                 state.currentGroup = aGroup[i];
                 addCylinder(state, start, end, 1, cylinderProps);
             }
@@ -500,7 +589,7 @@ export abstract class MeshExporter<D extends RenderObjectExportData> implements 
     }
 
     add(renderObject: GraphicsRenderObject, webgl: WebGLContext, ctx: RuntimeContext) {
-        if (!renderObject.state.visible) return;
+        if (!renderObject.state.visible && !this.options.includeHidden) return;
         if (renderObject.values.drawCount.ref.value === 0) return;
         if (renderObject.values.instanceCount.ref.value === 0) return;
 
@@ -519,6 +608,13 @@ export abstract class MeshExporter<D extends RenderObjectExportData> implements 
                 return this.addTextureMesh(renderObject.values as TextureMeshValues, webgl, ctx);
         }
     }
+
+    protected options = {
+        includeHidden: false,
+        linesAsTriangles: false,
+        pointsAsTriangles: false,
+        primitivesQuality: 'auto' as 'auto' | 'high' | 'medium' | 'low',
+    };
 
     abstract getData(ctx: RuntimeContext): Promise<D>;
 
