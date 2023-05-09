@@ -16,6 +16,7 @@ Note that since we don't clearly distinguish between a public and private interf
   - uses custom mmcif categories `_sb_ncbr_partial_atomic_charges_meta` and `_sb_ncbr_partial_atomic_charges` (more info in [README.md](./src/extensions/sb-ncbr/README.md))
 - Parse HEADER record when reading PDB file
 - Support `ignoreHydrogens` in interactions representation
+- Add hydroxyproline (HYP) commonly present in collagen molecules to the list of amino acids
 
 ## [v3.34.0] - 2023-04-16
 
