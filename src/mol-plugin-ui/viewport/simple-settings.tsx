@@ -6,6 +6,7 @@
  */
 
 import { produce } from 'immer';
+import { throttleTime } from 'rxjs';
 import { Canvas3DParams, Canvas3DProps } from '../../mol-canvas3d/canvas3d';
 import { PluginCommands } from '../../mol-plugin/commands';
 import { PluginConfig } from '../../mol-plugin/config';
@@ -26,7 +27,7 @@ export class SimpleSettingsControl extends PluginUIComponent {
 
         this.subscribe(this.plugin.events.canvas3d.settingsUpdated, () => this.forceUpdate());
 
-        this.subscribe(this.plugin.canvas3d!.camera.stateChanged, state => {
+        this.subscribe(this.plugin.canvas3d!.camera.stateChanged.pipe(throttleTime(500, undefined, { leading: true, trailing: true })), state => {
             if (state.radiusMax !== undefined || state.radius !== undefined) {
                 this.forceUpdate();
             }

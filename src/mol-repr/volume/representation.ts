@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -15,7 +15,7 @@ import { createRenderObject, getNextMaterialId, GraphicsRenderObject } from '../
 import { PickingId } from '../../mol-geo/geometry/picking';
 import { Loci, isEveryLoci, EmptyLoci, isEmptyLoci } from '../../mol-model/loci';
 import { Interval, SortedArray } from '../../mol-data/int';
-import { getQualityProps, VisualUpdateState } from '../util';
+import { getQualityProps, LocationCallback, VisualUpdateState } from '../util';
 import { ColorTheme } from '../../mol-theme/color';
 import { ValueCell } from '../../mol-util';
 import { createSizes } from '../../mol-geo/geometry/size-data';
@@ -233,6 +233,13 @@ export function VolumeVisual<G extends Geometry, P extends VolumeParams & Geomet
         getLoci(pickingId: PickingId) {
             return renderObject ? getLoci(pickingId, currentVolume, currentKey, currentProps, renderObject.id) : EmptyLoci;
         },
+        eachLocation(cb: LocationCallback) {
+            locationIt.reset();
+            while (locationIt.hasNext) {
+                const { location, isSecondary } = locationIt.move();
+                cb(location, isSecondary);
+            }
+        },
         mark(loci: Loci, action: MarkerAction) {
             return Visual.mark(renderObject, loci, action, lociApply);
         },
@@ -435,6 +442,11 @@ export function VolumeRepresentation<P extends VolumeParams>(label: string, ctx:
         },
         getAllLoci: (): Loci[] => {
             return [getLoci(_volume, _props)];
+        },
+        eachLocation: (cb: LocationCallback) => {
+            visuals.forEach(visual => {
+                visual.eachLocation(cb);
+            });
         },
         mark,
         destroy

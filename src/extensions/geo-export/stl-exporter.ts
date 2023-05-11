@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2021-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Sukolsak Sakshuwong <sukolsak@stanford.edu>
  */
@@ -30,7 +30,8 @@ export class StlExporter extends MeshExporter<StlData> {
     private centerTransform: Mat4;
 
     protected async addMeshWithColors(input: AddMeshInput) {
-        const { values, isGeoTexture, ctx } = input;
+        const { values, isGeoTexture, mode, ctx } = input;
+        if (mode !== 'triangles') return;
 
         const t = Mat4();
         const tmpV = Vec3();

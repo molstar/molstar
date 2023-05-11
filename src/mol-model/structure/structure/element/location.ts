@@ -55,11 +55,15 @@ namespace Location {
         return a.unit === b.unit && a.element === b.element;
     }
 
-    const pA = Vec3.zero(), pB = Vec3.zero();
+    const pA = Vec3(), pB = Vec3();
     export function distance(a: Location, b: Location) {
         a.unit.conformation.position(a.element, pA);
         b.unit.conformation.position(b.element, pB);
         return Vec3.distance(pA, pB);
+    }
+
+    export function position(out: Vec3, l: Location): Vec3 {
+        return l.unit.conformation.position(l.element, out);
     }
 
     export function residueIndex(l: Location) {

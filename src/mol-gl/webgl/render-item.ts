@@ -144,7 +144,10 @@ export function createRenderItem<T extends string>(ctx: WebGLContext, drawMode: 
         elementsBuffer = resources.elements(elements.ref.value);
     }
 
-    let vertexArray: VertexArray | null = vertexArrayObject ? resources.vertexArray(programs, attributeBuffers, elementsBuffer) : null;
+    const vertexArrays: Record<string, VertexArray | null> = {};
+    for (const k of renderVariants) {
+        vertexArrays[k] = vertexArrayObject ? resources.vertexArray(programs[k], attributeBuffers, elementsBuffer) : null;
+    }
 
     let drawCount: number = values.drawCount.ref.value;
     let instanceCount: number = values.instanceCount.ref.value;
@@ -170,6 +173,7 @@ export function createRenderItem<T extends string>(ctx: WebGLContext, drawMode: 
                 program.setUniforms(uniformValueEntries);
                 program.bindTextures(textures, sharedTexturesCount);
             } else {
+                const vertexArray = vertexArrays[variant];
                 if (program.id !== state.currentProgramId || program.id !== currentProgramId ||
                     materialId === -1 || materialId !== state.currentMaterialId
                 ) {
@@ -291,9 +295,12 @@ export function createRenderItem<T extends string>(ctx: WebGLContext, drawMode: 
             }
 
             if (valueChanges.attributes || valueChanges.defines || valueChanges.elements) {
-                // console.log('program/defines or buffers changed, update vao');
-                if (vertexArray) vertexArray.destroy();
-                vertexArray = vertexArrayObject ? resources.vertexArray(programs, attributeBuffers, elementsBuffer) : null;
+                // console.log('program/defines or buffers changed, update vaos');
+                for (const k of renderVariants) {
+                    const vertexArray = vertexArrays[k];
+                    if (vertexArray) vertexArray.destroy();
+                    vertexArrays[k] = vertexArrayObject ? resources.vertexArray(programs[k], attributeBuffers, elementsBuffer) : null;
+                }
             }
 
             for (let i = 0, il = textures.length; i < il; ++i) {
@@ -341,8 +348,9 @@ export function createRenderItem<T extends string>(ctx: WebGLContext, drawMode: 
             if (!destroyed) {
                 for (const k of renderVariants) {
                     programs[k].destroy();
+                    const vertexArray = vertexArrays[k];
+                    if (vertexArray) vertexArray.destroy();
                 }
-                if (vertexArray) vertexArray.destroy();
                 textures.forEach(([k, texture]) => {
                     // lifetime of textures with kind 'texture' is defined externally
                     if (schema[k].kind !== 'texture') texture.destroy();

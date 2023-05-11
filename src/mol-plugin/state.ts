@@ -76,7 +76,7 @@ class PluginState extends PluginComponent {
         await this.animation.stop();
 
         // this needs to go 1st since these changes are already baked into the behavior and data state
-        if (snapshot.structureComponentManager?.options) await this.plugin.managers.structure.component.setOptions(snapshot.structureComponentManager?.options);
+        if (snapshot.structureComponentManager?.options) this.plugin.managers.structure.component._setSnapshotState(snapshot.structureComponentManager?.options);
         if (snapshot.behaviour) await this.plugin.runTask(this.behaviors.setSnapshot(snapshot.behaviour));
         if (snapshot.data) await this.plugin.runTask(this.data.setSnapshot(snapshot.data));
         if (snapshot.canvas3d?.props) {

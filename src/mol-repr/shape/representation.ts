@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -11,7 +11,7 @@ import { Subject } from 'rxjs';
 import { getNextMaterialId, createRenderObject, GraphicsRenderObject } from '../../mol-gl/render-object';
 import { Theme } from '../../mol-theme/theme';
 import { LocationIterator } from '../../mol-geo/util/location-iterator';
-import { VisualUpdateState } from '../util';
+import { LocationCallback, VisualUpdateState } from '../util';
 import { createMarkers } from '../../mol-geo/geometry/marker-data';
 import { MarkerAction, MarkerActions } from '../../mol-util/marker-action';
 import { ValueCell } from '../../mol-util';
@@ -222,6 +222,13 @@ export function ShapeRepresentation<D, G extends Geometry, P extends Geometry.Pa
         },
         getAllLoci() {
             return [Shape.Loci(_shape)];
+        },
+        eachLocation: (cb: LocationCallback) => {
+            locationIt.reset();
+            while (locationIt.hasNext) {
+                const { location, isSecondary } = locationIt.move();
+                cb(location, isSecondary);
+            }
         },
         mark(loci: Loci, action: MarkerAction) {
             if (!MarkerActions.is(_state.markerActions, action)) return false;

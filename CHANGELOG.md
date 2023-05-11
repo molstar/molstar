@@ -6,6 +6,33 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Add a uniform color theme for NtC tube that still paints residue and segment dividers in a different color
+- Support points & lines in glTF export
+- Fix bond assignments `struct_conn` records referencing waters
+- Add StructConn extension providing functions for inspecting struct_conns
+- Fix `PluginState.setSnapshot` triggering unnecessary state updates
+- Fix an edge case in the `mol-state`'s `State` when trying to apply a transform to an existing Null object
+- Add `SbNcbrPartialCharges` extension for coloring and labeling atoms and residues by partial atomic charges
+  - uses custom mmcif categories `_sb_ncbr_partial_atomic_charges_meta` and `_sb_ncbr_partial_atomic_charges` (more info in [README.md](./src/extensions/sb-ncbr/README.md))
+- Parse HEADER record when reading PDB file
+- Support `ignoreHydrogens` in interactions representation
+- Add hydroxyproline (HYP) commonly present in collagen molecules to the list of amino acids
+
+## [v3.34.0] - 2023-04-16
+
+- Avoid `renderMarkingDepth` for fully transparent renderables
+- Remove `camera.far` doubling workaround
+- Add `ModifiersKeys.areNone` helper function
+- Do not render NtC tube segments unless all required atoms are present in the structure
+- Fix rendering issues caused by VAO reuse
+- Add "Zoom All", "Orient Axes", "Reset Axes" buttons to the "Reset Camera" button
+- Improve trackball move-state handling when key bindings use modifiers
+- Fix rendering with very small viewport and SSAO enabled
+- Fix `.getAllLoci` for structure representations with `structure.child`
+- Fix `readAllLinesAsync` refering to dom length property
+- Make mol-util/file-info node compatible
+- Add `eachLocation` to representation/visual interface
+
 ## [v3.33.0] - 2023-04-02
 
 - Handle resizes of viewer element even when window remains the same size

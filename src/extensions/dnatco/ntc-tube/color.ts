@@ -31,7 +31,8 @@ type NtCTubeColors = typeof NtCTubeColors;
 export const NtCTubeColorThemeParams = {
     colors: PD.MappedStatic('default', {
         'default': PD.EmptyGroup(),
-        'custom': PD.Group(getColorMapParams(NtCTubeColors))
+        'custom': PD.Group(getColorMapParams(NtCTubeColors)),
+        'uniform': PD.Color(Color(0xEEEEEE)),
     }),
     markResidueBoundaries: PD.Boolean(true),
     markSegmentBoundaries: PD.Boolean(true),
@@ -43,7 +44,15 @@ export function getNtCTubeColorThemeParams(ctx: ThemeDataContext) {
 }
 
 export function NtCTubeColorTheme(ctx: ThemeDataContext, props: PD.Values<NtCTubeColorThemeParams>): ColorTheme<NtCTubeColorThemeParams> {
-    const colorMap = props.colors.name === 'default' ? NtCTubeColors : props.colors.params;
+    const colorMap = props.colors.name === 'default'
+        ? NtCTubeColors
+        : props.colors.name === 'custom'
+            ? props.colors.params
+            : ColorMap({
+                ...Object.fromEntries(ObjectKeys(NtCTubeColors).map(item => [item, props.colors.params])),
+                residueMarker: NtCTubeColors.residueMarker,
+                stepBoundaryMarker: NtCTubeColors.stepBoundaryMarker
+            }) as NtCTubeColors;
 
     function color(location: Location, isSecondary: boolean): Color {
         if (NTT.isLocation(location)) {
