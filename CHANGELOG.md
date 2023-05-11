@@ -6,6 +6,7 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Add principal axes spec and fix edge cases
 - Add a uniform color theme for NtC tube that still paints residue and segment dividers in a different color
 - Support points & lines in glTF export
 - Fix bond assignments `struct_conn` records referencing waters
