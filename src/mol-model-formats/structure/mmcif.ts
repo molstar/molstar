@@ -138,12 +138,15 @@ export function trajectoryFromCCD(frame: CifFrame): Task<Trajectory> {
 }
 
 async function createCcdModels(data: CCD_Database, format: CCDFormat, ctx: RuntimeContext) {
-    const model = await createCcdModel(data, format, { coordinateType: CCDFormat.CoordinateType.Model, cartn_x: 'model_Cartn_x', cartn_y: 'model_Cartn_y', cartn_z: 'model_Cartn_z' }, ctx);
     const ideal = await createCcdModel(data, format, { coordinateType: CCDFormat.CoordinateType.Ideal, cartn_x: 'pdbx_model_Cartn_x_ideal', cartn_y: 'pdbx_model_Cartn_y_ideal', cartn_z: 'pdbx_model_Cartn_z_ideal' }, ctx);
+    const model = await createCcdModel(data, format, { coordinateType: CCDFormat.CoordinateType.Model, cartn_x: 'model_Cartn_x', cartn_y: 'model_Cartn_y', cartn_z: 'model_Cartn_z' }, ctx);
 
-    const models = [model.representative, ideal.representative];
-    Model.TrajectoryInfo.set(models[0], { index: 0, size: models.length });
-    Model.TrajectoryInfo.set(models[1], { index: 1, size: models.length });
+    const models = [];
+    if (ideal) models.push(ideal.representative);
+    if (model) models.push(model.representative);
+    for (let i = 0, il = models.length; i < il; i++) {
+        Model.TrajectoryInfo.set(models[i], { index: i, size: models.length });
+    }
 
     return new ArrayTrajectory(models);
 }
@@ -218,6 +221,9 @@ async function createCcdModel(data: CCD_Database, format: CCDFormat, props: CCDP
         atom_site: model_atom_site
     });
     const models = await createModels(basicModel, format, ctx);
+
+    // all ideal or model coordinates might be absent
+    if (!models.representative) return;
 
     const first = models.representative;
     const entries = ComponentBond.getEntriesFromChemCompBond(chem_comp_bond);
