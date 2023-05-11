@@ -48,6 +48,10 @@ namespace Vec3 {
         return out;
     }
 
+    export function hasUndetermined(a: Vec3): boolean {
+        return isFinite(a[0]) && isFinite(a[1]) && isFinite(a[2]);
+    }
+
     export function hasNaN(a: Vec3) {
         return isNaN(a[0]) || isNaN(a[1]) || isNaN(a[2]);
     }

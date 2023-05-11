@@ -2,6 +2,7 @@
  * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Gianluca Tomasello <giagitom@gmail.com>
  */
 
 import { Matrix } from './matrix';
@@ -123,12 +124,17 @@ namespace PrincipalAxes {
         const dirB = Vec3.setMagnitude(Vec3(), a.dirB, (d2a + d2b) / 2);
         const dirC = Vec3.setMagnitude(Vec3(), a.dirC, (d3a + d3b) / 2);
 
+        const okDirA = Vec3.hasUndetermined(dirA);
+        const okDirB = Vec3.hasUndetermined(dirB);
+        const okDirC = Vec3.hasUndetermined(dirC);
+
         const origin = Vec3();
         const addCornerHelper = function (d1: number, d2: number, d3: number) {
             Vec3.copy(tmpBoxVec, center);
-            Vec3.scaleAndAdd(tmpBoxVec, tmpBoxVec, a.dirA, d1);
-            Vec3.scaleAndAdd(tmpBoxVec, tmpBoxVec, a.dirB, d2);
-            Vec3.scaleAndAdd(tmpBoxVec, tmpBoxVec, a.dirC, d3);
+
+            if (okDirA) Vec3.scaleAndAdd(tmpBoxVec, tmpBoxVec, a.dirA, d1);
+            if (okDirB) Vec3.scaleAndAdd(tmpBoxVec, tmpBoxVec, a.dirB, d2);
+            if (okDirC) Vec3.scaleAndAdd(tmpBoxVec, tmpBoxVec, a.dirC, d3);
             Vec3.add(origin, origin, tmpBoxVec);
         };
         addCornerHelper(d1a, d2a, d3a);
