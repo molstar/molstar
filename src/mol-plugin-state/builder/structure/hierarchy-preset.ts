@@ -14,12 +14,13 @@ import { RootStructureDefinition } from '../../helpers/root-structure';
 import { PresetStructureRepresentations, StructureRepresentationPresetProvider } from './representation-preset';
 import { PluginContext } from '../../../mol-plugin/context';
 import { Mat4, Vec3 } from '../../../mol-math/linear-algebra';
-import { Model, StructureElement } from '../../../mol-model/structure';
+import { Model, Structure } from '../../../mol-model/structure';
 import { getStructureQuality } from '../../../mol-repr/util';
 import { OperatorNameColorThemeProvider } from '../../../mol-theme/color/operator-name';
 import { PluginConfig } from '../../../mol-plugin/config';
-import { superpose } from '../../../mol-model/structure/structure/util/superposition';
 import { CCDFormat } from '../../../mol-model-formats/structure/mmcif';
+import { MinimizeRmsd } from '../../../mol-math/linear-algebra/3d/minimize-rmsd';
+import { SetUtils } from '../../../mol-util/set';
 
 export interface TrajectoryHierarchyPresetProvider<P = any, S = {}> extends PresetProvider<PluginStateObject.Molecule.Trajectory, P, S> { }
 export function TrajectoryHierarchyPresetProvider<P, S>(preset: TrajectoryHierarchyPresetProvider<P, S>) { return preset; }
@@ -161,13 +162,14 @@ const ccd = TrajectoryHierarchyPresetProvider({
 
         // align ideal and model coordinates
         if (!params.showOriginalCoordinates) {
-            const locis = [idealStructure, modelStructure].map(s => {
-                const structure = s.obj!.data;
-                return StructureElement.Loci.all(structure);
-            });
-            const { bTransform, rmsd } = superpose(locis)[0];
-            await transform(plugin, modelStructure.cell!, bTransform);
-            plugin.log.info(`Superposed [model] and [ideal] with RMSD ${rmsd.toFixed(2)}.`);
+            const [a, b] = getPositionTables(idealStructure.obj!.data, modelStructure.obj!.data);
+            if (!a) {
+                plugin.log.warn(`Cannot align ligands whose atom sets are disjoint.`);
+            } else {
+                const { bTransform, rmsd } = MinimizeRmsd.compute({ a, b });
+                await transform(plugin, modelStructure.cell!, bTransform);
+                plugin.log.info(`Superposed [model] and [ideal] with RMSD ${rmsd.toFixed(2)}.`);
+            }
         }
 
         const representationPreset = params.representationPreset || PresetStructureRepresentations['chemical-component'].id;
@@ -177,6 +179,41 @@ const ccd = TrajectoryHierarchyPresetProvider({
         return { models: [idealModel, modelModel], structures: [idealStructure, modelStructure] };
     }
 });
+
+/** tailored to CCD structures and not generally applicable */
+function getPositionTables(s1: Structure, s2: Structure) {
+    const m1 = getAtomIdSerialMap(s1);
+    const m2 = getAtomIdSerialMap(s2);
+    const intersecting = SetUtils.intersection(new Set(m1.keys()), new Set(m2.keys()));
+
+    const ret = [
+        MinimizeRmsd.Positions.empty(intersecting.size),
+        MinimizeRmsd.Positions.empty(intersecting.size)
+    ];
+    let o = 0;
+    intersecting.forEach(k => {
+        ret[0].x[o] = s1.model.atomicConformation.x[m1.get(k)!];
+        ret[0].y[o] = s1.model.atomicConformation.y[m1.get(k)!];
+        ret[0].z[o] = s1.model.atomicConformation.z[m1.get(k)!];
+        ret[1].x[o] = s2.model.atomicConformation.x[m2.get(k)!];
+        ret[1].y[o] = s2.model.atomicConformation.y[m2.get(k)!];
+        ret[1].z[o] = s2.model.atomicConformation.z[m2.get(k)!];
+        o++;
+    });
+
+    return ret;
+}
+
+/** tailored to CCD structures and not generally applicable */
+function getAtomIdSerialMap(structure: Structure) {
+    const map = new Map<string, number>();
+    const { label_atom_id } = structure.model.atomicHierarchy.atoms;
+    for (let i = 0, il = label_atom_id.rowCount; i < il; ++i) {
+        const id = label_atom_id.value(i);
+        if (!map.has(id)) map.set(id, map.size);
+    }
+    return map;
+}
 
 function transform(plugin: PluginContext, s: StateObjectRef<PluginStateObject.Molecule.Structure>, matrix: Mat4) {
     const b = plugin.state.data.build().to(s)
