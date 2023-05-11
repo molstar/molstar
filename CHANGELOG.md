@@ -17,6 +17,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Parse HEADER record when reading PDB file
 - Support `ignoreHydrogens` in interactions representation
 - Add hydroxyproline (HYP) commonly present in collagen molecules to the list of amino acids
+- Fix assemblies for Archive PDB files (do not generate unique `label_asym_id` if `REMARK 350` is present)
 
 ## [v3.34.0] - 2023-04-16
 
