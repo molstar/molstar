@@ -173,8 +173,11 @@ const ccd = TrajectoryHierarchyPresetProvider({
         }
 
         const representationPreset = params.representationPreset || PresetStructureRepresentations['chemical-component'].id;
-        await builder.representation.applyPreset(idealStructureProperties, representationPreset, { ...params.representationPresetParams, coordinateType: CCDFormat.CoordinateType.Ideal });
-        await builder.representation.applyPreset(modelStructureProperties, representationPreset, { ...params.representationPresetParams, coordinateType: CCDFormat.CoordinateType.Model });
+        const representationPresetParams = params.representationPresetParams || {};
+        if (representationPresetParams.ignoreHydrogens === undefined) representationPresetParams.ignoreHydrogens = true;
+
+        await builder.representation.applyPreset(idealStructureProperties, representationPreset, { ...representationPresetParams, coordinateType: CCDFormat.CoordinateType.Ideal });
+        await builder.representation.applyPreset(modelStructureProperties, representationPreset, { ...representationPresetParams, coordinateType: CCDFormat.CoordinateType.Model });
 
         return { models: [idealModel, modelModel], structures: [idealStructure, modelStructure] };
     }

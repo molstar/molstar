@@ -453,10 +453,10 @@ const chemicalComponent = StructureRepresentationPresetProvider({
         };
 
         const structure = structureCell.obj!.data;
-        const { update, builder } = reprBuilder(plugin, params);
+        const { update, builder, typeParams } = reprBuilder(plugin, params);
 
         const representations = {
-            [coordinateType]: builder.buildRepresentation(update, components[coordinateType], { type: 'ball-and-stick' }),
+            [coordinateType]: builder.buildRepresentation(update, components[coordinateType], { type: 'ball-and-stick', typeParams }),
         };
 
         await update.commit({ revertOnError: true });
