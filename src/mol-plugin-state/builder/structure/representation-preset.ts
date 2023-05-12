@@ -25,6 +25,7 @@ import { StructConn } from '../../../mol-model-formats/structure/property/bonds/
 import { StructureRepresentationRegistry } from '../../../mol-repr/structure/registry';
 import { assertUnreachable } from '../../../mol-util/type-helpers';
 import { CCDFormat } from '../../../mol-model-formats/structure/mmcif';
+import { capitalize } from '../../../mol-util/string';
 
 export interface StructureRepresentationPresetProvider<P = any, S extends _Result = _Result> extends PresetProvider<PluginStateObject.Molecule.Structure, P, S> { }
 export function StructureRepresentationPresetProvider<P, S extends _Result>(repr: StructureRepresentationPresetProvider<P, S>) { return repr; }
@@ -450,7 +451,7 @@ const chemicalComponent = StructureRepresentationPresetProvider({
 
         const { coordinateType, isHidden } = params;
         const components = {
-            [coordinateType]: await presetStaticComponent(plugin, structureCell, 'all', { label: coordinateType, tags: [coordinateType] })
+            [coordinateType]: await presetStaticComponent(plugin, structureCell, 'all', { label: capitalize(coordinateType), tags: [coordinateType] })
         };
 
         const structure = structureCell.obj!.data;

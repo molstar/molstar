@@ -119,8 +119,8 @@ namespace CCDFormat {
         frame: CifFrame
     }
     export enum CoordinateType {
-        Ideal = 'Ideal',
-        Model = 'Model'
+        Ideal = 'ideal',
+        Model = 'model'
     }
     export function is(x?: ModelFormat): x is CCDFormat {
         return x?.kind === 'CCD';
