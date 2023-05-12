@@ -12,7 +12,7 @@ import { VisualQuality, VisualQualityOptions } from '../../../mol-geo/geometry/b
 import { ColorTheme } from '../../../mol-theme/color';
 import { Structure } from '../../../mol-model/structure';
 import { PluginContext } from '../../../mol-plugin/context';
-import { StateObjectRef, StateObjectSelector } from '../../../mol-state';
+import { StateObjectRef, StateObjectSelector, StateTransform } from '../../../mol-state';
 import { StaticStructureComponentType } from '../../helpers/structure-component';
 import { StructureSelectionQueries as Q } from '../../helpers/structure-selection-query';
 import { PluginConfig } from '../../../mol-plugin/config';
@@ -441,13 +441,14 @@ const chemicalComponent = StructureRepresentationPresetProvider({
     },
     params: () => ({
         ...CommonParams,
-        coordinateType: PD.Select<CCDFormat.CoordinateType>(CCDFormat.CoordinateType.Ideal, PD.arrayToOptions(Object.keys(CCDFormat.CoordinateType) as CCDFormat.CoordinateType[]))
+        coordinateType: PD.Select<CCDFormat.CoordinateType>(CCDFormat.CoordinateType.Ideal, PD.arrayToOptions(Object.keys(CCDFormat.CoordinateType) as CCDFormat.CoordinateType[])),
+        isHidden: PD.Boolean(false)
     }),
     async apply(ref, params, plugin) {
         const structureCell = StateObjectRef.resolveAndCheck(plugin.state.data, ref);
         if (!structureCell) return {};
 
-        const { coordinateType } = params;
+        const { coordinateType, isHidden } = params;
         const components = {
             [coordinateType]: await presetStaticComponent(plugin, structureCell, 'all', { label: coordinateType, tags: [coordinateType] })
         };
@@ -456,8 +457,12 @@ const chemicalComponent = StructureRepresentationPresetProvider({
         const { update, builder, typeParams } = reprBuilder(plugin, params);
 
         const representations = {
-            [coordinateType]: builder.buildRepresentation(update, components[coordinateType], { type: 'ball-and-stick', typeParams }),
+            [coordinateType]: builder.buildRepresentation(update, components[coordinateType], { type: 'ball-and-stick', typeParams }, { initialState: { isHidden } }),
         };
+        // sync UI state
+        if (components[coordinateType]?.cell?.state && isHidden) {
+            StateTransform.assignState(components[coordinateType]!.cell!.state, { isHidden });
+        }
 
         await update.commit({ revertOnError: true });
         await updateFocusRepr(plugin, structure, params.theme?.focus?.name, params.theme?.focus?.params);

@@ -128,7 +128,7 @@ const allModels = TrajectoryHierarchyPresetProvider({
 const CCDParams = (a: PluginStateObject.Molecule.Trajectory | undefined, plugin: PluginContext) => ({
     representationPresetParams: PD.Optional(PD.Group(StructureRepresentationPresetProvider.CommonParams)),
     showOriginalCoordinates: PD.Optional(PD.Boolean(true, { description: `Show original coordinates for 'model' and 'ideal' structure and do not align them.` })),
-    // TODO option to select what to view
+    shownCoordinateType: PD.Select('ideal', PD.arrayToOptions(['ideal', 'model', 'both'] as const), { description: `What coordinate sets are visibile.` }),
     ...CommonParams(a, plugin)
 });
 
@@ -176,8 +176,8 @@ const ccd = TrajectoryHierarchyPresetProvider({
         const representationPresetParams = params.representationPresetParams || {};
         if (representationPresetParams.ignoreHydrogens === undefined) representationPresetParams.ignoreHydrogens = true;
 
-        await builder.representation.applyPreset(idealStructureProperties, representationPreset, { ...representationPresetParams, coordinateType: CCDFormat.CoordinateType.Ideal });
-        await builder.representation.applyPreset(modelStructureProperties, representationPreset, { ...representationPresetParams, coordinateType: CCDFormat.CoordinateType.Model });
+        await builder.representation.applyPreset(idealStructureProperties, representationPreset, { ...representationPresetParams, coordinateType: CCDFormat.CoordinateType.Ideal, isHidden: params.shownCoordinateType === 'model' });
+        await builder.representation.applyPreset(modelStructureProperties, representationPreset, { ...representationPresetParams, coordinateType: CCDFormat.CoordinateType.Model, isHidden: params.shownCoordinateType === 'ideal' });
 
         return { models: [idealModel, modelModel], structures: [idealStructure, modelStructure] };
     }
