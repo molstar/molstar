@@ -309,6 +309,9 @@ export function createLinkCylinderImpostors(ctx: VisualContext, linkBuilder: Lin
 
                 const aromaticOffset = linkRadius + aromaticScale * linkRadius + aromaticScale * linkRadius * aromaticSpacing;
 
+                v3setMagnitude(tmpV12, v3sub(tmpV12, vb, va), linkRadius * 0.5);
+                v3add(va, va, tmpV12);
+
                 v3setMagnitude(vShift, vShift, aromaticOffset);
                 v3sub(va, va, vShift);
                 v3sub(vm, vm, vShift);
@@ -414,13 +417,18 @@ export function createLinkLines(ctx: VisualContext, linkBuilder: LinkBuilderProp
             if (linkStyle === LinkStyle.Aromatic || linkStyle === LinkStyle.MirroredAromatic) {
                 builder.add(va[0], va[1], va[2], vm[0], vm[1], vm[2], edgeIndex);
 
-                v3setMagnitude(vShift, vShift, absOffset * aromaticOffsetFactor);
+                const aromaticOffset = absOffset * aromaticOffsetFactor;
+
+                v3setMagnitude(tmpV12, v3sub(tmpV12, vb, va), aromaticOffset * 0.5);
+                v3add(va, va, tmpV12);
+
+                v3setMagnitude(vShift, vShift, aromaticOffset);
                 v3sub(va, va, vShift);
                 v3sub(vm, vm, vShift);
                 builder.addFixedCountDashes(va, vm, aromaticDashCount, edgeIndex);
 
                 if (linkStyle === LinkStyle.MirroredAromatic) {
-                    v3setMagnitude(vShift, vShift, absOffset * aromaticOffsetFactor * 2);
+                    v3setMagnitude(vShift, vShift, aromaticOffset * 2);
                     v3add(va, va, vShift);
                     v3add(vm, vm, vShift);
                     builder.addFixedCountDashes(va, vm, aromaticDashCount, edgeIndex);
