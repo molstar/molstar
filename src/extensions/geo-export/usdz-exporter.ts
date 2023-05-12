@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2021-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Sukolsak Sakshuwong <sukolsak@stanford.edu>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -61,7 +61,8 @@ def Material "material${materialKey}"
     }
 
     protected async addMeshWithColors(input: AddMeshInput) {
-        const { mesh, values, isGeoTexture, webgl, ctx } = input;
+        const { mesh, values, isGeoTexture, mode, webgl, ctx } = input;
+        if (mode !== 'triangles') return;
 
         const t = Mat4();
         const n = Mat3();
@@ -78,20 +79,20 @@ def Material "material${materialKey}"
         const roughness = values.uRoughness.ref.value;
 
         let interpolatedColors: Uint8Array | undefined;
-        if (colorType === 'volume' || colorType === 'volumeInstance') {
-            interpolatedColors = UsdzExporter.getInterpolatedColors(webgl!, { vertices: mesh!.vertices, vertexCount: mesh!.vertexCount, values, stride, colorType });
+        if (webgl && mesh && (colorType === 'volume' || colorType === 'volumeInstance')) {
+            interpolatedColors = UsdzExporter.getInterpolatedColors(webgl, { vertices: mesh.vertices, vertexCount: mesh.vertexCount, values, stride, colorType });
         }
 
         let interpolatedOverpaint: Uint8Array | undefined;
-        if (overpaintType === 'volumeInstance') {
+        if (webgl && mesh && overpaintType === 'volumeInstance') {
             const stride = isGeoTexture ? 4 : 3;
-            interpolatedOverpaint = UsdzExporter.getInterpolatedOverpaint(webgl!, { vertices: mesh!.vertices, vertexCount: mesh!.vertexCount, values, stride, colorType: overpaintType });
+            interpolatedOverpaint = UsdzExporter.getInterpolatedOverpaint(webgl, { vertices: mesh.vertices, vertexCount: mesh.vertexCount, values, stride, colorType: overpaintType });
         }
 
         let interpolatedTransparency: Uint8Array | undefined;
-        if (transparencyType === 'volumeInstance') {
+        if (webgl && mesh && transparencyType === 'volumeInstance') {
             const stride = isGeoTexture ? 4 : 3;
-            interpolatedTransparency = UsdzExporter.getInterpolatedTransparency(webgl!, { vertices: mesh!.vertices, vertexCount: mesh!.vertexCount, values, stride, colorType: transparencyType });
+            interpolatedTransparency = UsdzExporter.getInterpolatedTransparency(webgl, { vertices: mesh.vertices, vertexCount: mesh.vertexCount, values, stride, colorType: transparencyType });
         }
 
         await ctx.update({ isIndeterminate: false, current: 0, max: instanceCount });
@@ -123,7 +124,7 @@ def Material "material${materialKey}"
 
             // normal
             for (let i = 0; i < vertexCount; ++i) {
-                v3transformMat3(tmpV, v3fromArray(tmpV, normals, i * stride), n);
+                v3transformMat3(tmpV, v3fromArray(tmpV, normals!, i * stride), n);
                 StringBuilder.writeSafe(normalBuilder, (i === 0) ? '(' : ',(');
                 StringBuilder.writeFloat(normalBuilder, tmpV[0], 100);
                 StringBuilder.writeSafe(normalBuilder, ',');
@@ -133,7 +134,7 @@ def Material "material${materialKey}"
                 StringBuilder.writeSafe(normalBuilder, ')');
             }
 
-            const geoData = { values, groups, vertexCount, instanceIndex, isGeoTexture };
+            const geoData = { values, groups, vertexCount, instanceIndex, isGeoTexture, mode };
 
             // face
             for (let i = 0; i < drawCount; ++i) {
