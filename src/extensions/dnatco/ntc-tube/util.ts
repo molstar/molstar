@@ -14,11 +14,12 @@ import { ChainIndex, ElementIndex, ResidueIndex, Structure, StructureElement, Un
 
 function getAtomPosition(vec: Vec3, loc: StructureElement.Location, residue: DnatcoUtil.Residue, names: string[], altId: string, insCode: string) {
     const eI = DnatcoUtil.getAtomIndex(loc, residue, names, altId, insCode);
-    if (eI !== -1)
+    if (eI !== -1) {
         loc.unit.conformation.invariantPosition(eI, vec);
-    else {
-        vec[0] = 0; vec[1] = 0; vec[2] = 0;
+        return true;
     }
+
+    return false; // Atom not found
 }
 
 const p_1 = Vec3();
@@ -29,19 +30,38 @@ const p3 = Vec3();
 const p4 = Vec3();
 const pP = Vec3();
 
+const C5PrimeNames = ['C5\'', 'C5*'];
+const O3PrimeNames = ['O3\'', 'O3*'];
+const O5PrimeNames = ['O5\'', 'O5*'];
+const PNames = ['P'];
+
 function getPoints(
     loc: StructureElement.Location,
     r0: DnatcoUtil.Residue | undefined, r1: DnatcoUtil.Residue, r2: DnatcoUtil.Residue,
     altId0: string, altId1: string, altId2: string,
     insCode0: string, insCode1: string, insCode2: string,
 ) {
-    if (r0) getAtomPosition(p_1, loc, r0, ['C5\'', 'C5*'], altId0, insCode0);
-    r0 ? getAtomPosition(p0, loc, r0, ['O3\'', 'O3*'], altId0, insCode0) : getAtomPosition(p0, loc, r1, ['O5\'', 'O5*'], altId1, insCode1);
-    getAtomPosition(p1, loc, r1, ['C5\'', 'C5*'], altId1, insCode1);
-    getAtomPosition(p2, loc, r1, ['O3\'', 'O3*'], altId1, insCode1);
-    getAtomPosition(p3, loc, r2, ['C5\'', 'C5*'], altId2, insCode2);
-    getAtomPosition(p4, loc, r2, ['O3\'', 'O3*'], altId2, insCode2);
-    getAtomPosition(pP, loc, r2, ['P'], altId2, insCode2);
+    if (r0) {
+        if (!getAtomPosition(p_1, loc, r0, C5PrimeNames, altId0, insCode0))
+            return void 0;
+        if (!getAtomPosition(p0, loc, r0, O3PrimeNames, altId0, insCode0))
+            return void 0;
+    } else {
+        if (!getAtomPosition(p0, loc, r1, O5PrimeNames, altId1, insCode1))
+            return void 0;
+    }
+
+    if (!getAtomPosition(p1, loc, r1, C5PrimeNames, altId1, insCode1))
+        return void 0;
+    if (!getAtomPosition(p2, loc, r1, O3PrimeNames, altId1, insCode1))
+        return void 0;
+
+    if (!getAtomPosition(p3, loc, r2, C5PrimeNames, altId2, insCode2))
+        return void 0;
+    if (!getAtomPosition(p4, loc, r2, O3PrimeNames, altId2, insCode2))
+        return void 0;
+    if (!getAtomPosition(pP, loc, r2, PNames, altId2, insCode2))
+        return void 0;
 
     return { p_1, p0, p1, p2, p3, p4, pP };
 }
@@ -142,9 +162,12 @@ export class NtCTubeSegmentsIterator {
         const insCodeTwo = step.PDB_ins_code_2;
         const followsGap = !!r0 && hasGapElements(r0, this.loc.unit) && hasGapElements(r1, this.loc.unit);
         const precedesDiscontinuity = r3 ? r3.index !== r2.index + 1 : false;
+        const points = getPoints(this.loc, r0, r1, r2, altIdPrev, this.altIdOne, altIdTwo, insCodePrev, this.insCodeOne, insCodeTwo);
+        if (!points)
+            return void 0;
 
         return {
-            ...getPoints(this.loc, r0, r1, r2, altIdPrev, this.altIdOne, altIdTwo, insCodePrev, this.insCodeOne, insCodeTwo),
+            ...points,
             stepIdx,
             followsGap,
             firstInChain: !r0,

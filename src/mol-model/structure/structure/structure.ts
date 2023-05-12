@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -1225,8 +1225,10 @@ namespace Structure {
             const closeUnits = lookup.findUnitIndices(imageCenter[0], imageCenter[1], imageCenter[2], bs.radius + maxRadius);
             for (let i = 0; i < closeUnits.count; i++) {
                 const other = structure.units[closeUnits.indices[i]];
+                if (unit.id >= other.id) continue;
+
                 if (other.elements.length > 3 && !Box3D.overlaps(bbox, other.boundary.box)) continue;
-                if (!validUnit(other) || unit.id >= other.id || !validUnitPair(unit, other)) continue;
+                if (!validUnit(other) || !validUnitPair(unit, other)) continue;
 
                 if (other.elements.length >= unit.elements.length) callback(unit, other);
                 else callback(other, unit);

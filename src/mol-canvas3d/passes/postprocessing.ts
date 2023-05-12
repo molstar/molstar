@@ -506,11 +506,11 @@ export class PostprocessingPass {
         const sw = Math.floor(width * this.ssaoScale);
         const sh = Math.floor(height * this.ssaoScale);
 
-        const hw = Math.floor(sw * 0.5);
-        const hh = Math.floor(sh * 0.5);
+        const hw = Math.max(1, Math.floor(sw * 0.5));
+        const hh = Math.max(1, Math.floor(sh * 0.5));
 
-        const qw = Math.floor(sw * 0.25);
-        const qh = Math.floor(sh * 0.25);
+        const qw = Math.max(1, Math.floor(sw * 0.25));
+        const qh = Math.max(1, Math.floor(sh * 0.25));
 
         this.downsampledDepthTarget = drawPass.packedDepth
             ? webgl.createRenderTarget(sw, sh, false, 'uint8', 'linear', 'rgba')
@@ -562,12 +562,12 @@ export class PostprocessingPass {
             this.ssaoDepthTexture.define(sw, sh);
             this.ssaoDepthBlurProxyTexture.define(sw, sh);
 
-            const hw = Math.floor(sw * 0.5);
-            const hh = Math.floor(sh * 0.5);
+            const hw = Math.max(1, Math.floor(sw * 0.5));
+            const hh = Math.max(1, Math.floor(sh * 0.5));
             this.depthHalfTarget.setSize(hw, hh);
 
-            const qw = Math.floor(sw * 0.25);
-            const qh = Math.floor(sh * 0.25);
+            const qw = Math.max(1, Math.floor(sw * 0.25));
+            const qh = Math.max(1, Math.floor(sh * 0.25));
             this.depthQuarterTarget.setSize(qw, qh);
 
             ValueCell.update(this.renderable.values.uTexSize, Vec2.set(this.renderable.values.uTexSize.ref.value, width, height));

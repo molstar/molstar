@@ -463,7 +463,8 @@ namespace Renderer {
             for (let i = 0, il = renderables.length; i < il; ++i) {
                 const r = renderables[i];
 
-                if (r.values.markerAverage.ref.value !== 1) {
+                const alpha = clamp(r.values.alpha.ref.value * r.state.alphaFactor, 0, 1);
+                if (alpha !== 0 && r.values.markerAverage.ref.value !== 1) {
                     renderObject(renderables[i], 'marking', Flag.None);
                 }
             }
