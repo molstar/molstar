@@ -87,6 +87,8 @@ export function getAtomSite(sites: AtomSiteTemplate, terIndices: Set<number>, op
         if (asymIdCounts.has(asymId)) {
             // only change the chains name if there are TER records
             // otherwise assume repeated chain name use is from interleaved chains
+            // also don't change the chains name if there are assemblies
+            // as those require the original chain name
             if (terIndices.has(i) && !options.hasAssemblies) {
                 const asymIdCount = asymIdCounts.get(asymId)! + 1;
                 asymIdCounts.set(asymId, asymIdCount);
