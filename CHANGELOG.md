@@ -6,6 +6,7 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Enable odd dash count (1,3,5)
 - Add principal axes spec and fix edge cases
 - Add a uniform color theme for NtC tube that still paints residue and segment dividers in a different color
 - Mesh exporter improvements
