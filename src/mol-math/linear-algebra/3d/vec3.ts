@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -23,6 +23,8 @@ import { NumberArray } from '../../../mol-util/type-helpers';
 import { Mat3 } from './mat3';
 import { Quat } from './quat';
 import { EPSILON } from './common';
+
+const _isFinite = isFinite;
 
 export { ReadonlyVec3 };
 
@@ -48,8 +50,8 @@ namespace Vec3 {
         return out;
     }
 
-    export function hasUndetermined(a: Vec3): boolean {
-        return isFinite(a[0]) && isFinite(a[1]) && isFinite(a[2]);
+    export function isFinite(a: Vec3): boolean {
+        return _isFinite(a[0]) && _isFinite(a[1]) && _isFinite(a[2]);
     }
 
     export function hasNaN(a: Vec3) {

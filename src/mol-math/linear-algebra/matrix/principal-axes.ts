@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Gianluca Tomasello <giagitom@gmail.com>
@@ -124,9 +124,9 @@ namespace PrincipalAxes {
         const dirB = Vec3.setMagnitude(Vec3(), a.dirB, (d2a + d2b) / 2);
         const dirC = Vec3.setMagnitude(Vec3(), a.dirC, (d3a + d3b) / 2);
 
-        const okDirA = Vec3.hasUndetermined(dirA);
-        const okDirB = Vec3.hasUndetermined(dirB);
-        const okDirC = Vec3.hasUndetermined(dirC);
+        const okDirA = Vec3.isFinite(dirA);
+        const okDirB = Vec3.isFinite(dirB);
+        const okDirC = Vec3.isFinite(dirC);
 
         const origin = Vec3();
         const addCornerHelper = function (d1: number, d2: number, d3: number) {
