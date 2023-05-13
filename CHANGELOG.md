@@ -7,7 +7,10 @@ Note that since we don't clearly distinguish between a public and private interf
 ## [Unreleased]
 
 - Add a uniform color theme for NtC tube that still paints residue and segment dividers in a different color
-- Support points & lines in glTF export
+- Mesh exporter improvements
+    - Support points & lines in glTF export
+    - Set alphaMode and doubleSided in glTF export
+    - Fix flipped cylinder caps
 - Fix bond assignments `struct_conn` records referencing waters
 - Add StructConn extension providing functions for inspecting struct_conns
 - Fix `PluginState.setSnapshot` triggering unnecessary state updates

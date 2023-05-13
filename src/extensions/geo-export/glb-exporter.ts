@@ -170,8 +170,8 @@ export class GlbExporter extends MeshExporter<GlbData> {
         return this.addBuffer(colorBuffer, UNSIGNED_BYTE, 'VEC4', vertexCount, ARRAY_BUFFER, undefined, undefined, true);
     }
 
-    private addMaterial(metalness: number, roughness: number) {
-        const hash = `${metalness}|${roughness}`;
+    private addMaterial(metalness: number, roughness: number, doubleSided: boolean, alpha: boolean) {
+        const hash = `${metalness}|${roughness}|${doubleSided}`;
         if (!this.materialMap.has(hash)) {
             this.materialMap.set(hash, this.materials.length);
             this.materials.push({
@@ -179,7 +179,9 @@ export class GlbExporter extends MeshExporter<GlbData> {
                     baseColorFactor: [1, 1, 1, 1],
                     metallicFactor: metalness,
                     roughnessFactor: roughness
-                }
+                },
+                doubleSided,
+                alphaMode: alpha ? 'BLEND' : 'OPAQUE',
             });
         }
         return this.materialMap.get(hash)!;
@@ -198,8 +200,10 @@ export class GlbExporter extends MeshExporter<GlbData> {
         const instanceCount = values.uInstanceCount.ref.value;
         const metalness = values.uMetalness.ref.value;
         const roughness = values.uRoughness.ref.value;
+        const doubleSided = values.uDoubleSided?.ref.value || values.hasReflection.ref.value;
+        const alpha = values.uAlpha.ref.value < 1;
 
-        const material = this.addMaterial(metalness, roughness);
+        const material = this.addMaterial(metalness, roughness, doubleSided, alpha);
 
         let interpolatedColors: Uint8Array | undefined;
         if (webgl && mesh && (colorType === 'volume' || colorType === 'volumeInstance')) {
