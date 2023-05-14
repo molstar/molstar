@@ -119,6 +119,7 @@ const math = {
     floor: unaryOp(Type.Num),
     ceil: unaryOp(Type.Num),
     roundInt: unaryOp(Type.Num),
+    trunc: unaryOp(Type.Num),
     abs: unaryOp(Type.Num),
     sqrt: unaryOp(Type.Num),
     cbrt: unaryOp(Type.Num),

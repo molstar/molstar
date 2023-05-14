@@ -60,6 +60,7 @@ export const SymbolTable = [
         Alias(MolScript.core.math.floor, 'floor'),
         Alias(MolScript.core.math.ceil, 'ceil'),
         Alias(MolScript.core.math.roundInt, 'round'),
+        Alias(MolScript.core.math.trunc, 'trunc'),
         Alias(MolScript.core.math.abs, 'abs'),
         Alias(MolScript.core.math.sqrt, 'sqrt'),
         Alias(MolScript.core.math.cbrt, 'cbrt'),
