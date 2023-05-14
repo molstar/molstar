@@ -252,7 +252,7 @@ export const AminoAcidNamesL = new Set([
     'HIS', 'ARG', 'LYS', 'ILE', 'PHE', 'LEU', 'TRP', 'ALA', 'MET', 'PRO', 'CYS',
     'ASN', 'VAL', 'GLY', 'SER', 'GLN', 'TYR', 'ASP', 'GLU', 'THR', 'SEC', 'PYL',
     'UNK', // unknown amino acid from CCD
-    'MSE', 'SEP', 'TPO', 'PTR', 'PCA', // common from CCD
+    'MSE', 'SEP', 'TPO', 'PTR', 'PCA', 'HYP', // common from CCD
 
     // charmm ff
     'HSD', 'HSE', 'HSP', 'LSN', 'ASPP', 'GLUP',

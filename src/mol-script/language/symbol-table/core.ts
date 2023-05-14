@@ -46,10 +46,6 @@ export const TTargs = Arguments.Dictionary({
     1: Argument(Type.Num)
 });
 
-const XX = { test: Argument(Type.Str) };
-const t: Arguments.PropTypes<typeof XX> = 0 as any;
-t.test;
-
 const type = {
     '@header': 'Types',
     bool: symbol(Arguments.Dictionary({ 0: Argument(Type.AnyValue) }), Type.Bool, 'Convert a value to boolean.'),
@@ -116,10 +112,16 @@ const math = {
     min: binOp(Type.Num),
     max: binOp(Type.Num),
 
+    cantorPairing: binRel(Type.Num, Type.Num),
+    sortedCantorPairing: binRel(Type.Num, Type.Num),
+    invertCantorPairing: symbol(Arguments.Dictionary({ 0: Argument(Type.Num) }), Types.List(Type.Num)),
+
     floor: unaryOp(Type.Num),
     ceil: unaryOp(Type.Num),
     roundInt: unaryOp(Type.Num),
+    trunc: unaryOp(Type.Num),
     abs: unaryOp(Type.Num),
+    sign: unaryOp(Type.Num),
     sqrt: unaryOp(Type.Num),
     cbrt: unaryOp(Type.Num),
     sin: unaryOp(Type.Num),

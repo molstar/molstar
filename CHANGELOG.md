@@ -14,8 +14,15 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+## [v3.35.0] - 2023-05-14
+
+- Enable odd dash count (1,3,5)
+- Add principal axes spec and fix edge cases
 - Add a uniform color theme for NtC tube that still paints residue and segment dividers in a different color
-- Support points & lines in glTF export
+- Mesh exporter improvements
+    - Support points & lines in glTF export
+    - Set alphaMode and doubleSided in glTF export
+    - Fix flipped cylinder caps
 - Fix bond assignments `struct_conn` records referencing waters
 - Add StructConn extension providing functions for inspecting struct_conns
 - Fix `PluginState.setSnapshot` triggering unnecessary state updates
@@ -24,6 +31,11 @@ Note that since we don't clearly distinguish between a public and private interf
   - uses custom mmcif categories `_sb_ncbr_partial_atomic_charges_meta` and `_sb_ncbr_partial_atomic_charges` (more info in [README.md](./src/extensions/sb-ncbr/README.md))
 - Parse HEADER record when reading PDB file
 - Support `ignoreHydrogens` in interactions representation
+- Add hydroxyproline (HYP) commonly present in collagen molecules to the list of amino acids
+- Fix assemblies for Archive PDB files (do not generate unique `label_asym_id` if `REMARK 350` is present)
+- Add additional functions to `core.math` in `mol-script`
+    - `cantorPairing`, `sortedCantorPairing`, `invertCantorPairing`,
+    - `trunc`, `sign`
 
 ## [v3.34.0] - 2023-04-16
 
