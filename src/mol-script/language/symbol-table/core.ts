@@ -121,6 +121,7 @@ const math = {
     roundInt: unaryOp(Type.Num),
     trunc: unaryOp(Type.Num),
     abs: unaryOp(Type.Num),
+    sign: unaryOp(Type.Num),
     sqrt: unaryOp(Type.Num),
     cbrt: unaryOp(Type.Num),
     sin: unaryOp(Type.Num),
