@@ -7,7 +7,6 @@
 import { StateBuilder, StateObjectRef } from '../../../../mol-state';
 import { StructureFromPetworld } from './model';
 import { PetworldColorThemeProvider } from './color';
-import { StateTransforms } from '../../../../mol-plugin-state/transforms';
 import { Color } from '../../../../mol-util/color';
 import { SpacefillRepresentationProvider } from '../../../../mol-repr/structure/representation/spacefill';
 import { StructureRepresentation3D } from '../../../../mol-plugin-state/transforms/representation';
@@ -68,8 +67,7 @@ export async function createPetworldHierarchy(plugin: PluginContext, trajectory:
 
     const group = await state.build()
         .to(trajectory)
-        .group(StateTransforms.Misc.CreateGroup, { label: 'root' }, { tags: 'Entity', state: { isCollapsed: true } })
-        .apply(MesoscaleGroup, { ...groupParams, root: true, index: -1, tag: `ent:`, label: 'entity', color: { type: 'generate', value: ColorNames.white, lightness: 0, alpha: 1 } }, { tags: '', state: { isCollapsed: false, isHidden: groupParams.hidden } })
+        .applyOrUpdateTagged('group:ent:', MesoscaleGroup, { ...groupParams, root: true, index: -1, tag: `ent:`, label: 'entity', color: { type: 'generate', value: ColorNames.white, lightness: 0, alpha: 1 } }, { tags: 'group:ent:', state: { isCollapsed: false, isHidden: groupParams.hidden } })
         .commit({ revertOnError: true });
 
     const colors = getDistinctBaseColors(tr.frameCount);
@@ -81,7 +79,7 @@ export async function createPetworldHierarchy(plugin: PluginContext, trajectory:
             for (let i = 0; i < tr.frameCount; i++) {
                 build = build
                     .to(group)
-                    .apply(StructureFromPetworld, { modelIndex: i }, { tags: 'Entity' })
+                    .apply(StructureFromPetworld, { modelIndex: i })
                     .apply(StructureRepresentation3D, getSpacefillParams(colors[i], customState.lodLevels), { tags: [`ent:`] });
             }
             await build.commit();

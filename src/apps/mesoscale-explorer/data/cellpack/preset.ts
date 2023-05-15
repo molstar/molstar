@@ -6,7 +6,6 @@
  */
 
 import { PluginStateObject } from '../../../../mol-plugin-state/objects';
-import { StateTransforms } from '../../../../mol-plugin-state/transforms';
 import { StructureRepresentation3D } from '../../../../mol-plugin-state/transforms/representation';
 import { PluginContext } from '../../../../mol-plugin/context';
 import { SpacefillRepresentationProvider } from '../../../../mol-repr/structure/representation/spacefill';
@@ -100,13 +99,12 @@ export async function createCellpackHierarchy(plugin: PluginContext, trajectory:
 
     const compRoot = await state.build()
         .toRoot()
-        .group(StateTransforms.Misc.CreateGroup, { label: 'Compartment' }, { tags: 'MesoscaleRoot', state: { isCollapsed: true } })
+        .applyOrUpdateTagged('group:comp:', MesoscaleGroup, { ...groupParams, root: true, index: -1, tag: `comp:`, label: 'compartment', color: { type: 'custom', value: ColorNames.white, lightness: 0, alpha: 1 } }, { tags: 'group:comp:', state: { isCollapsed: false, isHidden: groupParams.hidden } })
         .commit();
 
     const funcRoot = await state.build()
         .toRoot()
-        .group(StateTransforms.Misc.CreateGroup, { label: 'Function' }, { tags: 'MesoscaleRoot', state: { isCollapsed: true } })
-        .apply(MesoscaleGroup, { ...groupParams, root: true, index: -1, tag: `func:`, label: 'function', color: { type: 'custom', value: ColorNames.white, lightness: 0, alpha: 1 } }, { tags: '', state: { isCollapsed: false, isHidden: groupParams.hidden } })
+        .applyOrUpdateTagged('group:func:', MesoscaleGroup, { ...groupParams, root: true, index: -1, tag: `func:`, label: 'function', color: { type: 'custom', value: ColorNames.white, lightness: 0, alpha: 1 } }, { tags: 'group:func:', state: { isCollapsed: false, isHidden: groupParams.hidden } })
         .commit();
 
     if (entities._rowCount > 1) {
@@ -159,12 +157,12 @@ export async function createCellpackHierarchy(plugin: PluginContext, trajectory:
                 if (!compGroups.has(n)) {
                     const colorIdx = compIds.get(n)?.idx;
                     const color = colorIdx !== undefined ? baseCompColors[colorIdx] : ColorNames.white;
-                    const label = nodes[j] === 'root' ? 'compartment' : nodes[j];
+                    const label = nodes[j];
                     const parent = compGroups.get(p) ?? compRoot;
                     parent.cell!.state.isCollapsed = false;
                     const group = await state.build()
                         .to(parent)
-                        .apply(MesoscaleGroup, { ...groupParams, root: parent === compRoot, index: colorIdx, tag: `comp:${n}`, label, color: { type: 'generate', value: color, lightness: 0, alpha: 1 } }, { tags: `comp:${p}`, state: { isCollapsed: true, isHidden: groupParams.hidden } })
+                        .applyOrUpdateTagged(`group:comp:${n}`, MesoscaleGroup, { ...groupParams, root: parent === compRoot, index: colorIdx, tag: `comp:${n}`, label, color: { type: 'generate', value: color, lightness: 0, alpha: 1 } }, { tags: `comp:${p}`, state: { isCollapsed: true, isHidden: groupParams.hidden } })
                         .commit({ revertOnError: true });
                     compGroups.set(n, group);
                 }
@@ -176,7 +174,7 @@ export async function createCellpackHierarchy(plugin: PluginContext, trajectory:
                 const color = colorIdx !== undefined ? baseFuncColors[colorIdx] : ColorNames.white;
                 const group = await state.build()
                     .to(funcRoot)
-                    .apply(MesoscaleGroup, { ...groupParams, index: colorIdx, tag: `func:${f}`, label: f, color: { type: 'custom', value: color, lightness: 0, alpha: 1 } }, { tags: 'func:', state: { isCollapsed: true, isHidden: groupParams.hidden } })
+                    .applyOrUpdateTagged(`group:func:${f}`, MesoscaleGroup, { ...groupParams, index: colorIdx, tag: `func:${f}`, label: f, color: { type: 'custom', value: color, lightness: 0, alpha: 1 } }, { tags: 'func:', state: { isCollapsed: true, isHidden: groupParams.hidden } })
                     .commit({ revertOnError: true });
                 funcGroups.set(f, group);
             }
@@ -201,7 +199,7 @@ export async function createCellpackHierarchy(plugin: PluginContext, trajectory:
 
                     build = build
                         .to(base)
-                        .apply(EntityStructure, { entityId: entities.id.value(i) }, { tags: 'Entity' })
+                        .apply(EntityStructure, { entityId: entities.id.value(i) })
                         .apply(StructureRepresentation3D, getSpacefillParams(color, sizeFactor, customState.lodLevels), { tags: [`comp:${n}`, `func:${f}`] });
                 }
                 await build.commit();
@@ -215,9 +213,8 @@ export async function createCellpackHierarchy(plugin: PluginContext, trajectory:
     } else {
         await state.build()
             .to(base)
-            .group(StateTransforms.Misc.CreateGroup, { label: model.obj?.data.label || 'Model' }, { tags: 'Entity', state: { isCollapsed: true } })
-            .apply(EntityStructure, { entityId: entities.id.value(0) }, { tags: 'Entity' })
-            .apply(StructureRepresentation3D, getSpacefillParams(ColorNames.lightgray, 1, customState.lodLevels))
+            .apply(EntityStructure, { entityId: entities.id.value(0) })
+            .apply(StructureRepresentation3D, getSpacefillParams(ColorNames.lightgray, 1, customState.lodLevels), { tags: [`comp:`, `func:`] })
             .commit();
     }
 }
