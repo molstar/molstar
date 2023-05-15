@@ -30,12 +30,7 @@ function getSpacefillParams(color: Color, sizeFactor: number, lodLevels: LodLeve
                 ignoreHydrogens: false,
                 instanceGranularity: true,
                 ignoreLight: true,
-                lodLevels: lodLevels.map(l => {
-                    return {
-                        ...l,
-                        stride: Math.max(1, Math.round(l.stride / Math.pow(sizeFactor, l.scaleBias)))
-                    };
-                }),
+                lodLevels,
                 quality: 'lowest', // avoid 'auto', triggers boundary calc
                 sizeFactor,
             },
@@ -63,6 +58,8 @@ function getSizeFactor(name: string): number {
             return 2.5;
         case 'iLDL':
             return 5;
+        case 'NP_CA':
+        case 'POL_CA':
         case 'FactorH1':
         case 'iIgM_Antibody_5mer':
         // case 'MG_271_272_273_274_192MER': // has a coarse and an atomic part
