@@ -24,7 +24,7 @@ import { createCellpackHierarchy } from '../data/cellpack/preset';
 import { createPetworldHierarchy } from '../data/petworld/preset';
 
 function adjustPluginProps(ctx: PluginContext) {
-    ctx.managers.interactivity.setProps({ granularity: 'element' });
+    ctx.managers.interactivity.setProps({ granularity: 'chain' });
     ctx.canvas3d?.setProps({
         multiSample: { mode: 'off' },
         cameraClipping: { far: false, minNear: 50 },
