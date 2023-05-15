@@ -20,7 +20,7 @@ import { Topology } from '../topology';
 import { Task } from '../../../mol-task';
 import { IndexPairBonds } from '../../../mol-model-formats/structure/property/bonds/index-pair';
 import { createModels } from '../../../mol-model-formats/structure/basic/parser';
-import { MmcifFormat } from '../../../mol-model-formats/structure/mmcif';
+import { CCDFormat, MmcifFormat } from '../../../mol-model-formats/structure/mmcif';
 import { ChainIndex, ElementIndex } from './indexing';
 import { SymmetryOperator } from '../../../mol-math/geometry';
 import { ModelSymmetry } from '../../../mol-model-formats/structure/property/symmetry';
@@ -197,6 +197,17 @@ export namespace Model {
         },
         set(model: Model, trajectoryInfo: TrajectoryInfo) {
             return model._dynamicPropertyData[TrajectoryInfoProp] = trajectoryInfo;
+        }
+    };
+
+    const CCDCoordinateTypeProp = '__CCDCoordinateType__';
+    export type CCDCoordinateType = { readonly coordinateType: CCDFormat.CoordinateType }
+    export const CCDCoordinateType = {
+        get(model: Model): CCDCoordinateType {
+            return model._dynamicPropertyData[CCDCoordinateTypeProp] || { coordinateType: CCDFormat.CoordinateType.Ideal };
+        },
+        set(model: Model, ccdCoordinateType: CCDCoordinateType) {
+            return model._dynamicPropertyData[CCDCoordinateTypeProp] = ccdCoordinateType;
         }
     };
 

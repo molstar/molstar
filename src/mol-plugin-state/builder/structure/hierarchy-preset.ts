@@ -128,7 +128,7 @@ const allModels = TrajectoryHierarchyPresetProvider({
 const CCDParams = (a: PluginStateObject.Molecule.Trajectory | undefined, plugin: PluginContext) => ({
     representationPresetParams: PD.Optional(PD.Group(StructureRepresentationPresetProvider.CommonParams)),
     showOriginalCoordinates: PD.Optional(PD.Boolean(true, { description: `Show original coordinates for 'model' and 'ideal' structure and do not align them.` })),
-    shownCoordinateType: PD.Select('ideal', PD.arrayToOptions(['ideal', 'model', 'both'] as const), { description: `What coordinate sets are visibile.` }),
+    shownCoordinateType: PD.Select('ideal', PD.arrayToOptions(['ideal', 'model', 'both'] as const), { description: `What coordinate sets are visible.` }),
     ...CommonParams(a, plugin)
 });
 
@@ -139,7 +139,7 @@ const ccd = TrajectoryHierarchyPresetProvider({
         description: 'Shows molecules from the Chemical Component Dictionary.'
     },
     isApplicable: o => {
-        return CCDFormat.is(o.data.representative.sourceData) && o.data.frameCount === 2;
+        return CCDFormat.is(o.data.representative.sourceData);
     },
     params: CCDParams,
     async apply(trajectory, params, plugin) {
@@ -153,6 +153,19 @@ const ccd = TrajectoryHierarchyPresetProvider({
 
         const idealStructure = await builder.createStructure(idealModelProperties || idealModel, { name: 'model', params: {} });
         const idealStructureProperties = await builder.insertStructureProperties(idealStructure, params.structureProperties);
+
+        const representationPreset = params.representationPreset || PresetStructureRepresentations['chemical-component'].id;
+        const representationPresetParams = params.representationPresetParams || {};
+        if (representationPresetParams.ignoreHydrogens === undefined) representationPresetParams.ignoreHydrogens = true;
+
+        // degenerate case where either model or ideal coordinates are missing
+        if (tr.frameCount !== 2) {
+            // 'ideal' references 1st model but it might actually be 'model'
+            const coordinateType = Model.CCDCoordinateType.get(idealModel.obj?.data!).coordinateType;
+            await builder.representation.applyPreset(idealStructureProperties, representationPreset, { ...representationPresetParams, coordinateType });
+
+            return { models: [idealModel], structures: [idealStructure] };
+        }
 
         const modelModel = await builder.createModel(trajectory, { modelIndex: 1 });
         const modelModelProperties = await builder.insertModelProperties(modelModel, params.modelProperties, { isCollapsed: true });
@@ -171,10 +184,6 @@ const ccd = TrajectoryHierarchyPresetProvider({
                 plugin.log.info(`Superposed [model] and [ideal] with RMSD ${rmsd.toFixed(2)}.`);
             }
         }
-
-        const representationPreset = params.representationPreset || PresetStructureRepresentations['chemical-component'].id;
-        const representationPresetParams = params.representationPresetParams || {};
-        if (representationPresetParams.ignoreHydrogens === undefined) representationPresetParams.ignoreHydrogens = true;
 
         await builder.representation.applyPreset(idealStructureProperties, representationPreset, { ...representationPresetParams, coordinateType: CCDFormat.CoordinateType.Ideal, isHidden: params.shownCoordinateType === 'model' });
         await builder.representation.applyPreset(modelStructureProperties, representationPreset, { ...representationPresetParams, coordinateType: CCDFormat.CoordinateType.Model, isHidden: params.shownCoordinateType === 'ideal' });
