@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -174,6 +174,13 @@ export namespace IntAdjacencyGraph {
         assignProperty<T>(prop: { [i: number]: T }, value: T) {
             prop[this.curA] = value;
             prop[this.curB] = value;
+        }
+
+        assignDirectedProperty<T>(propA: { [i: number]: T }, valueA: T, propB: { [i: number]: T }, valueB: T) {
+            propA[this.curA] = valueA;
+            propA[this.curB] = valueB;
+            propB[this.curB] = valueA;
+            propB[this.curA] = valueB;
         }
 
         constructor(public vertexCount: number, public xs: ArrayLike<VertexIndex>, public ys: ArrayLike<VertexIndex>) {
