@@ -1213,25 +1213,27 @@ namespace Structure {
 
         const lookup = structure.lookup3d;
         const imageCenter = Vec3();
-        const bbox = Box3D();
+        const bboxA = Box3D();
+        const bboxB = Box3D();
         const rvec = Vec3.create(maxRadius, maxRadius, maxRadius);
 
-        for (const unit of structure.units) {
-            if (!validUnit(unit)) continue;
+        for (const unitA of structure.units) {
+            if (!validUnit(unitA)) continue;
 
-            const bs = unit.boundary.sphere;
-            Box3D.expand(bbox, unit.boundary.box, rvec);
-            Vec3.transformMat4(imageCenter, bs.center, unit.conformation.operator.matrix);
+            const bs = unitA.boundary.sphere;
+            Box3D.expand(bboxA, unitA.boundary.box, rvec);
+            Vec3.transformMat4(imageCenter, bs.center, unitA.conformation.operator.matrix);
             const closeUnits = lookup.findUnitIndices(imageCenter[0], imageCenter[1], imageCenter[2], bs.radius + maxRadius);
             for (let i = 0; i < closeUnits.count; i++) {
-                const other = structure.units[closeUnits.indices[i]];
-                if (unit.id >= other.id) continue;
+                const unitB = structure.units[closeUnits.indices[i]];
+                if (unitA.id >= unitB.id) continue;
 
-                if (other.elements.length > 3 && !Box3D.overlaps(bbox, other.boundary.box)) continue;
-                if (!validUnit(other) || !validUnitPair(unit, other)) continue;
+                Box3D.expand(bboxB, unitB.boundary.box, rvec);
+                if (!Box3D.overlaps(bboxA, bboxB)) continue;
+                if (!validUnit(unitB) || !validUnitPair(unitA, unitB)) continue;
 
-                if (other.elements.length >= unit.elements.length) callback(unit, other);
-                else callback(other, unit);
+                if (unitB.elements.length >= unitA.elements.length) callback(unitA, unitB);
+                else callback(unitB, unitA);
             }
         }
     }
