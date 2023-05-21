@@ -1,7 +1,7 @@
 {
     "compilerOptions": {
         "declaration": true,
-        "target": "es5",
+        "target": "ES6",
         "alwaysStrict": true,
         "noImplicitAny": true,
         "noImplicitThis": true,
