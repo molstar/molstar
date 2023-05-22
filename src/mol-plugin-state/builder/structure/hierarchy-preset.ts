@@ -160,8 +160,8 @@ const ccd = TrajectoryHierarchyPresetProvider({
 
         // degenerate case where either model or ideal coordinates are missing
         if (tr.frameCount !== 2) {
-            // 'ideal' variables are 1st model, which might actually be 'model' coordinates
-            const coordinateType = Model.CCDCoordinateType.get(idealModel.obj?.data!).coordinateType;
+            // variables are 1st model but not necessarily ideal coordinates -- consult trajectory index to distinguish ideal/model coordinates
+            const coordinateType = Model.TrajectoryInfo.get(idealModel.obj!.data).index === 0 ? CCDFormat.CoordinateType.Ideal : CCDFormat.CoordinateType.Model;
             await builder.representation.applyPreset(idealStructureProperties, representationPreset, { ...representationPresetParams, coordinateType });
 
             return { models: [idealModel], structures: [idealStructure] };

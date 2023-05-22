@@ -144,11 +144,9 @@ async function createCcdModels(data: CCD_Database, format: CCDFormat, ctx: Runti
     const models = [];
     if (ideal) models.push(ideal.representative);
     if (model) models.push(model.representative);
-    for (let i = 0, il = models.length; i < il; i++) {
-        Model.TrajectoryInfo.set(models[i], { index: i, size: models.length });
-        // TODO smarter way to 'tag' model as ideal/model
-        Model.CCDCoordinateType.set(models[i], { coordinateType: models[i] === ideal?.representative ? CCDFormat.CoordinateType.Ideal : CCDFormat.CoordinateType.Model });
-    }
+    // model index tags models as either 'ideal' (index 0) or 'model' (index 1)
+    if (ideal) Model.TrajectoryInfo.set(models[0], { index: 0, size: models.length });
+    if (model) Model.TrajectoryInfo.set(models[models.length - 1], { index: 1, size: models.length });
 
     return new ArrayTrajectory(models);
 }
