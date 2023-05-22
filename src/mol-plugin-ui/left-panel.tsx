@@ -6,6 +6,7 @@
  */
 
 import * as React from 'react';
+import { throttleTime } from 'rxjs';
 import { Canvas3DParams } from '../mol-canvas3d/canvas3d';
 import { PluginCommands } from '../mol-plugin/commands';
 import { LeftPanelTabName } from '../mol-plugin/layout';
@@ -13,12 +14,12 @@ import { StateTransform } from '../mol-state';
 import { ParamDefinition as PD } from '../mol-util/param-definition';
 import { PluginUIComponent } from './base';
 import { IconButton, SectionHeader } from './controls/common';
+import { AccountTreeOutlinedSvg, DeleteOutlinedSvg, HelpOutlineSvg, HomeOutlinedSvg, SaveOutlinedSvg, TuneSvg } from './controls/icons';
 import { ParameterControls } from './controls/parameters';
 import { StateObjectActions } from './state/actions';
 import { RemoteStateSnapshots, StateSnapshots } from './state/snapshots';
 import { StateTree } from './state/tree';
 import { HelpContent } from './viewport/help';
-import { HomeOutlinedSvg, AccountTreeOutlinedSvg, TuneSvg, HelpOutlineSvg, SaveOutlinedSvg, DeleteOutlinedSvg } from './controls/icons';
 
 export class CustomImportControls extends PluginUIComponent<{ initiallyCollapsed?: boolean }> {
     componentDidMount() {
@@ -142,7 +143,7 @@ class FullSettings extends PluginUIComponent {
         this.subscribe(this.plugin.layout.events.updated, () => this.forceUpdate());
 
         if (this.plugin.canvas3d) {
-            this.subscribe(this.plugin.canvas3d.camera.stateChanged, state => {
+            this.subscribe(this.plugin.canvas3d.camera.stateChanged.pipe(throttleTime(500, undefined, { leading: true, trailing: true })), state => {
                 if (state.radiusMax !== undefined || state.radius !== undefined) {
                     this.forceUpdate();
                 }

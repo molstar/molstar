@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Gianluca Tomasello <giagitom@gmail.com>
  */
 
 import { ChunkedArray } from '../../../mol-data/util';
@@ -10,7 +11,7 @@ import { Vec3 } from '../../../mol-math/linear-algebra';
 
 export interface CylindersBuilder {
     add(startX: number, startY: number, startZ: number, endX: number, endY: number, endZ: number, radiusScale: number, topCap: boolean, bottomCap: boolean, colorMode: number, group: number): void
-    addFixedCountDashes(start: Vec3, end: Vec3, segmentCount: number, radiusScale: number, topCap: boolean, bottomCap: boolean, interpolate: boolean, group: number): void
+    addFixedCountDashes(start: Vec3, end: Vec3, segmentCount: number, radiusScale: number, topCap: boolean, bottomCap: boolean, stubCap: boolean, interpolate: boolean, group: number): void
     addFixedLengthDashes(start: Vec3, end: Vec3, segmentLength: number, radiusScale: number, topCap: boolean, bottomCap: boolean, interpolate: boolean, group: number): void
     getCylinders(): Cylinders
 }
@@ -43,23 +44,28 @@ export namespace CylindersBuilder {
             }
         };
 
-        const addFixedCountDashes = (start: Vec3, end: Vec3, segmentCount: number, radiusScale: number, topCap: boolean, bottomCap: boolean, interpolate: boolean, group: number) => {
+        const addFixedCountDashes = (start: Vec3, end: Vec3, segmentCount: number, radiusScale: number, topCap: boolean, bottomCap: boolean, stubCap: boolean, interpolate: boolean, group: number) => {
             const d = Vec3.distance(start, end);
-            const s = Math.floor(segmentCount / 2);
-            const step = 1 / segmentCount;
+            const isOdd = segmentCount % 2 !== 0;
+            const s = Math.floor((segmentCount + 1) / 2);
+            const step = d / (segmentCount + 0.5);
             let colorMode = 2.0;
 
-            Vec3.sub(tmpDir, end, start);
+            Vec3.setMagnitude(tmpDir, Vec3.sub(tmpDir, end, start), step);
+            Vec3.copy(tmpVecA, start);
             for (let j = 0; j < s; ++j) {
-                const f = step * (j * 2 + 1);
-                Vec3.setMagnitude(tmpDir, tmpDir, d * f);
-                Vec3.add(tmpVecA, start, tmpDir);
-                Vec3.setMagnitude(tmpDir, tmpDir, d * step * ((j + 1) * 2));
-                Vec3.add(tmpVecB, start, tmpDir);
+                Vec3.add(tmpVecA, tmpVecA, tmpDir);
+                if (isOdd && j === s - 1) {
+                    Vec3.copy(tmpVecB, end);
+                    if (!stubCap) bottomCap = false;
+                } else {
+                    Vec3.add(tmpVecB, tmpVecA, tmpDir);
+                }
                 if (interpolate) {
                     colorMode = Vec3.distance(start, tmpVecB) / (d * 2);
                 }
-                add(tmpVecA[0], tmpVecA[1], tmpVecA[2], tmpVecB[0], tmpVecB[1], tmpVecB[2], radiusScale, topCap, bottomCap, colorMode, group);
+                add(tmpVecA[0], tmpVecA[1], tmpVecA[2], tmpVecB[0], tmpVecB[1], tmpVecB[2], radiusScale, topCap, bottomCap, group);
+                Vec3.add(tmpVecA, tmpVecA, tmpDir);
             }
         };
 
@@ -68,7 +74,7 @@ export namespace CylindersBuilder {
             addFixedCountDashes,
             addFixedLengthDashes: (start: Vec3, end: Vec3, segmentLength: number, radiusScale: number, topCap: boolean, bottomCap: boolean, interpolate: boolean, group: number) => {
                 const d = Vec3.distance(start, end);
-                addFixedCountDashes(start, end, d / segmentLength, radiusScale, topCap, bottomCap, interpolate, group);
+                addFixedCountDashes(start, end, d / segmentLength, radiusScale, topCap, bottomCap, true, interpolate, group);
             },
             getCylinders: () => {
                 const cylinderCount = groups.elementCount / 6;

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2021-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Sukolsak Sakshuwong <sukolsak@stanford.edu>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -70,7 +70,8 @@ export class ObjExporter extends MeshExporter<ObjData> {
     }
 
     protected async addMeshWithColors(input: AddMeshInput) {
-        const { mesh, values, isGeoTexture, webgl, ctx } = input;
+        const { mesh, values, isGeoTexture, mode, webgl, ctx } = input;
+        if (mode !== 'triangles') return;
 
         const obj = this.obj;
         const t = Mat4();
@@ -86,19 +87,19 @@ export class ObjExporter extends MeshExporter<ObjData> {
         const instanceCount = values.uInstanceCount.ref.value;
 
         let interpolatedColors: Uint8Array | undefined;
-        if (colorType === 'volume' || colorType === 'volumeInstance') {
-            interpolatedColors = ObjExporter.getInterpolatedColors(webgl!, { vertices: mesh!.vertices, vertexCount: mesh!.vertexCount, values, stride, colorType });
+        if (webgl && mesh && (colorType === 'volume' || colorType === 'volumeInstance')) {
+            interpolatedColors = ObjExporter.getInterpolatedColors(webgl, { vertices: mesh.vertices, vertexCount: mesh.vertexCount, values, stride, colorType });
         }
 
         let interpolatedOverpaint: Uint8Array | undefined;
-        if (overpaintType === 'volumeInstance') {
-            interpolatedOverpaint = ObjExporter.getInterpolatedOverpaint(webgl!, { vertices: mesh!.vertices, vertexCount: mesh!.vertexCount, values, stride, colorType: overpaintType });
+        if (webgl && mesh && overpaintType === 'volumeInstance') {
+            interpolatedOverpaint = ObjExporter.getInterpolatedOverpaint(webgl, { vertices: mesh.vertices, vertexCount: mesh.vertexCount, values, stride, colorType: overpaintType });
         }
 
         let interpolatedTransparency: Uint8Array | undefined;
-        if (transparencyType === 'volumeInstance') {
+        if (webgl && mesh && transparencyType === 'volumeInstance') {
             const stride = isGeoTexture ? 4 : 3;
-            interpolatedTransparency = ObjExporter.getInterpolatedTransparency(webgl!, { vertices: mesh!.vertices, vertexCount: mesh!.vertexCount, values, stride, colorType: transparencyType });
+            interpolatedTransparency = ObjExporter.getInterpolatedTransparency(webgl, { vertices: mesh.vertices, vertexCount: mesh.vertexCount, values, stride, colorType: transparencyType });
         }
 
         await ctx.update({ isIndeterminate: false, current: 0, max: instanceCount });
@@ -126,7 +127,7 @@ export class ObjExporter extends MeshExporter<ObjData> {
 
             // normal
             for (let i = 0; i < vertexCount; ++i) {
-                v3transformMat3(tmpV, v3fromArray(tmpV, normals, i * stride), n);
+                v3transformMat3(tmpV, v3fromArray(tmpV, normals!, i * stride), n);
                 StringBuilder.writeSafe(obj, 'vn ');
                 StringBuilder.writeFloat(obj, tmpV[0], 100);
                 StringBuilder.whitespace1(obj);
@@ -136,7 +137,7 @@ export class ObjExporter extends MeshExporter<ObjData> {
                 StringBuilder.newline(obj);
             }
 
-            const geoData = { values, groups, vertexCount, instanceIndex, isGeoTexture };
+            const geoData = { values, groups, vertexCount, instanceIndex, isGeoTexture, mode };
 
             // color
             const quantizedColors = new Uint8Array(drawCount * 3);

@@ -18,7 +18,7 @@ import { Download } from '../transforms/data';
 import { CustomModelProperties, CustomStructureProperties, ModelFromTrajectory, TrajectoryFromModelAndCoordinates } from '../transforms/model';
 import { Asset } from '../../mol-util/assets';
 import { PluginConfig } from '../../mol-plugin/config';
-import { getFileInfo } from '../../mol-util/file-info';
+import { getFileNameInfo } from '../../mol-util/file-info';
 import { assertUnreachable } from '../../mol-util/type-helpers';
 import { TopologyFormatCategory } from '../formats/topology';
 import { CoordinatesFormatCategory } from '../formats/coordinates';
@@ -184,7 +184,7 @@ const DownloadStructure = StateAction.build({
             for (const download of downloadParams) {
                 const data = await plugin.builders.data.download(download, { state: { isGhost: true } });
                 const provider = format === 'auto'
-                    ? plugin.dataFormats.auto(getFileInfo(Asset.getUrl(download.url)), data.cell?.obj!)
+                    ? plugin.dataFormats.auto(getFileNameInfo(Asset.getUrl(download.url)), data.cell?.obj!)
                     : plugin.dataFormats.get(format);
                 if (!provider) throw new Error('unknown file format');
                 const trajectory = await plugin.builders.structure.parseTrajectory(data, provider);
@@ -385,7 +385,7 @@ export const LoadTrajectory = StateAction.build({
         const processFile = async (file: Asset.File | null) => {
             if (!file) throw new Error('No file selected');
 
-            const info = getFileInfo(file.file!);
+            const info = getFileNameInfo(file.file?.name ?? '');
             const isBinary = ctx.dataFormats.binaryExtensions.has(info.ext);
             const { data } = await ctx.builders.data.readFile({ file, isBinary });
             const provider = ctx.dataFormats.auto(info, data.cell?.obj!);
