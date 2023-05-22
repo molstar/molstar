@@ -445,6 +445,6 @@ export const PresetStructureRepresentations = {
     'polymer-and-ligand': polymerAndLigand,
     'protein-and-nucleic': proteinAndNucleic,
     'coarse-surface': coarseSurface,
-    illustrative
+    illustrative,
 };
 export type PresetStructureRepresentations = typeof PresetStructureRepresentations;
