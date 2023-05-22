@@ -12,7 +12,7 @@ import { VisualQuality, VisualQualityOptions } from '../../../mol-geo/geometry/b
 import { ColorTheme } from '../../../mol-theme/color';
 import { Structure } from '../../../mol-model/structure';
 import { PluginContext } from '../../../mol-plugin/context';
-import { StateObjectRef, StateObjectSelector, StateTransform } from '../../../mol-state';
+import { StateObjectRef, StateObjectSelector } from '../../../mol-state';
 import { StaticStructureComponentType } from '../../helpers/structure-component';
 import { StructureSelectionQueries as Q } from '../../helpers/structure-selection-query';
 import { PluginConfig } from '../../../mol-plugin/config';
@@ -24,8 +24,6 @@ import { IndexPairBonds } from '../../../mol-model-formats/structure/property/bo
 import { StructConn } from '../../../mol-model-formats/structure/property/bonds/struct_conn';
 import { StructureRepresentationRegistry } from '../../../mol-repr/structure/registry';
 import { assertUnreachable } from '../../../mol-util/type-helpers';
-import { CCDFormat } from '../../../mol-model-formats/structure/mmcif';
-import { capitalize } from '../../../mol-util/string';
 
 export interface StructureRepresentationPresetProvider<P = any, S extends _Result = _Result> extends PresetProvider<PluginStateObject.Molecule.Structure, P, S> { }
 export function StructureRepresentationPresetProvider<P, S extends _Result>(repr: StructureRepresentationPresetProvider<P, S>) { return repr; }
@@ -431,47 +429,6 @@ const illustrative = StructureRepresentationPresetProvider({
     }
 });
 
-const chemicalComponent = StructureRepresentationPresetProvider({
-    id: 'preset-structure-representation-chemical-component',
-    display: {
-        name: 'Chemical Component', group: 'Miscellaneous',
-        description: `Show 'Ideal' and 'Model' coordinates of chemical components.`
-    },
-    isApplicable: o => {
-        return CCDFormat.is(o.data.model.sourceData);
-    },
-    params: () => ({
-        ...CommonParams,
-        coordinateType: PD.Select<CCDFormat.CoordinateType>(CCDFormat.CoordinateType.Ideal, PD.arrayToOptions(Object.keys(CCDFormat.CoordinateType) as CCDFormat.CoordinateType[])),
-        isHidden: PD.Boolean(false)
-    }),
-    async apply(ref, params, plugin) {
-        const structureCell = StateObjectRef.resolveAndCheck(plugin.state.data, ref);
-        if (!structureCell) return {};
-
-        const { coordinateType, isHidden } = params;
-        const components = {
-            [coordinateType]: await presetStaticComponent(plugin, structureCell, 'all', { label: capitalize(coordinateType), tags: [coordinateType] })
-        };
-
-        const structure = structureCell.obj!.data;
-        const { update, builder, typeParams } = reprBuilder(plugin, params);
-
-        const representations = {
-            [coordinateType]: builder.buildRepresentation(update, components[coordinateType], { type: 'ball-and-stick', typeParams }, { initialState: { isHidden } }),
-        };
-        // sync UI state
-        if (components[coordinateType]?.cell?.state && isHidden) {
-            StateTransform.assignState(components[coordinateType]!.cell!.state, { isHidden });
-        }
-
-        await update.commit({ revertOnError: true });
-        await updateFocusRepr(plugin, structure, params.theme?.focus?.name, params.theme?.focus?.params);
-
-        return { components, representations };
-    }
-});
-
 export function presetStaticComponent(plugin: PluginContext, structure: StateObjectRef<PluginStateObject.Molecule.Structure>, type: StaticStructureComponentType, params?: { label?: string, tags?: string[] }) {
     return plugin.builders.structure.tryCreateComponentStatic(structure, type, params);
 }
@@ -488,7 +445,6 @@ export const PresetStructureRepresentations = {
     'polymer-and-ligand': polymerAndLigand,
     'protein-and-nucleic': proteinAndNucleic,
     'coarse-surface': coarseSurface,
-    illustrative,
-    'chemical-component': chemicalComponent
+    illustrative
 };
 export type PresetStructureRepresentations = typeof PresetStructureRepresentations;
