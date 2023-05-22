@@ -297,7 +297,7 @@ export function createLinkCylinderImpostors(ctx: VisualContext, linkBuilder: Lin
             builder.add(va[0], va[1], va[2], vm[0], vm[1], vm[2], 1, linkCap, linkStub, colorModeFlag, edgeIndex);
         } else if (linkStyle === LinkStyle.Dashed) {
             v3scale(vm, v3add(vm, va, vb), 0.5);
-            builder.addFixedCountDashes(va, vm, dashCount, dashScale, dashCap, dashCap, linkStub, colorModeFlag, edgeIndex);
+            builder.addFixedCountDashes(va, vm, dashCount, dashScale, dashCap, dashCap, linkStub, interpolate, edgeIndex);
         } else if (linkStyle === LinkStyle.Double || linkStyle === LinkStyle.OffsetDouble || linkStyle === LinkStyle.Triple || linkStyle === LinkStyle.OffsetTriple || linkStyle === LinkStyle.Aromatic || linkStyle === LinkStyle.MirroredAromatic) {
             const order = (linkStyle === LinkStyle.Double || linkStyle === LinkStyle.OffsetDouble) ? 2 :
                 (linkStyle === LinkStyle.Triple || linkStyle === LinkStyle.OffsetTriple) ? 3 : 1.5;

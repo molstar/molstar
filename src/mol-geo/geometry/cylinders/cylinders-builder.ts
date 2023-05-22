@@ -64,7 +64,7 @@ export namespace CylindersBuilder {
                 if (interpolate) {
                     colorMode = Vec3.distance(start, tmpVecB) / (d * 2);
                 }
-                add(tmpVecA[0], tmpVecA[1], tmpVecA[2], tmpVecB[0], tmpVecB[1], tmpVecB[2], radiusScale, topCap, bottomCap, group);
+                add(tmpVecA[0], tmpVecA[1], tmpVecA[2], tmpVecB[0], tmpVecB[1], tmpVecB[2], radiusScale, topCap, bottomCap, colorMode, group);
                 Vec3.add(tmpVecA, tmpVecA, tmpDir);
             }
         };

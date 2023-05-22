@@ -6,6 +6,8 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Add color interpolation to impostor cylinders
+
 ## [v3.35.0] - 2023-05-14
 
 - Enable odd dash count (1,3,5)
