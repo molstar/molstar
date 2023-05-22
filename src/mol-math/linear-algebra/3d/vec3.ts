@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -24,6 +24,8 @@ import { Mat3 } from './mat3';
 import { Quat } from './quat';
 import { EPSILON } from './common';
 
+const _isFinite = isFinite;
+
 export { ReadonlyVec3 };
 
 interface Vec3 extends Array<number> { [d: number]: number, '@type': 'vec3', length: 3 }
@@ -46,6 +48,10 @@ namespace Vec3 {
         out[1] = a[1];
         out[2] = a[2];
         return out;
+    }
+
+    export function isFinite(a: Vec3): boolean {
+        return _isFinite(a[0]) && _isFinite(a[1]) && _isFinite(a[2]);
     }
 
     export function hasNaN(a: Vec3) {

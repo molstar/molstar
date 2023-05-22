@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -54,6 +54,7 @@ export async function pdbToMmCif(pdb: PdbFile): Promise<CifFrame> {
 
     let modelNum = 0, modelStr = '';
     let conectRange: [number, number] | undefined = undefined;
+    let hasAssemblies = false;
     const terIndices = new Set<number>();
 
     for (let i = 0, _i = lines.count; i < _i; i++) {
@@ -152,6 +153,7 @@ export async function pdbToMmCif(pdb: PdbFile): Promise<CifFrame> {
                     }
                     helperCategories.push(...parseRemark350(lines, i, j));
                     i = j - 1;
+                    hasAssemblies = true;
                 }
                 break;
             case 'S':
@@ -208,7 +210,7 @@ export async function pdbToMmCif(pdb: PdbFile): Promise<CifFrame> {
         atomSite.label_entity_id[i] = entityBuilder.getEntityId(compId, moleculeType, asymIds.value(i));
     }
 
-    const atom_site = getAtomSite(atomSite, terIndices);
+    const atom_site = getAtomSite(atomSite, terIndices, { hasAssemblies });
     if (!isPdbqt) delete atom_site.partial_charge;
 
     if (conectRange) {

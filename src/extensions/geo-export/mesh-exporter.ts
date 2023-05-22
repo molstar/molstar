@@ -29,11 +29,15 @@ import { unpackRGBToInt } from '../../mol-util/number-packing';
 import { RenderObjectExporter, RenderObjectExportData } from './render-object-exporter';
 import { readAlphaTexture, readTexture } from '../../mol-gl/compute/util';
 import { assertUnreachable } from '../../mol-util/type-helpers';
+import { ValueCell } from '../../mol-util/value-cell';
 
 const GeoExportName = 'geo-export';
 
 // avoiding namespace lookup improved performance in Chrome (Aug 2020)
 const v3fromArray = Vec3.fromArray;
+const v3sub = Vec3.sub;
+const v3dot = Vec3.dot;
+const v3unitY = Vec3.unitY;
 
 type MeshMode = 'points' | 'lines' | 'triangles'
 
@@ -47,7 +51,7 @@ export interface AddMeshInput {
         drawCount: number
     } | undefined
     meshes: Mesh[] | undefined
-    values: BaseValues
+    values: BaseValues & { readonly uDoubleSided?: ValueCell<any> }
     isGeoTexture: boolean
     mode: MeshMode
     webgl: WebGLContext | undefined
@@ -509,6 +513,7 @@ export abstract class MeshExporter<D extends RenderObjectExportData> implements 
     private async addCylinders(values: CylindersValues, webgl: WebGLContext, ctx: RuntimeContext) {
         const start = Vec3();
         const end = Vec3();
+        const dir = Vec3();
 
         const aStart = values.aStart.ref.value;
         const aEnd = values.aEnd.ref.value;
@@ -546,12 +551,16 @@ export abstract class MeshExporter<D extends RenderObjectExportData> implements 
             for (let i = 0; i < vertexCount; i += 6) {
                 v3fromArray(start, aStart, i * 3);
                 v3fromArray(end, aEnd, i * 3);
+                v3sub(dir, end, start);
 
                 const group = aGroup[i];
                 const radius = MeshExporter.getSize(values, instanceIndex, group) * aScale[i];
                 const cap = aCap[i];
-                const topCap = cap === 1 || cap === 3;
-                const bottomCap = cap >= 2;
+                let topCap = cap === 1 || cap === 3;
+                let bottomCap = cap >= 2;
+                if (v3dot(v3unitY, dir) > 0) {
+                    [bottomCap, topCap] = [topCap, bottomCap];
+                }
                 const cylinderProps = { radiusTop: radius, radiusBottom: radius, topCap, bottomCap, radialSegments };
                 state.currentGroup = aGroup[i];
                 addCylinder(state, start, end, 1, cylinderProps);
