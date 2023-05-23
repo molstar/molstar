@@ -105,7 +105,9 @@ class State {
 
     undo() {
         return Task.create('Undo', async ctx => {
+            console.log('Undoing')
             const e = this.history.shift();
+            console.log(e)
             if (!e) return;
             this.events.historyUpdated.next({ state: this });
             this.undoingHistory = true;
