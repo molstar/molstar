@@ -49,6 +49,7 @@ export class QuickStyles extends PurePluginUIComponent {
       this.stylized();
     }
   };
+  
 
   handleMouseClick = (event: React.MouseEvent<HTMLButtonElement>) => {
 
