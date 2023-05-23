@@ -41,46 +41,6 @@ export class QuickStyles extends PurePluginUIComponent {
 
   leaveTimeout: number | null = null;
 
-  // Define a method to revert to previous style
-  // async revertStyle() {
-  //   // Code to apply style saved in this.state.previousStyle
-
-  //   // Check if there's a previous style saved
-  //   if (!this.state.previousStyle) {
-  //     this.default();
-  //   } else {
-  //     // Extract the properties from the previous style
-  //     const { structure, postprocessing } = this.state.previousStyle;
-
-  //     // Apply the previous structure style
-  //     const { structures } = this.plugin.managers.structure.hierarchy.selection;
-  //     await this.plugin.managers.structure.component.applyPreset(
-  //       structures,
-  //       structure
-  //     );
-
-  //     // Apply the previous postprocessing style
-  //     if (this.plugin.canvas3d && postprocessing) {
-  //       this.plugin.canvas3d.setProps({ postprocessing });
-  //     }
-
-  //     // Reset previousStyle state
-  //     this.setState({ previousStyle: null });
-  //   }
-  // }
-
-  // Add getCurrentStyle() method to return current style
-  getCurrentStyle() {
-    // Return the current style.
-    // const structureState = this.plugin.managers.structure.component.state;
-    // Similarly, you could get the current postprocessing state like this:
-    // const postprocessingState = this.plugin.canvas3d ? this.plugin.canvas3d.props.postprocessing : null;
-    // Now return an object that captures the current state
-    // return {
-    // structure: structureState,
-    // postprocessing: postprocessingState,
-    // };
-  }
   applyStyle = (innerText: string) => {
     console.log(innerText);
     if (innerText.includes("Default")) {
@@ -114,16 +74,21 @@ export class QuickStyles extends PurePluginUIComponent {
     this.setState({ clicked: false }, () => {
       console.log("Mouse Entered " + this.state.clicked); // Outputs the updated value
     });
-    this.setState({ previousOptions: this.plugin.managers.structure.component.state.options }, () => {
+    this.setState(
+      {
+        previousOptions: this.plugin.managers.structure.component.state.options,
+      },
+      () => {
         console.log("Mouse Entered " + this.state.previousOptions); // Outputs the updated value
-    });
+      }
+    );
     this.applyStyle(event.currentTarget.innerText);
     // console.log(this.state.clicked);
   };
 
   handleMouseLeave = () => {
     console.log("Mouse Leave");
-    console.log(this.state.previousStyle)
+    console.log(this.state.previousStyle);
     if (!this.state.clicked && this.state.previousStyle) {
       // Clear the previous timeout if it exists
       console.log("Reapply previous style");
@@ -147,10 +112,7 @@ export class QuickStyles extends PurePluginUIComponent {
       clearTimeout(this.leaveTimeout);
     }
 
-    this.applyStyle(this.state.previousStyle)
-
-
-
+    this.applyStyle(this.state.previousStyle);
   }
 
   async default() {
