@@ -81,13 +81,7 @@ export class QuickStyles extends PurePluginUIComponent {
     console.log("Mouse Leave");
     console.log(this.state.previousStyle);
     if (!this.state.clicked && this.state.previousStyle) {
-      // Clear the previous timeout if it exists
       console.log("Reapply previous style");
-      if (this.leaveTimeout !== null) {
-        clearTimeout(this.leaveTimeout);
-        this.leaveTimeout = null;
-      }
-
       // Set a timeout to delay the onMouseLeave action
       this.leaveTimeout = window.setTimeout(
         () => this.defaultAfterPreview(),
