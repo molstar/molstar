@@ -149,12 +149,11 @@ export namespace IntAdjacencyGraph {
             const a = this.xs[this.current], b = this.ys[this.current];
 
             const oa = this.offsets[a] + this.bucketFill[a];
-            const ob = this.offsets[b] + this.bucketFill[b];
-
             this.a[oa] = a;
             this.b[oa] = b;
             this.bucketFill[a]++;
 
+            const ob = this.offsets[b] + this.bucketFill[b];
             this.a[ob] = b;
             this.b[ob] = a;
             this.bucketFill[b]++;
