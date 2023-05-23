@@ -42,19 +42,15 @@ export class QuickStyles extends PurePluginUIComponent {
 
   applyStyle = (innerText: string) => {
     if (innerText.includes("Default")) {
-      console.log("Applying Default");
       this.default();
     } else if (innerText.includes("Illustrative")) {
-      console.log("Applying Illustrative");
       this.illustrative();
     } else {
-      console.log("Applying stylized");
       this.stylized();
     }
   };
 
   handleMouseClick = (event: React.MouseEvent<HTMLButtonElement>) => {
-    console.log("Mouse Clicked");
 
     if (this.leaveTimeout) {
       // If timer exists, clear it to prevent defaultAfterPreview from executing
@@ -63,25 +59,16 @@ export class QuickStyles extends PurePluginUIComponent {
     }
     const buttonInnerText = event.currentTarget.innerText;
     this.applyStyle(buttonInnerText);
-    this.setState({ clicked: true, previousStyle: buttonInnerText }, () => {
-      console.log(this.state.clicked + this.state.previousStyle); // Outputs the updated value
-    });
+    this.setState({ clicked: true, previousStyle: buttonInnerText });
   };
 
   handleMouseEnter = (event: React.MouseEvent<HTMLButtonElement>) => {
-    this.setState({ clicked: false }, () => {
-      console.log("Mouse Entered " + this.state.clicked); // Outputs the updated value
-    });
+    this.setState({ clicked: false });
     this.applyStyle(event.currentTarget.innerText);
-    // console.log(this.state.clicked);
   };
 
   handleMouseLeave = () => {
-    console.log("Mouse Leave");
-    console.log(this.state.previousStyle);
     if (!this.state.clicked && this.state.previousStyle) {
-      console.log("Reapply previous style");
-      // Set a timeout to delay the onMouseLeave action
       this.leaveTimeout = window.setTimeout(
         () => this.defaultAfterPreview(),
         500
