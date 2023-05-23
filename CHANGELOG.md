@@ -8,6 +8,7 @@ Note that since we don't clearly distinguish between a public and private interf
 
 - Allow parsing of CCD ligand files
 - Add dedicated wwPDB CCD extension to align and visualize ideal & model CCD coordinates
+- Optimize inter unit bond compute
 
 ## [v3.35.0] - 2023-05-14
 
