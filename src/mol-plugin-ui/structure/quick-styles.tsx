@@ -41,7 +41,6 @@ export class QuickStyles extends PurePluginUIComponent {
   leaveTimeout: number | null = null;
 
   applyStyle = (innerText: string) => {
-    console.log(innerText);
     if (innerText.includes("Default")) {
       console.log("Applying Default");
       this.default();
