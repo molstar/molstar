@@ -7,7 +7,7 @@ Note that since we don't clearly distinguish between a public and private interf
 ## [Unreleased]
 
 - Make operators in `IndexPairBonds` a directed property
-- Fix bounding-box overlap test in `Structure.eachUnitPair`
+- Remove erroneous bounding-box overlap test in `Structure.eachUnitPair`
 
 ## [v3.35.0] - 2023-05-14
 
