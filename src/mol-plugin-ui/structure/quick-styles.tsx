@@ -147,34 +147,6 @@ export class QuickStyles extends PurePluginUIComponent {
       clearTimeout(this.leaveTimeout);
     }
 
-    // const { structures } = this.plugin.managers.structure.hierarchy.selection;
-    // const preset =
-    //   this.plugin.config.get(
-    //     PluginConfig.Structure.DefaultRepresentationPreset
-    //   ) || PresetStructureRepresentations.auto.id;
-    // const provider =
-    //   this.plugin.builders.structure.representation.resolveProvider(preset);
-    // await this.plugin.managers.structure.component.applyPreset(
-    //   structures,
-    //   provider
-    // );
-
-    // this.plugin.managers.structure.component.setOptions(
-    //   PD.getDefaultValues(StructureComponentManager.OptionsParams)
-    // );
-
-    // if (this.plugin.canvas3d) {
-    //   const p = PD.getDefaultValues(PostprocessingParams);
-    //   this.plugin.canvas3d.setProps({
-    //     postprocessing: { outline: p.outline, occlusion: p.occlusion },
-    //   });
-    // }
-
-    // this.plugin.managers.structure.component.setOptions({
-    //   ...this.state.previousOptions
-    // });
-
-
     this.applyStyle(this.state.previousStyle)
 
 
@@ -294,7 +266,7 @@ export class QuickStyles extends PurePluginUIComponent {
           title="Applies default representation preset. Set outline and occlusion effects to defaults."
           onClick={this.handleMouseClick}
           onMouseEnter={this.handleMouseEnter}
-          onMouseLeave={() => this.handleMouseLeave()}
+          onMouseLeave={this.handleMouseLeave}
           style={{ width: "auto" }}
         >
           Default
@@ -304,7 +276,7 @@ export class QuickStyles extends PurePluginUIComponent {
           title="Applies no representation preset. Enables outline and occlusion effects. Enables ignore-light representation parameter."
           onClick={this.handleMouseClick}
           onMouseEnter={this.handleMouseEnter}
-          onMouseLeave={() => this.handleMouseLeave()}
+          onMouseLeave={this.handleMouseLeave}
           style={{ width: "auto" }}
         >
           Stylized
@@ -314,7 +286,7 @@ export class QuickStyles extends PurePluginUIComponent {
           title="Applies illustrative representation preset. Enables outline and occlusion effects. Enables ignore-light parameter."
           onClick={this.handleMouseClick}
           onMouseEnter={this.handleMouseEnter}
-          onMouseLeave={() => this.handleMouseLeave()}
+          onMouseLeave={this.handleMouseLeave}
           style={{ width: "auto" }}
         >
           Illustrative
