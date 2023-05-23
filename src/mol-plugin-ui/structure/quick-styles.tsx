@@ -36,7 +36,6 @@ export class QuickStyles extends PurePluginUIComponent {
   state = {
     previousStyle: "",
     clicked: false,
-    previousOptions: this.plugin.managers.structure.component.state.options,
   };
 
   leaveTimeout: number | null = null;
@@ -74,14 +73,6 @@ export class QuickStyles extends PurePluginUIComponent {
     this.setState({ clicked: false }, () => {
       console.log("Mouse Entered " + this.state.clicked); // Outputs the updated value
     });
-    this.setState(
-      {
-        previousOptions: this.plugin.managers.structure.component.state.options,
-      },
-      () => {
-        console.log("Mouse Entered " + this.state.previousOptions); // Outputs the updated value
-      }
-    );
     this.applyStyle(event.currentTarget.innerText);
     // console.log(this.state.clicked);
   };
