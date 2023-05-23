@@ -34,37 +34,40 @@ export class StructureQuickStylesControls extends CollapsableControls {
 
 export class QuickStyles extends PurePluginUIComponent {
   state = {
-    previousStyle: null,
+    previousStyle: "",
+    clicked: false,
+    previousOptions: this.plugin.managers.structure.component.state.options,
   };
+
   leaveTimeout: number | null = null;
 
   // Define a method to revert to previous style
-  async revertStyle() {
-    // Code to apply style saved in this.state.previousStyle
+  // async revertStyle() {
+  //   // Code to apply style saved in this.state.previousStyle
 
-    // Check if there's a previous style saved
-    if (!this.state.previousStyle) {
-      this.default();
-    } else {
-      // Extract the properties from the previous style
-      const { structure, postprocessing } = this.state.previousStyle;
+  //   // Check if there's a previous style saved
+  //   if (!this.state.previousStyle) {
+  //     this.default();
+  //   } else {
+  //     // Extract the properties from the previous style
+  //     const { structure, postprocessing } = this.state.previousStyle;
 
-      // Apply the previous structure style
-      const { structures } = this.plugin.managers.structure.hierarchy.selection;
-      await this.plugin.managers.structure.component.applyPreset(
-        structures,
-        structure
-      );
+  //     // Apply the previous structure style
+  //     const { structures } = this.plugin.managers.structure.hierarchy.selection;
+  //     await this.plugin.managers.structure.component.applyPreset(
+  //       structures,
+  //       structure
+  //     );
 
-      // Apply the previous postprocessing style
-      if (this.plugin.canvas3d && postprocessing) {
-        this.plugin.canvas3d.setProps({ postprocessing });
-      }
+  //     // Apply the previous postprocessing style
+  //     if (this.plugin.canvas3d && postprocessing) {
+  //       this.plugin.canvas3d.setProps({ postprocessing });
+  //     }
 
-      // Reset previousStyle state
-      this.setState({ previousStyle: null });
-    }
-  }
+  //     // Reset previousStyle state
+  //     this.setState({ previousStyle: null });
+  //   }
+  // }
 
   // Add getCurrentStyle() method to return current style
   getCurrentStyle() {
@@ -78,29 +81,63 @@ export class QuickStyles extends PurePluginUIComponent {
     // postprocessing: postprocessingState,
     // };
   }
-  handleMouseLeave = () => {
-    console.log("Mouse Leave");
-    // Clear the previous timeout if it exists
-    if (this.leaveTimeout !== null) {
+  applyStyle = (innerText: string) => {
+    console.log(innerText);
+    if (innerText.includes("Default")) {
+      console.log("Applying Default");
+      this.default();
+    } else if (innerText.includes("Illustrative")) {
+      console.log("Applying Illustrative");
+      this.illustrative();
+    } else {
+      console.log("Applying stylized");
+      this.stylized();
+    }
+  };
+
+  handleMouseClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+    console.log("Mouse Clicked");
+
+    if (this.leaveTimeout) {
+      // If timer exists, clear it to prevent defaultAfterPreview from executing
       clearTimeout(this.leaveTimeout);
       this.leaveTimeout = null;
     }
+    const buttonInnerText = event.currentTarget.innerText
+    this.applyStyle(buttonInnerText);
+    this.setState({ clicked: true, previousStyle: buttonInnerText }, () => {
+      console.log(this.state.clicked + this.state.previousStyle); // Outputs the updated value
+    });
+  };
 
-    // Set a timeout to delay the onMouseLeave action
-    this.leaveTimeout = window.setTimeout(
-      () => this.defaultAfterPreview(),
-      500
-    );
+  handleMouseEnter = (event: React.MouseEvent<HTMLButtonElement>) => {
+    this.setState({ clicked: false }, () => {
+      console.log("Mouse Entered " + this.state.clicked); // Outputs the updated value
+    });
+    this.setState({ previousOptions: this.plugin.managers.structure.component.state.options }, () => {
+      console.log("Mouse Entered " + this.state.previousOptions); // Outputs the updated value
+    });
+    this.applyStyle(event.currentTarget.innerText);
+    // console.log(this.state.clicked);
+  };
 
-    // Start a timer, giving the onClick event a chance to interrupt if it fires
-    // this.leaveTimeout = window.setTimeout(async () => {
-    //   // Your existing code here...
-    //   // Do not forget to clear the timer at the end
-    //   this.defaultAfterPreview();
-    //   this.leaveTimeout = null;
-    // }, 200);
+  handleMouseLeave = () => {
+    console.log("Mouse Leave");
+    console.log(this.state.previousStyle)
+    if (!this.state.clicked && this.state.previousStyle) {
+      // Clear the previous timeout if it exists
+      console.log("Reapply previous style");
+      if (this.leaveTimeout !== null) {
+        clearTimeout(this.leaveTimeout);
+        this.leaveTimeout = null;
+      }
 
-    // Delay the execution for 200ms
+      // Set a timeout to delay the onMouseLeave action
+      this.leaveTimeout = window.setTimeout(
+        () => this.defaultAfterPreview(),
+        500
+      );
+    }
   };
 
   // Add a method to apply the default style
@@ -110,37 +147,41 @@ export class QuickStyles extends PurePluginUIComponent {
       clearTimeout(this.leaveTimeout);
     }
 
-    const { structures } = this.plugin.managers.structure.hierarchy.selection;
-    const preset =
-      this.plugin.config.get(
-        PluginConfig.Structure.DefaultRepresentationPreset
-      ) || PresetStructureRepresentations.auto.id;
-    const provider =
-      this.plugin.builders.structure.representation.resolveProvider(preset);
-    await this.plugin.managers.structure.component.applyPreset(
-      structures,
-      provider
-    );
+    // const { structures } = this.plugin.managers.structure.hierarchy.selection;
+    // const preset =
+    //   this.plugin.config.get(
+    //     PluginConfig.Structure.DefaultRepresentationPreset
+    //   ) || PresetStructureRepresentations.auto.id;
+    // const provider =
+    //   this.plugin.builders.structure.representation.resolveProvider(preset);
+    // await this.plugin.managers.structure.component.applyPreset(
+    //   structures,
+    //   provider
+    // );
 
-    this.plugin.managers.structure.component.setOptions(
-      PD.getDefaultValues(StructureComponentManager.OptionsParams)
-    );
+    // this.plugin.managers.structure.component.setOptions(
+    //   PD.getDefaultValues(StructureComponentManager.OptionsParams)
+    // );
 
-    if (this.plugin.canvas3d) {
-      const p = PD.getDefaultValues(PostprocessingParams);
-      this.plugin.canvas3d.setProps({
-        postprocessing: { outline: p.outline, occlusion: p.occlusion },
-      });
-    }
+    // if (this.plugin.canvas3d) {
+    //   const p = PD.getDefaultValues(PostprocessingParams);
+    //   this.plugin.canvas3d.setProps({
+    //     postprocessing: { outline: p.outline, occlusion: p.occlusion },
+    //   });
+    // }
+
+    // this.plugin.managers.structure.component.setOptions({
+    //   ...this.state.previousOptions
+    // });
+
+
+    this.applyStyle(this.state.previousStyle)
+
+    
+
   }
 
   async default() {
-    console.log("Clicked default");
-    if (this.leaveTimeout) {
-      // If timer exists, clear it to prevent defaultAfterPreview from executing
-      clearTimeout(this.leaveTimeout);
-      this.leaveTimeout = null;
-    }
     const { structures } = this.plugin.managers.structure.hierarchy.selection;
     const preset =
       this.plugin.config.get(
@@ -166,13 +207,6 @@ export class QuickStyles extends PurePluginUIComponent {
   }
 
   async illustrative() {
-    if (this.leaveTimeout) {
-      // If timer exists, clear it to prevent defaultAfterPreview from executing
-      clearTimeout(this.leaveTimeout);
-      this.leaveTimeout = null;
-    }
-    console.log("Clicked illustrative");
-
     const { structures } = this.plugin.managers.structure.hierarchy.selection;
     await this.plugin.managers.structure.component.applyPreset(
       structures,
@@ -210,13 +244,6 @@ export class QuickStyles extends PurePluginUIComponent {
   }
 
   async stylized() {
-    console.log("Clicked stylized");
-    if (this.leaveTimeout) {
-      // If timer exists, clear it to prevent defaultAfterPreview from executing
-      clearTimeout(this.leaveTimeout);
-      this.leaveTimeout = null;
-    }
-
     this.plugin.managers.structure.component.setOptions({
       ...this.plugin.managers.structure.component.state.options,
       ignoreLight: true,
@@ -265,7 +292,9 @@ export class QuickStyles extends PurePluginUIComponent {
         <Button
           noOverflow
           title="Applies default representation preset. Set outline and occlusion effects to defaults."
-          onClick={() => this.default()}
+          onClick={this.handleMouseClick}
+          onMouseEnter={this.handleMouseEnter}
+          onMouseLeave={() => this.handleMouseLeave()}
           style={{ width: "auto" }}
         >
           Default
@@ -273,8 +302,8 @@ export class QuickStyles extends PurePluginUIComponent {
         <Button
           noOverflow
           title="Applies no representation preset. Enables outline and occlusion effects. Enables ignore-light representation parameter."
-          onClick={() => console.log("Clicked stylized")}
-          onMouseEnter={() => this.illustrative().catch(console.error)}
+          onClick={this.handleMouseClick}
+          onMouseEnter={this.handleMouseEnter}
           onMouseLeave={() => this.handleMouseLeave()}
           style={{ width: "auto" }}
         >
@@ -283,8 +312,8 @@ export class QuickStyles extends PurePluginUIComponent {
         <Button
           noOverflow
           title="Applies illustrative representation preset. Enables outline and occlusion effects. Enables ignore-light parameter."
-          onClick={() => this.illustrative().catch(console.error)}
-          onMouseEnter={() => this.illustrative().catch(console.error)}
+          onClick={this.handleMouseClick}
+          onMouseEnter={this.handleMouseEnter}
           onMouseLeave={() => this.handleMouseLeave()}
           style={{ width: "auto" }}
         >
