@@ -79,6 +79,7 @@ export class QuickStyles extends PurePluginUIComponent {
     // };
   }
   handleMouseLeave = () => {
+    console.log("Mouse Leave");
     // Clear the previous timeout if it exists
     if (this.leaveTimeout !== null) {
       clearTimeout(this.leaveTimeout);
@@ -86,7 +87,10 @@ export class QuickStyles extends PurePluginUIComponent {
     }
 
     // Set a timeout to delay the onMouseLeave action
-    this.leaveTimeout = window.setTimeout(() => this.defaultAfterPreview(), 500);
+    this.leaveTimeout = window.setTimeout(
+      () => this.defaultAfterPreview(),
+      500
+    );
 
     // Start a timer, giving the onClick event a chance to interrupt if it fires
     // this.leaveTimeout = window.setTimeout(async () => {
@@ -94,8 +98,8 @@ export class QuickStyles extends PurePluginUIComponent {
     //   // Do not forget to clear the timer at the end
     //   this.defaultAfterPreview();
     //   this.leaveTimeout = null;
-    // }, 200); 
-    
+    // }, 200);
+
     // Delay the execution for 200ms
   };
 
@@ -131,11 +135,12 @@ export class QuickStyles extends PurePluginUIComponent {
   }
 
   async default() {
+    console.log("Clicked default");
     if (this.leaveTimeout) {
-        // If timer exists, clear it to prevent defaultAfterPreview from executing
-        clearTimeout(this.leaveTimeout);
-        this.leaveTimeout = null;
-      }
+      // If timer exists, clear it to prevent defaultAfterPreview from executing
+      clearTimeout(this.leaveTimeout);
+      this.leaveTimeout = null;
+    }
     const { structures } = this.plugin.managers.structure.hierarchy.selection;
     const preset =
       this.plugin.config.get(
@@ -162,10 +167,11 @@ export class QuickStyles extends PurePluginUIComponent {
 
   async illustrative() {
     if (this.leaveTimeout) {
-        // If timer exists, clear it to prevent defaultAfterPreview from executing
-        clearTimeout(this.leaveTimeout);
-        this.leaveTimeout = null;
-      }
+      // If timer exists, clear it to prevent defaultAfterPreview from executing
+      clearTimeout(this.leaveTimeout);
+      this.leaveTimeout = null;
+    }
+    console.log("Clicked illustrative");
 
     const { structures } = this.plugin.managers.structure.hierarchy.selection;
     await this.plugin.managers.structure.component.applyPreset(
@@ -204,12 +210,13 @@ export class QuickStyles extends PurePluginUIComponent {
   }
 
   async stylized() {
+    console.log("Clicked stylized");
     if (this.leaveTimeout) {
-        // If timer exists, clear it to prevent defaultAfterPreview from executing
-        clearTimeout(this.leaveTimeout);
-        this.leaveTimeout = null;
-      }
-      
+      // If timer exists, clear it to prevent defaultAfterPreview from executing
+      clearTimeout(this.leaveTimeout);
+      this.leaveTimeout = null;
+    }
+
     this.plugin.managers.structure.component.setOptions({
       ...this.plugin.managers.structure.component.state.options,
       ignoreLight: true,
@@ -266,7 +273,7 @@ export class QuickStyles extends PurePluginUIComponent {
         <Button
           noOverflow
           title="Applies no representation preset. Enables outline and occlusion effects. Enables ignore-light representation parameter."
-          onClick={() => this.stylized().catch(console.error)}
+          onClick={() => console.log("Clicked stylized")}
           onMouseEnter={() => this.illustrative().catch(console.error)}
           onMouseLeave={() => this.handleMouseLeave()}
           style={{ width: "auto" }}
