@@ -72,7 +72,7 @@ void main() {
     gl_Position = uProjection * mvPosition;
 
     if (gl_Position.z < -gl_Position.w) {
-        mvPosition.z -= 2.0 * (length(vEnd - vStart) + vSize); // avoid clipping
+        mvPosition.z -= length(vEnd - vStart) + 2.0 * vSize; // avoid clipping
         gl_Position.z = (uProjection * mvPosition).z;
     }
 
