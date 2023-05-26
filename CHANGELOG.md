@@ -7,6 +7,7 @@ Note that since we don't clearly distinguish between a public and private interf
 ## [Unreleased]
 
 - Optimize inter unit bond compute
+- Ensure consistent state for volume representation (#210)
 
 ## [v3.35.0] - 2023-05-14
 
