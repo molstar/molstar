@@ -119,10 +119,18 @@ namespace CCDFormat {
         db: CCD_Database,
         frame: CifFrame
     }
-    export enum CoordinateType {
-        Ideal = 'ideal',
-        Model = 'model'
-    }
+
+    const CoordinateTypeProp = '__CcdCoordinateType__';
+    export type CoordinateType = 'ideal' | 'model'
+    export const CoordinateType = {
+        get(model: Model): CoordinateType | undefined {
+            return model._staticPropertyData[CoordinateTypeProp];
+        },
+        set(model: Model, type: CoordinateType) {
+            return model._staticPropertyData[CoordinateTypeProp] = type;
+        }
+    };
+
     export function is(x?: ModelFormat): x is CCDFormat {
         return x?.kind === 'CCD';
     }
@@ -139,15 +147,15 @@ export function trajectoryFromCCD(frame: CifFrame): Task<Trajectory> {
 }
 
 async function createCcdModels(data: CCD_Database, format: CCDFormat, ctx: RuntimeContext) {
-    const ideal = await createCcdModel(data, format, { coordinateType: CCDFormat.CoordinateType.Ideal, cartn_x: 'pdbx_model_Cartn_x_ideal', cartn_y: 'pdbx_model_Cartn_y_ideal', cartn_z: 'pdbx_model_Cartn_z_ideal' }, ctx);
-    const model = await createCcdModel(data, format, { coordinateType: CCDFormat.CoordinateType.Model, cartn_x: 'model_Cartn_x', cartn_y: 'model_Cartn_y', cartn_z: 'model_Cartn_z' }, ctx);
+    const ideal = await createCcdModel(data, format, { coordinateType: 'ideal', cartn_x: 'pdbx_model_Cartn_x_ideal', cartn_y: 'pdbx_model_Cartn_y_ideal', cartn_z: 'pdbx_model_Cartn_z_ideal' }, ctx);
+    const model = await createCcdModel(data, format, { coordinateType: 'model', cartn_x: 'model_Cartn_x', cartn_y: 'model_Cartn_y', cartn_z: 'model_Cartn_z' }, ctx);
 
     const models = [];
-    if (ideal) models.push(ideal.representative);
-    if (model) models.push(model.representative);
-    // model index tags models as either 'ideal' (index 0) or 'model' (index 1)
-    if (ideal) Model.TrajectoryInfo.set(models[0], { index: 0, size: models.length });
-    if (model) Model.TrajectoryInfo.set(models[models.length - 1], { index: 1, size: models.length });
+    if (ideal) models.push(ideal);
+    if (model) models.push(model);
+    for (let i = 0, il = models.length; i < il; ++i) {
+        Model.TrajectoryInfo.set(models[i], { index: i, size: models.length });
+    }
 
     return new ArrayTrajectory(models);
 }
@@ -229,6 +237,7 @@ async function createCcdModel(data: CCD_Database, format: CCDFormat, props: CCDP
     const first = models.representative;
     const entries = ComponentBond.getEntriesFromChemCompBond(chem_comp_bond);
     ComponentBond.Provider.set(first, { data: chem_comp_bond, entries });
+    CCDFormat.CoordinateType.set(first, coordinateType);
 
-    return models;
+    return models.representative;
 }

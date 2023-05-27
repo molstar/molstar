@@ -11,7 +11,7 @@ import { StateTransforms } from '../../../mol-plugin-state/transforms';
 import { StructureRepresentationPresetProvider, presetStaticComponent } from '../../../mol-plugin-state/builder/structure/representation-preset';
 import { PluginContext } from '../../../mol-plugin/context';
 import { Mat4 } from '../../../mol-math/linear-algebra';
-import { Model, Structure } from '../../../mol-model/structure';
+import { Structure } from '../../../mol-model/structure';
 import { CCDFormat } from '../../../mol-model-formats/structure/mmcif';
 import { MinimizeRmsd } from '../../../mol-math/linear-algebra/3d/minimize-rmsd';
 import { SetUtils } from '../../../mol-util/set';
@@ -53,8 +53,7 @@ export const ChemicalCompontentTrajectoryHierarchyPreset = TrajectoryHierarchyPr
 
         // degenerate case where either model or ideal coordinates are missing
         if (tr.frameCount !== 2) {
-            // variables are 1st model but not necessarily ideal coordinates -- consult trajectory index to distinguish ideal/model coordinates
-            const coordinateType = Model.TrajectoryInfo.get(idealModel.obj!.data).index === 0 ? CCDFormat.CoordinateType.Ideal : CCDFormat.CoordinateType.Model;
+            const coordinateType = CCDFormat.CoordinateType.get(idealModel.obj!.data);
             await builder.representation.applyPreset(idealStructureProperties, representationPreset, { ...representationPresetParams, coordinateType });
 
             return { models: [idealModel], structures: [idealStructure] };
@@ -70,7 +69,7 @@ export const ChemicalCompontentTrajectoryHierarchyPreset = TrajectoryHierarchyPr
         if (!params.showOriginalCoordinates) {
             const [a, b] = getPositionTables(idealStructure.obj!.data, modelStructure.obj!.data);
             if (!a) {
-                plugin.log.warn(`Cannot align ligands whose atom sets are disjoint.`);
+                plugin.log.warn(`Cannot align chemical components whose atom sets are disjoint.`);
             } else {
                 const { bTransform, rmsd } = MinimizeRmsd.compute({ a, b });
                 await transform(plugin, modelStructure.cell!, bTransform);
@@ -78,8 +77,8 @@ export const ChemicalCompontentTrajectoryHierarchyPreset = TrajectoryHierarchyPr
             }
         }
 
-        await builder.representation.applyPreset(idealStructureProperties, representationPreset, { ...representationPresetParams, coordinateType: CCDFormat.CoordinateType.Ideal, isHidden: params.shownCoordinateType === 'model' });
-        await builder.representation.applyPreset(modelStructureProperties, representationPreset, { ...representationPresetParams, coordinateType: CCDFormat.CoordinateType.Model, isHidden: params.shownCoordinateType === 'ideal' });
+        await builder.representation.applyPreset(idealStructureProperties, representationPreset, { ...representationPresetParams, coordinateType: 'ideal', isHidden: params.shownCoordinateType === 'model' });
+        await builder.representation.applyPreset(modelStructureProperties, representationPreset, { ...representationPresetParams, coordinateType: 'model', isHidden: params.shownCoordinateType === 'ideal' });
 
         return { models: [idealModel, modelModel], structures: [idealStructure, modelStructure] };
     }
@@ -135,7 +134,7 @@ export const ChemicalComponentPreset = StructureRepresentationPresetProvider({
     },
     params: () => ({
         ...StructureRepresentationPresetProvider.CommonParams,
-        coordinateType: PD.Select<CCDFormat.CoordinateType>(CCDFormat.CoordinateType.Ideal, PD.arrayToOptions(Object.keys(CCDFormat.CoordinateType) as CCDFormat.CoordinateType[])),
+        coordinateType: PD.Select<CCDFormat.CoordinateType>('ideal', PD.arrayToOptions(['ideal', 'model'])),
         isHidden: PD.Boolean(false)
     }),
     async apply(ref, params, plugin) {
