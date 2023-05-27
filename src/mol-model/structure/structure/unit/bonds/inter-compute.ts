@@ -243,10 +243,8 @@ function computeInterUnitBonds(structure: Structure, props?: Partial<InterBondCo
         ...p,
         validUnit: (props && props.validUnit) || (u => Unit.isAtomic(u)),
         validUnitPair: (props && props.validUnitPair) || ((s, a, b) => {
-            // In case both units have a struct conn record, ignore other criteria
-            if (hasCommonStructConnRecord(a, b)) {
-                return Structure.validUnitPair(s, a, b);
-            }
+            const isValidPair = Structure.validUnitPair(s, a, b);
+            if (!isValidPair) return false;
 
             const mtA = a.model.atomicHierarchy.derived.residue.moleculeType;
             const mtB = b.model.atomicHierarchy.derived.residue.moleculeType;
@@ -258,7 +256,13 @@ function computeInterUnitBonds(structure: Structure, props?: Partial<InterBondCo
             const notIonA = (!Unit.isAtomic(a) || mtA[a.residueIndex[a.elements[0]]] !== MoleculeType.Ion);
             const notIonB = (!Unit.isAtomic(b) || mtB[b.residueIndex[b.elements[0]]] !== MoleculeType.Ion);
             const notIon = notIonA && notIonB;
-            return Structure.validUnitPair(s, a, b) && (notWater || !p.ignoreWater) && (notIon || !p.ignoreIon);
+
+            const check = (notWater || !p.ignoreWater) && (notIon || !p.ignoreIon);
+            if (!check) {
+                // In case both units have a struct conn record, ignore other criteria
+                return hasCommonStructConnRecord(a, b);
+            }
+            return true;
         }),
     });
 }
