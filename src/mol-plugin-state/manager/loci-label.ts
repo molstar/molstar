@@ -94,6 +94,8 @@ export class LociLabelManager {
 
     constructor(public ctx: PluginContext) {
         ctx.managers.interactivity.lociHighlights.addProvider((loci, action, noRender) => {
+            if (this.providers.length === 0) return;
+
             this.mark(loci, action);
             if (!noRender) this.showLabels();
         });
