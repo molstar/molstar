@@ -114,7 +114,7 @@ void main(void) {
     vec2 selfPackedDepth = packUnitIntervalToRG(selfDepth);
 
     if (isBackground(selfDepth)) {
-        gl_FragColor = vec4(packUnitIntervalToRG(0.0), selfPackedDepth);
+        gl_FragColor = vec4(packUnitIntervalToRG(1.0), selfPackedDepth);
         return;
     }
 

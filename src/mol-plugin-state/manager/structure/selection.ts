@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -12,7 +12,7 @@ import { PrincipalAxes } from '../../../mol-math/linear-algebra/matrix/principal
 import { EmptyLoci, Loci } from '../../../mol-model/loci';
 import { QueryContext, Structure, StructureElement, StructureQuery, StructureSelection } from '../../../mol-model/structure';
 import { PluginContext } from '../../../mol-plugin/context';
-import { StateObjectRef } from '../../../mol-state';
+import { StateObjectRef, StateSelection } from '../../../mol-state';
 import { Task } from '../../../mol-task';
 import { structureElementStatsLabel } from '../../../mol-theme/label';
 import { arrayRemoveAtInPlace } from '../../../mol-util/array';
@@ -34,6 +34,13 @@ const boundaryHelper = new BoundaryHelper('98');
 const HISTORY_CAPACITY = 24;
 
 export type StructureSelectionModifier = 'add' | 'remove' | 'intersect' | 'set'
+
+export type StructureSelectionSnapshot = {
+    entries: {
+        ref: string
+        bundle: StructureElement.Bundle
+    }[]
+}
 
 export class StructureSelectionManager extends StatefulPluginComponent<StructureSelectionManagerState> {
     readonly events = {
@@ -481,6 +488,31 @@ export class StructureSelectionManager extends StatefulPluginComponent<Structure
         this.clear();
         for (const s of cell.obj?.data) {
             this.fromLoci('set', s.loci);
+        }
+    }
+
+    getSnapshot(): StructureSelectionSnapshot {
+        const entries: StructureSelectionSnapshot['entries'] = [];
+
+        this.entries.forEach((entry, ref) => {
+            entries.push({
+                ref,
+                bundle: StructureElement.Bundle.fromLoci(entry.selection)
+            });
+        });
+
+        return { entries };
+    }
+
+    setSnapshot(snapshot: StructureSelectionSnapshot) {
+        this.entries.clear();
+
+        for (const { ref, bundle } of snapshot.entries) {
+            const structure = this.plugin.state.data.select(StateSelection.Generators.byRef(ref))[0]?.obj?.data as Structure;
+            if (!structure) continue;
+
+            const loci = StructureElement.Bundle.toLoci(bundle, structure);
+            this.fromLoci('set', loci, false);
         }
     }
 
