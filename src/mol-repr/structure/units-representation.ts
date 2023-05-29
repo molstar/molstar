@@ -277,7 +277,7 @@ export function UnitsRepresentation<P extends StructureParams>(label: string, ct
         if (transform !== undefined && !Mat4.areEqual(transform, _state.transform, EPSILON)) {
             newState.transform = transform;
         }
-        if (unitTransforms !== _state.unitTransforms || unitTransforms?.version !== state.unitTransformsVersion) {
+        if (unitTransforms !== _state.unitTransforms || unitTransforms?.version !== _state.unitTransformsVersion) {
             newState.unitTransforms = unitTransforms;
             _state.unitTransformsVersion = unitTransforms ? unitTransforms?.version : -1;
         }
