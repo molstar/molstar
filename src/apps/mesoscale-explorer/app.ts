@@ -23,6 +23,8 @@ import { PluginBehaviors } from '../../mol-plugin/behavior';
 import { MesoFocusLoci } from './behavior/camera';
 import { PetworldColorThemeProvider } from './data/petworld/color';
 import { CellpackUniformColorThemeProvider } from './data/cellpack/color';
+import { MesoscaleState } from './data/state';
+import { MesoSelectLoci } from './behavior/select';
 
 export { PLUGIN_VERSION as version } from '../../mol-plugin/version';
 export { setDebugMode, setProductionMode, setTimingMode, consoleStats } from '../../mol-util/debug';
@@ -124,12 +126,11 @@ export class Viewer {
         const spec: PluginUISpec = {
             actions: defaultSpec.actions,
             behaviors: [
-                PluginSpec.Behavior(PluginBehaviors.Representation.HighlightLoci, { mark: false }),
-                PluginSpec.Behavior(PluginBehaviors.Representation.DefaultLociLabelProvider),
                 PluginSpec.Behavior(PluginBehaviors.Camera.CameraAxisHelper),
                 PluginSpec.Behavior(PluginBehaviors.Camera.CameraControls),
 
                 PluginSpec.Behavior(MesoFocusLoci),
+                PluginSpec.Behavior(MesoSelectLoci),
 
                 ...o.extensions.map(e => Extensions[e]),
             ],
@@ -193,6 +194,8 @@ export class Viewer {
 
         const plugin = await createPluginUI(element, spec, {
             onBeforeUIRender: async plugin => {
+                await MesoscaleState.init(plugin);
+
                 let examples: MesoscaleExplorerState['examples'] = undefined;
                 try {
                     examples = await plugin.fetch({ url: './examples/list.json', type: 'json' }).run();
@@ -224,7 +227,11 @@ export class Viewer {
         plugin.state.setSnapshotParams({
             image: true,
             componentManager: false,
+            structureSelection: true,
+            behavior: true,
         });
+
+        plugin.managers.lociLabels.clearProviders();
 
         return new Viewer(plugin);
     }

@@ -19,11 +19,9 @@ const Trigger = Binding.Trigger;
 const DefaultMesoFocusLociBindings = {
     clickCenter: Binding([
         Trigger(B.Flag.Primary, M.create()),
-        Trigger(B.Flag.Primary, M.create({ control: true }))
     ], 'Camera center', 'Click element using ${triggers}'),
     clickCenterFocus: Binding([
         Trigger(B.Flag.Secondary, M.create()),
-        Trigger(B.Flag.Primary, M.create({ control: true }))
     ], 'Camera center and focus', 'Click element using ${triggers}'),
 };
 const MesoFocusLociParams = {

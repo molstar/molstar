@@ -21,14 +21,16 @@ import { CombinedColorControl } from '../../../mol-plugin-ui/controls/color';
 import { MarkerAction } from '../../../mol-util/marker-action';
 import { EveryLoci } from '../../../mol-model/loci';
 import { deepEqual } from '../../../mol-util';
-import { ColorValueParam, ColorParams, ColorProps, DimLightness, LightnessParams, LodParams, MesoscaleGroup, MesoscaleGroupObject, MesoscaleGroupProps, OpacityParams, SimpleClipParams, SimpleClipProps, createClipMapping, getClipProps, getDistinctBaseColors, getDistinctGroupColors, RootParams } from '../data/state';
+import { ColorValueParam, ColorParams, ColorProps, DimLightness, LightnessParams, LodParams, MesoscaleGroup, MesoscaleGroupObject, MesoscaleGroupProps, OpacityParams, SimpleClipParams, SimpleClipProps, createClipMapping, getClipProps, getDistinctBaseColors, getDistinctGroupColors, RootParams, MesoscaleState } from '../data/state';
 import { PluginContext } from '../../../mol-plugin/context';
+import React from 'react';
 
-export class EntityControls extends PluginUIComponent<{}, { filter: string, isDisabled: boolean, groupBy: number }> {
+export class EntityControls extends PluginUIComponent<{}, { isDisabled: boolean }> {
+    filterRef = React.createRef<HTMLInputElement>();
+    prevFilter = '';
+
     state = {
-        filter: '',
         isDisabled: false,
-        groupBy: 0,
     };
 
     componentDidMount() {
@@ -43,35 +45,80 @@ export class EntityControls extends PluginUIComponent<{}, { filter: string, isDi
         this.subscribe(this.plugin.state.data.behaviors.isUpdating, v => {
             this.setState({ isDisabled: v });
         });
+
+        this.subscribe(this.plugin.state.events.cell.stateUpdated.pipe(filter(e => this.roots.some(r => e.cell === r) || (MesoscaleState.has(this.plugin) && MesoscaleState.ref(this.plugin) === e.ref)), debounceTime(33)), e => {
+            this.forceUpdate();
+        });
+    }
+
+    componentDidUpdate(): void {
+        const filter = this.filter;
+        if (filter !== this.prevFilter) {
+            this.filterRef.current?.focus();
+            this.prevFilter = filter;
+        }
     }
 
     get roots() {
         return getRoots(this.plugin);
     }
 
+    setGroupBy = (value: number) => {
+        this.roots.forEach((c, i) => {
+            if (c.state.isHidden && value === i || !c.state.isHidden && value !== i) {
+                PluginCommands.State.ToggleVisibility(this.plugin, { state: c.parent!, ref: c.transform.ref });
+            }
+        });
+    };
+
+    get groupBy() {
+        const roots = this.roots;
+        for (let i = 0, il = roots.length; i < il; ++i) {
+            if (!roots[i].state.isHidden) return i;
+        }
+        return 0;
+    }
+
+    setFilter = (value: string) => {
+        MesoscaleState.set(this.plugin, { filter: value.trim().replace(/\s+/gi, ' ') });
+    }
+
+    get filter() {
+        return MesoscaleState.has(this.plugin) ? MesoscaleState.get(this.plugin).filter : '';
+    }
+
     render() {
-        const disabled = this.state.isDisabled;
         const roots = this.roots;
         if (roots.length === 0) return;
 
-        const options = roots.map((c, i) => [`${i}`, c.obj!.label] as [string, string]);
+        if (!MesoscaleState.has(this.plugin)) return;
+
+        const disabled = this.state.isDisabled;
+        const groupBy = this.groupBy;
+
+        const options: [string, string][] = [];
+        roots.forEach((c, i) => {
+            options.push([`${i}`, c.obj!.label]);
+        });
         const groupParam = PD.Select(options[0][0], options);
-        const root = roots.length === 1 ? roots[0] : roots[this.state.groupBy];
+        const root = roots.length === 1 ? roots[0] : roots[groupBy];
+
+        const filter = this.filter;
 
         return <>
             <div className={`msp-flex-row msp-control-row`} style={{ margin: '5px', marginBottom: '10px' }}>
-                <input type='text'
-                    value={this.state.filter}
+                <input type='text' ref={this.filterRef}
+                    value={filter}
                     placeholder='Search'
-                    onChange={e => this.setState({ filter: e.target.value.trim().replace(/\s+/gi, ' ') })}
+                    onChange={e => this.setFilter(e.target.value) }
                     disabled={disabled}
                 />
-                <IconButton svg={CloseSvg} toggleState={false} disabled={disabled} onClick={() => this.setState({ filter: '' })} />
+                <IconButton svg={CloseSvg} toggleState={false} disabled={disabled} onClick={() => this.setFilter('')} />
             </div>
-            <div style={{ margin: '5px', marginBottom: '10px' }}>
-                <SelectControl name={'Group By'} param={groupParam} value={`${this.state.groupBy}`} onChange={(e) => { this.setState({ groupBy: parseInt(e.value) }); }} />
-            </div>
-            <GroupNode filter={this.state.filter} cell={root} depth={0} />
+            {options.length > 1 && <div style={{ margin: '5px', marginBottom: '10px' }}>
+                <SelectControl name={'Group By'} param={groupParam} value={`${groupBy}`} onChange={(e) => { this.setGroupBy(parseInt(e.value)); }} />
+            </div>}
+            <GroupNode filter={filter} cell={root} depth={0} />
         </>;
     }
 }
@@ -180,12 +227,11 @@ export class GroupNode extends Node<{ filter: string }, { isCollapsed: boolean, 
     };
 
     highlight = (e: React.MouseEvent<HTMLElement>) => {
+        e.preventDefault();
         this.plugin.canvas3d?.setProps({
-            renderer: { dimStrength: e?.shiftKey ? 1.0 : 0.0 },
-            marking: { enabled: !e?.shiftKey },
-        });
+            marking: { enabled: true }
+        }, true);
         this.plugin.canvas3d?.mark({ loci: EveryLoci }, MarkerAction.RemoveHighlight);
-
         for (const r of this.allFilteredEntities) {
             const repr = r.obj?.data.repr;
             if (repr) {
@@ -196,6 +242,9 @@ export class GroupNode extends Node<{ filter: string }, { isCollapsed: boolean, 
 
     clearHighlight = (e: React.MouseEvent<HTMLElement>) => {
         e.preventDefault();
+        this.plugin.canvas3d?.setProps({
+            marking: { enabled: false }
+        }, true);
         this.plugin.canvas3d?.mark({ loci: EveryLoci }, MarkerAction.RemoveHighlight);
         e.currentTarget.blur();
     };
@@ -495,9 +544,8 @@ export class EntityNode extends Node<{}, { action?: 'color' | 'clip' }> {
     highlight = (e: React.MouseEvent<HTMLElement>) => {
         e.preventDefault();
         this.plugin.canvas3d?.setProps({
-            renderer: { dimStrength: e?.shiftKey ? 1.0 : 0.0 },
-            marking: { enabled: !e?.shiftKey },
-        });
+            marking: { enabled: true },
+        }, true);
         this.plugin.canvas3d?.mark({ loci: EveryLoci }, MarkerAction.RemoveHighlight);
         const repr = this.cell?.obj?.data.repr;
         if (repr) {
@@ -508,6 +556,9 @@ export class EntityNode extends Node<{}, { action?: 'color' | 'clip' }> {
 
     clearHighlight = (e: React.MouseEvent<HTMLElement>) => {
         e.preventDefault();
+        this.plugin.canvas3d?.setProps({
+            marking: { enabled: false },
+        }, true);
         this.plugin.canvas3d?.mark({ loci: EveryLoci }, MarkerAction.RemoveHighlight);
         e.currentTarget.blur();
     };

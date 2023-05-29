@@ -22,6 +22,7 @@ import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { MesoscaleExplorerState } from '../app';
 import { createCellpackHierarchy } from '../data/cellpack/preset';
 import { createPetworldHierarchy } from '../data/petworld/preset';
+import { MesoscaleState } from '../data/state';
 
 function adjustPluginProps(ctx: PluginContext) {
     ctx.managers.interactivity.setProps({ granularity: 'chain' });
@@ -34,7 +35,7 @@ function adjustPluginProps(ctx: PluginContext) {
             highlightStrength: 0,
             selectStrength: 0,
             dimColor: Color(0xffffff),
-            dimStrength: 0,
+            dimStrength: 1,
             markerPriority: 2,
             interiorColorFlag: false,
             interiorDarkening: 0.15,
@@ -128,8 +129,9 @@ export const LoadExample = StateAction.build({
     if (type === 'molx' || type === 'molj') {
         await PluginCommands.State.Snapshots.OpenUrl(ctx, { url, type });
     } else {
-        PluginCommands.State.Snapshots.Clear(ctx);
-        PluginCommands.State.RemoveObject(ctx, { state: ctx.state.data, ref: StateTransform.RootRef });
+        await PluginCommands.State.Snapshots.Clear(ctx);
+        await PluginCommands.State.RemoveObject(ctx, { state: ctx.state.data, ref: StateTransform.RootRef });
+        await MesoscaleState.init(ctx);
         adjustPluginProps(ctx);
 
         const isBinary = type === 'bcif';
@@ -152,8 +154,9 @@ export const LoadModel = StateAction.build({
     }
 
     console.time('LoadModel');
-    PluginCommands.State.Snapshots.Clear(ctx);
-    PluginCommands.State.RemoveObject(ctx, { state: ctx.state.data, ref: StateTransform.RootRef });
+    await PluginCommands.State.Snapshots.Clear(ctx);
+    await PluginCommands.State.RemoveObject(ctx, { state: ctx.state.data, ref: StateTransform.RootRef });
+    await MesoscaleState.init(ctx);
     adjustPluginProps(ctx);
 
     for (const file of params.files) {

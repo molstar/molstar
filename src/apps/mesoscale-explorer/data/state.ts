@@ -199,3 +199,58 @@ export const MesoscaleGroup = PluginStateTransform.BuiltIn({
         });
     },
 });
+
+//
+
+const MesoscaleStateParams = {
+    filter: PD.Value<string>('', { isHidden: true }),
+};
+
+class MesoscaleStateObject extends PSO.Create<MesoscaleState>({ name: 'Mesoscale State', typeClass: 'Object' }) { }
+
+const MesoscaleStateTransform = PluginStateTransform.BuiltIn({
+    name: 'mesoscale-state',
+    display: { name: 'Mesoscale State' },
+    from: PSO.Root,
+    to: MesoscaleStateObject,
+    params: MesoscaleStateParams,
+})({
+    apply({ a, params }, plugin: PluginContext) {
+        return Task.create('Apply Mesoscale State', async () => {
+            return new MesoscaleStateObject(params);
+        });
+    },
+});
+
+function getMesoscaleStateCell(ctx: PluginContext) {
+    const cell = ctx.state.data.selectQ(q => q.ofType(MesoscaleStateObject))[0];
+    if (!cell) throw new Error('MesoscaleState not initialized');
+
+    return cell;
+}
+
+export { MesoscaleState };
+type MesoscaleState = PD.Values<typeof MesoscaleStateParams>;
+const MesoscaleState = {
+    async init(ctx: PluginContext) {
+        const cell = ctx.state.data.selectQ(q => q.ofType(MesoscaleStateObject))[0];
+        if (cell) throw new Error('MesoscaleState already initialized');
+
+        await ctx.state.data.build().toRoot().apply(MesoscaleStateTransform, {}).commit();
+    },
+    get(ctx: PluginContext): MesoscaleState {
+        const cell = getMesoscaleStateCell(ctx);
+        return cell.obj!.data;
+    },
+    async set(ctx: PluginContext, props: Partial<MesoscaleState>) {
+        const cell = getMesoscaleStateCell(ctx);
+        await ctx.state.data.build().to(cell).update(MesoscaleStateTransform, old => Object.assign(old, props)).commit();
+    },
+    ref(ctx: PluginContext): string {
+        const cell = getMesoscaleStateCell(ctx);
+        return cell.transform.ref;
+    },
+    has(ctx: PluginContext): boolean {
+        return !!ctx.state.data.selectQ(q => q.ofType(MesoscaleStateObject))[0];
+    },
+};
