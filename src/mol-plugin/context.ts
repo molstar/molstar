@@ -96,6 +96,7 @@ export class PluginContext {
             click: this.ev.behavior<InteractivityManager.ClickEvent>({ current: Representation.Loci.Empty, modifiers: ModifiersKeys.None, buttons: 0, button: 0 }),
             drag: this.ev.behavior<InteractivityManager.DragEvent>({ current: Representation.Loci.Empty, modifiers: ModifiersKeys.None, buttons: 0, button: 0, pageStart: Vec2(), pageEnd: Vec2() }),
             key: this.ev.behavior<KeyInput>(EmptyKeyInput),
+            keyReleased: this.ev.behavior<KeyInput>(EmptyKeyInput),
             selectionMode: this.ev.behavior<boolean>(false),
         },
         labels: {
@@ -295,6 +296,7 @@ export class PluginContext {
             this.subs.push(this.canvas3d!.interaction.hover.subscribe(e => this.behaviors.interaction.hover.next(e)));
             this.subs.push(this.canvas3d!.input.resize.pipe(debounceTime(50), throttleTime(100, undefined, { leading: false, trailing: true })).subscribe(() => this.handleResize()));
             this.subs.push(this.canvas3d!.input.keyDown.subscribe(e => this.behaviors.interaction.key.next(e)));
+            this.subs.push(this.canvas3d!.input.keyUp.subscribe(e => this.behaviors.interaction.keyReleased.next(e)));
             this.subs.push(this.layout.events.updated.subscribe(() => requestAnimationFrame(() => this.handleResize())));
 
             this.handleResize();
