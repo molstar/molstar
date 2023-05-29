@@ -12,6 +12,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Remove erroneous bounding-box overlap test in `Structure.eachUnitPair`
 - Fix `EdgeBuilder.addNextEdge` for loop edges
 - Optimize inter unit bond compute
+- Ensure consistent state for volume representation (#210)
 - Improve SSAO for thin geometry (e.g. lines)
 - Add snapshot support for structure selections
 
