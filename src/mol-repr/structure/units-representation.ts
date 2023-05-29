@@ -258,9 +258,9 @@ export function UnitsRepresentation<P extends StructureParams>(label: string, ct
         const { visible, alphaFactor, pickable, overpaint, transparency, substance, clipping, themeStrength, transform, unitTransforms, syncManually, markerActions } = state;
         const newState: Partial<StructureRepresentationState> = {};
 
-        if (visible !== _state.visible) newState.visible = visible;
-        if (alphaFactor !== _state.alphaFactor) newState.alphaFactor = alphaFactor;
-        if (pickable !== _state.pickable) newState.pickable = pickable;
+        if (visible !== undefined) newState.visible = visible;
+        if (alphaFactor !== undefined) newState.alphaFactor = alphaFactor;
+        if (pickable !== undefined) newState.pickable = pickable;
         if (overpaint !== undefined && _structure) {
             newState.overpaint = Overpaint.remap(overpaint, _structure);
         }
@@ -281,8 +281,8 @@ export function UnitsRepresentation<P extends StructureParams>(label: string, ct
             newState.unitTransforms = unitTransforms;
             _state.unitTransformsVersion = unitTransforms ? unitTransforms?.version : -1;
         }
-        if (syncManually !== _state.syncManually) newState.syncManually = syncManually;
-        if (markerActions !== _state.markerActions) newState.markerActions = markerActions;
+        if (syncManually !== undefined) newState.syncManually = syncManually;
+        if (markerActions !== undefined) newState.markerActions = markerActions;
 
         visuals.forEach(({ visual, group }) => setVisualState(visual, group, newState));
 
