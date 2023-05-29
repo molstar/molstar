@@ -14,10 +14,13 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Allow parsing of CCD ligand files
+- Add dedicated wwPDB CCD extension to align and visualize ideal & model CCD coordinates
 - Make operators in `IndexPairBonds` a directed property
 - Remove erroneous bounding-box overlap test in `Structure.eachUnitPair`
 - Fix `EdgeBuilder.addNextEdge` for loop edges
 - Optimize inter unit bond compute
+- Ensure consistent state for volume representation (#210)
 - Improve SSAO for thin geometry (e.g. lines)
 - Add snapshot support for structure selections
 

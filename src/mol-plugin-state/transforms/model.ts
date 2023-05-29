@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -12,7 +12,7 @@ import { Mat4, Vec3 } from '../../mol-math/linear-algebra';
 import { shapeFromPly } from '../../mol-model-formats/shape/ply';
 import { coordinatesFromDcd } from '../../mol-model-formats/structure/dcd';
 import { trajectoryFromGRO } from '../../mol-model-formats/structure/gro';
-import { trajectoryFromMmCIF } from '../../mol-model-formats/structure/mmcif';
+import { trajectoryFromCCD, trajectoryFromMmCIF } from '../../mol-model-formats/structure/mmcif';
 import { trajectoryFromPDB } from '../../mol-model-formats/structure/pdb';
 import { topologyFromPsf } from '../../mol-model-formats/structure/psf';
 import { Coordinates, Model, Queries, QueryContext, Structure, StructureElement, StructureQuery, StructureSelection as Sel, Topology, ArrayTrajectory, Trajectory } from '../../mol-model/structure';
@@ -303,7 +303,7 @@ const TrajectoryFromMmCif = PluginStateTransform.BuiltIn({
                 const header = params.blockHeader || a.data.blocks[0].header;
                 const block = a.data.blocks.find(b => b.header === header);
                 if (!block) throw new Error(`Data block '${[header]}' not found.`);
-                trajectory = await trajectoryFromMmCIF(block).runInContext(ctx);
+                trajectory = block.categoryNames.includes('chem_comp_atom') ? await trajectoryFromCCD(block).runInContext(ctx) : await trajectoryFromMmCIF(block).runInContext(ctx);
             }
             if (trajectory.frameCount === 0) throw new Error('No models found.');
             const props = trajectoryProps(trajectory);

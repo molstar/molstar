@@ -49,6 +49,7 @@ import { SaccharideCompIdMapType } from '../../mol-model/structure/structure/car
 import { Backgrounds } from '../../extensions/backgrounds';
 import { SbNcbrPartialCharges, SbNcbrPartialChargesPreset, SbNcbrPartialChargesPropertyProvider } from '../../extensions/sb-ncbr';
 import { wwPDBStructConnExtensionFunctions } from '../../extensions/wwpdb/struct-conn';
+import { wwPDBChemicalComponentDictionary } from '../../extensions/wwpdb/ccd/behavior';
 
 export { PLUGIN_VERSION as version } from '../../mol-plugin/version';
 export { setDebugMode, setProductionMode, setTimingMode, consoleStats } from '../../mol-util/debug';
@@ -72,6 +73,7 @@ const Extensions = {
     'ma-quality-assessment': PluginSpec.Behavior(MAQualityAssessment),
     'zenodo-import': PluginSpec.Behavior(ZenodoImport),
     'sb-ncbr-partial-charges': PluginSpec.Behavior(SbNcbrPartialCharges),
+    'wwpdb-chemical-component-dictionary': PluginSpec.Behavior(wwPDBChemicalComponentDictionary),
 };
 
 const DefaultViewerOptions = {
