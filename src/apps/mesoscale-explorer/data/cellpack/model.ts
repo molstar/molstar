@@ -143,18 +143,19 @@ type EntityStructure = typeof EntityStructure
 const EntityStructure = PluginStateTransform.BuiltIn({
     name: 'entity-structure',
     display: { name: 'Entity Structure' },
-    from: PSO.Molecule.Structure,
+    from: PSO.Root,
     to: PSO.Molecule.Structure,
     params: {
+        structureRef: PD.Text(''),
         entityId: PD.Text('')
     }
 })({
     canAutoUpdate({ newParams }) {
         return true;
     },
-    apply({ a, params }) {
+    apply({ a, params, dependencies }) {
         return Task.create('Build Structure', async ctx => {
-            const parent = a.data;
+            const parent = dependencies![params.structureRef].data as Structure;
             const { entities } = parent.model;
             const idx = entities.getEntityIndex(params.entityId);
 
@@ -163,7 +164,7 @@ const EntityStructure = PluginStateTransform.BuiltIn({
             // if (!unitsByEntity.get(idx)) {
             //     console.log(entities.data.pdbx_description.value(idx));
             // }
-            const structure = Structure.create(units, { parent });
+            const structure = Structure.create(units);
 
             const description = entities.data.pdbx_description.value(idx)[0] || 'model';
             const label = description.split('.').at(-1) || a.label;

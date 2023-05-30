@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Loci } from '../../../mol-model/loci';
+import { EveryLoci, Loci } from '../../../mol-model/loci';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { PluginBehavior } from '../../../mol-plugin/behavior';
 import { ButtonsType, ModifiersKeys } from '../../../mol-util/input/input-observer';
@@ -86,8 +86,12 @@ export const MesoSelectLoci = PluginBehavior.create<MesoSelectLociProps>({
                         return;
                     }
 
-                    const loci = Loci.normalize(current.loci, modifiers.control ? 'entity' : 'chain');
-                    this.ctx.managers.interactivity.lociHighlights.highlightOnly({ loci }, false);
+                    if (modifiers.control) {
+                        this.ctx.managers.interactivity.lociHighlights.highlightOnly({ repr: current.repr, loci: EveryLoci }, false);
+                    } else {
+                        const loci = Loci.normalize(current.loci, 'chain');
+                        this.ctx.managers.interactivity.lociHighlights.highlightOnly({ repr: current.repr, loci }, false);
+                    }
                 }
 
                 if (Loci.isEmpty(current.loci)) {

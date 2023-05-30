@@ -184,6 +184,7 @@ export async function createCellpackHierarchy(plugin: PluginContext, trajectory:
 
         await state.transaction(async () => {
             try {
+                const dependsOn = [base.ref];
                 plugin.animationLoop.stop({ noDraw: true });
                 let build: StateBuilder.Root | StateBuilder.To<any> = state.build();
                 for (let i = 0; i < entities._rowCount; i++) {
@@ -198,8 +199,8 @@ export async function createCellpackHierarchy(plugin: PluginContext, trajectory:
                     const sizeFactor = getSizeFactor(l);
 
                     build = build
-                        .to(base)
-                        .apply(EntityStructure, { entityId: entities.id.value(i) })
+                        .toRoot()
+                        .apply(EntityStructure, { structureRef: base.ref, entityId: entities.id.value(i) }, { dependsOn })
                         .apply(StructureRepresentation3D, getSpacefillParams(color, sizeFactor, customState.lodLevels), { tags: [`comp:${n}`, `func:${f}`] });
                 }
                 await build.commit();
@@ -211,9 +212,10 @@ export async function createCellpackHierarchy(plugin: PluginContext, trajectory:
             }
         }).run();
     } else {
+        const dependsOn = [base.ref];
         await state.build()
-            .to(base)
-            .apply(EntityStructure, { entityId: entities.id.value(0) })
+            .toRoot()
+            .apply(EntityStructure, { structureRef: base.ref, entityId: entities.id.value(0) }, { dependsOn })
             .apply(StructureRepresentation3D, getSpacefillParams(ColorNames.lightgray, 1, customState.lodLevels), { tags: [`comp:`, `func:`] })
             .commit();
     }
