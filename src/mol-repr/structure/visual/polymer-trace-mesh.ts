@@ -187,7 +187,7 @@ export function PolymerTraceVisual(materialId: number): UnitsVisual<PolymerTrace
     return UnitsMeshVisual<PolymerTraceParams>({
         defaultProps: PD.getDefaultValues(PolymerTraceParams),
         createGeometry: createPolymerTraceMesh,
-        createLocationIterator: PolymerLocationIterator.fromGroup,
+        createLocationIterator: sg => PolymerLocationIterator.fromGroup(sg, true),
         getLoci: getPolymerElementLoci,
         eachLocation: eachPolymerElement,
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<PolymerTraceParams>, currentProps: PD.Values<PolymerTraceParams>, newTheme: Theme, currentTheme: Theme, newStructureGroup: StructureGroup, currentStructureGroup: StructureGroup) => {

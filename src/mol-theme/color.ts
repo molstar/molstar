@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -43,6 +43,7 @@ import { StructureIndexColorThemeProvider } from './color/structure-index';
 import { VolumeSegmentColorThemeProvider } from './color/volume-segment';
 import { ExternalVolumeColorThemeProvider } from './color/external-volume';
 import { ColorThemeCategory } from './color/categories';
+import { CartoonColorThemeProvider } from './color/cartoon';
 
 export type LocationColor = (location: Location, isSecondary: boolean) => Color
 
@@ -123,6 +124,7 @@ namespace ColorTheme {
     export const BuiltIn = {
         'atom-id': AtomIdColorThemeProvider,
         'carbohydrate-symbol': CarbohydrateSymbolColorThemeProvider,
+        'cartoon': CartoonColorThemeProvider,
         'chain-id': ChainIdColorThemeProvider,
         'element-index': ElementIndexColorThemeProvider,
         'element-symbol': ElementSymbolColorThemeProvider,
