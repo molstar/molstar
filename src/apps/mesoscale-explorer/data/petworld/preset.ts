@@ -30,6 +30,10 @@ function getSpacefillParams(color: Color, lodLevels: LodLevels) {
                 ignoreLight: true,
                 lodLevels,
                 quality: 'lowest', // avoid 'auto', triggers boundary calc
+                clip: {
+                    variant: 'instance',
+                    objects: [],
+                },
             },
         },
         colorTheme: {

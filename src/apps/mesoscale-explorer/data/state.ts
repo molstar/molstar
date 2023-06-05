@@ -94,7 +94,7 @@ export const SimpleClipParams = {
 export type SimpleClipParams = typeof SimpleClipParams
 export type SimpleClipProps = PD.Values<SimpleClipParams>
 
-export function getClipProps(values: SimpleClipProps, boundingSphere: Sphere3D): Clip.Props {
+export function getClipObjects(values: SimpleClipProps, boundingSphere: Sphere3D): Clip.Props['objects'] {
     const { center, radius } = boundingSphere;
 
     const position = Vec3.clone(center);
@@ -107,16 +107,13 @@ export function getClipProps(values: SimpleClipProps, boundingSphere: Sphere3D):
     const scale = Vec3.create(values.scale.x, values.scale.y, values.scale.z);
     Vec3.scale(scale, scale, 2 * radius / 100);
 
-    return {
-        variant: 'instance',
-        objects: [{
-            type: values.type,
-            invert: values.invert,
-            position,
-            scale,
-            rotation: values.rotation
-        }],
-    };
+    return [{
+        type: values.type,
+        invert: values.invert,
+        position,
+        scale,
+        rotation: values.rotation
+    }];
 }
 
 export function createClipMapping(node: EntityNode) {
@@ -160,9 +157,8 @@ export function createClipMapping(node: EntityNode) {
         update: (s, props) => {
             if (!props) return;
 
-            const clip = getClipProps(s, node.plugin.canvas3d!.boundingSphere);
-            props.variant = clip.variant;
-            props.objects = clip.objects;
+            const clipObjects = getClipObjects(s, node.plugin.canvas3d!.boundingSphere);
+            props.objects = clipObjects;
         },
         apply: async (props, ctx) => {
             if (props) node.updateClip(props);

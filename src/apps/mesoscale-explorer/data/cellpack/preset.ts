@@ -32,6 +32,10 @@ function getSpacefillParams(color: Color, sizeFactor: number, lodLevels: LodLeve
                 lodLevels,
                 quality: 'lowest', // avoid 'auto', triggers boundary calc
                 sizeFactor,
+                clip: {
+                    variant: 'instance',
+                    objects: [],
+                },
             },
         },
         colorTheme: {

@@ -21,7 +21,7 @@ import { CombinedColorControl } from '../../../mol-plugin-ui/controls/color';
 import { MarkerAction } from '../../../mol-util/marker-action';
 import { EveryLoci } from '../../../mol-model/loci';
 import { deepEqual } from '../../../mol-util';
-import { ColorValueParam, ColorParams, ColorProps, DimLightness, LightnessParams, LodParams, MesoscaleGroup, MesoscaleGroupObject, MesoscaleGroupProps, OpacityParams, SimpleClipParams, SimpleClipProps, createClipMapping, getClipProps, getDistinctBaseColors, getDistinctGroupColors, RootParams, MesoscaleState } from '../data/state';
+import { ColorValueParam, ColorParams, ColorProps, DimLightness, LightnessParams, LodParams, MesoscaleGroup, MesoscaleGroupObject, MesoscaleGroupProps, OpacityParams, SimpleClipParams, SimpleClipProps, createClipMapping, getClipObjects, getDistinctBaseColors, getDistinctGroupColors, RootParams, MesoscaleState } from '../data/state';
 import { PluginContext } from '../../../mol-plugin/context';
 import React from 'react';
 
@@ -81,7 +81,7 @@ export class EntityControls extends PluginUIComponent<{}, { isDisabled: boolean 
 
     setFilter = (value: string) => {
         MesoscaleState.set(this.plugin, { filter: value.trim().replace(/\s+/gi, ' ') });
-    }
+    };
 
     get filter() {
         return MesoscaleState.has(this.plugin) ? MesoscaleState.get(this.plugin).filter : '';
@@ -383,11 +383,11 @@ export class GroupNode extends Node<{ filter: string }, { isCollapsed: boolean, 
 
     updateClip = (values: PD.Values) => {
         const update = this.plugin.state.data.build();
-        const clip = getClipProps(values as SimpleClipProps, this.plugin.canvas3d!.boundingSphere);
+        const clipObjects = getClipObjects(values as SimpleClipProps, this.plugin.canvas3d!.boundingSphere);
 
         for (const r of this.allEntities) {
             update.to(r).update(old => {
-                old.type.params.clip = clip;
+                old.type.params.clip.objects = clipObjects;
             });
         }
 
