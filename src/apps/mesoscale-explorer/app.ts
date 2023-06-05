@@ -25,6 +25,7 @@ import { PetworldColorThemeProvider } from './data/petworld/color';
 import { CellpackUniformColorThemeProvider } from './data/cellpack/color';
 import { MesoscaleState } from './data/state';
 import { MesoSelectLoci } from './behavior/select';
+import { GenericUniformColorThemeProvider } from './data/generic/color';
 
 export { PLUGIN_VERSION as version } from '../../mol-plugin/version';
 export { setDebugMode, setProductionMode, setTimingMode, consoleStats } from '../../mol-util/debug';
@@ -223,6 +224,7 @@ export class Viewer {
 
         plugin.representation.structure.themes.colorThemeRegistry.add(CellpackUniformColorThemeProvider);
         plugin.representation.structure.themes.colorThemeRegistry.add(PetworldColorThemeProvider);
+        plugin.representation.structure.themes.colorThemeRegistry.add(GenericUniformColorThemeProvider);
 
         plugin.state.setSnapshotParams({
             image: true,

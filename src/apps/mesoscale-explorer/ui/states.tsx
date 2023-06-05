@@ -21,6 +21,7 @@ import { getFileNameInfo } from '../../../mol-util/file-info';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { MesoscaleExplorerState } from '../app';
 import { createCellpackHierarchy } from '../data/cellpack/preset';
+import { createGenericHierarchy } from '../data/generic/preset';
 import { createPetworldHierarchy } from '../data/petworld/preset';
 import { MesoscaleState } from '../data/state';
 
@@ -95,7 +96,7 @@ function adjustPluginProps(ctx: PluginContext) {
     });
 }
 
-async function createHierarchy(ctx: PluginContext, ref: string) {
+async function createMmcifHierarchy(ctx: PluginContext, ref: string) {
     const parsed = await MmcifProvider.parse(ctx, ref);
 
     const tr = StateObjectRef.resolveAndCheck(ctx.state.data, parsed.trajectory)?.obj?.data;
@@ -136,7 +137,7 @@ export const LoadExample = StateAction.build({
 
         const isBinary = type === 'bcif';
         const data = await ctx.builders.data.download({ url, isBinary });
-        await createHierarchy(ctx, data.ref);
+        await createMmcifHierarchy(ctx, data.ref);
     }
     console.timeEnd('LoadExample');
 }));
@@ -144,11 +145,11 @@ export const LoadExample = StateAction.build({
 export const LoadModel = StateAction.build({
     display: { name: 'Load', description: 'Load a model' },
     params: {
-        files: PD.FileList({ accept: '.cif,.bcif,.cif.gz,.bcif.gz,.cif.zip,.bcif.zip', multiple: true, description: 'Cellpack- or Petworld-style cif file.', label: 'File(s)' }),
+        files: PD.FileList({ accept: '.cif,.bcif,.cif.gz,.bcif.gz,.zip', multiple: true, description: 'Cellpack- or Petworld-style cif file.', label: 'File(s)' }),
     },
     from: PluginStateObject.Root
 })(({ params }, ctx: PluginContext) => Task.create('Loading model...', async taskCtx => {
-    if (params.files === null) {
+    if (params.files === null || params.files.length === 0) {
         ctx.log.error('No file(s) selected');
         return;
     }
@@ -159,15 +160,27 @@ export const LoadModel = StateAction.build({
     await MesoscaleState.init(ctx);
     adjustPluginProps(ctx);
 
-    for (const file of params.files) {
+    const firstFile = params.files[0];
+    const firstInfo = getFileNameInfo(firstFile.file!.name);
+
+    if (firstInfo.name.endsWith('zip')) {
         try {
-            const info = getFileNameInfo(file.file!.name);
-            const isBinary = ctx.dataFormats.binaryExtensions.has(info.ext);
-            const { data } = await ctx.builders.data.readFile({ file, isBinary });
-            await createHierarchy(ctx, data.ref);
+            await createGenericHierarchy(ctx, firstFile);
         } catch (e) {
             console.error(e);
-            ctx.log.error(`Error opening file '${file.name}'`);
+            ctx.log.error(`Error opening file '${firstFile.name}'`);
+        }
+    } else {
+        for (const file of params.files) {
+            try {
+                const info = getFileNameInfo(file.file!.name);
+                const isBinary = ctx.dataFormats.binaryExtensions.has(info.ext);
+                const { data } = await ctx.builders.data.readFile({ file, isBinary });
+                await createMmcifHierarchy(ctx, data.ref);
+            } catch (e) {
+                console.error(e);
+                ctx.log.error(`Error opening file '${file.name}'`);
+            }
         }
     }
     console.timeEnd('LoadModel');
