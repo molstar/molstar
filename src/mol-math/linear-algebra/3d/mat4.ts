@@ -717,6 +717,82 @@ namespace Mat4 {
         return out;
     }
 
+    export function compose(out: Mat4, position: Vec3, quaternion: Quat, scale: Vec3) {
+        const [x, y, z, w] = quaternion;
+        const x2 = x + x,	y2 = y + y, z2 = z + z;
+        const xx = x * x2, xy = x * y2, xz = x * z2;
+        const yy = y * y2, yz = y * z2, zz = z * z2;
+        const wx = w * x2, wy = w * y2, wz = w * z2;
+
+        const [sx, sy, sz] = scale;
+
+        out[0] = (1 - (yy + zz)) * sx;
+        out[1] = (xy + wz) * sx;
+        out[2] = (xz - wy) * sx;
+        out[3] = 0;
+
+        out[4] = (xy - wz) * sy;
+        out[5] = (1 - (xx + zz)) * sy;
+        out[6] = (yz + wx) * sy;
+        out[7] = 0;
+
+        out[8] = (xz + wy) * sz;
+        out[9] = (yz - wx) * sz;
+        out[10] = (1 - (xx + yy)) * sz;
+        out[11] = 0;
+
+        out[12] = position[0];
+        out[13] = position[1];
+        out[14] = position[2];
+        out[15] = 1;
+
+        return out;
+    }
+
+    const _v3 = Vec3();
+    const _m4 = Mat4();
+    export function decompose(m: Mat4, position: Vec3, quaternion: Quat, scale: Vec3) {
+
+        let sx = Vec3.magnitude(Vec3.set(_v3, m[0], m[1], m[2]));
+        const sy = Vec3.magnitude(Vec3.set(_v3, m[4], m[5], m[6]));
+        const sz = Vec3.magnitude(Vec3.set(_v3, m[8], m[9], m[10]));
+
+        // if determine is negative, we need to invert one scale
+        const det = determinant(m);
+        if (det < 0) sx = -sx;
+
+        position[0] = m[12];
+        position[1] = m[13];
+        position[2] = m[14];
+
+        // scale the rotation part
+        copy(_m4, m);
+
+        const invSX = 1 / sx;
+        const invSY = 1 / sy;
+        const invSZ = 1 / sz;
+
+        _m4[0] *= invSX;
+        _m4[1] *= invSX;
+        _m4[2] *= invSX;
+
+        _m4[4] *= invSY;
+        _m4[5] *= invSY;
+        _m4[6] *= invSY;
+
+        _m4[8] *= invSZ;
+        _m4[9] *= invSZ;
+        _m4[10] *= invSZ;
+
+        getRotation(quaternion, _m4);
+
+        scale[0] = sx;
+        scale[1] = sy;
+        scale[2] = sz;
+
+        return m;
+    }
+
     export function makeTable(m: Mat4) {
         let ret = '';
         for (let i = 0; i < 4; i++) {
