@@ -48,23 +48,34 @@ export function getCartoonColorThemeParams(ctx: ThemeDataContext) {
     return params;
 }
 
-export function CartoonColorTheme(ctx: ThemeDataContext, props: PD.Values<CartoonColorThemeParams>): ColorTheme<CartoonColorThemeParams> {
-    const mainchain =
-        props.mainchain.name === 'uniform' ? UniformColorTheme(ctx, props.mainchain.params) :
-            props.mainchain.name === 'chain-id' ? ChainIdColorTheme(ctx, props.mainchain.params) :
-                props.mainchain.name === 'entity-id' ? EntityIdColorTheme(ctx, props.mainchain.params) :
-                    props.mainchain.name === 'entity-source' ? EntitySourceColorTheme(ctx, props.mainchain.params) :
-                        props.mainchain.name === 'molecule-type' ? MoleculeTypeColorTheme(ctx, props.mainchain.params) :
-                            props.mainchain.name === 'model-index' ? ModelIndexColorTheme(ctx, props.mainchain.params) :
-                                props.mainchain.name === 'structure-index' ? StructureIndexColorTheme(ctx, props.mainchain.params) :
-                                    props.mainchain.name === 'secondary-structure' ? SecondaryStructureColorTheme(ctx, props.mainchain.params) :
-                                        assertUnreachable(props.mainchain);
+type CartoonColorThemeProps = PD.Values<CartoonColorThemeParams>
 
-    const sidechain =
-        props.sidechain.name === 'uniform' ? UniformColorTheme(ctx, props.sidechain.params) :
-            props.sidechain.name === 'residue-name' ? ResidueNameColorTheme(ctx, props.sidechain.params) :
-                props.sidechain.name === 'element-symbol' ? ElementSymbolColorTheme(ctx, props.sidechain.params) :
-                    assertUnreachable(props.sidechain);
+function getMainchainTheme(ctx: ThemeDataContext, props: CartoonColorThemeProps['mainchain']) {
+    switch (props.name) {
+        case 'uniform': return UniformColorTheme(ctx, props.params);
+        case 'chain-id': return ChainIdColorTheme(ctx, props.params);
+        case 'entity-id': return EntityIdColorTheme(ctx, props.params);
+        case 'entity-source': return EntitySourceColorTheme(ctx, props.params);
+        case 'molecule-type': return MoleculeTypeColorTheme(ctx, props.params);
+        case 'model-index': return ModelIndexColorTheme(ctx, props.params);
+        case 'structure-index': return StructureIndexColorTheme(ctx, props.params);
+        case 'secondary-structure': return SecondaryStructureColorTheme(ctx, props.params);
+        default: assertUnreachable(props);
+    }
+}
+
+function getSidechainTheme(ctx: ThemeDataContext, props: CartoonColorThemeProps['sidechain']) {
+    switch (props.name) {
+        case 'uniform': return UniformColorTheme(ctx, props.params);
+        case 'residue-name': return ResidueNameColorTheme(ctx, props.params);
+        case 'element-symbol': return ElementSymbolColorTheme(ctx, props.params);
+        default: assertUnreachable(props);
+    }
+}
+
+export function CartoonColorTheme(ctx: ThemeDataContext, props: PD.Values<CartoonColorThemeParams>): ColorTheme<CartoonColorThemeParams> {
+    const mainchain = getMainchainTheme(ctx, props.mainchain);
+    const sidechain = getSidechainTheme(ctx, props.sidechain);
 
     function color(location: Location, isSecondary: boolean): Color {
         return isSecondary ? mainchain.color(location, false) : sidechain.color(location, false);
