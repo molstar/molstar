@@ -127,7 +127,7 @@ namespace Euler {
         return out;
     }
 
-    const _mat4 = Mat4();
+    const _mat4 = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] as Mat4;
     export function fromQuat(out: Euler, q: Quat, order: Order) {
         Mat4.fromQuat(_mat4, q);
         return setFromRotationMatrix(out, _mat4, order);

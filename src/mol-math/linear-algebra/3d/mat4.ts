@@ -749,8 +749,8 @@ namespace Mat4 {
         return out;
     }
 
-    const _v3 = Vec3();
-    const _m4 = Mat4();
+    const _v3 = [0, 0, 0] as Vec3;
+    const _m4 = zero();
     export function decompose(m: Mat4, position: Vec3, quaternion: Quat, scale: Vec3) {
 
         let sx = Vec3.magnitude(Vec3.set(_v3, m[0], m[1], m[2]));
