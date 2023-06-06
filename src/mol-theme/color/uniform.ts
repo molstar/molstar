@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -17,6 +17,8 @@ const Description = 'Gives everything the same, uniform color.';
 
 export const UniformColorThemeParams = {
     value: PD.Color(DefaultColor),
+    saturation: PD.Numeric(0, { min: -6, max: 6, step: 0.1 }),
+    lightness: PD.Numeric(0, { min: -6, max: 6, step: 0.1 }),
 };
 export type UniformColorThemeParams = typeof UniformColorThemeParams
 export function getUniformColorThemeParams(ctx: ThemeDataContext) {
@@ -24,7 +26,9 @@ export function getUniformColorThemeParams(ctx: ThemeDataContext) {
 }
 
 export function UniformColorTheme(ctx: ThemeDataContext, props: PD.Values<UniformColorThemeParams>): ColorTheme<UniformColorThemeParams> {
-    const color = defaults(props.value, DefaultColor);
+    let color = defaults(props.value, DefaultColor);
+    color = Color.saturate(color, props.saturation);
+    color = Color.lighten(color, props.lightness);
 
     return {
         factory: UniformColorTheme,

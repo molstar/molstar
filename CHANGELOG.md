@@ -15,6 +15,8 @@ Note that since we don't clearly distinguish between a public and private interf
 - Ensure consistent state for volume representation (#210)
 - Improve SSAO for thin geometry (e.g. lines)
 - Add snapshot support for structure selections
+- Add `nucleicProfile` parameter to cartoon representation
+- Add `cartoon` theme with separate colorings for for mainchain and sidechain visuals
 
 ## [v3.35.0] - 2023-05-14
 

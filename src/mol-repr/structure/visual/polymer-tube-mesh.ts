@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -117,7 +117,7 @@ export function PolymerTubeVisual(materialId: number): UnitsVisual<PolymerTubePa
     return UnitsMeshVisual<PolymerTubeParams>({
         defaultProps: PD.getDefaultValues(PolymerTubeParams),
         createGeometry: createPolymerTubeMesh,
-        createLocationIterator: PolymerLocationIterator.fromGroup,
+        createLocationIterator: sg => PolymerLocationIterator.fromGroup(sg, true),
         getLoci: getPolymerElementLoci,
         eachLocation: eachPolymerElement,
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<PolymerTubeParams>, currentProps: PD.Values<PolymerTubeParams>) => {

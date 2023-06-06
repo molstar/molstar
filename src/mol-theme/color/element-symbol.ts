@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -54,24 +54,30 @@ export function getElementSymbolColorThemeParams(ctx: ThemeDataContext) {
     return PD.clone(ElementSymbolColorThemeParams);
 }
 
+type ElementSymbolColorThemeProps = PD.Values<ElementSymbolColorThemeParams>
+
 export function elementSymbolColor(colorMap: ElementSymbolColors, element: ElementSymbol): Color {
     const c = colorMap[element as keyof ElementSymbolColors];
     return c === undefined ? DefaultElementSymbolColor : c;
 }
 
+function getCarbonTheme(ctx: ThemeDataContext, props: ElementSymbolColorThemeProps['carbonColor']) {
+    switch (props.name) {
+        case 'chain-id': return ChainIdColorTheme(ctx, props.params);
+        case 'entity-id': return EntityIdColorTheme(ctx, props.params);
+        case 'entity-source': return EntitySourceColorTheme(ctx, props.params);
+        case 'operator-name': return OperatorNameColorTheme(ctx, props.params);
+        case 'model-index': return ModelIndexColorTheme(ctx, props.params);
+        case 'structure-index': return StructureIndexColorTheme(ctx, props.params);
+        case 'element-symbol': return undefined;
+        default: assertUnreachable(props);
+    }
+}
+
 export function ElementSymbolColorTheme(ctx: ThemeDataContext, props: PD.Values<ElementSymbolColorThemeParams>): ColorTheme<ElementSymbolColorThemeParams> {
     const colorMap = getAdjustedColorMap(props.colors.name === 'default' ? ElementSymbolColors : props.colors.params, props.saturation, props.lightness);
 
-    const pcc = props.carbonColor;
-    const carbonColor =
-        pcc.name === 'chain-id' ? ChainIdColorTheme(ctx, pcc.params).color :
-            pcc.name === 'entity-id' ? EntityIdColorTheme(ctx, pcc.params).color :
-                pcc.name === 'entity-source' ? EntitySourceColorTheme(ctx, pcc.params).color :
-                    pcc.name === 'operator-name' ? OperatorNameColorTheme(ctx, pcc.params).color :
-                        pcc.name === 'model-index' ? ModelIndexColorTheme(ctx, pcc.params).color :
-                            pcc.name === 'structure-index' ? StructureIndexColorTheme(ctx, pcc.params).color :
-                                pcc.name === 'element-symbol' ? undefined :
-                                    assertUnreachable(pcc);
+    const carbonColor = getCarbonTheme(ctx, props.carbonColor)?.color;
 
     function elementColor(element: ElementSymbol, location: Location) {
         return (carbonColor && element === 'C')
