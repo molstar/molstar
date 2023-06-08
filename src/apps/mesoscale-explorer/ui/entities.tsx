@@ -151,11 +151,14 @@ function getRoots(plugin: PluginContext) {
     return plugin.state.data.select(StateSelection.Generators.rootsOfType(MesoscaleGroupObject));
 }
 
-function getGroups(plugin: PluginContext, tag: string) {
-    return plugin.state.data.select(StateSelection.Generators.ofTransformer(MesoscaleGroup).withTag(tag));
+function getGroups(plugin: PluginContext, tag?: string) {
+    const selector = tag !== undefined
+        ? StateSelection.Generators.ofTransformer(MesoscaleGroup).withTag(tag)
+        : StateSelection.Generators.ofTransformer(MesoscaleGroup);
+    return plugin.state.data.select(selector);
 }
 
-function _getAllGroups(plugin: PluginContext, tag: string, list: StateObjectCell[]) {
+function _getAllGroups(plugin: PluginContext, tag: string | undefined, list: StateObjectCell[]) {
     const groups = getGroups(plugin, tag);
     list.push(...groups);
     for (const g of groups) {
@@ -164,7 +167,7 @@ function _getAllGroups(plugin: PluginContext, tag: string, list: StateObjectCell
     return list;
 }
 
-function getAllGroups(plugin: PluginContext, tag: string) {
+function getAllGroups(plugin: PluginContext, tag?: string) {
     return _getAllGroups(plugin, tag, []);
 }
 
@@ -176,11 +179,14 @@ function getAllLeafGroups(plugin: PluginContext, tag: string) {
     });
 }
 
-function getEntities(plugin: PluginContext, tag: string) {
-    return plugin.state.data.select(StateSelection.Generators.ofTransformer(StructureRepresentation3D).withTag(tag)).filter(c => c.obj!.data.sourceData.elementCount > 0);
+function getEntities(plugin: PluginContext, tag?: string) {
+    const selector = tag !== undefined
+        ? StateSelection.Generators.ofTransformer(StructureRepresentation3D).withTag(tag)
+        : StateSelection.Generators.ofTransformer(StructureRepresentation3D);
+    return plugin.state.data.select(selector).filter(c => c.obj!.data.sourceData.elementCount > 0);
 }
 
-function _getAllEntities(plugin: PluginContext, tag: string, list: StateObjectCell[]) {
+function _getAllEntities(plugin: PluginContext, tag: string | undefined, list: StateObjectCell[]) {
     list.push(...getEntities(plugin, tag));
     for (const g of getGroups(plugin, tag)) {
         _getAllEntities(plugin, g.params?.values.tag, list);
@@ -188,7 +194,7 @@ function _getAllEntities(plugin: PluginContext, tag: string, list: StateObjectCe
     return list;
 }
 
-function getAllEntities(plugin: PluginContext, tag: string) {
+function getAllEntities(plugin: PluginContext, tag?: string) {
     return _getAllEntities(plugin, tag, []);
 }
 
