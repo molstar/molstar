@@ -80,12 +80,22 @@ export class EntityControls extends PluginUIComponent<{}, { isDisabled: boolean 
     }
 
     setFilter = (value: string) => {
-        MesoscaleState.set(this.plugin, { filter: value.trim().replace(/\s+/gi, ' ') });
+        const filter = value.trim().replace(/\s+/gi, ' ');
+        MesoscaleState.set(this.plugin, { filter });
+        if (filter) this.expandAllGroups();
     };
 
     get filter() {
         return MesoscaleState.has(this.plugin) ? MesoscaleState.get(this.plugin).filter : '';
     }
+
+    expandAllGroups = () => {
+        for (const g of getAllGroups(this.plugin)) {
+            if (g.state.isCollapsed) {
+                this.plugin.state.data.updateCellState(g.transform.ref, { isCollapsed: false });
+            }
+        }
+    };
 
     render() {
         const roots = this.roots;
@@ -186,6 +196,11 @@ function getEntities(plugin: PluginContext, tag?: string) {
     return plugin.state.data.select(selector).filter(c => c.obj!.data.sourceData.elementCount > 0);
 }
 
+function getFilteredEntities(plugin: PluginContext, tag: string, filter: string) {
+    const reFilter = new RegExp(escapeRegExp(filter), 'gi');
+    return getEntities(plugin, tag).filter(c => getEntityLabel(c).match(reFilter) !== null);
+}
+
 function _getAllEntities(plugin: PluginContext, tag: string | undefined, list: StateObjectCell[]) {
     list.push(...getEntities(plugin, tag));
     for (const g of getGroups(plugin, tag)) {
@@ -198,11 +213,16 @@ function getAllEntities(plugin: PluginContext, tag?: string) {
     return _getAllEntities(plugin, tag, []);
 }
 
+function getAllFilteredEntities(plugin: PluginContext, tag: string, filter: string) {
+    const reFilter = new RegExp(escapeRegExp(filter), 'gi');
+    return getAllEntities(plugin, tag).filter(c => getEntityLabel(c).match(reFilter) !== null);
+}
+
 function getEntityLabel(cell: StateObjectCell) {
     try {
         const s = cell!.obj!.data.sourceData;
         const l = StructureElement.Location.create(s, s.units[0], s.units[0].elements[0]);
-        const d = StructureProperties.entity.pdbx_description(l)[0] || 'model';
+        const d = StructureProperties.entity.pdbx_description(l).join(', ') || 'model';
         return d.split('.').at(-1) || 'Entity';
     } catch (e) {
         console.log(e, cell!.obj!.data);
@@ -270,8 +290,7 @@ export class GroupNode extends Node<{ filter: string }, { isCollapsed: boolean, 
     }
 
     get filteredEntities() {
-        const reFilter = new RegExp(escapeRegExp(this.props.filter), 'gi');
-        return this.entities.filter(c => getEntityLabel(c).match(reFilter) !== null);
+        return getFilteredEntities(this.plugin, this.cell.params?.values.tag, this.props.filter);
     }
 
     get allEntities() {
@@ -279,15 +298,14 @@ export class GroupNode extends Node<{ filter: string }, { isCollapsed: boolean, 
     }
 
     get allFilteredEntities() {
-        const reFilter = new RegExp(escapeRegExp(this.props.filter), 'gi');
-        return this.allEntities.filter(c => getEntityLabel(c).match(reFilter) !== null);
+        return getAllFilteredEntities(this.plugin, this.cell.params?.values.tag, this.props.filter);
     }
 
     toggleVisible = (e: React.MouseEvent<HTMLElement>) => {
         PluginCommands.State.ToggleVisibility(this.plugin, { state: this.cell.parent!, ref: this.ref });
         const isHidden = this.cell.state.isHidden;
 
-        for (const r of this.allEntities) {
+        for (const r of this.allFilteredEntities) {
             this.plugin.state.data.updateCellState(r.transform.ref, { isHidden });
         }
 
@@ -300,33 +318,27 @@ export class GroupNode extends Node<{ filter: string }, { isCollapsed: boolean, 
         const update = this.plugin.state.data.build();
         const { value, type, lightness, alpha } = values;
 
-        if (type === 'custom') {
-            update.to(this.ref).update(old => {
-                old.color.type = type;
-            });
-        } else {
-            const entities = this.entities;
+        const entities = this.filteredEntities;
 
-            let groupColors: Color[] = [];
+        let groupColors: Color[] = [];
 
-            if (type === 'generate') {
-                groupColors = getDistinctGroupColors(entities.length, value);
-            }
+        if (type === 'generate') {
+            groupColors = getDistinctGroupColors(entities.length, value, values.variablity);
+        }
 
-            for (let i = 0; i < entities.length; ++i) {
-                const c = type === 'generate' ? groupColors[i] : value;
-                update.to(entities[i]).update(old => {
-                    old.colorTheme.params.value = c;
-                    old.colorTheme.params.lightness = lightness;
-                    old.type.params.alpha = alpha;
-                    old.type.params.xrayShaded = alpha < 1;
-                });
-            }
-
-            update.to(this.ref).update(old => {
-                old.color = values;
+        for (let i = 0; i < entities.length; ++i) {
+            const c = type === 'generate' ? groupColors[i] : value;
+            update.to(entities[i]).update(old => {
+                old.colorTheme.params.value = c;
+                old.colorTheme.params.lightness = lightness;
+                old.type.params.alpha = alpha;
+                old.type.params.xrayShaded = alpha < 1;
             });
         }
+
+        update.to(this.ref).update(old => {
+            old.color = values;
+        });
 
         for (const r of this.roots) {
             update.to(r).update(old => {
@@ -339,31 +351,65 @@ export class GroupNode extends Node<{ filter: string }, { isCollapsed: boolean, 
 
     updateRoot = (values: PD.Values) => {
         const update = this.plugin.state.data.build();
+        const { type, value, lightness, alpha } = values;
 
-        const { type } = values;
-        const groups = getAllLeafGroups(this.plugin, this.cell.params?.values.tag);
-        const baseColors = getDistinctBaseColors(groups.length);
+        if (type === 'group-generate' || type === 'group-uniform') {
+            const groups = getAllLeafGroups(this.plugin, this.cell.params?.values.tag);
+            const baseColors = getDistinctBaseColors(groups.length);
 
-        for (let i = 0; i < groups.length; ++i) {
-            const g = groups[i];
-            const entities = getEntities(this.plugin, g.params?.values.tag);
+            for (let i = 0; i < groups.length; ++i) {
+                const g = groups[i];
+                const entities = getFilteredEntities(this.plugin, g.params?.values.tag, this.props.filter);
+                let groupColors: Color[] = [];
+
+                if (type === 'group-generate') {
+                    groupColors = getDistinctGroupColors(entities.length, baseColors[i], g.params?.values.color.variablity);
+                }
+
+                for (let j = 0; j < entities.length; ++j) {
+                    const c = type === 'group-generate' ? groupColors[j] : baseColors[i];
+                    update.to(entities[j]).update(old => {
+                        old.colorTheme.params.value = c;
+                        old.colorTheme.params.lightness = lightness;
+                        old.type.params.alpha = alpha;
+                        old.type.params.xrayShaded = alpha < 1;
+                    });
+                }
+
+                update.to(g.transform.ref).update(old => {
+                    old.color.type = type === 'group-generate' ? 'generate' : 'uniform';
+                    old.color.value = baseColors[i];
+                    old.color.lightness = lightness;
+                    old.color.alpha = alpha;
+                });
+            }
+        } else if (type === 'generate' || type === 'uniform') {
+            const entities = getAllFilteredEntities(this.plugin, this.cell.params?.values.tag, this.props.filter);
             let groupColors: Color[] = [];
 
             if (type === 'generate') {
-                groupColors = getDistinctGroupColors(entities.length, baseColors[i]);
+                groupColors = getDistinctBaseColors(entities.length);
             }
 
             for (let j = 0; j < entities.length; ++j) {
-                const c = type === 'generate' ? groupColors[j] : baseColors[i];
+                const c = type === 'generate' ? groupColors[j] : value;
                 update.to(entities[j]).update(old => {
                     old.colorTheme.params.value = c;
+                    old.colorTheme.params.lightness = lightness;
+                    old.type.params.alpha = alpha;
+                    old.type.params.xrayShaded = alpha < 1;
                 });
             }
 
-            update.to(g.transform.ref).update(old => {
-                old.color.type = type;
-                old.color.value = baseColors[i];
-            });
+            const others = getAllLeafGroups(this.plugin, this.cell.params?.values.tag);
+            for (const o of others) {
+                update.to(o).update(old => {
+                    old.color.type = type === 'generate' ? 'custom' : 'uniform';
+                    old.color.value = value;
+                    old.color.lightness = lightness;
+                    old.color.alpha = alpha;
+                });
+            }
         }
 
         for (const r of this.roots) {
@@ -381,7 +427,7 @@ export class GroupNode extends Node<{ filter: string }, { isCollapsed: boolean, 
         }
 
         update.to(this.ref).update(old => {
-            old.color.type = type;
+            old.color = values;
         });
 
         update.commit();
@@ -391,7 +437,7 @@ export class GroupNode extends Node<{ filter: string }, { isCollapsed: boolean, 
         const update = this.plugin.state.data.build();
         const clipObjects = getClipObjects(values as SimpleClipProps, this.plugin.canvas3d!.boundingSphere);
 
-        for (const r of this.allEntities) {
+        for (const r of this.allFilteredEntities) {
             update.to(r).update(old => {
                 old.type.params.clip.objects = clipObjects;
             });
@@ -409,7 +455,7 @@ export class GroupNode extends Node<{ filter: string }, { isCollapsed: boolean, 
     updateLod = (values: PD.Values) => {
         const update = this.plugin.state.data.build();
 
-        for (const r of this.allEntities) {
+        for (const r of this.allFilteredEntities) {
             update.to(r).update(old => {
                 old.type.params.lodLevels = values.lodLevels;
                 old.type.params.cellSize = values.cellSize;
@@ -459,7 +505,7 @@ export class GroupNode extends Node<{ filter: string }, { isCollapsed: boolean, 
         const groupLabel = this.cell.obj!.label;
         const depth = this.props.depth;
         const colorValue = this.cell.params?.values.color;
-        const rootValue = { type: this.cell.params?.values.color.type };
+        const rootValue = this.cell.params?.values.color;
         const clipValue = this.cell.params?.values.clip;
         const lodValue = this.cell.params?.values.lod;
         const isRoot = this.cell.params?.values.root;
@@ -504,7 +550,7 @@ export class GroupNode extends Node<{ filter: string }, { isCollapsed: boolean, 
                     <ParameterControls params={RootParams} values={rootValue} onChangeValues={this.updateRoot} />
                 </ControlGroup>
             </div>}
-            {(!state.isCollapsed || this.props.filter) && <>
+            {(!state.isCollapsed) && <>
                 {groups.map(c => {
                     return <GroupNode filter={this.props.filter} cell={c} depth={depth + 1} key={c.transform.ref} />;
                 })}
@@ -666,8 +712,9 @@ export class EntityNode extends Node<{}, { action?: 'color' | 'clip' }> {
         const opacityValue = this.opacityValue;
         const lodValue = this.lodValue;
 
+        const l = getEntityLabel(this.cell);
         const label = <Button className={`msp-btn-tree-label msp-type-class-${this.cell.obj!.type.typeClass}`} noOverflow disabled={disabled}>
-            <span>{getEntityLabel(this.cell)}</span>
+            <span title={l}>{l}</span>
         </Button>;
 
         const color = colorValue !== undefined && <Button style={{ backgroundColor: Color.toStyle(colorValue), minWidth: 32, width: 32, borderRight: `6px solid ${Color.toStyle(Color.lighten(colorValue, lightnessValue?.lightness || 0))}` }} onClick={this.toggleColor} />;

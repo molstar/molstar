@@ -10,7 +10,6 @@ import { ParamDefinition as PD } from '../../../../mol-util/param-definition';
 import { PluginContext } from '../../../../mol-plugin/context';
 import { SpacefillRepresentationProvider } from '../../../../mol-repr/structure/representation/spacefill';
 import { Color } from '../../../../mol-util/color';
-import { GenericUniformColorThemeProvider } from './color';
 import { utf8Read } from '../../../../mol-io/common/utf8';
 import { Quat, Vec3 } from '../../../../mol-math/linear-algebra';
 import { MesoscaleExplorerState } from '../../app';
@@ -25,7 +24,6 @@ import { Clip } from '../../../../mol-util/clip';
 import { StructureFromGeneric } from './model';
 
 type LodLevels = typeof SpacefillRepresentationProvider.defaultValues['lodLevels']
-
 
 function getSpacefillParams(color: Color, sizeFactor: number, lodLevels: LodLevels, clipVariant: Clip.Variant) {
     return {
@@ -51,7 +49,7 @@ function getSpacefillParams(color: Color, sizeFactor: number, lodLevels: LodLeve
             },
         },
         colorTheme: {
-            name: GenericUniformColorThemeProvider.name,
+            name: 'uniform',
             params: {
                 value: color,
                 saturation: 0,
@@ -119,14 +117,14 @@ export async function createGenericHierarchy(ctx: PluginContext, file: Asset.Fil
 
     const funcRoot = await state.build()
         .toRoot()
-        .applyOrUpdateTagged('group:func:', MesoscaleGroup, { ...groupParams, root: true, index: -1, tag: `func:`, label: 'function', color: { type: 'custom', value: ColorNames.white, lightness: 0, alpha: 1 } }, { tags: 'group:func:', state: { isCollapsed: false, isHidden: groupParams.hidden } })
+        .applyOrUpdateTagged('group:func:', MesoscaleGroup, { ...groupParams, root: true, index: -1, tag: `func:`, label: 'function', color: { type: 'custom', value: ColorNames.white, variablity: 35, lightness: 0, alpha: 1 } }, { tags: 'group:func:', state: { isCollapsed: false, isHidden: groupParams.hidden } })
         .commit();
 
     const baseFuncColors = getDistinctBaseColors(funcIds.size);
     const funcIdEntries = Array.from(funcIds.entries());
     for (let i = 0; i < funcIdEntries.length; ++i) {
         const [n, m] = funcIdEntries[i];
-        const groupColors = getDistinctGroupColors(m.members.size, baseFuncColors[i]);
+        const groupColors = getDistinctGroupColors(m.members.size, baseFuncColors[i], 35);
         funcColors.set(n, groupColors);
     }
 
@@ -136,7 +134,7 @@ export async function createGenericHierarchy(ctx: PluginContext, file: Asset.Fil
             const color = colorIdx !== undefined ? baseFuncColors[colorIdx] : ColorNames.white;
             const group = await state.build()
                 .to(funcRoot)
-                .applyOrUpdateTagged(`group:func:${f}`, MesoscaleGroup, { ...groupParams, index: colorIdx, tag: `func:${f}`, label: f, color: { type: 'custom', value: color, lightness: 0, alpha: 1 } }, { tags: 'func:', state: { isCollapsed: true, isHidden: groupParams.hidden } })
+                .applyOrUpdateTagged(`group:func:${f}`, MesoscaleGroup, { ...groupParams, index: colorIdx, tag: `func:${f}`, label: f, color: { type: 'custom', value: color, variablity: 35, lightness: 0, alpha: 1 } }, { tags: 'func:', state: { isCollapsed: true, isHidden: groupParams.hidden } })
                 .commit({ revertOnError: true });
             funcGroups.set(f, group);
         }

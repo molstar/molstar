@@ -19,11 +19,11 @@ import { DistinctColorsProps, distinctColors } from '../../../mol-util/color/dis
 import { Sphere3D } from '../../../mol-math/geometry';
 import { Hcl } from '../../../mol-util/color/spaces/hcl';
 
-export function getDistinctGroupColors(count: number, color: Color, props?: Partial<DistinctColorsProps>) {
+export function getDistinctGroupColors(count: number, color: Color, variablity: number, props?: Partial<DistinctColorsProps>) {
     const hcl = Hcl.fromColor(Hcl(), color);
     const hue = color === 0
         ? [1, 360] as [number, number]
-        : [Math.max(1, hcl[0] - 35), Math.min(360, hcl[0] + 35)] as [number, number];
+        : [Math.max(1, hcl[0] - variablity), Math.min(360, hcl[0] + variablity)] as [number, number];
     return distinctColors(count, {
         hue,
         chroma: [30, 80],
@@ -46,17 +46,22 @@ export function getDistinctBaseColors(count: number, props?: Partial<DistinctCol
 }
 
 export const ColorParams = {
-    value: PD.Color(Color(0xFFFFFF)),
     type: PD.Select('generate', PD.arrayToOptions(['generate', 'uniform', 'custom'])),
-    lightness: PD.Numeric(0, { min: -6, max: 6, step: 0.1 }),
-    alpha: PD.Numeric(1, { min: 0, max: 1, step: 0.01 }),
+    value: PD.Color(Color(0xFFFFFF), { hideIf: p => p.type === 'custom' }),
+    variablity: PD.Numeric(35, { min: 1, max: 360, step: 1 }, { hideIf: p => p.type !== 'generate' }),
+    lightness: PD.Numeric(0, { min: -6, max: 6, step: 0.1 }, { hideIf: p => p.type === 'custom' }),
+    alpha: PD.Numeric(1, { min: 0, max: 1, step: 0.01 }, { hideIf: p => p.type === 'custom' }),
 };
 export type ColorProps = PD.Values<typeof ColorParams>
 
 export const ColorValueParam = PD.Color(Color(0xFFFFFF));
 
 export const RootParams = {
-    type: PD.Select('generate', PD.arrayToOptions(['generate', 'uniform', 'custom'])),
+    type: PD.Select('custom', PD.arrayToOptions(['group-generate', 'group-uniform', 'generate', 'uniform', 'custom'])),
+    value: PD.Color(Color(0xFFFFFF), { hideIf: p => p.type !== 'uniform' }),
+    variablity: PD.Numeric(35, { min: 1, max: 360, step: 1 }, { hideIf: p => p.type !== 'group-generate' }),
+    lightness: PD.Numeric(0, { min: -6, max: 6, step: 0.1 }, { hideIf: p => p.type === 'custom' }),
+    alpha: PD.Numeric(1, { min: 0, max: 1, step: 0.01 }, { hideIf: p => p.type === 'custom' }),
 };
 
 export const LightnessParams = {
@@ -172,7 +177,7 @@ export const MesoscaleGroupParams = {
     tag: PD.Value<string>('', { isHidden: true }),
     label: PD.Value<string>('', { isHidden: true }),
     hidden: PD.Boolean(false),
-    color: PD.Group(ColorParams),
+    color: PD.Group(RootParams),
     lightness: PD.Numeric(0, { min: -6, max: 6, step: 0.1 }),
     alpha: PD.Numeric(1, { min: 0, max: 1, step: 0.01 }),
     lod: PD.Group(LodParams),

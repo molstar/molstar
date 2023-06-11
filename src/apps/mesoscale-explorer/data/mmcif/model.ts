@@ -1,8 +1,7 @@
 /**
- * Copyright (c) 2019-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
- * @author Ludovic Autin <ludovic.autin@gmail.com>
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
@@ -34,7 +33,7 @@ function createModelChainMap(model: Model) {
     return units;
 }
 
-function buildCellpackAssembly(model: Model, assembly: Assembly) {
+function buildAssembly(model: Model, assembly: Assembly) {
     const coordinateSystem = SymmetryOperator.create(assembly.id, Mat4.identity(), { assembly: { id: assembly.id, operId: 0, operList: [] } });
     const assembler = Structure.Builder({
         coordinateSystem,
@@ -59,11 +58,11 @@ function buildCellpackAssembly(model: Model, assembly: Assembly) {
     return assembler.getStructure();
 }
 
-export { CellpackAssembly };
-type CellpackAssembly = typeof CellpackAssembly
-const CellpackAssembly = PluginStateTransform.BuiltIn({
-    name: 'cellpack-assembly',
-    display: { name: 'Cellpack Assembly' },
+export { MmcifAssembly };
+type MmcifAssembly = typeof MmcifAssembly
+const MmcifAssembly = PluginStateTransform.BuiltIn({
+    name: 'mmcif-assembly',
+    display: { name: 'Mmcif Assembly' },
     from: PSO.Molecule.Model,
     to: PSO.Molecule.Structure,
     params: {
@@ -101,7 +100,7 @@ const CellpackAssembly = PluginStateTransform.BuiltIn({
                 return new PSO.Molecule.Structure(base, label);
             }
 
-            const s = buildCellpackAssembly(model, asm);
+            const s = buildAssembly(model, asm);
 
             const objProps = { label: `Assembly ${id}`, description: Structure.elementDescription(s) };
             return new PSO.Molecule.Structure(s, objProps);
@@ -121,10 +120,18 @@ function getUnitsByEntity(structure: Structure): UnitsByEntity {
     }
 
     const atomicIndex = structure.model.atomicHierarchy.index;
+    const spheresIndex = structure.model.coarseHierarchy.spheres;
     const map: UnitsByEntity = new Map();
     for (const ug of structure.unitSymmetryGroups) {
-        const u = ug.units[0] as Unit.Atomic;
-        const e = atomicIndex.getEntityFromChain(u.chainIndex[u.elements[0]]);
+        const u = ug.units[0];
+        let e: EntityIndex;
+        if (Unit.isAtomic(u)) {
+            e = atomicIndex.getEntityFromChain(u.chainIndex[u.elements[0]]);
+        } else if (Unit.isSpheres(u)) {
+            e = spheresIndex.getEntityFromChain(u.coarseElements.chainElementSegments.index[u.elements[0]]);
+        } else {
+            continue;
+        }
 
         if (!map.has(e)) map.set(e, []);
         const entityUnits = map.get(e)!;
@@ -138,11 +145,11 @@ function getUnitsByEntity(structure: Structure): UnitsByEntity {
     return map;
 }
 
-export { CellpackStructure };
-type CellpackStructure = typeof CellpackStructure
-const CellpackStructure = PluginStateTransform.BuiltIn({
-    name: 'cellpack-structure',
-    display: { name: 'Cellpack Structure' },
+export { MmcifStructure };
+type MmcifStructure = typeof MmcifStructure
+const MmcifStructure = PluginStateTransform.BuiltIn({
+    name: 'mmcif-structure',
+    display: { name: 'Mmcif Structure' },
     from: PSO.Root,
     to: PSO.Molecule.Structure,
     params: {
@@ -161,13 +168,9 @@ const CellpackStructure = PluginStateTransform.BuiltIn({
 
             const unitsByEntity = getUnitsByEntity(parent);
             const units = unitsByEntity.get(idx) || [];
-            // if (!unitsByEntity.get(idx)) {
-            //     console.log(entities.data.pdbx_description.value(idx));
-            // }
             const structure = Structure.create(units);
 
-            const description = entities.data.pdbx_description.value(idx)[0] || 'model';
-            const label = description.split('.').at(-1) || a.label;
+            const label = entities.data.pdbx_description.value(idx).join(', ') || 'model';
 
             return new PSO.Molecule.Structure(structure, { label, description: `${a.description}` });
         });

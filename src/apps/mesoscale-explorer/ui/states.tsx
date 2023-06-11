@@ -22,6 +22,7 @@ import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { MesoscaleExplorerState } from '../app';
 import { createCellpackHierarchy } from '../data/cellpack/preset';
 import { createGenericHierarchy } from '../data/generic/preset';
+import { createMmcifHierarchy } from '../data/mmcif/preset';
 import { createPetworldHierarchy } from '../data/petworld/preset';
 import { MesoscaleState } from '../data/state';
 
@@ -30,6 +31,7 @@ function adjustPluginProps(ctx: PluginContext) {
     ctx.canvas3d?.setProps({
         multiSample: { mode: 'off' },
         cameraClipping: { far: false, minNear: 50 },
+        sceneRadiusFactor: 2,
         renderer: {
             colorMarker: true,
             highlightColor: Color(0xffffff),
@@ -41,6 +43,7 @@ function adjustPluginProps(ctx: PluginContext) {
             interiorColorFlag: false,
             interiorDarkening: 0.15,
             exposure: 1.1,
+            xrayEdgeFalloff: 3,
         },
         marking: {
             enabled: false,
@@ -96,7 +99,7 @@ function adjustPluginProps(ctx: PluginContext) {
     });
 }
 
-async function createMmcifHierarchy(ctx: PluginContext, ref: string) {
+async function createHierarchy(ctx: PluginContext, ref: string) {
     const parsed = await MmcifProvider.parse(ctx, ref);
 
     const tr = StateObjectRef.resolveAndCheck(ctx.state.data, parsed.trajectory)?.obj?.data;
@@ -107,10 +110,13 @@ async function createMmcifHierarchy(ctx: PluginContext, ref: string) {
     }
 
     const { frame } = tr.representative.sourceData.data;
+
     if (frame.categories.pdbx_model) {
         await createPetworldHierarchy(ctx, parsed.trajectory);
-    } else {
+    } else if (frame.header.includes('CellPACK')) {
         await createCellpackHierarchy(ctx, parsed.trajectory);
+    } else {
+        await createMmcifHierarchy(ctx, parsed.trajectory);
     }
 }
 
@@ -137,7 +143,7 @@ export const LoadExample = StateAction.build({
 
         const isBinary = type === 'bcif';
         const data = await ctx.builders.data.download({ url, isBinary });
-        await createMmcifHierarchy(ctx, data.ref);
+        await createHierarchy(ctx, data.ref);
     }
     console.timeEnd('LoadExample');
 }));
@@ -176,7 +182,7 @@ export const LoadModel = StateAction.build({
                 const info = getFileNameInfo(file.file!.name);
                 const isBinary = ctx.dataFormats.binaryExtensions.has(info.ext);
                 const { data } = await ctx.builders.data.readFile({ file, isBinary });
-                await createMmcifHierarchy(ctx, data.ref);
+                await createHierarchy(ctx, data.ref);
             } catch (e) {
                 console.error(e);
                 ctx.log.error(`Error opening file '${file.name}'`);
