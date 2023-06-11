@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -40,7 +40,7 @@ export const DirectVolumeSchema = {
     dAxisOrder: DefineSpec('string', ['012', '021', '102', '120', '201', '210']),
 
     dIgnoreLight: DefineSpec('boolean'),
-    dXrayShaded: DefineSpec('boolean'),
+    dXrayShaded: DefineSpec('string', ['off', 'on', 'inverted']),
 };
 export type DirectVolumeSchema = typeof DirectVolumeSchema
 export type DirectVolumeValues = Values<DirectVolumeSchema>
