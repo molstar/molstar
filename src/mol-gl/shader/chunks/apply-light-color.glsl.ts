@@ -69,8 +69,10 @@ export const apply_light_color = `
     gl_FragColor = vec4(outgoingLight, color.a);
 #endif
 
-#ifdef dXrayShaded
+#if defined(dXrayShaded_on)
     gl_FragColor.a *= 1.0 - pow(abs(dot(normal, vec3(0.0, 0.0, 1.0))), uXrayEdgeFalloff);
+#elif defined(dXrayShaded_inverted)
+    gl_FragColor.a *= pow(abs(dot(normal, vec3(0.0, 0.0, 1.0))), uXrayEdgeFalloff);
 #endif
 
 gl_FragColor.rgb *= uExposure;

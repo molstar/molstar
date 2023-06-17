@@ -58,7 +58,7 @@ export interface QualityProps {
     resolution: number
     probePositions: number
     doubleSided: boolean
-    xrayShaded: boolean
+    xrayShaded: boolean | 'inverted'
     alpha: number
     transparentBackfaces: 'off' | 'on' | 'opaque'
 }
