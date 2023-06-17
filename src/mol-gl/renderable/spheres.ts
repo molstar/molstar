@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -22,7 +22,7 @@ export const SpheresSchema = {
     padding: ValueSpec('number'),
     uDoubleSided: UniformSpec('b', 'material'),
     dIgnoreLight: DefineSpec('boolean'),
-    dXrayShaded: DefineSpec('boolean'),
+    dXrayShaded: DefineSpec('string', ['off', 'on', 'inverted']),
     dTransparentBackfaces: DefineSpec('string', ['off', 'on', 'opaque']),
     dSolidInterior: DefineSpec('boolean'),
     uBumpFrequency: UniformSpec('f', 'material'),

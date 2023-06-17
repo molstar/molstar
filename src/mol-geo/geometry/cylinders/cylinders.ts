@@ -156,7 +156,7 @@ export namespace Cylinders {
         sizeAspectRatio: PD.Numeric(1, { min: 0, max: 3, step: 0.01 }),
         doubleSided: PD.Boolean(false, BaseGeometry.CustomQualityParamInfo),
         ignoreLight: PD.Boolean(false, BaseGeometry.ShadingCategory),
-        xrayShaded: PD.Boolean(false, BaseGeometry.ShadingCategory),
+        xrayShaded: PD.Select<boolean | 'inverted'>(false, [[false, 'Off'], [true, 'On'], ['inverted', 'Inverted']], BaseGeometry.ShadingCategory),
         transparentBackfaces: PD.Select('off', PD.arrayToOptions(['off', 'on', 'opaque']), BaseGeometry.ShadingCategory),
         solidInterior: PD.Boolean(true, BaseGeometry.ShadingCategory),
         bumpFrequency: PD.Numeric(0, { min: 0, max: 10, step: 0.1 }, BaseGeometry.ShadingCategory),
@@ -244,7 +244,7 @@ export namespace Cylinders {
             uSizeFactor: ValueCell.create(props.sizeFactor * props.sizeAspectRatio),
             uDoubleSided: ValueCell.create(props.doubleSided),
             dIgnoreLight: ValueCell.create(props.ignoreLight),
-            dXrayShaded: ValueCell.create(props.xrayShaded),
+            dXrayShaded: ValueCell.create(props.xrayShaded === 'inverted' ? 'inverted' : props.xrayShaded === true ? 'on' : 'off'),
             dTransparentBackfaces: ValueCell.create(props.transparentBackfaces),
             dSolidInterior: ValueCell.create(props.solidInterior),
             uBumpFrequency: ValueCell.create(props.bumpFrequency),
@@ -263,7 +263,7 @@ export namespace Cylinders {
         ValueCell.updateIfChanged(values.uSizeFactor, props.sizeFactor * props.sizeAspectRatio);
         ValueCell.updateIfChanged(values.uDoubleSided, props.doubleSided);
         ValueCell.updateIfChanged(values.dIgnoreLight, props.ignoreLight);
-        ValueCell.updateIfChanged(values.dXrayShaded, props.xrayShaded);
+        ValueCell.updateIfChanged(values.dXrayShaded, props.xrayShaded === 'inverted' ? 'inverted' : props.xrayShaded === true ? 'on' : 'off');
         ValueCell.updateIfChanged(values.dTransparentBackfaces, props.transparentBackfaces);
         ValueCell.updateIfChanged(values.dSolidInterior, props.solidInterior);
         ValueCell.updateIfChanged(values.uBumpFrequency, props.bumpFrequency);
