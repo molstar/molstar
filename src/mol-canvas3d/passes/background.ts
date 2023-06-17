@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2022-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -23,6 +23,7 @@ import { Vec2 } from '../../mol-math/linear-algebra/3d/vec2';
 import { Color } from '../../mol-util/color';
 import { Asset, AssetManager } from '../../mol-util/assets';
 import { Vec4 } from '../../mol-math/linear-algebra/3d/vec4';
+import { isPowerOfTwo } from '../../mol-math/misc';
 
 const SharedParams = {
     opacity: PD.Numeric(1, { min: 0.0, max: 1.0, step: 0.01 }),
@@ -59,6 +60,7 @@ const ImageParams = {
         url: PD.Text(''),
         file: PD.File({ accept: 'image/*' }),
     }),
+    blur: PD.Numeric(0, { min: 0.0, max: 1.0, step: 0.01 }, { description: 'Note, this only works in WebGL2 or with power-of-two images and when "EXT_shader_texture_lod" is available.' }),
     ...SharedParams,
     coverage: PD.Select('viewport', PD.arrayToOptions(['viewport', 'canvas'])),
 };
@@ -207,6 +209,7 @@ export class BackgroundPass {
         }
         if (!this.image) return;
 
+        ValueCell.updateIfChanged(this.renderable.values.uBlur, props.blur);
         ValueCell.updateIfChanged(this.renderable.values.uOpacity, props.opacity);
         ValueCell.updateIfChanged(this.renderable.values.uSaturation, props.saturation);
         ValueCell.updateIfChanged(this.renderable.values.uLightness, props.lightness);
@@ -394,6 +397,9 @@ function getImageTexture(ctx: WebGLContext, assetManager: AssetManager, source: 
     const img = new Image();
     img.onload = () => {
         texture.load(img);
+        if (ctx.isWebGL2 || (isPowerOfTwo(img.width) && isPowerOfTwo(img.height))) {
+            texture.mipmap();
+        }
         onload?.();
     };
     img.onerror = () => {
