@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -19,6 +19,7 @@ interface SizeTheme<P extends PD.Params> {
     readonly granularity: SizeType
     readonly size: LocationSize
     readonly props: Readonly<PD.Values<P>>
+    readonly contextHash?: number
     readonly description?: string
 }
 namespace SizeTheme {
@@ -28,7 +29,7 @@ namespace SizeTheme {
     export const Empty: SizeTheme<{}> = { factory: EmptyFactory, granularity: 'uniform', size: () => 1, props: {} };
 
     export function areEqual(themeA: SizeTheme<any>, themeB: SizeTheme<any>) {
-        return themeA.factory === themeB.factory && deepEqual(themeA.props, themeB.props);
+        return themeA.contextHash === themeB.contextHash && themeA.factory === themeB.factory && deepEqual(themeA.props, themeB.props);
     }
 
     export interface Provider<P extends PD.Params = any, Id extends string = string> extends ThemeProvider<SizeTheme<P>, P, Id> { }
