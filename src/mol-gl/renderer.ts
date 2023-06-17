@@ -458,7 +458,7 @@ namespace Renderer {
             const { renderables } = group;
             for (let i = 0, il = renderables.length; i < il; ++i) {
                 const r = renderables[i];
-                if (r.state.opaque && r.values.transparencyAverage.ref.value !== 1 && !r.values.dXrayShaded?.ref.value) {
+                if (r.state.opaque && r.values.transparencyAverage.ref.value !== 1 && r.values.dXrayShaded?.ref.value === 'off') {
                     renderObject(r, 'depth', Flag.None);
                 }
             }
@@ -476,7 +476,7 @@ namespace Renderer {
             const { renderables } = group;
             for (let i = 0, il = renderables.length; i < il; ++i) {
                 const r = renderables[i];
-                if (!r.state.opaque || r.values.transparencyAverage.ref.value > 0 || r.values.dXrayShaded?.ref.value) {
+                if (!r.state.opaque || r.values.transparencyAverage.ref.value > 0 || r.values.dXrayShaded?.ref.value !== 'off') {
                     renderObject(r, 'depth', Flag.None);
                 }
             }
@@ -626,7 +626,7 @@ namespace Renderer {
                 // TODO: simplify, handle in renderable.state???
                 // uAlpha is updated in "render" so we need to recompute it here
                 const alpha = clamp(r.values.alpha.ref.value * r.state.alphaFactor, 0, 1);
-                if ((alpha === 1 && r.values.transparencyAverage.ref.value !== 1 && r.values.dGeometryType.ref.value !== 'directVolume' && r.values.dPointStyle?.ref.value !== 'fuzzy' && !r.values.dXrayShaded?.ref.value) || r.values.dTransparentBackfaces?.ref.value === 'opaque') {
+                if ((alpha === 1 && r.values.transparencyAverage.ref.value !== 1 && r.values.dGeometryType.ref.value !== 'directVolume' && r.values.dPointStyle?.ref.value !== 'fuzzy' && r.values.dXrayShaded?.ref.value === 'off') || r.values.dTransparentBackfaces?.ref.value === 'opaque') {
                     renderObject(r, 'colorWboit', Flag.None);
                 }
             }
@@ -644,7 +644,7 @@ namespace Renderer {
                 // TODO: simplify, handle in renderable.state???
                 // uAlpha is updated in "render" so we need to recompute it here
                 const alpha = clamp(r.values.alpha.ref.value * r.state.alphaFactor, 0, 1);
-                if ((alpha < 1 && alpha !== 0) || r.values.transparencyAverage.ref.value > 0 || r.values.dGeometryType.ref.value === 'directVolume' || r.values.dPointStyle?.ref.value === 'fuzzy' || r.values.dGeometryType.ref.value === 'text' || r.values.dXrayShaded?.ref.value) {
+                if ((alpha < 1 && alpha !== 0) || r.values.transparencyAverage.ref.value > 0 || r.values.dGeometryType.ref.value === 'directVolume' || r.values.dPointStyle?.ref.value === 'fuzzy' || r.values.dGeometryType.ref.value === 'text' || r.values.dXrayShaded?.ref.value !== 'off') {
                     renderObject(r, 'colorWboit', Flag.None);
                 }
             }
@@ -666,7 +666,7 @@ namespace Renderer {
                 // TODO: simplify, handle in renderable.state???
                 // uAlpha is updated in "render" so we need to recompute it here
                 const alpha = clamp(r.values.alpha.ref.value * r.state.alphaFactor, 0, 1);
-                if ((alpha === 1 && r.values.transparencyAverage.ref.value !== 1 && r.values.dPointStyle?.ref.value !== 'fuzzy' && !r.values.dXrayShaded?.ref.value) || r.values.dTransparentBackfaces?.ref.value === 'opaque') {
+                if ((alpha === 1 && r.values.transparencyAverage.ref.value !== 1 && r.values.dPointStyle?.ref.value !== 'fuzzy' && r.values.dXrayShaded?.ref.value === 'off') || r.values.dTransparentBackfaces?.ref.value === 'opaque') {
                     renderObject(r, 'colorDpoit', Flag.None);
                 }
             }
@@ -692,7 +692,7 @@ namespace Renderer {
                 // TODO: simplify, handle in renderable.state???
                 // uAlpha is updated in "render" so we need to recompute it here
                 const alpha = clamp(r.values.alpha.ref.value * r.state.alphaFactor, 0, 1);
-                if ((alpha < 1 && alpha !== 0) || r.values.transparencyAverage.ref.value > 0 || r.values.dPointStyle?.ref.value === 'fuzzy' || r.values.dGeometryType.ref.value === 'text' || r.values.dXrayShaded?.ref.value) {
+                if ((alpha < 1 && alpha !== 0) || r.values.transparencyAverage.ref.value > 0 || r.values.dPointStyle?.ref.value === 'fuzzy' || r.values.dGeometryType.ref.value === 'text' || r.values.dXrayShaded?.ref.value !== 'off') {
                     renderObject(r, 'colorDpoit', Flag.None);
                 }
             }

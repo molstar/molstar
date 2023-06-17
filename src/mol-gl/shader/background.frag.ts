@@ -14,6 +14,7 @@ precision mediump sampler2D;
     uniform sampler2D tImage;
     uniform vec2 uImageScale;
     uniform vec2 uImageOffset;
+    uniform float uBlur;
     uniform float uOpacity;
     uniform float uSaturation;
     uniform float uLightness;
@@ -64,7 +65,11 @@ void main() {
         } else {
             coords = (gl_FragCoord.xy / uImageScale) + uImageOffset;
         }
-        gl_FragColor = texture2D(tImage, vec2(coords.x, 1.0 - coords.y));
+        #ifdef enabledShaderTextureLod
+            gl_FragColor = texture2DLodEXT(tImage, vec2(coords.x, 1.0 - coords.y), uBlur * 8.0);
+        #else
+            gl_FragColor = texture2D(tImage, vec2(coords.x, 1.0 - coords.y));
+        #endif
         gl_FragColor.a = uOpacity;
         gl_FragColor.rgb = lightenColor(saturateColor(gl_FragColor.rgb, uSaturation), uLightness);
     #elif defined(dVariant_horizontalGradient)
