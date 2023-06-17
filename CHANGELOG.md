@@ -6,6 +6,8 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+## [v3.37.0] - 2023-06-17
+
 - Add `inverted` option to `xrayShaded` parameter
 - Model-export extension: Add ability to set a file name for structures
 - Add `contextHash` to `SizeTheme`
