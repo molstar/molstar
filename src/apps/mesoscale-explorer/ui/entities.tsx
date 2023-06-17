@@ -332,7 +332,7 @@ export class GroupNode extends Node<{ filter: string }, { isCollapsed: boolean, 
                 old.colorTheme.params.value = c;
                 old.colorTheme.params.lightness = lightness;
                 old.type.params.alpha = alpha;
-                old.type.params.xrayShaded = alpha < 1;
+                old.type.params.xrayShaded = alpha < 1 ? 'inverted' : false;
             });
         }
 
@@ -372,7 +372,7 @@ export class GroupNode extends Node<{ filter: string }, { isCollapsed: boolean, 
                         old.colorTheme.params.value = c;
                         old.colorTheme.params.lightness = lightness;
                         old.type.params.alpha = alpha;
-                        old.type.params.xrayShaded = alpha < 1;
+                        old.type.params.xrayShaded = alpha < 1 ? 'inverted' : false;
                     });
                 }
 
@@ -397,7 +397,7 @@ export class GroupNode extends Node<{ filter: string }, { isCollapsed: boolean, 
                     old.colorTheme.params.value = c;
                     old.colorTheme.params.lightness = lightness;
                     old.type.params.alpha = alpha;
-                    old.type.params.xrayShaded = alpha < 1;
+                    old.type.params.xrayShaded = alpha < 1 ? 'inverted' : false;
                 });
             }
 
@@ -677,7 +677,7 @@ export class EntityNode extends Node<{}, { action?: 'color' | 'clip' }> {
     updateOpacity = (values: PD.Values) => {
         return this.plugin.build().to(this.ref).update(old => {
             old.type.params.alpha = values.alpha;
-            old.type.params.xrayShaded = values.alpha < 1;
+            old.type.params.xrayShaded = values.alpha < 1 ? 'inverted' : false;
         }).commit();
     };
 
