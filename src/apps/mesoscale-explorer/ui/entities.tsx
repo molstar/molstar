@@ -380,7 +380,7 @@ export class GroupNode extends Node<{ filter: string }, { isCollapsed: boolean, 
         const entities = this.entities;
 
         const label = <Button className={`msp-btn-tree-label`} noOverflow disabled={disabled}>
-            <span>{groupLabel}</span>
+            <span title={groupLabel}>{groupLabel}</span>
         </Button>;
 
         const expand = <IconButton svg={state.isCollapsed ? ArrowRightSvg : ArrowDropDownSvg} flex='20px' disabled={disabled} onClick={this.toggleExpanded} transparent className='msp-no-hover-outline' style={{ visibility: groups.length > 0 || entities.length > 0 ? 'visible' : 'hidden' }} />;

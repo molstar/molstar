@@ -16,12 +16,13 @@ import { MesoscaleExplorerState } from '../../app';
 import { MesoscaleGroup, MesoscaleGroupParams, MesoscaleGroupProps, updateColors } from '../state';
 import { ColorNames } from '../../../../mol-util/color/names';
 import { StructureRepresentation3D } from '../../../../mol-plugin-state/transforms/representation';
-import { ReadFile } from '../../../../mol-plugin-state/transforms/data';
-import { ModelFromTrajectory, TrajectoryFromGRO } from '../../../../mol-plugin-state/transforms/model';
+import { ParseCif, ReadFile } from '../../../../mol-plugin-state/transforms/data';
+import { ModelFromTrajectory, TrajectoryFromGRO, TrajectoryFromMOL, TrajectoryFromMOL2, TrajectoryFromMmCif, TrajectoryFromPDB, TrajectoryFromSDF, TrajectoryFromXYZ } from '../../../../mol-plugin-state/transforms/model';
 import { Euler } from '../../../../mol-math/linear-algebra/3d/euler';
 import { Asset } from '../../../../mol-util/assets';
 import { Clip } from '../../../../mol-util/clip';
 import { StructureFromGeneric } from './model';
+import { getFileNameInfo } from '../../../../mol-util/file-info';
 
 type LodLevels = typeof SpacefillRepresentationProvider.defaultValues['lodLevels']
 
@@ -151,14 +152,34 @@ export async function createGenericHierarchy(ctx: PluginContext, file: Asset.Fil
 
                 const label = e.label || e.file.split('.')[0];
                 const sizeFactor = e.sizeFactor || 1;
+                const tags = e.groups.map(({ id, root }) => `${root}:${id}`);
+
+                const info = getFileNameInfo(e.file);
 
                 build = build
                     .toRoot()
-                    .apply(ReadFile, { file, label })
-                    .apply(TrajectoryFromGRO)
+                    .apply(ReadFile, { file, label });
+
+                if (['gro'].includes(info.ext)) {
+                    build = build.apply(TrajectoryFromGRO);
+                } else if (['cif', 'mmcif', 'mcif', 'bcif'].includes(info.ext)) {
+                    build = build.apply(ParseCif).apply(TrajectoryFromMmCif);
+                } else if (['pdb', 'ent'].includes(info.ext)) {
+                    build = build.apply(TrajectoryFromPDB);
+                } else if (['xyz'].includes(info.ext)) {
+                    build = build.apply(TrajectoryFromXYZ);
+                } else if (['mol'].includes(info.ext)) {
+                    build = build.apply(TrajectoryFromMOL);
+                } else if (['sdf', 'sd'].includes(info.ext)) {
+                    build = build.apply(TrajectoryFromSDF);
+                } else if (['mol2'].includes(info.ext)) {
+                    build = build.apply(TrajectoryFromMOL2);
+                }
+
+                build = build
                     .apply(ModelFromTrajectory, { modelIndex: 0 })
                     .apply(StructureFromGeneric, { transforms, label })
-                    .apply(StructureRepresentation3D, getSpacefillParams(color, sizeFactor, customState.lodLevels, clipVariant), { tags: e.groups });
+                    .apply(StructureRepresentation3D, getSpacefillParams(color, sizeFactor, customState.lodLevels, clipVariant), { tags });
             }
             await build.commit();
 
@@ -185,6 +206,7 @@ type GenericRoot = {
 
 type GenericGroup = {
     id: string
+    /** reference to `${GenericRoot.id}` */
     root: string
     label?: string
     description?: string
@@ -192,20 +214,46 @@ type GenericGroup = {
 }
 
 type GenericEntity = {
+    /**
+     * the structure file name
+     *
+     * the following extensions/formats are supported
+     * - gro
+     * - cif, mmcif, mcif, bcif
+     * - pdb, ent
+     * - xyz
+     * - mol
+     * - sdf, sd
+     * - mol2
+     */
     file: string
     label?: string
     description?: string
-    /** references to `${GenericGroup.id}:${GenericGroup.root}` */
-    groups: string[]
+    groups: {
+        /** reference to `${GenericGroup.id}` */
+        id: string,
+        /** reference to `${GenericGroup.root}` */
+        root: string
+    }[]
     instances: GenericInstances
-    /** defaults to 1 */
+    /**
+     * defaults to 1 (assuming fully atomic structures)
+     * for C-alpha only structures set to 2
+     * for Martini coarse-grained set to 1.5
+     */
     sizeFactor?: number
 }
 
 type GenericInstances = {
-    /** translation vectors [x0, y0, z0, ..., xn, yn, zn] with n = count - 1 */
+    /**
+     * translation vectors in Angstrom
+     * [x0, y0, z0, ..., xn, yn, zn] with n = count - 1
+     */
     positions: number[]
-    /** euler angles [x0, y0, z0, ..., xn, yn, zn] with n = count - 1 */
+    /**
+     * euler angles in XYZ order
+     * [x0, y0, z0, ..., xn, yn, zn] with n = count - 1
+     */
     rotations: number[]
 }
 
@@ -289,7 +337,7 @@ function martiniToGeneric(martini: MartiniManifest): GenericManifest {
             entities.push({
                 file: e.model,
                 label: label.substring(15),
-                groups: [`function:lower`],
+                groups: [{ root: 'function', id: 'lower' }],
                 instances: { positions, rotations },
                 sizeFactor: 1.5,
             });
@@ -297,7 +345,7 @@ function martiniToGeneric(martini: MartiniManifest): GenericManifest {
             entities.push({
                 file: e.model,
                 label: label.substring(15),
-                groups: [`function:upper`],
+                groups: [{ root: 'function', id: 'upper' }],
                 instances: { positions, rotations },
                 sizeFactor: 1.5,
             });
@@ -305,7 +353,7 @@ function martiniToGeneric(martini: MartiniManifest): GenericManifest {
             entities.push({
                 file: e.model,
                 label: label.substring(17),
-                groups: [`function:memprot`],
+                groups: [{ root: 'function', id: 'memprot' }],
                 instances: { positions, rotations },
                 sizeFactor: 1.5,
             });
@@ -321,7 +369,7 @@ function martiniToGeneric(martini: MartiniManifest): GenericManifest {
             entities.push({
                 file: e.model,
                 label,
-                groups: [`function:${group}`],
+                groups: [{ root: 'function', id: group }],
                 instances: { positions, rotations },
                 sizeFactor: 1.5,
             });
