@@ -10,7 +10,7 @@ import { PluginBehavior } from '../../../mol-plugin/behavior';
 import { ButtonsType, ModifiersKeys } from '../../../mol-util/input/input-observer';
 import { Binding } from '../../../mol-util/binding';
 import { PluginStateObject as SO } from '../../../mol-plugin-state/objects';
-import { Structure, StructureElement, StructureProperties } from '../../../mol-model/structure';
+import { Structure, StructureElement } from '../../../mol-model/structure';
 import { StateSelection } from '../../../mol-state';
 import { StateTreeSpine } from '../../../mol-state/tree/spine';
 import { Representation } from '../../../mol-repr/representation';
@@ -99,12 +99,8 @@ export const MesoSelectLoci = PluginBehavior.create<MesoSelectLociProps>({
                 } else {
                     const labels: string[] = [];
                     if (StructureElement.Loci.is(current.loci)) {
-                        const u = current.loci.elements[0].unit;
-                        const l = StructureElement.Location.create(current.loci.structure, u, u.elements[0]);
-                        const name = StructureProperties.entity.pdbx_description(l)
-                            .map(x => x.split('.').at(-1) || '')
-                            .join(', ');
-                        labels.push(name);
+                        const cell = this.ctx.helpers.substructureParent.get(current.loci.structure);
+                        labels.push(cell?.obj?.label || 'Unknown');
                     }
                     this.ctx.behaviors.labels.highlight.next({ labels });
                 }

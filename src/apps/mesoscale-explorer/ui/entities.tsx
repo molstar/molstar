@@ -10,8 +10,6 @@ import { ArrowDropDownSvg, ArrowRightSvg, CloseSvg, VisibilityOffOutlinedSvg, Vi
 import { PluginCommands } from '../../../mol-plugin/commands';
 import { State, StateObjectCell, StateSelection, StateTransformer } from '../../../mol-state';
 import { debounceTime, filter } from 'rxjs/operators';
-import { escapeRegExp } from '../../../mol-util/string';
-import { StructureElement, StructureProperties } from '../../../mol-model/structure';
 import { ParameterControls, ParameterMappingControl, ParamOnChange, SelectControl } from '../../../mol-plugin-ui/controls/parameters';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { Clip } from '../../../mol-util/clip';
@@ -21,8 +19,7 @@ import { CombinedColorControl } from '../../../mol-plugin-ui/controls/color';
 import { MarkerAction } from '../../../mol-util/marker-action';
 import { EveryLoci } from '../../../mol-model/loci';
 import { deepEqual } from '../../../mol-util';
-import { ColorValueParam, ColorParams, ColorProps, DimLightness, LightnessParams, LodParams, MesoscaleGroup, MesoscaleGroupObject, MesoscaleGroupProps, OpacityParams, SimpleClipParams, SimpleClipProps, createClipMapping, getClipObjects, getDistinctBaseColors, getDistinctGroupColors, RootParams, MesoscaleState } from '../data/state';
-import { PluginContext } from '../../../mol-plugin/context';
+import { ColorValueParam, ColorParams, ColorProps, DimLightness, LightnessParams, LodParams, MesoscaleGroup, MesoscaleGroupProps, OpacityParams, SimpleClipParams, SimpleClipProps, createClipMapping, getClipObjects, getDistinctGroupColors, RootParams, MesoscaleState, getRoots, getAllGroups, getAllLeafGroups, getFilteredEntities, getAllFilteredEntities, getGroups, getEntities, getAllEntities, getEntityLabel, updateColors } from '../data/state';
 import React from 'react';
 
 export class EntityControls extends PluginUIComponent<{}, { isDisabled: boolean }> {
@@ -157,79 +154,6 @@ class Node<P extends {} = {}, S = {}, SS = {}> extends PluginUIComponent<P & { c
     }
 }
 
-function getRoots(plugin: PluginContext) {
-    return plugin.state.data.select(StateSelection.Generators.rootsOfType(MesoscaleGroupObject));
-}
-
-function getGroups(plugin: PluginContext, tag?: string) {
-    const selector = tag !== undefined
-        ? StateSelection.Generators.ofTransformer(MesoscaleGroup).withTag(tag)
-        : StateSelection.Generators.ofTransformer(MesoscaleGroup);
-    return plugin.state.data.select(selector);
-}
-
-function _getAllGroups(plugin: PluginContext, tag: string | undefined, list: StateObjectCell[]) {
-    const groups = getGroups(plugin, tag);
-    list.push(...groups);
-    for (const g of groups) {
-        _getAllGroups(plugin, g.params?.values.tag, list);
-    }
-    return list;
-}
-
-function getAllGroups(plugin: PluginContext, tag?: string) {
-    return _getAllGroups(plugin, tag, []);
-}
-
-function getAllLeafGroups(plugin: PluginContext, tag: string) {
-    const allGroups = getAllGroups(plugin, tag);
-    allGroups.sort((a, b) => a.params?.values.index - b.params?.values.index);
-    return allGroups.filter(g => {
-        return plugin.state.data.select(StateSelection.Generators.ofTransformer(StructureRepresentation3D).withTag(g.params?.values.tag)).length > 0;
-    });
-}
-
-function getEntities(plugin: PluginContext, tag?: string) {
-    const selector = tag !== undefined
-        ? StateSelection.Generators.ofTransformer(StructureRepresentation3D).withTag(tag)
-        : StateSelection.Generators.ofTransformer(StructureRepresentation3D);
-    return plugin.state.data.select(selector).filter(c => c.obj!.data.sourceData.elementCount > 0);
-}
-
-function getFilteredEntities(plugin: PluginContext, tag: string, filter: string) {
-    const reFilter = new RegExp(escapeRegExp(filter), 'gi');
-    return getEntities(plugin, tag).filter(c => getEntityLabel(c).match(reFilter) !== null);
-}
-
-function _getAllEntities(plugin: PluginContext, tag: string | undefined, list: StateObjectCell[]) {
-    list.push(...getEntities(plugin, tag));
-    for (const g of getGroups(plugin, tag)) {
-        _getAllEntities(plugin, g.params?.values.tag, list);
-    }
-    return list;
-}
-
-function getAllEntities(plugin: PluginContext, tag?: string) {
-    return _getAllEntities(plugin, tag, []);
-}
-
-function getAllFilteredEntities(plugin: PluginContext, tag: string, filter: string) {
-    const reFilter = new RegExp(escapeRegExp(filter), 'gi');
-    return getAllEntities(plugin, tag).filter(c => getEntityLabel(c).match(reFilter) !== null);
-}
-
-function getEntityLabel(cell: StateObjectCell) {
-    try {
-        const s = cell!.obj!.data.sourceData;
-        const l = StructureElement.Location.create(s, s.units[0], s.units[0].elements[0]);
-        const d = StructureProperties.entity.pdbx_description(l).join(', ') || 'model';
-        return d.split('.').at(-1) || 'Entity';
-    } catch (e) {
-        console.log(e, cell!.obj!.data);
-    }
-    return 'Entity';
-}
-
 export class GroupNode extends Node<{ filter: string }, { isCollapsed: boolean, action?: 'color' | 'clip' | 'root' }> {
     state = {
         isCollapsed: !!this.props.cell.state.isCollapsed,
@@ -349,68 +273,10 @@ export class GroupNode extends Node<{ filter: string }, { isCollapsed: boolean, 
         update.commit();
     };
 
-    updateRoot = (values: PD.Values) => {
+    updateRoot = async (values: PD.Values) => {
+        await updateColors(this.plugin, values, this.cell.params?.values.tag, this.props.filter);
+
         const update = this.plugin.state.data.build();
-        const { type, value, lightness, alpha } = values;
-
-        if (type === 'group-generate' || type === 'group-uniform') {
-            const groups = getAllLeafGroups(this.plugin, this.cell.params?.values.tag);
-            const baseColors = getDistinctBaseColors(groups.length);
-
-            for (let i = 0; i < groups.length; ++i) {
-                const g = groups[i];
-                const entities = getFilteredEntities(this.plugin, g.params?.values.tag, this.props.filter);
-                let groupColors: Color[] = [];
-
-                if (type === 'group-generate') {
-                    groupColors = getDistinctGroupColors(entities.length, baseColors[i], g.params?.values.color.variablity);
-                }
-
-                for (let j = 0; j < entities.length; ++j) {
-                    const c = type === 'group-generate' ? groupColors[j] : baseColors[i];
-                    update.to(entities[j]).update(old => {
-                        old.colorTheme.params.value = c;
-                        old.colorTheme.params.lightness = lightness;
-                        old.type.params.alpha = alpha;
-                        old.type.params.xrayShaded = alpha < 1 ? 'inverted' : false;
-                    });
-                }
-
-                update.to(g.transform.ref).update(old => {
-                    old.color.type = type === 'group-generate' ? 'generate' : 'uniform';
-                    old.color.value = baseColors[i];
-                    old.color.lightness = lightness;
-                    old.color.alpha = alpha;
-                });
-            }
-        } else if (type === 'generate' || type === 'uniform') {
-            const entities = getAllFilteredEntities(this.plugin, this.cell.params?.values.tag, this.props.filter);
-            let groupColors: Color[] = [];
-
-            if (type === 'generate') {
-                groupColors = getDistinctBaseColors(entities.length);
-            }
-
-            for (let j = 0; j < entities.length; ++j) {
-                const c = type === 'generate' ? groupColors[j] : value;
-                update.to(entities[j]).update(old => {
-                    old.colorTheme.params.value = c;
-                    old.colorTheme.params.lightness = lightness;
-                    old.type.params.alpha = alpha;
-                    old.type.params.xrayShaded = alpha < 1 ? 'inverted' : false;
-                });
-            }
-
-            const others = getAllLeafGroups(this.plugin, this.cell.params?.values.tag);
-            for (const o of others) {
-                update.to(o).update(old => {
-                    old.color.type = type === 'generate' ? 'custom' : 'uniform';
-                    old.color.value = value;
-                    old.color.lightness = lightness;
-                    old.color.alpha = alpha;
-                });
-            }
-        }
 
         for (const r of this.roots) {
             if (r !== this.cell) {
@@ -712,7 +578,7 @@ export class EntityNode extends Node<{}, { action?: 'color' | 'clip' }> {
         const opacityValue = this.opacityValue;
         const lodValue = this.lodValue;
 
-        const l = getEntityLabel(this.cell);
+        const l = getEntityLabel(this.plugin, this.cell);
         const label = <Button className={`msp-btn-tree-label msp-type-class-${this.cell.obj!.type.typeClass}`} noOverflow disabled={disabled}>
             <span title={l}>{l}</span>
         </Button>;

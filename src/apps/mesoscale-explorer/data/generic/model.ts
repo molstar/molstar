@@ -11,7 +11,6 @@ import { Task } from '../../../../mol-task';
 import { StateObject } from '../../../../mol-state';
 import { ParamDefinition as PD } from '../../../../mol-util/param-definition';
 import { SymmetryOperator } from '../../../../mol-math/geometry';
-import { Column } from '../../../../mol-data/db';
 
 export { StructureFromGeneric };
 type StructureFromGeneric = typeof StructureFromGeneric
@@ -31,18 +30,6 @@ const StructureFromGeneric = PluginStateTransform.BuiltIn({
 
             const model = a.data;
             const label = params.label || model.label;
-
-            // hack to use model name as entity description
-            (model as any).label = label;
-            model.entities.data = {
-                ...model.entities.data,
-                pdbx_description: Column.asArrayColumn(model.entities.data.pdbx_description),
-            };
-            const entityIds = model.atomicHierarchy.chains.label_entity_id.toArray();
-            for (let i = 0, il = entityIds.length; i < il; ++i) {
-                const idx = model.entities.getEntityIndex(entityIds[i]);
-                (model.entities.data.pdbx_description.__array as any)[idx] = [label];
-            }
 
             const base = Structure.ofModel(a.data);
             const assembler = Structure.Builder({ label });

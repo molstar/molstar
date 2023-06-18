@@ -10,7 +10,7 @@ import { Structure, Trajectory, Unit } from '../../../../mol-model/structure';
 import { Assembly } from '../../../../mol-model/structure/model/properties/symmetry';
 import { PluginStateObject as SO, PluginStateTransform } from '../../../../mol-plugin-state/objects';
 import { Task } from '../../../../mol-task';
-import { Column, Table } from '../../../../mol-data/db';
+import { Table } from '../../../../mol-data/db';
 import { mmCIF_Schema } from '../../../../mol-io/reader/cif/schema/mmcif';
 import { MmcifFormat } from '../../../../mol-model-formats/structure/mmcif';
 import { arrayFind } from '../../../../mol-data/util';
@@ -37,9 +37,12 @@ const StructureFromPetworld = PluginStateTransform.BuiltIn({
     apply({ a, params }) {
         return Task.create('Build Structure', async ctx => {
             const s = await buildModelsAssembly(a.data, '1', params.modelIndex).runInContext(ctx);
-            if (!s) return StateObject.Null;
+            if (!s || !MmcifFormat.is(s.model.sourceData)) return StateObject.Null;
 
-            const props = { label: s.model.label, description: Structure.elementDescription(s) };
+            const { frame } = s.model.sourceData.data;
+            const pdbx_model = frame.categories.pdbx_model.getField('name')!;
+            const label = pdbx_model.str(params.modelIndex);
+            const props = { label, description: Structure.elementDescription(s) };
             return new SO.Molecule.Structure(s, props);
         });
     },
@@ -54,21 +57,7 @@ function buildModelsAssembly(trajectory: Trajectory, asmName: string, modelIndex
         if (!MmcifFormat.is(model.sourceData)) return;
 
         const { db, frame } = model.sourceData.data;
-        const pdbx_model = frame.categories.pdbx_model.getField('name')!;
         const PDB_model_num = frame.categories.pdbx_struct_assembly_gen.getField('PDB_model_num')!;
-
-        // hack to use model name as entity description
-        const label = pdbx_model.str(modelIndex);
-        (model as any).label = label;
-        model.entities.data = {
-            ...model.entities.data,
-            pdbx_description: Column.asArrayColumn(model.entities.data.pdbx_description),
-        };
-        const entityIds = model.atomicHierarchy.chains.label_entity_id.toArray();
-        for (let i = 0, il = entityIds.length; i < il; ++i) {
-            const idx = model.entities.getEntityIndex(entityIds[i]);
-            (model.entities.data.pdbx_description.__array as any)[idx] = [label];
-        }
 
         // hack to cache models assemblies
         if (!(trajectory as any).__modelsAssemblies) {

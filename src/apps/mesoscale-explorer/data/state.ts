@@ -11,13 +11,15 @@ import { Task } from '../../../mol-task';
 import { Color } from '../../../mol-util/color';
 import { Spheres } from '../../../mol-geo/geometry/spheres/spheres';
 import { Clip } from '../../../mol-util/clip';
-import { stringToWords } from '../../../mol-util/string';
+import { escapeRegExp, stringToWords } from '../../../mol-util/string';
 import { Vec3 } from '../../../mol-math/linear-algebra';
 import { ParamMapping } from '../../../mol-util/param-mapping';
 import { EntityNode } from '../ui/entities';
 import { DistinctColorsProps, distinctColors } from '../../../mol-util/color/distinct';
 import { Sphere3D } from '../../../mol-math/geometry';
 import { Hcl } from '../../../mol-util/color/spaces/hcl';
+import { StateObjectCell, StateObjectRef, StateSelection } from '../../../mol-state';
+import { StructureRepresentation3D } from '../../../mol-plugin-state/transforms/representation';
 
 export function getDistinctGroupColors(count: number, color: Color, variablity: number, props?: Partial<DistinctColorsProps>) {
     const hcl = Hcl.fromColor(Hcl(), color);
@@ -254,4 +256,140 @@ const MesoscaleState = {
     has(ctx: PluginContext): boolean {
         return !!ctx.state.data.selectQ(q => q.ofType(MesoscaleStateObject))[0];
     },
+};
+
+//
+
+
+export function getRoots(plugin: PluginContext) {
+    return plugin.state.data.select(StateSelection.Generators.rootsOfType(MesoscaleGroupObject));
+}
+
+export function getGroups(plugin: PluginContext, tag?: string) {
+    const selector = tag !== undefined
+        ? StateSelection.Generators.ofTransformer(MesoscaleGroup).withTag(tag)
+        : StateSelection.Generators.ofTransformer(MesoscaleGroup);
+    return plugin.state.data.select(selector);
+}
+
+function _getAllGroups(plugin: PluginContext, tag: string | undefined, list: StateObjectCell[]) {
+    const groups = getGroups(plugin, tag);
+    list.push(...groups);
+    for (const g of groups) {
+        _getAllGroups(plugin, g.params?.values.tag, list);
+    }
+    return list;
+}
+
+export function getAllGroups(plugin: PluginContext, tag?: string) {
+    return _getAllGroups(plugin, tag, []);
+}
+
+export function getAllLeafGroups(plugin: PluginContext, tag: string) {
+    const allGroups = getAllGroups(plugin, tag);
+    allGroups.sort((a, b) => a.params?.values.index - b.params?.values.index);
+    return allGroups.filter(g => {
+        return plugin.state.data.select(StateSelection.Generators.ofTransformer(StructureRepresentation3D).withTag(g.params?.values.tag)).length > 0;
+    });
+}
+
+export function getEntities(plugin: PluginContext, tag?: string) {
+    const selector = tag !== undefined
+        ? StateSelection.Generators.ofTransformer(StructureRepresentation3D).withTag(tag)
+        : StateSelection.Generators.ofTransformer(StructureRepresentation3D);
+    return plugin.state.data.select(selector).filter(c => c.obj!.data.sourceData.elementCount > 0);
+}
+
+export function getFilteredEntities(plugin: PluginContext, tag: string, filter: string) {
+    const reFilter = new RegExp(escapeRegExp(filter), 'gi');
+    return getEntities(plugin, tag).filter(c => getEntityLabel(plugin, c).match(reFilter) !== null);
+}
+
+function _getAllEntities(plugin: PluginContext, tag: string | undefined, list: StateObjectCell[]) {
+    list.push(...getEntities(plugin, tag));
+    for (const g of getGroups(plugin, tag)) {
+        _getAllEntities(plugin, g.params?.values.tag, list);
+    }
+    return list;
+}
+
+export function getAllEntities(plugin: PluginContext, tag?: string) {
+    return _getAllEntities(plugin, tag, []);
+}
+
+export function getAllFilteredEntities(plugin: PluginContext, tag: string, filter: string) {
+    const reFilter = new RegExp(escapeRegExp(filter), 'gi');
+    return getAllEntities(plugin, tag).filter(c => getEntityLabel(plugin, c).match(reFilter) !== null);
+}
+
+export function getEntityLabel(plugin: PluginContext, cell: StateObjectCell) {
+    return StateObjectRef.resolve(plugin.state.data, cell.transform.parent)?.obj?.label || 'Entity';
+}
+
+//
+
+export async function updateColors(plugin: PluginContext, values: PD.Values, tag: string, filter: string) {
+    const update = plugin.state.data.build();
+    const { type, value, lightness, alpha } = values;
+
+    if (type === 'group-generate' || type === 'group-uniform') {
+        const groups = getAllLeafGroups(plugin, tag);
+        const baseColors = getDistinctBaseColors(groups.length);
+
+        for (let i = 0; i < groups.length; ++i) {
+            const g = groups[i];
+            const entities = getFilteredEntities(plugin, g.params?.values.tag, filter);
+            let groupColors: Color[] = [];
+
+            if (type === 'group-generate') {
+                groupColors = getDistinctGroupColors(entities.length, baseColors[i], g.params?.values.color.variablity);
+            }
+
+            for (let j = 0; j < entities.length; ++j) {
+                const c = type === 'group-generate' ? groupColors[j] : baseColors[i];
+                update.to(entities[j]).update(old => {
+                    old.colorTheme.params.value = c;
+                    old.colorTheme.params.lightness = lightness;
+                    old.type.params.alpha = alpha;
+                    old.type.params.xrayShaded = alpha < 1 ? 'inverted' : false;
+                });
+            }
+
+            update.to(g.transform.ref).update(old => {
+                old.color.type = type === 'group-generate' ? 'generate' : 'uniform';
+                old.color.value = baseColors[i];
+                old.color.lightness = lightness;
+                old.color.alpha = alpha;
+            });
+        }
+    } else if (type === 'generate' || type === 'uniform') {
+        const entities = getAllFilteredEntities(plugin, tag, filter);
+        let groupColors: Color[] = [];
+
+        if (type === 'generate') {
+            groupColors = getDistinctBaseColors(entities.length);
+        }
+
+        for (let j = 0; j < entities.length; ++j) {
+            const c = type === 'generate' ? groupColors[j] : value;
+            update.to(entities[j]).update(old => {
+                old.colorTheme.params.value = c;
+                old.colorTheme.params.lightness = lightness;
+                old.type.params.alpha = alpha;
+                old.type.params.xrayShaded = alpha < 1 ? 'inverted' : false;
+            });
+        }
+
+        const others = getAllLeafGroups(plugin, tag);
+        for (const o of others) {
+            update.to(o).update(old => {
+                old.color.type = type === 'generate' ? 'custom' : 'uniform';
+                old.color.value = value;
+                old.color.lightness = lightness;
+                old.color.alpha = alpha;
+            });
+        }
+    }
+
+    await update.commit();
 };
