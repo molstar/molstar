@@ -6,6 +6,8 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Fix issues with wboit/dpoit in large scenes
+
 ## [v3.37.0] - 2023-06-17
 
 - Add `inverted` option to `xrayShaded` parameter
