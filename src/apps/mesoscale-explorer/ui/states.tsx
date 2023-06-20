@@ -113,7 +113,7 @@ async function createHierarchy(ctx: PluginContext, ref: string) {
 
     if (frame.categories.pdbx_model) {
         await createPetworldHierarchy(ctx, parsed.trajectory);
-    } else if (frame.header.includes('CellPACK')) {
+    } else if (frame.header.toUpperCase().includes('CELLPACK')) {
         await createCellpackHierarchy(ctx, parsed.trajectory);
     } else {
         await createMmcifHierarchy(ctx, parsed.trajectory);
