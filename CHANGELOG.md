@@ -15,7 +15,10 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+## [v3.37.1] - 2023-06-20
+
 - Fix issues with wboit/dpoit in large scenes
+- Fix lines, text, points rendering (broken in v3.37.0)
 
 ## [v3.37.0] - 2023-06-17
 
