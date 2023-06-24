@@ -12,6 +12,9 @@ Note that since we don't clearly distinguish between a public and private interf
     - Visibility based on camera distance
     - Special mode for spheres with automatic LOD levels
 - Add `Euler` math primitive
+- Reduce `Spheres` memory usage
+    - Derive mapping from VertexID
+    - Pull position and group from texture
 
 ## [Unreleased]
 

@@ -13,7 +13,7 @@ import { Theme } from '../../../mol-theme/theme';
 import { SpheresValues } from '../../../mol-gl/renderable/spheres';
 import { createColors } from '../color-data';
 import { createMarkers } from '../marker-data';
-import { calculateInvariantBoundingSphere, calculateTransformBoundingSphere } from '../../../mol-gl/renderable/util';
+import { TextureImage, calculateInvariantBoundingSphere, calculateTransformBoundingSphere, createTextureImage } from '../../../mol-gl/renderable/util';
 import { Sphere3D } from '../../../mol-math/geometry';
 import { createSizes, getMaxSize } from '../size-data';
 import { Color } from '../../../mol-util/color';
@@ -23,7 +23,7 @@ import { createEmptyTransparency } from '../transparency-data';
 import { hashFnv32a } from '../../../mol-data/util';
 import { GroupMapping, createGroupMapping } from '../../util';
 import { createEmptyClipping } from '../clipping-data';
-import { Vec3, Vec4 } from '../../../mol-math/linear-algebra';
+import { Vec2, Vec3, Vec4 } from '../../../mol-math/linear-algebra';
 import { RenderableState } from '../../../mol-gl/renderable';
 import { createEmptySubstance } from '../substance-data';
 
@@ -35,10 +35,6 @@ export interface Spheres {
 
     /** Center buffer as array of xyz values wrapped in a value cell */
     readonly centerBuffer: ValueCell<Float32Array>,
-    /** Mapping buffer as array of xy values wrapped in a value cell */
-    readonly mappingBuffer: ValueCell<Float32Array>,
-    /** Index buffer as array of center index triplets wrapped in a value cell */
-    readonly indexBuffer: ValueCell<Uint32Array>,
     /** Group buffer as array of group ids for each vertex wrapped in a value cell */
     readonly groupBuffer: ValueCell<Float32Array>,
 
@@ -53,29 +49,27 @@ export interface Spheres {
 }
 
 export namespace Spheres {
-    export function create(centers: Float32Array, mappings: Float32Array, indices: Uint32Array, groups: Float32Array, sphereCount: number, spheres?: Spheres): Spheres {
+    export function create(centers: Float32Array, groups: Float32Array, sphereCount: number, spheres?: Spheres): Spheres {
         return spheres ?
-            update(centers, mappings, indices, groups, sphereCount, spheres) :
-            fromArrays(centers, mappings, indices, groups, sphereCount);
+            update(centers, groups, sphereCount, spheres) :
+            fromArrays(centers, groups, sphereCount);
     }
 
     export function createEmpty(spheres?: Spheres): Spheres {
         const cb = spheres ? spheres.centerBuffer.ref.value : new Float32Array(0);
-        const mb = spheres ? spheres.mappingBuffer.ref.value : new Float32Array(0);
-        const ib = spheres ? spheres.indexBuffer.ref.value : new Uint32Array(0);
         const gb = spheres ? spheres.groupBuffer.ref.value : new Float32Array(0);
-        return create(cb, mb, ib, gb, 0, spheres);
+        return create(cb, gb, 0, spheres);
     }
 
     function hashCode(spheres: Spheres) {
         return hashFnv32a([
             spheres.sphereCount,
-            spheres.centerBuffer.ref.version, spheres.mappingBuffer.ref.version,
-            spheres.indexBuffer.ref.version, spheres.groupBuffer.ref.version
+            spheres.centerBuffer.ref.version,
+            spheres.groupBuffer.ref.version
         ]);
     }
 
-    function fromArrays(centers: Float32Array, mappings: Float32Array, indices: Uint32Array, groups: Float32Array, sphereCount: number): Spheres {
+    function fromArrays(centers: Float32Array, groups: Float32Array, sphereCount: number): Spheres {
 
         const boundingSphere = Sphere3D();
         let groupMapping: GroupMapping;
@@ -87,8 +81,6 @@ export namespace Spheres {
             kind: 'spheres' as const,
             sphereCount,
             centerBuffer: ValueCell.create(centers),
-            mappingBuffer: ValueCell.create(mappings),
-            indexBuffer: ValueCell.create(indices),
             groupBuffer: ValueCell.create(groups),
             get boundingSphere() {
                 const newHash = hashCode(spheres);
@@ -115,21 +107,25 @@ export namespace Spheres {
         return spheres;
     }
 
-    function update(centers: Float32Array, mappings: Float32Array, indices: Uint32Array, groups: Float32Array, sphereCount: number, spheres: Spheres) {
-        if (sphereCount > spheres.sphereCount) {
-            ValueCell.update(spheres.mappingBuffer, mappings);
-            ValueCell.update(spheres.indexBuffer, indices);
-        }
+    function update(centers: Float32Array, groups: Float32Array, sphereCount: number, spheres: Spheres) {
         spheres.sphereCount = sphereCount;
         ValueCell.update(spheres.centerBuffer, centers);
         ValueCell.update(spheres.groupBuffer, groups);
         return spheres;
     }
 
-    function getStrideOrderedElements(elements: Uint32Array, count: number, strides: number[]) {
-        if (strides.length === 0) return;
+    function getStrideOffsetsAndSetPositionGroup(out: TextureImage<Float32Array>, centers: Float32Array, groups: Float32Array, count: number, strides: number[]) {
+        const { array } = out;
+        if (strides.length === 0) {
+            for (let i = 0; i < count; ++i) {
+                array[i * 4 + 0] = centers[i * 3 + 0];
+                array[i * 4 + 1] = centers[i * 3 + 1];
+                array[i * 4 + 2] = centers[i * 3 + 2];
+                array[i * 4 + 3] = groups[i];
+            }
+            return;
+        }
 
-        const orderedElements = new Uint32Array(count * 6);
         const offsets = [0];
 
         let o = 0;
@@ -144,16 +140,17 @@ export namespace Spheres {
                     }
                 }
                 if (!handled && j % s === 0) {
-                    for (let l = 0; l < 6; ++l) {
-                        orderedElements[o] = elements[j * 6 + l];
-                        o += 1;
-                    }
+                    array[o * 4 + 0] = centers[j * 3 + 0];
+                    array[o * 4 + 1] = centers[j * 3 + 1];
+                    array[o * 4 + 2] = centers[j * 3 + 2];
+                    array[o * 4 + 3] = groups[j];
+                    o += 1;
                 }
             }
-            offsets.push(o);
+            offsets.push(o * 6);
         }
 
-        return { elements: orderedElements, offsets };
+        return offsets;
     }
 
     type LodLevels = {
@@ -237,7 +234,7 @@ export namespace Spheres {
     };
 
     function createPositionIterator(spheres: Spheres, transform: TransformData): LocationIterator {
-        const groupCount = spheres.sphereCount * 4;
+        const groupCount = spheres.sphereCount;
         const instanceCount = transform.instanceCount.ref.value;
         const location = PositionLocation();
         const p = location.position;
@@ -251,7 +248,7 @@ export namespace Spheres {
             }
             return location;
         };
-        return LocationIterator(groupCount, instanceCount, 4, getLocation);
+        return LocationIterator(groupCount, instanceCount, 1, getLocation);
     }
 
     function createValues(spheres: Spheres, transform: TransformData, locationIt: LocationIterator, theme: Theme, props: PD.Values<Params>): SpheresValues {
@@ -268,23 +265,23 @@ export namespace Spheres {
         const material = createEmptySubstance();
         const clipping = createEmptyClipping();
 
-        const counts = { drawCount: spheres.sphereCount * 2 * 3, vertexCount: spheres.sphereCount * 4, groupCount, instanceCount };
+        const counts = { drawCount: spheres.sphereCount * 2 * 3, vertexCount: spheres.sphereCount * 6, groupCount, instanceCount };
 
         const padding = spheres.boundingSphere.radius ? getMaxSize(size) * props.sizeFactor : 0;
         const invariantBoundingSphere = Sphere3D.expand(Sphere3D(), spheres.boundingSphere, padding);
         const boundingSphere = calculateTransformBoundingSphere(invariantBoundingSphere, transform.aTransform.ref.value, instanceCount, 0);
 
+        const positionGroupTexture = createTextureImage(spheres.sphereCount, 4, Float32Array);
         const strides = getStrides(props.lodLevels, props.sizeFactor);
-        const ordered = getStrideOrderedElements(spheres.indexBuffer.ref.value, spheres.sphereCount, strides);
-        const lodLevels = ordered ? getLodLevelsValue(props.lodLevels, props.sizeFactor, ordered.offsets, spheres.sphereCount) : [];
+        const offsets = getStrideOffsetsAndSetPositionGroup(positionGroupTexture, spheres.centerBuffer.ref.value, spheres.groupBuffer.ref.value, spheres.sphereCount, strides);
+        const lodLevels = offsets ? getLodLevelsValue(props.lodLevels, props.sizeFactor, offsets, spheres.sphereCount) : [];
 
         return {
             dGeometryType: ValueCell.create('spheres'),
 
-            aPosition: spheres.centerBuffer,
-            aMapping: spheres.mappingBuffer,
-            aGroup: spheres.groupBuffer,
-            elements: ValueCell.create(ordered ? ordered.elements : spheres.indexBuffer.ref.value),
+            uTexDim: ValueCell.create(Vec2.create(positionGroupTexture.width, positionGroupTexture.height)),
+            tPositionGroup: ValueCell.create(positionGroupTexture),
+
             boundingSphere: ValueCell.create(boundingSphere),
             invariantBoundingSphere: ValueCell.create(invariantBoundingSphere),
             uInvariantBoundingSphere: ValueCell.create(Vec4.ofSphere(invariantBoundingSphere)),
@@ -310,7 +307,8 @@ export namespace Spheres {
             uBumpAmplitude: ValueCell.create(props.bumpAmplitude),
 
             lodLevels: ValueCell.create(lodLevels),
-            indexBuffer: spheres.indexBuffer,
+            centerBuffer: spheres.centerBuffer,
+            groupBuffer: spheres.groupBuffer,
         };
     }
 
@@ -339,11 +337,11 @@ export namespace Spheres {
             scaleBias: l[6],
         }));
         if (!areLodLevelsEqual(props.lodLevels, lodLevels)) {
+            const count = values.uVertexCount.ref.value / 6;
             const strides = getStrides(props.lodLevels, props.sizeFactor);
-            const ordered = getStrideOrderedElements(values.indexBuffer.ref.value, values.uVertexCount.ref.value / 4, strides);
-            const lodLevels = ordered ? getLodLevelsValue(props.lodLevels, props.sizeFactor, ordered.offsets, values.uGroupCount.ref.value) : [];
-            // console.log(lodLevels);
-            ValueCell.update(values.elements, ordered ? ordered.elements : values.indexBuffer.ref.value);
+            const offsets = getStrideOffsetsAndSetPositionGroup(values.tPositionGroup.ref.value, values.centerBuffer.ref.value, values.groupBuffer.ref.value, count, strides);
+            const lodLevels = offsets ? getLodLevelsValue(props.lodLevels, props.sizeFactor, offsets, count) : [];
+            ValueCell.update(values.tPositionGroup, values.tPositionGroup.ref.value);
             ValueCell.update(values.lodLevels, lodLevels);
         }
     }

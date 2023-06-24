@@ -18,11 +18,11 @@ precision highp int;
 uniform mat4 uModelView;
 uniform mat4 uInvProjection;
 
-attribute vec3 aPosition;
-attribute vec2 aMapping;
+uniform vec2 uTexDim;
+uniform sampler2D tPositionGroup;
+
 attribute mat4 aTransform;
 attribute float aInstance;
-attribute float aGroup;
 
 varying float vRadius;
 varying float vRadiusSq;
@@ -43,7 +43,7 @@ const mat4 D = mat4(
  * "GPU-Based Ray-Casting of Quadratic Surfaces" http://dl.acm.org/citation.cfm?id=2386396
  * by Christian Sigg, Tim Weyrich, Mario Botsch, Markus Gross.
  */
-void quadraticProjection(const in float radius, const in vec3 position){
+void quadraticProjection(const in float radius, const in vec3 position, const in vec2 mapping){
     vec2 xbc, ybc;
 
     mat4 T = mat4(
@@ -69,12 +69,29 @@ void quadraticProjection(const in float radius, const in vec3 position){
     float sy = abs(ybc[0] - ybc[1]) * 0.5;
 
     gl_Position.xy = vec2(0.5 * (xbc.x + xbc.y), 0.5 * (ybc.x + ybc.y));
-    gl_Position.xy -= aMapping * vec2(sx, sy);
+    gl_Position.xy -= mapping * vec2(sx, sy);
     gl_Position.xy *= gl_Position.w;
 }
 
 void main(void){
-    #include assign_group
+    vec2 mapping = vec2(1.0, 1.0); // vertices 2 and 5
+    #if __VERSION__ == 100
+        int m = imod(VertexID, 6);
+    #else
+        int m = VertexID % 6;
+    #endif
+    if (m == 0) {
+        mapping = vec2(-1.0, 1.0);
+    } else if (m == 1 || m == 3) {
+        mapping = vec2(-1.0, -1.0);
+    } else if (m == 4) {
+        mapping = vec2(1.0, -1.0);
+    }
+
+    vec4 positionGroup = readFromTexture(tPositionGroup, VertexID / 6, uTexDim);
+    vec3 position = positionGroup.rgb;
+    float group = positionGroup.a;
+
     #include assign_color_varying
     #include assign_marker_varying
     #include assign_clipping_varying
@@ -82,7 +99,7 @@ void main(void){
 
     vRadius = size * matrixScale(uModelView);
 
-    vec4 position4 = vec4(aPosition, 1.0);
+    vec4 position4 = vec4(position, 1.0);
     vModelPosition = (uModel * aTransform * position4).xyz; // for clipping in frag shader
 
     float d;
@@ -95,7 +112,7 @@ void main(void){
     vec4 mvPosition = uModelView * aTransform * position4;
 
     gl_Position = uProjection * vec4(mvPosition.xyz, 1.0);
-    quadraticProjection(vRadius, aPosition);
+    quadraticProjection(vRadius, position, mapping);
 
     vRadiusSq = vRadius * vRadius;
     vec4 vPoint4 = uInvProjection * gl_Position;
