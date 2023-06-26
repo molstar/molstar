@@ -25,7 +25,7 @@ function getSpacefillParams(color: Color, scaleFactor: number, lodLevels: LodLev
             params: {
                 ...SpacefillRepresentationProvider.defaultValues,
                 ignoreHydrogens: false,
-                instanceGranularity: true,
+                instanceGranularity: false,
                 ignoreLight: true,
                 lodLevels: lodLevels.map(l => {
                     return {

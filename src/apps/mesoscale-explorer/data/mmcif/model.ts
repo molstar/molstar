@@ -5,9 +5,9 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { SortedArray } from '../../../../mol-data/int';
-import { SymmetryOperator } from '../../../../mol-math/geometry';
-import { Mat4 } from '../../../../mol-math/linear-algebra';
+import { OrderedSet, SortedArray } from '../../../../mol-data/int';
+import { Box3D, GridLookup3D, PositionData, Sphere3D, SymmetryOperator } from '../../../../mol-math/geometry';
+import { Mat4, Vec3 } from '../../../../mol-math/linear-algebra';
 import { ModelSymmetry } from '../../../../mol-model-formats/structure/property/symmetry';
 import { CustomStructureProperty } from '../../../../mol-model-props/common/custom-structure-property';
 import { ElementIndex, EntityIndex, Model, Structure, Unit } from '../../../../mol-model/structure';
@@ -145,6 +145,45 @@ function getUnitsByEntity(structure: Structure): UnitsByEntity {
     return map;
 }
 
+function mergeUnits(units: Unit[], id: number): Unit {
+    const u = units[0];
+
+    let start = -1 as ElementIndex, end = -1 as ElementIndex;
+    let elements = SortedArray.Empty as SortedArray<ElementIndex>;
+
+    for (let i = 0, il = units.length; i < il; ++i) {
+        const e = units[i].elements;
+        if (SortedArray.isRange(e)) {
+            if (end !== -1 && e[0] === end + 1) {
+                // extend range
+                end = e[e.length - 1];
+            } else {
+                if (end !== -1) {
+                    // pending range
+                    elements = SortedArray.union(elements, SortedArray.ofRange(start, end));
+                }
+                // new range
+                start = e[0];
+                end = e[e.length - 1];
+            }
+        } else {
+            if (end !== -1) {
+                // pending range
+                elements = SortedArray.union(elements, SortedArray.ofRange(start, end));
+                start = -1 as ElementIndex, end = -1 as ElementIndex;
+            }
+            elements = SortedArray.union(elements, e);
+        }
+    }
+
+    if (end !== -1) {
+        // pending range
+        elements = SortedArray.union(elements, SortedArray.ofRange(start, end));
+    }
+
+    return Unit.create(id, id, 0, u.traits | Unit.Trait.MultiChain, u.kind, u.model, u.conformation.operator, elements);
+}
+
 export { MmcifStructure };
 type MmcifStructure = typeof MmcifStructure
 const MmcifStructure = PluginStateTransform.BuiltIn({
@@ -154,7 +193,8 @@ const MmcifStructure = PluginStateTransform.BuiltIn({
     to: PSO.Molecule.Structure,
     params: {
         structureRef: PD.Text(''),
-        entityId: PD.Text('')
+        entityId: PD.Text(''),
+        cellSize: PD.Numeric(500, { min: 0, max: 10000, step: 100 }),
     }
 })({
     canAutoUpdate({ newParams }) {
@@ -168,10 +208,50 @@ const MmcifStructure = PluginStateTransform.BuiltIn({
 
             const unitsByEntity = getUnitsByEntity(parent);
             const units = unitsByEntity.get(idx) || [];
-            const structure = Structure.create(units);
+            const unitCount = units.length;
+
+            let structure: Structure;
+            if (unitCount > 1 && units.every(u => u.conformation.operator.isIdentity)) {
+                const mergedUnits: Unit[] = [];
+                const cellSize = params.cellSize;
+
+                const box = Box3D.setEmpty(Box3D());
+                const x = new Float32Array(unitCount);
+                const y = new Float32Array(unitCount);
+                const z = new Float32Array(unitCount);
+                const indices = OrderedSet.ofBounds(0, unitCount);
+
+                for (let i = 0, il = unitCount; i < il; ++i) {
+                    const v = units[i].boundary.sphere.center;
+                    x[i] = v[0];
+                    y[i] = v[1];
+                    z[i] = v[2];
+                    Box3D.add(box, v);
+                }
+                Box3D.expand(box, box, Vec3.create(1, 1, 1));
+
+                const positionData: PositionData = { x, y, z, indices };
+                const boundary = { box, sphere: Sphere3D.fromBox3D(Sphere3D(), box) };
+                const lookup = GridLookup3D(positionData, boundary, Vec3.create(cellSize, cellSize, cellSize));
+
+                const { array, offset, count } = lookup.buckets;
+
+                for (let i = 0, il = offset.length; i < il; ++i) {
+                    const start = offset[i];
+                    const size = count[i];
+                    const cellUnits: Unit[] = [];
+                    for (let j = start, jl = start + size; j < jl; ++j) {
+                        cellUnits.push(units[array[j]]);
+                    }
+                    mergedUnits.push(mergeUnits(cellUnits, i));
+                }
+
+                structure = Structure.create(mergedUnits);
+            } else {
+                structure = Structure.create(units);
+            }
 
             const label = entities.data.pdbx_description.value(idx).join(', ') || 'model';
-
             return new PSO.Molecule.Structure(structure, { label, description: `${a.description}` });
         });
     },
