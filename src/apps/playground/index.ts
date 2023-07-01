@@ -13,6 +13,7 @@ import { PluginCommands } from '../../mol-plugin/commands';
 import { Asset } from '../../mol-util/assets';
 import { Color } from '../../mol-util/color';
 import './index.html';
+import { Structure } from '../../mol-model/structure';
 require('mol-plugin-ui/skin/light.scss');
 
 type LoadParams = { url: string, format?: BuiltInTrajectoryFormat, isBinary?: boolean, assemblyId?: string }
@@ -163,7 +164,9 @@ class LightingDemo {
 
         const ligand = await this.plugin.builders.structure.tryCreateComponentStatic(structure, 'ligand');
         if (ligand) await this.plugin.builders.structure.representation.addRepresentation(ligand, { type: 'ball-and-stick', color: 'element-symbol', colorParams: { carbonColor: { name: 'element-symbol', params: {} } } });
-
+        Structure.eachAtomicHierarchyElement(this.plugin.managers.structure.hierarchy.selection.structures[0].cell.obj?.data as Structure, {
+            atom: (a) => console.log(a)
+        });
         this.radius = radius;
         this.bias = bias;
         this.setPreset(this.preset);
