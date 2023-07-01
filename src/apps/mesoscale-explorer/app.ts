@@ -21,7 +21,6 @@ import { Color } from '../../mol-util/color';
 import { SpacefillRepresentationProvider } from '../../mol-repr/structure/representation/spacefill';
 import { PluginBehaviors } from '../../mol-plugin/behavior';
 import { MesoFocusLoci } from './behavior/camera';
-import { PetworldColorThemeProvider } from './data/petworld/color';
 import { MesoscaleState } from './data/state';
 import { MesoSelectLoci } from './behavior/select';
 
@@ -219,8 +218,6 @@ export class Viewer {
 
         plugin.representation.structure.registry.clear();
         plugin.representation.structure.registry.add(SpacefillRepresentationProvider);
-
-        plugin.representation.structure.themes.colorThemeRegistry.add(PetworldColorThemeProvider);
 
         plugin.state.setSnapshotParams({
             image: true,

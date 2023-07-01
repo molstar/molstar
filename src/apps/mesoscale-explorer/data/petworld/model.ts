@@ -6,7 +6,7 @@
 
 import { Mat4 } from '../../../../mol-math/linear-algebra/3d/mat4';
 import { getMatrices, operatorGroupsProvider } from '../../../../mol-model-formats/structure/property/assembly';
-import { Structure, Trajectory, Unit } from '../../../../mol-model/structure';
+import { Structure, StructureElement, StructureProperties, Trajectory, Unit } from '../../../../mol-model/structure';
 import { Assembly } from '../../../../mol-model/structure/model/properties/symmetry';
 import { PluginStateObject as SO, PluginStateTransform } from '../../../../mol-plugin-state/objects';
 import { Task } from '../../../../mol-task';
@@ -17,8 +17,7 @@ import { arrayFind } from '../../../../mol-data/util';
 import { StateObject } from '../../../../mol-state';
 import { CifField } from '../../../../mol-io/reader/cif';
 import { ParamDefinition as PD } from '../../../../mol-util/param-definition';
-
-const plus1 = (v: number) => v + 1, minus1 = (v: number) => v - 1;
+import { mergeUnits } from '../util';
 
 export { StructureFromPetworld };
 type StructureFromPetworld = typeof StructureFromPetworld
@@ -27,16 +26,14 @@ const StructureFromPetworld = PluginStateTransform.BuiltIn({
     display: { name: 'Structure from PetWorld', description: 'Create a molecular structure from PetWorld models.' },
     from: SO.Molecule.Trajectory,
     to: SO.Molecule.Structure,
-    params: a => {
-        if (!a) {
-            return { modelIndex: PD.Numeric(0, {}, { description: 'Zero-based index of the model', immediateUpdate: true }) };
-        }
-        return { modelIndex: PD.Converted(plus1, minus1, PD.Numeric(1, { min: 1, max: a.data.frameCount, step: 1 }, { description: 'Model Index', immediateUpdate: true })) };
+    params: {
+        modelIndex: PD.Numeric(0),
+        entityIds: PD.Value<string[]>([]),
     }
 })({
     apply({ a, params }) {
         return Task.create('Build Structure', async ctx => {
-            const s = await buildModelsAssembly(a.data, '1', params.modelIndex).runInContext(ctx);
+            const s = await buildModelsAssembly(a.data, '1', params.modelIndex, params.entityIds).runInContext(ctx);
             if (!s || !MmcifFormat.is(s.model.sourceData)) return StateObject.Null;
 
             const { frame } = s.model.sourceData.data;
@@ -51,7 +48,7 @@ const StructureFromPetworld = PluginStateTransform.BuiltIn({
     }
 });
 
-function buildModelsAssembly(trajectory: Trajectory, asmName: string, modelIndex: number) {
+function buildModelsAssembly(trajectory: Trajectory, asmName: string, modelIndex: number, entitiyIds: string[]) {
     return Task.create('Build Models Assembly', async ctx => {
         const model = await Task.resolveInContext(trajectory.getFrameAtIndex(modelIndex), ctx);
         if (!MmcifFormat.is(model.sourceData)) return;
@@ -73,12 +70,16 @@ function buildModelsAssembly(trajectory: Trajectory, asmName: string, modelIndex
         const g = assembly.operatorGroups[modelIndex];
 
         const structure = Structure.ofModel(model);
-        const { units } = structure;
+        const l = StructureElement.Location.create(structure);
+        const units = structure.units.filter(u => {
+            l.unit = u;
+            l.element = u.elements[0];
+            return entitiyIds.includes(StructureProperties.entity.id(l));
+        });
+        const unit = mergeUnits(units, 0);
 
         for (const oper of g.operators) {
-            for (const unit of units) {
-                assembler.addUnit(unit.kind, unit.model, oper, unit.elements, unit.traits | Unit.Trait.FastBoundary, unit.invariantId);
-            }
+            assembler.addUnit(unit.kind, unit.model, oper, unit.elements, unit.traits | Unit.Trait.FastBoundary, unit.invariantId);
         }
 
         return assembler.getStructure();
