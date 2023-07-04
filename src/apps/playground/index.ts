@@ -13,7 +13,12 @@ import { PluginCommands } from '../../mol-plugin/commands';
 import { Asset } from '../../mol-util/assets';
 import { Color } from '../../mol-util/color';
 import './index.html';
-import { Structure } from '../../mol-model/structure';
+import { Structure, StructureElement, StructureProperties } from '../../mol-model/structure';
+import { StructureMeasurementManager } from '../../mol-plugin-state/manager/structure/measurement';
+import { Loci } from '../../mol-model/structure/structure/element/loci';
+import { PluginStateObject } from '../../mol-plugin-state/objects';
+import { SequenceWrapper } from '../../mol-plugin-ui/sequence/wrapper';
+import { getChainOptions, getModelEntityOptions, getOperatorOptions, getSequenceWrapper } from '../../mol-plugin-ui/sequence';
 require('mol-plugin-ui/skin/light.scss');
 
 type LoadParams = { url: string, format?: BuiltInTrajectoryFormat, isBinary?: boolean, assemblyId?: string }
@@ -157,20 +162,64 @@ class LightingDemo {
         const data = await this.plugin.builders.data.download({ url: Asset.Url(url), isBinary }, { state: { isGhost: true } });
         const trajectory = await this.plugin.builders.structure.parseTrajectory(data, format);
         const model = await this.plugin.builders.structure.createModel(trajectory);
-        const structure = await this.plugin.builders.structure.createStructure(model, assemblyId ? { name: 'assembly', params: { id: assemblyId } } : { name: 'model', params: {} });
+        let structure: any = await this.plugin.builders.structure.createStructure(model, assemblyId ? { name: 'assembly', params: { id: assemblyId } } : { name: 'model', params: {} });
 
         const polymer = await this.plugin.builders.structure.tryCreateComponentStatic(structure, 'polymer');
-        if (polymer) await this.plugin.builders.structure.representation.addRepresentation(polymer, { type: 'spacefill', color: 'illustrative' });
+        if (polymer) await this.plugin.builders.structure.representation.addRepresentation(polymer, { type: 'cartoon', color: 'illustrative' });
 
-        const ligand = await this.plugin.builders.structure.tryCreateComponentStatic(structure, 'ligand');
-        if (ligand) await this.plugin.builders.structure.representation.addRepresentation(ligand, { type: 'ball-and-stick', color: 'element-symbol', colorParams: { carbonColor: { name: 'element-symbol', params: {} } } });
+        const atomLoci: any = [];
         Structure.eachAtomicHierarchyElement(this.plugin.managers.structure.hierarchy.selection.structures[0].cell.obj?.data as Structure, {
-            atom: (a) => console.log(a)
+            atom: (a) => {
+                const newloci = Structure.toStructureElementLoci(a.structure);
+                console.log('newLoci', newloci);
+                atomLoci.push(newloci);
+
+                console.log(StructureProperties.atom.x(a), StructureProperties.atom.y(a), StructureProperties.atom.z(a));
+            },
         });
+
+        setTimeout(() => {
+            const state = this.plugin.state.data;
+            const cell = state.select(structure.ref)[0];
+            if (!structure.ref || !cell || !cell.obj) return;
+            structure = (cell.obj as PluginStateObject.Molecule.Structure).data;
+            console.log('structure', structure)
+            const wrappers: { wrapper: (string | SequenceWrapper.Any), label: string }[] = [];
+            // Get wrapper of structure
+
+            for (const [modelEntityId, eLabel] of getModelEntityOptions(structure, true)) {
+                for (const [chainGroupId, cLabel] of getChainOptions(structure, modelEntityId)) {
+                    for (const [operatorKey] of getOperatorOptions(structure, modelEntityId, chainGroupId)) {
+                        wrappers.push({
+                            wrapper: getSequenceWrapper({
+                                structure,
+                                modelEntityId,
+                                chainGroupId,
+                                operatorKey
+                            }, this.plugin.managers.structure.selection),
+                            label: `${cLabel} | ${eLabel}`
+                        });
+                        if (wrappers.length > 30) return [];
+                    }
+                }
+            }
+
+            const wrapper = wrappers[0];
+            const sequenceWrapper = wrapper.wrapper as SequenceWrapper.Any;
+            const measurementManager = new StructureMeasurementManager(this.plugin);
+            console.log('Wrapper', sequenceWrapper.length);
+            measurementManager.addDistance(sequenceWrapper.getLoci(80), sequenceWrapper.getLoci(100));
+            // const loci = sequenceWrapper.getLoci(i);
+        }, 3000);
+
         this.radius = radius;
         this.bias = bias;
         this.setPreset(this.preset);
     }
+
 }
 
+function toEntries<T>(a: T[]) {
+    return a.map((value, index) => [index, value] as const);
+}
 (window as any).LightingDemo = new LightingDemo();
