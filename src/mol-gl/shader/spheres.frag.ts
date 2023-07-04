@@ -88,16 +88,29 @@ void main(void){
     vec3 cameraNormal;
     float fragmentDepth;
     bool clipped = false;
-    bool hit = SphereImpostor(modelPos, cameraPos, cameraNormal, interior, fragmentDepth);
-    if (!hit) discard;
 
-    if (fragmentDepth < 0.0) discard;
-    if (fragmentDepth > 1.0) discard;
+    #ifdef dApproximate
+        vec3 pointDir = -vPointViewPosition - vPoint;
+        if (dot(pointDir, pointDir) > vRadius * vRadius) discard;
+        cameraPos = -vPointViewPosition;
+        modelPos = vPoint;
+        fragmentDepth = gl_FragCoord.z;
+        #ifndef dIgnoreLight
+            cameraNormal = -mix(normalize(vPoint), vec3(0.0, 0.0, 1.0), uIsOrtho);
+        #endif
+        interior = false;
+    #else
+        bool hit = SphereImpostor(modelPos, cameraPos, cameraNormal, interior, fragmentDepth);
+        if (!hit) discard;
+
+        if (fragmentDepth < 0.0) discard;
+        if (fragmentDepth > 1.0) discard;
+
+        gl_FragDepthEXT = fragmentDepth;
+    #endif
 
     vec3 vViewPosition = cameraPos;
     vec3 vModelPosition = modelPos;
-
-    gl_FragDepthEXT = fragmentDepth;
 
     #include clip_pixel
     #include assign_material_color

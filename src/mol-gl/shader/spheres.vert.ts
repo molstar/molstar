@@ -111,8 +111,14 @@ void main(void){
 
     vec4 mvPosition = uModelView * aTransform * position4;
 
-    gl_Position = uProjection * vec4(mvPosition.xyz, 1.0);
-    quadraticProjection(vRadius, position, mapping);
+    #ifdef dApproximate
+        vec4 mvCorner = vec4(mvPosition.xyz, 1.0);
+        mvCorner.xy += mapping * vRadius;
+        gl_Position = uProjection * mvCorner;
+    #else
+        gl_Position = uProjection * vec4(mvPosition.xyz, 1.0);
+        quadraticProjection(vRadius, position, mapping);
+    #endif
 
     vRadiusSq = vRadius * vRadius;
     vec4 vPoint4 = uInvProjection * gl_Position;
