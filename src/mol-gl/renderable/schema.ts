@@ -142,6 +142,7 @@ export const GlobalUniformSchema = {
     uCameraPlane: UniformSpec('v4'),
     uNear: UniformSpec('f'),
     uFar: UniformSpec('f'),
+    uFog: UniformSpec('b'),
     uFogNear: UniformSpec('f'),
     uFogFar: UniformSpec('f'),
     uFogColor: UniformSpec('v3'),

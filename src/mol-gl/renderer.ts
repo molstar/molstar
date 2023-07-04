@@ -221,6 +221,7 @@ namespace Renderer {
             uCameraPlane: ValueCell.create(Plane3D.toArray(cameraPlane, Vec4(), 0)),
             uNear: ValueCell.create(1),
             uFar: ValueCell.create(10000),
+            uFog: ValueCell.create(true),
             uFogNear: ValueCell.create(1),
             uFogFar: ValueCell.create(10000),
             uFogColor: ValueCell.create(bgColor),
@@ -378,6 +379,7 @@ namespace Renderer {
 
             ValueCell.updateIfChanged(globalUniforms.uFar, camera.far);
             ValueCell.updateIfChanged(globalUniforms.uNear, camera.near);
+            ValueCell.updateIfChanged(globalUniforms.uFog, camera.state.fog > 0);
             ValueCell.updateIfChanged(globalUniforms.uFogFar, camera.fogFar);
             ValueCell.updateIfChanged(globalUniforms.uFogNear, camera.fogNear);
             ValueCell.updateIfChanged(globalUniforms.uTransparentBackground, transparentBackground);
