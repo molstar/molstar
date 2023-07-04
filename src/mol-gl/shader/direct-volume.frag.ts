@@ -68,6 +68,7 @@ uniform int uGroupCount;
 uniform float uMetalness;
 uniform float uRoughness;
 
+uniform bool uFog;
 uniform float uFogNear;
 uniform float uFogFar;
 uniform vec3 uFogColor;
