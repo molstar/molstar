@@ -12,13 +12,10 @@ import { StateObjectRef, StateObjectSelector, StateBuilder } from '../../../../m
 import { Color } from '../../../../mol-util/color';
 import { ColorNames } from '../../../../mol-util/color/names';
 import { ParamDefinition as PD } from '../../../../mol-util/param-definition';
-import { MesoscaleExplorerState } from '../../app';
-import { MesoscaleGroup, MesoscaleGroupParams, MesoscaleGroupProps, getDistinctBaseColors, getDistinctGroupColors } from '../state';
+import { MesoscaleGroup, MesoscaleGroupParams, getDistinctBaseColors, getDistinctGroupColors, getLodLevels } from '../state';
 import { MmcifAssembly, MmcifStructure } from './model';
 
-type LodLevels = typeof SpacefillRepresentationProvider.defaultValues['lodLevels']
-
-function getSpacefillParams(color: Color, scaleFactor: number, lodLevels: LodLevels) {
+function getSpacefillParams(color: Color, scaleFactor: number) {
     return {
         type: {
             name: 'spacefill',
@@ -27,7 +24,7 @@ function getSpacefillParams(color: Color, scaleFactor: number, lodLevels: LodLev
                 ignoreHydrogens: false,
                 instanceGranularity: false,
                 ignoreLight: true,
-                lodLevels: lodLevels.map(l => {
+                lodLevels: getLodLevels('high').map(l => {
                     return {
                         ...l,
                         stride: Math.max(1, Math.round(l.stride / Math.pow(scaleFactor, l.scaleBias)))
@@ -60,7 +57,6 @@ function getSpacefillParams(color: Color, scaleFactor: number, lodLevels: LodLev
 export async function createMmcifHierarchy(plugin: PluginContext, trajectory: StateObjectRef<PluginStateObject.Molecule.Trajectory>) {
     const builder = plugin.builders.structure;
     const state = plugin.state.data;
-    const customState = plugin.customState as MesoscaleExplorerState;
 
     const model = await builder.createModel(trajectory, { modelIndex: 0 });
     const { data: entities, subtype } = model.data!.entities;
@@ -85,20 +81,12 @@ export async function createMmcifHierarchy(plugin: PluginContext, trajectory: St
             spheresAvgRadius.set(k, v / spheresCount.get(k)!);
         });
     }
-    console.log(spheresAvgRadius);
 
     const entGroups = new Map<string, StateObjectSelector>();
     const entIds = new Map<string, { idx: number, members: Map<string, number> }>();
     const entColors = new Map<string, Color[]>();
 
-    const _groupParams = PD.getDefaultValues(MesoscaleGroupParams);
-    const groupParams: MesoscaleGroupProps = {
-        ..._groupParams,
-        lod: {
-            ..._groupParams.lod,
-            lodLevels: customState.lodLevels,
-        }
-    };
+    const groupParams = PD.getDefaultValues(MesoscaleGroupParams);
 
     const base = await state.build()
         .to(model)
@@ -162,7 +150,7 @@ export async function createMmcifHierarchy(plugin: PluginContext, trajectory: St
                 build = build
                     .toRoot()
                     .apply(MmcifStructure, { structureRef: base.ref, entityId: entities.id.value(i) }, { dependsOn })
-                    .apply(StructureRepresentation3D, getSpacefillParams(color, scaleFactor, customState.lodLevels), { tags: [`ent:${t}`] });
+                    .apply(StructureRepresentation3D, getSpacefillParams(color, scaleFactor), { tags: [`ent:${t}`] });
             }
             await build.commit();
         } catch (e) {

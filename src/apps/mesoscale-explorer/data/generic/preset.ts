@@ -12,8 +12,7 @@ import { SpacefillRepresentationProvider } from '../../../../mol-repr/structure/
 import { Color } from '../../../../mol-util/color';
 import { utf8Read } from '../../../../mol-io/common/utf8';
 import { Quat, Vec3 } from '../../../../mol-math/linear-algebra';
-import { MesoscaleExplorerState } from '../../app';
-import { MesoscaleGroup, MesoscaleGroupParams, MesoscaleGroupProps, updateColors } from '../state';
+import { MesoscaleGroup, MesoscaleGroupParams, getLodLevels, updateColors } from '../state';
 import { ColorNames } from '../../../../mol-util/color/names';
 import { StructureRepresentation3D } from '../../../../mol-plugin-state/transforms/representation';
 import { ParseCif, ReadFile } from '../../../../mol-plugin-state/transforms/data';
@@ -24,9 +23,7 @@ import { Clip } from '../../../../mol-util/clip';
 import { StructureFromGeneric } from './model';
 import { getFileNameInfo } from '../../../../mol-util/file-info';
 
-type LodLevels = typeof SpacefillRepresentationProvider.defaultValues['lodLevels']
-
-function getSpacefillParams(color: Color, sizeFactor: number, lodLevels: LodLevels, clipVariant: Clip.Variant) {
+function getSpacefillParams(color: Color, sizeFactor: number, clipVariant: Clip.Variant) {
     return {
         type: {
             name: 'spacefill',
@@ -35,7 +32,7 @@ function getSpacefillParams(color: Color, sizeFactor: number, lodLevels: LodLeve
                 ignoreHydrogens: true,
                 instanceGranularity: true,
                 ignoreLight: true,
-                lodLevels: lodLevels.map(l => {
+                lodLevels: getLodLevels('high').map(l => {
                     return {
                         ...l,
                         stride: Math.max(1, Math.round(l.stride / Math.pow(sizeFactor, l.scaleBias)))
@@ -86,16 +83,7 @@ export async function createGenericHierarchy(ctx: PluginContext, file: Asset.Fil
     console.log(manifest);
 
     const state = ctx.state.data;
-    const customState = ctx.customState as MesoscaleExplorerState;
-
-    const _groupParams = PD.getDefaultValues(MesoscaleGroupParams);
-    const groupParams: MesoscaleGroupProps = {
-        ..._groupParams,
-        lod: {
-            ..._groupParams.lod,
-            lodLevels: customState.lodLevels,
-        }
-    };
+    const groupParams = PD.getDefaultValues(MesoscaleGroupParams);
 
     async function addGroup(g: GenericGroup, cell: StateObjectSelector, parent: string) {
         const group = await state.build()
@@ -179,7 +167,7 @@ export async function createGenericHierarchy(ctx: PluginContext, file: Asset.Fil
                 build = build
                     .apply(ModelFromTrajectory, { modelIndex: 0 })
                     .apply(StructureFromGeneric, { transforms, label })
-                    .apply(StructureRepresentation3D, getSpacefillParams(color, sizeFactor, customState.lodLevels, clipVariant), { tags });
+                    .apply(StructureRepresentation3D, getSpacefillParams(color, sizeFactor, clipVariant), { tags });
             }
             await build.commit();
 

@@ -20,6 +20,7 @@ import { Sphere3D } from '../../../mol-math/geometry';
 import { Hcl } from '../../../mol-util/color/spaces/hcl';
 import { StateObjectCell, StateObjectRef, StateSelection } from '../../../mol-state';
 import { StructureRepresentation3D } from '../../../mol-plugin-state/transforms/representation';
+import { SpacefillRepresentationProvider } from '../../../mol-repr/structure/representation/spacefill';
 
 export function getDistinctGroupColors(count: number, color: Color, variablity: number, props?: Partial<DistinctColorsProps>) {
     const hcl = Hcl.fromColor(Hcl(), color);
@@ -78,6 +79,7 @@ export const OpacityParams = {
 export const LodParams = {
     lodLevels: Spheres.Params.lodLevels,
     cellSize: Spheres.Params.cellSize,
+    approximate: Spheres.Params.approximate,
 };
 
 export const SimpleClipParams = {
@@ -205,8 +207,40 @@ export const MesoscaleGroup = PluginStateTransform.BuiltIn({
 
 //
 
-const MesoscaleStateParams = {
+export type LodLevels = typeof SpacefillRepresentationProvider.defaultValues['lodLevels']
+export type LodLevelsPreset = 'low' | 'medium' | 'high'
+
+export function getLodLevels(preset: LodLevelsPreset) {
+    switch (preset) {
+        case 'low':
+            return [
+                { minDistance: 1, maxDistance: 300, overlap: 0, stride: 1, scaleBias: 1 },
+                { minDistance: 300, maxDistance: 2000, overlap: 40, stride: 40, scaleBias: 3 },
+                { minDistance: 2000, maxDistance: 6000, overlap: 200, stride: 150, scaleBias: 2.5 },
+                { minDistance: 6000, maxDistance: 10000000, overlap: 600, stride: 300, scaleBias: 2 },
+            ];
+        case 'medium':
+            return [
+                { minDistance: 1, maxDistance: 500, overlap: 0, stride: 1, scaleBias: 1 },
+                { minDistance: 500, maxDistance: 2000, overlap: 50, stride: 15, scaleBias: 3 },
+                { minDistance: 2000, maxDistance: 6000, overlap: 200, stride: 70, scaleBias: 2.5 },
+                { minDistance: 6000, maxDistance: 10000000, overlap: 600, stride: 200, scaleBias: 2 },
+            ];
+        case 'high':
+            return [
+                { minDistance: 1, maxDistance: 1000, overlap: 0, stride: 1, scaleBias: 1 },
+                { minDistance: 1000, maxDistance: 4000, overlap: 500, stride: 10, scaleBias: 3 },
+                { minDistance: 4000, maxDistance: 10000, overlap: 500, stride: 50, scaleBias: 2.5 },
+                { minDistance: 10000, maxDistance: 10000000, overlap: 1000, stride: 200, scaleBias: 2 },
+            ];
+    }
+}
+
+//
+
+export const MesoscaleStateParams = {
     filter: PD.Value<string>('', { isHidden: true }),
+    graphics: PD.Select('quality', PD.arrayToOptions(['quality', 'balanced', 'performance', 'custom']), { isHidden: true }),
 };
 
 class MesoscaleStateObject extends PSO.Create<MesoscaleState>({ name: 'Mesoscale State', typeClass: 'Object' }) { }

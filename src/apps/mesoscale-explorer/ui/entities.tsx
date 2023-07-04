@@ -19,7 +19,7 @@ import { CombinedColorControl } from '../../../mol-plugin-ui/controls/color';
 import { MarkerAction } from '../../../mol-util/marker-action';
 import { EveryLoci } from '../../../mol-model/loci';
 import { deepEqual } from '../../../mol-util';
-import { ColorValueParam, ColorParams, ColorProps, DimLightness, LightnessParams, LodParams, MesoscaleGroup, MesoscaleGroupProps, OpacityParams, SimpleClipParams, SimpleClipProps, createClipMapping, getClipObjects, getDistinctGroupColors, RootParams, MesoscaleState, getRoots, getAllGroups, getAllLeafGroups, getFilteredEntities, getAllFilteredEntities, getGroups, getEntities, getAllEntities, getEntityLabel, updateColors } from '../data/state';
+import { ColorValueParam, ColorParams, ColorProps, DimLightness, LightnessParams, LodParams, MesoscaleGroup, MesoscaleGroupProps, OpacityParams, SimpleClipParams, SimpleClipProps, createClipMapping, getClipObjects, getDistinctGroupColors, RootParams, MesoscaleState, getRoots, getAllGroups, getAllLeafGroups, getFilteredEntities, getAllFilteredEntities, getGroups, getEntities, getAllEntities, getEntityLabel, updateColors, MesoscaleStateParams, LodLevelsPreset, getLodLevels } from '../data/state';
 import React from 'react';
 
 export class EntityControls extends PluginUIComponent<{}, { isDisabled: boolean }> {
@@ -86,6 +86,43 @@ export class EntityControls extends PluginUIComponent<{}, { isDisabled: boolean 
         return MesoscaleState.has(this.plugin) ? MesoscaleState.get(this.plugin).filter : '';
     }
 
+    setGraphics = (graphics: 'quality' | 'balanced' | 'performance' | 'custom') => {
+        MesoscaleState.set(this.plugin, { graphics });
+        if (graphics === 'custom') return;
+
+        const update = this.plugin.state.data.build();
+
+        let preset: LodLevelsPreset = 'high';
+        let approximate = false;
+        if (graphics === 'performance') {
+            preset = 'low';
+            approximate = true;
+        } else if (graphics === 'balanced') {
+            preset = 'medium';
+        }
+        const lodLevels = getLodLevels(preset);
+
+        for (const r of getAllEntities(this.plugin)) {
+            update.to(r).update(old => {
+                old.type.params.lodLevels = lodLevels;
+                old.type.params.approximate = approximate;
+            });
+        }
+
+        for (const g of getAllGroups(this.plugin)) {
+            update.to(g).update(old => {
+                old.lod.lodLevels = lodLevels;
+                old.lod.approximate = approximate;
+            });
+        }
+
+        update.commit();
+    };
+
+    get graphics() {
+        return MesoscaleState.has(this.plugin) ? MesoscaleState.get(this.plugin).graphics : 'quality';
+    }
+
     expandAllGroups = () => {
         for (const g of getAllGroups(this.plugin)) {
             if (g.state.isCollapsed) {
@@ -111,8 +148,12 @@ export class EntityControls extends PluginUIComponent<{}, { isDisabled: boolean 
         const root = roots.length === 1 ? roots[0] : roots[groupBy];
 
         const filter = this.filter;
+        const graphics = this.graphics;
 
         return <>
+            <div style={{ margin: '5px', marginBottom: '10px' }}>
+                <SelectControl name={'Graphics'} param={MesoscaleStateParams.graphics} value={`${graphics}`} onChange={(e) => { this.setGraphics(e.value); }} />
+            </div>
             <div className={`msp-flex-row msp-control-row`} style={{ margin: '5px', marginBottom: '10px' }}>
                 <input type='text' ref={this.filterRef}
                     value={filter}
@@ -319,12 +360,14 @@ export class GroupNode extends Node<{ filter: string }, { isCollapsed: boolean, 
     };
 
     updateLod = (values: PD.Values) => {
+        MesoscaleState.set(this.plugin, { graphics: 'custom' });
         const update = this.plugin.state.data.build();
 
         for (const r of this.allFilteredEntities) {
             update.to(r).update(old => {
                 old.type.params.lodLevels = values.lodLevels;
                 old.type.params.cellSize = values.cellSize;
+                old.type.params.approximate = values.approximate;
             });
         }
 
@@ -508,11 +551,13 @@ export class EntityNode extends Node<{}, { action?: 'color' | 'clip' }> {
     }
 
     get lodValue(): PD.Values<typeof LodParams> | undefined {
-        const hasLod = this.cell.transform.params?.type.params.lodLevels !== undefined && this.cell.transform.params?.type.params.cellSize !== undefined;
+        const p = this.cell.transform.params?.type.params;
+        const hasLod = p.lodLevels !== undefined && p.cellSize !== undefined && p.approximate !== undefined;
         if (!hasLod) return;
         return {
-            lodLevels: this.cell.transform.params.type.params.lodLevels,
-            cellSize: this.cell.transform.params.type.params.cellSize,
+            lodLevels: p.lodLevels,
+            cellSize: p.cellSize,
+            approximate: p.approximate,
         };
     }
 
@@ -560,11 +605,13 @@ export class EntityNode extends Node<{}, { action?: 'color' | 'clip' }> {
         const t = this.cell?.transform;
         if (!t) return;
 
+        MesoscaleState.set(this.plugin, { graphics: 'custom' });
         const params = t.params as StateTransformer.Params<StructureRepresentation3D>;
-        if (!deepEqual(params.type.params.lodLevels, values.lodLevels) || params.type.params.cellSize !== values.cellSize) {
+        if (!deepEqual(params.type.params.lodLevels, values.lodLevels) || params.type.params.cellSize !== values.cellSize || params.type.params.approximate !== values.approximate) {
             this.plugin.build().to(t.ref).update(old => {
                 old.type.params.lodLevels = values.lodLevels;
                 old.type.params.cellSize = values.cellSize;
+                old.type.params.approximate = values.approximate;
             }).commit();
         }
     };
