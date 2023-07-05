@@ -63,15 +63,24 @@ export async function createPetworldHierarchy(plugin: PluginContext, trajectory:
     const other: { modelIndex: number, entityIds: string[] }[] = [];
     for (let i = 0; i < tr.frameCount; ++i) {
         const m = await Task.resolveInContext(tr.getFrameAtIndex(i));
+        // cannot use m.properties.structAsymMap because petworld models
+        // may assign the same asymId to multiple entities
+        const { label_asym_id, label_entity_id, _rowCount } = m.atomicHierarchy.chains;
         const membraneIds: string[] = [];
         const otherIds: string[] = [];
-        m.properties.structAsymMap.forEach((v, k) => {
-            if (k.startsWith('MEM')) {
-                membraneIds.push(v.entity_id);
+        const seen = new Set<string>();
+        for (let i = 0; i < _rowCount; i ++) {
+            const entityId = label_entity_id.value(i);
+            if (seen.has(entityId)) continue;
+
+            const asymId = label_asym_id.value(i);
+            if (asymId.startsWith('MEM')) {
+                membraneIds.push(entityId);
             } else {
-                otherIds.push(v.entity_id);
+                otherIds.push(entityId);
             }
-        });
+            seen.add(entityId);
+        }
         if (membraneIds.length) {
             membrane.push({ modelIndex: i, entityIds: membraneIds });
         }
