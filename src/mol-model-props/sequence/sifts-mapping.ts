@@ -52,8 +52,7 @@ namespace SIFTSMapping {
         const model = loc.unit.model;
         const data = Provider.get(model).value;
         if (!data) return '';
-        const eI = loc.unit.elements[loc.element];
-        const rI = model.atomicHierarchy.residueAtomSegments.index[eI];
+        const rI = model.atomicHierarchy.residueAtomSegments.index[loc.element];
         return data.accession[rI];
     }
 
@@ -61,9 +60,9 @@ namespace SIFTSMapping {
         const model = loc.unit.model;
         const data = Provider.get(model).value;
         if (!data) return;
-        const eI = loc.unit.elements[loc.element];
-        const rI = model.atomicHierarchy.residueAtomSegments.index[eI];
+        const rI = model.atomicHierarchy.residueAtomSegments.index[loc.element];
         const dbName = data.dbName[rI];
+
         if (!dbName) return;
         return `${dbName} ${data.accession[rI]} ${data.num[rI]} ${data.residue[rI]}`;
     }
