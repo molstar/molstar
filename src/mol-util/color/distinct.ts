@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author David Sehnal <david.sehnal@gmail.com>
  *
  * adapted from https://github.com/internalfx/distinct-colors (ISC License Copyright (c) 2015, InternalFX Inc.)
  * which is heavily inspired by http://tools.medialab.sciences-po.fr/iwanthue/
@@ -81,9 +82,9 @@ function getSamples(count: number, p: DistinctColorsProps) {
     const samples = new Map<string, Lab>();
     const rangeDivider = Math.cbrt(count) * 1.001;
 
-    const hStep = (p.hue[1] - p.hue[0]) / rangeDivider;
-    const cStep = (p.chroma[1] - p.chroma[0]) / rangeDivider;
-    const lStep = (p.luminance[1] - p.luminance[0]) / rangeDivider;
+    const hStep = Math.max((p.hue[1] - p.hue[0]) / rangeDivider, 1);
+    const cStep = Math.max((p.chroma[1] - p.chroma[0]) / rangeDivider, 1);
+    const lStep = Math.max((p.luminance[1] - p.luminance[0]) / rangeDivider, 1);
     for (let h = p.hue[0]; h <= p.hue[1]; h += hStep) {
         for (let c = p.chroma[0]; c <= p.chroma[1]; c += cStep) {
             for (let l = p.luminance[0]; l <= p.luminance[1]; l += lStep) {
