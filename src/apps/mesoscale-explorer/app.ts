@@ -21,20 +21,19 @@ import { Color } from '../../mol-util/color';
 import { SpacefillRepresentationProvider } from '../../mol-repr/structure/representation/spacefill';
 import { PluginBehaviors } from '../../mol-plugin/behavior';
 import { MesoFocusLoci } from './behavior/camera';
-import { MesoscaleState } from './data/state';
+import { GraphicsMode, MesoscaleState } from './data/state';
 import { MesoSelectLoci } from './behavior/select';
 
 export { PLUGIN_VERSION as version } from '../../mol-plugin/version';
 export { setDebugMode, setProductionMode, setTimingMode, consoleStats } from '../../mol-util/debug';
-
-
 
 export type MesoscaleExplorerState = {
     examples?: {
         label: string,
         url: string,
         type: 'molx' | 'molj' | 'cif' | 'bcif',
-    }[]
+    }[],
+    graphicsMode: GraphicsMode,
 }
 
 const Extensions = {
@@ -76,6 +75,8 @@ const DefaultViewerOptions = {
     pdbProvider: PluginConfig.Download.DefaultPdbProvider.defaultValue,
     emdbProvider: PluginConfig.Download.DefaultEmdbProvider.defaultValue,
     saccharideCompIdMapType: 'default' as SaccharideCompIdMapType,
+
+    graphicsMode: 'quality' as GraphicsMode
 };
 type ViewerOptions = typeof DefaultViewerOptions;
 
@@ -165,8 +166,6 @@ export class Viewer {
 
         const plugin = await createPluginUI(element, spec, {
             onBeforeUIRender: async plugin => {
-                await MesoscaleState.init(plugin);
-
                 let examples: MesoscaleExplorerState['examples'] = undefined;
                 try {
                     examples = await plugin.fetch({ url: './examples/list.json', type: 'json' }).run();
@@ -176,7 +175,10 @@ export class Viewer {
 
                 (plugin.customState as MesoscaleExplorerState) = {
                     examples,
+                    graphicsMode: o.graphicsMode,
                 };
+
+                await MesoscaleState.init(plugin);
             }
         });
 

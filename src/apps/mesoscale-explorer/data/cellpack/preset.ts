@@ -12,11 +12,11 @@ import { SpacefillRepresentationProvider } from '../../../../mol-repr/structure/
 import { StateObjectRef, StateObjectSelector, StateBuilder } from '../../../../mol-state';
 import { Color } from '../../../../mol-util/color';
 import { ColorNames } from '../../../../mol-util/color/names';
-import { ParamDefinition as PD } from '../../../../mol-util/param-definition';
-import { MesoscaleGroup, MesoscaleGroupParams, getDistinctBaseColors, getDistinctGroupColors, getLodLevels } from '../state';
+import { GraphicsMode, MesoscaleGroup, MesoscaleState, getDistinctBaseColors, getDistinctGroupColors, getGraphicsModeProps, getMesoscaleGroupParams } from '../state';
 import { CellpackAssembly, CellpackStructure } from './model';
 
-function getSpacefillParams(color: Color, sizeFactor: number) {
+function getSpacefillParams(color: Color, sizeFactor: number, graphics: GraphicsMode) {
+    const gmp = getGraphicsModeProps(graphics === 'custom' ? 'quality' : graphics);
     return {
         type: {
             name: 'spacefill',
@@ -25,14 +25,14 @@ function getSpacefillParams(color: Color, sizeFactor: number) {
                 ignoreHydrogens: false,
                 instanceGranularity: true,
                 ignoreLight: true,
-                lodLevels: getLodLevels('high'),
+                lodLevels: gmp.lodLevels,
                 quality: 'lowest', // avoid 'auto', triggers boundary calc
                 sizeFactor,
                 clip: {
                     variant: 'instance',
                     objects: [],
                 },
-                invertedXray: true,
+                approximate: gmp.approximate,
             },
         },
         colorTheme: {
@@ -83,7 +83,8 @@ export async function createCellpackHierarchy(plugin: PluginContext, trajectory:
     const funcIds = new Map<string, { idx: number, size: number }>();
     const funcColors = new Map<string, Color[]>();
 
-    const groupParams = PD.getDefaultValues(MesoscaleGroupParams);
+    const graphicsMode = MesoscaleState.get(plugin).graphics;
+    const groupParams = getMesoscaleGroupParams(graphicsMode);
 
     const base = await state.build()
         .to(model)
@@ -194,7 +195,7 @@ export async function createCellpackHierarchy(plugin: PluginContext, trajectory:
                     build = build
                         .toRoot()
                         .apply(CellpackStructure, { structureRef: base.ref, entityId: entities.id.value(i) }, { dependsOn })
-                        .apply(StructureRepresentation3D, getSpacefillParams(color, sizeFactor), { tags: [`comp:${n}`, `func:${f}`] });
+                        .apply(StructureRepresentation3D, getSpacefillParams(color, sizeFactor, graphicsMode), { tags: [`comp:${n}`, `func:${f}`] });
                 }
                 await build.commit();
             } catch (e) {
@@ -209,7 +210,7 @@ export async function createCellpackHierarchy(plugin: PluginContext, trajectory:
         await state.build()
             .toRoot()
             .apply(CellpackStructure, { structureRef: base.ref, entityId: entities.id.value(0) }, { dependsOn })
-            .apply(StructureRepresentation3D, getSpacefillParams(ColorNames.lightgray, 1), { tags: [`comp:`, `func:`] })
+            .apply(StructureRepresentation3D, getSpacefillParams(ColorNames.lightgray, 1, graphicsMode), { tags: [`comp:`, `func:`] })
             .commit();
     }
 }

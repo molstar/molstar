@@ -11,13 +11,13 @@ import { SpacefillRepresentationProvider } from '../../../../mol-repr/structure/
 import { StructureRepresentation3D } from '../../../../mol-plugin-state/transforms/representation';
 import { PluginContext } from '../../../../mol-plugin/context';
 import { PluginStateObject } from '../../../../mol-plugin-state/objects';
-import { MesoscaleGroup, MesoscaleGroupParams, getDistinctBaseColors, getLodLevels } from '../state';
-import { ParamDefinition as PD } from '../../../../mol-util/param-definition';
+import { GraphicsMode, MesoscaleGroup, MesoscaleState, getDistinctBaseColors, getGraphicsModeProps, getMesoscaleGroupParams } from '../state';
 import { ColorNames } from '../../../../mol-util/color/names';
 import { MmcifFormat } from '../../../../mol-model-formats/structure/mmcif';
 import { Task } from '../../../../mol-task';
 
-function getSpacefillParams(color: Color) {
+function getSpacefillParams(color: Color, graphics: GraphicsMode) {
+    const gmp = getGraphicsModeProps(graphics === 'custom' ? 'quality' : graphics);
     return {
         type: {
             name: 'spacefill',
@@ -26,13 +26,13 @@ function getSpacefillParams(color: Color) {
                 ignoreHydrogens: true,
                 instanceGranularity: true,
                 ignoreLight: true,
-                lodLevels: getLodLevels('high'),
+                lodLevels: gmp.lodLevels,
                 quality: 'lowest', // avoid 'auto', triggers boundary calc
                 clip: {
                     variant: 'instance',
                     objects: [],
                 },
-                approximate: false,
+                approximate: gmp.approximate,
             },
         },
         colorTheme: {
@@ -90,7 +90,8 @@ export async function createPetworldHierarchy(plugin: PluginContext, trajectory:
     }
 
     const state = plugin.state.data;
-    const groupParams = PD.getDefaultValues(MesoscaleGroupParams);
+    const graphicsMode = MesoscaleState.get(plugin).graphics;
+    const groupParams = getMesoscaleGroupParams(graphicsMode);
 
     const group = await state.build()
         .toRoot()
@@ -112,13 +113,13 @@ export async function createPetworldHierarchy(plugin: PluginContext, trajectory:
                 build = build
                     .to(cell)
                     .apply(StructureFromPetworld, membrane[i])
-                    .apply(StructureRepresentation3D, getSpacefillParams(ColorNames.lightgrey), { tags: [`ent:mem`] });
+                    .apply(StructureRepresentation3D, getSpacefillParams(ColorNames.lightgrey, graphicsMode), { tags: [`ent:mem`] });
             }
             for (let i = 0, il = other.length; i < il; ++i) {
                 build = build
                     .to(cell)
                     .apply(StructureFromPetworld, other[i])
-                    .apply(StructureRepresentation3D, getSpacefillParams(colors[i]), { tags: [`ent:`] });
+                    .apply(StructureRepresentation3D, getSpacefillParams(colors[i], graphicsMode), { tags: [`ent:`] });
             }
             await build.commit();
         } catch (e) {

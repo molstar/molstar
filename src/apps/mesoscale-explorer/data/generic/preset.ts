@@ -6,13 +6,12 @@
 
 import { Mat4 } from '../../../../mol-math/linear-algebra/3d/mat4';
 import { StateBuilder, StateObjectSelector } from '../../../../mol-state';
-import { ParamDefinition as PD } from '../../../../mol-util/param-definition';
 import { PluginContext } from '../../../../mol-plugin/context';
 import { SpacefillRepresentationProvider } from '../../../../mol-repr/structure/representation/spacefill';
 import { Color } from '../../../../mol-util/color';
 import { utf8Read } from '../../../../mol-io/common/utf8';
 import { Quat, Vec3 } from '../../../../mol-math/linear-algebra';
-import { MesoscaleGroup, MesoscaleGroupParams, getLodLevels, updateColors } from '../state';
+import { GraphicsMode, MesoscaleGroup, MesoscaleState, getGraphicsModeProps, getMesoscaleGroupParams, updateColors } from '../state';
 import { ColorNames } from '../../../../mol-util/color/names';
 import { StructureRepresentation3D } from '../../../../mol-plugin-state/transforms/representation';
 import { ParseCif, ReadFile } from '../../../../mol-plugin-state/transforms/data';
@@ -23,7 +22,8 @@ import { Clip } from '../../../../mol-util/clip';
 import { StructureFromGeneric } from './model';
 import { getFileNameInfo } from '../../../../mol-util/file-info';
 
-function getSpacefillParams(color: Color, sizeFactor: number, clipVariant: Clip.Variant) {
+function getSpacefillParams(color: Color, sizeFactor: number, graphics: GraphicsMode, clipVariant: Clip.Variant) {
+    const gmp = getGraphicsModeProps(graphics === 'custom' ? 'quality' : graphics);
     return {
         type: {
             name: 'spacefill',
@@ -32,7 +32,7 @@ function getSpacefillParams(color: Color, sizeFactor: number, clipVariant: Clip.
                 ignoreHydrogens: true,
                 instanceGranularity: true,
                 ignoreLight: true,
-                lodLevels: getLodLevels('high').map(l => {
+                lodLevels: gmp.lodLevels.map(l => {
                     return {
                         ...l,
                         stride: Math.max(1, Math.round(l.stride / Math.pow(sizeFactor, l.scaleBias)))
@@ -44,6 +44,7 @@ function getSpacefillParams(color: Color, sizeFactor: number, clipVariant: Clip.
                     variant: clipVariant,
                     objects: [],
                 },
+                approximate: gmp.approximate,
             },
         },
         colorTheme: {
@@ -63,8 +64,8 @@ function getSpacefillParams(color: Color, sizeFactor: number, clipVariant: Clip.
     };
 }
 
-export async function createGenericHierarchy(ctx: PluginContext, file: Asset.File) {
-    const asset = await ctx.runTask(ctx.managers.asset.resolve(file, 'zip'));
+export async function createGenericHierarchy(plugin: PluginContext, file: Asset.File) {
+    const asset = await plugin.runTask(plugin.managers.asset.resolve(file, 'zip'));
     let manifest: GenericManifest;
     // TODO: remove special handling for martini prototype
     if (asset.data['instanced_structure.json']) {
@@ -82,8 +83,9 @@ export async function createGenericHierarchy(ctx: PluginContext, file: Asset.Fil
     }
     console.log(manifest);
 
-    const state = ctx.state.data;
-    const groupParams = PD.getDefaultValues(MesoscaleGroupParams);
+    const state = plugin.state.data;
+    const graphicsMode = MesoscaleState.get(plugin).graphics;
+    const groupParams = getMesoscaleGroupParams(graphicsMode);
 
     async function addGroup(g: GenericGroup, cell: StateObjectSelector, parent: string) {
         const group = await state.build()
@@ -116,7 +118,7 @@ export async function createGenericHierarchy(ctx: PluginContext, file: Asset.Fil
 
     await state.transaction(async () => {
         try {
-            ctx.animationLoop.stop({ noDraw: true });
+            plugin.animationLoop.stop({ noDraw: true });
             let build: StateBuilder.Root | StateBuilder.To<any> = state.build();
             for (const e of manifest.entities) {
                 const d = asset.data[e.file];
@@ -167,18 +169,18 @@ export async function createGenericHierarchy(ctx: PluginContext, file: Asset.Fil
                 build = build
                     .apply(ModelFromTrajectory, { modelIndex: 0 })
                     .apply(StructureFromGeneric, { transforms, label })
-                    .apply(StructureRepresentation3D, getSpacefillParams(color, sizeFactor, clipVariant), { tags });
+                    .apply(StructureRepresentation3D, getSpacefillParams(color, sizeFactor, graphicsMode, clipVariant), { tags });
             }
             await build.commit();
 
             const rootId = `${manifest.roots[0].id}:`;
             const values = { type: 'group-generate', value: ColorNames.white, lightness: 0, alpha: 1 };
-            await updateColors(ctx, values, rootId, '');
+            await updateColors(plugin, values, rootId, '');
         } catch (e) {
             console.error(e);
-            ctx.log.error(e);
+            plugin.log.error(e);
         } finally {
-            ctx.animationLoop.start();
+            plugin.animationLoop.start();
         }
     }).run();
 }

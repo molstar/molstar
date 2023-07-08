@@ -11,11 +11,11 @@ import { SpacefillRepresentationProvider } from '../../../../mol-repr/structure/
 import { StateObjectRef, StateObjectSelector, StateBuilder } from '../../../../mol-state';
 import { Color } from '../../../../mol-util/color';
 import { ColorNames } from '../../../../mol-util/color/names';
-import { ParamDefinition as PD } from '../../../../mol-util/param-definition';
-import { MesoscaleGroup, MesoscaleGroupParams, getDistinctBaseColors, getDistinctGroupColors, getLodLevels } from '../state';
+import { GraphicsMode, MesoscaleGroup, MesoscaleState, getDistinctBaseColors, getDistinctGroupColors, getGraphicsModeProps, getMesoscaleGroupParams } from '../state';
 import { MmcifAssembly, MmcifStructure } from './model';
 
-function getSpacefillParams(color: Color, scaleFactor: number) {
+function getSpacefillParams(color: Color, scaleFactor: number, graphics: GraphicsMode) {
+    const gmp = getGraphicsModeProps(graphics === 'custom' ? 'quality' : graphics);
     return {
         type: {
             name: 'spacefill',
@@ -24,7 +24,7 @@ function getSpacefillParams(color: Color, scaleFactor: number) {
                 ignoreHydrogens: false,
                 instanceGranularity: false,
                 ignoreLight: true,
-                lodLevels: getLodLevels('high').map(l => {
+                lodLevels: gmp.lodLevels.map(l => {
                     return {
                         ...l,
                         stride: Math.max(1, Math.round(l.stride / Math.pow(scaleFactor, l.scaleBias)))
@@ -35,6 +35,7 @@ function getSpacefillParams(color: Color, scaleFactor: number) {
                     variant: 'instance',
                     objects: [],
                 },
+                approximate: gmp.approximate,
             },
         },
         colorTheme: {
@@ -86,7 +87,8 @@ export async function createMmcifHierarchy(plugin: PluginContext, trajectory: St
     const entIds = new Map<string, { idx: number, members: Map<string, number> }>();
     const entColors = new Map<string, Color[]>();
 
-    const groupParams = PD.getDefaultValues(MesoscaleGroupParams);
+    const graphicsMode = MesoscaleState.get(plugin).graphics;
+    const groupParams = getMesoscaleGroupParams(graphicsMode);
 
     const base = await state.build()
         .to(model)
@@ -150,7 +152,7 @@ export async function createMmcifHierarchy(plugin: PluginContext, trajectory: St
                 build = build
                     .toRoot()
                     .apply(MmcifStructure, { structureRef: base.ref, entityId: entities.id.value(i) }, { dependsOn })
-                    .apply(StructureRepresentation3D, getSpacefillParams(color, scaleFactor), { tags: [`ent:${t}`] });
+                    .apply(StructureRepresentation3D, getSpacefillParams(color, scaleFactor, graphicsMode), { tags: [`ent:${t}`] });
             }
             await build.commit();
         } catch (e) {
