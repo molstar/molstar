@@ -29,6 +29,7 @@ class PluginStateSnapshotManager extends StatefulPluginComponent<{
     static DefaultNextSnapshotDelayInMs = 1500;
 
     private entryMap = new Map<string, PluginStateSnapshotManager.Entry>();
+    private defaultSnapshotId: UUID | undefined = undefined;
 
     readonly events = {
         changed: this.ev()
@@ -65,6 +66,8 @@ class PluginStateSnapshotManager extends StatefulPluginComponent<{
     replace(id: string, snapshot: PluginState.Snapshot, params?: PluginStateSnapshotManager.EntryParams) {
         const old = this.getEntry(id);
         if (!old) return;
+
+        this.defaultSnapshotId = undefined;
 
         if (old?.image) this.plugin.managers.asset.delete(old.image);
         const idx = this.getIndex(old);
@@ -171,20 +174,24 @@ class PluginStateSnapshotManager extends StatefulPluginComponent<{
     }
 
     private async syncCurrent(options?: { name?: string, description?: string, params?: PluginState.SnapshotParams }) {
+        const isEmpty = this.state.entries.size === 0;
+        const canReplace = this.state.entries.size === 1 && this.state.current && this.state.current === this.defaultSnapshotId;
+
+        if (!isEmpty && !canReplace) return;
+
         const snapshot = this.plugin.state.getSnapshot(options?.params);
         const image = (options?.params?.image ?? this.plugin.state.snapshotParams.value.image) ? await PluginStateSnapshotManager.getCanvasImageAsset(this.plugin, `${snapshot.id}-image.png`) : undefined;
 
-        if (this.state.entries.size === 0) {
+        if (isEmpty) {
             this.add(PluginStateSnapshotManager.Entry(snapshot, { name: options?.name, description: options?.description, image }));
-        } else if (this.state.entries.size === 1 && this.state.current) {
-            // Replace the current state only if there is a single snapshot
-            // This should provide the expected behavior with users getting the "current state"
-            // unless they start manually creating animations, in which case the snapshots will
-            // no longer be overriden
+        } else if (canReplace) {
+            // Replace the current state only if there is a single snapshot that has been created automatically
             const current = this.getEntry(this.state.current);
             if (current?.image) this.plugin.managers.asset.delete(current.image);
-            this.replace(this.state.current, snapshot, { image });
+            this.replace(this.state.current!, snapshot, { image });
         }
+
+        this.defaultSnapshotId = snapshot.id;
     }
 
     async getStateSnapshot(options?: { name?: string, description?: string, playOnLoad?: boolean, params?: PluginState.SnapshotParams }): Promise<PluginStateSnapshotManager.StateSnapshot> {
