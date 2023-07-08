@@ -286,7 +286,12 @@ export const AminoAcidNamesD = new Set([
 export const AminoAcidNames = SetUtils.unionMany(AminoAcidNamesL, AminoAcidNamesD);
 
 export const CommonProteinCaps = new Set([
-    'NME', 'ACE'
+    'NME', 'ACE', 'NH2', 'FOR', 'FMT'
+    // not including the following
+    // 'E1H' GFP backbone fragmentation in 2G16
+    // 'HOA' complexes zinc
+    // 'NEH' ubiquitine linker
+    // 'MOH' part of peptidomimetics
 ]);
 
 export const RnaBaseNames = new Set([
