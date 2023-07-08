@@ -172,6 +172,8 @@ const _VisibilityOutlined = <svg width='24px' height='24px' viewBox='0 0 24 24'>
 export function VisibilityOutlinedSvg() { return _VisibilityOutlined; }
 const _Warning = <svg width='24px' height='24px' viewBox='0 0 24 24'><path d='M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z' /></svg>;
 export function WarningSvg() { return _Warning; }
+const _ContentCut = <svg width='24px' height='24px' viewBox='0 0 24 24'><path d='M 9.64 7.64 c 0.23 -0.5 0.36 -1.05 0.36 -1.64 c 0 -2.21 -1.79 -4 -4 -4 S 2 3.79 2 6 s 1.79 4 4 4 c 0.59 0 1.14 -0.13 1.64 -0.36 L 10 12 l -2.36 2.36 C 7.14 14.13 6.59 14 6 14 c -2.21 0 -4 1.79 -4 4 s 1.79 4 4 4 s 4 -1.79 4 -4 c 0 -0.59 -0.13 -1.14 -0.36 -1.64 L 12 14 l 7 7 h 3 v -1 L 9.64 7.64 Z M 6 8 c -1.1 0 -2 -0.89 -2 -2 s 0.9 -2 2 -2 s 2 0.89 2 2 s -0.9 2 -2 2 Z m 0 12 c -1.1 0 -2 -0.89 -2 -2 s 0.9 -2 2 -2 s 2 0.89 2 2 s -0.9 2 -2 2 Z m 6 -7.5 c -0.28 0 -0.5 -0.22 -0.5 -0.5 s 0.22 -0.5 0.5 -0.5 s 0.5 0.22 0.5 0.5 s -0.22 0.5 -0.5 0.5 Z M 19 3 l -6 6 l 2 2 l 7 -7 V 3 Z' /></svg>;
+export function ContentCutSvg() { return _ContentCut; }
 
 // Aliases
 
