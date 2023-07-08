@@ -172,19 +172,22 @@ class PluginStateSnapshotManager extends StatefulPluginComponent<{
 
     private async syncCurrent(options?: { name?: string, description?: string, params?: PluginState.SnapshotParams }) {
         const snapshot = this.plugin.state.getSnapshot(options?.params);
-        if (this.state.entries.size === 0 || !this.state.current) {
-            this.add(PluginStateSnapshotManager.Entry(snapshot, { name: options?.name, description: options?.description }));
-        } else {
+        const image = (options?.params?.image ?? this.plugin.state.snapshotParams.value.image) ? await PluginStateSnapshotManager.getCanvasImageAsset(this.plugin, `${snapshot.id}-image.png`) : undefined;
+
+        if (this.state.entries.size === 0) {
+            this.add(PluginStateSnapshotManager.Entry(snapshot, { name: options?.name, description: options?.description, image }));
+        } else if (this.state.entries.size === 1 && this.state.current) {
+            // Replace the current state only if there is a single snapshot
+            // This should provide the expected behavior with users getting the "current state"
+            // unless they start manually creating animations, in which case the snapshots will
+            // no longer be overriden
             const current = this.getEntry(this.state.current);
             if (current?.image) this.plugin.managers.asset.delete(current.image);
-            const image = (options?.params?.image ?? this.plugin.state.snapshotParams.value.image) ? await PluginStateSnapshotManager.getCanvasImageAsset(this.plugin, `${snapshot.id}-image.png`) : undefined;
-            // TODO: this replaces the current snapshot which is not always intended
             this.replace(this.state.current, snapshot, { image });
         }
     }
 
     async getStateSnapshot(options?: { name?: string, description?: string, playOnLoad?: boolean, params?: PluginState.SnapshotParams }): Promise<PluginStateSnapshotManager.StateSnapshot> {
-        // TODO: diffing and all that fancy stuff
         await this.syncCurrent(options);
 
         return {

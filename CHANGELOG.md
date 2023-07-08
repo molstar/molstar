@@ -7,6 +7,7 @@ Note that since we don't clearly distinguish between a public and private interf
 ## [Unreleased]
 
 - Fix display issue with SIFTS mapping
+- Update `getStateSnapshot` to overwrite current snapshot only if there is just 1 present
 
 ## [v3.37.1] - 2023-06-20
 
