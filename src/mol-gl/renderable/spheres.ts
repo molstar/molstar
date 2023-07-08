@@ -25,6 +25,7 @@ export const SpheresSchema = {
     dXrayShaded: DefineSpec('string', ['off', 'on', 'inverted']),
     dTransparentBackfaces: DefineSpec('string', ['off', 'on', 'opaque']),
     dSolidInterior: DefineSpec('boolean'),
+    dApproximate: DefineSpec('boolean'),
     uBumpFrequency: UniformSpec('f', 'material'),
     uBumpAmplitude: UniformSpec('f', 'material'),
 };
