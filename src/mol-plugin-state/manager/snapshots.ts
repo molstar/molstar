@@ -31,7 +31,8 @@ class PluginStateSnapshotManager extends StatefulPluginComponent<{
     private entryMap = new Map<string, PluginStateSnapshotManager.Entry>();
 
     readonly events = {
-        changed: this.ev()
+        changed: this.ev(),
+        opened: this.ev(),
     };
 
     getIndex(e: PluginStateSnapshotManager.Entry) {
@@ -242,11 +243,11 @@ class PluginStateSnapshotManager extends StatefulPluginComponent<{
                 const snapshot = JSON.parse(data);
 
                 if (PluginStateSnapshotManager.isStateSnapshot(snapshot)) {
-                    return this.setStateSnapshot(snapshot);
+                    await this.setStateSnapshot(snapshot);
                 } else if (PluginStateSnapshotManager.isStateSnapshot(snapshot.data)) {
-                    return this.setStateSnapshot(snapshot.data);
+                    await this.setStateSnapshot(snapshot.data);
                 } else {
-                    this.plugin.state.setSnapshot(snapshot);
+                    await this.plugin.state.setSnapshot(snapshot);
                 }
             } else {
                 const data = await this.plugin.runTask(readFromFile(file, 'zip'));
@@ -270,8 +271,9 @@ class PluginStateSnapshotManager extends StatefulPluginComponent<{
                 }
 
                 const snapshot = JSON.parse(stateData);
-                return this.setStateSnapshot(snapshot);
+                await this.setStateSnapshot(snapshot);
             }
+            this.events.opened.next(void 0);
         } catch (e) {
             console.error(e);
             this.plugin.log.error('Error reading state');
