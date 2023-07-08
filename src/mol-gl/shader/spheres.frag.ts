@@ -96,7 +96,7 @@ void main(void){
         modelPos = vPoint;
         fragmentDepth = gl_FragCoord.z;
         #ifndef dIgnoreLight
-            pointDir.z += length(pointDir) - vRadius;
+            pointDir.z -= cos(length(pointDir) / vRadius);
             cameraNormal = -normalize(pointDir / vRadius);
         #endif
         interior = false;
