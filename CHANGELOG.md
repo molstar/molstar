@@ -8,6 +8,9 @@ Note that since we don't clearly distinguish between a public and private interf
 
 - Fix display issue with SIFTS mapping
 - Properly switch-off fog
+- Reduce `Spheres` memory usage
+    - Derive mapping from VertexID
+    - Pull position and group from texture
 
 ## [v3.37.1] - 2023-06-20
 
