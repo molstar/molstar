@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -25,7 +25,8 @@
 import { Mat3 } from './mat3';
 import { Vec3 } from './vec3';
 import { EPSILON } from './common';
-import { NumberArray } from '../../../mol-util/type-helpers';
+import { assertUnreachable, NumberArray } from '../../../mol-util/type-helpers';
+import { Euler } from './euler';
 
 interface Quat extends Array<number> { [d: number]: number, '@type': 'quat', length: 4 }
 interface ReadonlyQuat extends Array<number> { readonly [d: number]: number, '@type': 'quat', length: 4 }
@@ -238,6 +239,10 @@ namespace Quat {
         return out;
     }
 
+    export function dot(a: Quat, b: Quat) {
+        return a[0] * b[0] + a[1] * b[1] + a[2] * b[2] + a[3] * b[3];
+    }
+
     /**
      * Creates a quaternion from the given 3x3 rotation matrix.
      *
@@ -272,6 +277,63 @@ namespace Quat {
             out[3] = (m[j * 3 + k] - m[k * 3 + j]) * fRoot;
             out[j] = (m[j * 3 + i] + m[i * 3 + j]) * fRoot;
             out[k] = (m[k * 3 + i] + m[i * 3 + k]) * fRoot;
+        }
+
+        return out;
+    }
+
+    export function fromEuler(out: Quat, euler: Euler, order: Euler.Order) {
+        const [x, y, z] = euler;
+
+        // http://www.mathworks.com/matlabcentral/fileexchange/20696-function-to-convert-between-dcm-euler-angles-quaternions-and-euler-vectors/content/SpinCalc.m
+
+        const c1 = Math.cos(x / 2);
+        const c2 = Math.cos(y / 2);
+        const c3 = Math.cos(z / 2);
+
+        const s1 = Math.sin(x / 2);
+        const s2 = Math.sin(y / 2);
+        const s3 = Math.sin(z / 2);
+
+        switch (order) {
+            case 'XYZ':
+                out[0] = s1 * c2 * c3 + c1 * s2 * s3;
+                out[1] = c1 * s2 * c3 - s1 * c2 * s3;
+                out[2] = c1 * c2 * s3 + s1 * s2 * c3;
+                out[3] = c1 * c2 * c3 - s1 * s2 * s3;
+                break;
+            case 'YXZ':
+                out[0] = s1 * c2 * c3 + c1 * s2 * s3;
+                out[1] = c1 * s2 * c3 - s1 * c2 * s3;
+                out[2] = c1 * c2 * s3 - s1 * s2 * c3;
+                out[3] = c1 * c2 * c3 + s1 * s2 * s3;
+                break;
+            case 'ZXY':
+                out[0] = s1 * c2 * c3 - c1 * s2 * s3;
+                out[1] = c1 * s2 * c3 + s1 * c2 * s3;
+                out[2] = c1 * c2 * s3 + s1 * s2 * c3;
+                out[3] = c1 * c2 * c3 - s1 * s2 * s3;
+                break;
+            case 'ZYX':
+                out[0] = s1 * c2 * c3 - c1 * s2 * s3;
+                out[1] = c1 * s2 * c3 + s1 * c2 * s3;
+                out[2] = c1 * c2 * s3 - s1 * s2 * c3;
+                out[3] = c1 * c2 * c3 + s1 * s2 * s3;
+                break;
+            case 'YZX':
+                out[0] = s1 * c2 * c3 + c1 * s2 * s3;
+                out[1] = c1 * s2 * c3 + s1 * c2 * s3;
+                out[2] = c1 * c2 * s3 - s1 * s2 * c3;
+                out[3] = c1 * c2 * c3 - s1 * s2 * s3;
+                break;
+            case 'XZY':
+                out[0] = s1 * c2 * c3 - c1 * s2 * s3;
+                out[1] = c1 * s2 * c3 - s1 * c2 * s3;
+                out[2] = c1 * c2 * s3 + s1 * s2 * c3;
+                out[3] = c1 * c2 * c3 + s1 * s2 * s3;
+                break;
+            default:
+                assertUnreachable(order);
         }
 
         return out;

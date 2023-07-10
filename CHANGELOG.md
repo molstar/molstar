@@ -8,6 +8,9 @@ Note that since we don't clearly distinguish between a public and private interf
 
 - Fix display issue with SIFTS mapping
 - Add `opened` event to `PluginStateSnapshotManager`
+- Properly switch-off fog
+- Add `Euler` math primitive
+- Add stride option to element sphere & point visuals
 
 ## [v3.37.1] - 2023-06-20
 
