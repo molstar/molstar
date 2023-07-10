@@ -7,11 +7,11 @@
  * copyright (c) 2010-2023 three.js authors. MIT License
  */
 
-import { Mat4 } from './mat4.js';
-import { assertUnreachable, NumberArray } from '../../../mol-util/type-helpers.js';
-import { Quat } from './quat.js';
-import { Vec3 } from './vec3.js';
-import { clamp } from '../../interpolate.js';
+import { Mat4 } from './mat4';
+import { assertUnreachable, NumberArray } from '../../../mol-util/type-helpers';
+import { Quat } from './quat';
+import { Vec3 } from './vec3';
+import { clamp } from '../../interpolate';
 
 interface Euler extends Array<number> { [d: number]: number, '@type': 'euler', length: 3 }
 
@@ -27,6 +27,14 @@ namespace Euler {
         const ret = [0.1, 0, 0];
         ret[0] = 0.0;
         return ret as any;
+    }
+
+    export function create(x: number, y: number, z: number): Euler {
+        const out = zero();
+        out[0] = x;
+        out[1] = y;
+        out[2] = z;
+        return out;
     }
 
     export function set(out: Euler, x: number, y: number, z: number) {
@@ -54,69 +62,69 @@ namespace Euler {
     /**
      * Assumes the upper 3x3 of m is a pure rotation matrix (i.e, unscaled)
      */
-    export function setFromRotationMatrix(out: Euler, m: Mat4, order: Order): Euler {
+    export function fromMat4(out: Euler, m: Mat4, order: Order): Euler {
         const m11 = m[0], m12 = m[4], m13 = m[8];
         const m21 = m[1], m22 = m[5], m23 = m[9];
         const m31 = m[2], m32 = m[6], m33 = m[10];
 
         switch (order) {
             case 'XYZ':
-                out[1] = Math.asin(clamp(m13, - 1, 1));
+                out[1] = Math.asin(clamp(m13, -1, 1));
                 if (Math.abs(m13) < 0.9999999) {
-                    out[0] = Math.atan2(- m23, m33);
-                    out[2] = Math.atan2(- m12, m11);
+                    out[0] = Math.atan2(-m23, m33);
+                    out[2] = Math.atan2(-m12, m11);
                 } else {
                     out[0] = Math.atan2(m32, m22);
                     out[2] = 0;
                 }
                 break;
             case 'YXZ':
-                out[0] = Math.asin(- clamp(m23, - 1, 1));
+                out[0] = Math.asin(-clamp(m23, -1, 1));
                 if (Math.abs(m23) < 0.9999999) {
                     out[1] = Math.atan2(m13, m33);
                     out[2] = Math.atan2(m21, m22);
                 } else {
-                    out[1] = Math.atan2(- m31, m11);
+                    out[1] = Math.atan2(-m31, m11);
                     out[2] = 0;
                 }
                 break;
             case 'ZXY':
-                out[0] = Math.asin(clamp(m32, - 1, 1));
+                out[0] = Math.asin(clamp(m32, -1, 1));
                 if (Math.abs(m32) < 0.9999999) {
-                    out[1] = Math.atan2(- m31, m33);
-                    out[2] = Math.atan2(- m12, m22);
+                    out[1] = Math.atan2(-m31, m33);
+                    out[2] = Math.atan2(-m12, m22);
                 } else {
                     out[1] = 0;
                     out[2] = Math.atan2(m21, m11);
                 }
                 break;
             case 'ZYX':
-                out[1] = Math.asin(- clamp(m31, - 1, 1));
+                out[1] = Math.asin(-clamp(m31, -1, 1));
                 if (Math.abs(m31) < 0.9999999) {
                     out[0] = Math.atan2(m32, m33);
                     out[2] = Math.atan2(m21, m11);
                 } else {
                     out[0] = 0;
-                    out[2] = Math.atan2(- m12, m22);
+                    out[2] = Math.atan2(-m12, m22);
                 }
                 break;
             case 'YZX':
-                out[2] = Math.asin(clamp(m21, - 1, 1));
+                out[2] = Math.asin(clamp(m21, -1, 1));
                 if (Math.abs(m21) < 0.9999999) {
-                    out[0] = Math.atan2(- m23, m22);
-                    out[1] = Math.atan2(- m31, m11);
+                    out[0] = Math.atan2(-m23, m22);
+                    out[1] = Math.atan2(-m31, m11);
                 } else {
                     out[0] = 0;
                     out[1] = Math.atan2(m13, m33);
                 }
                 break;
             case 'XZY':
-                out[2] = Math.asin(- clamp(m12, - 1, 1));
+                out[2] = Math.asin(-clamp(m12, -1, 1));
                 if (Math.abs(m12) < 0.9999999) {
                     out[0] = Math.atan2(m32, m22);
                     out[1] = Math.atan2(m13, m11);
                 } else {
-                    out[0] = Math.atan2(- m23, m33);
+                    out[0] = Math.atan2(-m23, m33);
                     out[1] = 0;
                 }
                 break;
@@ -130,7 +138,7 @@ namespace Euler {
     const _mat4 = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] as Mat4;
     export function fromQuat(out: Euler, q: Quat, order: Order) {
         Mat4.fromQuat(_mat4, q);
-        return setFromRotationMatrix(out, _mat4, order);
+        return fromMat4(out, _mat4, order);
     }
 
     export function fromVec3(out: Euler, v: Vec3) {

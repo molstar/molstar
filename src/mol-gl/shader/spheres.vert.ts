@@ -25,7 +25,6 @@ attribute mat4 aTransform;
 attribute float aInstance;
 
 varying float vRadius;
-varying float vRadiusSq;
 varying vec3 vPoint;
 varying vec3 vPointViewPosition;
 
@@ -120,7 +119,6 @@ void main(void){
         quadraticProjection(vRadius, position, mapping);
     #endif
 
-    vRadiusSq = vRadius * vRadius;
     vec4 vPoint4 = uInvProjection * gl_Position;
     vPoint = vPoint4.xyz / vPoint4.w;
     vPointViewPosition = -mvPosition.xyz / mvPosition.w;

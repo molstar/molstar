@@ -23,6 +23,7 @@ import { Quat } from './quat';
 import { degToRad } from '../../misc';
 import { NumberArray } from '../../../mol-util/type-helpers';
 import { Mat3 } from './mat3';
+import { Euler } from './euler';
 
 interface Mat4 extends Array<number> { [d: number]: number, '@type': 'mat4', length: 16 }
 interface ReadonlyMat4 extends Array<number> { readonly [d: number]: number, '@type': 'mat4', length: 16 }
@@ -919,6 +920,94 @@ namespace Mat4 {
         out[10] = 1 - xx - yy;
         out[11] = 0;
 
+        out[12] = 0;
+        out[13] = 0;
+        out[14] = 0;
+        out[15] = 1;
+
+        return out;
+    }
+
+    export function fromEuler(out: Mat4, euler: Euler, order: Euler.Order) {
+        const x = euler[0], y = euler[1], z = euler[2];
+        const a = Math.cos(x), b = Math.sin(x);
+        const c = Math.cos(y), d = Math.sin(y);
+        const e = Math.cos(z), f = Math.sin(z);
+
+        if (order === 'XYZ') {
+            const ae = a * e, af = a * f, be = b * e, bf = b * f;
+            out[0] = c * e;
+            out[4] = - c * f;
+            out[8] = d;
+            out[1] = af + be * d;
+            out[5] = ae - bf * d;
+            out[9] = - b * c;
+            out[2] = bf - ae * d;
+            out[6] = be + af * d;
+            out[10] = a * c;
+        } else if (order === 'YXZ') {
+            const ce = c * e, cf = c * f, de = d * e, df = d * f;
+            out[0] = ce + df * b;
+            out[4] = de * b - cf;
+            out[8] = a * d;
+            out[1] = a * f;
+            out[5] = a * e;
+            out[9] = - b;
+            out[2] = cf * b - de;
+            out[6] = df + ce * b;
+            out[10] = a * c;
+        } else if (order === 'ZXY') {
+            const ce = c * e, cf = c * f, de = d * e, df = d * f;
+            out[0] = ce - df * b;
+            out[4] = - a * f;
+            out[8] = de + cf * b;
+            out[1] = cf + de * b;
+            out[5] = a * e;
+            out[9] = df - ce * b;
+            out[2] = - a * d;
+            out[6] = b;
+            out[10] = a * c;
+        } else if (order === 'ZYX') {
+            const ae = a * e, af = a * f, be = b * e, bf = b * f;
+            out[0] = c * e;
+            out[4] = be * d - af;
+            out[8] = ae * d + bf;
+            out[1] = c * f;
+            out[5] = bf * d + ae;
+            out[9] = af * d - be;
+            out[2] = - d;
+            out[6] = b * c;
+            out[10] = a * c;
+        } else if (order === 'YZX') {
+            const ac = a * c, ad = a * d, bc = b * c, bd = b * d;
+            out[0] = c * e;
+            out[4] = bd - ac * f;
+            out[8] = bc * f + ad;
+            out[1] = f;
+            out[5] = a * e;
+            out[9] = - b * e;
+            out[2] = - d * e;
+            out[6] = ad * f + bc;
+            out[10] = ac - bd * f;
+        } else if (order === 'XZY') {
+            const ac = a * c, ad = a * d, bc = b * c, bd = b * d;
+            out[0] = c * e;
+            out[4] = - f;
+            out[8] = d * e;
+            out[1] = ac * f + bd;
+            out[5] = a * e;
+            out[9] = ad * f - bc;
+            out[2] = bc * f - ad;
+            out[6] = b * e;
+            out[10] = bd * f + ac;
+        }
+
+        // bottom row
+        out[3] = 0;
+        out[7] = 0;
+        out[11] = 0;
+
+        // last column
         out[12] = 0;
         out[13] = 0;
         out[14] = 0;

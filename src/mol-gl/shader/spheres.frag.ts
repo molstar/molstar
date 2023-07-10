@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -19,7 +19,6 @@ precision highp int;
 uniform mat4 uInvView;
 
 varying float vRadius;
-varying float vRadiusSq;
 varying vec3 vPoint;
 varying vec3 vPointViewPosition;
 
@@ -37,7 +36,7 @@ bool SphereImpostor(out vec3 modelPos, out vec3 cameraPos, out vec3 cameraNormal
     vec3 cameraSphereDir = mix(cameraSpherePos, rayOrigin - cameraSpherePos, uIsOrtho);
 
     float B = dot(rayDirection, cameraSphereDir);
-    float det = B * B + vRadiusSq - dot(cameraSphereDir, cameraSphereDir);
+    float det = B * B + vRadius * vRadius - dot(cameraSphereDir, cameraSphereDir);
 
     if (det < 0.0) return false;
 
@@ -83,8 +82,6 @@ bool SphereImpostor(out vec3 modelPos, out vec3 cameraPos, out vec3 cameraNormal
 }
 
 void main(void){
-    vec3 modelPos;
-    vec3 cameraPos;
     vec3 cameraNormal;
     float fragmentDepth;
     bool clipped = false;
@@ -92,14 +89,16 @@ void main(void){
     #ifdef dApproximate
         vec3 pointDir = -vPointViewPosition - vPoint;
         if (dot(pointDir, pointDir) > vRadius * vRadius) discard;
-        cameraPos = -vPointViewPosition;
-        modelPos = vPoint;
+        vec3 vViewPosition = -vPointViewPosition;
         fragmentDepth = gl_FragCoord.z;
         #ifndef dIgnoreLight
-            cameraNormal = -mix(normalize(vPoint), vec3(0.0, 0.0, 1.0), uIsOrtho);
+            pointDir.z -= cos(length(pointDir) / vRadius);
+            cameraNormal = -normalize(pointDir / vRadius);
         #endif
         interior = false;
     #else
+        vec3 modelPos;
+        vec3 cameraPos;
         bool hit = SphereImpostor(modelPos, cameraPos, cameraNormal, interior, fragmentDepth);
         if (!hit) discard;
 
@@ -107,10 +106,10 @@ void main(void){
         if (fragmentDepth > 1.0) discard;
 
         gl_FragDepthEXT = fragmentDepth;
-    #endif
 
-    vec3 vViewPosition = cameraPos;
-    vec3 vModelPosition = modelPos;
+        vec3 vModelPosition = modelPos;
+        vec3 vViewPosition = cameraPos;
+    #endif
 
     #include clip_pixel
     #include assign_material_color
