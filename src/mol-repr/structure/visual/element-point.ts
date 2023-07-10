@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -25,6 +25,7 @@ export const ElementPointParams = {
     ignoreHydrogens: PD.Boolean(false),
     ignoreHydrogensVariant: PD.Select('all', PD.arrayToOptions(['all', 'non-polar'] as const)),
     traceOnly: PD.Boolean(false),
+    stride: PD.Numeric(1, { min: 1, max: 100, step: 1 }),
 };
 export type ElementPointParams = typeof ElementPointParams
 
@@ -91,7 +92,8 @@ export function ElementPointVisual(materialId: number): UnitsVisual<ElementPoint
             state.createGeometry = (
                 newProps.ignoreHydrogens !== currentProps.ignoreHydrogens ||
                 newProps.ignoreHydrogensVariant !== currentProps.ignoreHydrogensVariant ||
-                newProps.traceOnly !== currentProps.traceOnly
+                newProps.traceOnly !== currentProps.traceOnly ||
+                newProps.stride !== currentProps.stride
             );
         }
     }, materialId);
