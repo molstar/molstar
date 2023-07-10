@@ -28,7 +28,7 @@ export const ElementSphereParams = {
 export type ElementSphereParams = typeof ElementSphereParams
 
 export function ElementSphereVisual(materialId: number, structure: Structure, props: PD.Values<ElementSphereParams>, webgl?: WebGLContext) {
-    return props.tryUseImpostor && webgl && webgl.extensions.fragDepth
+    return props.tryUseImpostor && webgl && webgl.extensions.fragDepth && webgl.extensions.textureFloat
         ? ElementSphereImpostorVisual(materialId)
         : ElementSphereMeshVisual(materialId);
 }

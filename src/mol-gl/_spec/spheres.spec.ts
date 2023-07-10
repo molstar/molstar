@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2021-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -21,7 +21,7 @@ export function createSpheres() {
 }
 
 describe('spheres', () => {
-    const ctx = tryGetGLContext(32, 32, { fragDepth: true });
+    const ctx = tryGetGLContext(32, 32, { fragDepth: true, textureFloat: true });
 
     (ctx ? it : it.skip)('basic', async () => {
         const ctx = getGLContext(32, 32);
