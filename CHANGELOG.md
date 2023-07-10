@@ -8,6 +8,7 @@ Note that since we don't clearly distinguish between a public and private interf
 
 - Fix display issue with SIFTS mapping
 - Properly switch-off fog
+- Add stride option to element sphere & point visuals
 
 ## [v3.37.1] - 2023-06-20
 
