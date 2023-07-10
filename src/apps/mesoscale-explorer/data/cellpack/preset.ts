@@ -15,7 +15,7 @@ import { ColorNames } from '../../../../mol-util/color/names';
 import { GraphicsMode, MesoscaleGroup, MesoscaleState, getDistinctBaseColors, getDistinctGroupColors, getGraphicsModeProps, getMesoscaleGroupParams } from '../state';
 import { CellpackAssembly, CellpackStructure } from './model';
 
-function getSpacefillParams(color: Color, sizeFactor: number, graphics: GraphicsMode) {
+function getSpacefillParams(color: Color, sizeFactor: number, graphics: GraphicsMode, merge?: boolean) {
     const gmp = getGraphicsModeProps(graphics === 'custom' ? 'quality' : graphics);
     return {
         type: {
@@ -29,10 +29,11 @@ function getSpacefillParams(color: Color, sizeFactor: number, graphics: Graphics
                 quality: 'lowest', // avoid 'auto', triggers boundary calc
                 sizeFactor,
                 clip: {
-                    variant: 'instance',
+                    variant: merge ? 'pixel' : 'instance',
                     objects: [],
                 },
                 approximate: gmp.approximate,
+                visuals: [merge ? 'structure-element-sphere' : 'element-sphere'],
             },
         },
         colorTheme: {
@@ -207,10 +208,18 @@ export async function createCellpackHierarchy(plugin: PluginContext, trajectory:
         }).run();
     } else {
         const dependsOn = [base.ref];
+
+        const merge = (
+            base.data &&
+            base.data.model.entities.data._rowCount === 1 &&
+            base.data.unitSymmetryGroups.length > 100 &&
+            base.data.unitSymmetryGroups.some(usg => usg.units.length > 1)
+        );
+
         await state.build()
             .toRoot()
             .apply(CellpackStructure, { structureRef: base.ref, entityId: entities.id.value(0) }, { dependsOn })
-            .apply(StructureRepresentation3D, getSpacefillParams(ColorNames.lightgray, 1, graphicsMode), { tags: [`comp:`, `func:`] })
+            .apply(StructureRepresentation3D, getSpacefillParams(ColorNames.lightgray, 1, graphicsMode, merge), { tags: [`comp:`, `func:`] })
             .commit();
     }
 }
