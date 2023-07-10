@@ -109,11 +109,23 @@ async function createHierarchy(ctx: PluginContext, ref: string) {
         throw new Error('not mmcif');
     }
 
-    const { frame } = tr.representative.sourceData.data;
+    const { frame, db } = tr.representative.sourceData.data;
+
+    let hasCellpackAssemblyMethodDetails = false;
+    const { method_details } = db.pdbx_struct_assembly;
+    for (let i = 0, il = method_details.rowCount; i < il; ++i) {
+        if (method_details.value(i).toUpperCase() === 'CELLPACK') {
+            hasCellpackAssemblyMethodDetails = true;
+            break;
+        }
+    }
 
     if (frame.categories.pdbx_model) {
         await createPetworldHierarchy(ctx, parsed.trajectory);
-    } else if (frame.header.toUpperCase().includes('CELLPACK')) {
+    } else if (
+        frame.header.toUpperCase().includes('CELLPACK') ||
+        hasCellpackAssemblyMethodDetails
+    ) {
         await createCellpackHierarchy(ctx, parsed.trajectory);
     } else {
         await createMmcifHierarchy(ctx, parsed.trajectory);
