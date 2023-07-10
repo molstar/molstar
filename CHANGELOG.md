@@ -7,6 +7,7 @@ Note that since we don't clearly distinguish between a public and private interf
 ## [Unreleased]
 
 - Fix display issue with SIFTS mapping
+- Add `opened` event to `PluginStateSnapshotManager`
 - Properly switch-off fog
 - Add `Euler` math primitive
 - Add stride option to element sphere & point visuals
