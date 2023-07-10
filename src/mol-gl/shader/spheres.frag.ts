@@ -19,7 +19,6 @@ precision highp int;
 uniform mat4 uInvView;
 
 varying float vRadius;
-varying float vRadiusSq;
 varying vec3 vPoint;
 varying vec3 vPointViewPosition;
 
@@ -37,7 +36,7 @@ bool SphereImpostor(out vec3 modelPos, out vec3 cameraPos, out vec3 cameraNormal
     vec3 cameraSphereDir = mix(cameraSpherePos, rayOrigin - cameraSpherePos, uIsOrtho);
 
     float B = dot(rayDirection, cameraSphereDir);
-    float det = B * B + vRadiusSq - dot(cameraSphereDir, cameraSphereDir);
+    float det = B * B + vRadius * vRadius - dot(cameraSphereDir, cameraSphereDir);
 
     if (det < 0.0) return false;
 
