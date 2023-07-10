@@ -10,6 +10,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Add 'NH2', 'FOR', 'FMT' to `CommonProteinCaps`
 - Add `opened` event to `PluginStateSnapshotManager`
 - Properly switch-off fog
+- Add `approximate` option for spheres rendering
 - Reduce `Spheres` memory usage
     - Derive mapping from VertexID
     - Pull position and group from texture

@@ -25,7 +25,6 @@ attribute mat4 aTransform;
 attribute float aInstance;
 
 varying float vRadius;
-varying float vRadiusSq;
 varying vec3 vPoint;
 varying vec3 vPointViewPosition;
 
@@ -102,10 +101,15 @@ void main(void){
     vec4 position4 = vec4(position, 1.0);
     vec4 mvPosition = uModelView * aTransform * position4;
 
-    gl_Position = uProjection * vec4(mvPosition.xyz, 1.0);
-    quadraticProjection(size, position, mapping);
+    #ifdef dApproximate
+        vec4 mvCorner = vec4(mvPosition.xyz, 1.0);
+        mvCorner.xy += mapping * vRadius;
+        gl_Position = uProjection * mvCorner;
+    #else
+        gl_Position = uProjection * vec4(mvPosition.xyz, 1.0);
+        quadraticProjection(vRadius, position, mapping);
+    #endif
 
-    vRadiusSq = vRadius * vRadius;
     vec4 vPoint4 = uInvProjection * gl_Position;
     vPoint = vPoint4.xyz / vPoint4.w;
     vPointViewPosition = -mvPosition.xyz / mvPosition.w;
