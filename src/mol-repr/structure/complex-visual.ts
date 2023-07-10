@@ -31,12 +31,13 @@ import { Text } from '../../mol-geo/geometry/text/text';
 import { SizeTheme } from '../../mol-theme/size';
 import { DirectVolume } from '../../mol-geo/geometry/direct-volume/direct-volume';
 import { createMarkers } from '../../mol-geo/geometry/marker-data';
-import { StructureParams, StructureMeshParams, StructureTextParams, StructureDirectVolumeParams, StructureLinesParams, StructureCylindersParams, StructureTextureMeshParams } from './params';
+import { StructureParams, StructureMeshParams, StructureTextParams, StructureDirectVolumeParams, StructureLinesParams, StructureCylindersParams, StructureTextureMeshParams, StructureSpheresParams } from './params';
 import { Clipping } from '../../mol-theme/clipping';
 import { TextureMesh } from '../../mol-geo/geometry/texture-mesh/texture-mesh';
 import { WebGLContext } from '../../mol-gl/webgl/context';
 import { isPromiseLike } from '../../mol-util/type-helpers';
 import { Substance } from '../../mol-theme/substance';
+import { Spheres } from '../../mol-geo/geometry/spheres/spheres';
 
 export interface ComplexVisual<P extends StructureParams> extends Visual<Structure, P> { }
 
@@ -335,6 +336,24 @@ export function ComplexMeshVisual<P extends ComplexMeshParams>(builder: ComplexM
             if (!SizeTheme.areEqual(newTheme.size, currentTheme.size)) state.createGeometry = true;
         },
         geometryUtils: Mesh.Utils
+    }, materialId);
+}
+
+// spheres
+
+export const ComplexSpheresParams = { ...StructureSpheresParams, ...StructureParams };
+export type ComplexSpheresParams = typeof ComplexSpheresParams
+
+export interface ComplexSpheresVisualBuilder<P extends ComplexSpheresParams> extends ComplexVisualBuilder<P, Spheres> { }
+
+export function ComplexSpheresVisual<P extends ComplexSpheresParams>(builder: ComplexSpheresVisualBuilder<P>, materialId: number): ComplexVisual<P> {
+    return ComplexVisual<Spheres, P>({
+        ...builder,
+        setUpdateState: (state: VisualUpdateState, newProps: PD.Values<P>, currentProps: PD.Values<P>, newTheme: Theme, currentTheme: Theme, newStructure: Structure, currentStructure: Structure) => {
+            builder.setUpdateState(state, newProps, currentProps, newTheme, currentTheme, newStructure, currentStructure);
+            if (!SizeTheme.areEqual(newTheme.size, currentTheme.size)) state.updateSize = true;
+        },
+        geometryUtils: Spheres.Utils
     }, materialId);
 }
 
