@@ -49,7 +49,7 @@ function createAssembly(pdbx_struct_assembly: StructAssembly, pdbx_struct_assemb
     return Assembly.create(id, details, operatorGroupsProvider(generators, matrices));
 }
 
-function operatorGroupsProvider(generators: Generator[], matrices: Matrices): () => OperatorGroups {
+export function operatorGroupsProvider(generators: Generator[], matrices: Matrices): () => OperatorGroups {
     return () => {
         const groups: OperatorGroup[] = [];
 
@@ -71,7 +71,7 @@ function operatorGroupsProvider(generators: Generator[], matrices: Matrices): ()
     };
 }
 
-function getMatrices(pdbx_struct_oper_list: StructOperList): Matrices {
+export function getMatrices(pdbx_struct_oper_list: StructOperList): Matrices {
     const { id, matrix, vector, _schema } = pdbx_struct_oper_list;
     const matrices = new Map<string, Mat4>();
     const t = Vec3();
