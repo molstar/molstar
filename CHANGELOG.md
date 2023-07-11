@@ -7,6 +7,7 @@ Note that since we don't clearly distinguish between a public and private interf
 ## [Unreleased]
 
 - Fix display issue with SIFTS mapping
+- Fix distinct palette's `getSamples` infinite loop
 - Add 'NH2', 'FOR', 'FMT' to `CommonProteinCaps`
 - Add `opened` event to `PluginStateSnapshotManager`
 - Properly switch-off fog
