@@ -7,7 +7,18 @@ Note that since we don't clearly distinguish between a public and private interf
 ## [Unreleased]
 
 - Fix display issue with SIFTS mapping
-- Update `getStateSnapshot` to overwrite current snapshot only if there is just 1 present
+- Update `getStateSnapshot` to only overwrite current snapshot if it was created automatically
+- Fix distinct palette's `getSamples` infinite loop
+- Add 'NH2', 'FOR', 'FMT' to `CommonProteinCaps`
+- Add `opened` event to `PluginStateSnapshotManager`
+- Properly switch-off fog
+- Add `approximate` option for spheres rendering
+- Reduce `Spheres` memory usage
+    - Derive mapping from VertexID
+    - Pull position and group from texture
+- Add `Euler` math primitive
+- Add stride option to element sphere & point visuals
+- Add 'Chain Instance' and 'Uniform' options for 'Carbon Color' param (in Color Theme: Element Symbol)
 
 ## [v3.37.1] - 2023-06-20
 
