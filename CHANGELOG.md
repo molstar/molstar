@@ -7,6 +7,7 @@ Note that since we don't clearly distinguish between a public and private interf
 ## [Unreleased]
 
 - Fix display issue with SIFTS mapping
+- Update `getStateSnapshot` to only overwrite current snapshot if it was created automatically
 - Fix distinct palette's `getSamples` infinite loop
 - Add 'NH2', 'FOR', 'FMT' to `CommonProteinCaps`
 - Add `opened` event to `PluginStateSnapshotManager`
