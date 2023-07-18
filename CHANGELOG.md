@@ -6,6 +6,8 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+## [v3.38.0] - 2023-07-18
+
 - Fix display issue with SIFTS mapping
 - Support non-physical keys in `Bindings.Trigger.code`
 - Update `getStateSnapshot` to only overwrite current snapshot if it was created automatically
