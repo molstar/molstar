@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -81,7 +81,7 @@ export namespace Geometry {
         switch (geometry.kind) {
             case 'mesh': return geometry.vertexCount;
             case 'points': return geometry.pointCount;
-            case 'spheres': return geometry.sphereCount * 4;
+            case 'spheres': return geometry.sphereCount * 6;
             case 'cylinders': return geometry.cylinderCount * 6;
             case 'text': return geometry.charCount * 4;
             case 'lines': return geometry.lineCount * 4;

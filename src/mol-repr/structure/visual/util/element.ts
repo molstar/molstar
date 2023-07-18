@@ -29,6 +29,7 @@ type ElementProps = {
     ignoreHydrogens: boolean,
     ignoreHydrogensVariant: 'all' | 'non-polar',
     traceOnly: boolean,
+    stride?: number
 }
 
 export type ElementSphereMeshProps = {
@@ -61,7 +62,7 @@ export function createElementSphereMesh(ctx: VisualContext, unit: Unit, structur
     const childUnit = child?.unitMap.get(unit.id);
     if (child && !childUnit) return Mesh.createEmpty(mesh);
 
-    const { detail, sizeFactor } = props;
+    const { detail, sizeFactor, stride } = props;
 
     const { elements } = unit;
     const elementCount = elements.length;
@@ -78,6 +79,7 @@ export function createElementSphereMesh(ctx: VisualContext, unit: Unit, structur
     let count = 0;
 
     for (let i = 0; i < elementCount; i++) {
+        if (stride && i % stride !== 0) continue;
         if (ignore && ignore(elements[i])) continue;
 
         pos(elements[i], v);
@@ -118,6 +120,8 @@ export function createElementSphereImpostor(ctx: VisualContext, unit: Unit, stru
     const childUnit = child?.unitMap.get(unit.id);
     if (child && !childUnit) return Spheres.createEmpty(spheres);
 
+    const { sizeFactor, stride } = props;
+
     const { elements } = unit;
     const elementCount = elements.length;
     const builder = SpheresBuilder.create(elementCount, elementCount / 2, spheres);
@@ -132,8 +136,9 @@ export function createElementSphereImpostor(ctx: VisualContext, unit: Unit, stru
     let maxSize = 0;
     let count = 0;
 
-    if (ignore || theme.size.granularity !== 'uniform') {
+    if ((stride && stride > 1) || ignore || theme.size.granularity !== 'uniform') {
         for (let i = 0; i < elementCount; i++) {
+            if (stride && i % stride !== 0) continue;
             if (ignore && ignore(elements[i])) continue;
 
             pos(elements[i], v);
@@ -165,7 +170,7 @@ export function createElementSphereImpostor(ctx: VisualContext, unit: Unit, stru
     if (oldBoundingSphere && Vec3.distance(center, oldBoundingSphere.center) / oldBoundingSphere.radius < 1.0) {
         boundingSphere = oldBoundingSphere;
     } else {
-        boundingSphere = Sphere3D.expand(Sphere3D(), (childUnit ?? unit).boundary.sphere, maxSize * props.sizeFactor + 0.05);
+        boundingSphere = Sphere3D.expand(Sphere3D(), (childUnit ?? unit).boundary.sphere, maxSize * sizeFactor + 0.05);
     }
     s.setBoundingSphere(boundingSphere);
 

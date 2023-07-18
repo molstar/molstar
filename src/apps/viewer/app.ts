@@ -59,7 +59,7 @@ const CustomFormats = [
     ['g3d', G3dProvider] as const
 ];
 
-const Extensions = {
+export const ExtensionMap = {
     'volseg': PluginSpec.Behavior(Volseg),
     'backgrounds': PluginSpec.Behavior(Backgrounds),
     'cellpack': PluginSpec.Behavior(CellPack),
@@ -80,7 +80,8 @@ const Extensions = {
 
 const DefaultViewerOptions = {
     customFormats: CustomFormats as [string, DataFormatProvider][],
-    extensions: ObjectKeys(Extensions),
+    extensions: ObjectKeys(ExtensionMap),
+    disabledExtensions: [] as string[],
     layoutIsExpanded: true,
     layoutShowControls: true,
     layoutShowRemoteState: true,
@@ -131,11 +132,13 @@ export class Viewer {
         const o: ViewerOptions = { ...DefaultViewerOptions, ...definedOptions };
         const defaultSpec = DefaultPluginUISpec();
 
+        const disabledExtension = new Set(o.disabledExtensions ?? []);
+
         const spec: PluginUISpec = {
             actions: defaultSpec.actions,
             behaviors: [
                 ...defaultSpec.behaviors,
-                ...o.extensions.map(e => Extensions[e]),
+                ...o.extensions.filter(e => !disabledExtension.has(e)).map(e => ExtensionMap[e]),
             ],
             animations: [...defaultSpec.animations || []],
             customParamEditors: defaultSpec.customParamEditors,

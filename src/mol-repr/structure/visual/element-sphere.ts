@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -23,11 +23,12 @@ export const ElementSphereParams = {
     ignoreHydrogensVariant: PD.Select('all', PD.arrayToOptions(['all', 'non-polar'] as const)),
     traceOnly: PD.Boolean(false),
     tryUseImpostor: PD.Boolean(true),
+    stride: PD.Numeric(1, { min: 1, max: 100, step: 1 }),
 };
 export type ElementSphereParams = typeof ElementSphereParams
 
 export function ElementSphereVisual(materialId: number, structure: Structure, props: PD.Values<ElementSphereParams>, webgl?: WebGLContext) {
-    return props.tryUseImpostor && webgl && webgl.extensions.fragDepth
+    return props.tryUseImpostor && webgl && webgl.extensions.fragDepth && webgl.extensions.textureFloat
         ? ElementSphereImpostorVisual(materialId)
         : ElementSphereMeshVisual(materialId);
 }
@@ -43,7 +44,8 @@ export function ElementSphereImpostorVisual(materialId: number): UnitsVisual<Ele
             state.createGeometry = (
                 newProps.ignoreHydrogens !== currentProps.ignoreHydrogens ||
                 newProps.ignoreHydrogensVariant !== currentProps.ignoreHydrogensVariant ||
-                newProps.traceOnly !== currentProps.traceOnly
+                newProps.traceOnly !== currentProps.traceOnly ||
+                newProps.stride !== currentProps.stride
             );
         },
         mustRecreate: (structureGroup: StructureGroup, props: PD.Values<ElementSphereParams>, webgl?: WebGLContext) => {
@@ -65,7 +67,8 @@ export function ElementSphereMeshVisual(materialId: number): UnitsVisual<Element
                 newProps.detail !== currentProps.detail ||
                 newProps.ignoreHydrogens !== currentProps.ignoreHydrogens ||
                 newProps.ignoreHydrogensVariant !== currentProps.ignoreHydrogensVariant ||
-                newProps.traceOnly !== currentProps.traceOnly
+                newProps.traceOnly !== currentProps.traceOnly ||
+                newProps.stride !== currentProps.stride
             );
         },
         mustRecreate: (structureGroup: StructureGroup, props: PD.Values<ElementSphereParams>, webgl?: WebGLContext) => {
