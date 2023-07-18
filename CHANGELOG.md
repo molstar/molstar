@@ -7,6 +7,8 @@ Note that since we don't clearly distinguish between a public and private interf
 ## [Unreleased]
 
 - Fix display issue with SIFTS mapping
+- Update `getStateSnapshot` to only overwrite current snapshot if it was created automatically
+- Fix distinct palette's `getSamples` infinite loop
 - Add 'NH2', 'FOR', 'FMT' to `CommonProteinCaps`
 - Add `opened` event to `PluginStateSnapshotManager`
 - Properly switch-off fog
@@ -17,6 +19,8 @@ Note that since we don't clearly distinguish between a public and private interf
 - Add `Euler` math primitive
 - Add stride option to element sphere & point visuals
 - Add `disabledExtensions` field to default viewer's options
+- Add `LRUCache.remove`
+- Add 'Chain Instance' and 'Uniform' options for 'Carbon Color' param (in Color Theme: Element Symbol)
 
 ## [v3.37.1] - 2023-06-20
 
