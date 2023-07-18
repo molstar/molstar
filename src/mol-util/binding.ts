@@ -81,7 +81,12 @@ namespace Binding {
         export function matchKey(trigger: Trigger, code: KeyCode, modifiers: ModifiersKeys): boolean {
             const { modifiers: m, code: c } = trigger;
             return c !== undefined &&
-                (c === code) &&
+                (c === code || (
+                    c.length === 1 &&
+                    code.length === 4 &&
+                    code.startsWith('Key') &&
+                    code[3] === c.toUpperCase()
+                )) &&
                 (!m || ModifiersKeys.areEqual(m, modifiers));
         }
 

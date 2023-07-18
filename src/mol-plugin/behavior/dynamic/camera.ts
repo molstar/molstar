@@ -154,10 +154,10 @@ export const CameraAxisHelper = PluginBehavior.create<{}>({
 });
 
 const DefaultCameraControlsBindings = {
-    keySpinAnimation: Binding([Key('KeyI')], 'Spin Animation', 'Press ${triggers}'),
-    keyRockAnimation: Binding([Key('KeyO')], 'Rock Animation', 'Press ${triggers}'),
+    keySpinAnimation: Binding([Key('I')], 'Spin Animation', 'Press ${triggers}'),
+    keyRockAnimation: Binding([Key('O')], 'Rock Animation', 'Press ${triggers}'),
     keyToggleFlyMode: Binding([Key('Space', M.create({ shift: true }))], 'Toggle Fly Mode', 'Press ${triggers}'),
-    keyResetView: Binding([Key('KeyT')], 'Reset View', 'Press ${triggers}'),
+    keyResetView: Binding([Key('T')], 'Reset View', 'Press ${triggers}'),
 };
 const CameraControlsParams = {
     bindings: PD.Value(DefaultCameraControlsBindings, { isHidden: true }),
