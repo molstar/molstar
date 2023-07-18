@@ -18,6 +18,7 @@ Note that since we don't clearly distinguish between a public and private interf
     - Pull position and group from texture
 - Add `Euler` math primitive
 - Add stride option to element sphere & point visuals
+- Add `disabledExtensions` field to default viewer's options
 - Add `LRUCache.remove`
 - Add 'Chain Instance' and 'Uniform' options for 'Carbon Color' param (in Color Theme: Element Symbol)
 
