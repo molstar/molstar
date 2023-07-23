@@ -464,14 +464,13 @@ export class PostprocessingPass {
 
     private nSamples: number;
     private blurKernelSize: number;
-    private downsampleFactor: number;
 
     private readonly renderable: PostprocessingRenderable;
 
     private ssaoScale: number;
-    private calcSsaoScale() {
+    private calcSsaoScale(resolutionScale: number) {
         // downscale ssao for high pixel-ratios
-        return Math.min(1, 1 / this.webgl.pixelRatio) * this.downsampleFactor;
+        return Math.min(1, 1 / this.webgl.pixelRatio) * resolutionScale;
     }
 
     private levels: { radius: number, bias: number }[];
@@ -486,8 +485,7 @@ export class PostprocessingPass {
 
         this.nSamples = 1;
         this.blurKernelSize = 1;
-        this.downsampleFactor = 1;
-        this.ssaoScale = this.calcSsaoScale();
+        this.ssaoScale = this.calcSsaoScale(1);
         this.levels = [];
 
         // needs to be linear for anti-aliasing pass
@@ -517,10 +515,12 @@ export class PostprocessingPass {
             : webgl.createRenderTarget(sw, sh, false, 'float32', 'linear', webgl.isWebGL2 ? 'alpha' : 'rgba');
         this.downsampleDepthRenderable = createCopyRenderable(webgl, depthTextureOpaque);
 
+        const depthTexture = this.ssaoScale === 1 ? depthTextureOpaque : this.downsampledDepthTarget.texture;
+
         this.depthHalfTarget = drawPass.packedDepth
             ? webgl.createRenderTarget(hw, hh, false, 'uint8', 'linear', 'rgba')
             : webgl.createRenderTarget(hw, hh, false, 'float32', 'linear', webgl.isWebGL2 ? 'alpha' : 'rgba');
-        this.depthHalfRenderable = createCopyRenderable(webgl, this.ssaoScale === 1 ? depthTextureOpaque : this.downsampledDepthTarget.texture);
+        this.depthHalfRenderable = createCopyRenderable(webgl, depthTexture);
 
         this.depthQuarterTarget = drawPass.packedDepth
             ? webgl.createRenderTarget(qw, qh, false, 'uint8', 'linear', 'rgba')
@@ -537,7 +537,7 @@ export class PostprocessingPass {
 
         this.ssaoDepthTexture.attachFramebuffer(this.ssaoBlurSecondPassFramebuffer, 'color0');
 
-        this.ssaoRenderable = getSsaoRenderable(webgl, this.ssaoScale === 1 ? depthTextureOpaque : this.downsampledDepthTarget.texture, this.depthHalfTarget.texture, this.depthQuarterTarget.texture);
+        this.ssaoRenderable = getSsaoRenderable(webgl, depthTexture, this.depthHalfTarget.texture, this.depthQuarterTarget.texture);
         this.ssaoBlurFirstPassRenderable = getSsaoBlurRenderable(webgl, this.ssaoDepthTexture, 'horizontal');
         this.ssaoBlurSecondPassRenderable = getSsaoBlurRenderable(webgl, this.ssaoDepthBlurProxyTexture, 'vertical');
         this.renderable = getPostprocessingRenderable(webgl, colorTarget.texture, depthTextureOpaque, depthTextureTransparent, this.shadowsTarget.texture, this.outlinesTarget.texture, this.ssaoDepthTexture, true);
@@ -547,7 +547,7 @@ export class PostprocessingPass {
 
     setSize(width: number, height: number) {
         const [w, h] = this.renderable.values.uTexSize.ref.value;
-        const ssaoScale = this.calcSsaoScale();
+        const ssaoScale = this.calcSsaoScale(1);
 
         if (width !== w || height !== h || this.ssaoScale !== ssaoScale) {
             this.ssaoScale = ssaoScale;
@@ -580,6 +580,13 @@ export class PostprocessingPass {
             ValueCell.update(this.ssaoBlurFirstPassRenderable.values.uTexSize, Vec2.set(this.ssaoBlurFirstPassRenderable.values.uTexSize.ref.value, sw, sh));
             ValueCell.update(this.ssaoBlurSecondPassRenderable.values.uTexSize, Vec2.set(this.ssaoBlurSecondPassRenderable.values.uTexSize.ref.value, sw, sh));
 
+            const depthTexture = this.ssaoScale === 1 ? this.drawPass.depthTextureOpaque : this.downsampledDepthTarget.texture;
+            ValueCell.update(this.depthHalfRenderable.values.tColor, depthTexture);
+            ValueCell.update(this.ssaoRenderable.values.tDepth, depthTexture);
+
+            this.depthHalfRenderable.update();
+            this.ssaoRenderable.update();
+
             this.background.setSize(width, height);
         }
     }
@@ -589,6 +596,7 @@ export class PostprocessingPass {
         let needsUpdateMain = false;
         let needsUpdateSsao = false;
         let needsUpdateSsaoBlur = false;
+        let needsUpdateDepthHalf = false;
         let needsUpdateOutlines = false;
 
         const orthographic = camera.state.mode === 'orthographic' ? 1 : 0;
@@ -678,11 +686,12 @@ export class PostprocessingPass {
                 ValueCell.update(this.ssaoBlurSecondPassRenderable.values.dOcclusionKernelSize, this.blurKernelSize);
             }
 
-            if (this.downsampleFactor !== props.occlusion.params.resolutionScale) {
+            const ssaoScale = this.calcSsaoScale(props.occlusion.params.resolutionScale);
+            if (this.ssaoScale !== ssaoScale) {
                 needsUpdateSsao = true;
+                needsUpdateDepthHalf = true;
 
-                this.downsampleFactor = props.occlusion.params.resolutionScale;
-                this.ssaoScale = this.calcSsaoScale();
+                this.ssaoScale = ssaoScale;
 
                 const sw = Math.floor(w * this.ssaoScale);
                 const sh = Math.floor(h * this.ssaoScale);
@@ -698,11 +707,9 @@ export class PostprocessingPass {
                 const qh = Math.floor(sh * 0.25);
                 this.depthQuarterTarget.setSize(qw, qh);
 
-                if (this.ssaoScale === 1) {
-                    ValueCell.update(this.ssaoRenderable.values.tDepth, this.drawPass.depthTextureOpaque);
-                } else {
-                    ValueCell.update(this.ssaoRenderable.values.tDepth, this.downsampledDepthTarget.texture);
-                }
+                const depthTexture = this.ssaoScale === 1 ? this.drawPass.depthTextureOpaque : this.downsampledDepthTarget.texture;
+                ValueCell.update(this.depthHalfRenderable.values.tColor, depthTexture);
+                ValueCell.update(this.ssaoRenderable.values.tDepth, depthTexture);
 
                 ValueCell.update(this.ssaoRenderable.values.tDepthHalf, this.depthHalfTarget.texture);
                 ValueCell.update(this.ssaoRenderable.values.tDepthQuarter, this.depthQuarterTarget.texture);
@@ -822,6 +829,10 @@ export class PostprocessingPass {
         if (needsUpdateSsaoBlur) {
             this.ssaoBlurFirstPassRenderable.update();
             this.ssaoBlurSecondPassRenderable.update();
+        }
+
+        if (needsUpdateDepthHalf) {
+            this.depthHalfRenderable.update();
         }
 
         if (needsUpdateMain) {
