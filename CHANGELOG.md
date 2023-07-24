@@ -6,6 +6,8 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Don't rely solely on `chem_comp_atom` when detecting CCD files (#877)
+
 ## [v3.38.1] - 2023-07-22
 
 - Fix pixel-scale not updated in SSAO pass
