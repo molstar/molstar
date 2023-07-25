@@ -6,6 +6,8 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+## [v3.38.2] - 2023-07-24
+
 - Don't rely solely on `chem_comp_atom` when detecting CCD files (#877)
 - Actually support non-physical keys in `Bindings.Trigger.code`
 
