@@ -38,8 +38,8 @@ namespace Binding {
         return binding.triggers.some(t => Trigger.match(t, buttons, modifiers));
     }
 
-    export function matchKey(binding: Binding, code: KeyCode, modifiers: ModifiersKeys) {
-        return binding.triggers.some(t => Trigger.matchKey(t, code, modifiers));
+    export function matchKey(binding: Binding, code: KeyCode, modifiers: ModifiersKeys, key: string) {
+        return binding.triggers.some(t => Trigger.matchKey(t, code, modifiers, key));
     }
 
     export function formatTriggers(binding: Binding) {
@@ -78,14 +78,15 @@ namespace Binding {
                 (!m || ModifiersKeys.areEqual(m, modifiers));
         }
 
-        export function matchKey(trigger: Trigger, code: KeyCode, modifiers: ModifiersKeys): boolean {
+        export function matchKey(trigger: Trigger, code: KeyCode, modifiers: ModifiersKeys, key: string): boolean {
             const { modifiers: m, code: c } = trigger;
             return c !== undefined &&
                 (c === code || (
                     c.length === 1 &&
                     code.length === 4 &&
                     code.startsWith('Key') &&
-                    code[3] === c.toUpperCase()
+                    !!key && key.length === 1 &&
+                    key.toUpperCase() === c.toUpperCase()
                 )) &&
                 (!m || ModifiersKeys.areEqual(m, modifiers));
         }

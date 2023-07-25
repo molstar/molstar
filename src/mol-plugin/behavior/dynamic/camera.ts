@@ -169,14 +169,14 @@ export const CameraControls = PluginBehavior.create<CameraControlsProps>({
     category: 'interaction',
     ctor: class extends PluginBehavior.Handler<CameraControlsProps> {
         register(): void {
-            this.subscribeObservable(this.ctx.behaviors.interaction.key, ({ code, modifiers }) => {
+            this.subscribeObservable(this.ctx.behaviors.interaction.key, ({ code, key, modifiers }) => {
                 if (!this.ctx.canvas3d) return;
 
                 // include defaults for backwards state compatibility
                 const b = { ...DefaultCameraControlsBindings, ...this.params.bindings };
                 const p = this.ctx.canvas3d.props.trackball;
 
-                if (Binding.matchKey(b.keySpinAnimation, code, modifiers)) {
+                if (Binding.matchKey(b.keySpinAnimation, code, modifiers, key)) {
                     const name = p.animate.name !== 'spin' ? 'spin' : 'off';
                     if (name === 'off') {
                         this.ctx.canvas3d.setProps({
@@ -191,7 +191,7 @@ export const CameraControls = PluginBehavior.create<CameraControlsProps>({
                     }
                 }
 
-                if (Binding.matchKey(b.keyRockAnimation, code, modifiers)) {
+                if (Binding.matchKey(b.keyRockAnimation, code, modifiers, key)) {
                     const name = p.animate.name !== 'rock' ? 'rock' : 'off';
                     if (name === 'off') {
                         this.ctx.canvas3d.setProps({
@@ -206,7 +206,7 @@ export const CameraControls = PluginBehavior.create<CameraControlsProps>({
                     }
                 }
 
-                if (Binding.matchKey(b.keyToggleFlyMode, code, modifiers)) {
+                if (Binding.matchKey(b.keyToggleFlyMode, code, modifiers, key)) {
                     const flyMode = !p.flyMode;
 
                     this.ctx.canvas3d.setProps({
@@ -218,7 +218,7 @@ export const CameraControls = PluginBehavior.create<CameraControlsProps>({
                     }
                 }
 
-                if (Binding.matchKey(b.keyResetView, code, modifiers)) {
+                if (Binding.matchKey(b.keyResetView, code, modifiers, key)) {
                     PluginCommands.Camera.Reset(this.ctx, {});
                 }
             });
