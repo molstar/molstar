@@ -44,9 +44,17 @@ export interface Spheres {
     readonly groupMapping: GroupMapping
 
     setBoundingSphere(boundingSphere: Sphere3D): void
+
+    shaderData: Spheres.ShaderData
 }
 
 export namespace Spheres {
+    export interface ShaderData {
+        readonly positionGroup: ValueCell<TextureImage<Float32Array>>
+        readonly texDim: ValueCell<Vec2>
+        update(): void
+    }
+
     export function create(centers: Float32Array, groups: Float32Array, sphereCount: number, spheres?: Spheres): Spheres {
         return spheres ?
             update(centers, groups, sphereCount, spheres) :
@@ -68,12 +76,14 @@ export namespace Spheres {
     }
 
     function fromArrays(centers: Float32Array, groups: Float32Array, sphereCount: number): Spheres {
-
         const boundingSphere = Sphere3D();
         let groupMapping: GroupMapping;
 
         let currentHash = -1;
         let currentGroup = -1;
+
+        const positionGroup = ValueCell.create(createTextureImage(1, 4, Float32Array));
+        const texDim = ValueCell.create(Vec2.create(0, 0));
 
         const spheres = {
             kind: 'spheres' as const,
@@ -99,7 +109,17 @@ export namespace Spheres {
             setBoundingSphere(sphere: Sphere3D) {
                 Sphere3D.copy(boundingSphere, sphere);
                 currentHash = hashCode(spheres);
-            }
+            },
+            shaderData: {
+                positionGroup,
+                texDim,
+                update() {
+                    const pgt = createTextureImage(spheres.sphereCount, 4, Float32Array, positionGroup.ref.value.array);
+                    setPositionGroup(pgt, spheres.centerBuffer.ref.value, spheres.groupBuffer.ref.value, spheres.sphereCount);
+                    ValueCell.update(positionGroup, pgt);
+                    ValueCell.update(texDim, Vec2.set(texDim.ref.value, pgt.width, pgt.height));
+                }
+            },
         };
         return spheres;
     }
@@ -108,6 +128,7 @@ export namespace Spheres {
         spheres.sphereCount = sphereCount;
         ValueCell.update(spheres.centerBuffer, centers);
         ValueCell.update(spheres.groupBuffer, groups);
+        spheres.shaderData.update();
         return spheres;
     }
 
@@ -185,14 +206,13 @@ export namespace Spheres {
         const invariantBoundingSphere = Sphere3D.expand(Sphere3D(), spheres.boundingSphere, padding);
         const boundingSphere = calculateTransformBoundingSphere(invariantBoundingSphere, transform.aTransform.ref.value, instanceCount, 0);
 
-        const positionGroupTexture = createTextureImage(spheres.sphereCount, 4, Float32Array);
-        setPositionGroup(positionGroupTexture, spheres.centerBuffer.ref.value, spheres.groupBuffer.ref.value, spheres.sphereCount);
+        spheres.shaderData.update();
 
         return {
             dGeometryType: ValueCell.create('spheres'),
 
-            uTexDim: ValueCell.create(Vec2.create(positionGroupTexture.width, positionGroupTexture.height)),
-            tPositionGroup: ValueCell.create(positionGroupTexture),
+            uTexDim: spheres.shaderData.texDim,
+            tPositionGroup: spheres.shaderData.positionGroup,
 
             boundingSphere: ValueCell.create(boundingSphere),
             invariantBoundingSphere: ValueCell.create(invariantBoundingSphere),
