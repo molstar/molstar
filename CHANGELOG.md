@@ -14,7 +14,25 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+## [v3.38.3] - 2023-07-29
+
+- Fix imposter spheres not updating, e.g. in trajectories (broke in v3.38.0)
+
+## [v3.38.2] - 2023-07-24
+
+- Don't rely solely on `chem_comp_atom` when detecting CCD files (#877)
+- Actually support non-physical keys in `Bindings.Trigger.code`
+
+## [v3.38.1] - 2023-07-22
+
+- Fix pixel-scale not updated in SSAO pass
+
+## [v3.38.0] - 2023-07-18
+
 - Fix display issue with SIFTS mapping
+- Support non-physical keys in `Bindings.Trigger.code`
+- Update `getStateSnapshot` to only overwrite current snapshot if it was created automatically
+- Fix distinct palette's `getSamples` infinite loop
 - Add 'NH2', 'FOR', 'FMT' to `CommonProteinCaps`
 - Add `opened` event to `PluginStateSnapshotManager`
 - Properly switch-off fog
@@ -24,6 +42,9 @@ Note that since we don't clearly distinguish between a public and private interf
     - Pull position and group from texture
 - Add `Euler` math primitive
 - Add stride option to element sphere & point visuals
+- Add `disabledExtensions` field to default viewer's options
+- Add `LRUCache.remove`
+- Add 'Chain Instance' and 'Uniform' options for 'Carbon Color' param (in Color Theme: Element Symbol)
 
 ## [v3.37.1] - 2023-06-20
 

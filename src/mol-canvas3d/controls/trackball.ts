@@ -638,45 +638,45 @@ namespace TrackballControls {
             Vec2.copy(_rotCurr, getMouseOnCircle(movementX + cx, movementY + cy));
         }
 
-        function onKeyDown({ modifiers, code, x, y }: KeyInput) {
+        function onKeyDown({ modifiers, code, key, x, y }: KeyInput) {
             if (outsideViewport(x, y)) return;
 
-            if (Binding.matchKey(b.keyMoveForward, code, modifiers)) {
+            if (Binding.matchKey(b.keyMoveForward, code, modifiers, key)) {
                 keyState.moveForward = 1;
-            } else if (Binding.matchKey(b.keyMoveBack, code, modifiers)) {
+            } else if (Binding.matchKey(b.keyMoveBack, code, modifiers, key)) {
                 keyState.moveBack = 1;
-            } else if (Binding.matchKey(b.keyMoveLeft, code, modifiers)) {
+            } else if (Binding.matchKey(b.keyMoveLeft, code, modifiers, key)) {
                 keyState.moveLeft = 1;
-            } else if (Binding.matchKey(b.keyMoveRight, code, modifiers)) {
+            } else if (Binding.matchKey(b.keyMoveRight, code, modifiers, key)) {
                 keyState.moveRight = 1;
-            } else if (Binding.matchKey(b.keyMoveUp, code, modifiers)) {
+            } else if (Binding.matchKey(b.keyMoveUp, code, modifiers, key)) {
                 keyState.moveUp = 1;
-            } else if (Binding.matchKey(b.keyMoveDown, code, modifiers)) {
+            } else if (Binding.matchKey(b.keyMoveDown, code, modifiers, key)) {
                 keyState.moveDown = 1;
-            } else if (Binding.matchKey(b.keyRollLeft, code, modifiers)) {
+            } else if (Binding.matchKey(b.keyRollLeft, code, modifiers, key)) {
                 keyState.rollLeft = 1;
-            } else if (Binding.matchKey(b.keyRollRight, code, modifiers)) {
+            } else if (Binding.matchKey(b.keyRollRight, code, modifiers, key)) {
                 keyState.rollRight = 1;
-            } else if (Binding.matchKey(b.keyPitchUp, code, modifiers)) {
+            } else if (Binding.matchKey(b.keyPitchUp, code, modifiers, key)) {
                 keyState.pitchUp = 1;
-            } else if (Binding.matchKey(b.keyPitchDown, code, modifiers)) {
+            } else if (Binding.matchKey(b.keyPitchDown, code, modifiers, key)) {
                 keyState.pitchDown = 1;
-            } else if (Binding.matchKey(b.keyYawLeft, code, modifiers)) {
+            } else if (Binding.matchKey(b.keyYawLeft, code, modifiers, key)) {
                 keyState.yawLeft = 1;
-            } else if (Binding.matchKey(b.keyYawRight, code, modifiers)) {
+            } else if (Binding.matchKey(b.keyYawRight, code, modifiers, key)) {
                 keyState.yawRight = 1;
             }
 
-            if (Binding.matchKey(b.boostMove, code, modifiers)) {
+            if (Binding.matchKey(b.boostMove, code, modifiers, key)) {
                 keyState.boostMove = 1;
             }
 
-            if (Binding.matchKey(b.enablePointerLock, code, modifiers)) {
+            if (Binding.matchKey(b.enablePointerLock, code, modifiers, key)) {
                 input.requestPointerLock(viewport);
             }
         }
 
-        function onKeyUp({ modifiers, code, x, y }: KeyInput) {
+        function onKeyUp({ modifiers, code, key, x, y }: KeyInput) {
             if (outsideViewport(x, y)) return;
 
             let isModifierCode = false;
@@ -715,34 +715,34 @@ namespace TrackballControls {
             }
 
             for (const code of codes) {
-                if (Binding.matchKey(b.keyMoveForward, code, modifiers)) {
+                if (Binding.matchKey(b.keyMoveForward, code, modifiers, key)) {
                     keyState.moveForward = 0;
-                } else if (Binding.matchKey(b.keyMoveBack, code, modifiers)) {
+                } else if (Binding.matchKey(b.keyMoveBack, code, modifiers, key)) {
                     keyState.moveBack = 0;
-                } else if (Binding.matchKey(b.keyMoveLeft, code, modifiers)) {
+                } else if (Binding.matchKey(b.keyMoveLeft, code, modifiers, key)) {
                     keyState.moveLeft = 0;
-                } else if (Binding.matchKey(b.keyMoveRight, code, modifiers)) {
+                } else if (Binding.matchKey(b.keyMoveRight, code, modifiers, key)) {
                     keyState.moveRight = 0;
-                } else if (Binding.matchKey(b.keyMoveUp, code, modifiers)) {
+                } else if (Binding.matchKey(b.keyMoveUp, code, modifiers, key)) {
                     keyState.moveUp = 0;
-                } else if (Binding.matchKey(b.keyMoveDown, code, modifiers)) {
+                } else if (Binding.matchKey(b.keyMoveDown, code, modifiers, key)) {
                     keyState.moveDown = 0;
-                } else if (Binding.matchKey(b.keyRollLeft, code, modifiers)) {
+                } else if (Binding.matchKey(b.keyRollLeft, code, modifiers, key)) {
                     keyState.rollLeft = 0;
-                } else if (Binding.matchKey(b.keyRollRight, code, modifiers)) {
+                } else if (Binding.matchKey(b.keyRollRight, code, modifiers, key)) {
                     keyState.rollRight = 0;
-                } else if (Binding.matchKey(b.keyPitchUp, code, modifiers)) {
+                } else if (Binding.matchKey(b.keyPitchUp, code, modifiers, key)) {
                     keyState.pitchUp = 0;
-                } else if (Binding.matchKey(b.keyPitchDown, code, modifiers)) {
+                } else if (Binding.matchKey(b.keyPitchDown, code, modifiers, key)) {
                     keyState.pitchDown = 0;
-                } else if (Binding.matchKey(b.keyYawLeft, code, modifiers)) {
+                } else if (Binding.matchKey(b.keyYawLeft, code, modifiers, key)) {
                     keyState.yawLeft = 0;
-                } else if (Binding.matchKey(b.keyYawRight, code, modifiers)) {
+                } else if (Binding.matchKey(b.keyYawRight, code, modifiers, key)) {
                     keyState.yawRight = 0;
                 }
             }
 
-            if (Binding.matchKey(b.boostMove, code, modifiers)) {
+            if (Binding.matchKey(b.boostMove, code, modifiers, key)) {
                 keyState.boostMove = 0;
             }
         }

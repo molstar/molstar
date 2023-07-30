@@ -303,7 +303,8 @@ const TrajectoryFromMmCif = PluginStateTransform.BuiltIn({
                 const header = params.blockHeader || a.data.blocks[0].header;
                 const block = a.data.blocks.find(b => b.header === header);
                 if (!block) throw new Error(`Data block '${[header]}' not found.`);
-                trajectory = block.categoryNames.includes('chem_comp_atom') ? await trajectoryFromCCD(block).runInContext(ctx) : await trajectoryFromMmCIF(block).runInContext(ctx);
+                const isCcd = block.categoryNames.includes('chem_comp_atom') && !block.categoryNames.includes('atom_site') && !block.categoryNames.includes('ihm_sphere_obj_site') && !block.categoryNames.includes('ihm_gaussian_obj_site');
+                trajectory = isCcd ? await trajectoryFromCCD(block).runInContext(ctx) : await trajectoryFromMmCIF(block).runInContext(ctx);
             }
             if (trajectory.frameCount === 0) throw new Error('No models found.');
             const props = trajectoryProps(trajectory);
