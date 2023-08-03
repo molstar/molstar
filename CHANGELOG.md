@@ -5,6 +5,7 @@ Note that since we don't clearly distinguish between a public and private interf
 
 
 ## [Unreleased]
+- Add some elements support for `guessElementSymbolString` function
 
 ## [v3.38.3] - 2023-07-29
 
