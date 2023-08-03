@@ -6,6 +6,8 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Fix `guessElementSymbolString` for `LI`
+
 ## [v3.38.3] - 2023-07-29
 
 - Fix imposter spheres not updating, e.g. in trajectories (broke in v3.38.0)

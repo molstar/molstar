@@ -46,7 +46,7 @@ export function guessElementSymbolTokens(tokens: Tokens, str: string, start: num
     TokenBuilder.add(tokens, s, s); // no reasonable guess, add empty token
 }
 
-const TwoCharElementNames = new Set(['NA', 'CL', 'FE', 'SI', 'BR', 'AS']);
+const TwoCharElementNames = new Set(['NA', 'CL', 'FE', 'SI', 'BR', 'AS', 'LI']);
 const OneCharElementNames = new Set(['C', 'H', 'N', 'O', 'P', 'S']);
 
 const reTrimSpacesAndNumbers = /^[\s\d]+|[\s\d]+$/g;
