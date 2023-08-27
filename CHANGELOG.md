@@ -5,7 +5,9 @@ Note that since we don't clearly distinguish between a public and private interf
 
 
 ## [Unreleased]
+
 - Add some elements support for `guessElementSymbolString` function
+- Faster bounding rectangle calculation for imposter spheres
 
 ## [v3.38.3] - 2023-07-29
 
