@@ -257,7 +257,7 @@ export type GraphicsMode = 'quality' | 'balanced' | 'performance' | 'custom';
 export function getGraphicsModeProps(graphicsMode: Exclude<GraphicsMode, 'custom'>) {
     return {
         lodLevels: getLodLevels(graphicsMode),
-        approximate: graphicsMode === 'performance',
+        approximate: graphicsMode !== 'quality',
     };
 }
 
