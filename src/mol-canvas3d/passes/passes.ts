@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -9,17 +9,20 @@ import { PickPass } from './pick';
 import { MultiSamplePass } from './multi-sample';
 import { WebGLContext } from '../../mol-gl/webgl/context';
 import { AssetManager } from '../../mol-util/assets';
+import { HiZPass } from './hi-z';
 
 export class Passes {
     readonly draw: DrawPass;
     readonly pick: PickPass;
     readonly multiSample: MultiSamplePass;
+    readonly hiZ: HiZPass;
 
     constructor(private webgl: WebGLContext, assetManager: AssetManager, attribs: Partial<{ pickScale: number, enableWboit: boolean, enableDpoit: boolean }> = {}) {
         const { gl } = webgl;
         this.draw = new DrawPass(webgl, assetManager, gl.drawingBufferWidth, gl.drawingBufferHeight, attribs.enableWboit || false, attribs.enableDpoit || false);
         this.pick = new PickPass(webgl, this.draw, attribs.pickScale || 0.25);
         this.multiSample = new MultiSamplePass(webgl, this.draw);
+        this.hiZ = new HiZPass(webgl, this.draw);
     }
 
     updateSize() {
@@ -30,5 +33,6 @@ export class Passes {
         this.draw.setSize(width, height);
         this.pick.syncSize();
         this.multiSample.syncSize();
+        this.hiZ.syncSize();
     }
 }

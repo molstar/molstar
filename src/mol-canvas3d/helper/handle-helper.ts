@@ -75,7 +75,8 @@ export class HandleHelper {
                     this.pixelRatio = this.webgl.pixelRatio;
                     const params = {
                         ...props.handle.params,
-                        scale: props.handle.params.scale * this.webgl.pixelRatio
+                        scale: props.handle.params.scale * this.webgl.pixelRatio,
+                        cellSize: 0,
                     };
                     this.renderObject = createHandleRenderObject(params);
                     this.scene.add(this.renderObject);

@@ -23,6 +23,7 @@ import { clamp } from '../mol-math/interpolate';
 import { isTimingMode } from '../mol-util/debug';
 import { Frustum3D } from '../mol-math/geometry/primitives/frustum3d';
 import { Plane3D } from '../mol-math/geometry/primitives/plane3d';
+import { Sphere3D } from '../mol-math/geometry';
 
 export interface RendererStats {
     programCount: number
@@ -83,6 +84,7 @@ interface Renderer {
     setTransparentBackground: (value: boolean) => void
     setDrawingBufferSize: (width: number, height: number) => void
     setPixelRatio: (value: number) => void
+    setIsOccluded: (f?: (s: Sphere3D) => boolean) => void
 
     dispose: () => void
 }
@@ -171,6 +173,7 @@ namespace Renderer {
         const bgColor = Color.toVec3Normalized(Vec3(), p.backgroundColor);
 
         let transparentBackground = false;
+        let isOccluded: ((s: Sphere3D) => boolean) | undefined = undefined;
 
         const emptyDepthTexture = ctx.resources.texture('image-uint8', 'rgba', 'ubyte', 'nearest');
         emptyDepthTexture.define(1, 1);
@@ -277,8 +280,8 @@ namespace Renderer {
                 if (d - radius > maxDistance) return;
             }
 
-            if (r.values.instanceGrid.ref.value.cellSize > 1 || r.values.lodLevels) {
-                r.cull(cameraPlane, frustum);
+            if (isOccluded && (r.values.instanceGrid.ref.value.cellSize > 1 || r.values.lodLevels)) {
+                r.cull(cameraPlane, frustum, isOccluded);
             } else {
                 r.uncull();
             }
@@ -872,6 +875,9 @@ namespace Renderer {
             },
             setPixelRatio: (value: number) => {
                 ValueCell.update(globalUniforms.uPixelRatio, value);
+            },
+            setIsOccluded: (f?: (s: Sphere3D) => boolean) => {
+                isOccluded = f;
             },
 
             props: p,

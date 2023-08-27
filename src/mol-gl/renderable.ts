@@ -38,7 +38,7 @@ export interface Renderable<T extends RenderableValues> {
     readonly values: T
     readonly state: RenderableState
 
-    cull: (cameraPlane: Plane3D, frustum: Frustum3D) => void
+    cull: (cameraPlane: Plane3D, frustum: Frustum3D, isOccluded: (s: Sphere3D) => boolean) => void
     uncull: () => void
     render: (variant: GraphicsRenderVariant, sharedTexturesCount: number) => void
     getProgram: (variant: GraphicsRenderVariant) => Program
@@ -106,7 +106,7 @@ export function createRenderable<T extends GraphicsRenderableValues>(renderItem:
         values,
         state,
 
-        cull: (cameraPlane: Plane3D, frustum: Frustum3D) => {
+        cull: (cameraPlane: Plane3D, frustum: Frustum3D, isOccluded: (s: Sphere3D) => boolean) => {
             cullEnabled = false;
 
             if (values.drawCount.ref.value === 0) return;
@@ -132,6 +132,7 @@ export function createRenderable<T extends GraphicsRenderableValues>(renderItem:
                         if (d - s.radius > maxDistance) continue;
                     }
                     if (!f3intersectsSphere3D(frustum, s)) continue;
+                    if (isOccluded(s)) continue;
 
                     const begin = cellOffsets[i];
                     const end = cellOffsets[i + 1];
@@ -169,6 +170,7 @@ export function createRenderable<T extends GraphicsRenderableValues>(renderItem:
                         if (d - s.radius > maxDistance) continue;
                     }
                     if (!f3intersectsSphere3D(frustum, s)) continue;
+                    if (isOccluded(s)) continue;
 
                     const begin = cellOffsets[i];
                     const end = cellOffsets[i + 1];

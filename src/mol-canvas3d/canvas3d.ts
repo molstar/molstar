@@ -44,6 +44,7 @@ import { GraphicsRenderVariantsBlended, GraphicsRenderVariantsWboit, GraphicsRen
 import { degToRad, radToDeg } from '../mol-math/misc';
 import { AssetManager } from '../mol-util/assets';
 import { deepClone } from '../mol-util/object';
+import { HiZParams } from './passes/hi-z';
 
 export const Canvas3DParams = {
     camera: PD.Group({
@@ -91,6 +92,7 @@ export const Canvas3DParams = {
     multiSample: PD.Group(MultiSampleParams),
     postprocessing: PD.Group(PostprocessingParams),
     marking: PD.Group(MarkingParams),
+    hiZ: PD.Group(HiZParams),
     renderer: PD.Group(RendererParams),
     trackball: PD.Group(TrackballControlsParams),
     interaction: PD.Group(Canvas3dInteractionHelperParams),
@@ -333,8 +335,10 @@ namespace Canvas3D {
         const stereoCamera = new StereoCamera(camera, p.camera.stereo.params);
 
         const controls = TrackballControls.create(input, camera, scene, p.trackball);
-        const renderer = Renderer.create(webgl, p.renderer);
         const helper = new Helper(webgl, scene, p);
+
+        const renderer = Renderer.create(webgl, p.renderer);
+        renderer.setIsOccluded(passes.hiZ.isOccluded);
 
         const pickHelper = new PickHelper(webgl, renderer, scene, helper, passes.pick, { x, y, width, height }, attribs.pickPadding);
         const interactionHelper = new Canvas3dInteractionHelper(identify, getLoci, input, camera, controls, p.interaction);
@@ -449,6 +453,7 @@ namespace Canvas3D {
                     multiSampleHelper.render(ctx, p, true, forceOn);
                 } else {
                     passes.draw.render(ctx, p, true);
+                    passes.hiZ.render(camera, p.hiZ);
                 }
                 if (isTimingMode) webgl.timer.markEnd('Canvas3D.render');
 
@@ -482,6 +487,7 @@ namespace Canvas3D {
             currentTime = t;
             commit(options?.isSynchronous);
             camera.transition.tick(currentTime);
+            passes.hiZ.tick(p.hiZ);
 
             if (options?.manualDraw) {
                 return;
@@ -719,6 +725,7 @@ namespace Canvas3D {
                 postprocessing: { ...p.postprocessing },
                 marking: { ...p.marking },
                 multiSample: { ...p.multiSample },
+                hiZ: { ...p.hiZ },
                 renderer: { ...renderer.props },
                 trackball: { ...controls.props },
                 interaction: { ...interactionHelper.props },
@@ -881,6 +888,7 @@ namespace Canvas3D {
                 if (props.postprocessing) Object.assign(p.postprocessing, props.postprocessing);
                 if (props.marking) Object.assign(p.marking, props.marking);
                 if (props.multiSample) Object.assign(p.multiSample, props.multiSample);
+                if (props.hiZ) Object.assign(p.hiZ, props.hiZ);
                 if (props.renderer) renderer.setProps(props.renderer);
                 if (props.trackball) controls.setProps(props.trackball);
                 if (props.interaction) interactionHelper.setProps(props.interaction);

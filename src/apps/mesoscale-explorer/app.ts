@@ -187,6 +187,7 @@ export class Viewer {
                 backgroundColor: Color(0x101010),
             },
             cameraFog: { name: 'off', params: {} },
+            hiZ: { enabled: true },
         });
 
         plugin.representation.structure.registry.clear();

@@ -11,6 +11,9 @@ Note that since we don't clearly distinguish between a public and private interf
 - Add LOD support
     - Visibility based on camera distance
     - Special mode for spheres with automatic LOD levels
+- Add occlusion culling (only WebGL2)
+    - Hi-Z pass
+    - Cull based on previous frame Hi-Z buffer
 
 ## [Unreleased]
 

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -68,6 +68,9 @@ const SimpleSettingsParams = {
         ...Canvas3DParams.cameraClipping.params,
     }, { pivot: 'radius' }),
     layout: PD.MultiSelect([] as LayoutOptions[], PD.objectToOptions(LayoutOptions)),
+    advanced: PD.Group({
+        hiZ: Canvas3DParams.hiZ,
+    }),
 };
 
 type SimpleSettingsParams = typeof SimpleSettingsParams
@@ -122,6 +125,9 @@ const SimpleSettingsMapping = ParamMapping({
             },
             clipping: {
                 ...canvas.cameraClipping,
+            },
+            advanced: {
+                hiZ: canvas.hiZ,
             }
         };
     },
@@ -141,6 +147,7 @@ const SimpleSettingsMapping = ParamMapping({
             far: s.clipping.far,
             minNear: s.clipping.minNear,
         };
+        canvas.hiZ = s.advanced.hiZ;
 
         props.layout = s.layout;
     },

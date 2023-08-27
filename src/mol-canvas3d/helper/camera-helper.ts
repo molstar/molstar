@@ -359,6 +359,7 @@ function createMeshRenderObject(props: AxesProps) {
         ...PD.getDefaultValues(Mesh.Params),
         ...props,
         ignoreLight: true,
+        cellSize: 0,
     });
 }
 
@@ -401,5 +402,6 @@ function createTextRenderObject(props: AxesProps) {
         ...PD.getDefaultValues(Text.Params),
         ...props,
         alpha: props.labelOpacity,
+        cellSize: 0,
     });
 }
