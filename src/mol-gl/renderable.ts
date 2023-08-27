@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -75,6 +75,31 @@ export function createRenderable<T extends GraphicsRenderableValues>(renderItem:
 
     const s = Sphere3D();
 
+    const updateLodLevels = () => {
+        const lodLevels: [minDistance: number, maxDistance: number, overlap: number, count: number, sizeFactor: number][] | undefined = values.lodLevels?.ref.value;
+
+        if (lodLevels && lodLevels.length > 0) {
+            const { cellCount } = values.instanceGrid.ref.value;
+
+            mdbDataList.length = lodLevels.length;
+            for (let i = 0, il = lodLevels.length; i < il; ++i) {
+                mdbDataList[i] = getMdbData(cellCount, mdbDataList[i]);
+                mdbDataList[i].count = 0;
+            }
+            if (values.lodLevels.ref.version !== lodLevelsVersion) {
+                for (let i = 0, il = lodLevels.length; i < il; ++i) {
+                    if (mdbDataList[i].uniforms.length !== 1) {
+                        mdbDataList[i].uniforms.length = 1;
+                        mdbDataList[i].uniforms[0] = ['uLod', ValueCell.create(Vec4())];
+                    }
+                    ValueCell.update(mdbDataList[i].uniforms[0][1], Vec4.set(mdbDataList[i].uniforms[0][1].ref.value as Vec4, lodLevels[i][0], lodLevels[i][1], lodLevels[i][2], lodLevels[i][4]));
+                }
+                lodLevelsVersion = values.lodLevels.ref.version;
+            }
+        }
+    };
+    updateLodLevels();
+
     return {
         id,
         materialId: renderItem.materialId,
@@ -95,20 +120,8 @@ export function createRenderable<T extends GraphicsRenderableValues>(renderItem:
             const lodLevels: [minDistance: number, maxDistance: number, overlap: number, count: number, sizeFactor: number][] | undefined = values.lodLevels?.ref.value;
 
             if (lodLevels && lodLevels.length > 0) {
-                mdbDataList.length = lodLevels.length;
                 for (let i = 0, il = lodLevels.length; i < il; ++i) {
-                    mdbDataList[i] = getMdbData(cellCount, mdbDataList[i]);
                     mdbDataList[i].count = 0;
-                }
-                if (values.lodLevels.ref.version !== lodLevelsVersion) {
-                    for (let i = 0, il = lodLevels.length; i < il; ++i) {
-                        if (mdbDataList[i].uniforms.length !== 1) {
-                            mdbDataList[i].uniforms.length = 1;
-                            mdbDataList[i].uniforms[0] = ['uLod', ValueCell.create(Vec4())];
-                        }
-                        ValueCell.update(mdbDataList[i].uniforms[0][1], Vec4.set(mdbDataList[i].uniforms[0][1].ref.value as Vec4, lodLevels[i][0], lodLevels[i][1], lodLevels[i][2], lodLevels[i][4]));
-                    }
-                    lodLevelsVersion = values.lodLevels.ref.version;
                 }
 
                 for (let i = 0; i < cellCount; ++i) {
@@ -196,7 +209,10 @@ export function createRenderable<T extends GraphicsRenderableValues>(renderItem:
             renderItem.render(variant, sharedTexturesCount, cullEnabled ? mdbDataList : undefined);
         },
         getProgram: (variant: GraphicsRenderVariant) => renderItem.getProgram(variant),
-        update: () => renderItem.update(),
+        update: () => {
+            renderItem.update();
+            updateLodLevels();
+        },
         dispose: () => renderItem.destroy()
     };
 }
