@@ -49,9 +49,9 @@ export function LabelTextVisual(materialId: number): ComplexVisual<LabelTextPara
                 newProps.level !== currentProps.level ||
                 (newProps.level === 'chain' && newProps.chainScale !== currentProps.chainScale) ||
                 (newProps.level === 'residue' && newProps.residueScale !== currentProps.residueScale) ||
-                (newProps.level === 'element' && newProps.elementScale !== currentProps.elementScale ||
+                (newProps.level === 'element' && newProps.elementScale !== currentProps.elementScale) ||
                 newProps.ignoreHydrogens !== currentProps.ignoreHydrogens ||
-                newProps.ignoreHydrogensVariant !== currentProps.ignoreHydrogensVariant)
+                newProps.ignoreHydrogensVariant !== currentProps.ignoreHydrogensVariant
             );
         }
     }, materialId);
