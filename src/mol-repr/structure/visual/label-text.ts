@@ -17,6 +17,7 @@ import { ElementIterator, getSerialElementLoci, eachSerialElement } from './util
 import { ColorNames } from '../../../mol-util/color/names';
 import { Vec3 } from '../../../mol-math/linear-algebra';
 import { BoundaryHelper } from '../../../mol-math/geometry/boundary-helper';
+import { makeElementIgnoreTest } from './util/element';
 
 export const LabelTextParams = {
     ...ComplexTextParams,
@@ -26,6 +27,8 @@ export const LabelTextParams = {
     backgroundOpacity: PD.Numeric(0.5, { min: 0, max: 1, step: 0.01 }),
     borderWidth: PD.Numeric(0.25, { min: 0, max: 0.5, step: 0.01 }),
     level: PD.Select('residue', [['chain', 'Chain'], ['residue', 'Residue'], ['element', 'Element']] as const, { isEssential: true }),
+    ignoreHydrogens: PD.Boolean(false),
+    ignoreHydrogensVariant: PD.Select('all', PD.arrayToOptions(['all', 'non-polar'] as const)),
     chainScale: PD.Numeric(10, { min: 0, max: 20, step: 0.1 }),
     residueScale: PD.Numeric(1, { min: 0, max: 20, step: 0.1 }),
     elementScale: PD.Numeric(0.5, { min: 0, max: 20, step: 0.1 }),
@@ -46,7 +49,9 @@ export function LabelTextVisual(materialId: number): ComplexVisual<LabelTextPara
                 newProps.level !== currentProps.level ||
                 (newProps.level === 'chain' && newProps.chainScale !== currentProps.chainScale) ||
                 (newProps.level === 'residue' && newProps.residueScale !== currentProps.residueScale) ||
-                (newProps.level === 'element' && newProps.elementScale !== currentProps.elementScale)
+                (newProps.level === 'element' && newProps.elementScale !== currentProps.elementScale ||
+                newProps.ignoreHydrogens !== currentProps.ignoreHydrogens ||
+                newProps.ignoreHydrogensVariant !== currentProps.ignoreHydrogensVariant)
             );
         }
     }, materialId);
@@ -163,8 +168,11 @@ function createElementText(ctx: VisualContext, structure: Structure, theme: Them
         l.unit = unit;
 
         const groupOffset = cumulativeUnitElementCount[i];
+        const ignore = makeElementIgnoreTest(structure, unit, { ...props, traceOnly: false });
 
         for (let j = 0, _j = elements.length; j < _j; j++) {
+            if (ignore && ignore(elements[j])) continue;
+
             l.element = elements[j];
             pos(l.element, tmpVec);
             const atomId = label_atom_id(l);
