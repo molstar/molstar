@@ -9,6 +9,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Add some elements support for `guessElementSymbolString` function
 - Faster bounding rectangle calculation for imposter spheres
 - Allow toggling of hydrogens as part of `LabelTextVisual`
+- Treat "tap" as a click in `InputObserver`
 
 ## [v3.38.3] - 2023-07-29
 
