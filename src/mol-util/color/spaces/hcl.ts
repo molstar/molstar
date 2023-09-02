@@ -43,7 +43,7 @@ namespace Hcl {
         return out;
     }
 
-    const tmpFromColorLab = [0, 0, 0] as Lab;
+    const tmpFromColorLab = [0, 0, 0] as unknown as Lab;
     export function fromColor(out: Hcl, color: Color): Hcl {
         return Lab.toHcl(out, Lab.fromColor(tmpFromColorLab, color));
     }
@@ -52,7 +52,7 @@ namespace Hcl {
         return Lab.toHcl(hcl, lab);
     }
 
-    const tmpToColorLab = [0, 0, 0] as Lab;
+    const tmpToColorLab = [0, 0, 0] as unknown as Lab;
     export function toColor(hcl: Hcl): Color {
         return Lab.toColor(toLab(tmpToColorLab, hcl));
     }
@@ -92,7 +92,7 @@ namespace Hcl {
         return saturate(out, c, -amount);
     }
 
-    const tmpDarkenLab = [0, 0, 0] as Lab;
+    const tmpDarkenLab = [0, 0, 0] as unknown as Lab;
     export function darken(out: Hcl, c: Hcl, amount: number): Hcl {
         toLab(tmpDarkenLab, c);
         return Lab.toHcl(out, Lab.darken(tmpDarkenLab, tmpDarkenLab, amount));

@@ -339,7 +339,7 @@ namespace Quat {
         return out;
     }
 
-    const fromUnitVec3Temp = [0, 0, 0] as Vec3;
+    const fromUnitVec3Temp = [0, 0, 0] as unknown as Vec3;
     /** Quaternion from two normalized unit vectors. */
     export function fromUnitVec3(out: Quat, a: Vec3, b: Vec3) {
         // assumes a and b are normalized
@@ -457,9 +457,9 @@ namespace Quat {
      *
      * Both vectors are assumed to be unit length.
      */
-    const rotTmpVec3 = [0, 0, 0] as Vec3;
-    const rotTmpVec3UnitX = [1, 0, 0] as Vec3;
-    const rotTmpVec3UnitY = [0, 1, 0] as Vec3;
+    const rotTmpVec3 = [0, 0, 0] as unknown as Vec3;
+    const rotTmpVec3UnitX = [1, 0, 0] as unknown as Vec3;
+    const rotTmpVec3UnitY = [0, 1, 0] as unknown as Vec3;
     export function rotationTo(out: Quat, a: Vec3, b: Vec3) {
         const dot = Vec3.dot(a, b);
         if (dot < -0.999999) {
@@ -502,7 +502,7 @@ namespace Quat {
      * axes. Each axis is a vec3 and is expected to be unit length and
      * perpendicular to all other specified axes.
      */
-    const axesTmpMat = [0, 0, 0, 0, 0, 0, 0, 0, 0] as Mat3;
+    const axesTmpMat = [0, 0, 0, 0, 0, 0, 0, 0, 0] as unknown as Mat3;
     export function setAxes(out: Quat, view: Vec3, right: Vec3, up: Vec3) {
         axesTmpMat[0] = right[0];
         axesTmpMat[3] = right[1];

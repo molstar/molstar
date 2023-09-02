@@ -6,11 +6,11 @@ export type MakeOptional<T, K extends keyof T> = Omit<T, K> & { [SubKey in K]?: 
 export type MakeMaybe<T, K extends keyof T> = Omit<T, K> & { [SubKey in K]: Maybe<T[SubKey]> };
 export type MakeEmpty<T extends { [key: string]: unknown }, K extends keyof T> = { [_ in K]?: never };
 export type Incremental<T> = T | { [P in keyof T]?: P extends ' $fragmentName' | '__typename' ? T[P] : never };
-// Generated on 2023-06-11T12:23:22-07:00
+// Generated on 2023-09-02T12:08:38-07:00
 
 /** All built-in and custom scalars, mapped to their actual values */
 export type Scalars = {
-  ID: { input: string | number; output: string; }
+  ID: { input: string; output: string; }
   String: { input: string; output: string; }
   Boolean: { input: boolean; output: boolean; }
   Int: { input: number; output: number; }
@@ -8545,7 +8545,7 @@ export type RcsbExternalReferences = {
    * Internal identifier for external resource.
    *
    * Allowable values:
-   * OLDERADO, BMRB, NDB, SB GRID, PROTEIN DIFFRACTION, EM DATA RESOURCE
+   * OLDERADO, BMRB, NDB, NAKB, SB GRID, PROTEIN DIFFRACTION, EM DATA RESOURCE
    *
    */
   readonly type: Scalars['String']['output'];
@@ -9952,6 +9952,14 @@ export type RcsbPolymerEntityContainerIdentifiersReferenceSequenceIdentifiers = 
    */
   readonly database_name?: Maybe<Scalars['String']['output']>;
   /**
+   * Indicates what fraction of this polymer entity sequence is covered by the reference sequence.
+   *
+   * Examples:
+   * null, null
+   *
+   */
+  readonly entity_sequence_coverage?: Maybe<Scalars['Float']['output']>;
+  /**
    * Source of the reference database assignment
    *
    * Allowable values:
@@ -9959,6 +9967,14 @@ export type RcsbPolymerEntityContainerIdentifiersReferenceSequenceIdentifiers = 
    *
    */
   readonly provenance_source?: Maybe<Scalars['String']['output']>;
+  /**
+   * Indicates what fraction of the reference sequence is covered by this polymer entity sequence.
+   *
+   * Examples:
+   * null, null
+   *
+   */
+  readonly reference_sequence_coverage?: Maybe<Scalars['Float']['output']>;
 };
 
 export type RcsbPolymerEntityFeature = {
@@ -11228,6 +11244,7 @@ export type RcsbUniprotAlignmentsCoreEntityAlignments = {
 };
 
 export type RcsbUniprotAnnotation = {
+  readonly additional_properties?: Maybe<ReadonlyArray<Maybe<RcsbUniprotAnnotationAdditionalProperties>>>;
   /** An identifier for the annotation. */
   readonly annotation_id?: Maybe<Scalars['String']['output']>;
   readonly annotation_lineage?: Maybe<ReadonlyArray<Maybe<RcsbUniprotAnnotationAnnotationLineage>>>;
@@ -11246,10 +11263,23 @@ export type RcsbUniprotAnnotation = {
    * A type or category of the annotation.
    *
    * Allowable values:
-   * disease, phenotype
+   * disease, phenotype, GO, InterPro
    *
    */
   readonly type?: Maybe<Scalars['String']['output']>;
+};
+
+export type RcsbUniprotAnnotationAdditionalProperties = {
+  /**
+   * The additional property name
+   *
+   * Allowable values:
+   * INTERPRO_TYPE
+   *
+   */
+  readonly name?: Maybe<Scalars['String']['output']>;
+  /** The value(s) of the additional property */
+  readonly values?: Maybe<ReadonlyArray<Maybe<Scalars['ObjectScalar']['output']>>>;
 };
 
 export type RcsbUniprotAnnotationAnnotationLineage = {
@@ -11321,6 +11351,8 @@ export type RcsbUniprotFeatureFeaturePositions = {
   readonly end_seq_id?: Maybe<Scalars['Int']['output']>;
   /** The value for the feature over this monomer segment. */
   readonly value?: Maybe<Scalars['Float']['output']>;
+  /** The value(s) for the feature over this monomer segment. */
+  readonly values?: Maybe<ReadonlyArray<Maybe<Scalars['Float']['output']>>>;
 };
 
 export type RcsbUniprotKeyword = {

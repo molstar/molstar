@@ -750,7 +750,7 @@ namespace Mat4 {
         return out;
     }
 
-    const _v3 = [0, 0, 0] as Vec3;
+    const _v3 = [0, 0, 0] as unknown as Vec3;
     const _m4 = zero();
     export function decompose(m: Mat4, position: Vec3, quaternion: Quat, scale: Vec3) {
 
@@ -1233,9 +1233,9 @@ namespace Mat4 {
         return Math.sqrt(Math.max(scaleXSq, scaleYSq, scaleZSq));
     }
 
-    const xAxis = [1, 0, 0] as Vec3;
-    const yAxis = [0, 1, 0] as Vec3;
-    const zAxis = [0, 0, 1] as Vec3;
+    const xAxis = [1, 0, 0] as unknown as Vec3;
+    const yAxis = [0, 1, 0] as unknown as Vec3;
+    const zAxis = [0, 0, 1] as unknown as Vec3;
 
     /** Rotation matrix for 90deg around x-axis */
     export const rotX90: ReadonlyMat4 = fromRotation(zero(), degToRad(90), xAxis);

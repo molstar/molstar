@@ -17,8 +17,11 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+## [v3.39.0] - 2023-09-02
+
 - Add some elements support for `guessElementSymbolString` function
 - Faster bounding rectangle calculation for imposter spheres
+- Allow toggling of hydrogens as part of `LabelTextVisual`
 
 ## [v3.38.3] - 2023-07-29
 

@@ -50,7 +50,7 @@ function hklKeySplit(key: string) {
     const h = parseInt(key.substr(0, len));
     const k = parseInt(key.substr(len, len));
     const l = parseInt(key.substr(len + len, len));
-    return [h - hklOffset, k - hklOffset, l - hklOffset] as Vec3;
+    return Vec3.create(h - hklOffset, k - hklOffset, l - hklOffset);
 }
 
 function formatHkl(hkl: Vec3) {
