@@ -601,6 +601,9 @@ namespace Canvas3D {
             // snapshot the current bounding sphere of visible objects
             Sphere3D.copy(oldBoundingSphereVisible, scene.boundingSphereVisible);
 
+            // clear hi-Z buffer when scene changes
+            passes.hiZ.clear();
+
             if (!scene.commit(isSynchronous ? void 0 : sceneCommitTimeoutMs)) {
                 commitQueueSize.next(scene.commitQueueSize);
                 return false;

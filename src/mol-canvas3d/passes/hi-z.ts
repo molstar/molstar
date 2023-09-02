@@ -15,12 +15,15 @@ import { Mat4, Vec4 } from '../../mol-math/linear-algebra';
 import { Vec2 } from '../../mol-math/linear-algebra/3d/vec2';
 import { Vec3 } from '../../mol-math/linear-algebra/3d/vec3';
 import { arrayMinMax } from '../../mol-util/array';
-import { isTimingMode } from '../../mol-util/debug';
+import { isDebugMode, isTimingMode } from '../../mol-util/debug';
 import { ValueCell } from '../../mol-util/value-cell';
 import { Camera } from '../camera';
 import { Viewport } from '../camera/util';
 import { DrawPass } from './draw';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
+import { getBuffer } from '../../mol-gl/webgl/buffer';
+
+// TODO: support viewport other than canvas
 
 // avoiding namespace lookup improved performance in Chrome (Aug 2020)
 const v3transformMat4 = Vec3.transformMat4;
@@ -73,6 +76,7 @@ type LevelData = {
 
 export const HiZParams = {
     enabled: PD.Boolean(false, { description: 'Hierarchical Z-buffer occlusion culling. Only available for WebGL2.' }),
+    maxFrameLag: PD.Numeric(10, { min: 1, max: 30, step: 1 }, { description: 'Maximum number of frames to wait for Z-buffer data.' }),
 };
 export type HiZProps = PD.Values<typeof HiZParams>
 
@@ -88,13 +92,29 @@ export class HiZPass {
     private readonly buf: WebGLBuffer;
     private readonly tex: Texture;
     private readonly renderable: HiZRenderable;
+    private readonly supported: boolean;
 
     private sync: WebGLSync | null = null;
     private buffer = new Float32Array(0);
-    private frame = 0;
+    private frameLag = 0;
+    private ready = false;
+
+    clear() {
+        if (!this.supported) return;
+
+        const { gl } = this.webgl;
+        if (!isWebGL2(gl)) return;
+
+        if (this.sync !== null) {
+            gl.deleteSync(this.sync);
+            this.sync = null;
+        }
+        this.frameLag = 0;
+        this.ready = false;
+    }
 
     render(camera: Camera, props: HiZProps) {
-        if (!props.enabled) return;
+        if (!this.supported || !props.enabled) return;
 
         const { gl, state } = this.webgl;
         if (!isWebGL2(gl) || this.sync !== null) return;
@@ -112,7 +132,6 @@ export class HiZPass {
         state.colorMask(true, true, true, true);
         state.clearColor(0, 0, 0, 0);
 
-        this.fb.bind();
         this.tex.attachFramebuffer(this.fb, 0);
 
         const hw = this.tex.getWidth();
@@ -152,12 +171,11 @@ export class HiZPass {
 
         //
 
-        this.fb.bind();
         this.tex.attachFramebuffer(this.fb, 0);
 
         gl.bindBuffer(gl.PIXEL_PACK_BUFFER, this.buf);
         gl.bufferData(gl.PIXEL_PACK_BUFFER, this.buffer.byteLength, gl.STREAM_READ);
-        gl.readPixels(camera.viewport.x, camera.viewport.y, hw, hh, gl.RED, gl.FLOAT, 0);
+        gl.readPixels(0, 0, hw, hh, gl.RED, gl.FLOAT, 0);
         gl.bindBuffer(gl.PIXEL_PACK_BUFFER, null);
 
         this.sync = gl.fenceSync(gl.SYNC_GPU_COMMANDS_COMPLETE, 0);
@@ -167,43 +185,49 @@ export class HiZPass {
     }
 
     tick(props: HiZProps) {
+        if (!this.supported) return;
+
         const { gl } = this.webgl;
         if (!isWebGL2(gl)) return;
 
-        this.enabled = props.enabled;
+        if (props.enabled !== this.enabled) {
+            this.ready = false;
+            this.enabled = props.enabled;
+        }
+
         if (!this.enabled || this.sync === null) return;
 
         const res = gl.clientWaitSync(this.sync, 0, 0);
-        if (res === gl.WAIT_FAILED) {
-            // console.log(`failed to get buffer data after ${this.frame + 1} frames`);
+        if (res === gl.WAIT_FAILED || this.frameLag >= props.maxFrameLag) {
+            // console.log(`failed to get buffer data after ${this.frameLag + 1} frames`);
             gl.deleteSync(this.sync);
             this.sync = null;
-            this.frame = 0;
+            this.frameLag = 0;
+            this.ready = false;
         } else if (res === gl.TIMEOUT_EXPIRED) {
-            this.frame += 1;
-            // console.log(`waiting for buffer data for ${this.frame} frames`);
+            this.frameLag += 1;
+            // console.log(`waiting for buffer data for ${this.frameLag} frames`);
         } else {
             gl.bindBuffer(gl.PIXEL_PACK_BUFFER, this.buf);
             gl.getBufferSubData(gl.PIXEL_PACK_BUFFER, 0, this.buffer);
             gl.bindBuffer(gl.PIXEL_PACK_BUFFER, null);
-            // console.log(`got buffer data after ${this.frame + 1} frames`);
+            // console.log(`got buffer data after ${this.frameLag + 1} frames`);
             gl.deleteSync(this.sync);
             this.sync = null;
-            this.frame = 0;
+            this.frameLag = 0;
+            this.ready = true;
 
-            // const p = PixelData.flipY(PixelData.create(this.dest.slice(), this.tex.getWidth(), this.tex.getHeight()));
-            // for (let i = 0, il = p.array.length; i < il; ++i) {
-            //     p.array[i] = -p.array[i];
+            // if (isDebugMode) {
+            //     const p = PixelData.flipY(PixelData.create(this.buffer.slice(), this.tex.getWidth(), this.tex.getHeight()));
+            //     printTextureImage(p, { scale: MinLevel, id: 'hiz', useCanvas: true, pixelated: true });
             // }
-            // console.log('fff', arrayMinMax(this.dest), arrayMinMax(p.array));
-            // printTextureImage(p, { scale: 3, id: 'foo', useCanvas: true, normalize: true, pixelated: true });
 
             this.camera.update();
         }
     }
 
     isOccluded = (s: Sphere3D) => {
-        if (!this.enabled) return false;
+        if (!this.supported || !this.enabled || !this.ready) return false;
 
         const { camera, vp, aabb } = this;
         const { near, far, viewport, view, projection } = camera;
@@ -250,7 +274,7 @@ export class HiZPass {
     };
 
     syncSize() {
-        if (!this.webgl.isWebGL2) return;
+        if (!this.supported) return;
 
         const width = this.drawPass.colorTarget.getWidth();
         const height = this.drawPass.colorTarget.getHeight();
@@ -278,6 +302,8 @@ export class HiZPass {
                 offset += td.size[0];
             }
         }
+
+        this.clear();
     }
 
     getDebugContext() {
@@ -290,17 +316,32 @@ export class HiZPass {
     }
 
     constructor(private webgl: WebGLContext, private drawPass: DrawPass) {
-        if (!webgl.isWebGL2) {
-            this.enabled = false;
+        const { gl, extensions } = webgl;
+        if (!isWebGL2(gl) || !extensions.colorBufferFloat) {
+            if (isDebugMode) {
+                console.log('Missing webgl2 and/or colorBufferFloat support required for "Hi-Z"');
+            }
+            this.supported = false;
             return;
         }
 
-        const buf = webgl.gl.createBuffer();
-        if (buf === null) throw new Error('Could not create WebGL buffer');
-
         this.fb = webgl.resources.framebuffer();
-        this.buf = buf;
         this.tex = webgl.resources.texture('image-float32', 'alpha', 'float', 'nearest');
+
+        // check red/float reading support
+        this.tex.attachFramebuffer(this.fb, 0);
+        const implFormat = gl.getParameter(gl.IMPLEMENTATION_COLOR_READ_FORMAT);
+        const implType = gl.getParameter(gl.IMPLEMENTATION_COLOR_READ_TYPE);
+        if (implFormat !== gl.RED || implType !== gl.FLOAT) {
+            if (isDebugMode) {
+                console.log('Missing red/float reading support required for "Hi-Z"');
+            }
+            this.supported = false;
+            return;
+        }
+
+        this.supported = true;
+        this.buf = getBuffer(gl);
         this.renderable = createHiZRenderable(webgl, this.drawPass.depthTextureOpaque);
     }
 }
