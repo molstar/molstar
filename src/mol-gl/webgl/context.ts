@@ -52,6 +52,16 @@ export function checkError(gl: GLRenderingContext) {
     }
 }
 
+export function glEnumToString(gl: GLRenderingContext, value: number) {
+    const keys: string[] = [];
+    for (const key in gl) {
+        if ((gl as any)[key] === value) {
+            keys.push(key);
+        }
+    }
+    return keys.length ? keys.join(' | ') : `0x${value.toString(16)}`;
+}
+
 function unbindResources(gl: GLRenderingContext) {
     // bind null to all texture units
     const maxTextureImageUnits = gl.getParameter(gl.MAX_TEXTURE_IMAGE_UNITS);
