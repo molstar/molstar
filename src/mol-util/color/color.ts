@@ -111,7 +111,7 @@ export namespace Color {
         return ((r << 16) | (g << 8) | b) as Color;
     }
 
-    const tmpSaturateHcl = [0, 0, 0] as Hcl;
+    const tmpSaturateHcl = [0, 0, 0] as unknown as Hcl;
     export function saturate(c: Color, amount: number): Color {
         Hcl.fromColor(tmpSaturateHcl, c);
         return Hcl.toColor(Hcl.saturate(tmpSaturateHcl, tmpSaturateHcl, amount));
@@ -121,7 +121,7 @@ export namespace Color {
         return saturate(c, -amount);
     }
 
-    const tmpDarkenLab = [0, 0, 0] as Lab;
+    const tmpDarkenLab = [0, 0, 0] as unknown as Lab;
     export function darken(c: Color, amount: number): Color {
         Lab.fromColor(tmpDarkenLab, c);
         return Lab.toColor(Lab.darken(tmpDarkenLab, tmpDarkenLab, amount));

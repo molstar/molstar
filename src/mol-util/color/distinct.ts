@@ -36,8 +36,8 @@ function distance(colorA: Lab, colorB: Lab) {
 }
 
 const LabTolerance = 2;
-const tmpCheckColorHcl = [0, 0, 0] as Hcl;
-const tmpCheckColorLab = [0, 0, 0] as Lab;
+const tmpCheckColorHcl = [0, 0, 0] as unknown as Hcl;
+const tmpCheckColorLab = [0, 0, 0] as unknown as Lab;
 function checkColor(lab: Lab, props: DistinctColorsProps) {
     Lab.toHcl(tmpCheckColorHcl, lab);
     // roundtrip to RGB for conversion tolerance testing
@@ -157,7 +157,7 @@ export function distinctColors(count: number, props: Partial<DistinctColorsProps
             const aAvg = arraySum(As) / size;
             const bAvg = arraySum(Bs) / size;
 
-            colors[i] = [lAvg, aAvg, bAvg] as Lab;
+            colors[i] = [lAvg, aAvg, bAvg] as unknown as Lab;
         }
 
         if (deepEqual(lastColors, colors)) break;

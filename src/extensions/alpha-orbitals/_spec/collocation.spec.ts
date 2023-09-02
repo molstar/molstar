@@ -50,7 +50,7 @@ const _testBasis: Basis = {
                 0.025886090588624934,
                 0.019164790004065606,
                 -0.013539970104105408
-            ] as Vec3,
+            ],
             'shells': [
                 {
                     'angularMomentum': [0],
@@ -101,7 +101,7 @@ const _testBasis: Basis = {
                 0.5082729578468134,
                 1.6880351220025265,
                 0.4963443067810461
-            ] as Vec3,
+            ],
             'shells': [
                 {
                     'angularMomentum': [0],
@@ -158,7 +158,7 @@ const _testBasis: Basis = {
                 1.1367367844436005,
                 -0.47018519422670163,
                 -1.356802622574504
-            ] as Vec3,
+            ],
             'shells': [
                 {
                     'angularMomentum': [0],

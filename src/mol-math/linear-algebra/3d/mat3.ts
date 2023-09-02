@@ -407,12 +407,12 @@ namespace Mat3 {
         return out;
     }
 
-    const tmpR0 = [0.1, 0.0, 0.0] as Vec3;
-    const tmpR1 = [0.1, 0.0, 0.0] as Vec3;
-    const tmpR2 = [0.1, 0.0, 0.0] as Vec3;
-    const tmpR0xR1 = [0.1, 0.0, 0.0] as Vec3;
-    const tmpR0xR2 = [0.1, 0.0, 0.0] as Vec3;
-    const tmpR1xR2 = [0.1, 0.0, 0.0] as Vec3;
+    const tmpR0 = [0.1, 0.0, 0.0] as unknown as Vec3;
+    const tmpR1 = [0.1, 0.0, 0.0] as unknown as Vec3;
+    const tmpR2 = [0.1, 0.0, 0.0] as unknown as Vec3;
+    const tmpR0xR1 = [0.1, 0.0, 0.0] as unknown as Vec3;
+    const tmpR0xR2 = [0.1, 0.0, 0.0] as unknown as Vec3;
+    const tmpR1xR2 = [0.1, 0.0, 0.0] as unknown as Vec3;
     /**
      * Calculates the eigenvector for the given eigenvalue `e` of matrix `a`
      */
