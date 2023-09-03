@@ -94,6 +94,8 @@ export namespace StructureRepresentationPresetProvider {
     }
 
     export function updateFocusRepr<T extends ColorTheme.BuiltIn>(plugin: PluginContext, structure: Structure, themeName: T | undefined, themeParams: ColorTheme.BuiltInParams<T> | undefined) {
+        if (!plugin.state.hasBehavior(StructureFocusRepresentation)) return;
+
         return plugin.state.updateBehavior(StructureFocusRepresentation, p => {
             const c = createStructureColorThemeParams(plugin, structure, 'ball-and-stick', themeName || 'element-symbol', themeParams);
             p.surroundingsParams.colorTheme = c;
