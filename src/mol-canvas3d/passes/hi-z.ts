@@ -24,6 +24,7 @@ import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { getBuffer } from '../../mol-gl/webgl/buffer';
 
 // TODO: support viewport other than canvas
+// TODO: support orthographic camera
 
 // avoiding namespace lookup improved performance in Chrome (Aug 2020)
 const v3transformMat4 = Vec3.transformMat4;
@@ -115,6 +116,7 @@ export class HiZPass {
 
     render(camera: Camera, props: HiZProps) {
         if (!this.supported || !props.enabled) return;
+        if (camera.state.mode !== 'perspective') return;
 
         const { gl, state } = this.webgl;
         if (!isWebGL2(gl) || this.sync !== null) return;
