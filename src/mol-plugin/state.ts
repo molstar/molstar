@@ -116,6 +116,10 @@ class PluginState extends PluginComponent {
         return PluginCommands.State.Update(this.plugin, { state, tree, options: { canUndo } });
     }
 
+    hasBehavior(behavior: StateTransformer) {
+        return this.behaviors.tree.transforms.has(behavior.id);
+    }
+
     updateBehavior<T extends StateTransformer>(behavior: T, params: (old: StateTransformer.Params<T>) => (void | StateTransformer.Params<T>)) {
         const tree = this.behaviors.build();
         if (!this.behaviors.tree.transforms.has(behavior.id)) {
