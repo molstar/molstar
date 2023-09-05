@@ -14,6 +14,8 @@ import { Frustum3D } from '../mol-math/geometry/primitives/frustum3d';
 import { Plane3D } from '../mol-math/geometry/primitives/plane3d';
 import { Sphere3D } from '../mol-math/geometry';
 import { Vec4 } from '../mol-math/linear-algebra/3d/vec4';
+import { WebGLStats } from './webgl/context';
+import { isTimingMode } from '../mol-util/debug';
 
 // avoiding namespace lookup improved performance in Chrome (Aug 2020)
 const p3distanceToPoint = Plane3D.distanceToPoint;
@@ -38,7 +40,7 @@ export interface Renderable<T extends RenderableValues> {
     readonly values: T
     readonly state: RenderableState
 
-    cull: (cameraPlane: Plane3D, frustum: Frustum3D, isOccluded: (s: Sphere3D) => boolean) => void
+    cull: (cameraPlane: Plane3D, frustum: Frustum3D, isOccluded: (s: Sphere3D) => boolean, stats: WebGLStats) => void
     uncull: () => void
     render: (variant: GraphicsRenderVariant, sharedTexturesCount: number) => void
     getProgram: (variant: GraphicsRenderVariant) => Program
@@ -106,7 +108,7 @@ export function createRenderable<T extends GraphicsRenderableValues>(renderItem:
         values,
         state,
 
-        cull: (cameraPlane: Plane3D, frustum: Frustum3D, isOccluded: (s: Sphere3D) => boolean) => {
+        cull: (cameraPlane: Plane3D, frustum: Frustum3D, isOccluded: (s: Sphere3D) => boolean, stats: WebGLStats) => {
             cullEnabled = false;
 
             if (values.drawCount.ref.value === 0) return;
@@ -125,23 +127,36 @@ export function createRenderable<T extends GraphicsRenderableValues>(renderItem:
                 }
 
                 for (let i = 0; i < cellCount; ++i) {
-                    s3fromArray(s, cellSpheres, i * 4);
-                    const d = p3distanceToPoint(cameraPlane, s.center);
-                    if (hasLod) {
-                        if (d + s.radius < minDistance) continue;
-                        if (d - s.radius > maxDistance) continue;
-                    }
-                    if (!f3intersectsSphere3D(frustum, s)) continue;
-                    if (isOccluded(s)) continue;
-
                     const begin = cellOffsets[i];
                     const end = cellOffsets[i + 1];
                     const count = end - begin;
                     if (count === 0) continue;
 
+                    s3fromArray(s, cellSpheres, i * 4);
+                    const d = p3distanceToPoint(cameraPlane, s.center);
+                    if (hasLod) {
+                        if (d + s.radius < minDistance || d - s.radius > maxDistance) {
+                            if (isTimingMode) {
+                                stats.culled.lod += count;
+                            }
+                            continue;
+                        }
+                    }
+                    if (!f3intersectsSphere3D(frustum, s)) {
+                        if (isTimingMode) {
+                            stats.culled.frustum += count;
+                        }
+                        continue;
+                    }
+                    if (isOccluded(s)) {
+                        if (isTimingMode) {
+                            stats.culled.occlusion += count;
+                        }
+                        continue;
+                    }
+
                     for (let j = 0, jl = lodLevels.length; j < jl; ++j) {
-                        if (d + s.radius < lodLevels[j][0]) continue;
-                        if (d - s.radius > lodLevels[j][1]) continue;
+                        if (d + s.radius < lodLevels[j][0] || d - s.radius > lodLevels[j][1]) continue;
 
                         const l = mdbDataList[j];
                         const o = l.count;
@@ -163,19 +178,33 @@ export function createRenderable<T extends GraphicsRenderableValues>(renderItem:
                 let o = 0;
 
                 for (let i = 0; i < cellCount; ++i) {
-                    s3fromArray(s, cellSpheres, i * 4);
-                    if (hasLod) {
-                        const d = p3distanceToPoint(cameraPlane, s.center);
-                        if (d + s.radius < minDistance) continue;
-                        if (d - s.radius > maxDistance) continue;
-                    }
-                    if (!f3intersectsSphere3D(frustum, s)) continue;
-                    if (isOccluded(s)) continue;
-
                     const begin = cellOffsets[i];
                     const end = cellOffsets[i + 1];
                     const count = end - begin;
                     if (count === 0) continue;
+
+                    s3fromArray(s, cellSpheres, i * 4);
+                    if (hasLod) {
+                        const d = p3distanceToPoint(cameraPlane, s.center);
+                        if (d + s.radius < minDistance || d - s.radius > maxDistance) {
+                            if (isTimingMode) {
+                                stats.culled.lod += count;
+                            }
+                            continue;
+                        }
+                    }
+                    if (!f3intersectsSphere3D(frustum, s)) {
+                        if (isTimingMode) {
+                            stats.culled.frustum += count;
+                        }
+                        continue;
+                    }
+                    if (isOccluded(s)) {
+                        if (isTimingMode) {
+                            stats.culled.occlusion += count;
+                        }
+                        continue;
+                    }
 
                     if (o > 0 && baseInstances[o - 1] + instanceCounts[o - 1] === begin) {
                         instanceCounts[o - 1] += count;

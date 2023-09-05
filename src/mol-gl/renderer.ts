@@ -281,7 +281,7 @@ namespace Renderer {
             }
 
             if (isOccluded && (r.values.instanceGrid.ref.value.cellSize > 1 || r.values.lodLevels)) {
-                r.cull(cameraPlane, frustum, isOccluded);
+                r.cull(cameraPlane, frustum, isOccluded, ctx.stats);
             } else {
                 r.uncull();
             }
