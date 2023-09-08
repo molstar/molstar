@@ -8,6 +8,7 @@ Note that since we don't clearly distinguish between a public and private interf
 
 - Do not call `updateFocusRepr` if default `StructureFocusRepresentation` isn't present.
 - Treat "tap" as a click in `InputObserver`
+- Add optional `file?: CifFile` to `MmcifFormat.data`
 
 ## [v3.39.0] - 2023-09-02
 
