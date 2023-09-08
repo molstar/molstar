@@ -101,7 +101,7 @@ namespace MmcifFormat {
 
     export function fromFrame(frame: CifFrame, db?: mmCIF_Database, source?: ModelFormat, file?: CifFile): MmcifFormat {
         if (!db) db = CIF.schema.mmCIF(frame);
-        return { kind: 'mmCIF', name: db._name, data: { db, frame, source } };
+        return { kind: 'mmCIF', name: db._name, data: { db, file, frame, source } };
     }
 }
 
