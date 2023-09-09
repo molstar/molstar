@@ -14,7 +14,6 @@ import { Sphere3D } from '../../mol-math/geometry';
 import { Mat4, Vec4 } from '../../mol-math/linear-algebra';
 import { Vec2 } from '../../mol-math/linear-algebra/3d/vec2';
 import { Vec3 } from '../../mol-math/linear-algebra/3d/vec3';
-import { arrayMinMax } from '../../mol-util/array';
 import { isDebugMode, isTimingMode } from '../../mol-util/debug';
 import { ValueCell } from '../../mol-util/value-cell';
 import { Camera } from '../camera';
@@ -23,9 +22,6 @@ import { DrawPass } from './draw';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { getBuffer } from '../../mol-gl/webgl/buffer';
 
-// TODO: support viewport other than canvas
-// TODO: support orthographic camera
-
 // avoiding namespace lookup improved performance in Chrome (Aug 2020)
 const v3transformMat4 = Vec3.transformMat4;
 const v4set = Vec4.set;
@@ -33,8 +29,18 @@ const fasterLog2 = _fasterLog2;
 
 const MinLevel = 3;
 
-function depthToViewZ(depth: number, near: number, far: number) {
+function perspectiveDepthToViewZ(depth: number, near: number, far: number) {
     return (near * far) / ((far - near) * depth - far);
+}
+
+function orthographicDepthToViewZ(depth: number, near: number, far: number) {
+    return depth * (near - far) - near;
+}
+
+function depthToViewZ(depth: number, near: number, far: number, projection: Mat4) {
+    return projection[11] === -1
+        ? perspectiveDepthToViewZ(depth, near, far)
+        : orthographicDepthToViewZ(depth, near, far);
 }
 
 /**
@@ -44,7 +50,7 @@ function depthToViewZ(depth: number, near: number, far: number) {
  * Specialization by Arseny Kapoulkine, MIT License Copyright (c) 2018
  * https://github.com/zeux/niagara
  */
-function projectSphere(out: Vec4, p: Vec3, r: number, projection: Mat4) {
+function perspectiveProjectSphere(out: Vec4, p: Vec3, r: number, projection: Mat4) {
     const prx = p[0] * r;
     const pry = p[1] * r;
     const prz = p[2] * r;
@@ -60,11 +66,35 @@ function projectSphere(out: Vec4, p: Vec3, r: number, projection: Mat4) {
 
     return v4set(
         out,
-        1 - (maxx * 0.5 + 0.5),
-        1 - (miny * -0.5 + 0.5),
-        1 - (minx * 0.5 + 0.5),
-        1 - (maxy * -0.5 + 0.5)
+        maxx * -0.5 + 0.5,
+        miny * 0.5 + 0.5,
+        minx * -0.5 + 0.5,
+        maxy * 0.5 + 0.5
     );
+}
+
+function orthographicProjectSphere(out: Vec4, p: Vec3, r: number, projection: Mat4) {
+    const sx = projection[0];
+    const sy = projection[5];
+
+    const minx = (p[0] + r) * sx;
+    const maxx = (p[0] - r) * sx;
+    const miny = (p[1] + r) * sy;
+    const maxy = (p[1] - r) * sy;
+
+    return v4set(
+        out,
+        maxx * 0.5 + 0.5,
+        miny * -0.5 + 0.5,
+        minx * 0.5 + 0.5,
+        maxy * -0.5 + 0.5
+    );
+}
+
+function projectSphere(out: Vec4, p: Vec3, r: number, projection: Mat4) {
+    return projection[11] === -1
+        ? perspectiveProjectSphere(out, p, r, projection)
+        : orthographicProjectSphere(out, p, r, projection);
 }
 
 type LevelData = {
@@ -112,17 +142,32 @@ export class HiZPass {
         }
         this.frameLag = 0;
         this.ready = false;
+
+        if (this.debug) {
+            this.debug.rect.style.display = 'none';
+            this.debug.container.style.display = 'none';
+        }
     }
 
     render(camera: Camera, props: HiZProps) {
         if (!this.supported || !props.enabled) return;
-        if (camera.state.mode !== 'perspective') return;
 
         const { gl, state } = this.webgl;
         if (!isWebGL2(gl) || this.sync !== null) return;
 
+        // TODO: support viewport other than canvas
+        if (camera.viewport.x !== 0 ||
+            camera.viewport.y !== 0 ||
+            camera.viewport.width !== gl.drawingBufferWidth ||
+            camera.viewport.height !== gl.drawingBufferHeight
+        ) {
+            this.ready = false;
+            return;
+        }
+
         this.camera.setState(camera.getSnapshot(), 0);
         Viewport.copy(this.camera.viewport, camera.viewport);
+        this.camera.pixelScale = camera.pixelScale;
 
         if (isTimingMode) this.webgl.timer.mark('hi-Z');
 
@@ -133,14 +178,6 @@ export class HiZPass {
         state.depthMask(false);
         state.colorMask(true, true, true, true);
         state.clearColor(0, 0, 0, 0);
-
-        this.tex.attachFramebuffer(this.fb, 0);
-
-        const hw = this.tex.getWidth();
-        const hh = this.tex.getHeight();
-
-        state.viewport(0, 0, hw, hh);
-        gl.clear(gl.COLOR_BUFFER_BIT);
 
         //
 
@@ -174,6 +211,8 @@ export class HiZPass {
         //
 
         this.tex.attachFramebuffer(this.fb, 0);
+        const hw = this.tex.getWidth();
+        const hh = this.tex.getHeight();
 
         gl.bindBuffer(gl.PIXEL_PACK_BUFFER, this.buf);
         gl.bufferData(gl.PIXEL_PACK_BUFFER, this.buffer.byteLength, gl.STREAM_READ);
@@ -228,20 +267,33 @@ export class HiZPass {
         }
     }
 
-    isOccluded = (s: Sphere3D) => {
-        if (!this.supported || !this.enabled || !this.ready) return false;
-
-        const { camera, vp, aabb } = this;
-        const { near, far, viewport, view, projection } = camera;
-
-        const r = (s.radius * 1.2) + 1.52;
+    private transform(s: Sphere3D) {
+        const { camera: { view }, vp } = this;
         v3transformMat4(vp, s.center, view);
+        const r = (s.radius * 1.2) + 1.52;
+        return { vp, r };
+    }
+
+    private project(vp: Vec3, r: number) {
+        const { camera: { viewport, projection }, aabb } = this;
         projectSphere(aabb, vp, r, projection);
         const w = aabb[2] - aabb[0];
         const h = aabb[3] - aabb[1];
-
         const pr = Math.max(w * viewport.width, h * viewport.height);
         const lod = Math.ceil(fasterLog2(pr / 2));
+        return { aabb, w, h, pr, lod };
+    }
+
+    isOccluded = (s: Sphere3D) => {
+        if (!this.supported || !this.enabled || !this.ready) return false;
+
+        const { vp, r } = this.transform(s);
+        const { near, far, viewport, projection } = this.camera;
+
+        const z = vp[2] + r;
+        if (-z < near) return false;
+
+        const { aabb, w, h, lod } = this.project(vp, r);
         if (lod >= this.levelData.length || lod < MinLevel) return false;
 
         const { offset, size } = this.levelData[lod];
@@ -252,25 +304,24 @@ export class HiZPass {
         const ts = size[0];
         const x = u * ts;
         const y = v * ts;
-        const z = vp[2] + r;
 
-        const dx = Math.floor(x);
-        const dy = Math.ceil(y);
+        const dx = Math.floor(x) + viewport.x;
+        const dy = Math.ceil(y) + viewport.y;
         const dw = this.tex.getWidth();
 
         if (dx + 1 >= ts || dy + 1 >= ts) return false;
 
         const di = (ts - dy - 1) * dw + dx + offset;
-        if (z > depthToViewZ(this.buffer[di], near, far)) return false;
+        if (z > depthToViewZ(this.buffer[di], near, far, projection)) return false;
 
-        const di1 = (ts - dy - 1) * dw + dx + 1 + offset;
-        if (z > depthToViewZ(this.buffer[di1], near, far)) return false;
+        // const di1 = (ts - dy - 1) * dw + dx + 1 + offset;
+        if (z > depthToViewZ(this.buffer[di + 1], near, far, projection)) return false;
 
         const di2 = (ts - dy + 1 - 1) * dw + dx + offset;
-        if (z > depthToViewZ(this.buffer[di2], near, far)) return false;
+        if (z > depthToViewZ(this.buffer[di2], near, far, projection)) return false;
 
-        const di3 = (ts - dy + 1 - 1) * dw + dx + 1 + offset;
-        if (z > depthToViewZ(this.buffer[di3], near, far)) return false;
+        // const di3 = (ts - dy + 1 - 1) * dw + dx + 1 + offset;
+        if (z > depthToViewZ(this.buffer[di2 + 1], near, far, projection)) return false;
 
         return true;
     };
@@ -308,16 +359,121 @@ export class HiZPass {
         this.clear();
     }
 
-    getDebugContext() {
-        return {
-            levelData: this.levelData,
-            buffer: this.buffer,
-            tex: this.tex,
-            camera: this.camera,
-        };
+    //
+
+    private debug?: {
+        container: HTMLDivElement
+        canvas: HTMLCanvasElement
+        ctx: CanvasRenderingContext2D
+        rect: HTMLDivElement
+    };
+
+    private initDebug(element: HTMLElement) {
+        if (!element.parentElement) return;
+
+        const container = document.createElement('div');
+        Object.assign(container.style, {
+            display: 'block',
+            position: 'absolute',
+            bottom: '0px',
+            top: '0px',
+            left: '0px',
+            right: '0px',
+            pointerEvents: 'none',
+        });
+        element.parentElement.appendChild(container);
+
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        if (!ctx) throw new Error('Could not create canvas 2d context');
+        Object.assign(canvas.style, {
+            width: '100%',
+            height: '100%',
+            imageRendering: 'pixelated',
+            position: 'relative',
+            pointerEvents: 'none',
+        });
+        container.appendChild(canvas);
+
+        const rect = document.createElement('div');
+        Object.assign(rect.style, {
+            display: 'none',
+            position: 'absolute',
+            pointerEvents: 'none',
+        });
+        element.parentElement.appendChild(rect);
+
+        this.debug = { container, canvas, ctx, rect };
     }
 
-    constructor(private webgl: WebGLContext, private drawPass: DrawPass) {
+    private showRect(p: Vec4, occluded: boolean) {
+        if (!this.supported || !this.enabled || !this.ready || !this.debug) return;
+
+        const { drawingBufferHeight } = this.webgl.gl;
+        const { viewport, pixelRatio } = this.camera;
+        const { x, y, width, height } = viewport;
+        const minx = (p[0] * width + x) / pixelRatio;
+        const miny = (p[1] * height - y) / pixelRatio;
+        const maxx = (p[2] * width + x) / pixelRatio;
+        const maxy = (p[3] * height - y) / pixelRatio;
+
+        const oy = drawingBufferHeight - height;
+
+        Object.assign(this.debug.rect.style, {
+            border: occluded ? 'solid red' : 'solid green',
+            display: 'block',
+            left: `${minx}px`,
+            top: `${miny + oy}px`,
+            width: `${maxx - minx}px`,
+            height: `${maxy - miny}px`,
+        });
+    }
+
+    private showBuffer(lod: number) {
+        if (!this.supported || !this.enabled || !this.ready || !this.debug) return;
+        if (lod >= this.levelData.length || lod < MinLevel) return;
+
+        const { offset, size: [tw, th] } = this.levelData[lod];
+        const dw = this.tex.getWidth();
+
+        const data = new Uint8ClampedArray(tw * th * 4);
+        data.fill(255);
+        for (let y = 0; y < th; ++y) {
+            for (let x = 0; x < tw; ++x) {
+                const i = (th - y - 1) * tw + x;
+                const v = this.buffer[y * dw + x + offset] * 255;
+                data[i * 4 + 0] = v;
+                data[i * 4 + 3] = 255 - v;
+            }
+        }
+        const imageData = new ImageData(data, tw, th);
+
+        this.debug.canvas.width = imageData.width;
+        this.debug.canvas.height = imageData.height;
+        this.debug.ctx.putImageData(imageData, 0, 0);
+        this.debug.container.style.display = 'block';
+    }
+
+    debugOcclusion(s: Sphere3D | undefined) {
+        if (!this.supported || !this.enabled || !this.ready || !this.debug) return;
+
+        if (!s) {
+            this.debug.rect.style.display = 'none';
+            this.debug.container.style.display = 'none';
+            return;
+        }
+
+        const occluded = this.isOccluded(s);
+        const { vp, r } = this.transform(s);
+        const { aabb, lod } = this.project(vp, r);
+
+        this.showRect(aabb, occluded);
+        this.showBuffer(lod);
+    }
+
+    //
+
+    constructor(private webgl: WebGLContext, private drawPass: DrawPass, canvas?: HTMLCanvasElement | undefined) {
         const { gl, extensions } = webgl;
         if (!isWebGL2(gl) || !extensions.colorBufferFloat) {
             if (isDebugMode) {
@@ -345,152 +501,9 @@ export class HiZPass {
         this.supported = true;
         this.buf = getBuffer(gl);
         this.renderable = createHiZRenderable(webgl, this.drawPass.depthTextureOpaque);
-    }
-}
 
-//
-
-export class HiZDebug {
-    private readonly container = document.createElement('div');
-    private readonly canvas = document.createElement('canvas');
-
-    private aabb = Vec4();
-    private vp = Vec3();
-
-    getRect(element: Element) {
-        return document.getElementById('molstar-hiz-rect') || this.addRect(element);
-    }
-
-    addRect(element: Element) {
-        const rect = document.createElement('div');
-        rect.id = 'molstar-hiz-rect';
-
-        Object.assign(rect.style, {
-            display: 'none',
-            pointerEvents: 'none',
-        });
-
-        element.parentElement?.appendChild(rect);
-
-        return rect;
-    }
-
-    updateRect(p: Vec4, o: boolean, element: Element, viewport: Viewport) {
-        const { x, y, width, height } = viewport;
-        const rect = this.getRect(element);
-
-        const minx = p[0] * width + x;
-        const miny = p[1] * height + y;
-        const maxx = p[2] * width + x;
-        const maxy = p[3] * height + y;
-
-        Object.assign(rect.style, {
-            border: o ? 'solid red' : 'solid green',
-            display: 'block',
-            position: 'absolute',
-            left: `${minx}px`,
-            top: `${miny}px`,
-            width: `${maxx - minx}px`,
-            height: `${maxy - miny}px`,
-        });
-    }
-
-    printOcclusion(s: Sphere3D, element: Element) {
-        const { camera, levelData, tex, buffer } = this.hiz.getDebugContext();
-        const { vp, aabb } = this;
-        const { near, far, viewport, view, projection } = camera;
-
-        const r = (s.radius * 1.2) + 1.52;
-        v3transformMat4(vp, s.center, view);
-        projectSphere(aabb, vp, r, projection);
-        const w = aabb[2] - aabb[0];
-        const h = aabb[3] - aabb[1];
-
-        const pr = Math.max(w * viewport.width, h * viewport.height);
-        const lod = Math.ceil(fasterLog2(pr / 2));
-        if (lod >= levelData.length || lod < MinLevel) return false;
-        const td = levelData[lod];
-        const { offset } = td;
-
-        vp[2] *= -1;
-        vp[2] -= r;
-
-        const u = aabb[0] + w / 2;
-        const v = aabb[1] + h / 2;
-
-        const x = u * td.size[0];
-        const y = v * td.size[1];
-
-        const dx = Math.floor(x);
-        const dy = Math.floor(y);
-        const dw = tex.getWidth();
-        const dh = tex.getHeight();
-        const ds = dw * dh;
-        const tw = td.size[0];
-        const th = td.size[1];
-
-        let occluded = true;
-        if (dx + 1 >= tw || dy + 1 >= th) occluded = false;
-
-        const di = (th - dy - 1) * dw + dx + offset;
-        if (vp[2] <= -depthToViewZ(buffer[di], near, far)) occluded = false;
-
-        const dz = buffer[di];
-        const dd = -(near * far) / ((far - near) * buffer[di] - far);
-        console.log({ depth: dd, objectDepth: vp[2], z: dz }, arrayMinMax(buffer), { near, far, lod, tw, th }, { offset, dx, dy, di, dw, dh, ds }, { x, y, u, v, w, h }, aabb, td);
-        const data = new Uint8ClampedArray(tw * th * 4);
-        data.fill(255);
-        let min = +Infinity;
-        let max = -Infinity;
-        let mind = +Infinity;
-        let maxd = -Infinity;
-        for (let y = 0; y < th; ++y) {
-            for (let x = 0; x < tw; ++x) {
-                const i = (th - y - 1) * (tw) + x;
-                const dv = buffer[y * dw + x + offset];
-                const v = dv * 255;
-                data[i * 4 + 0] = v;
-                data[i * 4 + 3] = (255 - v) / 2;
-                min = Math.min(min, v);
-                max = Math.max(max, v);
-                mind = Math.min(mind, dv);
-                maxd = Math.max(maxd, dv);
-            }
+        if (isDebugMode && canvas) {
+            this.initDebug(canvas);
         }
-        const imageData = new ImageData(data, tw, th);
-        console.log({ min, max, mind, maxd, tw, th });
-        this.print(imageData, element);
-        this.updateRect(aabb, occluded, element, camera.viewport);
-
-        return occluded;
-    }
-
-    private print(imageData: ImageData, element: Element) {
-        Object.assign(this.container.style, {
-            position: 'absolute',
-            bottom: '0px',
-            top: '0px',
-            left: '0px',
-            right: '0px',
-            pointerEvents: 'none',
-        });
-        element.parentElement?.appendChild(this.container);
-
-        this.canvas.width = imageData.width;
-        this.canvas.height = imageData.height;
-        const outCtx = this.canvas.getContext('2d');
-        if (!outCtx) throw new Error('Could not create canvas 2d context');
-        outCtx.putImageData(imageData, 0, 0);
-        this.canvas.style.width = '100%';
-        this.canvas.style.height = '100%';
-        this.canvas.style.imageRendering = 'pixelated';
-        this.canvas.style.position = 'relative';
-        this.canvas.style.pointerEvents = 'none';
-        // this.canvas.style.opacity = '0.5';
-        this.container.appendChild(this.canvas);
-    }
-
-    constructor(private readonly hiz: HiZPass) {
-
     }
 }

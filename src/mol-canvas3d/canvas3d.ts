@@ -158,7 +158,12 @@ namespace Canvas3DContext {
 
         const input = InputObserver.fromElement(canvas, { pixelScale, preventGestures: true });
         const webgl = createContext(gl, { pixelScale });
-        const passes = new Passes(webgl, assetManager, a);
+        const passes = new Passes(webgl, assetManager, {
+            pickScale: a.pickScale,
+            enableWboit: a.enableWboit,
+            enableDpoit: a.enableDpoit,
+            canvas
+        });
 
         if (isDebugMode) {
             const loseContextExt = gl.getExtension('WEBGL_lose_context');
@@ -299,7 +304,7 @@ namespace Canvas3D {
     export interface DragEvent { current: Representation.Loci, buttons: ButtonsType, button: ButtonsType.Flag, modifiers: ModifiersKeys, pageStart: Vec2, pageEnd: Vec2 }
     export interface ClickEvent { current: Representation.Loci, buttons: ButtonsType, button: ButtonsType.Flag, modifiers: ModifiersKeys, page?: Vec2, position?: Vec3 }
 
-    export function create({ webgl, input, passes, attribs, assetManager }: Canvas3DContext, props: Partial<Canvas3DProps> = {}): Canvas3D {
+    export function create({ webgl, input, passes, attribs, assetManager, canvas }: Canvas3DContext, props: Partial<Canvas3DProps> = {}): Canvas3D {
         const p: Canvas3DProps = { ...deepClone(DefaultCanvas3DParams), ...deepClone(props) };
 
         const reprRenderObjects = new Map<Representation.Any, Set<GraphicsRenderObject>>();
@@ -758,6 +763,40 @@ namespace Canvas3D {
 
         addConsoleStatsProvider(consoleStats);
 
+        //
+
+        if (isDebugMode && canvas) {
+            let occlusionLoci: Loci | undefined = undefined;
+
+            const printOcclusion = (loci: Loci | undefined) => {
+                const s = loci && Loci.getBoundingSphere(Loci.normalize(loci, 'residue'));
+                passes.hiZ.debugOcclusion(s);
+            };
+
+            input.click.subscribe(e => {
+                if (!e.modifiers.control || e.button !== 2) return;
+
+                const p = identify(e.x, e.y);
+                if (!p) {
+                    occlusionLoci = undefined;
+                    printOcclusion(occlusionLoci);
+                    return;
+                }
+
+                const l = getLoci(p.id);
+                occlusionLoci = l.loci;
+                printOcclusion(occlusionLoci);
+            });
+
+            didDraw.subscribe(() => {
+                setTimeout(() => {
+                    printOcclusion(occlusionLoci);
+                }, 100);
+            });
+        }
+
+        //
+
         return {
             webgl,
 
@@ -973,6 +1012,7 @@ namespace Canvas3D {
             renderer.setViewport(x, y, width, height);
             Viewport.set(camera.viewport, x, y, width, height);
             Viewport.set(controls.viewport, x, y, width, height);
+            passes.hiZ.clear();
         }
     }
 }

@@ -17,12 +17,12 @@ export class Passes {
     readonly multiSample: MultiSamplePass;
     readonly hiZ: HiZPass;
 
-    constructor(private webgl: WebGLContext, assetManager: AssetManager, attribs: Partial<{ pickScale: number, enableWboit: boolean, enableDpoit: boolean }> = {}) {
+    constructor(private webgl: WebGLContext, assetManager: AssetManager, attribs: Partial<{ pickScale: number, enableWboit: boolean, enableDpoit: boolean, canvas: HTMLCanvasElement }> = {}) {
         const { gl } = webgl;
         this.draw = new DrawPass(webgl, assetManager, gl.drawingBufferWidth, gl.drawingBufferHeight, attribs.enableWboit || false, attribs.enableDpoit || false);
         this.pick = new PickPass(webgl, this.draw, attribs.pickScale || 0.25);
         this.multiSample = new MultiSamplePass(webgl, this.draw);
-        this.hiZ = new HiZPass(webgl, this.draw);
+        this.hiZ = new HiZPass(webgl, this.draw, attribs.canvas);
     }
 
     updateSize() {
