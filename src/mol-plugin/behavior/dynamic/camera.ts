@@ -213,7 +213,7 @@ export const CameraControls = PluginBehavior.create<CameraControlsProps>({
                         trackball: { flyMode }
                     });
 
-                    if (this.ctx.canvas3dContext) {
+                    if (this.ctx.canvas3dContext?.canvas) {
                         this.ctx.canvas3dContext.canvas.style.cursor = flyMode ? 'crosshair' : 'unset';
                     }
                 }

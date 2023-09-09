@@ -22,6 +22,7 @@ const CCDParams = (a: PluginStateObject.Molecule.Trajectory | undefined, plugin:
     representationPresetParams: PD.Optional(PD.Group(StructureRepresentationPresetProvider.CommonParams)),
     showOriginalCoordinates: PD.Optional(PD.Boolean(true, { description: `Show original coordinates for 'model' and 'ideal' structure and do not align them.` })),
     shownCoordinateType: PD.Select('ideal', PD.arrayToOptions(['ideal', 'model', 'both'] as const), { description: `What coordinate sets are visible.` }),
+    aromaticBonds: PD.Boolean(false, { description: 'Display aromatic bonds with dashes' }),
     ...TrajectoryHierarchyPresetProvider.CommonParams(a, plugin)
 });
 
@@ -77,8 +78,8 @@ export const ChemicalCompontentTrajectoryHierarchyPreset = TrajectoryHierarchyPr
             }
         }
 
-        await builder.representation.applyPreset(idealStructureProperties, representationPreset, { ...representationPresetParams, coordinateType: 'ideal', isHidden: params.shownCoordinateType === 'model' });
-        await builder.representation.applyPreset(modelStructureProperties, representationPreset, { ...representationPresetParams, coordinateType: 'model', isHidden: params.shownCoordinateType === 'ideal' });
+        await builder.representation.applyPreset(idealStructureProperties, representationPreset, { ...representationPresetParams, aromaticBonds: params.aromaticBonds, coordinateType: 'ideal', isHidden: params.shownCoordinateType === 'model' });
+        await builder.representation.applyPreset(modelStructureProperties, representationPreset, { ...representationPresetParams, aromaticBonds: params.aromaticBonds, coordinateType: 'model', isHidden: params.shownCoordinateType === 'ideal' });
 
         return { models: [idealModel, modelModel], structures: [idealStructure, modelStructure] };
     }
@@ -134,14 +135,15 @@ export const ChemicalComponentPreset = StructureRepresentationPresetProvider({
     },
     params: () => ({
         ...StructureRepresentationPresetProvider.CommonParams,
+        aromaticBonds: PD.Boolean(true),
         coordinateType: PD.Select<CCDFormat.CoordinateType>('ideal', PD.arrayToOptions(['ideal', 'model'])),
-        isHidden: PD.Boolean(false)
+        isHidden: PD.Boolean(false),
     }),
     async apply(ref, params, plugin) {
         const structureCell = StateObjectRef.resolveAndCheck(plugin.state.data, ref);
         if (!structureCell) return {};
 
-        const { coordinateType, isHidden } = params;
+        const { aromaticBonds, coordinateType, isHidden } = params;
         const components = {
             [coordinateType]: await presetStaticComponent(plugin, structureCell, 'all', { label: capitalize(coordinateType), tags: [coordinateType] })
         };
@@ -150,7 +152,7 @@ export const ChemicalComponentPreset = StructureRepresentationPresetProvider({
         const { update, builder, typeParams } = StructureRepresentationPresetProvider.reprBuilder(plugin, params);
 
         const representations = {
-            [coordinateType]: builder.buildRepresentation(update, components[coordinateType], { type: 'ball-and-stick', typeParams }, { initialState: { isHidden } }),
+            [coordinateType]: builder.buildRepresentation(update, components[coordinateType], { type: 'ball-and-stick', typeParams: { ...typeParams, aromaticBonds } }, { initialState: { isHidden } }),
         };
         // sync UI state
         if (components[coordinateType]?.cell?.state && isHidden) {

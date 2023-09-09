@@ -57,8 +57,13 @@ export class HeadlessScreenshotHelper {
             const webgl = createContext(glContext);
             const input = InputObserver.create();
             const attribs = { ...Canvas3DContext.DefaultAttribs };
-            const passes = new Passes(webgl, new AssetManager(), attribs);
-            this.canvas3d = Canvas3D.create({ webgl, input, passes, attribs } as Canvas3DContext, options?.canvas ?? defaultCanvas3DParams());
+            const assetManager = new AssetManager();
+            const passes = new Passes(webgl, assetManager, attribs);
+            const dispose = () => {
+                input.dispose();
+                webgl.destroy();
+            };
+            this.canvas3d = Canvas3D.create({ webgl, input, passes, attribs, assetManager, dispose }, options?.canvas ?? defaultCanvas3DParams());
         }
 
         this.imagePass = this.canvas3d.getImagePass(options?.imagePass ?? defaultImagePassParams());
