@@ -109,13 +109,13 @@ export { Canvas3DContext };
 
 /** Can be used to create multiple Canvas3D objects */
 interface Canvas3DContext {
-    readonly canvas: HTMLCanvasElement
+    readonly canvas?: HTMLCanvasElement
     readonly webgl: WebGLContext
     readonly input: InputObserver
     readonly passes: Passes
     readonly attribs: Readonly<Canvas3DContext.Attribs>
-    readonly contextLost: BehaviorSubject<now.Timestamp>
-    readonly contextRestored: BehaviorSubject<now.Timestamp>
+    readonly contextLost?: BehaviorSubject<now.Timestamp>
+    readonly contextRestored?: BehaviorSubject<now.Timestamp>
     readonly assetManager: AssetManager
     dispose: (options?: Partial<{ doNotForceWebGLContextLoss: boolean }>) => void
 }
