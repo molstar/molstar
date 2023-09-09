@@ -586,6 +586,47 @@ export function getProvokingVertex(gl: GLRenderingContext): COMPAT_provoking_ver
     return null;
 }
 
+/**
+ * See https://registry.khronos.org/webgl/extensions/WEBGL_clip_cull_distance/
+ */
+export interface COMPAT_clip_cull_distance {
+    readonly MAX_CLIP_DISTANCES: number;
+    readonly MAX_CULL_DISTANCES: number;
+    readonly MAX_COMBINED_CLIP_AND_CULL_DISTANCES: number;
+
+    readonly CLIP_DISTANCE0: number;
+    readonly CLIP_DISTANCE1: number;
+    readonly CLIP_DISTANCE2: number;
+    readonly CLIP_DISTANCE3: number;
+    readonly CLIP_DISTANCE4: number;
+    readonly CLIP_DISTANCE5: number;
+    readonly CLIP_DISTANCE6: number;
+    readonly CLIP_DISTANCE7: number;
+}
+
+export function getClipCullDistance(gl: GLRenderingContext): COMPAT_clip_cull_distance | null {
+    if (isWebGL2(gl)) {
+        const ext = gl.getExtension('WEBGL_clip_cull_distance');
+        if (ext) {
+            return {
+                MAX_CLIP_DISTANCES: ext.MAX_CLIP_DISTANCES_WEBGL,
+                MAX_CULL_DISTANCES: ext.MAX_CULL_DISTANCES_WEBGL,
+                MAX_COMBINED_CLIP_AND_CULL_DISTANCES: ext.MAX_COMBINED_CLIP_AND_CULL_DISTANCES_WEBGL,
+
+                CLIP_DISTANCE0: ext.CLIP_DISTANCE0_WEBGL,
+                CLIP_DISTANCE1: ext.CLIP_DISTANCE1_WEBGL,
+                CLIP_DISTANCE2: ext.CLIP_DISTANCE2_WEBGL,
+                CLIP_DISTANCE3: ext.CLIP_DISTANCE3_WEBGL,
+                CLIP_DISTANCE4: ext.CLIP_DISTANCE4_WEBGL,
+                CLIP_DISTANCE5: ext.CLIP_DISTANCE5_WEBGL,
+                CLIP_DISTANCE6: ext.CLIP_DISTANCE6_WEBGL,
+                CLIP_DISTANCE7: ext.CLIP_DISTANCE7_WEBGL
+            };
+        }
+    }
+    return null;
+}
+
 export function getNoNonInstancedActiveAttribs(gl: GLRenderingContext): boolean {
     if (!isWebGL2(gl)) return false;
 
