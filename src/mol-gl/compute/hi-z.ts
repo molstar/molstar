@@ -21,6 +21,7 @@ const HiZSchema = {
     ...QuadSchema,
     tPreviousLevel: TextureSpec('texture', 'alpha', 'float', 'nearest'),
     uInvSize: UniformSpec('v2'),
+    uOffset: UniformSpec('v2'),
 };
 const HiZShaderCode = ShaderCode('hi-z', quad_vert, hiZ_frag);
 export type HiZRenderable = ComputeRenderable<Values<typeof HiZSchema>>
@@ -30,6 +31,7 @@ export function createHiZRenderable(ctx: WebGLContext, previousLevel: Texture): 
         ...QuadValues,
         tPreviousLevel: ValueCell.create(previousLevel),
         uInvSize: ValueCell.create(Vec2()),
+        uOffset: ValueCell.create(Vec2()),
     };
 
     const schema = { ...HiZSchema };

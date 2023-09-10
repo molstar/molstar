@@ -112,9 +112,18 @@ export const HiZParams = {
 export type HiZProps = PD.Values<typeof HiZParams>
 
 export class HiZPass {
-    private enabled = false;
+    private readonly viewport = Viewport();
 
-    private readonly camera = new Camera();
+    private near = 0;
+    private far = 0;
+    private readonly view = Mat4();
+    private readonly projection = Mat4();
+
+    private nextNear = 0;
+    private nextFar = 0;
+    private readonly nextView = Mat4();
+    private readonly nextProjection = Mat4();
+
     private readonly aabb = Vec4();
     private readonly vp = Vec3();
 
@@ -129,6 +138,18 @@ export class HiZPass {
     private buffer = new Float32Array(0);
     private frameLag = 0;
     private ready = false;
+
+    readonly props: HiZProps;
+
+    private pixelScale = 1;
+    setPixelScale(value: number) {
+        this.pixelScale = value;
+    }
+
+    get pixelRatio() {
+        const dpr = (typeof window !== 'undefined') ? window.devicePixelRatio : 1;
+        return dpr * this.pixelScale;
+    }
 
     clear() {
         if (!this.supported) return;
@@ -149,32 +170,23 @@ export class HiZPass {
         }
     }
 
-    render(camera: Camera, props: HiZProps) {
-        if (!this.supported || !props.enabled) return;
+    render(camera: Camera) {
+        if (!this.supported || !this.props.enabled) return;
 
         const { gl, state } = this.webgl;
         if (!isWebGL2(gl) || this.sync !== null) return;
 
-        // TODO: support viewport other than canvas
-        if (camera.viewport.x !== 0 ||
-            camera.viewport.y !== 0 ||
-            camera.viewport.width !== gl.drawingBufferWidth ||
-            camera.viewport.height !== gl.drawingBufferHeight
-        ) {
-            this.ready = false;
-            return;
-        }
-
-        this.camera.setState(camera.getSnapshot(), 0);
-        Viewport.copy(this.camera.viewport, camera.viewport);
-        this.camera.pixelScale = camera.pixelScale;
+        this.nextNear = camera.near;
+        this.nextFar = camera.far;
+        Mat4.copy(this.nextView, camera.view);
+        Mat4.copy(this.nextProjection, camera.projection);
 
         if (isTimingMode) this.webgl.timer.mark('hi-Z');
 
         state.disable(gl.CULL_FACE);
         state.disable(gl.BLEND);
         state.disable(gl.DEPTH_TEST);
-        state.enable(gl.SCISSOR_TEST);
+        state.disable(gl.SCISSOR_TEST);
         state.depthMask(false);
         state.colorMask(true, true, true, true);
         state.clearColor(0, 0, 0, 0);
@@ -187,16 +199,22 @@ export class HiZPass {
             const td = this.levelData[i];
             td.framebuffer.bind();
 
-            ValueCell.update(v.uInvSize, td.invSize);
             if (i > 0) {
+                ValueCell.update(v.uInvSize, td.invSize);
+                ValueCell.update(v.uOffset, Vec2.set(v.uOffset.ref.value, 0, 0));
                 ValueCell.update(v.tPreviousLevel, this.levelData[i - 1].texture);
             } else {
+                const s = Math.pow(2, Math.ceil(Math.log(Math.max(gl.drawingBufferWidth, gl.drawingBufferHeight)) / Math.log(2)) - 1);
+                ValueCell.update(v.uInvSize, Vec2.set(v.uInvSize.ref.value, 1 / s, 1 / s));
+                ValueCell.update(v.uOffset, Vec2.set(v.uOffset.ref.value,
+                    this.viewport.x / gl.drawingBufferWidth,
+                    this.viewport.y / gl.drawingBufferHeight
+                ));
                 ValueCell.update(v.tPreviousLevel, this.drawPass.depthTextureOpaque);
             }
 
             state.currentRenderItemId = -1;
             state.viewport(0, 0, td.size[0], td.size[1]);
-            state.scissor(0, 0, td.size[0], td.size[1]);
             gl.clear(gl.COLOR_BUFFER_BIT);
             this.renderable.update();
             this.renderable.render();
@@ -225,21 +243,14 @@ export class HiZPass {
         if (isTimingMode) this.webgl.timer.markEnd('hi-Z');
     }
 
-    tick(props: HiZProps) {
-        if (!this.supported) return;
+    tick() {
+        if (!this.supported || !this.props.enabled || this.sync === null) return;
 
         const { gl } = this.webgl;
         if (!isWebGL2(gl)) return;
 
-        if (props.enabled !== this.enabled) {
-            this.ready = false;
-            this.enabled = props.enabled;
-        }
-
-        if (!this.enabled || this.sync === null) return;
-
         const res = gl.clientWaitSync(this.sync, 0, 0);
-        if (res === gl.WAIT_FAILED || this.frameLag >= props.maxFrameLag) {
+        if (res === gl.WAIT_FAILED || this.frameLag >= this.props.maxFrameLag) {
             // console.log(`failed to get buffer data after ${this.frameLag + 1} frames`);
             gl.deleteSync(this.sync);
             this.sync = null;
@@ -263,19 +274,22 @@ export class HiZPass {
             //     printTextureImage(p, { scale: MinLevel, id: 'hiz', useCanvas: true, pixelated: true });
             // }
 
-            this.camera.update();
+            this.near = this.nextNear;
+            this.far = this.nextFar;
+            Mat4.copy(this.view, this.nextView);
+            Mat4.copy(this.projection, this.nextProjection);
         }
     }
 
     private transform(s: Sphere3D) {
-        const { camera: { view }, vp } = this;
+        const { view, vp } = this;
         v3transformMat4(vp, s.center, view);
         const r = (s.radius * 1.2) + 1.52;
         return { vp, r };
     }
 
     private project(vp: Vec3, r: number) {
-        const { camera: { viewport, projection }, aabb } = this;
+        const { projection, aabb, viewport } = this;
         projectSphere(aabb, vp, r, projection);
         const w = aabb[2] - aabb[0];
         const h = aabb[3] - aabb[1];
@@ -285,10 +299,10 @@ export class HiZPass {
     }
 
     isOccluded = (s: Sphere3D) => {
-        if (!this.supported || !this.enabled || !this.ready) return false;
+        if (!this.supported || !this.props.enabled || !this.ready) return false;
 
         const { vp, r } = this.transform(s);
-        const { near, far, viewport, projection } = this.camera;
+        const { near, far, projection } = this;
 
         const z = vp[2] + r;
         if (-z < near) return false;
@@ -305,8 +319,8 @@ export class HiZPass {
         const x = u * ts;
         const y = v * ts;
 
-        const dx = Math.floor(x) + viewport.x;
-        const dy = Math.ceil(y) + viewport.y;
+        const dx = Math.floor(x);
+        const dy = Math.ceil(y);
         const dw = this.tex.getWidth();
 
         if (dx + 1 >= ts || dy + 1 >= ts) return false;
@@ -326,15 +340,21 @@ export class HiZPass {
         return true;
     };
 
-    syncSize() {
+    setViewport(x: number, y: number, width: number, height: number) {
         if (!this.supported) return;
 
-        const width = this.drawPass.colorTarget.getWidth();
-        const height = this.drawPass.colorTarget.getHeight();
-
+        Viewport.set(this.viewport, x, y, width, height);
         const levels = Math.ceil(Math.log(Math.max(width, height)) / Math.log(2));
+        if (levels === this.levelData.length) return;
+
         this.buffer = new Float32Array(Math.pow(2, levels - MinLevel) * Math.pow(2, levels - 1 - MinLevel));
         this.tex.define(Math.pow(2, levels - MinLevel), Math.pow(2, levels - 1 - MinLevel));
+
+        for (const td of this.levelData) {
+            td.framebuffer.destroy();
+            td.texture.destroy();
+        }
+
         this.levelData.length = 0;
         for (let i = 0; i < levels; ++i) {
             const framebuffer = this.webgl.resources.framebuffer();
@@ -359,6 +379,13 @@ export class HiZPass {
         this.clear();
     }
 
+    setProps(props: Partial<HiZProps>) {
+        if (!this.supported) return;
+
+        Object.assign(this.props, props);
+        if (!this.props.enabled) this.clear();
+    }
+
     //
 
     private debug?: {
@@ -375,10 +402,6 @@ export class HiZPass {
         Object.assign(container.style, {
             display: 'block',
             position: 'absolute',
-            bottom: '0px',
-            top: '0px',
-            left: '0px',
-            right: '0px',
             pointerEvents: 'none',
         });
         element.parentElement.appendChild(container);
@@ -407,17 +430,16 @@ export class HiZPass {
     }
 
     private showRect(p: Vec4, occluded: boolean) {
-        if (!this.supported || !this.enabled || !this.ready || !this.debug) return;
+        if (!this.supported || !this.props.enabled || !this.ready || !this.debug) return;
 
         const { drawingBufferHeight } = this.webgl.gl;
-        const { viewport, pixelRatio } = this.camera;
-        const { x, y, width, height } = viewport;
+        const { viewport: { x, y, width, height }, pixelRatio } = this;
         const minx = (p[0] * width + x) / pixelRatio;
         const miny = (p[1] * height - y) / pixelRatio;
         const maxx = (p[2] * width + x) / pixelRatio;
         const maxy = (p[3] * height - y) / pixelRatio;
 
-        const oy = drawingBufferHeight - height;
+        const oy = (drawingBufferHeight - height) / pixelRatio;
 
         Object.assign(this.debug.rect.style, {
             border: occluded ? 'solid red' : 'solid green',
@@ -430,8 +452,11 @@ export class HiZPass {
     }
 
     private showBuffer(lod: number) {
-        if (!this.supported || !this.enabled || !this.ready || !this.debug) return;
-        if (lod >= this.levelData.length || lod < MinLevel) return;
+        if (!this.supported || !this.props.enabled || !this.ready || !this.debug) return;
+        if (lod >= this.levelData.length || lod < MinLevel) {
+            this.debug.container.style.display = 'none';
+            return;
+        }
 
         const { offset, size: [tw, th] } = this.levelData[lod];
         const dw = this.tex.getWidth();
@@ -451,11 +476,19 @@ export class HiZPass {
         this.debug.canvas.width = imageData.width;
         this.debug.canvas.height = imageData.height;
         this.debug.ctx.putImageData(imageData, 0, 0);
-        this.debug.container.style.display = 'block';
+
+        const { viewport: { x, y, width, height }, pixelRatio } = this;
+        Object.assign(this.debug.container.style, {
+            display: 'block',
+            bottom: `${y / pixelRatio}px`,
+            left: `${x / pixelRatio}px`,
+            width: `${width / pixelRatio}px`,
+            height: `${height / pixelRatio}px`,
+        });
     }
 
     debugOcclusion(s: Sphere3D | undefined) {
-        if (!this.supported || !this.enabled || !this.ready || !this.debug) return;
+        if (!this.supported || !this.props.enabled || !this.ready || !this.debug) return;
 
         if (!s) {
             this.debug.rect.style.display = 'none';
@@ -473,7 +506,23 @@ export class HiZPass {
 
     //
 
-    constructor(private webgl: WebGLContext, private drawPass: DrawPass, canvas?: HTMLCanvasElement | undefined) {
+    dispose() {
+        if (!this.supported) return;
+
+        this.clear();
+
+        this.fb.destroy();
+        this.tex.destroy();
+        this.webgl.gl.deleteBuffer(this.buf);
+        this.renderable.dispose();
+
+        for (const td of this.levelData) {
+            td.framebuffer.destroy();
+            td.texture.destroy();
+        }
+    }
+
+    constructor(private webgl: WebGLContext, private drawPass: DrawPass, canvas: HTMLCanvasElement | undefined, props: Partial<HiZProps>) {
         const { gl, extensions } = webgl;
         if (!isWebGL2(gl) || !extensions.colorBufferFloat) {
             if (isDebugMode) {
@@ -499,6 +548,7 @@ export class HiZPass {
         }
 
         this.supported = true;
+        this.props = { ...PD.getDefaultValues(HiZParams), ...props };
         this.buf = getBuffer(gl);
         this.renderable = createHiZRenderable(webgl, this.drawPass.depthTextureOpaque);
 

@@ -4,9 +4,10 @@ precision highp sampler2D;
 
 uniform sampler2D tPreviousLevel;
 uniform vec2 uInvSize;
+uniform vec2 uOffset;
 
 void main(void) {
-    vec2 position = gl_FragCoord.xy * uInvSize;
+    vec2 position = gl_FragCoord.xy * uInvSize + uOffset;
 
     float x = texture(tPreviousLevel, position).r;
     float y = textureOffset(tPreviousLevel, position, ivec2(-1, 0)).r;
