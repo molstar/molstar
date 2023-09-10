@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -22,6 +22,7 @@ export type WebGLState = {
      * - `gl.SAMPLE_COVERAGE`: ANDing the fragment's coverage with the temporary coverage value
      * - `gl.SCISSOR_TEST`: scissor test that discards fragments that are outside of the scissor rectangle
      * - `gl.STENCIL_TEST`: stencil testing and updates to the stencil buffer
+     * - `ext.CLIP_DISTANCE[0-7]`: clip distance 0 to 7 (with `ext` being `WEBGL_clip_cull_distance`)
      */
     enable: (cap: number) => void
     /**
@@ -35,6 +36,7 @@ export type WebGLState = {
      * - `gl.SAMPLE_COVERAGE`: ANDing the fragment's coverage with the temporary coverage value
      * - `gl.SCISSOR_TEST`: scissor test that discards fragments that are outside of the scissor rectangle
      * - `gl.STENCIL_TEST`: stencil testing and updates to the stencil buffer
+     * - `ext.CLIP_DISTANCE[0-7]`: clip distance 0 to 7 (with `ext` being `WEBGL_clip_cull_distance`)
      */
     disable: (cap: number) => void
 

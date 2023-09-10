@@ -1,3 +1,6 @@
+# 0.9.10
+* /ligand queries: fix atom count reported by SDF/MOL/MOL2 export
+
 # 0.9.9
 * /ligand queries: fix behavior for alternate locations
 * /ligand queries: handle additional atoms more gracefully

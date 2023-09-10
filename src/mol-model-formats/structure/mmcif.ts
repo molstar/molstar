@@ -9,7 +9,7 @@
 import { Model } from '../../mol-model/structure/model/model';
 import { RuntimeContext, Task } from '../../mol-task';
 import { ModelFormat } from '../format';
-import { CifFrame, CIF } from '../../mol-io/reader/cif';
+import { CifFrame, CIF, CifFile } from '../../mol-io/reader/cif';
 import { mmCIF_Database } from '../../mol-io/reader/cif/schema/mmcif';
 import { createModels } from './basic/parser';
 import { ModelSymmetry } from './property/symmetry';
@@ -88,6 +88,7 @@ namespace MmcifFormat {
     export type Data = {
         db: mmCIF_Database,
         frame: CifFrame,
+        file?: CifFile,
         /**
          * Original source format. Some formats, including PDB, are converted
          * to mmCIF before further processing.
@@ -98,14 +99,14 @@ namespace MmcifFormat {
         return x?.kind === 'mmCIF';
     }
 
-    export function fromFrame(frame: CifFrame, db?: mmCIF_Database, source?: ModelFormat): MmcifFormat {
+    export function fromFrame(frame: CifFrame, db?: mmCIF_Database, source?: ModelFormat, file?: CifFile): MmcifFormat {
         if (!db) db = CIF.schema.mmCIF(frame);
-        return { kind: 'mmCIF', name: db._name, data: { db, frame, source } };
+        return { kind: 'mmCIF', name: db._name, data: { db, file, frame, source } };
     }
 }
 
-export function trajectoryFromMmCIF(frame: CifFrame): Task<Trajectory> {
-    const format = MmcifFormat.fromFrame(frame);
+export function trajectoryFromMmCIF(frame: CifFrame, file?: CifFile): Task<Trajectory> {
+    const format = MmcifFormat.fromFrame(frame, undefined, undefined, file);
     const basic = createBasic(format.data.db, true);
     return Task.create('Create mmCIF Model', ctx => createModels(basic, format, ctx));
 }

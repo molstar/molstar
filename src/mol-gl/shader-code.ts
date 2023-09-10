@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -22,6 +22,7 @@ export interface ShaderExtensions {
     readonly shaderTextureLod?: ShaderExtensionsValue
     /** Needed to enable the `gl_DrawID` built-in */
     readonly multiDraw?: ShaderExtensionsValue
+    readonly clipCullDistance?: ShaderExtensionsValue
 }
 
 type FragOutTypes = { [k in number]: 'vec4' | 'ivec4' }
@@ -329,6 +330,14 @@ function getGlsl300VertPrefix(extensions: WebGLExtensions, shaderExtensions: Sha
             prefix.push('#define enabledMultiDraw');
         } else if (shaderExtensions.multiDraw === 'required') {
             throw new Error(`required 'GL_ANGLE_multi_draw' extension not available`);
+        }
+    }
+    if (shaderExtensions.clipCullDistance) {
+        if (extensions.clipCullDistance) {
+            prefix.push('#extension GL_ANGLE_clip_cull_distance : enable');
+            prefix.push('#define enabledClipCullDistance');
+        } else if (shaderExtensions.clipCullDistance === 'required') {
+            throw new Error(`required 'GL_ANGLE_clip_cull_distance' extension not available`);
         }
     }
     if (extensions.noNonInstancedActiveAttribs) {
