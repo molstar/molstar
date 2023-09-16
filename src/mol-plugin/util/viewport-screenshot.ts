@@ -105,7 +105,7 @@ class ViewportScreenshotHelper extends PluginComponent {
         }
     }
 
-    private createPass(mutlisample: boolean) {
+    private createPass(multisample: boolean) {
         const c = this.plugin.canvas3d!;
         const { colorBufferFloat, textureFloat } = c.webgl.extensions;
         const aoProps = c.props.postprocessing.occlusion;
@@ -113,8 +113,9 @@ class ViewportScreenshotHelper extends PluginComponent {
             transparentBackground: this.values.transparent,
             cameraHelper: { axes: this.values.axes },
             multiSample: {
-                mode: mutlisample ? 'on' : 'off',
-                sampleLevel: colorBufferFloat && textureFloat ? 4 : 2
+                ...c.props.multiSample,
+                mode: multisample ? 'on' : 'off',
+                sampleLevel: colorBufferFloat && textureFloat ? 4 : 2,
             },
             postprocessing: {
                 ...c.props.postprocessing,

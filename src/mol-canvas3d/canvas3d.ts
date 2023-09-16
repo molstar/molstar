@@ -445,7 +445,7 @@ namespace Canvas3D {
                 if (isTimingMode) webgl.timer.mark('Canvas3D.render', true);
                 const ctx = { renderer, camera: cam, scene, helper };
                 if (MultiSamplePass.isEnabled(p.multiSample)) {
-                    const forceOn = !cameraChanged && markingUpdated && !controls.isAnimating;
+                    const forceOn = p.multiSample.reduceFlicker && !cameraChanged && markingUpdated && !controls.isAnimating;
                     multiSampleHelper.render(ctx, p, true, forceOn);
                 } else {
                     passes.draw.render(ctx, p, true);

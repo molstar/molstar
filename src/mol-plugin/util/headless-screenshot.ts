@@ -24,7 +24,6 @@ import { PixelData } from '../../mol-util/image';
 import { InputObserver } from '../../mol-util/input/input-observer';
 import { ParamDefinition } from '../../mol-util/param-definition';
 
-
 export interface ExternalModules {
     'gl': typeof import('gl'),
     'jpeg-js'?: typeof import('jpeg-js'),
@@ -42,7 +41,6 @@ export type RawImageData = {
     width: number,
     height: number,
 }
-
 
 /** To render Canvas3D when running in Node.js (without DOM) */
 export class HeadlessScreenshotHelper {
@@ -168,6 +166,7 @@ export function defaultCanvas3DParams(): Partial<Canvas3DProps> {
             backgroundColor: ColorNames.white,
         },
         postprocessing: {
+            ...DefaultCanvas3DParams.renderer,
             occlusion: {
                 name: 'off', params: {}
             },
@@ -205,8 +204,9 @@ export function defaultImagePassParams(): Partial<ImageProps> {
             axes: { name: 'off', params: {} },
         },
         multiSample: {
+            ...DefaultCanvas3DParams.multiSample,
             mode: 'on',
-            sampleLevel: 4
+            sampleLevel: 4,
         }
     };
 }

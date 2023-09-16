@@ -12,6 +12,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - CCD extension: Make visuals for aromatic bonds configurable
 - Add optional `file?: CifFile` to `MmcifFormat.data`
 - Add support for `WEBGL_clip_cull_distance`
+- Add `MultiSampleParams.reduceFlicker` (to be able to switch it off)
 
 ## [v3.39.0] - 2023-09-02
 
