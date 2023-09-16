@@ -25,6 +25,7 @@ export const SpheresSchema = {
     dTransparentBackfaces: DefineSpec('string', ['off', 'on', 'opaque']),
     dSolidInterior: DefineSpec('boolean'),
     dApproximate: DefineSpec('boolean'),
+    uAlphaThickness: UniformSpec('f'),
     uBumpFrequency: UniformSpec('f', 'material'),
     uBumpAmplitude: UniformSpec('f', 'material'),
 

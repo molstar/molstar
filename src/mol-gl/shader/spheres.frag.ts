@@ -17,6 +17,7 @@ precision highp int;
 #include common_clip
 
 uniform mat4 uInvView;
+uniform float uAlphaThickness;
 
 varying float vRadius;
 varying vec3 vPoint;
@@ -91,7 +92,7 @@ void main(void){
         if (dot(pointDir, pointDir) > vRadius * vRadius) discard;
         vec3 vViewPosition = -vPointViewPosition;
         fragmentDepth = gl_FragCoord.z;
-        #ifndef dIgnoreLight
+        #if !defined(dIgnoreLight) || defined(dXrayShaded)
             pointDir.z -= cos(length(pointDir) / vRadius);
             cameraNormal = -normalize(pointDir / vRadius);
         #endif
@@ -131,6 +132,10 @@ void main(void){
     #elif defined(dRenderVariant_color)
         vec3 normal = -cameraNormal;
         #include apply_light_color
+
+        if (uRenderMask == MaskTransparent && uAlphaThickness > 0.0) {
+            gl_FragColor.a *= min(1.0, vRadius / uAlphaThickness);
+        }
 
         #include apply_interior_color
         #include apply_marker_color

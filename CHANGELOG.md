@@ -13,6 +13,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Add optional `file?: CifFile` to `MmcifFormat.data`
 - Add support for `WEBGL_clip_cull_distance`
 - Add `MultiSampleParams.reduceFlicker` (to be able to switch it off)
+- Add `alphaThickness` parameter to adjust alpha of spheres for radius
 
 ## [v3.39.0] - 2023-09-02
 
