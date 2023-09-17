@@ -258,6 +258,7 @@ export function getGraphicsModeProps(graphicsMode: Exclude<GraphicsMode, 'custom
     return {
         lodLevels: getLodLevels(graphicsMode),
         approximate: graphicsMode !== 'quality',
+        alphaThickness: graphicsMode === 'performance' ? 15 : 12,
     };
 }
 

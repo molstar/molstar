@@ -36,6 +36,7 @@ function getSpacefillParams(color: Color, scaleFactor: number, graphics: Graphic
                     objects: [],
                 },
                 approximate: gmp.approximate,
+                alphaThickness: gmp.alphaThickness,
             },
         },
         colorTheme: {

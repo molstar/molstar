@@ -95,12 +95,13 @@ export class EntityControls extends PluginUIComponent<{}, { isDisabled: boolean 
 
         const update = this.plugin.state.data.build();
 
-        const { lodLevels, approximate } = getGraphicsModeProps(graphics);
+        const { lodLevels, approximate, alphaThickness } = getGraphicsModeProps(graphics);
 
         for (const r of getAllEntities(this.plugin)) {
             update.to(r).update(old => {
                 old.type.params.lodLevels = lodLevels;
                 old.type.params.approximate = approximate;
+                old.type.params.alphaThickness = alphaThickness;
             });
         }
 
