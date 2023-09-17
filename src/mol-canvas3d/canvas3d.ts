@@ -458,8 +458,8 @@ namespace Canvas3D {
                     multiSampleHelper.render(ctx, p, true, forceOn);
                 } else {
                     passes.draw.render(ctx, p, true);
-                    hiZ.render(camera);
                 }
+                hiZ.render(camera);
                 if (isTimingMode) webgl.timer.markEnd('Canvas3D.render');
 
                 // if only marking has updated, do not set the flag to dirty
