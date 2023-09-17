@@ -11,7 +11,11 @@ Note that since we don't clearly distinguish between a public and private interf
 - ModelServer ligand queries: fix atom count reported by SDF/MOL/MOL2 export
 - CCD extension: Make visuals for aromatic bonds configurable
 - Add optional `file?: CifFile` to `MmcifFormat.data`
-- Add support for `WEBGL_clip_cull_distance`
+- Add support for webgl extensions
+    - `WEBGL_clip_cull_distance`
+    - `EXT_conservative_depth`
+    - `WEBGL_stencil_texturing`
+    - `EXT_clip_control`
 - Add `MultiSampleParams.reduceFlicker` (to be able to switch it off)
 - Add `alphaThickness` parameter to adjust alpha of spheres for radius
 

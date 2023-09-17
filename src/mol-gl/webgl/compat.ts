@@ -627,6 +627,82 @@ export function getClipCullDistance(gl: GLRenderingContext): COMPAT_clip_cull_di
     return null;
 }
 
+/**
+ * See https://registry.khronos.org/webgl/extensions/EXT_conservative_depth/
+ */
+export interface COMPAT_conservative_depth {
+}
+
+export function getConservativeDepth(gl: GLRenderingContext): COMPAT_conservative_depth | null {
+    if (isWebGL2(gl)) {
+        const ext = gl.getExtension('EXT_conservative_depth');
+        if (ext) {
+            return {};
+        }
+    }
+    return null;
+}
+
+/**
+ * See https://registry.khronos.org/webgl/extensions/WEBGL_stencil_texturing/
+ */
+export interface COMPAT_stencil_texturing {
+    readonly DEPTH_STENCIL_TEXTURE_MODE: number;
+    readonly STENCIL_INDEX: number;
+}
+
+export function getStencilTexturing(gl: GLRenderingContext): COMPAT_stencil_texturing | null {
+    if (isWebGL2(gl)) {
+        const ext = gl.getExtension('WEBGL_stencil_texturing');
+        if (ext) {
+            return {
+                DEPTH_STENCIL_TEXTURE_MODE: ext.DEPTH_STENCIL_TEXTURE_MODE_WEBGL,
+                STENCIL_INDEX: ext.STENCIL_INDEX_WEBGL
+            };
+        }
+    }
+    return null;
+}
+
+/**
+ * See https://registry.khronos.org/webgl/extensions/EXT_clip_control/
+ */
+export interface COMPAT_clip_control {
+    readonly LOWER_LEFT: number;
+    readonly UPPER_LEFT: number;
+
+    readonly NEGATIVE_ONE_TO_ONE: number;
+    readonly ZERO_TO_ONE: number;
+
+    readonly CLIP_ORIGIN: number;
+    readonly CLIP_DEPTH_MODE: number;
+
+    /**
+     * @param origin must be LOWER_LEFT (default) or UPPER_LEFT.
+     * @param depth must be NEGATIVE_ONE_TO_ONE (default) or ZERO_TO_ONE.
+     */
+    clipControl(origin: number, depth: number): void
+}
+
+export function getClipControl(gl: GLRenderingContext): COMPAT_clip_control | null {
+    const ext = gl.getExtension('EXT_clip_control');
+    if (ext) {
+        return {
+            LOWER_LEFT: ext.LOWER_LEFT_EXT,
+            UPPER_LEFT: ext.UPPER_LEFT_EXT,
+
+            NEGATIVE_ONE_TO_ONE: ext.NEGATIVE_ONE_TO_ONE_EXT,
+            ZERO_TO_ONE: ext.ZERO_TO_ONE_EXT,
+
+            CLIP_ORIGIN: ext.CLIP_ORIGIN_EXT,
+            CLIP_DEPTH_MODE: ext.CLIP_DEPTH_MODE_EXT,
+
+            clipControl: ext.clipControlEXT.bind(ext)
+        };
+    }
+    return null;
+}
+
 export function getNoNonInstancedActiveAttribs(gl: GLRenderingContext): boolean {
     if (!isWebGL2(gl)) return false;
 

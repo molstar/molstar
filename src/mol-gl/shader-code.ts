@@ -8,6 +8,7 @@ import { ValueCell } from '../mol-util';
 import { idFactory } from '../mol-util/id-factory';
 import { WebGLExtensions } from './webgl/extensions';
 import { isWebGL2, GLRenderingContext } from './webgl/compat';
+import { assertUnreachable } from '../mol-util/type-helpers';
 
 export type DefineKind = 'boolean' | 'string' | 'number'
 export type DefineType = boolean | string
@@ -21,6 +22,7 @@ export interface ShaderExtensions {
     readonly drawBuffers?: ShaderExtensionsValue
     readonly shaderTextureLod?: ShaderExtensionsValue
     readonly clipCullDistance?: ShaderExtensionsValue
+    readonly conservativeDepth?: ShaderExtensionsValue
 }
 
 type FragOutTypes = { [k in number]: 'vec4' | 'ivec4' }
@@ -128,7 +130,7 @@ function unrollLoops(str: string) {
     return str.replace(reUnrollLoop, loopReplacer);
 }
 
-function loopReplacer(match: string, start: string, end: string, snippet: string) {
+function loopReplacer(_match: string, start: string, end: string, snippet: string) {
     let out = '';
     for (let i = parseInt(start); i < parseInt(end); ++i) {
         out += snippet
@@ -162,9 +164,10 @@ function ignoreDefine(name: string, variant: string, defines: ShaderDefines): bo
     } else {
         return [
             'dColorType', 'dUsePalette',
-            'dLightCount',
+            'dLightCount', 'dXrayShaded',
             'dOverpaintType', 'dOverpaint',
             'dSubstanceType', 'dSubstance',
+            'dColorMarker',
         ].includes(name);
     }
     return false;
@@ -205,7 +208,6 @@ export const DirectVolumeShaderCode = ShaderCode('direct-volume', directVolume_v
 
 import { image_vert } from './shader/image.vert';
 import { image_frag } from './shader/image.frag';
-import { assertUnreachable } from '../mol-util/type-helpers';
 export const ImageShaderCode = ShaderCode('image', image_vert, image_frag, { drawBuffers: 'optional' }, {}, ignoreDefineUnlit);
 
 //
@@ -320,6 +322,14 @@ function getGlsl300VertPrefix(extensions: WebGLExtensions, shaderExtensions: Sha
             prefix.push('#define enabledClipCullDistance');
         } else if (shaderExtensions.clipCullDistance === 'required') {
             throw new Error(`required 'GL_ANGLE_clip_cull_distance' extension not available`);
+        }
+    }
+    if (shaderExtensions.conservativeDepth) {
+        if (extensions.conservativeDepth) {
+            prefix.push('#extension GL_EXT_conservative_depth : enable');
+            prefix.push('#define enabledConservativeDepth');
+        } else if (shaderExtensions.conservativeDepth === 'required') {
+            throw new Error(`required 'GL_EXT_conservative_depth' extension not available`);
         }
     }
     if (extensions.noNonInstancedActiveAttribs) {
