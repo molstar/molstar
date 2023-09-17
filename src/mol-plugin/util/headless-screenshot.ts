@@ -166,7 +166,7 @@ export function defaultCanvas3DParams(): Partial<Canvas3DProps> {
             backgroundColor: ColorNames.white,
         },
         postprocessing: {
-            ...DefaultCanvas3DParams.renderer,
+            ...DefaultCanvas3DParams.postprocessing,
             occlusion: {
                 name: 'off', params: {}
             },
