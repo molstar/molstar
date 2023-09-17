@@ -249,6 +249,7 @@ export namespace Spheres {
         transparentBackfaces: PD.Select('off', PD.arrayToOptions(['off', 'on', 'opaque']), BaseGeometry.ShadingCategory),
         solidInterior: PD.Boolean(true, BaseGeometry.ShadingCategory),
         approximate: PD.Boolean(false, { ...BaseGeometry.ShadingCategory, description: 'Faster rendering, but has artifacts.' }),
+        alphaThickness: PD.Numeric(0, { min: 0, max: 20, step: 1 }, { ...BaseGeometry.ShadingCategory, description: 'If not zero, adjusts alpha for radius.' }),
         bumpFrequency: PD.Numeric(0, { min: 0, max: 10, step: 0.1 }, BaseGeometry.ShadingCategory),
         bumpAmplitude: PD.Numeric(1, { min: 0, max: 5, step: 0.1 }, BaseGeometry.ShadingCategory),
         lodLevels: PD.ObjectList({
@@ -344,6 +345,7 @@ export namespace Spheres {
             dTransparentBackfaces: ValueCell.create(props.transparentBackfaces),
             dSolidInterior: ValueCell.create(props.solidInterior),
             dApproximate: ValueCell.create(props.approximate),
+            uAlphaThickness: ValueCell.create(props.alphaThickness),
             uBumpFrequency: ValueCell.create(props.bumpFrequency),
             uBumpAmplitude: ValueCell.create(props.bumpAmplitude),
 
@@ -368,6 +370,7 @@ export namespace Spheres {
         ValueCell.updateIfChanged(values.dTransparentBackfaces, props.transparentBackfaces);
         ValueCell.updateIfChanged(values.dSolidInterior, props.solidInterior);
         ValueCell.updateIfChanged(values.dApproximate, props.approximate);
+        ValueCell.updateIfChanged(values.uAlphaThickness, props.alphaThickness);
         ValueCell.updateIfChanged(values.uBumpFrequency, props.bumpFrequency);
         ValueCell.updateIfChanged(values.uBumpAmplitude, props.bumpAmplitude);
 

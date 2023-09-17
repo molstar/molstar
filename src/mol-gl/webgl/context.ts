@@ -245,7 +245,7 @@ export interface WebGLContext {
 
 export function createContext(gl: GLRenderingContext, props: Partial<{ pixelScale: number }> = {}): WebGLContext {
     const extensions = createExtensions(gl);
-    const state = createState(gl);
+    const state = createState(gl, extensions);
     const stats = createStats();
     const resources = createResources(gl, state, stats, extensions);
     const timer = createTimer(gl, extensions, stats);

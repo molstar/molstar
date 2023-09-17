@@ -53,6 +53,7 @@ function getComposeRenderable(ctx: WebGLContext, colorTexture: Texture): Compose
 export const MultiSampleParams = {
     mode: PD.Select('temporal', [['off', 'Off'], ['on', 'On'], ['temporal', 'Temporal']]),
     sampleLevel: PD.Numeric(2, { min: 0, max: 5, step: 1 }, { description: 'Take level^2 samples.' }),
+    reduceFlicker: PD.Boolean(true, { description: 'Reduce flicker in "temporal" mode.' }),
 };
 export type MultiSampleProps = PD.Values<typeof MultiSampleParams>
 
