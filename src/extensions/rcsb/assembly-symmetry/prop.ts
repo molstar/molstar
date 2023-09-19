@@ -20,6 +20,7 @@ import { SetUtils } from '../../../mol-util/set';
 import { MolScriptBuilder as MS } from '../../../mol-script/language/builder';
 import { compile } from '../../../mol-script/runtime/query/compiler';
 import { CustomPropertyDescriptor } from '../../../mol-model/custom-property';
+import { Asset } from '../../../mol-util/assets';
 
 const BiologicalAssemblyNames = new Set([
     'author_and_software_defined_assembly',
@@ -48,7 +49,8 @@ export namespace AssemblySymmetry {
         Representation = 'rcsb-assembly-symmetry-3d'
     }
 
-    export const DefaultServerUrl = 'https://data.rcsb.org/graphql';
+    // export const DefaultServerUrl = 'https://data.rcsb.org/graphql';
+    export const DefaultServerUrl = 'https://wwwdev.ebi.ac.uk/pdbe/aggregated-api/pdb/symmetry';
 
     export function isApplicable(structure?: Structure): boolean {
         return (
@@ -60,6 +62,8 @@ export namespace AssemblySymmetry {
 
     export async function fetch(ctx: CustomProperty.Context, structure: Structure, props: AssemblySymmetryDataProps): Promise<CustomProperty.Data<AssemblySymmetryDataValue>> {
         if (!isApplicable(structure)) return { value: [] };
+
+        if (props.serverType === 'pdbe') return fetch_PDBe(ctx, structure, props);
 
         const client = new GraphQLClient(props.serverUrl, ctx.assetManager);
         const variables: AssemblySymmetryQueryVariables = {
@@ -75,6 +79,29 @@ export namespace AssemblySymmetry {
             value = result.data.assembly.rcsb_struct_symmetry as AssemblySymmetryDataValue;
         }
         return { value, assets: [result] };
+    }
+
+    export async function fetch_PDBe(ctx: CustomProperty.Context, structure: Structure, props: AssemblySymmetryDataProps): Promise<CustomProperty.Data<AssemblySymmetryDataValue>> {
+        if (!isApplicable(structure)) return { value: [] };
+
+        const assembly_id = structure.units[0].conformation.operator.assembly?.id || '';
+        const entry_id = structure.units[0].model.entryId.toLowerCase();
+        const url = `${props.serverUrl}/${entry_id}?assembly_id=${assembly_id}`;
+        const asset = Asset.getUrlAsset(ctx.assetManager, url);
+        const dataWrapper = await ctx.assetManager.resolve(asset, 'json').runInContext(ctx.runtime);
+        const data = dataWrapper.data;
+
+        const value: AssemblySymmetryDataValue = (data[entry_id] ?? []).map((v: any) => ({
+            kind: 'Global Symmetry',
+            oligomeric_state: v.oligomeric_state,
+            stoichiometry: [v.stoichiometry],
+            symbol: v.symbol,
+            type: v.type,
+            clusters: [],
+            rotation_axes: v.rotation_axes,
+        }));
+
+        return { value, assets: [dataWrapper] };
     }
 
     /** Returns the index of the first non C1 symmetry or -1 */
@@ -147,6 +174,7 @@ export function getSymmetrySelectParam(structure?: Structure) {
 //
 
 export const AssemblySymmetryDataParams = {
+    serverType: PD.Select<'rcsb' | 'pdbe'>('pdbe', [['rcsb', 'RCSB'], ['pdbe', 'PDBe']]),
     serverUrl: PD.Text(AssemblySymmetry.DefaultServerUrl, { description: 'GraphQL endpoint URL' })
 };
 export type AssemblySymmetryDataParams = typeof AssemblySymmetryDataParams
@@ -174,7 +202,7 @@ export const AssemblySymmetryDataProvider: CustomStructureProperty.Provider<Asse
 
 function getAssemblySymmetryParams(data?: Structure) {
     return {
-        ... AssemblySymmetryDataParams,
+        ...AssemblySymmetryDataParams,
         symmetryIndex: getSymmetrySelectParam(data)
     };
 }
