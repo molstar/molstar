@@ -81,6 +81,7 @@ export const OpacityParams = {
 export const LodParams = {
     lodLevels: Spheres.Params.lodLevels,
     cellSize: Spheres.Params.cellSize,
+    batchSize: Spheres.Params.batchSize,
     approximate: Spheres.Params.approximate,
 };
 

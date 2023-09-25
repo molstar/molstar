@@ -13,9 +13,18 @@ import { Sphere3D } from './primitives/sphere3d';
 
 // avoiding namespace lookup improved performance in Chrome (Aug 2020)
 const v3transformMat4Offset = Vec3.transformMat4Offset;
+const v3fromArray = Vec3.fromArray;
 const b3add = Box3D.add;
 
-export type InstanceGrid = {
+type TopGrid = {
+    readonly batchSize: number
+    readonly batchCount: number
+    readonly batchOffsets: Uint32Array
+    readonly batchSpheres: Float32Array
+    readonly batchCell: Uint32Array
+}
+
+type BottomGrid = {
     readonly cellSize: number
     readonly cellCount: number
     readonly cellOffsets: Uint32Array
@@ -23,6 +32,8 @@ export type InstanceGrid = {
     readonly cellTransform: Float32Array
     readonly cellInstance: Float32Array
 }
+
+export type InstanceGrid = BottomGrid & TopGrid
 
 export type InstanceData = {
     instanceCount: number
@@ -39,12 +50,25 @@ export function createEmptyInstanceGrid(): InstanceGrid {
         cellSpheres: new Float32Array(),
         cellTransform: new Float32Array(),
         cellInstance: new Float32Array(),
+
+        batchSize: 0,
+        batchCount: 0,
+        batchOffsets: new Uint32Array(),
+        batchSpheres: new Float32Array(),
+        batchCell: new Uint32Array(),
     };
 }
 
-export function calcInstanceGrid(instanceData: InstanceData, cellSize: number): InstanceGrid {
+export function calcInstanceGrid(instanceData: InstanceData, cellSize: number, batchSize: number): InstanceGrid {
+    const bottomGrid = calcBottomGrid(instanceData, cellSize);
+    const topGrid = calcTopGrid(bottomGrid, batchSize);
+    // console.log('calcInstanceGrid', bottomGrid, topGrid);
+    return { ...bottomGrid, ...topGrid };
+}
+
+function calcBottomGrid(instanceData: InstanceData, cellSize: number): BottomGrid {
     const { instanceCount, instance, transform, invariantBoundingSphere } = instanceData;
-    // console.time('calcInstanceGrid grid');
+    // console.time('calcBottomGrid grid');
     const x = new Float32Array(instanceCount);
     const y = new Float32Array(instanceCount);
     const z = new Float32Array(instanceCount);
@@ -68,7 +92,7 @@ export function calcInstanceGrid(instanceData: InstanceData, cellSize: number): 
     const positionData: PositionData = { x, y, z, indices };
     const boundary = { box, sphere: Sphere3D.fromBox3D(Sphere3D(), box) };
     const lookup = GridLookup3D(positionData, boundary, Vec3.create(cellSize, cellSize, cellSize));
-    // console.timeEnd('calcInstanceGrid grid');
+    // console.timeEnd('calcBottomGrid grid');
 
     const { array, offset, count } = lookup.buckets;
 
@@ -113,15 +137,6 @@ export function calcInstanceGrid(instanceData: InstanceData, cellSize: number): 
     }
     cellOffsets[cellCount] = offset[cellCount - 1] + count[cellCount - 1];
 
-    // console.log({
-    //     cellSize,
-    //     cellCount,
-    //     cellOffsets,
-    //     cellSpheres,
-    //     cellTransform,
-    //     cellInstance,
-    // });
-
     return {
         cellSize,
         cellCount,
@@ -129,5 +144,89 @@ export function calcInstanceGrid(instanceData: InstanceData, cellSize: number): 
         cellSpheres,
         cellTransform,
         cellInstance,
+    };
+}
+
+function calcTopGrid(bottomGrid: BottomGrid, batchSize: number): TopGrid {
+    const { cellCount, cellSpheres } = bottomGrid;
+
+    // console.time('calcTopGrid grid');
+    const x = new Float32Array(cellCount);
+    const y = new Float32Array(cellCount);
+    const z = new Float32Array(cellCount);
+    const indices = OrderedSet.ofBounds(0, cellCount);
+
+    const box = Box3D.setEmpty(Box3D());
+
+    const v = Vec3();
+    let maxRadius = 0;
+    for (let i = 0; i < cellCount; ++i) {
+        const i4 = i * 4;
+        v3fromArray(v, cellSpheres, i4);
+        x[i] = v[0];
+        y[i] = v[1];
+        z[i] = v[2];
+        b3add(box, v);
+        maxRadius = Math.max(maxRadius, cellSpheres[i4 + 3]);
+    }
+    const rv = Vec3.create(maxRadius, maxRadius, maxRadius);
+    Box3D.expand(box, box, rv);
+
+    const positionData: PositionData = { x, y, z, indices };
+    const boundary = { box, sphere: Sphere3D.fromBox3D(Sphere3D(), box) };
+    const lookup = GridLookup3D(positionData, boundary, Vec3.create(batchSize, batchSize, batchSize));
+    // console.timeEnd('calcTopGrid grid');
+
+    const { array, offset, count } = lookup.buckets;
+
+    const batchCount = offset.length;
+    const batchOffsets = new Uint32Array(batchCount + 1);
+    const batchSpheres = new Float32Array(batchCount * 4);
+    const batchCell = new Uint32Array(cellCount);
+
+    const b = Box3D();
+    const s = Sphere3D();
+
+    let k = 0;
+    for (let i = 0; i < batchCount; ++i) {
+        const start = offset[i];
+        const size = count[i];
+        batchOffsets[i] = start;
+        for (let j = start, jl = start + size; j < jl; ++j) {
+            batchCell[k] = array[j];
+            k += 1;
+        }
+
+        if (size === 1) {
+            const l = array[start];
+            batchSpheres[i * 4] = cellSpheres[l * 4];
+            batchSpheres[i * 4 + 1] = cellSpheres[l * 4 + 1];
+            batchSpheres[i * 4 + 2] = cellSpheres[l * 4 + 2];
+            batchSpheres[i * 4 + 3] = cellSpheres[l * 4 + 3];
+        } else {
+            Box3D.setEmpty(b);
+            maxRadius = 0;
+            for (let j = start, jl = start + size; j < jl; ++j) {
+                const l = array[j];
+                v[0] = cellSpheres[l * 4];
+                v[1] = cellSpheres[l * 4 + 1];
+                v[2] = cellSpheres[l * 4 + 2];
+                b3add(b, v);
+                maxRadius = Math.max(maxRadius, cellSpheres[l * 4 + 3]);
+            }
+            Vec3.set(rv, maxRadius, maxRadius, maxRadius);
+            Box3D.expand(b, b, rv);
+            Sphere3D.fromBox3D(s, b);
+            Sphere3D.toArray(s, batchSpheres, i * 4);
+        }
+    }
+    batchOffsets[batchCount] = offset[batchCount - 1] + count[batchCount - 1];
+
+    return {
+        batchSize,
+        batchCount,
+        batchOffsets,
+        batchSpheres,
+        batchCell,
     };
 }

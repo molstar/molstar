@@ -115,9 +115,11 @@ export function createRenderable<T extends GraphicsRenderableValues>(renderItem:
             if (values.instanceCount.ref.value === 0) return;
             if (!values.instanceGrid.ref.value) return;
 
-            const { cellOffsets, cellSpheres, cellCount } = values.instanceGrid.ref.value;
+            const { cellOffsets, cellSpheres, cellCount, batchOffsets, batchSpheres, batchCount, batchCell, batchSize } = values.instanceGrid.ref.value;
             const [minDistance, maxDistance] = values.uLod.ref.value;
             const hasLod = minDistance !== 0 || maxDistance !== 0;
+
+            const checkCellOccludedDistance = 2 * batchSize;
 
             const lodLevels: [minDistance: number, maxDistance: number, overlap: number, count: number, sizeFactor: number][] | undefined = values.lodLevels?.ref.value;
 
@@ -126,48 +128,80 @@ export function createRenderable<T extends GraphicsRenderableValues>(renderItem:
                     mdbDataList[i].count = 0;
                 }
 
-                for (let i = 0; i < cellCount; ++i) {
-                    const begin = cellOffsets[i];
-                    const end = cellOffsets[i + 1];
-                    const count = end - begin;
-                    if (count === 0) continue;
+                for (let k = 0; k < batchCount; ++k) {
+                    const cBegin = batchOffsets[k];
+                    const cEnd = batchOffsets[k + 1];
+                    const cCount = cEnd - cBegin;
+                    if (cCount === 0) continue;
 
-                    s3fromArray(s, cellSpheres, i * 4);
+                    s3fromArray(s, batchSpheres, k * 4);
                     const d = p3distanceToPoint(cameraPlane, s.center);
                     if (hasLod) {
                         if (d + s.radius < minDistance || d - s.radius > maxDistance) {
                             if (isTimingMode) {
-                                stats.culled.lod += count;
+                                stats.culled.lod += cellOffsets[batchCell[cEnd - 1] + 1] - cellOffsets[batchCell[cBegin]];
                             }
                             continue;
                         }
                     }
                     if (!f3intersectsSphere3D(frustum, s)) {
                         if (isTimingMode) {
-                            stats.culled.frustum += count;
+                            stats.culled.frustum += cellOffsets[batchCell[cEnd - 1] + 1] - cellOffsets[batchCell[cBegin]];
                         }
                         continue;
                     }
                     if (isOccluded(s)) {
                         if (isTimingMode) {
-                            stats.culled.occlusion += count;
+                            stats.culled.occlusion += cellOffsets[batchCell[cEnd - 1] + 1] - cellOffsets[batchCell[cBegin]];
                         }
                         continue;
                     }
 
-                    for (let j = 0, jl = lodLevels.length; j < jl; ++j) {
-                        if (d + s.radius < lodLevels[j][0] || d - s.radius > lodLevels[j][1]) continue;
+                    for (let q = cBegin; q < cEnd; ++q) {
+                        const i = batchCell[q];
 
-                        const l = mdbDataList[j];
-                        const o = l.count;
+                        const begin = cellOffsets[i];
+                        const end = cellOffsets[i + 1];
+                        const count = end - begin;
+                        if (count === 0) continue;
 
-                        if (o > 0 && l.baseInstances[o - 1] + l.instanceCounts[o - 1] === begin && l.counts[o - 1] === lodLevels[j][3]) {
-                            l.instanceCounts[o - 1] += count;
-                        } else {
-                            l.counts[o] = lodLevels[j][3];
-                            l.instanceCounts[o] = count;
-                            l.baseInstances[o] = begin;
-                            l.count += 1;
+                        s3fromArray(s, cellSpheres, i * 4);
+                        const d = p3distanceToPoint(cameraPlane, s.center);
+                        if (hasLod) {
+                            if (d + s.radius < minDistance || d - s.radius > maxDistance) {
+                                if (isTimingMode) {
+                                    stats.culled.lod += count;
+                                }
+                                continue;
+                            }
+                        }
+                        if (!f3intersectsSphere3D(frustum, s)) {
+                            if (isTimingMode) {
+                                stats.culled.frustum += count;
+                            }
+                            continue;
+                        }
+                        if (d - s.radius < checkCellOccludedDistance && isOccluded(s)) {
+                            if (isTimingMode) {
+                                stats.culled.occlusion += count;
+                            }
+                            continue;
+                        }
+
+                        for (let j = 0, jl = lodLevels.length; j < jl; ++j) {
+                            if (d + s.radius < lodLevels[j][0] || d - s.radius > lodLevels[j][1]) continue;
+
+                            const l = mdbDataList[j];
+                            const o = l.count;
+
+                            if (o > 0 && l.baseInstances[o - 1] + l.instanceCounts[o - 1] === begin && l.counts[o - 1] === lodLevels[j][3]) {
+                                l.instanceCounts[o - 1] += count;
+                            } else {
+                                l.counts[o] = lodLevels[j][3];
+                                l.instanceCounts[o] = count;
+                                l.baseInstances[o] = begin;
+                                l.count += 1;
+                            }
                         }
                     }
                 }
@@ -177,42 +211,72 @@ export function createRenderable<T extends GraphicsRenderableValues>(renderItem:
                 const { baseInstances, instanceCounts, counts } = mdbData;
                 let o = 0;
 
-                for (let i = 0; i < cellCount; ++i) {
-                    const begin = cellOffsets[i];
-                    const end = cellOffsets[i + 1];
-                    const count = end - begin;
-                    if (count === 0) continue;
+                for (let k = 0; k < batchCount; ++k) {
+                    const cBegin = batchOffsets[k];
+                    const cEnd = batchOffsets[k + 1];
+                    const cCount = cEnd - cBegin;
+                    if (cCount === 0) continue;
 
-                    s3fromArray(s, cellSpheres, i * 4);
+                    s3fromArray(s, cellSpheres, k * 4);
                     if (hasLod) {
                         const d = p3distanceToPoint(cameraPlane, s.center);
                         if (d + s.radius < minDistance || d - s.radius > maxDistance) {
                             if (isTimingMode) {
-                                stats.culled.lod += count;
+                                stats.culled.lod += cellOffsets[batchCell[cEnd - 1] + 1] - cellOffsets[batchCell[cBegin]];
                             }
                             continue;
                         }
                     }
                     if (!f3intersectsSphere3D(frustum, s)) {
                         if (isTimingMode) {
-                            stats.culled.frustum += count;
+                            stats.culled.frustum += cellOffsets[batchCell[cEnd - 1] + 1] - cellOffsets[batchCell[cBegin]];
                         }
                         continue;
                     }
                     if (isOccluded(s)) {
                         if (isTimingMode) {
-                            stats.culled.occlusion += count;
+                            stats.culled.occlusion += cellOffsets[batchCell[cEnd - 1] + 1] - cellOffsets[batchCell[cBegin]];
                         }
                         continue;
                     }
 
-                    if (o > 0 && baseInstances[o - 1] + instanceCounts[o - 1] === begin) {
-                        instanceCounts[o - 1] += count;
-                    } else {
-                        counts[o] = values.drawCount.ref.value;
-                        instanceCounts[o] = count;
-                        baseInstances[o] = begin;
-                        o += 1;
+                    for (let i = 0; i < cellCount; ++i) {
+                        const begin = cellOffsets[i];
+                        const end = cellOffsets[i + 1];
+                        const count = end - begin;
+                        if (count === 0) continue;
+
+                        s3fromArray(s, cellSpheres, i * 4);
+                        const d = p3distanceToPoint(cameraPlane, s.center);
+                        if (hasLod) {
+                            if (d + s.radius < minDistance || d - s.radius > maxDistance) {
+                                if (isTimingMode) {
+                                    stats.culled.lod += count;
+                                }
+                                continue;
+                            }
+                        }
+                        if (!f3intersectsSphere3D(frustum, s)) {
+                            if (isTimingMode) {
+                                stats.culled.frustum += count;
+                            }
+                            continue;
+                        }
+                        if (d - s.radius < checkCellOccludedDistance && isOccluded(s)) {
+                            if (isTimingMode) {
+                                stats.culled.occlusion += count;
+                            }
+                            continue;
+                        }
+
+                        if (o > 0 && baseInstances[o - 1] + instanceCounts[o - 1] === begin) {
+                            instanceCounts[o - 1] += count;
+                        } else {
+                            counts[o] = values.drawCount.ref.value;
+                            instanceCounts[o] = count;
+                            baseInstances[o] = begin;
+                            o += 1;
+                        }
                     }
                 }
                 mdbData.count = o;

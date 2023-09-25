@@ -75,7 +75,7 @@ export function getAltResidueLociFromId(structure: Structure, unit: Unit.Atomic,
 
 export type StructureGroup = { structure: Structure, group: Unit.SymmetryGroup }
 
-export function createUnitsTransform(structureGroup: StructureGroup, includeParent: boolean, invariantBoundingSphere: Sphere3D, cellSize: number, transformData?: TransformData) {
+export function createUnitsTransform(structureGroup: StructureGroup, includeParent: boolean, invariantBoundingSphere: Sphere3D, cellSize: number, batchSize: number, transformData?: TransformData) {
     const { child } = structureGroup.structure;
     const units: ReadonlyArray<Unit> = includeParent && child
         ? structureGroup.group.units.filter(u => child.unitMap.has(u.id))
@@ -86,7 +86,7 @@ export function createUnitsTransform(structureGroup: StructureGroup, includePare
     for (let i = 0; i < unitCount; i++) {
         Mat4.toArray(units[i].conformation.operator.matrix, array, i * 16);
     }
-    return createTransform(array, unitCount, invariantBoundingSphere, cellSize, transformData);
+    return createTransform(array, unitCount, invariantBoundingSphere, cellSize, batchSize, transformData);
 }
 
 export const UnitKindInfo = {
