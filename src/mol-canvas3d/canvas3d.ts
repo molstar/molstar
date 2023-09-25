@@ -270,6 +270,7 @@ interface Canvas3D {
     readonly reprCount: BehaviorSubject<number>
     readonly resized: BehaviorSubject<any>
 
+    setPixelScale(value: number): void
     handleResize(): void
     /** performs handleResize on the next animation frame */
     requestResize(): void
@@ -843,6 +844,11 @@ namespace Canvas3D {
             mark,
             getLoci,
 
+            setPixelScale: (value: number) => {
+                input.setPixelScale(value);
+                webgl.setPixelScale(value);
+                camera.pixelScale = value;
+            },
             handleResize,
             requestResize: () => {
                 resizeRequested = true;

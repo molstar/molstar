@@ -317,6 +317,7 @@ export class PluginContext {
         if (container && canvas) {
             const pixelScale = this.config.get(PluginConfig.General.PixelScale) || 1;
             resizeCanvas(canvas, container, pixelScale);
+            this.canvas3d?.setPixelScale(pixelScale);
             this.canvas3d?.requestResize();
         }
     }

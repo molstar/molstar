@@ -72,6 +72,7 @@ const SimpleSettingsParams = {
         hiZ: Canvas3DParams.hiZ,
         sharpening: Canvas3DParams.postprocessing.params.sharpening,
         multiSample: Canvas3DParams.multiSample,
+        pixelScale: PD.Numeric(1, { min: 0.1, max: 2, step: 0.01 }),
     }),
 };
 
@@ -103,7 +104,8 @@ const SimpleSettingsMapping = ParamMapping({
         if (r.top !== 'hidden' && (!c || c.top !== 'none')) layout.push('sequence');
         if (r.bottom !== 'hidden' && (!c || c.bottom !== 'none')) layout.push('log');
         if (r.left !== 'hidden' && (!c || c.left !== 'none')) layout.push('left');
-        return { canvas: ctx.canvas3d?.props!, layout };
+        const pixelScale = ctx.config.get(PluginConfig.General.PixelScale) || 1;
+        return { canvas: ctx.canvas3d?.props!, layout, pixelScale };
     }
 })({
     values(props, ctx) {
@@ -132,7 +134,8 @@ const SimpleSettingsMapping = ParamMapping({
                 hiZ: canvas.hiZ,
                 sharpening: canvas.postprocessing.sharpening,
                 multiSample: canvas.multiSample,
-            }
+                pixelScale: props.pixelScale,
+            },
         };
     },
     update(s, props) {
@@ -156,6 +159,7 @@ const SimpleSettingsMapping = ParamMapping({
         canvas.multiSample = s.advanced.multiSample;
 
         props.layout = s.layout;
+        props.pixelScale = s.advanced.pixelScale;
     },
     async apply(props, ctx) {
         await PluginCommands.Canvas3D.SetSettings(ctx, { settings: props.canvas });
@@ -170,6 +174,11 @@ const SimpleSettingsMapping = ParamMapping({
 
         if (hideLeft) {
             PluginCommands.State.SetCurrentObject(ctx, { state: ctx.state.data, ref: StateTransform.RootRef });
+        }
+
+        if (ctx.config.get(PluginConfig.General.PixelScale) !== props.pixelScale) {
+            ctx.config.set(PluginConfig.General.PixelScale, props.pixelScale);
+            ctx.handleResize();
         }
     }
 });
