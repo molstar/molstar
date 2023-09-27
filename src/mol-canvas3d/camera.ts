@@ -38,19 +38,6 @@ class Camera implements ICamera {
     readonly projectionView: Mat4 = Mat4.identity();
     readonly inverseProjectionView: Mat4 = Mat4.identity();
 
-    private _pixelScale: number;
-    get pixelScale() {
-        return this._pixelScale;
-    }
-    set pixelScale(value: number) {
-        this._pixelScale = value;
-    }
-
-    get pixelRatio() {
-        const dpr = (typeof window !== 'undefined') ? window.devicePixelRatio : 1;
-        return dpr * this.pixelScale;
-    }
-
     readonly viewport: Viewport;
     readonly state: Readonly<Camera.Snapshot> = Camera.createDefaultSnapshot();
     readonly viewOffset = Camera.ViewOffset();
@@ -209,9 +196,8 @@ class Camera implements ICamera {
         return Vec3.distance(tmpPos1, tmpPos2);
     }
 
-    constructor(state?: Partial<Camera.Snapshot>, viewport = Viewport.create(0, 0, 128, 128), props: Partial<{ pixelScale: number }> = {}) {
+    constructor(state?: Partial<Camera.Snapshot>, viewport = Viewport.create(0, 0, 128, 128)) {
         this.viewport = viewport;
-        this.pixelScale = props.pixelScale || 1;
         Camera.copySnapshot(this.state, state);
     }
 }

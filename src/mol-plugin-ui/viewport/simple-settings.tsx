@@ -7,7 +7,7 @@
 
 import { produce } from 'immer';
 import { throttleTime } from 'rxjs';
-import { Canvas3DParams, Canvas3DProps } from '../../mol-canvas3d/canvas3d';
+import { Canvas3DContext, Canvas3DParams, Canvas3DProps } from '../../mol-canvas3d/canvas3d';
 import { PluginCommands } from '../../mol-plugin/commands';
 import { PluginConfig } from '../../mol-plugin/config';
 import { StateTransform } from '../../mol-state';
@@ -72,7 +72,7 @@ const SimpleSettingsParams = {
         hiZ: Canvas3DParams.hiZ,
         sharpening: Canvas3DParams.postprocessing.params.sharpening,
         multiSample: Canvas3DParams.multiSample,
-        pixelScale: PD.Numeric(1, { min: 0.1, max: 2, step: 0.01 }),
+        pixelScale: Canvas3DContext.Params.pixelScale,
     }),
 };
 
@@ -104,7 +104,7 @@ const SimpleSettingsMapping = ParamMapping({
         if (r.top !== 'hidden' && (!c || c.top !== 'none')) layout.push('sequence');
         if (r.bottom !== 'hidden' && (!c || c.bottom !== 'none')) layout.push('log');
         if (r.left !== 'hidden' && (!c || c.left !== 'none')) layout.push('left');
-        const pixelScale = ctx.config.get(PluginConfig.General.PixelScale) || 1;
+        const pixelScale = ctx.canvas3dContext?.props.pixelScale!;
         return { canvas: ctx.canvas3d?.props!, layout, pixelScale };
     }
 })({
@@ -176,9 +176,6 @@ const SimpleSettingsMapping = ParamMapping({
             PluginCommands.State.SetCurrentObject(ctx, { state: ctx.state.data, ref: StateTransform.RootRef });
         }
 
-        if (ctx.config.get(PluginConfig.General.PixelScale) !== props.pixelScale) {
-            ctx.config.set(PluginConfig.General.PixelScale, props.pixelScale);
-            ctx.handleResize();
-        }
+        ctx.canvas3dContext?.setProps({ pixelScale: props.pixelScale });
     }
 });

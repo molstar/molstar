@@ -403,7 +403,7 @@ export const PostprocessingParams = {
     sharpening: PD.MappedStatic('off', {
         on: PD.Group(CasParams),
         off: PD.Group({})
-    }, { description: 'Contrast Adaptive Sharpening' }),
+    }, { cycle: true, description: 'Contrast Adaptive Sharpening' }),
     background: PD.Group(BackgroundParams, { isFlat: true }),
 };
 
@@ -767,8 +767,8 @@ export class PostprocessingPass {
 
         if (props.outline.name === 'on') {
             const transparentOutline = props.outline.params.includeTransparent ?? true;
-            const outlineScale = props.outline.params.scale - 1;
-            const outlineThreshold = 50 * props.outline.params.threshold;
+            const outlineScale = Math.max(1, Math.round(props.outline.params.scale * this.webgl.pixelRatio)) - 1;
+            const outlineThreshold = 50 * props.outline.params.threshold * this.webgl.pixelRatio;
 
             ValueCell.updateIfChanged(this.outlinesRenderable.values.uNear, camera.near);
             ValueCell.updateIfChanged(this.outlinesRenderable.values.uFar, camera.far);

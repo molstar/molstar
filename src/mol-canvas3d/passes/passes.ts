@@ -22,6 +22,10 @@ export class Passes {
         this.multiSample = new MultiSamplePass(webgl, this.draw);
     }
 
+    setPickScale(pickScale: number) {
+        this.pick.setPickScale(pickScale);
+    }
+
     updateSize() {
         const { gl } = this.webgl;
         // Avoid setting dimensions to 0x0 because it causes "empty textures are not allowed" error.

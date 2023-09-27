@@ -140,16 +140,6 @@ export class HiZPass {
 
     readonly props: HiZProps;
 
-    private pixelScale = 1;
-    setPixelScale(value: number) {
-        this.pixelScale = value;
-    }
-
-    get pixelRatio() {
-        const dpr = (typeof window !== 'undefined') ? window.devicePixelRatio : 1;
-        return dpr * this.pixelScale;
-    }
-
     clear() {
         if (!this.supported) return;
 
@@ -438,8 +428,8 @@ export class HiZPass {
     private showRect(p: Vec4, occluded: boolean) {
         if (!this.supported || !this.props.enabled || !this.ready || !this.debug) return;
 
-        const { drawingBufferHeight } = this.webgl.gl;
-        const { viewport: { x, y, width, height }, pixelRatio } = this;
+        const { gl: { drawingBufferHeight }, pixelRatio } = this.webgl;
+        const { viewport: { x, y, width, height } } = this;
         const minx = (p[0] * width + x) / pixelRatio;
         const miny = (p[1] * height - y) / pixelRatio;
         const maxx = (p[2] * width + x) / pixelRatio;
@@ -483,7 +473,7 @@ export class HiZPass {
         this.debug.canvas.height = imageData.height;
         this.debug.ctx.putImageData(imageData, 0, 0);
 
-        const { viewport: { x, y, width, height }, pixelRatio } = this;
+        const { viewport: { x, y, width, height }, webgl: { pixelRatio } } = this;
         Object.assign(this.debug.container.style, {
             display: 'block',
             bottom: `${y / pixelRatio}px`,
