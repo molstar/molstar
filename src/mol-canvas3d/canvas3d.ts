@@ -40,7 +40,7 @@ import { Helper } from './helper/helper';
 import { Passes } from './passes/passes';
 import { shallowEqual } from '../mol-util';
 import { MarkingParams } from './passes/marking';
-import { GraphicsRenderVariantsBlended, GraphicsRenderVariantsWboit, GraphicsRenderVariantsDpoit } from '../mol-gl/webgl/render-item';
+import { GraphicsRenderVariants } from '../mol-gl/webgl/render-item';
 import { degToRad, radToDeg } from '../mol-math/misc';
 import { AssetManager } from '../mol-util/assets';
 import { deepClone } from '../mol-util/object';
@@ -119,6 +119,7 @@ interface Canvas3DContext {
     readonly contextLost?: BehaviorSubject<now.Timestamp>
     readonly contextRestored?: BehaviorSubject<now.Timestamp>
     readonly assetManager: AssetManager
+    readonly changed?: BehaviorSubject<undefined>
 
     setProps: (props?: Partial<Canvas3DContext.Props>) => void
     dispose: (options?: Partial<{ doNotForceWebGLContextLoss: boolean }>) => void
@@ -132,8 +133,6 @@ namespace Canvas3DContext {
         antialias: true,
         /** true to support multiple Canvas3D objects with a single context */
         preserveDrawingBuffer: true,
-        enableWboit: true,
-        enableDpoit: false,
         preferWebGl1: false,
 
         handleResize: () => {},
@@ -143,6 +142,7 @@ namespace Canvas3DContext {
     export const Params = {
         pixelScale: PD.Numeric(1, { min: 0.1, max: 2, step: 0.05 }),
         pickScale: PD.Numeric(0.25, { min: 0.1, max: 1, step: 0.05 }),
+        transparency: PD.Select('wboit', [['blended', 'Blended'], ['wboit', 'Weighted, Blended'], ['dpoit', 'Depth Peeling']] as const),
     };
     export const DefaultProps = PD.getDefaultValues(Params);
     export type Props = PD.Values<typeof Params>
@@ -150,8 +150,6 @@ namespace Canvas3DContext {
     export function fromCanvas(canvas: HTMLCanvasElement, assetManager: AssetManager, attribs: Partial<Attribs> = {}, props: Partial<Props> = {}): Canvas3DContext {
         const a = { ...DefaultAttribs, ...attribs };
         const p = { ...DefaultProps, ...props };
-
-        if (a.enableWboit && a.enableDpoit) throw new Error('Multiple transparency methods not allowed.');
 
         const { powerPreference, failIfMajorPerformanceCaveat, antialias, preserveDrawingBuffer, preferWebGl1 } = a;
         const gl = getGLContext(canvas, {
@@ -166,14 +164,10 @@ namespace Canvas3DContext {
         });
         if (gl === null) throw new Error('Could not create a WebGL rendering context');
 
-        const { pixelScale, pickScale } = p;
+        const { pixelScale, pickScale, transparency } = p;
         const input = InputObserver.fromElement(canvas, { pixelScale, preventGestures: true });
         const webgl = createContext(gl, { pixelScale });
-        const passes = new Passes(webgl, assetManager, {
-            pickScale,
-            enableWboit: a.enableWboit,
-            enableDpoit: a.enableDpoit,
-        });
+        const passes = new Passes(webgl, assetManager, { pickScale, transparency });
 
         if (isDebugMode) {
             const loseContextExt = gl.getExtension('WEBGL_lose_context');
@@ -218,6 +212,8 @@ namespace Canvas3DContext {
         canvas.addEventListener('webglcontextlost', handleWebglContextLost, false);
         canvas.addEventListener('webglcontextrestored', handlewWebglContextRestored, false);
 
+        const changed = new BehaviorSubject<undefined>(undefined);
+
         return {
             canvas,
             webgl,
@@ -228,21 +224,34 @@ namespace Canvas3DContext {
             contextLost,
             contextRestored: webgl.contextRestored,
             assetManager,
+            changed,
 
             setProps: (props?: Partial<Props>) => {
                 if (!props) return;
+
+                let hasChanged = false;
 
                 if (props.pixelScale !== undefined && props.pixelScale !== p.pixelScale) {
                     p.pixelScale = props.pixelScale;
                     input.setPixelScale(props.pixelScale);
                     webgl.setPixelScale(props.pixelScale);
                     a.handleResize();
+                    hasChanged = true;
                 }
 
                 if (props.pickScale !== undefined && props.pickScale !== p.pickScale) {
                     p.pickScale = props.pickScale;
                     passes.setPickScale(props.pickScale);
+                    hasChanged = true;
                 }
+
+                if (props.transparency !== undefined && props.transparency !== p.transparency) {
+                    p.transparency = props.transparency;
+                    passes.setTransparency(props.transparency);
+                    hasChanged = true;
+                }
+
+                if (hasChanged) changed.next(undefined);
             },
             dispose: (options?: Partial<{ doNotForceWebGLContextLoss: boolean }>) => {
                 input.dispose();
@@ -331,7 +340,8 @@ namespace Canvas3D {
     export interface DragEvent { current: Representation.Loci, buttons: ButtonsType, button: ButtonsType.Flag, modifiers: ModifiersKeys, pageStart: Vec2, pageEnd: Vec2 }
     export interface ClickEvent { current: Representation.Loci, buttons: ButtonsType, button: ButtonsType.Flag, modifiers: ModifiersKeys, page?: Vec2, position?: Vec3 }
 
-    export function create({ webgl, input, passes, attribs, assetManager, canvas }: Canvas3DContext, props: Partial<Canvas3DProps> = {}): Canvas3D {
+    export function create(ctx: Canvas3DContext, props: Partial<Canvas3DProps> = {}): Canvas3D {
+        const { webgl, input, passes, assetManager, canvas } = ctx;
         const p: Canvas3DProps = { ...deepClone(DefaultCanvas3DParams), ...deepClone(props) };
 
         const reprRenderObjects = new Map<Representation.Any, Set<GraphicsRenderObject>>();
@@ -350,7 +360,7 @@ namespace Canvas3D {
         let width = 128;
         let height = 128;
         updateViewport();
-        const scene = Scene.create(webgl, passes.draw.dpoitEnabled ? GraphicsRenderVariantsDpoit : (passes.draw.wboitEnabled ? GraphicsRenderVariantsWboit : GraphicsRenderVariantsBlended));
+        const scene = Scene.create(webgl, GraphicsRenderVariants);
 
         function getSceneRadius() {
             return scene.boundingSphere.radius * p.sceneRadiusFactor;
@@ -792,6 +802,10 @@ namespace Canvas3D {
 
         addConsoleStatsProvider(consoleStats);
 
+        const ctxChangedSub = ctx.changed?.subscribe(() => {
+            requestDraw();
+        });
+
         //
 
         if (isDebugMode && canvas) {
@@ -976,7 +990,7 @@ namespace Canvas3D {
                 }
             },
             getImagePass: (props: Partial<ImageProps> = {}) => {
-                return new ImagePass(webgl, assetManager, renderer, scene, camera, helper, passes.draw.wboitEnabled, passes.draw.dpoitEnabled, props);
+                return new ImagePass(webgl, assetManager, renderer, scene, camera, helper, passes.draw.transparency, props);
             },
             getRenderObjects(): GraphicsRenderObject[] {
                 const renderObjects: GraphicsRenderObject[] = [];
@@ -998,6 +1012,7 @@ namespace Canvas3D {
             },
             dispose: () => {
                 contextRestoredSub.unsubscribe();
+                ctxChangedSub?.unsubscribe();
                 cancelAnimationFrame(animationFrameHandle);
 
                 markBuffer = [];

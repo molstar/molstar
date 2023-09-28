@@ -57,7 +57,7 @@ export class HeadlessScreenshotHelper {
             const attribs = { ...Canvas3DContext.DefaultAttribs };
             const props = { ...Canvas3DContext.DefaultProps };
             const assetManager = new AssetManager();
-            const passes = new Passes(webgl, assetManager, attribs);
+            const passes = new Passes(webgl, assetManager, props);
             const setProps = () => {};
             const dispose = () => {
                 input.dispose();

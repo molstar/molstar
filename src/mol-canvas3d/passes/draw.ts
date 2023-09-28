@@ -39,6 +39,12 @@ type RenderContext = {
     helper: Helper;
 }
 
+export enum TransparencyMode {
+    Blended = 0,
+    Wboit = 1,
+    Dpoit = 2,
+}
+
 export class DrawPass {
     private readonly drawTarget: RenderTarget;
 
@@ -54,21 +60,29 @@ export class DrawPass {
     private copyFboTarget: CopyRenderable;
     private copyFboPostprocessing: CopyRenderable;
 
-    private readonly wboit: WboitPass | undefined;
-    private readonly dpoit: DpoitPass | undefined;
+    private readonly wboit: WboitPass;
+    private readonly dpoit: DpoitPass;
     private readonly marking: MarkingPass;
     readonly postprocessing: PostprocessingPass;
     private readonly antialiasing: AntialiasingPass;
 
-    get wboitEnabled() {
-        return !!this.wboit?.supported;
+    private transparencyMode: TransparencyMode = TransparencyMode.Blended;
+    setTransparency(transparency: 'wboit' | 'dpoit' | 'blended') {
+        if (transparency === 'wboit') {
+            this.transparencyMode = this.wboit.supported ? TransparencyMode.Wboit : TransparencyMode.Blended;
+        } else if (transparency === 'dpoit') {
+            this.transparencyMode = this.dpoit.supported ? TransparencyMode.Dpoit : TransparencyMode.Blended;
+        } else {
+            this.transparencyMode = TransparencyMode.Blended;
+        }
+        this.depthTextureOpaque.detachFramebuffer(this.postprocessing.target.framebuffer, 'depth');
+    }
+    get transparency() {
+        return this.transparencyMode === TransparencyMode.Blended ? 'blended' :
+            this.transparencyMode === TransparencyMode.Wboit ? 'wboit' : 'dpoit';
     }
 
-    get dpoitEnabled() {
-        return !!this.dpoit?.supported;
-    }
-
-    constructor(private webgl: WebGLContext, assetManager: AssetManager, width: number, height: number, enableWboit: boolean, enableDpoit: boolean) {
+    constructor(private webgl: WebGLContext, assetManager: AssetManager, width: number, height: number, transparency: 'wboit' | 'dpoit' | 'blended') {
         const { extensions, resources, isWebGL2 } = webgl;
         this.drawTarget = createNullRenderTarget(webgl.gl);
         this.colorTarget = webgl.createRenderTarget(width, height, true, 'uint8', 'linear');
@@ -84,19 +98,21 @@ export class DrawPass {
             this.depthTextureOpaque.define(width, height);
         }
 
-        this.wboit = enableWboit ? new WboitPass(webgl, width, height) : undefined;
-        this.dpoit = enableDpoit ? new DpoitPass(webgl, width, height) : undefined;
+        this.wboit = new WboitPass(webgl, width, height);
+        this.dpoit = new DpoitPass(webgl, width, height);
         this.marking = new MarkingPass(webgl, width, height);
         this.postprocessing = new PostprocessingPass(webgl, assetManager, this);
         this.antialiasing = new AntialiasingPass(webgl, this);
 
         this.copyFboTarget = createCopyRenderable(webgl, this.colorTarget.texture);
         this.copyFboPostprocessing = createCopyRenderable(webgl, this.postprocessing.target.texture);
+
+        this.setTransparency(transparency);
     }
 
     reset() {
-        this.wboit?.reset();
-        this.dpoit?.reset();
+        this.wboit.reset();
+        this.dpoit.reset();
     }
 
     setSize(width: number, height: number) {
@@ -117,11 +133,11 @@ export class DrawPass {
             ValueCell.update(this.copyFboPostprocessing.values.uTexSize, Vec2.set(this.copyFboPostprocessing.values.uTexSize.ref.value, width, height));
         }
 
-        if (this.wboit?.supported) {
+        if (this.wboit.supported) {
             this.wboit.setSize(width, height);
         }
 
-        if (this.dpoit?.supported) {
+        if (this.dpoit.supported) {
             this.dpoit.setSize(width, height);
         }
 
@@ -131,7 +147,7 @@ export class DrawPass {
     }
 
     private _renderDpoit(renderer: Renderer, camera: ICamera, scene: Scene, iterations: number, transparentBackground: boolean, postprocessingProps: PostprocessingProps) {
-        if (!this.dpoit?.supported) throw new Error('expected dpoit to be supported');
+        if (!this.dpoit.supported) throw new Error('expected dpoit to be supported');
 
         this.depthTextureOpaque.attachFramebuffer(this.colorTarget.framebuffer, 'depth');
         renderer.clear(true);
@@ -185,7 +201,7 @@ export class DrawPass {
     }
 
     private _renderWboit(renderer: Renderer, camera: ICamera, scene: Scene, transparentBackground: boolean, postprocessingProps: PostprocessingProps) {
-        if (!this.wboit?.supported) throw new Error('expected wboit to be supported');
+        if (!this.wboit.supported) throw new Error('expected wboit to be supported');
 
         this.depthTextureOpaque.attachFramebuffer(this.colorTarget.framebuffer, 'depth');
         renderer.clear(true);
@@ -319,17 +335,20 @@ export class DrawPass {
             renderer.clear(false);
         }
 
-        if (this.wboitEnabled) {
+        let oitEnabled = false;
+        if (this.transparencyMode === TransparencyMode.Wboit && this.wboit.supported) {
             this._renderWboit(renderer, camera, scene, transparentBackground, props.postprocessing);
-        } else if (this.dpoitEnabled) {
+            oitEnabled = true;
+        } else if (this.transparencyMode === TransparencyMode.Dpoit && this.dpoit.supported) {
             this._renderDpoit(renderer, camera, scene, props.dpoitIterations, transparentBackground, props.postprocessing);
+            oitEnabled = true;
         } else {
             this._renderBlended(renderer, camera, scene, !volumeRendering && !postprocessingEnabled && !antialiasingEnabled && toDrawingBuffer, transparentBackground, props.postprocessing);
         }
 
         const target = postprocessingEnabled
             ? this.postprocessing.target
-            : !toDrawingBuffer || volumeRendering || this.wboitEnabled || this.dpoitEnabled
+            : !toDrawingBuffer || volumeRendering || oitEnabled
                 ? this.colorTarget
                 : this.drawTarget;
 
@@ -372,7 +391,7 @@ export class DrawPass {
             this.webgl.state.disable(this.webgl.gl.DEPTH_TEST);
             if (postprocessingEnabled) {
                 this.copyFboPostprocessing.render();
-            } else if (volumeRendering || this.wboitEnabled || this.dpoitEnabled) {
+            } else if (volumeRendering || oitEnabled) {
                 this.copyFboTarget.render();
             }
         }

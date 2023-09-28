@@ -261,8 +261,6 @@ export class PluginContext {
                 canvas3dContext = Canvas3DContext.fromCanvas(canvas, this.managers.asset, {
                     antialias: !(this.config.get(PluginConfig.General.DisableAntialiasing) ?? false),
                     preserveDrawingBuffer: !(this.config.get(PluginConfig.General.DisablePreserveDrawingBuffer) ?? false),
-                    enableWboit: this.config.get(PluginConfig.General.EnableWboit) || false,
-                    enableDpoit: this.config.get(PluginConfig.General.EnableDpoit) || false,
                     preferWebGl1: this.config.get(PluginConfig.General.PreferWebGl1) || false,
                     failIfMajorPerformanceCaveat: !(this.config.get(PluginConfig.General.AllowMajorPerformanceCaveat) ?? false),
                     powerPreference: this.config.get(PluginConfig.General.PowerPreference) || 'high-performance',
@@ -270,6 +268,7 @@ export class PluginContext {
                 }, {
                     pixelScale: this.config.get(PluginConfig.General.PixelScale) || 1,
                     pickScale: this.config.get(PluginConfig.General.PickScale) || 0.25,
+                    transparency: this.config.get(PluginConfig.General.Transparency) || 'wboit',
                 });
             }
             (this.canvas3dContext as Canvas3DContext) = canvas3dContext;
