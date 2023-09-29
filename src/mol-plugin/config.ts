@@ -50,7 +50,7 @@ export const PluginConfig = {
         CanStream: item('volume-streaming.can-stream', (s: Structure, plugin: PluginContext) => {
             return s.models.length === 1 && Model.probablyHasDensityMap(s.models[0]);
         }),
-        EmdbHeaderServer: item('volume-streaming.emdb-header-server', 'https://ftp.wwpdb.org/pub/emdb/structures'),
+        EmdbHeaderServer: item('volume-streaming.emdb-header-server', 'https://files.wwpdb.org/pub/emdb/structures'),
     },
     Viewport: {
         ShowExpand: item('viewer.show-expand-button', true),

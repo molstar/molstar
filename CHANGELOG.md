@@ -19,6 +19,8 @@ Note that since we don't clearly distinguish between a public and private interf
 - Add `MultiSampleParams.reduceFlicker` (to be able to switch it off)
 - Add `alphaThickness` parameter to adjust alpha of spheres for radius
 - Ability to hide "right" panel from simplified viewport controls
+- Add `blockIndex` parameter to TrajectoryFromMmCif
+- Fix RCSB PDB validation report URL
 
 ## [v3.39.0] - 2023-09-02
 

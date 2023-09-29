@@ -3,6 +3,7 @@
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Adam Midlik <midlik@gmail.com>
  */
 
 import { parseDcd } from '../../mol-io/reader/dcd/parser';
@@ -272,14 +273,18 @@ const TrajectoryFromMmCif = PluginStateTransform.BuiltIn({
     params(a) {
         if (!a) {
             return {
-                loadAllBlocks: PD.Optional(PD.Boolean(false, { description: 'If True, ignore Block Header parameter and parse all datablocks into a single trajectory.' })),
-                blockHeader: PD.Optional(PD.Text(void 0, { description: 'Header of the block to parse. If none is specifed, the 1st data block in the file is used.', hideIf: p => p.loadAllBlocks === true })),
+                loadAllBlocks: PD.Optional(PD.Boolean(false, { description: 'If True, ignore Block Header and Block Index parameters and parse all datablocks into a single trajectory.' })),
+                blockHeader: PD.Optional(PD.Text(void 0, { description: 'Header of the block to parse. If not specifed, Block Index parameter applies.', hideIf: p => p.loadAllBlocks === true })),
+                blockIndex: PD.Optional(PD.Numeric(0, { min: 0, step: 1 }, { description: 'Zero-based index of the block to parse. Only applies when Block Header parameter is not specified.', hideIf: p => p.loadAllBlocks === true || p.blockHeader })),
             };
         }
         const { blocks } = a.data;
+        const headers = blocks.map(b => [b.header, b.header] as [string, string]);
+        headers.push(['', '[Use Block Index]']);
         return {
-            loadAllBlocks: PD.Optional(PD.Boolean(false, { description: 'If True, ignore Block Header parameter and parse all data blocks into a single trajectory.' })),
-            blockHeader: PD.Optional(PD.Select(blocks[0] && blocks[0].header, blocks.map(b => [b.header, b.header] as [string, string]), { description: 'Header of the block to parse', hideIf: p => p.loadAllBlocks === true })),
+            loadAllBlocks: PD.Optional(PD.Boolean(false, { description: 'If True, ignore Block Header and Block Index parameters and parse all data blocks into a single trajectory.' })),
+            blockHeader: PD.Optional(PD.Select(blocks[0] && blocks[0].header, headers, { description: 'Header of the block to parse. If not specifed, Block Index parameter applies.', hideIf: p => p.loadAllBlocks === true })),
+            blockIndex: PD.Optional(PD.Numeric(0, { min: 0, step: 1, max: blocks.length - 1 }, { description: 'Zero-based index of the block to parse. Only applies when Block Header parameter is not specified.', hideIf: p => p.loadAllBlocks === true || p.blockHeader })),
         };
     }
 })({
@@ -300,7 +305,7 @@ const TrajectoryFromMmCif = PluginStateTransform.BuiltIn({
                 }
                 trajectory = new ArrayTrajectory(models);
             } else {
-                const header = params.blockHeader || a.data.blocks[0].header;
+                const header = params.blockHeader || a.data.blocks[params.blockIndex ?? 0].header;
                 const block = a.data.blocks.find(b => b.header === header);
                 if (!block) throw new Error(`Data block '${[header]}' not found.`);
                 const isCcd = block.categoryNames.includes('chem_comp_atom') && !block.categoryNames.includes('atom_site') && !block.categoryNames.includes('ihm_sphere_obj_site') && !block.categoryNames.includes('ihm_gaussian_obj_site');
@@ -1087,7 +1092,7 @@ const ShapeFromPly = PluginStateTransform.BuiltIn({
     from: SO.Format.Ply,
     to: SO.Shape.Provider,
     params(a) {
-        return { };
+        return {};
     }
 })({
     apply({ a, params }) {
