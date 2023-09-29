@@ -40,7 +40,6 @@ import { Helper } from './helper/helper';
 import { Passes } from './passes/passes';
 import { shallowEqual } from '../mol-util';
 import { MarkingParams } from './passes/marking';
-import { GraphicsRenderVariants } from '../mol-gl/webgl/render-item';
 import { degToRad, radToDeg } from '../mol-math/misc';
 import { AssetManager } from '../mol-util/assets';
 import { deepClone } from '../mol-util/object';
@@ -360,7 +359,7 @@ namespace Canvas3D {
         let width = 128;
         let height = 128;
         updateViewport();
-        const scene = Scene.create(webgl, GraphicsRenderVariants);
+        const scene = Scene.create(webgl, ctx.props.transparency);
 
         function getSceneRadius() {
             return scene.boundingSphere.radius * p.sceneRadiusFactor;
@@ -803,6 +802,7 @@ namespace Canvas3D {
         addConsoleStatsProvider(consoleStats);
 
         const ctxChangedSub = ctx.changed?.subscribe(() => {
+            scene.setTransparency(ctx.props.transparency);
             requestDraw();
         });
 

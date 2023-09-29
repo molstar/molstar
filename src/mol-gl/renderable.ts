@@ -6,7 +6,7 @@
 
 import { Program } from './webgl/program';
 import { RenderableValues, Values, RenderableSchema, BaseValues } from './renderable/schema';
-import { GraphicsRenderItem, ComputeRenderItem, GraphicsRenderVariant, MultiDrawBaseData } from './webgl/render-item';
+import { GraphicsRenderItem, ComputeRenderItem, GraphicsRenderVariant, MultiDrawBaseData, Transparency } from './webgl/render-item';
 import { ValueCell } from '../mol-util';
 import { idFactory } from '../mol-util/id-factory';
 import { clamp } from '../mol-math/interpolate';
@@ -44,6 +44,7 @@ export interface Renderable<T extends RenderableValues> {
     uncull: () => void
     render: (variant: GraphicsRenderVariant, sharedTexturesCount: number) => void
     getProgram: (variant: GraphicsRenderVariant) => Program
+    setTransparency: (transparency: Transparency) => void
     update: () => void
     dispose: () => void
 }
@@ -304,6 +305,7 @@ export function createRenderable<T extends GraphicsRenderableValues>(renderItem:
             renderItem.render(variant, sharedTexturesCount, cullEnabled ? mdbDataList : undefined);
         },
         getProgram: (variant: GraphicsRenderVariant) => renderItem.getProgram(variant),
+        setTransparency: (transparency: Transparency) => renderItem.setTransparency(transparency),
         update: () => {
             renderItem.update();
             updateLodLevels();

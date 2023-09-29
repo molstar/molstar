@@ -155,6 +155,7 @@ namespace Renderer {
         None = 0,
         BlendedFront = 1,
         BlendedBack = 2,
+        BlendedVolume = 3,
     }
 
     const enum Mask {
@@ -312,7 +313,7 @@ namespace Renderer {
             }
 
             if (r.values.dGeometryType.ref.value === 'directVolume') {
-                if (variant !== 'colorDpoit' && variant !== 'colorWboit' && variant !== 'colorBlended') {
+                if (variant !== 'color') {
                     return; // only color supported
                 }
 
@@ -320,7 +321,7 @@ namespace Renderer {
                 state.disable(gl.CULL_FACE);
                 state.frontFace(gl.CCW);
 
-                if (variant === 'colorBlended') {
+                if (flag === Flag.BlendedVolume) {
                     // depth test done manually in shader against `depthTexture`
                     state.disable(gl.DEPTH_TEST);
                     state.depthMask(false);
@@ -552,9 +553,9 @@ namespace Renderer {
             for (let i = 0, il = renderables.length; i < il; ++i) {
                 const r = renderables[i];
                 if (r.state.opaque) {
-                    renderObject(r, 'colorBlended', Flag.None);
+                    renderObject(r, 'color', Flag.None);
                 } else if (r.values.uDoubleSided?.ref.value && r.values.dTransparentBackfaces?.ref.value === 'opaque') {
-                    renderObject(r, 'colorBlended', Flag.BlendedBack);
+                    renderObject(r, 'color', Flag.BlendedBack);
                 }
             }
             if (isTimingMode) ctx.timer.markEnd('Renderer.renderBlendedOpaque');
@@ -579,7 +580,7 @@ namespace Renderer {
             for (let i = 0, il = renderables.length; i < il; ++i) {
                 const r = renderables[i];
                 if (!r.state.opaque && r.state.writeDepth) {
-                    renderObject(r, 'colorBlended', Flag.None);
+                    renderObject(r, 'color', Flag.None);
                 }
             }
 
@@ -590,11 +591,11 @@ namespace Renderer {
                     if (r.values.uDoubleSided?.ref.value) {
                         // render frontfaces and backfaces separately to avoid artefacts
                         if (r.values.dTransparentBackfaces?.ref.value !== 'opaque') {
-                            renderObject(r, 'colorBlended', Flag.BlendedBack);
+                            renderObject(r, 'color', Flag.BlendedBack);
                         }
-                        renderObject(r, 'colorBlended', Flag.BlendedFront);
+                        renderObject(r, 'color', Flag.BlendedFront);
                     } else {
-                        renderObject(r, 'colorBlended', Flag.None);
+                        renderObject(r, 'color', Flag.None);
                     }
                 }
             }
@@ -612,7 +613,7 @@ namespace Renderer {
             for (let i = 0, il = renderables.length; i < il; ++i) {
                 const r = renderables[i];
                 if (r.values.dGeometryType.ref.value === 'directVolume') {
-                    renderObject(r, 'colorBlended', Flag.None);
+                    renderObject(r, 'color', Flag.BlendedVolume);
                 }
             }
             if (isTimingMode) ctx.timer.markEnd('Renderer.renderBlendedVolume');
@@ -635,7 +636,7 @@ namespace Renderer {
                 const alpha = clamp(r.values.alpha.ref.value * r.state.alphaFactor, 0, 1);
                 const xrayShaded = r.values.dXrayShaded?.ref.value === 'on' || r.values.dXrayShaded?.ref.value === 'inverted';
                 if ((alpha === 1 && r.values.transparencyAverage.ref.value !== 1 && r.values.dGeometryType.ref.value !== 'directVolume' && r.values.dPointStyle?.ref.value !== 'fuzzy' && !xrayShaded) || r.values.dTransparentBackfaces?.ref.value === 'opaque') {
-                    renderObject(r, 'colorWboit', Flag.None);
+                    renderObject(r, 'color', Flag.None);
                 }
             }
             if (isTimingMode) ctx.timer.markEnd('Renderer.renderWboitOpaque');
@@ -654,7 +655,7 @@ namespace Renderer {
                 const alpha = clamp(r.values.alpha.ref.value * r.state.alphaFactor, 0, 1);
                 const xrayShaded = r.values.dXrayShaded?.ref.value === 'on' || r.values.dXrayShaded?.ref.value === 'inverted';
                 if ((alpha < 1 && alpha !== 0) || r.values.transparencyAverage.ref.value > 0 || r.values.dGeometryType.ref.value === 'directVolume' || r.values.dPointStyle?.ref.value === 'fuzzy' || r.values.dGeometryType.ref.value === 'text' || xrayShaded) {
-                    renderObject(r, 'colorWboit', Flag.None);
+                    renderObject(r, 'color', Flag.None);
                 }
             }
             if (isTimingMode) ctx.timer.markEnd('Renderer.renderWboitTransparent');
@@ -677,7 +678,7 @@ namespace Renderer {
                 const alpha = clamp(r.values.alpha.ref.value * r.state.alphaFactor, 0, 1);
                 const xrayShaded = r.values.dXrayShaded?.ref.value === 'on' || r.values.dXrayShaded?.ref.value === 'inverted';
                 if ((alpha === 1 && r.values.transparencyAverage.ref.value !== 1 && r.values.dPointStyle?.ref.value !== 'fuzzy' && !xrayShaded) || r.values.dTransparentBackfaces?.ref.value === 'opaque') {
-                    renderObject(r, 'colorDpoit', Flag.None);
+                    renderObject(r, 'color', Flag.None);
                 }
             }
             if (isTimingMode) ctx.timer.markEnd('Renderer.renderDpoitOpaque');
@@ -704,7 +705,7 @@ namespace Renderer {
                 const alpha = clamp(r.values.alpha.ref.value * r.state.alphaFactor, 0, 1);
                 const xrayShaded = r.values.dXrayShaded?.ref.value === 'on' || r.values.dXrayShaded?.ref.value === 'inverted';
                 if ((alpha < 1 && alpha !== 0) || r.values.transparencyAverage.ref.value > 0 || r.values.dPointStyle?.ref.value === 'fuzzy' || r.values.dGeometryType.ref.value === 'text' || xrayShaded) {
-                    renderObject(r, 'colorDpoit', Flag.None);
+                    renderObject(r, 'color', Flag.None);
                 }
             }
             if (isTimingMode) ctx.timer.markEnd('Renderer.renderDpoitTransparent');
@@ -721,7 +722,7 @@ namespace Renderer {
             for (let i = 0, il = renderables.length; i < il; ++i) {
                 const r = renderables[i];
                 if (r.values.dGeometryType.ref.value === 'directVolume') {
-                    renderObject(r, 'colorDpoit', Flag.None);
+                    renderObject(r, 'color', Flag.None);
                 }
             }
             if (isTimingMode) ctx.timer.markEnd('Renderer.renderDpoitVolume');
