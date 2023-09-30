@@ -372,6 +372,12 @@ function getSkyboxTexture(ctx: WebGLContext, assetManager: AssetManager, faces: 
     const cubeAssets = getCubeAssets(assetManager, faces);
     const cubeFaces = getCubeFaces(assetManager, cubeAssets);
     const assets = [cubeAssets.nx, cubeAssets.ny, cubeAssets.nz, cubeAssets.px, cubeAssets.py, cubeAssets.pz];
+    if (typeof HTMLImageElement === 'undefined') {
+        console.error(`Missing "HTMLImageElement" required for background skybox`);
+        onload?.(true);
+        return { texture: createNullTexture(), assets };
+    }
+
     const texture = ctx.resources.cubeTexture(cubeFaces, true, onload);
     return { texture, assets };
 }
@@ -393,6 +399,15 @@ function areImageTexturePropsEqual(sourceA: ImageProps['source'], sourceB: Image
 }
 
 function getImageTexture(ctx: WebGLContext, assetManager: AssetManager, source: ImageProps['source'], onload?: (errored?: boolean) => void): { texture: Texture, asset: Asset } {
+    const asset = source.name === 'url'
+        ? Asset.getUrlAsset(assetManager, source.params)
+        : source.params!;
+    if (typeof HTMLImageElement === 'undefined') {
+        console.error(`Missing "HTMLImageElement" required for background image`);
+        onload?.(true);
+        return { texture: createNullTexture(), asset };
+    }
+
     const texture = ctx.resources.texture('image-uint8', 'rgba', 'ubyte', 'linear');
     const img = new Image();
     img.onload = () => {
@@ -405,9 +420,7 @@ function getImageTexture(ctx: WebGLContext, assetManager: AssetManager, source: 
     img.onerror = () => {
         onload?.(true);
     };
-    const asset = source.name === 'url'
-        ? Asset.getUrlAsset(assetManager, source.params)
-        : source.params!;
+
     assetManager.resolve(asset, 'binary').run().then(a => {
         const blob = new Blob([a.data]);
         img.src = URL.createObjectURL(blob);
