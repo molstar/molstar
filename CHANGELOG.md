@@ -17,6 +17,8 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+## [v3.40.1] - 2023-09-30
+
 - Do not call `updateFocusRepr` if default `StructureFocusRepresentation` isn't present.
 - Treat "tap" as a click in `InputObserver`
 - ModelServer ligand queries: fix atom count reported by SDF/MOL/MOL2 export
@@ -29,6 +31,14 @@ Note that since we don't clearly distinguish between a public and private interf
     - `EXT_clip_control`
 - Add `MultiSampleParams.reduceFlicker` (to be able to switch it off)
 - Add `alphaThickness` parameter to adjust alpha of spheres for radius
+- Ability to hide "right" panel from simplified viewport controls
+- Add `blockIndex` parameter to TrajectoryFromMmCif
+- Fix bounding sphere calculation for "element-like" visuals
+- Fix RCSB PDB validation report URL
+- Add sharpening postprocessing option
+- Take pixel-ratio into account for outline scale
+- Gracefully handle missing HTMLImageElement
+- Fix pixel-ratio changes not applied to all render passes
 
 ## [v3.39.0] - 2023-09-02
 

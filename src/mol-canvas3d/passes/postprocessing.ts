@@ -1034,7 +1034,8 @@ export class AntialiasingPass {
         if (props.antialiasing.name === 'off' && props.sharpening.name === 'off') return;
 
         if (props.antialiasing.name === 'smaa' && !this.smaa.supported) {
-            throw new Error('SMAA not supported, missing "HTMLImageElement"');
+            console.error('SMAA not supported, missing "HTMLImageElement"');
+            return;
         }
 
         const target = toDrawingBuffer ? undefined : this.target;
