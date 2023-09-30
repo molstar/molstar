@@ -13,7 +13,10 @@ Note that since we don't clearly distinguish between a public and private interf
     - Special mode for spheres with automatic LOD levels
 - Add occlusion culling (only WebGL2)
     - Hi-Z pass
-    - Cull based on previous frame Hi-Z buffer
+    - Cull based on previous frame's Hi-Z buffer
+- Add `Canvas3DContext` runtime props
+    - pixelScale, pickScale, transparency (blended, wboit, dpoit)
+    - replacing instantiation-time attribs
 
 ## [Unreleased]
 
