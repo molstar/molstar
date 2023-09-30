@@ -21,6 +21,10 @@ Note that since we don't clearly distinguish between a public and private interf
 - Ability to hide "right" panel from simplified viewport controls
 - Add `blockIndex` parameter to TrajectoryFromMmCif
 - Fix RCSB PDB validation report URL
+- Add sharpening postprocessing option
+- Take pixel-ratio into account for outline scale
+- Gracefully handle missing HTMLImageElement
+- Fix pixel-ratio changes not applied to all render passes
 
 ## [v3.39.0] - 2023-09-02
 
