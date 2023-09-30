@@ -24,7 +24,7 @@ import { createCellpackHierarchy } from '../data/cellpack/preset';
 import { createGenericHierarchy } from '../data/generic/preset';
 import { createMmcifHierarchy } from '../data/mmcif/preset';
 import { createPetworldHierarchy } from '../data/petworld/preset';
-import { MesoscaleState } from '../data/state';
+import { MesoscaleState, setGraphicsCanvas3DProps } from '../data/state';
 
 function adjustPluginProps(ctx: PluginContext) {
     ctx.managers.interactivity.setProps({ granularity: 'chain' });
@@ -97,6 +97,9 @@ function adjustPluginProps(ctx: PluginContext) {
             }
         }
     });
+
+    const { graphics } = MesoscaleState.get(ctx);
+    setGraphicsCanvas3DProps(ctx, graphics);
 }
 
 async function createHierarchy(ctx: PluginContext, ref: string) {
