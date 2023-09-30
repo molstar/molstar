@@ -6,6 +6,8 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+## [v3.40.1] - 2023-09-30
+
 - Do not call `updateFocusRepr` if default `StructureFocusRepresentation` isn't present.
 - Treat "tap" as a click in `InputObserver`
 - ModelServer ligand queries: fix atom count reported by SDF/MOL/MOL2 export
