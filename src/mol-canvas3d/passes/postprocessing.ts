@@ -33,6 +33,7 @@ import { BackgroundParams, BackgroundPass } from './background';
 import { AssetManager } from '../../mol-util/assets';
 import { Light } from '../../mol-gl/renderer';
 import { shadows_frag } from '../../mol-gl/shader/shadows.frag';
+import { CasParams, CasPass } from './cas';
 
 const OutlinesSchema = {
     ...QuadSchema,
@@ -399,6 +400,10 @@ export const PostprocessingParams = {
         smaa: PD.Group(SmaaParams),
         off: PD.Group({})
     }, { options: [['fxaa', 'FXAA'], ['smaa', 'SMAA'], ['off', 'Off']], description: 'Smooth pixel edges' }),
+    sharpening: PD.MappedStatic('off', {
+        on: PD.Group(CasParams),
+        off: PD.Group({})
+    }, { cycle: true, description: 'Contrast Adaptive Sharpening' }),
     background: PD.Group(BackgroundParams, { isFlat: true }),
 };
 
@@ -762,8 +767,8 @@ export class PostprocessingPass {
 
         if (props.outline.name === 'on') {
             const transparentOutline = props.outline.params.includeTransparent ?? true;
-            const outlineScale = props.outline.params.scale - 1;
-            const outlineThreshold = 50 * props.outline.params.threshold;
+            const outlineScale = Math.max(1, Math.round(props.outline.params.scale * this.webgl.pixelRatio)) - 1;
+            const outlineThreshold = 50 * props.outline.params.threshold * this.webgl.pixelRatio;
 
             ValueCell.updateIfChanged(this.outlinesRenderable.values.uNear, camera.near);
             ValueCell.updateIfChanged(this.outlinesRenderable.values.uFar, camera.far);
@@ -953,8 +958,11 @@ export class AntialiasingPass {
     }
 
     readonly target: RenderTarget;
+    private readonly internalTarget: RenderTarget;
+
     private readonly fxaa: FxaaPass;
     private readonly smaa: SmaaPass;
+    private readonly cas: CasPass;
 
     constructor(webgl: WebGLContext, private drawPass: DrawPass) {
         const { colorTarget } = drawPass;
@@ -962,8 +970,11 @@ export class AntialiasingPass {
         const height = colorTarget.getHeight();
 
         this.target = webgl.createRenderTarget(width, height, false);
+        this.internalTarget = webgl.createRenderTarget(width, height, false);
+
         this.fxaa = new FxaaPass(webgl, this.target.texture);
         this.smaa = new SmaaPass(webgl, this.target.texture);
+        this.cas = new CasPass(webgl, this.target.texture);
     }
 
     setSize(width: number, height: number) {
@@ -972,41 +983,69 @@ export class AntialiasingPass {
 
         if (width !== w || height !== h) {
             this.target.setSize(width, height);
+            this.internalTarget.setSize(width, height);
             this.fxaa.setSize(width, height);
             if (this.smaa.supported) this.smaa.setSize(width, height);
+            this.cas.setSize(width, height);
         }
     }
 
-    private _renderFxaa(camera: ICamera, toDrawingBuffer: boolean, props: PostprocessingProps) {
+    private _renderFxaa(camera: ICamera, target: RenderTarget | undefined, props: PostprocessingProps) {
         if (props.antialiasing.name !== 'fxaa') return;
 
         const input = PostprocessingPass.isEnabled(props)
             ? this.drawPass.postprocessing.target.texture
             : this.drawPass.colorTarget.texture;
         this.fxaa.update(input, props.antialiasing.params);
-        this.fxaa.render(camera.viewport, toDrawingBuffer ? undefined : this.target);
+        this.fxaa.render(camera.viewport, target);
     }
 
-    private _renderSmaa(camera: ICamera, toDrawingBuffer: boolean, props: PostprocessingProps) {
+    private _renderSmaa(camera: ICamera, target: RenderTarget | undefined, props: PostprocessingProps) {
         if (props.antialiasing.name !== 'smaa') return;
 
         const input = PostprocessingPass.isEnabled(props)
             ? this.drawPass.postprocessing.target.texture
             : this.drawPass.colorTarget.texture;
         this.smaa.update(input, props.antialiasing.params);
-        this.smaa.render(camera.viewport, toDrawingBuffer ? undefined : this.target);
+        this.smaa.render(camera.viewport, target);
+    }
+
+    private _renderAntialiasing(camera: ICamera, target: RenderTarget | undefined, props: PostprocessingProps) {
+        if (props.antialiasing.name === 'fxaa') {
+            this._renderFxaa(camera, target, props);
+        } else if (props.antialiasing.name === 'smaa') {
+            this._renderSmaa(camera, target, props);
+        }
+    }
+
+    private _renderCas(camera: ICamera, target: RenderTarget | undefined, props: PostprocessingProps) {
+        if (props.sharpening.name !== 'on') return;
+
+        const input = props.antialiasing.name !== 'off'
+            ? this.internalTarget.texture
+            : PostprocessingPass.isEnabled(props)
+                ? this.drawPass.postprocessing.target.texture
+                : this.drawPass.colorTarget.texture;
+        this.cas.update(input, props.sharpening.params);
+        this.cas.render(camera.viewport, target);
     }
 
     render(camera: ICamera, toDrawingBuffer: boolean, props: PostprocessingProps) {
-        if (props.antialiasing.name === 'off') return;
+        if (props.antialiasing.name === 'off' && props.sharpening.name === 'off') return;
 
-        if (props.antialiasing.name === 'fxaa') {
-            this._renderFxaa(camera, toDrawingBuffer, props);
-        } else if (props.antialiasing.name === 'smaa') {
-            if (!this.smaa.supported) {
-                throw new Error('SMAA not supported, missing "HTMLImageElement"');
-            }
-            this._renderSmaa(camera, toDrawingBuffer, props);
+        if (props.antialiasing.name === 'smaa' && !this.smaa.supported) {
+            console.error('SMAA not supported, missing "HTMLImageElement"');
+            return;
+        }
+
+        const target = toDrawingBuffer ? undefined : this.target;
+        if (props.sharpening.name === 'off') {
+            this._renderAntialiasing(camera, target, props);
+        } else if (props.antialiasing.name === 'off') {
+            this._renderCas(camera, target, props);
+        } else {
+            this._renderAntialiasing(camera, this.internalTarget, props);
+            this._renderCas(camera, target, props);
         }
     }
 }

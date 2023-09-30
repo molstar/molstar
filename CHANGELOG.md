@@ -22,6 +22,10 @@ Note that since we don't clearly distinguish between a public and private interf
 - Add `blockIndex` parameter to TrajectoryFromMmCif
 - Fix bounding sphere calculation for "element-like" visuals
 - Fix RCSB PDB validation report URL
+- Add sharpening postprocessing option
+- Take pixel-ratio into account for outline scale
+- Gracefully handle missing HTMLImageElement
+- Fix pixel-ratio changes not applied to all render passes
 
 ## [v3.39.0] - 2023-09-02
 
