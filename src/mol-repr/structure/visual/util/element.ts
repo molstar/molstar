@@ -101,7 +101,7 @@ export function createElementSphereMesh(ctx: VisualContext, unit: Unit, structur
     // re-use boundingSphere if it has not changed much
     let boundingSphere: Sphere3D;
     Vec3.scale(center, center, 1 / count);
-    if (oldBoundingSphere && Vec3.distance(center, oldBoundingSphere.center) / oldBoundingSphere.radius < 1.0) {
+    if (oldBoundingSphere && Vec3.distance(center, oldBoundingSphere.center) / oldBoundingSphere.radius < 0.1) {
         boundingSphere = oldBoundingSphere;
     } else {
         boundingSphere = Sphere3D.expand(Sphere3D(), (childUnit ?? unit).boundary.sphere, maxSize * sizeFactor + 0.05);
@@ -167,7 +167,7 @@ export function createElementSphereImpostor(ctx: VisualContext, unit: Unit, stru
     // re-use boundingSphere if it has not changed much
     let boundingSphere: Sphere3D;
     Vec3.scale(center, center, 1 / count);
-    if (oldBoundingSphere && Vec3.distance(center, oldBoundingSphere.center) / oldBoundingSphere.radius < 1.0) {
+    if (oldBoundingSphere && Vec3.distance(center, oldBoundingSphere.center) / oldBoundingSphere.radius < 0.1) {
         boundingSphere = oldBoundingSphere;
     } else {
         boundingSphere = Sphere3D.expand(Sphere3D(), (childUnit ?? unit).boundary.sphere, maxSize * sizeFactor + 0.05);
