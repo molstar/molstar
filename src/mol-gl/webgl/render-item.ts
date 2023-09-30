@@ -56,6 +56,7 @@ export interface RenderItem<T extends string> {
     readonly id: number
     readonly materialId: number
     getProgram: (variant: T) => Program
+    setTransparency: (transparency: Transparency) => void
 
     render: (variant: T, sharedTexturesCount: number, mdbDataList?: MultiDrawBaseData[]) => void
     update: () => void
@@ -64,12 +65,9 @@ export interface RenderItem<T extends string> {
 
 //
 
-const GraphicsRenderVariant = { colorBlended: '', colorWboit: '', colorDpoit: '', pick: '', depth: '', marking: '' };
+const GraphicsRenderVariant = { color: '', pick: '', depth: '', marking: '' };
 export type GraphicsRenderVariant = keyof typeof GraphicsRenderVariant
 export const GraphicsRenderVariants = Object.keys(GraphicsRenderVariant) as GraphicsRenderVariant[];
-export const GraphicsRenderVariantsBlended = GraphicsRenderVariants.filter(v => !['colorWboit', 'colorDpoit'].includes(v));
-export const GraphicsRenderVariantsWboit = GraphicsRenderVariants.filter(v => !['colorBlended', 'colorDpoit'].includes(v));
-export const GraphicsRenderVariantsDpoit = GraphicsRenderVariants.filter(v => !['colorWboit', 'colorBlended'].includes(v));
 
 const ComputeRenderVariant = { compute: '' };
 export type ComputeRenderVariant = keyof typeof ComputeRenderVariant
@@ -104,14 +102,27 @@ function resetValueChanges(valueChanges: ValueChanges) {
 
 //
 
+export type Transparency = 'blended' | 'wboit' | 'dpoit' | undefined
+
+function getRenderVariant(variant: string, transparency: Transparency): string {
+    if (variant === 'color') {
+        switch (transparency) {
+            case 'blended': return 'colorBlended';
+            case 'wboit': return 'colorWboit';
+            case 'dpoit': return 'colorDpoit';
+        }
+    }
+    return variant;
+}
+
 export type GraphicsRenderItem = RenderItem<GraphicsRenderVariant>
-export function createGraphicsRenderItem(ctx: WebGLContext, drawMode: DrawMode, shaderCode: ShaderCode, schema: RenderableSchema, values: RenderableValues, materialId: number, variants: GraphicsRenderVariant[]) {
-    return createRenderItem(ctx, drawMode, shaderCode, schema, values, materialId, variants);
+export function createGraphicsRenderItem(ctx: WebGLContext, drawMode: DrawMode, shaderCode: ShaderCode, schema: RenderableSchema, values: RenderableValues, materialId: number, transparency: Transparency) {
+    return createRenderItem(ctx, drawMode, shaderCode, schema, values, materialId, GraphicsRenderVariants, transparency);
 }
 
 export type ComputeRenderItem = RenderItem<ComputeRenderVariant>
 export function createComputeRenderItem(ctx: WebGLContext, drawMode: DrawMode, shaderCode: ShaderCode, schema: RenderableSchema, values: RenderableValues, materialId = -1) {
-    return createRenderItem(ctx, drawMode, shaderCode, schema, values, materialId, ComputeRenderVariants);
+    return createRenderItem(ctx, drawMode, shaderCode, schema, values, materialId, ComputeRenderVariants, undefined);
 }
 
 /**
@@ -119,7 +130,7 @@ export function createComputeRenderItem(ctx: WebGLContext, drawMode: DrawMode, s
  *
  * - assumes that `values.drawCount` and `values.instanceCount` exist
  */
-export function createRenderItem<T extends string>(ctx: WebGLContext, drawMode: DrawMode, shaderCode: ShaderCode, schema: RenderableSchema, values: RenderableValues, materialId: number, renderVariants: T[]): RenderItem<T> {
+export function createRenderItem<T extends string>(ctx: WebGLContext, drawMode: DrawMode, shaderCode: ShaderCode, schema: RenderableSchema, values: RenderableValues, materialId: number, renderVariants: T[], transparency: Transparency): RenderItem<T> {
     const id = getNextRenderItemId();
     const { stats, state, resources } = ctx;
     const { instancedArrays, vertexArrayObject, multiDrawInstancedBaseVertexBaseInstance, drawInstancedBaseVertexBaseInstance } = ctx.extensions;
@@ -144,8 +155,8 @@ export function createRenderItem<T extends string>(ctx: WebGLContext, drawMode: 
     const glDrawMode = getDrawMode(ctx, drawMode);
 
     const programs: Programs = {};
-    for (const k of renderVariants) {
-        programs[k] = createProgramVariant(ctx, k, defineValues, shaderCode, schema);
+    for (const rv of renderVariants) {
+        programs[rv] = createProgramVariant(ctx, getRenderVariant(rv, transparency), defineValues, shaderCode, schema);
     }
 
     const textures = createTextures(ctx, schema, textureValues);
@@ -184,6 +195,15 @@ export function createRenderItem<T extends string>(ctx: WebGLContext, drawMode: 
         id,
         materialId,
         getProgram: (variant: T) => programs[variant],
+        setTransparency: (value: Transparency) => {
+            if (value === transparency) return;
+
+            transparency = value;
+            for (const rv of renderVariants) {
+                programs[rv].destroy();
+                programs[rv] = createProgramVariant(ctx, getRenderVariant(rv, transparency), defineValues, shaderCode, schema);
+            }
+        },
 
         render: (variant: T, sharedTexturesCount: number, mdbDataList?: MultiDrawBaseData[]) => {
             if (drawCount === 0 || instanceCount === 0) return;
@@ -322,9 +342,9 @@ export function createRenderItem<T extends string>(ctx: WebGLContext, drawMode: 
 
             if (valueChanges.defines) {
                 // console.log('some defines changed, need to rebuild programs');
-                for (const k of renderVariants) {
-                    programs[k].destroy();
-                    programs[k] = createProgramVariant(ctx, k, defineValues, shaderCode, schema);
+                for (const rv of renderVariants) {
+                    programs[rv].destroy();
+                    programs[rv] = createProgramVariant(ctx, getRenderVariant(rv, transparency), defineValues, shaderCode, schema);
                 }
             }
 

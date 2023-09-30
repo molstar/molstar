@@ -16,7 +16,6 @@ import { TextBuilder } from '../../mol-geo/geometry/text/text-builder';
 import { GraphicsRenderObject } from '../../mol-gl/render-object';
 import { Scene } from '../../mol-gl/scene';
 import { WebGLContext } from '../../mol-gl/webgl/context';
-import { GraphicsRenderVariantsBlended } from '../../mol-gl/webgl/render-item';
 import { Sphere3D } from '../../mol-math/geometry';
 import { Mat4, Vec3 } from '../../mol-math/linear-algebra';
 import { DataLoci, EmptyLoci, isEveryLoci, Loci } from '../../mol-model/loci';
@@ -80,7 +79,7 @@ export class CameraHelper {
     private pixelRatio = 1;
 
     constructor(private webgl: WebGLContext, props: Partial<CameraHelperProps> = {}) {
-        this.scene = Scene.create(webgl, GraphicsRenderVariantsBlended);
+        this.scene = Scene.create(webgl, 'blended');
 
         this.camera = new Camera();
         Vec3.set(this.camera.up, 0, 1, 0);

@@ -81,6 +81,7 @@ export const OpacityParams = {
 export const LodParams = {
     lodLevels: Spheres.Params.lodLevels,
     cellSize: Spheres.Params.cellSize,
+    batchSize: Spheres.Params.batchSize,
     approximate: Spheres.Params.approximate,
 };
 
@@ -260,6 +261,22 @@ export function getGraphicsModeProps(graphicsMode: Exclude<GraphicsMode, 'custom
         approximate: graphicsMode !== 'quality',
         alphaThickness: graphicsMode === 'performance' ? 15 : 12,
     };
+}
+
+export function setGraphicsCanvas3DProps(ctx: PluginContext, graphics: GraphicsMode) {
+    const pixelScale = graphics === 'balanced' ? 0.75
+        : graphics === 'performance' ? 0.5 : 1;
+
+    ctx.canvas3dContext?.setProps({ pixelScale });
+
+    ctx.canvas3d?.setProps({
+        postprocessing: {
+            sharpening: pixelScale < 1 ? {
+                name: 'on',
+                params: { sharpness: 0.5, denoise: true }
+            } : { name: 'off', params: {} }
+        }
+    });
 }
 
 //

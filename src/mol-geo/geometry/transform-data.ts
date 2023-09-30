@@ -42,7 +42,7 @@ function checkReflection(transformArray: Float32Array, instanceCount: number) {
     return false;
 }
 
-export function createTransform(transformArray: Float32Array, instanceCount: number, invariantBoundingSphere: Sphere3D | undefined, cellSize: number, transformData?: TransformData): TransformData {
+export function createTransform(transformArray: Float32Array, instanceCount: number, invariantBoundingSphere: Sphere3D | undefined, cellSize: number, batchSize: number, transformData?: TransformData): TransformData {
     const hasReflection = checkReflection(transformArray, instanceCount);
 
     if (transformData) {
@@ -78,7 +78,7 @@ export function createTransform(transformArray: Float32Array, instanceCount: num
         };
     }
 
-    updateTransformData(transformData, invariantBoundingSphere, cellSize);
+    updateTransformData(transformData, invariantBoundingSphere, cellSize, batchSize);
     return transformData;
 }
 
@@ -86,7 +86,7 @@ const identityTransform = new Float32Array(16);
 Mat4.toArray(Mat4.identity(), identityTransform, 0);
 
 export function createIdentityTransform(transformData?: TransformData): TransformData {
-    return createTransform(new Float32Array(identityTransform), 1, undefined, 0, transformData);
+    return createTransform(new Float32Array(identityTransform), 1, undefined, 0, 0, transformData);
 }
 
 export function fillIdentityTransform(transform: Float32Array, count: number) {
@@ -100,7 +100,7 @@ export function fillIdentityTransform(transform: Float32Array, count: number) {
  * updates per-instance transform calculated for instance `i` as
  * `aTransform[i] = matrix * transform[i] * extraTransform[i]`
  */
-export function updateTransformData(transformData: TransformData, invariantBoundingSphere: Sphere3D | undefined, cellSize: number) {
+export function updateTransformData(transformData: TransformData, invariantBoundingSphere: Sphere3D | undefined, cellSize: number, batchSize: number) {
     const aTransform = transformData.aTransform.ref.value;
     const aInstance = transformData.aInstance.ref.value;
     const instanceCount = transformData.instanceCount.ref.value;
@@ -120,7 +120,7 @@ export function updateTransformData(transformData: TransformData, invariantBound
             instance: aInstance,
             transform: aTransform,
             invariantBoundingSphere
-        }, cellSize);
+        }, cellSize, batchSize);
 
         ValueCell.update(transformData.instanceGrid, instanceGrid);
         ValueCell.update(transformData.aInstance, instanceGrid.cellInstance);

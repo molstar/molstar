@@ -118,8 +118,6 @@ export class ParameterMappingControl<S, T> extends PluginUIComponent<{ mapping: 
     };
 
     componentDidMount() {
-        this.subscribe(this.plugin.events.canvas3d.settingsUpdated, () => this.forceUpdate());
-
         this.subscribe(this.plugin.state.data.behaviors.isUpdating, v => {
             this.setState({ isDisabled: v });
         });

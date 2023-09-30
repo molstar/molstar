@@ -9,7 +9,7 @@ import { State, StateTransform, StateTransformer } from '../mol-state';
 import { PluginStateObject as SO } from '../mol-plugin-state/objects';
 import { Camera } from '../mol-canvas3d/camera';
 import { PluginBehavior } from './behavior';
-import { Canvas3DParams, Canvas3DProps } from '../mol-canvas3d/canvas3d';
+import { Canvas3DContext, Canvas3DParams, Canvas3DProps } from '../mol-canvas3d/canvas3d';
 import { PluginCommands } from './commands';
 import { PluginAnimationManager } from '../mol-plugin-state/manager/animation';
 import { ParamDefinition as PD } from '../mol-util/param-definition';
@@ -64,6 +64,7 @@ class PluginState extends PluginComponent {
                 transitionStyle: p.cameraTransition!.name,
                 transitionDurationInMs: p?.cameraTransition?.name === 'animate' ? p.cameraTransition.params.durationInMs : void 0
             } : void 0,
+            canvas3dContext: p.canvas3dContext ? { props: this.plugin.canvas3dContext?.props } : void 0,
             canvas3d: p.canvas3d ? { props: this.plugin.canvas3d?.props } : void 0,
             interactivity: p.interactivity ? { props: this.plugin.managers.interactivity.props } : void 0,
             structureFocus: this.plugin.managers.structure.focus.getSnapshot(),
@@ -85,6 +86,10 @@ class PluginState extends PluginComponent {
         if (snapshot.canvas3d?.props) {
             const settings = PD.normalizeParams(Canvas3DParams, snapshot.canvas3d.props, 'children');
             await PluginCommands.Canvas3D.SetSettings(this.plugin, { settings });
+        }
+        if (snapshot.canvas3dContext?.props) {
+            const props = PD.normalizeParams(Canvas3DContext.Params, snapshot.canvas3dContext.props, 'children');
+            this.plugin.canvas3dContext?.setProps(props);
         }
         if (snapshot.interactivity) {
             if (snapshot.interactivity.props) this.plugin.managers.interactivity.setProps(snapshot.interactivity.props);
@@ -161,6 +166,7 @@ namespace PluginState {
         animation: PD.Boolean(true),
         startAnimation: PD.Boolean(false),
         canvas3d: PD.Boolean(true),
+        canvas3dContext: PD.Boolean(true),
         interactivity: PD.Boolean(true),
         camera: PD.Boolean(true),
         cameraTransition: PD.MappedStatic('animate', {
@@ -187,6 +193,9 @@ namespace PluginState {
         },
         canvas3d?: {
             props?: Canvas3DProps
+        },
+        canvas3dContext?: {
+            props?: Canvas3DContext.Props
         },
         interactivity?: {
             props?: InteractivityManager.Props

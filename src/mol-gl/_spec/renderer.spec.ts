@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -53,20 +53,45 @@ describe('renderer', () => {
         scene.commit();
         expect(ctx.stats.resourceCounts.attribute).toBe(ctx.isWebGL2 ? 4 : 5);
         expect(ctx.stats.resourceCounts.texture).toBe(9);
-        expect(ctx.stats.resourceCounts.vertexArray).toBe(ctx.extensions.vertexArrayObject ? 6 : 0);
-        expect(ctx.stats.resourceCounts.program).toBe(6);
-        expect(ctx.stats.resourceCounts.shader).toBe(12);
+        expect(ctx.stats.resourceCounts.vertexArray).toBe(ctx.extensions.vertexArrayObject ? 4 : 0);
+        expect(ctx.stats.resourceCounts.program).toBe(4);
+        expect(ctx.stats.resourceCounts.shader).toBe(8);
 
         scene.remove(points);
         scene.commit();
         expect(ctx.stats.resourceCounts.attribute).toBe(0);
         expect(ctx.stats.resourceCounts.texture).toBe(1);
         expect(ctx.stats.resourceCounts.vertexArray).toBe(0);
-        expect(ctx.stats.resourceCounts.program).toBe(6);
-        expect(ctx.stats.resourceCounts.shader).toBe(12);
+        expect(ctx.stats.resourceCounts.program).toBe(4);
+        expect(ctx.stats.resourceCounts.shader).toBe(8);
 
         ctx.resources.destroy();
         expect(ctx.stats.resourceCounts.program).toBe(0);
         expect(ctx.stats.resourceCounts.shader).toBe(0);
+    });
+
+    it('transparency', async () => {
+        const [width, height] = [32, 32];
+        const gl = createGl(width, height, { preserveDrawingBuffer: true });
+        const { ctx } = createRenderer(gl);
+        const points = createPoints();
+
+        const sceneBlended = Scene.create(ctx, 'blended');
+        sceneBlended.add(points);
+        sceneBlended.commit();
+
+        const sceneWboit = Scene.create(ctx, 'wboit');
+        sceneWboit.add(points);
+        sceneWboit.commit();
+
+        const sceneDpoit = Scene.create(ctx, 'dpoit');
+        sceneDpoit.add(points);
+        sceneDpoit.commit();
+
+        expect(ctx.stats.resourceCounts.attribute).toBe(ctx.isWebGL2 ? 12 : 15);
+        expect(ctx.stats.resourceCounts.texture).toBe(25);
+        expect(ctx.stats.resourceCounts.vertexArray).toBe(ctx.extensions.vertexArrayObject ? 12 : 0);
+        expect(ctx.stats.resourceCounts.program).toBe(6);
+        expect(ctx.stats.resourceCounts.shader).toBe(12);
     });
 });

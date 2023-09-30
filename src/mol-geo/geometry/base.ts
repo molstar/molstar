@@ -88,7 +88,8 @@ export namespace BaseGeometry {
         clip: PD.Group(Clip.Params),
         instanceGranularity: PD.Boolean(false, { description: 'Use instance granularity for marker, transparency, clipping, overpaint, substance data to save memory.' }),
         lod: PD.Vec3(Vec3(), undefined, { ...CullingLodCategory, description: 'Level of detail.', fieldLabels: { x: 'Min Distance', y: 'Max Distance', z: 'Overlap (Shader)' } }),
-        cellSize: PD.Numeric(500, { min: 0, max: 10000, step: 100 }, { ...CullingLodCategory, description: 'Instance grid cell size.' }),
+        cellSize: PD.Numeric(200, { min: 0, max: 5000, step: 100 }, { ...CullingLodCategory, description: 'Instance grid cell size.' }),
+        batchSize: PD.Numeric(2000, { min: 0, max: 50000, step: 500 }, { ...CullingLodCategory, description: 'Instance grid batch size.' }),
     };
     export type Params = typeof Params
 

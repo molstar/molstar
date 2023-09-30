@@ -27,8 +27,6 @@ const v3transformMat4 = Vec3.transformMat4;
 const v4set = Vec4.set;
 const fasterLog2 = _fasterLog2;
 
-const MinLevel = 3;
-
 function perspectiveDepthToViewZ(depth: number, near: number, far: number) {
     return (near * far) / ((far - near) * depth - far);
 }
@@ -108,6 +106,7 @@ type LevelData = {
 export const HiZParams = {
     enabled: PD.Boolean(false, { description: 'Hierarchical Z-buffer occlusion culling. Only available for WebGL2.' }),
     maxFrameLag: PD.Numeric(10, { min: 1, max: 30, step: 1 }, { description: 'Maximum number of frames to wait for Z-buffer data.' }),
+    minLevel: PD.Numeric(3, { min: 1, max: 10, step: 1 }),
 };
 export type HiZProps = PD.Values<typeof HiZParams>
 
@@ -140,16 +139,6 @@ export class HiZPass {
     private ready = false;
 
     readonly props: HiZProps;
-
-    private pixelScale = 1;
-    setPixelScale(value: number) {
-        this.pixelScale = value;
-    }
-
-    get pixelRatio() {
-        const dpr = (typeof window !== 'undefined') ? window.devicePixelRatio : 1;
-        return dpr * this.pixelScale;
-    }
 
     clear() {
         if (!this.supported) return;
@@ -219,7 +208,7 @@ export class HiZPass {
             this.renderable.update();
             this.renderable.render();
 
-            if (i >= MinLevel) {
+            if (i >= this.props.minLevel) {
                 this.tex.bind(0);
                 gl.copyTexSubImage2D(gl.TEXTURE_2D, 0, td.offset, 0, 0, 0, td.size[0], td.size[1]);
                 this.tex.unbind(0);
@@ -308,7 +297,7 @@ export class HiZPass {
         if (-z < near) return false;
 
         const { aabb, w, h, lod } = this.project(vp, r);
-        if (lod >= this.levelData.length || lod < MinLevel) return false;
+        if (lod >= this.levelData.length || lod < this.props.minLevel) return false;
 
         const { offset, size } = this.levelData[lod];
 
@@ -347,8 +336,9 @@ export class HiZPass {
         const levels = Math.ceil(Math.log(Math.max(width, height)) / Math.log(2));
         if (levels === this.levelData.length) return;
 
-        this.buffer = new Float32Array(Math.pow(2, levels - MinLevel) * Math.pow(2, levels - 1 - MinLevel));
-        this.tex.define(Math.pow(2, levels - MinLevel), Math.pow(2, levels - 1 - MinLevel));
+        const { minLevel } = this.props;
+        this.buffer = new Float32Array(Math.pow(2, levels - minLevel) * Math.pow(2, levels - 1 - minLevel));
+        this.tex.define(Math.pow(2, levels - minLevel), Math.pow(2, levels - 1 - minLevel));
 
         for (const td of this.levelData) {
             td.framebuffer.destroy();
@@ -370,7 +360,7 @@ export class HiZPass {
         let offset = 0;
         for (let i = 0, il = levels; i < il; ++i) {
             const td = this.levelData[i];
-            if (i >= MinLevel) {
+            if (i >= minLevel) {
                 this.levelData[i].offset = offset;
                 offset += td.size[0];
             }
@@ -382,8 +372,14 @@ export class HiZPass {
     setProps(props: Partial<HiZProps>) {
         if (!this.supported) return;
 
-        Object.assign(this.props, props);
-        if (!this.props.enabled) this.clear();
+        if (this.props.minLevel !== props.minLevel) {
+            Object.assign(this.props, props);
+            const { x, y, width, height } = this.viewport;
+            this.setViewport(x, y, width, height);
+        } else {
+            Object.assign(this.props, props);
+            if (!this.props.enabled) this.clear();
+        }
     }
 
     //
@@ -432,8 +428,8 @@ export class HiZPass {
     private showRect(p: Vec4, occluded: boolean) {
         if (!this.supported || !this.props.enabled || !this.ready || !this.debug) return;
 
-        const { drawingBufferHeight } = this.webgl.gl;
-        const { viewport: { x, y, width, height }, pixelRatio } = this;
+        const { gl: { drawingBufferHeight }, pixelRatio } = this.webgl;
+        const { viewport: { x, y, width, height } } = this;
         const minx = (p[0] * width + x) / pixelRatio;
         const miny = (p[1] * height - y) / pixelRatio;
         const maxx = (p[2] * width + x) / pixelRatio;
@@ -453,7 +449,7 @@ export class HiZPass {
 
     private showBuffer(lod: number) {
         if (!this.supported || !this.props.enabled || !this.ready || !this.debug) return;
-        if (lod >= this.levelData.length || lod < MinLevel) {
+        if (lod >= this.levelData.length || lod < this.props.minLevel) {
             this.debug.container.style.display = 'none';
             return;
         }
@@ -477,7 +473,7 @@ export class HiZPass {
         this.debug.canvas.height = imageData.height;
         this.debug.ctx.putImageData(imageData, 0, 0);
 
-        const { viewport: { x, y, width, height }, pixelRatio } = this;
+        const { viewport: { x, y, width, height }, webgl: { pixelRatio } } = this;
         Object.assign(this.debug.container.style, {
             display: 'block',
             bottom: `${y / pixelRatio}px`,

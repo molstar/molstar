@@ -74,12 +74,12 @@ export namespace Shape {
         return LocationIterator(shape.groupCount, instanceCount, 1, getLocation);
     }
 
-    export function createTransform(transforms: Mat4[], invariantBoundingSphere: Sphere3D, cellSize: number, transformData?: TransformData) {
+    export function createTransform(transforms: Mat4[], invariantBoundingSphere: Sphere3D, cellSize: number, batchSize: number, transformData?: TransformData) {
         const transformArray = transformData && transformData.aTransform.ref.value.length >= transforms.length * 16 ? transformData.aTransform.ref.value : new Float32Array(transforms.length * 16);
         for (let i = 0, il = transforms.length; i < il; ++i) {
             Mat4.toArray(transforms[i], transformArray, i * 16);
         }
-        return _createTransform(transformArray, transforms.length, invariantBoundingSphere, cellSize, transformData);
+        return _createTransform(transformArray, transforms.length, invariantBoundingSphere, cellSize, batchSize, transformData);
     }
 
     export function createRenderObject<G extends Geometry>(shape: Shape<G>, props: PD.Values<Geometry.Params<G>>) {
@@ -89,7 +89,7 @@ export namespace Shape {
 
         const materialId = getNextMaterialId();
         const locationIt = groupIterator(shape);
-        const transform = createTransform(shape.transforms, shape.geometry.boundingSphere, props.cellSize);
+        const transform = createTransform(shape.transforms, shape.geometry.boundingSphere, props.cellSize, props.batchSize);
         const values = utils.createValues(shape.geometry, transform, locationIt, theme, props);
         const state = utils.createRenderableState(props);
 

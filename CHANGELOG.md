@@ -13,9 +13,14 @@ Note that since we don't clearly distinguish between a public and private interf
     - Special mode for spheres with automatic LOD levels
 - Add occlusion culling (only WebGL2)
     - Hi-Z pass
-    - Cull based on previous frame Hi-Z buffer
+    - Cull based on previous frame's Hi-Z buffer
+- Add `Canvas3DContext` runtime props
+    - pixelScale, pickScale, transparency (blended, wboit, dpoit)
+    - replacing instantiation-time attribs
 
 ## [Unreleased]
+
+## [v3.40.1] - 2023-09-30
 
 - Do not call `updateFocusRepr` if default `StructureFocusRepresentation` isn't present.
 - Treat "tap" as a click in `InputObserver`
@@ -29,6 +34,14 @@ Note that since we don't clearly distinguish between a public and private interf
     - `EXT_clip_control`
 - Add `MultiSampleParams.reduceFlicker` (to be able to switch it off)
 - Add `alphaThickness` parameter to adjust alpha of spheres for radius
+- Ability to hide "right" panel from simplified viewport controls
+- Add `blockIndex` parameter to TrajectoryFromMmCif
+- Fix bounding sphere calculation for "element-like" visuals
+- Fix RCSB PDB validation report URL
+- Add sharpening postprocessing option
+- Take pixel-ratio into account for outline scale
+- Gracefully handle missing HTMLImageElement
+- Fix pixel-ratio changes not applied to all render passes
 
 ## [v3.39.0] - 2023-09-02
 

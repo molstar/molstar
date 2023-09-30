@@ -19,7 +19,7 @@ import { CombinedColorControl } from '../../../mol-plugin-ui/controls/color';
 import { MarkerAction } from '../../../mol-util/marker-action';
 import { EveryLoci } from '../../../mol-model/loci';
 import { deepEqual } from '../../../mol-util';
-import { ColorValueParam, ColorParams, ColorProps, DimLightness, LightnessParams, LodParams, MesoscaleGroup, MesoscaleGroupProps, OpacityParams, SimpleClipParams, SimpleClipProps, createClipMapping, getClipObjects, getDistinctGroupColors, RootParams, MesoscaleState, getRoots, getAllGroups, getAllLeafGroups, getFilteredEntities, getAllFilteredEntities, getGroups, getEntities, getAllEntities, getEntityLabel, updateColors, getGraphicsModeProps, GraphicsMode, MesoscaleStateParams } from '../data/state';
+import { ColorValueParam, ColorParams, ColorProps, DimLightness, LightnessParams, LodParams, MesoscaleGroup, MesoscaleGroupProps, OpacityParams, SimpleClipParams, SimpleClipProps, createClipMapping, getClipObjects, getDistinctGroupColors, RootParams, MesoscaleState, getRoots, getAllGroups, getAllLeafGroups, getFilteredEntities, getAllFilteredEntities, getGroups, getEntities, getAllEntities, getEntityLabel, updateColors, getGraphicsModeProps, GraphicsMode, MesoscaleStateParams, setGraphicsCanvas3DProps } from '../data/state';
 import React from 'react';
 import { MesoscaleExplorerState } from '../app';
 
@@ -113,6 +113,8 @@ export class EntityControls extends PluginUIComponent<{}, { isDisabled: boolean 
         }
 
         update.commit();
+
+        setGraphicsCanvas3DProps(this.plugin, graphics);
     };
 
     get graphics() {
@@ -372,6 +374,7 @@ export class GroupNode extends Node<{ filter: string }, { isCollapsed: boolean, 
             update.to(r).update(old => {
                 old.type.params.lodLevels = values.lodLevels;
                 old.type.params.cellSize = values.cellSize;
+                old.type.params.batchSize = values.batchSize;
                 old.type.params.approximate = values.approximate;
             });
         }
@@ -557,11 +560,12 @@ export class EntityNode extends Node<{}, { action?: 'color' | 'clip' }> {
 
     get lodValue(): PD.Values<typeof LodParams> | undefined {
         const p = this.cell.transform.params?.type.params;
-        const hasLod = p.lodLevels !== undefined && p.cellSize !== undefined && p.approximate !== undefined;
+        const hasLod = p.lodLevels !== undefined && p.cellSize !== undefined && p.batchSize !== undefined && p.approximate !== undefined;
         if (!hasLod) return;
         return {
             lodLevels: p.lodLevels,
             cellSize: p.cellSize,
+            batchSize: p.batchSize,
             approximate: p.approximate,
         };
     }
@@ -614,10 +618,11 @@ export class EntityNode extends Node<{}, { action?: 'color' | 'clip' }> {
         (this.plugin.customState as MesoscaleExplorerState).graphicsMode = 'custom';
 
         const params = t.params as StateTransformer.Params<StructureRepresentation3D>;
-        if (!deepEqual(params.type.params.lodLevels, values.lodLevels) || params.type.params.cellSize !== values.cellSize || params.type.params.approximate !== values.approximate) {
+        if (!deepEqual(params.type.params.lodLevels, values.lodLevels) || params.type.params.cellSize !== values.cellSize || params.type.params.batchSize !== values.batchSize || params.type.params.approximate !== values.approximate) {
             this.plugin.build().to(t.ref).update(old => {
                 old.type.params.lodLevels = values.lodLevels;
                 old.type.params.cellSize = values.cellSize;
+                old.type.params.batchSize = values.batchSize;
                 old.type.params.approximate = values.approximate;
             }).commit();
         }
