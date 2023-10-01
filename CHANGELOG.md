@@ -6,6 +6,8 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Add `PluginContext.initialized` promise & support for it in the `Plugin` UI component.
+
 ## [v3.40.1] - 2023-09-30
 
 - Do not call `updateFocusRepr` if default `StructureFocusRepresentation` isn't present.
