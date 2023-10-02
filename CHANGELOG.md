@@ -7,6 +7,7 @@ Note that since we don't clearly distinguish between a public and private interf
 ## [Unreleased]
 
 - Add `PluginContext.initialized` promise & support for it in the `Plugin` UI component.
+- Added `SecondaryStructureSequence` to show DSSP kinds in the Sequence viewer.
 
 ## [v3.40.1] - 2023-09-30
 
