@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2021 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -23,12 +23,46 @@ import { Asset } from '../mol-util/assets';
 import { BehaviorSubject } from 'rxjs';
 import { useBehavior } from './hooks/use-behavior';
 
-export class Plugin extends React.Component<{ plugin: PluginUIContext, children?: any }, {}> {
-    render() {
-        return <PluginReactContext.Provider value={this.props.plugin}>
+export function Plugin({ plugin }: { plugin: PluginUIContext }) {
+    if (plugin.isInitialized) {
+        return <PluginReactContext.Provider value={plugin}>
             <Layout />
         </PluginReactContext.Provider>;
     }
+
+    return <PluginInitWrapper plugin={plugin} />;
+}
+
+type LoadState =
+    | { kind: 'initialized' }
+    | { kind: 'pending' }
+    | { kind: 'error', message: string }
+
+function PluginInitWrapper({ plugin }: { plugin: PluginUIContext }) {
+    const [state, setState] = React.useState<LoadState>({ kind: 'pending' });
+    React.useEffect(() => {
+        setState({ kind: 'pending' });
+        let mounted = true;
+
+        plugin.initialized.then(() => {
+            if (mounted) setState({ kind: 'initialized' });
+        }).catch(err => {
+            if (mounted) setState({ kind: 'error', message: `${err}` });
+        });
+
+        return () => { mounted = false; };
+    }, [plugin]);
+
+    if (state.kind === 'pending') return null;
+    if (state.kind === 'error') {
+        return <div className='msp-plugin'>
+            <div className='msp-plugin-init-error'>Initialization error: {state.message}</div>
+        </div>;
+    }
+
+    return <PluginReactContext.Provider value={plugin}>
+        <Layout />
+    </PluginReactContext.Provider>;
 }
 
 export class PluginContextContainer extends React.Component<{ plugin: PluginUIContext, children?: any }> {
