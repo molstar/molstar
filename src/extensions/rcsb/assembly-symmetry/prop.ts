@@ -50,7 +50,7 @@ export namespace AssemblySymmetry {
     }
 
     // export const DefaultServerUrl = 'https://data.rcsb.org/graphql';
-    export const DefaultServerUrl = 'https://wwwdev.ebi.ac.uk/pdbe/aggregated-api/pdb/symmetry';
+    export const DefaultServerUrl = 'https://www.ebi.ac.uk/pdbe/aggregated-api/pdb/symmetry';
 
     export function isApplicable(structure?: Structure): boolean {
         return (
@@ -88,7 +88,17 @@ export namespace AssemblySymmetry {
         const entry_id = structure.units[0].model.entryId.toLowerCase();
         const url = `${props.serverUrl}/${entry_id}?assembly_id=${assembly_id}`;
         const asset = Asset.getUrlAsset(ctx.assetManager, url);
-        const dataWrapper = await ctx.assetManager.resolve(asset, 'json').runInContext(ctx.runtime);
+        let dataWrapper: Asset.Wrapper<'json'>;
+        try {
+            dataWrapper = await ctx.assetManager.resolve(asset, 'json').runInContext(ctx.runtime);
+        } catch (err) {
+            // PDBe API returns 404 when there are no symmetries -> treat as success with empty json in body
+            if (`${err}`.includes('404')) { // dirrrty
+                dataWrapper = Asset.Wrapper({}, asset, ctx.assetManager);
+            } else {
+                throw err;
+            }
+        }
         const data = dataWrapper.data;
 
         const value: AssemblySymmetryDataValue = (data[entry_id] ?? []).map((v: any) => ({
