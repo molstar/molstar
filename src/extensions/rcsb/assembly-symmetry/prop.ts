@@ -49,8 +49,7 @@ export namespace AssemblySymmetry {
         Representation = 'rcsb-assembly-symmetry-3d'
     }
 
-    // export const DefaultServerUrl = 'https://data.rcsb.org/graphql';
-    export const DefaultServerUrl = 'https://www.ebi.ac.uk/pdbe/aggregated-api/pdb/symmetry';
+    export const DefaultServerUrl = 'https://data.rcsb.org/graphql'; // Alternative: 'https://www.ebi.ac.uk/pdbe/aggregated-api/pdb/symmetry' (if serverType is 'pdbe')
 
     export function isApplicable(structure?: Structure): boolean {
         return (
@@ -81,9 +80,7 @@ export namespace AssemblySymmetry {
         return { value, assets: [result] };
     }
 
-    export async function fetch_PDBe(ctx: CustomProperty.Context, structure: Structure, props: AssemblySymmetryDataProps): Promise<CustomProperty.Data<AssemblySymmetryDataValue>> {
-        if (!isApplicable(structure)) return { value: [] };
-
+    async function fetch_PDBe(ctx: CustomProperty.Context, structure: Structure, props: AssemblySymmetryDataProps): Promise<CustomProperty.Data<AssemblySymmetryDataValue>> {
         const assembly_id = structure.units[0].conformation.operator.assembly?.id || '';
         const entry_id = structure.units[0].model.entryId.toLowerCase();
         const url = `${props.serverUrl}/${entry_id}?assembly_id=${assembly_id}`;
@@ -184,8 +181,8 @@ export function getSymmetrySelectParam(structure?: Structure) {
 //
 
 export const AssemblySymmetryDataParams = {
-    serverType: PD.Select<'rcsb' | 'pdbe'>('pdbe', [['rcsb', 'RCSB'], ['pdbe', 'PDBe']]),
-    serverUrl: PD.Text(AssemblySymmetry.DefaultServerUrl, { description: 'GraphQL endpoint URL' })
+    serverType: PD.Select('rcsb', [['rcsb', 'RCSB'], ['pdbe', 'PDBe']] as const),
+    serverUrl: PD.Text(AssemblySymmetry.DefaultServerUrl, { description: 'GraphQL endpoint URL (if server type is RCSB) or PDBe API endpoint URL (if server type is PDBe)' })
 };
 export type AssemblySymmetryDataParams = typeof AssemblySymmetryDataParams
 export type AssemblySymmetryDataProps = PD.Values<AssemblySymmetryDataParams>

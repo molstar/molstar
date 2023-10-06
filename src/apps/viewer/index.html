@@ -85,6 +85,9 @@
                 preferWebgl1: preferWebgl1,
                 allowMajorPerformanceCaveat: allowMajorPerformanceCaveat,
                 powerPreference: powerPreference || 'high-performance',
+                rcsbAssemblySymmetryApplyColors: false,
+                rcsbAssemblySymmetryDefaultServerType: 'pdbe',
+                rcsbAssemblySymmetryDefaultServerUrl: 'https://www.ebi.ac.uk/pdbe/aggregated-api/pdb/symmetry',
             }).then(viewer => {
                 var snapshotId = getParam('snapshot-id', '[^&]+').trim();
                 if (snapshotId) viewer.setRemoteSnapshot(snapshotId);
