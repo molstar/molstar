@@ -70,10 +70,11 @@ const SimpleSettingsParams = {
     }, { pivot: 'radius' }),
     layout: PD.MultiSelect([] as LayoutOptions[], PD.objectToOptions(LayoutOptions)),
     advanced: PD.Group({
+        multiSample: Canvas3DParams.multiSample,
         hiZ: Canvas3DParams.hiZ,
         sharpening: Canvas3DParams.postprocessing.params.sharpening,
-        multiSample: Canvas3DParams.multiSample,
         pixelScale: Canvas3DContext.Params.pixelScale,
+        transparency: Canvas3DContext.Params.transparency,
     }),
 };
 
@@ -107,8 +108,8 @@ const SimpleSettingsMapping = ParamMapping({
         if (r.bottom !== 'hidden' && (!c || c.bottom !== 'none')) layout.push('log');
         if (r.left !== 'hidden' && (!c || c.left !== 'none')) layout.push('left');
         if (r.right !== 'hidden' && (!c || c.left !== 'none')) layout.push('right');
-        const pixelScale = ctx.canvas3dContext?.props.pixelScale!;
-        return { canvas: ctx.canvas3d?.props!, layout, pixelScale };
+        const { pixelScale, transparency } = ctx.canvas3dContext?.props!;
+        return { canvas: ctx.canvas3d?.props!, layout, pixelScale, transparency };
     }
 })({
     values(props, ctx) {
@@ -134,10 +135,11 @@ const SimpleSettingsMapping = ParamMapping({
                 ...canvas.cameraClipping,
             },
             advanced: {
+                multiSample: canvas.multiSample,
                 hiZ: canvas.hiZ,
                 sharpening: canvas.postprocessing.sharpening,
-                multiSample: canvas.multiSample,
                 pixelScale: props.pixelScale,
+                transparency: props.transparency,
             },
         };
     },
@@ -157,12 +159,13 @@ const SimpleSettingsMapping = ParamMapping({
             far: s.clipping.far,
             minNear: s.clipping.minNear,
         };
+        canvas.multiSample = s.advanced.multiSample;
         canvas.hiZ = s.advanced.hiZ;
         canvas.postprocessing.sharpening = s.advanced.sharpening;
-        canvas.multiSample = s.advanced.multiSample;
 
         props.layout = s.layout;
         props.pixelScale = s.advanced.pixelScale;
+        props.transparency = s.advanced.transparency;
     },
     async apply(props, ctx) {
         await PluginCommands.Canvas3D.SetSettings(ctx, { settings: props.canvas });
@@ -180,6 +183,9 @@ const SimpleSettingsMapping = ParamMapping({
             PluginCommands.State.SetCurrentObject(ctx, { state: ctx.state.data, ref: StateTransform.RootRef });
         }
 
-        ctx.canvas3dContext?.setProps({ pixelScale: props.pixelScale });
+        ctx.canvas3dContext?.setProps({
+            pixelScale: props.pixelScale,
+            transparency: props.transparency,
+        });
     }
 });

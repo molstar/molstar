@@ -23,6 +23,7 @@ import { PluginBehaviors } from '../../mol-plugin/behavior';
 import { MesoFocusLoci } from './behavior/camera';
 import { GraphicsMode, MesoscaleState } from './data/state';
 import { MesoSelectLoci } from './behavior/select';
+import { Transparency } from '../../mol-gl/webgl/render-item';
 
 export { PLUGIN_VERSION as version } from '../../mol-plugin/version';
 export { setDebugMode, setProductionMode, setTimingMode, consoleStats } from '../../mol-util/debug';
@@ -56,7 +57,7 @@ const DefaultViewerOptions = {
     disableAntialiasing: PluginConfig.General.DisableAntialiasing.defaultValue,
     pixelScale: PluginConfig.General.PixelScale.defaultValue,
     pickScale: PluginConfig.General.PickScale.defaultValue,
-    transparency: PluginConfig.General.Transparency.defaultValue,
+    transparency: 'blended' as Transparency,
     preferWebgl1: PluginConfig.General.PreferWebGl1.defaultValue,
     allowMajorPerformanceCaveat: PluginConfig.General.AllowMajorPerformanceCaveat.defaultValue,
     powerPreference: PluginConfig.General.PowerPreference.defaultValue,

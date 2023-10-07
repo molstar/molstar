@@ -69,7 +69,7 @@
                 pixelScale: parseFloat(pixelScale) || 1,
                 pickScale: parseFloat(pickScale) || 0.25,
                 pickPadding: isNaN(parseFloat(pickPadding)) ? 1 : parseFloat(pickPadding),
-                transparency: transparency,
+                transparency: transparency || undefined,
                 preferWebgl1: preferWebgl1,
                 allowMajorPerformanceCaveat: allowMajorPerformanceCaveat,
                 powerPreference: powerPreference || 'high-performance',
