@@ -33,6 +33,7 @@ import { BackgroundParams, BackgroundPass } from './background';
 import { AssetManager } from '../../mol-util/assets';
 import { Light } from '../../mol-gl/renderer';
 import { shadows_frag } from '../../mol-gl/shader/shadows.frag';
+import { CasParams, CasPass } from './cas';
 
 const OutlinesSchema = {
     ...QuadSchema,
@@ -399,6 +400,10 @@ export const PostprocessingParams = {
         smaa: PD.Group(SmaaParams),
         off: PD.Group({})
     }, { options: [['fxaa', 'FXAA'], ['smaa', 'SMAA'], ['off', 'Off']], description: 'Smooth pixel edges' }),
+    sharpening: PD.MappedStatic('off', {
+        on: PD.Group(CasParams),
+        off: PD.Group({})
+    }, { cycle: true, description: 'Contrast Adaptive Sharpening' }),
     background: PD.Group(BackgroundParams, { isFlat: true }),
 };
 
@@ -464,14 +469,13 @@ export class PostprocessingPass {
 
     private nSamples: number;
     private blurKernelSize: number;
-    private downsampleFactor: number;
 
     private readonly renderable: PostprocessingRenderable;
 
     private ssaoScale: number;
-    private calcSsaoScale() {
+    private calcSsaoScale(resolutionScale: number) {
         // downscale ssao for high pixel-ratios
-        return Math.min(1, 1 / this.webgl.pixelRatio) * this.downsampleFactor;
+        return Math.min(1, 1 / this.webgl.pixelRatio) * resolutionScale;
     }
 
     private levels: { radius: number, bias: number }[];
@@ -486,8 +490,7 @@ export class PostprocessingPass {
 
         this.nSamples = 1;
         this.blurKernelSize = 1;
-        this.downsampleFactor = 1;
-        this.ssaoScale = this.calcSsaoScale();
+        this.ssaoScale = this.calcSsaoScale(1);
         this.levels = [];
 
         // needs to be linear for anti-aliasing pass
@@ -517,10 +520,12 @@ export class PostprocessingPass {
             : webgl.createRenderTarget(sw, sh, false, 'float32', 'linear', webgl.isWebGL2 ? 'alpha' : 'rgba');
         this.downsampleDepthRenderable = createCopyRenderable(webgl, depthTextureOpaque);
 
+        const depthTexture = this.ssaoScale === 1 ? depthTextureOpaque : this.downsampledDepthTarget.texture;
+
         this.depthHalfTarget = drawPass.packedDepth
             ? webgl.createRenderTarget(hw, hh, false, 'uint8', 'linear', 'rgba')
             : webgl.createRenderTarget(hw, hh, false, 'float32', 'linear', webgl.isWebGL2 ? 'alpha' : 'rgba');
-        this.depthHalfRenderable = createCopyRenderable(webgl, this.ssaoScale === 1 ? depthTextureOpaque : this.downsampledDepthTarget.texture);
+        this.depthHalfRenderable = createCopyRenderable(webgl, depthTexture);
 
         this.depthQuarterTarget = drawPass.packedDepth
             ? webgl.createRenderTarget(qw, qh, false, 'uint8', 'linear', 'rgba')
@@ -537,7 +542,7 @@ export class PostprocessingPass {
 
         this.ssaoDepthTexture.attachFramebuffer(this.ssaoBlurSecondPassFramebuffer, 'color0');
 
-        this.ssaoRenderable = getSsaoRenderable(webgl, this.ssaoScale === 1 ? depthTextureOpaque : this.downsampledDepthTarget.texture, this.depthHalfTarget.texture, this.depthQuarterTarget.texture);
+        this.ssaoRenderable = getSsaoRenderable(webgl, depthTexture, this.depthHalfTarget.texture, this.depthQuarterTarget.texture);
         this.ssaoBlurFirstPassRenderable = getSsaoBlurRenderable(webgl, this.ssaoDepthTexture, 'horizontal');
         this.ssaoBlurSecondPassRenderable = getSsaoBlurRenderable(webgl, this.ssaoDepthBlurProxyTexture, 'vertical');
         this.renderable = getPostprocessingRenderable(webgl, colorTarget.texture, depthTextureOpaque, depthTextureTransparent, this.shadowsTarget.texture, this.outlinesTarget.texture, this.ssaoDepthTexture, true);
@@ -547,7 +552,7 @@ export class PostprocessingPass {
 
     setSize(width: number, height: number) {
         const [w, h] = this.renderable.values.uTexSize.ref.value;
-        const ssaoScale = this.calcSsaoScale();
+        const ssaoScale = this.calcSsaoScale(1);
 
         if (width !== w || height !== h || this.ssaoScale !== ssaoScale) {
             this.ssaoScale = ssaoScale;
@@ -580,6 +585,13 @@ export class PostprocessingPass {
             ValueCell.update(this.ssaoBlurFirstPassRenderable.values.uTexSize, Vec2.set(this.ssaoBlurFirstPassRenderable.values.uTexSize.ref.value, sw, sh));
             ValueCell.update(this.ssaoBlurSecondPassRenderable.values.uTexSize, Vec2.set(this.ssaoBlurSecondPassRenderable.values.uTexSize.ref.value, sw, sh));
 
+            const depthTexture = this.ssaoScale === 1 ? this.drawPass.depthTextureOpaque : this.downsampledDepthTarget.texture;
+            ValueCell.update(this.depthHalfRenderable.values.tColor, depthTexture);
+            ValueCell.update(this.ssaoRenderable.values.tDepth, depthTexture);
+
+            this.depthHalfRenderable.update();
+            this.ssaoRenderable.update();
+
             this.background.setSize(width, height);
         }
     }
@@ -589,6 +601,7 @@ export class PostprocessingPass {
         let needsUpdateMain = false;
         let needsUpdateSsao = false;
         let needsUpdateSsaoBlur = false;
+        let needsUpdateDepthHalf = false;
         let needsUpdateOutlines = false;
 
         const orthographic = camera.state.mode === 'orthographic' ? 1 : 0;
@@ -678,11 +691,12 @@ export class PostprocessingPass {
                 ValueCell.update(this.ssaoBlurSecondPassRenderable.values.dOcclusionKernelSize, this.blurKernelSize);
             }
 
-            if (this.downsampleFactor !== props.occlusion.params.resolutionScale) {
+            const ssaoScale = this.calcSsaoScale(props.occlusion.params.resolutionScale);
+            if (this.ssaoScale !== ssaoScale) {
                 needsUpdateSsao = true;
+                needsUpdateDepthHalf = true;
 
-                this.downsampleFactor = props.occlusion.params.resolutionScale;
-                this.ssaoScale = this.calcSsaoScale();
+                this.ssaoScale = ssaoScale;
 
                 const sw = Math.floor(w * this.ssaoScale);
                 const sh = Math.floor(h * this.ssaoScale);
@@ -698,11 +712,9 @@ export class PostprocessingPass {
                 const qh = Math.floor(sh * 0.25);
                 this.depthQuarterTarget.setSize(qw, qh);
 
-                if (this.ssaoScale === 1) {
-                    ValueCell.update(this.ssaoRenderable.values.tDepth, this.drawPass.depthTextureOpaque);
-                } else {
-                    ValueCell.update(this.ssaoRenderable.values.tDepth, this.downsampledDepthTarget.texture);
-                }
+                const depthTexture = this.ssaoScale === 1 ? this.drawPass.depthTextureOpaque : this.downsampledDepthTarget.texture;
+                ValueCell.update(this.depthHalfRenderable.values.tColor, depthTexture);
+                ValueCell.update(this.ssaoRenderable.values.tDepth, depthTexture);
 
                 ValueCell.update(this.ssaoRenderable.values.tDepthHalf, this.depthHalfTarget.texture);
                 ValueCell.update(this.ssaoRenderable.values.tDepthQuarter, this.depthQuarterTarget.texture);
@@ -755,8 +767,8 @@ export class PostprocessingPass {
 
         if (props.outline.name === 'on') {
             const transparentOutline = props.outline.params.includeTransparent ?? true;
-            const outlineScale = props.outline.params.scale - 1;
-            const outlineThreshold = 50 * props.outline.params.threshold;
+            const outlineScale = Math.max(1, Math.round(props.outline.params.scale * this.webgl.pixelRatio)) - 1;
+            const outlineThreshold = 50 * props.outline.params.threshold * this.webgl.pixelRatio;
 
             ValueCell.updateIfChanged(this.outlinesRenderable.values.uNear, camera.near);
             ValueCell.updateIfChanged(this.outlinesRenderable.values.uFar, camera.far);
@@ -822,6 +834,10 @@ export class PostprocessingPass {
         if (needsUpdateSsaoBlur) {
             this.ssaoBlurFirstPassRenderable.update();
             this.ssaoBlurSecondPassRenderable.update();
+        }
+
+        if (needsUpdateDepthHalf) {
+            this.depthHalfRenderable.update();
         }
 
         if (needsUpdateMain) {
@@ -942,8 +958,11 @@ export class AntialiasingPass {
     }
 
     readonly target: RenderTarget;
+    private readonly internalTarget: RenderTarget;
+
     private readonly fxaa: FxaaPass;
     private readonly smaa: SmaaPass;
+    private readonly cas: CasPass;
 
     constructor(webgl: WebGLContext, private drawPass: DrawPass) {
         const { colorTarget } = drawPass;
@@ -951,8 +970,11 @@ export class AntialiasingPass {
         const height = colorTarget.getHeight();
 
         this.target = webgl.createRenderTarget(width, height, false);
+        this.internalTarget = webgl.createRenderTarget(width, height, false);
+
         this.fxaa = new FxaaPass(webgl, this.target.texture);
         this.smaa = new SmaaPass(webgl, this.target.texture);
+        this.cas = new CasPass(webgl, this.target.texture);
     }
 
     setSize(width: number, height: number) {
@@ -961,41 +983,69 @@ export class AntialiasingPass {
 
         if (width !== w || height !== h) {
             this.target.setSize(width, height);
+            this.internalTarget.setSize(width, height);
             this.fxaa.setSize(width, height);
             if (this.smaa.supported) this.smaa.setSize(width, height);
+            this.cas.setSize(width, height);
         }
     }
 
-    private _renderFxaa(camera: ICamera, toDrawingBuffer: boolean, props: PostprocessingProps) {
+    private _renderFxaa(camera: ICamera, target: RenderTarget | undefined, props: PostprocessingProps) {
         if (props.antialiasing.name !== 'fxaa') return;
 
         const input = PostprocessingPass.isEnabled(props)
             ? this.drawPass.postprocessing.target.texture
             : this.drawPass.colorTarget.texture;
         this.fxaa.update(input, props.antialiasing.params);
-        this.fxaa.render(camera.viewport, toDrawingBuffer ? undefined : this.target);
+        this.fxaa.render(camera.viewport, target);
     }
 
-    private _renderSmaa(camera: ICamera, toDrawingBuffer: boolean, props: PostprocessingProps) {
+    private _renderSmaa(camera: ICamera, target: RenderTarget | undefined, props: PostprocessingProps) {
         if (props.antialiasing.name !== 'smaa') return;
 
         const input = PostprocessingPass.isEnabled(props)
             ? this.drawPass.postprocessing.target.texture
             : this.drawPass.colorTarget.texture;
         this.smaa.update(input, props.antialiasing.params);
-        this.smaa.render(camera.viewport, toDrawingBuffer ? undefined : this.target);
+        this.smaa.render(camera.viewport, target);
+    }
+
+    private _renderAntialiasing(camera: ICamera, target: RenderTarget | undefined, props: PostprocessingProps) {
+        if (props.antialiasing.name === 'fxaa') {
+            this._renderFxaa(camera, target, props);
+        } else if (props.antialiasing.name === 'smaa') {
+            this._renderSmaa(camera, target, props);
+        }
+    }
+
+    private _renderCas(camera: ICamera, target: RenderTarget | undefined, props: PostprocessingProps) {
+        if (props.sharpening.name !== 'on') return;
+
+        const input = props.antialiasing.name !== 'off'
+            ? this.internalTarget.texture
+            : PostprocessingPass.isEnabled(props)
+                ? this.drawPass.postprocessing.target.texture
+                : this.drawPass.colorTarget.texture;
+        this.cas.update(input, props.sharpening.params);
+        this.cas.render(camera.viewport, target);
     }
 
     render(camera: ICamera, toDrawingBuffer: boolean, props: PostprocessingProps) {
-        if (props.antialiasing.name === 'off') return;
+        if (props.antialiasing.name === 'off' && props.sharpening.name === 'off') return;
 
-        if (props.antialiasing.name === 'fxaa') {
-            this._renderFxaa(camera, toDrawingBuffer, props);
-        } else if (props.antialiasing.name === 'smaa') {
-            if (!this.smaa.supported) {
-                throw new Error('SMAA not supported, missing "HTMLImageElement"');
-            }
-            this._renderSmaa(camera, toDrawingBuffer, props);
+        if (props.antialiasing.name === 'smaa' && !this.smaa.supported) {
+            console.error('SMAA not supported, missing "HTMLImageElement"');
+            return;
+        }
+
+        const target = toDrawingBuffer ? undefined : this.target;
+        if (props.sharpening.name === 'off') {
+            this._renderAntialiasing(camera, target, props);
+        } else if (props.antialiasing.name === 'off') {
+            this._renderCas(camera, target, props);
+        } else {
+            this._renderAntialiasing(camera, this.internalTarget, props);
+            this._renderCas(camera, target, props);
         }
     }
 }

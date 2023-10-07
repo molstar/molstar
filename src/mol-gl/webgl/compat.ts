@@ -586,6 +586,123 @@ export function getProvokingVertex(gl: GLRenderingContext): COMPAT_provoking_ver
     return null;
 }
 
+/**
+ * See https://registry.khronos.org/webgl/extensions/WEBGL_clip_cull_distance/
+ */
+export interface COMPAT_clip_cull_distance {
+    readonly MAX_CLIP_DISTANCES: number;
+    readonly MAX_CULL_DISTANCES: number;
+    readonly MAX_COMBINED_CLIP_AND_CULL_DISTANCES: number;
+
+    readonly CLIP_DISTANCE0: number;
+    readonly CLIP_DISTANCE1: number;
+    readonly CLIP_DISTANCE2: number;
+    readonly CLIP_DISTANCE3: number;
+    readonly CLIP_DISTANCE4: number;
+    readonly CLIP_DISTANCE5: number;
+    readonly CLIP_DISTANCE6: number;
+    readonly CLIP_DISTANCE7: number;
+}
+
+export function getClipCullDistance(gl: GLRenderingContext): COMPAT_clip_cull_distance | null {
+    if (isWebGL2(gl)) {
+        const ext = gl.getExtension('WEBGL_clip_cull_distance');
+        if (ext) {
+            return {
+                MAX_CLIP_DISTANCES: ext.MAX_CLIP_DISTANCES_WEBGL,
+                MAX_CULL_DISTANCES: ext.MAX_CULL_DISTANCES_WEBGL,
+                MAX_COMBINED_CLIP_AND_CULL_DISTANCES: ext.MAX_COMBINED_CLIP_AND_CULL_DISTANCES_WEBGL,
+
+                CLIP_DISTANCE0: ext.CLIP_DISTANCE0_WEBGL,
+                CLIP_DISTANCE1: ext.CLIP_DISTANCE1_WEBGL,
+                CLIP_DISTANCE2: ext.CLIP_DISTANCE2_WEBGL,
+                CLIP_DISTANCE3: ext.CLIP_DISTANCE3_WEBGL,
+                CLIP_DISTANCE4: ext.CLIP_DISTANCE4_WEBGL,
+                CLIP_DISTANCE5: ext.CLIP_DISTANCE5_WEBGL,
+                CLIP_DISTANCE6: ext.CLIP_DISTANCE6_WEBGL,
+                CLIP_DISTANCE7: ext.CLIP_DISTANCE7_WEBGL
+            };
+        }
+    }
+    return null;
+}
+
+/**
+ * See https://registry.khronos.org/webgl/extensions/EXT_conservative_depth/
+ */
+export interface COMPAT_conservative_depth {
+}
+
+export function getConservativeDepth(gl: GLRenderingContext): COMPAT_conservative_depth | null {
+    if (isWebGL2(gl)) {
+        const ext = gl.getExtension('EXT_conservative_depth');
+        if (ext) {
+            return {};
+        }
+    }
+    return null;
+}
+
+/**
+ * See https://registry.khronos.org/webgl/extensions/WEBGL_stencil_texturing/
+ */
+export interface COMPAT_stencil_texturing {
+    readonly DEPTH_STENCIL_TEXTURE_MODE: number;
+    readonly STENCIL_INDEX: number;
+}
+
+export function getStencilTexturing(gl: GLRenderingContext): COMPAT_stencil_texturing | null {
+    if (isWebGL2(gl)) {
+        const ext = gl.getExtension('WEBGL_stencil_texturing');
+        if (ext) {
+            return {
+                DEPTH_STENCIL_TEXTURE_MODE: ext.DEPTH_STENCIL_TEXTURE_MODE_WEBGL,
+                STENCIL_INDEX: ext.STENCIL_INDEX_WEBGL
+            };
+        }
+    }
+    return null;
+}
+
+/**
+ * See https://registry.khronos.org/webgl/extensions/EXT_clip_control/
+ */
+export interface COMPAT_clip_control {
+    readonly LOWER_LEFT: number;
+    readonly UPPER_LEFT: number;
+
+    readonly NEGATIVE_ONE_TO_ONE: number;
+    readonly ZERO_TO_ONE: number;
+
+    readonly CLIP_ORIGIN: number;
+    readonly CLIP_DEPTH_MODE: number;
+
+    /**
+     * @param origin must be LOWER_LEFT (default) or UPPER_LEFT.
+     * @param depth must be NEGATIVE_ONE_TO_ONE (default) or ZERO_TO_ONE.
+     */
+    clipControl(origin: number, depth: number): void
+}
+
+export function getClipControl(gl: GLRenderingContext): COMPAT_clip_control | null {
+    const ext = gl.getExtension('EXT_clip_control');
+    if (ext) {
+        return {
+            LOWER_LEFT: ext.LOWER_LEFT_EXT,
+            UPPER_LEFT: ext.UPPER_LEFT_EXT,
+
+            NEGATIVE_ONE_TO_ONE: ext.NEGATIVE_ONE_TO_ONE_EXT,
+            ZERO_TO_ONE: ext.ZERO_TO_ONE_EXT,
+
+            CLIP_ORIGIN: ext.CLIP_ORIGIN_EXT,
+            CLIP_DEPTH_MODE: ext.CLIP_DEPTH_MODE_EXT,
+
+            clipControl: ext.clipControlEXT.bind(ext)
+        };
+    }
+    return null;
+}
+
 export function getNoNonInstancedActiveAttribs(gl: GLRenderingContext): boolean {
     if (!isWebGL2(gl)) return false;
 

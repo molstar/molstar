@@ -107,7 +107,7 @@ namespace Lab {
         return darken(out, c, -amount);
     }
 
-    const tmpSaturateHcl = [0, 0, 0] as Hcl;
+    const tmpSaturateHcl = [0, 0, 0] as unknown as Hcl;
     export function saturate(out: Lab, c: Lab, amount: number): Lab {
         toHcl(tmpSaturateHcl, c);
         return Hcl.toLab(out, Hcl.saturate(tmpSaturateHcl, tmpSaturateHcl, amount));

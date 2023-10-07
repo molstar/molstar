@@ -65,7 +65,10 @@
             var allowMajorPerformanceCaveat = getParam('allow-major-performance-caveat', '[^&]+').trim() === '1';
             var powerPreference = getParam('power-preference', '[^&]+').trim().toLowerCase();
 
+            // console.log('Available extensions: ', Object.keys(molstar.ExtensionMap));
+
             molstar.Viewer.create('app', {
+                disabledExtensions: [], // anything from Object.keys(molstar.ExtensionMap)
                 layoutShowControls: !hideControls,
                 viewportShowExpand: false,
                 collapseLeftPanel: collapseLeftPanel,

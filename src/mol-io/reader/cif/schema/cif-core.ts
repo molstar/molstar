@@ -1,7 +1,7 @@
 /**
  * Copyright (c) 2017-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
- * Code-generated 'CifCore' schema file. Dictionary versions: CifCore 3.1.0.
+ * Code-generated 'CifCore' schema file. Dictionary versions: CifCore 3.3.0.
  *
  * @author molstar/ciftools package
  */
@@ -18,7 +18,7 @@ const Matrix = Schema.Matrix;
 export const CifCore_Schema = {
     /**
      * The CATEGORY of data items used to describe the parameters of
-     * the crystal unit cell and their measurement.
+     * the crystal unit cell.
      */
     cell: {
         /**
@@ -84,8 +84,8 @@ export const CifCore_Schema = {
      * _chemical_formula.analytical, *.structural and *.sum. For the
      * data item *.moiety the formula construction is broken up into
      * residues or moieties, i.e. groups of atoms that form a molecular
-     * unit or molecular ion. The  rules given below apply within each
-     * moiety but different requirements apply to the way that moieties
+     * unit or molecular ion. The rules given below apply within each
+     * moiety, but different requirements apply to the way that moieties
      * are connected (see _chemical_formula.moiety).
      *
      * 1. Only recognized element symbols may be used.
@@ -109,7 +109,7 @@ export const CifCore_Schema = {
      * depends on whether or not carbon is present. If carbon is
      * present, the order should be: C, then H, then the other
      * elements in alphabetical order of their symbol. If carbon is
-     * not present, the elements are listed purely in alphabetic order
+     * not present, the elements are listed purely in alphabetical order
      * of their symbol. This is the 'Hill' system used by Chemical
      * Abstracts. This ordering is used in _chemical_formula.moiety
      * and _chemical_formula.sum.
@@ -165,7 +165,7 @@ export const CifCore_Schema = {
      * stored in this dictionary.
      *
      * The commonly used Hermann-Mauguin symbol determines the
-     * space-group type uniquely but several different Hermann-Mauguin
+     * space-group type uniquely, but several different Hermann-Mauguin
      * symbols may refer to the same space-group type. A
      * Hermann-Mauguin symbol contains information on the choice of
      * the basis, but not on the choice of origin.
@@ -205,13 +205,13 @@ export const CifCore_Schema = {
          * Subscripts should appear without special symbols. Bars should
          * be given as negative signs before the numbers to which they
          * apply. The commonly used Hermann-Mauguin symbol determines the
-         * space-group type uniquely but a given space-group type may
+         * space-group type uniquely, but a given space-group type may
          * be described by more than one Hermann-Mauguin symbol. The
          * space-group type is best described using
          * _space_group.IT_number or _space_group.name_Schoenflies. The
          * full international Hermann-Mauguin symbol contains information
          * about the choice of basis for monoclinic and orthorhombic
-         * space groups but does not give information about the choice
+         * space groups, but does not give information about the choice
          * of origin. To define the setting uniquely use
          * _space_group.name_Hall, or list the symmetry operations
          * or generators.
@@ -282,8 +282,8 @@ export const CifCore_Schema = {
          */
         publ_flag: str,
         /**
-         * The set of data items which specify the symmetry operation codes
-         * which must be applied to the atom sites involved in the geometry angle.
+         * Data item specifying the symmetry operation codes applied to the atom
+         * sites involved in a specific geometric configuration.
          *
          * The symmetry code of each atom site as the symmetry-equivalent position
          * number 'n' and the cell translation number 'pqr'. These numbers are
@@ -292,8 +292,9 @@ export const CifCore_Schema = {
          * The character string n_pqr is composed as follows:
          *
          * n refers to the symmetry operation that is applied to the
-         * coordinates stored in _atom_site.fract_xyz. It must match a
-         * number given in _symmetry_equiv.pos_site_id.
+         * coordinates stored in _atom_site.fract_xyz. It must match
+         * a number given in _space_group_symop.id (or one of its
+         * aliases, such as _symmetry_equiv_pos_site_id).
          *
          * p, q and r refer to the translations that are subsequently
          * applied to the symmetry transformed coordinates to generate
@@ -305,8 +306,8 @@ export const CifCore_Schema = {
          */
         site_symmetry_1: str,
         /**
-         * The set of data items which specify the symmetry operation codes
-         * which must be applied to the atom sites involved in the geometry angle.
+         * Data item specifying the symmetry operation codes applied to the atom
+         * sites involved in a specific geometric configuration.
          *
          * The symmetry code of each atom site as the symmetry-equivalent position
          * number 'n' and the cell translation number 'pqr'. These numbers are
@@ -315,8 +316,9 @@ export const CifCore_Schema = {
          * The character string n_pqr is composed as follows:
          *
          * n refers to the symmetry operation that is applied to the
-         * coordinates stored in _atom_site.fract_xyz. It must match a
-         * number given in _symmetry_equiv.pos_site_id.
+         * coordinates stored in _atom_site.fract_xyz. It must match
+         * a number given in _space_group_symop.id (or one of its
+         * aliases, such as _symmetry_equiv_pos_site_id).
          *
          * p, q and r refer to the translations that are subsequently
          * applied to the symmetry transformed coordinates to generate
@@ -355,7 +357,7 @@ export const CifCore_Schema = {
          * of the Internet concepts of Uniform Resource Name and
          * Universal Resource Locator managed according to the
          * specifications of the International DOI Foundation
-         * (see http://www.doi.org).
+         * (see https://www.doi.org/).
          */
         block_doi: str,
     },
@@ -414,23 +416,25 @@ export const CifCore_Schema = {
          */
         calc_flag: str,
         /**
-         * A code which identifies a cluster of atoms that show long range
-         * positional disorder but are locally ordered. Within each such
-         * cluster of atoms, _atom_site.disorder_group is used to identify
-         * the sites that are simultaneously occupied. This field is only
-         * needed if there is more than one cluster of disordered atoms
-         * showing independent local order.
+         * A code which identifies a cluster of atoms that show long range disorder
+         * but are locally ordered. Within each such cluster of atoms,
+         * _atom_site.disorder_group is used to identify the sites that are
+         * simultaneously occupied. This field is only needed if there is more than
+         * one cluster of disordered atoms showing independent local order.
          */
         disorder_assembly: str,
         /**
-         * A code that identifies a group of positionally disordered atom
-         * sites that are locally simultaneously occupied. Atoms that are
-         * positionally disordered over two or more sites (e.g. the H
-         * atoms of a methyl group that exists in two orientations) can
-         * be assigned to two or more groups. Sites belonging to the same
-         * group are simultaneously occupied, but those belonging to
-         * different groups are not. A minus prefix (e.g. "-1") is used to
-         * indicate sites disordered about a special position.
+         * A code that identifies a group of disordered atom sites that are locally
+         * simultaneously occupied. Atoms that are positionally disordered over two or
+         * more sites (e.g. the H atoms of a methyl group that exists in two
+         * orientations) should be assigned to two or more groups. Similarly, atoms
+         * that describe a specific alternative composition of a compositionally
+         * disordered site should be assigned to a distinct disorder group (e.g. a site
+         * that is partially occupied by Mg and Mn atoms should be described by
+         * assigning the Mg atom to one group and the Mn atom to another group). Sites
+         * belonging to the same group are simultaneously occupied, but those belonging
+         * to different groups are not. A minus prefix (e.g. "-1") is used to indicate
+         * sites disordered about a special position.
          */
         disorder_group: str,
         /**
@@ -491,6 +495,10 @@ export const CifCore_Schema = {
          * Vol. A (2002). It is equal to the multiplicity of the general
          * position divided by the order of the site symmetry given in
          * _atom_site.site_symmetry_order.
+         *
+         * The _atom_site_symmetry_multiplicity form of this data name is
+         * deprecated because of historical inconsistencies in practice among
+         * structure refinement software packages and should not be used.
          */
         site_symmetry_multiplicity: int,
         /**
@@ -502,8 +510,8 @@ export const CifCore_Schema = {
         type_symbol: str,
         /**
          * Isotropic atomic displacement parameter, or equivalent isotropic
-         * atomic  displacement parameter, U(equiv), in angstroms squared,
-         * calculated from anisotropic atomic displacement  parameters.
+         * atomic displacement parameter, U(equiv), in angstroms squared,
+         * calculated from anisotropic atomic displacement parameters.
          *
          * U(equiv) = (1/3) sum~i~[sum~j~(U^ij^ a*~i~ a*~j~ a~i~.a~j~)]
          *
@@ -514,8 +522,8 @@ export const CifCore_Schema = {
         u_iso_or_equiv: float,
     },
     /**
-     * The CATEGORY of data items used to describe the anisotropic
-     * thermal parameters of the atomic sites in a crystal structure.
+     * The CATEGORY of data items used to describe the anisotropic atomic
+     * displacement parameters of the atomic sites in a crystal structure.
      */
     atom_site_aniso: {
         /**
@@ -526,94 +534,136 @@ export const CifCore_Schema = {
          */
         label: str,
         /**
-         * These are the standard anisotropic atomic displacement
-         * components in angstroms squared which appear in the
-         * structure factor term:
+         * These are the standard anisotropic atomic displacement components, in
+         * angstroms squared, which appear in the structure factor term:
          *
-         * T = exp{-2pi^2^ sum~i~ [sum~j~ (U^ij^ h~i~ h~j~ a*~i~ a*~j~) ] }
+         * T = exp{ -2π^2^ sum~i~ [ sum~j~ (U^ij^ h~i~ h~j~ a*~i~ a*~j~) ] }
          *
          * h = the Miller indices
          * a* = the reciprocal-space cell lengths
          *
          * The unique elements of the real symmetric matrix are entered by row.
+         *
+         * The IUCr Commission on Nomenclature recommends the use of U for reporting
+         * atomic displacement parameters .
+         *
+         * Note that U^ij^ = β^ij^/(2 π^2^ a*~i~ a*~j~) = B^ij^/(8 π^2^) [1].
+         *
+         * [1] Trueblood, K. N. et al. (1996). Acta Crystallogr. A52(5), 770-781.
          */
         u_11: float,
         /**
-         * These are the standard anisotropic atomic displacement
-         * components in angstroms squared which appear in the
-         * structure factor term:
+         * These are the standard anisotropic atomic displacement components, in
+         * angstroms squared, which appear in the structure factor term:
          *
-         * T = exp{-2pi^2^ sum~i~ [sum~j~ (U^ij^ h~i~ h~j~ a*~i~ a*~j~) ] }
+         * T = exp{ -2π^2^ sum~i~ [ sum~j~ (U^ij^ h~i~ h~j~ a*~i~ a*~j~) ] }
          *
          * h = the Miller indices
          * a* = the reciprocal-space cell lengths
          *
          * The unique elements of the real symmetric matrix are entered by row.
+         *
+         * The IUCr Commission on Nomenclature recommends the use of U for reporting
+         * atomic displacement parameters .
+         *
+         * Note that U^ij^ = β^ij^/(2 π^2^ a*~i~ a*~j~) = B^ij^/(8 π^2^) [1].
+         *
+         * [1] Trueblood, K. N. et al. (1996). Acta Crystallogr. A52(5), 770-781.
          */
         u: Matrix(3, 3),
         /**
-         * These are the standard anisotropic atomic displacement
-         * components in angstroms squared which appear in the
-         * structure factor term:
+         * These are the standard anisotropic atomic displacement components, in
+         * angstroms squared, which appear in the structure factor term:
          *
-         * T = exp{-2pi^2^ sum~i~ [sum~j~ (U^ij^ h~i~ h~j~ a*~i~ a*~j~) ] }
+         * T = exp{ -2π^2^ sum~i~ [ sum~j~ (U^ij^ h~i~ h~j~ a*~i~ a*~j~) ] }
          *
          * h = the Miller indices
          * a* = the reciprocal-space cell lengths
          *
          * The unique elements of the real symmetric matrix are entered by row.
+         *
+         * The IUCr Commission on Nomenclature recommends the use of U for reporting
+         * atomic displacement parameters .
+         *
+         * Note that U^ij^ = β^ij^/(2 π^2^ a*~i~ a*~j~) = B^ij^/(8 π^2^) [1].
+         *
+         * [1] Trueblood, K. N. et al. (1996). Acta Crystallogr. A52(5), 770-781.
          */
         u_12: float,
         /**
-         * These are the standard anisotropic atomic displacement
-         * components in angstroms squared which appear in the
-         * structure factor term:
+         * These are the standard anisotropic atomic displacement components, in
+         * angstroms squared, which appear in the structure factor term:
          *
-         * T = exp{-2pi^2^ sum~i~ [sum~j~ (U^ij^ h~i~ h~j~ a*~i~ a*~j~) ] }
+         * T = exp{ -2π^2^ sum~i~ [ sum~j~ (U^ij^ h~i~ h~j~ a*~i~ a*~j~) ] }
          *
          * h = the Miller indices
          * a* = the reciprocal-space cell lengths
          *
          * The unique elements of the real symmetric matrix are entered by row.
+         *
+         * The IUCr Commission on Nomenclature recommends the use of U for reporting
+         * atomic displacement parameters .
+         *
+         * Note that U^ij^ = β^ij^/(2 π^2^ a*~i~ a*~j~) = B^ij^/(8 π^2^) [1].
+         *
+         * [1] Trueblood, K. N. et al. (1996). Acta Crystallogr. A52(5), 770-781.
          */
         u_13: float,
         /**
-         * These are the standard anisotropic atomic displacement
-         * components in angstroms squared which appear in the
-         * structure factor term:
+         * These are the standard anisotropic atomic displacement components, in
+         * angstroms squared, which appear in the structure factor term:
          *
-         * T = exp{-2pi^2^ sum~i~ [sum~j~ (U^ij^ h~i~ h~j~ a*~i~ a*~j~) ] }
+         * T = exp{ -2π^2^ sum~i~ [ sum~j~ (U^ij^ h~i~ h~j~ a*~i~ a*~j~) ] }
          *
          * h = the Miller indices
          * a* = the reciprocal-space cell lengths
          *
          * The unique elements of the real symmetric matrix are entered by row.
+         *
+         * The IUCr Commission on Nomenclature recommends the use of U for reporting
+         * atomic displacement parameters .
+         *
+         * Note that U^ij^ = β^ij^/(2 π^2^ a*~i~ a*~j~) = B^ij^/(8 π^2^) [1].
+         *
+         * [1] Trueblood, K. N. et al. (1996). Acta Crystallogr. A52(5), 770-781.
          */
         u_22: float,
         /**
-         * These are the standard anisotropic atomic displacement
-         * components in angstroms squared which appear in the
-         * structure factor term:
+         * These are the standard anisotropic atomic displacement components, in
+         * angstroms squared, which appear in the structure factor term:
          *
-         * T = exp{-2pi^2^ sum~i~ [sum~j~ (U^ij^ h~i~ h~j~ a*~i~ a*~j~) ] }
+         * T = exp{ -2π^2^ sum~i~ [ sum~j~ (U^ij^ h~i~ h~j~ a*~i~ a*~j~) ] }
          *
          * h = the Miller indices
          * a* = the reciprocal-space cell lengths
          *
          * The unique elements of the real symmetric matrix are entered by row.
+         *
+         * The IUCr Commission on Nomenclature recommends the use of U for reporting
+         * atomic displacement parameters .
+         *
+         * Note that U^ij^ = β^ij^/(2 π^2^ a*~i~ a*~j~) = B^ij^/(8 π^2^) [1].
+         *
+         * [1] Trueblood, K. N. et al. (1996). Acta Crystallogr. A52(5), 770-781.
          */
         u_23: float,
         /**
-         * These are the standard anisotropic atomic displacement
-         * components in angstroms squared which appear in the
-         * structure factor term:
+         * These are the standard anisotropic atomic displacement components, in
+         * angstroms squared, which appear in the structure factor term:
          *
-         * T = exp{-2pi^2^ sum~i~ [sum~j~ (U^ij^ h~i~ h~j~ a*~i~ a*~j~) ] }
+         * T = exp{ -2π^2^ sum~i~ [ sum~j~ (U^ij^ h~i~ h~j~ a*~i~ a*~j~) ] }
          *
          * h = the Miller indices
          * a* = the reciprocal-space cell lengths
          *
          * The unique elements of the real symmetric matrix are entered by row.
+         *
+         * The IUCr Commission on Nomenclature recommends the use of U for reporting
+         * atomic displacement parameters .
+         *
+         * Note that U^ij^ = β^ij^/(2 π^2^ a*~i~ a*~j~) = B^ij^/(8 π^2^) [1].
+         *
+         * [1] Trueblood, K. N. et al. (1996). Acta Crystallogr. A52(5), 770-781.
          */
         u_33: float,
     },
@@ -625,7 +675,7 @@ export const CifCore_Schema = {
         /**
          * A description of the atom(s) designated by this atom type. In
          * most cases this will be the element name and oxidation state of
-         * a single atom  species. For disordered or nonstoichiometric
+         * a single atom species. For disordered or nonstoichiometric
          * structures it will describe a combination of atom species.
          */
         description: str,

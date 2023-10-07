@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Áron Samuel Kovács <aron.kovacs@mail.muni.cz>
@@ -12,8 +12,7 @@ export const wboit_write = `
             discard;
         }
     } else if (uRenderMask == MaskTransparent) {
-        // the 'fragmentDepth > 0.99' check is to handle precision issues with packed depth
-        if (preFogAlpha != 1.0 && (fragmentDepth < getDepth(gl_FragCoord.xy / uDrawingBufferSize) || fragmentDepth > 0.99)) {
+        if (preFogAlpha != 1.0 && fragmentDepth < getDepth(gl_FragCoord.xy / uDrawingBufferSize)) {
             #ifdef dTransparentBackfaces_off
                 if (interior) discard;
             #endif

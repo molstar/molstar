@@ -21,6 +21,7 @@ class ToastEntry extends PluginUIComponent<{ entry: PluginToastManager.Entry }> 
         const entry = this.props.entry;
         const message = typeof entry.message === 'string'
             ? <div dangerouslySetInnerHTML={{ __html: entry.message }} />
+            // @ts-ignore // TODO: handle type better
             : <div><entry.message /></div>;
 
         return <div className='msp-toast-entry'>

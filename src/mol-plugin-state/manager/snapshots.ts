@@ -29,9 +29,11 @@ class PluginStateSnapshotManager extends StatefulPluginComponent<{
     static DefaultNextSnapshotDelayInMs = 1500;
 
     private entryMap = new Map<string, PluginStateSnapshotManager.Entry>();
+    private defaultSnapshotId: UUID | undefined = undefined;
 
     readonly events = {
-        changed: this.ev()
+        changed: this.ev(),
+        opened: this.ev(),
     };
 
     getIndex(e: PluginStateSnapshotManager.Entry) {
@@ -65,6 +67,8 @@ class PluginStateSnapshotManager extends StatefulPluginComponent<{
     replace(id: string, snapshot: PluginState.Snapshot, params?: PluginStateSnapshotManager.EntryParams) {
         const old = this.getEntry(id);
         if (!old) return;
+
+        this.defaultSnapshotId = undefined;
 
         if (old?.image) this.plugin.managers.asset.delete(old.image);
         const idx = this.getIndex(old);
@@ -171,20 +175,27 @@ class PluginStateSnapshotManager extends StatefulPluginComponent<{
     }
 
     private async syncCurrent(options?: { name?: string, description?: string, params?: PluginState.SnapshotParams }) {
+        const isEmpty = this.state.entries.size === 0;
+        const canReplace = this.state.entries.size === 1 && this.state.current && this.state.current === this.defaultSnapshotId;
+
+        if (!isEmpty && !canReplace) return;
+
         const snapshot = this.plugin.state.getSnapshot(options?.params);
-        if (this.state.entries.size === 0 || !this.state.current) {
-            this.add(PluginStateSnapshotManager.Entry(snapshot, { name: options?.name, description: options?.description }));
-        } else {
+        const image = (options?.params?.image ?? this.plugin.state.snapshotParams.value.image) ? await PluginStateSnapshotManager.getCanvasImageAsset(this.plugin, `${snapshot.id}-image.png`) : undefined;
+
+        if (isEmpty) {
+            this.add(PluginStateSnapshotManager.Entry(snapshot, { name: options?.name, description: options?.description, image }));
+        } else if (canReplace) {
+            // Replace the current state only if there is a single snapshot that has been created automatically
             const current = this.getEntry(this.state.current);
             if (current?.image) this.plugin.managers.asset.delete(current.image);
-            const image = (options?.params?.image ?? this.plugin.state.snapshotParams.value.image) ? await PluginStateSnapshotManager.getCanvasImageAsset(this.plugin, `${snapshot.id}-image.png`) : undefined;
-            // TODO: this replaces the current snapshot which is not always intended
-            this.replace(this.state.current, snapshot, { image });
+            this.replace(this.state.current!, snapshot, { image });
         }
+
+        this.defaultSnapshotId = snapshot.id;
     }
 
     async getStateSnapshot(options?: { name?: string, description?: string, playOnLoad?: boolean, params?: PluginState.SnapshotParams }): Promise<PluginStateSnapshotManager.StateSnapshot> {
-        // TODO: diffing and all that fancy stuff
         await this.syncCurrent(options);
 
         return {
@@ -242,11 +253,11 @@ class PluginStateSnapshotManager extends StatefulPluginComponent<{
                 const snapshot = JSON.parse(data);
 
                 if (PluginStateSnapshotManager.isStateSnapshot(snapshot)) {
-                    return this.setStateSnapshot(snapshot);
+                    await this.setStateSnapshot(snapshot);
                 } else if (PluginStateSnapshotManager.isStateSnapshot(snapshot.data)) {
-                    return this.setStateSnapshot(snapshot.data);
+                    await this.setStateSnapshot(snapshot.data);
                 } else {
-                    this.plugin.state.setSnapshot(snapshot);
+                    await this.plugin.state.setSnapshot(snapshot);
                 }
             } else {
                 const data = await this.plugin.runTask(readFromFile(file, 'zip'));
@@ -270,8 +281,9 @@ class PluginStateSnapshotManager extends StatefulPluginComponent<{
                 }
 
                 const snapshot = JSON.parse(stateData);
-                return this.setStateSnapshot(snapshot);
+                await this.setStateSnapshot(snapshot);
             }
+            this.events.opened.next(void 0);
         } catch (e) {
             console.error(e);
             this.plugin.log.error('Error reading state');

@@ -7,6 +7,94 @@ Note that since we don't clearly distinguish between a public and private interf
 ## [Unreleased]
 
 - [Breaking] Change build target to ES6 (ES2015)
+- Add `PluginContext.initialized` promise & support for it in the `Plugin` UI component.
+
+## [v3.40.1] - 2023-09-30
+
+- Do not call `updateFocusRepr` if default `StructureFocusRepresentation` isn't present.
+- Treat "tap" as a click in `InputObserver`
+- ModelServer ligand queries: fix atom count reported by SDF/MOL/MOL2 export
+- CCD extension: Make visuals for aromatic bonds configurable
+- Add optional `file?: CifFile` to `MmcifFormat.data`
+- Add support for webgl extensions
+    - `WEBGL_clip_cull_distance`
+    - `EXT_conservative_depth`
+    - `WEBGL_stencil_texturing`
+    - `EXT_clip_control`
+- Add `MultiSampleParams.reduceFlicker` (to be able to switch it off)
+- Add `alphaThickness` parameter to adjust alpha of spheres for radius
+- Ability to hide "right" panel from simplified viewport controls
+- Add `blockIndex` parameter to TrajectoryFromMmCif
+- Fix bounding sphere calculation for "element-like" visuals
+- Fix RCSB PDB validation report URL
+- Add sharpening postprocessing option
+- Take pixel-ratio into account for outline scale
+- Gracefully handle missing HTMLImageElement
+- Fix pixel-ratio changes not applied to all render passes
+
+## [v3.39.0] - 2023-09-02
+
+- Add some elements support for `guessElementSymbolString` function
+- Faster bounding rectangle calculation for imposter spheres
+- Allow toggling of hydrogens as part of `LabelTextVisual`
+
+## [v3.38.3] - 2023-07-29
+
+- Fix imposter spheres not updating, e.g. in trajectories (broke in v3.38.0)
+
+## [v3.38.2] - 2023-07-24
+
+- Don't rely solely on `chem_comp_atom` when detecting CCD files (#877)
+- Actually support non-physical keys in `Bindings.Trigger.code`
+
+## [v3.38.1] - 2023-07-22
+
+- Fix pixel-scale not updated in SSAO pass
+
+## [v3.38.0] - 2023-07-18
+
+- Fix display issue with SIFTS mapping
+- Support non-physical keys in `Bindings.Trigger.code`
+- Update `getStateSnapshot` to only overwrite current snapshot if it was created automatically
+- Fix distinct palette's `getSamples` infinite loop
+- Add 'NH2', 'FOR', 'FMT' to `CommonProteinCaps`
+- Add `opened` event to `PluginStateSnapshotManager`
+- Properly switch-off fog
+- Add `approximate` option for spheres rendering
+- Reduce `Spheres` memory usage
+    - Derive mapping from VertexID
+    - Pull position and group from texture
+- Add `Euler` math primitive
+- Add stride option to element sphere & point visuals
+- Add `disabledExtensions` field to default viewer's options
+- Add `LRUCache.remove`
+- Add 'Chain Instance' and 'Uniform' options for 'Carbon Color' param (in Color Theme: Element Symbol)
+
+## [v3.37.1] - 2023-06-20
+
+- Fix issues with wboit/dpoit in large scenes
+- Fix lines, text, points rendering (broken in v3.37.0)
+
+## [v3.37.0] - 2023-06-17
+
+- Add `inverted` option to `xrayShaded` parameter
+- Model-export extension: Add ability to set a file name for structures
+- Add `contextHash` to `SizeTheme`
+- Add mipmap-based blur for image backgrounds
+
+## [v3.36.1] - 2023-06-11
+
+- Allow parsing of CCD ligand files
+- Add dedicated wwPDB CCD extension to align and visualize ideal & model CCD coordinates
+- Make operators in `IndexPairBonds` a directed property
+- Remove erroneous bounding-box overlap test in `Structure.eachUnitPair`
+- Fix `EdgeBuilder.addNextEdge` for loop edges
+- Optimize inter unit bond compute
+- Ensure consistent state for volume representation (#210)
+- Improve SSAO for thin geometry (e.g. lines)
+- Add snapshot support for structure selections
+- Add `nucleicProfile` parameter to cartoon representation
+- Add `cartoon` theme with separate colorings for for mainchain and sidechain visuals
 
 ## [v3.35.0] - 2023-05-14
 

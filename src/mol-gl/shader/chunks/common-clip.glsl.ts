@@ -65,7 +65,7 @@ export const common_clip = `
 
     #if __VERSION__ == 100
         // 8-bit
-        int bitwiseAnd(const in int a, const in int b) {
+        int bitwiseAnd(in int a, in int b) {
             int d = 128;
             int result = 0;
             for (int i = 0; i < 8; ++i) {

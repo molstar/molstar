@@ -62,6 +62,11 @@ import { ViewportScreenshotHelper } from './util/viewport-screenshot';
 import { PLUGIN_VERSION, PLUGIN_VERSION_DATE } from './version';
 import { setSaccharideCompIdMapType } from '../mol-model/structure/structure/carbohydrates/constants';
 
+export type PluginInitializedState =
+    | { kind: 'no' }
+    | { kind: 'yes' }
+    | { kind: 'error', error: any }
+
 export class PluginContext {
     runTask = <T>(task: Task<T>, params?: { useOverlay?: boolean }) => this.managers.task.run(task, params);
     resolveTask = <T>(object: Task<T> | T | undefined) => {
@@ -72,6 +77,8 @@ export class PluginContext {
 
     protected subs: Subscription[] = [];
     private initCanvas3dPromiseCallbacks: [res: () => void, rej: (err: any) => void] = [() => {}, () => {}];
+    private _isInitialized = false;
+    private initializedPromiseCallbacks: [res: () => void, rej: (err: any) => void] = [() => {}, () => {}];
 
     private disposed = false;
     private canvasContainer: HTMLDivElement | undefined = void 0;
@@ -96,6 +103,7 @@ export class PluginContext {
             click: this.ev.behavior<InteractivityManager.ClickEvent>({ current: Representation.Loci.Empty, modifiers: ModifiersKeys.None, buttons: 0, button: 0 }),
             drag: this.ev.behavior<InteractivityManager.DragEvent>({ current: Representation.Loci.Empty, modifiers: ModifiersKeys.None, buttons: 0, button: 0, pageStart: Vec2(), pageEnd: Vec2() }),
             key: this.ev.behavior<KeyInput>(EmptyKeyInput),
+            keyReleased: this.ev.behavior<KeyInput>(EmptyKeyInput),
             selectionMode: this.ev.behavior<boolean>(false),
         },
         labels: {
@@ -113,6 +121,14 @@ export class PluginContext {
     readonly canvas3dInitialized = new Promise<void>((res, rej) => {
         this.initCanvas3dPromiseCallbacks = [res, rej];
     });
+
+    readonly initialized = new Promise<void>((res, rej) => {
+        this.initializedPromiseCallbacks = [res, rej];
+    });
+
+    get isInitialized() {
+        return this._isInitialized;
+    }
 
     readonly canvas3dContext: Canvas3DContext | undefined;
     readonly canvas3d: Canvas3D | undefined;
@@ -295,6 +311,7 @@ export class PluginContext {
             this.subs.push(this.canvas3d!.interaction.hover.subscribe(e => this.behaviors.interaction.hover.next(e)));
             this.subs.push(this.canvas3d!.input.resize.pipe(debounceTime(50), throttleTime(100, undefined, { leading: false, trailing: true })).subscribe(() => this.handleResize()));
             this.subs.push(this.canvas3d!.input.keyDown.subscribe(e => this.behaviors.interaction.key.next(e)));
+            this.subs.push(this.canvas3d!.input.keyUp.subscribe(e => this.behaviors.interaction.keyReleased.next(e)));
             this.subs.push(this.layout.events.updated.subscribe(() => requestAnimationFrame(() => this.handleResize())));
 
             this.handleResize();
@@ -479,24 +496,32 @@ export class PluginContext {
     }
 
     async init() {
-        this.subs.push(this.events.log.subscribe(e => this.log.entries = this.log.entries.push(e)));
+        try {
+            this.subs.push(this.events.log.subscribe(e => this.log.entries = this.log.entries.push(e)));
 
-        this.initCustomFormats();
-        this.initBehaviorEvents();
-        this.initBuiltInBehavior();
+            this.initCustomFormats();
+            this.initBehaviorEvents();
+            this.initBuiltInBehavior();
 
-        (this.managers.interactivity as InteractivityManager) = new InteractivityManager(this);
-        (this.managers.lociLabels as LociLabelManager) = new LociLabelManager(this);
-        (this.builders.structure as StructureBuilder) = new StructureBuilder(this);
+            (this.managers.interactivity as InteractivityManager) = new InteractivityManager(this);
+            (this.managers.lociLabels as LociLabelManager) = new LociLabelManager(this);
+            (this.builders.structure as StructureBuilder) = new StructureBuilder(this);
 
-        this.initAnimations();
-        this.initDataActions();
+            this.initAnimations();
+            this.initDataActions();
 
-        await this.initBehaviors();
+            await this.initBehaviors();
 
-        this.log.message(`Mol* Plugin ${PLUGIN_VERSION} [${PLUGIN_VERSION_DATE.toLocaleString()}]`);
-        if (!isProductionMode) this.log.message(`Development mode enabled`);
-        if (isDebugMode) this.log.message(`Debug mode enabled`);
+            this.log.message(`Mol* Plugin ${PLUGIN_VERSION} [${PLUGIN_VERSION_DATE.toLocaleString()}]`);
+            if (!isProductionMode) this.log.message(`Development mode enabled`);
+            if (isDebugMode) this.log.message(`Debug mode enabled`);
+
+            this._isInitialized = true;
+            this.initializedPromiseCallbacks[0]();
+        } catch (err) {
+            this.initializedPromiseCallbacks[1](err);
+            throw err;
+        }
     }
 
     constructor(public spec: PluginSpec) {

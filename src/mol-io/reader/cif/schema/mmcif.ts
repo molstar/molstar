@@ -1,7 +1,7 @@
 /**
  * Copyright (c) 2017-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
- * Code-generated 'mmCIF' schema file. Dictionary versions: mmCIF 5.365, IHM 1.18, MA 1.4.4.
+ * Code-generated 'mmCIF' schema file. Dictionary versions: mmCIF 5.379, IHM 1.23, MA 1.4.5.
  *
  * @author molstar/ciftools package
  */
@@ -3710,7 +3710,7 @@ export const mmCIF_Schema = {
         /**
          * The name of the database containing the dataset entry.
          */
-        db_name: Aliased<'PDB' | 'PDB-Dev' | 'BMRB' | 'EMDB' | 'EMPIAR' | 'SASBDB' | 'PRIDE' | 'MODEL ARCHIVE' | 'MASSIVE' | 'BioGRID' | 'ProXL' | 'Other'>(str),
+        db_name: Aliased<'PDB' | 'PDB-Dev' | 'BMRB' | 'EMDB' | 'EMPIAR' | 'SASBDB' | 'PRIDE' | 'MODEL ARCHIVE' | 'MASSIVE' | 'BioGRID' | 'ProXL' | 'jPOSTrepo' | 'iProX' | 'AlphaFoldDB' | 'Other'>(str),
         /**
          * The accession code for the database entry.
          */
@@ -4037,7 +4037,7 @@ export const mmCIF_Schema = {
         /**
          * The type of crosslinker used.
          */
-        linker_type: Aliased<'EDC' | 'DSS' | 'EGS' | 'BS3' | 'BS2G' | 'DST' | 'sulfo-SDA' | 'sulfo-SMCC' | 'DSSO' | 'DSG' | 'BSP' | 'BMSO' | 'DHSO' | 'CYS' | 'SDA' | 'DSA' | 'BrdU' | 'LCSDA' | 'CDI' | 'ADH' | 'Other'>(str),
+        linker_type: Aliased<'EDC' | 'DSS' | 'EGS' | 'BS3' | 'BS2G' | 'DST' | 'sulfo-SDA' | 'sulfo-SMCC' | 'DSSO' | 'DSG' | 'BSP' | 'BMSO' | 'DHSO' | 'CYS' | 'SDA' | 'DSA' | 'BrdU' | 'LCSDA' | 'CDI' | 'ADH' | 'L-Photo-Leucine' | 'KArGO' | 'BrEtY' | 'DSBU' | 'DSPP' | 'TBDSPP' | 'Other'>(str),
         /**
          * Identifier to the crosslinking dataset.
          * This data item is a pointer to the _ihm_dataset_list.id in the

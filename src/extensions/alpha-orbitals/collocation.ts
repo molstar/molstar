@@ -53,7 +53,7 @@ export async function sphericalCollocation(
                     L,
                     shell.coefficients[amIndex++],
                     shell.exponents,
-                    atom.center,
+                    atom.center as unknown as Vec3,
                     cutoffThreshold,
                     alpha
                 );

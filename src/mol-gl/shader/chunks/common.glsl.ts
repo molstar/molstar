@@ -21,6 +21,10 @@ export const common = `
     #define dNeedsMarker
 #endif
 
+#if defined(dXrayShaded_on) || defined(dXrayShaded_inverted)
+    #define dXrayShaded
+#endif
+
 #define MaskAll 0
 #define MaskOpaque 1
 #define MaskTransparent 2

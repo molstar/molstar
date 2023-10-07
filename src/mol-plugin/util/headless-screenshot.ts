@@ -24,7 +24,6 @@ import { PixelData } from '../../mol-util/image';
 import { InputObserver } from '../../mol-util/input/input-observer';
 import { ParamDefinition } from '../../mol-util/param-definition';
 
-
 export interface ExternalModules {
     'gl': typeof import('gl'),
     'jpeg-js'?: typeof import('jpeg-js'),
@@ -43,7 +42,6 @@ export type RawImageData = {
     height: number,
 }
 
-
 /** To render Canvas3D when running in Node.js (without DOM) */
 export class HeadlessScreenshotHelper {
     readonly canvas3d: Canvas3D;
@@ -57,8 +55,13 @@ export class HeadlessScreenshotHelper {
             const webgl = createContext(glContext);
             const input = InputObserver.create();
             const attribs = { ...Canvas3DContext.DefaultAttribs };
-            const passes = new Passes(webgl, new AssetManager(), attribs);
-            this.canvas3d = Canvas3D.create({ webgl, input, passes, attribs } as Canvas3DContext, options?.canvas ?? defaultCanvas3DParams());
+            const assetManager = new AssetManager();
+            const passes = new Passes(webgl, assetManager, attribs);
+            const dispose = () => {
+                input.dispose();
+                webgl.destroy();
+            };
+            this.canvas3d = Canvas3D.create({ webgl, input, passes, attribs, assetManager, dispose }, options?.canvas ?? defaultCanvas3DParams());
         }
 
         this.imagePass = this.canvas3d.getImagePass(options?.imagePass ?? defaultImagePassParams());
@@ -163,6 +166,7 @@ export function defaultCanvas3DParams(): Partial<Canvas3DProps> {
             backgroundColor: ColorNames.white,
         },
         postprocessing: {
+            ...DefaultCanvas3DParams.postprocessing,
             occlusion: {
                 name: 'off', params: {}
             },
@@ -200,8 +204,9 @@ export function defaultImagePassParams(): Partial<ImageProps> {
             axes: { name: 'off', params: {} },
         },
         multiSample: {
+            ...DefaultCanvas3DParams.multiSample,
             mode: 'on',
-            sampleLevel: 4
+            sampleLevel: 4,
         }
     };
 }

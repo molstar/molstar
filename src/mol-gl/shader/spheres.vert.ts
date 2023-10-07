@@ -17,65 +17,63 @@ precision highp int;
 
 uniform mat4 uModelView;
 uniform mat4 uInvProjection;
+uniform float uIsOrtho;
 
-attribute vec3 aPosition;
-attribute vec2 aMapping;
+uniform vec2 uTexDim;
+uniform sampler2D tPositionGroup;
+
 attribute mat4 aTransform;
 attribute float aInstance;
-attribute float aGroup;
 
 varying float vRadius;
-varying float vRadiusSq;
 varying vec3 vPoint;
 varying vec3 vPointViewPosition;
 
 #include matrix_scale
 
-const mat4 D = mat4(
-    1.0, 0.0, 0.0, 0.0,
-    0.0, 1.0, 0.0, 0.0,
-    0.0, 0.0, 1.0, 0.0,
-    0.0, 0.0, 0.0, -1.0
-);
-
 /**
- * Compute point size and center using the technique described in:
- * "GPU-Based Ray-Casting of Quadratic Surfaces" http://dl.acm.org/citation.cfm?id=2386396
- * by Christian Sigg, Tim Weyrich, Mario Botsch, Markus Gross.
+ * Bounding rectangle of a clipped, perspective-projected 3D Sphere.
+ * Michael Mara, Morgan McGuire. 2013
+ *
+ * Specialization by Arseny Kapoulkine, MIT License Copyright (c) 2018
+ * https://github.com/zeux/niagara
  */
-void quadraticProjection(const in float radius, const in vec3 position){
-    vec2 xbc, ybc;
+void sphereProjection(const in vec3 p, const in float r, const in vec2 mapping) {
+    vec3 pr = p * r;
+    float pzr2 = p.z * p.z - r * r;
 
-    mat4 T = mat4(
-        radius, 0.0, 0.0, 0.0,
-        0.0, radius, 0.0, 0.0,
-        0.0, 0.0, radius, 0.0,
-        position.x, position.y, position.z, 1.0
-    );
+    float vx = sqrt(p.x * p.x + pzr2);
+    float minx = ((vx * p.x - pr.z) / (vx * p.z + pr.x)) * uProjection[0][0];
+    float maxx = ((vx * p.x + pr.z) / (vx * p.z - pr.x)) * uProjection[0][0];
 
-    mat4 R = transpose4(uProjection * uModelView * aTransform * T);
-    float A = dot(R[3], D * R[3]);
-    float B = -2.0 * dot(R[0], D * R[3]);
-    float C = dot(R[0], D * R[0]);
-    xbc[0] = (-B - sqrt(B * B - 4.0 * A * C)) / (2.0 * A);
-    xbc[1] = (-B + sqrt(B * B - 4.0 * A * C)) / (2.0 * A);
-    float sx = abs(xbc[0] - xbc[1]) * 0.5;
+    float vy = sqrt(p.y * p.y + pzr2);
+    float miny = ((vy * p.y - pr.z) / (vy * p.z + pr.y)) * uProjection[1][1];
+    float maxy = ((vy * p.y + pr.z) / (vy * p.z - pr.y)) * uProjection[1][1];
 
-    A = dot(R[3], D * R[3]);
-    B = -2.0 * dot(R[1], D * R[3]);
-    C = dot(R[1], D * R[1]);
-    ybc[0] = (-B - sqrt(B * B - 4.0 * A * C)) / (2.0 * A);
-    ybc[1] = (-B + sqrt(B * B - 4.0 * A * C)) / (2.0 * A);
-    float sy = abs(ybc[0] - ybc[1]) * 0.5;
-
-    gl_Position.xy = vec2(0.5 * (xbc.x + xbc.y), 0.5 * (ybc.x + ybc.y));
-    gl_Position.xy -= aMapping * vec2(sx, sy);
+    gl_Position.xy = vec2(maxx + minx, maxy + miny) * -0.5;
+    gl_Position.xy -= mapping * vec2(maxx - minx, maxy - miny) * 0.5;
     gl_Position.xy *= gl_Position.w;
 }
 
-
 void main(void){
-    #include assign_group
+    vec2 mapping = vec2(1.0, 1.0); // vertices 2 and 5
+    #if __VERSION__ == 100
+        int m = imod(VertexID, 6);
+    #else
+        int m = VertexID % 6;
+    #endif
+    if (m == 0) {
+        mapping = vec2(-1.0, 1.0);
+    } else if (m == 1 || m == 3) {
+        mapping = vec2(-1.0, -1.0);
+    } else if (m == 4) {
+        mapping = vec2(1.0, -1.0);
+    }
+
+    vec4 positionGroup = readFromTexture(tPositionGroup, VertexID / 6, uTexDim);
+    vec3 position = positionGroup.rgb;
+    float group = positionGroup.a;
+
     #include assign_color_varying
     #include assign_marker_varying
     #include assign_clipping_varying
@@ -83,13 +81,24 @@ void main(void){
 
     vRadius = size * matrixScale(uModelView);
 
-    vec4 position4 = vec4(aPosition, 1.0);
+    vec4 position4 = vec4(position, 1.0);
     vec4 mvPosition = uModelView * aTransform * position4;
 
-    gl_Position = uProjection * vec4(mvPosition.xyz, 1.0);
-    quadraticProjection(size, aPosition);
+    #ifdef dApproximate
+        vec4 mvCorner = vec4(mvPosition.xyz, 1.0);
+        mvCorner.xy += mapping * vRadius;
+        gl_Position = uProjection * mvCorner;
+    #else
+        if (uIsOrtho == 1.0) {
+            vec4 mvCorner = vec4(mvPosition.xyz, 1.0);
+            mvCorner.xy += mapping * vRadius;
+            gl_Position = uProjection * mvCorner;
+        } else {
+            gl_Position = uProjection * vec4(mvPosition.xyz, 1.0);
+            sphereProjection(mvPosition.xyz, vRadius, mapping);
+        }
+    #endif
 
-    vRadiusSq = vRadius * vRadius;
     vec4 vPoint4 = uInvProjection * gl_Position;
     vPoint = vPoint4.xyz / vPoint4.w;
     vPointViewPosition = -mvPosition.xyz / mvPosition.w;

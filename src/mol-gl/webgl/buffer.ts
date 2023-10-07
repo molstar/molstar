@@ -102,7 +102,7 @@ export interface Buffer {
     destroy: () => void
 }
 
-function getBuffer(gl: GLRenderingContext) {
+export function getBuffer(gl: GLRenderingContext) {
     const buffer = gl.createBuffer();
     if (buffer === null) {
         throw new Error('Could not create WebGL buffer');

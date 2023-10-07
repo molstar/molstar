@@ -4,6 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Zhenyu Zhang <jump2cn@gmail.com>
  * @author Gianluca Tomasello <giagitom@gmail.com>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { Vec3 } from '../../../../mol-math/linear-algebra';
@@ -247,7 +248,7 @@ export function createLinkCylinderMesh(ctx: VisualContext, linkBuilder: LinkBuil
 
     // re-use boundingSphere if it has not changed much
     Vec3.scale(center, center, 1 / count);
-    if (oldBoundingSphere && Vec3.distance(center, oldBoundingSphere.center) / oldBoundingSphere.radius < 1.0) {
+    if (oldBoundingSphere && Vec3.distance(center, oldBoundingSphere.center) / oldBoundingSphere.radius < 0.1) {
         return { mesh: m, boundingSphere: oldBoundingSphere };
     } else {
         return { mesh: m };
@@ -356,7 +357,7 @@ export function createLinkCylinderImpostors(ctx: VisualContext, linkBuilder: Lin
 
     // re-use boundingSphere if it has not changed much
     Vec3.scale(center, center, 1 / count);
-    if (oldBoundingSphere && Vec3.distance(center, oldBoundingSphere.center) / oldBoundingSphere.radius < 1.0) {
+    if (oldBoundingSphere && Vec3.distance(center, oldBoundingSphere.center) / oldBoundingSphere.radius < 0.1) {
         return { cylinders: c, boundingSphere: oldBoundingSphere };
     } else {
         return { cylinders: c };
@@ -466,7 +467,7 @@ export function createLinkLines(ctx: VisualContext, linkBuilder: LinkBuilderProp
 
     // re-use boundingSphere if it has not changed much
     Vec3.scale(center, center, 1 / count);
-    if (oldBoundingSphere && Vec3.distance(center, oldBoundingSphere.center) / oldBoundingSphere.radius < 1.0) {
+    if (oldBoundingSphere && Vec3.distance(center, oldBoundingSphere.center) / oldBoundingSphere.radius < 0.1) {
         return { lines: l, boundingSphere: oldBoundingSphere };
     } else {
         return { lines: l };

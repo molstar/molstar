@@ -81,5 +81,5 @@ export const DefaultDataOptions: DataOptions = {
 const DATA_DIR = path.join(__dirname, '..', '..', '..', '..', 'build/data');
 const CCD_PATH = path.join(DATA_DIR, 'components.cif');
 const PVCD_PATH = path.join(DATA_DIR, 'aa-variants-v1.cif');
-const CCD_URL = 'http://ftp.wwpdb.org/pub/pdb/data/monomers/components.cif';
-const PVCD_URL = 'http://ftp.wwpdb.org/pub/pdb/data/monomers/aa-variants-v1.cif';
+const CCD_URL = 'https://files.wwpdb.org/pub/pdb/data/monomers/components.cif';
+const PVCD_URL = 'https://files.wwpdb.org/pub/pdb/data/monomers/aa-variants-v1.cif';

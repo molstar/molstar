@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -41,7 +41,7 @@ export function getGapRanges(unit: Unit): SortedRanges<ElementIndex> {
 }
 
 export namespace PolymerLocationIterator {
-    export function fromGroup(structureGroup: StructureGroup): LocationIterator {
+    export function fromGroup(structureGroup: StructureGroup, asSecondary = false): LocationIterator {
         const { group, structure } = structureGroup;
         const polymerElements = group.units[0].polymerElements;
         const groupCount = polymerElements.length;
@@ -53,7 +53,10 @@ export namespace PolymerLocationIterator {
             location.element = polymerElements[groupIndex];
             return location;
         };
-        return LocationIterator(groupCount, instanceCount, 1, getLocation);
+        function isSecondary(elementIndex: number, instanceIndex: number) {
+            return asSecondary;
+        }
+        return LocationIterator(groupCount, instanceCount, 1, getLocation, false, isSecondary);
     }
 }
 
