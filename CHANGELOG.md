@@ -3,10 +3,13 @@ All notable changes to this project will be documented in this file, following t
 
 Note that since we don't clearly distinguish between a public and private interfaces there will be changes in non-major versions that are potentially breaking. If we make breaking changes to less used interfaces we will highlight it in here.
 
+## [TODO]
+
+- [Breaking] Change build target to ES6 (ES2015)
+- Improve `SetUtils` performance using ES6 features
 
 ## [Unreleased]
 
-- [Breaking] Change build target to ES6 (ES2015)
 - Add `PluginContext.initialized` promise & support for it in the `Plugin` UI component.
 
 ## [v3.40.1] - 2023-09-30
