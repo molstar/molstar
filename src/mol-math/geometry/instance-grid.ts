@@ -5,6 +5,7 @@
  */
 
 import { OrderedSet } from '../../mol-data/int/ordered-set';
+import { fillSerial } from '../../mol-util/array';
 import { Box3D } from '../geometry';
 import { Vec3 } from '../linear-algebra/3d/vec3';
 import { PositionData } from './common';
@@ -62,8 +63,54 @@ export function createEmptyInstanceGrid(): InstanceGrid {
 export function calcInstanceGrid(instanceData: InstanceData, cellSize: number, batchSize: number): InstanceGrid {
     const bottomGrid = calcBottomGrid(instanceData, cellSize);
     const topGrid = calcTopGrid(bottomGrid, batchSize);
-    // console.log('calcInstanceGrid', bottomGrid, topGrid);
-    return { ...bottomGrid, ...topGrid };
+
+    // reorder bottom grid so top grid has consecutive cells
+    // crucial for rendering performance without base-instance support
+
+    // console.time('calcInstanceGrid reorder');
+    const cellOffsets = new Uint32Array(bottomGrid.cellOffsets.length);
+    const cellSpheres = new Float32Array(bottomGrid.cellSpheres.length);
+    const cellInstance = new Float32Array(bottomGrid.cellInstance.length);
+
+    let offset = 0;
+    for (let i = 0, il = topGrid.batchCell.length; i < il; ++i) {
+        const cellIdx = topGrid.batchCell[i];
+        const start = bottomGrid.cellOffsets[cellIdx];
+        const end = bottomGrid.cellOffsets[cellIdx + 1];
+        const count = end - start;
+
+        cellOffsets[i + 1] = cellOffsets[i] + count;
+        for (let j = 0; j < 4; ++j) {
+            cellSpheres[i * 4 + j] = bottomGrid.cellSpheres[cellIdx * 4 + j];
+        }
+
+        for (let j = 0; j < count; ++j) {
+            const idx = start + j;
+            const id = bottomGrid.cellInstance[idx];
+            for (let k = 0; k < 16; ++k) {
+                // assumes instanceData.instance is strictly serially ordered
+                bottomGrid.cellTransform[offset * 16 + k] = instanceData.transform[id * 16 + k];
+            }
+            cellInstance[offset] = id;
+            offset += 1;
+        }
+    }
+    // console.timeEnd('calcInstanceGrid reorder');
+
+    return {
+        cellSize: bottomGrid.cellSize,
+        cellCount: bottomGrid.cellCount,
+        cellOffsets,
+        cellSpheres,
+        cellTransform: bottomGrid.cellTransform,
+        cellInstance,
+
+        batchSize: topGrid.batchSize,
+        batchCount: topGrid.batchCount,
+        batchOffsets: topGrid.batchOffsets,
+        batchSpheres: topGrid.batchSpheres,
+        batchCell: fillSerial(topGrid.batchCell),
+    };
 }
 
 function calcBottomGrid(instanceData: InstanceData, cellSize: number): BottomGrid {
