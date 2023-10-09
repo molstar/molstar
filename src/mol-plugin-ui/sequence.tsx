@@ -23,6 +23,7 @@ import { elementLabel } from '../mol-theme/label';
 import { Icon, HelpOutlineSvg } from './controls/icons';
 import { StructureSelectionManager } from '../mol-plugin-state/manager/structure/selection';
 import { arrayEqual } from '../mol-util/array';
+import { SecondaryStructureSequence } from './sequence/secondary-structure-sequence';
 
 const MaxDisplaySequenceLength = 5000;
 // TODO: add virtualized Select controls (at best with a search box)?
@@ -249,6 +250,10 @@ export class SequenceView extends PluginUIComponent<{ defaultMode?: SequenceView
         this.setState(this.getInitialState());
     }
 
+    getSequenceChild(key: number, sequenceWrapper: SequenceWrapper.Any): JSX.Element {
+        return <Sequence key={key} sequenceWrapper={sequenceWrapper} />;
+    }
+
     private getStructure(ref: string) {
         const state = this.plugin.state.data;
         const cell = state.select(ref)[0];
@@ -395,7 +400,7 @@ export class SequenceView extends PluginUIComponent<{ defaultMode?: SequenceView
                 {sequenceWrappers.map((s, i) => {
                     const elem = typeof s.wrapper === 'string'
                         ? <div key={i} className='msp-sequence-wrapper'>{s.wrapper}</div>
-                        : <Sequence key={i} sequenceWrapper={s.wrapper} />;
+                        : this.getSequenceChild(i, s.wrapper);
 
                     if (values.mode === 'single') return elem;
 
@@ -413,4 +418,10 @@ function NonEmptySequenceWrapper({ children }: { children: React.ReactNode }) {
     return <div className='msp-sequence-wrapper-non-empty'>
         {children}
     </div>;
+}
+export class SeconarySequenceView extends SequenceView {
+
+    getSequenceChild(key: number, sequenceWrapper: SequenceWrapper.Any) {
+        return <SecondaryStructureSequence key={key} sequenceWrapper={sequenceWrapper} />;
+    }
 }
