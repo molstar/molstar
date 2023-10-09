@@ -419,7 +419,7 @@ function NonEmptySequenceWrapper({ children }: { children: React.ReactNode }) {
         {children}
     </div>;
 }
-export class SeconarySequenceView extends SequenceView {
+export class SecondaryStructureSequenceView extends SequenceView {
 
     getSequenceChild(key: number, sequenceWrapper: SequenceWrapper.Any) {
         return <SecondaryStructureSequence key={key} sequenceWrapper={sequenceWrapper} />;

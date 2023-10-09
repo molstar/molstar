@@ -23,6 +23,7 @@ export type PluginLayoutControlsDisplay = 'outside' | 'portrait' | 'landscape' |
 export const PluginLayoutStateParams = {
     isExpanded: PD.Boolean(false),
     showControls: PD.Boolean(true),
+    showSecondaryStructureSequence: PD.Boolean(false),
     regionState: PD.Group({
         left: PD.Select('full', regionStateOptions),
         top: PD.Select('full', simpleRegionStateOptions),
