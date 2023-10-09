@@ -57,6 +57,10 @@ export class ViewportControls extends PluginUIComponent<ViewportControlsProps, V
         PluginCommands.Layout.Update(this.plugin, { state: { showControls: !this.plugin.layout.state.showControls } });
     };
 
+    toggleSSSequence = () => {
+        PluginCommands.Layout.Update(this.plugin, { state: { showSecondaryStructureSequence: !this.plugin.layout.state.showSecondaryStructureSequence } });
+    };
+
     toggleExpanded = () => {
         PluginCommands.Layout.Update(this.plugin, { state: { isExpanded: !this.plugin.layout.state.isExpanded } });
     };
@@ -126,6 +130,7 @@ export class ViewportControls extends PluginUIComponent<ViewportControlsProps, V
                 <div>
                     <div className='msp-semi-transparent-background' />
                     {this.plugin.config.get(PluginConfig.Viewport.ShowControls) && this.icon(BuildOutlinedSvg, this.toggleControls, 'Toggle Controls Panel', this.plugin.layout.state.showControls)}
+                    {this.plugin.config.get(PluginConfig.Viewport.ShowSecondaryStructureSequence) && this.icon(BuildOutlinedSvg, this.toggleSSSequence, 'Toggle Secondary Structure Sequence', this.plugin.layout.state.showSecondaryStructureSequence)}
                     {this.plugin.config.get(PluginConfig.Viewport.ShowExpand) && this.icon(FullscreenSvg, this.toggleExpanded, 'Toggle Expanded Viewport', this.plugin.layout.state.isExpanded)}
                     {this.plugin.config.get(PluginConfig.Viewport.ShowSettings) && this.icon(TuneSvg, this.toggleSettingsExpanded, 'Settings / Controls Info', this.state.isSettingsExpanded)}
                 </div>

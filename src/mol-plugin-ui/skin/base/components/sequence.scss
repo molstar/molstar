@@ -61,6 +61,10 @@ $sequence-select-height: 24px;
     right: 0;
 }
 
+.msp-sequence-wrapper-secondary {
+    line-height: 250%;
+}
+
 .msp-sequence-chain-label {
     margin-left: $control-spacing;
     margin-top: $control-spacing;
@@ -104,6 +108,10 @@ $sequence-select-height: 24px;
         font-size: 80%;
     }
 
+    .msp-sequence-number-above {
+        top: -2.1em;
+    }
+
     .msp-sequence-number-long {
         left: 3.3em;
     }
@@ -118,6 +126,18 @@ $sequence-select-height: 24px;
 
     .msp-sequence-present {
         color: $font-color;
+    }
+
+    .msp-sequence-secondary {
+        color: $sequence-number-color;
+        word-break: keep-all;
+        cursor: default;
+        position: relative;
+        top: -1.1em;
+        left: 0.7em;
+        padding: 0px;
+        margin-left: -0.5em;
+        font-size: 80%;
     }
 
     .msp-sequence-missing {
