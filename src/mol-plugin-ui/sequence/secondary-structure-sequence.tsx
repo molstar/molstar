@@ -5,6 +5,7 @@
  */
 
 import { Structure, StructureElement, StructureProperties } from '../../mol-model/structure';
+import { SecondaryStructure } from '../../mol-model/structure/model/properties/seconday-structure';
 import { ModelSecondaryStructure } from '../../mol-model-formats/structure/property/secondary-structure';
 import { Sequence } from './sequence';
 import { SequenceWrapper } from './wrapper';
@@ -38,15 +39,12 @@ export class SecondaryStructureSequence extends Sequence<SecondaryStructureSeque
         return super.getSequenceNumberClass(seqIdx, seqNum, label) + suffix;
     }
 
-    protected getSequenceSecondaryStructureSpan(seqIdx: number) {
+    protected getSequenceSecondaryStructureSpan(secondaryStructure: SecondaryStructure, seqIdx: number) {
         const loci = this.props.sequenceWrapper.getLoci(seqIdx);
         const location = StructureElement.Loci.getFirstLocation(loci, this.location);
         if (!location) return;
-        const structure: Structure = this.props.sequenceWrapper.data.structure;
-        const secondaryStructure = ModelSecondaryStructure.Provider.get(structure.model);
         if (!secondaryStructure) return;
-        const { kind } =
-        secondaryStructure.elements[
+        const { kind } = secondaryStructure.elements[
             secondaryStructure.key[
                 secondaryStructure.getIndex(
                     StructureProperties.residue.key(location)
@@ -61,6 +59,8 @@ export class SecondaryStructureSequence extends Sequence<SecondaryStructureSeque
 
     render() {
         const sw = this.props.sequenceWrapper;
+        const structure: Structure = this.props.sequenceWrapper.data.structure;
+        const secondaryStructure = ModelSecondaryStructure.Provider.get(structure.model);
 
         const elems: JSX.Element[] = [];
 
@@ -73,7 +73,8 @@ export class SecondaryStructureSequence extends Sequence<SecondaryStructureSeque
             }
             elems[elems.length] = this.residue(i, label, sw.markerArray[i]);
             if (!this.props.hideSecondaryStructure) {
-                const span = this.getSequenceSecondaryStructureSpan(i);
+                if (!secondaryStructure) continue;
+                const span = this.getSequenceSecondaryStructureSpan(secondaryStructure, i);
                 if (!span) continue;
                 elems[elems.length] = span;
             }
