@@ -81,7 +81,7 @@ export namespace AssemblySymmetry {
     }
 
     async function fetch_PDBe(ctx: CustomProperty.Context, structure: Structure, props: AssemblySymmetryDataProps): Promise<CustomProperty.Data<AssemblySymmetryDataValue>> {
-        const assembly_id = structure.units[0].conformation.operator.assembly?.id || '';
+        const assembly_id = structure.units[0].conformation.operator.assembly?.id || '-1'; // should use '' instead of '-1' but the API does not support non-number assembly_id
         const entry_id = structure.units[0].model.entryId.toLowerCase();
         const url = `${props.serverUrl}/${entry_id}?assembly_id=${assembly_id}`;
         const asset = Asset.getUrlAsset(ctx.assetManager, url);
