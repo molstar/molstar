@@ -332,6 +332,10 @@ export class HiZPass {
     setViewport(x: number, y: number, width: number, height: number) {
         if (!this.supported) return;
 
+        // Avoid setting dimensions to 0x0 because it causes "empty textures are not allowed" error.
+        width = Math.max(width, 2);
+        height = Math.max(height, 2);
+
         Viewport.set(this.viewport, x, y, width, height);
         const levels = Math.ceil(Math.log(Math.max(width, height)) / Math.log(2));
         if (levels === this.levelData.length) return;
