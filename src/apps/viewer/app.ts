@@ -50,6 +50,7 @@ import { Backgrounds } from '../../extensions/backgrounds';
 import { SbNcbrPartialCharges, SbNcbrPartialChargesPreset, SbNcbrPartialChargesPropertyProvider } from '../../extensions/sb-ncbr';
 import { wwPDBStructConnExtensionFunctions } from '../../extensions/wwpdb/struct-conn';
 import { wwPDBChemicalComponentDictionary } from '../../extensions/wwpdb/ccd/behavior';
+import { RCSBAssemblySymmetryConfig } from '../../extensions/rcsb/assembly-symmetry/behavior';
 
 export { PLUGIN_VERSION as version } from '../../mol-plugin/version';
 export { setDebugMode, setProductionMode, setTimingMode, consoleStats } from '../../mol-util/debug';
@@ -110,6 +111,9 @@ const DefaultViewerOptions = {
     emdbProvider: PluginConfig.Download.DefaultEmdbProvider.defaultValue,
     saccharideCompIdMapType: 'default' as SaccharideCompIdMapType,
     volumesAndSegmentationsDefaultServer: VolsegVolumeServerConfig.DefaultServer.defaultValue,
+    rcsbAssemblySymmetryDefaultServerType: RCSBAssemblySymmetryConfig.DefaultServerType.defaultValue,
+    rcsbAssemblySymmetryDefaultServerUrl: RCSBAssemblySymmetryConfig.DefaultServerUrl.defaultValue,
+    rcsbAssemblySymmetryApplyColors: RCSBAssemblySymmetryConfig.ApplyColors.defaultValue,
 };
 type ViewerOptions = typeof DefaultViewerOptions;
 
@@ -185,6 +189,9 @@ export class Viewer {
                 [PluginConfig.Structure.DefaultRepresentationPreset, ViewerAutoPreset.id],
                 [PluginConfig.Structure.SaccharideCompIdMapType, o.saccharideCompIdMapType],
                 [VolsegVolumeServerConfig.DefaultServer, o.volumesAndSegmentationsDefaultServer],
+                [RCSBAssemblySymmetryConfig.DefaultServerType, o.rcsbAssemblySymmetryDefaultServerType],
+                [RCSBAssemblySymmetryConfig.DefaultServerUrl, o.rcsbAssemblySymmetryDefaultServerUrl],
+                [RCSBAssemblySymmetryConfig.ApplyColors, o.rcsbAssemblySymmetryApplyColors],
             ]
         };
 

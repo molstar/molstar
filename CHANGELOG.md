@@ -20,6 +20,13 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+
+## [v3.41.0] - 2023-10-15
+
+- Add `PluginContext.initialized` promise & support for it in the `Plugin` UI component.
+- Fix undesired interaction between settings panel and the panel on the right.
+- Add ability to customize server parameters for `RCSBAssemblySymmetry`.
+
 ## [v3.40.1] - 2023-09-30
 
 - Do not call `updateFocusRepr` if default `StructureFocusRepresentation` isn't present.
