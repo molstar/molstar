@@ -106,9 +106,14 @@ export async function createMmcifHierarchy(plugin: PluginContext, trajectory: St
         .applyOrUpdateTagged('group:ent:', MesoscaleGroup, { ...groupParams, root: true, index: -1, tag: `ent:`, label: 'entity', color: { type: 'custom', value: ColorNames.white, variablity: 20, lightness: 0, alpha: 1 } }, { tags: 'group:ent:', state: { isCollapsed: false, isHidden: groupParams.hidden } })
         .commit();
 
+    const getEntityType = (i: number) => {
+        if (entities.type.value(i) === 'water') return 'water' as const;
+        return subtype.value(i) || 'unknown type';
+    };
+
     for (let i = 0; i < entities._rowCount; i++) {
         const d = entities.pdbx_description.value(i).join(', ') || 'unknown entity';
-        const t = subtype.value(i) || 'unkown type';
+        const t = getEntityType(i);
         if (!entIds.has(t)) {
             entIds.set(t, { idx: entIds.size, members: new Map() });
         }
@@ -127,7 +132,7 @@ export async function createMmcifHierarchy(plugin: PluginContext, trajectory: St
     }
 
     for (let i = 0; i < entities._rowCount; i++) {
-        const t = subtype.value(i) || 'unkown type';
+        const t = getEntityType(i);
         if (!entGroups.has(t)) {
             const colorIdx = entIds.get(t)?.idx;
             const color = colorIdx !== undefined ? baseEntColors[colorIdx] : ColorNames.white;
@@ -148,7 +153,7 @@ export async function createMmcifHierarchy(plugin: PluginContext, trajectory: St
             let build: StateBuilder.Root | StateBuilder.To<any> = state.build();
             for (let i = 0; i < entities._rowCount; i++) {
                 const d = entities.pdbx_description.value(i).join(', ') || 'unknown entity';
-                const t = subtype.value(i) || 'unkown type';
+                const t = getEntityType(i);
 
                 const color = entColors.get(t)![entIds.get(t)!.members.get(d)!];
                 const scaleFactor = spheresAvgRadius.get(entities.id.value(i)) || 1;
