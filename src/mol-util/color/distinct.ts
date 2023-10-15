@@ -15,6 +15,7 @@ import { deepEqual } from '../../mol-util';
 import { arraySum } from '../../mol-util/array';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { ColorNames } from './names';
+import { Color } from './color';
 
 export const DistinctColorsParams = {
     hue: PD.Interval([1, 360], { min: 0, max: 360, step: 1 }),
@@ -100,7 +101,7 @@ function getSamples(count: number, p: DistinctColorsProps) {
 /**
  * Create a list of visually distinct colors
  */
-export function distinctColors(count: number, props: Partial<DistinctColorsProps> = {}) {
+export function distinctColors(count: number, props: Partial<DistinctColorsProps> = {}): Color[] {
     const p = { ...PD.getDefaultValues(DistinctColorsParams), ...props };
 
     if (count <= 0) return [];
