@@ -24,28 +24,40 @@ import { SpacefillRepresentationProvider } from '../../../mol-repr/structure/rep
 import { assertUnreachable } from '../../../mol-util/type-helpers';
 import { MesoscaleExplorerState } from '../app';
 
+function getHueRange(hue: number, variablity: number) {
+    let min = hue - variablity;
+    if (min < 0) min += 360;
+    if (min === 0) min = 1;
+    let max = (hue + variablity) % 360;
+    if (max === 0) max = 1;
+    return [Math.min(min, max), Math.max(min, max)] as [number, number];
+}
+
 export function getDistinctGroupColors(count: number, color: Color, variablity: number, props?: Partial<DistinctColorsProps>) {
     const hcl = Hcl.fromColor(Hcl(), color);
-    const hue = color === 0
-        ? [1, 360] as [number, number]
-        : [Math.max(1, hcl[0] - variablity), Math.min(360, hcl[0] + variablity)] as [number, number];
+    const hue: [number, number] = color === 0 ? [1, 360] : getHueRange(hcl[0], variablity);
     return distinctColors(count, {
         hue,
-        chroma: [30, 80],
-        luminance: [15, 85],
+        chroma: [30, 100],
+        luminance: [50, 100],
         clusteringStepCount: 50,
-        minSampleCount: 800,
+        minSampleCount: 10000,
         ...props,
     });
 }
 
-export function getDistinctBaseColors(count: number, props?: Partial<DistinctColorsProps>) {
+const Colors = [0x377eb8, 0xe41a1c, 0x4daf4a, 0x984ea3, 0xff7f00, 0xffff33, 0xa65628, 0xf781bf] as Color[];
+
+export function getDistinctBaseColors(count: number, props?: Partial<DistinctColorsProps>): Color[] {
+    if (count <= Colors.length) {
+        return Colors.slice(0, count).map(e => Array.isArray(e) ? e[0] : e);
+    }
     return distinctColors(count, {
         hue: [1, 360],
-        chroma: [40, 70],
-        luminance: [15, 85],
+        chroma: [25, 100],
+        luminance: [30, 100],
         clusteringStepCount: 50,
-        minSampleCount: 800,
+        minSampleCount: 1000,
         ...props,
     });
 }
@@ -53,7 +65,7 @@ export function getDistinctBaseColors(count: number, props?: Partial<DistinctCol
 export const ColorParams = {
     type: PD.Select('generate', PD.arrayToOptions(['generate', 'uniform', 'custom'])),
     value: PD.Color(Color(0xFFFFFF), { hideIf: p => p.type === 'custom' }),
-    variablity: PD.Numeric(35, { min: 1, max: 360, step: 1 }, { hideIf: p => p.type !== 'generate' }),
+    variablity: PD.Numeric(20, { min: 1, max: 360, step: 1 }, { hideIf: p => p.type !== 'generate' }),
     lightness: PD.Numeric(0, { min: -6, max: 6, step: 0.1 }, { hideIf: p => p.type === 'custom' }),
     alpha: PD.Numeric(1, { min: 0, max: 1, step: 0.01 }, { hideIf: p => p.type === 'custom' }),
 };
@@ -64,7 +76,7 @@ export const ColorValueParam = PD.Color(Color(0xFFFFFF));
 export const RootParams = {
     type: PD.Select('custom', PD.arrayToOptions(['group-generate', 'group-uniform', 'generate', 'uniform', 'custom'])),
     value: PD.Color(Color(0xFFFFFF), { hideIf: p => p.type !== 'uniform' }),
-    variablity: PD.Numeric(35, { min: 1, max: 360, step: 1 }, { hideIf: p => p.type !== 'group-generate' }),
+    variablity: PD.Numeric(20, { min: 1, max: 360, step: 1 }, { hideIf: p => p.type !== 'group-generate' }),
     lightness: PD.Numeric(0, { min: -6, max: 6, step: 0.1 }, { hideIf: p => p.type === 'custom' }),
     alpha: PD.Numeric(1, { min: 0, max: 1, step: 0.01 }, { hideIf: p => p.type === 'custom' }),
 };

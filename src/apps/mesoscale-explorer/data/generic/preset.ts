@@ -91,7 +91,7 @@ export async function createGenericHierarchy(plugin: PluginContext, file: Asset.
     async function addGroup(g: GenericGroup, cell: StateObjectSelector, parent: string) {
         const group = await state.build()
             .to(cell)
-            .applyOrUpdateTagged(`group:${g.root}:${g.id}`, MesoscaleGroup, { ...groupParams, index: undefined, tag: `${g.root}:${g.id}`, label: g.label || g.id, color: { type: 'custom', value: ColorNames.white, variablity: 35, lightness: 0, alpha: 1 } }, { tags: g.root === parent ? `${g.root}:` : `${g.root}:${parent}`, state: { isCollapsed: true, isHidden: groupParams.hidden } })
+            .applyOrUpdateTagged(`group:${g.root}:${g.id}`, MesoscaleGroup, { ...groupParams, index: undefined, tag: `${g.root}:${g.id}`, label: g.label || g.id, color: { type: 'custom', value: ColorNames.white, variablity: 20, lightness: 0, alpha: 1 } }, { tags: g.root === parent ? `${g.root}:` : `${g.root}:${parent}`, state: { isCollapsed: true, isHidden: groupParams.hidden } })
             .commit();
 
         if (g.children) {
@@ -104,7 +104,7 @@ export async function createGenericHierarchy(plugin: PluginContext, file: Asset.
     for (const r of manifest.roots) {
         const root = await state.build()
             .toRoot()
-            .applyOrUpdateTagged(`group:${r.id}:`, MesoscaleGroup, { ...groupParams, root: true, index: -1, tag: `${r.id}:`, label: r.label || r.id, color: { type: 'custom', value: ColorNames.white, variablity: 35, lightness: 0, alpha: 1 } }, { tags: `group:${r.id}:`, state: { isCollapsed: false, isHidden: groupParams.hidden } })
+            .applyOrUpdateTagged(`group:${r.id}:`, MesoscaleGroup, { ...groupParams, root: true, index: -1, tag: `${r.id}:`, label: r.label || r.id, color: { type: 'custom', value: ColorNames.white, variablity: 20, lightness: 0, alpha: 1 } }, { tags: `group:${r.id}:`, state: { isCollapsed: false, isHidden: groupParams.hidden } })
             .commit();
 
         if (r.children) {
