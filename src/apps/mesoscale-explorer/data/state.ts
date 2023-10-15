@@ -230,35 +230,42 @@ export function getLodLevels(graphicsMode: Exclude<GraphicsMode, 'custom'>): Lod
         case 'performance':
             return [
                 { minDistance: 1, maxDistance: 300, overlap: 0, stride: 1, scaleBias: 1 },
-                { minDistance: 300, maxDistance: 2000, overlap: 40, stride: 40, scaleBias: 3 },
-                { minDistance: 2000, maxDistance: 6000, overlap: 200, stride: 150, scaleBias: 2.5 },
-                { minDistance: 6000, maxDistance: 10000000, overlap: 600, stride: 300, scaleBias: 2 },
+                { minDistance: 300, maxDistance: 2000, overlap: 0, stride: 40, scaleBias: 3 },
+                { minDistance: 2000, maxDistance: 6000, overlap: 0, stride: 150, scaleBias: 2.5 },
+                { minDistance: 6000, maxDistance: 10000000, overlap: 0, stride: 300, scaleBias: 2 },
             ];
         case 'balanced':
             return [
                 { minDistance: 1, maxDistance: 500, overlap: 0, stride: 1, scaleBias: 1 },
-                { minDistance: 500, maxDistance: 2000, overlap: 50, stride: 15, scaleBias: 3 },
-                { minDistance: 2000, maxDistance: 6000, overlap: 200, stride: 70, scaleBias: 2.5 },
-                { minDistance: 6000, maxDistance: 10000000, overlap: 600, stride: 200, scaleBias: 2 },
+                { minDistance: 500, maxDistance: 2000, overlap: 0, stride: 15, scaleBias: 3 },
+                { minDistance: 2000, maxDistance: 6000, overlap: 0, stride: 70, scaleBias: 2.5 },
+                { minDistance: 6000, maxDistance: 10000000, overlap: 0, stride: 200, scaleBias: 2 },
             ];
         case 'quality':
             return [
                 { minDistance: 1, maxDistance: 1000, overlap: 0, stride: 1, scaleBias: 1 },
-                { minDistance: 1000, maxDistance: 4000, overlap: 500, stride: 10, scaleBias: 3 },
-                { minDistance: 4000, maxDistance: 10000, overlap: 500, stride: 50, scaleBias: 2.5 },
-                { minDistance: 10000, maxDistance: 10000000, overlap: 1000, stride: 200, scaleBias: 2 },
+                { minDistance: 1000, maxDistance: 4000, overlap: 0, stride: 10, scaleBias: 3 },
+                { minDistance: 4000, maxDistance: 10000, overlap: 0, stride: 50, scaleBias: 2.5 },
+                { minDistance: 10000, maxDistance: 10000000, overlap: 0, stride: 200, scaleBias: 2 },
+            ];
+        case 'ultra':
+            return [
+                { minDistance: 1, maxDistance: 2000, overlap: 0, stride: 1, scaleBias: 1 },
+                { minDistance: 2000, maxDistance: 8000, overlap: 0, stride: 10, scaleBias: 3 },
+                { minDistance: 8000, maxDistance: 20000, overlap: 0, stride: 50, scaleBias: 2.5 },
+                { minDistance: 20000, maxDistance: 10000000, overlap: 0, stride: 200, scaleBias: 2 },
             ];
         default:
             assertUnreachable(graphicsMode);
     }
 }
 
-export type GraphicsMode = 'quality' | 'balanced' | 'performance' | 'custom';
+export type GraphicsMode = 'ultra' | 'quality' | 'balanced' | 'performance' | 'custom';
 
 export function getGraphicsModeProps(graphicsMode: Exclude<GraphicsMode, 'custom'>) {
     return {
         lodLevels: getLodLevels(graphicsMode),
-        approximate: graphicsMode !== 'quality',
+        approximate: graphicsMode !== 'quality' && graphicsMode !== 'ultra',
         alphaThickness: graphicsMode === 'performance' ? 15 : 12,
     };
 }
@@ -283,7 +290,7 @@ export function setGraphicsCanvas3DProps(ctx: PluginContext, graphics: GraphicsM
 
 export const MesoscaleStateParams = {
     filter: PD.Value<string>('', { isHidden: true }),
-    graphics: PD.Select('quality', PD.arrayToOptions(['quality', 'balanced', 'performance', 'custom'] as GraphicsMode[])),
+    graphics: PD.Select('quality', PD.arrayToOptions(['ultra', 'quality', 'balanced', 'performance', 'custom'] as GraphicsMode[])),
 };
 
 class MesoscaleStateObject extends PSO.Create<MesoscaleState>({ name: 'Mesoscale State', typeClass: 'Object' }) { }

@@ -125,8 +125,12 @@ export function createRenderable<T extends GraphicsRenderableValues>(renderItem:
             const lodLevels: [minDistance: number, maxDistance: number, overlap: number, count: number, sizeFactor: number][] | undefined = values.lodLevels?.ref.value;
 
             if (lodLevels && lodLevels.length > 0) {
-                for (let i = 0, il = lodLevels.length; i < il; ++i) {
-                    mdbDataList[i].count = 0;
+                if (values.lodLevels?.ref.version !== lodLevelsVersion) {
+                    updateLodLevels();
+                } else {
+                    for (let i = 0, il = lodLevels.length; i < il; ++i) {
+                        mdbDataList[i].count = 0;
+                    }
                 }
 
                 for (let k = 0; k < batchCount; ++k) {
