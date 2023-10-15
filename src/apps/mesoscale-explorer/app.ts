@@ -24,25 +24,31 @@ import { MesoFocusLoci } from './behavior/camera';
 import { GraphicsMode, MesoscaleState } from './data/state';
 import { MesoSelectLoci } from './behavior/select';
 import { Transparency } from '../../mol-gl/webgl/render-item';
+import { loadExampleEntry, loadPdb, loadPdbDev } from './ui/states';
 
 export { PLUGIN_VERSION as version } from '../../mol-plugin/version';
 export { setDebugMode, setProductionMode, setTimingMode, consoleStats } from '../../mol-util/debug';
 
+export type ExampleEntry = {
+    id: string,
+    label: string,
+    url: string,
+    type: 'molx' | 'molj' | 'cif' | 'bcif',
+}
+
 export type MesoscaleExplorerState = {
-    examples?: {
-        label: string,
-        url: string,
-        type: 'molx' | 'molj' | 'cif' | 'bcif',
-    }[],
+    examples?: ExampleEntry[],
     graphicsMode: GraphicsMode,
 }
+
+//
 
 const Extensions = {
     'backgrounds': PluginSpec.Behavior(Backgrounds),
     'mp4-export': PluginSpec.Behavior(Mp4Export),
 };
 
-const DefaultViewerOptions = {
+const DefaultMesoscaleExplorerOptions = {
     customFormats: [] as [string, DataFormatProvider][],
     extensions: ObjectKeys(Extensions),
     layoutIsExpanded: true,
@@ -77,21 +83,37 @@ const DefaultViewerOptions = {
 
     graphicsMode: 'quality' as GraphicsMode
 };
-type ViewerOptions = typeof DefaultViewerOptions;
+type MesoscaleExplorerOptions = typeof DefaultMesoscaleExplorerOptions;
 
-export class Viewer {
+export class MesoscaleExplorer {
     constructor(public plugin: PluginUIContext) {
     }
 
-    static async create(elementOrId: string | HTMLElement, options: Partial<ViewerOptions> = {}) {
+    async loadExample(id: string) {
+        const entries = (this.plugin.customState as MesoscaleExplorerState).examples || [];
+        const entry = entries.find(e => e.id === id);
+        if (entry !== undefined) {
+            await loadExampleEntry(this.plugin, entry);
+        }
+    }
+
+    async loadPdb(id: string) {
+        await loadPdb(this.plugin, id);
+    }
+
+    async loadPdbDev(id: string) {
+        await loadPdbDev(this.plugin, id);
+    }
+
+    static async create(elementOrId: string | HTMLElement, options: Partial<MesoscaleExplorerOptions> = {}) {
         const definedOptions = {} as any;
         // filter for defined properies only so the default values
         // are property applied
-        for (const p of Object.keys(options) as (keyof ViewerOptions)[]) {
+        for (const p of Object.keys(options) as (keyof MesoscaleExplorerOptions)[]) {
             if (options[p] !== void 0) definedOptions[p] = options[p];
         }
 
-        const o: ViewerOptions = { ...DefaultViewerOptions, ...definedOptions };
+        const o: MesoscaleExplorerOptions = { ...DefaultMesoscaleExplorerOptions, ...definedOptions };
         const defaultSpec = DefaultPluginUISpec();
 
         const spec: PluginUISpec = {
@@ -199,7 +221,7 @@ export class Viewer {
 
         plugin.managers.lociLabels.clearProviders();
 
-        return new Viewer(plugin);
+        return new MesoscaleExplorer(plugin);
     }
 
     handleResize() {

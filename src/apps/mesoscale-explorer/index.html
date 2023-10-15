@@ -52,30 +52,36 @@
             if (timingMode) molstar.setTimingMode(timingMode);
 
             var hideControls = getParam('hide-controls', '[^&]+').trim() === '1';
-            var collapseLeftPanel = getParam('collapse-left-panel', '[^&]+').trim() === '1';
-            var pixelScale = getParam('pixel-scale', '[^&]+').trim();
-            var pickScale = getParam('pick-scale', '[^&]+').trim();
-            var pickPadding = getParam('pick-padding', '[^&]+').trim();
-            var transparency = getParam('transparency', '[^&]+').trim().toLowerCase();
             var preferWebgl1 = getParam('prefer-webgl1', '[^&]+').trim() === '1' || void 0;
             var allowMajorPerformanceCaveat = getParam('allow-major-performance-caveat', '[^&]+').trim() === '1';
             var powerPreference = getParam('power-preference', '[^&]+').trim().toLowerCase();
             var graphicsMode = getParam('graphics-mode', '[^&]+').trim().toLowerCase();
 
-            molstar.Viewer.create('app', {
+            molstar.MesoscaleExplorer.create('app', {
                 layoutShowControls: !hideControls,
                 viewportShowExpand: false,
-                collapseLeftPanel: collapseLeftPanel,
-                pixelScale: parseFloat(pixelScale) || 1,
-                pickScale: parseFloat(pickScale) || 0.25,
-                pickPadding: isNaN(parseFloat(pickPadding)) ? 1 : parseFloat(pickPadding),
-                transparency: transparency || undefined,
                 preferWebgl1: preferWebgl1,
                 allowMajorPerformanceCaveat: allowMajorPerformanceCaveat,
                 powerPreference: powerPreference || 'high-performance',
                 graphicsMode: graphicsMode || 'quality',
-            }).then(viewer => {
+            }).then(me => {
+                var example = getParam('example', '[^&]+').trim();
+                if (example) {
+                    me.loadExample(example);
+                    return;
+                }
 
+                var pdb = getParam('pdb', '[^&]+').trim();
+                if (pdb) {
+                    me.loadPdb(pdb);
+                    return;
+                }
+
+                var pdbdev = getParam('pdbdev', '[^&]+').trim();
+                if (pdbdev) {
+                    me.loadPdbDev(pdbdev);
+                    return;
+                }
             });
         </script>
         <!-- __MOLSTAR_ANALYTICS__ -->

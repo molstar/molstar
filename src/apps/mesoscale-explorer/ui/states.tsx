@@ -19,7 +19,7 @@ import { Task } from '../../../mol-task';
 import { Color } from '../../../mol-util/color/color';
 import { getFileNameInfo } from '../../../mol-util/file-info';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
-import { MesoscaleExplorerState } from '../app';
+import { ExampleEntry, MesoscaleExplorerState } from '../app';
 import { createCellpackHierarchy } from '../data/cellpack/preset';
 import { createGenericHierarchy } from '../data/generic/preset';
 import { createMmcifHierarchy } from '../data/mmcif/preset';
@@ -135,6 +135,44 @@ async function createHierarchy(ctx: PluginContext, ref: string) {
     }
 }
 
+async function reset(ctx: PluginContext) {
+    await PluginCommands.State.Snapshots.Clear(ctx);
+    await PluginCommands.State.RemoveObject(ctx, { state: ctx.state.data, ref: StateTransform.RootRef });
+    await MesoscaleState.init(ctx);
+    adjustPluginProps(ctx);
+}
+
+export async function loadExampleEntry(ctx: PluginContext, entry: ExampleEntry) {
+    console.time('LoadExample');
+    const { url, type } = entry;
+    if (type === 'molx' || type === 'molj') {
+        await PluginCommands.State.Snapshots.OpenUrl(ctx, { url, type });
+    } else {
+        await reset(ctx);
+        const isBinary = type === 'bcif';
+        const data = await ctx.builders.data.download({ url, isBinary });
+        await createHierarchy(ctx, data.ref);
+    }
+    console.timeEnd('LoadExample');
+}
+
+export async function loadPdb(ctx: PluginContext, id: string) {
+    await reset(ctx);
+    const url = `https://models.rcsb.org/${id.toUpperCase()}.bcif`;
+    const data = await ctx.builders.data.download({ url, isBinary: true });
+    await createHierarchy(ctx, data.ref);
+}
+
+export async function loadPdbDev(ctx: PluginContext, id: string) {
+    await reset(ctx);
+    const nId = id.toUpperCase().startsWith('PDBDEV_') ? id : `PDBDEV_${id.padStart(8, '0')}`;
+    const url = `https://pdb-dev.wwpdb.org/bcif/${nId.toUpperCase()}.bcif`;
+    const data = await ctx.builders.data.download({ url, isBinary: true });
+    await createHierarchy(ctx, data.ref);
+}
+
+//
+
 export const LoadExample = StateAction.build({
     display: { name: 'Load', description: 'Load an example' },
     params: (a, ctx: PluginContext) => {
@@ -146,21 +184,7 @@ export const LoadExample = StateAction.build({
     from: PluginStateObject.Root
 })(({ params }, ctx: PluginContext) => Task.create('Loading example...', async taskCtx => {
     const entries = (ctx.customState as MesoscaleExplorerState).examples || [];
-    const { url, type } = entries[params.entry];
-    console.time('LoadExample');
-    if (type === 'molx' || type === 'molj') {
-        await PluginCommands.State.Snapshots.OpenUrl(ctx, { url, type });
-    } else {
-        await PluginCommands.State.Snapshots.Clear(ctx);
-        await PluginCommands.State.RemoveObject(ctx, { state: ctx.state.data, ref: StateTransform.RootRef });
-        await MesoscaleState.init(ctx);
-        adjustPluginProps(ctx);
-
-        const isBinary = type === 'bcif';
-        const data = await ctx.builders.data.download({ url, isBinary });
-        await createHierarchy(ctx, data.ref);
-    }
-    console.timeEnd('LoadExample');
+    await loadExampleEntry(ctx, entries[params.entry]);
 }));
 
 export const LoadModel = StateAction.build({
