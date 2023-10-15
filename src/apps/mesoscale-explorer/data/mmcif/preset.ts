@@ -9,12 +9,13 @@ import { StructureRepresentation3D } from '../../../../mol-plugin-state/transfor
 import { PluginContext } from '../../../../mol-plugin/context';
 import { SpacefillRepresentationProvider } from '../../../../mol-repr/structure/representation/spacefill';
 import { StateObjectRef, StateObjectSelector, StateBuilder } from '../../../../mol-state';
+import { Clip } from '../../../../mol-util/clip';
 import { Color } from '../../../../mol-util/color';
 import { ColorNames } from '../../../../mol-util/color/names';
 import { GraphicsMode, MesoscaleGroup, MesoscaleState, getDistinctBaseColors, getDistinctGroupColors, getGraphicsModeProps, getMesoscaleGroupParams } from '../state';
 import { MmcifAssembly, MmcifStructure } from './model';
 
-function getSpacefillParams(color: Color, scaleFactor: number, graphics: GraphicsMode) {
+function getSpacefillParams(color: Color, scaleFactor: number, graphics: GraphicsMode, clipVariant: Clip.Variant) {
     const gmp = getGraphicsModeProps(graphics === 'custom' ? 'quality' : graphics);
     return {
         type: {
@@ -32,7 +33,7 @@ function getSpacefillParams(color: Color, scaleFactor: number, graphics: Graphic
                 }),
                 quality: 'lowest', // avoid 'auto', triggers boundary calc
                 clip: {
-                    variant: 'instance',
+                    variant: clipVariant,
                     objects: [],
                 },
                 approximate: gmp.approximate,
@@ -96,6 +97,10 @@ export async function createMmcifHierarchy(plugin: PluginContext, trajectory: St
         .apply(MmcifAssembly, { id: '' })
         .commit();
 
+    const units = base.data!.units;
+    const willBeMerged = units.length > 1 && units.every(u => u.conformation.operator.isIdentity);
+    const clipVariant = willBeMerged ? 'pixel' : 'instance';
+
     const entRoot = await state.build()
         .toRoot()
         .applyOrUpdateTagged('group:ent:', MesoscaleGroup, { ...groupParams, root: true, index: -1, tag: `ent:`, label: 'entity', color: { type: 'custom', value: ColorNames.white, variablity: 20, lightness: 0, alpha: 1 } }, { tags: 'group:ent:', state: { isCollapsed: false, isHidden: groupParams.hidden } })
@@ -151,7 +156,7 @@ export async function createMmcifHierarchy(plugin: PluginContext, trajectory: St
                 build = build
                     .toRoot()
                     .apply(MmcifStructure, { structureRef: base.ref, entityId: entities.id.value(i) }, { dependsOn })
-                    .apply(StructureRepresentation3D, getSpacefillParams(color, scaleFactor, graphicsMode), { tags: [`ent:${t}`] });
+                    .apply(StructureRepresentation3D, getSpacefillParams(color, scaleFactor, graphicsMode, clipVariant), { tags: [`ent:${t}`] });
             }
             await build.commit();
         } catch (e) {
