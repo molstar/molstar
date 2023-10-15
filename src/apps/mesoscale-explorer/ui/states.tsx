@@ -173,6 +173,23 @@ export async function loadPdbDev(ctx: PluginContext, id: string) {
 
 //
 
+export const LoadDatabase = StateAction.build({
+    display: { name: 'Database', description: 'Load from Database' },
+    params: (a, ctx: PluginContext) => {
+        return {
+            source: PD.Select('pdb', PD.objectToOptions({ pdb: 'PDB', pdbDev: 'PDB-Dev' })),
+            entry: PD.Text(''),
+        };
+    },
+    from: PluginStateObject.Root
+})(({ params }, ctx: PluginContext) => Task.create('Loading from database...', async taskCtx => {
+    if (params.source === 'pdb') {
+        await loadPdb(ctx, params.entry);
+    } else if (params.source === 'pdbDev') {
+        await loadPdbDev(ctx, params.entry);
+    }
+}));
+
 export const LoadExample = StateAction.build({
     display: { name: 'Load', description: 'Load an example' },
     params: (a, ctx: PluginContext) => {
@@ -230,6 +247,20 @@ export const LoadModel = StateAction.build({
     }
     console.timeEnd('LoadModel');
 }));
+
+//
+
+export class DatabaseControls extends PluginUIComponent {
+    componentDidMount() {
+
+    }
+
+    render() {
+        return <div style={{ margin: '5px' }}>
+            <ApplyActionControl state={this.plugin.state.data} action={LoadDatabase} nodeRef={this.plugin.state.data.tree.root.ref} applyLabel={'Load'} hideHeader />
+        </div>;
+    }
+}
 
 export class LoaderControls extends PluginUIComponent {
     componentDidMount() {
