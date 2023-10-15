@@ -192,7 +192,7 @@ export interface ColorList {
     type: 'sequential' | 'diverging' | 'qualitative'
 }
 export function ColorList(label: string, type: 'sequential' | 'diverging' | 'qualitative', description: string, list: (number | [number, number])[]): ColorList {
-    return { label, description, list: list as Color[], type };
+    return { label, description, list: list as ColorListEntry[], type };
 }
 
 export type ColorTable<T extends { [k: string]: number[] }> = { [k in keyof T]: Color[] }
