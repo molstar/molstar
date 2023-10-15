@@ -79,8 +79,10 @@ export const MesoSelectLoci = PluginBehavior.create<MesoSelectLociProps>({
             this.subscribeObservable(this.ctx.behaviors.interaction.hover, ({ current, button, modifiers }) => {
                 if (!this.ctx.canvas3d || this.ctx.isBusy) return;
 
+                const pointerLock = !!this.ctx.canvas3dContext?.input.pointerLock;
                 const { hoverHighlightOnly } = this.params.bindings;
-                if (Binding.match(hoverHighlightOnly, button, modifiers)) {
+
+                if (!pointerLock && Binding.match(hoverHighlightOnly, button, modifiers)) {
                     if (Loci.isEmpty(current.loci)) {
                         this.ctx.managers.interactivity.lociHighlights.clearHighlights();
                         return;
