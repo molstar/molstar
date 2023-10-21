@@ -20,6 +20,7 @@ import { SetUtils } from '../../../mol-util/set';
 import { MolScriptBuilder as MS } from '../../../mol-script/language/builder';
 import { compile } from '../../../mol-script/runtime/query/compiler';
 import { CustomPropertyDescriptor } from '../../../mol-model/custom-property';
+import { Asset } from '../../../mol-util/assets';
 
 const BiologicalAssemblyNames = new Set([
     'author_and_software_defined_assembly',
@@ -48,7 +49,7 @@ export namespace AssemblySymmetry {
         Representation = 'rcsb-assembly-symmetry-3d'
     }
 
-    export const DefaultServerUrl = 'https://data.rcsb.org/graphql';
+    export const DefaultServerUrl = 'https://data.rcsb.org/graphql'; // Alternative: 'https://www.ebi.ac.uk/pdbe/aggregated-api/pdb/symmetry' (if serverType is 'pdbe')
 
     export function isApplicable(structure?: Structure): boolean {
         return (
@@ -60,6 +61,8 @@ export namespace AssemblySymmetry {
 
     export async function fetch(ctx: CustomProperty.Context, structure: Structure, props: AssemblySymmetryDataProps): Promise<CustomProperty.Data<AssemblySymmetryDataValue>> {
         if (!isApplicable(structure)) return { value: [] };
+
+        if (props.serverType === 'pdbe') return fetch_PDBe(ctx, structure, props);
 
         const client = new GraphQLClient(props.serverUrl, ctx.assetManager);
         const variables: AssemblySymmetryQueryVariables = {
@@ -75,6 +78,37 @@ export namespace AssemblySymmetry {
             value = result.data.assembly.rcsb_struct_symmetry as AssemblySymmetryDataValue;
         }
         return { value, assets: [result] };
+    }
+
+    async function fetch_PDBe(ctx: CustomProperty.Context, structure: Structure, props: AssemblySymmetryDataProps): Promise<CustomProperty.Data<AssemblySymmetryDataValue>> {
+        const assembly_id = structure.units[0].conformation.operator.assembly?.id || '-1'; // should use '' instead of '-1' but the API does not support non-number assembly_id
+        const entry_id = structure.units[0].model.entryId.toLowerCase();
+        const url = `${props.serverUrl}/${entry_id}?assembly_id=${assembly_id}`;
+        const asset = Asset.getUrlAsset(ctx.assetManager, url);
+        let dataWrapper: Asset.Wrapper<'json'>;
+        try {
+            dataWrapper = await ctx.assetManager.resolve(asset, 'json').runInContext(ctx.runtime);
+        } catch (err) {
+            // PDBe API returns 404 when there are no symmetries -> treat as success with empty json in body
+            if (`${err}`.includes('404')) { // dirrrty
+                dataWrapper = Asset.Wrapper({}, asset, ctx.assetManager);
+            } else {
+                throw err;
+            }
+        }
+        const data = dataWrapper.data;
+
+        const value: AssemblySymmetryDataValue = (data[entry_id] ?? []).map((v: any) => ({
+            kind: 'Global Symmetry',
+            oligomeric_state: v.oligomeric_state,
+            stoichiometry: [v.stoichiometry],
+            symbol: v.symbol,
+            type: v.type,
+            clusters: [],
+            rotation_axes: v.rotation_axes,
+        }));
+
+        return { value, assets: [dataWrapper] };
     }
 
     /** Returns the index of the first non C1 symmetry or -1 */
@@ -147,7 +181,8 @@ export function getSymmetrySelectParam(structure?: Structure) {
 //
 
 export const AssemblySymmetryDataParams = {
-    serverUrl: PD.Text(AssemblySymmetry.DefaultServerUrl, { description: 'GraphQL endpoint URL' })
+    serverType: PD.Select('rcsb', [['rcsb', 'RCSB'], ['pdbe', 'PDBe']] as const),
+    serverUrl: PD.Text(AssemblySymmetry.DefaultServerUrl, { description: 'GraphQL endpoint URL (if server type is RCSB) or PDBe API endpoint URL (if server type is PDBe)' })
 };
 export type AssemblySymmetryDataParams = typeof AssemblySymmetryDataParams
 export type AssemblySymmetryDataProps = PD.Values<AssemblySymmetryDataParams>
@@ -174,7 +209,7 @@ export const AssemblySymmetryDataProvider: CustomStructureProperty.Provider<Asse
 
 function getAssemblySymmetryParams(data?: Structure) {
     return {
-        ... AssemblySymmetryDataParams,
+        ...AssemblySymmetryDataParams,
         symmetryIndex: getSymmetrySelectParam(data)
     };
 }

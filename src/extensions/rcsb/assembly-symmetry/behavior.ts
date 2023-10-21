@@ -5,12 +5,13 @@
  */
 
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
-import { AssemblySymmetryProvider, AssemblySymmetry, AssemblySymmetryDataProvider } from './prop';
+import { AssemblySymmetryProvider, AssemblySymmetry, AssemblySymmetryDataProvider, AssemblySymmetryDataParams } from './prop';
 import { PluginBehavior } from '../../../mol-plugin/behavior/behavior';
 import { AssemblySymmetryParams, AssemblySymmetryRepresentation } from './representation';
 import { AssemblySymmetryClusterColorThemeProvider } from './color';
 import { PluginStateTransform, PluginStateObject } from '../../../mol-plugin-state/objects';
 import { Task } from '../../../mol-task';
+import { PluginConfigItem } from '../../../mol-plugin/config';
 import { PluginContext } from '../../../mol-plugin/context';
 import { StateTransformer, StateAction, StateObject, StateTransform, StateObjectRef } from '../../../mol-state';
 import { GenericRepresentationRef } from '../../../mol-plugin-state/manager/structure/hierarchy-state';
@@ -77,14 +78,15 @@ export const InitAssemblySymmetry3D = StateAction.build({
         description: 'Initialize Assembly Symmetry axes and cage. Data calculated with BioJava, obtained via RCSB PDB.'
     },
     from: PluginStateObject.Molecule.Structure,
-    isApplicable: (a) => AssemblySymmetry.isApplicable(a.data)
-})(({ a, ref, state }, plugin: PluginContext) => Task.create('Init Assembly Symmetry', async ctx => {
+    isApplicable: (a) => AssemblySymmetry.isApplicable(a.data),
+    params: (a, plugin: PluginContext) => getConfiguredDefaultParams(plugin)
+})(({ a, ref, state, params }, plugin: PluginContext) => Task.create('Init Assembly Symmetry', async ctx => {
     try {
         const propCtx = { runtime: ctx, assetManager: plugin.managers.asset };
-        await AssemblySymmetryDataProvider.attach(propCtx, a.data);
+        await AssemblySymmetryDataProvider.attach(propCtx, a.data, params);
         const assemblySymmetryData = AssemblySymmetryDataProvider.get(a.data).value;
         const symmetryIndex = assemblySymmetryData ? AssemblySymmetry.firstNonC1(assemblySymmetryData) : -1;
-        await AssemblySymmetryProvider.attach(propCtx, a.data, { symmetryIndex });
+        await AssemblySymmetryProvider.attach(propCtx, a.data, { ...params, symmetryIndex });
     } catch (e) {
         plugin.log.error(`Assembly Symmetry: ${e}`);
         return;
@@ -152,10 +154,6 @@ const AssemblySymmetry3D = PluginStateTransform.BuiltIn({
 
 //
 
-export const AssemblySymmetryPresetParams = {
-    ...StructureRepresentationPresetProvider.CommonParams,
-};
-
 export const AssemblySymmetryPreset = StructureRepresentationPresetProvider({
     id: 'preset-structure-representation-rcsb-assembly-symmetry',
     display: {
@@ -165,7 +163,12 @@ export const AssemblySymmetryPreset = StructureRepresentationPresetProvider({
     isApplicable(a) {
         return AssemblySymmetry.isApplicable(a.data);
     },
-    params: () => AssemblySymmetryPresetParams,
+    params: (a, plugin) => {
+        return {
+            ...StructureRepresentationPresetProvider.CommonParams,
+            ...getConfiguredDefaultParams(plugin)
+        };
+    },
     async apply(ref, params, plugin) {
         const structureCell = StateObjectRef.resolveAndCheck(plugin.state.data, ref);
         const structure = structureCell?.obj?.data;
@@ -174,15 +177,16 @@ export const AssemblySymmetryPreset = StructureRepresentationPresetProvider({
         if (!AssemblySymmetryDataProvider.get(structure).value) {
             await plugin.runTask(Task.create('Assembly Symmetry', async runtime => {
                 const propCtx = { runtime, assetManager: plugin.managers.asset };
-                await AssemblySymmetryDataProvider.attach(propCtx, structure);
+                const propProps = { serverType: params.serverType, serverUrl: params.serverUrl };
+                await AssemblySymmetryDataProvider.attach(propCtx, structure, propProps);
                 const assemblySymmetryData = AssemblySymmetryDataProvider.get(structure).value;
                 const symmetryIndex = assemblySymmetryData ? AssemblySymmetry.firstNonC1(assemblySymmetryData) : -1;
-                await AssemblySymmetryProvider.attach(propCtx, structure, { symmetryIndex });
+                await AssemblySymmetryProvider.attach(propCtx, structure, { ...propProps, symmetryIndex });
             }));
         }
 
         const assemblySymmetry = await tryCreateAssemblySymmetry(plugin, structureCell);
-        const colorTheme = assemblySymmetry.isOk ? Tag.Cluster as any : undefined;
+        const colorTheme = getRCSBAssemblySymmetryConfig(plugin).ApplyColors && assemblySymmetry.isOk ? Tag.Cluster as any : undefined;
         const preset = await PresetStructureRepresentations.auto.apply(ref, { ...params, theme: { globalName: colorTheme, focus: { name: colorTheme } } }, plugin);
 
         return { components: preset.components, representations: { ...preset.representations, assemblySymmetry } };
@@ -194,4 +198,27 @@ export function tryCreateAssemblySymmetry(plugin: PluginContext, structure: Stat
     const assemblySymmetry = state.build().to(structure)
         .applyOrUpdateTagged(AssemblySymmetry.Tag.Representation, AssemblySymmetry3D, params, { state: initialState });
     return assemblySymmetry.commit({ revertOnError: true });
+}
+
+//
+
+export const RCSBAssemblySymmetryConfig = {
+    DefaultServerType: new PluginConfigItem('rcsb-assembly-symmetry.server-type', AssemblySymmetryDataParams.serverType.defaultValue),
+    DefaultServerUrl: new PluginConfigItem('rcsb-assembly-symmetry.server-url', AssemblySymmetryDataParams.serverUrl.defaultValue),
+    ApplyColors: new PluginConfigItem('rcsb-assembly-symmetry.apply-colors', true),
+};
+
+export function getRCSBAssemblySymmetryConfig(plugin: PluginContext): { [key in keyof typeof RCSBAssemblySymmetryConfig]: NonNullable<typeof RCSBAssemblySymmetryConfig[key]['defaultValue']> } {
+    return {
+        ApplyColors: plugin.config.get(RCSBAssemblySymmetryConfig.ApplyColors) ?? RCSBAssemblySymmetryConfig.ApplyColors.defaultValue ?? true,
+        DefaultServerType: plugin.config.get(RCSBAssemblySymmetryConfig.DefaultServerType) ?? RCSBAssemblySymmetryConfig.DefaultServerType.defaultValue ?? AssemblySymmetryDataParams.serverType.defaultValue,
+        DefaultServerUrl: plugin.config.get(RCSBAssemblySymmetryConfig.DefaultServerUrl) ?? RCSBAssemblySymmetryConfig.DefaultServerUrl.defaultValue ?? AssemblySymmetryDataParams.serverUrl.defaultValue,
+    };
+}
+
+function getConfiguredDefaultParams(plugin: PluginContext) {
+    const config = getRCSBAssemblySymmetryConfig(plugin);
+    const params = PD.clone(AssemblySymmetryDataParams);
+    PD.setDefaultValues(params, { serverType: config.DefaultServerType, serverUrl: config.DefaultServerUrl });
+    return params;
 }
