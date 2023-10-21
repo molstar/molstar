@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  *
@@ -41,6 +41,17 @@ namespace Hcl {
         out[1] = c;
         out[2] = l;
         return out;
+    }
+
+    export function set(out: Hcl, h: number, c: number, l: number): Hcl {
+        out[0] = h;
+        out[1] = c;
+        out[2] = l;
+        return out;
+    }
+
+    export function hasHue(a: Hcl) {
+        return !isNaN(a[0]);
     }
 
     const tmpFromColorLab = [0, 0, 0] as unknown as Lab;
