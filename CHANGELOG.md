@@ -7,6 +7,7 @@ Note that since we don't clearly distinguish between a public and private interf
 ## [Unreleased]
 
 - Fix handling of PDB files with insertion codes (#945)
+- Fix de-/saturate of colors with no hue
 
 ## [v3.41.0] - 2023-10-15
 
