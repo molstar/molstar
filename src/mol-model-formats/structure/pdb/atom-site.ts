@@ -43,6 +43,7 @@ export function getAtomSite(sites: AtomSiteTemplate, terIndices: Set<number>, op
     const pdbx_PDB_model_num = CifField.ofStrings(sites.pdbx_PDB_model_num);
     const auth_asym_id = CifField.ofTokens(sites.auth_asym_id);
     const auth_seq_id = CifField.ofTokens(sites.auth_seq_id);
+    const pdbx_PDB_ins_code = CifField.ofTokens(sites.pdbx_PDB_ins_code);
     const auth_atom_id = CifField.ofTokens(sites.auth_atom_id);
     const auth_comp_id = CifField.ofTokens(sites.auth_comp_id);
     const id = CifField.ofStrings(sites.id);
@@ -52,19 +53,32 @@ export function getAtomSite(sites: AtomSiteTemplate, terIndices: Set<number>, op
     let currModelNum = pdbx_PDB_model_num.str(0);
     let currAsymId = auth_asym_id.str(0);
     let currSeqId = auth_seq_id.int(0);
+    let currInsCode = pdbx_PDB_ins_code.str(0);
     let currLabelAsymId = currAsymId;
+    let currLabelSeqId = currSeqId;
 
     const asymIdCounts = new Map<string, number>();
     const atomIdCounts = new Map<string, number>();
 
     const labelAsymIds: string[] = [];
     const labelAtomIds: string[] = [];
+    const labelSeqIds: number[] = [];
+
+    // serial label_seq_id if there are ins codes
+    let hasInsCode = false;
+    for (let i = 0, il = id.rowCount; i < il; ++i) {
+        if (pdbx_PDB_ins_code.str(i) !== '') {
+            hasInsCode = true;
+            break;
+        }
+    }
 
     // ensure unique asym ids per model and unique atom ids per seq id
     for (let i = 0, il = id.rowCount; i < il; ++i) {
         const modelNum = pdbx_PDB_model_num.str(i);
         const asymId = auth_asym_id.str(i);
         const seqId = auth_seq_id.int(i);
+        const insCode = pdbx_PDB_ins_code.str(i);
         let atomId = auth_atom_id.str(i);
 
         if (modelNum !== currModelNum) {
@@ -73,15 +87,29 @@ export function getAtomSite(sites: AtomSiteTemplate, terIndices: Set<number>, op
             currModelNum = modelNum;
             currAsymId = asymId;
             currSeqId = seqId;
+            currInsCode = insCode;
             currLabelAsymId = asymId;
+            currLabelSeqId = seqId;
         } else if (currAsymId !== asymId) {
             atomIdCounts.clear();
             currAsymId = asymId;
             currSeqId = seqId;
+            currInsCode = insCode;
             currLabelAsymId = asymId;
+            currLabelSeqId = seqId;
         } else if (currSeqId !== seqId) {
             atomIdCounts.clear();
+            if (currSeqId === currLabelSeqId) {
+                currLabelSeqId = seqId;
+            } else {
+                currLabelSeqId += 1;
+            }
             currSeqId = seqId;
+            currInsCode = insCode;
+        } else if (currInsCode !== insCode) {
+            atomIdCounts.clear();
+            currInsCode = insCode;
+            currLabelSeqId += 1;
         }
 
         if (asymIdCounts.has(asymId)) {
@@ -107,10 +135,18 @@ export function getAtomSite(sites: AtomSiteTemplate, terIndices: Set<number>, op
             atomIdCounts.set(atomId, 0);
         }
         labelAtomIds[i] = atomId;
+
+        if (hasInsCode) {
+            labelSeqIds[i] = currLabelSeqId;
+        }
     }
 
     const labelAsymId = Column.ofStringArray(labelAsymIds);
     const labelAtomId = Column.ofStringArray(labelAtomIds);
+
+    const label_seq_id = hasInsCode
+        ? CifField.ofColumn(Column.ofIntArray(labelSeqIds))
+        : CifField.ofUndefined(sites.index, Column.Schema.int);
 
     //
 
@@ -131,7 +167,7 @@ export function getAtomSite(sites: AtomSiteTemplate, terIndices: Set<number>, op
         label_asym_id: CifField.ofColumn(labelAsymId),
         label_atom_id: CifField.ofColumn(labelAtomId),
         label_comp_id: auth_comp_id,
-        label_seq_id: CifField.ofUndefined(sites.index, Column.Schema.int),
+        label_seq_id,
         label_entity_id: CifField.ofStrings(sites.label_entity_id),
 
         occupancy: areTokensEmpty(sites.occupancy) ? CifField.ofUndefined(sites.index, Column.Schema.float) : CifField.ofTokens(sites.occupancy),

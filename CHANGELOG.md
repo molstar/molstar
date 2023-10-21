@@ -6,6 +6,7 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Fix handling of PDB files with insertion codes (#945)
 
 ## [v3.41.0] - 2023-10-15
 
