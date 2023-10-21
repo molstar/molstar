@@ -95,12 +95,12 @@ export async function createCellpackHierarchy(plugin: PluginContext, trajectory:
 
     const compRoot = await state.build()
         .toRoot()
-        .applyOrUpdateTagged('group:comp:', MesoscaleGroup, { ...groupParams, root: true, index: -1, tag: `comp:`, label: 'compartment', color: { type: 'custom', value: ColorNames.white, variablity: 20, lightness: 0, alpha: 1 } }, { tags: 'group:comp:', state: { isCollapsed: false, isHidden: groupParams.hidden } })
+        .applyOrUpdateTagged('group:comp:', MesoscaleGroup, { ...groupParams, root: true, index: -1, tag: `comp:`, label: 'compartment', color: { type: 'custom', value: ColorNames.white, variability: 20, shift: 0, lightness: 0, alpha: 1 } }, { tags: 'group:comp:', state: { isCollapsed: false, isHidden: groupParams.hidden } })
         .commit();
 
     const funcRoot = await state.build()
         .toRoot()
-        .applyOrUpdateTagged('group:func:', MesoscaleGroup, { ...groupParams, root: true, index: -1, tag: `func:`, label: 'function', color: { type: 'custom', value: ColorNames.white, variablity: 20, lightness: 0, alpha: 1 } }, { tags: 'group:func:', state: { isCollapsed: false, isHidden: groupParams.hidden } })
+        .applyOrUpdateTagged('group:func:', MesoscaleGroup, { ...groupParams, root: true, index: -1, tag: `func:`, label: 'function', color: { type: 'custom', value: ColorNames.white, variability: 20, shift: 0, lightness: 0, alpha: 1 } }, { tags: 'group:func:', state: { isCollapsed: false, isHidden: groupParams.hidden } })
         .commit();
 
     if (entities._rowCount > 1) {
@@ -124,21 +124,21 @@ export async function createCellpackHierarchy(plugin: PluginContext, trajectory:
 
         //
 
-        const baseCompColors = getDistinctBaseColors(compIds.size);
+        const baseCompColors = getDistinctBaseColors(compIds.size, 0);
         const compIdEntries = Array.from(compIds.entries());
         for (let i = 0; i < compIdEntries.length; ++i) {
             const [n, m] = compIdEntries[i];
-            const groupColors = getDistinctGroupColors(m.members.size, baseCompColors[i], 20);
+            const groupColors = getDistinctGroupColors(m.members.size, baseCompColors[i], 20, 0);
             compColors.set(n, groupColors);
         }
 
         //
 
-        const baseFuncColors = getDistinctBaseColors(funcIds.size);
+        const baseFuncColors = getDistinctBaseColors(funcIds.size, 0);
         const funcIdEntries = Array.from(funcIds.entries());
         for (let i = 0; i < funcIdEntries.length; ++i) {
             const [n, m] = funcIdEntries[i];
-            const groupColors = getDistinctGroupColors(m.size, baseFuncColors[i], 20);
+            const groupColors = getDistinctGroupColors(m.size, baseFuncColors[i], 20, 0);
             funcColors.set(n, groupColors);
         }
 
@@ -158,7 +158,7 @@ export async function createCellpackHierarchy(plugin: PluginContext, trajectory:
                     parent.cell!.state.isCollapsed = false;
                     const group = await state.build()
                         .to(parent)
-                        .applyOrUpdateTagged(`group:comp:${n}`, MesoscaleGroup, { ...groupParams, root: parent === compRoot, index: colorIdx, tag: `comp:${n}`, label, color: { type: 'generate', value: color, variablity: 20, lightness: 0, alpha: 1 } }, { tags: `comp:${p}`, state: { isCollapsed: true, isHidden: groupParams.hidden } })
+                        .applyOrUpdateTagged(`group:comp:${n}`, MesoscaleGroup, { ...groupParams, root: parent === compRoot, index: colorIdx, tag: `comp:${n}`, label, color: { type: 'generate', value: color, variability: 20, shift: 0, lightness: 0, alpha: 1 } }, { tags: `comp:${p}`, state: { isCollapsed: true, isHidden: groupParams.hidden } })
                         .commit({ revertOnError: true });
                     compGroups.set(n, group);
                 }
@@ -170,7 +170,7 @@ export async function createCellpackHierarchy(plugin: PluginContext, trajectory:
                 const color = colorIdx !== undefined ? baseFuncColors[colorIdx] : ColorNames.white;
                 const group = await state.build()
                     .to(funcRoot)
-                    .applyOrUpdateTagged(`group:func:${f}`, MesoscaleGroup, { ...groupParams, index: colorIdx, tag: `func:${f}`, label: f, color: { type: 'custom', value: color, variablity: 20, lightness: 0, alpha: 1 } }, { tags: 'func:', state: { isCollapsed: true, isHidden: groupParams.hidden } })
+                    .applyOrUpdateTagged(`group:func:${f}`, MesoscaleGroup, { ...groupParams, index: colorIdx, tag: `func:${f}`, label: f, color: { type: 'custom', value: color, variability: 20, shift: 0, lightness: 0, alpha: 1 } }, { tags: 'func:', state: { isCollapsed: true, isHidden: groupParams.hidden } })
                     .commit({ revertOnError: true });
                 funcGroups.set(f, group);
             }

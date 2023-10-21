@@ -293,7 +293,7 @@ export class GroupNode extends Node<{ filter: string }, { isCollapsed: boolean, 
         let groupColors: Color[] = [];
 
         if (type === 'generate') {
-            groupColors = getDistinctGroupColors(entities.length, value, values.variablity);
+            groupColors = getDistinctGroupColors(entities.length, value, values.variability, values.shift);
         }
 
         for (let i = 0; i < entities.length; ++i) {

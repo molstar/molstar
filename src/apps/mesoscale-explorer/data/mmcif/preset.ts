@@ -86,7 +86,7 @@ export async function createMmcifHierarchy(plugin: PluginContext, trajectory: St
     }
 
     const entGroups = new Map<string, StateObjectSelector>();
-    const entIds = new Map<string, { idx: number, members: Map<string, number> }>();
+    const entIds = new Map<string, { idx: number, members: Map<number, number> }>();
     const entColors = new Map<string, Color[]>();
 
     const graphicsMode = MesoscaleState.get(plugin).graphics;
@@ -103,7 +103,7 @@ export async function createMmcifHierarchy(plugin: PluginContext, trajectory: St
 
     const entRoot = await state.build()
         .toRoot()
-        .applyOrUpdateTagged('group:ent:', MesoscaleGroup, { ...groupParams, root: true, index: -1, tag: `ent:`, label: 'entity', color: { type: 'custom', value: ColorNames.white, variablity: 20, lightness: 0, alpha: 1 } }, { tags: 'group:ent:', state: { isCollapsed: false, isHidden: groupParams.hidden } })
+        .applyOrUpdateTagged('group:ent:', MesoscaleGroup, { ...groupParams, root: true, index: -1, tag: `ent:`, label: 'entity', color: { type: 'custom', value: ColorNames.white, variability: 20, shift: 0, lightness: 0, alpha: 1 } }, { tags: 'group:ent:', state: { isCollapsed: false, isHidden: groupParams.hidden } })
         .commit();
 
     const getEntityType = (i: number) => {
@@ -112,22 +112,21 @@ export async function createMmcifHierarchy(plugin: PluginContext, trajectory: St
     };
 
     for (let i = 0; i < entities._rowCount; i++) {
-        const d = entities.pdbx_description.value(i).join(', ') || 'unknown entity';
         const t = getEntityType(i);
         if (!entIds.has(t)) {
             entIds.set(t, { idx: entIds.size, members: new Map() });
         }
         const cm = entIds.get(t)!;
-        cm.members.set(d, cm.members.size);
+        cm.members.set(i, cm.members.size);
     }
 
     //
 
-    const baseEntColors = getDistinctBaseColors(entIds.size);
+    const baseEntColors = getDistinctBaseColors(entIds.size, 0);
     const entIdEntries = Array.from(entIds.entries());
     for (let i = 0; i < entIdEntries.length; ++i) {
         const [t, m] = entIdEntries[i];
-        const groupColors = getDistinctGroupColors(m.members.size, baseEntColors[i], 20);
+        const groupColors = getDistinctGroupColors(m.members.size, baseEntColors[i], 20, 0);
         entColors.set(t, groupColors);
     }
 
@@ -138,7 +137,7 @@ export async function createMmcifHierarchy(plugin: PluginContext, trajectory: St
             const color = colorIdx !== undefined ? baseEntColors[colorIdx] : ColorNames.white;
             const group = await state.build()
                 .to(entRoot)
-                .applyOrUpdateTagged(`group:ent:${t}`, MesoscaleGroup, { ...groupParams, index: colorIdx, tag: `ent:${t}`, label: t, color: { type: 'generate', value: color, variablity: 20, lightness: 0, alpha: 1 } }, { tags: `ent:`, state: { isCollapsed: true, isHidden: groupParams.hidden } })
+                .applyOrUpdateTagged(`group:ent:${t}`, MesoscaleGroup, { ...groupParams, index: colorIdx, tag: `ent:${t}`, label: t, color: { type: 'generate', value: color, variability: 20, shift: 0, lightness: 0, alpha: 1 } }, { tags: `ent:`, state: { isCollapsed: true, isHidden: groupParams.hidden } })
                 .commit({ revertOnError: true });
             entGroups.set(t, group);
         }
@@ -152,10 +151,8 @@ export async function createMmcifHierarchy(plugin: PluginContext, trajectory: St
             plugin.animationLoop.stop({ noDraw: true });
             let build: StateBuilder.Root | StateBuilder.To<any> = state.build();
             for (let i = 0; i < entities._rowCount; i++) {
-                const d = entities.pdbx_description.value(i).join(', ') || 'unknown entity';
                 const t = getEntityType(i);
-
-                const color = entColors.get(t)![entIds.get(t)!.members.get(d)!];
+                const color = entColors.get(t)![entIds.get(t)!.members.get(i)!];
                 const scaleFactor = spheresAvgRadius.get(entities.id.value(i)) || 1;
 
                 build = build
