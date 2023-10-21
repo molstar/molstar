@@ -153,6 +153,10 @@ export async function loadExampleEntry(ctx: PluginContext, entry: ExampleEntry) 
         const data = await ctx.builders.data.download({ url, isBinary });
         await createHierarchy(ctx, data.ref);
     }
+    MesoscaleState.set(ctx, {
+        description: entry.description || entry.label,
+        link: entry.link,
+    });
     console.timeEnd('LoadExample');
 }
 

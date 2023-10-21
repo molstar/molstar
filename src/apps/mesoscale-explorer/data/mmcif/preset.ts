@@ -4,6 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+import { MmcifFormat } from '../../../../mol-model-formats/structure/mmcif';
 import { PluginStateObject } from '../../../../mol-plugin-state/objects';
 import { StructureRepresentation3D } from '../../../../mol-plugin-state/transforms/representation';
 import { PluginContext } from '../../../../mol-plugin/context';
@@ -63,6 +64,15 @@ export async function createMmcifHierarchy(plugin: PluginContext, trajectory: St
 
     const model = await builder.createModel(trajectory, { modelIndex: 0 });
     const { data: entities, subtype } = model.data!.entities;
+
+    const sd = model.data?.sourceData;
+    if (MmcifFormat.is(sd)) {
+        const pdbId = sd.data.db.struct.entry_id.value(0);
+        MesoscaleState.set(plugin, {
+            description: sd.data.db.struct.title.value(0),
+            link: pdbId ? `https://www.rcsb.org/structure/${pdbId}` : ''
+        });
+    }
 
     const spheresAvgRadius = new Map<string, number>();
     if (model.data!.coarseHierarchy.isDefined) {

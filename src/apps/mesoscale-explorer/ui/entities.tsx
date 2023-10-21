@@ -23,6 +23,36 @@ import { ColorValueParam, ColorParams, ColorProps, DimLightness, LightnessParams
 import React from 'react';
 import { MesoscaleExplorerState } from '../app';
 
+export class ModelInfo extends PluginUIComponent<{}, { isDisabled: boolean }> {
+    componentDidMount() {
+        this.subscribe(this.plugin.state.events.cell.stateUpdated.pipe(filter(e => (MesoscaleState.has(this.plugin) && MesoscaleState.ref(this.plugin) === e.ref)), debounceTime(33)), e => {
+            this.forceUpdate();
+        });
+    }
+
+    get info() {
+        if (!MesoscaleState.has(this.plugin)) return;
+
+        const state = MesoscaleState.get(this.plugin);
+        if (!state.description && !state.link) return;
+
+        return {
+            description: state.description,
+            link: state.link,
+        };
+    }
+
+    render() {
+        const info = this.info;
+        return info && <>
+            <div className='msp-help-text'>
+                <div>{info.description}</div>
+                <div><a href={info.link} target='_blank'>Source</a></div>
+            </div>
+        </>;
+    }
+}
+
 export class EntityControls extends PluginUIComponent<{}, { isDisabled: boolean }> {
     filterRef = React.createRef<HTMLInputElement>();
     prevFilter = '';

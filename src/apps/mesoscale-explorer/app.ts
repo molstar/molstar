@@ -34,6 +34,8 @@ export type ExampleEntry = {
     label: string,
     url: string,
     type: 'molx' | 'molj' | 'cif' | 'bcif',
+    description?: string,
+    link?: string,
 }
 
 export type MesoscaleExplorerState = {

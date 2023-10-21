@@ -24,3 +24,10 @@ $logo-background: rgba(0,0,0,0.75);
 }
 
 @import 'mol-plugin-ui/skin/base/base';
+
+a {
+    color: $font-color;
+    &:hover {
+        color: $hover-font-color;
+    }
+}

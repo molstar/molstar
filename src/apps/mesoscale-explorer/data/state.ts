@@ -347,6 +347,8 @@ export function setGraphicsCanvas3DProps(ctx: PluginContext, graphics: GraphicsM
 export const MesoscaleStateParams = {
     filter: PD.Value<string>('', { isHidden: true }),
     graphics: PD.Select('quality', PD.arrayToOptions(['ultra', 'quality', 'balanced', 'performance', 'custom'] as GraphicsMode[])),
+    description: PD.Value<string>('', { isHidden: true }),
+    link: PD.Value<string>('', { isHidden: true }),
 };
 
 class MesoscaleStateObject extends PSO.Create<MesoscaleState>({ name: 'Mesoscale State', typeClass: 'Object' }) { }
