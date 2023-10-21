@@ -111,8 +111,16 @@ export namespace Color {
         return ((r << 16) | (g << 8) | b) as Color;
     }
 
+    export function hasHue(c: Color): boolean {
+        const r = c >> 16 & 255;
+        const g = c >> 8 & 255;
+        const b = c & 255;
+        return r !== g || r !== b;
+    }
+
     const tmpSaturateHcl = [0, 0, 0] as unknown as Hcl;
     export function saturate(c: Color, amount: number): Color {
+        if (!hasHue(c)) return c;
         Hcl.fromColor(tmpSaturateHcl, c);
         return Hcl.toColor(Hcl.saturate(tmpSaturateHcl, tmpSaturateHcl, amount));
     }
