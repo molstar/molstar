@@ -287,22 +287,22 @@ export function getLodLevels(graphicsMode: Exclude<GraphicsMode, 'custom'>): Lod
             return [
                 { minDistance: 1, maxDistance: 300, overlap: 0, stride: 1, scaleBias: 1 },
                 { minDistance: 300, maxDistance: 2000, overlap: 0, stride: 40, scaleBias: 3 },
-                { minDistance: 2000, maxDistance: 6000, overlap: 0, stride: 150, scaleBias: 2.5 },
-                { minDistance: 6000, maxDistance: 10000000, overlap: 0, stride: 300, scaleBias: 2 },
+                { minDistance: 2000, maxDistance: 6000, overlap: 0, stride: 150, scaleBias: 3 },
+                { minDistance: 6000, maxDistance: 10000000, overlap: 0, stride: 300, scaleBias: 2.5 },
             ];
         case 'balanced':
             return [
                 { minDistance: 1, maxDistance: 500, overlap: 0, stride: 1, scaleBias: 1 },
                 { minDistance: 500, maxDistance: 2000, overlap: 0, stride: 15, scaleBias: 3 },
-                { minDistance: 2000, maxDistance: 6000, overlap: 0, stride: 70, scaleBias: 2.5 },
-                { minDistance: 6000, maxDistance: 10000000, overlap: 0, stride: 200, scaleBias: 2 },
+                { minDistance: 2000, maxDistance: 6000, overlap: 0, stride: 70, scaleBias: 2.7 },
+                { minDistance: 6000, maxDistance: 10000000, overlap: 0, stride: 200, scaleBias: 2.5 },
             ];
         case 'quality':
             return [
                 { minDistance: 1, maxDistance: 1000, overlap: 0, stride: 1, scaleBias: 1 },
                 { minDistance: 1000, maxDistance: 4000, overlap: 0, stride: 10, scaleBias: 3 },
-                { minDistance: 4000, maxDistance: 10000, overlap: 0, stride: 50, scaleBias: 2.5 },
-                { minDistance: 10000, maxDistance: 10000000, overlap: 0, stride: 200, scaleBias: 2 },
+                { minDistance: 4000, maxDistance: 10000, overlap: 0, stride: 50, scaleBias: 2.7 },
+                { minDistance: 10000, maxDistance: 10000000, overlap: 0, stride: 200, scaleBias: 2.3 },
             ];
         case 'ultra':
             return [
