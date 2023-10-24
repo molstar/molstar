@@ -12,7 +12,7 @@ import { LogEntry } from '../mol-util/log-entry';
 import { PluginReactContext, PluginUIComponent } from './base';
 import { AnimationViewportControls, DefaultStructureTools, LociLabels, StateSnapshotViewportControls, TrajectoryViewportControls, SelectionViewportControls } from './controls';
 import { LeftPanelControls } from './left-panel';
-import { SecondaryStructureSequenceView, SequenceView } from './sequence';
+import { SequenceView } from './sequence';
 import { BackgroundTaskProgress, OverlayTaskProgress } from './task';
 import { Toasts } from './toast';
 import { Viewport, ViewportControls } from './viewport';
@@ -174,7 +174,7 @@ class Layout extends PluginUIComponent {
         const layout = this.plugin.layout.state;
         const controls = this.plugin.spec.components?.controls || {};
         const viewport = this.plugin.spec.components?.viewport?.view || DefaultViewport;
-        const sequenceView = this.plugin.layout.state.showSecondaryStructureSequence ? SecondaryStructureSequenceView : SequenceView;
+        const sequenceView = this.plugin.spec.components?.sequenceViewer?.view || SequenceView;
 
         return <div className='msp-plugin'>
             <div className={this.layoutClassName} onDragEnter={this.onDragEnter}>

@@ -6,6 +6,7 @@
  */
 
 
+import React from 'react';
 import { StateTransformParameters } from '../mol-plugin-ui/state/common';
 import { CreateVolumeStreamingBehavior } from '../mol-plugin/behavior/dynamic/volume-streaming/transformers';
 import { DefaultPluginSpec, PluginSpec } from '../mol-plugin/spec';
@@ -24,6 +25,9 @@ interface PluginUISpec extends PluginSpec {
             view?: React.ComponentClass,
             controls?: React.ComponentClass
         },
+        sequenceViewer?: {
+            view?: React.ComponentClass
+        }
         hideTaskOverlay?: boolean,
         disableDragOverlay?: boolean,
     },

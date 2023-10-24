@@ -13,7 +13,7 @@ import { Structure, StructureElement, StructureProperties as SP, Unit } from '..
 import { SequenceWrapper } from './sequence/wrapper';
 import { PolymerSequenceWrapper } from './sequence/polymer';
 import { MarkerAction } from '../mol-util/marker-action';
-import { PureSelectControl } from './controls/parameters';
+import { BoolControl, ParamOnChange, PureSelectControl } from './controls/parameters';
 import { ParamDefinition as PD } from '../mol-util/param-definition';
 import { HeteroSequenceWrapper } from './sequence/hetero';
 import { State, StateSelection } from '../mol-state';
@@ -208,6 +208,7 @@ export function getStructureOptions(state: State) {
 
 export type SequenceViewMode = 'single' | 'polymers' | 'all'
 const SequenceViewModeParam = PD.Select<SequenceViewMode>('single', [['single', 'Chain'], ['polymers', 'Polymers'], ['all', 'Everything']]);
+const SecondaryStructureViewModeParam = PD.Boolean(false, { label: 'Show Secondary Structure' });
 
 type SequenceViewState = {
     structureOptions: { options: [string, string][], all: Structure[] },
@@ -216,11 +217,12 @@ type SequenceViewState = {
     modelEntityId: string,
     chainGroupId: number,
     operatorKey: string,
-    mode: SequenceViewMode
+    mode: SequenceViewMode,
+    secondaryStructure: boolean
 }
 
 export class SequenceView extends PluginUIComponent<{ defaultMode?: SequenceViewMode }, SequenceViewState> {
-    state: SequenceViewState = { structureOptions: { options: [], all: [] }, structure: Structure.Empty, structureRef: '', modelEntityId: '', chainGroupId: -1, operatorKey: '', mode: 'single' };
+    state: SequenceViewState = { structureOptions: { options: [], all: [] }, structure: Structure.Empty, structureRef: '', modelEntityId: '', chainGroupId: -1, operatorKey: '', mode: 'single', secondaryStructure: false };
 
     componentDidMount() {
         if (this.plugin.state.data.select(StateSelection.Generators.rootsOfType(PSO.Molecule.Structure)).length > 0) this.setState(this.getInitialState());
@@ -251,6 +253,9 @@ export class SequenceView extends PluginUIComponent<{ defaultMode?: SequenceView
     }
 
     getSequenceChild(key: number, sequenceWrapper: SequenceWrapper.Any): JSX.Element {
+        if (this.state.secondaryStructure) {
+            return <SecondaryStructureSequence key={key} sequenceWrapper={sequenceWrapper} />;
+        }
         return <Sequence key={key} sequenceWrapper={sequenceWrapper} />;
     }
 
@@ -305,7 +310,7 @@ export class SequenceView extends PluginUIComponent<{ defaultMode?: SequenceView
             chainGroupId = this.state.chainGroupId;
             operatorKey = this.state.operatorKey;
         }
-        return { structureOptions, structure, structureRef, modelEntityId, chainGroupId, operatorKey, mode: this.props.defaultMode ?? 'single' };
+        return { structureOptions, structure, structureRef, modelEntityId, chainGroupId, operatorKey, mode: this.props.defaultMode ?? 'single', secondaryStructure: false };
     }
 
     private get params() {
@@ -318,7 +323,8 @@ export class SequenceView extends PluginUIComponent<{ defaultMode?: SequenceView
             entity: PD.Select(entityOptions[0][0], entityOptions, { shortLabel: true }),
             chain: PD.Select(chainOptions[0][0], chainOptions, { shortLabel: true, twoColumns: true, label: 'Chain' }),
             operator: PD.Select(operatorOptions[0][0], operatorOptions, { shortLabel: true, twoColumns: true }),
-            mode: SequenceViewModeParam
+            mode: SequenceViewModeParam,
+            secondaryStructure: PD.Boolean(false)
         };
     }
 
@@ -328,7 +334,8 @@ export class SequenceView extends PluginUIComponent<{ defaultMode?: SequenceView
             entity: this.state.modelEntityId,
             chain: this.state.chainGroupId,
             operator: this.state.operatorKey,
-            mode: this.state.mode
+            mode: this.state.mode,
+            secondaryStructure: this.state.secondaryStructure,
         };
     }
 
@@ -394,6 +401,7 @@ export class SequenceView extends PluginUIComponent<{ defaultMode?: SequenceView
                 {params.operator.options.length > 1 && <>
                     <PureSelectControl title={`[Instance] ${PD.optionLabel(params.operator, values.operator)}`} param={params.operator} name='operator' value={values.operator} onChange={this.setParamProps} />
                 </>}
+                {<BoolControl name={`[Secondary Structure]`} param={SecondaryStructureViewModeParam} value={values.secondaryStructure} onChange={({ value }) => { this.state.secondaryStructure = value; }}/>}
             </div>
 
             <NonEmptySequenceWrapper>
@@ -418,10 +426,4 @@ function NonEmptySequenceWrapper({ children }: { children: React.ReactNode }) {
     return <div className='msp-sequence-wrapper-non-empty'>
         {children}
     </div>;
-}
-export class SecondaryStructureSequenceView extends SequenceView {
-
-    getSequenceChild(key: number, sequenceWrapper: SequenceWrapper.Any) {
-        return <SecondaryStructureSequence key={key} sequenceWrapper={sequenceWrapper} />;
-    }
 }
