@@ -13,7 +13,7 @@ import { Structure, StructureElement, StructureProperties as SP, Unit } from '..
 import { SequenceWrapper } from './sequence/wrapper';
 import { PolymerSequenceWrapper } from './sequence/polymer';
 import { MarkerAction } from '../mol-util/marker-action';
-import { BoolControl, ParamOnChange, PureSelectControl } from './controls/parameters';
+import { PureSelectControl } from './controls/parameters';
 import { ParamDefinition as PD } from '../mol-util/param-definition';
 import { HeteroSequenceWrapper } from './sequence/hetero';
 import { State, StateSelection } from '../mol-state';
@@ -208,7 +208,8 @@ export function getStructureOptions(state: State) {
 
 export type SequenceViewMode = 'single' | 'polymers' | 'all'
 const SequenceViewModeParam = PD.Select<SequenceViewMode>('single', [['single', 'Chain'], ['polymers', 'Polymers'], ['all', 'Everything']]);
-const SecondaryStructureViewModeParam = PD.Boolean(false, { label: 'Show Secondary Structure' });
+type SecondaryStructureViewMode = 'off' | 'on'
+const SecondaryStructureViewModeSelectParam = PD.Select<SecondaryStructureViewMode>('off', [['off', 'Off'], ['on', 'On']], { label: 'Show Secondary Structure' });
 
 type SequenceViewState = {
     structureOptions: { options: [string, string][], all: Structure[] },
@@ -324,7 +325,6 @@ export class SequenceView extends PluginUIComponent<{ defaultMode?: SequenceView
             chain: PD.Select(chainOptions[0][0], chainOptions, { shortLabel: true, twoColumns: true, label: 'Chain' }),
             operator: PD.Select(operatorOptions[0][0], operatorOptions, { shortLabel: true, twoColumns: true }),
             mode: SequenceViewModeParam,
-            secondaryStructure: PD.Boolean(false)
         };
     }
 
@@ -335,7 +335,6 @@ export class SequenceView extends PluginUIComponent<{ defaultMode?: SequenceView
             chain: this.state.chainGroupId,
             operator: this.state.operatorKey,
             mode: this.state.mode,
-            secondaryStructure: this.state.secondaryStructure,
         };
     }
 
@@ -401,7 +400,7 @@ export class SequenceView extends PluginUIComponent<{ defaultMode?: SequenceView
                 {params.operator.options.length > 1 && <>
                     <PureSelectControl title={`[Instance] ${PD.optionLabel(params.operator, values.operator)}`} param={params.operator} name='operator' value={values.operator} onChange={this.setParamProps} />
                 </>}
-                {<BoolControl name={`[Secondary Structure]`} param={SecondaryStructureViewModeParam} value={values.secondaryStructure} onChange={({ value }) => { this.state.secondaryStructure = value; }}/>}
+                <PureSelectControl title={`[Secondary Structure]`} name='secondary-structure' param={SecondaryStructureViewModeSelectParam} value={this.state.secondaryStructure ? 'on' : 'off'} onChange={({ value }) => this.setState({ secondaryStructure: value === 'on' }) }/>
             </div>
 
             <NonEmptySequenceWrapper>
