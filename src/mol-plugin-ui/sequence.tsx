@@ -209,7 +209,7 @@ export function getStructureOptions(state: State) {
 export type SequenceViewMode = 'single' | 'polymers' | 'all'
 const SequenceViewModeParam = PD.Select<SequenceViewMode>('single', [['single', 'Chain'], ['polymers', 'Polymers'], ['all', 'Everything']]);
 type SecondaryStructureViewMode = 'off' | 'on'
-const SecondaryStructureViewModeSelectParam = PD.Select<SecondaryStructureViewMode>('off', [['off', 'Off'], ['on', 'On']], { label: 'Show Secondary Structure' });
+const SecondaryStructureViewModeSelectParam = PD.Select<SecondaryStructureViewMode>('off', [['off', 'Hidden Secondary Structure'], ['on', 'Show Secondary Structure']], { label: 'Show Secondary Structure above sequence' });
 
 type SequenceViewState = {
     structureOptions: { options: [string, string][], all: Structure[] },
