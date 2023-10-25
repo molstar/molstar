@@ -130,14 +130,13 @@ $sequence-select-height: 24px;
 
     .msp-sequence-secondary {
         color: $sequence-number-color;
-        word-break: keep-all;
         cursor: default;
-        position: relative;
-        top: -1.1em;
-        left: 0.7em;
-        padding: 0px;
-        margin-left: -0.5em;
-        font-size: 80%;
+        word-break: keep-all;
+        position: absolute;
+        pointer-events: none;
+        top: -0.1em;
+        line-height: 255%;
+        z-index: 100;
     }
 
     .msp-sequence-missing {
