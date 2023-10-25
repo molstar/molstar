@@ -21,7 +21,7 @@ export class SecondaryStructureSequence extends Sequence<SecondaryStructureSeque
 
     protected updateMarker() {
         if (!this.parentDiv.current) return;
-        const xs = this.parentDiv.current.querySelectorAll('.msp-sequence-present');
+        const xs = this.parentDiv.current.querySelectorAll('.msp-sequence-missing, .msp-sequence-present');
         const { markerArray } = this.props.sequenceWrapper;
 
         for (let i = 0, il = markerArray.length; i < il; i++) {
