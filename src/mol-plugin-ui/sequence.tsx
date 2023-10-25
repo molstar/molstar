@@ -209,7 +209,7 @@ export function getStructureOptions(state: State) {
 export type SequenceViewMode = 'single' | 'polymers' | 'all'
 const SequenceViewModeParam = PD.Select<SequenceViewMode>('single', [['single', 'Chain'], ['polymers', 'Polymers'], ['all', 'Everything']]);
 type SecondaryStructureViewMode = 'off' | 'on'
-const SecondaryStructureViewModeSelectParam = PD.Select<SecondaryStructureViewMode>('off', [['off', 'Hidden Secondary Structure'], ['on', 'Show Secondary Structure']], { label: 'Show Secondary Structure above sequence' });
+const SecondaryStructureViewModeSelectParam = PD.Select<SecondaryStructureViewMode>('off', [['off', 'No Annotation'], ['on', 'Secondary Structure Annotation']], { label: 'Select residue annotation type' });
 
 type SequenceViewState = {
     structureOptions: { options: [string, string][], all: Structure[] },
