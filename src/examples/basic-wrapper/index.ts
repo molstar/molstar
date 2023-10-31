@@ -46,6 +46,14 @@ class BasicWrapper {
         this.plugin.representation.structure.themes.colorThemeRegistry.add(CustomColorThemeProvider);
         this.plugin.managers.lociLabels.addProvider(StripedResidues.labelProvider!);
         this.plugin.customModelProperties.register(StripedResidues.propertyProvider, true);
+
+        this.plugin.customDragAndDropHandlers.set('custom-wrapper', (files) => {
+            if (files.some(f => f.name.toLowerCase().endsWith('.testext'))) {
+                console.log('.testext File dropped');
+                return true;
+            }
+            return false;
+        });
     }
 
     async load({ url, format = 'mmcif', isBinary = false, assemblyId = '' }: LoadParams) {

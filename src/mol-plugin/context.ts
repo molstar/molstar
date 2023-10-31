@@ -201,6 +201,21 @@ export class PluginContext {
     readonly customStructureProperties = new CustomProperty.Registry<Structure>();
 
     readonly customStructureControls = new Map<string, { new(): any /* constructible react components with <action.customControl /> */ }>();
+    /**
+     * Example usage:
+     * customDragAndDropHandlers.set('my-extension-handler', async (files, plugin) => {
+     *   const processable = files.filter(f => canProcess(f));
+     *   if (processable.length) {
+     *     processFiles(plugin, processable);
+     *     return true;
+     *   }
+     *   return false;
+     * });
+     *
+     * To remove:
+     * customDragAndDropHandlers.delete('my-extension-handler')
+     */
+    readonly customDragAndDropHandlers = new Map<string, (files: File[], plugin: PluginContext) => Promise<boolean> | boolean>();
     readonly customImportControls = new Map<string, { new(): any /* constructible react components with <action.customControl /> */ }>();
     readonly genericRepresentationControls = new Map<string, (selection: StructureHierarchyManager['selection']) => [StructureHierarchyRef[], string]>();
 
