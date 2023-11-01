@@ -22,7 +22,6 @@ import { OpenFiles } from '../mol-plugin-state/actions/file';
 import { Asset } from '../mol-util/assets';
 import { BehaviorSubject } from 'rxjs';
 import { useBehavior } from './hooks/use-behavior';
-import { handleDragAndDrop } from '../mol-plugin-state/helpers/drag-and-drop';
 
 export function Plugin({ plugin }: { plugin: PluginUIContext }) {
     if (plugin.isInitialized) {
@@ -212,7 +211,7 @@ function dropFiles(ev: React.DragEvent<HTMLDivElement>, plugin: PluginUIContext,
         }
     }
 
-    handleDragAndDrop(plugin, files);
+    plugin.managers.dragAndDrop.handle(files);
 }
 
 function DragOverlay({ plugin, showDragOverlay }: { plugin: PluginUIContext, showDragOverlay: BehaviorSubject<boolean> }) {

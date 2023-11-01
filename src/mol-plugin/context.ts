@@ -61,6 +61,7 @@ import { PluginToastManager } from './util/toast';
 import { ViewportScreenshotHelper } from './util/viewport-screenshot';
 import { PLUGIN_VERSION, PLUGIN_VERSION_DATE } from './version';
 import { setSaccharideCompIdMapType } from '../mol-model/structure/structure/carbohydrates/constants';
+import { DragAndDropManager } from '../mol-plugin-state/manager/drag-and-drop';
 
 export type PluginInitializedState =
     | { kind: 'no' }
@@ -186,7 +187,8 @@ export class PluginContext {
         lociLabels: void 0 as any as LociLabelManager,
         toast: new PluginToastManager(this),
         asset: new AssetManager(),
-        task: new TaskManager()
+        task: new TaskManager(),
+        dragAndDrop: new DragAndDropManager(this),
     } as const;
 
     readonly events = {
@@ -201,21 +203,6 @@ export class PluginContext {
     readonly customStructureProperties = new CustomProperty.Registry<Structure>();
 
     readonly customStructureControls = new Map<string, { new(): any /* constructible react components with <action.customControl /> */ }>();
-    /**
-     * Example usage:
-     * customDragAndDropHandlers.set('my-extension-handler', async (files, plugin) => {
-     *   const processable = files.filter(f => canProcess(f));
-     *   if (processable.length) {
-     *     processFiles(plugin, processable);
-     *     return true;
-     *   }
-     *   return false;
-     * });
-     *
-     * To remove:
-     * customDragAndDropHandlers.delete('my-extension-handler')
-     */
-    readonly customDragAndDropHandlers = new Map<string, (files: File[], plugin: PluginContext) => Promise<boolean> | boolean>();
     readonly customImportControls = new Map<string, { new(): any /* constructible react components with <action.customControl /> */ }>();
     readonly genericRepresentationControls = new Map<string, (selection: StructureHierarchyManager['selection']) => [StructureHierarchyRef[], string]>();
 

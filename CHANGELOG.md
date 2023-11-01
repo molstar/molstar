@@ -11,7 +11,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Improve `distinctColors` function
     - Add `sort` and `sampleCountFactor` parameters
     - Fix clustering issues
-- Add `PluginContext.customDragAndDropHandlers`
+- Add `DragAndDropManager`
 
 ## [v3.41.0] - 2023-10-15
 

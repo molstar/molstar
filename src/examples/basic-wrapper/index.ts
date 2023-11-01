@@ -47,7 +47,7 @@ class BasicWrapper {
         this.plugin.managers.lociLabels.addProvider(StripedResidues.labelProvider!);
         this.plugin.customModelProperties.register(StripedResidues.propertyProvider, true);
 
-        this.plugin.customDragAndDropHandlers.set('custom-wrapper', (files) => {
+        this.plugin.managers.dragAndDrop.addHandler('custom-wrapper', (files) => {
             if (files.some(f => f.name.toLowerCase().endsWith('.testext'))) {
                 console.log('.testext File dropped');
                 return true;
