@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -34,7 +34,7 @@ export function lociLabel(loci: Loci, options: Partial<LabelOptions> = {}): stri
             return structureElementStatsLabel(StructureElement.Stats.ofLoci(loci), options);
         case 'bond-loci':
             const bond = loci.bonds[0];
-            return bond ? bondLabel(bond) : '';
+            return bond ? bondLabel(bond, options) : '';
         case 'shape-loci':
             return loci.shape.name;
         case 'group-loci':
