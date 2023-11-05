@@ -245,7 +245,9 @@ export function createRenderable<T extends GraphicsRenderableValues>(renderItem:
                         continue;
                     }
 
-                    for (let i = 0; i < cellCount; ++i) {
+                    for (let q = cBegin; q < cEnd; ++q) {
+                        const i = batchCell[q];
+
                         const begin = cellOffsets[i];
                         const end = cellOffsets[i + 1];
                         const count = end - begin;
