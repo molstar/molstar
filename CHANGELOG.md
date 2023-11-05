@@ -11,6 +11,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Improve `distinctColors` function
     - Add `sort` and `sampleCountFactor` parameters
     - Fix clustering issues
+- Add `clipPrimitive` option to spheres geometry, clipping whole spheres instead of cutting them
 - Add `DragAndDropManager`
 - Add `options` support for default bond labels
 
