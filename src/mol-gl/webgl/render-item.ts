@@ -246,6 +246,8 @@ export function createRenderItem<T extends string>(ctx: WebGLContext, drawMode: 
             }
             if (mdbDataList) {
                 for (const mdbData of mdbDataList) {
+                    if (mdbData.count === 0) continue;
+
                     program.setUniforms(mdbData.uniforms);
                     // console.log(mdbData.uniforms)
                     if (multiDrawInstancedBaseVertexBaseInstance) {
