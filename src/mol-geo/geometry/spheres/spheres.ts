@@ -248,6 +248,7 @@ export namespace Spheres {
         xrayShaded: PD.Select<boolean | 'inverted'>(false, [[false, 'Off'], [true, 'On'], ['inverted', 'Inverted']], BaseGeometry.ShadingCategory),
         transparentBackfaces: PD.Select('off', PD.arrayToOptions(['off', 'on', 'opaque']), BaseGeometry.ShadingCategory),
         solidInterior: PD.Boolean(true, BaseGeometry.ShadingCategory),
+        clipPrimitive: PD.Boolean(false, { ...BaseGeometry.ShadingCategory, description: 'Clip whole sphere instead of cutting it.' }),
         approximate: PD.Boolean(false, { ...BaseGeometry.ShadingCategory, description: 'Faster rendering, but has artifacts.' }),
         alphaThickness: PD.Numeric(0, { min: 0, max: 20, step: 1 }, { ...BaseGeometry.ShadingCategory, description: 'If not zero, adjusts alpha for radius.' }),
         bumpFrequency: PD.Numeric(0, { min: 0, max: 10, step: 0.1 }, BaseGeometry.ShadingCategory),
@@ -344,6 +345,7 @@ export namespace Spheres {
             dXrayShaded: ValueCell.create(props.xrayShaded === 'inverted' ? 'inverted' : props.xrayShaded === true ? 'on' : 'off'),
             dTransparentBackfaces: ValueCell.create(props.transparentBackfaces),
             dSolidInterior: ValueCell.create(props.solidInterior),
+            dClipPrimitive: ValueCell.create(props.clipPrimitive),
             dApproximate: ValueCell.create(props.approximate),
             uAlphaThickness: ValueCell.create(props.alphaThickness),
             uBumpFrequency: ValueCell.create(props.bumpFrequency),
@@ -369,6 +371,7 @@ export namespace Spheres {
         ValueCell.updateIfChanged(values.dXrayShaded, props.xrayShaded === 'inverted' ? 'inverted' : props.xrayShaded === true ? 'on' : 'off');
         ValueCell.updateIfChanged(values.dTransparentBackfaces, props.transparentBackfaces);
         ValueCell.updateIfChanged(values.dSolidInterior, props.solidInterior);
+        ValueCell.updateIfChanged(values.dClipPrimitive, props.clipPrimitive);
         ValueCell.updateIfChanged(values.dApproximate, props.approximate);
         ValueCell.updateIfChanged(values.uAlphaThickness, props.alphaThickness);
         ValueCell.updateIfChanged(values.uBumpFrequency, props.bumpFrequency);

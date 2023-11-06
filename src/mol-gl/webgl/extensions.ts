@@ -159,7 +159,7 @@ export function createExtensions(gl: GLRenderingContext): WebGLExtensions {
     }
     const clipControl = getClipControl(gl);
     if (isDebugMode && clipControl === null) {
-        console.log('Could not find support for "clipControl"');
+        console.log('Could not find support for "clip_control"');
     }
 
     const noNonInstancedActiveAttribs = getNoNonInstancedActiveAttribs(gl);

@@ -1,7 +1,7 @@
 /**
  * Copyright (c) 2017-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
- * Code-generated 'mmCIF' schema file. Dictionary versions: mmCIF 5.379, IHM 1.23, MA 1.4.5.
+ * Code-generated 'mmCIF' schema file. Dictionary versions: mmCIF 5.381, IHM 1.23, MA 1.4.5.
  *
  * @author molstar/ciftools package
  */
