@@ -32,6 +32,7 @@ function getSpacefillParams(color: Color, graphics: GraphicsMode) {
                     variant: 'instance',
                     objects: [],
                 },
+                clipPrimitive: true,
                 approximate: gmp.approximate,
                 alphaThickness: gmp.alphaThickness,
             },
