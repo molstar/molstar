@@ -6,11 +6,16 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+## [v3.42.0] - 2023-11-05
+
 - Fix handling of PDB files with insertion codes (#945)
 - Fix de-/saturate of colors with no hue
 - Improve `distinctColors` function
     - Add `sort` and `sampleCountFactor` parameters
     - Fix clustering issues
+- Add `clipPrimitive` option to spheres geometry, clipping whole spheres instead of cutting them
+- Add `DragAndDropManager`
+- Add `options` support for default bond labels
 
 ## [v3.41.0] - 2023-10-15
 
