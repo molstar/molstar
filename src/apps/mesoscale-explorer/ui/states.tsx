@@ -136,6 +136,7 @@ async function createHierarchy(ctx: PluginContext, ref: string) {
 }
 
 async function reset(ctx: PluginContext) {
+    delete (ctx.customState as MesoscaleExplorerState).stateRef;
     await PluginCommands.State.Snapshots.Clear(ctx);
     await PluginCommands.State.RemoveObject(ctx, { state: ctx.state.data, ref: StateTransform.RootRef });
     await MesoscaleState.init(ctx);
@@ -221,10 +222,7 @@ export const LoadModel = StateAction.build({
     }
 
     console.time('LoadModel');
-    await PluginCommands.State.Snapshots.Clear(ctx);
-    await PluginCommands.State.RemoveObject(ctx, { state: ctx.state.data, ref: StateTransform.RootRef });
-    await MesoscaleState.init(ctx);
-    adjustPluginProps(ctx);
+    await reset(ctx);
 
     const firstFile = params.files[0];
     const firstInfo = getFileNameInfo(firstFile.file!.name);

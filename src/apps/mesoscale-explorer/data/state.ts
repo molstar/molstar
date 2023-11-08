@@ -367,13 +367,6 @@ const MesoscaleStateTransform = PluginStateTransform.BuiltIn({
     },
 });
 
-function getMesoscaleStateCell(ctx: PluginContext) {
-    const cell = ctx.state.data.selectQ(q => q.ofType(MesoscaleStateObject))[0];
-    if (!cell) throw new Error('MesoscaleState not initialized');
-
-    return cell;
-}
-
 export { MesoscaleState };
 type MesoscaleState = PD.Values<typeof MesoscaleStateParams>;
 const MesoscaleState = {
@@ -382,25 +375,27 @@ const MesoscaleState = {
         if (cell) throw new Error('MesoscaleState already initialized');
 
         const customState = ctx.customState as MesoscaleExplorerState;
-        await ctx.state.data.build().toRoot().apply(MesoscaleStateTransform, {
+        const state = await ctx.state.data.build().toRoot().apply(MesoscaleStateTransform, {
             filter: '',
             graphics: customState.graphicsMode,
         }).commit();
+        customState.stateRef = state.ref;
     },
     get(ctx: PluginContext): MesoscaleState {
-        const cell = getMesoscaleStateCell(ctx);
-        return cell.obj!.data;
+        const ref = this.ref(ctx);
+        return ctx.state.data.tryGetCellData<MesoscaleStateObject>(ref);
     },
     async set(ctx: PluginContext, props: Partial<MesoscaleState>) {
-        const cell = getMesoscaleStateCell(ctx);
-        await ctx.state.data.build().to(cell).update(MesoscaleStateTransform, old => Object.assign(old, props)).commit();
+        const ref = this.ref(ctx);
+        await ctx.state.data.build().to(ref).update(MesoscaleStateTransform, old => Object.assign(old, props)).commit();
     },
     ref(ctx: PluginContext): string {
-        const cell = getMesoscaleStateCell(ctx);
-        return cell.transform.ref;
+        const ref = (ctx.customState as MesoscaleExplorerState).stateRef;
+        if (!ref) throw new Error('MesoscaleState not initialized');
+        return ref;
     },
     has(ctx: PluginContext): boolean {
-        return !!ctx.state.data.selectQ(q => q.ofType(MesoscaleStateObject))[0];
+        return !!(ctx.customState as MesoscaleExplorerState).stateRef;
     },
 };
 

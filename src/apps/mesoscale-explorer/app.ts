@@ -41,6 +41,7 @@ export type ExampleEntry = {
 export type MesoscaleExplorerState = {
     examples?: ExampleEntry[],
     graphicsMode: GraphicsMode,
+    stateRef?: string,
 }
 
 //

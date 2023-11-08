@@ -10,7 +10,6 @@ import { MesoscaleExplorerState } from '../app';
 import { MesoscaleState } from '../data/state';
 import { EntityControls, ModelInfo } from './entities';
 import { LoaderControls, ExampleControls, SessionControls, SnapshotControls, DatabaseControls } from './states';
-import { debounceTime, filter } from 'rxjs/operators';
 
 const Spacer = () => <div style={{ height: '2em' }} />;
 
@@ -53,8 +52,10 @@ export class RightPanel extends PluginUIComponent {
     }
 
     componentDidMount() {
-        this.subscribe(this.plugin.state.events.cell.stateUpdated.pipe(filter(e => (MesoscaleState.has(this.plugin) && MesoscaleState.ref(this.plugin) === e.ref)), debounceTime(33)), e => {
-            this.forceUpdate();
+        this.subscribe(this.plugin.state.events.cell.stateUpdated, e => {
+            if (!this.plugin.isBusy && MesoscaleState.has(this.plugin) && MesoscaleState.ref(this.plugin) === e.ref) {
+                this.forceUpdate();
+            }
         });
     }
 

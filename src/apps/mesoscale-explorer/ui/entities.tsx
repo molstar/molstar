@@ -9,7 +9,6 @@ import { Button, ControlGroup, IconButton } from '../../../mol-plugin-ui/control
 import { ArrowDropDownSvg, ArrowRightSvg, CloseSvg, VisibilityOffOutlinedSvg, VisibilityOutlinedSvg, ContentCutSvg, BrushSvg } from '../../../mol-plugin-ui/controls/icons';
 import { PluginCommands } from '../../../mol-plugin/commands';
 import { State, StateObjectCell, StateSelection, StateTransformer } from '../../../mol-state';
-import { debounceTime, filter } from 'rxjs/operators';
 import { ParameterControls, ParameterMappingControl, ParamOnChange, SelectControl } from '../../../mol-plugin-ui/controls/parameters';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { Clip } from '../../../mol-util/clip';
@@ -25,8 +24,10 @@ import { MesoscaleExplorerState } from '../app';
 
 export class ModelInfo extends PluginUIComponent<{}, { isDisabled: boolean }> {
     componentDidMount() {
-        this.subscribe(this.plugin.state.events.cell.stateUpdated.pipe(filter(e => (MesoscaleState.has(this.plugin) && MesoscaleState.ref(this.plugin) === e.ref)), debounceTime(33)), e => {
-            this.forceUpdate();
+        this.subscribe(this.plugin.state.events.cell.stateUpdated, e => {
+            if (!this.plugin.isBusy && MesoscaleState.has(this.plugin) && MesoscaleState.ref(this.plugin) === e.ref) {
+                this.forceUpdate();
+            }
         });
     }
 
@@ -74,8 +75,10 @@ export class EntityControls extends PluginUIComponent<{}, { isDisabled: boolean 
             this.setState({ isDisabled: v });
         });
 
-        this.subscribe(this.plugin.state.events.cell.stateUpdated.pipe(filter(e => this.roots.some(r => e.cell === r) || (MesoscaleState.has(this.plugin) && MesoscaleState.ref(this.plugin) === e.ref)), debounceTime(33)), e => {
-            this.forceUpdate();
+        this.subscribe(this.plugin.state.events.cell.stateUpdated, e => {
+            if (!this.plugin.isBusy && this.roots.some(r => e.cell === r) || (MesoscaleState.has(this.plugin) && MesoscaleState.ref(this.plugin) === e.ref)) {
+                this.forceUpdate();
+            }
         });
     }
 
@@ -224,8 +227,10 @@ class Node<P extends {} = {}, S = {}, SS = {}> extends PluginUIComponent<P & { c
     }
 
     componentDidMount() {
-        this.subscribe(this.plugin.state.events.cell.stateUpdated.pipe(filter(e => this.is(e)), debounceTime(33)), e => {
-            this.forceUpdate();
+        this.subscribe(this.plugin.state.events.cell.stateUpdated, e => {
+            if (!this.plugin.isBusy && this.is(e)) {
+                this.forceUpdate();
+            }
         });
     }
 }
