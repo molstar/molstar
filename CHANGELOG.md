@@ -20,6 +20,8 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Fix return type of `State.tryGetCellData`
+
 ## [v3.42.0] - 2023-11-05
 
 - Fix handling of PDB files with insertion codes (#945)
