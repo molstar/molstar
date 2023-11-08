@@ -117,6 +117,7 @@ export async function createGenericHierarchy(plugin: PluginContext, file: Asset.
 
     const p = Vec3();
     const r = Vec3();
+    const q = Quat();
 
     await state.transaction(async () => {
         try {
@@ -127,16 +128,26 @@ export async function createGenericHierarchy(plugin: PluginContext, file: Asset.
                 const t = utf8Read(d, 0, d.length);
                 const file = Asset.File(new File([t], e.file));
 
-                const { positions, rotations } = e.instances;
+                const { positions, rotations, quaternions, matrices } = e.instances;
                 const transforms: Mat4[] = [];
-                for (let i = 0, il = positions.length; i < il; i += 3) {
-                    Vec3.fromArray(p, positions, i);
-                    Vec3.fromArray(r, rotations, i);
-                    const e = Euler.fromVec3(Euler(), r);
-                    const q = Quat.fromEuler(Quat(), e, 'XYZ');
-                    const m = Mat4.fromQuat(Mat4(), q);
-                    Mat4.setTranslation(m, p);
-                    transforms.push(m);
+                for (let i = 0, il = positions.length / 3; i < il; ++i) {
+                    Vec3.fromArray(p, positions, i * 3);
+                    if (matrices?.length) {
+                        const m = Mat4.fromArray(Mat4(), matrices, i * 16);
+                        transforms.push(m);
+                    } else if (quaternions?.length) {
+                        Quat.fromArray(q, quaternions, i * 4);
+                        const m = Mat4.fromQuat(Mat4(), q);
+                        Mat4.setTranslation(m, p);
+                        transforms.push(m);
+                    } else if (rotations?.length) {
+                        Vec3.fromArray(r, rotations, i * 3);
+                        const e = Euler.fromVec3(Euler(), r);
+                        Quat.fromEuler(q, e, 'XYZ');
+                        const m = Mat4.fromQuat(Mat4(), q);
+                        Mat4.setTranslation(m, p);
+                        transforms.push(m);
+                    }
                 }
 
                 const color = ColorNames.skyblue;
@@ -243,10 +254,20 @@ type GenericInstances = {
      */
     positions: number[]
     /**
-     * euler angles in XYZ order
+     * optional euler angles in XYZ order
      * [x0, y0, z0, ..., xn, yn, zn] with n = count - 1
      */
-    rotations: number[]
+    rotations?: number[]
+    /**
+     * optional quaternion rotations in XYZW order
+     * [x0, y0, z0, w0, ..., xn, yn, zn, wn] with n = count - 1
+     */
+    quaternions?: number[]
+    /**
+     * optional transformation matrices in row-major order
+     * [m00, m01, m02, m03, ..., m30, m31, m32, m33] with n = count - 1
+     */
+    matrices?: number[]
 }
 
 type GenericManifest = {

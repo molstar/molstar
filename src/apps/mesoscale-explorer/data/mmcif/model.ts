@@ -50,7 +50,7 @@ function buildAssembly(model: Model, assembly: Assembly) {
                 if (u) {
                     assembler.addWithOperator(u, oper);
                 } else {
-                    console.log(`missing asymid '${id}'`);
+                    console.log(`missing asymId '${id}'`);
                 }
             }
         }

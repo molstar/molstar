@@ -5,13 +5,59 @@
  */
 
 import { Mat4 } from '../../../../mol-math/linear-algebra/3d/mat4';
-import { Structure } from '../../../../mol-model/structure';
+import { ElementIndex, Model, Structure, Unit } from '../../../../mol-model/structure';
 import { PluginStateObject as SO, PluginStateTransform } from '../../../../mol-plugin-state/objects';
 import { Task } from '../../../../mol-task';
 import { StateObject } from '../../../../mol-state';
 import { ParamDefinition as PD } from '../../../../mol-util/param-definition';
 import { SymmetryOperator } from '../../../../mol-math/geometry';
 import { mergeUnits, partitionUnits } from '../util';
+import { Assembly, Symmetry } from '../../../../mol-model/structure/model/properties/symmetry';
+import { ModelSymmetry } from '../../../../mol-model-formats/structure/property/symmetry';
+import { SortedArray } from '../../../../mol-data/int';
+
+function createModelChainMap(model: Model) {
+    const builder = new Structure.StructureBuilder();
+    const units = new Map<string, Unit>();
+
+    const { label_asym_id, _rowCount } = model.atomicHierarchy.chains;
+    const { offsets } = model.atomicHierarchy.chainAtomSegments;
+
+    for (let i = 0; i < _rowCount; i++) {
+        const elements = SortedArray.ofBounds(offsets[i] as ElementIndex, offsets[i + 1] as ElementIndex);
+        const unit = builder.addUnit(Unit.Kind.Atomic, model, SymmetryOperator.Default, elements, Unit.Trait.FastBoundary);
+        units.set(label_asym_id.value(i), unit);
+    }
+
+    return units;
+}
+
+function buildAssembly(model: Model, assembly: Assembly) {
+    const coordinateSystem = SymmetryOperator.create(assembly.id, Mat4.identity(), { assembly: { id: assembly.id, operId: 0, operList: [] } });
+    const assembler = Structure.Builder({
+        coordinateSystem,
+        label: model.label,
+    });
+
+    const units = createModelChainMap(model);
+
+    for (const g of assembly.operatorGroups) {
+        for (const oper of g.operators) {
+            for (const id of g.asymIds!) {
+                const u = units.get(id);
+                if (u) {
+                    assembler.addWithOperator(u, oper);
+                } else {
+                    console.log(`missing asymId '${id}'`);
+                }
+            }
+        }
+    }
+
+    return assembler.getStructure();
+}
+
+
 
 export { StructureFromGeneric };
 type StructureFromGeneric = typeof StructureFromGeneric
@@ -37,8 +83,17 @@ const StructureFromGeneric = PluginStateTransform.BuiltIn({
 
             let structure: Structure;
             if (params.transforms.length === 1 && Mat4.isIdentity(params.transforms[0])) {
-                const mergedUnits = partitionUnits(base.units, params.cellSize);
-                structure = Structure.create(mergedUnits, { label });
+                // const mergedUnits = partitionUnits(base.units, params.cellSize);
+                // structure = Structure.create(mergedUnits, { label });
+                const symmetry = ModelSymmetry.Provider.get(model);
+                const id = symmetry?.assemblies[0].id;
+                const asm = Symmetry.findAssembly(model, id || '');
+                if (asm) {
+                    structure = buildAssembly(model, asm);
+                } else {
+                    const mergedUnits = partitionUnits(base.units, params.cellSize);
+                    structure = Structure.create(mergedUnits, { label });
+                }
             } else {
                 const assembler = Structure.Builder({ label });
                 const unit = mergeUnits(base.units, 0);
