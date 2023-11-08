@@ -17,7 +17,7 @@ export interface IndicesAndSortings {
     chainsByAuthAsymId: Mapping<string, readonly ChainIndex[]>,
     residuesSortedByLabelSeqId: Mapping<ChainIndex, Sorting<ResidueIndex, number>>,
     residuesSortedByAuthSeqId: Mapping<ChainIndex, Sorting<ResidueIndex, number>>,
-    residuesByInsCode: Mapping<ChainIndex, ReadonlyMap<string, readonly ResidueIndex[]>>,
+    residuesByInsCode: Mapping<ChainIndex, Mapping<string, readonly ResidueIndex[]>>,
     atomsById: Mapping<number, ElementIndex>,
     atomsByIndex: Mapping<number, ElementIndex>,
 }

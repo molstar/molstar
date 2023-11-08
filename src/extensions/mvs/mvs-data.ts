@@ -5,7 +5,7 @@
  */
 
 import { treeValidationIssues } from './tree/generic/tree-schema';
-import * as Builder from './tree/mvs/mvs-builder';
+import { Root, createBuilder } from './tree/mvs/mvs-builder';
 import { MVSTree, MVSTreeSchema } from './tree/mvs/mvs-tree';
 
 
@@ -57,7 +57,7 @@ export const MVSData = {
      * console.log(JSON.stringify(builder.getState()));
      * ```
      */
-    createBuilder(): Builder.Root {
-        return Builder.createBuilder();
+    createBuilder(): Root {
+        return createBuilder();
     },
 };

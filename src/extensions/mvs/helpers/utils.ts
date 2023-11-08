@@ -181,13 +181,19 @@ export async function safePromise<T>(promise: T): Promise<Maybe<Awaited<T>>> {
 
 
 /** A map where values are arrays. Handles missing keys when adding values. */
-export class MultiMap<K, V> extends Map<K, V[]> {
+export class MultiMap<K, V> implements Mapping<K, V[]> {
+    private _map = new Map();
+
+    /** Return the array of values assidned to a key (or `undefined` if no such values) */
+    get(key: K): V[] | undefined {
+        return this._map.get(key);
+    }
     /** Append value to a key (handles missing keys) */
     add(key: K, value: V) {
-        if (!this.has(key)) {
-            this.set(key, []);
+        if (!this._map.has(key)) {
+            this._map.set(key, []);
         }
-        this.get(key)!.push(value);
+        this._map.get(key)!.push(value);
     }
 }
 

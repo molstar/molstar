@@ -14,6 +14,7 @@ import { AnnotationStructureComponent } from './additions/annotation-structure-c
 import { AnnotationTooltipsProvider } from './additions/annotation-tooltips-prop';
 import { CustomLabelProps, CustomLabelRepresentationProvider } from './additions/custom-label/representation';
 import { CustomTooltipsProvider } from './additions/custom-tooltips-prop';
+import { MolViewSpec } from './behavior';
 import { setCamera, setCanvas, setFocus } from './camera';
 import { canonicalJsonString } from './helpers/utils';
 import { AnnotationFromSourceKind, AnnotationFromUriKind, LoadingActions, collectAnnotationReferences, collectAnnotationTooltips, collectInlineTooltips, colorThemeForNode, componentFromXProps, componentPropsFromSelector, isPhantomComponent, labelFromXProps, loadTree, makeNearestReprMap, representationProps, structureProps, transformProps } from './load-helpers';
@@ -27,10 +28,7 @@ import { MVSTreeSchema } from './tree/mvs/mvs-tree';
 /** Load a MolViewSpec (MVS) tree into the Mol* plugin.
  * If `deletePrevious`, remove all objects in the current Mol* state; otherwise add to the current state.
  */
-export async function loadMVS(plugin: PluginContext, data: MVSData | string, deletePrevious: boolean) {
-    if (typeof data === 'string') {
-        data = JSON.parse(data) as MVSData;
-    }
+export async function loadMVS(plugin: PluginContext, data: MVSData, deletePrevious: boolean) {
     // console.log(`MVS tree (v${data.version}):\n${treeToString(data.root)}`);
     validateTree(MVSTreeSchema, data.root, 'MVS');
     const molstarTree = convertMvsToMolstar(data.root);
@@ -44,6 +42,12 @@ export async function loadMVS(plugin: PluginContext, data: MVSData | string, del
  * If `deletePrevious`, remove all objects in the current Mol* state; otherwise add to the current state.
  */
 async function loadMolstarTree(plugin: PluginContext, tree: MolstarTree, deletePrevious: boolean) {
+    const mvsExtensionLoaded = plugin.spec.behaviors.some(b => b.transformer.id === MolViewSpec.id);
+    if (!mvsExtensionLoaded) { 
+        console.warn('MolViewSpec extension is not loaded.');
+        throw new Error('MolViewSpec extension is not loaded.');
+    }
+
     const context: MolstarLoadingContext = {};
 
     await loadTree(plugin, tree, MolstarLoadingActions, context, deletePrevious);

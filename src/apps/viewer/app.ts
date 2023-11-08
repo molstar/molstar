@@ -52,6 +52,9 @@ import { SbNcbrPartialCharges, SbNcbrPartialChargesPreset, SbNcbrPartialChargesP
 import { wwPDBStructConnExtensionFunctions } from '../../extensions/wwpdb/struct-conn';
 import { wwPDBChemicalComponentDictionary } from '../../extensions/wwpdb/ccd/behavior';
 import { RCSBAssemblySymmetryConfig } from '../../extensions/rcsb/assembly-symmetry/behavior';
+import { MolViewSpec } from '../../extensions/mvs/behavior';
+import { loadMVS } from '../../extensions/mvs/load';
+import { MVSData } from '../../extensions/mvs/mvs-data';
 
 export { PLUGIN_VERSION as version } from '../../mol-plugin/version';
 export { setDebugMode, setProductionMode, setTimingMode, consoleStats } from '../../mol-util/debug';
@@ -77,6 +80,7 @@ export const ExtensionMap = {
     'zenodo-import': PluginSpec.Behavior(ZenodoImport),
     'sb-ncbr-partial-charges': PluginSpec.Behavior(SbNcbrPartialCharges),
     'wwpdb-chemical-component-dictionary': PluginSpec.Behavior(wwPDBChemicalComponentDictionary),
+    'mvs': PluginSpec.Behavior(MolViewSpec),
 };
 
 const DefaultViewerOptions = {
@@ -465,6 +469,30 @@ export class Viewer {
         const preset = await plugin.builders.structure.hierarchy.applyPreset(trajectory, params.preset ?? 'default');
 
         return { model, coords, preset };
+    }
+
+    async loadMvsFromUrl(url: string, format: 'mvsj') {
+        if (format === 'mvsj') {
+            const data = await this.plugin.fetch({ url, type: 'string' }).run();
+            // const asset = Asset.getUrlAsset(this.plugin.managers.asset, url);
+            // const wrapper = await this.plugin.runTask(this.plugin.managers.asset.resolve(asset, 'string'));
+            // const data = wrapper.data;
+            const mvsData = MVSData.fromMVSJ(data);
+            await loadMVS(this.plugin, mvsData, false);
+        } else {
+            throw new Error(`Unknown MolViewSpec format: ${format}`);
+        }
+        // We might add more formats in the future
+    }
+
+    async loadMvsData(data: string, format: 'mvsj') {
+        if (format === 'mvsj') {
+            const mvsData = MVSData.fromMVSJ(data);
+            await loadMVS(this.plugin, mvsData, false);
+        } else {
+            throw new Error(`Unknown MolViewSpec format: ${format}`);
+        }
+        // We might add more formats in the future
     }
 
     handleResize() {
