@@ -23,9 +23,17 @@ import React from 'react';
 import { MesoscaleExplorerState } from '../app';
 
 export class ModelInfo extends PluginUIComponent<{}, { isDisabled: boolean }> {
+    state = {
+        isDisabled: false,
+    };
+
     componentDidMount() {
+        this.subscribe(this.plugin.state.data.behaviors.isUpdating, v => {
+            this.setState({ isDisabled: v });
+        });
+
         this.subscribe(this.plugin.state.events.cell.stateUpdated, e => {
-            if (!this.plugin.isBusy && MesoscaleState.has(this.plugin) && MesoscaleState.ref(this.plugin) === e.ref) {
+            if (!this.state.isDisabled && MesoscaleState.has(this.plugin) && MesoscaleState.ref(this.plugin) === e.ref) {
                 this.forceUpdate();
             }
         });
@@ -76,7 +84,7 @@ export class EntityControls extends PluginUIComponent<{}, { isDisabled: boolean 
         });
 
         this.subscribe(this.plugin.state.events.cell.stateUpdated, e => {
-            if (!this.plugin.isBusy && this.roots.some(r => e.cell === r) || (MesoscaleState.has(this.plugin) && MesoscaleState.ref(this.plugin) === e.ref)) {
+            if (!this.state.isDisabled && this.roots.some(r => e.cell === r) || (MesoscaleState.has(this.plugin) && MesoscaleState.ref(this.plugin) === e.ref)) {
                 this.forceUpdate();
             }
         });
@@ -209,7 +217,8 @@ export class EntityControls extends PluginUIComponent<{}, { isDisabled: boolean 
     }
 }
 
-class Node<P extends {} = {}, S = {}, SS = {}> extends PluginUIComponent<P & { cell: StateObjectCell, depth: number }, S, SS> {
+class Node<P extends {}, S extends { isDisabled: boolean }> extends PluginUIComponent<P & { cell: StateObjectCell, depth: number }, S> {
+
     is(e: State.ObjectEvent) {
         return e.ref === this.ref && e.state === this.props.cell.parent;
     }
@@ -227,18 +236,23 @@ class Node<P extends {} = {}, S = {}, SS = {}> extends PluginUIComponent<P & { c
     }
 
     componentDidMount() {
+        this.subscribe(this.plugin.state.data.behaviors.isUpdating, v => {
+            this.setState({ isDisabled: v });
+        });
+
         this.subscribe(this.plugin.state.events.cell.stateUpdated, e => {
-            if (!this.plugin.isBusy && this.is(e)) {
+            if (!this.state.isDisabled && this.is(e)) {
                 this.forceUpdate();
             }
         });
     }
 }
 
-export class GroupNode extends Node<{ filter: string }, { isCollapsed: boolean, action?: 'color' | 'clip' | 'root' }> {
+export class GroupNode extends Node<{ filter: string }, { isCollapsed: boolean, action?: 'color' | 'clip' | 'root', isDisabled: boolean }> {
     state = {
         isCollapsed: !!this.props.cell.state.isCollapsed,
         action: undefined,
+        isDisabled: false,
     };
 
     toggleExpanded = (e: React.MouseEvent<HTMLElement>) => {
@@ -514,9 +528,10 @@ export class GroupNode extends Node<{ filter: string }, { isCollapsed: boolean, 
     }
 }
 
-export class EntityNode extends Node<{}, { action?: 'color' | 'clip' }> {
+export class EntityNode extends Node<{}, { action?: 'color' | 'clip', isDisabled: boolean }> {
     state = {
         action: undefined,
+        isDisabled: false,
     };
 
     clipMapping = createClipMapping(this);

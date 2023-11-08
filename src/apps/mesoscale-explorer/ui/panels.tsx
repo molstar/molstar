@@ -42,7 +42,11 @@ export class LeftPanel extends PluginUIComponent {
     }
 }
 
-export class RightPanel extends PluginUIComponent {
+export class RightPanel extends PluginUIComponent<{}, { isDisabled: boolean }> {
+    state = {
+        isDisabled: false,
+    };
+
     get hasInfo() {
         return (
             MesoscaleState.has(this.plugin) &&
@@ -52,8 +56,12 @@ export class RightPanel extends PluginUIComponent {
     }
 
     componentDidMount() {
+        this.subscribe(this.plugin.state.data.behaviors.isUpdating, v => {
+            this.setState({ isDisabled: v });
+        });
+
         this.subscribe(this.plugin.state.events.cell.stateUpdated, e => {
-            if (!this.plugin.isBusy && MesoscaleState.has(this.plugin) && MesoscaleState.ref(this.plugin) === e.ref) {
+            if (!this.state.isDisabled && MesoscaleState.has(this.plugin) && MesoscaleState.ref(this.plugin) === e.ref) {
                 this.forceUpdate();
             }
         });
