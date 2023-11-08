@@ -24,7 +24,9 @@ import { MesoFocusLoci } from './behavior/camera';
 import { GraphicsMode, MesoscaleState } from './data/state';
 import { MesoSelectLoci } from './behavior/select';
 import { Transparency } from '../../mol-gl/webgl/render-item';
-import { loadExampleEntry, loadPdb, loadPdbDev } from './ui/states';
+import { LoadModel, loadExampleEntry, loadPdb, loadPdbDev } from './ui/states';
+import { Asset } from '../../mol-util/assets';
+import { PluginCommands } from '../../mol-plugin/commands';
 
 export { PLUGIN_VERSION as version } from '../../mol-plugin/version';
 export { setDebugMode, setProductionMode, setTimingMode, consoleStats } from '../../mol-util/debug';
@@ -223,6 +225,23 @@ export class MesoscaleExplorer {
         });
 
         plugin.managers.lociLabels.clearProviders();
+
+        plugin.managers.dragAndDrop.addHandler('mesoscale-explorer', (files) => {
+            const sessions = files.filter(f => {
+                const fn = f.name.toLowerCase();
+                return fn.endsWith('.molx') || fn.endsWith('.molj');
+            });
+
+            if (sessions.length > 0) {
+                PluginCommands.State.Snapshots.OpenFile(plugin, { file: sessions[0] });
+            } else {
+                plugin.runTask(plugin.state.data.applyAction(LoadModel, {
+                    files: files.map(f => Asset.File(f)),
+                }));
+            }
+
+            return true;
+        });
 
         return new MesoscaleExplorer(plugin);
     }

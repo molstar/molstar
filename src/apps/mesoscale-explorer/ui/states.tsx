@@ -212,7 +212,7 @@ export const LoadExample = StateAction.build({
 export const LoadModel = StateAction.build({
     display: { name: 'Load', description: 'Load a model' },
     params: {
-        files: PD.FileList({ accept: '.cif,.bcif,.cif.gz,.bcif.gz,.zip', multiple: true, description: 'Cellpack- or Petworld-style cif file.', label: 'File(s)' }),
+        files: PD.FileList({ accept: '.cif,.bcif,.cif.gz,.bcif.gz,.zip', multiple: true, description: 'mmCIF or Cellpack- or Petworld-style cif file.', label: 'File(s)' }),
     },
     from: PluginStateObject.Root
 })(({ params }, ctx: PluginContext) => Task.create('Loading model...', async taskCtx => {
@@ -238,6 +238,8 @@ export const LoadModel = StateAction.build({
         for (const file of params.files) {
             try {
                 const info = getFileNameInfo(file.file!.name);
+                if (!['cif', 'bcif'].includes(info.ext)) continue;
+
                 const isBinary = ctx.dataFormats.binaryExtensions.has(info.ext);
                 const { data } = await ctx.builders.data.readFile({ file, isBinary });
                 await createHierarchy(ctx, data.ref);
