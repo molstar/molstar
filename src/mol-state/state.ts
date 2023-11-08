@@ -72,7 +72,7 @@ class State {
     tryGetCellData = <T extends StateObject>(ref: StateTransform.Ref) => {
         const ret = this.cells.get(ref)?.obj?.data;
         if (!ref) throw new Error(`Cell '${ref}' data undefined.`);
-        return ret as T;
+        return ret as T extends StateObject<infer D> ? D : never;
     };
 
     private historyCapacity = 5;
