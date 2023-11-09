@@ -38,11 +38,11 @@ export type LoadingActions<TTree extends Tree, TContext> = { [kind in Kind<SubTr
 
 /** Load a tree into Mol*, by applying loading actions in DFS order and then commiting at once.
  * If `deletePrevious`, remove all objects in the current Mol* state; otherwise add to the current state. */
-export async function loadTree<TTree extends Tree, TContext>(plugin: PluginContext, tree: TTree, loadingActions: LoadingActions<TTree, TContext>, context: TContext, deletePrevious: boolean) {
+export async function loadTree<TTree extends Tree, TContext>(plugin: PluginContext, tree: TTree, loadingActions: LoadingActions<TTree, TContext>, context: TContext, options?: { deletePrevious?: boolean }) {
     const mapping = new Map<SubTree<TTree>, StateObjectSelector | undefined>();
     const update = plugin.build();
     const msRoot = update.toRoot().selector;
-    if (deletePrevious) {
+    if (options?.deletePrevious) {
         update.currentTree.children.get(msRoot.ref).forEach(child => update.delete(child));
     }
     dfs<TTree>(tree, (node, parent) => {

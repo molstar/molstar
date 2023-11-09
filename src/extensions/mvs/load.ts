@@ -20,26 +20,28 @@ import { canonicalJsonString } from './helpers/utils';
 import { AnnotationFromSourceKind, AnnotationFromUriKind, LoadingActions, collectAnnotationReferences, collectAnnotationTooltips, collectInlineTooltips, colorThemeForNode, componentFromXProps, componentPropsFromSelector, isPhantomComponent, labelFromXProps, loadTree, makeNearestReprMap, representationProps, structureProps, transformProps } from './load-helpers';
 import { MVSData } from './mvs-data';
 import { ParamsOfKind, SubTreeOfKind, validateTree } from './tree/generic/tree-schema';
-import { convertMvsToMolstar } from './tree/molstar/conversion';
+import { convertMvsToMolstar, mvsSanityCheck } from './tree/molstar/conversion';
 import { MolstarNode, MolstarTree, MolstarTreeSchema } from './tree/molstar/molstar-tree';
 import { MVSTreeSchema } from './tree/mvs/mvs-tree';
 
 
 /** Load a MolViewSpec (MVS) tree into the Mol* plugin.
- * If `deletePrevious`, remove all objects in the current Mol* state; otherwise add to the current state. */
-export async function loadMVS(plugin: PluginContext, data: MVSData, deletePrevious: boolean) {
+ * If `options.deletePrevious`, remove all objects in the current Mol* state; otherwise add to the current state.
+ * If `options.sanityChecks`, run some sanity checks and print potential issues to the console. */
+export async function loadMVS(plugin: PluginContext, data: MVSData, options: { deletePrevious?: boolean, sanityChecks?: boolean } = {}) {
     // console.log(`MVS tree (v${data.version}):\n${treeToString(data.root)}`);
     validateTree(MVSTreeSchema, data.root, 'MVS');
+    if (options.sanityChecks) mvsSanityCheck(data.root);
     const molstarTree = convertMvsToMolstar(data.root);
     // console.log(`Converted MolStar tree:\n${treeToString(molstarTree)}`);
     validateTree(MolstarTreeSchema, molstarTree, 'Converted Molstar');
-    await loadMolstarTree(plugin, molstarTree, deletePrevious);
+    await loadMolstarTree(plugin, molstarTree, options);
 }
 
 
 /** Load a `MolstarTree` into the Mol* plugin.
  * If `deletePrevious`, remove all objects in the current Mol* state; otherwise add to the current state. */
-async function loadMolstarTree(plugin: PluginContext, tree: MolstarTree, deletePrevious: boolean) {
+async function loadMolstarTree(plugin: PluginContext, tree: MolstarTree, options?: { deletePrevious?: boolean }) {
     const mvsExtensionLoaded = plugin.spec.behaviors.some(b => b.transformer.id === MolViewSpec.id);
     if (!mvsExtensionLoaded) {
         console.warn('MolViewSpec extension is not loaded.');
@@ -48,7 +50,7 @@ async function loadMolstarTree(plugin: PluginContext, tree: MolstarTree, deleteP
 
     const context: MolstarLoadingContext = {};
 
-    await loadTree(plugin, tree, MolstarLoadingActions, context, deletePrevious);
+    await loadTree(plugin, tree, MolstarLoadingActions, context, options);
 
     setCanvas(plugin, context.canvas);
     if (context.focus?.kind === 'camera') {

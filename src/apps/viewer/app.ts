@@ -478,7 +478,7 @@ export class Viewer {
             // const wrapper = await this.plugin.runTask(this.plugin.managers.asset.resolve(asset, 'string'));
             // const data = wrapper.data;
             const mvsData = MVSData.fromMVSJ(data);
-            await loadMVS(this.plugin, mvsData, false);
+            await loadMVS(this.plugin, mvsData, { sanityChecks: true });
         } else {
             throw new Error(`Unknown MolViewSpec format: ${format}`);
         }
@@ -488,7 +488,7 @@ export class Viewer {
     async loadMvsData(data: string, format: 'mvsj') {
         if (format === 'mvsj') {
             const mvsData = MVSData.fromMVSJ(data);
-            await loadMVS(this.plugin, mvsData, false);
+            await loadMVS(this.plugin, mvsData, { sanityChecks: true });
         } else {
             throw new Error(`Unknown MolViewSpec format: ${format}`);
         }

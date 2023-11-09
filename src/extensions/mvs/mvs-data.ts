@@ -35,12 +35,14 @@ export const MVSData = {
         return JSON.stringify(mvsData, undefined, space);
     },
 
-    /** Validate `MVSData`. Return `true` if OK; `false` if not OK. */
+    /** Validate `MVSData`. Return `true` if OK; `false` if not OK.
+     * If `options.noExtra` is true, presence of any extra node parameters is treated as an issue. */
     isValid(mvsData: MVSData, options: { noExtra?: boolean } = {}): boolean {
         return MVSData.validationIssues(mvsData, options) === undefined;
     },
 
-    /** Validate `MVSData`. Return `undefined` if OK; list of issues if not OK. */
+    /** Validate `MVSData`. Return `undefined` if OK; list of issues if not OK.
+     * If `options.noExtra` is true, presence of any extra node parameters is treated as an issue. */
     validationIssues(mvsData: MVSData, options: { noExtra?: boolean } = {}): string[] | undefined {
         if (typeof mvsData.version !== 'number') return [`"version" in MVS must be a number, not ${mvsData.version}`];
         if (mvsData.root === undefined) return [`"root" missing in MVS`];
