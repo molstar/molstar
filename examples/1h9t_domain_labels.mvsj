@@ -6,13 +6,13 @@
    {
     "kind": "download",
     "params": {
-     "url": "https://www.ebi.ac.uk/pdbe/entry-files/1h9t_updated.cif"
+     "url": "https://www.ebi.ac.uk/pdbe/entry-files/1h9t.bcif"
     },
     "children": [
      {
       "kind": "parse",
       "params": {
-       "format": "mmcif"
+       "format": "bcif"
       },
       "children": [
        {
@@ -43,7 +43,7 @@
              {
               "kind": "color_from_uri",
               "params": {
-               "uri": "/examples/1h9t_domain_annotations.json",
+               "uri": "/examples/1h9t_domains.json",
                "format": "json",
                "schema": "all_atomic"
               }
@@ -74,7 +74,7 @@
              {
               "kind": "color_from_uri",
               "params": {
-               "uri": "/examples/1h9t_domain_annotations.json",
+               "uri": "/examples/1h9t_domains.json",
                "format": "json",
                "schema": "all_atomic"
               }
@@ -98,7 +98,7 @@
              {
               "kind": "color_from_uri",
               "params": {
-               "uri": "/examples/1h9t_domain_annotations.json",
+               "uri": "/examples/1h9t_domains.json",
                "format": "json",
                "schema": "all_atomic"
               }
