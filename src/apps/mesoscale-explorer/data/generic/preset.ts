@@ -10,7 +10,7 @@ import { PluginContext } from '../../../../mol-plugin/context';
 import { SpacefillRepresentationProvider } from '../../../../mol-repr/structure/representation/spacefill';
 import { Color } from '../../../../mol-util/color';
 import { utf8Read } from '../../../../mol-io/common/utf8';
-import { Quat, Vec3 } from '../../../../mol-math/linear-algebra';
+import { Mat3, Quat, Vec3 } from '../../../../mol-math/linear-algebra';
 import { GraphicsMode, MesoscaleGroup, MesoscaleState, getGraphicsModeProps, getMesoscaleGroupParams, updateColors } from '../state';
 import { ColorNames } from '../../../../mol-util/color/names';
 import { StructureRepresentation3D } from '../../../../mol-plugin-state/transforms/representation';
@@ -21,6 +21,7 @@ import { Asset } from '../../../../mol-util/assets';
 import { Clip } from '../../../../mol-util/clip';
 import { StructureFromGeneric } from './model';
 import { getFileNameInfo } from '../../../../mol-util/file-info';
+import { NumberArray } from '../../../../mol-util/type-helpers';
 
 function getSpacefillParams(color: Color, sizeFactor: number, graphics: GraphicsMode, clipVariant: Clip.Variant) {
     const gmp = getGraphicsModeProps(graphics === 'custom' ? 'quality' : graphics);
@@ -116,48 +117,68 @@ export async function createGenericHierarchy(plugin: PluginContext, file: Asset.
     }
 
     const p = Vec3();
-    const r = Vec3();
     const q = Quat();
+    const m = Mat3();
+    const e = Euler();
+
+    const getPositions = (p: GenericInstances['positions']): NumberArray => {
+        if (typeof p.data === 'string') {
+            return new Float32Array(asset.data[p.data]);
+        } else {
+            return p.data;
+        }
+    };
+
+    const getRotations = (rotations: GenericInstances['rotations']): NumberArray => {
+        if (typeof rotations.data === 'string') {
+            return new Float32Array(asset.data[rotations.data]);
+        } else {
+            return rotations.data;
+        }
+    };
 
     await state.transaction(async () => {
         try {
             plugin.animationLoop.stop({ noDraw: true });
             let build: StateBuilder.Root | StateBuilder.To<any> = state.build();
-            for (const e of manifest.entities) {
-                const d = asset.data[e.file];
+            for (const ent of manifest.entities) {
+                const d = asset.data[ent.file];
                 const t = utf8Read(d, 0, d.length);
-                const file = Asset.File(new File([t], e.file));
+                const file = Asset.File(new File([t], ent.file));
 
-                const { positions, rotations, quaternions, matrices } = e.instances;
+                const positions = getPositions(ent.instances.positions);
+                const rotations = getRotations(ent.instances.rotations);
                 const transforms: Mat4[] = [];
+
                 for (let i = 0, il = positions.length / 3; i < il; ++i) {
                     Vec3.fromArray(p, positions, i * 3);
-                    if (matrices?.length) {
-                        const m = Mat4.fromArray(Mat4(), matrices, i * 16);
-                        transforms.push(m);
-                    } else if (quaternions?.length) {
-                        Quat.fromArray(q, quaternions, i * 4);
-                        const m = Mat4.fromQuat(Mat4(), q);
-                        Mat4.setTranslation(m, p);
-                        transforms.push(m);
-                    } else if (rotations?.length) {
-                        Vec3.fromArray(r, rotations, i * 3);
-                        const e = Euler.fromVec3(Euler(), r);
+                    if (ent.instances.rotations.variant === 'matrix') {
+                        Mat3.fromArray(m, rotations, i * 9);
+                        const t = Mat4.fromMat3(Mat4(), m);
+                        Mat4.setTranslation(t, p);
+                        transforms.push(t);
+                    } else if (ent.instances.rotations.variant === 'quaternion') {
+                        Quat.fromArray(q, rotations, i * 4);
+                        const t = Mat4.fromQuat(Mat4(), q);
+                        Mat4.setTranslation(t, p);
+                        transforms.push(t);
+                    } else if (ent.instances.rotations.variant === 'euler') {
+                        Euler.fromArray(e, rotations, i * 3);
                         Quat.fromEuler(q, e, 'XYZ');
-                        const m = Mat4.fromQuat(Mat4(), q);
-                        Mat4.setTranslation(m, p);
-                        transforms.push(m);
+                        const t = Mat4.fromQuat(Mat4(), q);
+                        Mat4.setTranslation(t, p);
+                        transforms.push(t);
                     }
                 }
 
                 const color = ColorNames.skyblue;
                 const clipVariant = transforms.length === 1 ? 'pixel' : 'instance';
 
-                const label = e.label || e.file.split('.')[0];
-                const sizeFactor = e.sizeFactor || 1;
-                const tags = e.groups.map(({ id, root }) => `${root}:${id}`);
+                const label = ent.label || ent.file.split('.')[0];
+                const sizeFactor = ent.sizeFactor || 1;
+                const tags = ent.groups.map(({ id, root }) => `${root}:${id}`);
 
-                const info = getFileNameInfo(e.file);
+                const info = getFileNameInfo(ent.file);
 
                 build = build
                     .toRoot()
@@ -252,22 +273,41 @@ type GenericInstances = {
      * translation vectors in Angstrom
      * [x0, y0, z0, ..., xn, yn, zn] with n = count - 1
      */
-    positions: number[]
+    positions: {
+        /**
+         * either a file name or the data itself
+         */
+        data: number[] | string,
+        /**
+         * how to interpret the data
+         * defaults to `{ kind: 'Array', type: 'Float32' }`
+         */
+        type?: { kind: 'Array', type: 'Float32' }
+        // TODO: maybe worthwhile in the future, mirroring encoders from BinaryCIF
+        // | { kind: 'IntegerPackedFixedPoint', byteCount: number, srcSize: number, factor: number, srcType: 'Float32' }
+    }
     /**
-     * optional euler angles in XYZ order
+     * euler angles in XYZ order
      * [x0, y0, z0, ..., xn, yn, zn] with n = count - 1
-     */
-    rotations?: number[]
-    /**
-     * optional quaternion rotations in XYZW order
+     *
+     * quaternion rotations in XYZW order
      * [x0, y0, z0, w0, ..., xn, yn, zn, wn] with n = count - 1
+     *
+     * rotation matrices in row-major order
+     * [m00_0, m01_0, m02_0, ..., m20_n, m21_n, m22_n] with n = count - 1
      */
-    quaternions?: number[]
-    /**
-     * optional transformation matrices in row-major order
-     * [m00, m01, m02, m03, ..., m30, m31, m32, m33] with n = count - 1
-     */
-    matrices?: number[]
+    rotations: {
+        variant: 'euler' | 'quaternion' | 'matrix',
+        /**
+         * either a file name or the data itself
+         */
+        data: number[] | string,
+        /**
+         * how to interpret the data
+         * defaults to `{ kind: 'Array', type: 'Float32' }`
+         */
+        type?: { kind: 'Array', type: 'Float32' }
+    }
 }
 
 type GenericManifest = {
@@ -343,8 +383,13 @@ function martiniToGeneric(martini: MartiniManifest): GenericManifest {
         const label = e.model.split('.')[0];
         const group = e.function || 'Metabolite';
 
-        const positions = e.positions.flat().map(x => Math.round((x * 10) * 100) / 100);
-        const rotations = e.rotations.flat().map(x => Math.round(x * 100) / 100);
+        const positions = {
+            data: e.positions.flat().map(x => Math.round((x * 10) * 100) / 100)
+        };
+        const rotations = {
+            data: e.rotations.flat().map(x => Math.round(x * 100) / 100),
+            variant: 'euler' as const,
+        };
 
         if (group.includes('lower leaflet')) {
             entities.push({
