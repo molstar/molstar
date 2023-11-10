@@ -6,8 +6,10 @@
 
 import { CustomModelProperty } from '../../mol-model-props/common/custom-model-property';
 import { CustomStructureProperty } from '../../mol-model-props/common/custom-structure-property';
+import { PluginDragAndDropHandler } from '../../mol-plugin-state/manager/drag-and-drop';
 import { LociLabelProvider } from '../../mol-plugin-state/manager/loci-label';
 import { PluginBehavior } from '../../mol-plugin/behavior/behavior';
+import { PluginContext } from '../../mol-plugin/context';
 import { StructureRepresentationProvider } from '../../mol-repr/structure/representation';
 import { ColorTheme } from '../../mol-theme/color';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
@@ -18,6 +20,8 @@ import { AnnotationTooltipsLabelProvider, AnnotationTooltipsProvider } from './a
 import { CustomLabelRepresentationProvider } from './additions/custom-label/representation';
 import { CustomTooltipsLabelProvider, CustomTooltipsProvider } from './additions/custom-tooltips-prop';
 import { makeMultilayerColorThemeProvider } from './additions/multilayer-color-theme';
+import { loadMVS } from './load';
+import { MVSData } from './mvs-data';
 
 
 /** Collection of things that can be register/unregistered in a plugin */
@@ -27,6 +31,7 @@ interface Registrables {
     representations?: StructureRepresentationProvider<any>[],
     colorThemes?: ColorTheme.Provider[],
     lociLabels?: LociLabelProvider[],
+    dragAndDropHandlers?: DragAndDropHandler[],
 }
 
 
@@ -36,7 +41,7 @@ export const MolViewSpec = PluginBehavior.create<{ autoAttach: boolean }>({
     category: 'misc',
     display: {
         name: 'MolViewSpec',
-        description: 'MolViewSpec extension'
+        description: 'MolViewSpec extension',
     },
     ctor: class extends PluginBehavior.Handler<{ autoAttach: boolean }> {
         private readonly registrables: Registrables = {
@@ -59,6 +64,9 @@ export const MolViewSpec = PluginBehavior.create<{ autoAttach: boolean }>({
                 CustomTooltipsLabelProvider,
                 AnnotationTooltipsLabelProvider,
             ],
+            dragAndDropHandlers: [
+                MvsDragAndDropHandler,
+            ],
         };
 
         register(): void {
@@ -76,6 +84,9 @@ export const MolViewSpec = PluginBehavior.create<{ autoAttach: boolean }>({
             }
             for (const provider of this.registrables.lociLabels ?? []) {
                 this.ctx.managers.lociLabels.addProvider(provider);
+            }
+            for (const handler of this.registrables.dragAndDropHandlers ?? []) {
+                this.ctx.managers.dragAndDrop.addHandler(handler.name, handler.handle);
             }
         }
         update(p: { autoAttach: boolean }) {
@@ -105,9 +116,38 @@ export const MolViewSpec = PluginBehavior.create<{ autoAttach: boolean }>({
             for (const labelProvider of this.registrables.lociLabels ?? []) {
                 this.ctx.managers.lociLabels.removeProvider(labelProvider);
             }
+            for (const handler of this.registrables.dragAndDropHandlers ?? []) {
+                this.ctx.managers.dragAndDrop.removeHandler(handler.name);
+            }
         }
     },
     params: () => ({
         autoAttach: PD.Boolean(false),
     })
 });
+
+
+/** Registrable method for handling dragged-and-dropped files */
+interface DragAndDropHandler {
+    name: string,
+    handle: PluginDragAndDropHandler,
+}
+
+/** DragAndDropHandler handler for `.mvsj` files */
+const MvsDragAndDropHandler: DragAndDropHandler = {
+    name: 'mvs-mvsj',
+    /** Load .mvsj files. Delete previous plugin state before loading.
+     * If multiple files are provided, merge their MVS data into one state. */
+    async handle(files: File[], plugin: PluginContext): Promise<boolean> {
+        let applied = false;
+        for (const file of files) {
+            if (file.name.toLowerCase().endsWith('.mvsj')) {
+                const data = await file.text();
+                const mvsData = MVSData.fromMVSJ(data);
+                await loadMVS(plugin, mvsData, { sanityChecks: true, deletePrevious: !applied });
+                applied = true;
+            }
+        }
+        return applied;
+    },
+};

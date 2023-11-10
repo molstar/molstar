@@ -39,7 +39,7 @@ export const MVSTransform = StateTransformer.builderFactory('mvs');
 /** Transformer for creating a structure component based on custom model property "Annotations" */
 export type AnnotationStructureComponent = typeof AnnotationStructureComponent
 export const AnnotationStructureComponent = MVSTransform({
-    name: 'structure-component-from-annotation',
+    name: 'mvs-structure-component-from-annotation',
     display: { name: 'Annotation Component', description: 'A molecular structure component defined by annotation data.' },
     from: SO.Molecule.Structure,
     to: SO.Molecule.Structure,

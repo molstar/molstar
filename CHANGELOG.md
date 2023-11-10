@@ -7,7 +7,9 @@ Note that since we don't clearly distinguish between a public and private interf
 ## [Unreleased]
 
 - Fix return type of `State.tryGetCellData`
-- MVS extension
+- MolViewSpec extension (MVS)
+- Add URL parameters `mvs-url`, `mvs-data`, `mvs-format`
+- Add drag&drop for `.mvsj` files
 
 ## [v3.42.0] - 2023-11-05
 

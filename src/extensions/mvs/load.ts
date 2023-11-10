@@ -42,11 +42,8 @@ export async function loadMVS(plugin: PluginContext, data: MVSData, options: { d
 /** Load a `MolstarTree` into the Mol* plugin.
  * If `deletePrevious`, remove all objects in the current Mol* state; otherwise add to the current state. */
 async function loadMolstarTree(plugin: PluginContext, tree: MolstarTree, options?: { deletePrevious?: boolean }) {
-    const mvsExtensionLoaded = plugin.spec.behaviors.some(b => b.transformer.id === MolViewSpec.id);
-    if (!mvsExtensionLoaded) {
-        console.warn('MolViewSpec extension is not loaded.');
-        throw new Error('MolViewSpec extension is not loaded.');
-    }
+    const mvsExtensionLoaded = plugin.state.hasBehavior(MolViewSpec);
+    if (!mvsExtensionLoaded) throw new Error('MolViewSpec extension is not loaded.');
 
     const context: MolstarLoadingContext = {};
 
