@@ -7,6 +7,10 @@ Note that since we don't clearly distinguish between a public and private interf
 ## [Unreleased]
 
 - Fix return type of `State.tryGetCellData`
+- Snapshot improvements:
+    - Add `key` property
+    - Ability to existing snapshot name, key, and description
+    - Separate UI control showing description of the current snapshot
 
 ## [v3.42.0] - 2023-11-05
 

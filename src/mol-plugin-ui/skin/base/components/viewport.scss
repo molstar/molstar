@@ -162,3 +162,24 @@
     display: inline-block;
     color: $highlight-info-additional-font-color;
 }
+
+.msp-snapshot-description-wrapper {
+    background: rgba(red($default-background), green($default-background), blue($default-background), 0.5);
+
+    position: absolute;
+    left: 0;
+    top: $control-spacing + $row-height;
+    padding: (0.66 * $control-spacing) $control-spacing;
+
+    max-height: 7 * $row-height;
+    overflow: hidden;
+    overflow-y: auto;
+
+    max-width: 400px;
+
+    a {
+        text-decoration: underline;
+        cursor: pointer;
+        color: $font-color;
+    }
+}

@@ -74,6 +74,7 @@ class PluginStateSnapshotManager extends StatefulPluginComponent<{
         const idx = this.getIndex(old);
         // The id changes here!
         const e = PluginStateSnapshotManager.Entry(snapshot, {
+            key: params?.key ?? old.key,
             name: params?.name ?? old.name,
             description: params?.description ?? old.description,
             image: params?.image,
@@ -102,6 +103,20 @@ class PluginStateSnapshotManager extends StatefulPluginComponent<{
         this.events.changed.next(void 0);
     }
 
+    update(e: PluginStateSnapshotManager.Entry, options: { key?: string, name?: string, description?: string }) {
+        const idx = this.getIndex(e);
+        if (idx < 0) return;
+        const entries = this.state.entries.set(idx, {
+            ...e,
+            key: options.key?.trim() || undefined,
+            name: options.name?.trim() || undefined,
+            description: options.description?.trim() || undefined
+        });
+        this.updateState({ entries });
+        this.entryMap.set(e.snapshot.id, this.state.entries.get(idx)!);
+        this.events.changed.next(void 0);
+    }
+
     clear() {
         if (this.state.entries.size === 0) return;
 
@@ -111,6 +126,15 @@ class PluginStateSnapshotManager extends StatefulPluginComponent<{
         this.entryMap.clear();
         this.updateState({ current: void 0, entries: List<PluginStateSnapshotManager.Entry>() });
         this.events.changed.next(void 0);
+    }
+
+    applyCurrentKey(key: string) {
+        const e = this.state.entries.find(e => e.key === key);
+        if (!e) return;
+
+        this.updateState({ current: e.snapshot.id as UUID });
+        this.events.changed.next(void 0);
+        this.plugin.state.setSnapshot(e.snapshot);
     }
 
     setCurrent(id: string) {
@@ -351,6 +375,7 @@ class PluginStateSnapshotManager extends StatefulPluginComponent<{
 
 namespace PluginStateSnapshotManager {
     export interface EntryParams {
+        key?: string,
         name?: string,
         description?: string,
         image?: Asset
