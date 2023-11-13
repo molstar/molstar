@@ -25,7 +25,7 @@ export const MVSData = {
     fromMVSJ(mvsjString: string): MVSData {
         const result: MVSData = JSON.parse(mvsjString);
         if (result?.version > MVSData.SupportedVersion) {
-            console.warn(`Loaded MVS is of higher version (${result?.version}) than currently supported version (${MVSData.SupportedVersion}). Some feature may not work as expected.`);
+            console.warn(`Loaded MVS is of higher version (${result?.version}) than currently supported version (${MVSData.SupportedVersion}). Some features may not work as expected.`);
         }
         return result;
     },

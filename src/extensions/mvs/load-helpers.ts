@@ -59,7 +59,13 @@ export async function loadTree<TTree extends Tree, TContext>(plugin: PluginConte
             }
         }
     });
-    await update.commit();
+    console.log('commiting...')
+    try {
+        await update.commit();
+    } catch (ex) {
+        console.log('caught')
+    }
+    console.log('DONE commit')
 }
 
 
@@ -180,7 +186,7 @@ export function structureProps(node: MolstarNode<'structure'>): StateTransformer
                 type: {
                     name: 'model',
                     params: {}
-                }
+                },
             };
         case 'assembly':
             return {
