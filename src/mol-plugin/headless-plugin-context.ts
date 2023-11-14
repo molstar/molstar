@@ -58,7 +58,7 @@ export class HeadlessPluginContext extends PluginContext {
 
     /** Save the current plugin state to a MOLJ file */
     async saveStateSnapshot(outPath: string) {
-        const snapshot = this.getStateSnapshot();
+        const snapshot = await this.getStateSnapshot();
         const snapshot_json = JSON.stringify(snapshot, null, 2);
         await new Promise<void>(resolve => {
             fs.writeFile(outPath, snapshot_json, () => resolve());

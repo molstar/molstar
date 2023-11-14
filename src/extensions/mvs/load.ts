@@ -36,7 +36,6 @@ export async function loadMVS(plugin: PluginContext, data: MVSData, options: { d
     // console.log(`Converted MolStar tree:\n${treeToString(molstarTree)}`);
     validateTree(MolstarTreeSchema, molstarTree, 'Converted Molstar');
     await loadMolstarTree(plugin, molstarTree, options);
-    console.log('DONE loadMVS')
 }
 
 
@@ -49,7 +48,6 @@ async function loadMolstarTree(plugin: PluginContext, tree: MolstarTree, options
     const context: MolstarLoadingContext = {};
 
     await loadTree(plugin, tree, MolstarLoadingActions, context, options);
-    console.log('DONE loadTree')
 
     setCanvas(plugin, context.canvas);
     if (context.focus?.kind === 'camera') {
@@ -59,7 +57,6 @@ async function loadMolstarTree(plugin: PluginContext, tree: MolstarTree, options
     } else {
         await setFocus(plugin, undefined, undefined);
     }
-    console.log('DONE focus')
 }
 
 /** Mutable context for loading a `MolstarTree`, available throughout the loading. */
