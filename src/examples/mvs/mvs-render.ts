@@ -64,7 +64,7 @@ function parseArguments(): Args {
 }
 
 /** Main workflow for rendering images from MolViewSpec files */
-export async function main(args: Args) {
+async function main(args: Args) {
     const externalModules: ExternalModules = { gl, pngjs, 'jpeg-js': jpegjs };
     const spec = DefaultPluginSpec();
     spec.behaviors.push(PluginSpec.Behavior(MolViewSpec));
