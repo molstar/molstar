@@ -16,11 +16,13 @@ import jpegjs from 'jpeg-js';
 import path from 'path';
 import pngjs from 'pngjs';
 
+import { Canvas3DParams } from '../../mol-canvas3d/canvas3d';
 import { PluginContext } from '../../mol-plugin/context';
 import { HeadlessPluginContext } from '../../mol-plugin/headless-plugin-context';
 import { DefaultPluginSpec, PluginSpec } from '../../mol-plugin/spec';
-import { ExternalModules } from '../../mol-plugin/util/headless-screenshot';
+import { ExternalModules, defaultCanvas3DParams } from '../../mol-plugin/util/headless-screenshot';
 import { setFSModule } from '../../mol-util/data-source';
+import { ParamDefinition as PD } from '../../mol-util/param-definition';
 
 // MolViewSpec must be imported after HeadlessPluginContext
 import { MolViewSpec } from '../../extensions/mvs/behavior';
@@ -64,12 +66,8 @@ function parseArguments(): Args {
 }
 
 /** Main workflow for rendering images from MolViewSpec files */
-async function main(args: Args) {
-    const externalModules: ExternalModules = { gl, pngjs, 'jpeg-js': jpegjs };
-    const spec = DefaultPluginSpec();
-    spec.behaviors.push(PluginSpec.Behavior(MolViewSpec));
-    const plugin = new HeadlessPluginContext(externalModules, spec, args.size);
-    await plugin.init();
+async function main(args: Args): Promise<void> {
+    const plugin = await createHeadlessPlugin(args);
 
     for (let i = 0; i < args.input.length; i++) {
         const input = args.input[i];
@@ -90,6 +88,27 @@ async function main(args: Args) {
     }
     await plugin.clear();
     plugin.dispose();
+}
+
+/** Return a new and initiatized HeadlessPlugin */
+async function createHeadlessPlugin(args: Pick<Args, 'size'>): Promise<HeadlessPluginContext> {
+    const externalModules: ExternalModules = { gl, pngjs, 'jpeg-js': jpegjs };
+    const spec = DefaultPluginSpec();
+    spec.behaviors.push(PluginSpec.Behavior(MolViewSpec));
+    const headlessCanvasOptions = defaultCanvas3DParams();
+    const canvasOptions = {
+        ...PD.getDefaultValues(Canvas3DParams),
+        cameraResetDurationMs: headlessCanvasOptions.cameraResetDurationMs,
+        postprocessing: headlessCanvasOptions.postprocessing,
+    };
+    const plugin = new HeadlessPluginContext(externalModules, spec, args.size, { canvas: canvasOptions });
+    try {
+        await plugin.init();
+    } catch (error) {
+        plugin.dispose();
+        throw error;
+    }
+    return plugin;
 }
 
 /** Parse integer, fail early. */

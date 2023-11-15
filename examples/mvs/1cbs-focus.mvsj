@@ -10,13 +10,6 @@
     }
    },
    {
-    "kind": "camera",
-    "params": {
-     "target": [17, 21, 27],
-     "position": [65, 47, 111]
-    }
-   },
-   {
     "kind": "download",
     "params": {
      "url": "https://www.ebi.ac.uk/pdbe/entry-files/1cbs.bcif"
@@ -72,6 +65,13 @@
            "selector": "ligand"
           },
           "children": [
+           {
+            "kind": "focus",
+            "params": {
+                "direction": [0.5, 0, -1],
+                "up": [0.5, 1, 0]
+            }
+           },
            {
             "kind": "representation",
             "params": {
