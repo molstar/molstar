@@ -4,7 +4,7 @@
  * @author Adam Midlik <midlik@gmail.com>
  */
 
-import { omitObjectKeys, pickObjectKeys } from '../../helpers/utils';
+import { omitObjectKeys, pickObjectKeys } from '../../../../mol-util/object';
 import { RequiredField, bool } from '../generic/params-schema';
 import { NodeFor, TreeFor, TreeSchema } from '../generic/tree-schema';
 import { FullMVSTreeSchema } from '../mvs/mvs-tree';

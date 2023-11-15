@@ -5,7 +5,7 @@
  * @author Adam Midlik <midlik@gmail.com>
  */
 
-import { Json, canonicalJsonString } from '../extensions/mvs/helpers/utils';
+import { Jsonable, canonicalJsonString } from './object';
 import { NumberArray } from './type-helpers';
 
 // TODO move to mol-math as Vector???
@@ -216,7 +216,7 @@ export function filterInPlace<T>(array: T[], predicate: (x: T) => boolean): T[] 
  * independent from object key order and undefined properties.
  * E.g. {a: 1, b: undefined, c: {d: [], e: null}} is equal to {c: {e: null, d: []}}, a: 1}.
  * If two or more objects in `values` are equal, only the first of them will be in the result. */
-export function arrayDistinct<T extends Json>(values: T[]): T[] {
+export function arrayDistinct<T extends Jsonable>(values: T[]): T[] {
     const seen = new Set<string>();
     const result: T[] = [];
     for (const value of values) {

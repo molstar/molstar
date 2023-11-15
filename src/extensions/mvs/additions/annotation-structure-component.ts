@@ -9,9 +9,9 @@ import { StructureQueryHelper } from '../../../mol-plugin-state/helpers/structur
 import { PluginStateObject as SO } from '../../../mol-plugin-state/objects';
 import { StateObject, StateTransformer } from '../../../mol-state';
 import { deepEqual } from '../../../mol-util';
+import { omitObjectKeys } from '../../../mol-util/object';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { rowsToExpression } from '../helpers/selections';
-import { omitObjectKeys } from '../helpers/utils';
 import { getMVSAnnotationForStructure } from './annotation-prop';
 
 

@@ -1,8 +1,9 @@
 /**
- * Copyright (c) 2017 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Adam Midlik <midlik@gmail.com>
  */
 
 const hasOwnProperty = Object.prototype.hasOwnProperty;
@@ -97,12 +98,24 @@ export function deepClone<T>(source: T): T {
     throw new Error(`Can't clone, type "${typeof source}" unsupported`);
 }
 
-export function mapObjectMap<T, S>(o: { [k: string]: T }, f: (v: T) => S): { [k: string]: S } {
+/** Return a new object with the same keys, where function `f` is applied to each value.
+ * Equivalent to Pythonic `{k: f(v) for k, v in obj.items()}` */
+export function mapObjectMap<T, S>(obj: { [k: string]: T }, f: (v: T) => S): { [k: string]: S } {
     const ret: any = { };
-    for (const k of Object.keys(o)) {
-        ret[k] = f((o as any)[k]);
+    for (const k of Object.keys(obj)) {
+        ret[k] = f((obj as any)[k]);
     }
     return ret;
+}
+
+/** Return an object with keys being the elements of `array` and values computed by `getValue` function.
+ * Equivalent to Pythonic `{k: getValue(k) for k in array}` */
+export function mapArrayToObject<K extends keyof any, V>(array: readonly K[], getValue: (key: K) => V): Record<K, V> {
+    const result = {} as Record<K, V>;
+    for (const key of array) {
+        result[key] = getValue(key);
+    }
+    return result;
 }
 
 export function objectForEach<T>(o: { [k: string]: T }, f: (v: T, k: string) => void) {
@@ -110,4 +123,80 @@ export function objectForEach<T>(o: { [k: string]: T }, f: (v: T, k: string) => 
     for (const k of Object.keys(o)) {
         f((o as any)[k], k);
     }
+}
+
+
+/** Return `true` if object `obj` has own property with key `key` */
+export function objHasKey<T extends {}>(obj: T, key: keyof T): boolean {
+    return Object.prototype.hasOwnProperty.call(obj, key);
+}
+
+/** Return an object with keys `keys` and their values same as in `obj` */
+export function pickObjectKeys<T extends {}, K extends keyof T>(obj: T, keys: readonly K[]): Pick<T, K> {
+    const result: Partial<Pick<T, K>> = {};
+    for (const key of keys) {
+        if (objHasKey(obj, key)) {
+            result[key] = obj[key];
+        }
+    }
+    return result as Pick<T, K>;
+}
+
+/** Return an object same as `obj` but without keys `keys` */
+export function omitObjectKeys<T extends {}, K extends keyof T>(obj: T, omitKeys: readonly K[]): Omit<T, K> {
+    const result: T = { ...obj };
+    for (const key of omitKeys) {
+        delete result[key];
+    }
+    return result as Omit<T, K>;
+}
+
+/** Create an object from keys and values (first key maps to first value etc.) */
+export function objectFromKeysAndValues<K extends keyof any, V>(keys: K[], values: V[]): Record<K, V> {
+    const obj: Partial<Record<K, V>> = {};
+    for (let i = 0; i < keys.length; i++) {
+        obj[keys[i]] = values[i];
+    }
+    return obj as Record<K, V>;
+}
+
+/** Decide if `obj` is a good old object (not array or null or other type). */
+export function isReallyObject(obj: any): boolean {
+    return typeof obj === 'object' && obj !== null && !Array.isArray(obj);
+}
+
+/** Return a copy of object `obj` with sorted keys and dropped keys whose value is undefined. */
+export function sortObjectKeys<T extends {}>(obj: T): T {
+    const result = {} as T;
+    for (const key of Object.keys(obj).sort() as (keyof T)[]) {
+        const value = obj[key];
+        if (value !== undefined) {
+            result[key] = value;
+        }
+    }
+    return result;
+}
+
+/** Like `Promise.all` but with objects instead of arrays */
+export async function promiseAllObj<T extends {}>(promisesObj: { [key in keyof T]: Promise<T[key]> }): Promise<T> {
+    const keys = Object.keys(promisesObj);
+    const promises = Object.values(promisesObj);
+    const results = await Promise.all(promises);
+    return objectFromKeysAndValues(keys, results) as any;
+}
+
+
+/** A JSON-serializable value */
+export type Jsonable = string | number | boolean | null | Jsonable[] | { [key: string]: Jsonable | undefined }
+
+/** Return a canonical string representation for a JSON-able object,
+ * independent from object key order and undefined properties. */
+export function canonicalJsonString(obj: Jsonable) {
+    return JSON.stringify(obj, (key, value) => isReallyObject(value) ? sortObjectKeys(value) : value);
+}
+
+/** Return a pretty JSON representation for a JSON-able object,
+ * (single line, but use space after comma). E.g. '{"name": "Bob", "favorite_numbers": [1, 2, 3]}' */
+export function onelinerJsonString(obj: Jsonable) {
+    return JSON.stringify(obj, undefined, '\t').replace(/,\n\t*/g, ', ').replace(/\n\t*/g, '');
 }

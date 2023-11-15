@@ -4,7 +4,7 @@
  * @author Adam Midlik <midlik@gmail.com>
  */
 
-import { isReallyObject, mapObjToObj, onelinerJsonString } from '../../helpers/utils';
+import { isReallyObject, mapObjectMap, onelinerJsonString } from '../../../../mol-util/object';
 import { AllRequired, DefaultsFor, ParamsSchema, ValuesFor, paramsValidationIssues } from './params-schema';
 import { treeToString } from './tree-utils';
 
@@ -87,7 +87,7 @@ export type TreeSchemaWithAllRequired<TTreeSchema extends TreeSchema> = TreeSche
 export function TreeSchemaWithAllRequired<TTreeSchema extends TreeSchema>(schema: TTreeSchema): TreeSchemaWithAllRequired<TTreeSchema> {
     return {
         ...schema,
-        nodes: mapObjToObj(schema.nodes, (kind, node) => ({ ...node, params: AllRequired(node.params) })) as any,
+        nodes: mapObjectMap(schema.nodes, node => ({ ...node, params: AllRequired(node.params) })) as any,
     };
 }
 

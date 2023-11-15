@@ -11,6 +11,7 @@ import { StructureRepresentation3D } from '../../mol-plugin-state/transforms/rep
 import { PluginContext } from '../../mol-plugin/context';
 import { StateBuilder, StateObjectSelector, StateTransformer } from '../../mol-state';
 import { arrayDistinct } from '../../mol-util/array';
+import { canonicalJsonString } from '../../mol-util/object';
 import { MVSAnnotationColorThemeProps, MVSAnnotationColorThemeProvider } from './additions/annotation-color-theme';
 import { MVSAnnotationLabelRepresentationProvider } from './additions/annotation-label/representation';
 import { MVSAnnotationSpec } from './additions/annotation-prop';
@@ -20,7 +21,7 @@ import { CustomTooltipsProps } from './additions/custom-tooltips-prop';
 import { MultilayerColorThemeName, MultilayerColorThemeProps, NoColor } from './additions/multilayer-color-theme';
 import { SelectorAll } from './additions/selector';
 import { rowToExpression, rowsToExpression } from './helpers/selections';
-import { ElementOfSet, canonicalJsonString, decodeColor, isDefined, stringHash } from './helpers/utils';
+import { ElementOfSet, decodeColor, isDefined, stringHash } from './helpers/utils';
 import { MolstarLoadingContext } from './load';
 import { Kind, ParamsOfKind, SubTree, SubTreeOfKind, Tree, getChildren } from './tree/generic/tree-schema';
 import { dfs } from './tree/generic/tree-utils';

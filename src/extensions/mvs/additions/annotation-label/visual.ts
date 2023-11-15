@@ -14,10 +14,10 @@ import { VisualUpdateState } from '../../../../mol-repr/util';
 import { VisualContext } from '../../../../mol-repr/visual';
 import { Theme } from '../../../../mol-theme/theme';
 import { ColorNames } from '../../../../mol-util/color/names';
+import { omitObjectKeys } from '../../../../mol-util/object';
 import { ParamDefinition as PD } from '../../../../mol-util/param-definition';
 import { textPropsForSelection } from '../../helpers/label-text';
 import { groupRows } from '../../helpers/selections';
-import { omitObjectKeys } from '../../helpers/utils';
 import { getMVSAnnotationForStructure } from '../annotation-prop';
 
 

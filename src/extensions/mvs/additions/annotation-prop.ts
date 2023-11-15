@@ -17,13 +17,14 @@ import { Structure, StructureElement } from '../../../mol-model/structure/struct
 import { UUID } from '../../../mol-util';
 import { arrayExtend } from '../../../mol-util/array';
 import { Asset } from '../../../mol-util/assets';
+import { Jsonable, canonicalJsonString, objHasKey, pickObjectKeys, promiseAllObj } from '../../../mol-util/object';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { AtomRanges } from '../helpers/atom-ranges';
 import { IndicesAndSortings } from '../helpers/indexing';
 import { MaybeStringParamDefinition } from '../helpers/param-definition';
 import { MVSAnnotationRow, MVSAnnotationSchema, getCifAnnotationSchema } from '../helpers/schemas';
 import { atomQualifies, getAtomRangesForRow } from '../helpers/selections';
-import { Json, Maybe, canonicalJsonString, objHasKey, pickObjectKeys, promiseAllObj, safePromise } from '../helpers/utils';
+import { Maybe, safePromise } from '../helpers/utils';
 
 
 /** Allowed values for the annotation format parameter */
@@ -65,10 +66,10 @@ export type MVSAnnotationSpec = MVSAnnotationsProps['annotations'][number]
 type MVSAnnotationSource = { kind: 'url', url: string, format: MVSAnnotationFormat } | { kind: 'source-cif' }
 
 /** Data file with one or more (in case of CIF) annotations */
-type MVSAnnotationFile = { format: 'json', data: Json } | { format: 'cif', data: CifFile }
+type MVSAnnotationFile = { format: 'json', data: Jsonable } | { format: 'cif', data: CifFile }
 
 /** Data for a single annotation */
-type MVSAnnotationData = { format: 'json', data: Json } | { format: 'cif', data: CifCategory }
+type MVSAnnotationData = { format: 'json', data: Jsonable } | { format: 'cif', data: CifCategory }
 
 
 /** Provider for custom model property "Annotations" */
@@ -252,7 +253,7 @@ export class MVSAnnotation {
     }
 }
 
-function getValueFromJson<T>(rowIndex: number, fieldName: string, data: Json): T | undefined {
+function getValueFromJson<T>(rowIndex: number, fieldName: string, data: Jsonable): T | undefined {
     const js = data as any;
     if (Array.isArray(js)) {
         const row = js[rowIndex] ?? {};
@@ -269,7 +270,7 @@ function getValueFromCif(rowIndex: number, fieldName: string, data: CifCategory)
     return column.str(rowIndex);
 }
 
-function getRowsFromJson(data: Json, schema: MVSAnnotationSchema): MVSAnnotationRow[] {
+function getRowsFromJson(data: Jsonable, schema: MVSAnnotationSchema): MVSAnnotationRow[] {
     const js = data as any;
     const cifSchema = getCifAnnotationSchema(schema);
     if (Array.isArray(js)) {
@@ -332,7 +333,7 @@ async function getFileFromSource(ctx: CustomProperty.Context, source: MVSAnnotat
             if (!rawData) throw new Error('Missing data');
             switch (source.format) {
                 case 'json':
-                    const json = JSON.parse(rawData as string) as Json;
+                    const json = JSON.parse(rawData as string) as Jsonable;
                     return { format: 'json', data: json };
                 case 'cif':
                 case 'bcif':

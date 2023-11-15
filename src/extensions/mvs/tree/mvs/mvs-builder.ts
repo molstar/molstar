@@ -4,7 +4,8 @@
  * @author Adam Midlik <midlik@gmail.com>
  */
 
-import { HexColor, pickObjectKeys } from '../../helpers/utils';
+import { pickObjectKeys } from '../../../../mol-util/object';
+import { HexColor } from '../../helpers/utils';
 import { MVSData } from '../../mvs-data';
 import { ParamsOfKind, SubTreeOfKind } from '../generic/tree-schema';
 import { MVSDefaults } from './mvs-defaults';

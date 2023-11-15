@@ -6,7 +6,7 @@
 
 import { Choice } from '../../../extensions/volumes-and-segmentations/helpers';
 import { Column, Table } from '../../../mol-data/db';
-import { pickObjectKeys } from './utils';
+import { pickObjectKeys } from '../../../mol-util/object';
 
 const { str, int } = Column.Schema;
 

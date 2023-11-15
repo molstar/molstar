@@ -4,7 +4,7 @@
  * @author Adam Midlik <midlik@gmail.com>
  */
 
-import { canonicalJsonString, formatObject } from '../../helpers/utils';
+import { canonicalJsonString } from '../../../../mol-util/object';
 import { DefaultsForTree, Kind, SubTree, SubTreeOfKind, Tree, TreeFor, TreeSchema, TreeSchemaWithAllRequired, getParams } from './tree-schema';
 
 
@@ -29,6 +29,13 @@ export function treeToString(tree: Tree) {
     dfs(tree, node => lines.push('  '.repeat(level++) + `- ${node.kind} ${formatObject(node.params ?? {})}`), node => level--);
     return lines.join('\n');
 }
+
+/** Convert object to a human-friendly string (similar to JSON.stringify but without quoting keys) */
+function formatObject(obj: {} | undefined): string {
+    if (!obj) return 'undefined';
+    return JSON.stringify(obj).replace(/,("\w+":)/g, ', $1').replace(/"(\w+)":/g, '$1: ');
+}
+
 
 /** Create a copy of a tree node, ignoring children. */
 export function copyNodeWithoutChildren<TTree extends Tree>(node: TTree): TTree {

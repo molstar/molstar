@@ -9,6 +9,7 @@ import { CustomModelProperties, CustomStructureProperties, ModelFromTrajectory, 
 import { StructureRepresentation3D } from '../../mol-plugin-state/transforms/representation';
 import { PluginContext } from '../../mol-plugin/context';
 import { StateBuilder, StateObjectSelector } from '../../mol-state';
+import { canonicalJsonString } from '../../mol-util/object';
 import { MVSAnnotationsProvider } from './additions/annotation-prop';
 import { MVSAnnotationStructureComponent } from './additions/annotation-structure-component';
 import { MVSAnnotationTooltipsProvider } from './additions/annotation-tooltips-prop';
@@ -16,7 +17,6 @@ import { CustomLabelProps, CustomLabelRepresentationProvider } from './additions
 import { CustomTooltipsProvider } from './additions/custom-tooltips-prop';
 import { MolViewSpec } from './behavior';
 import { setCamera, setCanvas, setFocus } from './camera';
-import { canonicalJsonString } from './helpers/utils';
 import { AnnotationFromSourceKind, AnnotationFromUriKind, LoadingActions, collectAnnotationReferences, collectAnnotationTooltips, collectInlineTooltips, colorThemeForNode, componentFromXProps, componentPropsFromSelector, isPhantomComponent, labelFromXProps, loadTree, makeNearestReprMap, representationProps, structureProps, transformProps } from './load-helpers';
 import { MVSData } from './mvs-data';
 import { ParamsOfKind, SubTreeOfKind, validateTree } from './tree/generic/tree-schema';

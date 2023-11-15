@@ -15,10 +15,10 @@ import { VisualContext } from '../../../../mol-repr/visual';
 import { Theme } from '../../../../mol-theme/theme';
 import { deepEqual } from '../../../../mol-util';
 import { ColorNames } from '../../../../mol-util/color/names';
+import { omitObjectKeys } from '../../../../mol-util/object';
 import { ParamDefinition as PD } from '../../../../mol-util/param-definition';
 import { textPropsForSelection } from '../../helpers/label-text';
 import { MaybeIntegerParamDefinition, MaybeStringParamDefinition } from '../../helpers/param-definition';
-import { omitObjectKeys } from '../../helpers/utils';
 
 
 /** Parameter definition for "label-text" visual in "Custom Label" representation */

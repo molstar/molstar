@@ -6,7 +6,7 @@
 
 import * as iots from 'io-ts';
 import { PathReporter } from 'io-ts/PathReporter';
-import { isReallyObject, mapObjToObj, objHasKey } from '../../helpers/utils';
+import { isReallyObject, mapObjectMap, objHasKey } from '../../../../mol-util/object';
 
 
 /** All types that can be used in tree node params.
@@ -92,7 +92,7 @@ export type ParamsSchema<TKey extends string = string> = { [key in TKey]: Field 
 /** Variation of a params schema where all fields are required */
 export type AllRequired<TParamsSchema extends ParamsSchema> = { [key in keyof TParamsSchema]: TParamsSchema[key] extends Field<infer V> ? RequiredField<V> : never }
 export function AllRequired<TParamsSchema extends ParamsSchema>(paramsSchema: TParamsSchema): AllRequired<TParamsSchema> {
-    return mapObjToObj(paramsSchema, (key, field) => RequiredField(field.type, field.description)) as AllRequired<TParamsSchema>;
+    return mapObjectMap(paramsSchema, field => RequiredField(field.type, field.description)) as AllRequired<TParamsSchema>;
 }
 
 /** Type of values for a params schema (optional fields can be missing) */

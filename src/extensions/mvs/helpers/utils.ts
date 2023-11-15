@@ -9,90 +9,6 @@ import { Color } from '../../../mol-util/color';
 import { ColorNames } from '../../../mol-util/color/names';
 
 
-/** Return `true` if object `obj` has own property with key `key` */
-export function objHasKey<T extends {}>(obj: T, key: keyof T): boolean {
-    return Object.prototype.hasOwnProperty.call(obj, key);
-}
-
-/** Convert object to a human-friendly string (similar to JSON.stringify but without quoting keys) */
-export function formatObject(obj: {} | undefined): string {
-    if (!obj) return 'undefined';
-    return JSON.stringify(obj).replace(/,("\w+":)/g, ', $1').replace(/"(\w+)":/g, '$1: ');
-}
-
-/** Return an object with keys `keys` and their values same as in `obj` */
-export function pickObjectKeys<T extends {}, K extends keyof T>(obj: T, keys: readonly K[]): Pick<T, K> {
-    const result: Partial<Pick<T, K>> = {};
-    for (const key of keys) {
-        if (objHasKey(obj, key)) {
-            result[key] = obj[key];
-        }
-    }
-    return result as Pick<T, K>;
-}
-
-/** Return an object same as `obj` but without keys `keys` */
-export function omitObjectKeys<T extends {}, K extends keyof T>(obj: T, omitKeys: readonly K[]): Omit<T, K> {
-    const result: T = { ...obj };
-    for (const key of omitKeys) {
-        delete result[key];
-    }
-    return result as Omit<T, K>;
-}
-
-/** Create an object from keys and values (first key maps to first value etc.) */
-export function objectFromKeysAndValues<K extends keyof any, V>(keys: K[], values: V[]): Record<K, V> {
-    const obj: Partial<Record<K, V>> = {};
-    for (let i = 0; i < keys.length; i++) {
-        obj[keys[i]] = values[i];
-    }
-    return obj as Record<K, V>;
-}
-
-/** Equivalent to Pythonic `{k: getValue(k) for k in array}` */
-export function mapArrToObj<K extends keyof any, V>(array: readonly K[], getValue: (key: K) => V): Record<K, V> {
-    const result = {} as Record<K, V>;
-    for (const key of array) {
-        result[key] = getValue(key);
-    }
-    return result;
-}
-
-/** Equivalent to Pythonic `{k: getValue(k, v) for k, v in obj.items()}` */
-export function mapObjToObj<K extends keyof any, VIn, VOut>(obj: Record<K, VIn>, getValue: (key: K, value: VIn) => VOut): Record<K, VOut> {
-    const result = {} as Record<K, VOut>;
-    for (const key in obj) {
-        result[key] = getValue(key, obj[key]);
-    }
-    return result;
-}
-
-/** Decide if `obj` is a good old object (not array or null or other type). */
-export function isReallyObject(obj: any): boolean {
-    return typeof obj === 'object' && obj !== null && !Array.isArray(obj);
-}
-
-/** Return a copy of object `obj` with sorted keys and dropped keys whose value is undefined. */
-export function sortObjectKeys<T extends {}>(obj: T): T {
-    const result = {} as T;
-    for (const key of Object.keys(obj).sort() as (keyof T)[]) {
-        const value = obj[key];
-        if (value !== undefined) {
-            result[key] = value;
-        }
-    }
-    return result;
-}
-
-/** Like `Promise.all` but with objects instead of arrays */
-export async function promiseAllObj<T extends {}>(promisesObj: { [key in keyof T]: Promise<T[key]> }): Promise<T> {
-    const keys = Object.keys(promisesObj);
-    const promises = Object.values(promisesObj);
-    const results = await Promise.all(promises);
-    return objectFromKeysAndValues(keys, results) as any;
-}
-
-
 /** Represents either the result or the reason of failure of an operation that might have failed */
 export type Maybe<T> = { ok: true, value: T } | { ok: false, error: any }
 
@@ -146,22 +62,6 @@ export class NumberMap<K extends number, V> implements Mapping<K, V> {
         if (0 <= key && key < this.limit) this.array[key] = value;
         else this.map.set(key, value);
     }
-}
-
-/** A JSON-serializable value */
-export type Json = string | number | boolean | null | Json[] | { [key: string]: Json | undefined }
-
-
-/** Return a canonical string representation for a JSON-able object,
- * independent from object key order and undefined properties. */
-export function canonicalJsonString(obj: Json) {
-    return JSON.stringify(obj, (key, value) => isReallyObject(value) ? sortObjectKeys(value) : value);
-}
-
-/** Return a pretty JSON representation for a JSON-able object,
- * (single line, but use space after comma). E.g. '{"name": "Bob", "favorite_numbers": [1, 2, 3]}' */
-export function onelinerJsonString(obj: Json) {
-    return JSON.stringify(obj, undefined, '\t').replace(/,\n\t*/g, ', ').replace(/\n\t*/g, '');
 }
 
 

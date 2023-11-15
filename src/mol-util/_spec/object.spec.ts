@@ -4,7 +4,7 @@
  * @author Adam Midlik <midlik@gmail.com>
  */
 
-import { canonicalJsonString, sortObjectKeys } from '../utils';
+import { canonicalJsonString, sortObjectKeys } from '../object';
 
 
 describe('object utils', () => {

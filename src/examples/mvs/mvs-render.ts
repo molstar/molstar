@@ -22,11 +22,11 @@ import { HeadlessPluginContext } from '../../mol-plugin/headless-plugin-context'
 import { DefaultPluginSpec, PluginSpec } from '../../mol-plugin/spec';
 import { ExternalModules, defaultCanvas3DParams } from '../../mol-plugin/util/headless-screenshot';
 import { setFSModule } from '../../mol-util/data-source';
+import { onelinerJsonString } from '../../mol-util/object';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 
 // MolViewSpec must be imported after HeadlessPluginContext
 import { MolViewSpec } from '../../extensions/mvs/behavior';
-import { onelinerJsonString } from '../../extensions/mvs/helpers/utils';
 import { loadMVS } from '../../extensions/mvs/load';
 import { MVSData } from '../../extensions/mvs/mvs-data';
 import { dfs } from '../../extensions/mvs/tree/generic/tree-utils';
