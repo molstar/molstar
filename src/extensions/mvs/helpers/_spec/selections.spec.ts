@@ -4,9 +4,9 @@
  * @author Adam Midlik <midlik@gmail.com>
  */
 
+import { range } from '../../../../mol-util/array';
 import { MVSAnnotationRow } from '../schemas';
 import { groupRows } from '../selections';
-import { range } from '../utils';
 
 
 describe('groupRows', () => {

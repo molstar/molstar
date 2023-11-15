@@ -93,79 +93,6 @@ export async function promiseAllObj<T extends {}>(promisesObj: { [key in keyof T
 }
 
 
-/** Return an array containing integers from [start, end) if `end` is given,
- * or from [0, start) if `end` is omitted. */
-export function range(start: number, end?: number): number[] {
-    if (end === undefined) {
-        end = start;
-        start = 0;
-    }
-    const length = Math.max(end - start, 0);
-    const result = Array(length);
-    for (let i = 0; i < length; i++) {
-        result[i] = start + i;
-    }
-    return result;
-}
-
-/** Copy all elements from `src` to the end of `dst`.
- * Equivalent to `dst.push(...src)`, but avoids storing element on call stack. Faster that `extend` from Underscore.js.
- * `extend(a, a)` will double the array
- */
-export function extend<T>(dst: T[], src: ArrayLike<T>): void {
-    const offset = dst.length;
-    const nCopy = src.length;
-    dst.length += nCopy;
-    for (let i = 0; i < nCopy; i++) {
-        dst[offset + i] = src[i];
-    }
-}
-
-/** Check whether `array` is sorted, sort if not. */
-export function sortIfNeeded<T>(array: T[], compareFn: (a: T, b: T) => number): T[] {
-    for (let i = 1, n = array.length; i < n; i++) {
-        if (compareFn(array[i - 1], array[i]) > 0) {
-            return array.sort(compareFn);
-        }
-    }
-    return array;
-}
-
-/** Return a slice of `array` starting at the first element fulfilling `fromPredicate`
- * up to the last element thenceforward ;) fulfilling `whilePredicate`.
- * E.g. `takeFromWhile([1,2,3,4,6,2,5,6], x => x>=4, x => x%2===0)` -> `[4,6,2]` */
-export function takeFromWhile<T>(array: T[], fromPredicate: (x: T) => boolean, whilePredicate: (x: T) => boolean): T[] {
-    const start = array.findIndex(fromPredicate);
-    if (start < 0) return []; // no elements fulfil fromPredicate
-    const n = array.length;
-    let stop = start;
-    while (stop < n && whilePredicate(array[stop])) stop++;
-    return array.slice(start, stop);
-}
-
-/** Return a slice of `array` starting at `fromIndex`
- * up to the last element thenceforward ;) fulfilling `whilePredicate`. */
-export function takeWhile<T>(array: T[], whilePredicate: (x: T) => boolean, fromIndex: number = 0): T[] {
-    const n = array.length;
-    let stop = fromIndex;
-    while (stop < n && whilePredicate(array[stop])) stop++;
-    return array.slice(fromIndex, stop);
-}
-
-/** Remove all elements from the array which do not fulfil `predicate`. Return the modified array itself. */
-export function filterInPlace<T>(array: T[], predicate: (x: T) => boolean): T[] {
-    const n = array.length;
-    let iDest = 0;
-    for (let iSrc = 0; iSrc < n; iSrc++) {
-        if (predicate(array[iSrc])) {
-            array[iDest++] = array[iSrc];
-        }
-    }
-    array.length = iDest;
-    return array;
-}
-
-
 /** Represents either the result or the reason of failure of an operation that might have failed */
 export type Maybe<T> = { ok: true, value: T } | { ok: false, error: any }
 
@@ -235,25 +162,6 @@ export function canonicalJsonString(obj: Json) {
  * (single line, but use space after comma). E.g. '{"name": "Bob", "favorite_numbers": [1, 2, 3]}' */
 export function onelinerJsonString(obj: Json) {
     return JSON.stringify(obj, undefined, '\t').replace(/,\n\t*/g, ', ').replace(/\n\t*/g, '');
-}
-
-/** Return an array of all distinct values from `values`
- * (i.e. with removed duplicates).
- * Uses deep equality for objects and arrays,
- * independent from object key order and undefined properties.
- * E.g. {a: 1, b: undefined, c: {d: [], e: null}} is equal to {c: {e: null, d: []}}, a: 1}.
- * If two or more objects in `values` are equal, only the first of them will be in the result. */
-export function distinct<T extends Json>(values: T[]): T[] {
-    const seen = new Set<string>();
-    const result: T[] = [];
-    for (const value of values) {
-        const key = canonicalJsonString(value);
-        if (!seen.has(key)) {
-            seen.add(key);
-            result.push(value);
-        }
-    }
-    return result;
 }
 
 

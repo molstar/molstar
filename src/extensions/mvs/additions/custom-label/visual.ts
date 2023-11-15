@@ -17,7 +17,7 @@ import { deepEqual } from '../../../../mol-util';
 import { ColorNames } from '../../../../mol-util/color/names';
 import { ParamDefinition as PD } from '../../../../mol-util/param-definition';
 import { textPropsForSelection } from '../../helpers/label-text';
-import { PD_MaybeInteger, PD_MaybeString } from '../../helpers/param-definition';
+import { MaybeIntegerParamDefinition, MaybeStringParamDefinition } from '../../helpers/param-definition';
 import { omitObjectKeys } from '../../helpers/utils';
 
 
@@ -35,32 +35,32 @@ export const CustomLabelTextParams = {
                     scale: PD.Numeric(1, { min: 0, max: 20, step: 0.1 })
                 }),
                 selection: PD.Group({
-                    label_entity_id: PD_MaybeString(),
-                    label_asym_id: PD_MaybeString(),
-                    auth_asym_id: PD_MaybeString(),
+                    label_entity_id: MaybeStringParamDefinition(),
+                    label_asym_id: MaybeStringParamDefinition(),
+                    auth_asym_id: MaybeStringParamDefinition(),
 
-                    label_seq_id: PD_MaybeInteger(),
-                    auth_seq_id: PD_MaybeInteger(),
-                    pdbx_PDB_ins_code: PD_MaybeString(),
+                    label_seq_id: MaybeIntegerParamDefinition(),
+                    auth_seq_id: MaybeIntegerParamDefinition(),
+                    pdbx_PDB_ins_code: MaybeStringParamDefinition(),
                     /** Minimum label_seq_id (inclusive) */
-                    beg_label_seq_id: PD_MaybeInteger(undefined, { description: 'Minimum label_seq_id (inclusive)' }),
+                    beg_label_seq_id: MaybeIntegerParamDefinition(undefined, { description: 'Minimum label_seq_id (inclusive)' }),
                     /** Maximum label_seq_id (inclusive) */
-                    end_label_seq_id: PD_MaybeInteger(),
+                    end_label_seq_id: MaybeIntegerParamDefinition(),
                     /** Minimum auth_seq_id (inclusive) */
-                    beg_auth_seq_id: PD_MaybeInteger(),
+                    beg_auth_seq_id: MaybeIntegerParamDefinition(),
                     /** Maximum auth_seq_id (inclusive) */
-                    end_auth_seq_id: PD_MaybeInteger(),
+                    end_auth_seq_id: MaybeIntegerParamDefinition(),
 
                     /** Atom name like 'CA', 'N', 'O'... */
-                    label_atom_id: PD_MaybeString(),
+                    label_atom_id: MaybeStringParamDefinition(),
                     /** Atom name like 'CA', 'N', 'O'... */
-                    auth_atom_id: PD_MaybeString(),
+                    auth_atom_id: MaybeStringParamDefinition(),
                     /** Element symbol like 'H', 'HE', 'LI', 'BE'... */
-                    type_symbol: PD_MaybeString(),
+                    type_symbol: MaybeStringParamDefinition(),
                     /** Unique atom identifier across conformations (_atom_site.id) */
-                    atom_id: PD_MaybeInteger(),
+                    atom_id: MaybeIntegerParamDefinition(),
                     /** 0-base index of the atom in the source data */
-                    atom_index: PD_MaybeInteger(),
+                    atom_index: MaybeIntegerParamDefinition(),
 
                 }),
             }),

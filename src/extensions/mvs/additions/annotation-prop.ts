@@ -15,14 +15,15 @@ import { CustomPropertyDescriptor } from '../../../mol-model/custom-property';
 import { Model } from '../../../mol-model/structure';
 import { Structure, StructureElement } from '../../../mol-model/structure/structure';
 import { UUID } from '../../../mol-util';
+import { arrayExtend } from '../../../mol-util/array';
 import { Asset } from '../../../mol-util/assets';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { AtomRanges } from '../helpers/atom-ranges';
 import { IndicesAndSortings } from '../helpers/indexing';
-import { PD_MaybeString } from '../helpers/param-definition';
+import { MaybeStringParamDefinition } from '../helpers/param-definition';
 import { MVSAnnotationRow, MVSAnnotationSchema, getCifAnnotationSchema } from '../helpers/schemas';
 import { atomQualifies, getAtomRangesForRow } from '../helpers/selections';
-import { Json, Maybe, canonicalJsonString, extend, objHasKey, pickObjectKeys, promiseAllObj, safePromise } from '../helpers/utils';
+import { Json, Maybe, canonicalJsonString, objHasKey, pickObjectKeys, promiseAllObj, safePromise } from '../helpers/utils';
 
 
 /** Allowed values for the annotation format parameter */
@@ -47,7 +48,7 @@ export const MVSAnnotationsParams = {
                 index: PD.Group({ index: PD.Numeric(0, { min: 0, step: 1 }, { description: '0-based index of the block' }) }),
                 header: PD.Group({ header: PD.Text(undefined, { description: 'Block header' }) }),
             }, { description: 'Specify which CIF block contains annotation data (only relevant when format=cif or format=bcif)' }),
-            cifCategory: PD_MaybeString(undefined, { description: 'Specify which CIF category contains annotation data (only relevant when format=cif or format=bcif)' }),
+            cifCategory: MaybeStringParamDefinition(undefined, { description: 'Specify which CIF category contains annotation data (only relevant when format=cif or format=bcif)' }),
             id: PD.Text('', { description: 'Arbitrary identifier that can be referenced by MVSAnnotationColorTheme' }),
         },
         obj => obj.id
@@ -297,7 +298,7 @@ function getRowsFromCif(data: CifCategory, schema: MVSAnnotationSchema): MVSAnno
     const rows: MVSAnnotationRow[] = [];
     const cifSchema = getCifAnnotationSchema(schema);
     const table = toTable(cifSchema, data);
-    extend(rows, getRowsFromTable(table)); // Avoiding Table.getRows(table) as it replaces . and ? fields by 0 or ''
+    arrayExtend(rows, getRowsFromTable(table)); // Avoiding Table.getRows(table) as it replaces . and ? fields by 0 or ''
     return rows;
 }
 

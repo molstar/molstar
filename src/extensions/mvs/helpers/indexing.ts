@@ -7,7 +7,8 @@
 import { Column } from '../../../mol-data/db';
 import { SortedArray } from '../../../mol-data/int';
 import { ChainIndex, ElementIndex, Model, ResidueIndex } from '../../../mol-model/structure';
-import { Mapping, MultiMap, NumberMap, filterInPlace, range, sortIfNeeded } from './utils';
+import { filterInPlace, range, sortIfNeeded } from '../../../mol-util/array';
+import { Mapping, MultiMap, NumberMap } from './utils';
 
 
 /** Auxiliary data structure for efficiently finding chains/residues/atoms in a model by their properties */

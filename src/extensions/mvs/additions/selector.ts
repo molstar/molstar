@@ -12,9 +12,10 @@ import { PluginStateObject } from '../../../mol-plugin-state/objects';
 import { MolScriptBuilder } from '../../../mol-script/language/builder';
 import { Expression } from '../../../mol-script/language/expression';
 import { UUID } from '../../../mol-util';
+import { arrayExtend, sortIfNeeded } from '../../../mol-util/array';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { capitalize } from '../../../mol-util/string';
-import { extend, mapArrToObj, pickObjectKeys, sortIfNeeded } from '../helpers/utils';
+import { mapArrToObj, pickObjectKeys } from '../helpers/utils';
 import { MVSAnnotationStructureComponentParams, createMVSAnnotationStructureComponent } from './annotation-structure-component';
 
 
@@ -55,7 +56,7 @@ export const ElementSet = {
         const arrays: { [modelId: UUID]: ElementIndex[] } = {};
         const selection = substructureFromSelector(structure, selector); // using `getAtomRangesForRow` might (might not) be faster here
         for (const unit of selection.units) {
-            extend(arrays[unit.model.id] ??= [], unit.elements);
+            arrayExtend(arrays[unit.model.id] ??= [], unit.elements);
         }
         const result: { [modelId: UUID]: SortedArray<ElementIndex> } = {};
         for (const modelId in arrays) {

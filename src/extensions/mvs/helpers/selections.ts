@@ -8,10 +8,11 @@ import { Column } from '../../../mol-data/db';
 import { ChainIndex, ElementIndex, Model, ResidueIndex } from '../../../mol-model/structure';
 import { MolScriptBuilder as MS } from '../../../mol-script/language/builder';
 import { Expression } from '../../../mol-script/language/expression';
+import { arrayExtend, filterInPlace, range } from '../../../mol-util/array';
 import { AtomRanges } from './atom-ranges';
 import { IndicesAndSortings, Sorting } from './indexing';
 import { MVSAnnotationRow } from './schemas';
-import { extend, filterInPlace, isAnyDefined, isDefined, range } from './utils';
+import { isAnyDefined, isDefined } from './utils';
 
 
 const EmptyArray: readonly any[] = [];
@@ -157,7 +158,7 @@ function getQualifyingResidues(model: Model, row: MVSAnnotationRow, indices: Ind
             const firstResidueAfterChain = residueAtomSegments.index[chainAtomSegments.offsets[iChain + 1]] ?? nResidues;
             residuesHere = range(firstResidueForChain, firstResidueAfterChain) as ResidueIndex[];
         }
-        extend(result, residuesHere);
+        arrayExtend(result, residuesHere);
     }
     return result;
 }
@@ -178,7 +179,7 @@ function getQualifyingAtoms(model: Model, row: MVSAnnotationRow, indices: Indice
         if (isDefined(row.type_symbol)) {
             filterInPlace(atomIdcs, iAtom => type_symbol.value(iAtom) === row.type_symbol?.toUpperCase());
         }
-        extend(result, atomIdcs);
+        arrayExtend(result, atomIdcs);
     }
     return result;
 }

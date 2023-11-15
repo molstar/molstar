@@ -6,7 +6,7 @@
 
 import { SortedArray } from '../../../mol-data/int';
 import { ElementIndex } from '../../../mol-model/structure';
-import { extend, range } from './utils';
+import { arrayExtend, range } from '../../../mol-util/array';
 
 
 /** Represents a collection of disjoint atom ranges in a model.
@@ -72,8 +72,8 @@ export const AtomRanges = {
     union(ranges: AtomRanges[]): AtomRanges {
         const concat = AtomRanges.empty();
         for (const r of ranges) {
-            extend(concat.from, r.from);
-            extend(concat.to, r.to);
+            arrayExtend(concat.from, r.from);
+            arrayExtend(concat.to, r.to);
         }
         const indices = range(concat.from.length).sort((i, j) => concat.from[i] - concat.from[j]); // sort by start of range
         const result = AtomRanges.empty();

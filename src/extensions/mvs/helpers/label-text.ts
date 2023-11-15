@@ -9,11 +9,11 @@ import { BoundaryHelper } from '../../../mol-math/geometry/boundary-helper';
 import { Vec3 } from '../../../mol-math/linear-algebra';
 import { ElementIndex, Model, Structure, StructureElement, StructureProperties } from '../../../mol-model/structure';
 import { UUID } from '../../../mol-util';
+import { arrayExtend } from '../../../mol-util/array';
 import { AtomRanges } from './atom-ranges';
 import { IndicesAndSortings } from './indexing';
 import { MVSAnnotationRow } from './schemas';
 import { getAtomRangesForRows } from './selections';
-import { extend } from './utils';
 
 
 /** Properties describing position, size, etc. of a text in 3D */
@@ -56,7 +56,7 @@ export function textPropsForSelection(structure: Structure, sizeFunction: (locat
         for (const atom of outAtoms) {
             loc.element = atom;
             position(atom, tmpVec);
-            extend(tmpArray, tmpVec);
+            arrayExtend(tmpArray, tmpVec);
             group ??= structure.serialMapping.cumulativeUnitElementCount[iUnit] + outFirstAtomIndex.value!;
             atomSize ??= sizeFunction(loc);
             includedAtoms++;

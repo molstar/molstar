@@ -8,7 +8,7 @@ import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 
 
 /** Similar to `PD.Numeric` but allows leaving empty field in UI (treated as `undefined`) */
-export function PD_MaybeInteger(defaultValue?: number, info?: PD.Info): PD.Base<number | undefined> {
+export function MaybeIntegerParamDefinition(defaultValue?: number, info?: PD.Info): PD.Base<number | undefined> {
     return PD.Converted<number | undefined, PD.Text>(stringifyMaybeInt, parseMaybeInt, PD.Text(stringifyMaybeInt(defaultValue), info));
 }
 /** The magic with negative zero looks crazy, but it's needed if we want to be able to write negative numbers, LOL. Please help if you know a better solution. */
@@ -24,7 +24,7 @@ function stringifyMaybeInt(num: number | undefined): string {
 }
 
 /** Similar to `PD.Text` but leaving empty field in UI is treated as `undefined` */
-export function PD_MaybeString(defaultValue?: string, info?: PD.Info): PD.Base<string | undefined> {
+export function MaybeStringParamDefinition(defaultValue?: string, info?: PD.Info): PD.Base<string | undefined> {
     return PD.Converted<string | undefined, PD.Text>(stringifyMaybeString, parseMaybeString, PD.Text(stringifyMaybeString(defaultValue), info));
 }
 function parseMaybeString(input: string): string | undefined {
