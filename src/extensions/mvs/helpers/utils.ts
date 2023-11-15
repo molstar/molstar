@@ -89,6 +89,7 @@ export function stringHash(input: string): string {
 /** Return type of elements in a set */
 export type ElementOfSet<S> = S extends Set<infer T> ? T : never
 
+
 /** Convert `colorString` (either X11 color name like 'magenta' or hex code like '#ff00ff') to Color.
  * Return `undefined` if `colorString` cannot be converted. */
 export function decodeColor(colorString: string | undefined): Color | undefined {

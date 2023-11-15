@@ -10,11 +10,11 @@ import { StructureRepresentation3D } from '../../mol-plugin-state/transforms/rep
 import { PluginContext } from '../../mol-plugin/context';
 import { StateBuilder, StateObjectSelector } from '../../mol-state';
 import { canonicalJsonString } from '../../mol-util/object';
-import { MVSAnnotationsProvider } from './additions/annotation-prop';
-import { MVSAnnotationStructureComponent } from './additions/annotation-structure-component';
-import { MVSAnnotationTooltipsProvider } from './additions/annotation-tooltips-prop';
-import { CustomLabelProps, CustomLabelRepresentationProvider } from './additions/custom-label/representation';
-import { CustomTooltipsProvider } from './additions/custom-tooltips-prop';
+import { MVSAnnotationsProvider } from './components/annotation-prop';
+import { MVSAnnotationStructureComponent } from './components/annotation-structure-component';
+import { MVSAnnotationTooltipsProvider } from './components/annotation-tooltips-prop';
+import { CustomLabelProps, CustomLabelRepresentationProvider } from './components/custom-label/representation';
+import { CustomTooltipsProvider } from './components/custom-tooltips-prop';
 import { MolViewSpec } from './behavior';
 import { setCamera, setCanvas, setFocus } from './camera';
 import { AnnotationFromSourceKind, AnnotationFromUriKind, LoadingActions, collectAnnotationReferences, collectAnnotationTooltips, collectInlineTooltips, colorThemeForNode, componentFromXProps, componentPropsFromSelector, isPhantomComponent, labelFromXProps, loadTree, makeNearestReprMap, representationProps, structureProps, transformProps } from './load-helpers';

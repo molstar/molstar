@@ -4,7 +4,7 @@
  * @author Adam Midlik <midlik@gmail.com>
  */
 
-import { Choice } from '../../../extensions/volumes-and-segmentations/helpers';
+import { Choice } from '../../volumes-and-segmentations/helpers';
 import { SortedArray } from '../../../mol-data/int';
 import { ElementIndex, Structure, StructureElement } from '../../../mol-model/structure';
 import { StaticStructureComponentTypes, createStructureComponent } from '../../../mol-plugin-state/helpers/structure-component';

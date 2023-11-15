@@ -4,7 +4,7 @@
  * @author Adam Midlik <midlik@gmail.com>
  */
 
-import { Choice } from '../../../extensions/volumes-and-segmentations/helpers';
+import { Choice } from '../../volumes-and-segmentations/helpers';
 import { Column, Table } from '../../../mol-data/db';
 import { CIF, CifBlock, CifCategory, CifFile } from '../../../mol-io/reader/cif';
 import { toTable } from '../../../mol-io/reader/cif/schema';
