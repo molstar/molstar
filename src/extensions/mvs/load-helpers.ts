@@ -10,11 +10,11 @@ import { StructureFromModel, TransformStructureConformation } from '../../mol-pl
 import { StructureRepresentation3D } from '../../mol-plugin-state/transforms/representation';
 import { PluginContext } from '../../mol-plugin/context';
 import { StateBuilder, StateObjectSelector, StateTransformer } from '../../mol-state';
-import { AnnotationColorThemeProps, AnnotationColorThemeProvider } from './additions/annotation-color-theme';
-import { AnnotationLabelRepresentationProvider } from './additions/annotation-label/representation';
-import { AnnotationSpec } from './additions/annotation-prop';
-import { AnnotationStructureComponentProps } from './additions/annotation-structure-component';
-import { AnnotationTooltipsProps } from './additions/annotation-tooltips-prop';
+import { MVSAnnotationColorThemeProps, MVSAnnotationColorThemeProvider } from './additions/annotation-color-theme';
+import { MVSAnnotationLabelRepresentationProvider } from './additions/annotation-label/representation';
+import { MVSAnnotationSpec } from './additions/annotation-prop';
+import { MVSAnnotationStructureComponentProps } from './additions/annotation-structure-component';
+import { MVSAnnotationTooltipsProps } from './additions/annotation-tooltips-prop';
 import { CustomTooltipsProps } from './additions/custom-tooltips-prop';
 import { MultilayerColorThemeName, MultilayerColorThemeProps, NoColor } from './additions/multilayer-color-theme';
 import { SelectorAll } from './additions/selector';
@@ -98,10 +98,10 @@ export function transformProps(node: SubTreeOfKind<MolstarTree, 'structure'>): S
 }
 
 /** Collect distinct annotation specs from all nodes in `tree` and set `context.annotationMap[node]` to respective annotationIds */
-export function collectAnnotationReferences(tree: SubTree<MolstarTree>, context: MolstarLoadingContext): AnnotationSpec[] {
-    const distinctSpecs: { [key: string]: AnnotationSpec } = {};
+export function collectAnnotationReferences(tree: SubTree<MolstarTree>, context: MolstarLoadingContext): MVSAnnotationSpec[] {
+    const distinctSpecs: { [key: string]: MVSAnnotationSpec } = {};
     dfs(tree, node => {
-        let spec: Omit<AnnotationSpec, 'id'> | undefined = undefined;
+        let spec: Omit<MVSAnnotationSpec, 'id'> | undefined = undefined;
         if (AnnotationFromUriKinds.has(node.kind as any)) {
             const p = (node as MolstarNode<AnnotationFromUriKind>).params;
             spec = { source: { name: 'url', params: { url: p.uri, format: p.format } }, schema: p.schema, cifBlock: blockSpec(p.block_header, p.block_index), cifCategory: p.category_name ?? undefined };
@@ -117,7 +117,7 @@ export function collectAnnotationReferences(tree: SubTree<MolstarTree>, context:
     });
     return Object.values(distinctSpecs);
 }
-function blockSpec(header: string | null | undefined, index: number | null | undefined): AnnotationSpec['cifBlock'] {
+function blockSpec(header: string | null | undefined, index: number | null | undefined): MVSAnnotationSpec['cifBlock'] {
     if (isDefined(header)) {
         return { name: 'header', params: { header: header } };
     } else {
@@ -127,7 +127,7 @@ function blockSpec(header: string | null | undefined, index: number | null | und
 
 /** Collect annotation tooltips from all nodes in `tree` and map them to annotationIds. */
 export function collectAnnotationTooltips(tree: SubTreeOfKind<MolstarTree, 'structure'>, context: MolstarLoadingContext) {
-    const annotationTooltips: AnnotationTooltipsProps['tooltips'] = [];
+    const annotationTooltips: MVSAnnotationTooltipsProps['tooltips'] = [];
     dfs(tree, node => {
         if (node.kind === 'tooltip_from_uri' || node.kind === 'tooltip_from_source') {
             const annotationId = context.annotationMap?.get(node);
@@ -227,13 +227,13 @@ export function labelFromXProps(node: MolstarNode<'label_from_uri' | 'label_from
     const fieldName = node.params.field_name;
     const nearestReprNode = context.nearestReprMap?.get(node);
     return {
-        type: { name: AnnotationLabelRepresentationProvider.name, params: { annotationId, fieldName } },
+        type: { name: MVSAnnotationLabelRepresentationProvider.name, params: { annotationId, fieldName } },
         colorTheme: colorThemeForNode(nearestReprNode, context),
     };
 }
 
 /** Create props for `AnnotationStructureComponent` transformer from a component_from_* node. */
-export function componentFromXProps(node: MolstarNode<'component_from_uri' | 'component_from_source'>, context: MolstarLoadingContext): Partial<AnnotationStructureComponentProps> {
+export function componentFromXProps(node: MolstarNode<'component_from_uri' | 'component_from_source'>, context: MolstarLoadingContext): Partial<MVSAnnotationStructureComponentProps> {
     const annotationId = context.annotationMap?.get(node);
     const { field_name, field_values } = node.params;
     return {
@@ -301,8 +301,8 @@ export function colorThemeForNode(node: SubTreeOfKind<MolstarTree, 'color' | 'co
     }
     if (annotationId) {
         return {
-            name: AnnotationColorThemeProvider.name,
-            params: { annotationId, fieldName, background: NoColor } satisfies Partial<AnnotationColorThemeProps>,
+            name: MVSAnnotationColorThemeProvider.name,
+            params: { annotationId, fieldName, background: NoColor } satisfies Partial<MVSAnnotationColorThemeProps>,
         };
     } else {
         return {

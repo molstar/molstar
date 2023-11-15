@@ -24,7 +24,7 @@ export const StructureTypeT = literal('model', 'assembly', 'symmetry', 'symmetry
 export const ComponentSelectorT = literal('all', 'polymer', 'protein', 'nucleic', 'branched', 'ligand', 'ion', 'water');
 
 /** `selector` parameter values for `component` node in MVS tree */
-export const ComponentExpression = iots.partial({
+export const ComponentExpressionT = iots.partial({
     label_entity_id: str,
     label_asym_id: str,
     auth_asym_id: str,

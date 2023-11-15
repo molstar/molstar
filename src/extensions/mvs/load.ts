@@ -9,9 +9,9 @@ import { CustomModelProperties, CustomStructureProperties, ModelFromTrajectory, 
 import { StructureRepresentation3D } from '../../mol-plugin-state/transforms/representation';
 import { PluginContext } from '../../mol-plugin/context';
 import { StateBuilder, StateObjectSelector } from '../../mol-state';
-import { AnnotationsProvider } from './additions/annotation-prop';
-import { AnnotationStructureComponent } from './additions/annotation-structure-component';
-import { AnnotationTooltipsProvider } from './additions/annotation-tooltips-prop';
+import { MVSAnnotationsProvider } from './additions/annotation-prop';
+import { MVSAnnotationStructureComponent } from './additions/annotation-structure-component';
+import { MVSAnnotationTooltipsProvider } from './additions/annotation-tooltips-prop';
 import { CustomLabelProps, CustomLabelRepresentationProvider } from './additions/custom-label/representation';
 import { CustomTooltipsProvider } from './additions/custom-tooltips-prop';
 import { MolViewSpec } from './behavior';
@@ -115,10 +115,10 @@ const MolstarLoadingActions: LoadingActions<MolstarTree, MolstarLoadingContext> 
             })
             .apply(CustomModelProperties, {
                 properties: {
-                    [AnnotationsProvider.descriptor.name]: { annotations }
+                    [MVSAnnotationsProvider.descriptor.name]: { annotations }
                 },
                 autoAttach: [
-                    AnnotationsProvider.descriptor.name
+                    MVSAnnotationsProvider.descriptor.name
                 ],
             }).selector;
     },
@@ -133,11 +133,11 @@ const MolstarLoadingActions: LoadingActions<MolstarTree, MolstarLoadingContext> 
         if (annotationTooltips.length + inlineTooltips.length > 0) {
             update.to(result).apply(CustomStructureProperties, {
                 properties: {
-                    [AnnotationTooltipsProvider.descriptor.name]: { tooltips: annotationTooltips },
+                    [MVSAnnotationTooltipsProvider.descriptor.name]: { tooltips: annotationTooltips },
                     [CustomTooltipsProvider.descriptor.name]: { tooltips: inlineTooltips },
                 },
                 autoAttach: [
-                    AnnotationTooltipsProvider.descriptor.name,
+                    MVSAnnotationTooltipsProvider.descriptor.name,
                     CustomTooltipsProvider.descriptor.name,
                 ],
             });
@@ -161,12 +161,12 @@ const MolstarLoadingActions: LoadingActions<MolstarTree, MolstarLoadingContext> 
     component_from_uri(update: StateBuilder.Root, msParent: StateObjectSelector, node: SubTreeOfKind<MolstarTree, 'component_from_uri'>, context: MolstarLoadingContext): StateObjectSelector | undefined {
         if (isPhantomComponent(node)) return undefined;
         const props = componentFromXProps(node, context);
-        return update.to(msParent).apply(AnnotationStructureComponent, props).selector;
+        return update.to(msParent).apply(MVSAnnotationStructureComponent, props).selector;
     },
     component_from_source(update: StateBuilder.Root, msParent: StateObjectSelector, node: SubTreeOfKind<MolstarTree, 'component_from_source'>, context: MolstarLoadingContext): StateObjectSelector | undefined {
         if (isPhantomComponent(node)) return undefined;
         const props = componentFromXProps(node, context);
-        return update.to(msParent).apply(AnnotationStructureComponent, props).selector;
+        return update.to(msParent).apply(MVSAnnotationStructureComponent, props).selector;
     },
     representation(update: StateBuilder.Root, msParent: StateObjectSelector, node: MolstarNode<'representation'>, context: MolstarLoadingContext): StateObjectSelector {
         return update.to(msParent).apply(StructureRepresentation3D, {

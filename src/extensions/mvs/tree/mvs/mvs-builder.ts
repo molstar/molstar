@@ -14,14 +14,14 @@ import { MVSKind, MVSNode, MVSTree, MVSTreeSchema } from './mvs-tree';
 /** Create a new MolViewSpec builder containing only a root node. Example of MVS builder usage:
  *
  * ```
- * const builder = createBuilder();
+ * const builder = createMVSBuilder();
  * builder.canvas({ background_color: 'white' });
  * const struct = builder.download({ url: 'https://www.ebi.ac.uk/pdbe/entry-files/download/1og2_updated.cif' }).parse({ format: 'mmcif' }).modelStructure();
  * struct.component().representation().color({ color: HexColor('#3050F8') });
  * console.log(JSON.stringify(builder.getState()));
  * ```
  */
-export function createBuilder() {
+export function createMVSBuilder() {
     return new Root();
 }
 
@@ -224,7 +224,7 @@ export class Representation extends _Base<'representation'> {
 
 /** Demonstration of usage of MVS builder */
 export function builderDemo() {
-    const builder = createBuilder();
+    const builder = createMVSBuilder();
     builder.canvas({ background_color: 'white' });
     const struct = builder.download({ url: 'https://www.ebi.ac.uk/pdbe/entry-files/download/1og2_updated.cif' }).parse({ format: 'mmcif' }).modelStructure();
     struct.component().representation().color({ color: 'white' });

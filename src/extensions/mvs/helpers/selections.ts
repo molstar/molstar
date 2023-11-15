@@ -10,7 +10,7 @@ import { MolScriptBuilder as MS } from '../../../mol-script/language/builder';
 import { Expression } from '../../../mol-script/language/expression';
 import { AtomRanges } from './atom-ranges';
 import { IndicesAndSortings, Sorting } from './indexing';
-import { AnnotationRow } from './schemas';
+import { MVSAnnotationRow } from './schemas';
 import { extend, filterInPlace, isAnyDefined, isDefined, range } from './utils';
 
 
@@ -18,7 +18,7 @@ const EmptyArray: readonly any[] = [];
 
 
 /** Return atom ranges in `model` which satisfy criteria given by `row` */
-export function getAtomRangesForRow(model: Model, row: AnnotationRow, indices: IndicesAndSortings): AtomRanges {
+export function getAtomRangesForRow(model: Model, row: MVSAnnotationRow, indices: IndicesAndSortings): AtomRanges {
     const h = model.atomicHierarchy;
     const nAtoms = h.atoms._rowCount;
 
@@ -65,7 +65,7 @@ export function getAtomRangesForRow(model: Model, row: AnnotationRow, indices: I
 }
 
 /** Return atom ranges in `model` which satisfy criteria given by any of `rows` (atoms that satisfy more rows are still included only once) */
-export function getAtomRangesForRows(model: Model, rows: AnnotationRow | AnnotationRow[], indices: IndicesAndSortings): AtomRanges {
+export function getAtomRangesForRows(model: Model, rows: MVSAnnotationRow | MVSAnnotationRow[], indices: IndicesAndSortings): AtomRanges {
     if (Array.isArray(rows)) {
         return AtomRanges.union(rows.map(row => getAtomRangesForRow(model, row, indices)));
     } else {
@@ -75,7 +75,7 @@ export function getAtomRangesForRows(model: Model, rows: AnnotationRow | Annotat
 
 
 /** Return an array of chain indexes which satisfy criteria given by `row` */
-function getQualifyingChains(model: Model, row: AnnotationRow, indices: IndicesAndSortings): readonly ChainIndex[] {
+function getQualifyingChains(model: Model, row: MVSAnnotationRow, indices: IndicesAndSortings): readonly ChainIndex[] {
     const { auth_asym_id, label_entity_id, _rowCount: nChains } = model.atomicHierarchy.chains;
     let result: readonly ChainIndex[] | undefined = undefined;
     if (isDefined(row.label_asym_id)) {
@@ -100,7 +100,7 @@ function getQualifyingChains(model: Model, row: AnnotationRow, indices: IndicesA
 }
 
 /** Return an array of residue indexes which satisfy criteria given by `row` */
-function getQualifyingResidues(model: Model, row: AnnotationRow, indices: IndicesAndSortings, fromChains: readonly ChainIndex[]): ResidueIndex[] {
+function getQualifyingResidues(model: Model, row: MVSAnnotationRow, indices: IndicesAndSortings, fromChains: readonly ChainIndex[]): ResidueIndex[] {
     const { label_seq_id, auth_seq_id, pdbx_PDB_ins_code, _rowCount: nResidues } = model.atomicHierarchy.residues;
     const { Present } = Column.ValueKind;
     const result: ResidueIndex[] = [];
@@ -163,7 +163,7 @@ function getQualifyingResidues(model: Model, row: AnnotationRow, indices: Indice
 }
 
 /** Return an array of atom indexes which satisfy criteria given by `row` */
-function getQualifyingAtoms(model: Model, row: AnnotationRow, indices: IndicesAndSortings, fromResidues: readonly ResidueIndex[]): ElementIndex[] {
+function getQualifyingAtoms(model: Model, row: MVSAnnotationRow, indices: IndicesAndSortings, fromResidues: readonly ResidueIndex[]): ElementIndex[] {
     const { label_atom_id, auth_atom_id, type_symbol } = model.atomicHierarchy.atoms;
     const residueAtomSegments_offsets = model.atomicHierarchy.residueAtomSegments.offsets;
     const result: ElementIndex[] = [];
@@ -185,7 +185,7 @@ function getQualifyingAtoms(model: Model, row: AnnotationRow, indices: IndicesAn
 
 /** Return index of atom in `model` which satistfies criteria given by `row`, if any.
  * Only works when `row.atom_id` and/or `row.atom_index` is defined (otherwise use `getAtomRangesForRow`). */
-function getTheAtomForRow(model: Model, row: AnnotationRow, indices: IndicesAndSortings): ElementIndex | undefined {
+function getTheAtomForRow(model: Model, row: MVSAnnotationRow, indices: IndicesAndSortings): ElementIndex | undefined {
     let iAtom: ElementIndex | undefined = undefined;
     if (!isDefined(row.atom_id) && !isDefined(row.atom_index)) throw new Error('ArgumentError: at least one of row.atom_id, row.atom_index must be defined.');
     if (isDefined(row.atom_id) && isDefined(row.atom_index)) {
@@ -206,7 +206,7 @@ function getTheAtomForRow(model: Model, row: AnnotationRow, indices: IndicesAndS
 }
 
 /** Return true if `iAtom`-th atom in `model` satisfies all selection criteria given by `row`. */
-export function atomQualifies(model: Model, iAtom: ElementIndex, row: AnnotationRow): boolean {
+export function atomQualifies(model: Model, iAtom: ElementIndex, row: MVSAnnotationRow): boolean {
     const h = model.atomicHierarchy;
 
     const iChain = h.chainAtomSegments.index[iAtom];
@@ -258,7 +258,7 @@ function matchesRange<T>(requiredMin: T | undefined | null, requiredMax: T | und
 
 
 /** Convert an annotation row into a MolScript expression */
-export function rowToExpression(row: AnnotationRow): Expression {
+export function rowToExpression(row: MVSAnnotationRow): Expression {
     const { and } = MS.core.logic;
     const { eq, gre: gte, lte } = MS.core.rel;
     const { macromolecular } = MS.struct.atomProperty;
@@ -309,7 +309,7 @@ export function rowToExpression(row: AnnotationRow): Expression {
 
 /** Convert multiple annotation rows into a MolScript expression.
  * (with union semantics, i.e. an atom qualifies if it qualifies for at least one of the rows) */
-export function rowsToExpression(rows: readonly AnnotationRow[]): Expression {
+export function rowsToExpression(rows: readonly MVSAnnotationRow[]): Expression {
     return unionExpression(rows.map(rowToExpression));
 }
 
@@ -331,7 +331,7 @@ interface GroupedArray<T> {
 }
 
 /** Return row indices grouped by `row.group_id`. Rows with `row.group_id===undefined` are treated as separate groups. */
-export function groupRows(rows: readonly AnnotationRow[]): GroupedArray<number> {
+export function groupRows(rows: readonly MVSAnnotationRow[]): GroupedArray<number> {
     let counter = 0;
     const groupMap = new Map<string, number>();
     const groups: number[] = [];

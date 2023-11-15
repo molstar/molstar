@@ -11,7 +11,7 @@ import { ElementIndex, Model, Structure, StructureElement, StructureProperties }
 import { UUID } from '../../../mol-util';
 import { AtomRanges } from './atom-ranges';
 import { IndicesAndSortings } from './indexing';
-import { AnnotationRow } from './schemas';
+import { MVSAnnotationRow } from './schemas';
 import { getAtomRangesForRows } from './selections';
 import { extend } from './utils';
 
@@ -36,7 +36,7 @@ const outFirstAtomIndex: { value?: number } = {};
 
 /** Return `TextProps` (position, size, etc.) for a text that is to be bound to a substructure of `structure` defined by union of `rows`.
  * Derives `center` and `depth` from the boundary sphere of the substructure, `scale` from the number of heavy atoms in the substructure. */
-export function textPropsForSelection(structure: Structure, sizeFunction: (location: StructureElement.Location) => number, rows: AnnotationRow | AnnotationRow[], onlyInModel?: Model): TextProps | undefined {
+export function textPropsForSelection(structure: Structure, sizeFunction: (location: StructureElement.Location) => number, rows: MVSAnnotationRow | MVSAnnotationRow[], onlyInModel?: Model): TextProps | undefined {
     const loc = StructureElement.Location.create(structure);
     const { units } = structure;
     const { type_symbol } = StructureProperties.atom;

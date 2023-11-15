@@ -11,29 +11,29 @@ import { ThemeDataContext } from '../../../mol-theme/theme';
 import { ColorNames } from '../../../mol-util/color/names';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { decodeColor } from '../helpers/utils';
-import { getAnnotationForStructure } from './annotation-prop';
+import { getMVSAnnotationForStructure } from './annotation-prop';
 
 
-/** Parameter definition for color theme "Annotation" */
-export const AnnotationColorThemeParams = {
+/** Parameter definition for color theme "MVS Annotation" */
+export const MVSAnnotationColorThemeParams = {
     annotationId: PD.Text('', { description: 'Reference to "Annotation" custom model property' }),
     fieldName: PD.Text('color', { description: 'Annotation field (column) from which to take color values' }),
     background: PD.Color(ColorNames.gainsboro, { description: 'Color for elements without annotation' }),
 };
-export type AnnotationColorThemeParams = typeof AnnotationColorThemeParams
+export type MVSAnnotationColorThemeParams = typeof MVSAnnotationColorThemeParams
 
-/** Parameter values for color theme "Annotation" */
-export type AnnotationColorThemeProps = PD.Values<AnnotationColorThemeParams>
+/** Parameter values for color theme "MVS Annotation" */
+export type MVSAnnotationColorThemeProps = PD.Values<MVSAnnotationColorThemeParams>
 
 
 /** Return color theme that assigns colors based on an annotation file.
- * The annotation file itself is handled by a custom model property (`AnnotationsProvider`),
+ * The annotation file itself is handled by a custom model property (`MVSAnnotationsProvider`),
  * the color theme then just uses this property. */
-export function AnnotationColorTheme(ctx: ThemeDataContext, props: AnnotationColorThemeProps): ColorTheme<AnnotationColorThemeParams> {
+export function MVSAnnotationColorTheme(ctx: ThemeDataContext, props: MVSAnnotationColorThemeProps): ColorTheme<MVSAnnotationColorThemeParams> {
     let color: LocationColor = () => props.background;
 
     if (ctx.structure && !ctx.structure.isEmpty) {
-        const { annotation } = getAnnotationForStructure(ctx.structure, props.annotationId);
+        const { annotation } = getMVSAnnotationForStructure(ctx.structure, props.annotationId);
         if (annotation) {
             const colorForStructureElementLocation = (location: StructureElement.Location) => {
                 // if (annot.getAnnotationForLocation(location)?.color !== annot.getAnnotationForLocation_Reference(location)?.color) throw new Error('AssertionError');
@@ -58,23 +58,23 @@ export function AnnotationColorTheme(ctx: ThemeDataContext, props: AnnotationCol
     }
 
     return {
-        factory: AnnotationColorTheme,
+        factory: MVSAnnotationColorTheme,
         granularity: 'group',
         preferSmoothing: true,
         color: color,
         props: props,
-        description: 'Assigns colors based on custom annotation data.',
+        description: 'Assigns colors based on custom MolViewSpec annotation data.',
     };
 }
 
 
-/** A thingy that is needed to register color theme "Annotation" */
-export const AnnotationColorThemeProvider: ColorTheme.Provider<AnnotationColorThemeParams, 'mvs-annotation'> = {
+/** A thingy that is needed to register color theme "MVS Annotation" */
+export const MVSAnnotationColorThemeProvider: ColorTheme.Provider<MVSAnnotationColorThemeParams, 'mvs-annotation'> = {
     name: 'mvs-annotation',
-    label: 'Annotation',
+    label: 'MVS Annotation',
     category: ColorTheme.Category.Misc,
-    factory: AnnotationColorTheme,
-    getParams: ctx => AnnotationColorThemeParams,
-    defaultValues: PD.getDefaultValues(AnnotationColorThemeParams),
+    factory: MVSAnnotationColorTheme,
+    getParams: ctx => MVSAnnotationColorThemeParams,
+    defaultValues: PD.getDefaultValues(MVSAnnotationColorThemeParams),
     isApplicable: (ctx: ThemeDataContext) => true,
 };

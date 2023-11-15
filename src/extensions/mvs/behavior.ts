@@ -13,10 +13,10 @@ import { PluginContext } from '../../mol-plugin/context';
 import { StructureRepresentationProvider } from '../../mol-repr/structure/representation';
 import { ColorTheme } from '../../mol-theme/color';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
-import { AnnotationColorThemeProvider } from './additions/annotation-color-theme';
-import { AnnotationLabelRepresentationProvider } from './additions/annotation-label/representation';
-import { AnnotationsProvider } from './additions/annotation-prop';
-import { AnnotationTooltipsLabelProvider, AnnotationTooltipsProvider } from './additions/annotation-tooltips-prop';
+import { MVSAnnotationColorThemeProvider } from './additions/annotation-color-theme';
+import { MVSAnnotationLabelRepresentationProvider } from './additions/annotation-label/representation';
+import { MVSAnnotationsProvider } from './additions/annotation-prop';
+import { MVSAnnotationTooltipsLabelProvider, MVSAnnotationTooltipsProvider } from './additions/annotation-tooltips-prop';
 import { CustomLabelRepresentationProvider } from './additions/custom-label/representation';
 import { CustomTooltipsLabelProvider, CustomTooltipsProvider } from './additions/custom-tooltips-prop';
 import { makeMultilayerColorThemeProvider } from './additions/multilayer-color-theme';
@@ -46,26 +46,26 @@ export const MolViewSpec = PluginBehavior.create<{ autoAttach: boolean }>({
     ctor: class extends PluginBehavior.Handler<{ autoAttach: boolean }> {
         private readonly registrables: Registrables = {
             customModelProperties: [
-                AnnotationsProvider,
+                MVSAnnotationsProvider,
             ],
             customStructureProperties: [
                 CustomTooltipsProvider,
-                AnnotationTooltipsProvider,
+                MVSAnnotationTooltipsProvider,
             ],
             representations: [
                 CustomLabelRepresentationProvider,
-                AnnotationLabelRepresentationProvider,
+                MVSAnnotationLabelRepresentationProvider,
             ],
             colorThemes: [
-                AnnotationColorThemeProvider,
+                MVSAnnotationColorThemeProvider,
                 makeMultilayerColorThemeProvider(this.ctx.representation.structure.themes.colorThemeRegistry),
             ],
             lociLabels: [
                 CustomTooltipsLabelProvider,
-                AnnotationTooltipsLabelProvider,
+                MVSAnnotationTooltipsLabelProvider,
             ],
             dragAndDropHandlers: [
-                MvsDragAndDropHandler,
+                MVSDragAndDropHandler,
             ],
         };
 
@@ -134,7 +134,7 @@ interface DragAndDropHandler {
 }
 
 /** DragAndDropHandler handler for `.mvsj` files */
-const MvsDragAndDropHandler: DragAndDropHandler = {
+const MVSDragAndDropHandler: DragAndDropHandler = {
     name: 'mvs-mvsj',
     /** Load .mvsj files. Delete previous plugin state before loading.
      * If multiple files are provided, merge their MVS data into one state. */

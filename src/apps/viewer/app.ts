@@ -472,10 +472,7 @@ export class Viewer {
 
     async loadMvsFromUrl(url: string, format: 'mvsj') {
         if (format === 'mvsj') {
-            const data = await this.plugin.fetch({ url, type: 'string' }).run();
-            // const asset = Asset.getUrlAsset(this.plugin.managers.asset, url);
-            // const wrapper = await this.plugin.runTask(this.plugin.managers.asset.resolve(asset, 'string'));
-            // const data = wrapper.data;
+            const data = await this.plugin.runTask(this.plugin.fetch({ url, type: 'string' }));
             const mvsData = MVSData.fromMVSJ(data);
             await loadMVS(this.plugin, mvsData, { sanityChecks: true });
         } else {

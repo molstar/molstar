@@ -15,7 +15,7 @@ import { UUID } from '../../../mol-util';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { capitalize } from '../../../mol-util/string';
 import { extend, mapArrToObj, pickObjectKeys, sortIfNeeded } from '../helpers/utils';
-import { AnnotationStructureComponentParams, createAnnotationStructureComponent } from './annotation-structure-component';
+import { MVSAnnotationStructureComponentParams, createMVSAnnotationStructureComponent } from './annotation-structure-component';
 
 
 /** Allowed values for a static selector */
@@ -29,7 +29,7 @@ export const SelectorParams = PD.MappedStatic('static', {
     expression: PD.Value<Expression>(MolScriptBuilder.struct.generator.all),
     bundle: PD.Value<StructureElement.Bundle>(StructureElement.Bundle.Empty),
     script: PD.Script({ language: 'mol-script', expression: '(sel.atom.all)' }),
-    annotation: PD.Group(pickObjectKeys(AnnotationStructureComponentParams, ['annotationId', 'fieldName', 'fieldValues'])),
+    annotation: PD.Group(pickObjectKeys(MVSAnnotationStructureComponentParams, ['annotationId', 'fieldName', 'fieldValues'])),
 }, { description: 'Define a part of the structure where this layer applies (use Static:all to apply to the whole structure)' }
 );
 
@@ -74,7 +74,7 @@ export const ElementSet = {
 
 function substructureFromSelector(structure: Structure, selector: Selector): Structure {
     const pso = (selector.name === 'annotation') ?
-        createAnnotationStructureComponent(structure, { ...selector.params, label: '', nullIfEmpty: false })
+        createMVSAnnotationStructureComponent(structure, { ...selector.params, label: '', nullIfEmpty: false })
         : createStructureComponent(structure, { type: selector, label: '', nullIfEmpty: false }, { source: structure });
     return PluginStateObject.Molecule.Structure.is(pso) ? pso.data : Structure.Empty;
 }

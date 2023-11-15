@@ -12,11 +12,11 @@ import { deepEqual } from '../../../mol-util';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { rowsToExpression } from '../helpers/selections';
 import { omitObjectKeys } from '../helpers/utils';
-import { getAnnotationForStructure } from './annotation-prop';
+import { getMVSAnnotationForStructure } from './annotation-prop';
 
 
-/** Parameter definition for `AnnotationStructureComponent` transformer */
-export const AnnotationStructureComponentParams = {
+/** Parameter definition for `MVSAnnotationStructureComponent` transformer */
+export const MVSAnnotationStructureComponentParams = {
     annotationId: PD.Text('', { description: 'Reference to "Annotation" custom model property' }),
     fieldName: PD.Text('component', { description: 'Annotation field (column) from which to take component identifier' }),
     fieldValues: PD.MappedStatic('all', {
@@ -29,27 +29,27 @@ export const AnnotationStructureComponentParams = {
     label: PD.Text('', { isHidden: false }),
 };
 
-/** Parameter values for `AnnotationStructureComponent` transformer */
-export type AnnotationStructureComponentProps = PD.ValuesFor<typeof AnnotationStructureComponentParams>
+/** Parameter values for `MVSAnnotationStructureComponent` transformer */
+export type MVSAnnotationStructureComponentProps = PD.ValuesFor<typeof MVSAnnotationStructureComponentParams>
 
 
 /** Transformer builder for MVS extension */
 export const MVSTransform = StateTransformer.builderFactory('mvs');
 
 /** Transformer for creating a structure component based on custom model property "Annotations" */
-export type AnnotationStructureComponent = typeof AnnotationStructureComponent
-export const AnnotationStructureComponent = MVSTransform({
+export type MVSAnnotationStructureComponent = typeof MVSAnnotationStructureComponent
+export const MVSAnnotationStructureComponent = MVSTransform({
     name: 'mvs-structure-component-from-annotation',
-    display: { name: 'Annotation Component', description: 'A molecular structure component defined by annotation data.' },
+    display: { name: 'MVS Annotation Component', description: 'A molecular structure component defined by MVS annotation data.' },
     from: SO.Molecule.Structure,
     to: SO.Molecule.Structure,
-    params: AnnotationStructureComponentParams,
+    params: MVSAnnotationStructureComponentParams,
 })({
     apply({ a, params }) {
-        return createAnnotationStructureComponent(a.data, params);
+        return createMVSAnnotationStructureComponent(a.data, params);
     },
     update: ({ a, b, oldParams, newParams }) => {
-        return updateAnnotationStructureComponent(a.data, b, oldParams, newParams);
+        return updateMVSAnnotationStructureComponent(a.data, b, oldParams, newParams);
     },
     dispose({ b }) {
         b?.data.customPropertyDescriptors.dispose();
@@ -57,9 +57,9 @@ export const AnnotationStructureComponent = MVSTransform({
 });
 
 
-/** Create a substructure based on `AnnotationStructureComponentProps` */
-export function createAnnotationSubstructure(structure: Structure, params: AnnotationStructureComponentProps): Structure {
-    const { annotation } = getAnnotationForStructure(structure, params.annotationId);
+/** Create a substructure based on `MVSAnnotationStructureComponentProps` */
+export function createMVSAnnotationSubstructure(structure: Structure, params: MVSAnnotationStructureComponentProps): Structure {
+    const { annotation } = getMVSAnnotationForStructure(structure, params.annotationId);
     if (annotation) {
         let rows = annotation.getRows();
         if (params.fieldValues.name === 'selected') {
@@ -75,9 +75,9 @@ export function createAnnotationSubstructure(structure: Structure, params: Annot
     }
 }
 
-/** Create a substructure PSO based on `AnnotationStructureComponentProps` */
-export function createAnnotationStructureComponent(structure: Structure, params: AnnotationStructureComponentProps) {
-    const component = createAnnotationSubstructure(structure, params);
+/** Create a substructure PSO based on `MVSAnnotationStructureComponentProps` */
+export function createMVSAnnotationStructureComponent(structure: Structure, params: MVSAnnotationStructureComponentProps) {
+    const component = createMVSAnnotationSubstructure(structure, params);
 
     if (params.nullIfEmpty && component.elementCount === 0) return StateObject.Null;
 
@@ -87,7 +87,7 @@ export function createAnnotationStructureComponent(structure: Structure, params:
             const ellipsis = params.fieldValues.params.length > 1 ? '+...' : '';
             label = `${params.fieldName}: "${params.fieldValues.params[0].value}"${ellipsis}`;
         } else {
-            label = 'Component from Annotation';
+            label = 'Component from MVS Annotation';
         }
     }
 
@@ -95,8 +95,8 @@ export function createAnnotationStructureComponent(structure: Structure, params:
     return new SO.Molecule.Structure(component, props);
 }
 
-/** Update a substructure PSO based on `AnnotationStructureComponentProps` */
-export function updateAnnotationStructureComponent(a: Structure, b: SO.Molecule.Structure, oldParams: AnnotationStructureComponentProps, newParams: AnnotationStructureComponentProps) {
+/** Update a substructure PSO based on `MVSAnnotationStructureComponentProps` */
+export function updateMVSAnnotationStructureComponent(a: Structure, b: SO.Molecule.Structure, oldParams: MVSAnnotationStructureComponentProps, newParams: MVSAnnotationStructureComponentProps) {
     const change = !deepEqual(newParams, oldParams);
     const needsRecreate = !deepEqual(omitObjectKeys(newParams, ['label']), omitObjectKeys(oldParams, ['label']));
     if (!change) {

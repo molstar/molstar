@@ -18,37 +18,37 @@ import { ParamDefinition as PD } from '../../../../mol-util/param-definition';
 import { textPropsForSelection } from '../../helpers/label-text';
 import { groupRows } from '../../helpers/selections';
 import { omitObjectKeys } from '../../helpers/utils';
-import { getAnnotationForStructure } from '../annotation-prop';
+import { getMVSAnnotationForStructure } from '../annotation-prop';
 
 
-/** Parameter definition for "label-text" visual in "Annotation Label" representation */
-export type AnnotationLabelTextParams = typeof AnnotationLabelTextParams
-export const AnnotationLabelTextParams = {
+/** Parameter definition for "label-text" visual in "MVS Annotation Label" representation */
+export type MVSAnnotationLabelTextParams = typeof MVSAnnotationLabelTextParams
+export const MVSAnnotationLabelTextParams = {
     annotationId: PD.Text('', { description: 'Reference to "Annotation" custom model property', isEssential: true }),
     fieldName: PD.Text('label', { description: 'Annotation field (column) from which to take label contents', isEssential: true }),
     ...omitObjectKeys(Original.LabelTextParams, ['level', 'chainScale', 'residueScale', 'elementScale']),
     borderColor: { ...Original.LabelTextParams.borderColor, defaultValue: ColorNames.black },
 };
 
-/** Parameter values for "label-text" visual in "Annotation Label" representation */
-export type AnnotationLabelTextProps = PD.Values<AnnotationLabelTextParams>
+/** Parameter values for "label-text" visual in "MVS Annotation Label" representation */
+export type MVSAnnotationLabelTextProps = PD.Values<MVSAnnotationLabelTextParams>
 
-/** Create "label-text" visual for "Annotation Label" representation */
-export function AnnotationLabelTextVisual(materialId: number): ComplexVisual<AnnotationLabelTextParams> {
-    return ComplexTextVisual<AnnotationLabelTextParams>({
-        defaultProps: PD.getDefaultValues(AnnotationLabelTextParams),
+/** Create "label-text" visual for "MVS Annotation Label" representation */
+export function MVSAnnotationLabelTextVisual(materialId: number): ComplexVisual<MVSAnnotationLabelTextParams> {
+    return ComplexTextVisual<MVSAnnotationLabelTextParams>({
+        defaultProps: PD.getDefaultValues(MVSAnnotationLabelTextParams),
         createGeometry: createLabelText,
         createLocationIterator: ElementIterator.fromStructure,
         getLoci: getSerialElementLoci,
         eachLocation: eachSerialElement,
-        setUpdateState: (state: VisualUpdateState, newProps: PD.Values<AnnotationLabelTextParams>, currentProps: PD.Values<AnnotationLabelTextParams>) => {
+        setUpdateState: (state: VisualUpdateState, newProps: PD.Values<MVSAnnotationLabelTextParams>, currentProps: PD.Values<MVSAnnotationLabelTextParams>) => {
             state.createGeometry = newProps.annotationId !== currentProps.annotationId || newProps.fieldName !== currentProps.fieldName;
         }
     }, materialId);
 }
 
-function createLabelText(ctx: VisualContext, structure: Structure, theme: Theme, props: AnnotationLabelTextProps, text?: Text): Text {
-    const { annotation, model } = getAnnotationForStructure(structure, props.annotationId);
+function createLabelText(ctx: VisualContext, structure: Structure, theme: Theme, props: MVSAnnotationLabelTextProps, text?: Text): Text {
+    const { annotation, model } = getMVSAnnotationForStructure(structure, props.annotationId);
     const rows = annotation?.getRows() ?? [];
     const { count, offsets, grouped } = groupRows(rows);
     const builder = TextBuilder.create(props, count, count / 2, text);

@@ -20,110 +20,110 @@ import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { AtomRanges } from '../helpers/atom-ranges';
 import { IndicesAndSortings } from '../helpers/indexing';
 import { PD_MaybeString } from '../helpers/param-definition';
-import { AnnotationRow, AnnotationSchema, getCifAnnotationSchema } from '../helpers/schemas';
+import { MVSAnnotationRow, MVSAnnotationSchema, getCifAnnotationSchema } from '../helpers/schemas';
 import { atomQualifies, getAtomRangesForRow } from '../helpers/selections';
 import { Json, Maybe, canonicalJsonString, extend, objHasKey, pickObjectKeys, promiseAllObj, safePromise } from '../helpers/utils';
 
 
 /** Allowed values for the annotation format parameter */
-const AnnotationFormat = new Choice({ json: 'json', cif: 'cif', bcif: 'bcif' }, 'json');
-type AnnotationFormat = Choice.Values<typeof AnnotationFormat>
-const AnnotationFormatTypes = { json: 'string', cif: 'string', bcif: 'binary' } as const satisfies { [format in AnnotationFormat]: 'string' | 'binary' };
+const MVSAnnotationFormat = new Choice({ json: 'json', cif: 'cif', bcif: 'bcif' }, 'json');
+type MVSAnnotationFormat = Choice.Values<typeof MVSAnnotationFormat>
+const MVSAnnotationFormatTypes = { json: 'string', cif: 'string', bcif: 'binary' } as const satisfies { [format in MVSAnnotationFormat]: 'string' | 'binary' };
 
-/** Parameter definition for custom model property "Annotations" */
-export type AnnotationsParams = typeof AnnotationsParams
-export const AnnotationsParams = {
+/** Parameter definition for custom model property "MVS Annotations" */
+export type MVSAnnotationsParams = typeof MVSAnnotationsParams
+export const MVSAnnotationsParams = {
     annotations: PD.ObjectList(
         {
             source: PD.MappedStatic('source-cif', {
                 'source-cif': PD.EmptyGroup(),
                 'url': PD.Group({
                     url: PD.Text(''),
-                    format: AnnotationFormat.PDSelect(),
+                    format: MVSAnnotationFormat.PDSelect(),
                 }),
             }),
-            schema: AnnotationSchema.PDSelect(),
+            schema: MVSAnnotationSchema.PDSelect(),
             cifBlock: PD.MappedStatic('index', {
                 index: PD.Group({ index: PD.Numeric(0, { min: 0, step: 1 }, { description: '0-based index of the block' }) }),
                 header: PD.Group({ header: PD.Text(undefined, { description: 'Block header' }) }),
             }, { description: 'Specify which CIF block contains annotation data (only relevant when format=cif or format=bcif)' }),
             cifCategory: PD_MaybeString(undefined, { description: 'Specify which CIF category contains annotation data (only relevant when format=cif or format=bcif)' }),
-            id: PD.Text('', { description: 'Arbitrary identifier that can be referenced by AnnotationColorTheme' }),
+            id: PD.Text('', { description: 'Arbitrary identifier that can be referenced by MVSAnnotationColorTheme' }),
         },
         obj => obj.id
     ),
 };
 
-/** Parameter values for custom model property "Annotations" */
-export type AnnotationsProps = PD.Values<AnnotationsParams>
+/** Parameter values for custom model property "MVS Annotations" */
+export type MVSAnnotationsProps = PD.Values<MVSAnnotationsParams>
 
-/** Parameter values for a single annotation within custom model property "Annotations" */
-export type AnnotationSpec = AnnotationsProps['annotations'][number]
+/** Parameter values for a single annotation within custom model property "MVS Annotations" */
+export type MVSAnnotationSpec = MVSAnnotationsProps['annotations'][number]
 
 /** Describes the source of an annotation file */
-type AnnotationSource = { kind: 'url', url: string, format: AnnotationFormat } | { kind: 'source-cif' }
+type MVSAnnotationSource = { kind: 'url', url: string, format: MVSAnnotationFormat } | { kind: 'source-cif' }
 
 /** Data file with one or more (in case of CIF) annotations */
-type AnnotationFile = { format: 'json', data: Json } | { format: 'cif', data: CifFile }
+type MVSAnnotationFile = { format: 'json', data: Json } | { format: 'cif', data: CifFile }
 
 /** Data for a single annotation */
-type AnnotationData = { format: 'json', data: Json } | { format: 'cif', data: CifCategory }
+type MVSAnnotationData = { format: 'json', data: Json } | { format: 'cif', data: CifCategory }
 
 
 /** Provider for custom model property "Annotations" */
-export const AnnotationsProvider: CustomModelProperty.Provider<AnnotationsParams, Annotations> = CustomModelProperty.createProvider({
+export const MVSAnnotationsProvider: CustomModelProperty.Provider<MVSAnnotationsParams, MVSAnnotations> = CustomModelProperty.createProvider({
     label: 'Annotations',
     descriptor: CustomPropertyDescriptor({
         name: 'mvs-annotations',
     }),
     type: 'static',
-    defaultParams: AnnotationsParams,
-    getParams: (data: Model) => AnnotationsParams,
+    defaultParams: MVSAnnotationsParams,
+    getParams: (data: Model) => MVSAnnotationsParams,
     isApplicable: (data: Model) => true,
-    obtain: async (ctx: CustomProperty.Context, data: Model, props: Partial<AnnotationsProps>) => {
-        props = { ...PD.getDefaultValues(AnnotationsParams), ...props };
-        const specs: AnnotationSpec[] = props.annotations ?? [];
-        const annots = await Annotations.fromSpecs(ctx, specs, data);
-        return { value: annots } satisfies CustomProperty.Data<Annotations>;
+    obtain: async (ctx: CustomProperty.Context, data: Model, props: Partial<MVSAnnotationsProps>) => {
+        props = { ...PD.getDefaultValues(MVSAnnotationsParams), ...props };
+        const specs: MVSAnnotationSpec[] = props.annotations ?? [];
+        const annots = await MVSAnnotations.fromSpecs(ctx, specs, data);
+        return { value: annots } satisfies CustomProperty.Data<MVSAnnotations>;
     }
 });
 
 
 /** Represents multiple annotations retrievable by their ID */
-export class Annotations {
-    private constructor(private dict: { [id: string]: Annotation }) { }
-    static async fromSpecs(ctx: CustomProperty.Context, specs: AnnotationSpec[], model?: Model): Promise<Annotations> {
-        const sources: AnnotationSource[] = specs.map(annotationSourceFromSpec);
+export class MVSAnnotations {
+    private constructor(private dict: { [id: string]: MVSAnnotation }) { }
+    static async fromSpecs(ctx: CustomProperty.Context, specs: MVSAnnotationSpec[], model?: Model): Promise<MVSAnnotations> {
+        const sources: MVSAnnotationSource[] = specs.map(annotationSourceFromSpec);
         const files = await getFilesFromSources(ctx, sources, model);
-        const annots: { [id: string]: Annotation } = {};
+        const annots: { [id: string]: MVSAnnotation } = {};
         for (let i = 0; i < specs.length; i++) {
             const spec = specs[i];
             try {
                 const file = files[i];
                 if (!file.ok) throw file.error;
-                annots[spec.id] = await Annotation.fromSpec(ctx, spec, file.value);
+                annots[spec.id] = await MVSAnnotation.fromSpec(ctx, spec, file.value);
             } catch (err) {
                 console.error(`Failed to obtain annotation (${err}).\nAnnotation specification:`, spec);
-                annots[spec.id] = Annotation.createEmpty(spec.schema);
+                annots[spec.id] = MVSAnnotation.createEmpty(spec.schema);
             }
         }
-        return new Annotations(annots);
+        return new MVSAnnotations(annots);
     }
-    getAnnotation(id: string): Annotation | undefined {
+    getAnnotation(id: string): MVSAnnotation | undefined {
         return this.dict[id];
     }
-    getAllAnnotations(): Annotation[] {
+    getAllAnnotations(): MVSAnnotation[] {
         return Object.values(this.dict);
     }
 }
 
 
-/** Retrieve annotation with given `annotationId` from custom model property "Annotations" and the model from which it comes */
-export function getAnnotationForStructure(structure: Structure, annotationId: string): { annotation: Annotation, model: Model } | { annotation: undefined, model: undefined } {
+/** Retrieve annotation with given `annotationId` from custom model property "MVS Annotations" and the model from which it comes */
+export function getMVSAnnotationForStructure(structure: Structure, annotationId: string): { annotation: MVSAnnotation, model: Model } | { annotation: undefined, model: undefined } {
     const models = structure.isEmpty ? [] : structure.models;
     for (const model of models) {
-        if (model.customProperties.has(AnnotationsProvider.descriptor)) {
-            const annots = AnnotationsProvider.get(model).value;
+        if (model.customProperties.has(MVSAnnotationsProvider.descriptor)) {
+            const annots = MVSAnnotationsProvider.get(model).value;
             const annotation = annots?.getAnnotation(annotationId);
             if (annotation) {
                 return { annotation, model };
@@ -133,23 +133,23 @@ export function getAnnotationForStructure(structure: Structure, annotationId: st
     return { annotation: undefined, model: undefined };
 }
 
-/** Main class for processing annotation */
-export class Annotation {
+/** Main class for processing MVS annotation */
+export class MVSAnnotation {
     /** Store mapping `ElementIndex` -> annotation row index for each `Model`, -1 means no row applies */
     private indexedModels = new Map<UUID, number[]>();
-    private rows: AnnotationRow[] | undefined = undefined;
+    private rows: MVSAnnotationRow[] | undefined = undefined;
 
     constructor(
-        public data: AnnotationData,
-        public schema: AnnotationSchema,
+        public data: MVSAnnotationData,
+        public schema: MVSAnnotationSchema,
     ) { }
 
-    /** Create a new `Annotation` based on specification `spec`. Use `file` if provided, otherwise download the file.
+    /** Create a new `MVSAnnotation` based on specification `spec`. Use `file` if provided, otherwise download the file.
      * Throw error if download fails or problem with data. */
-    static async fromSpec(ctx: CustomProperty.Context, spec: AnnotationSpec, file?: AnnotationFile): Promise<Annotation> {
+    static async fromSpec(ctx: CustomProperty.Context, spec: MVSAnnotationSpec, file?: MVSAnnotationFile): Promise<MVSAnnotation> {
         file ??= await getFileFromSource(ctx, annotationSourceFromSpec(spec));
 
-        let data: AnnotationData;
+        let data: MVSAnnotationData;
         switch (file.format) {
             case 'json':
                 data = file;
@@ -176,18 +176,18 @@ export class Annotation {
                 data = { format: 'cif', data: category };
                 break;
         }
-        return new Annotation(data, spec.schema);
+        return new MVSAnnotation(data, spec.schema);
     }
 
-    static createEmpty(schema: AnnotationSchema): Annotation {
-        return new Annotation({ format: 'json', data: [] }, schema);
+    static createEmpty(schema: MVSAnnotationSchema): MVSAnnotation {
+        return new MVSAnnotation({ format: 'json', data: [] }, schema);
     }
 
     /** Reference implementation of `getAnnotationForLocation`, just for checking, DO NOT USE DIRECTLY */
-    getAnnotationForLocation_Reference(loc: StructureElement.Location): AnnotationRow | undefined {
+    getAnnotationForLocation_Reference(loc: StructureElement.Location): MVSAnnotationRow | undefined {
         const model = loc.unit.model;
         const iAtom = loc.element;
-        let result: AnnotationRow | undefined = undefined;
+        let result: MVSAnnotationRow | undefined = undefined;
         for (const row of this.getRows()) {
             if (atomQualifies(model, iAtom, row)) result = row;
         }
@@ -213,7 +213,7 @@ export class Annotation {
         }
     }
 
-    /** Return cached `ElementIndex` -> `AnnotationRow` mapping for `Model` (or create it if not cached yet) */
+    /** Return cached `ElementIndex` -> `MVSAnnotationRow` mapping for `Model` (or create it if not cached yet) */
     private getIndexedModel(model: Model): number[] {
         const key = model.id;
         if (!this.indexedModels.has(key)) {
@@ -223,7 +223,7 @@ export class Annotation {
         return this.indexedModels.get(key)!;
     }
 
-    /** Create `ElementIndex` -> `AnnotationRow` mapping for `Model` */
+    /** Create `ElementIndex` -> `MVSAnnotationRow` mapping for `Model` */
     private getRowForEachAtom(model: Model): number[] {
         const indices = IndicesAndSortings.get(model);
         const nAtoms = model.atomicHierarchy.atoms._rowCount;
@@ -237,7 +237,7 @@ export class Annotation {
     }
 
     /** Parse and return all annotation rows in this annotation */
-    private _getRows(): AnnotationRow[] {
+    private _getRows(): MVSAnnotationRow[] {
         switch (this.data.format) {
             case 'json':
                 return getRowsFromJson(this.data.data, this.schema);
@@ -246,7 +246,7 @@ export class Annotation {
         }
     }
     /** Parse and return all annotation rows in this annotation, or return cached result if available */
-    getRows(): readonly AnnotationRow[] {
+    getRows(): readonly MVSAnnotationRow[] {
         return this.rows ??= this._getRows();
     }
 }
@@ -268,7 +268,7 @@ function getValueFromCif(rowIndex: number, fieldName: string, data: CifCategory)
     return column.str(rowIndex);
 }
 
-function getRowsFromJson(data: Json, schema: AnnotationSchema): AnnotationRow[] {
+function getRowsFromJson(data: Json, schema: MVSAnnotationSchema): MVSAnnotationRow[] {
     const js = data as any;
     const cifSchema = getCifAnnotationSchema(schema);
     if (Array.isArray(js)) {
@@ -276,7 +276,7 @@ function getRowsFromJson(data: Json, schema: AnnotationSchema): AnnotationRow[] 
         return js.map(row => pickObjectKeys(row, Object.keys(cifSchema)));
     } else {
         // object of arrays
-        const rows: AnnotationRow[] = [];
+        const rows: MVSAnnotationRow[] = [];
         const keys = Object.keys(js).filter(key => objHasKey(cifSchema, key as any));
         if (keys.length > 0) {
             const n = js[keys[0]].length;
@@ -293,8 +293,8 @@ function getRowsFromJson(data: Json, schema: AnnotationSchema): AnnotationRow[] 
     }
 }
 
-function getRowsFromCif(data: CifCategory, schema: AnnotationSchema): AnnotationRow[] {
-    const rows: AnnotationRow[] = [];
+function getRowsFromCif(data: CifCategory, schema: MVSAnnotationSchema): MVSAnnotationRow[] {
+    const rows: MVSAnnotationRow[] = [];
     const cifSchema = getCifAnnotationSchema(schema);
     const table = toTable(cifSchema, data);
     extend(rows, getRowsFromTable(table)); // Avoiding Table.getRows(table) as it replaces . and ? fields by 0 or ''
@@ -319,13 +319,13 @@ function getRowsFromTable<S extends Table.Schema>(table: Table<S>): Partial<Tabl
     return rows;
 }
 
-async function getFileFromSource(ctx: CustomProperty.Context, source: AnnotationSource, model?: Model): Promise<AnnotationFile> {
+async function getFileFromSource(ctx: CustomProperty.Context, source: MVSAnnotationSource, model?: Model): Promise<MVSAnnotationFile> {
     switch (source.kind) {
         case 'source-cif':
             return { format: 'cif', data: getSourceFileFromModel(model) };
         case 'url':
             const url = Asset.getUrlAsset(ctx.assetManager, source.url);
-            const dataType = AnnotationFormatTypes[source.format];
+            const dataType = MVSAnnotationFormatTypes[source.format];
             const dataWrapper = await ctx.assetManager.resolve(url, dataType).runInContext(ctx.runtime);
             const rawData = dataWrapper.data;
             if (!rawData) throw new Error('Missing data');
@@ -344,8 +344,8 @@ async function getFileFromSource(ctx: CustomProperty.Context, source: Annotation
 
 /** Like `sources.map(s => safePromise(getFileFromSource(ctx, s)))`
  * but downloads a repeating source only once. */
-async function getFilesFromSources(ctx: CustomProperty.Context, sources: AnnotationSource[], model?: Model): Promise<Maybe<AnnotationFile>[]> {
-    const promises: { [key: string]: Promise<Maybe<AnnotationFile>> } = {};
+async function getFilesFromSources(ctx: CustomProperty.Context, sources: MVSAnnotationSource[], model?: Model): Promise<Maybe<MVSAnnotationFile>[]> {
+    const promises: { [key: string]: Promise<Maybe<MVSAnnotationFile>> } = {};
     for (const src of sources) {
         const key = canonicalJsonString(src);
         promises[key] ??= safePromise(getFileFromSource(ctx, src, model));
@@ -370,7 +370,7 @@ function getSourceFileFromModel(model?: Model): CifFile {
     }
 }
 
-function annotationSourceFromSpec(s: AnnotationSpec): AnnotationSource {
+function annotationSourceFromSpec(s: MVSAnnotationSpec): MVSAnnotationSource {
     switch (s.source.name) {
         case 'url':
             return { kind: 'url', ...s.source.params };

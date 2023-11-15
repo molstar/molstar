@@ -34,7 +34,7 @@ function parseArguments(): Args {
 
 /** Main workflow for validating MolViewSpec files. Returns the number of failed input files. */
 function main(args: Args): number {
-    let nFailed = 0
+    let nFailed = 0;
     for (const input of args.input) {
         const data = fs.readFileSync(input, { encoding: 'utf8' });
         const mvsData = MVSData.fromMVSJ(data);

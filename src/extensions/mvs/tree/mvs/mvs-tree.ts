@@ -6,7 +6,7 @@
 
 import { OptionalField, RequiredField, float, int, list, nullable, str, tuple, union } from '../generic/params-schema';
 import { NodeFor, TreeFor, TreeSchema, TreeSchemaWithAllRequired } from '../generic/tree-schema';
-import { ColorT, ComponentExpression, ComponentSelectorT, Matrix, ParseFormatT, RepresentationTypeT, SchemaFormatT, SchemaT, StructureTypeT, Vector3 } from './param-types';
+import { ColorT, ComponentExpressionT, ComponentSelectorT, Matrix, ParseFormatT, RepresentationTypeT, SchemaFormatT, SchemaT, StructureTypeT, Vector3 } from './param-types';
 
 
 const _DataFromUriParams = {
@@ -109,7 +109,7 @@ export const MVSTreeSchema = TreeSchema({
             parent: ['structure'],
             params: {
                 /** Defines what part of the parent structure should be included in this component. */
-                selector: RequiredField(union([ComponentSelectorT, ComponentExpression, list(ComponentExpression)]), 'Defines what part of the parent structure should be included in this component.'),
+                selector: RequiredField(union([ComponentSelectorT, ComponentExpressionT, list(ComponentExpressionT)]), 'Defines what part of the parent structure should be included in this component.'),
             },
         },
         /** This node instructs to create a component defined by an external annotation resource. */
@@ -149,7 +149,7 @@ export const MVSTreeSchema = TreeSchema({
                 /** Color to apply to the representation. Can be either a color name (e.g. `"red"`) or a hexadecimal code (e.g. `"#FF0011"`). */
                 color: RequiredField(ColorT, 'Color to apply to the representation. Can be either a color name (e.g. `"red"`) or a hexadecimal code (e.g. `"#FF0011"`).'),
                 /** Defines to what part of the representation this color should be applied. */
-                selector: OptionalField(union([ComponentSelectorT, ComponentExpression, list(ComponentExpression)]), 'Defines to what part of the representation this color should be applied.'),
+                selector: OptionalField(union([ComponentSelectorT, ComponentExpressionT, list(ComponentExpressionT)]), 'Defines to what part of the representation this color should be applied.'),
             },
         },
         /** This node instructs to apply colors to a visual representation. The colors are defined by an external annotation resource. */

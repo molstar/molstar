@@ -12,8 +12,7 @@
      {
       "kind": "parse",
       "params": {
-       "format": "bcif",
-       "name": "blablabla"
+       "format": "bcif"
       },
       "children": [
        {
