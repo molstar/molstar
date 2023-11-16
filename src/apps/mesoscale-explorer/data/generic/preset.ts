@@ -122,18 +122,24 @@ export async function createGenericHierarchy(plugin: PluginContext, file: Asset.
     const e = Euler();
 
     const getPositions = (p: GenericInstances['positions']): NumberArray => {
-        if (typeof p.data === 'string') {
-            return new Float32Array(asset.data[p.data]);
-        } else {
+        if (Array.isArray(p.data)) {
             return p.data;
+        } else {
+            const a = asset.data[p.data.file];
+            const o = p.data.view?.byteOffset || 0;
+            const l = p.data.view?.byteLength || a.byteLength;
+            return new Float32Array(a.buffer, o + a.byteOffset, l / 4);
         }
     };
 
-    const getRotations = (rotations: GenericInstances['rotations']): NumberArray => {
-        if (typeof rotations.data === 'string') {
-            return new Float32Array(asset.data[rotations.data]);
+    const getRotations = (r: GenericInstances['rotations']): NumberArray => {
+        if (Array.isArray(r.data)) {
+            return r.data;
         } else {
-            return rotations.data;
+            const a = asset.data[r.data.file];
+            const o = r.data.view?.byteOffset || 0;
+            const l = r.data.view?.byteLength || a.byteLength;
+            return new Float32Array(a.buffer, o + a.byteOffset, l / 4);
         }
     };
 
@@ -269,6 +275,14 @@ type GenericEntity = {
     sizeFactor?: number
 }
 
+type BinaryData = {
+    file: string,
+    view?: {
+        byteOffset: number,
+        byteLength: number
+    }
+}
+
 type GenericInstances = {
     /**
      * translation vectors in Angstrom
@@ -276,9 +290,9 @@ type GenericInstances = {
      */
     positions: {
         /**
-         * either a file name or the data itself
+         * either the data itself or a pointer to binary data
          */
-        data: number[] | string,
+        data: number[] | BinaryData
         /**
          * how to interpret the data
          * defaults to `{ kind: 'Array', type: 'Float32' }`
@@ -300,9 +314,9 @@ type GenericInstances = {
     rotations: {
         variant: 'euler' | 'quaternion' | 'matrix',
         /**
-         * either a file name or the data itself
+         * either the data itself or a pointer to binary data
          */
-        data: number[] | string,
+        data: number[] | BinaryData
         /**
          * how to interpret the data
          * defaults to `{ kind: 'Array', type: 'Float32' }`
