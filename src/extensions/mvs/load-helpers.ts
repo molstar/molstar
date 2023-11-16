@@ -337,7 +337,7 @@ export function makeNearestReprMap(root: MolstarTree) {
     });
     // Propagate down:
     dfs(root, (node, parent) => {
-        if (parent && map.has(parent)) {
+        if (!map.has(node) && parent && map.has(parent)) {
             map.set(node, map.get(parent)!);
         }
     });

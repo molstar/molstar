@@ -59,10 +59,16 @@
                 "label_asym_id": "A",
                 "end_label_seq_id": 50
                },
-               "color": "blue"
+               "color": "#6688ff"
               }
              }
             ]
+           },
+           {
+            "kind": "label",
+            "params": {
+             "text": "Protein"
+            }
            }
           ]
          },
@@ -81,7 +87,7 @@
              {
               "kind": "color",
               "params": {
-               "color": "#aa2288"
+               "color": "#cc3399"
               }
              }
             ]
@@ -89,7 +95,7 @@
            {
             "kind": "label",
             "params": {
-             "text": "ball_and_stick"
+             "text": "Retinoic Acid"
             }
            }
           ]
