@@ -401,15 +401,24 @@ const MesoscaleState = {
 
 //
 
-export function getRoots(plugin: PluginContext) {
-    return plugin.state.data.select(StateSelection.Generators.rootsOfType(MesoscaleGroupObject));
+export function getRoots(plugin: PluginContext): StateSelection.CellSeq<StateObjectCell<MesoscaleGroupObject>> {
+    const s = plugin.customState as MesoscaleExplorerState;
+    if (!s.stateCache.roots) {
+        s.stateCache.roots = plugin.state.data.select(StateSelection.Generators.rootsOfType(MesoscaleGroupObject));
+    }
+    return s.stateCache.roots;
 }
 
-export function getGroups(plugin: PluginContext, tag?: string) {
-    const selector = tag !== undefined
-        ? StateSelection.Generators.ofTransformer(MesoscaleGroup).withTag(tag)
-        : StateSelection.Generators.ofTransformer(MesoscaleGroup);
-    return plugin.state.data.select(selector);
+export function getGroups(plugin: PluginContext, tag?: string): StateSelection.CellSeq {
+    const s = plugin.customState as MesoscaleExplorerState;
+    const k = `groups-${tag || ''}`;
+    if (!s.stateCache[k]) {
+        const selector = tag !== undefined
+            ? StateSelection.Generators.ofTransformer(MesoscaleGroup).withTag(tag)
+            : StateSelection.Generators.ofTransformer(MesoscaleGroup);
+        s.stateCache[k] = plugin.state.data.select(selector);
+    }
+    return s.stateCache[k];
 }
 
 function _getAllGroups(plugin: PluginContext, tag: string | undefined, list: StateObjectCell[]) {
@@ -429,15 +438,20 @@ export function getAllLeafGroups(plugin: PluginContext, tag: string) {
     const allGroups = getAllGroups(plugin, tag);
     allGroups.sort((a, b) => a.params?.values.index - b.params?.values.index);
     return allGroups.filter(g => {
-        return plugin.state.data.select(StateSelection.Generators.ofTransformer(StructureRepresentation3D).withTag(g.params?.values.tag)).length > 0;
+        return getEntities(plugin, g.params?.values.tag).length > 0;
     });
 }
 
-export function getEntities(plugin: PluginContext, tag?: string) {
-    const selector = tag !== undefined
-        ? StateSelection.Generators.ofTransformer(StructureRepresentation3D).withTag(tag)
-        : StateSelection.Generators.ofTransformer(StructureRepresentation3D);
-    return plugin.state.data.select(selector).filter(c => c.obj!.data.sourceData.elementCount > 0);
+export function getEntities(plugin: PluginContext, tag?: string): StateSelection.CellSeq {
+    const s = plugin.customState as MesoscaleExplorerState;
+    const k = `entities-${tag || ''}`;
+    if (!s.stateCache[k]) {
+        const selector = tag !== undefined
+            ? StateSelection.Generators.ofTransformer(StructureRepresentation3D).withTag(tag)
+            : StateSelection.Generators.ofTransformer(StructureRepresentation3D);
+        s.stateCache[k] = plugin.state.data.select(selector).filter(c => c.obj!.data.sourceData.elementCount > 0);
+    }
+    return s.stateCache[k];
 }
 
 export function getFilteredEntities(plugin: PluginContext, tag: string, filter: string) {

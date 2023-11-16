@@ -44,6 +44,7 @@ export type MesoscaleExplorerState = {
     examples?: ExampleEntry[],
     graphicsMode: GraphicsMode,
     stateRef?: string,
+    stateCache: { [k: string]: any },
 }
 
 //
@@ -200,6 +201,7 @@ export class MesoscaleExplorer {
                 (plugin.customState as MesoscaleExplorerState) = {
                     examples,
                     graphicsMode: o.graphicsMode,
+                    stateCache: {},
                 };
 
                 await MesoscaleState.init(plugin);
@@ -241,6 +243,14 @@ export class MesoscaleExplorer {
             }
 
             return true;
+        });
+
+        plugin.state.events.object.created.subscribe(e => {
+            (plugin.customState as MesoscaleExplorerState).stateCache = {};
+        });
+
+        plugin.state.events.object.removed.subscribe(e => {
+            (plugin.customState as MesoscaleExplorerState).stateCache = {};
         });
 
         return new MesoscaleExplorer(plugin);

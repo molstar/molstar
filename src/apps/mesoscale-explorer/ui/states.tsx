@@ -137,6 +137,7 @@ async function createHierarchy(ctx: PluginContext, ref: string) {
 
 async function reset(ctx: PluginContext) {
     delete (ctx.customState as MesoscaleExplorerState).stateRef;
+    (ctx.customState as MesoscaleExplorerState).stateCache = {};
     await PluginCommands.State.Snapshots.Clear(ctx);
     await PluginCommands.State.RemoveObject(ctx, { state: ctx.state.data, ref: StateTransform.RootRef });
     await MesoscaleState.init(ctx);
