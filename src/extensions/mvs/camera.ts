@@ -9,6 +9,7 @@ import { GraphicsRenderObject } from '../../mol-gl/render-object';
 import { Sphere3D } from '../../mol-math/geometry';
 import { BoundaryHelper } from '../../mol-math/geometry/boundary-helper';
 import { Vec3 } from '../../mol-math/linear-algebra';
+import { PrincipalAxes } from '../../mol-math/linear-algebra/matrix/principal-axes';
 import { Loci } from '../../mol-model/loci';
 import { Structure } from '../../mol-model/structure';
 import { PluginStateObject } from '../../mol-plugin-state/objects';
@@ -28,7 +29,7 @@ const DefaultCameraFocusOptions = {
     minRadius: 5,
     extraRadiusForFocus: 4,
     extraRadiusForZoomAll: 0,
-};
+}; DefaultCameraFocusOptions
 const DefaultCanvasBackgroundColor = ColorNames.white;
 
 
@@ -55,20 +56,33 @@ export async function setFocus(plugin: PluginContext, structureNodeSelector: Sta
         }
     }
     const boundingSphere = structure ? Loci.getBoundingSphere(Structure.Loci(structure)) : getPluginBoundingSphere(plugin);
-    if (boundingSphere && plugin.canvas3d) {
-        // cannot use plugin.canvas3d.camera.getFocus with up+direction, because it sometimes flips orientation
-        // await PluginCommands.Camera.Focus(plugin, { center: boundingSphere.center, radius: boundingSphere.radius }); // this could not set orientation
-        const target = boundingSphere.center;
-        const extraRadius = structure ? DefaultCameraFocusOptions.extraRadiusForFocus : DefaultCameraFocusOptions.extraRadiusForZoomAll;
-        const sphereRadius = Math.max(boundingSphere.radius + extraRadius, DefaultCameraFocusOptions.minRadius);
-        const distance = getFocusDistance(plugin.canvas3d.camera, boundingSphere.center, sphereRadius) ?? 100;
+    // if (boundingSphere && plugin.canvas3d) {
+    //     // cannot use plugin.canvas3d.camera.getFocus with up+direction, because it sometimes flips orientation
+    //     // await PluginCommands.Camera.Focus(plugin, { center: boundingSphere.center, radius: boundingSphere.radius }); // this could not set orientation
+    //     const target = boundingSphere.center;
+    //     const extraRadius = structure ? DefaultCameraFocusOptions.extraRadiusForFocus : DefaultCameraFocusOptions.extraRadiusForZoomAll;
+    //     const sphereRadius = Math.max(boundingSphere.radius + extraRadius, DefaultCameraFocusOptions.minRadius);
+    //     const distance = getFocusDistance(plugin.canvas3d.camera, boundingSphere.center, sphereRadius) ?? 100;
+    //     const direction = Vec3.create(...params.direction);
+    //     Vec3.setMagnitude(direction, direction, distance);
+    //     const position = Vec3.sub(Vec3(), target, direction);
+    //     const up = Vec3.create(...params.up);
+    //     const snapshot: Partial<Camera.Snapshot> = { target, position, up, radius: sphereRadius };
+    //     await PluginCommands.Camera.SetSnapshot(plugin, { snapshot });
+    // }
+    if (boundingSphere) {
         const direction = Vec3.create(...params.direction);
-        Vec3.setMagnitude(direction, direction, distance);
-        const position = Vec3.sub(Vec3(), target, direction);
         const up = Vec3.create(...params.up);
-        const snapshot: Partial<Camera.Snapshot> = { target, position, up, radius: sphereRadius };
-        await PluginCommands.Camera.SetSnapshot(plugin, { snapshot });
+        const right = Vec3.cross(Vec3(), direction, up);
+        const momentsAxes = PrincipalAxes.calculateNormalizedAxes({ dirA: up, dirB: right, dirC: direction, origin: boundingSphere.center });
+        // Flipping 2 of the axes here should flip the orientation, but it does not!!!!!
+
+        plugin.managers.camera.focusSphere(boundingSphere, { principalAxes: { momentsAxes, boxAxes: momentsAxes } });
+        // Not awaitable -> problem in headless mode
     }
+    // if (boundingSphere){
+    //     await PluginCommands.Camera.Focus(plugin, boundingSphere);
+    // }
 }
 
 /** Calculate the necessary distance between the camera position and center of the target,
@@ -77,7 +91,7 @@ function getFocusDistance(camera: Camera, target: Vec3, radius: number) {
     const p = camera.getFocus(target, radius);
     if (!p.position || !p.target) return undefined;
     return Vec3.distance(p.position, p.target);
-}
+} getFocusDistance
 
 /** Compute the bounding sphere of the whole scene. */
 function getPluginBoundingSphere(plugin: PluginContext) {
