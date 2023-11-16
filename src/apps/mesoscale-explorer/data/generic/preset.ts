@@ -143,7 +143,10 @@ export async function createGenericHierarchy(plugin: PluginContext, file: Asset.
             let build: StateBuilder.Root | StateBuilder.To<any> = state.build();
             for (const ent of manifest.entities) {
                 const d = asset.data[ent.file];
-                const t = utf8Read(d, 0, d.length);
+                const info = getFileNameInfo(ent.file);
+                const isBinary = ['bcif'].includes(info.ext);
+
+                const t = isBinary ? d : utf8Read(d, 0, d.length);
                 const file = Asset.File(new File([t], ent.file));
 
                 const positions = getPositions(ent.instances.positions);
@@ -178,11 +181,9 @@ export async function createGenericHierarchy(plugin: PluginContext, file: Asset.
                 const sizeFactor = ent.sizeFactor || 1;
                 const tags = ent.groups.map(({ id, root }) => `${root}:${id}`);
 
-                const info = getFileNameInfo(ent.file);
-
                 build = build
                     .toRoot()
-                    .apply(ReadFile, { file, label });
+                    .apply(ReadFile, { file, label, isBinary });
 
                 if (['gro'].includes(info.ext)) {
                     build = build.apply(TrajectoryFromGRO);
