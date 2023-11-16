@@ -9,7 +9,6 @@ import { GraphicsRenderObject } from '../../mol-gl/render-object';
 import { Sphere3D } from '../../mol-math/geometry';
 import { BoundaryHelper } from '../../mol-math/geometry/boundary-helper';
 import { Vec3 } from '../../mol-math/linear-algebra';
-import { PrincipalAxes } from '../../mol-math/linear-algebra/matrix/principal-axes';
 import { Loci } from '../../mol-model/loci';
 import { Structure } from '../../mol-model/structure';
 import { PluginStateObject } from '../../mol-plugin-state/objects';
@@ -24,12 +23,11 @@ import { MolstarTree } from './tree/molstar/molstar-tree';
 import { MVSDefaults } from './tree/mvs/mvs-defaults';
 
 
-/** Defined in `../../mol-plugin-state/manager/camera.ts` but private */
-const DefaultCameraFocusOptions = {
+const DefaultFocusOptions = {
     minRadius: 5,
     extraRadiusForFocus: 4,
     extraRadiusForZoomAll: 0,
-}; DefaultCameraFocusOptions
+};
 const DefaultCanvasBackgroundColor = ColorNames.white;
 
 
@@ -56,42 +54,30 @@ export async function setFocus(plugin: PluginContext, structureNodeSelector: Sta
         }
     }
     const boundingSphere = structure ? Loci.getBoundingSphere(Structure.Loci(structure)) : getPluginBoundingSphere(plugin);
-    // if (boundingSphere && plugin.canvas3d) {
-    //     // cannot use plugin.canvas3d.camera.getFocus with up+direction, because it sometimes flips orientation
-    //     // await PluginCommands.Camera.Focus(plugin, { center: boundingSphere.center, radius: boundingSphere.radius }); // this could not set orientation
-    //     const target = boundingSphere.center;
-    //     const extraRadius = structure ? DefaultCameraFocusOptions.extraRadiusForFocus : DefaultCameraFocusOptions.extraRadiusForZoomAll;
-    //     const sphereRadius = Math.max(boundingSphere.radius + extraRadius, DefaultCameraFocusOptions.minRadius);
-    //     const distance = getFocusDistance(plugin.canvas3d.camera, boundingSphere.center, sphereRadius) ?? 100;
-    //     const direction = Vec3.create(...params.direction);
-    //     Vec3.setMagnitude(direction, direction, distance);
-    //     const position = Vec3.sub(Vec3(), target, direction);
-    //     const up = Vec3.create(...params.up);
-    //     const snapshot: Partial<Camera.Snapshot> = { target, position, up, radius: sphereRadius };
-    //     await PluginCommands.Camera.SetSnapshot(plugin, { snapshot });
-    // }
-    if (boundingSphere) {
-        const direction = Vec3.create(...params.direction);
-        const up = Vec3.create(...params.up);
-        const right = Vec3.cross(Vec3(), direction, up);
-        const momentsAxes = PrincipalAxes.calculateNormalizedAxes({ dirA: up, dirB: right, dirC: direction, origin: boundingSphere.center });
-        // Flipping 2 of the axes here should flip the orientation, but it does not!!!!!
-
-        plugin.managers.camera.focusSphere(boundingSphere, { principalAxes: { momentsAxes, boxAxes: momentsAxes } });
-        // Not awaitable -> problem in headless mode
+    if (boundingSphere && plugin.canvas3d) {
+        const extraRadius = structure ? DefaultFocusOptions.extraRadiusForFocus : DefaultFocusOptions.extraRadiusForZoomAll;
+        const snapshot = snapshotFromSphereAndDirections(plugin.canvas3d.camera, {
+            center: boundingSphere.center,
+            radius: boundingSphere.radius + extraRadius,
+            up: Vec3.create(...params.up),
+            direction: Vec3.create(...params.direction),
+        });
+        await PluginCommands.Camera.SetSnapshot(plugin, { snapshot });
     }
-    // if (boundingSphere){
-    //     await PluginCommands.Camera.Focus(plugin, boundingSphere);
-    // }
 }
 
-/** Calculate the necessary distance between the camera position and center of the target,
- * if we want to zoom the target with the given radius. */
-function getFocusDistance(camera: Camera, target: Vec3, radius: number) {
-    const p = camera.getFocus(target, radius);
-    if (!p.position || !p.target) return undefined;
-    return Vec3.distance(p.position, p.target);
-} getFocusDistance
+/** Return camera snapshot for focusing a sphere with given `center` and `radius`,
+ * while ensuring given view `direction` (aligns with vector position->target)
+ * and `up` (aligns with screen Y axis). */
+function snapshotFromSphereAndDirections(camera: Camera, options: { center: Vec3, radius: number, direction: Vec3, up: Vec3 }): Partial<Camera.Snapshot> {
+    // This might seem to repeat `plugin.canvas3d.camera.getFocus` but avoid flipping
+    const { center, direction, up } = options;
+    const radius = Math.max(options.radius, DefaultFocusOptions.minRadius);
+    const distance = camera.getTargetDistance(radius);
+    const deltaDirection = Vec3.setMagnitude(Vec3(), direction, distance);
+    const position = Vec3.sub(Vec3(), center, deltaDirection);
+    return { target: center, position, up, radius };
+}
 
 /** Compute the bounding sphere of the whole scene. */
 function getPluginBoundingSphere(plugin: PluginContext) {
