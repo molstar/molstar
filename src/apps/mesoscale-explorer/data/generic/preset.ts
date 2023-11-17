@@ -325,11 +325,25 @@ type GenericInstances = {
     }
 }
 
+type GenericFrame = {
+    time: number
+    entities: {
+        file: string
+        instances: GenericInstances
+    }[]
+}
+
+type GenericTrajectory = {
+    label?: string
+    frames: GenericFrame[]
+}
+
 type GenericManifest = {
     label?: string
     description?: string
     roots: GenericRoot[]
     entities: GenericEntity[]
+    trajectories?: GenericTrajectory[]
 }
 
 //
