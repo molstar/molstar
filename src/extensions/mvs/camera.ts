@@ -25,7 +25,7 @@ import { MVSDefaults } from './tree/mvs/mvs-defaults';
 
 const DefaultFocusOptions = {
     minRadius: 5,
-    extraRadiusForFocus: 4,
+    extraRadiusForFocus: 0,
     extraRadiusForZoomAll: 0,
 };
 const DefaultCanvasBackgroundColor = ColorNames.white;
@@ -34,9 +34,10 @@ const DefaultCanvasBackgroundColor = ColorNames.white;
 /** Set the camera based on a camera node params. */
 export async function setCamera(plugin: PluginContext, params: ParamsOfKind<MolstarTree, 'camera'>) {
     const target = Vec3.create(...params.target);
-    const position = Vec3.create(...params.position);
+    let position = Vec3.create(...params.position);
+    if (plugin.canvas3d) position = fovAdjustedPosition(target, position, plugin.canvas3d.camera.state.mode, plugin.canvas3d.camera.state.fov);
     const up = Vec3.create(...params.up);
-    const snapshot: Partial<Camera.Snapshot> = { target, position, up };
+    const snapshot: Partial<Camera.Snapshot> = { target, position, up, radius: 10_000, 'radiusMax': 10_000 };
     await PluginCommands.Camera.SetSnapshot(plugin, { snapshot });
 }
 
@@ -77,6 +78,24 @@ function snapshotFromSphereAndDirections(camera: Camera, options: { center: Vec3
     const deltaDirection = Vec3.setMagnitude(Vec3(), direction, distance);
     const position = Vec3.sub(Vec3(), center, deltaDirection);
     return { target: center, position, up, radius };
+}
+
+/** Return the distance adjustment ratio for conversion from the "reference camera"
+ * to a camera with an arbitrary field of view `fov`. */
+function distanceAdjustment(mode: Camera.Mode, fov: number) {
+    if (mode === 'orthographic') return 1 / (2 * Math.tan(fov / 2));
+    else return 1 / (2 * Math.sin(fov / 2));
+}
+
+/** Return the position for a camera with an arbitrary field of view `fov`
+ * necessary to just fit into view the same sphere (with center at `target`)
+ * as the "reference camera" placed at `refPosition` would fit, while keeping the camera orientation.
+ * The "reference camera" is a camera which can just fit into view a sphere of radius R with center at distance 2R
+ * (this corresponds to FOV = 2 * asin(1/2) in perspective mode or FOV = 2 * atan(1/2) in orthogonal mode). */
+function fovAdjustedPosition(target: Vec3, refPosition: Vec3, mode: Camera.Mode, fov: number) {
+    const delta = Vec3.sub(Vec3(), refPosition, target);
+    const adjustment = distanceAdjustment(mode, fov);
+    return Vec3.scaleAndAdd(delta, target, delta, adjustment); // return target + delta * adjustment
 }
 
 /** Compute the bounding sphere of the whole scene. */
