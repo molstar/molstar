@@ -335,6 +335,7 @@ type GenericFrame = {
 
 type GenericTrajectory = {
     label?: string
+    description?: string
     frames: GenericFrame[]
 }
 
