@@ -7,6 +7,7 @@ Note that since we don't clearly distinguish between a public and private interf
 ## [Unreleased]
 
 - Fix return type of `State.tryGetCellData`
+- Don't change camera.target unless flyMode or pointerLock are enabled
 
 ## [v3.42.0] - 2023-11-05
 
