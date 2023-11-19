@@ -152,7 +152,7 @@ function AddSnapshot({ parent }: { parent: LocalStateSnapshots }) {
         <EditSnapshotParams state={state} setState={setState} apply={add} />
         <div className='msp-flex-row'>
             <IconButton onClick={parent.clear} svg={DeleteOutlinedSvg} title='Remove All' />
-            <Button onClick={add} icon={AddSvg} style={{ textAlign: 'right' }} commit={keyExists ? 'off' : 'on'} disabled={keyExists}>
+            <Button onClick={add} icon={keyExists ? undefined : AddSvg} style={{ textAlign: 'right' }} commit={keyExists ? 'off' : 'on'} disabled={keyExists}>
                 {keyExists
                     ? 'Key must be unique'
                     : 'Add'}
@@ -311,7 +311,7 @@ function EditSnapshot({ entry, plugin, done }: { entry: PluginStateSnapshotManag
     return <>
         <EditSnapshotParams state={state} setState={setState} apply={apply} />
         <div className='msp-flex-row' style={{ marginBottom: 1 }}>
-            <Button onClick={apply} icon={CheckSvg} style={{ textAlign: 'right' }} commit={keyExists ? 'off' : 'on'} disabled={keyExists}>
+            <Button onClick={apply} icon={keyExists ? undefined : CheckSvg} style={{ textAlign: 'right' }} commit={keyExists ? 'off' : 'on'} disabled={keyExists}>
                 {keyExists
                     ? 'Key must be unique'
                     : 'Apply'}
