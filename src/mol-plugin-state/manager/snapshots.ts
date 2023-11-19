@@ -128,7 +128,7 @@ class PluginStateSnapshotManager extends StatefulPluginComponent<{
         this.events.changed.next(void 0);
     }
 
-    applyCurrentKey(key: string) {
+    applyKey(key: string) {
         const e = this.state.entries.find(e => e.key === key);
         if (!e) return;
 

@@ -6,6 +6,7 @@
  */
 
 import * as React from 'react';
+import Markdown from 'react-markdown';
 import { UpdateTrajectory } from '../mol-plugin-state/actions/structure';
 import { LociLabel } from '../mol-plugin-state/manager/loci-label';
 import { PluginStateObject } from '../mol-plugin-state/objects';
@@ -207,8 +208,25 @@ export function ViewportSnapshotDescription() {
     if (!e?.description?.trim()) return null;
 
     return <div className='msp-snapshot-description-wrapper'>
-        <div dangerouslySetInnerHTML={{ __html: e.description }}></div>
+        <Markdown skipHtml components={{ a: MarkdownAnchor }}>{e.description}</Markdown>
     </div>;
+}
+
+function MarkdownAnchor({ href, children, element }: { href?: string, children?: any, element?: any }) {
+    const plugin = React.useContext(PluginReactContext);
+
+    if (!href) return element;
+
+    if (href[0] === '#') {
+        return <a href='#' onClick={(e) => {
+            e.preventDefault();
+            plugin.managers.snapshot.applyKey(href.substring(1));
+        }}>{children}</a>;
+    }
+
+    // TODO: consider adding more "commands", for example !reset-camera
+
+    return element;
 }
 
 export class AnimationViewportControls extends PluginUIComponent<{}, { isEmpty: boolean, isExpanded: boolean, isBusy: boolean, isAnimating: boolean, isPlaying: boolean }> {

@@ -182,4 +182,8 @@
         cursor: pointer;
         color: $font-color;
     }
+
+    ul, ol {
+        padding-left: $control-spacing;
+    }
 }

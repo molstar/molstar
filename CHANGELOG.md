@@ -12,6 +12,8 @@ Note that since we don't clearly distinguish between a public and private interf
 - Snapshot improvements:
     - Add `key` property
     - Ability to existing snapshot name, key, and description
+    - Support markdown in descriptions (ignores all HTML tags)
+    - Ability to link to snapshots by key from descriptions
     - Separate UI control showing description of the current snapshot
 
 

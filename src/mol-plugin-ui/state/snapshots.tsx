@@ -285,7 +285,8 @@ function EditSnapshotParams({ state, setState, apply }: { state: PluginStateSnap
         <div className='msp-flex-row msp-text-area-wrapper' style={{ marginBottom: 1 }}>
             <textarea
                 ref={descRef as any}
-                placeholder='Description'
+                // NOTE: curly brackets are required to support \n in the placeholder, do not remove
+                placeholder={'Markdown Description\n\n- Use [title](#key) to link to a snapshot'}
                 className='msp-form-control'
                 value={state.description}
                 onChange={e => setState({ ...state, description: e.target.value })}
