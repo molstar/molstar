@@ -15,7 +15,7 @@ Note that since we don't clearly distinguish between a public and private interf
     - Support markdown in descriptions (ignores all HTML tags)
     - Ability to link to snapshots by key from descriptions
     - Separate UI control showing description of the current snapshot
-
+- Do not activate drag overlay for non-file content
 
 ## [v3.42.0] - 2023-11-05
 
