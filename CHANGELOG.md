@@ -9,6 +9,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Fix return type of `State.tryGetCellData`
 - Don't change camera.target unless flyMode or pointerLock are enabled
 - Handle empty CIF files
+- Fix missing `await` in `HeadlessPluginContext.saveStateSnapshot`
 
 ## [v3.42.0] - 2023-11-05
 
