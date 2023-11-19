@@ -17,7 +17,7 @@ import { urlCombine } from '../../mol-util/url';
 import { PluginUIComponent, PurePluginUIComponent } from '../base';
 import { Button, ControlRow, ExpandGroup, IconButton, SectionHeader } from '../controls/common';
 import { Icon, SaveOutlinedSvg, GetAppSvg, OpenInBrowserSvg, WarningSvg, DeleteOutlinedSvg, AddSvg, ArrowUpwardSvg, SwapHorizSvg, ArrowDownwardSvg, RefreshSvg, CloudUploadSvg, CheckSvg, TuneSvg } from '../controls/icons';
-import { ParameterControls } from '../controls/parameters';
+import { ParamHelp, ParameterControls, ToggleParamHelpButton } from '../controls/parameters';
 import { PluginStateSnapshotManager } from '../../mol-plugin-state/manager/snapshots';
 import { PluginContext } from '../../mol-plugin/context';
 
@@ -129,6 +129,11 @@ export class LocalStateSnapshots extends PluginUIComponent<
     }
 }
 
+function invalidateSnapshotKey(plugin: PluginContext, key: string | undefined, currentId?: string) {
+    if (!key) return false;
+    return plugin.managers.snapshot.state.entries.some(e => (!currentId || e.snapshot.id !== currentId) && e.key === key);
+}
+
 function AddSnapshot({ parent }: { parent: LocalStateSnapshots }) {
     const [state, setState] = React.useState<PluginStateSnapshotManager.EntryParams>({ key: '', name: '', description: '' });
 
@@ -141,11 +146,17 @@ function AddSnapshot({ parent }: { parent: LocalStateSnapshots }) {
         setState({ key: '', name: '', description: '' });
     };
 
+    const keyExists = invalidateSnapshotKey(parent.plugin, state.key);
+
     return <>
         <EditSnapshotParams state={state} setState={setState} apply={add} />
         <div className='msp-flex-row'>
             <IconButton onClick={parent.clear} svg={DeleteOutlinedSvg} title='Remove All' />
-            <Button onClick={add} icon={AddSvg} style={{ textAlign: 'right' }} commit>Add</Button>
+            <Button onClick={add} icon={AddSvg} style={{ textAlign: 'right' }} commit={keyExists ? 'off' : 'on'} disabled={keyExists}>
+                {keyExists
+                    ? 'Key must be unique'
+                    : 'Add'}
+            </Button>
         </div>
     </>;
 }
@@ -239,6 +250,7 @@ export class LocalStateSnapshotList extends PluginUIComponent<{}, { editingId?: 
 function EditSnapshotParams({ state, setState, apply }: { state: PluginStateSnapshotManager.EntryParams, setState: (s: PluginStateSnapshotManager.EntryParams) => any, apply: (s: PluginStateSnapshotManager.EntryParams) => any }) {
     const keyRef = React.useRef<HTMLElement>();
     const descRef = React.useRef<HTMLElement>();
+    const [showKeyHelp, setShowKeyHelp] = React.useState(false);
 
     return <>
         <ControlRow
@@ -253,17 +265,23 @@ function EditSnapshotParams({ state, setState, apply }: { state: PluginStateSnap
             />}
         />
         <ControlRow
-            label='Key'
+            label={<>
+                Key
+                <ToggleParamHelpButton show={showKeyHelp} toggle={() => setShowKeyHelp(prev => !prev)} />
+            </>}
             control={ <input type='text'
                 ref={keyRef as any}
                 value={state.key}
-                placeholder='Key'
+                placeholder='Key (optional)'
                 onChange={e => setState({ ...state, key: e.target.value })}
                 onKeyUp={e => {
                     if (e.key === 'Enter') descRef.current?.focus();
                 }}
             />}
         />
+        {showKeyHelp && <div className='msp-control-offset'>
+            <ParamHelp description='Optional snapshot key used to activate snapshots from descriptions, labels, etc.' />
+        </div>}
         <div className='msp-flex-row msp-text-area-wrapper' style={{ marginBottom: 1 }}>
             <textarea
                 ref={descRef as any}
@@ -287,10 +305,16 @@ function EditSnapshot({ entry, plugin, done }: { entry: PluginStateSnapshotManag
         done();
     };
 
+    const keyExists = invalidateSnapshotKey(plugin, state.key, entry.snapshot.id);
+
     return <>
         <EditSnapshotParams state={state} setState={setState} apply={apply} />
         <div className='msp-flex-row' style={{ marginBottom: 1 }}>
-            <Button onClick={apply} icon={CheckSvg} style={{ textAlign: 'right' }} commit>Apply</Button>
+            <Button onClick={apply} icon={CheckSvg} style={{ textAlign: 'right' }} commit={keyExists ? 'off' : 'on'} disabled={keyExists}>
+                {keyExists
+                    ? 'Key must be unique'
+                    : 'Apply'}
+            </Button>
         </div>
     </>;
 }
