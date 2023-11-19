@@ -7,10 +7,13 @@ Note that since we don't clearly distinguish between a public and private interf
 ## [Unreleased]
 
 - Fix return type of `State.tryGetCellData`
+- Don't change camera.target unless flyMode or pointerLock are enabled
+- Handle empty CIF files
 - Snapshot improvements:
     - Add `key` property
     - Ability to existing snapshot name, key, and description
     - Separate UI control showing description of the current snapshot
+
 
 ## [v3.42.0] - 2023-11-05
 

@@ -874,8 +874,8 @@ namespace InputObserver {
             }
         }
 
-        const cross = addCross();
         const crossWidth = 30;
+        const cross = addCross();
 
         function addCross() {
             const cross = document.createElement('div');

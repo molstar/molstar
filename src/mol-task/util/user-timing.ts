@@ -5,10 +5,10 @@
  */
 
 import { Task } from '../task';
-import { isProductionMode } from '../../mol-util/debug';
+import { isTimingMode } from '../../mol-util/debug';
 
 const hasPerformance = (typeof performance !== 'undefined') && !!performance.mark && performance.measure;
-const timingEnabled = hasPerformance && !isProductionMode;
+const timingEnabled = hasPerformance && isTimingMode;
 
 export namespace UserTiming {
     function startMarkName(task: Task<any>) { return `startTask${task.id}`; }
