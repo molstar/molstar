@@ -28,7 +28,7 @@ export const PluginCommands = {
         ToggleVisibility: PluginCommand<{ state: State, ref: StateTransform.Ref }>(),
 
         Snapshots: {
-            Add: PluginCommand<{ name?: string, description?: string, params?: PluginState.SnapshotParams }>(),
+            Add: PluginCommand<{ key?: string, name?: string, description?: string, params?: PluginState.SnapshotParams }>(),
             Replace: PluginCommand<{ id: string, params?: PluginState.SnapshotParams }>(),
             Move: PluginCommand<{ id: string, dir: -1 | 1 }>(),
             Remove: PluginCommand<{ id: string }>(),
