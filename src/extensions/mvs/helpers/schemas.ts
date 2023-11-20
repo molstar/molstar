@@ -4,9 +4,9 @@
  * @author Adam Midlik <midlik@gmail.com>
  */
 
-import { Choice } from '../../../extensions/volumes-and-segmentations/helpers';
 import { Column, Table } from '../../../mol-data/db';
 import { pickObjectKeys } from '../../../mol-util/object';
+import { Choice } from '../../../mol-util/param-choice';
 
 const { str, int } = Column.Schema;
 

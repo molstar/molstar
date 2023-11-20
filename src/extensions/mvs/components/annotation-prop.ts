@@ -4,7 +4,6 @@
  * @author Adam Midlik <midlik@gmail.com>
  */
 
-import { Choice } from '../../volumes-and-segmentations/helpers';
 import { Column, Table } from '../../../mol-data/db';
 import { CIF, CifBlock, CifCategory, CifFile } from '../../../mol-io/reader/cif';
 import { toTable } from '../../../mol-io/reader/cif/schema';
@@ -18,6 +17,7 @@ import { UUID } from '../../../mol-util';
 import { arrayExtend } from '../../../mol-util/array';
 import { Asset } from '../../../mol-util/assets';
 import { Jsonable, canonicalJsonString, objHasKey, pickObjectKeys, promiseAllObj } from '../../../mol-util/object';
+import { Choice } from '../../../mol-util/param-choice';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { AtomRanges } from '../helpers/atom-ranges';
 import { IndicesAndSortings } from '../helpers/indexing';
