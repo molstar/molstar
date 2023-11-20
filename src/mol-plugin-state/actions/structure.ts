@@ -65,11 +65,11 @@ const DownloadStructure = StateAction.build({
                 }, { isFlat: true, label: 'PDB' }),
                 'pdb-dev': PD.Group({
                     provider: PD.Group({
-                        id: PD.Text('PDBDEV_00000001', { label: 'PDBDev Id(s)', description: 'One or more comma/space separated ids.' }),
+                        id: PD.Text('PDBDEV_00000001', { label: 'PDB-Dev Id(s)', description: 'One or more comma/space separated ids.' }),
                         encoding: PD.Select('bcif', PD.arrayToOptions(['cif', 'bcif'] as const)),
                     }, { pivot: 'id' }),
                     options
-                }, { isFlat: true, label: 'PDBDEV' }),
+                }, { isFlat: true, label: 'PDB-Dev' }),
                 'swissmodel': PD.Group({
                     id: PD.Text('Q9Y2I8', { label: 'UniProtKB AC(s)', description: 'One or more comma/space separated ACs.' }),
                     options

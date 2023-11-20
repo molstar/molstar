@@ -61,6 +61,7 @@ import { PluginToastManager } from './util/toast';
 import { ViewportScreenshotHelper } from './util/viewport-screenshot';
 import { PLUGIN_VERSION, PLUGIN_VERSION_DATE } from './version';
 import { setSaccharideCompIdMapType } from '../mol-model/structure/structure/carbohydrates/constants';
+import { DragAndDropManager } from '../mol-plugin-state/manager/drag-and-drop';
 
 export type PluginInitializedState =
     | { kind: 'no' }
@@ -186,7 +187,8 @@ export class PluginContext {
         lociLabels: void 0 as any as LociLabelManager,
         toast: new PluginToastManager(this),
         asset: new AssetManager(),
-        task: new TaskManager()
+        task: new TaskManager(),
+        dragAndDrop: new DragAndDropManager(this),
     } as const;
 
     readonly events = {

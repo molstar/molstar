@@ -1,25 +1,27 @@
 /**
- * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { ElementSphereVisual, ElementSphereParams } from '../visual/element-sphere';
+import { ElementSphereVisual, ElementSphereParams, StructureElementSphereVisual } from '../visual/element-sphere';
 import { UnitsRepresentation } from '../units-representation';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
-import { StructureRepresentation, StructureRepresentationProvider, StructureRepresentationStateBuilder } from '../representation';
+import { ComplexRepresentation, StructureRepresentation, StructureRepresentationProvider, StructureRepresentationStateBuilder } from '../representation';
 import { RepresentationParamsGetter, RepresentationContext, Representation } from '../../../mol-repr/representation';
 import { ThemeRegistryContext } from '../../../mol-theme/theme';
 import { Structure } from '../../../mol-model/structure';
 import { BaseGeometry } from '../../../mol-geo/geometry/base';
 
 const SpacefillVisuals = {
-    'element-sphere': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, ElementSphereParams>) => UnitsRepresentation('Sphere mesh', ctx, getParams, ElementSphereVisual),
+    'element-sphere': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, ElementSphereParams>) => UnitsRepresentation('Sphere mesh/impostor', ctx, getParams, ElementSphereVisual),
+    'structure-element-sphere': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, ElementSphereParams>) => ComplexRepresentation('Structure sphere mesh/impostor', ctx, getParams, StructureElementSphereVisual),
 };
 
 export const SpacefillParams = {
     ...ElementSphereParams,
     bumpFrequency: PD.Numeric(1, { min: 0, max: 10, step: 0.1 }, BaseGeometry.ShadingCategory),
+    visuals: PD.MultiSelect(['element-sphere'], PD.objectToOptions(SpacefillVisuals)),
 };
 export type SpacefillParams = typeof SpacefillParams
 

@@ -10,7 +10,28 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Fix return type of `State.tryGetCellData`
+- Don't change camera.target unless flyMode or pointerLock are enabled
+- Handle empty CIF files
+- Add `structure-element-sphere` visual to `spacefill` representation
+- Fix missing `await` in `HeadlessPluginContext.saveStateSnapshot`
+
+## [v3.42.0] - 2023-11-05
+
+- Fix handling of PDB files with insertion codes (#945)
+- Fix de-/saturate of colors with no hue
+- Improve `distinctColors` function
+    - Add `sort` and `sampleCountFactor` parameters
+    - Fix clustering issues
+- Add `clipPrimitive` option to spheres geometry, clipping whole spheres instead of cutting them
+- Add `DragAndDropManager`
+- Add `options` support for default bond labels
+
+## [v3.41.0] - 2023-10-15
+
 - Add `PluginContext.initialized` promise & support for it in the `Plugin` UI component.
+- Fix undesired interaction between settings panel and the panel on the right.
+- Add ability to customize server parameters for `RCSBAssemblySymmetry`.
 
 ## [v3.40.1] - 2023-09-30
 

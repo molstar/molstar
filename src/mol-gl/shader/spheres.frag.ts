@@ -51,7 +51,7 @@ bool SphereImpostor(out vec3 modelPos, out vec3 cameraPos, out vec3 cameraNormal
 
     bool objectClipped = false;
 
-    #if defined(dClipVariant_pixel) && dClipObjectCount != 0
+    #if !defined(dClipPrimitive) && defined(dClipVariant_pixel) && dClipObjectCount != 0
         if (clipTest(vec4(modelPos, 0.0))) {
             objectClipped = true;
             fragmentDepth = -1.0;
@@ -85,7 +85,6 @@ bool SphereImpostor(out vec3 modelPos, out vec3 cameraPos, out vec3 cameraNormal
 void main(void){
     vec3 cameraNormal;
     float fragmentDepth;
-    bool clipped = false;
 
     #ifdef dApproximate
         vec3 pointDir = -vPointViewPosition - vPoint;
@@ -112,7 +111,9 @@ void main(void){
         vec3 vViewPosition = cameraPos;
     #endif
 
-    #include clip_pixel
+    #if !defined(dClipPrimitive) && defined(dClipVariant_pixel) && dClipObjectCount != 0
+        #include clip_pixel
+    #endif
     #include assign_material_color
 
     #if defined(dRenderVariant_pick)

@@ -211,20 +211,7 @@ function dropFiles(ev: React.DragEvent<HTMLDivElement>, plugin: PluginUIContext,
         }
     }
 
-    const sessions = files.filter(f => {
-        const fn = f.name.toLowerCase();
-        return fn.endsWith('.molx') || fn.endsWith('.molj');
-    });
-
-    if (sessions.length > 0) {
-        PluginCommands.State.Snapshots.OpenFile(plugin, { file: sessions[0] });
-    } else {
-        plugin.runTask(plugin.state.data.applyAction(OpenFiles, {
-            files: files.map(f => Asset.File(f)),
-            format: { name: 'auto', params: {} },
-            visuals: true
-        }));
-    }
+    plugin.managers.dragAndDrop.handle(files);
 }
 
 function DragOverlay({ plugin, showDragOverlay }: { plugin: PluginUIContext, showDragOverlay: BehaviorSubject<boolean> }) {

@@ -100,7 +100,7 @@ const SimpleSettingsMapping = ParamMapping({
         if (r.top !== 'hidden' && (!c || c.top !== 'none')) layout.push('sequence');
         if (r.bottom !== 'hidden' && (!c || c.bottom !== 'none')) layout.push('log');
         if (r.left !== 'hidden' && (!c || c.left !== 'none')) layout.push('left');
-        if (r.right !== 'hidden' && (!c || c.left !== 'none')) layout.push('right');
+        if (r.right !== 'hidden' && (!c || c.right !== 'none')) layout.push('right');
         return { canvas: ctx.canvas3d?.props!, layout };
     }
 })({
