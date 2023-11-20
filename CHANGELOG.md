@@ -16,6 +16,8 @@ Note that since we don't clearly distinguish between a public and private interf
     - Ability to link to snapshots by key from descriptions
     - Separate UI control showing description of the current snapshot
 - Do not activate drag overlay for non-file content
+- Add `structure-element-sphere` visual to `spacefill` representation
+- Fix missing `await` in `HeadlessPluginContext.saveStateSnapshot`
 
 ## [v3.42.0] - 2023-11-05
 

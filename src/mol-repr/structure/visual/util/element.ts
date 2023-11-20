@@ -37,6 +37,10 @@ export type ElementSphereMeshProps = {
     sizeFactor: number,
 } & ElementProps
 
+export type ElementSphereImpostorProps = {
+    sizeFactor: number,
+} & ElementProps
+
 export function makeElementIgnoreTest(structure: Structure, unit: Unit, props: ElementProps): undefined | ((i: ElementIndex) => boolean) {
     const { ignoreHydrogens, ignoreHydrogensVariant, traceOnly } = props;
 
@@ -110,10 +114,6 @@ export function createElementSphereMesh(ctx: VisualContext, unit: Unit, structur
 
     return m;
 }
-
-export type ElementSphereImpostorProps = {
-    sizeFactor: number,
-} & ElementProps
 
 export function createElementSphereImpostor(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: ElementSphereImpostorProps, spheres?: Spheres): Spheres {
     const { child } = structure;
@@ -219,6 +219,136 @@ export function getElementLoci(pickingId: PickingId, structureGroup: StructureGr
 }
 
 //
+
+export function createStructureElementSphereMesh(ctx: VisualContext, structure: Structure, theme: Theme, props: ElementSphereMeshProps, mesh?: Mesh): Mesh {
+    const { child } = structure;
+    const { detail, sizeFactor, stride } = props;
+
+    const { getSerialIndex } = structure.serialMapping;
+    const structureElementCount = structure.elementCount;
+    const vertexCount = structureElementCount * sphereVertexCount(detail);
+    const builderState = MeshBuilder.createState(vertexCount, vertexCount / 2, mesh);
+
+    const themeSize = theme.size.size;
+    const center = Vec3();
+    let maxSize = 0;
+    let count = 0;
+
+    for (const unit of structure.units) {
+        const childUnit = child?.unitMap.get(unit.id);
+        if (child && !childUnit) continue;
+
+        const { elements } = unit;
+        const elementCount = elements.length;
+        const v = Vec3();
+        const pos = unit.conformation.position;
+        const ignore = makeElementIgnoreTest(structure, unit, props);
+        const l = StructureElement.Location.create(structure, unit);
+
+        for (let i = 0; i < elementCount; i++) {
+            const eI = elements[i];
+            if (stride && i % stride !== 0) continue;
+            if (ignore && ignore(eI)) continue;
+
+
+            pos(eI, v);
+            v3add(center, center, v);
+            count += 1;
+
+            l.element = eI;
+            const size = themeSize(l);
+            if (size > maxSize) maxSize = size;
+
+            builderState.currentGroup = getSerialIndex(unit, eI);
+            addSphere(builderState, v, size * sizeFactor, detail);
+        }
+    }
+
+    const oldBoundingSphere = mesh ? Sphere3D.clone(mesh.boundingSphere) : undefined;
+    const m = MeshBuilder.getMesh(builderState);
+    if (count === 0) return m;
+
+    // re-use boundingSphere if it has not changed much
+    let boundingSphere: Sphere3D;
+    Vec3.scale(center, center, 1 / count);
+    if (oldBoundingSphere && Vec3.distance(center, oldBoundingSphere.center) / oldBoundingSphere.radius < 1.0) {
+        boundingSphere = oldBoundingSphere;
+    } else {
+        boundingSphere = Sphere3D.expand(Sphere3D(), (child ?? structure).boundary.sphere, maxSize * sizeFactor + 0.05);
+    }
+    m.setBoundingSphere(boundingSphere);
+
+    return m;
+}
+
+export function createStructureElementSphereImpostor(ctx: VisualContext, structure: Structure, theme: Theme, props: ElementSphereImpostorProps, spheres?: Spheres): Spheres {
+    const { child } = structure;
+    const { sizeFactor, stride } = props;
+
+    const { getSerialIndex } = structure.serialMapping;
+    const structureElementCount = structure.elementCount;
+    const builder = SpheresBuilder.create(structureElementCount, structureElementCount / 2, spheres);
+
+    const themeSize = theme.size.size;
+    const center = Vec3();
+    let maxSize = 0;
+    let count = 0;
+
+    for (const unit of structure.units) {
+        const childUnit = child?.unitMap.get(unit.id);
+        if (child && !childUnit) return Spheres.createEmpty(spheres);
+
+        const { elements } = unit;
+        const elementCount = elements.length;
+
+        const v = Vec3();
+        const pos = unit.conformation.position;
+        const ignore = makeElementIgnoreTest(structure, unit, props);
+        const l = StructureElement.Location.create(structure, unit);
+
+        if ((stride && stride > 1) || ignore || theme.size.granularity !== 'uniform') {
+            for (let i = 0; i < elementCount; i++) {
+                const eI = elements[i];
+                if (stride && i % stride !== 0) continue;
+                if (ignore && ignore(eI)) continue;
+
+                pos(eI, v);
+                builder.add(v[0], v[1], v[2], getSerialIndex(unit, eI));
+                v3add(center, center, v);
+                count += 1;
+
+                l.element = eI;
+                const size = themeSize(l);
+                if (size > maxSize) maxSize = size;
+            }
+        } else {
+            for (let i = 0; i < elementCount; i++) {
+                const eI = elements[i];
+                pos(eI, v);
+                builder.add(v[0], v[1], v[2], getSerialIndex(unit, eI));
+                v3add(center, center, v);
+            }
+            count += elementCount;
+            maxSize = themeSize(l);
+        }
+    }
+
+    const oldBoundingSphere = spheres ? Sphere3D.clone(spheres.boundingSphere) : undefined;
+    const s = builder.getSpheres();
+    if (count === 0) return s;
+
+    // re-use boundingSphere if it has not changed much
+    let boundingSphere: Sphere3D;
+    Vec3.scale(center, center, 1 / count);
+    if (oldBoundingSphere && Vec3.distance(center, oldBoundingSphere.center) / oldBoundingSphere.radius < 1.0) {
+        boundingSphere = oldBoundingSphere;
+    } else {
+        boundingSphere = Sphere3D.expand(Sphere3D(), (child ?? structure).boundary.sphere, maxSize * sizeFactor + 0.05);
+    }
+    s.setBoundingSphere(boundingSphere);
+
+    return s;
+}
 
 export function eachSerialElement(loci: Loci, structure: Structure, apply: (interval: Interval) => boolean) {
     let changed = false;
