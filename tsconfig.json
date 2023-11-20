@@ -1,7 +1,7 @@
 {
     "compilerOptions": {
         "declaration": true,
-        "target": "ES6",
+        "target": "ES2018",
         "alwaysStrict": true,
         "noImplicitAny": true,
         "noImplicitThis": true,
@@ -16,7 +16,7 @@
         "noEmitHelpers": true,
         "allowSyntheticDefaultImports": true,
         "jsx": "react-jsx",
-        "lib": [ "es6", "dom", "esnext.asynciterable", "es2016" ],
+        "lib": [ "ES2018", "DOM" ],
         "rootDir": "src",
         "outDir": "lib"
     },
