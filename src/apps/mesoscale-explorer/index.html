@@ -71,6 +71,13 @@
                     return;
                 }
 
+                var url = getParam('url', '[^&]+').trim();
+                var type = getParam('type', '[^&]+').trim();
+                if (url && type) {
+                    me.loadUrl(url, type);
+                    return;
+                }
+
                 var pdb = getParam('pdb', '[^&]+').trim();
                 if (pdb) {
                     me.loadPdb(pdb);

@@ -24,7 +24,7 @@ import { MesoFocusLoci } from './behavior/camera';
 import { GraphicsMode, MesoscaleState } from './data/state';
 import { MesoSelectLoci } from './behavior/select';
 import { Transparency } from '../../mol-gl/webgl/render-item';
-import { LoadModel, loadExampleEntry, loadPdb, loadPdbDev } from './ui/states';
+import { LoadModel, loadExampleEntry, loadPdb, loadPdbDev, loadUrl } from './ui/states';
 import { Asset } from '../../mol-util/assets';
 import { PluginCommands } from '../../mol-plugin/commands';
 
@@ -101,6 +101,10 @@ export class MesoscaleExplorer {
         if (entry !== undefined) {
             await loadExampleEntry(this.plugin, entry);
         }
+    }
+
+    async loadUrl(url: string, type: 'molx' | 'molj' | 'cif' | 'bcif') {
+        await loadUrl(this.plugin, url, type);
     }
 
     async loadPdb(id: string) {

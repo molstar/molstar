@@ -145,8 +145,15 @@ async function reset(ctx: PluginContext) {
 }
 
 export async function loadExampleEntry(ctx: PluginContext, entry: ExampleEntry) {
-    console.time('LoadExample');
     const { url, type } = entry;
+    await loadUrl(ctx, url, type);
+    MesoscaleState.set(ctx, {
+        description: entry.description || entry.label,
+        link: entry.link,
+    });
+}
+
+export async function loadUrl(ctx: PluginContext, url: string, type: 'molx' | 'molj' | 'cif' | 'bcif') {
     if (type === 'molx' || type === 'molj') {
         await PluginCommands.State.Snapshots.OpenUrl(ctx, { url, type });
     } else {
@@ -155,11 +162,6 @@ export async function loadExampleEntry(ctx: PluginContext, entry: ExampleEntry) 
         const data = await ctx.builders.data.download({ url, isBinary });
         await createHierarchy(ctx, data.ref);
     }
-    MesoscaleState.set(ctx, {
-        description: entry.description || entry.label,
-        link: entry.link,
-    });
-    console.timeEnd('LoadExample');
 }
 
 export async function loadPdb(ctx: PluginContext, id: string) {
@@ -222,7 +224,6 @@ export const LoadModel = StateAction.build({
         return;
     }
 
-    console.time('LoadModel');
     await reset(ctx);
 
     const firstFile = params.files[0];
@@ -250,7 +251,6 @@ export const LoadModel = StateAction.build({
             }
         }
     }
-    console.timeEnd('LoadModel');
 }));
 
 //
