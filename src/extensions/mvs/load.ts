@@ -9,7 +9,7 @@ import { CustomModelProperties, CustomStructureProperties, ModelFromTrajectory, 
 import { StructureRepresentation3D } from '../../mol-plugin-state/transforms/representation';
 import { PluginContext } from '../../mol-plugin/context';
 import { StateBuilder, StateObjectSelector } from '../../mol-state';
-import { canonicalJsonString } from '../../mol-util/object';
+import { canonicalJsonString } from '../../mol-util/json';
 import { MVSAnnotationsProvider } from './components/annotation-prop';
 import { MVSAnnotationStructureComponent } from './components/annotation-structure-component';
 import { MVSAnnotationTooltipsProvider } from './components/annotation-tooltips-prop';

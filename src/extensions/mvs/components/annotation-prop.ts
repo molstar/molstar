@@ -16,7 +16,8 @@ import { Structure, StructureElement } from '../../../mol-model/structure/struct
 import { UUID } from '../../../mol-util';
 import { arrayExtend } from '../../../mol-util/array';
 import { Asset } from '../../../mol-util/assets';
-import { Jsonable, canonicalJsonString, objHasKey, pickObjectKeys, promiseAllObj } from '../../../mol-util/object';
+import { Jsonable, canonicalJsonString } from '../../../mol-util/json';
+import { objHasKey, pickObjectKeys, promiseAllObj } from '../../../mol-util/object';
 import { Choice } from '../../../mol-util/param-choice';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { AtomRanges } from '../helpers/atom-ranges';

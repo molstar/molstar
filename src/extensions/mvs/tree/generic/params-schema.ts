@@ -6,7 +6,7 @@
 
 import * as iots from 'io-ts';
 import { PathReporter } from 'io-ts/PathReporter';
-import { isReallyObject, mapObjectMap, objHasKey } from '../../../../mol-util/object';
+import { isPlainObject, mapObjectMap, objHasKey } from '../../../../mol-util/object';
 
 
 /** All types that can be used in tree node params.
@@ -113,7 +113,7 @@ export type DefaultsFor<P extends ParamsSchema> = { [key in keyof P as (P[key] e
  * If `options.noExtra` is true, presence of any extra parameters is treated as an issue.
  */
 export function paramsValidationIssues<P extends ParamsSchema, V extends { [k: string]: any }>(schema: P, values: V, options: { requireAll?: boolean, noExtra?: boolean } = {}): string[] | undefined {
-    if (!isReallyObject(values)) return [`Parameters must be an object, not ${values}`];
+    if (!isPlainObject(values)) return [`Parameters must be an object, not ${values}`];
     for (const key in schema) {
         const paramDef = schema[key];
         if (objHasKey(values, key)) {

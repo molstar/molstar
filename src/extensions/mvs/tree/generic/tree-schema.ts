@@ -4,7 +4,8 @@
  * @author Adam Midlik <midlik@gmail.com>
  */
 
-import { isReallyObject, mapObjectMap, onelinerJsonString } from '../../../../mol-util/object';
+import { onelinerJsonString } from '../../../../mol-util/json';
+import { isPlainObject, mapObjectMap } from '../../../../mol-util/object';
 import { AllRequired, DefaultsFor, ParamsSchema, ValuesFor, paramsValidationIssues } from './params-schema';
 import { treeToString } from './tree-utils';
 
@@ -113,7 +114,7 @@ export type DefaultsForTree<TTreeSchema extends TreeSchema> = { [kind in keyof T
  * If `options.anyRoot` is true, the kind of the root node is not enforced.
  */
 export function treeValidationIssues(schema: TreeSchema, tree: Tree, options: { requireAll?: boolean, noExtra?: boolean, anyRoot?: boolean, parent?: string } = {}): string[] | undefined {
-    if (!isReallyObject(tree)) return [`Node must be an object, not ${tree}`];
+    if (!isPlainObject(tree)) return [`Node must be an object, not ${tree}`];
     if (!options.anyRoot && tree.kind !== schema.rootKind) return [`Invalid root node kind "${tree.kind}", root must be of kind "${schema.rootKind}"`];
     const nodeSchema = schema.nodes[tree.kind];
     if (!nodeSchema) return [`Unknown node kind "${tree.kind}"`];

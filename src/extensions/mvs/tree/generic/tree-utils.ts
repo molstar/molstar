@@ -4,7 +4,7 @@
  * @author Adam Midlik <midlik@gmail.com>
  */
 
-import { canonicalJsonString } from '../../../../mol-util/object';
+import { canonicalJsonString } from '../../../../mol-util/json';
 import { DefaultsForTree, Kind, SubTree, SubTreeOfKind, Tree, TreeFor, TreeSchema, TreeSchemaWithAllRequired, getParams } from './tree-schema';
 
 

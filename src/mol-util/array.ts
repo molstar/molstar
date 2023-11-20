@@ -5,7 +5,7 @@
  * @author Adam Midlik <midlik@gmail.com>
  */
 
-import { Jsonable, canonicalJsonString } from './object';
+import { Jsonable, canonicalJsonString } from './json';
 import { NumberArray } from './type-helpers';
 
 // TODO move to mol-math as Vector???

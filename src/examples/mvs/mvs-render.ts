@@ -22,7 +22,7 @@ import { HeadlessPluginContext } from '../../mol-plugin/headless-plugin-context'
 import { DefaultPluginSpec, PluginSpec } from '../../mol-plugin/spec';
 import { ExternalModules, defaultCanvas3DParams } from '../../mol-plugin/util/headless-screenshot';
 import { setFSModule } from '../../mol-util/data-source';
-import { onelinerJsonString } from '../../mol-util/object';
+import { onelinerJsonString } from '../../mol-util/json';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 
 // MolViewSpec must be imported after HeadlessPluginContext

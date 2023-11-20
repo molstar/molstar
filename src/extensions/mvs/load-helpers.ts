@@ -11,7 +11,7 @@ import { StructureRepresentation3D } from '../../mol-plugin-state/transforms/rep
 import { PluginContext } from '../../mol-plugin/context';
 import { StateBuilder, StateObjectSelector, StateTransformer } from '../../mol-state';
 import { arrayDistinct } from '../../mol-util/array';
-import { canonicalJsonString } from '../../mol-util/object';
+import { canonicalJsonString } from '../../mol-util/json';
 import { MVSAnnotationColorThemeProps, MVSAnnotationColorThemeProvider } from './components/annotation-color-theme';
 import { MVSAnnotationLabelRepresentationProvider } from './components/annotation-label/representation';
 import { MVSAnnotationSpec } from './components/annotation-prop';
