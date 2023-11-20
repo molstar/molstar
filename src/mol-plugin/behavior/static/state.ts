@@ -151,10 +151,10 @@ export function Snapshots(ctx: PluginContext) {
         ctx.managers.snapshot.remove(id);
     });
 
-    PluginCommands.State.Snapshots.Add.subscribe(ctx, async ({ name, description, params }) => {
+    PluginCommands.State.Snapshots.Add.subscribe(ctx, async ({ key, name, description, params }) => {
         const snapshot = ctx.state.getSnapshot(params);
         const image = (params?.image ?? ctx.state.snapshotParams.value.image) ? await PluginStateSnapshotManager.getCanvasImageAsset(ctx, `${snapshot.id}-image.png`) : undefined;
-        const entry = PluginStateSnapshotManager.Entry(snapshot, { name, description, image });
+        const entry = PluginStateSnapshotManager.Entry(snapshot, { key, name, description, image });
         ctx.managers.snapshot.add(entry);
     });
 

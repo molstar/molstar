@@ -9,6 +9,13 @@ Note that since we don't clearly distinguish between a public and private interf
 - Fix return type of `State.tryGetCellData`
 - Don't change camera.target unless flyMode or pointerLock are enabled
 - Handle empty CIF files
+- Snapshot improvements:
+    - Add `key` property
+    - Ability to existing snapshot name, key, and description
+    - Support markdown in descriptions (ignores all HTML tags)
+    - Ability to link to snapshots by key from descriptions
+    - Separate UI control showing description of the current snapshot
+- Do not activate drag overlay for non-file content
 - Add `structure-element-sphere` visual to `spacefill` representation
 - Fix missing `await` in `HeadlessPluginContext.saveStateSnapshot`
 

@@ -136,6 +136,7 @@
     "raw-loader": "^4.0.2",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
+    "react-markdown": "^9.0.1",
     "sass": "^1.69.5",
     "sass-loader": "^13.3.2",
     "simple-git": "^3.20.0",

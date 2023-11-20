@@ -6,6 +6,7 @@
  */
 
 import * as React from 'react';
+import Markdown from 'react-markdown';
 import { UpdateTrajectory } from '../mol-plugin-state/actions/structure';
 import { LociLabel } from '../mol-plugin-state/manager/loci-label';
 import { PluginStateObject } from '../mol-plugin-state/objects';
@@ -13,7 +14,7 @@ import { StateTransforms } from '../mol-plugin-state/transforms';
 import { ModelFromTrajectory } from '../mol-plugin-state/transforms/model';
 import { PluginCommands } from '../mol-plugin/commands';
 import { StateTransformer } from '../mol-state';
-import { PluginUIComponent } from './base';
+import { PluginReactContext, PluginUIComponent } from './base';
 import { IconButton } from './controls/common';
 import { Icon, NavigateBeforeSvg, NavigateNextSvg, SkipPreviousSvg, StopSvg, PlayArrowSvg, SubscriptionsOutlinedSvg, BuildSvg } from './controls/icons';
 import { AnimationControls } from './state/animation';
@@ -190,6 +191,42 @@ export class StateSnapshotViewportControls extends PluginUIComponent<{}, { isBus
             </>}
         </div>;
     }
+}
+
+export function ViewportSnapshotDescription() {
+    const plugin = React.useContext(PluginReactContext);
+    const [_, setV] = React.useState(0);
+    React.useEffect(() => {
+        const sub = plugin.managers.snapshot.events.changed.subscribe(() => setV(v => v + 1));
+        return () => sub.unsubscribe();
+    }, [plugin]);
+
+    const current = plugin.managers.snapshot.state.current;
+    if (!current) return null;
+
+    const e = plugin.managers.snapshot.getEntry(current)!;
+    if (!e?.description?.trim()) return null;
+
+    return <div className='msp-snapshot-description-wrapper'>
+        <Markdown skipHtml components={{ a: MarkdownAnchor }}>{e.description}</Markdown>
+    </div>;
+}
+
+function MarkdownAnchor({ href, children, element }: { href?: string, children?: any, element?: any }) {
+    const plugin = React.useContext(PluginReactContext);
+
+    if (!href) return element;
+
+    if (href[0] === '#') {
+        return <a href='#' onClick={(e) => {
+            e.preventDefault();
+            plugin.managers.snapshot.applyKey(href.substring(1));
+        }}>{children}</a>;
+    }
+
+    // TODO: consider adding more "commands", for example !reset-camera
+
+    return element;
 }
 
 export class AnimationViewportControls extends PluginUIComponent<{}, { isEmpty: boolean, isExpanded: boolean, isBusy: boolean, isAnimating: boolean, isPlaying: boolean }> {
