@@ -46,8 +46,7 @@ async function createIntraUnitInteractionsCylinderMesh(ctx: VisualContext, unit:
 
     if (!edgeCount) return Mesh.createEmpty(mesh);
 
-    const pos = unit.conformation.invariantPosition;
-    const { elements } = unit;
+    const { elements, conformation: c } = unit;
     const p = Vec3();
     const pA = Vec3();
     const pB = Vec3();
@@ -61,8 +60,8 @@ async function createIntraUnitInteractionsCylinderMesh(ctx: VisualContext, unit:
             ) {
                 const idxA = members[offsets[a[edgeIndex]]];
                 const idxB = members[offsets[b[edgeIndex]]];
-                pos(elements[idxA], pA);
-                pos(elements[idxB], pB);
+                c.invariantPosition(elements[idxA], pA);
+                c.invariantPosition(elements[idxB], pB);
                 let minDistA = Vec3.distance(pA, pB);
                 let minDistB = minDistA;
                 Vec3.copy(posA, pA);
@@ -70,7 +69,7 @@ async function createIntraUnitInteractionsCylinderMesh(ctx: VisualContext, unit:
 
                 eachIntraBondedAtom(unit, idxA, (_, idx) => {
                     if (isHydrogen(structure, unit, elements[idx], 'polar')) {
-                        pos(elements[idx], p);
+                        c.invariantPosition(elements[idx], p);
                         const dist = Vec3.distance(p, pB);
                         if (dist < minDistA) {
                             minDistA = dist;
@@ -81,7 +80,7 @@ async function createIntraUnitInteractionsCylinderMesh(ctx: VisualContext, unit:
 
                 eachIntraBondedAtom(unit, idxB, (_, idx) => {
                     if (isHydrogen(structure, unit, elements[idx], 'polar')) {
-                        pos(elements[idx], p);
+                        c.invariantPosition(elements[idx], p);
                         const dist = Vec3.distance(p, pA);
                         if (dist < minDistB) {
                             minDistB = dist;
