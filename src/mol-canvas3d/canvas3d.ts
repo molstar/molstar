@@ -358,6 +358,10 @@ namespace Canvas3D {
         let y = 0;
         let width = 128;
         let height = 128;
+
+        let forceNextRender = false;
+        let currentTime = 0;
+
         updateViewport();
         const scene = Scene.create(webgl, ctx.props.transparency);
 
@@ -507,9 +511,7 @@ namespace Canvas3D {
             return didRender;
         }
 
-        let forceNextRender = false;
         let forceDrawAfterAllCommited = false;
-        let currentTime = 0;
         let drawPaused = false;
 
         function draw(options?: { force?: boolean }) {
