@@ -10,6 +10,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Don't change camera.target unless flyMode or pointerLock are enabled
 - Handle empty CIF files
 - Add `structure-element-sphere` visual to `spacefill` representation
+- Fix missing `await` in `HeadlessPluginContext.saveStateSnapshot`
 
 ## [v3.42.0] - 2023-11-05
 
