@@ -33,7 +33,6 @@ export const IndicesAndSortings = {
     create(model: Model): IndicesAndSortings {
         const h = model.atomicHierarchy;
         const nAtoms = h.atoms._rowCount;
-        const nResidues = h.residues._rowCount;
         const nChains = h.chains._rowCount;
         const { label_entity_id, label_asym_id, auth_asym_id } = h.chains;
         const { label_seq_id, auth_seq_id, pdbx_PDB_ins_code } = h.residues;
@@ -54,7 +53,7 @@ export const IndicesAndSortings = {
             chainsByAuthAsymId.add(auth_asym_id.value(iChain), iChain);
 
             const iResFrom = h.residueAtomSegments.index[h.chainAtomSegments.offsets[iChain]];
-            const iResTo = h.residueAtomSegments.index[h.chainAtomSegments.offsets[iChain + 1]] ?? nResidues;
+            const iResTo = h.residueAtomSegments.index[h.chainAtomSegments.offsets[iChain + 1] - 1] + 1;
 
             const residuesWithLabelSeqId = filterInPlace(range(iResFrom, iResTo) as ResidueIndex[], iRes => label_seq_id.valueKind(iRes) === Present);
             residuesSortedByLabelSeqId.set(iChain, Sorting.create(residuesWithLabelSeqId, label_seq_id.value));

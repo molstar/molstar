@@ -189,12 +189,17 @@ export function arrayExtend<T>(dst: T[], src: ArrayLike<T>): void {
 
 /** Check whether `array` is sorted, sort if not. */
 export function sortIfNeeded<T>(array: T[], compareFn: (a: T, b: T) => number): T[] {
+    return arrayIsSorted(array, compareFn) ? array : array.sort(compareFn);
+}
+
+/** Decide whether `array` is sorted. */
+export function arrayIsSorted<T>(array: T[], compareFn: (a: T, b: T) => number): boolean {
     for (let i = 1, n = array.length; i < n; i++) {
         if (compareFn(array[i - 1], array[i]) > 0) {
-            return array.sort(compareFn);
+            return false;
         }
     }
-    return array;
+    return true;
 }
 
 /** Remove all elements from the array which do not fulfil `predicate`. Return the modified array itself. */

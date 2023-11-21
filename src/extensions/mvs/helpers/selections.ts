@@ -102,7 +102,7 @@ function getQualifyingChains(model: Model, row: MVSAnnotationRow, indices: Indic
 
 /** Return an array of residue indexes which satisfy criteria given by `row` */
 function getQualifyingResidues(model: Model, row: MVSAnnotationRow, indices: IndicesAndSortings, fromChains: readonly ChainIndex[]): ResidueIndex[] {
-    const { label_seq_id, auth_seq_id, pdbx_PDB_ins_code, _rowCount: nResidues } = model.atomicHierarchy.residues;
+    const { label_seq_id, auth_seq_id, pdbx_PDB_ins_code } = model.atomicHierarchy.residues;
     const { Present } = Column.ValueKind;
     const result: ResidueIndex[] = [];
     for (const iChain of fromChains) {
@@ -155,7 +155,7 @@ function getQualifyingResidues(model: Model, row: MVSAnnotationRow, indices: Ind
         if (!residuesHere) {
             const { residueAtomSegments, chainAtomSegments } = model.atomicHierarchy;
             const firstResidueForChain = residueAtomSegments.index[chainAtomSegments.offsets[iChain]];
-            const firstResidueAfterChain = residueAtomSegments.index[chainAtomSegments.offsets[iChain + 1]] ?? nResidues;
+            const firstResidueAfterChain = residueAtomSegments.index[chainAtomSegments.offsets[iChain + 1] - 1] + 1;
             residuesHere = range(firstResidueForChain, firstResidueAfterChain) as ResidueIndex[];
         }
         arrayExtend(result, residuesHere);
