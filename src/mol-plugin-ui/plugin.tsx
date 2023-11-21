@@ -193,12 +193,13 @@ class Layout extends PluginUIComponent {
         const layout = this.plugin.layout.state;
         const controls = this.plugin.spec.components?.controls || {};
         const viewport = this.plugin.spec.components?.viewport?.view || DefaultViewport;
+        const sequenceView = this.plugin.spec.components?.sequenceViewer?.view || SequenceView;
 
         return <div className='msp-plugin'>
             <div className={this.layoutClassName} onDragEnter={this.onDragEnter}>
                 <div className={this.layoutVisibilityClassName}>
                     {this.region('main', viewport)}
-                    {layout.showControls && controls.top !== 'none' && this.region('top', controls.top || SequenceView)}
+                    {layout.showControls && controls.top !== 'none' && this.region('top', controls.top || sequenceView)}
                     {layout.showControls && controls.left !== 'none' && this.region('left', controls.left || LeftPanelControls)}
                     {layout.showControls && controls.right !== 'none' && this.region('right', controls.right || ControlsWrapper)}
                     {layout.showControls && controls.bottom !== 'none' && this.region('bottom', controls.bottom || Log)}
