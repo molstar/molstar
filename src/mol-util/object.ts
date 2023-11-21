@@ -126,16 +126,11 @@ export function objectForEach<T>(o: { [k: string]: T }, f: (v: T, k: string) => 
 }
 
 
-/** Return `true` if object `obj` has own property with key `key` */
-export function objHasKey<T extends {}>(obj: T, key: keyof T): boolean {
-    return Object.prototype.hasOwnProperty.call(obj, key);
-}
-
 /** Return an object with keys `keys` and their values same as in `obj` */
 export function pickObjectKeys<T extends {}, K extends keyof T>(obj: T, keys: readonly K[]): Pick<T, K> {
     const result: Partial<Pick<T, K>> = {};
     for (const key of keys) {
-        if (objHasKey(obj, key)) {
+        if (Object.hasOwn(obj, key)) {
             result[key] = obj[key];
         }
     }

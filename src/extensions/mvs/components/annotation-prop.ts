@@ -17,7 +17,7 @@ import { UUID } from '../../../mol-util';
 import { arrayExtend } from '../../../mol-util/array';
 import { Asset } from '../../../mol-util/assets';
 import { Jsonable, canonicalJsonString } from '../../../mol-util/json';
-import { objHasKey, pickObjectKeys, promiseAllObj } from '../../../mol-util/object';
+import { pickObjectKeys, promiseAllObj } from '../../../mol-util/object';
 import { Choice } from '../../../mol-util/param-choice';
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { AtomRanges } from '../helpers/atom-ranges';
@@ -280,7 +280,7 @@ function getRowsFromJson(data: Jsonable, schema: MVSAnnotationSchema): MVSAnnota
     } else {
         // object of arrays
         const rows: MVSAnnotationRow[] = [];
-        const keys = Object.keys(js).filter(key => objHasKey(cifSchema, key as any));
+        const keys = Object.keys(js).filter(key => Object.hasOwn(cifSchema, key as any));
         if (keys.length > 0) {
             const n = js[keys[0]].length;
             if (keys.some(key => js[key].length !== n)) throw new Error('FormatError: arrays must have the same length.');
