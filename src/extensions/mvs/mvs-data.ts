@@ -5,6 +5,7 @@
  */
 
 import { treeValidationIssues } from './tree/generic/tree-schema';
+import { treeToString } from './tree/generic/tree-utils';
 import { Root, createMVSBuilder } from './tree/mvs/mvs-builder';
 import { MVSTree, MVSTreeSchema } from './tree/mvs/mvs-tree';
 
@@ -47,6 +48,11 @@ export const MVSData = {
         if (typeof mvsData.version !== 'number') return [`"version" in MVS must be a number, not ${mvsData.version}`];
         if (mvsData.root === undefined) return [`"root" missing in MVS`];
         return treeValidationIssues(MVSTreeSchema, mvsData.root, options);
+    },
+
+    /** Return a human-friendly textual representation of `mvsData`. */
+    toPrettyString(mvsData: MVSData): string {
+        return `MolViewSpec tree (version ${mvsData.version}):\n${treeToString(mvsData.root)}`;
     },
 
     /** Create a new MolViewSpec builder containing only a root node. Example of MVS builder usage:
