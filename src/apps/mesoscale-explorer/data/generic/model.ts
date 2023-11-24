@@ -83,10 +83,8 @@ const StructureFromGeneric = PluginStateTransform.BuiltIn({
 
             let structure: Structure;
             if (params.transforms.length === 1 && Mat4.isIdentity(params.transforms[0])) {
-                // const mergedUnits = partitionUnits(base.units, params.cellSize);
-                // structure = Structure.create(mergedUnits, { label });
                 const symmetry = ModelSymmetry.Provider.get(model);
-                const id = symmetry?.assemblies[0].id;
+                const id = symmetry?.assemblies[0]?.id;
                 const asm = Symmetry.findAssembly(model, id || '');
                 if (asm) {
                     structure = buildAssembly(model, asm);
