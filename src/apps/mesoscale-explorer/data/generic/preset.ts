@@ -13,15 +13,17 @@ import { utf8Read } from '../../../../mol-io/common/utf8';
 import { Mat3, Quat, Vec3 } from '../../../../mol-math/linear-algebra';
 import { GraphicsMode, MesoscaleGroup, MesoscaleState, getGraphicsModeProps, getMesoscaleGroupParams, updateColors } from '../state';
 import { ColorNames } from '../../../../mol-util/color/names';
-import { StructureRepresentation3D } from '../../../../mol-plugin-state/transforms/representation';
-import { ParseCif, ReadFile } from '../../../../mol-plugin-state/transforms/data';
-import { ModelFromTrajectory, TrajectoryFromGRO, TrajectoryFromMOL, TrajectoryFromMOL2, TrajectoryFromMmCif, TrajectoryFromPDB, TrajectoryFromSDF, TrajectoryFromXYZ } from '../../../../mol-plugin-state/transforms/model';
+import { ShapeRepresentation3D, StructureRepresentation3D } from '../../../../mol-plugin-state/transforms/representation';
+import { ParseCif, ParsePly, ReadFile } from '../../../../mol-plugin-state/transforms/data';
+import { ModelFromTrajectory, ShapeFromPly, TrajectoryFromGRO, TrajectoryFromMOL, TrajectoryFromMOL2, TrajectoryFromMmCif, TrajectoryFromPDB, TrajectoryFromSDF, TrajectoryFromXYZ } from '../../../../mol-plugin-state/transforms/model';
 import { Euler } from '../../../../mol-math/linear-algebra/3d/euler';
 import { Asset } from '../../../../mol-util/assets';
 import { Clip } from '../../../../mol-util/clip';
 import { StructureFromGeneric } from './model';
 import { getFileNameInfo } from '../../../../mol-util/file-info';
 import { NumberArray } from '../../../../mol-util/type-helpers';
+import { BaseGeometry } from '../../../../mol-geo/geometry/base';
+import { ParamDefinition as PD } from '../../../../mol-util/param-definition';
 
 function getSpacefillParams(color: Color, sizeFactor: number, graphics: GraphicsMode, clipVariant: Clip.Variant) {
     const gmp = getGraphicsModeProps(graphics === 'custom' ? 'quality' : graphics);
@@ -63,6 +65,28 @@ function getSpacefillParams(color: Color, sizeFactor: number, graphics: Graphics
             params: {
                 scale: 1,
             }
+        },
+    };
+}
+
+function getPlyShapeParams(color: Color, clipVariant: Clip.Variant) {
+    return {
+        ...PD.getDefaultValues(BaseGeometry.Params),
+        instanceGranularity: true,
+        ignoreLight: true,
+        clip: {
+            variant: clipVariant,
+            objects: [],
+        },
+        quality: 'custom',
+        doubleSided: true,
+        coloring: {
+            name: 'uniform',
+            params: { color }
+        },
+        grouping: {
+            name: 'none',
+            params: {}
         },
     };
 }
@@ -155,29 +179,33 @@ export async function createGenericHierarchy(plugin: PluginContext, file: Asset.
                 const t = isBinary ? d : utf8Read(d, 0, d.length);
                 const file = Asset.File(new File([t], ent.file));
 
-                const positions = getPositions(ent.instances.positions);
-                const rotations = getRotations(ent.instances.rotations);
                 const transforms: Mat4[] = [];
+                if (ent.instances) {
+                    const positions = getPositions(ent.instances.positions);
+                    const rotations = getRotations(ent.instances.rotations);
 
-                for (let i = 0, il = positions.length / 3; i < il; ++i) {
-                    Vec3.fromArray(p, positions, i * 3);
-                    if (ent.instances.rotations.variant === 'matrix') {
-                        Mat3.fromArray(m, rotations, i * 9);
-                        const t = Mat4.fromMat3(Mat4(), m);
-                        Mat4.setTranslation(t, p);
-                        transforms.push(t);
-                    } else if (ent.instances.rotations.variant === 'quaternion') {
-                        Quat.fromArray(q, rotations, i * 4);
-                        const t = Mat4.fromQuat(Mat4(), q);
-                        Mat4.setTranslation(t, p);
-                        transforms.push(t);
-                    } else if (ent.instances.rotations.variant === 'euler') {
-                        Euler.fromArray(e, rotations, i * 3);
-                        Quat.fromEuler(q, e, 'XYZ');
-                        const t = Mat4.fromQuat(Mat4(), q);
-                        Mat4.setTranslation(t, p);
-                        transforms.push(t);
+                    for (let i = 0, il = positions.length / 3; i < il; ++i) {
+                        Vec3.fromArray(p, positions, i * 3);
+                        if (ent.instances.rotations.variant === 'matrix') {
+                            Mat3.fromArray(m, rotations, i * 9);
+                            const t = Mat4.fromMat3(Mat4(), m);
+                            Mat4.setTranslation(t, p);
+                            transforms.push(t);
+                        } else if (ent.instances.rotations.variant === 'quaternion') {
+                            Quat.fromArray(q, rotations, i * 4);
+                            const t = Mat4.fromQuat(Mat4(), q);
+                            Mat4.setTranslation(t, p);
+                            transforms.push(t);
+                        } else if (ent.instances.rotations.variant === 'euler') {
+                            Euler.fromArray(e, rotations, i * 3);
+                            Quat.fromEuler(q, e, 'XYZ');
+                            const t = Mat4.fromQuat(Mat4(), q);
+                            Mat4.setTranslation(t, p);
+                            transforms.push(t);
+                        }
                     }
+                } else {
+                    transforms.push(Mat4.identity());
                 }
 
                 const color = ColorNames.skyblue;
@@ -191,26 +219,37 @@ export async function createGenericHierarchy(plugin: PluginContext, file: Asset.
                     .toRoot()
                     .apply(ReadFile, { file, label, isBinary });
 
-                if (['gro'].includes(info.ext)) {
-                    build = build.apply(TrajectoryFromGRO);
-                } else if (['cif', 'mmcif', 'mcif', 'bcif'].includes(info.ext)) {
-                    build = build.apply(ParseCif).apply(TrajectoryFromMmCif);
-                } else if (['pdb', 'ent'].includes(info.ext)) {
-                    build = build.apply(TrajectoryFromPDB);
-                } else if (['xyz'].includes(info.ext)) {
-                    build = build.apply(TrajectoryFromXYZ);
-                } else if (['mol'].includes(info.ext)) {
-                    build = build.apply(TrajectoryFromMOL);
-                } else if (['sdf', 'sd'].includes(info.ext)) {
-                    build = build.apply(TrajectoryFromSDF);
-                } else if (['mol2'].includes(info.ext)) {
-                    build = build.apply(TrajectoryFromMOL2);
-                }
+                if (['gro', 'cif', 'mmcif', 'mcif', 'bcif', 'pdb', 'ent', 'xyz', 'mol', 'sdf', 'sd', 'mol2'].includes(info.ext)) {
+                    if (['gro'].includes(info.ext)) {
+                        build = build.apply(TrajectoryFromGRO);
+                    } else if (['cif', 'mmcif', 'mcif', 'bcif'].includes(info.ext)) {
+                        build = build.apply(ParseCif).apply(TrajectoryFromMmCif);
+                    } else if (['pdb', 'ent'].includes(info.ext)) {
+                        build = build.apply(TrajectoryFromPDB);
+                    } else if (['xyz'].includes(info.ext)) {
+                        build = build.apply(TrajectoryFromXYZ);
+                    } else if (['mol'].includes(info.ext)) {
+                        build = build.apply(TrajectoryFromMOL);
+                    } else if (['sdf', 'sd'].includes(info.ext)) {
+                        build = build.apply(TrajectoryFromSDF);
+                    } else if (['mol2'].includes(info.ext)) {
+                        build = build.apply(TrajectoryFromMOL2);
+                    }
 
-                build = build
-                    .apply(ModelFromTrajectory, { modelIndex: 0 })
-                    .apply(StructureFromGeneric, { transforms, label })
-                    .apply(StructureRepresentation3D, getSpacefillParams(color, sizeFactor, graphicsMode, clipVariant), { tags });
+                    build = build
+                        .apply(ModelFromTrajectory, { modelIndex: 0 })
+                        .apply(StructureFromGeneric, { transforms, label })
+                        .apply(StructureRepresentation3D, getSpacefillParams(color, sizeFactor, graphicsMode, clipVariant), { tags });
+                } else if (['ply'].includes(info.ext)) {
+                    if (['ply'].includes(info.ext)) {
+                        build = build
+                            .apply(ParsePly)
+                            .apply(ShapeFromPly, { label, transforms })
+                            .apply(ShapeRepresentation3D, getPlyShapeParams(color, clipVariant), { tags });
+                    }
+                } else {
+                    console.warn(`unknown file format '${info.ext}'`);
+                }
             }
             await build.commit();
 
@@ -246,9 +285,11 @@ type GenericGroup = {
 
 type GenericEntity = {
     /**
-     * the structure file name
+     * the entity file name
      *
      * the following extensions/formats are supported
+     *
+     * structures
      * - gro
      * - cif, mmcif, mcif, bcif
      * - pdb, ent
@@ -256,6 +297,9 @@ type GenericEntity = {
      * - mol
      * - sdf, sd
      * - mol2
+     *
+     * meshes
+     * - ply
      */
     file: string
     label?: string
@@ -266,7 +310,10 @@ type GenericEntity = {
         /** reference to `${GenericGroup.root}` */
         root: string
     }[]
-    instances: GenericInstances
+    /**
+     * defaults to a single, untransformed instance
+     */
+    instances?: GenericInstances
     /**
      * defaults to 1 (assuming fully atomic structures)
      * for C-alpha only structures set to 2

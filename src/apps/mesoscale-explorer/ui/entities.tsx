@@ -140,9 +140,11 @@ export class EntityControls extends PluginUIComponent<{}, { isDisabled: boolean 
 
         for (const r of getAllEntities(this.plugin)) {
             update.to(r).update(old => {
-                old.type.params.lodLevels = lodLevels;
-                old.type.params.approximate = approximate;
-                old.type.params.alphaThickness = alphaThickness;
+                if (old.type) {
+                    old.type.params.lodLevels = lodLevels;
+                    old.type.params.approximate = approximate;
+                    old.type.params.alphaThickness = alphaThickness;
+                }
             });
         }
 
@@ -348,10 +350,17 @@ export class GroupNode extends Node<{ filter: string }, { isCollapsed: boolean, 
         for (let i = 0; i < entities.length; ++i) {
             const c = type === 'generate' ? groupColors[i] : value;
             update.to(entities[i]).update(old => {
-                old.colorTheme.params.value = c;
-                old.colorTheme.params.lightness = lightness;
-                old.type.params.alpha = alpha;
-                old.type.params.xrayShaded = alpha < 1 ? 'inverted' : false;
+                if (old.type) {
+                    old.colorTheme.params.value = c;
+                    old.colorTheme.params.lightness = lightness;
+                    old.type.params.alpha = alpha;
+                    old.type.params.xrayShaded = alpha < 1 ? 'inverted' : false;
+                } else {
+                    old.coloring.params.color = c;
+                    old.coloring.params.lightness = lightness;
+                    old.alpha = alpha;
+                    old.xrayShaded = alpha < 1 ? true : false;
+                }
             });
         }
 
@@ -400,7 +409,11 @@ export class GroupNode extends Node<{ filter: string }, { isCollapsed: boolean, 
 
         for (const r of this.allFilteredEntities) {
             update.to(r).update(old => {
-                old.type.params.clip.objects = clipObjects;
+                if (old.type) {
+                    old.type.params.clip.objects = clipObjects;
+                } else {
+                    old.clip.objects = clipObjects;
+                }
             });
         }
 
@@ -421,10 +434,12 @@ export class GroupNode extends Node<{ filter: string }, { isCollapsed: boolean, 
 
         for (const r of this.allFilteredEntities) {
             update.to(r).update(old => {
-                old.type.params.lodLevels = values.lodLevels;
-                old.type.params.cellSize = values.cellSize;
-                old.type.params.batchSize = values.batchSize;
-                old.type.params.approximate = values.approximate;
+                if (old.type) {
+                    old.type.params.lodLevels = values.lodLevels;
+                    old.type.params.cellSize = values.cellSize;
+                    old.type.params.batchSize = values.batchSize;
+                    old.type.params.approximate = values.approximate;
+                }
             });
         }
 
@@ -583,35 +598,28 @@ export class EntityNode extends Node<{}, { action?: 'color' | 'clip', isDisabled
     };
 
     get colorValue(): Color | undefined {
-        const hasValue = this.cell.transform.params?.colorTheme.params.value !== undefined;
-        if (!hasValue) return;
-        return this.cell.transform.params?.colorTheme.params.value;
+        return this.cell.transform.params?.colorTheme?.params.value ?? this.cell.transform.params?.coloring?.params.color;
     }
 
     get lightnessValue(): { lightness: number } | undefined {
-        const hasLightness = this.cell.transform.params?.colorTheme.params.value !== undefined;
-        if (!hasLightness) return;
         return {
-            lightness: this.cell.transform.params?.colorTheme.params.lightness
+            lightness: this.cell.transform.params?.colorTheme?.params.lightness ?? this.cell.transform.params?.coloring?.params.lightness ?? 0
         };
     }
 
     get opacityValue(): { alpha: number } | undefined {
-        const hasOpacity = this.cell.transform.params?.type.params.alpha !== undefined;
-        if (!hasOpacity) return;
         return {
-            alpha: this.cell.transform.params?.type.params.alpha
+            alpha: this.cell.transform.params?.type?.params.alpha ?? this.cell.transform.params?.alpha ?? 1
         };
     }
 
     get clipValue(): Clip.Props | undefined {
-        return this.cell.transform.params.type.params.clip;
+        return this.cell.transform.params.type?.params.clip ?? this.cell.transform.params.clip;
     }
 
     get lodValue(): PD.Values<typeof LodParams> | undefined {
-        const p = this.cell.transform.params?.type.params;
-        const hasLod = p.lodLevels !== undefined && p.cellSize !== undefined && p.batchSize !== undefined && p.approximate !== undefined;
-        if (!hasLod) return;
+        const p = this.cell.transform.params?.type?.params;
+        if (!p) return;
         return {
             lodLevels: p.lodLevels,
             cellSize: p.cellSize,
@@ -633,43 +641,60 @@ export class EntityNode extends Node<{}, { action?: 'color' | 'clip', isDisabled
             });
         }
         update.to(this.ref).update(old => {
-            old.colorTheme.params.value = value;
+            if (old.colorTheme) {
+                old.colorTheme.params.value = value;
+            } else if (old.coloring) {
+                old.coloring.params.color = value;
+            }
         });
         update.commit();
     };
 
     updateLightness = (values: PD.Values) => {
         return this.plugin.build().to(this.ref).update(old => {
-            old.colorTheme.params.lightness = values.lightness;
+            if (old.colorTheme) {
+                old.colorTheme.params.lightness = values.lightness;
+            } else if (old.coloring) {
+                old.coloring.params.lightness = values.lightness;
+            }
         }).commit();
     };
 
     updateOpacity = (values: PD.Values) => {
         return this.plugin.build().to(this.ref).update(old => {
-            old.type.params.alpha = values.alpha;
-            old.type.params.xrayShaded = values.alpha < 1 ? 'inverted' : false;
+            if (old.type) {
+                old.type.params.alpha = values.alpha;
+                old.type.params.xrayShaded = values.alpha < 1 ? 'inverted' : false;
+            } else {
+                old.alpha = values.alpha;
+                old.xrayShaded = values.alpha < 1 ? true : false;
+            }
         }).commit();
     };
 
     updateClip = (props: Clip.Props) => {
-        const params = this.cell.transform.params as StateTransformer.Params<StructureRepresentation3D>;
-        if (!PD.areEqual(Clip.Params, params.type.params.clip, props)) {
+        const params = this.cell.transform.params;
+        const clip = params.type ? params.type.params.clip : params.clip;
+        if (!PD.areEqual(Clip.Params, clip, props)) {
             this.plugin.build().to(this.ref).update(old => {
-                old.type.params.clip = props;
+                if (old.type) {
+                    old.type.params.clip = props;
+                } else {
+                    old.clip = props;
+                }
             }).commit();
         }
     };
 
     updateLod = (values: PD.Values) => {
-        const t = this.cell?.transform;
-        if (!t) return;
+        const params = this.cell.transform.params as StateTransformer.Params<StructureRepresentation3D>;
+        if (!params.type) return;
 
         MesoscaleState.set(this.plugin, { graphics: 'custom' });
         (this.plugin.customState as MesoscaleExplorerState).graphicsMode = 'custom';
 
-        const params = t.params as StateTransformer.Params<StructureRepresentation3D>;
         if (!deepEqual(params.type.params.lodLevels, values.lodLevels) || params.type.params.cellSize !== values.cellSize || params.type.params.batchSize !== values.batchSize || params.type.params.approximate !== values.approximate) {
-            this.plugin.build().to(t.ref).update(old => {
+            this.plugin.build().to(this.ref).update(old => {
                 old.type.params.lodLevels = values.lodLevels;
                 old.type.params.cellSize = values.cellSize;
                 old.type.params.batchSize = values.batchSize;
@@ -715,7 +740,7 @@ export class EntityNode extends Node<{}, { action?: 'color' | 'clip', isDisabled
                 <ControlGroup header='Clip' initialExpanded={true} hideExpander={true} hideOffset={true} onHeaderClick={this.toggleClip}
                     topRightIcon={CloseSvg} noTopMargin childrenClassName='msp-viewport-controls-panel-controls'>
                     <ParameterMappingControl mapping={this.clipMapping} />
-                    <ParameterControls params={LodParams} values={lodValue} onChangeValues={this.updateLod} />
+                    {lodValue && <ParameterControls params={LodParams} values={lodValue} onChangeValues={this.updateLod} />}
                 </ControlGroup>
             </div>}
         </>;

@@ -19,7 +19,7 @@ import { DistinctColorsProps, distinctColors } from '../../../mol-util/color/dis
 import { Sphere3D } from '../../../mol-math/geometry';
 import { Hcl } from '../../../mol-util/color/spaces/hcl';
 import { StateObjectCell, StateObjectRef, StateSelection } from '../../../mol-state';
-import { StructureRepresentation3D } from '../../../mol-plugin-state/transforms/representation';
+import { ShapeRepresentation3D, StructureRepresentation3D } from '../../../mol-plugin-state/transforms/representation';
 import { SpacefillRepresentationProvider } from '../../../mol-repr/structure/representation/spacefill';
 import { assertUnreachable } from '../../../mol-util/type-helpers';
 import { MesoscaleExplorerState } from '../app';
@@ -409,7 +409,7 @@ export function getRoots(plugin: PluginContext): StateSelection.CellSeq<StateObj
     return s.stateCache.roots;
 }
 
-export function getGroups(plugin: PluginContext, tag?: string): StateSelection.CellSeq {
+export function getGroups(plugin: PluginContext, tag?: string): StateSelection.CellSeq<StateObjectCell<MesoscaleGroupObject>> {
     const s = plugin.customState as MesoscaleExplorerState;
     const k = `groups-${tag || ''}`;
     if (!s.stateCache[k]) {
@@ -442,14 +442,22 @@ export function getAllLeafGroups(plugin: PluginContext, tag: string) {
     });
 }
 
-export function getEntities(plugin: PluginContext, tag?: string): StateSelection.CellSeq {
+type EntityCells = StateSelection.CellSeq<StateObjectCell<PSO.Molecule.Structure.Representation3D | PSO.Shape.Representation3D>>
+
+export function getEntities(plugin: PluginContext, tag?: string): EntityCells {
     const s = plugin.customState as MesoscaleExplorerState;
     const k = `entities-${tag || ''}`;
     if (!s.stateCache[k]) {
-        const selector = tag !== undefined
+        const structureSelector = tag !== undefined
             ? StateSelection.Generators.ofTransformer(StructureRepresentation3D).withTag(tag)
             : StateSelection.Generators.ofTransformer(StructureRepresentation3D);
-        s.stateCache[k] = plugin.state.data.select(selector).filter(c => c.obj!.data.sourceData.elementCount > 0);
+        const shapeSelector = tag !== undefined
+            ? StateSelection.Generators.ofTransformer(ShapeRepresentation3D).withTag(tag)
+            : StateSelection.Generators.ofTransformer(ShapeRepresentation3D);
+        s.stateCache[k] = [
+            ...plugin.state.data.select(structureSelector).filter(c => c.obj!.data.sourceData.elementCount > 0),
+            ...plugin.state.data.select(shapeSelector),
+        ];
     }
     return s.stateCache[k];
 }
@@ -459,7 +467,7 @@ export function getFilteredEntities(plugin: PluginContext, tag: string, filter: 
     return getEntities(plugin, tag).filter(c => getEntityLabel(plugin, c).match(reFilter) !== null);
 }
 
-function _getAllEntities(plugin: PluginContext, tag: string | undefined, list: StateObjectCell[]) {
+function _getAllEntities(plugin: PluginContext, tag: string | undefined, list: EntityCells) {
     list.push(...getEntities(plugin, tag));
     for (const g of getGroups(plugin, tag)) {
         _getAllEntities(plugin, g.params?.values.tag, list);
@@ -503,10 +511,17 @@ export async function updateColors(plugin: PluginContext, values: PD.Values, tag
             for (let j = 0; j < entities.length; ++j) {
                 const c = type === 'group-generate' ? groupColors[j] : baseColors[i];
                 update.to(entities[j]).update(old => {
-                    old.colorTheme.params.value = c;
-                    old.colorTheme.params.lightness = lightness;
-                    old.type.params.alpha = alpha;
-                    old.type.params.xrayShaded = alpha < 1 ? 'inverted' : false;
+                    if (old.type) {
+                        old.colorTheme.params.value = c;
+                        old.colorTheme.params.lightness = lightness;
+                        old.type.params.alpha = alpha;
+                        old.type.params.xrayShaded = alpha < 1 ? 'inverted' : false;
+                    } else if (old.coloring) {
+                        old.coloring.params.color = c;
+                        old.coloring.params.lightness = lightness;
+                        old.alpha = alpha;
+                        old.xrayShaded = alpha < 1 ? true : false;
+                    }
                 });
             }
 
@@ -528,10 +543,17 @@ export async function updateColors(plugin: PluginContext, values: PD.Values, tag
         for (let j = 0; j < entities.length; ++j) {
             const c = type === 'generate' ? groupColors[j] : value;
             update.to(entities[j]).update(old => {
-                old.colorTheme.params.value = c;
-                old.colorTheme.params.lightness = lightness;
-                old.type.params.alpha = alpha;
-                old.type.params.xrayShaded = alpha < 1 ? 'inverted' : false;
+                if (old.type) {
+                    old.colorTheme.params.value = c;
+                    old.colorTheme.params.lightness = lightness;
+                    old.type.params.alpha = alpha;
+                    old.type.params.xrayShaded = alpha < 1 ? 'inverted' : false;
+                } else if (old.coloring) {
+                    old.coloring.params.color = c;
+                    old.coloring.params.lightness = lightness;
+                    old.alpha = alpha;
+                    old.xrayShaded = alpha < 1 ? true : false;
+                }
             });
         }
 
