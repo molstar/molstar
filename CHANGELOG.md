@@ -18,6 +18,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Do not activate drag overlay for non-file content
 - Add `structure-element-sphere` visual to `spacefill` representation
 - Fix missing `await` in `HeadlessPluginContext.saveStateSnapshot`
+- Added support for providing custom sequence viewers to the plugin spec
 - MolViewSpec extension (MVS)
 - Add URL parameters `mvs-url`, `mvs-data`, `mvs-format`
 - Add drag&drop for `.mvsj` files
