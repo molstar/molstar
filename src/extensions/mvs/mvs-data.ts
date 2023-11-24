@@ -14,8 +14,21 @@ import { MVSTree, MVSTreeSchema } from './tree/mvs/mvs-tree';
 export interface MVSData {
     /** MolViewSpec tree */
     root: MVSTree,
-    /** Integer defining the major version of MolViewSpec format (e.g. 1 for version '1.0.8') */
-    version: number,
+    /** Associated metadata */
+    metadata: MVSMetadata,
+}
+
+interface MVSMetadata {
+    /** Version of the spec used to write this tree */
+    version: string,
+    /** Name of this view */
+    title?: string,
+    /** Detailed description of this view */
+    description?: string,
+    /** Format of the description */
+    description_format?: 'markdown' | 'plaintext',
+    /** Timestamp when this view was exported */
+    timestamp: string,
 }
 
 export const MVSData = {
@@ -25,8 +38,9 @@ export const MVSData = {
     /** Parse MVSJ (MolViewSpec-JSON) format to `MVSData`. Does not include any validation. */
     fromMVSJ(mvsjString: string): MVSData {
         const result: MVSData = JSON.parse(mvsjString);
-        if (result?.version > MVSData.SupportedVersion) {
-            console.warn(`Loaded MVS is of higher version (${result?.version}) than currently supported version (${MVSData.SupportedVersion}). Some features may not work as expected.`);
+        const version = result?.metadata?.version;
+        if (majorVersion(version) > majorVersion(MVSData.SupportedVersion)) {
+            console.warn(`Loaded MVS is of higher version (${result.metadata.version}) than currently supported version (${MVSData.SupportedVersion}). Some features may not work as expected.`);
         }
         return result;
     },
@@ -45,14 +59,16 @@ export const MVSData = {
     /** Validate `MVSData`. Return `undefined` if OK; list of issues if not OK.
      * If `options.noExtra` is true, presence of any extra node parameters is treated as an issue. */
     validationIssues(mvsData: MVSData, options: { noExtra?: boolean } = {}): string[] | undefined {
-        if (typeof mvsData.version !== 'number') return [`"version" in MVS must be a number, not ${mvsData.version}`];
+        const version = mvsData?.metadata?.version;
+        if (typeof version !== 'string') return [`"version" in MVS must be a string, not ${typeof version}: ${version}`];
         if (mvsData.root === undefined) return [`"root" missing in MVS`];
         return treeValidationIssues(MVSTreeSchema, mvsData.root, options);
     },
 
     /** Return a human-friendly textual representation of `mvsData`. */
     toPrettyString(mvsData: MVSData): string {
-        return `MolViewSpec tree (version ${mvsData.version}):\n${treeToString(mvsData.root)}`;
+        const title = mvsData.metadata.title !== undefined ? ` "${mvsData.metadata.title}"` : '';
+        return `MolViewSpec tree${title} (version ${mvsData.metadata.version}, created ${mvsData.metadata.timestamp}):\n${treeToString(mvsData.root)}`;
     },
 
     /** Create a new MolViewSpec builder containing only a root node. Example of MVS builder usage:
@@ -62,10 +78,18 @@ export const MVSData = {
      * builder.canvas({ background_color: 'white' });
      * const struct = builder.download({ url: 'https://www.ebi.ac.uk/pdbe/entry-files/download/1og2_updated.cif' }).parse({ format: 'mmcif' }).modelStructure();
      * struct.component().representation().color({ color: HexColor('#3050F8') });
-     * console.log(JSON.stringify(builder.getState()));
+     * console.log(MVSData.toPrettyString(builder.getState()));
      * ```
      */
     createBuilder(): Root {
         return createMVSBuilder();
     },
 };
+
+
+/** Get the major version from a semantic version string, e.g. '1.0.8' -> 1 */
+function majorVersion(semanticVersion: string | number): number {
+    if (typeof semanticVersion === 'string') return parseInt(semanticVersion.split('.')[0]);
+    if (typeof semanticVersion === 'number') return Math.floor(semanticVersion);
+    throw new Error(`TypeError: version should be a string, not ${typeof semanticVersion}: ${semanticVersion}`);
+}

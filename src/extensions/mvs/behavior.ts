@@ -22,7 +22,6 @@ import { CustomTooltipsLabelProvider, CustomTooltipsProvider } from './component
 import { makeMultilayerColorThemeProvider } from './components/multilayer-color-theme';
 import { loadMVS } from './load';
 import { MVSData } from './mvs-data';
-import { treeToString } from './tree/generic/tree-utils';
 
 
 /** Collection of things that can be register/unregistered in a plugin */
@@ -147,8 +146,6 @@ const MVSDragAndDropHandler: DragAndDropHandler = {
                 const mvsData = MVSData.fromMVSJ(data);
                 await loadMVS(plugin, mvsData, { sanityChecks: true, deletePrevious: !applied });
                 applied = true;
-                console.log(file.name)
-                console.log(MVSData.toPrettyString(mvsData))
             }
         }
         return applied;

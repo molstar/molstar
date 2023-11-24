@@ -37,6 +37,9 @@ export async function setCamera(plugin: PluginContext, params: ParamsOfKind<Mols
     let position = Vec3.create(...params.position);
     if (plugin.canvas3d) position = fovAdjustedPosition(target, position, plugin.canvas3d.camera.state.mode, plugin.canvas3d.camera.state.fov);
     const up = Vec3.create(...params.up);
+    // TODO ensure orthonormal up! (Mol* does it automatically, but animations are then ugly)
+    // up = np.cross(d,np.cross(up, d))
+    // up /= np.linalg.norm(up)
     const snapshot: Partial<Camera.Snapshot> = { target, position, up, radius: 10_000, 'radiusMax': 10_000 };
     await PluginCommands.Camera.SetSnapshot(plugin, { snapshot });
 }
@@ -63,6 +66,9 @@ export async function setFocus(plugin: PluginContext, structureNodeSelector: Sta
             up: Vec3.create(...params.up),
             direction: Vec3.create(...params.direction),
         });
+        // TODO ensure orthonormal up! (Mol* does it automatically, but animations are then ugly)
+        // up = np.cross(d,np.cross(up, d))
+        // up /= np.linalg.norm(up)
         await PluginCommands.Camera.SetSnapshot(plugin, { snapshot });
     }
 }
