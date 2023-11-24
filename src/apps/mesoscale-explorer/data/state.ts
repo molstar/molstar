@@ -351,7 +351,7 @@ export const MesoscaleStateParams = {
     link: PD.Value<string>('', { isHidden: true }),
 };
 
-class MesoscaleStateObject extends PSO.Create<MesoscaleState>({ name: 'Mesoscale State', typeClass: 'Object' }) { }
+export class MesoscaleStateObject extends PSO.Create<MesoscaleState>({ name: 'Mesoscale State', typeClass: 'Object' }) { }
 
 const MesoscaleStateTransform = PluginStateTransform.BuiltIn({
     name: 'mesoscale-state',

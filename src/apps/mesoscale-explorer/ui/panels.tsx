@@ -50,7 +50,7 @@ export class RightPanel extends PluginUIComponent<{}, { isDisabled: boolean }> {
     get hasInfo() {
         return (
             MesoscaleState.has(this.plugin) &&
-            (MesoscaleState.get(this.plugin).description ||
+            !!(MesoscaleState.get(this.plugin).description ||
                 MesoscaleState.get(this.plugin).link)
         );
     }
