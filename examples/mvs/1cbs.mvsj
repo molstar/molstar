@@ -1,5 +1,9 @@
 {
- "version": 6,
+ "metadata": {
+  "title": "Example MolViewSpec - 1cbs with labelled protein and ligand",
+  "version": "1",
+  "timestamp": "2023-11-24T10:38:17.483"
+ },
  "root": {
   "kind": "root",
   "children": [
@@ -13,7 +17,8 @@
     "kind": "camera",
     "params": {
      "target": [17, 21, 27],
-     "position": [54, 41, 91]
+     "position": [54, 41, 91],
+     "up": [-0.129,0.966,-0.224]
     }
    },
    {

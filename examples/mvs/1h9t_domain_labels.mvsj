@@ -1,5 +1,9 @@
 {
- "version": 6,
+ "metadata": {
+  "title": "Example MolViewSpec - 1h9t colored and labelled by external annotation",
+  "version": "1",
+  "timestamp": "2023-11-24T10:48:28.677"
+ },
  "root": {
   "kind": "root",
   "children": [
@@ -557,11 +561,7 @@
            {
             "kind": "focus",
             "params": {
-             "direction": [
-              -0.3,
-              -0.1,
-              -1
-             ]
+             "direction": [-0.3, -0.1, -1]
             }
            }
           ]

@@ -8,16 +8,16 @@ import { Download, ParseCif } from '../../mol-plugin-state/transforms/data';
 import { CustomModelProperties, CustomStructureProperties, ModelFromTrajectory, StructureComponent, StructureFromModel, TrajectoryFromMmCif, TrajectoryFromPDB, TransformStructureConformation } from '../../mol-plugin-state/transforms/model';
 import { StructureRepresentation3D } from '../../mol-plugin-state/transforms/representation';
 import { PluginContext } from '../../mol-plugin/context';
-import { StateBuilder, StateObjectSelector } from '../../mol-state';
+import { StateObjectSelector } from '../../mol-state';
 import { canonicalJsonString } from '../../mol-util/json';
+import { MolViewSpec } from './behavior';
+import { setCamera, setCanvas, setFocus } from './camera';
 import { MVSAnnotationsProvider } from './components/annotation-prop';
 import { MVSAnnotationStructureComponent } from './components/annotation-structure-component';
 import { MVSAnnotationTooltipsProvider } from './components/annotation-tooltips-prop';
 import { CustomLabelProps, CustomLabelRepresentationProvider } from './components/custom-label/representation';
 import { CustomTooltipsProvider } from './components/custom-tooltips-prop';
-import { MolViewSpec } from './behavior';
-import { setCamera, setCanvas, setFocus } from './camera';
-import { AnnotationFromSourceKind, AnnotationFromUriKind, LoadingActions, collectAnnotationReferences, collectAnnotationTooltips, collectInlineTooltips, colorThemeForNode, componentFromXProps, componentPropsFromSelector, isPhantomComponent, labelFromXProps, loadTree, makeNearestReprMap, representationProps, structureProps, transformProps } from './load-helpers';
+import { AnnotationFromSourceKind, AnnotationFromUriKind, LoadingActions, UpdateTarget, collectAnnotationReferences, collectAnnotationTooltips, collectInlineTooltips, colorThemeForNode, componentFromXProps, componentPropsFromSelector, isPhantomComponent, labelFromXProps, loadTree, makeNearestReprMap, representationProps, structureProps, transformProps } from './load-helpers';
 import { MVSData } from './mvs-data';
 import { ParamsOfKind, SubTreeOfKind, validateTree } from './tree/generic/tree-schema';
 import { convertMvsToMolstar, mvsSanityCheck } from './tree/molstar/conversion';
@@ -72,66 +72,67 @@ export interface MolstarLoadingContext {
 
 /** Loading actions for loading a `MolstarTree`, per node kind. */
 const MolstarLoadingActions: LoadingActions<MolstarTree, MolstarLoadingContext> = {
-    root(update: StateBuilder.Root, msParent: StateObjectSelector, node: MolstarNode<'root'>, context: MolstarLoadingContext): StateObjectSelector {
+    root(updateParent: UpdateTarget, node: MolstarNode<'root'>, context: MolstarLoadingContext): UpdateTarget {
         context.nearestReprMap = makeNearestReprMap(node);
-        return msParent;
+        return updateParent;
     },
-    download(update: StateBuilder.Root, msParent: StateObjectSelector, node: MolstarNode<'download'>): StateObjectSelector {
-        return update.to(msParent).apply(Download, {
+    download(updateParent: UpdateTarget, node: MolstarNode<'download'>): UpdateTarget {
+        return UpdateTarget.apply(updateParent, Download, {
             url: node.params.url,
             isBinary: node.params.is_binary,
-        }).selector;
+        });
     },
-    parse(update: StateBuilder.Root, msParent: StateObjectSelector, node: MolstarNode<'parse'>): StateObjectSelector | undefined {
+    parse(updateParent: UpdateTarget, node: MolstarNode<'parse'>): UpdateTarget | undefined {
         const format = node.params.format;
         if (format === 'cif') {
-            return update.to(msParent).apply(ParseCif, {}).selector;
+            return UpdateTarget.apply(updateParent, ParseCif, {});
         } else if (format === 'pdb') {
-            return msParent;
+            return updateParent;
         } else {
             console.error(`Unknown format in "parse" node: "${format}"`);
             return undefined;
         }
     },
-    trajectory(update: StateBuilder.Root, msParent: StateObjectSelector, node: MolstarNode<'trajectory'>): StateObjectSelector | undefined {
+    trajectory(updateParent: UpdateTarget, node: MolstarNode<'trajectory'>): UpdateTarget | undefined {
         const format = node.params.format;
         if (format === 'cif') {
-            return update.to(msParent).apply(TrajectoryFromMmCif, {
+            return UpdateTarget.apply(updateParent, TrajectoryFromMmCif, {
                 blockHeader: node.params.block_header ?? '', // Must set to '' because just undefined would get overwritten by createDefaults
                 blockIndex: node.params.block_index ?? undefined,
-            }).selector;
+            });
         } else if (format === 'pdb') {
-            return update.to(msParent).apply(TrajectoryFromPDB, {}).selector;
+            return UpdateTarget.apply(updateParent, TrajectoryFromPDB, {});
         } else {
             console.error(`Unknown format in "trajectory" node: "${format}"`);
             return undefined;
         }
     },
-    model(update: StateBuilder.Root, msParent: StateObjectSelector, node: SubTreeOfKind<MolstarTree, 'model'>, context: MolstarLoadingContext): StateObjectSelector {
+    model(updateParent: UpdateTarget, node: SubTreeOfKind<MolstarTree, 'model'>, context: MolstarLoadingContext): UpdateTarget {
         const annotations = collectAnnotationReferences(node, context);
-        return update.to(msParent)
-            .apply(ModelFromTrajectory, {
-                modelIndex: node.params.model_index,
-            })
-            .apply(CustomModelProperties, {
-                properties: {
-                    [MVSAnnotationsProvider.descriptor.name]: { annotations }
-                },
-                autoAttach: [
-                    MVSAnnotationsProvider.descriptor.name
-                ],
-            }).selector;
+        const model = UpdateTarget.apply(updateParent, ModelFromTrajectory, {
+            modelIndex: node.params.model_index,
+        });
+        UpdateTarget.apply(model, CustomModelProperties, {
+            properties: {
+                [MVSAnnotationsProvider.descriptor.name]: { annotations }
+            },
+            autoAttach: [
+                MVSAnnotationsProvider.descriptor.name
+            ],
+        });
+        return model;
     },
-    structure(update: StateBuilder.Root, msParent: StateObjectSelector, node: SubTreeOfKind<MolstarTree, 'structure'>, context: MolstarLoadingContext): StateObjectSelector {
+    structure(updateParent: UpdateTarget, node: SubTreeOfKind<MolstarTree, 'structure'>, context: MolstarLoadingContext): UpdateTarget {
         const props = structureProps(node);
-        let result: StateObjectSelector = update.to(msParent).apply(StructureFromModel, props).selector;
+        const struct = UpdateTarget.apply(updateParent, StructureFromModel, props);
+        let transformed = struct;
         for (const t of transformProps(node)) {
-            result = update.to(result).apply(TransformStructureConformation, t).selector;
+            transformed = UpdateTarget.apply(transformed, TransformStructureConformation, t); // applying to the result of previous transform, to get the correct transform order
         }
         const annotationTooltips = collectAnnotationTooltips(node, context);
         const inlineTooltips = collectInlineTooltips(node, context);
         if (annotationTooltips.length + inlineTooltips.length > 0) {
-            update.to(result).apply(CustomStructureProperties, {
+            UpdateTarget.apply(struct, CustomStructureProperties, {
                 properties: {
                     [MVSAnnotationTooltipsProvider.descriptor.name]: { tooltips: annotationTooltips },
                     [CustomTooltipsProvider.descriptor.name]: { tooltips: inlineTooltips },
@@ -142,73 +143,73 @@ const MolstarLoadingActions: LoadingActions<MolstarTree, MolstarLoadingContext> 
                 ],
             });
         }
-        return result;
+        return struct;
     },
     tooltip: undefined, // No action needed, already loaded in `structure`
     tooltip_from_uri: undefined, // No action needed, already loaded in `structure`
     tooltip_from_source: undefined, // No action needed, already loaded in `structure`
-    component(update: StateBuilder.Root, msParent: StateObjectSelector, node: SubTreeOfKind<MolstarTree, 'component'>): StateObjectSelector | undefined {
+    component(updateParent: UpdateTarget, node: SubTreeOfKind<MolstarTree, 'component'>): UpdateTarget | undefined {
         if (isPhantomComponent(node)) {
-            return msParent;
+            return updateParent;
         }
         const selector = node.params.selector;
-        return update.to(msParent).apply(StructureComponent, {
+        return UpdateTarget.apply(updateParent, StructureComponent, {
             type: componentPropsFromSelector(selector),
             label: canonicalJsonString(selector),
             nullIfEmpty: false,
-        }).selector;
+        });
     },
-    component_from_uri(update: StateBuilder.Root, msParent: StateObjectSelector, node: SubTreeOfKind<MolstarTree, 'component_from_uri'>, context: MolstarLoadingContext): StateObjectSelector | undefined {
+    component_from_uri(updateParent: UpdateTarget, node: SubTreeOfKind<MolstarTree, 'component_from_uri'>, context: MolstarLoadingContext): UpdateTarget | undefined {
         if (isPhantomComponent(node)) return undefined;
         const props = componentFromXProps(node, context);
-        return update.to(msParent).apply(MVSAnnotationStructureComponent, props).selector;
+        return UpdateTarget.apply(updateParent, MVSAnnotationStructureComponent, props);
     },
-    component_from_source(update: StateBuilder.Root, msParent: StateObjectSelector, node: SubTreeOfKind<MolstarTree, 'component_from_source'>, context: MolstarLoadingContext): StateObjectSelector | undefined {
+    component_from_source(updateParent: UpdateTarget, node: SubTreeOfKind<MolstarTree, 'component_from_source'>, context: MolstarLoadingContext): UpdateTarget | undefined {
         if (isPhantomComponent(node)) return undefined;
         const props = componentFromXProps(node, context);
-        return update.to(msParent).apply(MVSAnnotationStructureComponent, props).selector;
+        return UpdateTarget.apply(updateParent, MVSAnnotationStructureComponent, props);
     },
-    representation(update: StateBuilder.Root, msParent: StateObjectSelector, node: MolstarNode<'representation'>, context: MolstarLoadingContext): StateObjectSelector {
-        return update.to(msParent).apply(StructureRepresentation3D, {
+    representation(updateParent: UpdateTarget, node: MolstarNode<'representation'>, context: MolstarLoadingContext): UpdateTarget {
+        return UpdateTarget.apply(updateParent, StructureRepresentation3D, {
             ...representationProps(node.params),
             colorTheme: colorThemeForNode(node, context),
-        }).selector;
+        });
     },
     color: undefined, // No action needed, already loaded in `structure`
     color_from_uri: undefined, // No action needed, already loaded in `structure`
     color_from_source: undefined, // No action needed, already loaded in `structure`
-    label(update: StateBuilder.Root, msParent: StateObjectSelector, node: MolstarNode<'label'>, context: MolstarLoadingContext): StateObjectSelector {
+    label(updateParent: UpdateTarget, node: MolstarNode<'label'>, context: MolstarLoadingContext): UpdateTarget {
         const item: CustomLabelProps['items'][number] = {
             text: node.params.text,
             position: { name: 'selection', params: {} },
         };
         const nearestReprNode = context.nearestReprMap?.get(node);
-        return update.to(msParent).apply(StructureRepresentation3D, {
+        return UpdateTarget.apply(updateParent, StructureRepresentation3D, {
             type: {
                 name: CustomLabelRepresentationProvider.name,
                 params: { items: [item] } satisfies Partial<CustomLabelProps>
             },
             colorTheme: colorThemeForNode(nearestReprNode, context),
-        }).selector;
+        });
     },
-    label_from_uri(update: StateBuilder.Root, msParent: StateObjectSelector, node: MolstarNode<'label_from_uri'>, context: MolstarLoadingContext): StateObjectSelector {
+    label_from_uri(updateParent: UpdateTarget, node: MolstarNode<'label_from_uri'>, context: MolstarLoadingContext): UpdateTarget {
         const props = labelFromXProps(node, context);
-        return update.to(msParent).apply(StructureRepresentation3D, props).selector;
+        return UpdateTarget.apply(updateParent, StructureRepresentation3D, props);
     },
-    label_from_source(update: StateBuilder.Root, msParent: StateObjectSelector, node: MolstarNode<'label_from_source'>, context: MolstarLoadingContext): StateObjectSelector {
+    label_from_source(updateParent: UpdateTarget, node: MolstarNode<'label_from_source'>, context: MolstarLoadingContext): UpdateTarget {
         const props = labelFromXProps(node, context);
-        return update.to(msParent).apply(StructureRepresentation3D, props).selector;
+        return UpdateTarget.apply(updateParent, StructureRepresentation3D, props);
     },
-    focus(update: StateBuilder.Root, msParent: StateObjectSelector, node: MolstarNode<'focus'>, context: MolstarLoadingContext): StateObjectSelector {
-        context.focus = { kind: 'focus', focusTarget: msParent, params: node.params };
-        return msParent;
+    focus(updateParent: UpdateTarget, node: MolstarNode<'focus'>, context: MolstarLoadingContext): UpdateTarget {
+        context.focus = { kind: 'focus', focusTarget: updateParent.selector, params: node.params };
+        return updateParent;
     },
-    camera(update: StateBuilder.Root, msParent: StateObjectSelector, node: MolstarNode<'camera'>, context: MolstarLoadingContext): StateObjectSelector {
+    camera(updateParent: UpdateTarget, node: MolstarNode<'camera'>, context: MolstarLoadingContext): UpdateTarget {
         context.focus = { kind: 'camera', params: node.params };
-        return msParent;
+        return updateParent;
     },
-    canvas(update: StateBuilder.Root, msParent: StateObjectSelector, node: MolstarNode<'canvas'>, context: MolstarLoadingContext): StateObjectSelector {
+    canvas(updateParent: UpdateTarget, node: MolstarNode<'canvas'>, context: MolstarLoadingContext): UpdateTarget {
         context.canvas = node.params;
-        return msParent;
+        return updateParent;
     },
 };

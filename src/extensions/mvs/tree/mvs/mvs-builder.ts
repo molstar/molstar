@@ -55,8 +55,15 @@ export class Root extends _Base<'root'> {
         (this._root as Root) = this;
     }
     /** Return the current state of the builder as object in MVS format. */
-    getState(): MVSData {
-        return { version: MVSData.SupportedVersion, root: this._node };
+    getState(metadata?: Partial<Pick<MVSData['metadata'], 'title' | 'description' | 'description_format'>>): MVSData {
+        return {
+            root: this._node,
+            metadata: {
+                ...metadata,
+                version: `${MVSData.SupportedVersion}`,
+                timestamp: utcNowISO(),
+            },
+        };
     }
     // omitting `saveState`, filesystem operations are responsibility of the caller code (platform-dependent)
 
@@ -247,4 +254,9 @@ export function builderDemo() {
     cif.modelStructure({ model_index: 0 as any }).transform({ translation: [60, 0, 0], rotation: [0, 1, 0, -1, 0, 0, 0, 0, 1] }).component().representation().color({ color: HexColor('#aa0077') });
 
     return builder.getState();
+}
+
+/** Return the current universal time, in ISO format without trailing 'Z', e.g. '.' */
+function utcNowISO(): string {
+    return new Date().toISOString().replace(/Z$/, '');
 }
