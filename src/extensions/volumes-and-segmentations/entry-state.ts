@@ -5,9 +5,8 @@
  */
 
 import { PluginStateObject } from '../../mol-plugin-state/objects';
+import { Choice } from '../../mol-util/param-choice';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
-
-import { Choice } from './helpers';
 
 
 export const VolumeTypeChoice = new Choice({ 'isosurface': 'Isosurface', 'direct-volume': 'Direct volume', 'off': 'Off' }, 'isosurface');

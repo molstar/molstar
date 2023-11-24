@@ -19,6 +19,9 @@ Note that since we don't clearly distinguish between a public and private interf
 - Add `structure-element-sphere` visual to `spacefill` representation
 - Fix missing `await` in `HeadlessPluginContext.saveStateSnapshot`
 - Added support for providing custom sequence viewers to the plugin spec
+- MolViewSpec extension (MVS)
+- Add URL parameters `mvs-url`, `mvs-data`, `mvs-format`
+- Add drag&drop for `.mvsj` files
 
 ## [v3.42.0] - 2023-11-05
 
