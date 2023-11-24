@@ -1092,13 +1092,16 @@ const ShapeFromPly = PluginStateTransform.BuiltIn({
     from: SO.Format.Ply,
     to: SO.Shape.Provider,
     params(a) {
-        return {};
+        return {
+            transforms: PD.Optional(PD.Value<Mat4[]>([], { isHidden: true })),
+            label: PD.Optional(PD.Text('', { isHidden: true }))
+        };
     }
 })({
     apply({ a, params }) {
         return Task.create('Create shape from PLY', async ctx => {
             const shape = await shapeFromPly(a.data, params).runInContext(ctx);
-            const props = { label: 'Shape' };
+            const props = { label: params.label || 'Shape' };
             return new SO.Shape.Provider(shape, props);
         });
     }
