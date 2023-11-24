@@ -134,6 +134,11 @@ export const OpacityParams = {
     alpha: PD.Numeric(1, { min: 0, max: 1, step: 0.01 }),
 };
 
+export const PatternParams = {
+    frequency: PD.Numeric(1, { min: 0, max: 1, step: 0.01 }),
+    amplitude: PD.Numeric(1, { min: 0, max: 1, step: 0.01 }),
+};
+
 export const LodParams = {
     lodLevels: Spheres.Params.lodLevels,
     cellSize: Spheres.Params.cellSize,

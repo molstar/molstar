@@ -18,7 +18,7 @@ import { CombinedColorControl } from '../../../mol-plugin-ui/controls/color';
 import { MarkerAction } from '../../../mol-util/marker-action';
 import { EveryLoci } from '../../../mol-model/loci';
 import { deepEqual } from '../../../mol-util';
-import { ColorValueParam, ColorParams, ColorProps, DimLightness, LightnessParams, LodParams, MesoscaleGroup, MesoscaleGroupProps, OpacityParams, SimpleClipParams, SimpleClipProps, createClipMapping, getClipObjects, getDistinctGroupColors, RootParams, MesoscaleState, getRoots, getAllGroups, getAllLeafGroups, getFilteredEntities, getAllFilteredEntities, getGroups, getEntities, getAllEntities, getEntityLabel, updateColors, getGraphicsModeProps, GraphicsMode, MesoscaleStateParams, setGraphicsCanvas3DProps } from '../data/state';
+import { ColorValueParam, ColorParams, ColorProps, DimLightness, LightnessParams, LodParams, MesoscaleGroup, MesoscaleGroupProps, OpacityParams, SimpleClipParams, SimpleClipProps, createClipMapping, getClipObjects, getDistinctGroupColors, RootParams, MesoscaleState, getRoots, getAllGroups, getAllLeafGroups, getFilteredEntities, getAllFilteredEntities, getGroups, getEntities, getAllEntities, getEntityLabel, updateColors, getGraphicsModeProps, GraphicsMode, MesoscaleStateParams, setGraphicsCanvas3DProps, PatternParams } from '../data/state';
 import React from 'react';
 import { MesoscaleExplorerState } from '../app';
 
@@ -628,6 +628,15 @@ export class EntityNode extends Node<{}, { action?: 'color' | 'clip', isDisabled
         };
     }
 
+    get patternValue(): { amplitude: number, frequency: number } | undefined {
+        const p = this.cell.transform.params;
+        if (p.type) return;
+        return {
+            amplitude: p.bumpAmplitude,
+            frequency: p.bumpFrequency * 10,
+        };
+    }
+
     updateColor: ParamOnChange = ({ value }) => {
         const update = this.plugin.state.data.build();
         for (const g of this.groups) {
@@ -703,6 +712,15 @@ export class EntityNode extends Node<{}, { action?: 'color' | 'clip', isDisabled
         }
     };
 
+    updatePattern = (values: PD.Values) => {
+        return this.plugin.build().to(this.ref).update(old => {
+            if (!old.type) {
+                old.bumpAmplitude = values.amplitude;
+                old.bumpFrequency = values.frequency / 10;
+            }
+        }).commit();
+    };
+
     render() {
         const cellState = this.cell.state;
         const disabled = this.cell.status !== 'error' && this.cell.status !== 'ok';
@@ -711,6 +729,7 @@ export class EntityNode extends Node<{}, { action?: 'color' | 'clip', isDisabled
         const lightnessValue = this.lightnessValue;
         const opacityValue = this.opacityValue;
         const lodValue = this.lodValue;
+        const patternValue = this.patternValue;
 
         const l = getEntityLabel(this.plugin, this.cell);
         const label = <Button className={`msp-btn-tree-label msp-type-class-${this.cell.obj!.type.typeClass}`} noOverflow disabled={disabled}>
@@ -734,6 +753,7 @@ export class EntityNode extends Node<{}, { action?: 'color' | 'clip', isDisabled
                     <CombinedColorControl param={ColorValueParam} value={colorValue ?? Color(0xFFFFFF)} onChange={this.updateColor} name='color' hideNameRow />
                     <ParameterControls params={LightnessParams} values={lightnessValue} onChangeValues={this.updateLightness} />
                     <ParameterControls params={OpacityParams} values={opacityValue} onChangeValues={this.updateOpacity} />
+                    {patternValue && <ParameterControls params={PatternParams} values={patternValue} onChangeValues={this.updatePattern} />}
                 </ControlGroup>
             </div>}
             {this.state.action === 'clip' && <div style={{ marginRight: 5 }} className='msp-accent-offset'>

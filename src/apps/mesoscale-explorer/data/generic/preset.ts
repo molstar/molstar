@@ -88,6 +88,13 @@ function getPlyShapeParams(color: Color, clipVariant: Clip.Variant) {
             name: 'none',
             params: {}
         },
+        material: {
+            metalness: 0.0,
+            roughness: 1.0,
+            bumpiness: 1.0,
+        },
+        bumpAmplitude: 0.1,
+        bumpFrequency: 0.1 / 10,
     };
 }
 
