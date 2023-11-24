@@ -15,9 +15,11 @@ import { formatTimespan } from '../../mol-util/now';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { urlCombine } from '../../mol-util/url';
 import { PluginUIComponent, PurePluginUIComponent } from '../base';
-import { Button, ExpandGroup, IconButton, SectionHeader } from '../controls/common';
-import { Icon, SaveOutlinedSvg, GetAppSvg, OpenInBrowserSvg, WarningSvg, DeleteOutlinedSvg, AddSvg, ArrowUpwardSvg, SwapHorizSvg, ArrowDownwardSvg, RefreshSvg, CloudUploadSvg } from '../controls/icons';
-import { ParameterControls } from '../controls/parameters';
+import { Button, ControlRow, ExpandGroup, IconButton, SectionHeader } from '../controls/common';
+import { Icon, SaveOutlinedSvg, GetAppSvg, OpenInBrowserSvg, WarningSvg, DeleteOutlinedSvg, AddSvg, ArrowUpwardSvg, SwapHorizSvg, ArrowDownwardSvg, RefreshSvg, CloudUploadSvg, CheckSvg, TuneSvg } from '../controls/icons';
+import { ParamHelp, ParameterControls, ToggleParamHelpButton } from '../controls/parameters';
+import { PluginStateSnapshotManager } from '../../mol-plugin-state/manager/snapshots';
+import { PluginContext } from '../../mol-plugin/context';
 
 export class StateSnapshots extends PluginUIComponent<{}> {
     render() {
@@ -122,19 +124,59 @@ export class LocalStateSnapshots extends PluginUIComponent<
 
     render() {
         return <div>
-            <ParameterControls params={LocalStateSnapshots.Params} values={this.state.params} onEnter={this.add} onChangeValues={this.updateParams} />
-            <div className='msp-flex-row'>
-                <IconButton onClick={this.clear} svg={DeleteOutlinedSvg} title='Remove All' />
-                <Button onClick={this.add} icon={AddSvg} style={{ textAlign: 'right' }} commit>Add</Button>
-            </div>
+            <AddSnapshot parent={this} />
         </div>;
     }
 }
 
-export class LocalStateSnapshotList extends PluginUIComponent<{}, {}> {
+function invalidateSnapshotKey(plugin: PluginContext, key: string | undefined, currentId?: string) {
+    if (!key) return false;
+    return plugin.managers.snapshot.state.entries.some(e => (!currentId || e.snapshot.id !== currentId) && e.key === key);
+}
+
+function AddSnapshot({ parent }: { parent: LocalStateSnapshots }) {
+    const [state, setState] = React.useState<PluginStateSnapshotManager.EntryParams>({ key: '', name: '', description: '' });
+
+    const add = () => {
+        PluginCommands.State.Snapshots.Add(parent.plugin, {
+            key: state.key,
+            name: state.name,
+            description: state.description
+        });
+        setState({ key: '', name: '', description: '' });
+    };
+
+    const keyExists = invalidateSnapshotKey(parent.plugin, state.key);
+
+    return <>
+        <EditSnapshotParams state={state} setState={setState} apply={add} />
+        <div className='msp-flex-row'>
+            <IconButton onClick={parent.clear} svg={DeleteOutlinedSvg} title='Remove All' />
+            <Button onClick={add} icon={keyExists ? undefined : AddSvg} style={{ textAlign: 'right' }} commit={keyExists ? 'off' : 'on'} disabled={keyExists}>
+                {keyExists
+                    ? 'Key must be unique'
+                    : 'Add'}
+            </Button>
+        </div>
+    </>;
+}
+
+
+export class LocalStateSnapshotList extends PluginUIComponent<{}, { editingId?: string }> {
+    state = { editingId: undefined as string | undefined };
+
     componentDidMount() {
         this.subscribe(this.plugin.managers.snapshot.events.changed, () => this.forceUpdate());
     }
+
+    edit = (e: React.MouseEvent<HTMLElement>) => {
+        const id = e.currentTarget.getAttribute('data-id');
+        if (!id) return;
+        const current = this.state.editingId;
+        this.setState({ editingId: id === current ? undefined : id });
+    };
+
+    doneEdit = () => this.setState({ editingId: undefined });
 
     apply = (e: React.MouseEvent<HTMLElement>) => {
         const id = e.currentTarget.getAttribute('data-id');
@@ -174,15 +216,20 @@ export class LocalStateSnapshotList extends PluginUIComponent<{}, {}> {
             items.push(<li key={e!.snapshot.id} className='msp-flex-row'>
                 <Button data-id={e!.snapshot.id} onClick={this.apply} className='msp-no-overflow'>
                     <span style={{ fontWeight: e!.snapshot.id === current ? 'bold' : void 0 }}>
+                        {!!e!.key && `[${e.key}] `}
                         {e!.name || new Date(e!.timestamp).toLocaleString()}</span> <small>
-                        {`${e!.snapshot.durationInMs ? formatTimespan(e!.snapshot.durationInMs, false) + `${e!.description ? ', ' : ''}` : ''}${e!.description ? e!.description : ''}`}
+                        {`${e!.snapshot.durationInMs ? formatTimespan(e!.snapshot.durationInMs, false) : ''}`}
                     </small>
                 </Button>
+                <IconButton svg={TuneSvg} data-id={e!.snapshot.id} title='Edit' onClick={this.edit} flex='28px' />
                 <IconButton svg={ArrowUpwardSvg} data-id={e!.snapshot.id} title='Move Up' onClick={this.moveUp} flex='20px' />
                 <IconButton svg={ArrowDownwardSvg} data-id={e!.snapshot.id} title='Move Down' onClick={this.moveDown} flex='20px' />
                 <IconButton svg={SwapHorizSvg} data-id={e!.snapshot.id} title='Replace' onClick={this.replace} flex='20px' />
                 <IconButton svg={DeleteOutlinedSvg} data-id={e!.snapshot.id} title='Remove' onClick={this.remove} flex='20px' />
             </li>);
+            if (this.state.editingId === e!.snapshot.id) {
+                items.push(<EditSnapshot key={`${e!.snapshot.id}-edit`} entry={e} plugin={this.plugin} done={this.doneEdit} />);
+            }
             const image = e.image && this.plugin.managers.asset.get(e.image)?.file;
             if (image) {
                 items.push(<li key={`${e!.snapshot.id}-image`} className='msp-state-image-row'>
@@ -198,6 +245,79 @@ export class LocalStateSnapshotList extends PluginUIComponent<{}, {}> {
             </ul>
         </>;
     }
+}
+
+function EditSnapshotParams({ state, setState, apply }: { state: PluginStateSnapshotManager.EntryParams, setState: (s: PluginStateSnapshotManager.EntryParams) => any, apply: (s: PluginStateSnapshotManager.EntryParams) => any }) {
+    const keyRef = React.useRef<HTMLElement>();
+    const descRef = React.useRef<HTMLElement>();
+    const [showKeyHelp, setShowKeyHelp] = React.useState(false);
+
+    return <>
+        <ControlRow
+            label='Name'
+            control={ <input type='text'
+                value={state.name}
+                placeholder='Name'
+                onChange={e => setState({ ...state, name: e.target.value })}
+                onKeyUp={e => {
+                    if (e.key === 'Enter') keyRef.current?.focus();
+                }}
+            />}
+        />
+        <ControlRow
+            label={<>
+                Key
+                <ToggleParamHelpButton show={showKeyHelp} toggle={() => setShowKeyHelp(prev => !prev)} />
+            </>}
+            control={ <input type='text'
+                ref={keyRef as any}
+                value={state.key}
+                placeholder='Key (optional)'
+                onChange={e => setState({ ...state, key: e.target.value })}
+                onKeyUp={e => {
+                    if (e.key === 'Enter') descRef.current?.focus();
+                }}
+            />}
+        />
+        {showKeyHelp && <div className='msp-control-offset'>
+            <ParamHelp description='Optional snapshot key used to activate snapshots from descriptions, labels, etc.' />
+        </div>}
+        <div className='msp-flex-row msp-text-area-wrapper' style={{ marginBottom: 1 }}>
+            <textarea
+                ref={descRef as any}
+                // NOTE: curly brackets are required to support \n in the placeholder, do not remove
+                placeholder={'Markdown Description\n\n- Use [title](#key) to link to a snapshot'}
+                className='msp-form-control'
+                value={state.description}
+                onChange={e => setState({ ...state, description: e.target.value })}
+                onKeyUp={e => {
+                    if (e.key === 'Enter' && e.ctrlKey) apply(state);
+                }}
+            />
+        </div>
+    </>;
+}
+
+function EditSnapshot({ entry, plugin, done }: { entry: PluginStateSnapshotManager.Entry, plugin: PluginContext, done: () => any }) {
+    const [state, setState] = React.useState<PluginStateSnapshotManager.EntryParams>({ key: entry.key ?? '', name: entry.name ?? '', description: entry.description ?? '' });
+
+    const apply = () => {
+        plugin.managers.snapshot.update(entry, state);
+        done();
+    };
+
+    const keyExists = invalidateSnapshotKey(plugin, state.key, entry.snapshot.id);
+
+    return <>
+        <EditSnapshotParams state={state} setState={setState} apply={apply} />
+        <div className='msp-flex-row' style={{ marginBottom: 1 }}>
+            <Button onClick={apply} icon={keyExists ? undefined : CheckSvg} style={{ textAlign: 'right' }} commit={keyExists ? 'off' : 'on'} disabled={keyExists}>
+                {keyExists
+                    ? 'Key must be unique'
+                    : 'Apply'}
+            </Button>
+        </div>
+    </>;
 }
 
 export type RemoteEntry = { url: string, removeUrl: string, timestamp: number, id: string, name: string, description: string, isSticky?: boolean }

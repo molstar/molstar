@@ -11,8 +11,8 @@ export const apply_light_color = `
 #ifdef dIgnoreLight
     #ifdef bumpEnabled
         if (uBumpFrequency > 0.0 && uBumpAmplitude > 0.0 && bumpiness > 0.0) {
-            material.rgb += fbm(vModelPosition * uBumpFrequency) * (uBumpAmplitude * bumpiness) / uBumpFrequency;
-            material.rgb -= bumpiness / (2.0 * uBumpFrequency);
+            material.rgb += fbm(vModelPosition * uBumpFrequency) * uBumpAmplitude * bumpiness;
+            material.rgb -= 0.5 * uBumpAmplitude * bumpiness;
         }
     #endif
 
