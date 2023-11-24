@@ -1,0 +1,111 @@
+{
+ "version": 6,
+ "root": {
+  "kind": "root",
+  "children": [
+   {
+    "kind": "canvas",
+    "params": {
+     "background_color": "#ffffee"
+    }
+   },
+   {
+    "kind": "camera",
+    "params": {
+     "target": [17, 21, 27],
+     "position": [54, 41, 91]
+    }
+   },
+   {
+    "kind": "download",
+    "params": {
+     "url": "https://www.ebi.ac.uk/pdbe/entry-files/1cbs.bcif"
+    },
+    "children": [
+     {
+      "kind": "parse",
+      "params": {
+       "format": "bcif"
+      },
+      "children": [
+       {
+        "kind": "structure",
+        "params": {
+         "type": "model"
+        },
+        "children": [
+         {
+          "kind": "component",
+          "params": {
+           "selector": "polymer"
+          },
+          "children": [
+           {
+            "kind": "representation",
+            "params": {
+             "type": "cartoon"
+            },
+            "children": [
+             {
+              "kind": "color",
+              "params": {
+               "color": "green"
+              }
+             },
+             {
+              "kind": "color",
+              "params": {
+               "selector": {
+                "label_asym_id": "A",
+                "end_label_seq_id": 50
+               },
+               "color": "#6688ff"
+              }
+             }
+            ]
+           },
+           {
+            "kind": "label",
+            "params": {
+             "text": "Protein"
+            }
+           }
+          ]
+         },
+         {
+          "kind": "component",
+          "params": {
+           "selector": "ligand"
+          },
+          "children": [
+           {
+            "kind": "representation",
+            "params": {
+             "type": "ball_and_stick"
+            },
+            "children": [
+             {
+              "kind": "color",
+              "params": {
+               "color": "#cc3399"
+              }
+             }
+            ]
+           },
+           {
+            "kind": "label",
+            "params": {
+             "text": "Retinoic Acid"
+            }
+           }
+          ]
+         }
+        ]
+       }
+      ]
+     }
+    ]
+   }
+  ]
+ }
+}

@@ -500,6 +500,12 @@ if (!Object.entries) {
     };
 }
 
+if (!Object.hasOwn) {
+    Object.hasOwn = function (obj: object, key: PropertyKey): boolean {
+        return Object.prototype.hasOwnProperty.call(obj, key);
+    };
+}
+
 // from https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/find
 // https://tc39.github.io/ecma262/#sec-array.prototype.find
 if (!Array.prototype.find) {

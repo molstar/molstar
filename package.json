@@ -163,6 +163,7 @@
     "h264-mp4-encoder": "^1.0.12",
     "immer": "^9.0.21",
     "immutable": "^4.3.4",
+    "io-ts": "^2.2.20",
     "node-fetch": "^2.7.0",
     "rxjs": "^7.8.1",
     "swagger-ui-dist": "^5.10.0",
