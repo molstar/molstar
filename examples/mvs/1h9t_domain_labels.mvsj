@@ -561,11 +561,7 @@
            {
             "kind": "focus",
             "params": {
-             "direction": [
-              -0.3,
-              -0.1,
-              -1
-             ]
+             "direction": [-0.3, -0.1, -1]
             }
            }
           ]

@@ -202,7 +202,6 @@ export class Viewer {
                 [RCSBAssemblySymmetryConfig.DefaultServerUrl, o.rcsbAssemblySymmetryDefaultServerUrl],
                 [RCSBAssemblySymmetryConfig.ApplyColors, o.rcsbAssemblySymmetryApplyColors],
             ],
-            // canvas3d: {cameraResetDurationMs: 1000}, //debug TODO remove
         };
 
         const element = typeof elementOrId === 'string'
