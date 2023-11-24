@@ -6,7 +6,7 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
-- Fix return type of `State.tryGetCellData`
+- Fix `State.tryGetCellData` (return type & data check)
 - Don't change camera.target unless flyMode or pointerLock are enabled
 - Handle empty CIF files
 - Snapshot improvements:
