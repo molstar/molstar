@@ -24,6 +24,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Add drag&drop for `.mvsj` files
 - Fix `bumpiness` scaling with `ignoreLight` enabled
 - Add `transforms` & `label` params to `ShapeFromPly`
+- Optimize `LociSelectManager.selectOnly` to avoid superfluous loci set operations
 
 ## [v3.42.0] - 2023-11-05
 
