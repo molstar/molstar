@@ -17,6 +17,7 @@ import { PluginCommands } from '../../mol-plugin/commands';
 import { PluginContext } from '../../mol-plugin/context';
 import { StateObjectCell, StateSelection, StateTransform } from '../../mol-state';
 import { shallowEqualObjects } from '../../mol-util';
+import { Choice } from '../../mol-util/param-choice';
 import { ParamDefinition } from '../../mol-util/param-definition';
 import { MeshlistData } from '../meshes/mesh-extension';
 
@@ -30,7 +31,7 @@ import { VolsegState, VolsegStateData, VolsegStateParams } from './entry-state';
 import { VolsegVolumeData, SimpleVolumeParamValues, VOLUME_VISUAL_TAG } from './entry-volume';
 import * as ExternalAPIs from './external-api';
 import { VolsegGlobalStateData } from './global-state';
-import { applyEllipsis, Choice, isDefined, lazyGetter, splitEntryId } from './helpers';
+import { applyEllipsis, isDefined, lazyGetter, splitEntryId } from './helpers';
 import { type VolsegStateFromEntry } from './transformers';
 import { StateTransforms } from '../../mol-plugin-state/transforms';
 

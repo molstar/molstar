@@ -3,7 +3,7 @@ All notable changes to this project will be documented in this file, following t
 
 Note that since we don't clearly distinguish between a public and private interfaces there will be changes in non-major versions that are potentially breaking. If we make breaking changes to less used interfaces we will highlight it in here.
 
-## [TODO]
+## [ME]
 
 - Add culling support
     - Cull per-object and per-instance
@@ -18,13 +18,33 @@ Note that since we don't clearly distinguish between a public and private interf
     - pixelScale, pickScale, transparency (blended, wboit, dpoit)
     - replacing instantiation-time attribs
 
+## [TODO]
+
+- [Breaking] Reduce memory usage of `SymmetryOperator.ArrayMapping`
+    - Requires calling methods from instance
+- [Breaking] Fix `mol-model/structure/model/properties/seconday-structure.ts` file name (#938)
+
 ## [Unreleased]
 
-- Fix return type of `State.tryGetCellData`
+- Fix `State.tryGetCellData` (return type & data check)
 - Don't change camera.target unless flyMode or pointerLock are enabled
 - Handle empty CIF files
+- Snapshot improvements:
+    - Add `key` property
+    - Ability to existing snapshot name, key, and description
+    - Support markdown in descriptions (ignores all HTML tags)
+    - Ability to link to snapshots by key from descriptions
+    - Separate UI control showing description of the current snapshot
+- Do not activate drag overlay for non-file content
 - Add `structure-element-sphere` visual to `spacefill` representation
 - Fix missing `await` in `HeadlessPluginContext.saveStateSnapshot`
+- Added support for providing custom sequence viewers to the plugin spec
+- MolViewSpec extension (MVS)
+- Add URL parameters `mvs-url`, `mvs-data`, `mvs-format`
+- Add drag&drop for `.mvsj` files
+- Fix `bumpiness` scaling with `ignoreLight` enabled
+- Add `transforms` & `label` params to `ShapeFromPly`
+- Optimize `LociSelectManager.selectOnly` to avoid superfluous loci set operations
 
 ## [v3.42.0] - 2023-11-05
 

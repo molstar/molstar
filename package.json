@@ -99,7 +99,8 @@
     "Zhenyu Zhang <jump2cn@gmail.com>",
     "Russell Parker <russell@benchling.com>",
     "Dominik Tichy <tichydominik451@gmail.com>",
-    "Yana Rose <yana.v.rose@gmail.com>"
+    "Yana Rose <yana.v.rose@gmail.com>",
+    "Yakov Pechersky <ffxen158@gmail.com>"
   ],
   "license": "MIT",
   "devDependencies": {
@@ -136,6 +137,7 @@
     "raw-loader": "^4.0.2",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
+    "react-markdown": "^9.0.1",
     "sass": "^1.69.5",
     "sass-loader": "^13.3.2",
     "simple-git": "^3.20.0",
@@ -162,6 +164,7 @@
     "h264-mp4-encoder": "^1.0.12",
     "immer": "^9.0.21",
     "immutable": "^4.3.4",
+    "io-ts": "^2.2.20",
     "node-fetch": "^2.7.0",
     "rxjs": "^7.8.1",
     "swagger-ui-dist": "^5.10.0",
