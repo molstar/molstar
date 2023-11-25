@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Sebastian Bittrich <sebastian.bittrich@rcsb.org>
@@ -57,7 +57,7 @@ export function calcUnitBackboneHbonds(unit: Unit.Atomic, proteinInfo: ProteinIn
     const { residueIndices, cIndices, hIndices, nIndices, oIndices } = proteinInfo;
 
     const { index } = unit.model.atomicHierarchy;
-    const { invariantPosition } = unit.conformation;
+    const c = unit.conformation;
     const { traceElementIndex } = unit.model.atomicHierarchy.derived.residue;
 
     const residueCount = residueIndices.length;
@@ -89,9 +89,9 @@ export function calcUnitBackboneHbonds(unit: Unit.Atomic, proteinInfo: ProteinIn
         // ignore C-terminal residue as acceptor
         if (index.findAtomOnResidue(oRI, 'OXT') !== -1) continue;
 
-        invariantPosition(oAtom, oPos);
-        invariantPosition(cAtom, cPos);
-        invariantPosition(caAtom as ElementIndex, caPos);
+        c.invariantPosition(oAtom, oPos);
+        c.invariantPosition(cAtom, cPos);
+        c.invariantPosition(caAtom as ElementIndex, caPos);
 
         const { indices, count } = lookup3d.find(caPos[0], caPos[1], caPos[2], caMaxDist);
 
@@ -104,7 +104,7 @@ export function calcUnitBackboneHbonds(unit: Unit.Atomic, proteinInfo: ProteinIn
             const nAtom = nIndices[nPI];
             if (nAtom === -1) continue;
 
-            invariantPosition(nAtom, nPos);
+            c.invariantPosition(nAtom, nPos);
 
             const hAtom = hIndices[nPI];
             if (hAtom === -1) {
@@ -116,14 +116,14 @@ export function calcUnitBackboneHbonds(unit: Unit.Atomic, proteinInfo: ProteinIn
                 const cAtomPrev = cIndices[nPIprev];
                 if (oAtomPrev === -1 || cAtomPrev === -1) continue;
 
-                invariantPosition(oAtomPrev, oPosPrev);
-                invariantPosition(cAtomPrev, cPosPrev);
+                c.invariantPosition(oAtomPrev, oPosPrev);
+                c.invariantPosition(cAtomPrev, cPosPrev);
 
                 Vec3.sub(hPos, cPosPrev, oPosPrev);
                 const dist = Vec3.distance(oPosPrev, cPosPrev);
                 Vec3.scaleAndAdd(hPos, nPos, hPos, 1 / dist);
             } else {
-                invariantPosition(hAtom, hPos);
+                c.invariantPosition(hAtom, hPos);
             }
 
             const e = calcHbondEnergy(oPos, cPos, nPos, hPos);

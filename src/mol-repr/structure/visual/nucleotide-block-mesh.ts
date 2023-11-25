@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -60,7 +60,7 @@ function createNucleotideBlockMesh(ctx: VisualContext, unit: Unit, structure: St
     const { chainAtomSegments, residueAtomSegments, atoms, index: atomicIndex } = model.atomicHierarchy;
     const { moleculeType, traceElementIndex } = model.atomicHierarchy.derived.residue;
     const { label_comp_id } = atoms;
-    const pos = unit.conformation.invariantPosition;
+    const c = unit.conformation;
 
     const chainIt = Segmentation.transientSegments(chainAtomSegments, elements);
     const residueIt = Segmentation.transientSegments(residueAtomSegments, elements);
@@ -87,7 +87,7 @@ function createNucleotideBlockMesh(ctx: VisualContext, unit: Unit, structure: St
                     // detect Purine or Pyrimidin based on geometry
                     const idxC4 = atomicIndex.findAtomOnResidue(residueIndex, 'C4');
                     const idxN9 = atomicIndex.findAtomOnResidue(residueIndex, 'N9');
-                    if (idxC4 !== -1 && idxN9 !== -1 && Vec3.distance(pos(idxC4, p1), pos(idxN9, p2)) < 1.6) {
+                    if (idxC4 !== -1 && idxN9 !== -1 && Vec3.distance(c.invariantPosition(idxC4, p1), c.invariantPosition(idxN9, p2)) < 1.6) {
                         isPurine = true;
                     } else {
                         isPyrimidine = true;
@@ -117,11 +117,11 @@ function createNucleotideBlockMesh(ctx: VisualContext, unit: Unit, structure: St
                 }
 
                 if (idx5 !== -1 && idx6 !== -1) {
-                    pos(idx5, p5); pos(idx6, p6);
+                    c.invariantPosition(idx5, p5); c.invariantPosition(idx6, p6);
                     builderState.currentGroup = i;
                     addCylinder(builderState, p5, p6, 1, cylinderProps);
                     if (idx1 !== -1 && idx2 !== -1 && idx3 !== -1 && idx4 !== -1) {
-                        pos(idx1, p1); pos(idx2, p2); pos(idx3, p3); pos(idx4, p4);
+                        c.invariantPosition(idx1, p1); c.invariantPosition(idx2, p2); c.invariantPosition(idx3, p3); c.invariantPosition(idx4, p4);
                         Vec3.normalize(v12, Vec3.sub(v12, p2, p1));
                         Vec3.normalize(v34, Vec3.sub(v34, p4, p3));
                         Vec3.normalize(vC, Vec3.cross(vC, v12, v34));

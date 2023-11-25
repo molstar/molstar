@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2020-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -42,14 +42,13 @@ function createIntraUnitClashCylinderMesh(ctx: VisualContext, unit: Unit, struct
 
     if (!edgeCount) return Mesh.createEmpty(mesh);
 
-    const { elements } = unit;
-    const pos = unit.conformation.invariantPosition;
+    const { elements, conformation: c } = unit;
 
     const builderProps = {
         linkCount: edgeCount * 2,
         position: (posA: Vec3, posB: Vec3, edgeIndex: number) => {
-            pos(elements[a[edgeIndex]], posA);
-            pos(elements[b[edgeIndex]], posB);
+            c.invariantPosition(elements[a[edgeIndex]], posA);
+            c.invariantPosition(elements[b[edgeIndex]], posB);
         },
         style: (edgeIndex: number) => LinkStyle.Disk,
         radius: (edgeIndex: number) => magnitude[edgeIndex] * sizeFactor,

@@ -5,6 +5,8 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [TODO]
 
+- [Breaking] Reduce memory usage of `SymmetryOperator.ArrayMapping`
+    - Requires calling methods from instance
 - [Breaking] Fix `mol-model/structure/model/properties/seconday-structure.ts` file name (#938)
 
 ## [Unreleased]
