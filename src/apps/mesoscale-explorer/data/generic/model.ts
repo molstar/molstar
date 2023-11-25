@@ -8,13 +8,14 @@ import { Mat4 } from '../../../../mol-math/linear-algebra/3d/mat4';
 import { ElementIndex, Model, Structure, Unit } from '../../../../mol-model/structure';
 import { PluginStateObject as SO, PluginStateTransform } from '../../../../mol-plugin-state/objects';
 import { Task } from '../../../../mol-task';
-import { StateObject } from '../../../../mol-state';
+import { StateObject, StateTransformer } from '../../../../mol-state';
 import { ParamDefinition as PD } from '../../../../mol-util/param-definition';
 import { SymmetryOperator } from '../../../../mol-math/geometry';
 import { mergeUnits, partitionUnits } from '../util';
 import { Assembly, Symmetry } from '../../../../mol-model/structure/model/properties/symmetry';
 import { ModelSymmetry } from '../../../../mol-model-formats/structure/property/symmetry';
 import { SortedArray } from '../../../../mol-data/int';
+import { deepEqual } from '../../../../mol-util';
 
 function createModelChainMap(model: Model) {
     const builder = new Structure.StructureBuilder();
@@ -106,6 +107,11 @@ const StructureFromGeneric = PluginStateTransform.BuiltIn({
             const props = { label, description: Structure.elementDescription(structure) };
             return new SO.Molecule.Structure(structure, props);
         });
+    },
+    update({ newParams, oldParams }) {
+        return deepEqual(newParams, oldParams)
+            ? StateTransformer.UpdateResult.Unchanged
+            : StateTransformer.UpdateResult.Recreate;
     },
     dispose({ b }) {
         b?.data.customPropertyDescriptors.dispose();
