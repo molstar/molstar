@@ -228,7 +228,7 @@ namespace InteractivityManager {
             const normalized = this.normalizedLoci(current, applyGranularity, true);
             if (StructureElement.Loci.is(normalized.loci)) {
                 // only deselect for the structure of the given loci
-                this.deselect({ loci: Structure.toStructureElementLoci(normalized.loci.structure), repr: normalized.repr }, false);
+                this.mark({ loci: Structure.Loci(normalized.loci.structure), repr: normalized.repr }, MarkerAction.Deselect);
                 this.sel.modify('set', normalized.loci);
             }
             this.mark(normalized, MarkerAction.Select);
