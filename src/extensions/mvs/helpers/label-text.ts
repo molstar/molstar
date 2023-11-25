@@ -50,12 +50,11 @@ export function textPropsForSelection(structure: Structure, sizeFunction: (locat
         const unit = units[iUnit];
         if (onlyInModel && unit.model.id !== onlyInModel.id) continue;
         const ranges = rangesByModel[unit.model.id] ??= getAtomRangesForRows(unit.model, rows, IndicesAndSortings.get(unit.model));
-        const position = unit.conformation.position;
         loc.unit = unit;
         AtomRanges.selectAtomsInRanges(unit.elements, ranges, outAtoms, outFirstAtomIndex);
         for (const atom of outAtoms) {
             loc.element = atom;
-            position(atom, tmpVec);
+            unit.conformation.position(atom, tmpVec);
             arrayExtend(tmpArray, tmpVec);
             group ??= structure.serialMapping.cumulativeUnitElementCount[iUnit] + outFirstAtomIndex.value!;
             atomSize ??= sizeFunction(loc);

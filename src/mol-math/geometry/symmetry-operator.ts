@@ -177,66 +177,81 @@ namespace SymmetryOperator {
     }
 
     class _ArrayMapping<T extends number> implements ArrayMapping<T> {
-        constructor(readonly operator: SymmetryOperator, readonly coordinates: Coordinates, readonly r: ((index: T) => number) = _zeroRadius) { }
+        private readonly _x: ArrayLike<number>;
+        private readonly _y: ArrayLike<number>;
+        private readonly _z: ArrayLike<number>;
+        private readonly _m: Mat4;
+
+        constructor(readonly operator: SymmetryOperator, readonly coordinates: Coordinates, readonly r: ((index: T) => number) = _zeroRadius) {
+            this._x = coordinates.x;
+            this._y = coordinates.y;
+            this._z = coordinates.z;
+            this._m = operator.matrix;
+        }
 
         invariantPosition(i: T, s: Vec3): Vec3 {
-            s[0] = this.coordinates.x[i];
-            s[1] = this.coordinates.y[i];
-            s[2] = this.coordinates.z[i];
+            s[0] = this._x[i];
+            s[1] = this._y[i];
+            s[2] = this._z[i];
             return s;
         }
 
         position(i: T, s: Vec3): Vec3 {
-            s[0] = this.coordinates.x[i];
-            s[1] = this.coordinates.y[i];
-            s[2] = this.coordinates.z[i];
-            Vec3.transformMat4(s, s, this.operator.matrix);
+            s[0] = this._x[i];
+            s[1] = this._y[i];
+            s[2] = this._z[i];
+            Vec3.transformMat4(s, s, this._m);
             return s;
         }
 
         x(i: T): number {
-            const m = this.operator.matrix;
-            const { x: xs, y: ys, z: zs } = this.coordinates;
+            const m = this._m;
             const xx = m[0], yy = m[4], zz = m[8], tx = m[12];
 
-            const x = xs[i], y = ys[i], z = zs[i], w = (m[3] * x + m[7] * y + m[11] * z + m[15]) || 1.0;
+            const x = this._x[i], y = this._y[i], z = this._z[i], w = (m[3] * x + m[7] * y + m[11] * z + m[15]) || 1.0;
             return (xx * x + yy * y + zz * z + tx) / w;
         }
 
         y(i: T): number {
-            const m = this.operator.matrix;
-            const { x: xs, y: ys, z: zs } = this.coordinates;
+            const m = this._m;
             const xx = m[1], yy = m[5], zz = m[9], ty = m[13];
 
-            const x = xs[i], y = ys[i], z = zs[i], w = (m[3] * x + m[7] * y + m[11] * z + m[15]) || 1.0;
+            const x = this._x[i], y = this._y[i], z = this._z[i], w = (m[3] * x + m[7] * y + m[11] * z + m[15]) || 1.0;
             return (xx * x + yy * y + zz * z + ty) / w;
         }
 
         z(i: T): number {
-            const m = this.operator.matrix;
-            const { x: xs, y: ys, z: zs } = this.coordinates;
+            const m = this._m;
             const xx = m[2], yy = m[6], zz = m[10], tz = m[14];
 
-            const x = xs[i], y = ys[i], z = zs[i], w = (m[3] * x + m[7] * y + m[11] * z + m[15]) || 1.0;
+            const x = this._x[i], y = this._y[i], z = this._z[i], w = (m[3] * x + m[7] * y + m[11] * z + m[15]) || 1.0;
             return (xx * x + yy * y + zz * z + tz) / w;
         }
     }
 
     class _ArrayMappingW1<T extends number> implements ArrayMapping<T> {
-        constructor(readonly operator: SymmetryOperator, readonly coordinates: Coordinates, readonly r: ((index: T) => number) = _zeroRadius) { }
+        private readonly _x: ArrayLike<number>;
+        private readonly _y: ArrayLike<number>;
+        private readonly _z: ArrayLike<number>;
+        private readonly _m: Mat4;
+
+        constructor(readonly operator: SymmetryOperator, readonly coordinates: Coordinates, readonly r: ((index: T) => number) = _zeroRadius) {
+            this._x = coordinates.x;
+            this._y = coordinates.y;
+            this._z = coordinates.z;
+            this._m = operator.matrix;
+        }
 
         invariantPosition(i: T, s: Vec3): Vec3 {
-            const c = this.coordinates;
-            s[0] = c.x[i];
-            s[1] = c.y[i];
-            s[2] = c.z[i];
+            s[0] = this._x[i];
+            s[1] = this._y[i];
+            s[2] = this._z[i];
             return s;
         }
 
         position(i: T, s: Vec3): Vec3 {
-            const m = this.operator.matrix;
-            const c = this.coordinates;
-            const x = c.x[i], y = c.y[i], z = c.z[i];
+            const m = this._m;
+            const x = this._x[i], y = this._y[i], z = this._z[i];
             s[0] = m[0] * x + m[4] * y + m[8] * z + m[12];
             s[1] = m[1] * x + m[5] * y + m[9] * z + m[13];
             s[2] = m[2] * x + m[6] * y + m[10] * z + m[14];
@@ -244,21 +259,18 @@ namespace SymmetryOperator {
         }
 
         x(i: T): number {
-            const m = this.operator.matrix;
-            const c = this.coordinates;
-            return m[0] * c.x[i] + m[4] * c.y[i] + m[8] * c.z[i] + m[12];
+            const m = this._m;
+            return m[0] * this._x[i] + m[4] * this._y[i] + m[8] * this._z[i] + m[12];
         }
 
         y(i: T): number {
-            const m = this.operator.matrix;
-            const c = this.coordinates;
-            return m[1] * c.x[i] + m[5] * c.y[i] + m[9] * c.z[i] + m[13];
+            const m = this._m;
+            return m[1] * this._x[i] + m[5] * this._y[i] + m[9] * this._z[i] + m[13];
         }
 
         z(i: T): number {
-            const m = this.operator.matrix;
-            const c = this.coordinates;
-            return m[2] * c.x[i] + m[6] * c.y[i] + m[10] * c.z[i] + m[14];
+            const m = this._m;
+            return m[2] * this._x[i] + m[6] * this._y[i] + m[10] * this._z[i] + m[14];
         }
     }
 
