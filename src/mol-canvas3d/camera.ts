@@ -116,7 +116,7 @@ class Camera implements ICamera {
     }
 
     getTargetDistance(radius: number) {
-        return Camera.targetDistance(radius, this.state.fov, this.viewport.width, this.viewport.height);
+        return Camera.targetDistance(radius, this.state.mode, this.state.fov, this.viewport.width, this.viewport.height);
     }
 
     getFocus(target: Vec3, radius: number, up?: Vec3, dir?: Vec3, snapshot?: Partial<Camera.Snapshot>): Partial<Camera.Snapshot> {
@@ -257,11 +257,14 @@ namespace Camera {
         out.height = view.height;
     }
 
-    export function targetDistance(radius: number, fov: number, width: number, height: number) {
+    export function targetDistance(radius: number, mode: Mode, fov: number, width: number, height: number) {
         const r = Math.max(radius, 0.01);
         const aspect = width / height;
         const aspectFactor = (height < width ? 1 : aspect);
-        return Math.abs((r / aspectFactor) / Math.sin(fov / 2));
+        if (mode === 'orthographic')
+            return Math.abs((r / aspectFactor) / Math.tan(fov / 2));
+        else
+            return Math.abs((r / aspectFactor) / Math.sin(fov / 2));
     }
 
     export function createDefaultSnapshot(): Snapshot {
