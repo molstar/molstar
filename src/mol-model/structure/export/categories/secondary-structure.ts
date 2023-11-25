@@ -6,7 +6,7 @@
 
 import { Segmentation } from '../../../../mol-data/int';
 import { CifWriter } from '../../../../mol-io/writer/cif';
-import { SecondaryStructure } from '../../model/properties/seconday-structure';
+import { SecondaryStructure } from '../../model/properties/secondary-structure';
 import { StructureElement, Unit } from '../../structure';
 import { CifExportContext } from '../mmcif';
 import CifField = CifWriter.Field
