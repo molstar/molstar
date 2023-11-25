@@ -131,8 +131,8 @@ function generalPosition<T extends number>({ matrix: m }: SymmetryOperator, { x:
 
 //
 
-function getData(size: number) {
-    const op = SymmetryOperator.create('id', Mat4.identity());
+function getData(size: number, m: Mat4) {
+    const op = SymmetryOperator.create('op', m);
     const coords = {
         x: new Float32Array(size),
         y: new Float32Array(size),
@@ -192,10 +192,15 @@ function testInvPos(mapping: SymmetryOperator.ArrayMapping<number>) {
     return sum /= n;
 }
 
-function run(size: number) {
+function run(size: number, variant: 'identity' | 'w1') {
     const suite = new B.Suite();
 
-    const { op, coords } = getData(size);
+    const m = Mat4.identity();
+    if (variant === 'w1') {
+        Mat4.setTranslation(m, Vec3.create(1, 1, 1));
+    }
+
+    const { op, coords } = getData(size, m);
     const mappingClass = getArrayMappingClass(op, coords);
     const mappingClosures = getArrayMappingClosures(op, coords);
 
@@ -207,37 +212,52 @@ function run(size: number) {
         .add('closures testPos', () => testPos(mappingClosures))
         .add('closures testInvPos', () => testInvPos(mappingClosures))
         .on('cycle', (e: any) => {
-            console.log(size, String(e.target));
+            console.log(size, variant, String(e.target));
         })
         .run();
 }
 
-run(10000);
-run(100000);
-run(1000000);
-run(10000000);
+run(10000, 'identity');
+run(100000, 'identity');
+run(1000000, 'identity');
 
-// 10000 class testXYZ x 48,383 ops/sec ±0.39% (94 runs sampled)
-// 10000 class testPos x 56,421 ops/sec ±0.50% (98 runs sampled)
-// 10000 class testInvPos x 59,019 ops/sec ±0.15% (100 runs sampled)
-// 10000 closures testXYZ x 7,788 ops/sec ±6.39% (91 runs sampled)
-// 10000 closures testPos x 35,736 ops/sec ±11.59% (98 runs sampled)
-// 10000 closures testInvPos x 35,501 ops/sec ±11.78% (95 runs sampled)
-// 100000 class testXYZ x 603 ops/sec ±0.40% (95 runs sampled)
-// 100000 class testPos x 1,391 ops/sec ±0.45% (98 runs sampled)
-// 100000 class testInvPos x 1,650 ops/sec ±0.73% (92 runs sampled)
-// 100000 closures testXYZ x 724 ops/sec ±0.39% (95 runs sampled)
-// 100000 closures testPos x 1,612 ops/sec ±0.47% (94 runs sampled)
-// 100000 closures testInvPos x 1,626 ops/sec ±0.32% (95 runs sampled)
-// 1000000 class testXYZ x 55.15 ops/sec ±0.49% (59 runs sampled)
-// 1000000 class testPos x 132 ops/sec ±0.52% (77 runs sampled)
-// 1000000 class testInvPos x 181 ops/sec ±0.85% (85 runs sampled)
-// 1000000 closures testXYZ x 70.03 ops/sec ±0.54% (73 runs sampled)
-// 1000000 closures testPos x 163 ops/sec ±0.53% (84 runs sampled)
-// 1000000 closures testInvPos x 156 ops/sec ±0.42% (81 runs sampled)
-// 10000000 class testXYZ x 6.09 ops/sec ±1.32% (20 runs sampled)
-// 10000000 class testPos x 14.15 ops/sec ±0.49% (40 runs sampled)
-// 10000000 class testInvPos x 18.02 ops/sec ±0.59% (49 runs sampled)
-// 10000000 closures testXYZ x 7.30 ops/sec ±0.69% (23 runs sampled)
-// 10000000 closures testPos x 16.39 ops/sec ±0.57% (45 runs sampled)
-// 10000000 closures testInvPos x 15.23 ops/sec ±0.53% (42 runs sampled)
+run(10000, 'w1');
+run(100000, 'w1');
+run(1000000, 'w1');
+
+// 10000 identity class testXYZ x 59,722 ops/sec ±0.20% (97 runs sampled)
+// 10000 identity class testPos x 59,060 ops/sec ±0.13% (99 runs sampled)
+// 10000 identity class testInvPos x 59,138 ops/sec ±0.16% (98 runs sampled)
+// 10000 identity closures testXYZ x 8,425 ops/sec ±7.19% (92 runs sampled)
+// 10000 identity closures testPos x 37,082 ops/sec ±11.28% (97 runs sampled)
+// 10000 identity closures testInvPos x 36,770 ops/sec ±11.51% (92 runs sampled)
+// 100000 identity class testXYZ x 759 ops/sec ±0.27% (96 runs sampled)
+// 100000 identity class testPos x 1,845 ops/sec ±0.28% (100 runs sampled)
+// 100000 identity class testInvPos x 1,853 ops/sec ±0.14% (98 runs sampled)
+// 100000 identity closures testXYZ x 750 ops/sec ±0.16% (96 runs sampled)
+// 100000 identity closures testPos x 1,675 ops/sec ±0.36% (98 runs sampled)
+// 100000 identity closures testInvPos x 1,683 ops/sec ±0.28% (96 runs sampled)
+// 1000000 identity class testXYZ x 75.04 ops/sec ±0.31% (78 runs sampled)
+// 1000000 identity class testPos x 184 ops/sec ±0.22% (87 runs sampled)
+// 1000000 identity class testInvPos x 185 ops/sec ±0.38% (87 runs sampled)
+// 1000000 identity closures testXYZ x 72.23 ops/sec ±0.22% (76 runs sampled)
+// 1000000 identity closures testPos x 165 ops/sec ±1.96% (86 runs sampled)
+// 1000000 identity closures testInvPos x 167 ops/sec ±0.26% (86 runs sampled)
+// 10000 w1 class testXYZ x 6,084 ops/sec ±0.17% (101 runs sampled)
+// 10000 w1 class testPos x 12,190 ops/sec ±0.60% (95 runs sampled)
+// 10000 w1 class testInvPos x 17,345 ops/sec ±0.33% (100 runs sampled)
+// 10000 w1 closures testXYZ x 7,327 ops/sec ±0.40% (98 runs sampled)
+// 10000 w1 closures testPos x 15,059 ops/sec ±0.29% (100 runs sampled)
+// 10000 w1 closures testInvPos x 16,798 ops/sec ±0.33% (101 runs sampled)
+// 100000 w1 class testXYZ x 601 ops/sec ±0.43% (94 runs sampled)
+// 100000 w1 class testPos x 1,209 ops/sec ±0.22% (93 runs sampled)
+// 100000 w1 class testInvPos x 1,755 ops/sec ±0.17% (97 runs sampled)
+// 100000 w1 closures testXYZ x 486 ops/sec ±0.18% (96 runs sampled)
+// 100000 w1 closures testPos x 1,286 ops/sec ±0.29% (98 runs sampled)
+// 100000 w1 closures testInvPos x 1,692 ops/sec ±0.14% (96 runs sampled)
+// 1000000 w1 class testXYZ x 57.38 ops/sec ±0.87% (69 runs sampled)
+// 1000000 w1 class testPos x 130 ops/sec ±0.18% (84 runs sampled)
+// 1000000 w1 class testInvPos x 163 ops/sec ±0.36% (84 runs sampled)
+// 1000000 w1 closures testXYZ x 48.55 ops/sec ±0.25% (64 runs sampled)
+// 1000000 w1 closures testPos x 129 ops/sec ±0.51% (84 runs sampled)
+// 1000000 w1 closures testInvPos x 169 ops/sec ±0.23% (87 runs sampled)

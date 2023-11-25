@@ -250,11 +250,9 @@ namespace SymmetryOperator {
         }
 
         position(i: T, s: Vec3): Vec3 {
-            const m = this._m;
-            const x = this._x[i], y = this._y[i], z = this._z[i];
-            s[0] = m[0] * x + m[4] * y + m[8] * z + m[12];
-            s[1] = m[1] * x + m[5] * y + m[9] * z + m[13];
-            s[2] = m[2] * x + m[6] * y + m[10] * z + m[14];
+            s[0] = this.x(i);
+            s[1] = this.y(i);
+            s[2] = this.z(i);
             return s;
         }
 
@@ -274,10 +272,52 @@ namespace SymmetryOperator {
         }
     }
 
+    class _ArrayMappingIdentity<T extends number> implements ArrayMapping<T> {
+        private readonly _x: ArrayLike<number>;
+        private readonly _y: ArrayLike<number>;
+        private readonly _z: ArrayLike<number>;
+
+        constructor(readonly operator: SymmetryOperator, readonly coordinates: Coordinates, readonly r: ((index: T) => number) = _zeroRadius) {
+            this._x = coordinates.x;
+            this._y = coordinates.y;
+            this._z = coordinates.z;
+        }
+
+        invariantPosition(i: T, s: Vec3): Vec3 {
+            s[0] = this._x[i];
+            s[1] = this._y[i];
+            s[2] = this._z[i];
+            return s;
+        }
+
+        position(i: T, s: Vec3): Vec3 {
+            s[0] = this._x[i];
+            s[1] = this._y[i];
+            s[2] = this._z[i];
+            return s;
+        }
+
+        x(i: T): number {
+            return this._x[i];
+        }
+
+        y(i: T): number {
+            return this._y[i];
+        }
+
+        z(i: T): number {
+            return this._z[i];
+        }
+    }
+
     export interface Coordinates { x: ArrayLike<number>, y: ArrayLike<number>, z: ArrayLike<number> }
 
     export function createMapping<T extends number>(operator: SymmetryOperator, coords: Coordinates, radius: ((index: T) => number) = _zeroRadius): ArrayMapping<T> {
-        return isW1(operator.matrix) ? new _ArrayMappingW1(operator, coords, radius) : new _ArrayMapping(operator, coords, radius);
+        return Mat4.isIdentity(operator.matrix)
+            ? new _ArrayMappingIdentity(operator, coords, radius)
+            : isW1(operator.matrix)
+                ? new _ArrayMappingW1(operator, coords, radius)
+                : new _ArrayMapping(operator, coords, radius);
     }
 }
 
