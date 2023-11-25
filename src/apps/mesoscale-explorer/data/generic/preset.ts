@@ -270,6 +270,8 @@ export async function createGenericHierarchy(plugin: PluginContext, file: Asset.
             plugin.animationLoop.start();
         }
     }).run();
+
+    asset.dispose();
 }
 
 //
