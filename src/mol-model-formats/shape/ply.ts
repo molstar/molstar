@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Schäfer, Marco <marco.schaefer@uni-tuebingen.de>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -20,9 +20,15 @@ import { ColorNames } from '../../mol-util/color/names';
 import { deepClone } from '../../mol-util/object';
 import { stringToWords } from '../../mol-util/string';
 import { ValueCell } from '../../mol-util/value-cell';
+import { Mat4 } from '../../mol-math/linear-algebra/3d/mat4';
 
 // TODO support 'edge' element, see https://www.mathworks.com/help/vision/ug/the-ply-format.html
 // TODO support missing face element
+
+export type PlyData = {
+    source: PlyFile,
+    transforms?: Mat4[],
+}
 
 function createPlyShapeParams(plyFile?: PlyFile) {
     const vertex = plyFile && plyFile.getElement('vertex') as PlyTable;
@@ -85,7 +91,9 @@ function createPlyShapeParams(plyFile?: PlyFile) {
                 blue: PD.Select(defaultValues.mBlue, materialOptions, { label: 'Blue Property' }),
             }, { isFlat: true }),
             uniform: PD.Group({
-                color: PD.Color(ColorNames.grey)
+                color: PD.Color(ColorNames.grey),
+                saturation: PD.Numeric(0, { min: -6, max: 6, step: 0.1 }),
+                lightness: PD.Numeric(0, { min: -6, max: 6, step: 0.1 }),
             }, { isFlat: true })
         }),
         grouping: PD.MappedStatic(defaultValues.group ? 'vertex' : 'none', {
@@ -208,7 +216,10 @@ function getColoring(vertex: PlyTable, material: PlyTable | undefined, props: PD
         green = (material && material.getProperty(coloring.params.green)) || Column.ofConst(127, rowCount, int);
         blue = (material && material.getProperty(coloring.params.blue)) || Column.ofConst(127, rowCount, int);
     } else {
-        const [r, g, b] = Color.toRgb(coloring.params.color);
+        let color = coloring.params.color;
+        color = Color.saturate(color, coloring.params.saturation);
+        color = Color.lighten(color, coloring.params.lightness);
+        const [r, g, b] = Color.toRgb(color);
         red = Column.ofConst(r, rowCount, int);
         green = Column.ofConst(g, rowCount, int);
         blue = Column.ofConst(b, rowCount, int);
@@ -216,11 +227,12 @@ function getColoring(vertex: PlyTable, material: PlyTable | undefined, props: PD
     return { kind: coloring.name, red, green, blue };
 }
 
-function createShape(plyFile: PlyFile, mesh: Mesh, coloring: Coloring, grouping: Grouping) {
+function createShape(plyData: PlyData, mesh: Mesh, coloring: Coloring, grouping: Grouping) {
     const { kind, red, green, blue } = coloring;
     const { ids, map, label } = grouping;
+    const { source, transforms } = plyData;
     return Shape.create(
-        'ply-mesh', plyFile, mesh,
+        'ply-mesh', source, mesh,
         (groupId: number) => {
             const idx = kind === 'material' ? groupId : map[groupId];
             return Color.fromRgb(red.value(idx), green.value(idx), blue.value(idx));
@@ -228,12 +240,13 @@ function createShape(plyFile: PlyFile, mesh: Mesh, coloring: Coloring, grouping:
         () => 1, // size: constant
         (groupId: number) => {
             return `${label} ${ids[groupId]}`;
-        }
+        },
+        transforms
     );
 }
 
 function makeShapeGetter() {
-    let _plyFile: PlyFile | undefined;
+    let _plyData: PlyData | undefined;
     let _props: PD.Values<PlyShapeParams> | undefined;
 
     let _shape: Shape<Mesh>;
@@ -241,20 +254,19 @@ function makeShapeGetter() {
     let _coloring: Coloring;
     let _grouping: Grouping;
 
-    const getShape = async (ctx: RuntimeContext, plyFile: PlyFile, props: PD.Values<PlyShapeParams>, shape?: Shape<Mesh>) => {
-
-        const vertex = plyFile.getElement('vertex') as PlyTable;
+    const getShape = async (ctx: RuntimeContext, plyData: PlyData, props: PD.Values<PlyShapeParams>, shape?: Shape<Mesh>) => {
+        const vertex = plyData.source.getElement('vertex') as PlyTable;
         if (!vertex) throw new Error('missing vertex element');
 
-        const face = plyFile.getElement('face') as PlyList;
+        const face = plyData.source.getElement('face') as PlyList;
         if (!face) throw new Error('missing face element');
 
-        const material = plyFile.getElement('material') as PlyTable;
+        const material = plyData.source.getElement('material') as PlyTable;
 
         let newMesh = false;
         let newColor = false;
 
-        if (!_plyFile || _plyFile !== plyFile) {
+        if (!_plyData || _plyData !== _plyData) {
             newMesh = true;
         }
 
@@ -270,13 +282,13 @@ function makeShapeGetter() {
             _coloring = getColoring(vertex, material, props);
             _grouping = getGrouping(vertex, props);
             _mesh = await getMesh(ctx, vertex, face, _grouping.ids, shape && shape.geometry);
-            _shape = createShape(plyFile, _mesh, _coloring, _grouping);
+            _shape = createShape(plyData, _mesh, _coloring, _grouping);
         } else if (newColor) {
             _coloring = getColoring(vertex, material, props);
-            _shape = createShape(plyFile, _mesh, _coloring, _grouping);
+            _shape = createShape(plyData, _mesh, _coloring, _grouping);
         }
 
-        _plyFile = plyFile;
+        _plyData = plyData;
         _props = deepClone(props);
 
         return _shape;
@@ -284,11 +296,11 @@ function makeShapeGetter() {
     return getShape;
 }
 
-export function shapeFromPly(source: PlyFile, params?: {}) {
-    return Task.create<ShapeProvider<PlyFile, Mesh, PlyShapeParams>>('Shape Provider', async ctx => {
+export function shapeFromPly(source: PlyFile, params?: { transforms?: Mat4[] }) {
+    return Task.create<ShapeProvider<PlyData, Mesh, PlyShapeParams>>('Shape Provider', async ctx => {
         return {
             label: 'Mesh',
-            data: source,
+            data: { source, transforms: params?.transforms },
             params: createPlyShapeParams(source),
             getShape: makeShapeGetter(),
             geometryUtils: Mesh.Utils

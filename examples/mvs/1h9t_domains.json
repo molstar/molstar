@@ -1,0 +1,155 @@
+[
+    {
+        "label_asym_id": "A",
+        "beg_label_seq_id": 9,
+        "end_label_seq_id": 83,
+        "color": "#dd6600",
+        "tooltip": "DNA-binding"
+    },
+    {
+        "label_asym_id": "A",
+        "beg_label_seq_id": 84,
+        "end_label_seq_id": 231,
+        "color": "#008800",
+        "tooltip": "Acyl-CoA binding"
+    },
+    {
+        "label_asym_id": "B",
+        "beg_label_seq_id": 9,
+        "end_label_seq_id": 83,
+        "color": "#cc8800",
+        "tooltip": "DNA-binding"
+    },
+    {
+        "label_asym_id": "B",
+        "beg_label_seq_id": 84,
+        "end_label_seq_id": 231,
+        "color": "#008888",
+        "tooltip": "Acyl-CoA binding"
+    },
+    {
+        "label_asym_id": "C",
+        "color": "#1100aa",
+        "tooltip": "DNA X"
+    },
+    {
+        "label_asym_id": "D",
+        "color": "#dddddd",
+        "tooltip": "DNA Y"
+    },
+    {
+        "label_asym_id": "D",
+        "atom_id": 4016,
+        "color": "#ff0044",
+        "tooltip": "DNA Y - O5'"
+    },
+    {
+        "label_asym_id": "D",
+        "atom_id": 4391,
+        "color": "#4400ff",
+        "tooltip": "DNA Y - O3'"
+    },
+    
+
+    {
+        "label_asym_id": "E",
+        "color": "#ffff00",
+        "tooltip": "Gold"
+    },
+    {
+        "label_asym_id": "H",
+        "color": "#ffff00",
+        "tooltip": "Gold"
+    },
+    {
+        "label_asym_id": "F",
+        "color": "#00dd00",
+        "tooltip": "Chloride"
+    },
+    {
+        "label_asym_id": "G",
+        "color": "#00dd00",
+        "tooltip": "Chloride"
+    },
+    {
+        "label_asym_id": "I",
+        "color": "#00dd00",
+        "tooltip": "Chloride"
+    },
+
+    {
+        "label_asym_id": "A",
+        "label_seq_id": 57,
+        "color": "#ff0000",
+        "tooltip": "Ligand binding site"
+    },
+    {
+        "label_asym_id": "A",
+        "label_seq_id": 67,
+        "color": "#ff0000",
+        "tooltip": "Ligand binding site"
+    },
+    {
+        "label_asym_id": "A",
+        "label_seq_id": 121,
+        "color": "#ff0000",
+        "tooltip": "Ligand binding site"
+    },
+    {
+        "label_asym_id": "A",
+        "label_seq_id": 125,
+        "color": "#ff0000",
+        "tooltip": "Ligand binding site"
+    },
+    {
+        "label_asym_id": "A",
+        "label_seq_id": 129,
+        "color": "#ff0000",
+        "tooltip": "Ligand binding site"
+    },
+    {
+        "label_asym_id": "A",
+        "label_seq_id": 178,
+        "color": "#ff0000",
+        "tooltip": "Ligand binding site"
+    },
+    {
+        "label_asym_id": "A",
+        "beg_label_seq_id": 203,
+        "end_label_seq_id": 205,
+        "color": "#ff0000",
+        "tooltip": "Ligand binding site"
+    },
+
+    {
+        "label_asym_id": "B",
+        "label_seq_id": 67,
+        "color": "#ff0000",
+        "tooltip": "Ligand binding site"
+    },
+    {
+        "label_asym_id": "B",
+        "label_seq_id": 121,
+        "color": "#ff0000",
+        "tooltip": "Ligand binding site"
+    },
+    {
+        "label_asym_id": "B",
+        "label_seq_id": 125,
+        "color": "#ff0000",
+        "tooltip": "Ligand binding site"
+    },
+    {
+        "label_asym_id": "B",
+        "label_seq_id": 129,
+        "color": "#ff0000",
+        "tooltip": "Ligand binding site"
+    },
+    {
+        "label_asym_id": "B",
+        "beg_label_seq_id": 203,
+        "end_label_seq_id": 205,
+        "color": "#ff0000",
+        "tooltip": "Ligand binding site"
+    }
+]

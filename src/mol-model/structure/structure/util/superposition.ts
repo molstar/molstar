@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019-2020 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -69,13 +69,12 @@ export function getPositionTable(xs: StructureElement.Loci, n: number): Minimize
     let o = 0;
     for (const u of xs.elements) {
         const { unit, indices } = u;
-        const { elements } = unit;
-        const { x, y, z } = unit.conformation;
+        const { elements, conformation: c } = unit;
         for (let i = 0, _i = OrderedSet.size(indices); i < _i; i++) {
             const e = elements[OrderedSet.getAt(indices, i)];
-            ret.x[o] = x(e);
-            ret.y[o] = y(e);
-            ret.z[o] = z(e);
+            ret.x[o] = c.x(e);
+            ret.y[o] = c.y(e);
+            ret.z[o] = c.z(e);
             o++;
             if (o >= n) break;
         }

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2019-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -25,17 +25,17 @@ import { Sphere3D } from '../../../mol-math/geometry';
 
 // TODO support rings for multiple locations (including from microheterogeneity)
 
-const pTrace = Vec3.zero();
-const pN1 = Vec3.zero();
-const pC2 = Vec3.zero();
-const pN3 = Vec3.zero();
-const pC4 = Vec3.zero();
-const pC5 = Vec3.zero();
-const pC6 = Vec3.zero();
-const pN7 = Vec3.zero();
-const pC8 = Vec3.zero();
-const pN9 = Vec3.zero();
-const normal = Vec3.zero();
+const pTrace = Vec3();
+const pN1 = Vec3();
+const pC2 = Vec3();
+const pN3 = Vec3();
+const pC4 = Vec3();
+const pC5 = Vec3();
+const pC6 = Vec3();
+const pN7 = Vec3();
+const pC8 = Vec3();
+const pN9 = Vec3();
+const normal = Vec3();
 
 export const NucleotideRingMeshParams = {
     sizeFactor: PD.Numeric(0.2, { min: 0, max: 10, step: 0.01 }),
@@ -79,7 +79,7 @@ function createNucleotideRingMesh(ctx: VisualContext, unit: Unit, structure: Str
     const { chainAtomSegments, residueAtomSegments, atoms, index: atomicIndex } = model.atomicHierarchy;
     const { moleculeType, traceElementIndex } = model.atomicHierarchy.derived.residue;
     const { label_comp_id } = atoms;
-    const pos = unit.conformation.invariantPosition;
+    const c = unit.conformation;
 
     const chainIt = Segmentation.transientSegments(chainAtomSegments, elements);
     const residueIt = Segmentation.transientSegments(residueAtomSegments, elements);
@@ -109,7 +109,7 @@ function createNucleotideRingMesh(ctx: VisualContext, unit: Unit, structure: Str
                     // detect Purine or Pyrimidin based on geometry
                     const idxC4 = atomicIndex.findAtomOnResidue(residueIndex, 'C4');
                     const idxN9 = atomicIndex.findAtomOnResidue(residueIndex, 'N9');
-                    if (idxC4 !== -1 && idxN9 !== -1 && Vec3.distance(pos(idxC4, pC4), pos(idxN9, pN9)) < 1.6) {
+                    if (idxC4 !== -1 && idxN9 !== -1 && Vec3.distance(c.invariantPosition(idxC4, pC4), c.invariantPosition(idxN9, pN9)) < 1.6) {
                         isPurine = true;
                     } else {
                         isPyrimidine = true;
@@ -137,14 +137,14 @@ function createNucleotideRingMesh(ctx: VisualContext, unit: Unit, structure: Str
                     idxN9 = atomicIndex.findAtomOnResidue(residueIndex, 'N9');
 
                     if (idxN9 !== -1 && idxTrace !== -1) {
-                        pos(idxN9, pN9); pos(idxTrace, pTrace);
+                        c.invariantPosition(idxN9, pN9); c.invariantPosition(idxTrace, pTrace);
                         builderState.currentGroup = i;
                         addCylinder(builderState, pN9, pTrace, 1, cylinderProps);
                         addSphere(builderState, pN9, radius, detail);
                     }
 
                     if (idxN1 !== -1 && idxC2 !== -1 && idxN3 !== -1 && idxC4 !== -1 && idxC5 !== -1 && idxC6 !== -1 && idxN7 !== -1 && idxC8 !== -1 && idxN9 !== -1) {
-                        pos(idxN1, pN1); pos(idxC2, pC2); pos(idxN3, pN3); pos(idxC4, pC4); pos(idxC5, pC5); pos(idxC6, pC6); pos(idxN7, pN7); pos(idxC8, pC8);
+                        c.invariantPosition(idxN1, pN1); c.invariantPosition(idxC2, pC2); c.invariantPosition(idxN3, pN3); c.invariantPosition(idxC4, pC4); c.invariantPosition(idxC5, pC5); c.invariantPosition(idxC6, pC6); c.invariantPosition(idxN7, pN7); c.invariantPosition(idxC8, pC8);
 
                         Vec3.triangleNormal(normal, pN1, pC4, pC5);
                         Vec3.scale(normal, normal, halfThickness);
@@ -168,14 +168,14 @@ function createNucleotideRingMesh(ctx: VisualContext, unit: Unit, structure: Str
                     idxC6 = atomicIndex.findAtomOnResidue(residueIndex, 'C6');
 
                     if (idxN1 !== -1 && idxTrace !== -1) {
-                        pos(idxN1, pN1); pos(idxTrace, pTrace);
+                        c.invariantPosition(idxN1, pN1); c.invariantPosition(idxTrace, pTrace);
                         builderState.currentGroup = i;
                         addCylinder(builderState, pN1, pTrace, 1, cylinderProps);
                         addSphere(builderState, pN1, radius, detail);
                     }
 
                     if (idxN1 !== -1 && idxC2 !== -1 && idxN3 !== -1 && idxC4 !== -1 && idxC5 !== -1 && idxC6 !== -1) {
-                        pos(idxC2, pC2); pos(idxN3, pN3); pos(idxC4, pC4); pos(idxC5, pC5); pos(idxC6, pC6);
+                        c.invariantPosition(idxC2, pC2); c.invariantPosition(idxN3, pN3); c.invariantPosition(idxC4, pC4); c.invariantPosition(idxC5, pC5); c.invariantPosition(idxC6, pC6);
 
                         Vec3.triangleNormal(normal, pN1, pC4, pC5);
                         Vec3.scale(normal, normal, halfThickness);
