@@ -15,6 +15,9 @@ import { mergeUnits, partitionUnits } from '../util';
 import { Assembly, Symmetry } from '../../../../mol-model/structure/model/properties/symmetry';
 import { ModelSymmetry } from '../../../../mol-model-formats/structure/property/symmetry';
 import { SortedArray } from '../../../../mol-data/int';
+import { GenericInstances, getTransforms } from './preset';
+import { Asset } from '../../../../mol-util/assets';
+import { PluginContext } from '../../../../mol-plugin/context';
 import { deepEqual } from '../../../../mol-util';
 
 function createModelChainMap(model: Model) {
@@ -58,7 +61,10 @@ function buildAssembly(model: Model, assembly: Assembly) {
     return assembler.getStructure();
 }
 
-
+const EmptyInstances: GenericInstances<Asset> = {
+    positions: { data: [] },
+    rotations: { variant: 'euler', data: [] }
+};
 
 export { StructureFromGeneric };
 type StructureFromGeneric = typeof StructureFromGeneric
@@ -68,14 +74,15 @@ const StructureFromGeneric = PluginStateTransform.BuiltIn({
     from: SO.Molecule.Model,
     to: SO.Molecule.Structure,
     params: {
-        transforms: PD.Value<Mat4[]>([]),
+        instances: PD.Value<GenericInstances<Asset>>(EmptyInstances),
         label: PD.Optional(PD.Text('')),
         cellSize: PD.Numeric(500, { min: 0, max: 10000, step: 100 }),
     }
 })({
-    apply({ a, params }) {
+    apply({ a, params }, plugin: PluginContext) {
         return Task.create('Build Structure', async ctx => {
-            if (params.transforms.length === 0) return StateObject.Null;
+            const transforms = await getTransforms(plugin, params.instances);
+            if (transforms.length === 0) return StateObject.Null;
 
             const model = a.data;
             const label = params.label || model.label;
@@ -83,7 +90,7 @@ const StructureFromGeneric = PluginStateTransform.BuiltIn({
             const base = Structure.ofModel(a.data);
 
             let structure: Structure;
-            if (params.transforms.length === 1 && Mat4.isIdentity(params.transforms[0])) {
+            if (transforms.length === 1 && Mat4.isIdentity(transforms[0])) {
                 const symmetry = ModelSymmetry.Provider.get(model);
                 const id = symmetry?.assemblies[0]?.id;
                 const asm = Symmetry.findAssembly(model, id || '');
@@ -96,8 +103,8 @@ const StructureFromGeneric = PluginStateTransform.BuiltIn({
             } else {
                 const assembler = Structure.Builder({ label });
                 const unit = mergeUnits(base.units, 0);
-                for (let i = 0, il = params.transforms.length; i < il; ++i) {
-                    const t = params.transforms[i];
+                for (let i = 0, il = transforms.length; i < il; ++i) {
+                    const t = transforms[i];
                     const op = SymmetryOperator.create(`op-${i}`, t);
                     assembler.addWithOperator(unit, op);
                 }

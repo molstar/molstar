@@ -147,31 +147,37 @@ export async function createGenericHierarchy(plugin: PluginContext, file: Asset.
         }
     }
 
-    const p = Vec3();
-    const q = Quat();
-    const m = Mat3();
-    const e = Euler();
-
-    const getPositions = (p: GenericInstances['positions']): NumberArray => {
-        if (Array.isArray(p.data)) {
-            return p.data;
-        } else {
-            const a = asset.data[p.data.file];
-            const o = p.data.view?.byteOffset || 0;
-            const l = p.data.view?.byteLength || a.byteLength;
-            return new Float32Array(a.buffer, o + a.byteOffset, l / 4);
+    const transformAssets = new Map<string, Asset>();
+    const getTransformAsset = (file: string) => {
+        if (!transformAssets.has(file)) {
+            const d = asset.data[file];
+            transformAssets.set(file, Asset.File(new File([d], file)));
         }
+        return transformAssets.get(file)!;
     };
 
-    const getRotations = (r: GenericInstances['rotations']): NumberArray => {
-        if (Array.isArray(r.data)) {
-            return r.data;
-        } else {
-            const a = asset.data[r.data.file];
-            const o = r.data.view?.byteOffset || 0;
-            const l = r.data.view?.byteLength || a.byteLength;
-            return new Float32Array(a.buffer, o + a.byteOffset, l / 4);
-        }
+    const getAssetInstances = (instances: GenericInstances<string>): GenericInstances<Asset> => {
+        return {
+            positions: {
+                data: Array.isArray(instances.positions.data)
+                    ? instances.positions.data
+                    : {
+                        file: getTransformAsset(instances.positions.data.file),
+                        view: instances.positions.data.view,
+                    },
+                type: instances.positions.type,
+            },
+            rotations: {
+                data: Array.isArray(instances.rotations.data)
+                    ? instances.rotations.data
+                    : {
+                        file: getTransformAsset(instances.rotations.data.file),
+                        view: instances.rotations.data.view,
+                    },
+                variant: instances.rotations.variant,
+                type: instances.rotations.type,
+            }
+        };
     };
 
     await state.transaction(async () => {
@@ -186,41 +192,11 @@ export async function createGenericHierarchy(plugin: PluginContext, file: Asset.
                 const t = isBinary ? d : utf8Read(d, 0, d.length);
                 const file = Asset.File(new File([t], ent.file));
 
-                const transforms: Mat4[] = [];
-                if (ent.instances) {
-                    const positions = getPositions(ent.instances.positions);
-                    const rotations = getRotations(ent.instances.rotations);
-
-                    for (let i = 0, il = positions.length / 3; i < il; ++i) {
-                        Vec3.fromArray(p, positions, i * 3);
-                        if (ent.instances.rotations.variant === 'matrix') {
-                            Mat3.fromArray(m, rotations, i * 9);
-                            const t = Mat4.fromMat3(Mat4(), m);
-                            Mat4.setTranslation(t, p);
-                            transforms.push(t);
-                        } else if (ent.instances.rotations.variant === 'quaternion') {
-                            Quat.fromArray(q, rotations, i * 4);
-                            const t = Mat4.fromQuat(Mat4(), q);
-                            Mat4.setTranslation(t, p);
-                            transforms.push(t);
-                        } else if (ent.instances.rotations.variant === 'euler') {
-                            Euler.fromArray(e, rotations, i * 3);
-                            Quat.fromEuler(q, e, 'XYZ');
-                            const t = Mat4.fromQuat(Mat4(), q);
-                            Mat4.setTranslation(t, p);
-                            transforms.push(t);
-                        }
-                    }
-                } else {
-                    transforms.push(Mat4.identity());
-                }
-
                 const color = ColorNames.skyblue;
-                const clipVariant = transforms.length === 1 ? 'pixel' : 'instance';
-
                 const label = ent.label || ent.file.split('.')[0];
                 const sizeFactor = ent.sizeFactor || 1;
                 const tags = ent.groups.map(({ id, root }) => `${root}:${id}`);
+                const instances = ent.instances && getAssetInstances(ent.instances);
 
                 build = build
                     .toRoot()
@@ -243,12 +219,26 @@ export async function createGenericHierarchy(plugin: PluginContext, file: Asset.
                         build = build.apply(TrajectoryFromMOL2);
                     }
 
+                    let clipVariant: Clip.Variant = 'pixel';
+                    if (ent.instances) {
+                        if (Array.isArray(ent.instances.positions.data)) {
+                            clipVariant = ent.instances.positions.data.length <= 3 ? 'pixel' : 'instance';
+                        } else {
+                            const byteLength = ent.instances.positions.data.view
+                                ? ent.instances.positions.data.view.byteLength
+                                : asset.data[ent.instances.positions.data.file].length;
+                            clipVariant = byteLength <= 3 * 4 ? 'pixel' : 'instance';
+                        }
+                    }
+
                     build = build
                         .apply(ModelFromTrajectory, { modelIndex: 0 })
-                        .apply(StructureFromGeneric, { transforms, label })
+                        .apply(StructureFromGeneric, { instances, label })
                         .apply(StructureRepresentation3D, getSpacefillParams(color, sizeFactor, graphicsMode, clipVariant), { tags });
                 } else if (['ply'].includes(info.ext)) {
                     if (['ply'].includes(info.ext)) {
+                        const transforms = await getTransforms(plugin, instances);
+                        const clipVariant = transforms.length === 1 ? 'pixel' : 'instance';
                         build = build
                             .apply(ParsePly)
                             .apply(ShapeFromPly, { label, transforms })
@@ -322,7 +312,7 @@ type GenericEntity = {
     /**
      * defaults to a single, untransformed instance
      */
-    instances?: GenericInstances
+    instances?: GenericInstances<string>
     /**
      * defaults to 1 (assuming fully atomic structures)
      * for C-alpha only structures set to 2
@@ -331,15 +321,15 @@ type GenericEntity = {
     sizeFactor?: number
 }
 
-type BinaryData = {
-    file: string,
+type BinaryData<T extends string | Asset> = {
+    file: T,
     view?: {
         byteOffset: number,
         byteLength: number
     }
 }
 
-type GenericInstances = {
+export type GenericInstances<T extends string | Asset> = {
     /**
      * translation vectors in Angstrom
      * [x0, y0, z0, ..., xn, yn, zn] with n = count - 1
@@ -348,7 +338,7 @@ type GenericInstances = {
         /**
          * either the data itself or a pointer to binary data
          */
-        data: number[] | BinaryData
+        data: number[] | BinaryData<T>
         /**
          * how to interpret the data
          * defaults to `{ kind: 'Array', type: 'Float32' }`
@@ -372,7 +362,7 @@ type GenericInstances = {
         /**
          * either the data itself or a pointer to binary data
          */
-        data: number[] | BinaryData
+        data: number[] | BinaryData<T>
         /**
          * how to interpret the data
          * defaults to `{ kind: 'Array', type: 'Float32' }`
@@ -385,7 +375,7 @@ type GenericFrame = {
     time: number
     entities: {
         file: string
-        instances: GenericInstances
+        instances: GenericInstances<string>
     }[]
 }
 
@@ -401,6 +391,68 @@ type GenericManifest = {
     roots: GenericRoot[]
     entities: GenericEntity[]
     trajectories?: GenericTrajectory[]
+}
+
+//
+
+const p = Vec3();
+const q = Quat();
+const m = Mat3();
+const e = Euler();
+
+async function getPositions(plugin: PluginContext, p: GenericInstances<Asset>['positions']): Promise<NumberArray> {
+    if (Array.isArray(p.data)) {
+        return p.data;
+    } else {
+        const a = await plugin.runTask(plugin.managers.asset.resolve(p.data.file, 'binary'));
+        const o = p.data.view?.byteOffset || 0;
+        const l = p.data.view?.byteLength || a.data.byteLength;
+        return new Float32Array(a.data.buffer, o + a.data.byteOffset, l / 4);
+    }
+};
+
+async function getRotations(plugin: PluginContext, r: GenericInstances<Asset>['rotations']): Promise<NumberArray> {
+    if (Array.isArray(r.data)) {
+        return r.data;
+    } else {
+        const a = await plugin.runTask(plugin.managers.asset.resolve(r.data.file, 'binary'));
+        const o = r.data.view?.byteOffset || 0;
+        const l = r.data.view?.byteLength || a.data.byteLength;
+        return new Float32Array(a.data.buffer, o + a.data.byteOffset, l / 4);
+    }
+};
+
+export async function getTransforms(plugin: PluginContext, instances?: GenericInstances<Asset>) {
+    const transforms: Mat4[] = [];
+    if (instances) {
+        const positions = await getPositions(plugin, instances.positions);
+        const rotations = await getRotations(plugin, instances.rotations);
+
+        for (let i = 0, il = positions.length / 3; i < il; ++i) {
+            Vec3.fromArray(p, positions, i * 3);
+            if (instances.rotations.variant === 'matrix') {
+                Mat3.fromArray(m, rotations, i * 9);
+                const t = Mat4.fromMat3(Mat4(), m);
+                Mat4.setTranslation(t, p);
+                transforms.push(t);
+            } else if (instances.rotations.variant === 'quaternion') {
+                Quat.fromArray(q, rotations, i * 4);
+                const t = Mat4.fromQuat(Mat4(), q);
+                Mat4.setTranslation(t, p);
+                transforms.push(t);
+            } else if (instances.rotations.variant === 'euler') {
+                Euler.fromArray(e, rotations, i * 3);
+                Quat.fromEuler(q, e, 'XYZ');
+                const t = Mat4.fromQuat(Mat4(), q);
+                Mat4.setTranslation(t, p);
+                transforms.push(t);
+            }
+        }
+    } else {
+        transforms.push(Mat4.identity());
+    }
+
+    return transforms;
 }
 
 //
