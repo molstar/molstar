@@ -494,6 +494,10 @@ export class Viewer {
     handleResize() {
         this.plugin.layout.events.updated.next(void 0);
     }
+
+    dispose() {
+        this.plugin.dispose();
+    }
 }
 
 export interface LoadStructureOptions {

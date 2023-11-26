@@ -36,6 +36,10 @@ export class DragAndDropManager {
         defaultDragAndDropHandler(this.plugin, files);
     }
 
+    dispose() {
+        this.handlers.length = 0;
+    }
+
     constructor(public plugin: PluginContext) {
     }
 }

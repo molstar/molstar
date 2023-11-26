@@ -362,6 +362,11 @@ class PluginStateSnapshotManager extends StatefulPluginComponent<{
         }
     }
 
+    dispose() {
+        super.dispose();
+        this.entryMap.clear();
+    }
+
     constructor(private plugin: PluginContext) {
         super({
             current: void 0,

@@ -30,6 +30,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Fix `bumpiness` scaling with `ignoreLight` enabled
 - Add `transforms` & `label` params to `ShapeFromPly`
 - Optimize `LociSelectManager.selectOnly` to avoid superfluous loci set operations
+- Dispose of viewer on `unload` event to aid GC
 
 ## [v3.42.0] - 2023-11-05
 
