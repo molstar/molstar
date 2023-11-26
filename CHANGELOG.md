@@ -3,7 +3,7 @@ All notable changes to this project will be documented in this file, following t
 
 Note that since we don't clearly distinguish between a public and private interfaces there will be changes in non-major versions that are potentially breaking. If we make breaking changes to less used interfaces we will highlight it in here.
 
-## [TODO]
+## [V4-DEV]
 
 - [Breaking] Reduce memory usage of `SymmetryOperator.ArrayMapping`
     - Requires calling methods from instance
@@ -11,6 +11,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - [Breaking] Add `Canvas3DContext` runtime props
     - pixelScale, pickScale, transparency (blended, wboit, dpoit)
     - replacing instantiation-time attribs
+- [Breaking] Change default compile target to ES2018
 
 ## [Unreleased]
 
