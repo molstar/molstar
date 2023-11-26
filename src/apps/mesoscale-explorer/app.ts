@@ -262,4 +262,8 @@ export class MesoscaleExplorer {
     handleResize() {
         this.plugin.layout.events.updated.next(void 0);
     }
+
+    dispose() {
+        this.plugin.dispose();
+    }
 }

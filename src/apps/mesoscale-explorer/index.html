@@ -89,6 +89,11 @@
                     me.loadPdbDev(pdbdev);
                     return;
                 }
+
+                window.addEventListener('unload', () => {
+                    // to aid GC
+                    me.dispose();
+                });
             });
         </script>
         <!-- __MOLSTAR_ANALYTICS__ -->

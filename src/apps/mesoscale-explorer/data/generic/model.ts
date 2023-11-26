@@ -115,12 +115,25 @@ const StructureFromGeneric = PluginStateTransform.BuiltIn({
             return new SO.Molecule.Structure(structure, props);
         });
     },
-    update({ newParams, oldParams }) {
-        return deepEqual(newParams, oldParams)
-            ? StateTransformer.UpdateResult.Unchanged
-            : StateTransformer.UpdateResult.Recreate;
+    update({ newParams, oldParams }, plugin: PluginContext) {
+        if (deepEqual(newParams, oldParams)) {
+            return StateTransformer.UpdateResult.Unchanged;
+        }
+
+        if (oldParams.instances) releaseInstances(plugin, oldParams.instances);
+        return StateTransformer.UpdateResult.Recreate;
     },
-    dispose({ b }) {
+    dispose({ b, params }, plugin: PluginContext) {
         b?.data.customPropertyDescriptors.dispose();
+        if (params?.instances) releaseInstances(plugin, params.instances);
     }
 });
+
+function releaseInstances(plugin: PluginContext, instances: GenericInstances<Asset>) {
+    if (!Array.isArray(instances.positions.data)) {
+        plugin.managers.asset.release(instances.positions.data.file);
+    }
+    if (!Array.isArray(instances.rotations.data)) {
+        plugin.managers.asset.release(instances.rotations.data.file);
+    }
+}

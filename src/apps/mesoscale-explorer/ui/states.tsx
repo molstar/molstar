@@ -136,10 +136,14 @@ async function createHierarchy(ctx: PluginContext, ref: string) {
 }
 
 async function reset(ctx: PluginContext) {
-    delete (ctx.customState as MesoscaleExplorerState).stateRef;
-    (ctx.customState as MesoscaleExplorerState).stateCache = {};
+    const customState = ctx.customState as MesoscaleExplorerState;
+    delete customState.stateRef;
+    customState.stateCache = {};
+    ctx.managers.asset.clear();
+
     await PluginCommands.State.Snapshots.Clear(ctx);
     await PluginCommands.State.RemoveObject(ctx, { state: ctx.state.data, ref: StateTransform.RootRef });
+
     await MesoscaleState.init(ctx);
     adjustPluginProps(ctx);
 }
@@ -295,7 +299,9 @@ export async function openState(ctx: PluginContext, file: File) {
     const customState = ctx.customState as MesoscaleExplorerState;
     delete customState.stateRef;
     customState.stateCache = {};
+    ctx.managers.asset.clear();
 
+    await PluginCommands.State.Snapshots.Clear(ctx);
     await PluginCommands.State.Snapshots.OpenFile(ctx, { file });
 
     const cell = ctx.state.data.selectQ(q => q.ofType(MesoscaleStateObject))[0];
