@@ -6,35 +6,43 @@
  */
 
 import { ANVILMembraneOrientation } from '../../extensions/anvil/behavior';
+import { Backgrounds } from '../../extensions/backgrounds';
 import { CellPack } from '../../extensions/cellpack';
 import { DnatcoNtCs } from '../../extensions/dnatco';
 import { G3DFormat, G3dProvider } from '../../extensions/g3d/format';
-import { Volseg, VolsegVolumeServerConfig } from '../../extensions/volumes-and-segmentations';
 import { GeometryExport } from '../../extensions/geo-export';
-import { MAQualityAssessment } from '../../extensions/model-archive/quality-assessment/behavior';
-import { QualityAssessmentPLDDTPreset, QualityAssessmentQmeanPreset } from '../../extensions/model-archive/quality-assessment/behavior';
+import { MAQualityAssessment, QualityAssessmentPLDDTPreset, QualityAssessmentQmeanPreset } from '../../extensions/model-archive/quality-assessment/behavior';
 import { QualityAssessment } from '../../extensions/model-archive/quality-assessment/prop';
 import { ModelExport } from '../../extensions/model-export';
 import { Mp4Export } from '../../extensions/mp4-export';
+import { MolViewSpec } from '../../extensions/mvs/behavior';
+import { loadMVS } from '../../extensions/mvs/load';
+import { MVSData } from '../../extensions/mvs/mvs-data';
 import { PDBeStructureQualityReport } from '../../extensions/pdbe';
 import { RCSBAssemblySymmetry, RCSBValidationReport } from '../../extensions/rcsb';
+import { RCSBAssemblySymmetryConfig } from '../../extensions/rcsb/assembly-symmetry/behavior';
+import { SbNcbrPartialCharges, SbNcbrPartialChargesPreset, SbNcbrPartialChargesPropertyProvider } from '../../extensions/sb-ncbr';
+import { Volseg, VolsegVolumeServerConfig } from '../../extensions/volumes-and-segmentations';
+import { wwPDBChemicalComponentDictionary } from '../../extensions/wwpdb/ccd/behavior';
+import { wwPDBStructConnExtensionFunctions } from '../../extensions/wwpdb/struct-conn';
 import { ZenodoImport } from '../../extensions/zenodo';
+import { SaccharideCompIdMapType } from '../../mol-model/structure/structure/carbohydrates/constants';
 import { Volume } from '../../mol-model/volume';
 import { DownloadStructure, PdbDownloadProvider } from '../../mol-plugin-state/actions/structure';
 import { DownloadDensity } from '../../mol-plugin-state/actions/volume';
 import { PresetTrajectoryHierarchy } from '../../mol-plugin-state/builder/structure/hierarchy-preset';
 import { PresetStructureRepresentations, StructureRepresentationPresetProvider } from '../../mol-plugin-state/builder/structure/representation-preset';
+import { BuiltInCoordinatesFormat } from '../../mol-plugin-state/formats/coordinates';
 import { DataFormatProvider } from '../../mol-plugin-state/formats/provider';
 import { BuiltInTopologyFormat } from '../../mol-plugin-state/formats/topology';
-import { BuiltInCoordinatesFormat } from '../../mol-plugin-state/formats/coordinates';
 import { BuiltInTrajectoryFormat } from '../../mol-plugin-state/formats/trajectory';
 import { BuildInVolumeFormat } from '../../mol-plugin-state/formats/volume';
 import { createVolumeRepresentationParams } from '../../mol-plugin-state/helpers/volume-representation-params';
 import { PluginStateObject } from '../../mol-plugin-state/objects';
 import { StateTransforms } from '../../mol-plugin-state/transforms';
 import { TrajectoryFromModelAndCoordinates } from '../../mol-plugin-state/transforms/model';
-import { createPluginUI } from '../../mol-plugin-ui/react18';
 import { PluginUIContext } from '../../mol-plugin-ui/context';
+import { createPluginUI } from '../../mol-plugin-ui/react18';
 import { DefaultPluginUISpec, PluginUISpec } from '../../mol-plugin-ui/spec';
 import { PluginCommands } from '../../mol-plugin/commands';
 import { PluginConfig } from '../../mol-plugin/config';
@@ -46,15 +54,9 @@ import { Asset } from '../../mol-util/assets';
 import { Color } from '../../mol-util/color';
 import '../../mol-util/polyfill';
 import { ObjectKeys } from '../../mol-util/type-helpers';
-import { SaccharideCompIdMapType } from '../../mol-model/structure/structure/carbohydrates/constants';
-import { Backgrounds } from '../../extensions/backgrounds';
-import { SbNcbrPartialCharges, SbNcbrPartialChargesPreset, SbNcbrPartialChargesPropertyProvider } from '../../extensions/sb-ncbr';
-import { wwPDBStructConnExtensionFunctions } from '../../extensions/wwpdb/struct-conn';
-import { wwPDBChemicalComponentDictionary } from '../../extensions/wwpdb/ccd/behavior';
-import { RCSBAssemblySymmetryConfig } from '../../extensions/rcsb/assembly-symmetry/behavior';
 
 export { PLUGIN_VERSION as version } from '../../mol-plugin/version';
-export { setDebugMode, setProductionMode, setTimingMode, consoleStats } from '../../mol-util/debug';
+export { consoleStats, setDebugMode, setProductionMode, setTimingMode } from '../../mol-util/debug';
 
 const CustomFormats = [
     ['g3d', G3dProvider] as const
@@ -77,6 +79,7 @@ export const ExtensionMap = {
     'zenodo-import': PluginSpec.Behavior(ZenodoImport),
     'sb-ncbr-partial-charges': PluginSpec.Behavior(SbNcbrPartialCharges),
     'wwpdb-chemical-component-dictionary': PluginSpec.Behavior(wwPDBChemicalComponentDictionary),
+    'mvs': PluginSpec.Behavior(MolViewSpec),
 };
 
 const DefaultViewerOptions = {
@@ -467,8 +470,33 @@ export class Viewer {
         return { model, coords, preset };
     }
 
+    async loadMvsFromUrl(url: string, format: 'mvsj') {
+        if (format === 'mvsj') {
+            const data = await this.plugin.runTask(this.plugin.fetch({ url, type: 'string' }));
+            const mvsData = MVSData.fromMVSJ(data);
+            await loadMVS(this.plugin, mvsData, { sanityChecks: true });
+        } else {
+            throw new Error(`Unknown MolViewSpec format: ${format}`);
+        }
+        // We might add more formats in the future
+    }
+
+    async loadMvsData(data: string, format: 'mvsj') {
+        if (format === 'mvsj') {
+            const mvsData = MVSData.fromMVSJ(data);
+            await loadMVS(this.plugin, mvsData, { sanityChecks: true });
+        } else {
+            throw new Error(`Unknown MolViewSpec format: ${format}`);
+        }
+        // We might add more formats in the future
+    }
+
     handleResize() {
         this.plugin.layout.events.updated.next(void 0);
+    }
+
+    dispose() {
+        this.plugin.dispose();
     }
 }
 

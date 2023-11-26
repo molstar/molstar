@@ -12,7 +12,6 @@ import { Lab } from './spaces/lab';
 import { Hcl } from './spaces/hcl';
 import { deepClone } from '../../mol-util/object';
 import { deepEqual } from '../../mol-util';
-import { arraySum } from '../../mol-util/array';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 import { ColorNames } from './names';
 import { Color } from './color';
@@ -154,19 +153,19 @@ export function distinctColors(count: number, props: Partial<DistinctColorsProps
             const size = zone.length;
             if (size === 0) continue;
 
-            const Ls: number[] = [];
-            const As: number[] = [];
-            const Bs: number[] = [];
+            let Ls = 0;
+            let As = 0;
+            let Bs = 0;
 
             for (const sample of zone) {
-                Ls.push(sample[0]);
-                As.push(sample[1]);
-                Bs.push(sample[2]);
+                Ls += sample[0];
+                As += sample[1];
+                Bs += sample[2];
             }
 
-            const lAvg = arraySum(Ls) / size;
-            const aAvg = arraySum(As) / size;
-            const bAvg = arraySum(Bs) / size;
+            const lAvg = Ls / size;
+            const aAvg = As / size;
+            const bAvg = Bs / size;
 
             colors[i] = [lAvg, aAvg, bAvg] as unknown as Lab;
         }

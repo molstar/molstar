@@ -417,3 +417,18 @@
         margin-top: 1px;
     }
 }
+
+.msp-text-area-wrapper {
+    position: relative;
+    height: 3 * $row-height !important;
+    textarea {
+        border: none;
+        width: 100%;
+        height: 100%;
+        background: $msp-form-control-background;
+        padding: math.div($control-spacing, 2) $control-spacing;
+        resize: none;
+        font-size: 12px;
+        line-height: 16px;
+    }
+}
