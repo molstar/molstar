@@ -274,21 +274,21 @@ export class PluginContext {
             this.layout.setRoot(container);
             if (this.spec.layout && this.spec.layout.initial) this.layout.setProps(this.spec.layout.initial);
 
-            if (canvas3dContext) {
-                (this.canvas3dContext as Canvas3DContext) = canvas3dContext;
-            } else {
-                const antialias = !(this.config.get(PluginConfig.General.DisableAntialiasing) ?? false);
-                const preserveDrawingBuffer = !(this.config.get(PluginConfig.General.DisablePreserveDrawingBuffer) ?? false);
-                const pixelScale = this.config.get(PluginConfig.General.PixelScale) || 1;
-                const pickScale = this.config.get(PluginConfig.General.PickScale) || 0.25;
-                const pickPadding = this.config.get(PluginConfig.General.PickPadding) ?? 1;
-                const enableWboit = this.config.get(PluginConfig.General.EnableWboit) || false;
-                const enableDpoit = this.config.get(PluginConfig.General.EnableDpoit) || false;
-                const preferWebGl1 = this.config.get(PluginConfig.General.PreferWebGl1) || false;
-                const failIfMajorPerformanceCaveat = !(this.config.get(PluginConfig.General.AllowMajorPerformanceCaveat) ?? false);
-                const powerPreference = this.config.get(PluginConfig.General.PowerPreference) || 'high-performance';
-                (this.canvas3dContext as Canvas3DContext) = Canvas3DContext.fromCanvas(canvas, this.managers.asset, { antialias, preserveDrawingBuffer, pixelScale, pickScale, pickPadding, enableWboit, enableDpoit, preferWebGl1, failIfMajorPerformanceCaveat, powerPreference });
+            if (!canvas3dContext) {
+                canvas3dContext = Canvas3DContext.fromCanvas(canvas, this.managers.asset, {
+                    antialias: !(this.config.get(PluginConfig.General.DisableAntialiasing) ?? false),
+                    preserveDrawingBuffer: !(this.config.get(PluginConfig.General.DisablePreserveDrawingBuffer) ?? false),
+                    preferWebGl1: this.config.get(PluginConfig.General.PreferWebGl1) || false,
+                    failIfMajorPerformanceCaveat: !(this.config.get(PluginConfig.General.AllowMajorPerformanceCaveat) ?? false),
+                    powerPreference: this.config.get(PluginConfig.General.PowerPreference) || 'high-performance',
+                    handleResize: this.handleResize,
+                }, {
+                    pixelScale: this.config.get(PluginConfig.General.PixelScale) || 1,
+                    pickScale: this.config.get(PluginConfig.General.PickScale) || 0.25,
+                    transparency: this.config.get(PluginConfig.General.Transparency) || 'wboit',
+                });
             }
+            (this.canvas3dContext as Canvas3DContext) = canvas3dContext;
             (this.canvas3d as Canvas3D) = Canvas3D.create(this.canvas3dContext!);
             this.canvas3dInit.next(true);
             let props = this.spec.canvas3d;
@@ -328,15 +328,14 @@ export class PluginContext {
         }
     }
 
-    handleResize() {
+    handleResize = () => {
         const canvas = this.canvas3dContext?.canvas;
         const container = this.layout.root;
         if (container && canvas) {
-            const pixelScale = this.config.get(PluginConfig.General.PixelScale) || 1;
-            resizeCanvas(canvas, container, pixelScale);
+            resizeCanvas(canvas, container, this.canvas3dContext.props.pixelScale);
             this.canvas3d?.requestResize();
         }
-    }
+    };
 
     readonly log = {
         entries: List<LogEntry>(),

@@ -6,7 +6,7 @@
 
 import { Renderable, RenderableState, createRenderable } from '../renderable';
 import { WebGLContext } from '../webgl/context';
-import { createGraphicsRenderItem, GraphicsRenderVariant } from '../webgl/render-item';
+import { createGraphicsRenderItem, Transparency } from '../webgl/render-item';
 import { AttributeSpec, Values, UniformSpec, GlobalUniformSchema, InternalSchema, TextureSpec, ElementsSpec, DefineSpec, InternalValues, GlobalTextureSchema, BaseSchema } from './schema';
 import { DirectVolumeShaderCode } from '../shader-code';
 import { ValueCell } from '../../mol-util';
@@ -45,7 +45,7 @@ export const DirectVolumeSchema = {
 export type DirectVolumeSchema = typeof DirectVolumeSchema
 export type DirectVolumeValues = Values<DirectVolumeSchema>
 
-export function DirectVolumeRenderable(ctx: WebGLContext, id: number, values: DirectVolumeValues, state: RenderableState, materialId: number, variants: GraphicsRenderVariant[]): Renderable<DirectVolumeValues> {
+export function DirectVolumeRenderable(ctx: WebGLContext, id: number, values: DirectVolumeValues, state: RenderableState, materialId: number, transparency: Transparency): Renderable<DirectVolumeValues> {
     const schema = { ...GlobalUniformSchema, ...GlobalTextureSchema, ...InternalSchema, ...DirectVolumeSchema };
     if (!ctx.isWebGL2) {
         // workaround for webgl1 limitation that loop counters need to be `const`
@@ -55,6 +55,6 @@ export function DirectVolumeRenderable(ctx: WebGLContext, id: number, values: Di
         uObjectId: ValueCell.create(id),
     };
     const shaderCode = DirectVolumeShaderCode;
-    const renderItem = createGraphicsRenderItem(ctx, 'triangles', shaderCode, schema, { ...values, ...internalValues }, materialId, variants);
+    const renderItem = createGraphicsRenderItem(ctx, 'triangles', shaderCode, schema, { ...values, ...internalValues }, materialId, transparency);
     return createRenderable(renderItem, values, state);
 }
