@@ -120,6 +120,11 @@
 
                 var modelArchive = getParam('model-archive', '[^&]+').trim();
                 if (modelArchive) viewer.loadModelArchive(modelArchive);
+
+                window.addEventListener('unload', () => {
+                    // to aid GC
+                    viewer.dispose();
+                });
             });
         </script>
         <!-- __MOLSTAR_ANALYTICS__ -->
