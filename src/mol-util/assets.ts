@@ -141,4 +141,12 @@ class AssetManager {
         entry.refCount--;
         if (entry.refCount <= 0) this._assets.delete(asset.id);
     }
+
+    clear() {
+        this._assets.clear();
+    }
+
+    dispose() {
+        this.clear();
+    }
 }

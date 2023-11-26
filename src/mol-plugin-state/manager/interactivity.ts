@@ -55,6 +55,12 @@ class InteractivityManager extends StatefulPluginComponent<InteractivityManagerS
         this.events.propsUpdated.next(void 0);
     }
 
+    dispose() {
+        super.dispose();
+        this.lociSelects.dispose();
+        this.lociHighlights.dispose();
+    }
+
     constructor(readonly plugin: PluginContext, props: Partial<InteractivityManager.Props> = {}) {
         super({ props: { ...PD.getDefaultValues(InteractivityManager.Params), ...props } });
 
@@ -113,6 +119,11 @@ namespace InteractivityManager {
             if (!Loci.isEmpty(current.loci)) {
                 for (const p of this.providers) p(current, action, noRender);
             }
+        }
+
+        dispose() {
+            this.providers.length = 0;
+            this.sel.dispose();
         }
 
         constructor(public readonly ctx: PluginContext, props: Partial<Props> = {}) {
@@ -180,6 +191,11 @@ namespace InteractivityManager {
                     }
                 }
             }
+        }
+
+        dispose() {
+            super.dispose();
+            this.prev.length = 0;
         }
     }
 

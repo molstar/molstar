@@ -388,14 +388,15 @@ export class PluginContext {
         this.canvas3dContext?.dispose(options);
         this.ev.dispose();
         this.state.dispose();
-        this.managers.task.dispose();
         this.helpers.substructureParent.dispose();
 
         objectForEach(this.managers, m => (m as any)?.dispose?.());
         objectForEach(this.managers.structure, m => (m as any)?.dispose?.());
+        objectForEach(this.managers.volume, m => (m as any)?.dispose?.());
 
         this.unmount();
         this.canvasContainer = undefined;
+        (this.customState as any) = {};
 
         this.disposed = true;
     }
