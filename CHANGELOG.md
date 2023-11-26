@@ -14,15 +14,16 @@ Note that since we don't clearly distinguish between a public and private interf
 - Add occlusion culling (only WebGL2)
     - Hi-Z pass
     - Cull based on previous frame's Hi-Z buffer
-- Add `Canvas3DContext` runtime props
-    - pixelScale, pickScale, transparency (blended, wboit, dpoit)
-    - replacing instantiation-time attribs
 
-## [TODO]
+## [V4-DEV]
 
 - [Breaking] Reduce memory usage of `SymmetryOperator.ArrayMapping`
     - Requires calling methods from instance
 - [Breaking] Fix `mol-model/structure/model/properties/seconday-structure.ts` file name (#938)
+- [Breaking] Add `Canvas3DContext` runtime props
+    - pixelScale, pickScale, transparency (blended, wboit, dpoit)
+    - replacing instantiation-time attribs
+- [Breaking] Change default compile target to ES2018
 
 ## [Unreleased]
 
@@ -45,6 +46,7 @@ Note that since we don't clearly distinguish between a public and private interf
 - Fix `bumpiness` scaling with `ignoreLight` enabled
 - Add `transforms` & `label` params to `ShapeFromPly`
 - Optimize `LociSelectManager.selectOnly` to avoid superfluous loci set operations
+- Dispose of viewer on `unload` event to aid GC
 
 ## [v3.42.0] - 2023-11-05
 

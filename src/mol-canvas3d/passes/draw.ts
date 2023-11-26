@@ -39,11 +39,7 @@ type RenderContext = {
     helper: Helper;
 }
 
-export enum TransparencyMode {
-    Blended = 0,
-    Wboit = 1,
-    Dpoit = 2,
-}
+type TransparencyMode = 'wboit' | 'dpoit' | 'blended'
 
 export class DrawPass {
     private readonly drawTarget: RenderTarget;
@@ -66,20 +62,19 @@ export class DrawPass {
     readonly postprocessing: PostprocessingPass;
     private readonly antialiasing: AntialiasingPass;
 
-    private transparencyMode: TransparencyMode = TransparencyMode.Blended;
+    private transparencyMode: TransparencyMode = 'blended';
     setTransparency(transparency: 'wboit' | 'dpoit' | 'blended') {
         if (transparency === 'wboit') {
-            this.transparencyMode = this.wboit.supported ? TransparencyMode.Wboit : TransparencyMode.Blended;
+            this.transparencyMode = this.wboit.supported ? 'wboit' : 'blended';
         } else if (transparency === 'dpoit') {
-            this.transparencyMode = this.dpoit.supported ? TransparencyMode.Dpoit : TransparencyMode.Blended;
+            this.transparencyMode = this.dpoit.supported ? 'dpoit' : 'blended';
         } else {
-            this.transparencyMode = TransparencyMode.Blended;
+            this.transparencyMode = 'blended';
         }
         this.depthTextureOpaque.detachFramebuffer(this.postprocessing.target.framebuffer, 'depth');
     }
     get transparency() {
-        return this.transparencyMode === TransparencyMode.Blended ? 'blended' :
-            this.transparencyMode === TransparencyMode.Wboit ? 'wboit' : 'dpoit';
+        return this.transparencyMode;
     }
 
     constructor(private webgl: WebGLContext, assetManager: AssetManager, width: number, height: number, transparency: 'wboit' | 'dpoit' | 'blended') {
@@ -336,10 +331,10 @@ export class DrawPass {
         }
 
         let oitEnabled = false;
-        if (this.transparencyMode === TransparencyMode.Wboit && this.wboit.supported) {
+        if (this.transparencyMode === 'wboit' && this.wboit.supported) {
             this._renderWboit(renderer, camera, scene, transparentBackground, props.postprocessing);
             oitEnabled = true;
-        } else if (this.transparencyMode === TransparencyMode.Dpoit && this.dpoit.supported) {
+        } else if (this.transparencyMode === 'dpoit' && this.dpoit.supported) {
             this._renderDpoit(renderer, camera, scene, props.dpoitIterations, transparentBackground, props.postprocessing);
             oitEnabled = true;
         } else {
