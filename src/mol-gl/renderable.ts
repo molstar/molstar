@@ -1,12 +1,12 @@
 /**
- * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { Program } from './webgl/program';
 import { RenderableValues, Values, RenderableSchema, BaseValues } from './renderable/schema';
-import { GraphicsRenderItem, ComputeRenderItem, GraphicsRenderVariant } from './webgl/render-item';
+import { GraphicsRenderItem, ComputeRenderItem, GraphicsRenderVariant, Transparency } from './webgl/render-item';
 import { ValueCell } from '../mol-util';
 import { idFactory } from '../mol-util/id-factory';
 import { clamp } from '../mol-math/interpolate';
@@ -31,13 +31,18 @@ export interface Renderable<T extends RenderableValues> {
 
     render: (variant: GraphicsRenderVariant, sharedTexturesCount: number) => void
     getProgram: (variant: GraphicsRenderVariant) => Program
+    setTransparency: (transparency: Transparency) => void
     update: () => void
     dispose: () => void
 }
 
-export function createRenderable<T extends Values<RenderableSchema>>(renderItem: GraphicsRenderItem, values: T, state: RenderableState): Renderable<T> {
+type GraphicsRenderableValues = RenderableValues & BaseValues
+
+export function createRenderable<T extends GraphicsRenderableValues>(renderItem: GraphicsRenderItem, values: T, state: RenderableState): Renderable<T> {
+    const id = getNextRenderableId();
+
     return {
-        id: getNextRenderableId(),
+        id,
         materialId: renderItem.materialId,
         values,
         state,
@@ -49,12 +54,15 @@ export function createRenderable<T extends Values<RenderableSchema>>(renderItem:
             renderItem.render(variant, sharedTexturesCount);
         },
         getProgram: (variant: GraphicsRenderVariant) => renderItem.getProgram(variant),
-        update: () => renderItem.update(),
+        setTransparency: (transparency: Transparency) => renderItem.setTransparency(transparency),
+        update: () => {
+            renderItem.update();
+        },
         dispose: () => renderItem.destroy()
     };
 }
 
-export type GraphicsRenderable = Renderable<RenderableValues & BaseValues>
+export type GraphicsRenderable = Renderable<GraphicsRenderableValues>
 
 //
 

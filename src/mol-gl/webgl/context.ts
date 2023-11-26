@@ -217,6 +217,8 @@ export interface WebGLContext {
     setContextLost: () => void
     handleContextRestored: (extraResets?: () => void) => void
 
+    setPixelScale: (value: number) => void
+
     /** Cache for compute renderables, managed by consumers */
     readonly namedComputeRenderables: { [name: string]: ComputeRenderable<any> }
     /** Cache for frambuffers, managed by consumers */
@@ -263,6 +265,8 @@ export function createContext(gl: GLRenderingContext, props: Partial<{ pixelScal
     let isContextLost = false;
     const contextRestored = new BehaviorSubject<now.Timestamp>(0 as now.Timestamp);
 
+    let pixelScale = props.pixelScale || 1;
+
     let readPixelsAsync: (x: number, y: number, width: number, height: number, buffer: Uint8Array) => Promise<void>;
     if (isWebGL2(gl)) {
         const pbo = gl.createBuffer();
@@ -307,7 +311,7 @@ export function createContext(gl: GLRenderingContext, props: Partial<{ pixelScal
         isWebGL2: isWebGL2(gl),
         get pixelRatio() {
             const dpr = (typeof window !== 'undefined') ? (window.devicePixelRatio || 1) : 1;
-            return dpr * (props.pixelScale || 1);
+            return dpr * (pixelScale || 1);
         },
 
         extensions,
@@ -347,6 +351,10 @@ export function createContext(gl: GLRenderingContext, props: Partial<{ pixelScal
 
             isContextLost = false;
             contextRestored.next(now());
+        },
+
+        setPixelScale: (value: number) => {
+            pixelScale = value;
         },
 
         createRenderTarget: (width: number, height: number, depth?: boolean, type?: 'uint8' | 'float32' | 'fp16', filter?: TextureFilter, format?: 'rgba' | 'alpha') => {
