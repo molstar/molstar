@@ -38,14 +38,12 @@ export const MVSData = {
     /** Parse MVSJ (MolViewSpec-JSON) format to `MVSData`. Does not include any validation. */
     fromMVSJ(mvsjString: string): MVSData {
         const result: MVSData = JSON.parse(mvsjString);
-        result.metadata = {timestamp: 'xxx', version: '1'}
         const major = majorVersion(result?.metadata?.version);
         if (major === undefined) {
             console.error('Loaded MVS does not contain valid version info.');
         } else if (major > (majorVersion(MVSData.SupportedVersion) ?? 0)) {
             console.warn(`Loaded MVS is of higher version (${result.metadata.version}) than currently supported version (${MVSData.SupportedVersion}). Some features may not work as expected.`);
         }
-        // console.log(this.toPrettyString(result))
         return result;
     },
 

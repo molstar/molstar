@@ -29,13 +29,18 @@ import { MVSTreeSchema } from './tree/mvs/mvs-tree';
  * If `options.deletePrevious`, remove all objects in the current Mol* state; otherwise add to the current state.
  * If `options.sanityChecks`, run some sanity checks and print potential issues to the console. */
 export async function loadMVS(plugin: PluginContext, data: MVSData, options: { deletePrevious?: boolean, sanityChecks?: boolean } = {}) {
-    // console.log(`MVS tree (v${data.version}):\n${treeToString(data.root)}`);
-    validateTree(MVSTreeSchema, data.root, 'MVS');
-    if (options.sanityChecks) mvsSanityCheck(data.root);
-    const molstarTree = convertMvsToMolstar(data.root);
-    // console.log(`Converted MolStar tree:\n${treeToString(molstarTree)}`);
-    validateTree(MolstarTreeSchema, molstarTree, 'Converted Molstar');
-    await loadMolstarTree(plugin, molstarTree, options);
+    try {
+        // console.log(`MVS tree (v${data.version}):\n${treeToString(data.root)}`);
+        validateTree(MVSTreeSchema, data.root, 'MVS');
+        if (options.sanityChecks) mvsSanityCheck(data.root);
+        const molstarTree = convertMvsToMolstar(data.root);
+        // console.log(`Converted MolStar tree:\n${treeToString(molstarTree)}`);
+        validateTree(MolstarTreeSchema, molstarTree, 'Converted Molstar');
+        await loadMolstarTree(plugin, molstarTree, options);
+    } catch (err) {
+        plugin.log.error(`${err}`);
+        throw err;
+    }
 }
 
 
