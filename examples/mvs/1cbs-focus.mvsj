@@ -8,12 +8,6 @@
   "kind": "root",
   "children": [
    {
-    "kind": "canvas",
-    "params": {
-     "background_color": "#ffffee"
-    }
-   },
-   {
     "kind": "download",
     "params": {
      "url": "https://www.ebi.ac.uk/pdbe/entry-files/1cbs.bcif"
@@ -109,6 +103,12 @@
       ]
      }
     ]
+   },
+   {
+    "kind": "canvas",
+    "params": {
+     "background_color": "#ffffee"
+    }
    }
   ]
  }

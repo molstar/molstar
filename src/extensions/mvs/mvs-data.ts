@@ -38,10 +38,14 @@ export const MVSData = {
     /** Parse MVSJ (MolViewSpec-JSON) format to `MVSData`. Does not include any validation. */
     fromMVSJ(mvsjString: string): MVSData {
         const result: MVSData = JSON.parse(mvsjString);
-        const version = result?.metadata?.version;
-        if (majorVersion(version) > majorVersion(MVSData.SupportedVersion)) {
+        result.metadata = {timestamp: 'xxx', version: '1'}
+        const major = majorVersion(result?.metadata?.version);
+        if (major === undefined) {
+            console.error('Loaded MVS does not contain valid version info.');
+        } else if (major > (majorVersion(MVSData.SupportedVersion) ?? 0)) {
             console.warn(`Loaded MVS is of higher version (${result.metadata.version}) than currently supported version (${MVSData.SupportedVersion}). Some features may not work as expected.`);
         }
+        // console.log(this.toPrettyString(result))
         return result;
     },
 
@@ -88,8 +92,9 @@ export const MVSData = {
 
 
 /** Get the major version from a semantic version string, e.g. '1.0.8' -> 1 */
-function majorVersion(semanticVersion: string | number): number {
+function majorVersion(semanticVersion: string | number): number | undefined {
     if (typeof semanticVersion === 'string') return parseInt(semanticVersion.split('.')[0]);
     if (typeof semanticVersion === 'number') return Math.floor(semanticVersion);
-    throw new Error(`TypeError: version should be a string, not ${typeof semanticVersion}: ${semanticVersion}`);
+    console.error(`Version should be a string, not ${typeof semanticVersion}: ${semanticVersion}`);
+    return undefined;
 }

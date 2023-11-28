@@ -552,4 +552,5 @@ export const ViewerAutoPreset = StructureRepresentationPresetProvider({
 
 export const PluginExtensions = {
     wwPDBStructConn: wwPDBStructConnExtensionFunctions,
+    mvs: { MVSData, loadMVS },
 };
