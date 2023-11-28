@@ -2,7 +2,7 @@
  "metadata": {
   "title": "Example MolViewSpec - 1cbs with labelled protein and ligand",
   "version": "1",
-  "timestamp": "2023-11-24T10:38:17.483"
+  "timestamp": "2023-11-24T10:38:17.483Z"
  },
  "root": {
   "kind": "root",

@@ -2,7 +2,7 @@
  "metadata": {
   "title": "Example MolViewSpec - 1cbs with labelled and zoomed ligand",
   "version": "1",
-  "timestamp": "2023-11-24T10:45:49.873"
+  "timestamp": "2023-11-24T10:45:49.873Z"
  },
  "root": {
   "kind": "root",

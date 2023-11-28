@@ -4,7 +4,7 @@
  * @author Adam Midlik <midlik@gmail.com>
  */
 
-import { pickObjectKeys } from '../../../../mol-util/object';
+import { deepClone, pickObjectKeys } from '../../../../mol-util/object';
 import { HexColor } from '../../helpers/utils';
 import { MVSData } from '../../mvs-data';
 import { ParamsOfKind, SubTreeOfKind } from '../generic/tree-schema';
@@ -57,7 +57,7 @@ export class Root extends _Base<'root'> {
     /** Return the current state of the builder as object in MVS format. */
     getState(metadata?: Partial<Pick<MVSData['metadata'], 'title' | 'description' | 'description_format'>>): MVSData {
         return {
-            root: this._node,
+            root: deepClone(this._node),
             metadata: {
                 ...metadata,
                 version: `${MVSData.SupportedVersion}`,
@@ -256,7 +256,7 @@ export function builderDemo() {
     return builder.getState();
 }
 
-/** Return the current universal time, in ISO format without trailing 'Z', e.g. '.' */
+/** Return the current universal time, in ISO format, e.g. '2023-11-24T10:45:49.873Z' */
 function utcNowISO(): string {
-    return new Date().toISOString().replace(/Z$/, '');
+    return new Date().toISOString();
 }

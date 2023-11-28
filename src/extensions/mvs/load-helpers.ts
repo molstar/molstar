@@ -154,7 +154,9 @@ export function transformFromRotationTranslation(rotation: number[] | null | und
     if (translation && translation.length !== 3) throw new Error(`'translation' param for 'transform' node must be array of 3 elements, found ${translation}`);
     const T = Mat4.identity();
     if (rotation) {
-        Mat4.fromMat3(T, Mat3.fromArray(Mat3(), rotation, 0));
+        const rotMatrix = Mat3.fromArray(Mat3(), rotation, 0);
+        ensureRotationMatrix(rotMatrix, rotMatrix);
+        Mat4.fromMat3(T, rotMatrix);
     }
     if (translation) {
         Mat4.setTranslation(T, Vec3.fromArray(Vec3(), translation, 0));
@@ -162,6 +164,22 @@ export function transformFromRotationTranslation(rotation: number[] | null | und
     if (!Mat4.isRotationAndTranslation(T)) throw new Error(`'rotation' param for 'transform' is not a valid rotation matrix: ${rotation}`);
     return T;
 }
+
+/** Adjust values in a close-to-rotation matrix `a` to ensure it is a proper rotation matrix
+ * (i.e. its columns and rows are orthonormal and determinant equal to 1, within available precission). */
+function ensureRotationMatrix(out: Mat3, a: Mat3) {
+    const x = Vec3.fromArray(_tmpVecX, a, 0);
+    const y = Vec3.fromArray(_tmpVecY, a, 3);
+    const z = Vec3.fromArray(_tmpVecZ, a, 6);
+    Vec3.normalize(x, x);
+    Vec3.orthogonalize(y, x, y);
+    Vec3.normalize(z, Vec3.cross(z, x, y));
+    Mat3.fromColumns(out, x, y, z);
+    return out;
+}
+const _tmpVecX = Vec3();
+const _tmpVecY = Vec3();
+const _tmpVecZ = Vec3();
 
 /** Create an array of props for `TransformStructureConformation` transformers from all 'transform' nodes applied to a 'structure' node. */
 export function transformProps(node: SubTreeOfKind<MolstarTree, 'structure'>): StateTransformer.Params<TransformStructureConformation>[] {
