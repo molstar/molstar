@@ -77,7 +77,7 @@ Mol* MolViewSpec extension provides functionality for building, validating, and 
 
 - **Drag&drop support:** The easiest way to load a MVS view into Mol* Viewer is to drag a `.mvsj` file and drop it in a browser window with Mol* Viewer.
 
-- **Load via menu:** TODO implement or remove
+- **Load via menu:** Another way to load a MVS view is to use "Download File" or "Open Files" action, available in the "Home" tab in the left panel. For these actions, the "Format" parameter must be set to "MVSJ" (in the "Miscellaneous" category) or "Auto".
 
 - **URL parameters:** Mol* Viewer supports `mvs-url`, `mvs-data`, and `mvs-format` URL parameters to specify a MVS view to be loaded when the viewer is initialized.
   - `mvs-url` specifies the address from which the MVS view should be retrieved.
@@ -127,11 +127,3 @@ await loadMVS(this.plugin, mvsData2, { deletePrevious: false });
 ```
 
 When using the pre-built Mol* plugin bundle, `MVSData` and `loadMVS` are exposed as `molstar.PluginExtensions.mvs.MVSData` and `molstar.PluginExtensions.mvs.loadMVS`. Furthermore, the `molstar.Viewer` class has `loadMvsFromUrl` and `loadMvsData` methods, providing the same functionality as `mvs-url` and `mvs-data` URL parameters.
-
-### CLI utilities
-
-- mvs-validate, mvs-render???
-
-
-## TODO MVS selectors?
-## TODO MVS annotations?
