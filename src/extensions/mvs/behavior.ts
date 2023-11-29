@@ -167,7 +167,7 @@ const MVSDragAndDropHandler: DragAndDropHandler = {
             if (file.name.toLowerCase().endsWith('.mvsj')) {
                 const data = await file.text();
                 const mvsData = MVSData.fromMVSJ(data);
-                await loadMVS(plugin, mvsData, { sanityChecks: true, deletePrevious: !applied });
+                await loadMVS(plugin, mvsData, { sanityChecks: true, replaceExisting: !applied });
                 applied = true;
             }
         }

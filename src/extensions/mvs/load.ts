@@ -26,9 +26,9 @@ import { MVSTreeSchema } from './tree/mvs/mvs-tree';
 
 
 /** Load a MolViewSpec (MVS) tree into the Mol* plugin.
- * If `options.deletePrevious`, remove all objects in the current Mol* state; otherwise add to the current state.
+ * If `options.replaceExisting`, remove all objects in the current Mol* state; otherwise add to the current state.
  * If `options.sanityChecks`, run some sanity checks and print potential issues to the console. */
-export async function loadMVS(plugin: PluginContext, data: MVSData, options: { deletePrevious?: boolean, sanityChecks?: boolean } = {}) {
+export async function loadMVS(plugin: PluginContext, data: MVSData, options: { replaceExisting?: boolean, sanityChecks?: boolean } = {}) {
     try {
         // console.log(`MVS tree (v${data.version}):\n${treeToString(data.root)}`);
         validateTree(MVSTreeSchema, data.root, 'MVS');
@@ -45,8 +45,8 @@ export async function loadMVS(plugin: PluginContext, data: MVSData, options: { d
 
 
 /** Load a `MolstarTree` into the Mol* plugin.
- * If `deletePrevious`, remove all objects in the current Mol* state; otherwise add to the current state. */
-async function loadMolstarTree(plugin: PluginContext, tree: MolstarTree, options?: { deletePrevious?: boolean }) {
+ * If `replaceExisting`, remove all objects in the current Mol* state; otherwise add to the current state. */
+async function loadMolstarTree(plugin: PluginContext, tree: MolstarTree, options?: { replaceExisting?: boolean }) {
     const mvsExtensionLoaded = plugin.state.hasBehavior(MolViewSpec);
     if (!mvsExtensionLoaded) throw new Error('MolViewSpec extension is not loaded.');
 

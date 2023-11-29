@@ -105,7 +105,7 @@ const response = await fetch('https://raw.githubusercontent.com/molstar/molstar/
 const rawData = await response.text();
 const mvsData: MVSData = MVSData.fromMVSJ(rawData);
 if (!MVSData.isValid(mvsData)) throw new Error(`Oh no: ${MVSData.validationIssues(mvsData)}`);
-await loadMVS(this.plugin, mvsData, { deletePrevious: true });
+await loadMVS(this.plugin, mvsData, { replaceExisting: true });
 console.log('Loaded this:', MVSData.toPrettyString(mvsData));
 console.log('Loaded this:', MVSData.toMVSJ(mvsData));
 
@@ -123,7 +123,7 @@ structure
     .representation({ type: 'ball_and_stick' })
     .color({ color: '#aa55ff' as any });
 const mvsData2: MVSData = builder.getState();
-await loadMVS(this.plugin, mvsData2, { deletePrevious: false });
+await loadMVS(this.plugin, mvsData2, { replaceExisting: false });
 ```
 
 When using the pre-built Mol* plugin bundle, `MVSData` and `loadMVS` are exposed as `molstar.PluginExtensions.mvs.MVSData` and `molstar.PluginExtensions.mvs.loadMVS`. Furthermore, the `molstar.Viewer` class has `loadMvsFromUrl` and `loadMvsData` methods, providing the same functionality as `mvs-url` and `mvs-data` URL parameters.

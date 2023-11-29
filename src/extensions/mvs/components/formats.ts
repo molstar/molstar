@@ -34,7 +34,7 @@ export const ParseMVSJ = MVSTransform({
 
 /** Params for the `LoadMvsData` action */
 const LoadMvsDataParams = {
-    deletePrevious: PD.Boolean(true, { description: 'If true, the loaded MVS view will replace the current state; if false, the MVS view will be added to the current state.' }),
+    replaceExisting: PD.Boolean(false, { description: 'If true, the loaded MVS view will replace the current state; if false, the MVS view will be added to the current state.' }),
 };
 
 /** State action which loads a MVS view into Mol* */
@@ -44,7 +44,7 @@ export const LoadMvsData = StateAction.build({
     params: LoadMvsDataParams,
 })(({ a, params }, plugin: PluginContext) => Task.create('Load MVS Data', async () => {
     const mvsData = a.data;
-    await loadMVS(plugin, mvsData, { deletePrevious: params.deletePrevious });
+    await loadMVS(plugin, mvsData, { replaceExisting: params.replaceExisting });
 }));
 
 

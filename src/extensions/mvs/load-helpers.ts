@@ -39,11 +39,11 @@ export type LoadingAction<TNode extends Tree, TContext> = (updateParent: UpdateT
 export type LoadingActions<TTree extends Tree, TContext> = { [kind in Kind<SubTree<TTree>>]?: LoadingAction<SubTreeOfKind<TTree, kind>, TContext> }
 
 /** Load a tree into Mol*, by applying loading actions in DFS order and then commiting at once.
- * If `deletePrevious`, remove all objects in the current Mol* state; otherwise add to the current state. */
-export async function loadTree<TTree extends Tree, TContext>(plugin: PluginContext, tree: TTree, loadingActions: LoadingActions<TTree, TContext>, context: TContext, options?: { deletePrevious?: boolean }) {
+ * If `options.replaceExisting`, remove all objects in the current Mol* state; otherwise add to the current state. */
+export async function loadTree<TTree extends Tree, TContext>(plugin: PluginContext, tree: TTree, loadingActions: LoadingActions<TTree, TContext>, context: TContext, options?: { replaceExisting?: boolean }) {
     const mapping = new Map<SubTree<TTree>, UpdateTarget | undefined>();
-    const updateRoot: UpdateTarget = UpdateTarget.create(plugin, options?.deletePrevious ?? false);
-    if (options?.deletePrevious) {
+    const updateRoot: UpdateTarget = UpdateTarget.create(plugin, options?.replaceExisting ?? false);
+    if (options?.replaceExisting) {
         UpdateTarget.deleteChildren(updateRoot);
     }
     dfs<TTree>(tree, (node, parent) => {
@@ -78,10 +78,10 @@ export interface UpdateTarget {
 }
 export const UpdateTarget = {
     /** Create a new update, with `selector` pointing to the root. */
-    create(plugin: PluginContext, deletePrevious: boolean): UpdateTarget {
+    create(plugin: PluginContext, replaceExisting: boolean): UpdateTarget {
         const update = plugin.build();
         const msTarget = update.toRoot().selector;
-        const refManager = new RefManager(plugin, deletePrevious);
+        const refManager = new RefManager(plugin, replaceExisting);
         return { update, selector: msTarget, refManager };
     },
     /** Add a child node to `target.selector`, return a new `UpdateTarget` pointing to the new child. */
@@ -111,8 +111,8 @@ export const UpdateTarget = {
 class RefManager {
     /** For each hash (e.g. 3ce3664304d32c5d), store the number of already used refs with that hash. */
     private _counter: Record<string, number> = {};
-    constructor(plugin: PluginContext, deletePrevious: boolean) {
-        if (!deletePrevious) {
+    constructor(plugin: PluginContext, replaceExisting: boolean) {
+        if (!replaceExisting) {
             plugin.state.data.cells.forEach(cell => {
                 const ref = cell.transform.ref;
                 if (ref.startsWith('!mvs:')) {

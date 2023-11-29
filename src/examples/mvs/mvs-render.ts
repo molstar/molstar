@@ -78,7 +78,7 @@ async function main(args: Args): Promise<void> {
         const mvsData = MVSData.fromMVSJ(data);
         removeLabelNodes(mvsData);
 
-        await loadMVS(plugin, mvsData, { sanityChecks: true, deletePrevious: true });
+        await loadMVS(plugin, mvsData, { sanityChecks: true, replaceExisting: true });
         fs.mkdirSync(path.dirname(output), { recursive: true });
         if (args.molj) {
             await plugin.saveStateSnapshot(withExtension(output, '.molj'));
