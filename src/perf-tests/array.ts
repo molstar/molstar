@@ -4,7 +4,8 @@
  * @author Adam Midlik <midlik@gmail.com>
  */
 
-import { sortIfNeeded } from '../mol-util/array';
+import * as B from 'benchmark';
+import { arrayExtend, range, sortIfNeeded } from '../mol-util/array';
 
 
 function randomFloats(n: number) {
@@ -16,24 +17,53 @@ function randomFloats(n: number) {
     return data;
 }
 
-type SortFunction = (data: number[], compareFn: (a: number, b: number) => number) => any
+function le(x: number, y: number) { return x - y; }
 
-function benchmarkSortFunction(sortFunction: SortFunction, arrayLength: number, alreadySorted: boolean) {
-    const data = randomFloats(arrayLength);
-    if (alreadySorted) data.sort((a, b) => a - b);
-    const label = `${sortFunction.name} (${arrayLength}, ${alreadySorted ? 'pre-sorted' : 'not sorted'})`;
-    console.time(label);
-    sortFunction(data, (a, b) => a - b);
-    console.timeEnd(label);
+interface Copies<T> {
+    init: () => T,
+    copies: T[],
+    offset: number,
+}
+const Copies = {
+    create<T>(init: () => T, nCopies: number): Copies<T> {
+        return { init, offset: 0, copies: range(nCopies).map(init) };
+    },
+    get<T>(copies: Copies<T>): T {
+        return (copies.offset < copies.copies.length) ? copies.copies[copies.offset++] : copies.init();
+    },
+};
+
+export function runBenchmarks(arrayLength: number) {
+    const _data = randomFloats(arrayLength);
+    const _sortedData = arrayExtend([], _data).sort(le);
+    const _worstData = arrayExtend([], _sortedData);
+    [_worstData[arrayLength - 1], _worstData[arrayLength - 2]] = [_worstData[arrayLength - 2], _worstData[arrayLength - 1]];
+
+    const nCopies = 100;
+    let randomData: Copies<number[]>, sortedData: Copies<number[]>, worstData: Copies<number[]>;
+
+    function prepareData() {
+        randomData = Copies.create(() => arrayExtend([], _data), nCopies);
+        sortedData = Copies.create(() => arrayExtend([], _sortedData), nCopies);
+        worstData = Copies.create(() => arrayExtend([], _worstData), nCopies);
+    }
+    prepareData();
+
+    const suite = new B.Suite();
+    suite
+        .add(`native sort (${arrayLength}, pre-sorted)`, () => Copies.get(sortedData).sort(le))
+        .add(`sortIfNeeded (${arrayLength}, pre-sorted)`, () => sortIfNeeded(Copies.get(sortedData), le))
+        .add(`native sort (${arrayLength}, not sorted)`, () => Copies.get(randomData).sort(le))
+        .add(`sortIfNeeded (${arrayLength}, not sorted)`, () => sortIfNeeded(Copies.get(randomData), le))
+        .add(`native sort (${arrayLength}, worst case)`, () => Copies.get(worstData).sort(le))
+        .add(`sortIfNeeded (${arrayLength}, worst case)`, () => sortIfNeeded(Copies.get(worstData), le))
+        .on('cycle', (e: any) => {
+            console.log(String(e.target));
+            prepareData();
+        })
+        .run();
+    console.log('---------------------');
+    console.log('`sortIfNeeded` should be faster than native `sort` on pre-sorted data, same speed on non-sorted data and worst case data (almost sorted array when only the two last elements are swapped)');
 }
 
-export function runBenchmarks(arrayLength: number, nRepeats: number) {
-    const sort: SortFunction = (data, cmp) => data.sort(cmp);
-    for (let i = 0; i < nRepeats; i++) benchmarkSortFunction(sort, arrayLength, true);
-    for (let i = 0; i < nRepeats; i++) benchmarkSortFunction(sortIfNeeded, arrayLength, true);
-    for (let i = 0; i < nRepeats; i++) benchmarkSortFunction(sort, arrayLength, false);
-    for (let i = 0; i < nRepeats; i++) benchmarkSortFunction(sortIfNeeded, arrayLength, false);
-    console.log('`sortIfNeeded` should be faster than `sort` on pre-sorted data, same speed on non-sorted data');
-}
-
-runBenchmarks(10 ** 6, 3);
+runBenchmarks(10 ** 6);
