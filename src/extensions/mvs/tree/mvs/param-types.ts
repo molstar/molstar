@@ -5,7 +5,7 @@
  */
 
 import * as iots from 'io-ts';
-import { HexColor, isHexColorString } from '../../helpers/utils';
+import { HexColor } from '../../helpers/utils';
 import { ValueFor, float, int, list, literal, str, tuple, union } from '../generic/params-schema';
 import { ColorNames } from '../../../../mol-util/color/names';
 
@@ -62,7 +62,7 @@ export const Matrix = list(float);
 export const HexColorT = new iots.Type<HexColor>(
     'HexColor',
     ((value: any) => typeof value === 'string') as any,
-    (value, ctx) => isHexColorString(value) ? { _tag: 'Right', right: value } : { _tag: 'Left', left: [{ value: value, context: ctx, message: `"${value}" is not a valid hex color string` }] },
+    (value, ctx) => HexColor.is(value) ? { _tag: 'Right', right: value } : { _tag: 'Left', left: [{ value: value, context: ctx, message: `"${value}" is not a valid hex color string` }] },
     value => value
 );
 
