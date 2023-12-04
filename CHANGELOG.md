@@ -6,6 +6,10 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+## [v3.43.1] - 2023-12-02
+
+- Fix `react-markdown` dependency
+
 ## [v3.43.0] - 2023-12-02
 
 - Fix `State.tryGetCellData` (return type & data check)
