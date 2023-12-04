@@ -32,11 +32,14 @@ export function nullable<T extends iots.Type<any>>(type: T) {
     return union([type, iots.null]);
 }
 /** Type definition for literal types, e.g. `literal('red', 'green', 'blue')` means 'red' or 'green' or 'blue'  */
-export function literal<V extends string | number | boolean>(v1: V, v2?: V, ...others: V[]) {
-    if (v2 === undefined) {
-        return iots.literal(v1);
+export function literal<V extends string | number | boolean>(...values: V[]) {
+    if (values.length === 0) {
+        throw new Error(`literal type must have at least one value`);
+    }
+    if (values.length === 1) {
+        return iots.literal(values[0]);
     } else {
-        return union([iots.literal(v1), iots.literal(v2), ...others.map(v => iots.literal(v))]);
+        return union([iots.literal(values[0]), iots.literal(values[1]), ...values.slice(2).map(v => iots.literal(v))]);
     }
 }
 
