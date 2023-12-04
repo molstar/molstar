@@ -7,6 +7,7 @@
 import * as iots from 'io-ts';
 import { PathReporter } from 'io-ts/PathReporter';
 import { isPlainObject, mapObjectMap } from '../../../../mol-util/object';
+import { onelinerJsonString } from '../../../../mol-util/json';
 
 
 /** All types that can be used in tree node params.
@@ -36,11 +37,13 @@ export function literal<V extends string | number | boolean>(...values: V[]) {
     if (values.length === 0) {
         throw new Error(`literal type must have at least one value`);
     }
-    if (values.length === 1) {
-        return iots.literal(values[0]);
-    } else {
-        return union([iots.literal(values[0]), iots.literal(values[1]), ...values.slice(2).map(v => iots.literal(v))]);
-    }
+    const typeName = `(${values.map(v => onelinerJsonString(v)).join(' | ')})`;
+    return new iots.Type<V>(
+        typeName,
+        ((value: any) => values.includes(value)) as any,
+        (value, ctx) => values.includes(value as any) ? { _tag: 'Right', right: value as any } : { _tag: 'Left', left: [{ value: value, context: ctx, message: `"${value}" is not a valid value for literal type ${typeName}` }] },
+        value => value
+    );
 }
 
 
