@@ -6,6 +6,10 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- MolViewSpec extension
+  - Support all X11 colors
+  - Support relative URIs
+
 ## [v3.43.0] - 2023-12-02
 
 - Fix `State.tryGetCellData` (return type & data check)

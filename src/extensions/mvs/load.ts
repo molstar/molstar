@@ -27,14 +27,15 @@ import { MVSTreeSchema } from './tree/mvs/mvs-tree';
 
 /** Load a MolViewSpec (MVS) tree into the Mol* plugin.
  * If `options.replaceExisting`, remove all objects in the current Mol* state; otherwise add to the current state.
- * If `options.sanityChecks`, run some sanity checks and print potential issues to the console. */
-export async function loadMVS(plugin: PluginContext, data: MVSData, options: { replaceExisting?: boolean, sanityChecks?: boolean } = {}) {
+ * If `options.sanityChecks`, run some sanity checks and print potential issues to the console.
+ * `options.sourceUrl` serves as the base for resolving relative URLs/URIs and may itself be relative to the window URL. */
+export async function loadMVS(plugin: PluginContext, data: MVSData, options: { replaceExisting?: boolean, sanityChecks?: boolean, sourceUrl?: string } = {}) {
     try {
-        // console.log(`MVS tree (v${data.version}):\n${treeToString(data.root)}`);
+        // console.log(`MVS tree:\n${MVSData.toPrettyString(data)}`)
         validateTree(MVSTreeSchema, data.root, 'MVS');
         if (options.sanityChecks) mvsSanityCheck(data.root);
-        const molstarTree = convertMvsToMolstar(data.root);
-        // console.log(`Converted MolStar tree:\n${treeToString(molstarTree)}`);
+        const molstarTree = convertMvsToMolstar(data.root, options.sourceUrl);
+        // console.log(`Converted MolStar tree:\n${MVSData.toPrettyString({ root: molstarTree, metadata: { version: 'x', timestamp: 'x' } })}`)
         validateTree(MolstarTreeSchema, molstarTree, 'Converted Molstar');
         await loadMolstarTree(plugin, molstarTree, options);
     } catch (err) {

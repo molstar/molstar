@@ -79,7 +79,7 @@ export const MVSData = {
      * const builder = MVSData.createBuilder();
      * builder.canvas({ background_color: 'white' });
      * const struct = builder.download({ url: 'https://www.ebi.ac.uk/pdbe/entry-files/download/1og2_updated.cif' }).parse({ format: 'mmcif' }).modelStructure();
-     * struct.component().representation().color({ color: HexColor('#3050F8') });
+     * struct.component().representation().color({ color: '#3050F8' });
      * console.log(MVSData.toPrettyString(builder.getState()));
      * ```
      */

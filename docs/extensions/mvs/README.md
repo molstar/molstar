@@ -121,7 +121,7 @@ structure
 structure
     .component({ selector: 'ligand' })
     .representation({ type: 'ball_and_stick' })
-    .color({ color: '#aa55ff' as any });
+    .color({ color: '#aa55ff' });
 const mvsData2: MVSData = builder.getState();
 await loadMVS(this.plugin, mvsData2, { replaceExisting: false });
 ```

@@ -136,3 +136,40 @@ export function addDefaults<S extends TreeSchema>(tree: TreeFor<S>, defaults: De
     }
     return convertTree(tree, rules) as any;
 }
+
+/** Resolve any URI params in a tree, in place. URI params are those listed in `uriParamNames`.
+ * Relative URIs are treated as relative to `baseUri`, which can in turn be relative to the window URL (if available). */
+export function resolveUris<T extends Tree>(tree: T, baseUri: string, uriParamNames: string[]): void {
+    dfs(tree, node => {
+        const params = node.params as Record<string, any> | undefined;
+        if (!params) return;
+        for (const name in params) {
+            if (uriParamNames.includes(name)) {
+                const uri = params[name];
+                if (typeof uri === 'string') {
+                    params[name] = resolveUri(uri, baseUri, windowUrl());
+                }
+            }
+        }
+    });
+}
+
+/** Resolve a sequence of URI references (relative URIs), where each reference is either absolute or relative to the next one
+ * (i.e. the last one is the base URI). Skip any `undefined`.
+ * E.g. `resolveUri('./unexpected.png', '/spanish/inquisition/expectations.html', 'https://example.org/spam/spam/spam')`
+ * returns `'https://example.org/spanish/inquisition/unexpected.png'`. */
+function resolveUri(...refs: (string | undefined)[]): string | undefined {
+    let result: string | undefined = undefined;
+    for (const ref of refs.reverse()) {
+        if (ref !== undefined) {
+            if (result === undefined) result = ref;
+            else result = new URL(ref, result).href;
+        }
+    }
+    return result;
+}
+
+/** Return URL of the current page when running in a browser; `undefined` when running in Node. */
+function windowUrl(): string | undefined {
+    return (typeof window !== 'undefined') ? window.location.href : undefined;
+}
