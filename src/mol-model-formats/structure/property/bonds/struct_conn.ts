@@ -3,6 +3,7 @@
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author Yakov Pechersky <ffxen158@gmail.com>
  */
 
 import { Model } from '../../../../mol-model/structure/model/model';
