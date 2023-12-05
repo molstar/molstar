@@ -94,7 +94,7 @@ export namespace StructConn {
         const { conn_type_id, pdbx_dist_value, pdbx_value_order } = struct_conn;
         const p1 = {
             label_asym_id: struct_conn.ptnr1_label_asym_id,
-            auth_seq_id: struct_conn.ptnr1_auth_seq_id,
+            label_seq_id: struct_conn.ptnr1_label_seq_id,
             label_atom_id: struct_conn.ptnr1_label_atom_id,
             label_alt_id: struct_conn.pdbx_ptnr1_label_alt_id,
             ins_code: struct_conn.pdbx_ptnr1_PDB_ins_code,
@@ -102,7 +102,7 @@ export namespace StructConn {
         };
         const p2: typeof p1 = {
             label_asym_id: struct_conn.ptnr2_label_asym_id,
-            auth_seq_id: struct_conn.ptnr2_auth_seq_id,
+            label_seq_id: struct_conn.ptnr2_label_seq_id,
             label_atom_id: struct_conn.ptnr2_label_atom_id,
             label_alt_id: struct_conn.pdbx_ptnr2_label_alt_id,
             ins_code: struct_conn.pdbx_ptnr2_PDB_ins_code,
@@ -122,7 +122,7 @@ export namespace StructConn {
                 const residueIndex = model.atomicHierarchy.index.findResidue(
                     eId,
                     asymId,
-                    ps.auth_seq_id.value(row),
+                    ps.label_seq_id.value(row),
                     ps.ins_code.value(row)
                 );
                 if (residueIndex < 0) continue;
