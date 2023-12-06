@@ -96,6 +96,7 @@ export namespace StructConn {
         const p1 = {
             label_asym_id: struct_conn.ptnr1_label_asym_id,
             label_seq_id: struct_conn.ptnr1_label_seq_id,
+            auth_seq_id: struct_conn.ptnr1_auth_seq_id,
             label_atom_id: struct_conn.ptnr1_label_atom_id,
             label_alt_id: struct_conn.pdbx_ptnr1_label_alt_id,
             ins_code: struct_conn.pdbx_ptnr1_PDB_ins_code,
@@ -104,6 +105,7 @@ export namespace StructConn {
         const p2: typeof p1 = {
             label_asym_id: struct_conn.ptnr2_label_asym_id,
             label_seq_id: struct_conn.ptnr2_label_seq_id,
+            auth_seq_id: struct_conn.ptnr2_auth_seq_id,
             label_atom_id: struct_conn.ptnr2_label_atom_id,
             label_alt_id: struct_conn.pdbx_ptnr2_label_alt_id,
             ins_code: struct_conn.pdbx_ptnr2_PDB_ins_code,
@@ -118,13 +120,16 @@ export namespace StructConn {
             // turns out "mismat" records might not have atom name value
             if (!atomName) return undefined;
 
+            // prefer auth_seq_id, but if it is 0, then fall back to label_seq_id
+            const resId = ps.auth_seq_id.value(row) ? ps.auth_seq_id.value(row) : ps.label_seq_id.value(row);
+            const resInsCode = ps.ins_code.value(row);
             const altId = ps.label_alt_id.value(row);
             for (const eId of entityIds) {
                 const residueIndex = model.atomicHierarchy.index.findResidue(
                     eId,
                     asymId,
-                    ps.label_seq_id.value(row),
-                    ps.ins_code.value(row)
+                    resId,
+                    resInsCode
                 );
                 if (residueIndex < 0) continue;
                 const atomIndex = model.atomicHierarchy.index.findAtomOnResidue(residueIndex, atomName, altId);
