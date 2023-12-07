@@ -1,4 +1,4 @@
-# MVS camera setting
+# MVS camera settings
 
 Camera position and orientation in MVS views can be adjusted in two ways: using a `camera` node or a `focus` node. Global attributes of the MVS view unrelated to camera positioning can be adjusted via a `canvas` node.
 
@@ -13,17 +13,17 @@ We define the "reference camera" as a camera with such FOV that a sphere with ra
 
 When using **perspective** projection, the real camera distance from target and the real camera position can be calculated using these formulas:
 
-$d_\mathrm{adj} = d_\mathrm{ref} \cdot \frac{1}{2 \sin(\alpha/2)}$
+$d _\mathrm{adj} = d _\mathrm{ref} \cdot \frac{1}{2 \sin(\alpha/2)}$
 
-$\textbf{p}_\mathrm{adj} = \textbf{t} + (\textbf{p}_\mathrm{ref} - \textbf{t}) \cdot \frac{1}{2 \sin(\alpha/2)}$
+$\textbf{p} _\mathrm{adj} = \textbf{t} + (\textbf{p} _\mathrm{ref} - \textbf{t}) \cdot \frac{1}{2 \sin(\alpha/2)}$
 
-Where $\alpha$ is the vertical FOV of the real camera, $d_\mathrm{ref}$ is the reference camera distance from target, $d_\mathrm{adj}$ is the real (adjusted) camera distance from target, $\textbf{t}$ is the target position, $\textbf{p}_\mathrm{ref}$ is the reference camera position (the actual value in the MVS file), and $\textbf{p}_\mathrm{adj}$ is the real (adjusted) camera position.
+Where $\alpha$ is the vertical FOV of the real camera, $d _\mathrm{ref}$ is the reference camera distance from target, $d _\mathrm{adj}$ is the real (adjusted) camera distance from target, $\textbf{t}$ is the target position, $\textbf{p} _\mathrm{ref}$ is the reference camera position (the actual value in the MVS file), and $\textbf{p} _\mathrm{adj}$ is the real (adjusted) camera position.
 
 When using **orthographic** projection, the formulas are slightly different:
 
-$d_\mathrm{adj} = d_\mathrm{ref} \cdot \frac{1}{2 \tan(\alpha/2)}$
+$d _\mathrm{adj} = d _\mathrm{ref} \cdot \frac{1}{2 \tan(\alpha/2)}$
 
-$\textbf{p}_\mathrm{adj} = \textbf{t} + (\textbf{p}_\mathrm{ref} - \textbf{t}) \cdot \frac{1}{2 \tan(\alpha/2)}$
+$\textbf{p} _\mathrm{adj} = \textbf{t} + (\textbf{p} _\mathrm{ref} - \textbf{t}) \cdot \frac{1}{2 \tan(\alpha/2)}$
 
 
 Using the example above (`target=[0,0,0]` and `position=[0,0,20]`), we can calculate that the real camera position will have to be set to:
@@ -37,9 +37,9 @@ Note that for orthographic projection this adjustment achieves that the resultin
 
 The `up` vector describes how the camera should be rotated around the position-target axis, i.e. it is the vector in 3D space that will be point up when projected on the screen. For this, the `up` vector must be perpendicular to the position-target axis. However, the MVS specification does not require that the provided `up` vector be perpendicular. This can be solved by a simple adjustment:
 
-$\mathbf{u}_\mathrm{adj} = \mathrm{normalize} ( ((\mathbf{t}-\mathbf{p}) \times \mathbf{u}) \times (\mathbf{t}-\mathbf{p}) )$
+$\mathbf{u} _\mathrm{adj} = \mathrm{normalize} ( ((\mathbf{t}-\mathbf{p}) \times \mathbf{u}) \times (\mathbf{t}-\mathbf{p}) )$
 
-Where $\mathbf{u}$ is the unadjusted up vector (the actual value in the MVS file), $\mathbf{u}_\mathrm{adj}$ is the adjusted up vector, $\textbf{t}$ is the target position, and $\textbf{p}$ is the camera position (can be either reference or adjusted camera position, the result will be the same).
+Where $\mathbf{u}$ is the unadjusted up vector (the actual value in the MVS file), $\mathbf{u} _\mathrm{adj}$ is the adjusted up vector, $\textbf{t}$ is the target position, and $\textbf{p}$ is the camera position (can be either reference or adjusted camera position, the result will be the same).
 
 If the up vector parameter is not provided, the default value ([0, 1, 0]) will be used (after adjustment).
 
@@ -54,15 +54,15 @@ By default, the camera will be oriented so that the X axis points right, the Y a
 
 The reference camera position for a `focus` node can be calculated as follows:
 
-$\mathbf{p}_\mathrm{ref} = \mathbf{t} - \mathrm{normalize}(\mathbf{d}) \cdot 2 r \cdot \max(1, \frac{h}{w})$
+$\mathbf{p} _\mathrm{ref} = \mathbf{t} - \mathrm{normalize}(\mathbf{d}) \cdot 2 r \cdot \max(1, \frac{h}{w})$
 
-Where $\textbf{t}$ is the target position (center of the bounding sphere of the component), $r$ is the radius of the bounding sphere of the component, $\textbf{d}$ is the direction vector, $h$ is the height of the viewport, $w$ is the width of the viewport, and $\textbf{p}_\mathrm{ref}$ is the reference camera position (see explanation above).
+Where $\textbf{t}$ is the target position (center of the bounding sphere of the component), $r$ is the radius of the bounding sphere of the component, $\textbf{d}$ is the direction vector, $h$ is the height of the viewport, $w$ is the width of the viewport, and $\textbf{p} _\mathrm{ref}$ is the reference camera position (see explanation above).
 
-Applying the FOV-adjustment formulas from the previous section, we can easily calculate the real position that we have to set to the camera ($\textbf{p}_\mathrm{adj}$):
+Applying the FOV-adjustment formulas from the previous section, we can easily calculate the real position that we have to set to the camera ($\textbf{p} _\mathrm{adj}$):
 
-For perspective projection: $\mathbf{p}_\mathrm{adj} = \mathbf{t} - \mathrm{normalize}(\mathbf{d}) \cdot \frac{r}{\sin(\alpha/2)} \cdot \max(1, \frac{h}{w})$
+For perspective projection: $\mathbf{p} _\mathrm{adj} = \mathbf{t} - \mathrm{normalize}(\mathbf{d}) \cdot \frac{r}{\sin(\alpha/2)} \cdot \max(1, \frac{h}{w})$
 
-For orthographic projection: $\mathbf{p}_\mathrm{adj} = \mathbf{t} - \mathrm{normalize}(\mathbf{d}) \cdot \frac{r}{\tan(\alpha/2)} \cdot \max(1, \frac{h}{w})$
+For orthographic projection: $\mathbf{p} _\mathrm{adj} = \mathbf{t} - \mathrm{normalize}(\mathbf{d}) \cdot \frac{r}{\tan(\alpha/2)} \cdot \max(1, \frac{h}{w})$
 
 ## `canvas` node
 

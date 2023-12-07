@@ -133,4 +133,4 @@ When using the pre-built Mol* plugin bundle, `MVSData` and `loadMVS` are exposed
 
 - [Selectors](./selectors.md)
 - [Annotations](./annotations.md)
-- [Camera Setting](./camera-setting.md)
+- [Camera Settings](./camera-settings.md)
