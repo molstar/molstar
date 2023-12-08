@@ -93,9 +93,9 @@ Mol* MolViewSpec extension provides functionality for building, validating, and 
 
 ### Programming interface
 
-Most functions for manipulation of MVS data (including parsing, encoding, validating, and building) are provided by the `MVSData` object (defined in [src/extensions/mvs/mvs-data.ts](../../../src/extensions/mvs/mvs-data.ts)). In TypeScript, `MVSData` is also the type for a MVS view.
+Most functions for manipulation of MVS data (including parsing, encoding, validating, and building) are provided by the `MVSData` object (defined in [src/extensions/mvs/mvs-data.ts](/src/extensions/mvs/mvs-data.ts)). In TypeScript, `MVSData` is also the type for a MVS view.
 
-The `loadMVS` function (defined in [src/extensions/mvs/load.ts](../../../src/extensions/mvs/load.ts)) can be used to load MVS view data into Mol* Viewer.
+The `loadMVS` function (defined in [src/extensions/mvs/load.ts](/src/extensions/mvs/load.ts)) can be used to load MVS view data into Mol* Viewer.
 
 Example usage:
 

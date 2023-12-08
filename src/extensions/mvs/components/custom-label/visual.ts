@@ -59,7 +59,7 @@ export const CustomLabelTextParams = {
                     type_symbol: MaybeStringParamDefinition(),
                     /** Unique atom identifier across conformations (_atom_site.id) */
                     atom_id: MaybeIntegerParamDefinition(),
-                    /** 0-base index of the atom in the source data */
+                    /** 0-based index of the atom in the source data */
                     atom_index: MaybeIntegerParamDefinition(),
 
                 }),
