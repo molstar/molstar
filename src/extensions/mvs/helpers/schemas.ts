@@ -85,7 +85,7 @@ const FieldsForSchemas = {
     residue: ['group_id', 'label_entity_id', 'label_asym_id', 'label_seq_id'],
     auth_residue: ['group_id', 'auth_asym_id', 'auth_seq_id', 'pdbx_PDB_ins_code'],
     residue_range: ['group_id', 'label_entity_id', 'label_asym_id', 'beg_label_seq_id', 'end_label_seq_id'],
-    auth_residue_range: ['group_id', 'auth_asym_id', 'beg_auth_seq_id', 'end_auth_seq_id', 'pdbx_PDB_ins_code'],
+    auth_residue_range: ['group_id', 'auth_asym_id', 'beg_auth_seq_id', 'end_auth_seq_id'],
     atom: ['group_id', 'label_entity_id', 'label_asym_id', 'label_seq_id', 'label_atom_id', 'type_symbol', 'atom_id', 'atom_index'],
     auth_atom: ['group_id', 'auth_asym_id', 'auth_seq_id', 'pdbx_PDB_ins_code', 'auth_atom_id', 'type_symbol', 'atom_id', 'atom_index'],
     all_atomic: Object.keys(AllAtomicCifAnnotationSchema) as (keyof typeof AllAtomicCifAnnotationSchema)[],
