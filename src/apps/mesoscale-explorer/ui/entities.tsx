@@ -6,7 +6,7 @@
 
 import { PluginUIComponent } from '../../../mol-plugin-ui/base';
 import { Button, ControlGroup, IconButton } from '../../../mol-plugin-ui/controls/common';
-import { ArrowDropDownSvg, ArrowRightSvg, CloseSvg, VisibilityOffOutlinedSvg, VisibilityOutlinedSvg, ContentCutSvg, BrushSvg } from '../../../mol-plugin-ui/controls/icons';
+import { ArrowDropDownSvg, ArrowRightSvg, CloseSvg, VisibilityOffOutlinedSvg, VisibilityOutlinedSvg, ContentCutSvg, BrushSvg, SearchSvg } from '../../../mol-plugin-ui/controls/icons';
 import { PluginCommands } from '../../../mol-plugin/commands';
 import { State, StateObjectCell, StateSelection, StateTransformer } from '../../../mol-state';
 import { ParameterControls, ParameterMappingControl, ParamOnChange, SelectControl } from '../../../mol-plugin-ui/controls/parameters';
@@ -18,9 +18,10 @@ import { CombinedColorControl } from '../../../mol-plugin-ui/controls/color';
 import { MarkerAction } from '../../../mol-util/marker-action';
 import { EveryLoci } from '../../../mol-model/loci';
 import { deepEqual } from '../../../mol-util';
-import { ColorValueParam, ColorParams, ColorProps, DimLightness, LightnessParams, LodParams, MesoscaleGroup, MesoscaleGroupProps, OpacityParams, SimpleClipParams, SimpleClipProps, createClipMapping, getClipObjects, getDistinctGroupColors, RootParams, MesoscaleState, getRoots, getAllGroups, getAllLeafGroups, getFilteredEntities, getAllFilteredEntities, getGroups, getEntities, getAllEntities, getEntityLabel, updateColors, getGraphicsModeProps, GraphicsMode, MesoscaleStateParams, setGraphicsCanvas3DProps, PatternParams } from '../data/state';
+import { ColorValueParam, ColorParams, ColorProps, DimLightness, LightnessParams, LodParams, MesoscaleGroup, MesoscaleGroupProps, OpacityParams, SimpleClipParams, SimpleClipProps, createClipMapping, getClipObjects, getDistinctGroupColors, RootParams, MesoscaleState, getRoots, getAllGroups, getAllLeafGroups, getFilteredEntities, getAllFilteredEntities, getGroups, getEntities, getAllEntities, getEntityLabel, updateColors, getGraphicsModeProps, GraphicsMode, MesoscaleStateParams, setGraphicsCanvas3DProps, PatternParams, expandAllGroups } from '../data/state';
 import React from 'react';
 import { MesoscaleExplorerState } from '../app';
+import { StructureElement } from '../../../mol-model/structure/structure/element';
 
 export class ModelInfo extends PluginUIComponent<{}, { isDisabled: boolean }> {
     state = {
@@ -62,9 +63,61 @@ export class ModelInfo extends PluginUIComponent<{}, { isDisabled: boolean }> {
     }
 }
 
+export class SelectionInfo extends PluginUIComponent<{}, { isDisabled: boolean }> {
+    state = {
+        isDisabled: false,
+    };
+
+    componentDidMount() {
+        this.subscribe(this.plugin.state.data.behaviors.isUpdating, v => {
+            this.setState({ isDisabled: v });
+        });
+
+        this.subscribe(this.plugin.managers.structure.selection.events.changed, e => {
+            if (!this.state.isDisabled) {
+                this.forceUpdate();
+            }
+        });
+    }
+
+    get info() {
+        const info: string[] = [];
+        this.plugin.managers.structure.selection.entries.forEach(e => {
+            if (StructureElement.Loci.is(e.selection) && !StructureElement.Loci.isEmpty(e.selection)) {
+                const cell = this.plugin.helpers.substructureParent.get(e.selection.structure);
+                info.push(cell?.obj?.label || 'Unknown');
+            }
+        });
+        return info;
+    }
+
+    find(filter: string) {
+        MesoscaleState.set(this.plugin, { filter });
+        if (filter) expandAllGroups(this.plugin);
+    };
+
+    render() {
+        const info = this.info;
+
+        return info.length && <>
+            {info.map((entry, index) => {
+                const label = <Button className={`msp-btn-tree-label`} noOverflow disabled={this.state.isDisabled}>
+                    <span title={entry}>{entry}</span>
+                </Button>;
+                const find = <IconButton svg={SearchSvg} toggleState={false} disabled={this.state.isDisabled} small onClick={() => this.find(entry)} />;
+                return <div key={index} className={`msp-flex-row`} style={{ margin: `1px 5px 1px ${0 * 10 + 5}px` }}>
+                    {label}
+                    {find}
+                </div>;
+            })}
+        </>;
+    }
+}
+
 export class EntityControls extends PluginUIComponent<{}, { isDisabled: boolean }> {
     filterRef = React.createRef<HTMLInputElement>();
     prevFilter = '';
+    filterFocus = false;
 
     state = {
         isDisabled: false,
@@ -92,7 +145,7 @@ export class EntityControls extends PluginUIComponent<{}, { isDisabled: boolean 
 
     componentDidUpdate(): void {
         const filter = this.filter;
-        if (filter !== this.prevFilter) {
+        if (this.filterFocus) {
             this.filterRef.current?.focus();
             this.prevFilter = filter;
         }
@@ -119,9 +172,10 @@ export class EntityControls extends PluginUIComponent<{}, { isDisabled: boolean 
     }
 
     setFilter = (value: string) => {
+        this.filterFocus = true;
         const filter = value.trim().replace(/\s+/gi, ' ');
         MesoscaleState.set(this.plugin, { filter });
-        if (filter) this.expandAllGroups();
+        if (filter) expandAllGroups(this.plugin);
     };
 
     get filter() {
@@ -165,14 +219,6 @@ export class EntityControls extends PluginUIComponent<{}, { isDisabled: boolean 
         return MesoscaleState.has(this.plugin) ? MesoscaleState.get(this.plugin).graphics : customState.graphicsMode;
     }
 
-    expandAllGroups = () => {
-        for (const g of getAllGroups(this.plugin)) {
-            if (g.state.isCollapsed) {
-                this.plugin.state.data.updateCellState(g.transform.ref, { isCollapsed: false });
-            }
-        }
-    };
-
     renderGraphics() {
         const graphics = this.graphics;
         return <div style={{ margin: '5px', marginBottom: '10px' }}>
@@ -206,8 +252,9 @@ export class EntityControls extends PluginUIComponent<{}, { isDisabled: boolean 
                 <input type='text' ref={this.filterRef}
                     value={filter}
                     placeholder='Search'
-                    onChange={e => this.setFilter(e.target.value) }
+                    onChange={e => this.setFilter(e.target.value)}
                     disabled={disabled}
+                    onBlur={() => this.filterFocus = false}
                 />
                 <IconButton svg={CloseSvg} toggleState={false} disabled={disabled} onClick={() => this.setFilter('')} />
             </div>
