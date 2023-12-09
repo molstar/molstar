@@ -1,5 +1,9 @@
 {
- "version": 6,
+ "metadata": {
+  "title": "Example MolViewSpec - 1h9t colored by external annotation",
+  "version": "1",
+  "timestamp": "2023-11-24T10:47:33.182Z"
+ },
  "root": {
   "kind": "root",
   "children": [

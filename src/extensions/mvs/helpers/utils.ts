@@ -80,10 +80,15 @@ export function filterDefined<T>(elements: (T | undefined | null)[]): T[] {
     return elements.filter(x => x !== undefined && x !== null) as T[];
 }
 
-/** Create an 8-hex-character hash for a given input string, e.g. 'spanish inquisition' -> 'bd65e59a' */
-export function stringHash(input: string): string {
+/** Create an 8-hex-character hash for a given input string, e.g. 'spanish inquisition' -> '7f9ac4be' */
+function stringHash32(input: string): string {
     const uint32hash = hashString(input) >>> 0; // >>>0 converts to uint32, LOL
     return uint32hash.toString(16).padStart(8, '0');
+}
+/** Create an 16-hex-character hash for a given input string, e.g. 'spanish inquisition' -> '7f9ac4be544330be'*/
+export function stringHash(input: string): string {
+    const reversed = input.split('').reverse().join('');
+    return stringHash32(input) + stringHash32(reversed);
 }
 
 /** Return type of elements in a set */
