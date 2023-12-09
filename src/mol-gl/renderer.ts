@@ -84,7 +84,7 @@ interface Renderer {
     setTransparentBackground: (value: boolean) => void
     setDrawingBufferSize: (width: number, height: number) => void
     setPixelRatio: (value: number) => void
-    setIsOccluded: (f?: (s: Sphere3D) => boolean) => void
+    setOcclusionTest: (f: ((s: Sphere3D) => boolean) | null) => void
 
     dispose: () => void
 }
@@ -174,7 +174,7 @@ namespace Renderer {
         const bgColor = Color.toVec3Normalized(Vec3(), p.backgroundColor);
 
         let transparentBackground = false;
-        let isOccluded: ((s: Sphere3D) => boolean) | undefined = undefined;
+        let isOccluded: ((s: Sphere3D) => boolean) | null = null;
 
         const emptyDepthTexture = ctx.resources.texture('image-uint8', 'rgba', 'ubyte', 'nearest');
         emptyDepthTexture.define(1, 1);
@@ -281,7 +281,7 @@ namespace Renderer {
                 if (d - radius > maxDistance) return;
             }
 
-            if (isOccluded && (r.values.instanceGrid.ref.value.cellSize > 1 || r.values.lodLevels)) {
+            if (r.values.instanceGrid.ref.value.cellSize > 1 || r.values.lodLevels) {
                 r.cull(cameraPlane, frustum, isOccluded, ctx.stats);
             } else {
                 r.uncull();
@@ -877,7 +877,7 @@ namespace Renderer {
             setPixelRatio: (value: number) => {
                 ValueCell.update(globalUniforms.uPixelRatio, value);
             },
-            setIsOccluded: (f?: (s: Sphere3D) => boolean) => {
+            setOcclusionTest: (f: ((s: Sphere3D) => boolean) | null) => {
                 isOccluded = f;
             },
 

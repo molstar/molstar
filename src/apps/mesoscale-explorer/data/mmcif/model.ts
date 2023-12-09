@@ -14,7 +14,9 @@ import { ElementIndex, EntityIndex, Model, Structure, Unit } from '../../../../m
 import { Assembly, Symmetry } from '../../../../mol-model/structure/model/properties/symmetry';
 import { PluginStateObject as PSO, PluginStateTransform } from '../../../../mol-plugin-state/objects';
 import { PluginContext } from '../../../../mol-plugin/context';
+import { StateTransformer } from '../../../../mol-state/transformer';
 import { Task } from '../../../../mol-task';
+import { deepEqual } from '../../../../mol-util';
 import { ParamDefinition as PD } from '../../../../mol-util/param-definition';
 import { partitionUnits } from '../util';
 
@@ -107,6 +109,11 @@ const MmcifAssembly = PluginStateTransform.BuiltIn({
             return new PSO.Molecule.Structure(s, objProps);
         });
     },
+    update({ newParams, oldParams }) {
+        return deepEqual(newParams, oldParams)
+            ? StateTransformer.UpdateResult.Unchanged
+            : StateTransformer.UpdateResult.Recreate;
+    },
     dispose({ b }) {
         b?.data.customPropertyDescriptors.dispose();
     }
@@ -183,6 +190,11 @@ const MmcifStructure = PluginStateTransform.BuiltIn({
             const label = entities.data.pdbx_description.value(idx).join(', ') || 'model';
             return new PSO.Molecule.Structure(structure, { label, description: `${a.description}` });
         });
+    },
+    update({ newParams, oldParams }) {
+        return deepEqual(newParams, oldParams)
+            ? StateTransformer.UpdateResult.Unchanged
+            : StateTransformer.UpdateResult.Recreate;
     },
     dispose({ b }) {
         b?.data.customPropertyDescriptors.dispose();

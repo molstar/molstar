@@ -24,7 +24,7 @@ import { createCellpackHierarchy } from '../data/cellpack/preset';
 import { createGenericHierarchy } from '../data/generic/preset';
 import { createMmcifHierarchy } from '../data/mmcif/preset';
 import { createPetworldHierarchy } from '../data/petworld/preset';
-import { MesoscaleState, setGraphicsCanvas3DProps } from '../data/state';
+import { MesoscaleState, MesoscaleStateObject, setGraphicsCanvas3DProps } from '../data/state';
 
 function adjustPluginProps(ctx: PluginContext) {
     ctx.managers.interactivity.setProps({ granularity: 'chain' });
@@ -136,16 +136,28 @@ async function createHierarchy(ctx: PluginContext, ref: string) {
 }
 
 async function reset(ctx: PluginContext) {
-    delete (ctx.customState as MesoscaleExplorerState).stateRef;
+    const customState = ctx.customState as MesoscaleExplorerState;
+    delete customState.stateRef;
+    customState.stateCache = {};
+    ctx.managers.asset.clear();
+
     await PluginCommands.State.Snapshots.Clear(ctx);
     await PluginCommands.State.RemoveObject(ctx, { state: ctx.state.data, ref: StateTransform.RootRef });
+
     await MesoscaleState.init(ctx);
     adjustPluginProps(ctx);
 }
 
 export async function loadExampleEntry(ctx: PluginContext, entry: ExampleEntry) {
-    console.time('LoadExample');
     const { url, type } = entry;
+    await loadUrl(ctx, url, type);
+    MesoscaleState.set(ctx, {
+        description: entry.description || entry.label,
+        link: entry.link,
+    });
+}
+
+export async function loadUrl(ctx: PluginContext, url: string, type: 'molx' | 'molj' | 'cif' | 'bcif') {
     if (type === 'molx' || type === 'molj') {
         await PluginCommands.State.Snapshots.OpenUrl(ctx, { url, type });
     } else {
@@ -154,11 +166,6 @@ export async function loadExampleEntry(ctx: PluginContext, entry: ExampleEntry) 
         const data = await ctx.builders.data.download({ url, isBinary });
         await createHierarchy(ctx, data.ref);
     }
-    MesoscaleState.set(ctx, {
-        description: entry.description || entry.label,
-        link: entry.link,
-    });
-    console.timeEnd('LoadExample');
 }
 
 export async function loadPdb(ctx: PluginContext, id: string) {
@@ -221,7 +228,6 @@ export const LoadModel = StateAction.build({
         return;
     }
 
-    console.time('LoadModel');
     await reset(ctx);
 
     const firstFile = params.files[0];
@@ -249,7 +255,6 @@ export const LoadModel = StateAction.build({
             }
         }
     }
-    console.timeEnd('LoadModel');
 }));
 
 //
@@ -290,6 +295,22 @@ export class ExampleControls extends PluginUIComponent {
     }
 }
 
+export async function openState(ctx: PluginContext, file: File) {
+    const customState = ctx.customState as MesoscaleExplorerState;
+    delete customState.stateRef;
+    customState.stateCache = {};
+    ctx.managers.asset.clear();
+
+    await PluginCommands.State.Snapshots.Clear(ctx);
+    await PluginCommands.State.Snapshots.OpenFile(ctx, { file });
+
+    const cell = ctx.state.data.selectQ(q => q.ofType(MesoscaleStateObject))[0];
+    if (!cell) throw new Error('Missing MesoscaleState');
+
+    customState.stateRef = cell.transform.ref;
+    customState.graphicsMode = cell.obj?.data.graphics || customState.graphicsMode;
+}
+
 export class SessionControls extends PluginUIComponent {
     downloadToFileZip = () => {
         PluginCommands.State.Snapshots.DownloadToFile(this.plugin, { type: 'zip' });
@@ -300,7 +321,8 @@ export class SessionControls extends PluginUIComponent {
             this.plugin.log.error('No state file selected');
             return;
         }
-        PluginCommands.State.Snapshots.OpenFile(this.plugin, { file: e.target.files[0] });
+
+        openState(this.plugin, e.target.files[0]);
     };
 
     render() {

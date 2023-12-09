@@ -19,7 +19,7 @@ import { DistinctColorsProps, distinctColors } from '../../../mol-util/color/dis
 import { Sphere3D } from '../../../mol-math/geometry';
 import { Hcl } from '../../../mol-util/color/spaces/hcl';
 import { StateObjectCell, StateObjectRef, StateSelection } from '../../../mol-state';
-import { StructureRepresentation3D } from '../../../mol-plugin-state/transforms/representation';
+import { ShapeRepresentation3D, StructureRepresentation3D } from '../../../mol-plugin-state/transforms/representation';
 import { SpacefillRepresentationProvider } from '../../../mol-repr/structure/representation/spacefill';
 import { assertUnreachable } from '../../../mol-util/type-helpers';
 import { MesoscaleExplorerState } from '../app';
@@ -62,7 +62,7 @@ export function getDistinctGroupColors(count: number, color: Color, variability:
         hue: getHueRange(hcl[0], variability),
         chroma: [30, 100],
         luminance: [50, 100],
-        clusteringStepCount: 50,
+        clusteringStepCount: 0,
         minSampleCount: 1000,
         sampleCountFactor: 100,
         sort: 'none',
@@ -88,7 +88,7 @@ export function getDistinctBaseColors(count: number, shift: number, props?: Part
             hue: [1, 360],
             chroma: [25, 100],
             luminance: [30, 100],
-            clusteringStepCount: 50,
+            clusteringStepCount: 0,
             minSampleCount: 1000,
             sampleCountFactor: 100,
             sort: 'none',
@@ -132,6 +132,11 @@ export const DimLightness = 6;
 
 export const OpacityParams = {
     alpha: PD.Numeric(1, { min: 0, max: 1, step: 0.01 }),
+};
+
+export const PatternParams = {
+    frequency: PD.Numeric(1, { min: 0, max: 1, step: 0.01 }),
+    amplitude: PD.Numeric(1, { min: 0, max: 1, step: 0.01 }),
 };
 
 export const LodParams = {
@@ -351,7 +356,7 @@ export const MesoscaleStateParams = {
     link: PD.Value<string>('', { isHidden: true }),
 };
 
-class MesoscaleStateObject extends PSO.Create<MesoscaleState>({ name: 'Mesoscale State', typeClass: 'Object' }) { }
+export class MesoscaleStateObject extends PSO.Create<MesoscaleState>({ name: 'Mesoscale State', typeClass: 'Object' }) { }
 
 const MesoscaleStateTransform = PluginStateTransform.BuiltIn({
     name: 'mesoscale-state',
@@ -401,15 +406,24 @@ const MesoscaleState = {
 
 //
 
-export function getRoots(plugin: PluginContext) {
-    return plugin.state.data.select(StateSelection.Generators.rootsOfType(MesoscaleGroupObject));
+export function getRoots(plugin: PluginContext): StateSelection.CellSeq<StateObjectCell<MesoscaleGroupObject>> {
+    const s = plugin.customState as MesoscaleExplorerState;
+    if (!s.stateCache.roots) {
+        s.stateCache.roots = plugin.state.data.select(StateSelection.Generators.rootsOfType(MesoscaleGroupObject));
+    }
+    return s.stateCache.roots;
 }
 
-export function getGroups(plugin: PluginContext, tag?: string) {
-    const selector = tag !== undefined
-        ? StateSelection.Generators.ofTransformer(MesoscaleGroup).withTag(tag)
-        : StateSelection.Generators.ofTransformer(MesoscaleGroup);
-    return plugin.state.data.select(selector);
+export function getGroups(plugin: PluginContext, tag?: string): StateSelection.CellSeq<StateObjectCell<MesoscaleGroupObject>> {
+    const s = plugin.customState as MesoscaleExplorerState;
+    const k = `groups-${tag || ''}`;
+    if (!s.stateCache[k]) {
+        const selector = tag !== undefined
+            ? StateSelection.Generators.ofTransformer(MesoscaleGroup).withTag(tag)
+            : StateSelection.Generators.ofTransformer(MesoscaleGroup);
+        s.stateCache[k] = plugin.state.data.select(selector);
+    }
+    return s.stateCache[k];
 }
 
 function _getAllGroups(plugin: PluginContext, tag: string | undefined, list: StateObjectCell[]) {
@@ -429,15 +443,28 @@ export function getAllLeafGroups(plugin: PluginContext, tag: string) {
     const allGroups = getAllGroups(plugin, tag);
     allGroups.sort((a, b) => a.params?.values.index - b.params?.values.index);
     return allGroups.filter(g => {
-        return plugin.state.data.select(StateSelection.Generators.ofTransformer(StructureRepresentation3D).withTag(g.params?.values.tag)).length > 0;
+        return getEntities(plugin, g.params?.values.tag).length > 0;
     });
 }
 
-export function getEntities(plugin: PluginContext, tag?: string) {
-    const selector = tag !== undefined
-        ? StateSelection.Generators.ofTransformer(StructureRepresentation3D).withTag(tag)
-        : StateSelection.Generators.ofTransformer(StructureRepresentation3D);
-    return plugin.state.data.select(selector).filter(c => c.obj!.data.sourceData.elementCount > 0);
+type EntityCells = StateSelection.CellSeq<StateObjectCell<PSO.Molecule.Structure.Representation3D | PSO.Shape.Representation3D>>
+
+export function getEntities(plugin: PluginContext, tag?: string): EntityCells {
+    const s = plugin.customState as MesoscaleExplorerState;
+    const k = `entities-${tag || ''}`;
+    if (!s.stateCache[k]) {
+        const structureSelector = tag !== undefined
+            ? StateSelection.Generators.ofTransformer(StructureRepresentation3D).withTag(tag)
+            : StateSelection.Generators.ofTransformer(StructureRepresentation3D);
+        const shapeSelector = tag !== undefined
+            ? StateSelection.Generators.ofTransformer(ShapeRepresentation3D).withTag(tag)
+            : StateSelection.Generators.ofTransformer(ShapeRepresentation3D);
+        s.stateCache[k] = [
+            ...plugin.state.data.select(structureSelector).filter(c => c.obj!.data.sourceData.elementCount > 0),
+            ...plugin.state.data.select(shapeSelector),
+        ];
+    }
+    return s.stateCache[k];
 }
 
 export function getFilteredEntities(plugin: PluginContext, tag: string, filter: string) {
@@ -445,7 +472,7 @@ export function getFilteredEntities(plugin: PluginContext, tag: string, filter: 
     return getEntities(plugin, tag).filter(c => getEntityLabel(plugin, c).match(reFilter) !== null);
 }
 
-function _getAllEntities(plugin: PluginContext, tag: string | undefined, list: StateObjectCell[]) {
+function _getAllEntities(plugin: PluginContext, tag: string | undefined, list: EntityCells) {
     list.push(...getEntities(plugin, tag));
     for (const g of getGroups(plugin, tag)) {
         _getAllEntities(plugin, g.params?.values.tag, list);
@@ -489,10 +516,17 @@ export async function updateColors(plugin: PluginContext, values: PD.Values, tag
             for (let j = 0; j < entities.length; ++j) {
                 const c = type === 'group-generate' ? groupColors[j] : baseColors[i];
                 update.to(entities[j]).update(old => {
-                    old.colorTheme.params.value = c;
-                    old.colorTheme.params.lightness = lightness;
-                    old.type.params.alpha = alpha;
-                    old.type.params.xrayShaded = alpha < 1 ? 'inverted' : false;
+                    if (old.type) {
+                        old.colorTheme.params.value = c;
+                        old.colorTheme.params.lightness = lightness;
+                        old.type.params.alpha = alpha;
+                        old.type.params.xrayShaded = alpha < 1 ? 'inverted' : false;
+                    } else if (old.coloring) {
+                        old.coloring.params.color = c;
+                        old.coloring.params.lightness = lightness;
+                        old.alpha = alpha;
+                        old.xrayShaded = alpha < 1 ? true : false;
+                    }
                 });
             }
 
@@ -514,10 +548,17 @@ export async function updateColors(plugin: PluginContext, values: PD.Values, tag
         for (let j = 0; j < entities.length; ++j) {
             const c = type === 'generate' ? groupColors[j] : value;
             update.to(entities[j]).update(old => {
-                old.colorTheme.params.value = c;
-                old.colorTheme.params.lightness = lightness;
-                old.type.params.alpha = alpha;
-                old.type.params.xrayShaded = alpha < 1 ? 'inverted' : false;
+                if (old.type) {
+                    old.colorTheme.params.value = c;
+                    old.colorTheme.params.lightness = lightness;
+                    old.type.params.alpha = alpha;
+                    old.type.params.xrayShaded = alpha < 1 ? 'inverted' : false;
+                } else if (old.coloring) {
+                    old.coloring.params.color = c;
+                    old.coloring.params.lightness = lightness;
+                    old.alpha = alpha;
+                    old.xrayShaded = alpha < 1 ? true : false;
+                }
             });
         }
 
@@ -533,4 +574,12 @@ export async function updateColors(plugin: PluginContext, values: PD.Values, tag
     }
 
     await update.commit();
+};
+
+export function expandAllGroups(plugin: PluginContext) {
+    for (const g of getAllGroups(plugin)) {
+        if (g.state.isCollapsed) {
+            plugin.state.data.updateCellState(g.transform.ref, { isCollapsed: false });
+        }
+    }
 };

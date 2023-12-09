@@ -14,10 +14,11 @@ import { Table } from '../../../../mol-data/db';
 import { mmCIF_Schema } from '../../../../mol-io/reader/cif/schema/mmcif';
 import { MmcifFormat } from '../../../../mol-model-formats/structure/mmcif';
 import { arrayFind } from '../../../../mol-data/util';
-import { StateObject } from '../../../../mol-state';
+import { StateObject, StateTransformer } from '../../../../mol-state';
 import { CifField } from '../../../../mol-io/reader/cif';
 import { ParamDefinition as PD } from '../../../../mol-util/param-definition';
 import { mergeUnits } from '../util';
+import { deepEqual } from '../../../../mol-util';
 
 export { StructureFromPetworld };
 type StructureFromPetworld = typeof StructureFromPetworld
@@ -42,6 +43,11 @@ const StructureFromPetworld = PluginStateTransform.BuiltIn({
             const props = { label, description: Structure.elementDescription(s) };
             return new SO.Molecule.Structure(s, props);
         });
+    },
+    update({ newParams, oldParams }) {
+        return deepEqual(newParams, oldParams)
+            ? StateTransformer.UpdateResult.Unchanged
+            : StateTransformer.UpdateResult.Recreate;
     },
     dispose({ b }) {
         b?.data.customPropertyDescriptors.dispose();

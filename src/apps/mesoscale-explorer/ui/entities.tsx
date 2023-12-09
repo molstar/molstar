@@ -6,7 +6,7 @@
 
 import { PluginUIComponent } from '../../../mol-plugin-ui/base';
 import { Button, ControlGroup, IconButton } from '../../../mol-plugin-ui/controls/common';
-import { ArrowDropDownSvg, ArrowRightSvg, CloseSvg, VisibilityOffOutlinedSvg, VisibilityOutlinedSvg, ContentCutSvg, BrushSvg } from '../../../mol-plugin-ui/controls/icons';
+import { ArrowDropDownSvg, ArrowRightSvg, CloseSvg, VisibilityOffOutlinedSvg, VisibilityOutlinedSvg, ContentCutSvg, BrushSvg, SearchSvg } from '../../../mol-plugin-ui/controls/icons';
 import { PluginCommands } from '../../../mol-plugin/commands';
 import { State, StateObjectCell, StateSelection, StateTransformer } from '../../../mol-state';
 import { ParameterControls, ParameterMappingControl, ParamOnChange, SelectControl } from '../../../mol-plugin-ui/controls/parameters';
@@ -18,9 +18,10 @@ import { CombinedColorControl } from '../../../mol-plugin-ui/controls/color';
 import { MarkerAction } from '../../../mol-util/marker-action';
 import { EveryLoci } from '../../../mol-model/loci';
 import { deepEqual } from '../../../mol-util';
-import { ColorValueParam, ColorParams, ColorProps, DimLightness, LightnessParams, LodParams, MesoscaleGroup, MesoscaleGroupProps, OpacityParams, SimpleClipParams, SimpleClipProps, createClipMapping, getClipObjects, getDistinctGroupColors, RootParams, MesoscaleState, getRoots, getAllGroups, getAllLeafGroups, getFilteredEntities, getAllFilteredEntities, getGroups, getEntities, getAllEntities, getEntityLabel, updateColors, getGraphicsModeProps, GraphicsMode, MesoscaleStateParams, setGraphicsCanvas3DProps } from '../data/state';
+import { ColorValueParam, ColorParams, ColorProps, DimLightness, LightnessParams, LodParams, MesoscaleGroup, MesoscaleGroupProps, OpacityParams, SimpleClipParams, SimpleClipProps, createClipMapping, getClipObjects, getDistinctGroupColors, RootParams, MesoscaleState, getRoots, getAllGroups, getAllLeafGroups, getFilteredEntities, getAllFilteredEntities, getGroups, getEntities, getAllEntities, getEntityLabel, updateColors, getGraphicsModeProps, GraphicsMode, MesoscaleStateParams, setGraphicsCanvas3DProps, PatternParams, expandAllGroups } from '../data/state';
 import React from 'react';
 import { MesoscaleExplorerState } from '../app';
+import { StructureElement } from '../../../mol-model/structure/structure/element';
 
 export class ModelInfo extends PluginUIComponent<{}, { isDisabled: boolean }> {
     state = {
@@ -62,9 +63,61 @@ export class ModelInfo extends PluginUIComponent<{}, { isDisabled: boolean }> {
     }
 }
 
+export class SelectionInfo extends PluginUIComponent<{}, { isDisabled: boolean }> {
+    state = {
+        isDisabled: false,
+    };
+
+    componentDidMount() {
+        this.subscribe(this.plugin.state.data.behaviors.isUpdating, v => {
+            this.setState({ isDisabled: v });
+        });
+
+        this.subscribe(this.plugin.managers.structure.selection.events.changed, e => {
+            if (!this.state.isDisabled) {
+                this.forceUpdate();
+            }
+        });
+    }
+
+    get info() {
+        const info: string[] = [];
+        this.plugin.managers.structure.selection.entries.forEach(e => {
+            if (StructureElement.Loci.is(e.selection) && !StructureElement.Loci.isEmpty(e.selection)) {
+                const cell = this.plugin.helpers.substructureParent.get(e.selection.structure);
+                info.push(cell?.obj?.label || 'Unknown');
+            }
+        });
+        return info;
+    }
+
+    find(filter: string) {
+        MesoscaleState.set(this.plugin, { filter });
+        if (filter) expandAllGroups(this.plugin);
+    };
+
+    render() {
+        const info = this.info;
+
+        return info.length && <>
+            {info.map((entry, index) => {
+                const label = <Button className={`msp-btn-tree-label`} noOverflow disabled={this.state.isDisabled}>
+                    <span title={entry}>{entry}</span>
+                </Button>;
+                const find = <IconButton svg={SearchSvg} toggleState={false} disabled={this.state.isDisabled} small onClick={() => this.find(entry)} />;
+                return <div key={index} className={`msp-flex-row`} style={{ margin: `1px 5px 1px ${0 * 10 + 5}px` }}>
+                    {label}
+                    {find}
+                </div>;
+            })}
+        </>;
+    }
+}
+
 export class EntityControls extends PluginUIComponent<{}, { isDisabled: boolean }> {
     filterRef = React.createRef<HTMLInputElement>();
     prevFilter = '';
+    filterFocus = false;
 
     state = {
         isDisabled: false,
@@ -92,7 +145,7 @@ export class EntityControls extends PluginUIComponent<{}, { isDisabled: boolean 
 
     componentDidUpdate(): void {
         const filter = this.filter;
-        if (filter !== this.prevFilter) {
+        if (this.filterFocus) {
             this.filterRef.current?.focus();
             this.prevFilter = filter;
         }
@@ -119,9 +172,10 @@ export class EntityControls extends PluginUIComponent<{}, { isDisabled: boolean 
     }
 
     setFilter = (value: string) => {
+        this.filterFocus = true;
         const filter = value.trim().replace(/\s+/gi, ' ');
         MesoscaleState.set(this.plugin, { filter });
-        if (filter) this.expandAllGroups();
+        if (filter) expandAllGroups(this.plugin);
     };
 
     get filter() {
@@ -140,9 +194,11 @@ export class EntityControls extends PluginUIComponent<{}, { isDisabled: boolean 
 
         for (const r of getAllEntities(this.plugin)) {
             update.to(r).update(old => {
-                old.type.params.lodLevels = lodLevels;
-                old.type.params.approximate = approximate;
-                old.type.params.alphaThickness = alphaThickness;
+                if (old.type) {
+                    old.type.params.lodLevels = lodLevels;
+                    old.type.params.approximate = approximate;
+                    old.type.params.alphaThickness = alphaThickness;
+                }
             });
         }
 
@@ -162,14 +218,6 @@ export class EntityControls extends PluginUIComponent<{}, { isDisabled: boolean 
         const customState = this.plugin.customState as MesoscaleExplorerState;
         return MesoscaleState.has(this.plugin) ? MesoscaleState.get(this.plugin).graphics : customState.graphicsMode;
     }
-
-    expandAllGroups = () => {
-        for (const g of getAllGroups(this.plugin)) {
-            if (g.state.isCollapsed) {
-                this.plugin.state.data.updateCellState(g.transform.ref, { isCollapsed: false });
-            }
-        }
-    };
 
     renderGraphics() {
         const graphics = this.graphics;
@@ -204,8 +252,9 @@ export class EntityControls extends PluginUIComponent<{}, { isDisabled: boolean 
                 <input type='text' ref={this.filterRef}
                     value={filter}
                     placeholder='Search'
-                    onChange={e => this.setFilter(e.target.value) }
+                    onChange={e => this.setFilter(e.target.value)}
                     disabled={disabled}
+                    onBlur={() => this.filterFocus = false}
                 />
                 <IconButton svg={CloseSvg} toggleState={false} disabled={disabled} onClick={() => this.setFilter('')} />
             </div>
@@ -348,10 +397,17 @@ export class GroupNode extends Node<{ filter: string }, { isCollapsed: boolean, 
         for (let i = 0; i < entities.length; ++i) {
             const c = type === 'generate' ? groupColors[i] : value;
             update.to(entities[i]).update(old => {
-                old.colorTheme.params.value = c;
-                old.colorTheme.params.lightness = lightness;
-                old.type.params.alpha = alpha;
-                old.type.params.xrayShaded = alpha < 1 ? 'inverted' : false;
+                if (old.type) {
+                    old.colorTheme.params.value = c;
+                    old.colorTheme.params.lightness = lightness;
+                    old.type.params.alpha = alpha;
+                    old.type.params.xrayShaded = alpha < 1 ? 'inverted' : false;
+                } else {
+                    old.coloring.params.color = c;
+                    old.coloring.params.lightness = lightness;
+                    old.alpha = alpha;
+                    old.xrayShaded = alpha < 1 ? true : false;
+                }
             });
         }
 
@@ -400,7 +456,11 @@ export class GroupNode extends Node<{ filter: string }, { isCollapsed: boolean, 
 
         for (const r of this.allFilteredEntities) {
             update.to(r).update(old => {
-                old.type.params.clip.objects = clipObjects;
+                if (old.type) {
+                    old.type.params.clip.objects = clipObjects;
+                } else {
+                    old.clip.objects = clipObjects;
+                }
             });
         }
 
@@ -421,10 +481,12 @@ export class GroupNode extends Node<{ filter: string }, { isCollapsed: boolean, 
 
         for (const r of this.allFilteredEntities) {
             update.to(r).update(old => {
-                old.type.params.lodLevels = values.lodLevels;
-                old.type.params.cellSize = values.cellSize;
-                old.type.params.batchSize = values.batchSize;
-                old.type.params.approximate = values.approximate;
+                if (old.type) {
+                    old.type.params.lodLevels = values.lodLevels;
+                    old.type.params.cellSize = values.cellSize;
+                    old.type.params.batchSize = values.batchSize;
+                    old.type.params.approximate = values.approximate;
+                }
             });
         }
 
@@ -583,40 +645,42 @@ export class EntityNode extends Node<{}, { action?: 'color' | 'clip', isDisabled
     };
 
     get colorValue(): Color | undefined {
-        const hasValue = this.cell.transform.params?.colorTheme.params.value !== undefined;
-        if (!hasValue) return;
-        return this.cell.transform.params?.colorTheme.params.value;
+        return this.cell.transform.params?.colorTheme?.params.value ?? this.cell.transform.params?.coloring?.params.color;
     }
 
     get lightnessValue(): { lightness: number } | undefined {
-        const hasLightness = this.cell.transform.params?.colorTheme.params.value !== undefined;
-        if (!hasLightness) return;
         return {
-            lightness: this.cell.transform.params?.colorTheme.params.lightness
+            lightness: this.cell.transform.params?.colorTheme?.params.lightness ?? this.cell.transform.params?.coloring?.params.lightness ?? 0
         };
     }
 
     get opacityValue(): { alpha: number } | undefined {
-        const hasOpacity = this.cell.transform.params?.type.params.alpha !== undefined;
-        if (!hasOpacity) return;
         return {
-            alpha: this.cell.transform.params?.type.params.alpha
+            alpha: this.cell.transform.params?.type?.params.alpha ?? this.cell.transform.params?.alpha ?? 1
         };
     }
 
     get clipValue(): Clip.Props | undefined {
-        return this.cell.transform.params.type.params.clip;
+        return this.cell.transform.params.type?.params.clip ?? this.cell.transform.params.clip;
     }
 
     get lodValue(): PD.Values<typeof LodParams> | undefined {
-        const p = this.cell.transform.params?.type.params;
-        const hasLod = p.lodLevels !== undefined && p.cellSize !== undefined && p.batchSize !== undefined && p.approximate !== undefined;
-        if (!hasLod) return;
+        const p = this.cell.transform.params?.type?.params;
+        if (!p) return;
         return {
             lodLevels: p.lodLevels,
             cellSize: p.cellSize,
             batchSize: p.batchSize,
             approximate: p.approximate,
+        };
+    }
+
+    get patternValue(): { amplitude: number, frequency: number } | undefined {
+        const p = this.cell.transform.params;
+        if (p.type) return;
+        return {
+            amplitude: p.bumpAmplitude,
+            frequency: p.bumpFrequency * 10,
         };
     }
 
@@ -633,49 +697,75 @@ export class EntityNode extends Node<{}, { action?: 'color' | 'clip', isDisabled
             });
         }
         update.to(this.ref).update(old => {
-            old.colorTheme.params.value = value;
+            if (old.colorTheme) {
+                old.colorTheme.params.value = value;
+            } else if (old.coloring) {
+                old.coloring.params.color = value;
+            }
         });
         update.commit();
     };
 
     updateLightness = (values: PD.Values) => {
         return this.plugin.build().to(this.ref).update(old => {
-            old.colorTheme.params.lightness = values.lightness;
+            if (old.colorTheme) {
+                old.colorTheme.params.lightness = values.lightness;
+            } else if (old.coloring) {
+                old.coloring.params.lightness = values.lightness;
+            }
         }).commit();
     };
 
     updateOpacity = (values: PD.Values) => {
         return this.plugin.build().to(this.ref).update(old => {
-            old.type.params.alpha = values.alpha;
-            old.type.params.xrayShaded = values.alpha < 1 ? 'inverted' : false;
+            if (old.type) {
+                old.type.params.alpha = values.alpha;
+                old.type.params.xrayShaded = values.alpha < 1 ? 'inverted' : false;
+            } else {
+                old.alpha = values.alpha;
+                old.xrayShaded = values.alpha < 1 ? true : false;
+            }
         }).commit();
     };
 
     updateClip = (props: Clip.Props) => {
-        const params = this.cell.transform.params as StateTransformer.Params<StructureRepresentation3D>;
-        if (!PD.areEqual(Clip.Params, params.type.params.clip, props)) {
+        const params = this.cell.transform.params;
+        const clip = params.type ? params.type.params.clip : params.clip;
+        if (!PD.areEqual(Clip.Params, clip, props)) {
             this.plugin.build().to(this.ref).update(old => {
-                old.type.params.clip = props;
+                if (old.type) {
+                    old.type.params.clip = props;
+                } else {
+                    old.clip = props;
+                }
             }).commit();
         }
     };
 
     updateLod = (values: PD.Values) => {
-        const t = this.cell?.transform;
-        if (!t) return;
+        const params = this.cell.transform.params as StateTransformer.Params<StructureRepresentation3D>;
+        if (!params.type) return;
 
         MesoscaleState.set(this.plugin, { graphics: 'custom' });
         (this.plugin.customState as MesoscaleExplorerState).graphicsMode = 'custom';
 
-        const params = t.params as StateTransformer.Params<StructureRepresentation3D>;
         if (!deepEqual(params.type.params.lodLevels, values.lodLevels) || params.type.params.cellSize !== values.cellSize || params.type.params.batchSize !== values.batchSize || params.type.params.approximate !== values.approximate) {
-            this.plugin.build().to(t.ref).update(old => {
+            this.plugin.build().to(this.ref).update(old => {
                 old.type.params.lodLevels = values.lodLevels;
                 old.type.params.cellSize = values.cellSize;
                 old.type.params.batchSize = values.batchSize;
                 old.type.params.approximate = values.approximate;
             }).commit();
         }
+    };
+
+    updatePattern = (values: PD.Values) => {
+        return this.plugin.build().to(this.ref).update(old => {
+            if (!old.type) {
+                old.bumpAmplitude = values.amplitude;
+                old.bumpFrequency = values.frequency / 10;
+            }
+        }).commit();
     };
 
     render() {
@@ -686,6 +776,7 @@ export class EntityNode extends Node<{}, { action?: 'color' | 'clip', isDisabled
         const lightnessValue = this.lightnessValue;
         const opacityValue = this.opacityValue;
         const lodValue = this.lodValue;
+        const patternValue = this.patternValue;
 
         const l = getEntityLabel(this.plugin, this.cell);
         const label = <Button className={`msp-btn-tree-label msp-type-class-${this.cell.obj!.type.typeClass}`} noOverflow disabled={disabled}>
@@ -709,13 +800,14 @@ export class EntityNode extends Node<{}, { action?: 'color' | 'clip', isDisabled
                     <CombinedColorControl param={ColorValueParam} value={colorValue ?? Color(0xFFFFFF)} onChange={this.updateColor} name='color' hideNameRow />
                     <ParameterControls params={LightnessParams} values={lightnessValue} onChangeValues={this.updateLightness} />
                     <ParameterControls params={OpacityParams} values={opacityValue} onChangeValues={this.updateOpacity} />
+                    {patternValue && <ParameterControls params={PatternParams} values={patternValue} onChangeValues={this.updatePattern} />}
                 </ControlGroup>
             </div>}
             {this.state.action === 'clip' && <div style={{ marginRight: 5 }} className='msp-accent-offset'>
                 <ControlGroup header='Clip' initialExpanded={true} hideExpander={true} hideOffset={true} onHeaderClick={this.toggleClip}
                     topRightIcon={CloseSvg} noTopMargin childrenClassName='msp-viewport-controls-panel-controls'>
                     <ParameterMappingControl mapping={this.clipMapping} />
-                    <ParameterControls params={LodParams} values={lodValue} onChangeValues={this.updateLod} />
+                    {lodValue && <ParameterControls params={LodParams} values={lodValue} onChangeValues={this.updateLod} />}
                 </ControlGroup>
             </div>}
         </>;

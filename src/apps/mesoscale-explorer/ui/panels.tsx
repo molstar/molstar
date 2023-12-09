@@ -4,11 +4,12 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+import { Loci } from '../../../mol-model/loci';
 import { PluginUIComponent } from '../../../mol-plugin-ui/base';
 import { SectionHeader } from '../../../mol-plugin-ui/controls/common';
 import { MesoscaleExplorerState } from '../app';
 import { MesoscaleState } from '../data/state';
-import { EntityControls, ModelInfo } from './entities';
+import { EntityControls, ModelInfo, SelectionInfo } from './entities';
 import { LoaderControls, ExampleControls, SessionControls, SnapshotControls, DatabaseControls } from './states';
 
 const Spacer = () => <div style={{ height: '2em' }} />;
@@ -47,12 +48,20 @@ export class RightPanel extends PluginUIComponent<{}, { isDisabled: boolean }> {
         isDisabled: false,
     };
 
-    get hasInfo() {
+    get hasModelInfo() {
         return (
             MesoscaleState.has(this.plugin) &&
-            (MesoscaleState.get(this.plugin).description ||
+            !!(MesoscaleState.get(this.plugin).description ||
                 MesoscaleState.get(this.plugin).link)
         );
+    }
+
+    get hasSelectionInfo() {
+        let count = 0;
+        this.plugin.managers.structure.selection.entries.forEach(e => {
+            if (!Loci.isEmpty(e.selection)) count += 1;
+        });
+        return count > 0;
     }
 
     componentDidMount() {
@@ -65,13 +74,25 @@ export class RightPanel extends PluginUIComponent<{}, { isDisabled: boolean }> {
                 this.forceUpdate();
             }
         });
+
+        this.subscribe(this.plugin.managers.structure.selection.events.changed, e => {
+            if (!this.state.isDisabled) {
+                this.forceUpdate();
+            }
+        });
     }
 
     render() {
         return <div className='msp-scrollable-container'>
-            {this.hasInfo && <>
+            {this.hasModelInfo && <>
                 <SectionHeader title='Model' />
                 <ModelInfo />
+                <Spacer />
+            </>}
+
+            {this.hasSelectionInfo && <>
+                <SectionHeader title='Selection' />
+                <SelectionInfo />
                 <Spacer />
             </>}
 

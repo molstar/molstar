@@ -24,9 +24,8 @@ import { MesoFocusLoci } from './behavior/camera';
 import { GraphicsMode, MesoscaleState } from './data/state';
 import { MesoSelectLoci } from './behavior/select';
 import { Transparency } from '../../mol-gl/webgl/render-item';
-import { LoadModel, loadExampleEntry, loadPdb, loadPdbDev } from './ui/states';
+import { LoadModel, loadExampleEntry, loadPdb, loadPdbDev, loadUrl, openState } from './ui/states';
 import { Asset } from '../../mol-util/assets';
-import { PluginCommands } from '../../mol-plugin/commands';
 
 export { PLUGIN_VERSION as version } from '../../mol-plugin/version';
 export { setDebugMode, setProductionMode, setTimingMode, consoleStats } from '../../mol-util/debug';
@@ -44,6 +43,7 @@ export type MesoscaleExplorerState = {
     examples?: ExampleEntry[],
     graphicsMode: GraphicsMode,
     stateRef?: string,
+    stateCache: { [k: string]: any },
 }
 
 //
@@ -100,6 +100,10 @@ export class MesoscaleExplorer {
         if (entry !== undefined) {
             await loadExampleEntry(this.plugin, entry);
         }
+    }
+
+    async loadUrl(url: string, type: 'molx' | 'molj' | 'cif' | 'bcif') {
+        await loadUrl(this.plugin, url, type);
     }
 
     async loadPdb(id: string) {
@@ -200,6 +204,7 @@ export class MesoscaleExplorer {
                 (plugin.customState as MesoscaleExplorerState) = {
                     examples,
                     graphicsMode: o.graphicsMode,
+                    stateCache: {},
                 };
 
                 await MesoscaleState.init(plugin);
@@ -233,7 +238,7 @@ export class MesoscaleExplorer {
             });
 
             if (sessions.length > 0) {
-                PluginCommands.State.Snapshots.OpenFile(plugin, { file: sessions[0] });
+                openState(plugin, sessions[0]);
             } else {
                 plugin.runTask(plugin.state.data.applyAction(LoadModel, {
                     files: files.map(f => Asset.File(f)),
@@ -243,10 +248,22 @@ export class MesoscaleExplorer {
             return true;
         });
 
+        plugin.state.events.object.created.subscribe(e => {
+            (plugin.customState as MesoscaleExplorerState).stateCache = {};
+        });
+
+        plugin.state.events.object.removed.subscribe(e => {
+            (plugin.customState as MesoscaleExplorerState).stateCache = {};
+        });
+
         return new MesoscaleExplorer(plugin);
     }
 
     handleResize() {
         this.plugin.layout.events.updated.next(void 0);
+    }
+
+    dispose() {
+        this.plugin.dispose();
     }
 }

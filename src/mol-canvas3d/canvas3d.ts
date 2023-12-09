@@ -384,7 +384,7 @@ namespace Canvas3D {
         const hiZ = new HiZPass(webgl, passes.draw, canvas, p.hiZ);
 
         const renderer = Renderer.create(webgl, p.renderer);
-        renderer.setIsOccluded(hiZ.isOccluded);
+        renderer.setOcclusionTest(hiZ.isOccluded);
 
         const pickHelper = new PickHelper(webgl, renderer, scene, helper, passes.pick, { x, y, width, height }, p.pickPadding);
         const interactionHelper = new Canvas3dInteractionHelper(identify, getLoci, input, camera, controls, p.interaction);

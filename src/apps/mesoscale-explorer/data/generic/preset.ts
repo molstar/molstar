@@ -10,17 +10,20 @@ import { PluginContext } from '../../../../mol-plugin/context';
 import { SpacefillRepresentationProvider } from '../../../../mol-repr/structure/representation/spacefill';
 import { Color } from '../../../../mol-util/color';
 import { utf8Read } from '../../../../mol-io/common/utf8';
-import { Quat, Vec3 } from '../../../../mol-math/linear-algebra';
+import { Mat3, Quat, Vec3 } from '../../../../mol-math/linear-algebra';
 import { GraphicsMode, MesoscaleGroup, MesoscaleState, getGraphicsModeProps, getMesoscaleGroupParams, updateColors } from '../state';
 import { ColorNames } from '../../../../mol-util/color/names';
-import { StructureRepresentation3D } from '../../../../mol-plugin-state/transforms/representation';
-import { ParseCif, ReadFile } from '../../../../mol-plugin-state/transforms/data';
-import { ModelFromTrajectory, TrajectoryFromGRO, TrajectoryFromMOL, TrajectoryFromMOL2, TrajectoryFromMmCif, TrajectoryFromPDB, TrajectoryFromSDF, TrajectoryFromXYZ } from '../../../../mol-plugin-state/transforms/model';
+import { ShapeRepresentation3D, StructureRepresentation3D } from '../../../../mol-plugin-state/transforms/representation';
+import { ParseCif, ParsePly, ReadFile } from '../../../../mol-plugin-state/transforms/data';
+import { ModelFromTrajectory, ShapeFromPly, TrajectoryFromGRO, TrajectoryFromMOL, TrajectoryFromMOL2, TrajectoryFromMmCif, TrajectoryFromPDB, TrajectoryFromSDF, TrajectoryFromXYZ } from '../../../../mol-plugin-state/transforms/model';
 import { Euler } from '../../../../mol-math/linear-algebra/3d/euler';
 import { Asset } from '../../../../mol-util/assets';
 import { Clip } from '../../../../mol-util/clip';
 import { StructureFromGeneric } from './model';
 import { getFileNameInfo } from '../../../../mol-util/file-info';
+import { NumberArray } from '../../../../mol-util/type-helpers';
+import { BaseGeometry } from '../../../../mol-geo/geometry/base';
+import { ParamDefinition as PD } from '../../../../mol-util/param-definition';
 
 function getSpacefillParams(color: Color, sizeFactor: number, graphics: GraphicsMode, clipVariant: Clip.Variant) {
     const gmp = getGraphicsModeProps(graphics === 'custom' ? 'quality' : graphics);
@@ -63,6 +66,35 @@ function getSpacefillParams(color: Color, sizeFactor: number, graphics: Graphics
                 scale: 1,
             }
         },
+    };
+}
+
+function getPlyShapeParams(color: Color, clipVariant: Clip.Variant) {
+    return {
+        ...PD.getDefaultValues(BaseGeometry.Params),
+        instanceGranularity: true,
+        ignoreLight: true,
+        clip: {
+            variant: clipVariant,
+            objects: [],
+        },
+        quality: 'custom',
+        doubleSided: true,
+        coloring: {
+            name: 'uniform',
+            params: { color }
+        },
+        grouping: {
+            name: 'none',
+            params: {}
+        },
+        material: {
+            metalness: 0.0,
+            roughness: 1.0,
+            bumpiness: 1.0,
+        },
+        bumpAmplitude: 0.1,
+        bumpFrequency: 0.1 / 10,
     };
 }
 
@@ -115,74 +147,106 @@ export async function createGenericHierarchy(plugin: PluginContext, file: Asset.
         }
     }
 
-    const p = Vec3();
-    const r = Vec3();
-    const q = Quat();
+    const transformAssets = new Map<string, Asset>();
+    const getTransformAsset = (file: string) => {
+        if (!transformAssets.has(file)) {
+            const d = asset.data[file];
+            transformAssets.set(file, Asset.File(new File([d], file)));
+        }
+        return transformAssets.get(file)!;
+    };
+
+    const getAssetInstances = (instances: GenericInstances<string>): GenericInstances<Asset> => {
+        return {
+            positions: {
+                data: Array.isArray(instances.positions.data)
+                    ? instances.positions.data
+                    : {
+                        file: getTransformAsset(instances.positions.data.file),
+                        view: instances.positions.data.view,
+                    },
+                type: instances.positions.type,
+            },
+            rotations: {
+                data: Array.isArray(instances.rotations.data)
+                    ? instances.rotations.data
+                    : {
+                        file: getTransformAsset(instances.rotations.data.file),
+                        view: instances.rotations.data.view,
+                    },
+                variant: instances.rotations.variant,
+                type: instances.rotations.type,
+            }
+        };
+    };
 
     await state.transaction(async () => {
         try {
             plugin.animationLoop.stop({ noDraw: true });
             let build: StateBuilder.Root | StateBuilder.To<any> = state.build();
-            for (const e of manifest.entities) {
-                const d = asset.data[e.file];
-                const t = utf8Read(d, 0, d.length);
-                const file = Asset.File(new File([t], e.file));
+            for (const ent of manifest.entities) {
+                const d = asset.data[ent.file];
+                const info = getFileNameInfo(ent.file);
+                const isBinary = ['bcif'].includes(info.ext);
 
-                const { positions, rotations, quaternions, matrices } = e.instances;
-                const transforms: Mat4[] = [];
-                for (let i = 0, il = positions.length / 3; i < il; ++i) {
-                    Vec3.fromArray(p, positions, i * 3);
-                    if (matrices?.length) {
-                        const m = Mat4.fromArray(Mat4(), matrices, i * 16);
-                        transforms.push(m);
-                    } else if (quaternions?.length) {
-                        Quat.fromArray(q, quaternions, i * 4);
-                        const m = Mat4.fromQuat(Mat4(), q);
-                        Mat4.setTranslation(m, p);
-                        transforms.push(m);
-                    } else if (rotations?.length) {
-                        Vec3.fromArray(r, rotations, i * 3);
-                        const e = Euler.fromVec3(Euler(), r);
-                        Quat.fromEuler(q, e, 'XYZ');
-                        const m = Mat4.fromQuat(Mat4(), q);
-                        Mat4.setTranslation(m, p);
-                        transforms.push(m);
-                    }
-                }
+                const t = isBinary ? d : utf8Read(d, 0, d.length);
+                const file = Asset.File(new File([t], ent.file));
 
                 const color = ColorNames.skyblue;
-                const clipVariant = transforms.length === 1 ? 'pixel' : 'instance';
-
-                const label = e.label || e.file.split('.')[0];
-                const sizeFactor = e.sizeFactor || 1;
-                const tags = e.groups.map(({ id, root }) => `${root}:${id}`);
-
-                const info = getFileNameInfo(e.file);
+                const label = ent.label || ent.file.split('.')[0];
+                const sizeFactor = ent.sizeFactor || 1;
+                const tags = ent.groups.map(({ id, root }) => `${root}:${id}`);
+                const instances = ent.instances && getAssetInstances(ent.instances);
 
                 build = build
                     .toRoot()
-                    .apply(ReadFile, { file, label });
+                    .apply(ReadFile, { file, label, isBinary });
 
-                if (['gro'].includes(info.ext)) {
-                    build = build.apply(TrajectoryFromGRO);
-                } else if (['cif', 'mmcif', 'mcif', 'bcif'].includes(info.ext)) {
-                    build = build.apply(ParseCif).apply(TrajectoryFromMmCif);
-                } else if (['pdb', 'ent'].includes(info.ext)) {
-                    build = build.apply(TrajectoryFromPDB);
-                } else if (['xyz'].includes(info.ext)) {
-                    build = build.apply(TrajectoryFromXYZ);
-                } else if (['mol'].includes(info.ext)) {
-                    build = build.apply(TrajectoryFromMOL);
-                } else if (['sdf', 'sd'].includes(info.ext)) {
-                    build = build.apply(TrajectoryFromSDF);
-                } else if (['mol2'].includes(info.ext)) {
-                    build = build.apply(TrajectoryFromMOL2);
+                if (['gro', 'cif', 'mmcif', 'mcif', 'bcif', 'pdb', 'ent', 'xyz', 'mol', 'sdf', 'sd', 'mol2'].includes(info.ext)) {
+                    if (['gro'].includes(info.ext)) {
+                        build = build.apply(TrajectoryFromGRO);
+                    } else if (['cif', 'mmcif', 'mcif', 'bcif'].includes(info.ext)) {
+                        build = build.apply(ParseCif).apply(TrajectoryFromMmCif);
+                    } else if (['pdb', 'ent'].includes(info.ext)) {
+                        build = build.apply(TrajectoryFromPDB);
+                    } else if (['xyz'].includes(info.ext)) {
+                        build = build.apply(TrajectoryFromXYZ);
+                    } else if (['mol'].includes(info.ext)) {
+                        build = build.apply(TrajectoryFromMOL);
+                    } else if (['sdf', 'sd'].includes(info.ext)) {
+                        build = build.apply(TrajectoryFromSDF);
+                    } else if (['mol2'].includes(info.ext)) {
+                        build = build.apply(TrajectoryFromMOL2);
+                    }
+
+                    let clipVariant: Clip.Variant = 'pixel';
+                    if (ent.instances) {
+                        if (Array.isArray(ent.instances.positions.data)) {
+                            clipVariant = ent.instances.positions.data.length <= 3 ? 'pixel' : 'instance';
+                        } else {
+                            const byteLength = ent.instances.positions.data.view
+                                ? ent.instances.positions.data.view.byteLength
+                                : asset.data[ent.instances.positions.data.file].length;
+                            clipVariant = byteLength <= 3 * 4 ? 'pixel' : 'instance';
+                        }
+                    }
+
+                    build = build
+                        .apply(ModelFromTrajectory, { modelIndex: 0 })
+                        .apply(StructureFromGeneric, { instances, label })
+                        .apply(StructureRepresentation3D, getSpacefillParams(color, sizeFactor, graphicsMode, clipVariant), { tags });
+                } else if (['ply'].includes(info.ext)) {
+                    if (['ply'].includes(info.ext)) {
+                        const transforms = await getTransforms(plugin, instances);
+                        const clipVariant = transforms.length === 1 ? 'pixel' : 'instance';
+                        build = build
+                            .apply(ParsePly)
+                            .apply(ShapeFromPly, { label, transforms })
+                            .apply(ShapeRepresentation3D, getPlyShapeParams(color, clipVariant), { tags });
+                    }
+                } else {
+                    console.warn(`unknown file format '${info.ext}'`);
                 }
-
-                build = build
-                    .apply(ModelFromTrajectory, { modelIndex: 0 })
-                    .apply(StructureFromGeneric, { transforms, label })
-                    .apply(StructureRepresentation3D, getSpacefillParams(color, sizeFactor, graphicsMode, clipVariant), { tags });
             }
             await build.commit();
 
@@ -196,6 +260,8 @@ export async function createGenericHierarchy(plugin: PluginContext, file: Asset.
             plugin.animationLoop.start();
         }
     }).run();
+
+    asset.dispose();
 }
 
 //
@@ -218,9 +284,11 @@ type GenericGroup = {
 
 type GenericEntity = {
     /**
-     * the structure file name
+     * the entity file name
      *
      * the following extensions/formats are supported
+     *
+     * structures
      * - gro
      * - cif, mmcif, mcif, bcif
      * - pdb, ent
@@ -228,6 +296,9 @@ type GenericEntity = {
      * - mol
      * - sdf, sd
      * - mol2
+     *
+     * meshes
+     * - ply
      */
     file: string
     label?: string
@@ -238,7 +309,10 @@ type GenericEntity = {
         /** reference to `${GenericGroup.root}` */
         root: string
     }[]
-    instances: GenericInstances
+    /**
+     * defaults to a single, untransformed instance
+     */
+    instances?: GenericInstances<string>
     /**
      * defaults to 1 (assuming fully atomic structures)
      * for C-alpha only structures set to 2
@@ -247,27 +321,68 @@ type GenericEntity = {
     sizeFactor?: number
 }
 
-type GenericInstances = {
+type BinaryData<T extends string | Asset> = {
+    file: T,
+    view?: {
+        byteOffset: number,
+        byteLength: number
+    }
+}
+
+export type GenericInstances<T extends string | Asset> = {
     /**
      * translation vectors in Angstrom
      * [x0, y0, z0, ..., xn, yn, zn] with n = count - 1
      */
-    positions: number[]
+    positions: {
+        /**
+         * either the data itself or a pointer to binary data
+         */
+        data: number[] | BinaryData<T>
+        /**
+         * how to interpret the data
+         * defaults to `{ kind: 'Array', type: 'Float32' }`
+         */
+        type?: { kind: 'Array', type: 'Float32' }
+        // TODO: maybe worthwhile in the future, mirroring encoders from BinaryCIF
+        // | { kind: 'IntegerPackedFixedPoint', byteCount: number, srcSize: number, factor: number, srcType: 'Float32' }
+    }
     /**
-     * optional euler angles in XYZ order
+     * euler angles in XYZ order
      * [x0, y0, z0, ..., xn, yn, zn] with n = count - 1
-     */
-    rotations?: number[]
-    /**
-     * optional quaternion rotations in XYZW order
+     *
+     * quaternion rotations in XYZW order
      * [x0, y0, z0, w0, ..., xn, yn, zn, wn] with n = count - 1
+     *
+     * rotation matrices in row-major order
+     * [m00_0, m01_0, m02_0, ..., m20_n, m21_n, m22_n] with n = count - 1
      */
-    quaternions?: number[]
-    /**
-     * optional transformation matrices in row-major order
-     * [m00, m01, m02, m03, ..., m30, m31, m32, m33] with n = count - 1
-     */
-    matrices?: number[]
+    rotations: {
+        variant: 'euler' | 'quaternion' | 'matrix',
+        /**
+         * either the data itself or a pointer to binary data
+         */
+        data: number[] | BinaryData<T>
+        /**
+         * how to interpret the data
+         * defaults to `{ kind: 'Array', type: 'Float32' }`
+         */
+        type?: { kind: 'Array', type: 'Float32' }
+    }
+}
+
+type GenericFrame = {
+    time: number
+    entities: {
+        file: string
+        instances: GenericInstances<string>
+    }[]
+}
+
+type GenericTrajectory = {
+    label?: string
+    description?: string
+    frames: GenericFrame[]
 }
 
 type GenericManifest = {
@@ -275,6 +390,69 @@ type GenericManifest = {
     description?: string
     roots: GenericRoot[]
     entities: GenericEntity[]
+    trajectories?: GenericTrajectory[]
+}
+
+//
+
+const p = Vec3();
+const q = Quat();
+const m = Mat3();
+const e = Euler();
+
+async function getPositions(plugin: PluginContext, p: GenericInstances<Asset>['positions']): Promise<NumberArray> {
+    if (Array.isArray(p.data)) {
+        return p.data;
+    } else {
+        const a = await plugin.runTask(plugin.managers.asset.resolve(p.data.file, 'binary'));
+        const o = p.data.view?.byteOffset || 0;
+        const l = p.data.view?.byteLength || a.data.byteLength;
+        return new Float32Array(a.data.buffer, o + a.data.byteOffset, l / 4);
+    }
+};
+
+async function getRotations(plugin: PluginContext, r: GenericInstances<Asset>['rotations']): Promise<NumberArray> {
+    if (Array.isArray(r.data)) {
+        return r.data;
+    } else {
+        const a = await plugin.runTask(plugin.managers.asset.resolve(r.data.file, 'binary'));
+        const o = r.data.view?.byteOffset || 0;
+        const l = r.data.view?.byteLength || a.data.byteLength;
+        return new Float32Array(a.data.buffer, o + a.data.byteOffset, l / 4);
+    }
+};
+
+export async function getTransforms(plugin: PluginContext, instances?: GenericInstances<Asset>) {
+    const transforms: Mat4[] = [];
+    if (instances) {
+        const positions = await getPositions(plugin, instances.positions);
+        const rotations = await getRotations(plugin, instances.rotations);
+
+        for (let i = 0, il = positions.length / 3; i < il; ++i) {
+            Vec3.fromArray(p, positions, i * 3);
+            if (instances.rotations.variant === 'matrix') {
+                Mat3.fromArray(m, rotations, i * 9);
+                const t = Mat4.fromMat3(Mat4(), m);
+                Mat4.setTranslation(t, p);
+                transforms.push(t);
+            } else if (instances.rotations.variant === 'quaternion') {
+                Quat.fromArray(q, rotations, i * 4);
+                const t = Mat4.fromQuat(Mat4(), q);
+                Mat4.setTranslation(t, p);
+                transforms.push(t);
+            } else if (instances.rotations.variant === 'euler') {
+                Euler.fromArray(e, rotations, i * 3);
+                Quat.fromEuler(q, e, 'XYZ');
+                const t = Mat4.fromQuat(Mat4(), q);
+                Mat4.setTranslation(t, p);
+                transforms.push(t);
+            }
+        }
+    } else {
+        transforms.push(Mat4.identity());
+    }
+
+    return transforms;
 }
 
 //
@@ -343,8 +521,13 @@ function martiniToGeneric(martini: MartiniManifest): GenericManifest {
         const label = e.model.split('.')[0];
         const group = e.function || 'Metabolite';
 
-        const positions = e.positions.flat().map(x => Math.round((x * 10) * 100) / 100);
-        const rotations = e.rotations.flat().map(x => Math.round(x * 100) / 100);
+        const positions = {
+            data: e.positions.flat().map(x => Math.round((x * 10) * 100) / 100)
+        };
+        const rotations = {
+            data: e.rotations.flat().map(x => Math.round(x * 100) / 100),
+            variant: 'euler' as const,
+        };
 
         if (group.includes('lower leaflet')) {
             entities.push({
