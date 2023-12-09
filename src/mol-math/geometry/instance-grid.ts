@@ -97,7 +97,7 @@ export function calcInstanceGrid(instanceData: InstanceData, cellSize: number, b
     }
     // console.timeEnd('calcInstanceGrid reorder');
 
-    return {
+    const instanceGrid = {
         cellSize: bottomGrid.cellSize,
         cellCount: bottomGrid.cellCount,
         cellOffsets,
@@ -111,6 +111,9 @@ export function calcInstanceGrid(instanceData: InstanceData, cellSize: number, b
         batchSpheres: topGrid.batchSpheres,
         batchCell: fillSerial(topGrid.batchCell),
     };
+    // console.log(instanceGrid);
+
+    return instanceGrid;
 }
 
 function calcBottomGrid(instanceData: InstanceData, cellSize: number): BottomGrid {

@@ -40,7 +40,7 @@ export interface Renderable<T extends RenderableValues> {
     readonly values: T
     readonly state: RenderableState
 
-    cull: (cameraPlane: Plane3D, frustum: Frustum3D, isOccluded: (s: Sphere3D) => boolean, stats: WebGLStats) => void
+    cull: (cameraPlane: Plane3D, frustum: Frustum3D, isOccluded: ((s: Sphere3D) => boolean) | null, stats: WebGLStats) => void
     uncull: () => void
     render: (variant: GraphicsRenderVariant, sharedTexturesCount: number) => void
     getProgram: (variant: GraphicsRenderVariant) => Program
@@ -109,7 +109,7 @@ export function createRenderable<T extends GraphicsRenderableValues>(renderItem:
         values,
         state,
 
-        cull: (cameraPlane: Plane3D, frustum: Frustum3D, isOccluded: (s: Sphere3D) => boolean, stats: WebGLStats) => {
+        cull: (cameraPlane: Plane3D, frustum: Frustum3D, isOccluded: ((s: Sphere3D) => boolean) | null, stats: WebGLStats) => {
             cullEnabled = false;
 
             if (values.drawCount.ref.value === 0) return;
@@ -155,7 +155,7 @@ export function createRenderable<T extends GraphicsRenderableValues>(renderItem:
                         }
                         continue;
                     }
-                    if (isOccluded(s)) {
+                    if (isOccluded !== null && isOccluded(s)) {
                         if (isTimingMode) {
                             stats.culled.occlusion += cellOffsets[batchCell[cEnd - 1] + 1] - cellOffsets[batchCell[cBegin]];
                         }
@@ -186,7 +186,7 @@ export function createRenderable<T extends GraphicsRenderableValues>(renderItem:
                             }
                             continue;
                         }
-                        if (d - s.radius < checkCellOccludedDistance && isOccluded(s)) {
+                        if (isOccluded !== null && d - s.radius < checkCellOccludedDistance && isOccluded(s)) {
                             if (isTimingMode) {
                                 stats.culled.occlusion += count;
                             }
@@ -222,7 +222,7 @@ export function createRenderable<T extends GraphicsRenderableValues>(renderItem:
                     const cCount = cEnd - cBegin;
                     if (cCount === 0) continue;
 
-                    s3fromArray(s, cellSpheres, k * 4);
+                    s3fromArray(s, batchSpheres, k * 4);
                     if (hasLod) {
                         const d = p3distanceToPoint(cameraPlane, s.center);
                         if (d + s.radius < minDistance || d - s.radius > maxDistance) {
@@ -238,7 +238,7 @@ export function createRenderable<T extends GraphicsRenderableValues>(renderItem:
                         }
                         continue;
                     }
-                    if (isOccluded(s)) {
+                    if (isOccluded !== null && isOccluded(s)) {
                         if (isTimingMode) {
                             stats.culled.occlusion += cellOffsets[batchCell[cEnd - 1] + 1] - cellOffsets[batchCell[cBegin]];
                         }
@@ -269,7 +269,7 @@ export function createRenderable<T extends GraphicsRenderableValues>(renderItem:
                             }
                             continue;
                         }
-                        if (d - s.radius < checkCellOccludedDistance && isOccluded(s)) {
+                        if (isOccluded !== null && d - s.radius < checkCellOccludedDistance && isOccluded(s)) {
                             if (isTimingMode) {
                                 stats.culled.occlusion += count;
                             }
