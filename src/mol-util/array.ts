@@ -177,14 +177,16 @@ export function range(start: number, end?: number): number[] {
 /** Copy all elements from `src` to the end of `dst`.
  * Equivalent to `dst.push(...src)`, but avoids storing element on call stack. Faster that `extend` from Underscore.js.
  * `extend(a, a)` will double the array.
+ * Returns the modified `dst` array.
  */
-export function arrayExtend<T>(dst: T[], src: ArrayLike<T>): void {
+export function arrayExtend<T>(dst: T[], src: ArrayLike<T>): T[] {
     const offset = dst.length;
     const nCopy = src.length;
     dst.length += nCopy;
     for (let i = 0; i < nCopy; i++) {
         dst[offset + i] = src[i];
     }
+    return dst;
 }
 
 /** Check whether `array` is sorted, sort if not. */

@@ -90,6 +90,19 @@ namespace Mat3 {
         return a;
     }
 
+    export function fromColumns(out: Mat3, left: Vec3, middle: Vec3, right: Vec3) {
+        out[0] = left[0];
+        out[1] = left[1];
+        out[2] = left[2];
+        out[3] = middle[0];
+        out[4] = middle[1];
+        out[5] = middle[2];
+        out[6] = right[0];
+        out[7] = right[1];
+        out[8] = right[2];
+        return out;
+    }
+
     /**
      * Copies the upper-left 3x3 values into the given mat3.
      */
