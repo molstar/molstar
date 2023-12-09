@@ -59,8 +59,7 @@
             var pixelScale = getParam('pixel-scale', '[^&]+').trim();
             var pickScale = getParam('pick-scale', '[^&]+').trim();
             var pickPadding = getParam('pick-padding', '[^&]+').trim();
-            var disableWboit = getParam('disable-wboit', '[^&]+').trim() === '1';
-            var enableDpoit = getParam('enable-dpoit', '[^&]+').trim() === '1';
+            var transparency = getParam('transparency', '[^&]+').trim().toLowerCase();
             var preferWebgl1 = getParam('prefer-webgl1', '[^&]+').trim() === '1' || void 0;
             var allowMajorPerformanceCaveat = getParam('allow-major-performance-caveat', '[^&]+').trim() === '1';
             var powerPreference = getParam('power-preference', '[^&]+').trim().toLowerCase();
@@ -80,8 +79,7 @@
                 pixelScale: parseFloat(pixelScale) || 1,
                 pickScale: parseFloat(pickScale) || 0.25,
                 pickPadding: isNaN(parseFloat(pickPadding)) ? 1 : parseFloat(pickPadding),
-                enableWboit: (disableWboit || enableDpoit) ? false : void 0, // use default value if disable-wboit is not set
-                enableDpoit: enableDpoit ? true : void 0,
+                transparency: transparency || undefined,
                 preferWebgl1: preferWebgl1,
                 allowMajorPerformanceCaveat: allowMajorPerformanceCaveat,
                 powerPreference: powerPreference || 'high-performance',

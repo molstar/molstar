@@ -7,7 +7,7 @@
 
 import { produce } from 'immer';
 import { throttleTime } from 'rxjs';
-import { Canvas3DParams, Canvas3DProps } from '../../mol-canvas3d/canvas3d';
+import { Canvas3DContext, Canvas3DParams, Canvas3DProps } from '../../mol-canvas3d/canvas3d';
 import { PluginCommands } from '../../mol-plugin/commands';
 import { PluginConfig } from '../../mol-plugin/config';
 import { StateTransform } from '../../mol-state';
@@ -69,6 +69,12 @@ const SimpleSettingsParams = {
         ...Canvas3DParams.cameraClipping.params,
     }, { pivot: 'radius' }),
     layout: PD.MultiSelect([] as LayoutOptions[], PD.objectToOptions(LayoutOptions)),
+    advanced: PD.Group({
+        multiSample: Canvas3DParams.multiSample,
+        sharpening: Canvas3DParams.postprocessing.params.sharpening,
+        pixelScale: Canvas3DContext.Params.pixelScale,
+        transparency: Canvas3DContext.Params.transparency,
+    }),
 };
 
 type SimpleSettingsParams = typeof SimpleSettingsParams
@@ -101,7 +107,8 @@ const SimpleSettingsMapping = ParamMapping({
         if (r.bottom !== 'hidden' && (!c || c.bottom !== 'none')) layout.push('log');
         if (r.left !== 'hidden' && (!c || c.left !== 'none')) layout.push('left');
         if (r.right !== 'hidden' && (!c || c.right !== 'none')) layout.push('right');
-        return { canvas: ctx.canvas3d?.props!, layout };
+        const { pixelScale, transparency } = ctx.canvas3dContext?.props!;
+        return { canvas: ctx.canvas3d?.props!, layout, pixelScale, transparency };
     }
 })({
     values(props, ctx) {
@@ -125,7 +132,13 @@ const SimpleSettingsMapping = ParamMapping({
             },
             clipping: {
                 ...canvas.cameraClipping,
-            }
+            },
+            advanced: {
+                multiSample: canvas.multiSample,
+                sharpening: canvas.postprocessing.sharpening,
+                pixelScale: props.pixelScale,
+                transparency: props.transparency,
+            },
         };
     },
     update(s, props) {
@@ -144,8 +157,12 @@ const SimpleSettingsMapping = ParamMapping({
             far: s.clipping.far,
             minNear: s.clipping.minNear,
         };
+        canvas.multiSample = s.advanced.multiSample;
+        canvas.postprocessing.sharpening = s.advanced.sharpening;
 
         props.layout = s.layout;
+        props.pixelScale = s.advanced.pixelScale;
+        props.transparency = s.advanced.transparency;
     },
     async apply(props, ctx) {
         await PluginCommands.Canvas3D.SetSettings(ctx, { settings: props.canvas });
@@ -162,5 +179,10 @@ const SimpleSettingsMapping = ParamMapping({
         if (hideLeft) {
             PluginCommands.State.SetCurrentObject(ctx, { state: ctx.state.data, ref: StateTransform.RootRef });
         }
+
+        ctx.canvas3dContext?.setProps({
+            pixelScale: props.pixelScale,
+            transparency: props.transparency,
+        });
     }
 });
