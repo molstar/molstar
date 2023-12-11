@@ -467,9 +467,15 @@ export function getEntities(plugin: PluginContext, tag?: string): EntityCells {
     return s.stateCache[k];
 }
 
+function getFilterMatcher(filter: string) {
+    return filter.startsWith('"') && filter.endsWith('"')
+        ? new RegExp(`^${escapeRegExp(filter.substring(1, filter.length - 1))}$`, 'g')
+        : new RegExp(escapeRegExp(filter), 'gi');
+}
+
 export function getFilteredEntities(plugin: PluginContext, tag: string, filter: string) {
-    const reFilter = new RegExp(escapeRegExp(filter), 'gi');
-    return getEntities(plugin, tag).filter(c => getEntityLabel(plugin, c).match(reFilter) !== null);
+    const matcher = getFilterMatcher(filter);
+    return getEntities(plugin, tag).filter(c => getEntityLabel(plugin, c).match(matcher) !== null);
 }
 
 function _getAllEntities(plugin: PluginContext, tag: string | undefined, list: EntityCells) {
@@ -485,8 +491,8 @@ export function getAllEntities(plugin: PluginContext, tag?: string) {
 }
 
 export function getAllFilteredEntities(plugin: PluginContext, tag: string, filter: string) {
-    const reFilter = new RegExp(escapeRegExp(filter), 'gi');
-    return getAllEntities(plugin, tag).filter(c => getEntityLabel(plugin, c).match(reFilter) !== null);
+    const matcher = getFilterMatcher(filter);
+    return getAllEntities(plugin, tag).filter(c => getEntityLabel(plugin, c).match(matcher) !== null);
 }
 
 export function getEntityLabel(plugin: PluginContext, cell: StateObjectCell) {
