@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Loci } from '../../../mol-model/loci';
+import { Mp4EncoderUI } from '../../../extensions/mp4-export/ui';
 import { PluginUIComponent } from '../../../mol-plugin-ui/base';
 import { SectionHeader } from '../../../mol-plugin-ui/controls/common';
 import { MesoscaleExplorerState } from '../app';
@@ -39,6 +39,9 @@ export class LeftPanel extends PluginUIComponent {
 
             <SectionHeader title='Snapshots' />
             <SnapshotControls />
+            <Spacer />
+
+            <Mp4EncoderUI />
         </div>;
     }
 }

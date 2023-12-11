@@ -26,6 +26,9 @@ import { MesoSelectLoci } from './behavior/select';
 import { Transparency } from '../../mol-gl/webgl/render-item';
 import { LoadModel, loadExampleEntry, loadPdb, loadPdbDev, loadUrl, openState } from './ui/states';
 import { Asset } from '../../mol-util/assets';
+import { AnimateCameraSpin } from '../../mol-plugin-state/animation/built-in/camera-spin';
+import { AnimateCameraRock } from '../../mol-plugin-state/animation/built-in/camera-rock';
+import { AnimateStateSnapshots } from '../../mol-plugin-state/animation/built-in/state-snapshots';
 
 export { PLUGIN_VERSION as version } from '../../mol-plugin/version';
 export { setDebugMode, setProductionMode, setTimingMode, consoleStats } from '../../mol-util/debug';
@@ -136,7 +139,11 @@ export class MesoscaleExplorer {
 
                 ...o.extensions.map(e => Extensions[e]),
             ],
-            animations: [...defaultSpec.animations || []],
+            animations: [
+                AnimateCameraSpin,
+                AnimateCameraRock,
+                AnimateStateSnapshots,
+            ],
             customParamEditors: defaultSpec.customParamEditors,
             customFormats: o?.customFormats,
             layout: {
