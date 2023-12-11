@@ -183,6 +183,58 @@ export const MeshShapeTransformer = VolsegTransform({
     }
 });
 
+const meshSegmentParams = {
+    id: PD.Numeric(0),
+    label: PD.Text(''),
+    color: PD.Color(Color(0x121212)),
+    detail: PD.Numeric(1),
+};
+
+export type meshSegmentParamsValues = PD.Values<typeof meshSegmentParams>;
+
+export const VolsegMeshDataParams = {
+    meshSegmentParams: PD.ObjectList(meshSegmentParams, s => s.id.toString()),
+};
+export type VolsegMeshDataParamsValues = PD.Values<typeof VolsegMeshDataParams>;
+// export type VolsegMeshData = PD.Values<typeof VolsegMeshDataParams>;
+
+export type MeshData = {
+    meshSegmentParams: meshSegmentParamsValues,
+    parsedCif: CifFile
+}
+
+export class VolsegMeshData {
+    constructor(public meshData: MeshData[]) {
+    }
+}
+
+export class VolsegMeshSegmentation extends PluginStateObject.Create<VolsegMeshData>({ name: 'Vol & Seg Mesh Segmentation', typeClass: 'Data' }) { }
+
+
+export const CreateMeshlistStateObject = VolsegTransform({
+    name: 'create-meshlist-from-mesh-segmentation',
+    from: VolsegMeshSegmentation,
+    // from: PluginStateObject.Root,
+    to: MeshlistStateObject,
+    params: {
+        segmentId: PD.Numeric(1, {}, { isHidden: true }),
+    }
+})({
+    apply({ a, params, spine }, globalCtx) { // `a` is the parent node, params are 2nd argument to To.apply(), `globalCtx` is the plugin
+        return Task.create('Create Parsed Meshlist', async ctx => {
+            // const entry = spine.getAncestorOfType(VolsegEntry);
+            const segmentId = params.segmentId;
+            const segmentData = a.data.meshData.find(m => m.meshSegmentParams.id === segmentId);
+            if (!segmentData) throw Error('no segment data found');
+            const cif = segmentData.parsedCif;
+            const { detail, label, color, id } = segmentData.meshSegmentParams;
+            const meshlistData = await MeshlistData.fromCIF(cif, params.segmentId, label, detail);
+            // meshlistData.ownerId = entry!.data.ref;
+            const es = meshlistData.meshIds.length === 1 ? '' : 'es';
+            return new MeshlistStateObject(meshlistData, { label: undefined, description: `${meshlistData.segmentName} (${meshlistData.meshIds.length} mesh${es})` });
+        });
+    }
+});
 
 // // // // // // // // // // // // // // // // // // // // // // // //
 
