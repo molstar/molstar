@@ -36,6 +36,7 @@ function adjustPluginProps(ctx: PluginContext) {
             colorMarker: true,
             highlightColor: Color(0xffffff),
             highlightStrength: 0,
+            selectColor: Color(0xffffff),
             selectStrength: 0,
             dimColor: Color(0xffffff),
             dimStrength: 1,
@@ -46,11 +47,14 @@ function adjustPluginProps(ctx: PluginContext) {
             xrayEdgeFalloff: 3,
         },
         marking: {
-            enabled: false,
-            highlightEdgeColor: Color(0x394e65),
-            selectEdgeStrength: 0,
+            enabled: true,
+            highlightEdgeColor: Color(0x999999),
+            selectEdgeColor: Color(0xffff00),
+            highlightEdgeStrength: 1,
+            selectEdgeStrength: 1,
             ghostEdgeStrength: 1,
             innerEdgeFactor: 2.5,
+            edgeScale: 2,
         },
         postprocessing: {
             occlusion: {
@@ -92,7 +96,7 @@ function adjustPluginProps(ctx: PluginContext) {
                     scale: 1,
                     threshold: 0.15,
                     color: Color(0x000000),
-                    includeTransparent: true,
+                    includeTransparent: false,
                 }
             }
         }

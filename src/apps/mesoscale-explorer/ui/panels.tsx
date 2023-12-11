@@ -59,14 +59,6 @@ export class RightPanel extends PluginUIComponent<{}, { isDisabled: boolean }> {
         );
     }
 
-    get hasSelectionInfo() {
-        let count = 0;
-        this.plugin.managers.structure.selection.entries.forEach(e => {
-            if (!Loci.isEmpty(e.selection)) count += 1;
-        });
-        return count > 0;
-    }
-
     componentDidMount() {
         this.subscribe(this.plugin.state.data.behaviors.isUpdating, v => {
             this.setState({ isDisabled: v });
@@ -93,11 +85,11 @@ export class RightPanel extends PluginUIComponent<{}, { isDisabled: boolean }> {
                 <Spacer />
             </>}
 
-            {this.hasSelectionInfo && <>
+            <>
                 <SectionHeader title='Selection' />
                 <SelectionInfo />
                 <Spacer />
-            </>}
+            </>
 
             <SectionHeader title='Entities' />
             <EntityControls />
