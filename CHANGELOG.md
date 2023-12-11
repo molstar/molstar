@@ -6,6 +6,7 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
+- Support for label rendering in HeadlessPluginContext
 - MolViewSpec extension
   - Support all X11 colors
   - Support relative URIs
