@@ -5,7 +5,7 @@
  */
 
 import { BehaviorSubject, distinctUntilChanged, Subject, throttleTime } from 'rxjs';
-import { VolsegVolumeServerConfig } from '.';
+import { NewVolsegVolumeServerConfig } from '.';
 import { Loci } from '../../mol-model/loci';
 
 import { ShapeGroup } from '../../mol-model/shape';
@@ -22,9 +22,9 @@ import { ParamDefinition } from '../../mol-util/param-definition';
 import { MeshlistData } from '../meshes/mesh-extension';
 
 import { DEFAULT_VOLSEG_SERVER, VolumeApiV2 } from './volseg-api/api';
-import { Segment } from './volseg-api/data';
+import { Segment, TimeInfo } from './volseg-api/data';
 import { MetadataWrapper } from './volseg-api/utils';
-import { VolsegMeshSegmentationData } from './entry-meshes';
+import { DEFAULT_MESH_DETAIL, VolsegMeshSegmentationData } from './entry-meshes';
 import { VolsegModelData } from './entry-models';
 import { VolsegLatticeSegmentationData } from './entry-segmentation';
 import { VolsegState, VolsegStateData, VolsegStateParams } from './entry-state';
@@ -32,8 +32,11 @@ import { VolsegVolumeData, SimpleVolumeParamValues, VOLUME_VISUAL_TAG } from './
 import * as ExternalAPIs from './external-api';
 import { VolsegGlobalStateData } from './global-state';
 import { applyEllipsis, isDefined, lazyGetter, splitEntryId } from './helpers';
-import { type VolsegStateFromEntry } from './transformers';
+import { ProjectDataParamsValues, ProjectSegmentationDataParamsValues, type VolsegStateFromEntry } from './transformers';
 import { StateTransforms } from '../../mol-plugin-state/transforms';
+import { Asset } from '../../mol-util/assets';
+import { PluginComponent } from '../../mol-plugin-state/component';
+import { VolsegGeometricSegmentationData } from './entry-geometric-segmentation';
 
 
 export const MAX_VOXELS = 10 ** 7;
@@ -42,14 +45,15 @@ export const BOX: [[number, number, number], [number, number, number]] | null = 
 // export const BOX: [[number, number, number], [number, number, number]] | null = [[-90, -90, -90], [90, 90, 90]]; // DEBUG
 
 const MAX_ANNOTATIONS_IN_LABEL = 6;
+export const VOLUME_NODE_TAG = 'volume-node-tag';
+export const SEGMENTATION_NODE_TAG = 'segmenation-node-tag';
 
-
-const SourceChoice = new Choice({ emdb: 'EMDB', empiar: 'EMPIAR', idr: 'IDR' }, 'emdb');
+const SourceChoice = new Choice({ emdb: 'EMDB', empiar: 'EMPIAR', idr: 'IDR', pdbe: 'PDBe' }, 'emdb');
 export type Source = Choice.Values<typeof SourceChoice>;
 
 
 export function createLoadVolsegParams(plugin?: PluginContext, entrylists: { [source: string]: string[] } = {}) {
-    const defaultVolumeServer = plugin?.config.get(VolsegVolumeServerConfig.DefaultServer) ?? DEFAULT_VOLSEG_SERVER;
+    const defaultVolumeServer = plugin?.config.get(NewVolsegVolumeServerConfig.DefaultServer) ?? DEFAULT_VOLSEG_SERVER;
     return {
         serverUrl: ParamDefinition.Text(defaultVolumeServer),
         source: ParamDefinition.Mapped(SourceChoice.values[0], SourceChoice.options, src => entryParam(entrylists[src])),
@@ -64,9 +68,10 @@ function entryParam(entries: string[] = []) {
     }, { isFlat: true });
 }
 type LoadVolsegParamValues = ParamDefinition.Values<ReturnType<typeof createLoadVolsegParams>>;
+type RawDataKind = 'volume' | 'segmentation';
 
 export function createVolsegEntryParams(plugin?: PluginContext) {
-    const defaultVolumeServer = plugin?.config.get(VolsegVolumeServerConfig.DefaultServer) ?? DEFAULT_VOLSEG_SERVER;
+    const defaultVolumeServer = plugin?.config.get(NewVolsegVolumeServerConfig.DefaultServer) ?? DEFAULT_VOLSEG_SERVER;
     return {
         serverUrl: ParamDefinition.Text(defaultVolumeServer),
         source: SourceChoice.PDSelect(),
@@ -92,7 +97,121 @@ export namespace VolsegEntryParamValues {
 
 export class VolsegEntry extends PluginStateObject.CreateBehavior<VolsegEntryData>({ name: 'Vol & Seg Entry' }) { }
 
-type VolRepr3DT = typeof StateTransforms.Representation.VolumeRepresentation3D
+export type VolRepr3DT = typeof StateTransforms.Representation.VolumeRepresentation3D
+
+export class RawMeshSegmentData {
+    constructor(public segmentId: number, public data: Uint8Array | string) {
+        // super();
+    }
+}
+
+class RawChannelData extends PluginComponent {
+    constructor(public timeframeIndex: number, public channelId: number, public data: Uint8Array | string | RawMeshSegmentData[]) {
+        super();
+    }
+}
+
+export interface StateHierarchyMirror {
+    volumes: StateObjectCell<PluginStateObject.Volume.Data>[]
+    segmentations: StateObjectCell<PluginStateObject.Volume.Data>[]
+}
+
+class RawTimeframesDataCache {
+    private cache: Map<string, RawChannelData> = new Map<string, RawChannelData>();
+    private maxEntries: number;
+    private totalSizeLimitInBytes: number = 1_000_000_000;
+
+    constructor(public entryData: VolsegEntryData, public kind: RawDataKind) {
+    }
+
+    private setCacheSizeInItems(data: RawChannelData) {
+        if (!this.maxEntries) {
+            const size = this._getEntrySize(data);
+            this._setCacheSizeInItems(size);
+        }
+    }
+
+    private _createKey(timeframeIndex: number, channelId: number) {
+        return `${timeframeIndex.toString()}_${channelId}`;
+    }
+
+    private _getEntrySize(entry: RawChannelData | RawMeshSegmentData) {
+        const data = entry.data;
+        let bytes: number = 0;
+        if (data instanceof Uint8Array) {
+            bytes = data.length;
+        } else if (data instanceof String) {
+            // string
+            bytes = new TextEncoder().encode(data as string).length;
+        } else {
+            // rawMeshSegmentData
+            const arr: RawMeshSegmentData[] = data as RawMeshSegmentData[];
+            for (const i of arr) {
+                const b = this._getEntrySize(i);
+                bytes = bytes + b;
+            }
+        }
+        console.log('Entry size is: ', bytes, ' bytes');
+        return bytes;
+    }
+
+    private _setCacheSizeInItems(entrySizeInBytes: number) {
+        const limit = this.totalSizeLimitInBytes / entrySizeInBytes;
+        this.maxEntries = Math.round(limit);
+        console.log(`maxEntries of ${this.kind} cache set to: ${this.maxEntries}`);
+    };
+
+    add(data: RawChannelData) {
+        if (this.cache.size >= this.maxEntries) {
+            // least-recently used cache eviction strategy
+            const keyToDelete = this.cache.keys().next().value;
+            console.log('key to delete', keyToDelete);
+            this.cache.delete(keyToDelete);
+        }
+        // check if exists
+        const timeframeIndex = data.timeframeIndex;
+        const channelId = data.channelId;
+        const key = this._createKey(timeframeIndex, channelId);
+        const hasKey = this.cache.has(key);
+        if (hasKey) {
+            return null;
+        } else {
+            // add
+            this.cache.set(key, data);
+            this.setCacheSizeInItems(data);
+        }
+    }
+
+    async get(timeframeIndex: number, channelId: number) {
+        const key = this._createKey(timeframeIndex, channelId);
+        // check if exists
+        // debugger;
+        const hasKey = this.cache.has(key);
+        if (hasKey) {
+            // peek the entry, re-insert for LRU strategy
+            console.log('found in cache');
+            const entry = this.cache.get(key)!;
+            this.cache.delete(key);
+            this.cache.set(key, entry);
+            // debugger;
+            return entry;
+        } else {
+            if (this.cache.size >= this.maxEntries) {
+                // least-recently used cache eviction strategy
+                const keyToDelete = this.cache.keys().next().value;
+                console.log('key to delete', keyToDelete);
+                this.cache.delete(keyToDelete);
+            }
+            console.log('not in cache, loaded');
+            const entry = await this.entryData._loadRawChannelData(timeframeIndex, channelId, this.kind);
+            this.cache.delete(key);
+            this.cache.set(key, entry);
+            // debugger;
+            this.setCacheSizeInItems(entry);
+            return entry;
+        }
+    }
+}
 
 export class VolsegEntryData extends PluginBehavior.WithSubscribers<VolsegEntryParamValues> {
     plugin: PluginContext;
@@ -106,16 +225,24 @@ export class VolsegEntryData extends PluginBehavior.WithSubscribers<VolsegEntryP
     metadata: MetadataWrapper;
     pdbs: string[];
 
+    public cachedVolumeTimeframesData = new RawTimeframesDataCache(this, 'volume');
+    public cachedSegmentationTimeframesData = new RawTimeframesDataCache(this, 'segmentation');
+
+    state = {
+        hierarchy: new BehaviorSubject<StateHierarchyMirror | undefined>(undefined)
+    };
+
     public readonly volumeData = new VolsegVolumeData(this);
-    private readonly latticeSegmentationData = new VolsegLatticeSegmentationData(this);
-    private readonly meshSegmentationData = new VolsegMeshSegmentationData(this);
+    public readonly geometricSegmentationData = new VolsegGeometricSegmentationData(this);
+    public readonly latticeSegmentationData = new VolsegLatticeSegmentationData(this);
+    public readonly meshSegmentationData = new VolsegMeshSegmentationData(this);
     private readonly modelData = new VolsegModelData(this);
     private highlightRequest = new Subject<Segment | undefined>();
 
     private getStateNode = lazyGetter(() => this.plugin.state.data.selectQ(q => q.byRef(this.ref).subtree().ofType(VolsegState))[0] as StateObjectCell<VolsegState, StateTransform<typeof VolsegStateFromEntry>>, 'Missing VolsegState node. Must first create VolsegState for this VolsegEntry.');
     public currentState = new BehaviorSubject(ParamDefinition.getDefaultValues(VolsegStateParams));
-    public currentVolume = new BehaviorSubject<StateTransform<VolRepr3DT> | undefined>(undefined);
-
+    public currentVolume = new BehaviorSubject<StateTransform<VolRepr3DT>[]>([]);
+    public currentTimeframe = new BehaviorSubject(0);
 
     private constructor(plugin: PluginContext, params: VolsegEntryParamValues) {
         super(plugin, params);
@@ -129,8 +256,9 @@ export class VolsegEntryData extends PluginBehavior.WithSubscribers<VolsegEntryP
     private async initialize() {
         const metadata = await this.api.getMetadata(this.source, this.entryId);
         this.metadata = new MetadataWrapper(metadata);
-        this.pdbs = await ExternalAPIs.getPdbIdsForEmdbEntry(this.metadata.raw.grid.general.source_db_id ?? this.entryId);
+        this.pdbs = await ExternalAPIs.getPdbIdsForEmdbEntry(this.metadata.raw.annotation?.entry_id.source_db_id ?? this.entryId);
         // TODO use Asset?
+        await this.init();
     }
 
     static async create(plugin: PluginContext, params: VolsegEntryParamValues) {
@@ -138,6 +266,43 @@ export class VolsegEntryData extends PluginBehavior.WithSubscribers<VolsegEntryP
         await result.initialize();
         return result;
     }
+
+    async getData(timeframeIndex: number, channelId: number, kind: RawDataKind) {
+        // TODO: optimize if elif?
+        if (kind === 'volume') {
+            const channelData = await this.cachedVolumeTimeframesData.get(timeframeIndex, channelId);
+            return channelData.data;
+        } else {
+            const channelData = await this.cachedSegmentationTimeframesData.get(timeframeIndex, channelId);
+            return channelData.data;
+        }
+    }
+
+    sync() {
+        console.log('hierarchy synced');
+        const volumes = this.findNodesByTags(VOLUME_NODE_TAG);
+        const segmentations = this.findNodesByTags(SEGMENTATION_NODE_TAG);
+        console.log('volumes, segmentations');
+        console.log(volumes, segmentations);
+        this.state.hierarchy.next({ volumes, segmentations });
+    }
+
+    private async init() {
+        this.sync();
+        this.subscribeObservable(this.plugin.state.data.events.changed, state => {
+            console.log('data events changed emitted');
+            this.sync();
+        });
+        const hasVolumes = this.metadata.raw.grid.volumes.volume_sampling_info.spatial_downsampling_levels.length > 0;
+        if (hasVolumes) {
+            await this.preloadVolumeTimeframesData();
+        }
+        const hasLattices = this.metadata.raw.grid.segmentation_lattices.segmentation_lattice_ids.length > 0;
+        if (hasLattices) {
+            await this.preloadSegmentationTimeframesData();
+        }
+    }
+
 
     async register(ref: string) {
         this.ref = ref;
@@ -153,9 +318,9 @@ export class VolsegEntryData extends PluginBehavior.WithSubscribers<VolsegEntryP
         }
 
         const volumeVisual = this.findNodesByTags(VOLUME_VISUAL_TAG)[0];
-        if (volumeVisual) this.currentVolume.next(volumeVisual.transform);
+        if (volumeVisual) this.addCurrentVolume(volumeVisual.transform);
 
-        let volumeRef: string | undefined;
+        const volumeRefs = new Set<string>();
         this.subscribeObservable(this.plugin.state.data.events.cell.stateUpdated, e => {
             try { (this.getStateNode()); } catch { return; } // if state not does not exist yet
             if (e.cell.transform.ref === this.getStateNode().transform.ref) {
@@ -164,19 +329,19 @@ export class VolsegEntryData extends PluginBehavior.WithSubscribers<VolsegEntryP
                     this.currentState.next(newState);
                 }
             } else if (e.cell.transform.tags?.includes(VOLUME_VISUAL_TAG)) {
-                if (e.ref === volumeRef) {
-                    this.currentVolume.next(e.cell.transform);
+                if (volumeRefs.has(e.ref)) {
+                    this.addCurrentVolume(e.cell.transform);
                 } else if (StateSelection.findAncestor(this.plugin.state.data.tree, this.plugin.state.data.cells, e.ref, a => a.transform.ref === ref)) {
-                    volumeRef = e.ref;
-                    this.currentVolume.next(e.cell.transform);
+                    volumeRefs.add(e.ref);
+                    this.addCurrentVolume(e.cell.transform);
                 }
             }
         });
 
         this.subscribeObservable(this.plugin.state.data.events.cell.removed, e => {
-            if (e.ref === volumeRef) {
-                volumeRef = undefined;
-                this.currentVolume.next(undefined);
+            if (volumeRefs.has(e.ref)) {
+                volumeRefs.delete(e.ref);
+                this.removeCurrentVolume(e.ref);
             }
         });
 
@@ -209,10 +374,129 @@ export class VolsegEntryData extends PluginBehavior.WithSubscribers<VolsegEntryP
     }
 
     async loadVolume() {
-        const result = await this.volumeData.loadVolume();
-        if (result) {
-            const isovalue = result.isovalue.kind === 'relative' ? result.isovalue.relativeValue : result.isovalue.absoluteValue;
-            await this.updateStateNode({ volumeIsovalueKind: result.isovalue.kind, volumeIsovalueValue: isovalue });
+        // const result = await this.volumeData.loadVolume();
+        // if (result) {
+        //     const isovalue = result.isovalue.kind === 'relative' ? result.isovalue.relativeValue : result.isovalue.absoluteValue;
+        //     await this.updateStateNode({ volumeIsovalueKind: result.isovalue.kind, volumeIsovalueValue: isovalue });
+        // }
+    }
+
+    private async _resolveBinaryUrl(urlString: string) {
+        const url = Asset.getUrlAsset(this.plugin.managers.asset, urlString);
+        const asset = this.plugin.managers.asset.resolve(url, 'binary');
+        const data = (await asset.run()).data;
+        return data;
+    }
+
+    async _resolveStringUrl(urlString: string) {
+        const url = Asset.getUrlAsset(this.plugin.managers.asset, urlString);
+        const asset = this.plugin.managers.asset.resolve(url, 'string');
+        const data = (await asset.run()).data;
+        return data;
+    }
+
+    async _loadRawMeshChannelData(timeframe: number, channelId: number) {
+        const segmentsData: RawMeshSegmentData[] = [];
+        const segmentsToCreate = this.metadata.meshSegmentIds;
+        for (const seg of segmentsToCreate) {
+            const detail = this.metadata.getSufficientMeshDetail(seg, DEFAULT_MESH_DETAIL);
+            const urlString = this.api.meshUrl_Bcif(this.source, this.entryId, seg, detail, timeframe, channelId);
+            const data = await this._resolveBinaryUrl(urlString);
+            segmentsData.push(
+                new RawMeshSegmentData(
+                    seg,
+                    data
+                )
+            );
+        }
+        return new RawChannelData(
+            timeframe,
+            channelId,
+            segmentsData
+        );
+    }
+
+    async _loadRawChannelData(timeframe: number, channelId: number, kind: RawDataKind) {
+        let urlString: string;
+        if (kind === 'volume') {
+            urlString = this.api.volumeUrl(this.source, this.entryId, timeframe, channelId, BOX, MAX_VOXELS);
+        } else {
+            urlString = this.api.latticeUrl(this.source, this.entryId, 0, timeframe, channelId, BOX, MAX_VOXELS);
+        }
+        // const url = Asset.getUrlAsset(this.plugin.managers.asset, urlString);
+        // const asset = this.plugin.managers.asset.resolve(url, 'binary');
+        const data = await this._resolveBinaryUrl(urlString);
+        return new RawChannelData(
+            timeframe,
+            channelId,
+            data
+        );
+    }
+
+    private async loadRawChannelsData(timeInfo: TimeInfo, channelIds: number[], kind: RawDataKind) {
+        // TODO: make it run in parallel without await
+        // TODO: or to run it in ctx?
+
+        const start = timeInfo.start;
+        const end = timeInfo.end;
+        for (let i = start; i <= end; i++) {
+            const channelsData: RawChannelData[] = [];
+            for (const channelId of channelIds) {
+                const rawChannelData = await this._loadRawChannelData(i, channelId, kind);
+                // channelsData.push(rawChannelData);
+                if (kind === 'volume') {
+                    this.cachedVolumeTimeframesData.add(
+                        rawChannelData
+                    );
+                } else {
+                    this.cachedSegmentationTimeframesData.add(
+                        rawChannelData
+                    );
+                }
+            }
+        }
+    }
+
+    async preloadVolumeTimeframesData() {
+        const timeInfo = this.metadata.raw.grid.volumes.time_info;
+        const channelIds = this.metadata.raw.grid.volumes.channel_ids;
+        this.loadRawChannelsData(timeInfo, channelIds, 'volume');
+        console.log('cachedVolumeTimeframesData');
+        console.log(this.cachedVolumeTimeframesData);
+    }
+
+    async preloadSegmentationTimeframesData() {
+        // NOTE: for now single lattice
+        const timeInfo = this.metadata.raw.grid.segmentation_lattices.time_info[0];
+        const channelIds = this.metadata.raw.grid.segmentation_lattices.channel_ids[0];
+        this.loadRawChannelsData(timeInfo, channelIds, 'segmentation');
+        console.log('cachedSegmentationTimeframesData');
+        console.log(this.cachedSegmentationTimeframesData);
+    }
+
+    async updateProjectData(timeframeIndex: number) {
+        this.changeCurrentTimeframe(timeframeIndex);
+        const volumes = this.state.hierarchy.value!.volumes;
+        const segmenations = this.state.hierarchy.value!.segmentations;
+        for (const v of volumes) {
+            const projectDataTransform = v.transform.ref;
+            const oldParams: ProjectDataParamsValues = v.transform.params;
+            const params: ProjectDataParamsValues = {
+                channelId: oldParams.channelId,
+                timeframeIndex: timeframeIndex
+            };
+            await this.plugin.state.updateTransform(this.plugin.state.data, projectDataTransform, params, 'Project Data Transform');
+        }
+
+        for (const s of segmenations) {
+            const projectDataTransform = s.transform.ref;
+            const oldParams: ProjectSegmentationDataParamsValues = s.transform.params;
+            const newParams: ProjectSegmentationDataParamsValues = {
+                ...oldParams,
+                channelId: oldParams.channelId,
+                timeframeIndex: timeframeIndex
+            };
+            await this.plugin.state.updateTransform(this.plugin.state.data, projectDataTransform, newParams, 'Project Data Transform');
         }
     }
 
@@ -222,6 +506,39 @@ export class VolsegEntryData extends PluginBehavior.WithSubscribers<VolsegEntryP
         await this.actionShowSegments(this.metadata.allSegmentIds);
     }
 
+    changeCurrentTimeframe(index: number) {
+        this.currentTimeframe.next(index);
+        console.log('Timeframe changed');
+    }
+
+    addCurrentVolume(t: StateTransform<VolRepr3DT>) {
+        const current = this.currentVolume.value;
+        const next: StateTransform<VolRepr3DT>[] = [];
+        let added = false;
+        for (const v of current) {
+            if (v.ref === t.ref) {
+                next.push(t);
+                added = true;
+            } else {
+                next.push(v);
+            }
+        }
+        if (!added) next.push(t);
+        this.currentVolume.next(next);
+        // console.log('volume added, currentVolume: ', this.currentVolume.value);
+    }
+
+    removeCurrentVolume(ref: string) {
+        const current = this.currentVolume.value;
+        const next: StateTransform<VolRepr3DT>[] = [];
+        for (const v of current) {
+            if (v.ref !== ref) {
+                next.push(v);
+            }
+        }
+        this.currentVolume.next(next);
+        console.log('volume removed, currentVolume: ', this.currentVolume.value);
+    }
 
     actionHighlightSegment(segment?: Segment) {
         this.highlightRequest.next(segment);
@@ -266,21 +583,28 @@ export class VolsegEntryData extends PluginBehavior.WithSubscribers<VolsegEntryP
         await this.updateStateNode({ visibleModels: pdbIds.map(pdbId => ({ pdbId: pdbId })) });
     }
 
-    async actionSetVolumeVisual(type: 'isosurface' | 'direct-volume' | 'off') {
-        await this.volumeData.setVolumeVisual(type);
-        await this.updateStateNode({ volumeType: type });
+    async actionSetVolumeVisual(type: 'isosurface' | 'direct-volume' | 'off', channelId: number, transform: StateTransform) {
+        await this.volumeData.setVolumeVisual(type, channelId, transform);
+        const currentChannelsData = this.currentState.value.channelsData;
+        // it needs to find object corresponding to that channel volume node and update only it!
+        const channelToBeUpdated = currentChannelsData.filter(c => c.channelId === channelId)[0];
+        channelToBeUpdated.volumeType = type;
+        await this.updateStateNode({ channelsData: [...currentChannelsData] });
     }
 
-    async actionUpdateVolumeVisual(params: SimpleVolumeParamValues) {
-        await this.volumeData.updateVolumeVisual(params);
-        await this.updateStateNode({
-            volumeType: params.volumeType,
-            volumeOpacity: params.opacity,
-        });
+    async actionUpdateVolumeVisual(params: SimpleVolumeParamValues, channelId: number, transform: StateTransform) {
+        await this.volumeData.updateVolumeVisual(params, channelId, transform);
+        const currentChannelsData = this.currentState.value.channelsData;
+        // it needs to find object corresponding to that channel volume node and update only it!
+        const channelToBeUpdated = currentChannelsData.filter(c => c.channelId === channelId)[0];
+        channelToBeUpdated.volumeType = params.volumeType;
+        channelToBeUpdated.volumeOpacity = params.opacity;
+        await this.updateStateNode({ channelsData: [...currentChannelsData] });
     }
 
 
-    private async actionShowSegments(segments: number[]) {
+
+    async actionShowSegments(segments: number[]) {
         await this.latticeSegmentationData.showSegments(segments);
         await this.meshSegmentationData.showSegments(segments);
         await this.updateStateNode({ visibleSegments: segments.map(s => ({ segmentId: s })) });
@@ -301,7 +625,7 @@ export class VolsegEntryData extends PluginBehavior.WithSubscribers<VolsegEntryP
         await this.highlightSegment();
     }
 
-    private async updateStateNode(params: Partial<VolsegStateData>) {
+    async updateStateNode(params: Partial<VolsegStateData>) {
         const oldParams = this.getStateNode().transform.params;
         const newParams = { ...oldParams, ...params };
         const state = this.plugin.state.data;
@@ -309,6 +633,9 @@ export class VolsegEntryData extends PluginBehavior.WithSubscribers<VolsegEntryP
         await PluginCommands.State.Update(this.plugin, { state, tree: update, options: { doNotUpdateCurrent: true } });
     }
 
+    findNodesByRef(ref: string) {
+        return this.plugin.state.data.selectQ(q => q.byRef(ref).subtree())[0];
+    }
 
     /** Find the nodes under this entry root which have all of the given tags. */
     findNodesByTags(...tags: string[]) {

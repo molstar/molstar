@@ -3,18 +3,153 @@
  *
  * @author Adam Midlik <midlik@gmail.com>
  */
-
+import { CIF } from '../../mol-io/reader/cif';
+import { volumeFromDensityServerData } from '../../mol-model-formats/volume/density-server';
+import { volumeFromSegmentationData } from '../../mol-model-formats/volume/segmentation';
 import { PluginStateObject, PluginStateTransform } from '../../mol-plugin-state/objects';
 import { PluginContext } from '../../mol-plugin/context';
 import { StateTransformer } from '../../mol-state';
 import { Task } from '../../mol-task';
+import { ParamDefinition } from '../../mol-util/param-definition';
+import { MeshData, VolsegMeshData, VolsegMeshDataParams, VolsegMeshSegmentation } from '../meshes/mesh-extension';
 
-import { VolsegEntry, VolsegEntryData, createVolsegEntryParams } from './entry-root';
+import { RawMeshSegmentData, VolsegEntry, VolsegEntryData, createVolsegEntryParams } from './entry-root';
 import { VolsegState, VolsegStateParams, VOLSEG_STATE_FROM_ENTRY_TRANSFORMER_NAME } from './entry-state';
 import { VolsegGlobalState, VolsegGlobalStateData, VolsegGlobalStateParams } from './global-state';
+import { CreateTransformer } from './helpers';
 
+export const ProjectDataParams = {
+    timeframeIndex: ParamDefinition.Numeric(1, { step: 1 }),
+    channelId: ParamDefinition.Numeric(0, { step: 1 }),
+};
 
-export const VolsegEntryFromRoot = PluginStateTransform.BuiltIn({
+export const ProjectSegmentationDataParams = {
+    ...ProjectDataParams,
+    segmentLabels: ParamDefinition.ObjectList({ id: ParamDefinition.Numeric(-1), label: ParamDefinition.Text('') }, s => `${s.id} = ${s.label}`, { description: 'Mapping of segment IDs to segment labels' }),
+    ownerId: ParamDefinition.Text('', { isHidden: true, description: 'Reference to the object which manages this volume' }),
+};
+
+export const ProjectMeshSegmentationDataParams = {
+    ...ProjectDataParams,
+    ...VolsegMeshDataParams
+};
+
+export type ProjectDataParamsValues = ParamDefinition.Values<typeof ProjectDataParams>;
+export type ProjectSegmentationDataParamsValues = ParamDefinition.Values<typeof ProjectSegmentationDataParams>;
+export type ProjectMeshSegmentationDataParamsValues = ParamDefinition.Values<typeof ProjectMeshSegmentationDataParams>;
+
+export const ProjectVolumeData = CreateTransformer({
+    name: 'project-volume-data',
+    display: { name: 'Project Volume Data', description: 'Project Volume Data' },
+    from: PluginStateObject.Root,
+    to: PluginStateObject.Volume.Data,
+    params: ProjectDataParams
+})({
+    apply({ a, params, spine }, plugin: PluginContext) {
+        return Task.create('Project Volume Data', async ctx => {
+            const { timeframeIndex, channelId } = params;
+            const entry = spine.getAncestorOfType(VolsegEntry);
+            const entryData = entry!.data;
+            const rawData = await entryData.getData(timeframeIndex, channelId, 'volume') as Uint8Array | string;
+            let label = entryData.metadata.getVolumeChannelLabel(channelId);
+            if (!label) label = channelId.toString();
+
+            const parsed = await CIF.parse(rawData).runInContext(ctx);
+            if (parsed.isError) throw new Error(parsed.message);
+            const cif = new PluginStateObject.Format.Cif(parsed.result);
+
+            const header = cif.data.blocks[1].header; // zero block contains query meta-data
+            const block = cif.data.blocks.find(b => b.header === header);
+            if (!block) throw new Error(`Data block '${[header]}' not found.`);
+            const volumeCif = CIF.schema.densityServer(block);
+            const volume = await volumeFromDensityServerData(volumeCif).runInContext(ctx);
+            const [x, y, z] = volume.grid.cells.space.dimensions;
+            const props = { label: `Volume channel: ${label}`, description: `Volume ${x}\u00D7${y}\u00D7${z}` };
+            return new PluginStateObject.Volume.Data(volume, props);
+        });
+    }
+});
+
+export const ProjectSegmentationData = CreateTransformer({
+    name: 'project-segmentation-data',
+    display: { name: 'Project Segmentation Data', description: 'Project Segmentation Data' },
+    from: PluginStateObject.Root,
+    to: PluginStateObject.Volume.Data,
+    params: ProjectSegmentationDataParams
+})({
+    apply({ a, params, spine }, plugin: PluginContext) {
+        return Task.create('Project Volume Data', async ctx => {
+            const { timeframeIndex, channelId } = params;
+            const entry = spine.getAncestorOfType(VolsegEntry);
+            // const entry = a;
+            const entryData = entry!.data;
+            const rawData = await entryData.getData(timeframeIndex, channelId, 'segmentation') as Uint8Array | string;
+
+            // TODO: label?
+            const label = channelId.toString();
+
+            const parsed = await CIF.parse(rawData).runInContext(ctx);
+            // const parsed = await entryData.plugin.dataFormats.get('dscif')!.parse(entryData.plugin, data);
+            if (parsed.isError) throw new Error(parsed.message);
+            const cif = new PluginStateObject.Format.Cif(parsed.result);
+
+            const header = cif.data.blocks[1].header; // zero block contains query meta-data
+            const block = cif.data.blocks.find(b => b.header === header);
+            if (!block) throw new Error(`Data block '${[header]}' not found.`);
+            const segmentationCif = CIF.schema.segmentation(block);
+            const segmentLabels: { [id: number]: string } = {};
+            for (const segment of params.segmentLabels) segmentLabels[segment.id] = segment.label;
+            const volume = await volumeFromSegmentationData(segmentationCif, { segmentLabels, ownerId: params.ownerId }).runInContext(ctx);
+            const [x, y, z] = volume.grid.cells.space.dimensions;
+            const props = { label: `Segmentation channel: ${label}`, description: `Segmentation ${x}\u00D7${y}\u00D7${z}` };
+            return new PluginStateObject.Volume.Data(volume, props);
+        });
+    }
+});
+
+export const ProjectMeshData = CreateTransformer({
+    name: 'project-mesh-data',
+    display: { name: 'Project Mesh Data', description: 'Project Mesh Data' },
+    from: VolsegEntry,
+    to: VolsegMeshSegmentation,
+    params: ProjectMeshSegmentationDataParams
+})({
+    apply({ a, params, spine }, plugin: PluginContext) {
+        return Task.create('Project Mesh Data', async ctx => {
+            const { timeframeIndex, channelId } = params;
+            // TODO: alternatively to using a
+            const entry = spine.getAncestorOfType(VolsegEntry);
+            // const entry = a;
+            const entryData = entry!.data;
+            const segmentsToCreate = entryData.metadata.meshSegmentIds;
+
+            const group = entryData.findNodesByTags('mesh-segmentation-group')[0]?.transform.ref;
+
+            const totalVolume = entryData.metadata.gridTotalVolume;
+            const meshData: MeshData[] = [];
+            const segmentsParams = params.meshSegmentParams;
+            const rawCifData = await entryData._loadRawMeshChannelData(timeframeIndex, channelId);
+            const rawDataArray: RawMeshSegmentData[] = rawCifData.data as RawMeshSegmentData[];
+            for (const segmentParam of segmentsParams) {
+                const rawDataItem = rawDataArray.find(i => i.segmentId === segmentParam.id);
+                if (!rawDataItem) throw new Error('no segment');
+                const rawData = rawDataItem.data;
+                const parsed = await CIF.parse(rawData).runInContext(ctx);
+                if (parsed.isError) throw new Error(parsed.message);
+                // const cif = new PluginStateObject.Format.Cif(parsed.result);
+                const cif = parsed.result;
+                const meshDataItem: MeshData = {
+                    meshSegmentParams: segmentParam,
+                    parsedCif: cif
+                };
+                meshData.push(meshDataItem);
+            }
+            return new VolsegMeshSegmentation(new VolsegMeshData(meshData));
+        });
+    }
+});
+
+export const VolsegEntryFromRoot = CreateTransformer({
     name: 'volseg-entry-from-root',
     display: { name: 'Vol & Seg Entry', description: 'Vol & Seg Entry' },
     from: PluginStateObject.Root,
@@ -35,7 +170,7 @@ export const VolsegEntryFromRoot = PluginStateTransform.BuiltIn({
 });
 
 
-export const VolsegStateFromEntry = PluginStateTransform.BuiltIn({
+export const VolsegStateFromEntry = CreateTransformer({
     name: VOLSEG_STATE_FROM_ENTRY_TRANSFORMER_NAME,
     display: { name: 'Vol & Seg Entry State', description: 'Vol & Seg Entry State' },
     from: VolsegEntry,
@@ -50,7 +185,7 @@ export const VolsegStateFromEntry = PluginStateTransform.BuiltIn({
 });
 
 
-export const VolsegGlobalStateFromRoot = PluginStateTransform.BuiltIn({
+export const VolsegGlobalStateFromRoot = CreateTransformer({
     name: 'volseg-global-state-from-root',
     display: { name: 'Vol & Seg Global State', description: 'Vol & Seg Global State' },
     from: PluginStateObject.Root,

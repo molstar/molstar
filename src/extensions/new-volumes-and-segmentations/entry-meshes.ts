@@ -11,16 +11,17 @@ import { setSubtreeVisibility } from '../../mol-plugin/behavior/static/state';
 import { PluginCommands } from '../../mol-plugin/commands';
 import { Color } from '../../mol-util/color';
 import { ColorNames } from '../../mol-util/color/names';
+import { Box3D } from '../../mol-math/geometry';
 
 import { BACKGROUND_SEGMENT_VOLUME_THRESHOLD } from '../meshes/mesh-streaming/behavior';
-import { createMeshFromUrl } from '../meshes/mesh-extension';
-
+import { BACKGROUND_OPACITY, CreateMeshlistStateObject, FOREROUND_OPACITY, MeshShapeTransformer, MeshlistData, VolsegMeshSegmentation, createMeshFromUrl, meshSegmentParamsValues } from '../meshes/mesh-extension';
 import { Segment } from './volseg-api/data';
 import { VolsegEntryData } from './entry-root';
 
 
-const DEFAULT_MESH_DETAIL: number | null = 5; // null means worst
+import { StateObjectSelector } from '../../mol-state';
 
+export const DEFAULT_MESH_DETAIL: number | null = 5; // null means worst
 
 export class VolsegMeshSegmentationData {
     private entryData: VolsegEntryData;
@@ -43,6 +44,68 @@ export class VolsegMeshSegmentationData {
             update.to(visual).update(ShapeRepresentation3D, p => { (p as any).alpha = opacity; });
         }
         return update.commit();
+    }
+
+    async createMeshRepresentation3D(meshNode: StateObjectSelector<VolsegMeshSegmentation>) {
+        const meshData = meshNode.data!.meshData;
+        const totalVolume = this.entryData.metadata.gridTotalVolume;
+        for (const meshDataItem of meshData) {
+            const update = this.entryData.plugin.build().to(meshNode);
+            const meshListStateObj = await update.to(meshNode)
+                .apply(CreateMeshlistStateObject,
+                    { segmentId: meshDataItem.meshSegmentParams.id }
+                )
+                .commit();
+
+            const transparentIfBboxAbove = BACKGROUND_SEGMENT_VOLUME_THRESHOLD * totalVolume;
+
+            let transparent = false;
+            if (transparentIfBboxAbove !== undefined && meshListStateObj.data) {
+                const bbox = MeshlistData.bbox(meshListStateObj.data) || Box3D.zero();
+                transparent = Box3D.volume(bbox) > transparentIfBboxAbove;
+            }
+
+            await this.entryData.plugin.build().to(meshListStateObj)
+                .apply(MeshShapeTransformer, { color: meshDataItem.meshSegmentParams.color },)
+                .apply(ShapeRepresentation3D,
+                    { alpha: transparent ? BACKGROUND_OPACITY : FOREROUND_OPACITY },
+                    { tags: ['mesh-segment-visual', `segment-${meshDataItem.meshSegmentParams.id}`] }
+                )
+                .commit();
+        }
+        this.entryData.actionShowSegments(this.entryData.metadata.meshSegmentIds);
+    }
+
+    getMeshSegmentParams() {
+        const params: meshSegmentParamsValues[] = [];
+        const segmentsToCreate = this.entryData.metadata.meshSegmentIds;
+        for (const seg of segmentsToCreate) {
+            const segment = this.entryData.metadata.getSegment(seg);
+            if (!segment) continue;
+            const detail = this.entryData.metadata.getSufficientMeshDetail(seg, DEFAULT_MESH_DETAIL);
+            const color = segment.color.length >= 3 ? Color.fromNormalizedArray(segment.color, 0) : ColorNames.gray;
+            // const url = this.entryData.api.meshUrl_Bcif(this.entryData.source, this.entryData.entryId, seg, detail, timeframeIndex, channelId);
+            const label = segment.biological_annotation.name ?? `Segment ${seg}`;
+            const segmentParams: meshSegmentParamsValues = {
+                id: seg,
+                label: label,
+                // url: url,
+                color: color,
+                detail: detail
+            };
+            params.push(segmentParams)
+        }
+
+        return params;
+    }
+
+    async createMeshGroup() {
+        let group = this.entryData.findNodesByTags('mesh-segmentation-group')[0]?.transform.ref;
+        if (!group) {
+            const newGroupNode = await this.entryData.newUpdate().apply(CreateGroup, { label: 'Segmentation', description: 'Mesh' }, { tags: ['mesh-segmentation-group'], state: { isCollapsed: true } }).commit();
+            group = newGroupNode.ref;
+        }
+        return group;
     }
 
     async highlightSegment(segment: Segment) {
@@ -91,8 +154,8 @@ export class VolsegMeshSegmentationData {
             const segment = this.entryData.metadata.getSegment(seg);
             if (!segment) continue;
             const detail = this.entryData.metadata.getSufficientMeshDetail(seg, DEFAULT_MESH_DETAIL);
-            const color = segment.colour.length >= 3 ? Color.fromNormalizedArray(segment.colour, 0) : ColorNames.gray;
-            const url = this.entryData.api.meshUrl_Bcif(this.entryData.source, this.entryData.entryId, seg, detail);
+            const color = segment.color.length >= 3 ? Color.fromNormalizedArray(segment.color, 0) : ColorNames.gray;
+            const url = this.entryData.api.meshUrl_Bcif(this.entryData.source, this.entryData.entryId, seg, detail, this.entryData.currentTimeframe.value, 0);
             const label = segment.biological_annotation.name ?? `Segment ${seg}`;
             const meshPromise = createMeshFromUrl(this.entryData.plugin, url, seg, detail, true, color, group,
                 BACKGROUND_SEGMENT_VOLUME_THRESHOLD * totalVolume, `<b>${label}</b>`, this.entryData.ref);

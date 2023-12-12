@@ -22,6 +22,9 @@ import { VolsegEntry, VolsegEntryData } from './entry-root';
 import { SimpleVolumeParams, SimpleVolumeParamValues } from './entry-volume';
 import { VolsegGlobalState, VolsegGlobalStateData, VolsegGlobalStateParams } from './global-state';
 import { isDefined } from './helpers';
+import { ProjectDataParamsValues } from './transformers';
+import { StateObjectCell } from '../../mol-state';
+import { PluginStateObject } from '../../mol-plugin-state/objects';
 
 
 interface VolsegUIData {
@@ -101,6 +104,7 @@ function VolsegControls({ plugin, data, setData }: { plugin: PluginContext, data
     return <>
         <ParameterControls params={params} values={values} onChangeValues={next => setData(VolsegUIData.changeActiveNode(data, next.entry))} />
 
+        <TimeFrameSlider entryData={entryData} />
         <ExpandGroup header='Global options'>
             <WaitingParameterControls params={VolsegGlobalStateParams} values={globalState} onChangeValues={async next => await data.globalState?.updateState(plugin, next)} />
         </ExpandGroup>
@@ -136,7 +140,7 @@ function VolsegEntryControls({ entryData }: { entryData: VolsegEntryData }) {
 
         {/* Volume */}
         <VolumeControls entryData={entryData} />
-        <ExpandGroup header='Segmentation data' initiallyExpanded>
+        {allSegments.length > 0 && <ExpandGroup header='Segmentation data' initiallyExpanded>
             {/* Segment opacity slider */}
             <ControlRow label='Opacity' control={
                 <WaitingSlider min={0} max={1} value={state.segmentOpacity} step={0.05} onChange={async v => await entryData.actionSetOpacity(v)} />
@@ -164,10 +168,10 @@ function VolsegEntryControls({ entryData }: { entryData: VolsegEntryData }) {
                     )}
                 </div>
             </>}
-        </ExpandGroup>
+        </ExpandGroup>}
 
         {/* Segment annotations */}
-        <ExpandGroup header='Selected segment annotation' initiallyExpanded>
+        {allSegments.length > 0 && <ExpandGroup header='Selected segment annotation' initiallyExpanded>
             <div style={{ paddingTop: 4, paddingRight: 8, maxHeight: 300, overflow: 'hidden', overflowY: 'auto' }}>
                 {!selectedSegment && 'No segment selected'}
                 {selectedSegment && <b>Segment {selectedSegment.id}:<br />{selectedSegment.biological_annotation.name ?? 'Unnamed segment'}</b>}
@@ -178,26 +182,62 @@ function VolsegEntryControls({ entryData }: { entryData: VolsegEntryData }) {
                         {ref.description}
                     </p>)}
             </div>
+        </ExpandGroup>}
+    </>;
+}
+
+function TimeFrameSlider({ entryData }: { entryData: VolsegEntryData }) {
+    const timeInfo = entryData.metadata.raw.grid.volumes.time_info;
+    const timeInfoStart = timeInfo.start;
+    const timeInfoValue = useBehavior(entryData.currentTimeframe);
+    const timeInfoEnd = timeInfo.end;
+    if (timeInfoEnd === 0) return null;
+
+    return <ControlRow label='Time Frame' control={
+        <WaitingSlider min={timeInfoStart} max={timeInfoEnd} value={timeInfoValue} step={1}
+            onChange={async v => {
+                await entryData.updateProjectData(v);
+            }}
+        />}
+    />;
+}
+
+function VolumeChannelControls({ entryData, volume }: { entryData: VolsegEntryData, volume: StateObjectCell<PluginStateObject.Volume.Data> }) {
+    const projectDataTransform = volume.transform;
+
+    if (!projectDataTransform) return null;
+    const params: ProjectDataParamsValues = projectDataTransform.params;
+    const channelId = params.channelId;
+    const channelLabel = volume.obj!.label;
+    const childRef = entryData.plugin.state.data.tree.children.get(projectDataTransform.ref).toArray()[0];
+    const volumeRepresentation3DNode = entryData.findNodesByRef(childRef);
+    const transform = volumeRepresentation3DNode.transform;
+    if (!transform) return null;
+    const volumeValues: SimpleVolumeParamValues = {
+        volumeType: transform.state.isHidden ? 'off' : transform.params?.type.name as any,
+        opacity: transform.params?.type.params.alpha,
+    };
+
+    return <ExpandGroup header={`${channelLabel}`}>
+        <WaitingParameterControls params={SimpleVolumeParams} values={volumeValues} onChangeValues={async next => { await sleep(20); await entryData.actionUpdateVolumeVisual(next, channelId, transform); }} />
+        <UpdateTransformControl state={entryData.plugin.state.data} transform={transform} customHeader='none' />
+    </ExpandGroup>;
+}
+
+function VolumeControls({ entryData }: { entryData: VolsegEntryData }) {
+    const h = useBehavior(entryData.state.hierarchy);
+    if (!h) return null;
+    return <>
+        {/* <Button onClick={() => { console.log('volume cache, segmentation cache: ', entryData.cachedVolumeTimeframesData, entryData.cachedSegmentationTimeframesData); }}>Get volume and segmentation cache</Button> */}
+        <ExpandGroup header='Volume data'>
+            {h.volumes.map((v) => {
+                const params: ProjectDataParamsValues = v.transform.params;
+                return <VolumeChannelControls key={params.channelId} entryData={entryData} volume={v} />;
+            })}
         </ExpandGroup>
     </>;
 }
 
-function VolumeControls({ entryData }: { entryData: VolsegEntryData }) {
-    const vol = useBehavior(entryData.currentVolume);
-    if (!vol) return null;
-
-    const volumeValues: SimpleVolumeParamValues = {
-        volumeType: vol.state.isHidden ? 'off' : vol.params?.type.name as any,
-        opacity: vol.params?.type.params.alpha,
-    };
-
-    return <ExpandGroup header='Volume data' initiallyExpanded>
-        <WaitingParameterControls params={SimpleVolumeParams} values={volumeValues} onChangeValues={async next => { await sleep(20); await entryData.actionUpdateVolumeVisual(next); }} />
-        <ExpandGroup header='Detailed Volume Params' headerStyle={{ marginTop: 1 }}>
-            <UpdateTransformControl state={entryData.plugin.state.data} transform={vol} customHeader='none' />
-        </ExpandGroup>
-    </ExpandGroup>;
-}
 
 type ComponentParams<T extends React.Component<any, any, any> | ((props: any) => JSX.Element)> =
     T extends React.Component<infer P, any, any> ? P : T extends (props: infer P) => JSX.Element ? P : never;

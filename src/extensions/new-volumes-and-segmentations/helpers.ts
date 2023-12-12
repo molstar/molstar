@@ -92,10 +92,10 @@ export class NodeManager {
 
 
 
-const CreateTransformer = StateTransformer.builderFactory('volseg');
+export const CreateTransformer = StateTransformer.builderFactory('new-volseg');
 
 export const CreateVolume = CreateTransformer({
-    name: 'create-transformer',
+    name: 'new-create-transformer',
     from: PluginStateObject.Root,
     to: PluginStateObject.Volume.Data,
     params: {

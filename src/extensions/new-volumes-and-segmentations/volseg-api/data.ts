@@ -5,30 +5,69 @@
  */
 
 export interface Metadata {
-    grid: {
-        general: {
-            details: string,
-            source_db_name: string,
-            source_db_id: string,
-        },
-        volumes: Volumes,
-        segmentation_lattices: SegmentationLattices,
-        segmentation_meshes: SegmentationMeshes,
-    },
-    annotation: Annotation | null,
+    grid: GridMetadata,
+    annotation: AnnotationMetadata | null,
 }
 
-export interface Volumes {
-    volume_downsamplings: number[],
-    voxel_size: { [downsampling: number]: Vector3 },
-    origin: Vector3,
-    grid_dimensions: Vector3,
-    sampled_grid_dimensions: { [downsampling: number]: Vector3 },
-    mean: { [downsampling: number]: number },
-    std: { [downsampling: number]: number },
-    min: { [downsampling: number]: number },
-    max: { [downsampling: number]: number },
-    volume_force_dtype: string,
+export interface GridMetadata {
+    volumes: VolumesMetadata,
+    segmentation_lattices: SegmentationLatticesMetadata,
+    segmentation_meshes: MeshesMetadata
+    geometric_segmentation?: GeometricSegmentation | undefined
+}
+
+export interface GeometricSegmentation {
+    exists?: boolean
+}
+
+export interface VolumesMetadata {
+    channel_ids: number[]
+    time_info: TimeInfo
+    volume_sampling_info: VolumeSamplingInfo
+}
+
+export interface SamplingInfo {
+    // Info about "downsampling dimension"
+    spatial_downsampling_levels: number[]
+    boxes: { [downsampling: number]: SamplingBox }
+    time_transformations: TimeTransformation[]
+    // e.g. (0, 1, 2) as standard
+    original_axis_order: Vector3
+    source_axes_units: { [ axis: string ]: string}
+}
+
+export interface VolumeSamplingInfo extends SamplingInfo {
+    // resolution -> time -> channel_id
+    descriptive_statistics: {[resolution: number]: {
+        [time: number]: {
+            [channel_id: string]: VolumeDescriptiveStatistics}}}
+}
+
+export interface VolumeDescriptiveStatistics {
+    mean: number
+    min: number
+    max: number
+    std: number
+}
+
+export interface TimeTransformation {
+    // # to which downsampling level it is applied: can be to specific level, can be to all lvls
+    downsampling_level: string | number
+    factor: number
+}
+
+export interface TimeInfo {
+    // #just one kind - range
+    kind: string
+    start: number
+    end: number
+    units: string
+}
+
+export interface SamplingBox {
+    origin: Vector3
+    voxel_size: Vector3
+    grid_dimensions: Vector3
 }
 
 export interface SegmentationLattices {
@@ -36,7 +75,7 @@ export interface SegmentationLattices {
     segmentation_downsamplings: { [lattice: number]: number[] },
 }
 
-export interface SegmentationMeshes {
+export interface MeshesMetadata {
     mesh_component_numbers: {
         segment_ids?: {
             [segId: number]: {
@@ -58,21 +97,53 @@ export interface SegmentationMeshes {
     }
 }
 
-export interface Annotation {
-    name: string,
-    details: string,
-    segment_list: Segment[],
+export interface SegmentationLatticesMetadata {
+    segmentation_lattice_ids: number[]
+    // #maps lattice id to Sampling Info
+    segmentation_sampling_info: { [lattice_id: number]: SamplingInfo }
+    // #maps lattice id to channel_ids for that lattice
+    channel_ids: { [lattice_id: number]: number[] }
+    // #maps lattice id to TimeInfo
+    time_info: { [lattice_id: number]: TimeInfo }
+}
+
+export interface EntryId {
+    source_db_name: string
+    source_db_id: string
+}
+
+export interface AnnotationMetadata {
+    entry_id: EntryId
+    details: string | undefined
+    name: string
+    non_segment_annotation: BiologicalAnnotation | undefined
+    volume_channels_annotations: ChannelAnnotation[] | undefined
+    segmentation_lattices: SegmentationLatticeInfo[]
+}
+
+export interface ChannelAnnotation {
+    channel_id: number
+    // # with transparency
+    color: Vector4
+    label: string | undefined
 }
 
 export interface Segment {
-    id: number,
-    colour: number[],
-    biological_annotation: BiologicalAnnotation,
+    id: number
+    color: Vector4
+    biological_annotation: BiologicalAnnotation
+    extra_annotations: BiologicalAnnotation | undefined
+}
+
+export interface SegmentationLatticeInfo {
+    lattice_id: number
+    segment_list: Segment[]
 }
 
 export interface BiologicalAnnotation {
-    name: string,
+    name: string
     external_references: ExternalReference[]
+    is_hidden: boolean | undefined
 }
 
 export interface ExternalReference {
@@ -81,3 +152,4 @@ export interface ExternalReference {
 }
 
 type Vector3 = [number, number, number];
+type Vector4 = [number, number, number, number];

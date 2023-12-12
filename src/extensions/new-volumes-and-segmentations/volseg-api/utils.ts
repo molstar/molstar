@@ -17,12 +17,52 @@ export class MetadataWrapper {
     }
 
     get allSegments() {
-        return this.raw.annotation?.segment_list ?? [];
+        let allSegments: Segment[] = [];
+        const segmentationLattices = this.raw.annotation?.segmentation_lattices;
+        if (segmentationLattices) {
+            for (const segmentationLatticeInfo of segmentationLattices) {
+                allSegments = allSegments.concat(segmentationLatticeInfo.segment_list);
+            };
+        }
+        return allSegments;
     }
 
     get allSegmentIds() {
         return this.allSegments.map(segment => segment.id);
     }
+
+    get channelAnnotations() {
+        return this.raw.annotation?.volume_channels_annotations;
+    }
+
+    getVolumeChannelColor(channel_id: number) {
+        if (!this.channelAnnotations) {
+            return Color(0x121212);
+        }
+        const channelColorArray = this.channelAnnotations.filter(i => i.channel_id === channel_id)[0]?.color;
+        if (channelColorArray) {
+            const color = Color.fromNormalizedArray(channelColorArray, 0);
+            return color;
+        } else {
+            return Color(0x121212);
+        }
+    }
+
+    getVolumeChannelLabel(channel_id: number) {
+        if (!this.channelAnnotations) {
+            return null;
+        }
+        const volumeChannelLabel = this.channelAnnotations
+            .filter(i => i.channel_id === channel_id)[0]?.label;
+
+        if (volumeChannelLabel) {
+            return volumeChannelLabel;
+        } else {
+            return null;
+        };
+
+    }
+
 
     getSegment(segmentId: number): Segment | undefined {
         if (!this.segmentMap) {
@@ -35,7 +75,7 @@ export class MetadataWrapper {
     }
 
     getSegmentColor(segmentId: number): Color | undefined {
-        const colorArray = this.getSegment(segmentId)?.colour;
+        const colorArray = this.getSegment(segmentId)?.color;
         return colorArray ? Color.fromNormalizedArray(colorArray, 0) : undefined;
     }
 
@@ -66,8 +106,8 @@ export class MetadataWrapper {
     }
 
     get gridTotalVolume() {
-        const [vx, vy, vz] = this.raw.grid.volumes.voxel_size[1];
-        const [gx, gy, gz] = this.raw.grid.volumes.grid_dimensions;
+        const [vx, vy, vz] = this.raw.grid.volumes.volume_sampling_info.boxes[1].voxel_size;
+        const [gx, gy, gz] = this.raw.grid.volumes.volume_sampling_info.boxes[1].grid_dimensions;
         return vx * vy * vz * gx * gy * gz;
     }
 

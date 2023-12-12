@@ -24,29 +24,33 @@ export class VolumeApiV2 {
     public metadataUrl(source: string, entryId: string): string {
         return `${this.volumeServerUrl}/${source}/${entryId}/metadata`;
     }
-    public volumeUrl(source: string, entryId: string, box: [[number, number, number], [number, number, number]] | null, maxPoints: number): string {
+    public volumeUrl(source: string, entryId: string, timeframe: number, channelId: number, box: [[number, number, number], [number, number, number]] | null, maxPoints: number): string {
         if (box) {
             const [[a1, a2, a3], [b1, b2, b3]] = box;
-            return `${this.volumeServerUrl}/${source}/${entryId}/volume/box/${a1}/${a2}/${a3}/${b1}/${b2}/${b3}?max_points=${maxPoints}`;
+            return `${this.volumeServerUrl}/${source}/${entryId}/volume/box/${timeframe}/${channelId}/${a1}/${a2}/${a3}/${b1}/${b2}/${b3}?max_points=${maxPoints}`;
         } else {
-            return `${this.volumeServerUrl}/${source}/${entryId}/volume/cell?max_points=${maxPoints}`;
+            return `${this.volumeServerUrl}/${source}/${entryId}/volume/cell/${timeframe}/${channelId}?max_points=${maxPoints}`;
         }
     }
-    public latticeUrl(source: string, entryId: string, segmentation: number, box: [[number, number, number], [number, number, number]] | null, maxPoints: number): string {
+    public latticeUrl(source: string, entryId: string, segmentation: number, timeframe: number, channelId: number, box: [[number, number, number], [number, number, number]] | null, maxPoints: number): string {
         if (box) {
             const [[a1, a2, a3], [b1, b2, b3]] = box;
-            return `${this.volumeServerUrl}/${source}/${entryId}/segmentation/box/${segmentation}/${a1}/${a2}/${a3}/${b1}/${b2}/${b3}?max_points=${maxPoints}`;
+            return `${this.volumeServerUrl}/${source}/${entryId}/segmentation/box/${segmentation}/${timeframe}/${channelId}/${a1}/${a2}/${a3}/${b1}/${b2}/${b3}?max_points=${maxPoints}`;
         } else {
-            return `${this.volumeServerUrl}/${source}/${entryId}/segmentation/cell/${segmentation}?max_points=${maxPoints}`;
+            return `${this.volumeServerUrl}/${source}/${entryId}/segmentation/cell/${segmentation}/${timeframe}/${channelId}?max_points=${maxPoints}`;
         }
     }
-    public meshUrl_Json(source: string, entryId: string, segment: number, detailLevel: number): string {
-        return `${this.volumeServerUrl}/${source}/${entryId}/mesh/${segment}/${detailLevel}`;
+    public shapePrimitivesUrl(source: string, entryId: string) {
+        return `${this.volumeServerUrl}/${source}/${entryId}/geometric_segmentation`;
+    }
+    public meshUrl_Json(source: string, entryId: string, segment: number, detailLevel: number, timeframe: number, channelId: number): string {
+        return `${this.volumeServerUrl}/${source}/${entryId}/mesh/${segment}/${detailLevel}/${timeframe}/${channelId}`;
     }
 
-    public meshUrl_Bcif(source: string, entryId: string, segment: number, detailLevel: number): string {
-        return `${this.volumeServerUrl}/${source}/${entryId}/mesh_bcif/${segment}/${detailLevel}`;
+    public meshUrl_Bcif(source: string, entryId: string, segment: number, detailLevel: number, timeframe: number, channelId: number): string {
+        return `${this.volumeServerUrl}/${source}/${entryId}/mesh_bcif/${segment}/${detailLevel}/${timeframe}/${channelId}`;
     }
+
     public volumeInfoUrl(source: string, entryId: string): string {
         return `${this.volumeServerUrl}/${source}/${entryId}/volume_info`;
     }

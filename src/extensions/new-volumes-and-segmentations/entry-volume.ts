@@ -13,7 +13,7 @@ import { Download } from '../../mol-plugin-state/transforms/data';
 import { CreateGroup } from '../../mol-plugin-state/transforms/misc';
 import { setSubtreeVisibility } from '../../mol-plugin/behavior/static/state';
 import { PluginCommands } from '../../mol-plugin/commands';
-import { StateObjectSelector } from '../../mol-state';
+import { StateObjectSelector, StateTransform } from '../../mol-state';
 import { Color } from '../../mol-util/color';
 import { ParamDefinition as PD } from '../../mol-util/param-definition';
 
@@ -21,6 +21,7 @@ import { BOX, VolsegEntryData, MAX_VOXELS } from './entry-root';
 import { VolsegStateParams, VolumeTypeChoice } from './entry-state';
 import * as ExternalAPIs from './external-api';
 import { VolsegGlobalStateData } from './global-state';
+import { ProjectDataParamsValues } from './transformers';
 
 
 const GROUP_TAG = 'volume-group';
@@ -50,46 +51,95 @@ export class VolsegVolumeData {
     }
 
     async loadVolume() {
-        const hasVolumes = this.entryData.metadata.raw.grid.volumes.volume_downsamplings.length > 0;
-        if (hasVolumes) {
-            const isoLevelPromise = ExternalAPIs.tryGetIsovalue(this.entryData.metadata.raw.grid.general.source_db_id ?? this.entryData.entryId);
-            let group = this.entryData.findNodesByTags(GROUP_TAG)[0]?.transform.ref;
-            if (!group) {
-                const newGroupNode = await this.entryData.newUpdate().apply(CreateGroup, { label: 'Volume' }, { tags: [GROUP_TAG], state: { isCollapsed: true } }).commit();
-                group = newGroupNode.ref;
-            }
-            const url = this.entryData.api.volumeUrl(this.entryData.source, this.entryData.entryId, BOX, MAX_VOXELS);
-            const data = await this.entryData.newUpdate().to(group).apply(Download, { url, isBinary: true, label: `Volume Data: ${url}` }).commit();
-            const parsed = await this.entryData.plugin.dataFormats.get('dscif')!.parse(this.entryData.plugin, data);
-            const volumeNode: StateObjectSelector<PluginStateObject.Volume.Data> = parsed.volumes?.[0] ?? parsed.volume;
-            const volumeData = volumeNode.cell!.obj!.data;
+        // const hasVolumes = this.entryData.metadata.raw.grid.volumes.volume_downsamplings.length > 0;
+        // if (hasVolumes) {
+        //     const isoLevelPromise = ExternalAPIs.tryGetIsovalue(this.entryData.metadata.raw.grid.general.source_db_id ?? this.entryData.entryId);
+        //     let group = this.entryData.findNodesByTags(GROUP_TAG)[0]?.transform.ref;
+        //     if (!group) {
+        //         const newGroupNode = await this.entryData.newUpdate().apply(CreateGroup, { label: 'Volume' }, { tags: [GROUP_TAG], state: { isCollapsed: true } }).commit();
+        //         group = newGroupNode.ref;
+        //     }
+        //     const url = this.entryData.api.volumeUrl(this.entryData.source, this.entryData.entryId, BOX, MAX_VOXELS);
+        //     const data = await this.entryData.newUpdate().to(group).apply(Download, { url, isBinary: true, label: `Volume Data: ${url}` }).commit();
+        //     const parsed = await this.entryData.plugin.dataFormats.get('dscif')!.parse(this.entryData.plugin, data);
+        //     const volumeNode: StateObjectSelector<PluginStateObject.Volume.Data> = parsed.volumes?.[0] ?? parsed.volume;
+        //     const volumeData = volumeNode.cell!.obj!.data;
 
-            const volumeType = VolsegStateParams.volumeType.defaultValue;
-            let isovalue = await isoLevelPromise;
-            if (!isovalue) {
-                const stats = volumeData.grid.stats;
-                const maxRelative = (stats.max - stats.mean) / stats.sigma;
-                if (maxRelative > 1) {
-                    isovalue = { kind: 'relative', value: 1.0 };
-                } else {
-                    isovalue = { kind: 'relative', value: maxRelative * 0.5 };
-                }
-            }
+        //     const volumeType = VolsegStateParams.volumeType.defaultValue;
+        //     let isovalue = await isoLevelPromise;
+        //     if (!isovalue) {
+        //         const stats = volumeData.grid.stats;
+        //         const maxRelative = (stats.max - stats.mean) / stats.sigma;
+        //         if (maxRelative > 1) {
+        //             isovalue = { kind: 'relative', value: 1.0 };
+        //         } else {
+        //             isovalue = { kind: 'relative', value: maxRelative * 0.5 };
+        //         }
+        //     }
 
-            const adjustedIsovalue = Volume.adjustedIsoValue(volumeData, isovalue.value, isovalue.kind);
-            const visualParams = this.createVolumeVisualParams(volumeData, volumeType);
-            this.changeIsovalueInVolumeVisualParams(visualParams, adjustedIsovalue, volumeData.grid.stats);
+        //     const adjustedIsovalue = Volume.adjustedIsoValue(volumeData, isovalue.value, isovalue.kind);
+        //     const visualParams = this.createVolumeVisualParams(volumeData, volumeType);
+        //     this.changeIsovalueInVolumeVisualParams(visualParams, adjustedIsovalue, volumeData.grid.stats);
 
-            await this.entryData.newUpdate()
-                .to(volumeNode)
-                .apply(StateTransforms.Representation.VolumeRepresentation3D, visualParams, { tags: [VOLUME_VISUAL_TAG], state: { isHidden: volumeType === 'off' } })
-                .commit();
-            return { isovalue: adjustedIsovalue };
-        }
+        //     await this.entryData.newUpdate()
+        //         .to(volumeNode)
+        //         .apply(StateTransforms.Representation.VolumeRepresentation3D, visualParams, { tags: [VOLUME_VISUAL_TAG], state: { isHidden: volumeType === 'off' } })
+        //         .commit();
+        //     return { isovalue: adjustedIsovalue };
+        // }
     }
 
-    async setVolumeVisual(type: 'isosurface' | 'direct-volume' | 'off') {
-        const visual = this.entryData.findNodesByTags(VOLUME_VISUAL_TAG)[0];
+    async createVolumeGroup() {
+        let group = this.entryData.findNodesByTags(GROUP_TAG)[0]?.transform.ref;
+        if (!group) {
+            const newGroupNode = await this.entryData.newUpdate().apply(CreateGroup, { label: 'Volume' }, { tags: [GROUP_TAG], state: { isCollapsed: true } }).commit();
+            group = newGroupNode.ref;
+        }
+        return group;
+    }
+
+    async createVolumeRepresentation3D(volumeNode: StateObjectSelector<PluginStateObject.Volume.Data>, params: ProjectDataParamsValues) {
+        const { timeframeIndex, channelId } = params;
+        const isoLevelPromise = ExternalAPIs.tryGetIsovalue(this.entryData.metadata.raw.annotation?.entry_id.source_db_id ?? this.entryData.entryId);
+        const color = this.entryData.metadata.getVolumeChannelColor(channelId);
+        const volumeData = volumeNode.cell!.obj!.data;
+        let label = this.entryData.metadata.getVolumeChannelLabel(channelId);
+        if (!label) label = channelId.toString();
+
+        const volumeType = VolumeTypeChoice.defaultValue;
+        let isovalue = await isoLevelPromise;
+        if (!isovalue) {
+            const stats = volumeData.grid.stats;
+            const maxRelative = (stats.max - stats.mean) / stats.sigma;
+            if (maxRelative > 1) {
+                isovalue = { kind: 'relative', value: 1.0 };
+            } else {
+                isovalue = { kind: 'relative', value: maxRelative * 0.5 };
+            }
+        }
+
+        const adjustedIsovalue = Volume.adjustedIsoValue(volumeData, isovalue.value, isovalue.kind);
+        const visualParams = this.createVolumeVisualParams(volumeData, volumeType, color);
+        this.changeIsovalueInVolumeVisualParams(visualParams, adjustedIsovalue, volumeData.grid.stats, channelId);
+
+        const volumeRepresentation3D = await this.entryData.newUpdate()
+            .to(volumeNode)
+            .apply(StateTransforms.Representation.VolumeRepresentation3D, visualParams, { tags: [VOLUME_VISUAL_TAG] })
+            .commit();
+
+        const transform = volumeRepresentation3D.cell?.transform;
+        if (!transform) return null;
+
+        const volumeValues: SimpleVolumeParamValues = {
+            volumeType: transform.state.isHidden ? 'off' : transform.params?.type.name as any,
+            opacity: transform.params?.type.params.alpha,
+        };
+
+        return { isovalue: adjustedIsovalue, volumeType: volumeValues.volumeType, opacity: volumeValues.opacity, channelId: channelId, label: label, color: color };
+    }
+
+    async setVolumeVisual(type: 'isosurface' | 'direct-volume' | 'off', channelId: number, transform: StateTransform) {
+        const visual = this.entryData.findNodesByRef(transform.ref);
         if (!visual) return;
         const oldParams: VolumeVisualParams = visual.transform.params;
         this.visualTypeParamCache[oldParams.type.name] = oldParams.type.params;
@@ -107,15 +157,15 @@ export class VolsegVolumeData {
             };
             const volumeStats = visual.obj?.data.sourceData.grid.stats;
             if (!volumeStats) throw new Error(`Cannot get volume stats from volume visual ${visual.transform.ref}`);
-            this.changeIsovalueInVolumeVisualParams(newParams, undefined, volumeStats);
+            this.changeIsovalueInVolumeVisualParams(newParams, undefined, volumeStats, channelId);
             const update = this.entryData.newUpdate().to(visual.transform.ref).update(newParams);
             await PluginCommands.State.Update(this.entryData.plugin, { state: this.entryData.plugin.state.data, tree: update, options: { doNotUpdateCurrent: true } });
         }
     }
 
-    async updateVolumeVisual(newParams: SimpleVolumeParamValues) {
+    async updateVolumeVisual(newParams: SimpleVolumeParamValues, channelId: number, transform: StateTransform) {
         const { volumeType, opacity } = newParams;
-        const visual = this.entryData.findNodesByTags(VOLUME_VISUAL_TAG)[0];
+        const visual = this.entryData.findNodesByRef(transform.ref);
         if (!visual) return;
         const oldVisualParams: VolumeVisualParams = visual.transform.params;
         this.visualTypeParamCache[oldVisualParams.type.name] = oldVisualParams.type.params;
@@ -134,7 +184,7 @@ export class VolsegVolumeData {
             newVisualParams.type.params.alpha = opacity;
             const volumeStats = visual.obj?.data.sourceData.grid.stats;
             if (!volumeStats) throw new Error(`Cannot get volume stats from volume visual ${visual.transform.ref}`);
-            this.changeIsovalueInVolumeVisualParams(newVisualParams, undefined, volumeStats);
+            this.changeIsovalueInVolumeVisualParams(newVisualParams, undefined, volumeStats, channelId);
             const update = this.entryData.newUpdate().to(visual.transform.ref).update(newVisualParams);
             await PluginCommands.State.Update(this.entryData.plugin, { state: this.entryData.plugin.state.data, tree: update, options: { doNotUpdateCurrent: true } });
         }
@@ -152,25 +202,25 @@ export class VolsegVolumeData {
         }
     }
 
-    private getIsovalueFromState(): Volume.IsoValue {
-        const { volumeIsovalueKind, volumeIsovalueValue } = this.entryData.currentState.value;
+    private getIsovalueFromState(channelId: number): Volume.IsoValue {
+        const { volumeIsovalueKind, volumeIsovalueValue } = this.entryData.currentState.value.channelsData.filter(c => c.channelId === channelId)[0];
         return volumeIsovalueKind === 'relative'
             ? Volume.IsoValue.relative(volumeIsovalueValue)
             : Volume.IsoValue.absolute(volumeIsovalueValue);
     }
 
-    private createVolumeVisualParams(volume: Volume, type: 'isosurface' | 'direct-volume' | 'off'): VolumeVisualParams {
+    private createVolumeVisualParams(volume: Volume, type: 'isosurface' | 'direct-volume' | 'off', color: Color): VolumeVisualParams {
         if (type === 'off') type = 'isosurface';
         return createVolumeRepresentationParams(this.entryData.plugin, volume, {
             type: type,
             typeParams: { alpha: 0.2, tryUseGpu: VolsegGlobalStateData.getGlobalState(this.entryData.plugin)?.tryUseGpu },
             color: 'uniform',
-            colorParams: { value: Color(0x121212) },
+            colorParams: { value: color },
         });
     }
 
-    private changeIsovalueInVolumeVisualParams(params: VolumeVisualParams, isovalue: Volume.IsoValue | undefined, stats: VolumeStats) {
-        isovalue ??= this.getIsovalueFromState();
+    private changeIsovalueInVolumeVisualParams(params: VolumeVisualParams, isovalue: Volume.IsoValue | undefined, stats: VolumeStats, channelId: number) {
+        isovalue ??= this.getIsovalueFromState(channelId);
         switch (params.type.name) {
             case 'isosurface':
                 params.type.params.isoValue = isovalue;
