@@ -6,7 +6,7 @@ Note that since we don't clearly distinguish between a public and private interf
 
 ## [Unreleased]
 
-- Expose bond orders in `_struct_conn` in mmCIF files that use `label_seq_id`
+- Use bonds from `_struct_conn` in mmCIF files that use `label_seq_id`
 
 ## [v3.43.1] - 2023-12-04
 
