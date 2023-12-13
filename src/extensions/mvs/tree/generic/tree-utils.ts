@@ -31,7 +31,7 @@ export function treeToString(tree: Tree) {
 }
 
 /** Convert object to a human-friendly string (similar to JSON.stringify but without quoting keys) */
-function formatObject(obj: {} | undefined): string {
+export function formatObject(obj: {} | undefined): string {
     if (!obj) return 'undefined';
     return JSON.stringify(obj).replace(/,("\w+":)/g, ', $1').replace(/"(\w+)":/g, '$1: ');
 }

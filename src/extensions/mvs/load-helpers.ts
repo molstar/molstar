@@ -12,6 +12,7 @@ import { PluginContext } from '../../mol-plugin/context';
 import { StateBuilder, StateObject, StateObjectSelector, StateTransform, StateTransformer } from '../../mol-state';
 import { arrayDistinct } from '../../mol-util/array';
 import { canonicalJsonString } from '../../mol-util/json';
+import { stringToWords } from '../../mol-util/string';
 import { MVSAnnotationColorThemeProps, MVSAnnotationColorThemeProvider } from './components/annotation-color-theme';
 import { MVSAnnotationLabelRepresentationProvider } from './components/annotation-label/representation';
 import { MVSAnnotationSpec } from './components/annotation-prop';
@@ -24,7 +25,7 @@ import { rowToExpression, rowsToExpression } from './helpers/selections';
 import { ElementOfSet, decodeColor, isDefined, stringHash } from './helpers/utils';
 import { MolstarLoadingContext } from './load';
 import { Kind, ParamsOfKind, SubTree, SubTreeOfKind, Tree, getChildren } from './tree/generic/tree-schema';
-import { dfs } from './tree/generic/tree-utils';
+import { dfs, formatObject } from './tree/generic/tree-utils';
 import { MolstarKind, MolstarNode, MolstarTree } from './tree/molstar/molstar-tree';
 import { DefaultColor } from './tree/mvs/mvs-defaults';
 
@@ -314,6 +315,19 @@ export function componentPropsFromSelector(selector?: ParamsOfKind<MolstarTree, 
         return { name: 'expression', params: rowsToExpression(selector) };
     } else {
         return { name: 'expression', params: rowToExpression(selector) };
+    }
+}
+
+/** Return a pretty name for a value of selector param, e.g.  "protein" -> 'Protein', {label_asym_id: "A"} -> 'Custom Selection: {label_asym_id: "A"}' */
+export function prettyNameFromSelector(selector?: ParamsOfKind<MolstarTree, 'component'>['selector']): string {
+    if (selector === undefined) {
+        return 'All';
+    } else if (typeof selector === 'string') {
+        return stringToWords(selector);
+    } else if (Array.isArray(selector)) {
+        return `Custom Selection: [${selector.map(formatObject).join(', ')}]`;
+    } else {
+        return `Custom Selection: ${formatObject(selector)}`;
     }
 }
 

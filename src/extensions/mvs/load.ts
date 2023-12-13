@@ -9,7 +9,6 @@ import { CustomModelProperties, CustomStructureProperties, ModelFromTrajectory, 
 import { StructureRepresentation3D } from '../../mol-plugin-state/transforms/representation';
 import { PluginContext } from '../../mol-plugin/context';
 import { StateObjectSelector } from '../../mol-state';
-import { canonicalJsonString } from '../../mol-util/json';
 import { MolViewSpec } from './behavior';
 import { setCamera, setCanvas, setFocus } from './camera';
 import { MVSAnnotationsProvider } from './components/annotation-prop';
@@ -17,7 +16,7 @@ import { MVSAnnotationStructureComponent } from './components/annotation-structu
 import { MVSAnnotationTooltipsProvider } from './components/annotation-tooltips-prop';
 import { CustomLabelProps, CustomLabelRepresentationProvider } from './components/custom-label/representation';
 import { CustomTooltipsProvider } from './components/custom-tooltips-prop';
-import { AnnotationFromSourceKind, AnnotationFromUriKind, LoadingActions, UpdateTarget, collectAnnotationReferences, collectAnnotationTooltips, collectInlineTooltips, colorThemeForNode, componentFromXProps, componentPropsFromSelector, isPhantomComponent, labelFromXProps, loadTree, makeNearestReprMap, representationProps, structureProps, transformProps } from './load-helpers';
+import { AnnotationFromSourceKind, AnnotationFromUriKind, LoadingActions, UpdateTarget, collectAnnotationReferences, collectAnnotationTooltips, collectInlineTooltips, colorThemeForNode, componentFromXProps, componentPropsFromSelector, isPhantomComponent, labelFromXProps, loadTree, makeNearestReprMap, prettyNameFromSelector, representationProps, structureProps, transformProps } from './load-helpers';
 import { MVSData } from './mvs-data';
 import { ParamsOfKind, SubTreeOfKind, validateTree } from './tree/generic/tree-schema';
 import { convertMvsToMolstar, mvsSanityCheck } from './tree/molstar/conversion';
@@ -161,7 +160,7 @@ const MolstarLoadingActions: LoadingActions<MolstarTree, MolstarLoadingContext> 
         const selector = node.params.selector;
         return UpdateTarget.apply(updateParent, StructureComponent, {
             type: componentPropsFromSelector(selector),
-            label: canonicalJsonString(selector),
+            label: prettyNameFromSelector(selector),
             nullIfEmpty: false,
         });
     },
