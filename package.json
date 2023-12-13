@@ -48,6 +48,9 @@
   "bin": {
     "cif2bcif": "lib/commonjs/cli/cif2bcif/index.js",
     "cifschema": "lib/commonjs/cli/cifschema/index.js",
+    "mvs-validate": "lib/commonjs/cli/mvs/mvs-validate.js",
+    "mvs-render": "lib/commonjs/cli/mvs/mvs-render.js",
+    "mvs-print-schema": "lib/commonjs/cli/mvs/mvs-print-schema.js",
     "model-server": "lib/commonjs/servers/model/server.js",
     "model-server-query": "lib/commonjs/servers/model/query.js",
     "model-server-preprocess": "lib/commonjs/servers/model/preprocess.js",

@@ -6,7 +6,7 @@
  * Command-line application for rendering images from MolViewSpec files
  * Build: npm install --no-save canvas gl jpeg-js pngjs  // these packages are not listed in Mol* dependencies for performance reasons
  *        npm run build
- * Run:   node lib/commonjs/examples/mvs/mvs-render -i examples/mvs/1cbs.mvsj -o ../outputs/1cbs.png --size 800x600 --molj
+ * Run:   node lib/commonjs/cli/mvs/mvs-render -i examples/mvs/1cbs.mvsj -o ../outputs/1cbs.png --size 800x600 --molj
  */
 
 import { ArgumentParser } from 'argparse';

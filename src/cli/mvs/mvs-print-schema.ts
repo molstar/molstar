@@ -5,8 +5,8 @@
  *
  * Command-line application for printing MolViewSpec tree schema
  * Build: npm run build
- * Run:   node lib/commonjs/examples/mvs/mvs-print-schema
- *        node lib/commonjs/examples/mvs/mvs-print-schema --markdown
+ * Run:   node lib/commonjs/cli/mvs/mvs-print-schema
+ *        node lib/commonjs/cli/mvs/mvs-print-schema --markdown
  */
 
 import { ArgumentParser } from 'argparse';
