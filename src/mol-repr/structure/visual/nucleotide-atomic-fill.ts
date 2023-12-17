@@ -21,31 +21,31 @@ import { Sphere3D } from '../../../mol-math/geometry';
 
 // TODO support rings for multiple locations (including from microheterogeneity)
 
-const pN1 = Vec3.zero();
-const pC2 = Vec3.zero();
-const pN3 = Vec3.zero();
-const pC4 = Vec3.zero();
-const pC5 = Vec3.zero();
-const pC6 = Vec3.zero();
-const pN7 = Vec3.zero();
-const pC8 = Vec3.zero();
-const pN9 = Vec3.zero();
+const pN1 = Vec3();
+const pC2 = Vec3();
+const pN3 = Vec3();
+const pC4 = Vec3();
+const pC5 = Vec3();
+const pC6 = Vec3();
+const pN7 = Vec3();
+const pC8 = Vec3();
+const pN9 = Vec3();
 
-const pC1_1 = Vec3.zero();
-const pC2_1 = Vec3.zero();
-const pC3_1 = Vec3.zero();
-const pC4_1 = Vec3.zero();
-const pO4_1 = Vec3.zero();
+const pC1_1 = Vec3();
+const pC2_1 = Vec3();
+const pC3_1 = Vec3();
+const pC4_1 = Vec3();
+const pO4_1 = Vec3();
 
-const mid = Vec3.zero();
-const normal = Vec3.zero();
-const shift = Vec3.zero();
+const mid = Vec3();
+const normal = Vec3();
+const shift = Vec3();
 
-export const NucleotideRingFillMeshParams = {
+export const NucleotideAtomicFillMeshParams = {
     nucleicRingThickness: PD.Numeric(0.5, { min: 0, max: 2, step: 0.01 }),
 };
-export const DefaultNucleotideRingFillMeshProps = PD.getDefaultValues(NucleotideRingFillMeshParams);
-export type NucleotideRingFillProps = typeof DefaultNucleotideRingFillMeshProps
+export const DefaultNucleotideAtomicFillMeshProps = PD.getDefaultValues(NucleotideAtomicFillMeshParams);
+export type NucleotideAtomicFillProps = typeof DefaultNucleotideAtomicFillMeshProps
 
 const positionsRing5_6 = new Float32Array(2 * 9 * 3);
 const stripIndicesRing5_6 = new Uint32Array([0, 1, 2, 3, 4, 5, 6, 7, 16, 17, 14, 15, 12, 13, 8, 9, 10, 11, 0, 1]);
@@ -71,7 +71,7 @@ function shiftPositions(out: NumberArray, dir: Vec3, ...positions: Vec3[]) {
     }
 }
 
-function createNucleotideRingFillMesh(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: NucleotideRingFillProps, mesh?: Mesh) {
+function createNucleotideAtomicFillMesh(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: NucleotideAtomicFillProps, mesh?: Mesh) {
     if (!Unit.isAtomic(unit)) return Mesh.createEmpty(mesh);
 
     const nucleotideElementCount = unit.nucleotideElements.length;
@@ -215,20 +215,20 @@ function createNucleotideRingFillMesh(ctx: VisualContext, unit: Unit, structure:
     return m;
 }
 
-export const NucleotideRingFillParams = {
+export const NucleotideAtomicFillParams = {
     ...UnitsMeshParams,
-    ...NucleotideRingFillMeshParams
+    ...NucleotideAtomicFillMeshParams
 };
-export type NucleotideRingFillParams = typeof NucleotideRingFillParams
+export type NucleotideAtomicFillParams = typeof NucleotideAtomicFillParams
 
-export function NucleotideRingFillVisual(materialId: number): UnitsVisual<NucleotideRingFillParams> {
-    return UnitsMeshVisual<NucleotideRingFillParams>({
-        defaultProps: PD.getDefaultValues(NucleotideRingFillParams),
-        createGeometry: createNucleotideRingFillMesh,
+export function NucleotideAtomicFillVisual(materialId: number): UnitsVisual<NucleotideAtomicFillParams> {
+    return UnitsMeshVisual<NucleotideAtomicFillParams>({
+        defaultProps: PD.getDefaultValues(NucleotideAtomicFillParams),
+        createGeometry: createNucleotideAtomicFillMesh,
         createLocationIterator: NucleotideLocationIterator.fromGroup,
         getLoci: getNucleotideElementLoci,
         eachLocation: eachNucleotideElement,
-        setUpdateState: (state: VisualUpdateState, newProps: PD.Values<NucleotideRingFillParams>, currentProps: PD.Values<NucleotideRingFillParams>) => {
+        setUpdateState: (state: VisualUpdateState, newProps: PD.Values<NucleotideAtomicFillParams>, currentProps: PD.Values<NucleotideAtomicFillParams>) => {
             state.createGeometry = (
                 newProps.nucleicRingThickness !== currentProps.nucleicRingThickness
             );

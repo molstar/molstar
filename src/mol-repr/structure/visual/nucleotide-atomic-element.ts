@@ -12,68 +12,63 @@ import { Theme } from '../../../mol-theme/theme';
 import { Mesh } from '../../../mol-geo/geometry/mesh/mesh';
 import { MeshBuilder } from '../../../mol-geo/geometry/mesh/mesh-builder';
 import { Segmentation } from '../../../mol-data/int';
-import { CylinderProps } from '../../../mol-geo/primitive/cylinder';
 import { isNucleic, isPurineBase, isPyrimidineBase } from '../../../mol-model/structure/model/types';
-import { addCylinder } from '../../../mol-geo/geometry/mesh/builder/cylinder';
-import { UnitsMeshParams, UnitsVisual, UnitsMeshVisual, UnitsCylindersParams, UnitsCylindersVisual } from '../units-visual';
+import { addSphere } from '../../../mol-geo/geometry/mesh/builder/sphere';
+import { UnitsMeshParams, UnitsVisual, UnitsMeshVisual, UnitsSpheresParams, UnitsSpheresVisual } from '../units-visual';
 import { NucleotideLocationIterator, getNucleotideElementLoci, eachNucleotideElement } from './util/nucleotide';
 import { VisualUpdateState } from '../../util';
 import { BaseGeometry } from '../../../mol-geo/geometry/base';
 import { Sphere3D } from '../../../mol-math/geometry';
-
 import { WebGLContext } from '../../../mol-gl/webgl/context';
-
-import { Cylinders } from '../../../mol-geo/geometry/cylinders/cylinders';
-import { CylindersBuilder } from '../../../mol-geo/geometry/cylinders/cylinders-builder';
+import { Spheres } from '../../../mol-geo/geometry/spheres/spheres';
+import { sphereVertexCount } from '../../../mol-geo/primitive/sphere';
+import { SpheresBuilder } from '../../../mol-geo/geometry/spheres/spheres-builder';
 import { StructureGroup } from './util/common';
 
+const pTrace = Vec3();
 
-// avoiding namespace lookup improved performance in Chrome (Aug 2020)
+const pN1 = Vec3();
+const pC2 = Vec3();
+const pN3 = Vec3();
+const pC4 = Vec3();
+const pC5 = Vec3();
+const pC6 = Vec3();
+const pN7 = Vec3();
+const pC8 = Vec3();
+const pN9 = Vec3();
 
-const pTrace = Vec3.zero();
+const pC1_1 = Vec3();
+const pC2_1 = Vec3();
+const pC3_1 = Vec3();
+const pC4_1 = Vec3();
+const pO4_1 = Vec3();
 
-const pN1 = Vec3.zero();
-const pC2 = Vec3.zero();
-const pN3 = Vec3.zero();
-const pC4 = Vec3.zero();
-const pC5 = Vec3.zero();
-const pC6 = Vec3.zero();
-const pN7 = Vec3.zero();
-const pC8 = Vec3.zero();
-const pN9 = Vec3.zero();
-
-const pC1_1 = Vec3.zero();
-const pC2_1 = Vec3.zero();
-const pC3_1 = Vec3.zero();
-const pC4_1 = Vec3.zero();
-const pO4_1 = Vec3.zero();
-
-export const NucleotideRingBondParams = {
+export const NucleotideAtomicElementParams = {
     ...UnitsMeshParams,
-    ...UnitsCylindersParams,
+    ...UnitsSpheresParams,
     sizeFactor: PD.Numeric(0.3, { min: 0, max: 10, step: 0.01 }),
-    radialSegments: PD.Numeric(16, { min: 2, max: 56, step: 2 }, BaseGeometry.CustomQualityParamInfo),
+    detail: PD.Numeric(0, { min: 0, max: 3, step: 1 }, BaseGeometry.CustomQualityParamInfo),
     tryUseImpostor: PD.Boolean(true)
 };
-export type NucleotideRingBondParams = typeof NucleotideRingBondParams
-interface NucleotideRingBondImpostorProps {
+export type NucleotideAtomicElementParams = typeof NucleotideAtomicElementParams
+interface NucleotideAtomicElementImpostorProps {
     sizeFactor: number,
 }
 
-export function NucleotideRingBondVisual(materialId: number, structure: Structure, props: PD.Values<NucleotideRingBondParams>, webgl?: WebGLContext) {
+export function NucleotideAtomicElementVisual(materialId: number, structure: Structure, props: PD.Values<NucleotideAtomicElementParams>, webgl?: WebGLContext) {
     return props.tryUseImpostor && webgl && webgl.extensions.fragDepth
-        ? NucleotideRingBondImpostorVisual(materialId)
-        : NucleotideRingBondMeshVisual(materialId);
+        ? NucleotideAtomicElementImpostorVisual(materialId)
+        : NucleotideAtomicElementMeshVisual(materialId);
 }
 
-function createNucleotideRingBondImpostor(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: NucleotideRingBondImpostorProps, cylinders?: Cylinders) {
-    if (!Unit.isAtomic(unit)) return Cylinders.createEmpty(cylinders);
+function createNucleotideAtomicElementImpostor(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: NucleotideAtomicElementImpostorProps, spheres?: Spheres) {
+    if (!Unit.isAtomic(unit)) return Spheres.createEmpty(spheres);
 
     const nucleotideElementCount = unit.nucleotideElements.length;
-    if (!nucleotideElementCount) return Cylinders.createEmpty(cylinders);
+    if (!nucleotideElementCount) return Spheres.createEmpty(spheres);
 
-    const cylindersCountEstimate = nucleotideElementCount * 15; // 15 is the average purine (17) & pirimidine (13) bonds
-    const builder = CylindersBuilder.create(cylindersCountEstimate, cylindersCountEstimate / 4, cylinders);
+    const spheresCountEstimate = nucleotideElementCount * 15; // 15 is the average purine (17) & pirimidine (13) bonds
+    const builder = SpheresBuilder.create(spheresCountEstimate, spheresCountEstimate / 4, spheres);
 
     const { elements, model } = unit;
     const { chainAtomSegments, residueAtomSegments, atoms, index: atomicIndex } = model.atomicHierarchy;
@@ -112,15 +107,15 @@ function createNucleotideRingBondImpostor(ctx: VisualContext, unit: Unit, struct
                     // trace cylinder
                     if (idxTrace !== -1) {
                         pos(idxTrace, pTrace);
-                        builder.add(pC3_1[0], pC3_1[1], pC3_1[2], pTrace[0], pTrace[1], pTrace[2], 1, true, true, i);
+                        builder.add(pTrace[0], pTrace[1], pTrace[2], i);
                     }
 
                     // sugar ring
-                    builder.add(pC3_1[0], pC3_1[1], pC3_1[2], pC4_1[0], pC4_1[1], pC4_1[2], 1, true, true, i);
-                    builder.add(pC4_1[0], pC4_1[1], pC4_1[2], pO4_1[0], pO4_1[1], pO4_1[2], 1, true, true, i);
-                    builder.add(pO4_1[0], pO4_1[1], pO4_1[2], pC1_1[0], pC1_1[1], pC1_1[2], 1, true, true, i);
-                    builder.add(pC1_1[0], pC1_1[1], pC1_1[2], pC2_1[0], pC2_1[1], pC2_1[2], 1, true, true, i);
-                    builder.add(pC2_1[0], pC2_1[1], pC2_1[2], pC3_1[0], pC3_1[1], pC3_1[2], 1, true, true, i);
+                    builder.add(pC3_1[0], pC3_1[1], pC3_1[2], i);
+                    builder.add(pC4_1[0], pC4_1[1], pC4_1[2], i);
+                    builder.add(pO4_1[0], pO4_1[1], pO4_1[2], i);
+                    builder.add(pC1_1[0], pC1_1[1], pC1_1[2], i);
+                    builder.add(pC2_1[0], pC2_1[1], pC2_1[2], i);
                 }
 
                 let isPurine = isPurineBase(compId);
@@ -156,29 +151,19 @@ function createNucleotideRingBondImpostor(ctx: VisualContext, unit: Unit, struct
                     idxC8 = atomicIndex.findAtomOnResidue(residueIndex, 'C8');
                     idxN9 = atomicIndex.findAtomOnResidue(residueIndex, 'N9');
 
-                    if (idxC1_1 !== -1 && idxN9 !== -1) {
-                        pos(idxC1_1, pC1_1); pos(idxN9, pN9);
-                        builder.add(pN9[0], pN9[1], pN9[2], pC1_1[0], pC1_1[1], pC1_1[2], 1, true, true, i);
-                    } else if (idxN9 !== -1 && idxTrace !== -1) {
-                        pos(idxN9, pN9); pos(idxTrace, pTrace);
-                        builder.add(pN9[0], pN9[1], pN9[2], pTrace[0], pTrace[1], pTrace[2], 1, true, true, i);
-                    }
-
                     if (idxN1 !== -1 && idxC2 !== -1 && idxN3 !== -1 && idxC4 !== -1 && idxC5 !== -1 && idxC6 !== -1 && idxN7 !== -1 && idxC8 !== -1 && idxN9 !== -1) {
-                        pos(idxN1, pN1); pos(idxC2, pC2); pos(idxN3, pN3); pos(idxC4, pC4); pos(idxC5, pC5); pos(idxC6, pC6); pos(idxN7, pN7); pos(idxC8, pC8);
+                        pos(idxN1, pN1); pos(idxC2, pC2); pos(idxN3, pN3); pos(idxC4, pC4); pos(idxC5, pC5); pos(idxC6, pC6); pos(idxN7, pN7); pos(idxC8, pC8); pos(idxN9, pN9);
 
                         // base ring
-                        builder.add(pN9[0], pN9[1], pN9[2], pC8[0], pC8[1], pC8[2], 1, true, true, i);
-                        builder.add(pC8[0], pC8[1], pC8[2], pN7[0], pN7[1], pN7[2], 1, true, true, i);
-                        builder.add(pN7[0], pN7[1], pN7[2], pC5[0], pC5[1], pC5[2], 1, true, true, i);
-                        builder.add(pC5[0], pC5[1], pC5[2], pC6[0], pC6[1], pC6[2], 1, true, true, i);
-                        builder.add(pC6[0], pC6[1], pC6[2], pN1[0], pN1[1], pN1[2], 1, true, true, i);
-                        builder.add(pN1[0], pN1[1], pN1[2], pC2[0], pC2[1], pC2[2], 1, true, true, i);
-                        builder.add(pC2[0], pC2[1], pC2[2], pN3[0], pN3[1], pN3[2], 1, true, true, i);
-                        builder.add(pN3[0], pN3[1], pN3[2], pC4[0], pC4[1], pC4[2], 1, true, true, i);
-                        builder.add(pC4[0], pC4[1], pC4[2], pC5[0], pC5[1], pC5[2], 1, true, true, i);
-                        builder.add(pC4[0], pC4[1], pC4[2], pN9[0], pN9[1], pN9[2], 1, true, true, i);
-
+                        builder.add(pN9[0], pN9[1], pN9[2], i);
+                        builder.add(pC8[0], pC8[1], pC8[2], i);
+                        builder.add(pN7[0], pN7[1], pN7[2], i);
+                        builder.add(pC5[0], pC5[1], pC5[2], i);
+                        builder.add(pC6[0], pC6[1], pC6[2], i);
+                        builder.add(pN1[0], pN1[1], pN1[2], i);
+                        builder.add(pC2[0], pC2[1], pC2[2], i);
+                        builder.add(pN3[0], pN3[1], pN3[2], i);
+                        builder.add(pC4[0], pC4[1], pC4[2], i);
                     }
                 } else if (isPyrimidine) {
                     idxN1 = atomicIndex.findAtomOnResidue(residueIndex, 'N1');
@@ -192,24 +177,16 @@ function createNucleotideRingBondImpostor(ctx: VisualContext, unit: Unit, struct
                     idxC5 = atomicIndex.findAtomOnResidue(residueIndex, 'C5');
                     idxC6 = atomicIndex.findAtomOnResidue(residueIndex, 'C6');
 
-                    if (idxC1_1 !== -1 && idxN1 !== -1) {
-                        pos(idxN1, pN1); pos(idxC1_1, pC1_1);
-                        builder.add(pN1[0], pN1[1], pN1[2], pC1_1[0], pC1_1[1], pC1_1[2], 1, true, true, i);
-                    } else if (idxN1 !== -1 && idxTrace !== -1) {
-                        pos(idxN1, pN1); pos(idxTrace, pTrace);
-                        builder.add(pN1[0], pN1[1], pN1[2], pTrace[0], pTrace[1], pTrace[2], 1, true, true, i);
-                    }
-
                     if (idxN1 !== -1 && idxC2 !== -1 && idxN3 !== -1 && idxC4 !== -1 && idxC5 !== -1 && idxC6 !== -1) {
-                        pos(idxC2, pC2); pos(idxN3, pN3); pos(idxC4, pC4); pos(idxC5, pC5); pos(idxC6, pC6);
+                        pos(idxN1, pN1); pos(idxC2, pC2); pos(idxN3, pN3); pos(idxC4, pC4); pos(idxC5, pC5); pos(idxC6, pC6);
 
                         // base ring
-                        builder.add(pN1[0], pN1[1], pN1[2], pC6[0], pC6[1], pC6[2], 1, true, true, i);
-                        builder.add(pC6[0], pC6[1], pC6[2], pC5[0], pC5[1], pC5[2], 1, true, true, i);
-                        builder.add(pC5[0], pC5[1], pC5[2], pC4[0], pC4[1], pC4[2], 1, true, true, i);
-                        builder.add(pC4[0], pC4[1], pC4[2], pN3[0], pN3[1], pN3[2], 1, true, true, i);
-                        builder.add(pN3[0], pN3[1], pN3[2], pC2[0], pC2[1], pC2[2], 1, true, true, i);
-                        builder.add(pC2[0], pC2[1], pC2[2], pN1[0], pN1[1], pN1[2], 1, true, true, i);
+                        builder.add(pN1[0], pN1[1], pN1[2], i);
+                        builder.add(pC6[0], pC6[1], pC6[2], i);
+                        builder.add(pC5[0], pC5[1], pC5[2], i);
+                        builder.add(pC4[0], pC4[1], pC4[2], i);
+                        builder.add(pN3[0], pN3[1], pN3[2], i);
+                        builder.add(pC2[0], pC2[1], pC2[2], i);
                     }
                 }
 
@@ -218,7 +195,7 @@ function createNucleotideRingBondImpostor(ctx: VisualContext, unit: Unit, struct
 
         }
     }
-    const c = builder.getCylinders();
+    const c = builder.getSpheres();
 
     const sphere = Sphere3D.expand(Sphere3D(), unit.boundary.sphere, 1 * props.sizeFactor);
     c.setBoundingSphere(sphere);
@@ -226,39 +203,39 @@ function createNucleotideRingBondImpostor(ctx: VisualContext, unit: Unit, struct
     return c;
 }
 
-export function NucleotideRingBondImpostorVisual(materialId: number): UnitsVisual<NucleotideRingBondParams> {
-    return UnitsCylindersVisual<NucleotideRingBondParams>({
-        defaultProps: PD.getDefaultValues(NucleotideRingBondParams),
-        createGeometry: createNucleotideRingBondImpostor,
+export function NucleotideAtomicElementImpostorVisual(materialId: number): UnitsVisual<NucleotideAtomicElementParams> {
+    return UnitsSpheresVisual<NucleotideAtomicElementParams>({
+        defaultProps: PD.getDefaultValues(NucleotideAtomicElementParams),
+        createGeometry: createNucleotideAtomicElementImpostor,
         createLocationIterator: NucleotideLocationIterator.fromGroup,
         getLoci: getNucleotideElementLoci,
         eachLocation: eachNucleotideElement,
-        setUpdateState: (state: VisualUpdateState, newProps: PD.Values<NucleotideRingBondParams>, currentProps: PD.Values<NucleotideRingBondParams>) => {
+        setUpdateState: (state: VisualUpdateState, newProps: PD.Values<NucleotideAtomicElementParams>, currentProps: PD.Values<NucleotideAtomicElementParams>) => {
             state.createGeometry = (
                 newProps.sizeFactor !== currentProps.sizeFactor
             );
         },
-        mustRecreate: (structureGroup: StructureGroup, props: PD.Values<NucleotideRingBondParams>, webgl?: WebGLContext) => {
+        mustRecreate: (structureGroup: StructureGroup, props: PD.Values<NucleotideAtomicElementParams>, webgl?: WebGLContext) => {
             return !props.tryUseImpostor || !webgl;
         }
     }, materialId);
 }
 
-interface NucleotideRingBondMeshProps {
-    radialSegments: number,
+interface NucleotideAtomicElementMeshProps {
+    detail: number,
     sizeFactor: number,
 }
 
-function createNucleotideRingBondMesh(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: NucleotideRingBondMeshProps, mesh?: Mesh) {
+function createNucleotideAtomicElementMesh(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: NucleotideAtomicElementMeshProps, mesh?: Mesh) {
     if (!Unit.isAtomic(unit)) return Mesh.createEmpty(mesh);
 
     const nucleotideElementCount = unit.nucleotideElements.length;
     if (!nucleotideElementCount) return Mesh.createEmpty(mesh);
 
-    const { sizeFactor, radialSegments } = props;
+    const { sizeFactor, detail } = props;
 
-    const vertexCount = nucleotideElementCount * (radialSegments * 15); // 15 is the average purine (17) & pirimidine (13) bonds
-    const builderState = MeshBuilder.createState(vertexCount, vertexCount / 4, mesh);
+    const vertexCount = nucleotideElementCount * sphereVertexCount(detail);
+    const builderState = MeshBuilder.createState(vertexCount, vertexCount / 2, mesh);
 
     const { elements, model } = unit;
     const { chainAtomSegments, residueAtomSegments, atoms, index: atomicIndex } = model.atomicHierarchy;
@@ -269,7 +246,7 @@ function createNucleotideRingBondMesh(ctx: VisualContext, unit: Unit, structure:
     const chainIt = Segmentation.transientSegments(chainAtomSegments, elements);
     const residueIt = Segmentation.transientSegments(residueAtomSegments, elements);
 
-    const cylinderProps: CylinderProps = { radiusTop: 1 * sizeFactor, radiusBottom: 1 * sizeFactor, radialSegments };
+    const radius = 1 * sizeFactor;
 
     let i = 0;
     while (chainIt.hasNext) {
@@ -300,15 +277,15 @@ function createNucleotideRingBondMesh(ctx: VisualContext, unit: Unit, structure:
                     // trace cylinder
                     if (idxTrace !== -1) {
                         pos(idxTrace, pTrace);
-                        addCylinder(builderState, pC3_1, pTrace, 1, cylinderProps);
+                        addSphere(builderState, pTrace, radius, detail);
                     }
 
                     // sugar ring
-                    addCylinder(builderState, pC3_1, pC4_1, 1, cylinderProps);
-                    addCylinder(builderState, pC4_1, pO4_1, 1, cylinderProps);
-                    addCylinder(builderState, pO4_1, pC1_1, 1, cylinderProps);
-                    addCylinder(builderState, pC1_1, pC2_1, 1, cylinderProps);
-                    addCylinder(builderState, pC2_1, pC3_1, 1, cylinderProps);
+                    addSphere(builderState, pC4_1, radius, detail);
+                    addSphere(builderState, pO4_1, radius, detail);
+                    addSphere(builderState, pC1_1, radius, detail);
+                    addSphere(builderState, pC2_1, radius, detail);
+                    addSphere(builderState, pC3_1, radius, detail);
                 }
 
                 let isPurine = isPurineBase(compId);
@@ -344,28 +321,20 @@ function createNucleotideRingBondMesh(ctx: VisualContext, unit: Unit, structure:
                     idxC8 = atomicIndex.findAtomOnResidue(residueIndex, 'C8');
                     idxN9 = atomicIndex.findAtomOnResidue(residueIndex, 'N9');
 
-                    if (idxC1_1 !== -1 && idxN9 !== -1) {
-                        pos(idxC1_1, pC1_1); pos(idxN9, pN9);
-                        addCylinder(builderState, pN9, pC1_1, 1, cylinderProps);
-                    } else if (idxN9 !== -1 && idxTrace !== -1) {
-                        pos(idxN9, pN9); pos(idxTrace, pTrace);
-                        addCylinder(builderState, pN9, pTrace, 1, cylinderProps);
-                    }
-
                     if (idxN1 !== -1 && idxC2 !== -1 && idxN3 !== -1 && idxC4 !== -1 && idxC5 !== -1 && idxC6 !== -1 && idxN7 !== -1 && idxC8 !== -1 && idxN9 !== -1) {
-                        pos(idxN1, pN1); pos(idxC2, pC2); pos(idxN3, pN3); pos(idxC4, pC4); pos(idxC5, pC5); pos(idxC6, pC6); pos(idxN7, pN7); pos(idxC8, pC8);
+                        pos(idxN1, pN1); pos(idxC2, pC2); pos(idxN3, pN3); pos(idxC4, pC4); pos(idxC5, pC5); pos(idxC6, pC6); pos(idxN7, pN7); pos(idxC8, pC8); pos(idxN9, pN9);
 
                         // base ring
-                        addCylinder(builderState, pN9, pC8, 1, cylinderProps);
-                        addCylinder(builderState, pC8, pN7, 1, cylinderProps);
-                        addCylinder(builderState, pN7, pC5, 1, cylinderProps);
-                        addCylinder(builderState, pC5, pC6, 1, cylinderProps);
-                        addCylinder(builderState, pC6, pN1, 1, cylinderProps);
-                        addCylinder(builderState, pN1, pC2, 1, cylinderProps);
-                        addCylinder(builderState, pC2, pN3, 1, cylinderProps);
-                        addCylinder(builderState, pN3, pC4, 1, cylinderProps);
-                        addCylinder(builderState, pC4, pC5, 1, cylinderProps);
-                        addCylinder(builderState, pC4, pN9, 1, cylinderProps);
+                        addSphere(builderState, pC8, radius, detail);
+                        addSphere(builderState, pN7, radius, detail);
+                        addSphere(builderState, pC5, radius, detail);
+                        addSphere(builderState, pC6, radius, detail);
+                        addSphere(builderState, pN1, radius, detail);
+                        addSphere(builderState, pC2, radius, detail);
+                        addSphere(builderState, pN3, radius, detail);
+                        addSphere(builderState, pC4, radius, detail);
+                        addSphere(builderState, pC5, radius, detail);
+                        addSphere(builderState, pN9, radius, detail);
                     }
                 } else if (isPyrimidine) {
                     idxN1 = atomicIndex.findAtomOnResidue(residueIndex, 'N1');
@@ -379,24 +348,17 @@ function createNucleotideRingBondMesh(ctx: VisualContext, unit: Unit, structure:
                     idxC5 = atomicIndex.findAtomOnResidue(residueIndex, 'C5');
                     idxC6 = atomicIndex.findAtomOnResidue(residueIndex, 'C6');
 
-                    if (idxC1_1 !== -1 && idxN1 !== -1) {
-                        pos(idxN1, pN1); pos(idxC1_1, pC1_1);
-                        addCylinder(builderState, pN1, pC1_1, 1, cylinderProps);
-                    } else if (idxN1 !== -1 && idxTrace !== -1) {
-                        pos(idxN1, pN1); pos(idxTrace, pTrace);
-                        addCylinder(builderState, pN1, pTrace, 1, cylinderProps);
-                    }
 
                     if (idxN1 !== -1 && idxC2 !== -1 && idxN3 !== -1 && idxC4 !== -1 && idxC5 !== -1 && idxC6 !== -1) {
-                        pos(idxC2, pC2); pos(idxN3, pN3); pos(idxC4, pC4); pos(idxC5, pC5); pos(idxC6, pC6);
+                        pos(idxN1, pN1); pos(idxC2, pC2); pos(idxN3, pN3); pos(idxC4, pC4); pos(idxC5, pC5); pos(idxC6, pC6);
 
                         // base ring
-                        addCylinder(builderState, pN1, pC6, 1, cylinderProps);
-                        addCylinder(builderState, pC6, pC5, 1, cylinderProps);
-                        addCylinder(builderState, pC5, pC4, 1, cylinderProps);
-                        addCylinder(builderState, pC4, pN3, 1, cylinderProps);
-                        addCylinder(builderState, pN3, pC2, 1, cylinderProps);
-                        addCylinder(builderState, pC2, pN1, 1, cylinderProps);
+                        addSphere(builderState, pC6, radius, detail);
+                        addSphere(builderState, pC5, radius, detail);
+                        addSphere(builderState, pC4, radius, detail);
+                        addSphere(builderState, pN3, radius, detail);
+                        addSphere(builderState, pC2, radius, detail);
+                        addSphere(builderState, pN1, radius, detail);
                     }
                 }
 
@@ -414,20 +376,20 @@ function createNucleotideRingBondMesh(ctx: VisualContext, unit: Unit, structure:
 }
 
 
-export function NucleotideRingBondMeshVisual(materialId: number): UnitsVisual<NucleotideRingBondParams> {
-    return UnitsMeshVisual<NucleotideRingBondParams>({
-        defaultProps: PD.getDefaultValues(NucleotideRingBondParams),
-        createGeometry: createNucleotideRingBondMesh,
+export function NucleotideAtomicElementMeshVisual(materialId: number): UnitsVisual<NucleotideAtomicElementParams> {
+    return UnitsMeshVisual<NucleotideAtomicElementParams>({
+        defaultProps: PD.getDefaultValues(NucleotideAtomicElementParams),
+        createGeometry: createNucleotideAtomicElementMesh,
         createLocationIterator: NucleotideLocationIterator.fromGroup,
         getLoci: getNucleotideElementLoci,
         eachLocation: eachNucleotideElement,
-        setUpdateState: (state: VisualUpdateState, newProps: PD.Values<NucleotideRingBondParams>, currentProps: PD.Values<NucleotideRingBondParams>) => {
+        setUpdateState: (state: VisualUpdateState, newProps: PD.Values<NucleotideAtomicElementParams>, currentProps: PD.Values<NucleotideAtomicElementParams>) => {
             state.createGeometry = (
                 newProps.sizeFactor !== currentProps.sizeFactor ||
-                newProps.radialSegments !== currentProps.radialSegments
+                newProps.detail !== currentProps.detail
             );
         },
-        mustRecreate: (structureGroup: StructureGroup, props: PD.Values<NucleotideRingBondParams>, webgl?: WebGLContext) => {
+        mustRecreate: (structureGroup: StructureGroup, props: PD.Values<NucleotideAtomicElementParams>, webgl?: WebGLContext) => {
             return props.tryUseImpostor && !!webgl;
         }
     }, materialId);
