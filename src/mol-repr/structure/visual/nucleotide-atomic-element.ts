@@ -2,20 +2,21 @@
  * Copyright (c) 2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Gianluca Tomasello <giagitom@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { ParamDefinition as PD } from '../../../mol-util/param-definition';
 import { Vec3 } from '../../../mol-math/linear-algebra';
 import { VisualContext } from '../../visual';
-import { Unit, Structure, ElementIndex } from '../../../mol-model/structure';
+import { Unit, Structure } from '../../../mol-model/structure';
 import { Theme } from '../../../mol-theme/theme';
 import { Mesh } from '../../../mol-geo/geometry/mesh/mesh';
 import { MeshBuilder } from '../../../mol-geo/geometry/mesh/mesh-builder';
 import { Segmentation } from '../../../mol-data/int';
-import { isNucleic, isPurineBase, isPyrimidineBase } from '../../../mol-model/structure/model/types';
+import { isNucleic } from '../../../mol-model/structure/model/types';
 import { addSphere } from '../../../mol-geo/geometry/mesh/builder/sphere';
 import { UnitsMeshParams, UnitsVisual, UnitsMeshVisual, UnitsSpheresParams, UnitsSpheresVisual } from '../units-visual';
-import { NucleotideLocationIterator, getNucleotideElementLoci, eachNucleotideElement } from './util/nucleotide';
+import { NucleotideLocationIterator, getNucleotideElementLoci, eachNucleotideElement, getNucleotideBaseType, createNucleicIndices, setSugarIndices, hasSugarIndices, setPurinIndices, hasPurinIndices, setPyrimidineIndices, hasPyrimidineIndices } from './util/nucleotide';
 import { VisualUpdateState } from '../../util';
 import { BaseGeometry } from '../../../mol-geo/geometry/base';
 import { Sphere3D } from '../../../mol-math/geometry';
@@ -71,10 +72,9 @@ function createNucleotideAtomicElementImpostor(ctx: VisualContext, unit: Unit, s
     const builder = SpheresBuilder.create(spheresCountEstimate, spheresCountEstimate / 4, spheres);
 
     const { elements, model } = unit;
-    const { chainAtomSegments, residueAtomSegments, atoms, index: atomicIndex } = model.atomicHierarchy;
+    const { chainAtomSegments, residueAtomSegments } = model.atomicHierarchy;
 
-    const { moleculeType, traceElementIndex } = model.atomicHierarchy.derived.residue;
-    const { label_comp_id } = atoms;
+    const { moleculeType } = model.atomicHierarchy.derived.residue;
     const pos = unit.conformation.invariantPosition;
 
     const chainIt = Segmentation.transientSegments(chainAtomSegments, elements);
@@ -88,27 +88,16 @@ function createNucleotideAtomicElementImpostor(ctx: VisualContext, unit: Unit, s
             const { index: residueIndex } = residueIt.move();
 
             if (isNucleic(moleculeType[residueIndex])) {
-                const compId = label_comp_id.value(residueAtomSegments.offsets[residueIndex]);
+                const idx = createNucleicIndices();
 
-                let idxTrace: ElementIndex | -1 = -1, idxN1: ElementIndex | -1 = -1, idxC2: ElementIndex | -1 = -1, idxN3: ElementIndex | -1 = -1, idxC4: ElementIndex | -1 = -1, idxC5: ElementIndex | -1 = -1, idxC6: ElementIndex | -1 = -1, idxN7: ElementIndex | -1 = -1, idxC8: ElementIndex | -1 = -1, idxN9: ElementIndex | -1 = -1,
-                    idxC1_1: ElementIndex | -1 = -1, idxC2_1: ElementIndex | -1 = -1, idxC3_1: ElementIndex | -1 = -1, idxC4_1: ElementIndex | -1 = -1, idxO4_1: ElementIndex | -1 = -1;
+                setSugarIndices(idx, unit, residueIndex);
 
-                idxTrace = traceElementIndex[residueIndex];
-
-                // sugar base
-                idxC1_1 = atomicIndex.findAtomOnResidue(residueIndex, "C1'");
-                idxC2_1 = atomicIndex.findAtomOnResidue(residueIndex, "C2'");
-                idxC3_1 = atomicIndex.findAtomOnResidue(residueIndex, "C3'");
-                idxC4_1 = atomicIndex.findAtomOnResidue(residueIndex, "C4'");
-                idxO4_1 = atomicIndex.findAtomOnResidue(residueIndex, "O4'");
-                if (idxC1_1 !== -1 && idxC2_1 !== -1 && idxC3_1 !== -1 && idxC4_1 !== -1 && idxO4_1 !== -1) {
-                    pos(idxC1_1, pC1_1); pos(idxC2_1, pC2_1); pos(idxC3_1, pC3_1); pos(idxC4_1, pC4_1); pos(idxO4_1, pO4_1);
+                if (hasSugarIndices(idx)) {
+                    pos(idx.C1_1, pC1_1); pos(idx.C2_1, pC2_1); pos(idx.C3_1, pC3_1); pos(idx.C4_1, pC4_1); pos(idx.O4_1, pO4_1);
 
                     // trace cylinder
-                    if (idxTrace !== -1) {
-                        pos(idxTrace, pTrace);
-                        builder.add(pTrace[0], pTrace[1], pTrace[2], i);
-                    }
+                    pos(idx.trace, pTrace);
+                    builder.add(pTrace[0], pTrace[1], pTrace[2], i);
 
                     // sugar ring
                     builder.add(pC3_1[0], pC3_1[1], pC3_1[2], i);
@@ -118,41 +107,13 @@ function createNucleotideAtomicElementImpostor(ctx: VisualContext, unit: Unit, s
                     builder.add(pC2_1[0], pC2_1[1], pC2_1[2], i);
                 }
 
-                let isPurine = isPurineBase(compId);
-                let isPyrimidine = isPyrimidineBase(compId);
-
-                if (!isPurine && !isPyrimidine) {
-                    // detect Purine or Pyrimidin based on geometry
-                    const idxC4 = atomicIndex.findAtomOnResidue(residueIndex, 'C4');
-                    const idxN9 = atomicIndex.findAtomOnResidue(residueIndex, 'N9');
-                    if (idxC4 !== -1 && idxN9 !== -1 && Vec3.distance(pos(idxC4, pC4), pos(idxN9, pN9)) < 1.6) {
-                        isPurine = true;
-                    } else {
-                        isPyrimidine = true;
-                    }
-                }
+                const { isPurine, isPyrimidine } = getNucleotideBaseType(unit, residueIndex);
 
                 if (isPurine) {
-                    idxN1 = atomicIndex.findAtomOnResidue(residueIndex, 'N1');
-                    idxC2 = atomicIndex.findAtomOnResidue(residueIndex, 'C2');
-                    idxN3 = atomicIndex.findAtomOnResidue(residueIndex, 'N3');
-                    idxC4 = atomicIndex.findAtomOnResidue(residueIndex, 'C4');
-                    idxC5 = atomicIndex.findAtomOnResidue(residueIndex, 'C5');
-                    if (idxC5 === -1) {
-                        // modified ring, e.g. DP
-                        idxC5 = atomicIndex.findAtomOnResidue(residueIndex, 'N5');
-                    }
-                    idxC6 = atomicIndex.findAtomOnResidue(residueIndex, 'C6');
-                    idxN7 = atomicIndex.findAtomOnResidue(residueIndex, 'N7');
-                    if (idxN7 === -1) {
-                        // modified ring, e.g. DP
-                        idxN7 = atomicIndex.findAtomOnResidue(residueIndex, 'C7');
-                    }
-                    idxC8 = atomicIndex.findAtomOnResidue(residueIndex, 'C8');
-                    idxN9 = atomicIndex.findAtomOnResidue(residueIndex, 'N9');
+                    setPurinIndices(idx, unit, residueIndex);
 
-                    if (idxN1 !== -1 && idxC2 !== -1 && idxN3 !== -1 && idxC4 !== -1 && idxC5 !== -1 && idxC6 !== -1 && idxN7 !== -1 && idxC8 !== -1 && idxN9 !== -1) {
-                        pos(idxN1, pN1); pos(idxC2, pC2); pos(idxN3, pN3); pos(idxC4, pC4); pos(idxC5, pC5); pos(idxC6, pC6); pos(idxN7, pN7); pos(idxC8, pC8); pos(idxN9, pN9);
+                    if (hasPurinIndices(idx)) {
+                        pos(idx.N1, pN1); pos(idx.C2, pC2); pos(idx.N3, pN3); pos(idx.C4, pC4); pos(idx.C5, pC5); pos(idx.C6, pC6); pos(idx.N7, pN7); pos(idx.C8, pC8); pos(idx.N9, pN9);
 
                         // base ring
                         builder.add(pN9[0], pN9[1], pN9[2], i);
@@ -166,19 +127,10 @@ function createNucleotideAtomicElementImpostor(ctx: VisualContext, unit: Unit, s
                         builder.add(pC4[0], pC4[1], pC4[2], i);
                     }
                 } else if (isPyrimidine) {
-                    idxN1 = atomicIndex.findAtomOnResidue(residueIndex, 'N1');
-                    if (idxN1 === -1) {
-                        // modified ring, e.g. DZ
-                        idxN1 = atomicIndex.findAtomOnResidue(residueIndex, 'C1');
-                    }
-                    idxC2 = atomicIndex.findAtomOnResidue(residueIndex, 'C2');
-                    idxN3 = atomicIndex.findAtomOnResidue(residueIndex, 'N3');
-                    idxC4 = atomicIndex.findAtomOnResidue(residueIndex, 'C4');
-                    idxC5 = atomicIndex.findAtomOnResidue(residueIndex, 'C5');
-                    idxC6 = atomicIndex.findAtomOnResidue(residueIndex, 'C6');
+                    setPyrimidineIndices(idx, unit, residueIndex);
 
-                    if (idxN1 !== -1 && idxC2 !== -1 && idxN3 !== -1 && idxC4 !== -1 && idxC5 !== -1 && idxC6 !== -1) {
-                        pos(idxN1, pN1); pos(idxC2, pC2); pos(idxN3, pN3); pos(idxC4, pC4); pos(idxC5, pC5); pos(idxC6, pC6);
+                    if (hasPyrimidineIndices(idx)) {
+                        pos(idx.N1, pN1); pos(idx.C2, pC2); pos(idx.N3, pN3); pos(idx.C4, pC4); pos(idx.C5, pC5); pos(idx.C6, pC6);
 
                         // base ring
                         builder.add(pN1[0], pN1[1], pN1[2], i);
@@ -192,7 +144,6 @@ function createNucleotideAtomicElementImpostor(ctx: VisualContext, unit: Unit, s
 
                 ++i;
             }
-
         }
     }
     const c = builder.getSpheres();
@@ -238,9 +189,8 @@ function createNucleotideAtomicElementMesh(ctx: VisualContext, unit: Unit, struc
     const builderState = MeshBuilder.createState(vertexCount, vertexCount / 2, mesh);
 
     const { elements, model } = unit;
-    const { chainAtomSegments, residueAtomSegments, atoms, index: atomicIndex } = model.atomicHierarchy;
-    const { moleculeType, traceElementIndex } = model.atomicHierarchy.derived.residue;
-    const { label_comp_id } = atoms;
+    const { chainAtomSegments, residueAtomSegments } = model.atomicHierarchy;
+    const { moleculeType } = model.atomicHierarchy.derived.residue;
     const pos = unit.conformation.invariantPosition;
 
     const chainIt = Segmentation.transientSegments(chainAtomSegments, elements);
@@ -256,29 +206,18 @@ function createNucleotideAtomicElementMesh(ctx: VisualContext, unit: Unit, struc
             const { index: residueIndex } = residueIt.move();
 
             if (isNucleic(moleculeType[residueIndex])) {
-                const compId = label_comp_id.value(residueAtomSegments.offsets[residueIndex]);
-
-                let idxTrace: ElementIndex | -1 = -1, idxN1: ElementIndex | -1 = -1, idxC2: ElementIndex | -1 = -1, idxN3: ElementIndex | -1 = -1, idxC4: ElementIndex | -1 = -1, idxC5: ElementIndex | -1 = -1, idxC6: ElementIndex | -1 = -1, idxN7: ElementIndex | -1 = -1, idxC8: ElementIndex | -1 = -1, idxN9: ElementIndex | -1 = -1,
-                    idxC1_1: ElementIndex | -1 = -1, idxC2_1: ElementIndex | -1 = -1, idxC3_1: ElementIndex | -1 = -1, idxC4_1: ElementIndex | -1 = -1, idxO4_1: ElementIndex | -1 = -1;
+                const idx = createNucleicIndices();
 
                 builderState.currentGroup = i;
 
-                idxTrace = traceElementIndex[residueIndex];
+                setSugarIndices(idx, unit, residueIndex);
 
-                // sugar base
-                idxC1_1 = atomicIndex.findAtomOnResidue(residueIndex, "C1'");
-                idxC2_1 = atomicIndex.findAtomOnResidue(residueIndex, "C2'");
-                idxC3_1 = atomicIndex.findAtomOnResidue(residueIndex, "C3'");
-                idxC4_1 = atomicIndex.findAtomOnResidue(residueIndex, "C4'");
-                idxO4_1 = atomicIndex.findAtomOnResidue(residueIndex, "O4'");
-                if (idxC1_1 !== -1 && idxC2_1 !== -1 && idxC3_1 !== -1 && idxC4_1 !== -1 && idxO4_1 !== -1) {
-                    pos(idxC1_1, pC1_1); pos(idxC2_1, pC2_1); pos(idxC3_1, pC3_1); pos(idxC4_1, pC4_1); pos(idxO4_1, pO4_1);
+                if (hasSugarIndices(idx)) {
+                    pos(idx.C1_1, pC1_1); pos(idx.C2_1, pC2_1); pos(idx.C3_1, pC3_1); pos(idx.C4_1, pC4_1); pos(idx.O4_1, pO4_1);
 
                     // trace cylinder
-                    if (idxTrace !== -1) {
-                        pos(idxTrace, pTrace);
-                        addSphere(builderState, pTrace, radius, detail);
-                    }
+                    pos(idx.trace, pTrace);
+                    addSphere(builderState, pTrace, radius, detail);
 
                     // sugar ring
                     addSphere(builderState, pC4_1, radius, detail);
@@ -288,41 +227,13 @@ function createNucleotideAtomicElementMesh(ctx: VisualContext, unit: Unit, struc
                     addSphere(builderState, pC3_1, radius, detail);
                 }
 
-                let isPurine = isPurineBase(compId);
-                let isPyrimidine = isPyrimidineBase(compId);
-
-                if (!isPurine && !isPyrimidine) {
-                    // detect Purine or Pyrimidin based on geometry
-                    const idxC4 = atomicIndex.findAtomOnResidue(residueIndex, 'C4');
-                    const idxN9 = atomicIndex.findAtomOnResidue(residueIndex, 'N9');
-                    if (idxC4 !== -1 && idxN9 !== -1 && Vec3.distance(pos(idxC4, pC4), pos(idxN9, pN9)) < 1.6) {
-                        isPurine = true;
-                    } else {
-                        isPyrimidine = true;
-                    }
-                }
+                const { isPurine, isPyrimidine } = getNucleotideBaseType(unit, residueIndex);
 
                 if (isPurine) {
-                    idxN1 = atomicIndex.findAtomOnResidue(residueIndex, 'N1');
-                    idxC2 = atomicIndex.findAtomOnResidue(residueIndex, 'C2');
-                    idxN3 = atomicIndex.findAtomOnResidue(residueIndex, 'N3');
-                    idxC4 = atomicIndex.findAtomOnResidue(residueIndex, 'C4');
-                    idxC5 = atomicIndex.findAtomOnResidue(residueIndex, 'C5');
-                    if (idxC5 === -1) {
-                        // modified ring, e.g. DP
-                        idxC5 = atomicIndex.findAtomOnResidue(residueIndex, 'N5');
-                    }
-                    idxC6 = atomicIndex.findAtomOnResidue(residueIndex, 'C6');
-                    idxN7 = atomicIndex.findAtomOnResidue(residueIndex, 'N7');
-                    if (idxN7 === -1) {
-                        // modified ring, e.g. DP
-                        idxN7 = atomicIndex.findAtomOnResidue(residueIndex, 'C7');
-                    }
-                    idxC8 = atomicIndex.findAtomOnResidue(residueIndex, 'C8');
-                    idxN9 = atomicIndex.findAtomOnResidue(residueIndex, 'N9');
+                    setPurinIndices(idx, unit, residueIndex);
 
-                    if (idxN1 !== -1 && idxC2 !== -1 && idxN3 !== -1 && idxC4 !== -1 && idxC5 !== -1 && idxC6 !== -1 && idxN7 !== -1 && idxC8 !== -1 && idxN9 !== -1) {
-                        pos(idxN1, pN1); pos(idxC2, pC2); pos(idxN3, pN3); pos(idxC4, pC4); pos(idxC5, pC5); pos(idxC6, pC6); pos(idxN7, pN7); pos(idxC8, pC8); pos(idxN9, pN9);
+                    if (hasPurinIndices(idx)) {
+                        pos(idx.N1, pN1); pos(idx.C2, pC2); pos(idx.N3, pN3); pos(idx.C4, pC4); pos(idx.C5, pC5); pos(idx.C6, pC6); pos(idx.N7, pN7); pos(idx.C8, pC8); pos(idx.N9, pN9);
 
                         // base ring
                         addSphere(builderState, pC8, radius, detail);
@@ -337,20 +248,10 @@ function createNucleotideAtomicElementMesh(ctx: VisualContext, unit: Unit, struc
                         addSphere(builderState, pN9, radius, detail);
                     }
                 } else if (isPyrimidine) {
-                    idxN1 = atomicIndex.findAtomOnResidue(residueIndex, 'N1');
-                    if (idxN1 === -1) {
-                        // modified ring, e.g. DZ
-                        idxN1 = atomicIndex.findAtomOnResidue(residueIndex, 'C1');
-                    }
-                    idxC2 = atomicIndex.findAtomOnResidue(residueIndex, 'C2');
-                    idxN3 = atomicIndex.findAtomOnResidue(residueIndex, 'N3');
-                    idxC4 = atomicIndex.findAtomOnResidue(residueIndex, 'C4');
-                    idxC5 = atomicIndex.findAtomOnResidue(residueIndex, 'C5');
-                    idxC6 = atomicIndex.findAtomOnResidue(residueIndex, 'C6');
+                    setPyrimidineIndices(idx, unit, residueIndex);
 
-
-                    if (idxN1 !== -1 && idxC2 !== -1 && idxN3 !== -1 && idxC4 !== -1 && idxC5 !== -1 && idxC6 !== -1) {
-                        pos(idxN1, pN1); pos(idxC2, pC2); pos(idxN3, pN3); pos(idxC4, pC4); pos(idxC5, pC5); pos(idxC6, pC6);
+                    if (hasPyrimidineIndices(idx)) {
+                        pos(idx.N1, pN1); pos(idx.C2, pC2); pos(idx.N3, pN3); pos(idx.C4, pC4); pos(idx.C5, pC5); pos(idx.C6, pC6);
 
                         // base ring
                         addSphere(builderState, pC6, radius, detail);

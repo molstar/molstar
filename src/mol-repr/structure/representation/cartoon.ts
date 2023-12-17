@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2022 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2018-2023 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author Gianluca Tomasello <giagitom@gmail.com>
@@ -13,7 +13,7 @@ import { StructureRepresentation, StructureRepresentationProvider, StructureRepr
 import { UnitsRepresentation } from '../units-representation';
 import { NucleotideBlockParams, NucleotideBlockVisual } from '../visual/nucleotide-block-mesh';
 import { NucleotideRingParams, NucleotideRingVisual } from '../visual/nucleotide-ring-mesh';
-import { NucleotideAtomicFillParams, NucleotideAtomicFillVisual } from '../visual/nucleotide-atomic-fill';
+import { NucleotideAtomicRingFillParams, NucleotideAtomicRingFillVisual } from '../visual/nucleotide-atomic-ring-fill';
 import { NucleotideAtomicBondParams, NucleotideAtomicBondVisual } from '../visual/nucleotide-atomic-bond';
 import { NucleotideAtomicElementParams, NucleotideAtomicElementVisual } from '../visual/nucleotide-atomic-element';
 import { PolymerDirectionParams, PolymerDirectionVisual } from '../visual/polymer-direction-wedge';
@@ -29,7 +29,7 @@ const CartoonVisuals = {
     'polymer-gap': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, PolymerGapParams>) => UnitsRepresentation('Polymer gap cylinder', ctx, getParams, PolymerGapVisual),
     'nucleotide-block': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, NucleotideBlockParams>) => UnitsRepresentation('Nucleotide block mesh', ctx, getParams, NucleotideBlockVisual),
     'nucleotide-ring': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, NucleotideRingParams>) => UnitsRepresentation('Nucleotide ring mesh', ctx, getParams, NucleotideRingVisual),
-    'nucleotide-atomic-fill': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, NucleotideAtomicFillParams>) => UnitsRepresentation('Nucleotide atomic fill', ctx, getParams, NucleotideAtomicFillVisual),
+    'nucleotide-atomic-ring-fill': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, NucleotideAtomicRingFillParams>) => UnitsRepresentation('Nucleotide atomic ring fill', ctx, getParams, NucleotideAtomicRingFillVisual),
     'nucleotide-atomic-bond': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, NucleotideAtomicBondParams>) => UnitsRepresentation('Nucleotide atomic bond', ctx, getParams, NucleotideAtomicBondVisual),
     'nucleotide-atomic-element': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, NucleotideAtomicElementParams>) => UnitsRepresentation('Nucleotide atomic element', ctx, getParams, NucleotideAtomicElementVisual),
     'direction-wedge': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, PolymerDirectionParams>) => UnitsRepresentation('Polymer direction wedge', ctx, getParams, PolymerDirectionVisual),
@@ -42,10 +42,10 @@ export const CartoonParams = {
     ...NucleotideRingParams,
     ...NucleotideAtomicBondParams,
     ...NucleotideAtomicElementParams,
-    ...NucleotideAtomicFillParams,
+    ...NucleotideAtomicRingFillParams,
     ...PolymerDirectionParams,
     sizeFactor: PD.Numeric(0.2, { min: 0, max: 10, step: 0.01 }),
-    visuals: PD.MultiSelect(['polymer-trace', 'polymer-gap', 'nucleotide-ring', 'nucleotide-atomic-fill', 'nucleotide-atomic-bond', 'nucleotide-atomic-element'], PD.objectToOptions(CartoonVisuals)),
+    visuals: PD.MultiSelect(['polymer-trace', 'polymer-gap', 'nucleotide-ring', 'nucleotide-atomic-ring-fill', 'nucleotide-atomic-bond', 'nucleotide-atomic-element'], PD.objectToOptions(CartoonVisuals)),
     bumpFrequency: PD.Numeric(2, { min: 0, max: 10, step: 0.1 }, BaseGeometry.ShadingCategory),
 };
 
